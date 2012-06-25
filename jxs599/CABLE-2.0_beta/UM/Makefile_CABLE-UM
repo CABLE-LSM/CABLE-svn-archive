@@ -28,10 +28,10 @@ FC = ifort
 #CFLAGS = -O0 -traceback -g -fp-model precise -ftz -fpe0 
 
 #taken from UM Makefile
-CFLAGS = -O0 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0  
+CFLAGS = -O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0  
 #CFLAGS = -O0 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0  
 CINC = -I$(NCMOD)
-LDFLAGS = -O0 
+LDFLAGS = -O2 
 LD =  -L$(NCDIR) -lnetcdf 
 
 ### gfortran compiler options

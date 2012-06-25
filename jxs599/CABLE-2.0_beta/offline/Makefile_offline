@@ -29,8 +29,8 @@ NCMOD = /usr/local/intel/include/
 
 ##ifort compiler options
 FC = ifort
-#CFLAGS = -O2 -fp-model precise -ftz -fpe0
-CFLAGS = -O0 -traceback -g -fp-model precise -ftz -fpe0 
+CFLAGS = -O2 -fp-model precise -ftz -fpe0
+#CFLAGS = -O0 -traceback -g -fp-model precise -ftz -fpe0 
 CINC = -I$(NCMOD)
 LDFLAGS = -O2 
 LD =  -L$(NCDIR) -lnetcdf 
