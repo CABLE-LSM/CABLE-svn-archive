@@ -417,7 +417,6 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       !               + (met%precip_sn +  conv_rain_prevstep)
       met%tvair =     met%tk
       met%tvrad =     met%tk
-      met%tc =        met%tk - tfrz
       met%coszen =    max(met%coszen,1e-8) 
 
       !---this is necessary clobrring at present 

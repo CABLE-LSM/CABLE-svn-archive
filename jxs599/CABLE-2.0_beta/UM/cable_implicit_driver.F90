@@ -184,7 +184,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       
       met%precip   =  met%precip + met%precip_sn
       met%tk = met%tk + dtlc
-      met%tc = met%tk - tfrz
       met%qv = met%qv + dqwc
       met%tvair = met%tk
       met%tvrad = met%tk
