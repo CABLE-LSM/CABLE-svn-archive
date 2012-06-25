@@ -4,7 +4,7 @@ if [[ ! -d tmp ]]; then
    mkdir tmp
 fi
 
-libpath="~/CABLE-UM/libcable.a"
+libpath="~/CABLE-AUX/lib/libcable.a"
 
 if [[ -f $libpath ]]; then
    print '\nCABLE library exists at $libpath. Copying to $libpath.bu\n' 
@@ -18,11 +18,11 @@ DRV="."
 /bin/cp -p $DRV/*90 ./tmp
 
 #print '\nPlease note: CASA-CNP files are included in build only for technical reasons. Implementation is not officially available with the release of CABLE 2.0\n' 
-/bin/cp -p Make_CABLE-UM ./tmp
+/bin/cp -p Makefile_CABLE-UM ./tmp
 
 cd tmp/
 
-make -f Make_CABLE-UM
+make -f Makefile_CABLE-UM
    
 if [[ -f cable_explicit_driver.o ]]; then
    print '\nCompile appears successful. Now build library\n'
@@ -41,21 +41,25 @@ fi
    cable_um_tech.o cable_um_init_subrs.o cable_um_init.o 
 
 if [[ -f libcable.a ]]; then
-   print '\nLibrary build successful. Copying libcable.a to ~/CABLE-UM.\n'
+   print '\nLibrary build successful. Copying libcable.a to ~/CABLE-AUX.\n'
 else
    print '\nBuild failed\n'
    exit
 fi
 
-if [[ ! -d ~/CABLE-UM ]]; then
-   mkdir ~/CABLE-UM
+if [[ ! -d ~/CABLE-AUX ]]; then
+   mkdir ~/CABLE-AUX
 fi
 
-/bin/cp -p libcable.a ~/CABLE-UM
+if [[ ! -d ~/CABLE-AUX/lib ]]; then
+   mkdir ~/CABLE-AUX/lib
+fi
 
-if [[ -f ~/CABLE-UM/libcable.a ]]; then
-   print "\nYour timestamped library shoulb thiis one:\n"
-   echo `ls -alt ~/CABLE-UM/libcable.a`
+/bin/cp -p libcable.a ~/CABLE-AUX/lib
+
+if [[ -f ~/CABLE-AUX/lib/libcable.a ]]; then
+   print "\nYour timestamped library shoul be this one:\n"
+   echo `ls -alt ~/CABLE-AUX/lib/libcable.a`
    print '\nDONE\n'
    exit
 else

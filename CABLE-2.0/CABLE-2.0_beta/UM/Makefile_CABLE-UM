@@ -19,11 +19,6 @@
 NCDIR = /usr/local/intel/lib/            
 NCMOD = /usr/local/intel/include/       
 
-##zjlnik: jxs599 Mac
-#NCDIR = /usr/local/lib/            # netcdf library address on zjlmik 
-#NCMOD = /usr/local/include/ #netcdf.mod
-
-
 ### compilers ###
 
 ##ifort compiler options
@@ -33,7 +28,7 @@ FC = ifort
 #CFLAGS = -O0 -traceback -g -fp-model precise -ftz -fpe0 
 
 #taken from UM Makefile
-CFLAGS = -O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0  
+CFLAGS = -O0 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0  
 #CFLAGS = -O0 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0  
 CINC = -I$(NCMOD)
 LDFLAGS = -O0 
