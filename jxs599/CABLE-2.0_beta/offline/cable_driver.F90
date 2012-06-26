@@ -149,9 +149,7 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-  
-   CHARACTER(LEN=300)  :: myhome
-
+   
    ! switches etc defined thru namelist (by default cable.nml)
    ! jhan; comments needed for each, tidy, def type nml% ?
    NAMELIST/CABLE/                  &
@@ -182,16 +180,13 @@ PROGRAM cable_offline_driver
                   cable_user           ! additional USER switches 
 
    ! END header
-   
-   call getenv("HOME",myhome)
 
-   print *,"myhome: ", trim(myhome) 
+
 
    ! Open, read and close the namelist file.
-   OPEN( 10, FILE = trim(myhome)//"/CABLE-AUX/run/"//CABLE_NAMELIST )
+   OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
-   stop
 
    cable_runtime%offline = .TRUE.
    

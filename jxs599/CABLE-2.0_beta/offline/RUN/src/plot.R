@@ -42,7 +42,7 @@ seasgof = array( 0, c( length(sitenames), length(flux), seas_plotsperflux ) ) #1
 #####################################################################
 for(i in 1:length(sitenames) ) { # plots for each site listed in  main.txt
    setwd( paste('../out/',sitenames[i],sep='') )
-   fobs <- paste('../../',obsfiles[i],sep='') 
+   fobs <- paste('',obsfiles[i],sep='') 
    ###############################################
    ###  reads all data and comp. daily format  ###
    ###############################################

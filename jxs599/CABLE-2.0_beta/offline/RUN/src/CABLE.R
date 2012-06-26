@@ -18,14 +18,17 @@ for(site in 1:length(obsfiles)) { # for each site
    cnlist[2] = paste('  filename%met = \'', obsfiles[site],'\'',sep='')
    cnlist[3] = '  filename%out = \'out_cable.nc\''
    cnlist[4] = '  filename%log = \'log_cable.txt\''
-   cnlist[5] = '  filename%restart_in  = \' \''
+   cnlist[5] = paste("   filename%restart_in  = \'/home/srb001/CABLE-AUX/data/",
+               "restart_out.nc \' ", sep='')
+   #cnlist[5] = '  filename%restart_in  = \' \''
    cnlist[6] = '  filename%restart_out = \'./restart_out.nc\''
    cnlist[7] = '  filename%type    = \'/home/srb001/CABLE-AUX/data/surface_data/gridinfo_CSIRO_1x1.nc\''
    cnlist[8] = '  filename%veg    = \'/home/srb001/CABLE-AUX/data/core/def_veg_params.txt\''
    cnlist[9] = '  filename%soil    = \'/home/srb001/CABLE-AUX/data/core/def_soil_params.txt\''
    cnlist[10] = '  vegparmnew = .TRUE.  ! using new format when true'
    cnlist[11] = '  soilparmnew = .TRUE.  ! using new format when true'
-   cnlist[12] = '  spinup = .TRUE.  ! do we spin up the model?'
+   cnlist[12] = '  spinup = .FALSE.  ! do we spin up the model?'
+   #cnlist[12] = '  spinup = .TRUE.  ! do we spin up the model?'
    cnlist[13] = '  delsoilM = 0.001   ! allowed variation in soil moisture for spin up'
    cnlist[14] = '  delsoilT = 0.01    ! allowed variation in soil temperature for spin up'
    cnlist[15] = '  output%restart = .TRUE.  ! should a restart file be created?'

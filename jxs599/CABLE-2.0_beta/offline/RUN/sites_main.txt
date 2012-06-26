@@ -26,7 +26,7 @@ obsfiles=c(
 #           'data/sample_met/Weidenbrunnen_csiro.nc',
 #           'data/sample_met/XishuangBanna_2003-2008_csiro.nc',
 #           'data/sample_met/Tumbarumba_csiro.nc',
-           '../data/sample_met/Bondville1997_csiro.nc' #,
+           '/home/srb001/CABLE-AUX/data/sample_met/Bondville1997_csiro.nc' #,
        #    'data/sample_met/Bondville1998_csiro.nc'
        #    'data/sample_met/Bondville1999_csiro.nc'
           )
