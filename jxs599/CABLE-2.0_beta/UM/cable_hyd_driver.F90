@@ -25,9 +25,6 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
       
       TFRZ => PHYS%TFRZ
    
-      IF( cable_user%RUN_DIAG_LEVEL == 'BASIC' )                               &
-         CALL cable_stat('cable_hyd_driver')
-      
       cable_runtime%um_hydrology = .true.
 
       SNOW_TILE= UNPACK(ssnow%snowd, um1%L_TILE_PTS, miss)

@@ -235,9 +235,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
 
-   IF( cable_user%RUN_DIAG_LEVEL == 'BASIC' )                                  &
-      CALL cable_stat('cable_explicit_driver')
-
    !--- initialize cable_runtime% switches 
    IF(first_cable_call)                                                        & 
       cable_runtime%um = .TRUE.
