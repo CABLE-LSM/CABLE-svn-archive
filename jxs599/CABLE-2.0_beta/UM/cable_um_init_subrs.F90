@@ -1,5 +1,5 @@
 
-MODULE cable_um_init_subrs
+MODULE cable_um_init_subrs_mod
    IMPLICIT NONE
 
 
@@ -915,7 +915,7 @@ END SUBROUTINE alloc_cable_types
 !========================================================================
 
 
-END MODULE cable_um_init_subrs
+END MODULE cable_um_init_subrs_mod
 
 
 

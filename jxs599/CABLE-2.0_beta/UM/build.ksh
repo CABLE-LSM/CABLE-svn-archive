@@ -58,7 +58,7 @@ fi
 /bin/cp -p libcable.a ~/CABLE-AUX/lib
 
 if [[ -f ~/CABLE-AUX/lib/libcable.a ]]; then
-   print "\nYour timestamped library shoul be this one:\n"
+   print "\nYour timestamped library should be this one:\n"
    echo `ls -alt ~/CABLE-AUX/lib/libcable.a`
    print '\nDONE\n'
    exit
