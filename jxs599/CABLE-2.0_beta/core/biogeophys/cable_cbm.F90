@@ -18,7 +18,7 @@ CONTAINS
     
    USE cable_common_module
    USE cable_carbon_module
-   USE soil_snow_module
+   USE cable_soil_snow_module
    USE cable_def_types_mod
    USE cable_roughness_module
    USE cable_radiation_module
