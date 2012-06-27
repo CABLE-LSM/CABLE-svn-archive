@@ -439,7 +439,7 @@ MODULE cable_def_types_mod
          qvair,   & ! within canopy specific humidity (g/g)
          da,      & ! water vap pressure deficit at ref height (Pa)
          dva,     & ! in canopy water vap pressure deficit (Pa)
-         coszen  & ! cos(zenith angle of sun)
+         coszen     ! cos(zenith angle of sun)
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
          fsd  ! downward short-wave radiation (W/m2)

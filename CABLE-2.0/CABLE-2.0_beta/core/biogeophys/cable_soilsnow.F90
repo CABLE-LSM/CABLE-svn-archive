@@ -1,5 +1,5 @@
 
-MODULE soil_snow_module
+MODULE cable_soil_snow_module
    
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
@@ -1908,4 +1908,4 @@ ENDIF  ! if(.NOT.cable_runtime_coupled)
   !+++++++++++++++++++  Hydraulic Redistribution Section  ++++++++++++++++++++++
 
 
-END MODULE soil_snow_module
+END MODULE cable_soil_snow_module

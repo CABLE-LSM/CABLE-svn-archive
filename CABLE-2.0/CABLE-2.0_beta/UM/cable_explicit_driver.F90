@@ -222,7 +222,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !___ location of namelist file defining runtime vars
    CHARACTER(LEN=200), PARAMETER ::                                            & 
-      runtime_vars_file = '/home/599/ewk599/CABLE-UM/cable.nml'
+      nml_path1 = '/CABLE-AUX/UM/cable.nml'
+
+   CHARACTER(LEN=200) ::                                                       & 
+      myhome,                                                                  & 
+      runtime_vars_file 
+
 
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
@@ -230,13 +235,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
 
-   IF( cable_user%RUN_DIAG_LEVEL == 'BASIC' )                                  &
-      CALL cable_stat('cable_explicit_driver')
-
    !--- initialize cable_runtime% switches 
    IF(first_cable_call)                                                        & 
       cable_runtime%um = .TRUE.
    
+   CALL GETENV("HOME", myhome)   
+   runtime_vars_file = TRIM(myhome)//TRIM(nml_path1)
+
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
