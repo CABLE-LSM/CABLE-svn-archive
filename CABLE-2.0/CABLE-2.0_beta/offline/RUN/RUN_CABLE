@@ -86,6 +86,9 @@ fi
 ###  NB. qsub-ed jobs assume an executable already exists          ###
 ######################################################################
 if [[ $1 == 'run' ]] || [ -n "$PBS_JOBID" ]; then 
+   if [[ ! -e data ]]; then
+      ln -s ~/CABLE-AUX/data
+  fi 
    if [[ -f cable ]]; then
       print "Using existing executable"
       force_build='false'
