@@ -1,5 +1,5 @@
 
-MODULE cable_um_init_subrs
+MODULE cable_um_init_subrs_mod
    IMPLICIT NONE
 
 
@@ -100,7 +100,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
                             dzsoil ) 
 
-   USE cable_def_types_mod, ONLY : ms, mstype, mp
+   USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
    USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
                                    soilin, get_type_parameters
@@ -168,7 +168,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          !--- conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
          !--- if the land point is/has an active tile. generic format:
          !---     um2cable_lp( UM var, 
-         !---                 default value for snow tile, 
+         !---                 default value for snow tile  where 
          !---                 peranent ice point to be treatedas a snowtile, 
          !---                 CABLE var, 
          !---                 mask )
@@ -182,8 +182,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ALLOCATE( tempvar(um1%land_pts), tempvar2(mp) )
          tempvar = soilin%sand(9) * 0.3  + soilin%clay(9) *0.25 +              &
                    soilin%silt(9) * 0.265
-         tempvar2 = REAL(soil%cnsd)
+         
          CALL um2cable_lp( HCON, tempvar, tempvar2, soil%isoilm)
+         soil%cnsd = REAL( tempvar2, r_2 )
          DEALLOCATE( tempvar, tempvar2 )
          
          ! hydraulic conductivity @saturation (satcon[mm/s], soilin%hyds[m/s] )
@@ -417,7 +418,6 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       !               + (met%precip_sn +  conv_rain_prevstep)
       met%tvair =     met%tk
       met%tvrad =     met%tk
-      met%tc =        met%tk - tfrz
       met%coszen =    max(met%coszen,1e-8) 
 
       !---this is necessary clobrring at present 
@@ -915,7 +915,7 @@ END SUBROUTINE alloc_cable_types
 !========================================================================
 
 
-END MODULE cable_um_init_subrs
+END MODULE cable_um_init_subrs_mod
 
 
 

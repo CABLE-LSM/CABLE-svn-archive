@@ -25,7 +25,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
                                   ssnow, sum_flux, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user
-   USE cable_um_init_subrs, ONLY : um2cable_rr
+   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
    USE cable_cbm_module,    ONLY : cbm
 
    IMPLICIT NONE
@@ -184,7 +184,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       
       met%precip   =  met%precip + met%precip_sn
       met%tk = met%tk + dtlc
-      met%tc = met%tk - tfrz
       met%qv = met%qv + dqwc
       met%tvair = met%tk
       met%tvrad = met%tk
