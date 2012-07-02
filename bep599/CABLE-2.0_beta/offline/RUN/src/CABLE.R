@@ -12,19 +12,19 @@ for(site in 1:length(obsfiles)) { # for each site
    newdirname= paste( 'out/', sitenames[site], sep="")
    setwd('../')
    system(paste('mkdir',newdirname)) # create new directory
+   
    # elements to write in cable.nml  
    # following "cnlist[] =", LHS arguments are varibales in the CABLE code
    cnlist[1] = '&cable'
    cnlist[2] = paste('  filename%met = \'', obsfiles[site],'\'',sep='')
    cnlist[3] = '  filename%out = \'out_cable.nc\''
    cnlist[4] = '  filename%log = \'log_cable.txt\''
-   cnlist[5] = paste("   filename%restart_in  = \'/home/srb001/CABLE-AUX/data/",
-               "restart_out.nc \' ", sep='')
-   #cnlist[5] = '  filename%restart_in  = \' \''
+   cnlist[5] = paste("   filename%restart_in  = \'../data/restart_out.nc \' ", 
+                     sep='')
    cnlist[6] = '  filename%restart_out = \'./restart_out.nc\''
-   cnlist[7] = '  filename%type    = \'/home/srb001/CABLE-AUX/data/surface_data/gridinfo_CSIRO_1x1.nc\''
-   cnlist[8] = '  filename%veg    = \'/home/srb001/CABLE-AUX/data/core/def_veg_params.txt\''
-   cnlist[9] = '  filename%soil    = \'/home/srb001/CABLE-AUX/data/core/def_soil_params.txt\''
+   cnlist[7] = '  filename%type    = \'../data/surface_data/gridinfo_CSIRO_1x1.nc\''
+   cnlist[8] = '  filename%veg    = \'../data/core/def_veg_params.txt\''
+   cnlist[9] = '  filename%soil    = \'../data/core/def_soil_params.txt\''
    cnlist[10] = '  vegparmnew = .TRUE.  ! using new format when true'
    cnlist[11] = '  soilparmnew = .TRUE.  ! using new format when true'
    cnlist[12] = '  spinup = .FALSE.  ! do we spin up the model?'
@@ -54,12 +54,12 @@ for(site in 1:length(obsfiles)) { # for each site
    cnlist[35] = '  l_laiFeedbk   = .FALSE.  ! using prognostic LAI'   
    cnlist[36] = '  l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax'
    cnlist[37] = '  icycle = 1   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P'
-   cnlist[38] = 'casafile%cnpbiome=\'/home/srb001/CABLE-AUX/data/CASA/pftlookup_csiro_v16_17tiles.csv\'  ! biome specific BGC parameters'
+   cnlist[38] = 'casafile%cnpbiome=\'../data/CASA/pftlookup_csiro_v16_17tiles.csv\'  ! biome specific BGC parameters'
    cnlist[39] = 'casafile%cnpepool=\'poolcnpOut.csv\'    ! end of run pool size'
-   cnlist[40] = paste('casafile%cnpipool=\'/home/srb001/CABLE-AUX/data/surface_data/poolcnpIn',sitenames[site],'.csv\'    ! initial pool size',sep='')
+   cnlist[40] = paste('casafile%cnpipool=\'../data/surface_data/poolcnpIn',sitenames[site],'.csv\'    ! initial pool size',sep='')
    cnlist[41] = 'casafile%cnpmetout=\'casamet.nc\'                ! output daily met forcing for spinning casacnp'
-   cnlist[42] = 'casafile%cnpmetin=\'/home/srb001/CABLE-AUX/data/surface_data/fcasamet.lst\'          ! list of daily met files for spinning casacnp'
-   cnlist[43] = '  casafile%phen=\'/home/srb001/CABLE-AUX/data/CASA/modis_phenology_csiro.txt\'        ! modis phenology'
+   cnlist[42] = 'casafile%cnpmetin=\'../data/surface_data/fcasamet.lst\'          ! list of daily met files for spinning casacnp'
+   cnlist[43] = '  casafile%phen=\'../data/CASA/modis_phenology_csiro.txt\'        ! modis phenology'
    cnlist[44] = 'casafile%cnpflux=\'cnpfluxOut.csv\''
    cnlist[45] = 'ncciy = 0 ! 0 for not using gswp; 4-digit year input for year of gswp met'
    cnlist[46] = 'gswpfile%rainf = \'gswp/Rainf_gswp1987.nc\''

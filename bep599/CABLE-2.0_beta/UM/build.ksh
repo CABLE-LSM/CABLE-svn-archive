@@ -51,15 +51,19 @@ if [[ ! -d ~/CABLE-AUX ]]; then
    mkdir ~/CABLE-AUX
 fi
 
-if [[ ! -d ~/CABLE-AUX/lib ]]; then
-   mkdir ~/CABLE-AUX/lib
+if [[ ! -d ~/CABLE-AUX/UM ]]; then
+   mkdir ~/CABLE-AUX/UM
 fi
 
-/bin/cp -p libcable.a ~/CABLE-AUX/lib
+if [[ ! -d ~/CABLE-AUX/UM/lib ]]; then
+   mkdir ~/CABLE-AUX/UM/lib
+fi
 
-if [[ -f ~/CABLE-AUX/lib/libcable.a ]]; then
+/bin/cp -p libcable.a ~/CABLE-AUX/UM/lib
+
+if [[ -f ~/CABLE-AUX/UM/lib/libcable.a ]]; then
    print "\nYour timestamped library should be this one:\n"
-   echo `ls -alt ~/CABLE-AUX/lib/libcable.a`
+   echo `ls -alt ~/CABLE-AUX/UM/lib/libcable.a`
    print '\nDONE\n'
    exit
 else
