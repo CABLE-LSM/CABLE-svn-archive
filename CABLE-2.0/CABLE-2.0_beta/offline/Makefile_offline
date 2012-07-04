@@ -12,12 +12,12 @@
 ### includes/libraries (netcdf mainly) ###
                
 ## vayu.nci.org.au
-#NCDIR = /apps/netcdf/3.6.3/lib/Intel
-#NCMOD = /apps/netcdf/3.6.3/include/Intel/
+NCDIR = /apps/netcdf/3.6.3/lib/Intel
+NCMOD = /apps/netcdf/3.6.3/include/Intel/
 
 ## shine-cl
-NCDIR = /usr/local/intel/lib/            
-NCMOD = /usr/local/intel/include/       
+#NCDIR = /usr/local/intel/lib/            
+#NCMOD = /usr/local/intel/include/       
 
 #burnet.hpsc.csiro.au
 
