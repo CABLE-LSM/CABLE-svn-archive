@@ -69,7 +69,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    INTEGER :: funit=88
    
    !--- namelist for CABLE runtime vars, files, switches 
-   NAMELIST/CABLE/filename,cable_user
+   NAMELIST/CABLE/filename,cable_user, redistrb, wiltParam, satuParam
    
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
