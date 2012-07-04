@@ -1748,7 +1748,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    canopy%fes = canopy%fes+canopy%fes_cor
 
    ! redistrib(set in cable.nml) by default==.TRUE.  
-   IF( redistrib )                                                             &
+   IF( redistrb )                                                              &
       CALL hydraulic_redistribution( dels, soil, ssnow, canopy, veg, met )
 
    ssnow%smelt = ssnow%smelt/dels
@@ -1809,6 +1809,8 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
    REAL, DIMENSION(mp,ms,ms) ::                                                &
       hr_term,    & ! cm/hour
       hr_perTime    !
+
+   INTEGER :: j, k
 
    zsetot = sum(soil%zse)
    totalmoist(:) = 0.0
