@@ -73,6 +73,9 @@ fi
 
 if [[ $1 == 'run' ]] || [[ $2 == 'run' ]]; then
    book_keeping
+   if [[ ! -e data ]]; then
+      ln -s ~/CABLE-AUX/data
+   fi 
    if [[ -d out ]]; then
       print "Adding to existing out directory" 
    else          
@@ -86,9 +89,6 @@ fi
 ###  NB. qsub-ed jobs assume an executable already exists          ###
 ######################################################################
 if [[ $1 == 'run' ]] || [ -n "$PBS_JOBID" ]; then 
-   if [[ ! -e data ]]; then
-      ln -s ~/CABLE-AUX/data
-  fi 
    if [[ -f cable ]]; then
       print "Using existing executable"
       force_build='false'
