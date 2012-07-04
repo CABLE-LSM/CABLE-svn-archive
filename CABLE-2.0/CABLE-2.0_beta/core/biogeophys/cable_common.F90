@@ -67,6 +67,13 @@ MODULE cable_common_module
 
    TYPE(filenames_type) :: filename
 
+   ! hydraulic_redistribution switch _soilsnow module
+   LOGICAL ::                                                                  &
+      redistrb      ! Turn on/off the hydraulic redistribution
+   
+   ! hydraulic_redistribution parameters _soilsnow module
+   REAL :: wiltParam, satuParam
+
 
    ! soil parameters read from file(filename%soil def. in cable.nml)
    ! & veg parameters read from file(filename%veg def. in cable.nml)

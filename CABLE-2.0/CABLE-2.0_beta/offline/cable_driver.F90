@@ -63,17 +63,17 @@
 
 PROGRAM cable_offline_driver
    USE cable_def_types_mod
-   USE cable_IO_vars_module,        ONLY: logn,gswpfile,ncciy,leaps,                   &
-                                  verbose, fixedCO2,output,check,patchout,     &
-                                  patch_type,soilparmnew,                      &
-                                  redistrb, wiltParam, satuParam
-   USE cable_common_module, ONLY: ktau_gl, kend_gl, knode_gl, cable_user,      &
-                                  cable_runtime, filename
-   USE cable_data_module,   ONLY : driver_type, point2constants
-   USE cable_input_module,        ONLY: open_met_file,load_parameters,               &
-                                  get_met_data,close_met_file
-   USE cable_output_module,       ONLY: create_restart,open_output_file,             &
-                                  write_output,close_output_file
+   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+                                   verbose, fixedCO2,output,check,patchout,    &
+                                   patch_type,soilparmnew
+   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
+                                   cable_runtime, filename,                    & 
+                                   redistrb, wiltParam, satuParam
+   USE cable_data_module,    ONLY: driver_type, point2constants
+   USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
+                                   get_met_data,close_met_file
+   USE cable_output_module,  ONLY: create_restart,open_output_file,            &
+                                   write_output,close_output_file
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
@@ -126,8 +126,7 @@ PROGRAM cable_offline_driver
    TYPE (phen_variable)  :: phen 
    
    ! declare vars for switches (default .FALSE.) etc declared thru namelist
-   ! jhan: YP* these need looking at b4 i move them to switch status 
-   LOGICAL, save           :: &
+   LOGICAL, SAVE           :: &
       vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
       spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
       spinConv = .FALSE.,         & ! has spinup converged?
@@ -140,7 +139,6 @@ PROGRAM cable_offline_driver
       l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
    
    
-   ! jhan: move them to switch status 
    REAL              :: &  
       delsoilM,         & ! allowed variation in soil moisture for spin up
       delsoilT            ! allowed variation in soil temperature for spin up
@@ -151,13 +149,12 @@ PROGRAM cable_offline_driver
       soilTtemp      
    
    ! switches etc defined thru namelist (by default cable.nml)
-   ! jhan; comments needed for each, tidy, def type nml% ?
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
                   vegparmnew,       & ! jhan: use new soil param. method
                   soilparmnew,      & ! jhan: use new soil param. method
                   spinup,           & ! spinup model (soil) to steady state 
-                  delsoilM,delsoilT,& ! jhan: TOLS: def TYPE for all tols?
+                  delsoilM,delsoilT,& ! 
                   output,           &
                   patchout,         &
                   check,            &

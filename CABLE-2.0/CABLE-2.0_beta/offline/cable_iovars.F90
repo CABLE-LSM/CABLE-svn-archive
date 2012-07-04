@@ -107,10 +107,7 @@ MODULE cable_IO_vars_module
    
    LOGICAL ::                                                                  &
       verbose,    & ! print init and param details of all grid cells?
-      soilparmnew,& ! read IGBP new soil map. Q.Zhang @ 12/20/2010
-      redistrb      ! Turn on/off the hydraulic redistribution
-   
-   REAL :: wiltParam, satuParam
+      soilparmnew   ! read IGBP new soil map. Q.Zhang @ 12/20/2010
 
    ! ================ Veg and soil type variables ============================
    INTEGER, POINTER ::                                                         &
