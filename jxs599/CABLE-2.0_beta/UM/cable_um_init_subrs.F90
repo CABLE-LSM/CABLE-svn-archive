@@ -458,6 +458,8 @@ SUBROUTINE initialize_canopy(canopy_tile)
       !--- then used in soilsnow() in implicit call, then unpacked
       IF( first_call ) THEN
          canopy%ga = 0.
+         canopy%fes_cor = 0.
+         canopy%fhs_cor = 0.
          first_call = .FALSE.
       ENDIF
          
