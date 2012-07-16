@@ -329,13 +329,6 @@ SUBROUTINE Calc_rhoch(veg,c1,rhoch)
    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
    REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
       
-   IF( .NOT. cable_runtime%um) THEN
-      veg%taul(:,1) = C%TAUL(1)
-      veg%taul(:,2) = C%TAUL(2)
-      veg%refl(:,1) = C%REFL(1) 
-      veg%refl(:,2) = C%REFL(2) 
-   ENDIF                  
-   
    c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
    c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
    c1(:,3) = 1.
