@@ -260,7 +260,7 @@ PROGRAM cable_offline_driver
          ktau_tot = ktau_tot + 1
          
          ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau + ktau_gl
+         ktau_gl = ktau_tot
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          ktauday=int(24.0*3600.0/dels)
@@ -279,7 +279,7 @@ PROGRAM cable_offline_driver
                             rad, veg, kend, dels, C%TFRZ ) 
    
          ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau_gl, veg, casabiome,    &
+         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
                                                 casapool, casamet )
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
@@ -298,7 +298,7 @@ PROGRAM cable_offline_driver
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
          IF(icycle >0) THEN
-            call bgcdriver( ktau_gl, kstart, kend, dels, met,                  &
+            call bgcdriver( ktau, kstart, kend, dels, met,                  &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
@@ -307,7 +307,7 @@ PROGRAM cable_offline_driver
    
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau_gl, kstart, kend, dels, bgc,                      &
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
    
