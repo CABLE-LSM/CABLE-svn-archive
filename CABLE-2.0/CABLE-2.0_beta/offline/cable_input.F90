@@ -1489,10 +1489,9 @@ END SUBROUTINE open_met_file
 !==============================================================================
 
 SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
-                        veg,kend,dels, TFRZ) 
+                        veg,kend,dels, TFRZ, ktau) 
    ! Precision changes from REAL(4) to r_1 enable running with -r8
 
-   USE cable_common_module, ONLY: ktau_gl
 
    ! Input arguments
    LOGICAL, INTENT(IN)                    ::                                   &
@@ -1502,7 +1501,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    TYPE (soil_parameter_type),INTENT(IN)  :: soil 
    TYPE (radiation_type),INTENT(IN)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
-   INTEGER, INTENT(IN)               :: kend ! total number of timesteps in run
+   INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
+                                        kend    ! total number of timesteps in run
    REAL,INTENT(IN)                   :: dels ! time step size
    REAL, INTENT(IN) :: TFRZ 
    
@@ -1521,7 +1521,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        ! First set timing variables:
        ! All timing details below are initially written to the first patch
        ! of each gridcell, then dumped to all patches for the gridcell.
-       IF(ktau_gl==1) THEN ! initialise...
+       IF(ktau==1) THEN ! initialise...
           SELECT CASE(time_coord)
           CASE('LOC')! i.e. use local time by default
              ! hour-of-day = starting hod 
@@ -1705,7 +1705,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get SWdown data for mask grid:
       ok= NF90_GET_VAR(ncid_met,id%SWdown,tmpDat3, &
-           start=(/1,1,ktau_gl/),count=(/xdimsize,ydimsize,1/))
+           start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading SWdown in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1720,7 +1720,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
       ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat4, &
-           start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,1,1/))
+           start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Tair in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1733,7 +1733,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get PSurf data for mask grid:- - - - - - - - - - - - - - - - - -
       IF(exists%PSurf) THEN ! IF PSurf is in met file:
         ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat4, &
-             start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,1,1/))
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading PSurf in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1751,7 +1751,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
       ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat4, &
-           start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,1,1/))
+           start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Qair in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1774,7 +1774,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get Wind data for mask grid: - - - - - - - - - - - - - - - - - -
       IF(exists%Wind) THEN ! Scalar Wind
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
-             start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,1,1/))
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Wind in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1786,7 +1786,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ELSE ! Vector wind
         ! Get Wind_N:
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
-             start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,1,1/))
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Wind_N in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1795,7 +1795,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%ua(landpt(i)%cstart) = REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
         ok= NF90_GET_VAR(ncid_met,id%Wind_E,tmpDat4, &
-             start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,1,1/))
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Wind_E in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1809,7 +1809,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get Rainf and Snowf data for mask grid:- - - - - - - - - - - - -
       ok= NF90_GET_VAR(ncid_met,id%Rainf,tmpDat3, &
-           start=(/1,1,ktau_gl/),count=(/xdimsize,ydimsize,1/))
+           start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Rainf in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1819,7 +1819,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
       IF(exists%Snowf) THEN
         ok= NF90_GET_VAR(ncid_met,id%Snowf,tmpDat3, &
-             start=(/1,1,ktau_gl/),count=(/xdimsize,ydimsize,1/))
+             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Snowf in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1853,7 +1853,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get LWdown data for mask grid: - - - - - - - - - - - - - - - - - 
       IF(exists%LWdown) THEN ! If LWdown exists in met file
         ok= NF90_GET_VAR(ncid_met,id%LWdown,tmpDat3, &
-             start=(/1,1,ktau_gl/),count=(/xdimsize,ydimsize,1/))
+             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading LWdown in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1869,7 +1869,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get CO2air data for mask grid:- - - - - - - - - - - - - - - - - -
       IF(exists%CO2air) THEN ! If CO2air exists in met file
         ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat4, &
-             start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,1,1/))
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading CO2air in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1887,7 +1887,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
           IF(exists%LAI_P) THEN ! i.e. patch dependent LAI
             ok= NF90_GET_VAR(ncid_met,id%LAI,tmpDat4x, &
-                 start=(/1,1,1,ktau_gl/),count=(/xdimsize,ydimsize,nmetpatches,1/))
+                 start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,nmetpatches,1/))
             IF(ok /= NF90_NOERR) CALL nc_abort &
                  (ok,'Error reading LAI in met1 data file ' &
                  //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1899,7 +1899,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             ENDDO
           ELSE ! i.e. patch independent LAI
             ok= NF90_GET_VAR(ncid_met,id%LAI,tmpDat3, &
-                 start=(/1,1,ktau_gl/),count=(/xdimsize,ydimsize,1/))
+                 start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
             IF(ok /= NF90_NOERR) CALL nc_abort &
                  (ok,'Error reading LAI in met2 data file ' &
                  //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1978,7 +1978,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get SWdown data for land-only grid: - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_sw
       ok= NF90_GET_VAR(ncid_met,id%SWdown,tmpDat2, &
-           start=(/1,ktau_gl/),count=(/mland,1/))
+           start=(/1,ktau/),count=(/mland,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading SWdown in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1991,7 +1991,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get Tair data for land-only grid:- - - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_ta
       ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat2, &
-           start=(/1,ktau_gl/),count=(/mland,1/))
+           start=(/1,ktau/),count=(/mland,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Tair in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2004,13 +2004,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get PSurf data for land-only grid:- -- - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_ps
       IF(exists%PSurf) THEN ! IF PSurf is in met file:
-        IF ((ncciy == 1986) .AND. (ktau_gl == 2184)) THEN
+        IF ((ncciy == 1986) .AND. (ktau == 2184)) THEN
           !hzz to fix the problem of ps data on time step 2184
           ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat2, &
                start=(/1,2176/),count=(/mland,1/)) ! fixing bug in GSWP ps data
         ELSE
           ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat2, &
-               start=(/1,ktau_gl/),count=(/mland,1/))
+               start=(/1,ktau/),count=(/mland,1/))
         ENDIF
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading PSurf in met data file ' &
@@ -2030,7 +2030,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get Qair data for land-only grid:- - - - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_qa
       ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat2, &
-           start=(/1,ktau_gl/),count=(/mland,1/))
+           start=(/1,ktau/),count=(/mland,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Qair in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2050,7 +2050,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       IF (ncciy > 0) ncid_met = ncid_wd
       IF(exists%Wind) THEN ! Scalar Wind
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat2, &
-             start=(/1,ktau_gl/),count=(/mland,1/))
+             start=(/1,ktau/),count=(/mland,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Wind in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2061,14 +2061,14 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ELSE ! Vector wind
         ! Get Wind_N:
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat2, &
-             start=(/1,ktau_gl/),count=(/mland,1/))
+             start=(/1,ktau/),count=(/mland,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Wind_N in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
         ! write part of the wind variable
         met%ua(landpt(:)%cstart) = REAL(tmpDat2(:,1))
         ok= NF90_GET_VAR(ncid_met,id%Wind_E,tmpDat2, &
-             start=(/1,ktau_gl/),count=(/mland,1/))
+             start=(/1,ktau/),count=(/mland,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Wind_E in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2082,7 +2082,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get Rainf and Snowf data for land-only grid: - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_rain
       ok= NF90_GET_VAR(ncid_met,id%Rainf,tmpDat2, &
-           start=(/1,ktau_gl/),count=(/mland,1/))
+           start=(/1,ktau/),count=(/mland,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Rainf in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2093,7 +2093,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       IF (ncciy > 0) ncid_met = ncid_snow
       IF(exists%Snowf) THEN
         ok= NF90_GET_VAR(ncid_met,id%Snowf,tmpDat2, &
-             start=(/1,ktau_gl/),count=(/mland,1/))
+             start=(/1,ktau/),count=(/mland,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Snowf in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2127,7 +2127,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       IF (ncciy > 0) ncid_met = ncid_lw
       IF(exists%LWdown) THEN ! If LWdown exists in met file
         ok= NF90_GET_VAR(ncid_met,id%LWdown,tmpDat2, &
-             start=(/1,ktau_gl/),count=(/mland,1/))
+             start=(/1,ktau/),count=(/mland,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading LWdown in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2142,7 +2142,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get CO2air data for land-only grid:- - - - - - - - - - - - - -
       IF(exists%CO2air) THEN ! If CO2air exists in met file
         ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat2, &
-             start=(/1,ktau_gl/),count=(/mland,1/))
+             start=(/1,ktau/),count=(/mland,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading CO2air in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2159,7 +2159,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
           IF(exists%LAI_P) THEN ! i.e. patch dependent LAI
             ok= NF90_GET_VAR(ncid_met,id%LAI,tmpDat3, &
-                 start=(/1,1,ktau_gl/),count=(/mland,nmetpatches,1/))
+                 start=(/1,1,ktau/),count=(/mland,nmetpatches,1/))
             IF(ok /= NF90_NOERR) CALL nc_abort &
                  (ok,'Error reading LAI in met7 data file ' &
                  //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -2174,7 +2174,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             ENDDO
           ELSE ! i.e. patch independent LAI
             ok= NF90_GET_VAR(ncid_met,id%LAI,tmpDat2, &
-                 start=(/1,ktau_gl/),count=(/mland,1/))
+                 start=(/1,ktau/),count=(/mland,1/))
             IF(ok /= NF90_NOERR) CALL nc_abort &
                  (ok,'Error reading LAI in met8 data file ' &
                  //TRIM(filename%met)//' (SUBROUTINE get_met_data)')

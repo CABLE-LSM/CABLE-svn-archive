@@ -321,8 +321,8 @@ SUBROUTINE init_veg_pars_fr_vegin()
       veg%rs20 = vegin%rs20(veg%iveg)
 
       do k=1,2
-        veg%refl(:,k)   = vegin%reflin(k,veg%iveg)
-        veg%taul(:,k)   = vegin%taulin(k,veg%iveg)
+        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
+        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
       enddo
 
       !jhan:can't we read this in

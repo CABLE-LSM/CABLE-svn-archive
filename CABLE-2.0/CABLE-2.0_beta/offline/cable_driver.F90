@@ -190,42 +190,34 @@ PROGRAM cable_offline_driver
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
-   ! if cable_user%CASA_dump_read is false then  the code expects just to run 
-   ! CABLE. If you want to write CASA_dump.nc in this case then you have 
-   ! to re-set %CASA_dump_write=.true. via namelist 
-   ! if %CASA_dump_read = .TRUE. then the code expects to run CASA from 
-   ! forcing & you cant write CASA_dump.nc in this case 
-   IF ( .NOT. cable_user%CASA_dump_read ) THEN 
-   
-      IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
-         STOP 'icycle must be 1 to 3 when using casaCNP'
-      IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
-         STOP 'casaCNP required to get prognostic LAI or Vcmax'
-      IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
-         STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
-      IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
-         STOP 'casaCNP must use new soil parameters'
-   
-      ! Open log file:
-      OPEN(logn,FILE=filename%log)
-    
-      ! Check for gswp run
-      IF (ncciy /= 0) THEN
+   IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
+      STOP 'icycle must be 1 to 3 when using casaCNP'
+   IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
+      STOP 'casaCNP required to get prognostic LAI or Vcmax'
+   IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
+      STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
+   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
+      STOP 'casaCNP must use new soil parameters'
+
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   ! Check for gswp run
+   IF (ncciy /= 0) THEN
+      
+      PRINT *, 'Looking for global offline run info.'
+      
+      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+         STOP 'Please check input in namelist file.'
+      ELSE
          
-         PRINT *, 'Looking for global offline run info.'
-         
-         IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-            PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-            STOP 'Please check input in namelist file.'
-         ELSE
-            
-            CALL prepareFiles(ncciy)
-         
-         ENDIF
+         CALL prepareFiles(ncciy)
       
       ENDIF
    
    ENDIF
+   
 
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
@@ -243,18 +235,16 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
-   IF ( .NOT. cable_user%CASA_dump_read ) THEN 
    
-     ! Open output file:
-     CALL open_output_file( dels, soil, veg, bgc, rough )
+   ! Open output file:
+   CALL open_output_file( dels, soil, veg, bgc, rough )
+ 
+   ssnow%otss_0 = ssnow%tgg(:,1)
+   ssnow%otss = ssnow%tgg(:,1)
+   canopy%fes_cor = 0.
+   canopy%fhs_cor = 0.
+   met%ofsd = 0.1
    
-     ssnow%otss_0 = ssnow%tgg(:,1)
-     ssnow%otss = ssnow%tgg(:,1)
-     canopy%fes_cor = 0.
-     canopy%fhs_cor = 0.
-     met%ofsd = 0.1
-   
-   ENDIF
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -270,7 +260,7 @@ PROGRAM cable_offline_driver
          ktau_tot = ktau_tot + 1
          
          ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau + ktau_gl
+         ktau_gl = ktau_tot
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          ktauday=int(24.0*3600.0/dels)
@@ -280,69 +270,53 @@ PROGRAM cable_offline_driver
          ! needed for CASA-CNP
          nyear =INT((kend-kstart+1)/(365*ktauday))
    
-         IF ( .NOT. cable_user%CASA_dump_read ) THEN 
-  
-            canopy%oldcansto=canopy%cansto
+         canopy%oldcansto=canopy%cansto
    
-            ! Get met data and LAI, set time variables.
-            ! Rainfall input may be augmented for spinup purposes:
-             met%ofsd = met%fsd(:,1) + met%fsd(:,2)
-            CALL get_met_data( spinup, spinConv, met, soil,                    &
-                               rad, veg, kend, dels, C%TFRZ ) 
-         ENDIF
+         ! Get met data and LAI, set time variables.
+         ! Rainfall input may be augmented for spinup purposes:
+          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
+         CALL get_met_data( spinup, spinConv, met, soil,                    &
+                            rad, veg, kend, dels, C%TFRZ, ktau ) 
    
-         IF( cable_user%CASA_dump_read ) then 
-            
-            IF( mod( (ktau-kstart+1), ktauday ) == 0 ) THEN
-               CALL read_casa_dump( casamet, casaflux, idoy, kend )
-            ENDIF
-         
-         ELSE 
-            
-            ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-            IF (l_vcmaxFeedbk) CALL casa_feedback( ktau_gl, veg, casabiome,    &
-                                                   casapool, casamet )
+         ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
+         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
+                                                casapool, casamet )
    
-            IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
+         IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
    
-            ! CALL land surface scheme for this timestep, all grid points:
-            CALL cbm( dels, air, bgc, canopy, met,                             &
-                      bal, rad, rough, soil, ssnow,                            &
-                      sum_flux, veg )
+         ! CALL land surface scheme for this timestep, all grid points:
+         CALL cbm( dels, air, bgc, canopy, met,                             &
+                   bal, rad, rough, soil, ssnow,                            &
+                   sum_flux, veg )
    
-            ssnow%smelt = ssnow%smelt*dels
-            ssnow%rnof1 = ssnow%rnof1*dels
-            ssnow%rnof2 = ssnow%rnof2*dels
-            ssnow%runoff = ssnow%runoff*dels
-   
-         ENDIF
+         ssnow%smelt = ssnow%smelt*dels
+         ssnow%rnof1 = ssnow%rnof1*dels
+         ssnow%rnof2 = ssnow%rnof2*dels
+         ssnow%runoff = ssnow%runoff*dels
    
    
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
          IF(icycle >0) THEN
-            call bgcdriver( ktau_gl, kstart, kend, dels, met,                  &
+            call bgcdriver( ktau, kstart, kend, dels, met,                  &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
-                            cable_user%CASA_dump_read,                         &
-                            cable_user%CASA_dump_write )
+                            .FALSE., .FALSE. )
          ENDIF 
    
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau_gl, kstart, kend, dels, bgc,                      &
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
    
-         IF( .NOT. cable_user%CASA_dump_read ) then 
-            ! Write time step's output to file if either: we're not spinning up 
-            ! or we're spinning up and the spinup has converged:
-            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               CALL write_output( dels, met, canopy, ssnow,                    &
-                                  rad, bal, air, soil, veg, C%SBOLTZ, &
-                                  C%EMLEAF, C%EMSOIL )
-         ENDIF
+         ! Write time step's output to file if either: we're not spinning up 
+         ! or we're spinning up and the spinup has converged:
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+            CALL write_output( dels, ktau, met, canopy, ssnow,                    &
+                               rad, bal, air, soil, veg, C%SBOLTZ, &
+                               C%EMLEAF, C%EMSOIL )
    
        END DO ! END Do loop over timestep ktau
 
@@ -418,7 +392,7 @@ PROGRAM cable_offline_driver
 
    ! Write restart file if requested:
    IF(output%restart)                                                          &
-      CALL create_restart( logn, dels, soil, veg, ssnow,                       &
+      CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
       
    ! Close met data input file:

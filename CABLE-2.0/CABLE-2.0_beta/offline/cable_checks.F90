@@ -37,7 +37,7 @@ MODULE cable_checks_module
 !
    USE cable_radiation_module, ONLY: sinbet
    USE cable_def_types_mod
-   USE cable_common_module, ONLY: ktau_gl, kend_gl, knode_gl
+
    IMPLICIT NONE
 
    PRIVATE
@@ -189,11 +189,12 @@ CONTAINS
 !
 !==============================================================================
 
-SUBROUTINE mass_balance(dels,ssnow,soil,canopy,met,                            &
+SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                            &
                         air,bal)
 
    ! Input arguments
-   REAL,INTENT(IN)                      :: dels        ! time step size
+   REAL,INTENT(IN)                           :: dels        ! time step size
+   INTEGER, INTENT(IN)                       :: ktau        ! timestep number  
    TYPE (soil_snow_type),INTENT(IN)          :: ssnow       ! soil data
    TYPE (soil_parameter_type),INTENT(IN)     :: soil        ! soil data
    TYPE (canopy_type),INTENT(IN)             :: canopy      ! canopy variable data
@@ -208,19 +209,19 @@ SUBROUTINE mass_balance(dels,ssnow,soil,canopy,met,                            &
    TYPE (balances_type),INTENT(INOUT)        :: bal 
    INTEGER                              :: j, k        ! do loop counter
     
-   IF(ktau_gl==1) THEN
+   IF(ktau==1) THEN
       ALLOCATE( bwb(mp,ms,2) )
       ! initial vlaue of soil moisture
       bwb(:,:,1)=ssnow%wb
    ELSE
       ! Calculate change in soil moisture b/w timesteps:
-      IF(MOD(REAL(ktau_gl),2.0)==1.0) THEN         ! if odd timestep
+      IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
          bwb(:,:,1)=ssnow%wb
          DO k=1,mp           ! current smoist - prev tstep smoist
             delwb(k) = SUM((bwb(k,:,1)                                         &
                   - (bwb(k,:,2)))*soil%zse)*1000.0
          END DO
-      ELSE IF(MOD(REAL(ktau_gl),2.0)==0.0) THEN    ! if even timestep
+      ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
          bwb(:,:,2)=ssnow%wb
          DO k=1,mp           !  current smoist - prev tstep smoist
             delwb(k) = SUM((bwb(k,:,2)                                         &
@@ -229,7 +230,7 @@ SUBROUTINE mass_balance(dels,ssnow,soil,canopy,met,                            &
       END IF
    END IF
 
-   ! IF(ktau_gl==kend) DEALLOCATE(bwb)
+   ! IF(ktau==kend) DEALLOCATE(bwb)
 
    ! net water into soil (precip-(change in canopy water storage) 
    !  - (change in snow depth) - (surface runoff) - (deep drainage)
@@ -248,7 +249,7 @@ SUBROUTINE mass_balance(dels,ssnow,soil,canopy,met,                            &
         - (canopy%fevw+MIN(canopy%fevc,0.0))*dels/air%rlam)
 
    bal%wbal_tot = 0. 
-   IF(ktau_gl>10) THEN
+   IF(ktau>10) THEN
       ! Add current water imbalance to total imbalance
       ! (method 1 for water balance):
       bal%wbal_tot = bal%wbal_tot + bal%wbal
