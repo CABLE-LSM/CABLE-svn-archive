@@ -25,10 +25,7 @@ cd tmp/
 make -f Makefile_offline
    
 if [[ -f cable ]]; then
-   cp cable ../
 	print '\nBUILD OK\n'
-	print '\nThe following executable has been copied to your ~/CABLE_AUX/run/ directory.\n'
-	echo `ls -lh cable`
-	mv cable ~/CABLE-AUX/run/
+	mv cable ../
 fi
 

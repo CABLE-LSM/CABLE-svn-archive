@@ -276,7 +276,7 @@ PROGRAM cable_offline_driver
          ! Rainfall input may be augmented for spinup purposes:
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          CALL get_met_data( spinup, spinConv, met, soil,                    &
-                            rad, veg, kend, dels, C%TFRZ ) 
+                            rad, veg, kend, dels, C%TFRZ, ktau ) 
    
          ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
          IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
@@ -314,7 +314,7 @@ PROGRAM cable_offline_driver
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-            CALL write_output( dels, met, canopy, ssnow,                    &
+            CALL write_output( dels, ktau, met, canopy, ssnow,                    &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
@@ -392,7 +392,7 @@ PROGRAM cable_offline_driver
 
    ! Write restart file if requested:
    IF(output%restart)                                                          &
-      CALL create_restart( logn, dels, soil, veg, ssnow,                       &
+      CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
       
    ! Close met data input file:

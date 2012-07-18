@@ -13,10 +13,10 @@ build_cable()
    
       if [[ -f cable ]]; then
          print '\n*** CABLE BUILD SUCCESSFULL ***\n\nExecutable  will be copied to directory:\n'
-         print '\t'$mypwd"\n" 
-         /bin/cp cable $mypwd 
+         print $mypwd
+	 /bin/cp cable $mypwd 
       else
-         print '\n*** ERROR: BUILD FAIELED ***\n'
+         print '\n*** ERROR: BUILD FAILED ***\n'
          exit
       fi 
    
