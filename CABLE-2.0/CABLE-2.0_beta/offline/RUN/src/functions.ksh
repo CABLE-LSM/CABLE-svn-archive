@@ -28,8 +28,12 @@ build_cable()
 run_cable()
 {
    #remove any trace of previous runs
-   rm -f fort.66 *nc 
-   rm -f *00.bin *00.dat
+   clean
+    
+   if [[ ! -e data ]]; then
+      ln -s ~/CABLE-AUX/data
+   fi 
+   
    cd src/
    
    print '\n*** RUNNING CABLE ***\n'
@@ -271,7 +275,6 @@ clean()
 {
    rm -fr out* cable src/qsj.j src/*out qs* bu/  
    rm -f build  ../core nohup.out *out *csv .qu 
-   #rm -fr ../tmp ../cable 
    rm -fr ../cable 
 }
 
