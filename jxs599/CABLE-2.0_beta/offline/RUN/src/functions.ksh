@@ -2,6 +2,14 @@
 
 build_cable()
 {      
+
+   if [[ $1 = 'clean' ]]; then
+      tidy
+      cd ../
+      ./build.ksh clean
+      return 
+   fi  
+
    if [[ -f cable ]]; then
       rm -f cable
    fi  
@@ -9,7 +17,7 @@ build_cable()
    mypwd=`pwd`
    cd ../
       
-      ./build.ksh 
+      ./build.ksh $1 
    
       if [[ -f cable ]]; then
          print '\n*** CABLE BUILD SUCCESSFULL ***\n\nExecutable  will be copied to directory:\n'
@@ -147,6 +155,10 @@ config_run()
       ./RUN_CABLE build 
    fi
   
+   if [[ $response == '1d' ]]; then
+      ./RUN_CABLE build debug
+   fi
+  
    if [[ $response == '2' ]]; then
       ./RUN_CABLE build run
    fi
@@ -169,15 +181,23 @@ config_run()
 
    if [[ $response == '7' ]]; then
       ./RUN_CABLE qsub 
+      print 'Sorry, this has been disabled'
+      quit_response 
    fi
 
    if [[ $response == '8' ]]; then
-      ./RUN_CABLE clean
-      print "\nsqueaky"
+      ./RUN_CABLE tidy
+      print "\ntidied"
       quit_response 
    fi
 
    if [[ $response == '9' ]]; then
+      ./RUN_CABLE clean 
+      print "\nsqueaky"
+      quit_response 
+   fi
+
+   if [[ $response == '10' ]]; then
       ./RUN_CABLE more_help
       print "\n NA - yet!"
       quit_response 
@@ -205,6 +225,9 @@ config_text()
    print "\t\tBuild CABLE only. Useful in code development, and also to "  
    print "\t\tcreate an executable for a qsub job."
    
+   print "\n1d. RUN_CABLE build debug"
+   print "\t\tBuild CABLE only with debug compiler options. "
+   
    print "\n2. RUN_CABLE build run"
    print "\t\tBuild CABLE and then run it."
    
@@ -230,14 +253,19 @@ config_text()
    print "\t\tseperate run directories qsub_X (X=1,2,3,....)[NOTE:most NCI" 
    print "\t\tusers have a default limit of 8 jobs at a time]"
    
-   print "\n8. RUN_CABLE clean"
+   print "\n8. RUN_CABLE tidy"
    print "\t\tGive me back my nice clean directory."
    
-   print "\n9. RUN_CABLE help [OPTION]"
+   print "\n9. RUN_CABLE clean"
+   print "\t\tForce a full clean so we can rebuild from scratch"
+   
+   print "\n10. RUN_CABLE help [OPTION]"
    print "\t\tGet further help on a particular option."
+   print "\t\tSorry, haven't got around to this yet."
    
    print "\nIf you really really like paper and want to print, you can print" 
    print "this page to a file by Entering "'"P"'" "
+   print "\t\tSorry, haven't got around to this in full yet."
 
    print "\nEnter option number to proceed from here OR Enter to quit"
 }
@@ -271,7 +299,7 @@ book_keeping()
    fi
 }
 
-clean()
+tidy()
 {
    rm -fr out* cable src/qsj.j src/*out qs* bu/  
    rm -f build  ../core nohup.out *out *csv .qu 
