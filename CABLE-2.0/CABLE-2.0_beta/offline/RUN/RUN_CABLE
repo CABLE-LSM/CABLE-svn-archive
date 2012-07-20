@@ -99,6 +99,12 @@ if [[ $force_build == 'true' ]] || [[ $1 == 'build' ]] || [[ $1 == 'all' ]]; the
    print "\n*** BUILDING CABLE ***\n"
    build_cable
 fi
+
+if [[ $1 == 'build' ]] && [[ $2 == 'debug' ]]; then
+   print "\n*** BUILDING CABLE with debug options***\n"
+   build_cable debug
+fi
+
 ########################################################################
 ##### call CABLE.R in batch mode to avoid going into R first, and    ###
 ##### then clean up this directory (these files have already been    ###
