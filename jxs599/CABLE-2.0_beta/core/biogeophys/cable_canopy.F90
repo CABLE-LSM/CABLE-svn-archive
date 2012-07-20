@@ -999,7 +999,8 @@ ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) result(z)
 END FUNCTION rplant
 
 
-SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy, gbhu,                    gbhf, ghwet )
+SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
+                    gbhu, gbhf, ghwet )
 
    USE cable_def_types_mod
 

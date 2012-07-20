@@ -17,6 +17,8 @@ host_vayu()
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
    build_build
+   cd ../
+   build_status
 }
 
 
@@ -73,6 +75,8 @@ host_write()
    print '   export FC='$FC >> junk
    print '   export CFLAGS='$CFLAGS >> junk
    print '   build_build' >> junk
+   print '   cd ../' >> junk
+   print '   build_status' >> junk
    print '}' >> junk
    print '' >> junk
    print '' >> junk
@@ -123,15 +127,16 @@ do_i_no_u()
       fi        
       (( k = k + 1 ))
    done 
-   build_status
 }
 
 
 build_status()
 {
-   if [[ -f cable ]]; then
+   if [[ -f .tmp/cable ]]; then
+   	mv .tmp/cable .
    	print '\nBUILD OK\n'
-   	mv cable ../
+   else
+      print '\nOooops. Something went wrong\n'        
    fi
 }
 
@@ -139,10 +144,6 @@ build_status()
       
 i_do_now()
 {
-   if [[ -f cable ]]; then
-   	print '\nBUILD OK\n'
-   	mv cable ../
-      
       cd ../
       host_write
       tail -n +7 build.ksh > build.ksh.tmp
@@ -150,7 +151,7 @@ i_do_now()
       mv build.ksh.new build.ksh
       chmod u+x build.ksh 
       rm -f build.ksh.tmp build.ksh.new junk 
-   fi
+      build_status
 }
 
 
