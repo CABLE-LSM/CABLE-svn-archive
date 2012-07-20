@@ -13,7 +13,7 @@ OBJS	= ${LSRC:.F90=.o}
 #compiler switches and flags
 CINC = -I$(NCMOD)
 LDFLAGS = -O2 
-LD =  -L$(NCDIR) -lnetcdf 
+LD =  -L$(NCDIR) -lnetcdf -lnetcdff 
 
 #suffixes we use
 .SUFFIXES:
