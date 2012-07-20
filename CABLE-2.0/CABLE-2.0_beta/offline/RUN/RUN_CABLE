@@ -125,6 +125,10 @@ if [[ $1 == 'plot' ]] || [[ $2 == 'plot' ]] || [[ -n "$PBS_JOBID" ]] || [[ $1 ==
    plot_cable
 fi
 
+if [[ $1 == 'tidy' ]]; then
+   tidy 
+fi
+
 if [[ $1 == 'clean' ]]; then
-   clean
+   build_cable clean
 fi
