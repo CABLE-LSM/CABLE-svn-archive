@@ -24,21 +24,32 @@ host_vayu()
 ## unknown machine, user entering options stdout 
 host_read()
 {
-   print "\nWhat is the root path of your NetCDF library and .mod file. Remember these have to be created by the same Fortran compiler you want to use to build CABLE. e.g./usr/local/intel"
+   print "\n\tWhat is the root path of your NetCDF library" \
+         "and .mod file. "
+   print "\tRemember these have to be created by the same " \
+         "Fortran compiler you" 
+   print "\twant to use to build CABLE. e.g./usr/local/intel"
    read NCDF_ROOT
    
-   print "\nWhat is the path, relative to this root, of your NetCDF library. e.g. lib"
+   print "\n\tWhat is the path, relative to this root, of " \
+         "your NetCDF library." 
+   print "\te.g. lib"
    read NCDF_DIR
    export NCDIR=$NCDF_ROOT/$NCDF_DIR
    
-   print "\nWhat is the path, relative to this root, of your NetCDF .mod file. e.g. include"
+   print "\n\tWhat is the path, relative to this root, of " \
+         "your NetCDF .mod file."
+   print "\te.g. include"
    read NCDF_MOD
    export NCMOD=$NCDF_ROOT/$NCDF_MOD
 
-   print "\nWhat is the Fortran compiler you wish to use. e.g. ifort, gfortran"
+   print "\n\tWhat is the Fortran compiler you wish to use."
+   print "\te.g. ifort, gfortran"
    read FC 
    export FC
-   print "\nWhat are the approriate Fortran compiler to use. e.g.(ifort) -O2 -fp-model precise "
+
+   print "\n\tWhat are the approriate compiler options"
+   print "\te.g.(ifort) -O2 -fp-model precise "
    read CFLAGS 
    export CFLAGS
 }
@@ -70,25 +81,30 @@ host_write()
 
 not_recognized()
 {  
-  print "this is not a recognized host for which we know the location of netcdf distribution and correct compiler switches"
-  print "\nPlease enter these details as prompted. If this is a common location for CABLE users then Please email cable_help@nci.org.au so we can update the script. Otherwise you can modify the script yourself to avoid this message re-occuring. Just search build.ksh for instances of /'HOST_MACH example/' "
+   print "\n\n\tThis is not a recognized host for which we " \
+         "know the location of the" 
+   print "\tnetcdf distribution and correct compiler switches."
 
-   print "To enter compile options for this build, press enter, otherwise Control-C to abort script"           
+   print "\n\tPlease enter these details as prompted, and the " \
+         "script will be " 
+   print "\tupdated accordingly. " 
+   print "\n\tIf this is a common machine for CABLE users, " \
+         "please email"
+   print "\n\t\t cable_help@nci.org.au "  
+   print "\n\talong with your new build.ksh so that we can " \
+         "update the script "
+   print "\tfor all users. "
+   print "\n\tTo enter compile options for this build press " \
+         "enter, otherwise " 
+   print "\tControl-C to abort script."           
    
    host_read
 
-   print "\nIf CABLE builds OK, should i enter this configuraion into the build script permanently? Y or N "
-   read response_buildconfig 
+   print "\n\tPlease supply a comment include the new build " \
+         "script." 
+   print "\n\tGenerally the host URL e.g. vayu.nci.org.au "
+   read HOST_COMM
    
-   if [[ $response_buildconfig = 'Y' ]]; then
-      write_buildconfig='true'  
-      print "\nPlease supply a comment include the new build script. General the host URL e.g. vayu.nci.org.au "
-      read HOST_COMM
-   
-   else
-      write_buildconfig='false'  
-   fi
-
    build_build
 }
 
@@ -127,14 +143,12 @@ i_do_now()
    	print '\nBUILD OK\n'
    	mv cable ../
       
-      if [[ $write_buildconfig = 'true'  ]]; then
-         cd ../
-         host_write
-         tail -n +7 build.ksh > build.ksh.tmp
-         cat junk build.ksh.tmp > build.ksh.new
-         mv build.ksh.new build.ksh 
-         rm -f build.ksh.tmp build.ksh.new 
-      fi   
+      cd ../
+      host_write
+      tail -n +7 build.ksh > build.ksh.tmp
+      cat junk build.ksh.tmp > build.ksh.new
+      mv build.ksh.new build.ksh 
+      rm -f build.ksh.tmp build.ksh.new junk 
    fi
 }
 
@@ -164,7 +178,10 @@ build_build()
    /bin/cp -p $DRV/*90 ./.tmp
    /bin/cp -p $CASA/*90 ./.tmp
    
-   print '\nPlease note: CASA-CNP files are included in build only for technical reasons. Implementation is not officially available with the release of CABLE 2.0\n' 
+   print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
+   print "\ttechnical reasons. Implementation is not officially available with" 
+   print "\tthe release of CABLE 2.0\n"
+    
    /bin/cp -p Makefile_offline  ./.tmp
    
   cd .tmp/
