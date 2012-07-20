@@ -100,7 +100,7 @@ if [[ $force_build == 'true' ]] || [[ $1 == 'build' ]] || [[ $1 == 'all' ]]; the
    build_cable
 fi
 
-if [[ [[ $1 == 'build' ]] && [[ $2 == 'debug' ]]; then
+if [[ $1 == 'build' ]] && [[ $2 == 'debug' ]]; then
    print "\n*** BUILDING CABLE with debug options***\n"
    build_cable debug
 fi

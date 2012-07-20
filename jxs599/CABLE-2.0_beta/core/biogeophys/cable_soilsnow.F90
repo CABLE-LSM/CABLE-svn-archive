@@ -994,6 +994,8 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
    coeff = 0.0
    snow_ccnsw = 2.0
 
+   ccnsw = REAL(0.0_r_2)
+
    DO k = 1, ms
       
       DO j = 1, mp
@@ -1020,13 +1022,15 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
                             soil%ssat(j) /                                     &
                             MIN( ew(j), 0.5_r_2 * soil%ssat(j) ) ) ) )
             
-            ENDIF          
+            ENDIF 
            
             direct2min = .FALSE.
         
          ENDIF 
       
       END DO
+   
+   IF(ccnsw(j,k) == REAL(0.0_r_2) ) print *, 'jhan:ccnsw ', j,k, ccnsw(j,k)
     
    END DO
     
@@ -1044,6 +1048,7 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
          coeff(:,k) = 2.0 / ( soil%zse(k-1) / ccnsw(:,k-1) + soil%zse(k) /     &
                       ccnsw(:,k) )
       END WHERE
+   
    END DO
 
    k = 1
