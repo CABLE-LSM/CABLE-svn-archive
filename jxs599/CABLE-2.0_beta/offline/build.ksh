@@ -2,21 +2,8 @@
 
 known_hosts()
 {
-   set -A kh vayu shin
+   set -A kh vayu 
 }
-
-
-## ghgh
-host_shin()
-{
-export NCDIR=/usr/local/intel/lib
-export NCMOD=/usr/local/intel/include
-export FC=ifort
-export CFLAGS=-O0
-build_build
-}
-
-
 
 ## vayu.nci.org.au
 host_vayu()
@@ -81,11 +68,11 @@ host_write()
    print '## '$HOST_COMM >> junk
    print 'host_'$HOST_MACH'()' >> junk
    print '{' >> junk
-   print 'export NCDIR='$NCDF_ROOT'/'$NCDF_DIR >> junk
-   print 'export NCMOD='$NCDF_ROOT'/'$NCDF_MOD >> junk
-   print 'export FC='$FC >> junk
-   print 'export CFLAGS='$CFLAGS >> junk
-   print 'build_build' >> junk
+   print '   export NCDIR='$NCDF_ROOT'/'$NCDF_DIR >> junk
+   print '   export NCMOD='$NCDF_ROOT'/'$NCDF_MOD >> junk
+   print '   export FC='$FC >> junk
+   print '   export CFLAGS='$CFLAGS >> junk
+   print '   build_build' >> junk
    print '}' >> junk
    print '' >> junk
    print '' >> junk
