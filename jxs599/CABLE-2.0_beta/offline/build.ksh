@@ -5,7 +5,6 @@ known_hosts()
    set -A kh vayu 
 }
 
-
 ## vayu.nci.org.au
 host_vayu()
 {
@@ -62,6 +61,7 @@ host_write()
    print 'export NCMOD='$NCDF_ROOT'/'$NCDF_MOD >> junk
    print 'export FC='$FC >> junk
    print 'export CFLAGS='$CFLAGS >> junk
+   print 'build_build' >> junk
    print '}' >> junk
    print '' >> junk
    print '' >> junk
@@ -102,11 +102,12 @@ do_i_no_u()
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
-         subr=host_${kh[0]}
+         subr=host_${kh[$k]}
          $subr
       fi        
       (( k = k + 1 ))
    done 
+   build_status
 }
 
 
@@ -141,34 +142,34 @@ i_do_now()
 build_build()
 {
    print 'building'
-#   if [[ $1 = 'clean' ]]; then
-#      rm -fr .tmp
-#      exit
-#   fi
-#   
-#   if [[ ! -d .tmp ]]; then
-#      mkdir .tmp
-#   fi
-#   
-#   if [[ -f cable ]]; then
-#      print '\ncable executable exists. copying to cable.bu\n' 
-#      mv cable cable.bu
-#   fi
-#   
-#   CORE="../core/biogeophys"
-#   DRV="."
-#   CASA="../core/biogeochem"
-#   
-#   /bin/cp -p $CORE/*90 ./.tmp
-#   /bin/cp -p $DRV/*90 ./.tmp
-#   /bin/cp -p $CASA/*90 ./.tmp
-#   
-#   print '\nPlease note: CASA-CNP files are included in build only for technical reasons. Implementation is not officially available with the release of CABLE 2.0\n' 
-#   /bin/cp -p Makefile_offline  ./.tmp
-#   
-   cd .tmp/
-#   
-#   make -f Makefile_offline
+   if [[ $1 = 'clean' ]]; then
+      rm -fr .tmp
+      exit
+   fi
+   
+   if [[ ! -d .tmp ]]; then
+      mkdir .tmp
+   fi
+   
+   if [[ -f cable ]]; then
+      print '\ncable executable exists. copying to cable.bu\n' 
+      mv cable cable.bu
+   fi
+   
+   CORE="../core/biogeophys"
+   DRV="."
+   CASA="../core/biogeochem"
+   
+   /bin/cp -p $CORE/*90 ./.tmp
+   /bin/cp -p $DRV/*90 ./.tmp
+   /bin/cp -p $CASA/*90 ./.tmp
+   
+   print '\nPlease note: CASA-CNP files are included in build only for technical reasons. Implementation is not officially available with the release of CABLE 2.0\n' 
+   /bin/cp -p Makefile_offline  ./.tmp
+   
+  cd .tmp/
+   
+   make -f Makefile_offline
 }
 
 ###########################################
@@ -182,6 +183,6 @@ HOST_MACH=`uname -n | cut -c 1-4`
 do_i_no_u
 
 not_recognized
-touch cable 
+
 i_do_now
 
