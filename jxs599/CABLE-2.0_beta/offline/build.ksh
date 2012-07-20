@@ -147,7 +147,8 @@ i_do_now()
       host_write
       tail -n +7 build.ksh > build.ksh.tmp
       cat junk build.ksh.tmp > build.ksh.new
-      mv build.ksh.new build.ksh 
+      mv build.ksh.new build.ksh
+      chmod u+x build.ksh 
       rm -f build.ksh.tmp build.ksh.new junk 
    fi
 }
