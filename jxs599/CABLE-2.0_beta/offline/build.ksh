@@ -2,23 +2,8 @@
 
 known_hosts()
 {
-   set -A kh vayu shin
+   set -A kh vayu 
 }
-
-
-## shine
-host_shin()
-{
-   export NCDIR=/usr/local/intel/lib
-   export NCMOD=/usr/local/intel/include
-   export FC=ifort
-   export CFLAGS=-O0
-   build_build
-   cd ../
-   build_status
-}
-
-
 
 
 ## vayu.nci.org.au
@@ -174,7 +159,6 @@ i_do_now()
 
 build_build()
 {
-   print 'building'
    if [[ $1 = 'clean' ]]; then
       rm -fr .tmp
       exit
