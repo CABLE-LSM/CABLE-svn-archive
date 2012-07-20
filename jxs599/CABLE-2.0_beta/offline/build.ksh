@@ -2,8 +2,21 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh vayu shin
 }
+
+
+## ghgh
+host_shin()
+{
+export NCDIR=/usr/local/intel/lib
+export NCMOD=/usr/local/intel/include
+export FC=ifort
+export CFLAGS=-O0
+build_build
+}
+
+
 
 ## vayu.nci.org.au
 host_vayu()
