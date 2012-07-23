@@ -159,11 +159,6 @@ i_do_now()
 
 build_build()
 {
-   if [[ $1 = 'clean' ]]; then
-      rm -fr .tmp
-      exit
-   fi
-   
    if [[ ! -d .tmp ]]; then
       mkdir .tmp
    fi
@@ -196,6 +191,13 @@ build_build()
 ## build.ksh - MAIN SCRIPT STARTS HERE   ##
 ###########################################
 
+if [[ $1 = 'clean' ]]; then
+   print '\ncleaning up\n'
+   rm -fr .tmp
+   print '\n\tPress Eneter too continue buiding, Control-C to abort now.\n'
+   read dummy 
+fi
+   
 known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
