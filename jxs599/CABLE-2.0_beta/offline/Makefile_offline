@@ -82,13 +82,6 @@ casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o
 
 casa_inout.o: casa_inout.F90 cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o
 
-cable_mpicommon.o: cable_mpicommon.F90  cable_iovars.o
-
-cable_mpimaster.o: cable_mpimaster.F90 cable_mpicommon.o cable_output.o cable_iovars.o cable_cbm.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_define_types.o  cable_common.o
-
-cable_mpiworker.o: cable_mpiworker.F90 cable_mpicommon.o cable_output.o cable_iovars.o cable_cbm.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_define_types.o  cable_common.o
-
-cable_mpidrv.o: cable_mpidrv.F90 cable_mpicommon.o cable_mpimaster.o cable_mpiworker.o
 
 cable_common.o: cable_common.F90  cable_iovars.o
 
