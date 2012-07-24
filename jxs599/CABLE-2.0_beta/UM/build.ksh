@@ -159,16 +159,12 @@ i_do_now()
 
 build_build()
 {
-   if [[ $1 = 'clean' ]]; then
-      rm -fr .tmp
-      exit
-   fi
    
    if [[ ! -d .tmp ]]; then
       mkdir .tmp
    fi
- 
-   if [[ !-d $libroot ]]; then
+
+   if [[ ! -d $libroot ]]; then
       print '\n\tCABLE Library path '$libroot' does not exist. I could fix this' 
       print '\tfor you but it suggests to me that you are not as ready as you'
       print '\tthought. Aborting now.\n' 
@@ -192,7 +188,7 @@ build_build()
     
    /bin/cp -p Makefile_CABLE-UM ./.tmp
    
-  cd .tmp/
+   cd .tmp/
    
    make -f Makefile_CABLE-UM
 
@@ -237,8 +233,15 @@ build_build()
 ## build.ksh - MAIN SCRIPT STARTS HERE   ##
 ###########################################
 
-libroot="~/CABLE-AUX/UM/lib"
-libpath=$libroot'/libcable.a'
+if [[ $1 = 'clean' ]]; then
+   print '\ncleaning up\n'
+   rm -fr .tmp
+   print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+   read dummy 
+fi
+   
+export libroot='/home/599/jxs599/CABLE-AUX/UM/lib'
+export libpath=$libroot'/libcable.a'
 
 known_hosts
 
