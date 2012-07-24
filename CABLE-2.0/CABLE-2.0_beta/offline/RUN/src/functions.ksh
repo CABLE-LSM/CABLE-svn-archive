@@ -3,30 +3,29 @@
 build_cable()
 {      
 
-   if [[ $1 = 'clean' ]]; then
-      tidy
-      cd ../
-      ./build.ksh clean
-      return 
-   fi  
-
+   mypwd=`pwd`
    if [[ -f cable ]]; then
       rm -f cable
    fi  
 
-   mypwd=`pwd`
+   tidy
    cd ../
-      
+   if [[ $1 = 'clean' ]]; then
+      ./build.ksh clean
+   else
       ./build.ksh $1 
-   
-      if [[ -f cable ]]; then
-         print '\n*** CABLE BUILD SUCCESSFULL ***\n\nExecutable  will be copied to directory:\n'
-         print $mypwd
-	 /bin/cp cable $mypwd 
-      else
-         print '\n*** ERROR: BUILD FAILED ***\n'
-         exit
-      fi 
+   fi  
+
+      
+   if [[ -f cable ]]; then
+      print '\n\t*** CABLE BUILD SUCCESSFULL ***\n\nExecutable  will be copied'
+      print '\tto directory:\n'
+      print $mypwd
+	   /bin/cp cable $mypwd 
+   else
+      print '\n\t*** ERROR: BUILD FAILED ***\n'
+      exit
+   fi 
    
    cd $mypwd      
 }
@@ -36,7 +35,7 @@ build_cable()
 run_cable()
 {
    #remove any trace of previous runs
-   clean
+   tidy 
     
    if [[ ! -e data ]]; then
       ln -s ~/CABLE-AUX/data
@@ -68,7 +67,7 @@ plot_cable()
 {
    cd src/
    print '\n*** PLOTTING CABLE FLUX DATA ETC ***\n'
-   print '\nThis may take some time.\nIf desirable turn off unneccessary plots in plot_main.txt or atleast choose PNG files\n'
+   print '\nThis may take some time.\nIf desirable turn off unneccessary plots in plot_main.txt or at least choose PNG files\n'
    R CMD BATCH --slave plot.R
    print '\n*** FINISHED PLOTTING CABLE DATA ***\n'
    cp plot.Rout ../out
@@ -301,9 +300,8 @@ book_keeping()
 
 tidy()
 {
-   rm -fr out* cable src/qsj.j src/*out qs* bu/  
-   rm -f build  ../core nohup.out *out *csv .qu 
-   rm -fr ../cable 
+   rm -fr src/qsj.j src/*out qs* bu/  
+   rm -f ../core nohup.out *.out *csv .qu 
 }
 
 quit_option()   
