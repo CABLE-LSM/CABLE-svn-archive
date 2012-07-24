@@ -172,8 +172,13 @@ build_build()
    fi
    
    if [[ -f $libpath ]]; then
-      print '\nCABLE library exists at $libpath. Copying to $libpath.bu\n' 
-      mv $libath $libpath.bu 
+      print '\n\tCABLE library exists at\n' 
+      print $libpath 
+      print '\nCopying to\n'
+      libpathbu=$libpath'.bu'
+      print $libpathbu'\n' 
+      mv $libpath $libpathbu
+      exit 
    fi
   
    CORE="../core/biogeophys"
