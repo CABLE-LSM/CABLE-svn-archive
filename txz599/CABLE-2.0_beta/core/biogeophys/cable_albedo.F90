@@ -1,4 +1,4 @@
-
+R
 MODULE cable_albedo_module
 
    USE cable_data_module, ONLY : ialbedo_type, point2constants 
@@ -47,7 +47,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
 !jhan:this changes Bondville offline
-   !CALL surface_albedosn(ssnow, veg, met, soil)
+   CALL surface_albedosn(ssnow, veg, met, soil)
 
    WHERE (soil%isoilm == 9)          ! use dry snow albedo
      ssnow%albsoilsn(:,2) = 0.82
