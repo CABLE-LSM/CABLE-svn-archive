@@ -38,6 +38,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
    LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
 
    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
+   INTEGER ::  idjd,idjd1,idjd2,idjd3,idjd4
       
    ! END header
 
@@ -46,8 +47,12 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
    IF (.NOT. allocated(c1)) &
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-!jhan:this changes Bondville offline
-   !CALL surface_albedosn(ssnow, veg, met, soil)
+   CALL surface_albedosn(ssnow, veg, met, soil)
+
+       idjd1 = 1036
+       idjd2 = 9682
+       idjd3 = 17386
+       idjd4 = 21140
 
    WHERE (soil%isoilm == 9)          ! use dry snow albedo
      ssnow%albsoilsn(:,2) = 0.82
@@ -90,7 +95,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
          rad%extkbm(:,b) = rad%extkb * c1(:,b)
       
       ! Canopy reflection (6.21) beam:
-      rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )             &
+         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )             &
                         * rhoch(:,b)
 
          ! Canopy beam transmittance (fraction):
@@ -111,6 +116,24 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
                            rad%fbeam(:,b) * rad%reffbm(:,b)
        
    END DO
+!  print 101,rad%albedo(idjd1,1),rad%albedo(idjd1,2),rad%reffdf(idjd1,1),rad%reffdf(idjd1,2), &
+!                         rad%reffbm(idjd1,1),rad%reffbm(idjd1,2),soil%albsoil(idjd1,1),soil%albsoil(idjd1,2), &
+!                          ssnow%albsoilsn(idjd1,:),ssnow%snowd(idjd1)
+!101 format(1x,'atm_ph1albedo1A',11f6.3,2f6.1)
+!     print 102,rad%albedo(idjd2,1),rad%albedo(idjd2,2),rad%reffdf(idjd2,1),rad%reffdf(idjd2,2), &
+!                         rad%reffbm(idjd2,1),rad%reffbm(idjd2,2),soil%albsoil(idjd2,1),soil%albsoil(idjd2,2), &
+!                          ssnow%albsoilsn(idjd2,:),ssnow%snowd(idjd2)
+!102 format(1x,'atm_ph1albedo2A',11f6.3,2f6.1)
+!     print 103,rad%albedo(idjd3,1),rad%albedo(idjd3,2),rad%reffdf(idjd3,1),rad%reffdf(idjd3,2), &
+!                         rad%reffbm(idjd3,1),rad%reffbm(idjd3,2),soil%albsoil(idjd3,1),soil%albsoil(idjd3,2), &
+!                          ssnow%albsoilsn(idjd3,:),ssnow%snowd(idjd3)
+!103 format(1x,'atm_ph1albedo3A',11f6.3,2f6.1)
+!     print 104,rad%albedo(idjd4,1),rad%albedo(idjd4,2),rad%reffdf(idjd4,1),rad%reffdf(idjd4,2), &
+!                         rad%reffbm(idjd4,1),rad%reffbm(idjd4,2),soil%albsoil(idjd4,1),soil%albsoil(idjd4,2), &
+!                          ssnow%albsoilsn(idjd4,:),ssnow%snowd(idjd4)
+!104 format(1x,'atm_ph1albedo4A',11f6.3,2f6.1)
+
+
 
 END SUBROUTINE surface_albedo 
 
