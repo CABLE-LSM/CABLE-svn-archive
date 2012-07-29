@@ -1,4 +1,3 @@
-R
 MODULE cable_albedo_module
 
    USE cable_data_module, ONLY : ialbedo_type, point2constants 
