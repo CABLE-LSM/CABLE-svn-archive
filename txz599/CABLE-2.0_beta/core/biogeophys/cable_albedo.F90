@@ -1,3 +1,4 @@
+
 MODULE cable_albedo_module
 
    USE cable_data_module, ONLY : ialbedo_type, point2constants 
@@ -45,7 +46,6 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
    IF (.NOT. allocated(c1)) &
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-!jhan:this changes Bondville offline
    CALL surface_albedosn(ssnow, veg, met, soil)
 
    WHERE (soil%isoilm == 9)          ! use dry snow albedo
@@ -89,7 +89,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
          rad%extkbm(:,b) = rad%extkb * c1(:,b)
       
       ! Canopy reflection (6.21) beam:
-      rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )             &
+         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )             &
                         * rhoch(:,b)
 
          ! Canopy beam transmittance (fraction):
