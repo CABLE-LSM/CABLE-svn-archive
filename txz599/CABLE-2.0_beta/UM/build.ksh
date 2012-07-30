@@ -13,7 +13,11 @@ host_vayu()
    export NCDIR=$NCDF_ROOT'/lib/Intel'
    export NCMOD=$NCDF_ROOT'/include/Intel'
    export FC=ifort
-   export CFLAGS='-O2 -i8 -r8 -fp-model precise -ftz -fpe0'
+   #export CFLAGS='-O2 -i8 -r8 -fp-model precise -ftz -fpe0'
+   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
+   export CINC='-I$(NCMOD)'
+   export LDFLAGS='-O2' 
+   export LD='-L$(NCDIR) -lnetcdf' 
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
@@ -245,7 +249,7 @@ if [[ $1 = 'clean' ]]; then
    read dummy 
 fi
    
-export libroot=$HOME'/CABLE-AUX/UM/lib'
+export libroot='/home/599/jxs599/CABLE-AUX/UM/lib'
 export libpath=$libroot'/libcable.a'
 
 known_hosts
