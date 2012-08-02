@@ -1,14 +1,36 @@
-! casa_cable.f90
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
-! Model development by YingPing Wang, CSIRO Marine and Atmospheric Research.
-! Coupling to Mk3L by Bernard Pak,    CSIRO Marine and Atmospheric Research.
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
 !
-! Please send bug reports to Bernard.Pak@csiro.au
+! Purpose: bgcdriver - interface between casacnp and cable
+!          sumcflux  - accumulating carbon fluxes (not required for UM)
+!          spincasacnp - for offline spinup only, NOT USED with Mk3L
+!                        computes forcing data for spin-up 
 !
-! the following routines are used when "casacnp" is coupled to "cable"
-!   bgcdriver - interface between casacnp and cable
-!   sumcflux  - accumulating carbon fluxes
-!   spincasacnp - for offline spinup only, NOT USED with Mk3L
+! Called from: cable_driver for offline version
+!              Not currently called/available for ACCESS version
+!
+! Contact: Yingping.Wang@csiro.au
+!
+! History: Model development by Yingping Wang, coupling to Mk3L by Bernard Pak
+!
+!
+! ==============================================================================
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssoil,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
@@ -106,14 +128,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssoil,canopy,veg,soil, &
 
 
 
-eND SUBROUTINE bgcdriver
+END SUBROUTINE bgcdriver
 
 
 
 
 
 
-
+!! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
 
    subroutine ncdf_dump(tairk, tsoil, moist, &
                         cgpp, crmplant, &
@@ -214,6 +236,7 @@ eND SUBROUTINE bgcdriver
    end subroutine ncdf_dump
 
 
+!! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
    subroutine read_casa_dump( casamet, casaflux, ktau, kend )
 !      use netcdf
 !      USE casa_cnp_module  
@@ -268,6 +291,7 @@ eND SUBROUTINE bgcdriver
   TYPE (casa_pool),           INTENT(IN) :: casapool
   TYPE (casa_met),            INTENT(IN) :: casamet
   real, dimension(17)                   ::  nintercept,nslope,xnslope
+! Will move to look-up table in later version
   data nintercept/6.32,4.19,6.32,5.73,14.71,6.42,2.00,14.71,4.71,14.71,14.71,7.00,14.71,14.71,14.71,14.71,14.71/
   data nslope/18.15,26.19,18.15,29.81,23.15,40.96,8.00,23.15,59.23,23.15,23.15,10.00,23.15,23.15,23.15,23.15,23.15/
 !  data xnslope/0.41,0.67,0.79,0.63,0.29,0.28,0.25,0.48,0.27,1.00,1.00,1.00,1.00,0.35,1.00,1.00,1.00/
