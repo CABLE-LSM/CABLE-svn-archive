@@ -1,16 +1,32 @@
-!===COPYRIGHT==================================================================
-! The source codes are part of the australian 
-! Community Atmosphere Biosphere Land Exchange (CABLE) model. 
-! Please register online at xxx and sign the agreement before use 
-! contact: whox@xxxx.yyy about registration user agreement
 !==============================================================================
-
-
-!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
-! Name: cable_initialise
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
 !
-! Purpose: Default initialisation module for CABLE
+! Purpose: default initialisation model for CABLE offline
+!
+! Contact: Bernard.Pak@csiro.au
+!
+! History: Developed by Gab Abramowitz
+!          Since 1.4b fes split into fess and fesp
+!          Significant changes: new routine 'extraRestart' for land-use change
+!
+!
+! ==============================================================================
 !
 ! MODULEs used: cable_abort_module
 !               cable_def_types_mod
@@ -19,23 +35,14 @@
 !               physical_constants
 !               netcdf
 !
-! Major contribution: Gab Abramowitz
-!
 !==============================================================================
 
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
-!jhan: changes fes -> fess? 
+!jhan: changes fes -> fess? : BP TO CONFIRM
 MODULE cable_init_module
 
    USE cable_abort_module,       ONLY: abort, nc_abort
    USE cable_def_types_mod
-   USE cable_IO_vars_module,       ONLY: latitude,longitude,         patch,            &
+   USE cable_IO_vars_module,       ONLY: latitude,longitude, patch,            &
                                  landpt,smoy,ncid_rin,max_vegpatches,          &
                                  soilparmnew,ncciy, vegtype_metfile,           &
                                  soiltype_metfile
@@ -158,13 +165,6 @@ END SUBROUTINE get_default_inits
 !        abort
 !
 ! Input file: [restart].nc
-!
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
 !
 !==============================================================================
 
@@ -616,6 +616,7 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
         //TRIM(filename%restart_in)// '(SUBROUTINE get_restart)')
    
 END SUBROUTINE get_restart_data
+
 !==============================================================================
 !
 ! Name: extraRestart
@@ -633,13 +634,6 @@ END SUBROUTINE get_restart_data
 !        redistr_i
 !
 ! Input file: [restart].nc
-!
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
 !
 !==============================================================================
 

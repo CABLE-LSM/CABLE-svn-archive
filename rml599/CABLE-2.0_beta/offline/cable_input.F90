@@ -1,16 +1,31 @@
-!===COPYRIGHT==================================================================
-! The source codes are part of the australian 
-! Community Atmosphere Biosphere Land Exchange (CABLE) model. 
-! Please register online at xxx and sign the agreement before use 
-! contact: whox@xxxx.yyy about registration user agreement
 !==============================================================================
-
-
-!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
-! Name: cable_input_module
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
 !
-! Purpose: Input module for CABLE land surface scheme
+! Purpose: Input module for CABLE offline version
+!
+! Contact: Bernard.Pak@csiro.au
+!
+! History: Developed by Gab Abramowitz
+!          Rewritten for v2.0 for new input files (1x1 deg instead of CCAM ~2x2 deg)
+!          LAI and casa-cnp nutrient inputs included in 1x1 deg file
+!
+! ==============================================================================
 !
 ! MODULEs used: cable_abort_module
 !               cable_def_types_mod
@@ -24,13 +39,6 @@
 !               cable_checks_module
 !               cable_radiation_module
 !               cable_init_module
-!
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
 !
 !==============================================================================
 
@@ -136,15 +144,6 @@ CONTAINS
 !        abort
 !
 ! Input file: [LAI].nc
-!
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-!
-! New input structure using netcdf with 1x1 resolution so that
-! no more interpolation or translation from CCAM grid (BP apr2010)
 !
 !==============================================================================
 
@@ -280,13 +279,6 @@ END SUBROUTINE get_default_lai
 !             [GSWP_Tair].nc
 !             [GSWP_wind].nc
 !             [GSWP_Rainf].nc
-!
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
 !
 !==============================================================================
 
@@ -1481,13 +1473,6 @@ END SUBROUTINE open_met_file
 !
 !==============================================================================
 
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
 SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                         veg,kend,dels, TFRZ, ktau) 
    ! Precision changes from REAL(4) to r_1 enable running with -r8
@@ -2291,13 +2276,6 @@ END SUBROUTINE get_met_data
 !
 !==============================================================================
 
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
 SUBROUTINE close_met_file
 
   ok=NF90_CLOSE(ncid_met)
@@ -2337,13 +2315,6 @@ END SUBROUTINE close_met_file
 !        report_parameters
 !
 ! Input file: [restart].nc
-!
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
 !
 !==============================================================================
 
@@ -2528,13 +2499,6 @@ END SUBROUTINE load_parameters
 !
 !==============================================================================
 
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
 SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
 
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
@@ -2596,8 +2560,6 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'def')
    CALL readpar(ncid_met,'rhosoil',completeSet,soil%rhosoil,filename%met,      &
                 nmetpatches,'def')
-!    CALL readpar(ncid_met,'rs20',completeSet,soil%rs20,filename%met, &
-!         nmetpatches,'def')
    CALL readpar(ncid_met,'rs20',completeSet,veg%rs20,filename%met,             &
                 nmetpatches,'def')
    CALL readpar(ncid_met,'albsoil',completeSet,soil%albsoil,filename%met,      &
@@ -2671,13 +2633,6 @@ END SUBROUTINE get_parameters_met
 !              old_load_parameters
 !
 ! CALLs: alloc_cbm_var
-!
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
 !
 !==============================================================================
 

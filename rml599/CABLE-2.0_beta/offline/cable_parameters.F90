@@ -1,20 +1,40 @@
-!=================================COPYRIGHT=====================================
-! The source codes are part of the australian
-! Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! Please register online at xxx and sign the agreement before use
-! contact: whox@xxxx.yyy about registration user agreement
-!===============================================================================
-
-!===============================================================================
-! Name: cable_param_module
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
 ! Purpose:       This module file reads default parameter sets and basic
 !                initialisations for CABLE. Parameters values are chosen based
-!                on a global map of vegetation and soil types, currnetly based
+!                on a global map of vegetation and soil types, currently based
 !                on a 1x1-degree grid for offline case and host-model grid for
 !                online case. Default initialisations are obtained from monthly
 !                climatology in GSWP and Mk3L runs for offline and online
 !                respectively.
-
+!
+! Contact: Bernard.Pak@csiro.au
+!
+! History: Changes since v1.4b for global offline (GSWP) cases, read in new 
+!          input files
+!          Two subroutines moved to cable_common (reading veg and soil parameter
+!          files)
+!          Addition of code for CASA-CNP
+!
+!
+! ==============================================================================
 ! CALLed from:   cable_input.F90
 !
 ! MODULEs used:  cable_abort_module
@@ -38,7 +58,6 @@
 !                check_parameter_values
 !                report_parameters
 !
-! Major contribution: land surface modeling team, CSIRO, Aspendale
 
 MODULE cable_param_module
 
@@ -378,36 +397,10 @@ CONTAINS
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
 
     ok = NF90_OPEN(filename%type, 0, ncid)
-    ! no need to check as it was opened previously
-
-!    ok = NF90_OPEN(filename%soilIGBP,0,ncid)
-!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening IGBP soil map.')
-!    ok = NF90_INQ_DIMID(ncid,'longitude',xID)
-!    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid,'x',xID)
-!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring x dimension.')
-!    ok = NF90_INQUIRE_DIMENSION(ncid,xID,LEN=xlon)
-!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting x dimension.')
-!    ok = NF90_INQ_DIMID(ncid,'latitude',yID)
-!    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid,'y',yID)
-!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring y dimension.')
-!    ok = NF90_INQUIRE_DIMENSION(ncid,yID,LEN=xlat)
-!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting y dimension.')
-!
-!    ! check dimensions of incoming data set
-!    IF (nlon /= xlon .OR. nlat /= xlat) THEN
-!      WRITE(*,*) 'nlon and xlon: ', nlon, xlon
-!      WRITE(*,*) 'nlat and xlat: ', nlat, xlat
-!      CALL abort('Input soil grid info do not match veg grid')
-!    END IF
-!    WRITE(*,*)    'Latitudes in spatially-specific soil parameter file are'
-!    WRITE(*,*)    'flipped vertically to match the GSWP input files.'
-!    WRITE(logn,*) 'Latitudes in spatially-specific soil parameter file are'
-!    WRITE(logn,*) 'flipped vertically to match the GSWP input files.'
 
     ALLOCATE(    in2alb(nlon, nlat) ) ! local
     ALLOCATE(    dummy2(nlon, nlat) ) ! local
     ALLOCATE(     sfact(nlon, nlat) ) ! local
-!   ALLOCATE( indummy(nlon,nlat,1,1) )! local
     ALLOCATE(   inswilt(nlon, nlat) )
     ALLOCATE(     insfc(nlon, nlat) )
     ALLOCATE(    inssat(nlon, nlat) )
@@ -487,6 +480,8 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, fieldID, in2alb)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
 
+! Use this code if need to process original UM file soil fields into CABLE 
+! offline format
 !    ! 1
 !    ok = NF90_INQ_VARID(ncid,'field329',fieldID)
 !    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable swilt.')
@@ -561,6 +556,7 @@ CONTAINS
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing IGBP soil map.')
 
+! Code if using UM soil file
 ! unit change and glacial-point check were done in preprocessing
 !    ! change unit to m/s
 !    inhyds = inhyds * 1.0E-3
@@ -958,7 +954,6 @@ CONTAINS
           veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
           veg%rp20(h)     = vegin%rp20(veg%iveg(h))
           veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
-!         soil%rs20(h)    = vegin%rs20(veg%iveg(h))
           veg%rs20(h)     = vegin%rs20(veg%iveg(h))
           veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
           veg%wai(h)      = vegin%wai(veg%iveg(h))
