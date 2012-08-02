@@ -1,34 +1,33 @@
-
-!===COPYRIGHT==================================================================
-! The source codes are part of the australian 
-! Community Atmosphere Biosphere Land Exchange (CABLE) model. 
-! Please register online at xxx and sign the agreement before use 
-! contact: whox@xxxx.yyy about registration user agreement
 !==============================================================================
-
-
-!==============================================================================
-! Name: cable_air_module 
-! Purpose: calculate air properties for 
-! CALLed from: executed PROGRAM 
-! MODULEs used:  cable_def_types_mod
-!                cable_common_module
-! 
-! 
-! CALLs: None      
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Fills CABLE type 'air' with appropriate values calculating 
+!          temperature dependent physical constants
+!
+! Called from: cbm, define_canopy
+!
+! Contact: Yingping.Wang@csiro.au
+!
+! History: No significant change from v1.4b
 !
 !
-! Major contribution: land surface modeling team, CSIRO, Aspendale
-!            
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
+! ==============================================================================
 
 MODULE cable_air_module
 

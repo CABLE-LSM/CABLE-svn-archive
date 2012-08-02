@@ -1,3 +1,32 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Defines constants for CABLE
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: Combines cable_*_constants from earlier versions
+!          Will include define_types in future version.
+!
+!
+! ==============================================================================
+
 module cable_data_module 
    implicit none
    
@@ -67,8 +96,9 @@ module cable_data_module
    type other_constants
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
-      real, DIMENSION(3) :: refl = (/ 0.07, 0.425, 0.00 /) ! YP nov2009
-      real, DIMENSION(3) :: taul = (/ 0.07, 0.425, 0.00/)  ! leaf transmittance
+      ! RML commented out.  Should be read from parameter file
+!     real, DIMENSION(3) :: refl = (/ 0.07, 0.425, 0.00 /) ! YP nov2009
+!     real, DIMENSION(3) :: taul = (/ 0.07, 0.425, 0.00/)  ! leaf transmittance
       !--- jhan: can make these trigger of #defines/namelist
       real:: RAD_THRESH = 0.01 
       real:: LAI_THRESH = 0.01 
@@ -239,6 +269,7 @@ SUBROUTINE driver_type_ptr(C)
    C%SBOLTZ => PHYS%SBOLTZ
 END SUBROUTINE driver_type_ptr 
 
+! ------------------------------------------------------------------------------
 
 SUBROUTINE cbm_type_ptr(C)    
    TYPE(icbm_type) :: C
@@ -247,6 +278,7 @@ SUBROUTINE cbm_type_ptr(C)
    C%CAPP  => PHYS%CAPP
 END SUBROUTINE cbm_type_ptr 
 
+! ------------------------------------------------------------------------------
 
 SUBROUTINE air_type_ptr(C)
 
@@ -264,7 +296,7 @@ SUBROUTINE air_type_ptr(C)
 
 END SUBROUTINE air_type_ptr
 
-
+! ------------------------------------------------------------------------------
 
 SUBROUTINE albedo_type_ptr(C) 
    TYPE(ialbedo_type) :: C
@@ -275,8 +307,7 @@ SUBROUTINE albedo_type_ptr(C)
    C%RAD_THRESH => OTHER%RAD_THRESH 
 END SUBROUTINE albedo_type_ptr
 
-
-
+! ------------------------------------------------------------------------------
  
 SUBROUTINE canopy_type_ptr(C)    
    
@@ -343,8 +374,7 @@ SUBROUTINE canopy_type_ptr(C)
 
 END SUBROUTINE canopy_type_ptr
 
-
-
+! ------------------------------------------------------------------------------
 
 SUBROUTINE carbon_type_ptr(C)    
    TYPE(icarbon_type) :: C
@@ -352,7 +382,7 @@ SUBROUTINE carbon_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
 END SUBROUTINE carbon_type_ptr 
 
-
+! ------------------------------------------------------------------------------
 
 SUBROUTINE rad_type_ptr(C)    
    TYPE(irad_type) :: C
@@ -377,7 +407,7 @@ SUBROUTINE rad_type_ptr(C)
 
 END SUBROUTINE rad_type_ptr
 
-
+! ------------------------------------------------------------------------------
 
 SUBROUTINE rough_type_ptr(C)    
    TYPE(irough_type) :: C
@@ -394,7 +424,7 @@ SUBROUTINE rough_type_ptr(C)
          C%ZDLIN => PHYS%ZDLIN                                                    
 END SUBROUTINE rough_type_ptr 
 
-
+! ------------------------------------------------------------------------------
 
 SUBROUTINE ssnow_type_ptr(C)    
    TYPE(issnow_type) :: C
@@ -406,25 +436,5 @@ SUBROUTINE ssnow_type_ptr(C)
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr 
 
- 
-
-
-
-end module cable_data_module 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+END MODULE cable_data_module 
 
