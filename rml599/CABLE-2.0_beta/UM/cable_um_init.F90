@@ -1,3 +1,33 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Initialize and update CABLE variables from UM forcing, calls to 
+!          memory allocation and initialization subroutines
+!
+! Called from: cable_explicit_driver
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: No significant change from v1.8
+!
+!
+! ==============================================================================
 
 MODULE cable_um_init_mod
    IMPLICIT NONE   
@@ -5,12 +35,6 @@ MODULE cable_um_init_mod
    PRIVATE  
 
 CONTAINS
-
-!===========================================================================!
-!=== called from cable_um_explicit_driver to initialize/update CABLE from ==! 
-!=== UM forcings etc.                                                    ===!   
-!=== comprises CALLS to mem. allocation & initialization subrs.          ===!
-!===========================================================================!
 
 SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
@@ -203,7 +227,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       
       ENDIF
          
-      !jhan: turn this off until properly implemented here   
+      !jhan: turn this off until implementation finalised
       !--- initialize latitude/longitude & mapping IF required
       !if ( first_call ) & 
       !   call initialize_maps(latitude,longitude, tile_index_mp)
