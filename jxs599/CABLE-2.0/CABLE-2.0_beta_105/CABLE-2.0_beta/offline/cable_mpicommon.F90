@@ -1,6 +1,6 @@
 MODULE cable_mpicommon
 
-  USE define_dimensions
+  USE cable_def_types_mod
 
   IMPLICIT NONE
 
@@ -93,14 +93,6 @@ MODULE cable_mpicommon
   ! MPI: worker's local landpoints and patches
   TYPE(lpdecomp_t) :: wpatch
 
-  ! MPI: worker rank, 0 for the master
-  ! moved to cable_define_dimension to share with the serial code
-  ! INTEGER :: wrank
-
-  ! MPI: moved to cable_define_dimensions.f90
-  ! to share with the serial code
-  ! INTEGER :: cstart, cend
-
   ! MPI: Fortran types extents
   INTEGER :: extr1, extr2, extid, extl
 
@@ -110,12 +102,12 @@ CONTAINS
 SUBROUTINE find_extents
 
   USE mpi
-  USE define_dimensions
+  USE cable_def_types_mod
 
   IMPLICIT NONE
 
-  INTEGER(i_d), DIMENSION(2) :: itmp
-  REAL(r_1), DIMENSION(2) :: r1tmp
+  INTEGER, DIMENSION(2) :: itmp
+  REAL, DIMENSION(2) :: r1tmp
   REAL(r_2), DIMENSION(2) :: r2tmp
   LOGICAL, DIMENSION(2) :: ltmp
 
@@ -146,7 +138,7 @@ SUBROUTINE decomp_types (landpt_t, patch_t)
 
   USE mpi
 
-  USE io_variables
+  USE cable_IO_vars_module
 
   IMPLICIT NONE
 

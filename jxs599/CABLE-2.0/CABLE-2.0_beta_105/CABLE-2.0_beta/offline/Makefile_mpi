@@ -36,7 +36,7 @@ FFLAGS = -O2 -fp-model precise -I $(NCMOD) -I .
 
 $(PROG): cable_mpidrv.o 
 	$(FC) $(FFLAGS) -o $(PROG) cable_mpidrv.o cable_mpicommon.o cable_mpimaster.o cable_mpiworker.o \
-		cable_iovars.o cable_abort.o cable_air.o cable_roughness.o cable_albedo.o cable_radiation.o cable_canopy.o cable_cbm.o cable_read.o cable_write.o cable_initialise.o cable_input.o cable_output.o cable_parameters.o cable_checks.o cable_define_types.o cable_soilsnow.o cable_carbon.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_common.o  \
+		cable_iovars.o cable_abort.o cable_air.o cable_roughness.o cable_albedo.o cable_radiation.o cable_canopy.o cable_cbm.o cable_read.o cable_write.o cable_initialise.o cable_input.o cable_output.o cable_parameters.o cable_checks.o cable_define_types.o cable_soilsnow.o cable_carbon.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_common.o cable_data.o  \
 		-L$(NCDIR) -lnetcdff -lnetcdf
 # add -lmpi if FC=ifort and using SGI MPT
 
@@ -67,19 +67,19 @@ cable_driver.o: cable_driver.F90 cable_output.o cable_iovars.o cable_cbm.o  casa
 
 cable_define_types.o: cable_define_types.F90
 
-cable_iovars.o: cable_iovars.F90 
+cable_iovars.o: cable_iovars.F90 cable_define_types.o
 
-cable_read.o: cable_read.F90 cable_iovars.o cable_abort.o 
+cable_read.o: cable_read.F90 cable_iovars.o cable_abort.o cable_define_types.o
 
 cable_initialise.o: cable_initialise.F90 cable_read.o cable_iovars.o cable_abort.o  cable_define_types.o
 
 cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o 
 
-cable_input.o: cable_input.F90 cable_checks.o cable_abort.o cable_read.o cable_initialise.o cable_radiation.o cable_parameters.o cable_common.o
+cable_input.o: cable_input.F90 cable_checks.o cable_abort.o cable_read.o cable_initialise.o cable_radiation.o cable_parameters.o cable_common.o casa_variable.o
 
 cable_output.o: cable_output.F90 cable_checks.o cable_write.o cable_common.o
 
-cable_outputtxt.o: cable_outputtxt.F90 cable_checks.o cable_carbon.o
+#cable_outputtxt.o: cable_outputtxt.F90 cable_checks.o cable_carbon.o
 
 cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cable_abort.o casa_variable.o cable_common.o
 
@@ -89,7 +89,7 @@ cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable
 
 cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
 
-casa_variable.o: casa_variable.F90 
+casa_variable.o: casa_variable.F90 cable_define_types.o
 
 casa_cable.o: casa_cable.F90 cable_define_types.o  cable_carbon.o casa_variable.o 
 
@@ -97,7 +97,7 @@ casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o
 
 casa_inout.o: casa_inout.F90 cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o
 
-cable_mpicommon.o: cable_mpicommon.F90  cable_iovars.o
+cable_mpicommon.o: cable_mpicommon.F90  cable_iovars.o cable_define_types.o
 
 cable_mpimaster.o: cable_mpimaster.F90 cable_mpicommon.o cable_output.o cable_iovars.o cable_cbm.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_define_types.o  cable_common.o
 
@@ -105,16 +105,8 @@ cable_mpiworker.o: cable_mpiworker.F90 cable_mpicommon.o cable_output.o cable_io
 
 cable_mpidrv.o: cable_mpidrv.F90 cable_mpicommon.o cable_mpimaster.o cable_mpiworker.o
 
-cable_common.o: cable_common.F90  cable_iovars.o
+cable_common.o: cable_common.F90  cable_iovars.o cable_define_types.o
 
-
-cable_mpicommon.o: cable_mpicommon.F90 cable_define_types.o cable_iovars.o
-
-cable_mpimaster.o: cable_mpimaster.F90 cable_mpicommon.o cable_output.o cable_iovars.o cable_cbm.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_define_types.o cable_define_types.o cable_common.o
-
-cable_mpiworker.o: cable_mpiworker.F90 cable_mpicommon.o cable_output.o cable_iovars.o cable_cbm.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_define_types.o cable_define_types.o cable_common.o
-
-cable_mpidrv.o: cable_mpidrv.F90 cable_mpicommon.o cable_mpimaster.o cable_mpiworker.o
 
 
 
