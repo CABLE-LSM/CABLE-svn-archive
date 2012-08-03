@@ -360,10 +360,10 @@ PROGRAM cable_offline_driver
                WRITE(*,'(A33)') ' Spinup has converged - final run'
                WRITE(logn,'(A52)')                                             &
                           ' Spinup has converged - final run - writing all data'
-               WRITE(logn,'(A37,F7.5,A28)')                                    &
+               WRITE(logn,'(A37,F8.5,A28)')                                    &
                           ' Criteria: Change in soil moisture < ',             &
                           delsoilM, ' in any layer over whole run'
-               WRITE(logn,'(A40,F7.5,A28)' )                                   &
+               WRITE(logn,'(A40,F8.5,A28)' )                                   &
                           '           Change in soil temperature < ',          &
                           delsoilT, ' in any layer over whole run'
             END IF
