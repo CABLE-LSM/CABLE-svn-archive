@@ -2,8 +2,23 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh vayu shin
 }
+
+
+## shine-cl.n
+host_shin()
+{
+   export NCDIR='/usr/local/intel/lib'
+   export NCMOD='/usr/local/intel/include'
+   export FC=ifort
+   export CFLAGS='-O0 -fp-model precise'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## vayu.nci.org.au
@@ -72,7 +87,7 @@ host_write()
    print 'host_'$HOST_MACH'()' >> junk
    print '{' >> junk
    print '   export NCDIR='"'"$NCDF_ROOT'/'$NCDF_DIR"'" >> junk
-   print '   export NCMOD='"'"'$NCDF_ROOT'/'$NCDF_MOD"'" >> junk
+   print '   export NCMOD='"'"$NCDF_ROOT'/'$NCDF_MOD"'" >> junk
    print '   export FC='$FC >> junk
    print '   export CFLAGS='"'"$CFLAGS"'" >> junk
    print '   build_build' >> junk
@@ -138,6 +153,9 @@ build_status()
    	print '\nBUILD OK\n'
    else
       print '\nOooops. Something went wrong\n'        
+      print '\nKnow build issues:\n'        
+      print '\nSome systems require additional library. \n'        
+      print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'        
    fi
    exit
 }
