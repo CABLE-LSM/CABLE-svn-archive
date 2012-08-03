@@ -71,10 +71,10 @@ host_write()
    print '## '$HOST_COMM >> junk
    print 'host_'$HOST_MACH'()' >> junk
    print '{' >> junk
-   print '   export NCDIR="'"'$NCDF_ROOT'/'$NCDF_DIR"'"' >> junk
-   print '   export NCMOD="'"'$NCDF_ROOT'/'$NCDF_MOD"'"' >> junk
+   print '   export NCDIR='"'"$NCDF_ROOT'/'$NCDF_DIR"'" >> junk
+   print '   export NCMOD='"'"'$NCDF_ROOT'/'$NCDF_MOD"'" >> junk
    print '   export FC='$FC >> junk
-   print '   export CFLAGS="'"'$CFLAGS"'"' >> junk
+   print '   export CFLAGS='"'"$CFLAGS"'" >> junk
    print '   build_build' >> junk
    print '   cd ../' >> junk
    print '   build_status' >> junk
