@@ -343,7 +343,7 @@ CONTAINS
       ! Rainfall input may be augmented for spinup purposes:
       met%ofsd = met%fsd(:,1) + met%fsd(:,2)
       CALL get_met_data( spinup, spinConv, met, soil,                    &
-                         rad, veg, kend, dels, C%TFRZ )
+                         rad, veg, kend, dels, C%TFRZ, ktau )
 
       ! MPI: scatter input data to the workers
       CALL master_send_input (comm, inp_ts, ktau)
