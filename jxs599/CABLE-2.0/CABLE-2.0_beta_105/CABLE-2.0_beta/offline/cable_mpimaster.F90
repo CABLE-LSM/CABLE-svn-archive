@@ -437,7 +437,7 @@ CONTAINS
      ! instead of a separate receive_restart sub?
      CALL master_receive (comm, ktau_gl, restart_ts)
 
-     CALL create_restart(logn,dels,soil,ktau, veg,ssnow,    &
+     CALL create_restart(logn,dels,ktau,soil, veg,ssnow,    &
                          canopy,rough,rad,bgc,bal)
   END IF
 !  IF(output%restart) CALL create_restart(logn,ktau,dels,&
