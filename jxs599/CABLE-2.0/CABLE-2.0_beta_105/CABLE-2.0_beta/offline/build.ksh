@@ -71,10 +71,10 @@ host_write()
    print '## '$HOST_COMM >> junk
    print 'host_'$HOST_MACH'()' >> junk
    print '{' >> junk
-   print '   export NCDIR='$NCDF_ROOT'/'$NCDF_DIR >> junk
-   print '   export NCMOD='$NCDF_ROOT'/'$NCDF_MOD >> junk
+   print '   export NCDIR="'"'$NCDF_ROOT'/'$NCDF_DIR"'"' >> junk
+   print '   export NCMOD="'"'$NCDF_ROOT'/'$NCDF_MOD"'"' >> junk
    print '   export FC='$FC >> junk
-   print '   export CFLAGS='$CFLAGS >> junk
+   print '   export CFLAGS="'"'$CFLAGS"'"' >> junk
    print '   build_build' >> junk
    print '   cd ../' >> junk
    print '   build_status' >> junk
@@ -95,7 +95,7 @@ not_recognized()
    print "\tupdated accordingly. " 
    print "\n\tIf this is a common machine for CABLE users, " \
          "please email"
-   print "\n\t\t cable_help@nci.org.au "  
+   print "\n\t\t cable_help@nf.nci.org.au "  
    print "\n\talong with your new build.ksh so that we can " \
          "update the script "
    print "\tfor all users. "

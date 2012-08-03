@@ -67,8 +67,7 @@ module cable_data_module
    type other_constants
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
-      real, DIMENSION(3) :: refl = (/ 0.07, 0.425, 0.00 /) ! YP nov2009
-      real, DIMENSION(3) :: taul = (/ 0.07, 0.425, 0.00/)  ! leaf transmittance
+      
       !--- jhan: can make these trigger of #defines/namelist
       real:: RAD_THRESH = 0.01 
       real:: LAI_THRESH = 0.01 
@@ -195,7 +194,7 @@ module cable_data_module
          ! math constants
          PI180, PI_C
       REAL, POINTER, DIMENSION(:) ::                                           &
-         GAUSS_W, TAUL, REFL
+         GAUSS_W
    END TYPE irad_type
 
 
@@ -361,7 +360,6 @@ SUBROUTINE rad_type_ptr(C)
    C%LAI_THRESH => OTHER%LAI_THRESH 
    C%RAD_THRESH => OTHER%RAD_THRESH 
    C%GAUSS_W  => OTHER%GAUSS_W
-   C%TAUL => OTHER%TAUL
    C%REFL => OTHER%REFL
    
    ! math constants
