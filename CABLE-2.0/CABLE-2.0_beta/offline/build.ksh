@@ -2,23 +2,8 @@
 
 known_hosts()
 {
-   set -A kh vayu shin
+   set -A kh vayu 
 }
-
-
-## shine-cl.n
-host_shin()
-{
-   export NCDIR='/usr/local/intel/lib'
-   export NCMOD='/usr/local/intel/include'
-   export FC=ifort
-   export CFLAGS='-O0 -fp-model precise'
-   build_build
-   cd ../
-   build_status
-}
-
-
 
 
 ## vayu.nci.org.au
@@ -63,13 +48,46 @@ host_read()
 
    print "\n\tWhat is the Fortran compiler you wish to use."
    print "\te.g. ifort, gfortran"
-   read FC 
-   export FC
+   
+   print "\n\tPress enter for default [ifort]."
+   read FCRESPONSE 
+   if [[ $FCRESPONSE == '' ]]; then
+      export FC='ifort'
+   else   
+      export FC=$FCRESPONSE
+   fi
 
    print "\n\tWhat are the approriate compiler options"
    print "\te.g.(ifort) -O2 -fp-model precise "
-   read CFLAGS 
-   export CFLAGS
+   print "\n\tPress enter for default [-O2 -fp-model precise]."
+   read CFLAGRESPONSE 
+   if [[ $CFLAGRESPONSE == '' ]]; then
+      export CFLAGS='-O2 -fp-model precise'
+   else   
+      export CFLAGS=$CFLAGRESPONSE
+   fi
+
+   print "\n\tWhat are the approriate linking options"
+   print "\te.g.(ifort) -O2 "
+   print "\n\tPress enter for default [-O2]."
+   read LDFRESPONSE 
+   if [[ $LDFRESPONSE == '' ]]; then
+      export LDFLAGS='-02'
+   else   
+      export LDFLAGS=$LDFRESPONSE
+   fi
+
+   print "\n\tWhat are the approriate libraries to link"
+   print "\te.g.(most systems) -lnetcdf "
+   print "\n\tPress enter for default [-lnetcdf]."
+   read LDRESPONSE 
+   if [[ $LDRESPONSE == '' ]]; then
+      export LD='-lnetcdf'
+   else   
+      export LD=$LDRESPONSE
+   fi
+
+
 }
 
 
@@ -90,6 +108,8 @@ host_write()
    print '   export NCMOD='"'"$NCDF_ROOT'/'$NCDF_MOD"'" >> junk
    print '   export FC='$FC >> junk
    print '   export CFLAGS='"'"$CFLAGS"'" >> junk
+   print '   export LD='"'"$LD"'" >> junk
+   print '   export LDFLAGS='"'"$LDFLAGS"'" >> junk
    print '   build_build' >> junk
    print '   cd ../' >> junk
    print '   build_status' >> junk
