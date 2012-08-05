@@ -71,7 +71,7 @@ fi
 ### and avoid accidently over-writing data - up to a point !!      ###
 ######################################################################
 
-if [[ $1 == 'run' ]] || [[ $2 == 'run' ]]; then
+if [[ $1 == 'run' ]] || [[ $2 == 'run' ]] || [[ $1 == 'all' ]]; then
    book_keeping
    if [[ -d out ]]; then
       print "Adding to existing out directory" 
