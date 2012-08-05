@@ -360,7 +360,6 @@ SUBROUTINE rad_type_ptr(C)
    C%LAI_THRESH => OTHER%LAI_THRESH 
    C%RAD_THRESH => OTHER%RAD_THRESH 
    C%GAUSS_W  => OTHER%GAUSS_W
-   C%REFL => OTHER%REFL
    
    ! math constants
    C%PI180  => MATH%PI180
