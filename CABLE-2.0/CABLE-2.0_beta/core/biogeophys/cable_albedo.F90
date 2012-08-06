@@ -119,7 +119,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
          rad%extkbm(:,b) = rad%extkb * c1(:,b)
       
       ! Canopy reflection (6.21) beam:
-         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )             &
+         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
                         * rhoch(:,b)
 
          ! Canopy beam transmittance (fraction):
