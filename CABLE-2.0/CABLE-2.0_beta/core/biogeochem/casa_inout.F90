@@ -778,7 +778,6 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   OPEN(nout,file=casafile%cnpepool)
   PRINT *, 'Opened file ', casafile%cnpepool
 
-!  WRITE(*,91) nyear,cplantsum,clittersum,csoilsum 
   casabal%sumcbal=MIN(9999.0,MAX(-9999.0,casabal%sumcbal))
   casabal%sumnbal=MIN(9999.0,MAX(-9999.0,casabal%sumnbal))
   casabal%sumpbal=MIN(9999.0,MAX(-9999.0,casabal%sumpbal))
@@ -826,7 +825,6 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
 
   CLOSE(nout)
 
-91    format(i6,100(g9.3,2x))
 92    format(5(i6,',',2x),5(f15.6,',',2x),i6,',',2x,100(f15.6,',',2x))
 END SUBROUTINE casa_poolout
 
