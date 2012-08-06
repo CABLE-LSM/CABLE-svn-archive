@@ -1,3 +1,36 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Calculates surface exchange fluxes through the solution of surface 
+!          energy balance and its interaction with plant physiology. Specific 
+!        representation of the transport of scalars within a canopy is included.
+!
+! Called from: cbm
+!
+! Contact: Yingping.Wang@csiro.au and Eva.Kowalczyk@csiro.au
+!
+! History: Revision of canopy temperature calculation (relative to v1.4b) 
+!          Reorganisation of code (dryLeaf, wetLeaf, photosynthesis subroutines
+!          taken out of define_canopy)
+!
+!
+! ==============================================================================
 
 MODULE cable_canopy_module
    
@@ -97,6 +130,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
+   ! ACCESS version has this statement but elsewhere?
    IF( .NOT. cable_runtime%um)                                                 &
       canopy%cansto =  canopy%oldcansto
 
@@ -545,6 +579,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
 CONTAINS
 
+! ------------------------------------------------------------------------------
 
 SUBROUTINE comp_friction_vel()
    USE cable_def_types_mod, only : mp
@@ -568,6 +603,7 @@ SUBROUTINE comp_friction_vel()
 
 END SUBROUTINE comp_friction_vel
 
+! ------------------------------------------------------------------------------
 
 FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
    USE cable_def_types_mod, only : mp
@@ -593,6 +629,7 @@ FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
 END FUNCTION Penman_Monteith
 
 
+! ------------------------------------------------------------------------------
 ! method alternative to P-M formula above
 FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
 
@@ -615,8 +652,7 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
    
 END FUNCTION Humidity_deficit_method
 
-
-
+! ------------------------------------------------------------------------------
  
 SUBROUTINE Latent_heat_flux() 
 
@@ -673,9 +709,7 @@ SUBROUTINE Latent_heat_flux()
 
 END SUBROUTINE latent_heat_flux
 
-
-
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE within_canopy( gbhu, gbhf )
 
@@ -725,7 +759,7 @@ SUBROUTINE within_canopy( gbhu, gbhf )
                    (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*C%CAPP)
 
          ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-         dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *     &
+         dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
                    (rrbw(j)*rrsw(j))
 
          ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
@@ -766,7 +800,7 @@ SUBROUTINE within_canopy( gbhu, gbhf )
          CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
          
          ! Saturated vapour pressure deficit in canopy:
-         met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o             &
+         met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o         &
                       * met%pmb(j) * 100.
       ENDIF 
 
@@ -774,9 +808,7 @@ SUBROUTINE within_canopy( gbhu, gbhf )
      
 END SUBROUTINE within_canopy
 
-
-
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE update_zetar()
    
@@ -815,7 +847,7 @@ SUBROUTINE update_zetar()
       
 END SUBROUTINE update_zetar
 
-
+! -----------------------------------------------------------------------------
 
 FUNCTION qsatf(j,tair,pmb) RESULT(r)
   ! MRR, 1987
@@ -833,7 +865,7 @@ FUNCTION qsatf(j,tair,pmb) RESULT(r)
    r = (C%RMH2o/C%rmair) * (C%TETENA*EXP(C%TETENB*tair/(C%TETENC+tair))) / pmb
 END FUNCTION qsatf
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE qsatfjh(var,tair,pmb) 
    USE cable_def_types_mod, only : mp
@@ -854,7 +886,7 @@ SUBROUTINE qsatfjh(var,tair,pmb)
 
 END SUBROUTINE qsatfjh
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE qsatfjh2(var,tair,pmb) 
    
@@ -869,6 +901,7 @@ SUBROUTINE qsatfjh2(var,tair,pmb)
 
 END SUBROUTINE qsatfjh2
 
+! -----------------------------------------------------------------------------
 
 FUNCTION psim(zeta) RESULT(r)
    USE cable_def_types_mod, only : mp
@@ -908,6 +941,8 @@ FUNCTION psim(zeta) RESULT(r)
    r = z*stable + (1.0-z)*unstable
 END FUNCTION psim
 
+! -----------------------------------------------------------------------------
+
 ELEMENTAL FUNCTION psis(zeta) RESULT(r)
 
    ! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
@@ -946,7 +981,7 @@ ELEMENTAL FUNCTION psis(zeta) RESULT(r)
 
 END FUNCTION psis
 
-
+! -----------------------------------------------------------------------------
 
 FUNCTION psis1(zeta) RESULT(r)
    ! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
@@ -985,10 +1020,7 @@ FUNCTION psis1(zeta) RESULT(r)
 
 END FUNCTION psis1
 
-
-
-
-
+! -----------------------------------------------------------------------------
 
 ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) result(z)
    REAL, INTENT(IN)     :: rpconst
@@ -998,6 +1030,7 @@ ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) result(z)
    z = rpconst * exp(rpcoef * tair)
 END FUNCTION rplant
 
+! -----------------------------------------------------------------------------
 
 SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
                     gbhu, gbhf, ghwet )
@@ -1099,9 +1132,11 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
            
 END SUBROUTINE wetLeaf
 
+! -----------------------------------------------------------------------------
 
 END SUBROUTINE define_canopy
 
+! -----------------------------------------------------------------------------
 
 SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
@@ -1158,10 +1193,10 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
       IF( ssnow%snowd(j) > 0.1) ssnow%wetfac(j) = 0.9
       
       IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                  &
-         ssnow%wetfac(j) = 1.0
+         ssnow%wetfac(j) = 1.0 ! lakes: hard-wired number to be removed
       
       IF( veg%iveg(j) == 16 .and. met%tk(j) < C%tfrz + 5. )                    &
-         ssnow%wetfac(j) = 0.7
+         ssnow%wetfac(j) = 0.7 ! lakes: hard-wired number to be removed
 
    ENDDO 
       
@@ -1173,6 +1208,7 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
 END SUBROUTINE Surf_wetness_fact
 
+! -----------------------------------------------------------------------------
 
 SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
@@ -1652,7 +1688,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 END SUBROUTINE dryLeaf
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                            rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
@@ -1865,8 +1901,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
      
 END SUBROUTINE photosynthesis
 
-
-
+! ------------------------------------------------------------------------------
 
 FUNCTION ej3x(parx,x) RESULT(z)
    
@@ -1880,6 +1915,8 @@ FUNCTION ej3x(parx,x) RESULT(z)
 
 END FUNCTION ej3x
 
+! ------------------------------------------------------------------------------
+
 FUNCTION ej4x(parx,x) RESULT(z)
    
    REAL, INTENT(IN)     :: parx
@@ -1892,6 +1929,8 @@ FUNCTION ej4x(parx,x) RESULT(z)
  
 END FUNCTION ej4x
 
+! ------------------------------------------------------------------------------
+
 ! Explicit array dimensions as temporary work around for NEC inlining problem
 FUNCTION xvcmxt4(x) RESULT(z)
    
@@ -1903,6 +1942,8 @@ FUNCTION xvcmxt4(x) RESULT(z)
         ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
  
 END FUNCTION xvcmxt4
+
+! ------------------------------------------------------------------------------
 
 FUNCTION xvcmxt3(x) RESULT(z)
    
@@ -1923,6 +1964,8 @@ FUNCTION xvcmxt3(x) RESULT(z)
 
 END FUNCTION xvcmxt3
 
+! ------------------------------------------------------------------------------
+
 FUNCTION xejmxt3(x) RESULT(z)
    
    !  leuning 2002 (p c & e) equation for temperature response
@@ -1942,6 +1985,7 @@ FUNCTION xejmxt3(x) RESULT(z)
 
 END FUNCTION xejmxt3
 
+! ------------------------------------------------------------------------------
 
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
@@ -1959,6 +2003,7 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
       
 END SUBROUTINE fwsoil_calc_std 
 
+! ------------------------------------------------------------------------------
 
 SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
@@ -2004,6 +2049,7 @@ SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
 
 END SUBROUTINE fwsoil_calc_non_linear 
 
+! ------------------------------------------------------------------------------
 
 ! ypw 19/may/2010 soil water uptake efficiency (see Lai and Ktaul 2000)
 SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 

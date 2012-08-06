@@ -1,3 +1,35 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Calculates plant and soil respiration and updates carbon pools.
+!          Note: carbon pools reset if ACCESS model run restarted
+!          Use CASA-CNP in preference to these routines for carbon fluxes
+!
+! Called from: cbm
+!
+! Contact: Rachel.Law@csiro.au
+!
+! History: Plant respiration code moved from canopy
+!          Namelist parameter used to switch between soil respiration options
+!
+!
+! ==============================================================================
 
 MODULE cable_carbon_module
    
@@ -179,6 +211,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
 END SUBROUTINE carbon_pl
 
+! -----------------------------------------------------------------------------
 
 SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
 
@@ -218,6 +251,8 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
    
    IF( cable_user%DIAG_SOIL_RESP == 'off' .OR.                                 &
        cable_user%DIAG_SOIL_RESP == 'OFF' )  THEN
+
+      ! key parameter for this scheme is veg%rs20
       
       avgwrs = SUM( veg%froot * ssnow%wb, 2 )
       avgtrs = MAX( 0.0, SUM( veg%froot * ssnow%tgg, 2 )- C%TFRZ )
@@ -236,6 +271,8 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
          canopy%frs = canopy%frs / max(0.001,min(100.,ssnow%snowd))
 
     ELSE
+
+      ! key parameter for this scheme is veg%vegcf
 
       rswch = 0.16
       soilcf = 1.0
@@ -272,7 +309,7 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
 
   END SUBROUTINE soilcarb
 
-
+! -----------------------------------------------------------------------------
 
 ! plant respiration subroutine
 SUBROUTINE plantcarb(veg, bgc, met, canopy)
