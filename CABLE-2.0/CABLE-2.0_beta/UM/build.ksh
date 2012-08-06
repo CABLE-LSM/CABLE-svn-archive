@@ -179,7 +179,6 @@ build_build()
       libpathbu=$libpath'.bu'
       print $libpathbu'\n' 
       mv $libpath $libpathbu
-      exit 
    fi
   
    CORE="../core/biogeophys"
