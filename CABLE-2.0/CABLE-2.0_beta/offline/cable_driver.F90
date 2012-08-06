@@ -1,17 +1,33 @@
-
-!===COPYRIGHT==================================================================
-! The source codes are part of the australian 
-! Community Atmosphere Biosphere Land Exchange (CABLE) model. 
-! Please register online at xxx and sign the agreement before use 
-! contact: whox@xxxx.yyy about registration user agreement
 !==============================================================================
-
-
-!==============================================================================
-! Name: cable_driver
-! Purpose: offline driver for CABLE model
-! CALLed from: executed PROGRAM 
-!                 cable_def_types_mod
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Offline driver for CABLE
+!
+! Contact: Bernard.Pak@csiro.au
+!
+! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
+!          inclusion of call to CASA-CNP (icycle>0)
+!          soil_snow_type now ssnow (instead of ssoil)
+!
+!
+! ==============================================================================
+! Uses:           cable_def_types_mod
 !                 cable_IO_vars_module
 !                 cable_common_module
 !                 cable_input_module
@@ -37,29 +53,19 @@
 !              close_output_file
 !              prepareFiles
 !
-! Major contribution: land surface modeling team, CSIRO, Aspendale
 !
-! input  file: ￼[SiteName].nc
-!              ￼poolcnpIn[SiteName].csv -- for CASA-CNP only
-!              ￼gridinfo_CSIRO_1x1.nc
-!              ￼def_veg_params.txt
-!              ￼def_soil_params.txt -- nearly redundant, can be switched on
-!              ￼restart_in.nc -- not strictly required
+! input  file: [SiteName].nc
+!              poolcnpIn[SiteName].csv -- for CASA-CNP only
+!              gridinfo_CSIRO_1x1.nc
+!              def_veg_params.txt
+!              def_soil_params.txt -- nearly redundant, can be switched on
+!              restart_in.nc -- not strictly required
 !
-! output file: ￼log_cable.txt
-!              ￼out_cable.nc
-!              ￼restart_out.nc
-!              ￼poolcnpOut.csv -- from CASA-CNP
-
+! output file: log_cable.txt
+!              out_cable.nc
+!              restart_out.nc
+!              poolcnpOut.csv -- from CASA-CNP
 !==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
 
 PROGRAM cable_offline_driver
    USE cable_def_types_mod
