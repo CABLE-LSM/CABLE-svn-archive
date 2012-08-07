@@ -128,7 +128,7 @@ banner_welc_sub()
 
 banner_welcome_txt()
 {   
-   print "\nThis script is currenntly capable of:" 
+   print "\nThis script is currently capable of:" 
 
    banner_welc_sub
    
