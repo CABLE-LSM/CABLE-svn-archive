@@ -1,5 +1,6 @@
 #!/bin/ksh
 
+# RUN_CABLE build
 build_cable()
 {      
 
@@ -32,6 +33,7 @@ build_cable()
  
 
 
+# RUN_CABLE run 
 run_cable()
 {
    #remove any trace of previous runs
@@ -63,6 +65,7 @@ run_cable()
 
 
 
+# RUN_CABLE plot  
 plot_cable()
 {
    cd src/
@@ -74,7 +77,7 @@ plot_cable()
 }
 
 
-
+# RUN_CABLE qsub
 qsub_avail()
 {
    qstat -u $uid | grep $uid > .qu
@@ -94,7 +97,7 @@ qsub_avail()
       ln -s ../data
       mv $qs_filename_base$i$qs_filename_suffix sites_main.txt
       
-      /opt/pbs/bin/qsub -S /bin/ksh RUN_CABLE
+      /opt/pbs/bin/qsub -S /bin/ksh src/QRUN.ksh
       
       cd ../ 
    else
@@ -115,6 +118,25 @@ banner_welcome()
 
 } 
  
+
+# RUN_CABLE with no args will get here after above banner_welcome_txt()  
+banner_welcome_txt()
+{   
+   print "\nThis script is currently capable of:" 
+
+   banner_welc_sub
+   
+   print "\nIn addition to being able to execute these tasks independently,"
+   print "RUN_CABLE can also be configured to perform combinations of these" 
+   print "tasks, as well as some variations. RUN_CABLE can be configured by"
+   print "selecting the apropriate option from the list presented shortly,\n" 
+   print "OR by arguments to RUN_CABLE entered at the command-line. These \n" 
+   print "arguments are given along with the following numbered options.\n" 
+   print "Hit enter to  display the the various incantations of RUN_CABLE.\c"
+   read duumy
+}
+
+
 banner_welc_sub()
 {
    print "\n\t1. Building a CABLE executable from source code."       
@@ -126,22 +148,70 @@ banner_welc_sub()
 
 
 
-banner_welcome_txt()
-{   
-   print "\nThis script is currently capable of:" 
 
-   banner_welc_sub
+# RUN_CABLE with no args will get here after above banner_welcome_txt()  
+config_text()
+{
+   print "\nGenerically: RUN_CABLE [OPTION1] [OPTION2]\n "
    
-   print "\nIn addition to being able to execute these tasks independently,"
-   print "RUN_CABLE can also be configured to perform combinations of these" 
-   print "tasks. RUN_CABLE can be configured via arguments at the" 
-   print "command-line, or via this script.\n" 
-   print "Hit enter to  display the the various incantations of RUN_CABLE.\c"
-   read duumy
+   print "\nRUN_CABLE without any additional arguments will bring you"
+   print "back here"
+   print "\n1. RUN_CABLE build "
+   print "\t\tBuild CABLE only. Useful in code development, and also to "  
+   print "\t\tcreate an executable for a qsub job."
+   
+   print "\n1d. RUN_CABLE build debug"
+   print "\t\tBuild CABLE only with debug compiler options. This is currently "
+   print "\t\tonly a real option on vayu. Edit the build script directly on"
+   print "\t\tother already known machines, or add the machine to the build"
+   print "\t\tscript with via RUN_CABLE build with debug compiler switches."
+   
+   print "\n1n. RUN_CABLE nml"
+   print "\t\tGenerate a namelist file (cable.nml) and exit. "
+   
+   print "\n2. RUN_CABLE build run"
+   print "\t\tBuild CABLE and then run it."
+   
+   print "\n3. RUN_CABLE run "
+   print "\t\tCABLE executable already exists, just run it."
+   print "\t\t\tUseful if you are switching data sets, or have a pre-built"  
+   print "\t\tspecial version of CABLE"
+   
+   print "\n4. RUN_CABLE plot "
+   print "\t\tPlot existing CABLE data (data must be in out/ directory)."
+   
+   print "\n5. RUN_CABLE run plot "
+   print "\t\tRun existing CABLE executable and plot this new data"  
+   print "\t\t(will be left in a newly created out/ directory)."
+   
+   print "\n6. RUN_CABLE all "
+   print "\t\tDo everything. Build CABLE, then run it, then plot it."
+  
+   print "\n7. RUN_CABLE qsub "
+   print "\t\tLike "RUN_CABLE all" but on multiple processors. One site per"
+   print "\t\tprocessor. Note: Only forces build if executable is not " 
+   print "\t\tavailable. Submits as many sites as it can to the queue in" 
+   print "\t\tseperate run directories qsub_X (X=1,2,3,....)[NOTE:most NCI" 
+   print "\t\tusers have a default limit of 8 jobs at a time]"
+   
+   print "\n8. RUN_CABLE tidy"
+   print "\t\tGive me back my nice clean directory."
+   
+   print "\n9. RUN_CABLE clean"
+   print "\t\tForce a full clean so we can rebuild from scratch"
+   
+   print "\n10. RUN_CABLE help [OPTION]"
+   print "\t\tGet further help on a particular option."
+   print "\t\tSorry, haven't got around to this yet."
+   
+   print "\nIf you really really like paper and want to print, you can print" 
+   print "this page to a file by Entering "'"P"'" "
+   print "\t\tSorry, haven't got around to this in full yet."
+
+   print "\nEnter option number to proceed from here OR Enter to quit"
 }
 
 
-  
 config_run()
 {
 
@@ -156,6 +226,10 @@ config_run()
   
    if [[ $response == '1d' ]]; then
       ./RUN_CABLE build debug
+   fi
+  
+   if [[ $response == '1n' ]]; then
+      ./RUN_CABLE nml 
    fi
   
    if [[ $response == '2' ]]; then
@@ -213,62 +287,6 @@ config_run()
 }
 
 
-
-config_text()
-{
-   print "\nGenerically: RUN_CABLE [OPTION1] [OPTION2]\n "
-   
-   print "\nRUN_CABLE without any additional arguments will bring you"
-   print "back here"
-   print "\n1. RUN_CABLE build "
-   print "\t\tBuild CABLE only. Useful in code development, and also to "  
-   print "\t\tcreate an executable for a qsub job."
-   
-   print "\n1d. RUN_CABLE build debug"
-   print "\t\tBuild CABLE only with debug compiler options. "
-   
-   print "\n2. RUN_CABLE build run"
-   print "\t\tBuild CABLE and then run it."
-   
-   print "\n3. RUN_CABLE run "
-   print "\t\tCABLE executable already exists, just run it."
-   print "\t\t\tUseful if you are switching data sets, or have a pre-built"  
-   print "\t\tspecial version of CABLE"
-   
-   print "\n4. RUN_CABLE plot "
-   print "\t\tPlot existing CABLE data (data must be in out/ directory)."
-   
-   print "\n5. RUN_CABLE run plot "
-   print "\t\tRun existing CABLE executable and plot this new data"  
-   print "\t\t(will be left in a newly created out/ directory)."
-   
-   print "\n6. RUN_CABLE all "
-   print "\t\tDo everything. Build CABLE, then run it, then plot it."
-  
-   print "\n7. RUN_CABLE qsub "
-   print "\t\tLike "RUN_CABLE all" but on multiple processors. One site per"
-   print "\t\tprocessor. Note: Only forces build if executable is not " 
-   print "\t\tavailable. Submits as many sites as it can to the queue in" 
-   print "\t\tseperate run directories qsub_X (X=1,2,3,....)[NOTE:most NCI" 
-   print "\t\tusers have a default limit of 8 jobs at a time]"
-   
-   print "\n8. RUN_CABLE tidy"
-   print "\t\tGive me back my nice clean directory."
-   
-   print "\n9. RUN_CABLE clean"
-   print "\t\tForce a full clean so we can rebuild from scratch"
-   
-   print "\n10. RUN_CABLE help [OPTION]"
-   print "\t\tGet further help on a particular option."
-   print "\t\tSorry, haven't got around to this yet."
-   
-   print "\nIf you really really like paper and want to print, you can print" 
-   print "this page to a file by Entering "'"P"'" "
-   print "\t\tSorry, haven't got around to this in full yet."
-
-   print "\nEnter option number to proceed from here OR Enter to quit"
-}
-
  
 help()
 {     
@@ -301,7 +319,7 @@ book_keeping()
 tidy()
 {
    rm -fr src/qsj.j src/*out qs* bu/  
-   rm -f ../core nohup.out *.out *csv .qu 
+   rm -f ../core *.*out *.out *csv .qu 
 }
 
 quit_option()   

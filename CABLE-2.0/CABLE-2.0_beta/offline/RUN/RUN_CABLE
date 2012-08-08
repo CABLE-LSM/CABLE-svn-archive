@@ -10,14 +10,6 @@
 ###  plots of flux data is called.                                        ### 
 #############################################################################
 
-#PBS -l walltime=1800
-#PBS -l vmem=3072MB
-#PBS -l ncpus=1
-#PBS -l jobfs=2GB
-#PBS -q normal  
-#PBS -j oe
-#PBS -N CABLE 
-
 ######################################################################
 ######################################################################
 ###  main script starts here. main script (run.ksh) called         ###
@@ -28,6 +20,7 @@
 #turning this on for debugging script can be useful
 #set -x
 
+# if *user* option =qsub, not inc. internal call to RUN_CABLE
 if [[ $1 == 'qsub' ]]; then
    print "\nThere is no requirement to keep this window alive. A script "
    print "submitting jobs to the queue is being run in the background. " 
@@ -41,17 +34,18 @@ if [[ $1 == 'qsub' ]]; then
    nohup src/Qsub_support.ksh & 
    #/opt/pbs/bin/qsub -S /bin/ksh Qsub_support.ksh
    exit
-fi        
+fi       
+ 
 #if we are on vayu (potentially cherx etc) or a qsub-ed job add module(s)
 if [[ `uname -n | cut -c 1-4` == 'vayu'  ]] || [ -n "$PBS_JOBID" ] ; then
    module add R
    module add intel-fc/11.1.073 
 fi
 
-#if qsub-ed create flag file to work around user-process limit 
-if [ -n "$PBS_JOBID" ]; then
-   cd $PBS_O_WORKDIR
-fi
+#if qsub-ed 
+#if [ -n "$PBS_JOBID" ]; then
+#   cd $PBS_O_WORKDIR
+#fi
 
 #source file containing all the functions called from here
 . src/functions.ksh
@@ -63,6 +57,11 @@ fi
 
 if [[ $1 == 'help' ]]; then
    help
+fi
+
+if [[ $1 == 'nml' ]]; then
+  cd src      
+  R CMD BATCH --slave "--args nml_only" CABLE.R 
 fi
 
 ######################################################################
@@ -95,7 +94,8 @@ if [[ $1 == 'run' ]] || [ -n "$PBS_JOBID" ]; then
    fi           
 fi
 
-if [[ $force_build == 'true' ]] || [[ $1 == 'build' ]] || [[ $1 == 'all' ]]; then
+if [[ $force_build == 'true' ]] || [[ $1 == 'build' ]] || [[ $1 == 'all' ]] 
+then
    print "\n*** BUILDING CABLE ***\n"
    build_cable
 fi

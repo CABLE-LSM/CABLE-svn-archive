@@ -3,6 +3,7 @@
 ### run CABLE over selected sites. this script is called by run_cable.csh in the   ###
 ### previous directory and reads the established parameters in main.nml            ###
 ######################################################################################
+args <- commandArgs(trailingOnly = TRUE)
 
 source('main.txt')
 library(ncdf) # load netcdf library
@@ -90,6 +91,11 @@ for(site in 1:length(obsfiles)) { # for each site
 
    write(cnlist,'cable.nml')
 
+   if( args[1] == "nml_only" ) {
+      print("Writing namelist and exiting R-script")
+      quit()
+   } 
+
    # Run CABLE
    print(paste('Running CABLE at ',sitenames[site],':',sep=''))
    system('./cable') # Will run CABLE
@@ -100,6 +106,7 @@ for(site in 1:length(obsfiles)) { # for each site
    #system('ncl cable_map_w.ncl')
    #system('ncl cable_map.ncl')
 
+   print(paste('at ',system('pwd'),':',sep=''))
    # move CABLE output to new dir out/"sitename"
    setwd( paste( newdirname,sep='' ) ) # cd to new directory
 
