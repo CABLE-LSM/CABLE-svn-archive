@@ -159,7 +159,7 @@ do_i_no_u()
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
          subr=host_${kh[$k]}
-         $subr
+         $subr $1
       fi        
       (( k = k + 1 ))
    done 
@@ -240,7 +240,7 @@ known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
 
-do_i_no_u
+do_i_no_u $1
 
 not_recognized
 

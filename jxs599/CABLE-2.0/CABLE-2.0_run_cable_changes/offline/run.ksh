@@ -10,11 +10,39 @@
 ###  plots of flux data is called.                                        ### 
 #############################################################################
 
+# sitename given to subdirectory in out/ per site (should match cable.nml)
+# this will be re-initiated properly for future release
+site_name()
+{
+   set -A sites \
+   Tumbarumba
+#   bbb \
+#   ccc
+} 
+
+#site_data()
+#{
+#   set -A sitefile \
+#   data/sample_met/Bondville1997 
+##   bbb \
+##   ccc
+#}
+
 
 #==============================================================================
 
-
 run_cable()
+{
+   integer kmax=${#sites[*]}
+   integer k=0
+   
+   while [[ $k -lt $kmax ]]; do
+      run_run $k        
+      (( k = k + 1 ))
+   done 
+}
+
+run_run()
 {
    # remove any trace of previous runs
    tidy
@@ -22,7 +50,10 @@ run_cable()
    # link to met data etc 
    if [[ ! -e data ]]; then
       ln -s ~/CABLE-AUX/data
-   fi 
+   fi
+   
+   mkdir out/${sites[$k]}
+
    # execute CABLE
    print '\n*** RUNNING CABLE ***\n'
    ./cable 
@@ -32,15 +63,15 @@ run_cable()
    if [[ -f out_cable.nc ]]; then
 
       print '\n*** CABLE RUN (appears) SUCCESSFULL ***\n'
-		
+      		
       # CABLE output + restart if applicable
-      mv log_cable.txt out_cable.nc restart_out.nc out/
+      mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$1]}
       
       # CABLE namelist file used 
-      cp cable.nml out/
+      cp cable.nml out/${sites[$1]}
       
       # pools for CASA-CNP
-      mv poolcnpOut.csv cnpfluxOut.csv
+      mv poolcnpOut.csv cnpfluxOut.csv out/${sites[$1]}
    
    else
       print '\n*** ERROR: RUN FAILED ***\n'     
@@ -74,8 +105,8 @@ book_keeping()
 
    if [[ -d out ]]; then
       mv out out.1
-      mkdir out
    fi      
+   mkdir out
 
 
 }
@@ -87,15 +118,11 @@ book_keeping()
 tidy()
 {
    rm -fr src/qsj.j src/*out qs* bu/  
-   rm -f ../core *.*out *.out *csv .qu 
+   rm -f *.*out *.out *csv .qu 
 }
 
 
 #==============================================================================
-
-
-
-
 
 
 
@@ -113,6 +140,8 @@ tidy()
 # see above functions()
 
 book_keeping
+
+site_name
 
 ########################################################################
 ##### call CABLE.R in batch mode to avoid going into R first, and    ###
