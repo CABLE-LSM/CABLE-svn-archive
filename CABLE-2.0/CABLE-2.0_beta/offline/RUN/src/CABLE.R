@@ -3,7 +3,8 @@
 ### run CABLE over selected sites. this script is called by run_cable.csh in the   ###
 ### previous directory and reads the established parameters in main.nml            ###
 ######################################################################################
-args <- commandArgs(trailingOnly = TRUE)
+#args <- commandArgs(trailingOnly = TRUE)
+args <- commandArgs()
 
 source('main.txt')
 library(ncdf) # load netcdf library
@@ -91,7 +92,10 @@ for(site in 1:length(obsfiles)) { # for each site
 
    write(cnlist,'cable.nml')
 
-   if( args[1] == "nml_only" ) {
+      print(paste("Writing namelist and exiting R-script", args[0], sep=""))
+      print(paste("Writing namelist and exiting R-script", args[1], sep=""))
+#quit()
+   if( args[1]=='nml_only' ) {
       print("Writing namelist and exiting R-script")
       quit()
    } 
