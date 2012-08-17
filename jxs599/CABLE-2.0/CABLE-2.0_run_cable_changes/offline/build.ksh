@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh vayu jigg
 }
+
+
+## jiggle
+host_jigg()
+{
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
+   export FC=gfortran
+   export CFLAGS='-O0 -g'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-O0'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## vayu.nci.org.au
@@ -218,7 +235,7 @@ build_build()
    print "\ttechnical reasons. Implementation is not officially available with" 
    print "\tthe release of CABLE 2.0\n"
     
-   /bin/cp -p Makefile_offline  ./.tmp
+   /bin/cp -p ../utils/Makefile_offline  ./.tmp
    
   cd .tmp/
    

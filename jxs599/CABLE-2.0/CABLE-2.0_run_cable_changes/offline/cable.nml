@@ -1,5 +1,4 @@
 &cable
-   filename%met = 'data/sample_met/Bondville1997_csiro.nc'
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
