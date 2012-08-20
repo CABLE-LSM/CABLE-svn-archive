@@ -2,8 +2,43 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh vayu jigg shin
 }
+
+
+## shine
+host_shin()
+{
+   export NCDIR='/usr/local/intel/lib'
+   export NCMOD='/usr/local/intel/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/usr/local/intel/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+
+
+
+## jiggle
+host_jigg()
+{
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
+   export FC=gfortran
+   export CFLAGS='-O0 -g'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-O0'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## vayu.nci.org.au
@@ -67,15 +102,16 @@ host_read()
       export CFLAGS=$CFLAGRESPONSE
    fi
 
-   print "\n\tWhat are the approriate linking options"
-   print "\te.g.(ifort) -O2 "
-   print "\n\tPress enter for default [-O2]."
-   read LDFRESPONSE 
-   if [[ $LDFRESPONSE == '' ]]; then
-      export LDFLAGS='-02'
-   else   
-      export LDFLAGS=$LDFRESPONSE
-   fi
+   #print "\n\tWhat are the approriate linking options"
+   #print "\te.g.(ifort) -O2 "
+   #print "\n\tPress enter for default [-O2]."
+   #read LDFRESPONSE 
+   #if [[ $LDFRESPONSE == '' ]]; then
+      iflags='-L'$NCDIR' -O2'
+   #else   
+   #   iflags='-L'$NCDIR $LDFRESPONSE  
+   #fi
+   export LDFLAGS=$iflags
 
    print "\n\tWhat are the approriate libraries to link"
    print "\te.g.(most systems) -lnetcdf "
@@ -159,7 +195,7 @@ do_i_no_u()
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
          subr=host_${kh[$k]}
-         $subr
+         $subr $1
       fi        
       (( k = k + 1 ))
    done 
@@ -240,7 +276,7 @@ known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
 
-do_i_no_u
+do_i_no_u $1
 
 not_recognized
 

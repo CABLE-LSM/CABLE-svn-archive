@@ -184,7 +184,8 @@ PROGRAM cable_offline_driver
 
    ! END header
 
-
+   CALL GETARG(1, filename%met)
+   CALL GETARG(2, casafile%cnpipool)
 
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
