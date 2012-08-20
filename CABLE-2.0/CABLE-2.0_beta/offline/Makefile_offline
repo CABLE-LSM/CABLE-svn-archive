@@ -33,6 +33,7 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 c
 # this is the executable we are building
 PROG = cable
 
+# from the compiled object files 
 OBJS	= ${LSRC:.F90=.o} 
 
 #compiler switches and flags
