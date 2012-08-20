@@ -111,6 +111,7 @@ casa_inout.o: casa_inout.F90 cable_define_types.o  cable_iovars.o casa_variable.
 
 cable_common.o: cable_common.F90  cable_iovars.o
 
+# make clean option
 clean:
 	rm -f *.o *.mod 
 
