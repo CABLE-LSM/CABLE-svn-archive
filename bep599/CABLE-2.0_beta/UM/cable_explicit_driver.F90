@@ -1,18 +1,34 @@
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!++++ CABLE HEADER 
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!===============================================================================
-!=== CABLE is called in the UM from 4 locations. this is the first call at  
-!=== the beginning of the timestep from sf_exch(). others are:
-!===     cable_implicit_driver() from sf_impl(). 
-!===     cable_rad_driver from glue_ctl_rad()
-!===     cable_hyd_driver from hydrol()
-!=== the main purpose of this call is to calculate the surface-atmosphere 
-!=== exchange co-effs so that the UM can convect etc. at mid-timestep calls
-!=== cable_implicit() where it uses updated forcings. 
-!===============================================================================
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Passes UM variables to CABLE, calls cbm, passes CABLE variables 
+!          back to UM. 'Explicit' is the first of two routines that call cbm at 
+!          different parts of the UM timestep.
+!
+! Called from: UM code sf_exch
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: Developed for CABLE v1.8
+!
+!
+! ==============================================================================
 
 
 SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
@@ -239,6 +255,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    IF(first_cable_call)                                                        & 
       cable_runtime%um = .TRUE.
    
+   ! set namelist location in users home directory
    CALL GETENV("HOME", myhome)   
    runtime_vars_file = TRIM(myhome)//TRIM(nml_path1)
 

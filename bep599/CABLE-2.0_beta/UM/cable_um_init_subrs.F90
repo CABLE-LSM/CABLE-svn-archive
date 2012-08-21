@@ -1,3 +1,31 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Routines to pass UM variables into appropriate CABLE variables and 
+!          to map parameters for each surface type to CABLE arrays
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: Rewrites of code in v1.8 (ACCESS1.3)
+!
+!
+! ==============================================================================
 
 MODULE cable_um_init_subrs_mod
    IMPLICIT NONE
@@ -5,7 +33,7 @@ MODULE cable_um_init_subrs_mod
 
 CONTAINS
 
-!jhan: crudely turn this off for now        
+!jhan: code under development for future release
 !   subroutine initialize_maps(latitude,longitude, tile_index_mp)
 !      use cable_data_module, only : cable, const 
 !      use cable_um_tech_mod, only : um1
@@ -135,15 +163,17 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       
          !--- soil%isoilm defines soiltype. 
          ! currently is either 2 (arbitrarily) or 9.
-         ! type 9 -> permanent ice points which are dealt with by CABLE, 
-         ! but not UM-MOSES. spatially explicit soil properties are used by 
+         ! type 9 -> permanent ice points which are dealt with by CABLE. 
+         ! Spatially explicit soil properties are used by 
          ! the UM anyway, and is only really an issue for soil%css & 
          ! soil%rhosoil, which are set to either 2 or 9. 
          ! dealing with this in CASACNP is another issue.
          !--- %isoilm=10 for Lakes
          soil%isoilm  =  2
             
-         !trigger soil albedo under snow tiles
+         ! set soil type for permanent ice based on where permanent ice 
+         ! located in vegetation map (in v1.8 set by soil albedo value)
+         ! hard-wired numbers to be removed in future release
          WHERE( veg%iveg == 17 ) soil%isoilm = 9
            
          !--- set CABLE-var soil%albsoil from UM var albsoil
@@ -266,15 +296,19 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai )
 
          IF( um1%TILE_FRAC(i,N) .gt. 0.0 ) THEN
             
-            IF(N < 4 ) THEN
+            ! hard-wired vegetation type numbers need to be removed
+            IF(N < 5 ) THEN ! rml changed 4 to 5
+               ! trees
                kblum_veg%IVEGT(i,N) = N
                kblum_veg%LAIFT(i,N) = max(0.01,um_lai(i,N)) 
                kblum_veg%HTVEG(i,N) = max(1.,um_htveg(i,N)) 
-            ELSE IF(N > 3 .AND. N < 14 ) THEn
+            ELSE IF(N > 4 .AND. N < 14 ) THEN !rml changed 3 to 4
+               ! shrubs/grass
                kblum_veg%IVEGT(i,N) = N
                kblum_veg%LAIFT(i,N) = max(0.01, um_lai(i,N)) 
                kblum_veg%HTVEG(i,N) = max(0.1, um_htveg(i,N)) 
              ELSE IF(N > 13 ) THEN
+               ! non-vegetated
                kblum_veg%IVEGT(i,N) = N
                kblum_veg%LAIFT(i,N) = 0. 
                kblum_veg%HTVEG(i,N) = 0.
@@ -321,11 +355,12 @@ SUBROUTINE init_veg_pars_fr_vegin()
       veg%rs20 = vegin%rs20(veg%iveg)
 
       do k=1,2
-        veg%refl(:,k)   = vegin%reflin(k,veg%iveg)
-        veg%taul(:,k)   = vegin%taulin(k,veg%iveg)
+        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
+        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
       enddo
 
-      !jhan:can't we read this in
+      !froot fixed here for all vegetation types for ACCESS
+      !need more flexibility in next version to read in or parameterise
       veg%froot(:,1) = 0.05
       veg%froot(:,2) = 0.20
       veg%froot(:,3) = 0.20
@@ -458,6 +493,8 @@ SUBROUTINE initialize_canopy(canopy_tile)
       !--- then used in soilsnow() in implicit call, then unpacked
       IF( first_call ) THEN
          canopy%ga = 0.
+         canopy%fes_cor = 0.
+         canopy%fhs_cor = 0.
          first_call = .FALSE.
       ENDIF
          
@@ -534,7 +571,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ssnow%tggsn(:,J) = PACK(SNOW_TMP3L(:,:,J),um1%l_tile_pts)  
          ssnow%sconds(:,J)= PACK(SNOW_COND(:,:,J),um1%l_tile_pts)  
          
-         WHERE( veg%iveg == 16 )
+         WHERE( veg%iveg == 16 ) ! lakes: remove hard-wired number in future version
             ssnow%wbtot1 = ssnow%wbtot1 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
                            soil%zse(J)
             !jhan:coupled run temp fix for lakes
@@ -607,6 +644,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
             ssnow%wb(:,J)  = pack(fwork(:,:,J),um1%l_tile_pts)
             ssnow%wbice(:,J) = pack(fwork(:,:,J+um1%SM_LEVELS),um1%l_tile_pts)
             ssnow%wbice(:,J) = max(0.,ssnow%wbice(:,J))
+            ! lakes: removed hard-wired number in future version
             WHERE( veg%iveg == 16 ) ssnow%wb(:,J) = 0.95*soil%ssat
          ENDDO
          
@@ -626,7 +664,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
       
          !jhan: do we want to do this before %owetfac is set 
          DO J = 1, um1%sm_levels
-            WHERE( soil%isoilm == 9 )
+            WHERE( soil%isoilm == 9 ) ! permanent ice: remove hard-wired no. in future
                ssnow%wb(:,J) = 0.95*soil%ssat
                ssnow%wbice(:,J) = 0.8*soil%ssat
             ENDWHERE

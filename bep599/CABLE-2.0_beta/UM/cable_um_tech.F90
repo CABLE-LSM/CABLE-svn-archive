@@ -1,3 +1,32 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Routines to read CABLE namelist, check variables, allocate and 
+!          deallocate CABLE arrays
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: Rewrite of code from v1.8 (ACCESS1.3)
+!          soil_snow_type now ssnow (instead of ssoil)
+!
+!
+! ==============================================================================
 
 MODULE cable_um_tech_mod
    
@@ -63,7 +92,9 @@ CONTAINS
 
 SUBROUTINE cable_um_runtime_vars(runtime_vars_file) 
    USE cable_common_module, ONLY : cable_runtime, cable_user, filename,        &
-                                   cable_user, knode_gl
+                                   cable_user, knode_gl, redistrb, wiltParam,  &
+                                   satuParam
+
 
    CHARACTER(LEN=*), INTENT(IN) :: runtime_vars_file
    INTEGER :: funit=88
@@ -177,8 +208,8 @@ SUBROUTINE dealloc_vegin_soilin()
       DEALLOCATE(vegin%shelrb)
       DEALLOCATE(vegin%vegcf)
       DEALLOCATE(vegin%frac4)
-      DEALLOCATE(vegin%reflin)
-      DEALLOCATE(vegin%taulin)
+      DEALLOCATE(vegin%refl)
+      DEALLOCATE(vegin%taul)
       DEALLOCATE(vegin%xalbnir)
       DEALLOCATE(vegin%extkn)
       DEALLOCATE(vegin%froot)

@@ -1,16 +1,38 @@
-! casa_cable.f90
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
-! Model development by YingPing Wang, CSIRO Marine and Atmospheric Research.
-! Coupling to Mk3L by Bernard Pak,    CSIRO Marine and Atmospheric Research.
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
 !
-! Please send bug reports to Bernard.Pak@csiro.au
+! Purpose: bgcdriver - interface between casacnp and cable
+!          sumcflux  - accumulating carbon fluxes (not required for UM)
+!          spincasacnp - for offline spinup only, NOT USED with Mk3L
+!                        computes forcing data for spin-up 
 !
-! the following routines are used when "casacnp" is coupled to "cable"
-!   bgcdriver - interface between casacnp and cable
-!   sumcflux  - accumulating carbon fluxes
-!   spincasacnp - for offline spinup only, NOT USED with Mk3L
+! Called from: cable_driver for offline version
+!              Not currently called/available for ACCESS version
+!
+! Contact: Yingping.Wang@csiro.au
+!
+! History: Model development by Yingping Wang, coupling to Mk3L by Bernard Pak
+!          ssoil changed to ssnow
+!
+! ==============================================================================
 
-SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssoil,canopy,veg,soil, &
+SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
                      spinConv, spinup, ktauday, idoy, dump_read, dump_write )
 
@@ -32,7 +54,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssoil,canopy,veg,soil, &
         
    REAL,         INTENT(IN) :: dels ! time setp size (s)
    TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
-   TYPE (soil_snow_type), INTENT(INOUT) :: ssoil ! soil and snow variables
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow ! soil and snow variables
    TYPE (canopy_type), INTENT(INOUT) :: canopy ! vegetation variables
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
@@ -61,14 +83,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssoil,canopy,veg,soil, &
       ENDIF
       IF(mod(ktau,ktauday)==1) THEN
          casamet%tairk = met%tk
-         casamet%tsoil = ssoil%tgg
-         casamet%moist = ssoil%wb
+         casamet%tsoil = ssnow%tgg
+         casamet%moist = ssnow%wb
          casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = canopy%frday*dels
       ELSE
          Casamet%tairk  =casamet%tairk + met%tk
-         casamet%tsoil = casamet%tsoil + ssoil%tgg
-         casamet%moist = casamet%moist + ssoil%wb
+         casamet%tsoil = casamet%tsoil + ssnow%tgg
+         casamet%moist = casamet%moist + ssnow%wb
          casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + &
                                        canopy%frday*dels
@@ -106,14 +128,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssoil,canopy,veg,soil, &
 
 
 
-eND SUBROUTINE bgcdriver
+END SUBROUTINE bgcdriver
 
 
 
 
 
 
-
+!! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
 
    subroutine ncdf_dump(tairk, tsoil, moist, &
                         cgpp, crmplant, &
@@ -214,6 +236,7 @@ eND SUBROUTINE bgcdriver
    end subroutine ncdf_dump
 
 
+!! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
    subroutine read_casa_dump( casamet, casaflux, ktau, kend )
 !      use netcdf
 !      USE casa_cnp_module  
@@ -268,6 +291,7 @@ eND SUBROUTINE bgcdriver
   TYPE (casa_pool),           INTENT(IN) :: casapool
   TYPE (casa_met),            INTENT(IN) :: casamet
   real, dimension(17)                   ::  nintercept,nslope,xnslope
+! Will move to look-up table in later version
   data nintercept/6.32,4.19,6.32,5.73,14.71,6.42,2.00,14.71,4.71,14.71,14.71,7.00,14.71,14.71,14.71,14.71,14.71/
   data nslope/18.15,26.19,18.15,29.81,23.15,40.96,8.00,23.15,59.23,23.15,23.15,10.00,23.15,23.15,23.15,23.15,23.15/
 !  data xnslope/0.41,0.67,0.79,0.63,0.29,0.28,0.25,0.48,0.27,1.00,1.00,1.00,1.00,0.35,1.00,1.00,1.00/
@@ -335,9 +359,7 @@ eND SUBROUTINE bgcdriver
 
 
 SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
-                    soil, ssoil, sum_flux, veg, met, casaflux, l_vcmaxFeedbk)
-!SUBROUTINE sumcflux(ktau, kstart, kend, dels, mvtype, mstype, bgc, canopy,  &
-!                    soil, ssoil, sum_flux, veg, met, casaflux)
+                    soil, ssnow, sum_flux, veg, met, casaflux, l_vcmaxFeedbk)
 
   USE cable_def_types_mod
   USE cable_carbon_module
@@ -354,19 +376,19 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
   TYPE (canopy_type),         INTENT(INOUT) :: canopy
   TYPE (soil_parameter_type), INTENT(INOUT) :: soil
-  TYPE (soil_snow_type),      INTENT(INOUT) :: ssoil
+  TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
   TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
   TYPE (met_type),            INTENT(IN)    :: met    
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   LOGICAL, INTENT(IN)   :: l_vcmaxFeedbk ! using prognostic Vcmax
 
-    if(icycle<=0) then
-       CALL soilcarb(soil, ssoil, veg, bgc, met, canopy)
-       CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc)
-!       CALL soilcarb(soil, ssoil, veg, bgc, met, canopy, mstype)
-!       CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc, mvtype)
-    else
+!   if(icycle<=0) then
+!     these are executed in cbm
+!      CALL soilcarb(soil, ssoil, veg, bgc, met, canopy)
+!      CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc)
+!   else
+    if(icycle>0) then
        canopy%frp(:) = (casaflux%crmplant(:,wood)+casaflux%crmplant(:,froot) &
                         +casaflux%crgplant(:))/86400.0
        canopy%frs(:) = casaflux%Crsoil(:)/86400.0
