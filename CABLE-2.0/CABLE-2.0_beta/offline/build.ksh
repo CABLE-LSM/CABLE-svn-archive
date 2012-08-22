@@ -51,7 +51,7 @@ host_read()
          "your NetCDF .mod file."
    print "\n\tPress enter for default [include]."
    read NCDF_MOD
-   if [[ $NCDF_MOD== '' ]]; then
+   if [[ $NCDF_MOD == '' ]]; then
       export NCMOD=$NCDF_ROOT/'include'
    else   
       export NCDIR=$NCDF_ROOT/$NCDF_MOD
