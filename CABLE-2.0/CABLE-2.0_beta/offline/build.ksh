@@ -38,14 +38,25 @@ host_read()
    
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF library." 
-   print "\te.g. lib"
+   print "\n\tPress enter for default [lib]."
    read NCDF_DIR
-   export NCDIR=$NCDF_ROOT/$NCDF_DIR
+   if [[ $NCDF_DIR == '' ]]; then
+      export NCDIR=$NCDF_ROOT/'lib'
+   else   
+      export NCDIR=$NCDF_ROOT/$NCDF_DIR
+   fi
+
    
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF .mod file."
-   print "\te.g. include"
+   print "\n\tPress enter for default [include]."
    read NCDF_MOD
+   if [[ $NCDF_MOD== '' ]]; then
+      export NCMOD=$NCDF_ROOT/'include'
+   else   
+      export NCDIR=$NCDF_ROOT/$NCDF_MOD
+   fi
+
    export NCMOD=$NCDF_ROOT/$NCDF_MOD
 
    print "\n\tWhat is the Fortran compiler you wish to use."
