@@ -37,6 +37,18 @@ book_keeping()
    fi      
    mkdir out
 
+HOST_MACH=`uname -n | cut -c 1-4`
+
+if [[ $HOST_MACH = 'vayu' ]]; then
+
+   if [[ ! -d ~/CABLE-AUX ]]; then
+      mkdir ~/CABLE-AUX
+   fi
+   
+   cp -r /projects/access/CABLE-AUX/offline ~/CABLE-AUX
+   cp -r /projects/access/CABLE-AUX/core ~/CABLE-AUX
+   
+fi
 
 }
 
@@ -95,11 +107,6 @@ run_run()
    # remove any trace of previous runs
    tidy
 
-   # link to met data etc 
-   if [[ ! -e data ]]; then
-      ln -s ~/CABLE-AUX/data
-   fi
-   
    mkdir out/${sites[$k]}
 
    # execute CABLE
@@ -115,9 +122,6 @@ run_run()
       		
       # CABLE output + restart if applicable
       mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$k]}
-      
-      # CABLE namelist file used 
-      cp cable.nml out/${sites[$k]}
       
       # pools for CASA-CNP
       if [[ -e poolcnpOut.csv ]]; then

@@ -8,14 +8,14 @@
 # and the pool size.   
 #
 #
-# sitename - Bondville, etc 
-Bondville97
+# sitename - Tumbarumba, etc 
+Tumbarumba
 #
-# met. file - etc
-data/sample_met/Bondville1997_csiro.nc
+# met. file - path relative to $HOME 
+CABLE-AUX/offline/TumbaFluxnet.1.3_met.nc
 #
-# CNP pools size - etc 
-data/surface_data/poolcnpInBondville97.csv
+# CNP pools size - path relative to $HOME
+CABLE-AUX/core/biogeochem/poolcnpInTumbarumba.csv
 #
 #
 #

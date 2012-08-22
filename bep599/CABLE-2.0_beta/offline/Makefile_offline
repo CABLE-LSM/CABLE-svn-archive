@@ -38,8 +38,6 @@ OBJS	= ${LSRC:.F90=.o}
 
 #compiler switches and flags
 CINC = -I$(NCMOD)
-#LDFLAGS = -O2 
-#LD =  -L$(NCDIR) -lnetcdf 
 
 #suffixes we use
 .SUFFIXES:
