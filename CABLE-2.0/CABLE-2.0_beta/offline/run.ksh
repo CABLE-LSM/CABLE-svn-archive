@@ -61,7 +61,7 @@ fi
 site_name()
 {
    integer i=0
-   exec < sites.txt
+   exec < ~/CABLE-AUX/offline/sites.txt
    
    print "\n\tRunning CABLE over the single sites: \n" 
    while read line
