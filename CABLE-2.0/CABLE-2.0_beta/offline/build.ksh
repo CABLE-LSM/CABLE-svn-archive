@@ -12,7 +12,7 @@ host_shin()
    export NCDIR='/usr/local/intel/'
    export NCMOD='/usr/local/intel/'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
    export LD='-lnetcdf'
    export LDFLAGS='-L/usr/local/intel/lib -O2'
    build_build
@@ -27,10 +27,7 @@ host_burn()
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
+   export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -45,10 +42,7 @@ host_cher()
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
+   export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build

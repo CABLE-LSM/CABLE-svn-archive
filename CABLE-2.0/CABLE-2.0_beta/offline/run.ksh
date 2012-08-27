@@ -37,19 +37,17 @@ book_keeping()
    fi      
    mkdir out
 
-HOST_MACH=`uname -n | cut -c 1-4`
-
-if [[ $HOST_MACH = 'vayu' ]]; then
-
-   if [[ ! -d ~/CABLE-AUX ]]; then
-      mkdir ~/CABLE-AUX
+   HOST_MACH=`uname -n | cut -c 1-4`
+   
+   if [[ $HOST_MACH = 'vayu' ]]; then
+   
+      if [[ ! -d ~/CABLE-AUX ]]; then
+         mkdir ~/CABLE-AUX
+         cp -r /projects/access/CABLE-AUX/offline ~/CABLE-AUX
+         cp -r /projects/access/CABLE-AUX/core ~/CABLE-AUX
+      fi
+      
    fi
-   
-   cp -r /projects/access/CABLE-AUX/offline ~/CABLE-AUX
-   cp -r /projects/access/CABLE-AUX/core ~/CABLE-AUX
-   
-fi
-
 }
 
 
@@ -101,6 +99,10 @@ run_cable()
       (( k = k + 1 ))
    done 
 }
+
+
+#==============================================================================
+
 
 run_run()
 {
