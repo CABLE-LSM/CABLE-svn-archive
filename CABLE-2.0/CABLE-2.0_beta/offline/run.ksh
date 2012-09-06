@@ -41,10 +41,10 @@ book_keeping()
    
    if [[ $HOST_MACH = 'vayu' ]]; then
    
-      if [[ ! -d ~/CABLE-AUX ]]; then
-         mkdir ~/CABLE-AUX
-         cp -r /projects/access/CABLE-AUX/offline ~/CABLE-AUX
-         cp -r /projects/access/CABLE-AUX/core ~/CABLE-AUX
+      if [[ ! -d $CABLE_AUX ]]; then
+         mkdir $CABLE_AUX
+         cp -r /projects/access/CABLE-AUX/offline $CABLE_AUX
+         cp -r /projects/access/CABLE-AUX/core $CABLE_AUX
       fi
       
    fi
@@ -59,7 +59,7 @@ book_keeping()
 site_name()
 {
    integer i=0
-   exec < ~/CABLE-AUX/offline/sites.txt
+   exec < $CABLE_AUX/offline/sites.txt
    
    while read line
    do
