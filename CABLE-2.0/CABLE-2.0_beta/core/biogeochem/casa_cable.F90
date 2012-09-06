@@ -19,8 +19,6 @@
 !
 ! Purpose: bgcdriver - interface between casacnp and cable
 !          sumcflux  - accumulating carbon fluxes (not required for UM)
-!          spincasacnp - for offline spinup only, NOT USED with Mk3L
-!                        computes forcing data for spin-up 
 !
 ! Called from: cable_driver for offline version
 !              Not currently called/available for ACCESS version
@@ -463,64 +461,4 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
 END SUBROUTINE sumcflux
 
 
-SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
-  USE cable_def_types_mod
-  USE cable_carbon_module
-  USE casadimension
-  USE casaparm
-  USE casavariable
-  USE phenvariable
-  IMPLICIT NONE
-  REAL,    INTENT(IN)    :: dels
-  INTEGER, INTENT(IN)    :: kstart
-  INTEGER, INTENT(IN)    :: kend
-  INTEGER, INTENT(IN)    :: mloop
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
-  TYPE (casa_biome),            INTENT(INOUT) :: casabiome
-  TYPE (casa_pool),             INTENT(INOUT) :: casapool
-  TYPE (casa_flux),             INTENT(INOUT) :: casaflux
-  TYPE (casa_met),              INTENT(INOUT) :: casamet
-  TYPE (casa_balance),          INTENT(INOUT) :: casabal
-  TYPE (phen_variable),         INTENT(INOUT) :: phen
-
-  ! local variables
-  REAL, DIMENSION(:,:,:), ALLOCATABLE   :: xtsoil,xmoist
-  REAL, DIMENSION(:,:),   ALLOCATABLE   :: xcgpp,xcrmleaf
-  REAL, DIMENSION(:,:),   ALLOCATABLE   :: xtairk
-  INTEGER :: ktauday,nloop,idoy,nday,ktaux,ktauy
-  REAL    :: xlai
-    
-  ktauday=int(24.0*3600.0/dels)
-  nday=(kend-kstart+1)/ktauday
-  PRINT *, 'nday mp ms ',nday,kend,kstart,mp,ms
-  ALLOCATE(xtsoil(nday,mp,ms),xmoist(nday,mp,ms))
-  ALLOCATE(xcgpp(nday,mp),xcrmleaf(nday,mp))
-  ALLOCATE(xtairk(nday,mp))
-
-  OPEN(111,file=casafile%cnpmetin)
-  DO idoy=1,nday
-    READ(111,*) ktaux,xlai,xtairk(idoy,:),xtsoil(idoy,:,:),xmoist(idoy,:,:), &
-                xcgpp(idoy,:),xcrmleaf(idoy,:)
-  ENDDO
-  close(111)
-  nloop = 0 
-  DO nloop=1,mloop
-    DO idoy=1,nday
-      ktauy=idoy*ktauday
-      casamet%tairk(:)=xtairk(idoy,:)
-      casamet%tsoil(:,:)=xtsoil(idoy,:,:)
-      casamet%moist(:,:)=xmoist(idoy,:,:)
-      casaflux%cgpp(:) = xcgpp(idoy,:)
-      casaflux%crmplant(:,leaf) =xcrmleaf(idoy,:)
-      call biogeochem(ktauy,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                      casamet,casabal,phen)
-    ENDDO
-    IF((nloop+10)>mloop) THEN
-      WRITE(*,151), nloop, casapool%cplant,casapool%clitter,casapool%csoil
-    ENDIF
-  ENDDO
-151 FORMAT(i6,100(f12.5,2x))
-END SUBROUTINE spincasacnp
 
