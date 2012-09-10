@@ -39,7 +39,6 @@
 ! CALLs:       open_met_file
 !              load_parameters
 !              open_output_file
-!              spincasacnp
 !              get_met_data
 !              casa_feedback
 !              cbm

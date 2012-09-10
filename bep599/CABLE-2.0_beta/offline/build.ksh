@@ -178,45 +178,47 @@ clean_build()
 }
 
 
-set_up_CABLE_AUX()
-{
-      print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
-      print "\tcontains configuration and data essential to using CABLE."
-      print "\tNCI account holders can have this set up for you now (anywhere)."
-      print "\tOthers will have to use the tarball available for download at ..."
-      print "\n\tDo you want to run set up this directory now? y/[n]"
-      
-      read setup_CABLE_AUX
-      if [[ $setup_CABLE_AUX = 'y' ]]; then
-         print "\n\tPlease enter your NCI user ID"
-         read NCI_USERID 
-         mkdir ~/CABLE-AUX 
-         
-         fscp1="scp -r "
-         fscp2="@vayu.nci.org.au:/projects/access/CABLE-AUX/"
-         fscp3="offline "
-         fscp4=$HOME"/CABLE-AUX/"
-         fscp5=$fscp1$NCI_USERID$fscp2
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-          
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/offline failed" 
-            exit $RC 
-         fi
-         
-         fscp3="core "
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-         
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/core failed" 
-            exit $RC 
-         fi
-      fi        
-}
+#set_up_CABLE_AUX()
+#{
+#      print "\n\tYou do not have a directory set up called:"
+#      print" \n\t\t" $CABLE_AUX
+#      print" \n\tThis directory"
+#      print "\tcontains configuration and data essential to using CABLE."
+#      print "\tNCI account holders can have this set up for you now (anywhere)."
+#      print "\tOthers will have to use the tarball available for download at ..."
+#      print "\n\tDo you want to run set up this directory now? y/[n]"
+#      
+#      read setup_CABLE_AUX
+#      if [[ $setup_CABLE_AUX = 'y' ]]; then
+#         print "\n\tPlease enter your NCI user ID"
+#         read NCI_USERID 
+#         mkdir ~/CABLE-AUX 
+#         
+#         fscp1="scp -r "
+#         fscp2="@vayu.nci.org.au:/projects/access/CABLE-AUX/"
+#         fscp3="offline "
+#         fscp4=$HOME"/CABLE-AUX/"
+#         fscp5=$fscp1$NCI_USERID$fscp2
+#         fscp=$fscp5$fscp3$fscp4$fscp3
+#         $fscp
+#          
+#         RC=$?
+#         if [[ $RC > 0 ]];then 
+#            print "ERROR: scp of ~/CABLE-AUX/offline failed" 
+#            exit $RC 
+#         fi
+#         
+#         fscp3="core "
+#         fscp=$fscp5$fscp3$fscp4$fscp3
+#         $fscp
+#         
+#         RC=$?
+#         if [[ $RC > 0 ]];then 
+#            print "ERROR: scp of ~/CABLE-AUX/core failed" 
+#            exit $RC 
+#         fi
+#      fi        
+#}
 
 
 
@@ -334,11 +336,12 @@ if [[ $1 = 'clean' ]]; then
    clean_build
 fi
 
-if [[ ! -d ~/CABLE-AUX ]];then
-   set_up_CABLE_AUX
-else
-   print "\n~/CABLE-AUX is at least present.\n"
-fi
+#if [[ ! -d $CABLE_AUX ]];then
+#   set_up_CABLE_AUX
+#else
+#   print "\n\t" $CABLE_AUX 
+#   print "\n\tis at least present.\n"
+#fi
 
 
    
