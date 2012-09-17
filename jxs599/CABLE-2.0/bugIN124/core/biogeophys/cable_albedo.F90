@@ -1,32 +1,3 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: Calculates surface albedo, including from snow covered surface
-!
-! Called from: cbm
-!
-! Contact: Yingping.Wang@csiro.au
-!
-! History: No significant change from v1.4b (but was previously in cable_radiation)
-!
-!
-! ==============================================================================
 
 MODULE cable_albedo_module
 
@@ -77,8 +48,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
    CALL surface_albedosn(ssnow, veg, met, soil)
 
-   WHERE (soil%isoilm == 9)   ! use dry snow albedo (permanent ice)
-     ! hard-wired number to be removed in future version
+   WHERE (soil%isoilm == 9)          ! use dry snow albedo
      ssnow%albsoilsn(:,2) = 0.82
      ssnow%albsoilsn(:,1) = 0.82
    END WHERE
@@ -143,7 +113,8 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
 END SUBROUTINE surface_albedo 
 
-! ------------------------------------------------------------------------------
+
+
 
 SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    
@@ -180,8 +151,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    INTEGER :: k,i,j,l,l1,l2
 
    soil%albsoilf = soil%albsoil(:,1)
-
-   ! lakes: hard-wired number to be removed in future
+    
    WHERE( veg%iveg == 16 )                                                     &
       soil%albsoilf = -0.022*( MIN( 275., MAX( 260., met%tk ) ) - 260. ) + 0.45
 
@@ -212,12 +182,12 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
       tmp = ssnow%isflag * ssnow%tggsn(:,1) + ( 1 - ssnow%isflag )            &
             * ssnow%tgg(:,1)
       tmp = MIN( tmp, C%TFRZ )
-      ar1 = 5000. * (1. / C%TFRZ - 1. / tmp) ! crystal growth  (-ve)
+      ar1 = 5000. * (1. / 273.15 - 1. / tmp) ! crystal growth  (-ve)
       ar2 = 10. * ar1 ! freezing of melt water
       snr = ssnow%snowd / max (ssnow%ssdnn, 200.)
       
       WHERE (soil%isoilm == 9)
-         ! permanent ice: hard-wired number to be removed in future version
+         
          ar3 = .0000001
          !  NB. dsnow =1,assumes pristine snow; ignores soot etc. ALTERNATIVELY,
          !dnsnow = max (dnsnow, .5) !increase refreshing of snow in Antarctic
@@ -251,7 +221,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
       alv = .4 * fzenm * (1. - tmp) + tmp
       tmp = aliro * (1. - .5 * fage)
 
-      ! use dry snow albedo for pernament land ice: hard-wired no to be removed
+      ! use dry snow albedo for pernament land ice
       WHERE (soil%isoilm == 9)             
          
          tmp = 0.95 * (1.0 - 0.2 * fage)
@@ -272,7 +242,6 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
       snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
       
       WHERE (soil%isoilm == 9)
-         ! permanent ice: hard-wired number to be removed
          snrat = 1.
       ELSEWHERE
          snrat = MIN (1., snr / (snr + .1) )
@@ -289,7 +258,6 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
       
       ! use dry snow albedo
       WHERE (soil%isoilm == 9)          
-         ! permanent ice: hard-wired number to be removed
 
          tmp = 0.95 * (1.0 - 0.2 * fage)
          alv = .4 * fzenm * (1. - tmp) + tmp
@@ -311,10 +279,9 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
 
 END SUBROUTINE surface_albedosn
 
-! ------------------------------------------------------------------------------
 
 !jhan:subr was reintroduced here to temporarily resolve issue when 
-!creating libcable.a  (repeated in cable_radiation.F90)
+!creating libcable.a 
 SUBROUTINE calc_rhoch(veg,c1,rhoch) 
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
