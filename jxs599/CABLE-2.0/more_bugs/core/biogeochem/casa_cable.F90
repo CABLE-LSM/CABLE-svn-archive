@@ -28,11 +28,11 @@
 ! Contact: Yingping.Wang@csiro.au
 !
 ! History: Model development by Yingping Wang, coupling to Mk3L by Bernard Pak
-!          ssoil changed to ssnow
+!
 !
 ! ==============================================================================
 
-SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
+SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssoil,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
                      spinConv, spinup, ktauday, idoy, dump_read, dump_write )
 
@@ -54,7 +54,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
         
    REAL,         INTENT(IN) :: dels ! time setp size (s)
    TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
-   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow ! soil and snow variables
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssoil ! soil and snow variables
    TYPE (canopy_type), INTENT(INOUT) :: canopy ! vegetation variables
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
@@ -83,14 +83,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       ENDIF
       IF(mod(ktau,ktauday)==1) THEN
          casamet%tairk = met%tk
-         casamet%tsoil = ssnow%tgg
-         casamet%moist = ssnow%wb
+         casamet%tsoil = ssoil%tgg
+         casamet%moist = ssoil%wb
          casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = canopy%frday*dels
       ELSE
          Casamet%tairk  =casamet%tairk + met%tk
-         casamet%tsoil = casamet%tsoil + ssnow%tgg
-         casamet%moist = casamet%moist + ssnow%wb
+         casamet%tsoil = casamet%tsoil + ssoil%tgg
+         casamet%moist = casamet%moist + ssoil%wb
          casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + &
                                        canopy%frday*dels
@@ -359,7 +359,9 @@ END SUBROUTINE bgcdriver
 
 
 SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
-                    soil, ssnow, sum_flux, veg, met, casaflux, l_vcmaxFeedbk)
+                    soil, ssoil, sum_flux, veg, met, casaflux, l_vcmaxFeedbk)
+!SUBROUTINE sumcflux(ktau, kstart, kend, dels, mvtype, mstype, bgc, canopy,  &
+!                    soil, ssoil, sum_flux, veg, met, casaflux)
 
   USE cable_def_types_mod
   USE cable_carbon_module
@@ -376,19 +378,20 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
   TYPE (canopy_type),         INTENT(INOUT) :: canopy
   TYPE (soil_parameter_type), INTENT(INOUT) :: soil
-  TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
+  TYPE (soil_snow_type),      INTENT(INOUT) :: ssoil
   TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
   TYPE (met_type),            INTENT(IN)    :: met    
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   LOGICAL, INTENT(IN)   :: l_vcmaxFeedbk ! using prognostic Vcmax
 
-!   if(icycle<=0) then
-!     these are executed in cbm
-!      CALL soilcarb(soil, ssoil, veg, bgc, met, canopy)
-!      CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc)
-!   else
-    if(icycle>0) then
+    if(icycle<=0) then
+! THESE LIKELY DUPLICATE CALLS IN CBM: BP TO CHECK
+       CALL soilcarb(soil, ssoil, veg, bgc, met, canopy)
+       CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc)
+!       CALL soilcarb(soil, ssoil, veg, bgc, met, canopy, mstype)
+!       CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc, mvtype)
+    else
        canopy%frp(:) = (casaflux%crmplant(:,wood)+casaflux%crmplant(:,froot) &
                         +casaflux%crgplant(:))/86400.0
        canopy%frs(:) = casaflux%Crsoil(:)/86400.0

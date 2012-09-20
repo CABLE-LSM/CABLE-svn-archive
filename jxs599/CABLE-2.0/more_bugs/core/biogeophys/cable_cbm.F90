@@ -138,22 +138,18 @@ CONTAINS
    ENDIF
 
    ssnow%deltss = ssnow%tss-ssnow%otss
-   ! correction required for energy balance in online simulations
-   IF( cable_runtime%um ) THEN
+
+   canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
    
-      canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-      
-      canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-      
-      canopy%fh = canopy%fhv + canopy%fhs
+   canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+   
+   canopy%fh = canopy%fhv + canopy%fhs
 
-      canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                     &
-                   ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-      
-      canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *             &
-                       ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-
-   ENDIF
+   canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                        &
+                ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+   
+   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
+                    ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
 
    ! need to adjust fe after soilsnow
    canopy%fev  = canopy%fevc + canopy%fevw
