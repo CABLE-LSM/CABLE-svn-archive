@@ -1685,8 +1685,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%frday = 12.0 * SUM(rdy, 2)
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
-   
-   DEALLOCATE( gswmin )
 
 END SUBROUTINE dryLeaf
 
