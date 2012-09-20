@@ -58,15 +58,15 @@ MODULE cable_common_module
          LEAF_RESPIRATION,    & !
          FWSOIL_SWITCH          !
       
-   CHARACTER(LEN=20) :: DIAG_SOIL_RESP !
-   CHARACTER(LEN=5) :: RUN_DIAG_LEVEL  !
-   CHARACTER(LEN=3) :: SSNOW_POTEV     !
-   LOGICAL ::                                                               &
-      INITIALIZE_MAPPING = .FALSE., & ! 
-      CONSISTENCY_CHECK = .FALSE.,  & !
-      CASA_DUMP_READ = .FALSE.,     & !
-      CASA_DUMP_WRITE = .FALSE.,    & !
-      CABLE_RUNTIME_COUPLED  = .FALSE.!
+      CHARACTER(LEN=20) :: DIAG_SOIL_RESP !
+      CHARACTER(LEN=5) :: RUN_DIAG_LEVEL  !
+      CHARACTER(LEN=3) :: SSNOW_POTEV     !
+      LOGICAL ::                                                               &
+         INITIALIZE_MAPPING = .FALSE., & ! 
+         CONSISTENCY_CHECK = .FALSE.,  & !
+         CASA_DUMP_READ = .FALSE.,     & !
+         CASA_DUMP_WRITE = .FALSE.,    & !
+         CABLE_RUNTIME_COUPLED  = .FALSE.!
 
 
    END TYPE kbl_user_switches
@@ -98,7 +98,7 @@ MODULE cable_common_module
       redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    
    ! hydraulic_redistribution parameters _soilsnow module
-   REAL :: wiltParam=0.5, satuParam=0.8
+   REAL :: wiltParam, satuParam
 
 
    ! soil parameters read from file(filename%soil def. in cable.nml)
