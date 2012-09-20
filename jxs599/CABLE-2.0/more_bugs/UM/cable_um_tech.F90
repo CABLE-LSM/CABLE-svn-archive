@@ -101,7 +101,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    
    !--- namelist for CABLE runtime vars, files, switches 
    NAMELIST/CABLE/filename,cable_user, redistrb, wiltParam, satuParam
-
+   
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
          READ(funit,NML=CABLE)
@@ -114,6 +114,8 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
         ENDIF
       CLOSE(funit)
    
+   filename%veg = TRIM(myhome)//'/'//TRIM(filename%veg)
+   filename%soil = TRIM(myhome)//'/'//TRIM(filename%soil)
                    
       !--- check value of variable 
       CALL check_nmlvar('filename%veg', filename%veg)
