@@ -254,7 +254,7 @@ if [[ $1 = 'clean' ]]; then
    read dummy 
 fi
    
-export libroot=$HOME'/CABLE-AUX/UM'
+export libroot=$CABLE_AUX'/CABLE-AUX/UM'
 export libpath=$libroot'/libcable.a'
 
 known_hosts

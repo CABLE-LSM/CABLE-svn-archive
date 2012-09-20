@@ -9,10 +9,10 @@ known_hosts()
 ## shine-cl.nexus.csiro.au 
 host_shin()
 {
-   export NCDIR='/usr/local/intel/'
-   export NCMOD='/usr/local/intel/'
+   export NCDIR='/usr/local/intel/lib'
+   export NCMOD='/usr/local/intel/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
    export LD='-lnetcdf'
    export LDFLAGS='-L/usr/local/intel/lib -O2'
    build_build
@@ -27,10 +27,7 @@ host_burn()
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
+   export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -45,10 +42,7 @@ host_cher()
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
+   export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -63,7 +57,7 @@ host_vayu()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
+   export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
@@ -184,46 +178,6 @@ clean_build()
 }
 
 
-set_up_CABLE_AUX()
-{
-      print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
-      print "\tcontains configuration and data essential to using CABLE."
-      print "\tNCI account holders can have this set up for you now (anywhere)."
-      print "\tOthers will have to use the tarball available for download at ..."
-      print "\n\tDo you want to run set up this directory now? y/[n]"
-      
-      read setup_CABLE_AUX
-      if [[ $setup_CABLE_AUX = 'y' ]]; then
-         print "\n\tPlease enter your NCI user ID"
-         read NCI_USERID 
-         mkdir ~/CABLE-AUX 
-         
-         fscp1="scp -r "
-         fscp2="@vayu.nci.org.au:/projects/access/CABLE-AUX/"
-         fscp3="offline "
-         fscp4=$HOME"/CABLE-AUX/"
-         fscp5=$fscp1$NCI_USERID$fscp2
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-          
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/offline failed" 
-            exit $RC 
-         fi
-         
-         fscp3="core "
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-         
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/core failed" 
-            exit $RC 
-         fi
-      fi        
-}
-
 
 
 not_recognized()
@@ -339,13 +293,6 @@ build_build()
 if [[ $1 = 'clean' ]]; then
    clean_build
 fi
-
-if [[ ! -d ~/CABLE-AUX ]];then
-   set_up_CABLE_AUX
-else
-   print "\n~/CABLE-AUX is at least present.\n"
-fi
-
 
    
 known_hosts

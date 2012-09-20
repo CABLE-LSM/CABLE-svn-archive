@@ -39,7 +39,6 @@
 ! CALLs:       open_met_file
 !              load_parameters
 !              open_output_file
-!              spincasacnp
 !              get_met_data
 !              casa_feedback
 !              cbm
@@ -91,7 +90,7 @@ PROGRAM cable_offline_driver
    IMPLICIT NONE
    
    ! CABLE namelist: model configuration, runtime/user switches 
-   CHARACTER(LEN=200) :: CABLE_NAMELIST 
+   CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
@@ -154,10 +153,6 @@ PROGRAM cable_offline_driver
       soilMtemp,                         &   
       soilTtemp      
    
-   !___ path, relative to $HOME, of CABLE namelist 
-   CHARACTER(LEN=200), PARAMETER ::                                            & 
-      nml_path1 = '/CABLE-AUX/offline/cable.nml'
-
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -188,29 +183,17 @@ PROGRAM cable_offline_driver
 
    ! END header
 
-   CALL GETARG(1, filename%met)
-   CALL GETARG(2, casafile%cnpipool)
-
-   ! set absolute path to CABLE namelist 
-   CALL GETENV("HOME", myhome)   
-   CABLE_NAMELIST = TRIM(myhome)//TRIM(nml_path1)
-
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
-   
-   filename%met = TRIM(myhome)//'/'//TRIM(filename%met)
-   filename%veg = TRIM(myhome)//'/'//TRIM(filename%veg)
-   filename%soil = TRIM(myhome)//'/'//TRIM(filename%soil)
-   filename%type = TRIM(myhome)//'/'//TRIM(filename%type)
-   casafile%cnpipool = TRIM(myhome)//'/'//TRIM(casafile%cnpipool)
-   casafile%cnpbiome = TRIM(myhome)//'/'//TRIM(casafile%cnpbiome)
-   casafile%phen = TRIM(myhome)//'/'//TRIM(casafile%phen)
-   
-   print *,  filename%veg                
-   print *,  filename%soil
 
+   IF( IARGC() > 0 ) THEN
+      CALL GETARG(1, filename%met)
+      CALL GETARG(2, casafile%cnpipool)
+   ENDIF
+
+    
    cable_runtime%offline = .TRUE.
    
    ! associate pointers used locally with global definitions
