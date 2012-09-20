@@ -37,17 +37,19 @@ book_keeping()
    fi      
    mkdir out
 
-   HOST_MACH=`uname -n | cut -c 1-4`
-   
-   if [[ $HOST_MACH = 'vayu' ]]; then
-   
-      if [[ ! -d ~/CABLE-AUX ]]; then
-         mkdir ~/CABLE-AUX
-         cp -r /projects/access/CABLE-AUX/offline ~/CABLE-AUX
-         cp -r /projects/access/CABLE-AUX/core ~/CABLE-AUX
-      fi
-      
+HOST_MACH=`uname -n | cut -c 1-4`
+
+if [[ $HOST_MACH = 'vayu' ]]; then
+
+   if [[ ! -d ~/CABLE-AUX ]]; then
+      mkdir ~/CABLE-AUX
    fi
+   
+   cp -r /projects/access/CABLE-AUX/offline ~/CABLE-AUX
+   cp -r /projects/access/CABLE-AUX/core ~/CABLE-AUX
+   
+fi
+
 }
 
 
@@ -61,6 +63,7 @@ site_name()
    integer i=0
    exec < ~/CABLE-AUX/offline/sites.txt
    
+   print "\n\tRunning CABLE over the single sites: \n" 
    while read line
    do
    	fchar=`echo "$line" | cut -c 1`  
@@ -93,35 +96,22 @@ run_cable()
    integer kmax=${#sites[*]}
    integer k=0
    
-   #  work around to desired trigerring from cable.nml  
-   if [[ $kmax = 0 ]]; then
-      kmax=1
-      sites[0]='default'
-   fi
-              
    while [[ $k -lt $kmax ]]; do
       run_run $k        
       (( k = k + 1 ))
    done 
 }
 
-
-#==============================================================================
-
-
 run_run()
 {
    # remove any trace of previous runs
    tidy
 
-   mkdir out/${sites[$1]}
+   mkdir out/${sites[$k]}
 
    # execute CABLE
-   if [[ ${fsites[$1]} != '' ]]; then
-      ./cable ${fsites[$1]} ${fpoolsites[$1]}
-   else
-      ./cable       
-   fi
+   print '\n*** RUNNING CABLE ***\n'
+   ./cable ${fsites[$k]} ${fpoolsites[$k]}
 
    print '\n*** CABLE RUN FINISHED ***\n'
    
@@ -131,11 +121,11 @@ run_run()
       print '\n*** CABLE RUN (appears) SUCCESSFULL ***\n'
       		
       # CABLE output + restart if applicable
-      mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$1]}
-      cp cable.nml  out/${sites[$1]}
+      mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$k]}
+      
       # pools for CASA-CNP
       if [[ -e poolcnpOut.csv ]]; then
-         mv poolcnpOut.csv cnpfluxOut.csv out/${sites[$1]}
+         mv poolcnpOut.csv cnpfluxOut.csv out/${sites[$k]}
       fi 
    else
       print '\n*** ERROR: RUN FAILED ***\n'     
