@@ -1,0 +1,1 @@
+/data/projects/access/CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc
