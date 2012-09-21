@@ -1,3 +1,34 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: All routines for calculating soil temperature and moisture
+!          and snow calculations
+!
+! Contact: Eva.Kowalczyk@csiro.au
+!
+! History: v2.0 Tighter water budget
+!          v2.0 Hydraulic redistribution subroutine (with namelist switch). 
+!               NB Currently hard-wired to veg types 2 and 7 
+!                  (usually evergreen broadleaf and c4 grass)
+!          v2.0 ssoil variable renamed ssnow
+!
+! ==============================================================================
 
 MODULE cable_soil_snow_module
    
@@ -83,6 +114,8 @@ SUBROUTINE trimb (a, b, c, rhs, kmax)
    END DO
   
 END SUBROUTINE trimb
+
+! -----------------------------------------------------------------------------
 
 ! SUBROUTINE smoisturev (fwtop,dels,ssnow,soil)
 !      Solves implicit soil moisture equation
@@ -477,7 +510,7 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
 
 END SUBROUTINE smoisturev
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE snowdensity (dels, ssnow, soil)
    
@@ -509,6 +542,7 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
           & / (3.0e7 * EXP(0.021 * ssnow%ssdn(:,1) + 0.081                     &
           & * (273.15 - MIN(C%TFRZ, ssnow%tgg(:,1) ) ) ) ) )
 
+      ! permanent ice: fix hard-wired number in next version
       WHERE( soil%isoilm /= 9 ) ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
 
       ssnow%sconds(:,1) = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(:,1)**2         &
@@ -576,6 +610,7 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
 
 END SUBROUTINE snowdensity
 
+! -----------------------------------------------------------------------------
 
 SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
 
@@ -646,6 +681,7 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
                            ssnow%smass(:,k) + rhowat * ( 1.0 - osm /           &
                            ssnow%smass(:,k)), max_ssdn ) )
 
+         ! permanent ice: fix hard-wired number in next version
          WHERE( soil%isoilm /= 9 )                                             &
             ssnow%ssdn(:,k) = MIN( 450.0, ssnow%ssdn(:,k) )
 
@@ -687,7 +723,7 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
 
 END SUBROUTINE snow_melting
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE snow_accum ( dels,  canopy, met, ssnow, soil )
 
@@ -731,6 +767,7 @@ USE cable_common_module
                            * ssnow%osnowd / MAX( 0.01, ssnow%snowd ) + rhowat  &
                            * canopy%precis / MAX( 0.01, ssnow%snowd )  ) )
 
+         ! permanent ice: fix hard-wired number in next version
          WHERE( soil%isoilm /= 9 )                                             &
             ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
 
@@ -772,6 +809,7 @@ USE cable_common_module
                            ssnow%smass(:,1) +  rhowat *                        &
                            ( 1.0 - osm / ssnow%smass(:,1) ), max_ssdn ) )
 
+         ! permanent ice: fix hard-wired number in next version
          WHERE( soil%isoilm /= 9 )                                             &
             ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
 
@@ -788,6 +826,7 @@ USE cable_common_module
                            ssnow%smass(:,2) + rhowat *                         &
                            ( 1.0 - osm / ssnow%smass(:,2) ), max_ssdn ) )
 
+         ! permanent ice: fix hard-wired number in next version
          WHERE( soil%isoilm /= 9 )                                             &
             ssnow%ssdn(:,2) = MIN( 450.0, ssnow%ssdn(:,2) )
 
@@ -804,6 +843,7 @@ USE cable_common_module
                           ssnow%smass(:,3) + rhowat *                          &
                           ( 1.0 - osm / ssnow%smass(:,3) ), max_ssdn ) )
 
+         ! permanent ice: fix hard-wired number in next version
          WHERE( soil%isoilm /= 9 )                                             &
             ssnow%ssdn(:,3) = MIN(450.0,ssnow%ssdn(:,3))
 
@@ -848,6 +888,7 @@ USE cable_common_module
 
 END SUBROUTINE snow_accum 
 
+! -----------------------------------------------------------------------------
 
 SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
@@ -897,6 +938,7 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
    ! Scaling  runoff to kg/m^2/s to match rest of the model
    ssnow%sinfil = 0.0
+   ! lakes: replace hard-wired vegetation number in next version
    WHERE( veg%iveg == 16 )
       ssnow%sinfil = MIN( ssnow%rnof1, ssnow%wb_lake + MAX( 0.,canopy%segg ) )
       ssnow%rnof1 = MAX( 0.0, ssnow%rnof1 - ssnow%sinfil )
@@ -950,6 +992,7 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
 END SUBROUTINE surfbv
 
+! -----------------------------------------------------------------------------
   
 ! calculates temperatures of the soil
 ! tgg - new soil/snow temperature
@@ -999,6 +1042,7 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
       DO j = 1, mp
       
          IF( soil%isoilm(j) == 9 ) THEN
+            ! permanent ice: fix hard-wired number in next version
             ccnsw(j,k) = snow_ccnsw
          ELSE
             ew(j) = ssnow%wblf(j,k) * soil%ssat(j)
@@ -1188,8 +1232,7 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
 
 END SUBROUTINE stempv
 
-
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE snowcheck(dels, ssnow, soil, met )
    
@@ -1246,6 +1289,7 @@ SUBROUTINE snowcheck(dels, ssnow, soil, met )
          
          IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
             IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
+               ! permanent ice: fixed hard-wired number in next version
                ssnow%ssdnn(j) = 700.0
          ENDIF
       
@@ -1262,6 +1306,7 @@ SUBROUTINE snowcheck(dels, ssnow, soil, met )
 
             IF( .NOT. cable_user%cable_runtime_coupled) THEN
                IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
+                  ! permanent ice: fix hard-wired number in next version
                   ssnow%ssdn(j,1)  = 450.0
                   ssnow%ssdn(j,2)  = 580.0
                   ssnow%ssdn(j,3)  = 600.0
@@ -1294,7 +1339,7 @@ SUBROUTINE snowcheck(dels, ssnow, soil, met )
 
 END SUBROUTINE snowcheck 
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE snowl_adjust(dels, ssnow, canopy )
    
@@ -1444,7 +1489,7 @@ SUBROUTINE snowl_adjust(dels, ssnow, canopy )
 
 END SUBROUTINE snowl_adjust
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE soilfreeze(dels, soil, ssnow)
    USE cable_common_module
@@ -1505,7 +1550,7 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
 
 END SUBROUTINE soilfreeze
 
-
+! -----------------------------------------------------------------------------
 
 SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    
@@ -1549,7 +1594,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
 
 END SUBROUTINE remove_trans 
 
-
+! -----------------------------------------------------------------------------
 
 ! Inputs:
 !	 dt_in - time step in sec
@@ -1619,7 +1664,8 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    
       IF( ktau_gl <= 1 ) THEN
          
-         canopy%dgdtg = 0.0
+         IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
+                                                  ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
          DO k = 1, ms
@@ -1643,6 +1689,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
          END DO
    
          WHERE (soil%isoilm == 9) 
+            ! permanent ice: fix hard-wired number in next version
             ssnow%snowd = max_glacier_snowd
             ssnow%osnowd = max_glacier_snowd
             ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
@@ -1747,7 +1794,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    canopy%fhs = canopy%fhs+canopy%fhs_cor
    canopy%fes = canopy%fes+canopy%fes_cor
 
-   ! redistrib(set in cable.nml) by default==.TRUE.  
+   ! redistrb (set in cable.nml) by default==.FALSE. 
    IF( redistrb )                                                              &
       CALL hydraulic_redistribution( dels, soil, ssnow, canopy, veg, met )
 
@@ -1762,6 +1809,8 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    END DO
 
 END SUBROUTINE soil_snow
+
+! -----------------------------------------------------------------------------
 
 !+++++++++++++++++++  Hydraulic Redistribution Section  ++++++++++++++++++++++
 ! Science from Ryel et al. Oecologia, 2002; Lee et al., 2005, PNAS
@@ -1853,9 +1902,9 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
          hr_perTime(:,k,j) = hr_perTime(:,k,j)/soil%zse(k)
          hr_perTime(:,j,k) = hr_perTime(:,j,k)/soil%zse(j)
          
-         ! Restricting changes to all broadleaf forests, and
-         ! other forests and woody savannas in the tropics
-         ! Note that veg types here are based on IGBP classification (BP mar2011)
+         ! Overwrite to give zero redistribution for all types except
+         ! evergreen broadleaf (2) and c4 grass (7)
+         ! NB: Hard-wired numbers should be removed in future version
          WHERE( .NOT.(veg%iveg == 2 .OR. veg%iveg == 7 ) )
             hr_perTime(:,k,j) = 0.0
             hr_perTime(:,j,k) = 0.0
@@ -1931,10 +1980,9 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
          hr_perTime(:,k,j) = hr_perTime(:,k,j)/soil%zse(k)
          hr_perTime(:,j,k) = hr_perTime(:,j,k)/soil%zse(j)
          
-         ! Restricting changes to all broadleaf forests, and
-         ! other forests and woody savannas in the tropics
-         ! Note that veg types here are based on IGBP classification (BP mar2011)
-         !        WHERE (.NOT.(veg%iveg == 1 .OR. veg%iveg == 6 ))
+         ! Overwrite to give zero redistribution for all types except
+         ! evergreen broadleaf (2) and c4 grass (7)
+         ! NB: Hard-wired numbers should be removed in future version
          WHERE( .NOT.( veg%iveg == 2 .OR. veg%iveg == 7 ) )
             hr_perTime(:,k,j) = 0.0
             hr_perTime(:,j,k) = 0.0
