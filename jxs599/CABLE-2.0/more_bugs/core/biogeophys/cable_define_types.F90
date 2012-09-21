@@ -1,33 +1,3 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: defines parameters, variables and derived types, allocation and 
-!          deallocation of these derived types
-!
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Brings together define_dimensions and define_types from v1.4b
-!          rs20 now in veg% instead of soil%
-!          fes split into fess and fesp (though fes still defined)
-!
-! ==============================================================================
-
 MODULE cable_def_types_mod
 
    ! Contains all variables which are not subroutine-internal
@@ -56,10 +26,15 @@ MODULE cable_def_types_mod
       niter = 4,     & ! number of iterations for za/L
       ms = 6           ! # soil layers
 
+
+
+
+
+
+
+
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
-! .............................................................................
-
    ! Energy and water balance variables:
    TYPE balances_type 
 
@@ -94,7 +69,6 @@ MODULE cable_def_types_mod
 
    END TYPE balances_type
 
-! .............................................................................
 
    ! Soil parameters:
    TYPE soil_parameter_type 
@@ -131,7 +105,7 @@ MODULE cable_def_types_mod
 
   END TYPE soil_parameter_type
 
-! .............................................................................
+
 
    ! Soil and snow variables:
    TYPE soil_snow_type 
@@ -214,7 +188,12 @@ MODULE cable_def_types_mod
 
    END TYPE soil_snow_type
 
-! .............................................................................
+
+
+
+
+
+
 
    ! Vegetation parameters:
    TYPE veg_parameter_type
@@ -255,7 +234,8 @@ MODULE cable_def_types_mod
 
    END TYPE veg_parameter_type
 
-! .............................................................................
+
+
 
    ! Canopy/vegetation variables:
    TYPE canopy_type
@@ -324,7 +304,10 @@ MODULE cable_def_types_mod
 
    END TYPE canopy_type
 
-! .............................................................................
+
+
+
+
 
    ! Radiation variables:
    TYPE radiation_type
@@ -346,6 +329,11 @@ MODULE cable_def_types_mod
          transd,  & ! frac SW diffuse transmitted through canopy
          trad       !  radiative temperature (soil and veg)
      
+     
+     
+     
+     
+     
       REAL, DIMENSION(:,:), POINTER  ::                                        &
          fvlai,   & ! leaf area index of big leaf
          rhocdf,  & ! canopy diffuse reflectance (-)
@@ -362,13 +350,14 @@ MODULE cable_def_types_mod
          rhocbm,  & ! modified canopy beam reflectance(6.21)
          gradis     ! radiative conductance
      
+
       REAL, DIMENSION(:,:,:), POINTER ::                                       &
          qcan ! absorbed radiation for canopy (W/m^2)
     
     
   END TYPE radiation_type
 
-! .............................................................................
+
 
    ! Roughness variables:
    TYPE roughness_type
@@ -405,7 +394,7 @@ MODULE cable_def_types_mod
    
    END TYPE roughness_type
 
-! .............................................................................
+
 
    ! Air variables:
    TYPE air_type
@@ -423,7 +412,8 @@ MODULE cable_def_types_mod
 
    END TYPE air_type
 
-! .............................................................................
+
+
 
    ! Meterological data:
    TYPE met_type
@@ -456,7 +446,7 @@ MODULE cable_def_types_mod
      
    END TYPE met_type
 
-! .............................................................................
+
 
    ! Cumulative flux variables:
    TYPE sum_flux_type
@@ -477,7 +467,8 @@ MODULE cable_def_types_mod
 
    END TYPE sum_flux_type
 
-! .............................................................................
+
+
 
    TYPE bgc_pool_type
       
@@ -490,8 +481,6 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(ncs)  :: ratecs ! soil carbon rate constant (1/year)
    
    END TYPE bgc_pool_type
-
-! .............................................................................
 
    ! Functions for allocating these types
    ! All overloaded so code only needs to call alloc_cbm_var
@@ -566,8 +555,6 @@ SUBROUTINE alloc_balances_type(var, mp)
 
 END SUBROUTINE alloc_balances_type
 
-! ------------------------------------------------------------------------------
-
 SUBROUTINE alloc_soil_parameter_type(var, mp)
    
    TYPE(soil_parameter_type), INTENT(inout) :: var
@@ -598,8 +585,6 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
 
 END SUBROUTINE alloc_soil_parameter_type
  
-! ------------------------------------------------------------------------------
-
 SUBROUTINE alloc_soil_snow_type(var, mp)
    
    TYPE(soil_snow_type), INTENT(inout) :: var
@@ -674,7 +659,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
 
 END SUBROUTINE alloc_soil_snow_type
 
-! ------------------------------------------------------------------------------
+
+
    
 SUBROUTINE alloc_veg_parameter_type(var, mp)
 
@@ -710,7 +696,6 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
 
 END SUBROUTINE alloc_veg_parameter_type
 
-! ------------------------------------------------------------------------------
    
 SUBROUTINE alloc_canopy_type(var, mp)
 
@@ -774,7 +759,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    
 END SUBROUTINE alloc_canopy_type
 
-! ------------------------------------------------------------------------------
+
    
 SUBROUTINE alloc_radiation_type(var, mp)
 
@@ -814,7 +799,7 @@ SUBROUTINE alloc_radiation_type(var, mp)
 
 END SUBROUTINE alloc_radiation_type
   
-! ------------------------------------------------------------------------------
+  
    
 SUBROUTINE alloc_roughness_type(var, mp)
    
@@ -844,8 +829,6 @@ SUBROUTINE alloc_roughness_type(var, mp)
    ALLOCATE ( var % z0soil(mp) )
 
 END SUBROUTINE alloc_roughness_type
-
-! ------------------------------------------------------------------------------
    
 SUBROUTINE alloc_air_type(var, mp)
 
@@ -864,7 +847,6 @@ SUBROUTINE alloc_air_type(var, mp)
 
 END SUBROUTINE alloc_air_type
  
-! ------------------------------------------------------------------------------
   
 SUBROUTINE alloc_met_type(var, mp)
 
@@ -894,8 +876,6 @@ SUBROUTINE alloc_met_type(var, mp)
 
 END SUBROUTINE alloc_met_type
    
-! ------------------------------------------------------------------------------
-
 SUBROUTINE alloc_sum_flux_type(var, mp)
 
    TYPE(sum_flux_type), INTENT(inout) :: var
@@ -916,8 +896,6 @@ SUBROUTINE alloc_sum_flux_type(var, mp)
 
 END SUBROUTINE alloc_sum_flux_type
 
-! ------------------------------------------------------------------------------
-
 SUBROUTINE alloc_bgc_pool_type(var, mp)
 
    TYPE(bgc_pool_type), INTENT(inout) :: var
@@ -928,7 +906,6 @@ SUBROUTINE alloc_bgc_pool_type(var, mp)
 
 END SUBROUTINE alloc_bgc_pool_type
 
-! ------------------------------------------------------------------------------
 
 ! Begin deallocation routines:
 SUBROUTINE dealloc_balances_type(var)
@@ -965,8 +942,6 @@ SUBROUTINE dealloc_balances_type(var)
    
 END SUBROUTINE dealloc_balances_type
 
-! ------------------------------------------------------------------------------
-
 SUBROUTINE dealloc_soil_parameter_type(var)
   
    TYPE(soil_parameter_type), INTENT(inout) :: var
@@ -997,8 +972,6 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    
 END SUBROUTINE dealloc_soil_parameter_type
  
-! ------------------------------------------------------------------------------
-
 SUBROUTINE dealloc_soil_snow_type(var)
    
    TYPE(soil_snow_type), INTENT(inout) :: var
@@ -1072,7 +1045,6 @@ SUBROUTINE dealloc_soil_snow_type(var)
    
 END SUBROUTINE dealloc_soil_snow_type
    
-! ------------------------------------------------------------------------------
 
 SUBROUTINE dealloc_veg_parameter_type(var)
 
@@ -1106,7 +1078,6 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    
 END SUBROUTINE dealloc_veg_parameter_type
    
-! ------------------------------------------------------------------------------
 
 SUBROUTINE dealloc_canopy_type(var)
 
@@ -1169,8 +1140,6 @@ SUBROUTINE dealloc_canopy_type(var)
 
 END SUBROUTINE dealloc_canopy_type
    
-! ------------------------------------------------------------------------------
-
 SUBROUTINE dealloc_radiation_type(var)
    
    TYPE(radiation_type), INTENT(inout) :: var
@@ -1208,8 +1177,6 @@ SUBROUTINE dealloc_radiation_type(var)
    
 END SUBROUTINE dealloc_radiation_type
    
-! ------------------------------------------------------------------------------
-
 SUBROUTINE dealloc_roughness_type(var)
    
    TYPE(roughness_type), INTENT(inout) :: var
@@ -1238,8 +1205,6 @@ SUBROUTINE dealloc_roughness_type(var)
   
 END SUBROUTINE dealloc_roughness_type
    
-! ------------------------------------------------------------------------------
-
 SUBROUTINE dealloc_air_type(var)
    
    TYPE(air_type), INTENT(inout) :: var
@@ -1256,8 +1221,6 @@ SUBROUTINE dealloc_air_type(var)
   
 END SUBROUTINE dealloc_air_type
    
-! ------------------------------------------------------------------------------
-
 SUBROUTINE dealloc_met_type(var)
 
    TYPE(met_type), INTENT(inout) :: var
@@ -1285,8 +1248,8 @@ SUBROUTINE dealloc_met_type(var)
 
 END SUBROUTINE dealloc_met_type
 
-! ------------------------------------------------------------------------------
 
+   
 SUBROUTINE dealloc_sum_flux_type(var)
 
    TYPE(sum_flux_type), INTENT(inout) :: var
@@ -1305,8 +1268,6 @@ SUBROUTINE dealloc_sum_flux_type(var)
    DEALLOCATE ( var % sumxrs )
 
 END SUBROUTINE dealloc_sum_flux_type
-
-! ------------------------------------------------------------------------------
 
 SUBROUTINE dealloc_bgc_pool_type(var)
    

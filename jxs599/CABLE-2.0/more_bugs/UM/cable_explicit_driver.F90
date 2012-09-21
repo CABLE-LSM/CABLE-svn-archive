@@ -59,7 +59,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,          &
-                                   knode_gl, kwidth_gl, kend_gl, myhome
+                                   knode_gl, kwidth_gl, kend_gl
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
@@ -241,6 +241,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       nml_path1 = '/CABLE-AUX/UM/cable.nml'
 
    CHARACTER(LEN=200) ::                                                       & 
+      myhome,                                                                  & 
       runtime_vars_file 
 
 

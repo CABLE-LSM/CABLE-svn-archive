@@ -1,30 +1,3 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: Computes radiation absorbed by canopy and soil surface
-!
-! Contact: Yingping.Wang@csiro.au
-!
-! History: No significant change from v1.4b
-!
-!
-! ==============================================================================
 
 MODULE cable_radiation_module
 
@@ -158,7 +131,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    
 END SUBROUTINE init_radiation
 
-! ------------------------------------------------------------------------------
+
 
 SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
@@ -345,11 +318,10 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
     
 END SUBROUTINE radiation
 
-! ------------------------------------------------------------------------------
 
-! this subroutine currently also in cable_albedo.F90
-! future release should reduce to one version
-SUBROUTINE calc_rhoch(veg,c1,rhoch) 
+
+
+SUBROUTINE Calc_rhoch(veg,c1,rhoch) 
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
    USE cable_common_module, only : cable_runtime   
@@ -367,7 +339,7 @@ SUBROUTINE calc_rhoch(veg,c1,rhoch)
 
 END SUBROUTINE calc_rhoch 
 
-! -----------------------------------------------------------------------------
+
 
 ELEMENTAL FUNCTION sinbet(doy,xslat,hod) RESULT(z)
 
@@ -391,7 +363,8 @@ ELEMENTAL FUNCTION sinbet(doy,xslat,hod) RESULT(z)
 
 END FUNCTION sinbet
  
-! -----------------------------------------------------------------------------
+
+
 
 FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
 

@@ -2,73 +2,21 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
-}
-
-
-## shine-cl.nexus.csiro.au 
-host_shin()
-{
-   export NCDIR='/usr/local/intel/'
-   export NCMOD='/usr/local/intel/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/usr/local/intel/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-## burnet.hpsc.csiro.au 
-host_burn()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/'
-   export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
-
-## cherax.hpsc.csiro.au 
-host_cher()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/'
-   export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
+   set -A kh vayu 
 }
 
 
 ## vayu.nci.org.au
 host_vayu()
 {
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC=$F90
+   NCDF_ROOT=/apps/netcdf/3.6.3
+   export NCDIR=$NCDF_ROOT'/lib/Intel'
+   export NCMOD=$NCDF_ROOT'/include/Intel'
+   export FC=ifort
    export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf'
    build_build
    cd ../
    build_status
@@ -88,25 +36,14 @@ host_read()
    
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF library." 
-   print "\n\tPress enter for default [lib]."
+   print "\te.g. lib"
    read NCDF_DIR
-   if [[ $NCDF_DIR == '' ]]; then
-      export NCDIR=$NCDF_ROOT/'lib'
-   else   
-      export NCDIR=$NCDF_ROOT/$NCDF_DIR
-   fi
-
+   export NCDIR=$NCDF_ROOT/$NCDF_DIR
    
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF .mod file."
-   print "\n\tPress enter for default [include]."
+   print "\te.g. include"
    read NCDF_MOD
-   if [[ $NCDF_MOD == '' ]]; then
-      export NCMOD=$NCDF_ROOT/'include'
-   else   
-      export NCDIR=$NCDF_ROOT/$NCDF_MOD
-   fi
-
    export NCMOD=$NCDF_ROOT/$NCDF_MOD
 
    print "\n\tWhat is the Fortran compiler you wish to use."
@@ -130,8 +67,15 @@ host_read()
       export CFLAGS=$CFLAGRESPONSE
    fi
 
-   iflags='-L'$NCDIR' -O2'
-   export LDFLAGS=$iflags
+   print "\n\tWhat are the approriate linking options"
+   print "\te.g.(ifort) -O2 "
+   print "\n\tPress enter for default [-O2]."
+   read LDFRESPONSE 
+   if [[ $LDFRESPONSE == '' ]]; then
+      export LDFLAGS='-02'
+   else   
+      export LDFLAGS=$LDFRESPONSE
+   fi
 
    print "\n\tWhat are the approriate libraries to link"
    print "\te.g.(most systems) -lnetcdf "
@@ -175,57 +119,6 @@ host_write()
 }
 
 
-clean_build()
-{
-      print '\ncleaning up\n'
-      rm -fr .tmp
-      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
-      read dummy 
-}
-
-
-set_up_CABLE_AUX()
-{
-      print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
-      print "\tcontains configuration and data essential to using CABLE."
-      print "\tNCI account holders can have this set up for you now (anywhere)."
-      print "\tOthers will have to use the tarball available for download at ..."
-      print "\n\tDo you want to run set up this directory now? y/[n]"
-      
-      read setup_CABLE_AUX
-      if [[ $setup_CABLE_AUX = 'y' ]]; then
-         print "\n\tPlease enter your NCI user ID"
-         read NCI_USERID 
-         mkdir ~/CABLE-AUX 
-         
-         fscp1="scp -r "
-         fscp2="@vayu.nci.org.au:/projects/access/CABLE-AUX/"
-         fscp3="offline "
-         fscp4=$HOME"/CABLE-AUX/"
-         fscp5=$fscp1$NCI_USERID$fscp2
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-          
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/offline failed" 
-            exit $RC 
-         fi
-         
-         fscp3="core "
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-         
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/core failed" 
-            exit $RC 
-         fi
-      fi        
-}
-
-
-
 not_recognized()
 {  
    print "\n\n\tThis is not a recognized host for which we " \
@@ -266,7 +159,7 @@ do_i_no_u()
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
          subr=host_${kh[$k]}
-         $subr $1
+         $subr
       fi        
       (( k = k + 1 ))
    done 
@@ -337,22 +230,17 @@ build_build()
 ###########################################
 
 if [[ $1 = 'clean' ]]; then
-   clean_build
+   print '\ncleaning up\n'
+   rm -fr .tmp
+   print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+   read dummy 
 fi
-
-if [[ ! -d ~/CABLE-AUX ]];then
-   set_up_CABLE_AUX
-else
-   print "\n~/CABLE-AUX is at least present.\n"
-fi
-
-
    
 known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
 
-do_i_no_u $1
+do_i_no_u
 
 not_recognized
 
