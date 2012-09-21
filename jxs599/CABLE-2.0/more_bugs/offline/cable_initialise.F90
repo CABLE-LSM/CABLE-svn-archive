@@ -17,7 +17,7 @@
 ! limitations under the Licence.
 ! ==============================================================================
 !
-! Purpose: default initialisation module for CABLE offline
+! Purpose: default initialisation model for CABLE offline
 !
 ! Contact: Bernard.Pak@csiro.au
 !
@@ -37,6 +37,7 @@
 !
 !==============================================================================
 
+!jhan: changes fes -> fess? : BP TO CONFIRM
 MODULE cable_init_module
 
    USE cable_abort_module,       ONLY: abort, nc_abort

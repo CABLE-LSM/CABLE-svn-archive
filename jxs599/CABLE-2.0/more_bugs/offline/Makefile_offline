@@ -33,11 +33,12 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 c
 # this is the executable we are building
 PROG = cable
 
-# from the compiled object files 
 OBJS	= ${LSRC:.F90=.o} 
 
 #compiler switches and flags
 CINC = -I$(NCMOD)
+LDFLAGS = -O2 
+LD =  -L$(NCDIR) -lnetcdf 
 
 #suffixes we use
 .SUFFIXES:
@@ -109,7 +110,6 @@ casa_inout.o: casa_inout.F90 cable_define_types.o  cable_iovars.o casa_variable.
 
 cable_common.o: cable_common.F90  cable_iovars.o
 
-# make clean option
 clean:
 	rm -f *.o *.mod 
 

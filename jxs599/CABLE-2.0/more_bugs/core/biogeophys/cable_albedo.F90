@@ -119,7 +119,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
          rad%extkbm(:,b) = rad%extkb * c1(:,b)
       
       ! Canopy reflection (6.21) beam:
-         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
+         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )             &
                         * rhoch(:,b)
 
          ! Canopy beam transmittance (fraction):
@@ -212,7 +212,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
       tmp = ssnow%isflag * ssnow%tggsn(:,1) + ( 1 - ssnow%isflag )            &
             * ssnow%tgg(:,1)
       tmp = MIN( tmp, C%TFRZ )
-      ar1 = 5000. * (1. / (C%TFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
+      ar1 = 5000. * (1. / C%TFRZ - 1. / tmp) ! crystal growth  (-ve)
       ar2 = 10. * ar1 ! freezing of melt water
       snr = ssnow%snowd / max (ssnow%ssdnn, 200.)
       

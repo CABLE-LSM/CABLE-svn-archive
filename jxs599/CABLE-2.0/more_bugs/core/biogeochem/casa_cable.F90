@@ -386,7 +386,6 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   LOGICAL, INTENT(IN)   :: l_vcmaxFeedbk ! using prognostic Vcmax
 
     if(icycle<=0) then
-! THESE LIKELY DUPLICATE CALLS IN CBM: BP TO CHECK
        CALL soilcarb(soil, ssoil, veg, bgc, met, canopy)
        CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc)
 !       CALL soilcarb(soil, ssoil, veg, bgc, met, canopy, mstype)
