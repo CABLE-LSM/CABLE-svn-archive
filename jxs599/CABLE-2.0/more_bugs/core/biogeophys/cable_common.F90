@@ -1,12 +1,34 @@
-!========================================================================!
-!=== PURPOSE: to enable accessibility of fundamental vars in global   ===!
-!=== model thru out program (mainly CABLE).                           ===!
-!=== USE: use module in subroutines (SRs) at top level of global model===!
-!--- 2 define cable_timestep_ data with vars peculiar to global model ===!
-!=== optionally call alias_ SR to give name smore familiar to cable   ===!
-!=== people. then again use this module in  any subsequent SR in which===!
-!=== you want to access this data.                                    ===!  
-!========================================================================!
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Reads vegetation and soil parameter files, fills vegin, soilin
+!          NB. Most soil parameters overwritten by spatially explicit datasets
+!          input as ancillary file (for ACCESS) or surface data file (for offline)
+!          Module enables accessibility of variables throughout CABLE
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: v2.0 vegin%dleaf now calculated from leaf length and width
+!          Parameter files were read elsewhere in v1.8 (init_subrs)
+!
+!
+! ==============================================================================
 
 MODULE cable_common_module
    IMPLICIT NONE 
@@ -18,7 +40,7 @@ MODULE cable_common_module
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
-            um_radiation = .FALSE., um_hydrology = .FALSE.
+            um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    END TYPE kbl_internal_switches 
 
@@ -69,7 +91,7 @@ MODULE cable_common_module
 
    ! hydraulic_redistribution switch _soilsnow module
    LOGICAL ::                                                                  &
-      redistrb      ! Turn on/off the hydraulic redistribution
+      redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam, satuParam
@@ -235,6 +257,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                         &   vegin%length(jveg), vegin%frac4(jveg)
+            ! only refl(1:2) and taul(1:2) used
             READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
             READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
             READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
@@ -308,7 +331,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       
    CLOSE(40)
       
-   ! new calculation dleaf sin ce April 2012 
+   ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
     
         
