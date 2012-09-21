@@ -179,7 +179,6 @@ build_build()
       libpathbu=$libpath'.bu'
       print $libpathbu'\n' 
       mv $libpath $libpathbu
-      exit 
    fi
   
    CORE="../core/biogeophys"
@@ -220,11 +219,20 @@ build_build()
       exit
    fi
    
-   /bin/cp -p libcable.a ~/CABLE-AUX/UM/lib
+   if [[ -h $libpath ]]; then
+      print "\nThis library already exists in some form. Most likely it is the"
+      print "\tdefault linked library. If you wish to overwrite this library"
+      print "\tthen press Enter to proceeed. Otherwise Control-C to abort. \n"
+      read dummy
+      mv $libpath $libroot/original_link 
+      rm -f $libpath
+   fi
    
-   if [[ -f ~/CABLE-AUX/UM/lib/libcable.a ]]; then
+   /bin/cp -p libcable.a $libroot 
+   
+   if [[ -f $libpath ]]; then
       print "\nYour timestamped library should be this one:\n"
-      echo `ls -alt ~/CABLE-AUX/UM/lib/libcable.a`
+      echo `ls -alt $libpath`
       print '\nDONE\n'
       exit
    else
@@ -246,7 +254,7 @@ if [[ $1 = 'clean' ]]; then
    read dummy 
 fi
    
-export libroot=$HOME'/CABLE-AUX/UM/lib'
+export libroot=$CABLE_AUX'/CABLE-AUX/UM'
 export libpath=$libroot'/libcable.a'
 
 known_hosts
