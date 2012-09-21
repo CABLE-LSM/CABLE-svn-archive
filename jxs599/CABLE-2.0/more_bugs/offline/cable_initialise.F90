@@ -37,7 +37,6 @@
 !
 !==============================================================================
 
-!jhan: changes fes -> fess? : BP TO CONFIRM
 MODULE cable_init_module
 
    USE cable_abort_module,       ONLY: abort, nc_abort

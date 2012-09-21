@@ -73,7 +73,7 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename,                    & 
+                                   cable_runtime, filename, myhome,            & 
                                    redistrb, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -91,7 +91,7 @@ PROGRAM cable_offline_driver
    IMPLICIT NONE
    
    ! CABLE namelist: model configuration, runtime/user switches 
-   CHARACTER(LEN=*), PARAMETER :: CABLE_NAMELIST = 'cable.nml'
+   CHARACTER(LEN=200) :: CABLE_NAMELIST 
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
@@ -154,6 +154,10 @@ PROGRAM cable_offline_driver
       soilMtemp,                         &   
       soilTtemp      
    
+   !___ path, relative to $HOME, of CABLE namelist 
+   CHARACTER(LEN=200), PARAMETER ::                                            & 
+      nml_path1 = '/CABLE-AUX/offline/cable.nml'
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -184,12 +188,28 @@ PROGRAM cable_offline_driver
 
    ! END header
 
+   CALL GETARG(1, filename%met)
+   CALL GETARG(2, casafile%cnpipool)
 
+   ! set absolute path to CABLE namelist 
+   CALL GETENV("HOME", myhome)   
+   CABLE_NAMELIST = TRIM(myhome)//TRIM(nml_path1)
 
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
+   
+   filename%met = TRIM(myhome)//'/'//TRIM(filename%met)
+   filename%veg = TRIM(myhome)//'/'//TRIM(filename%veg)
+   filename%soil = TRIM(myhome)//'/'//TRIM(filename%soil)
+   filename%type = TRIM(myhome)//'/'//TRIM(filename%type)
+   casafile%cnpipool = TRIM(myhome)//'/'//TRIM(casafile%cnpipool)
+   casafile%cnpbiome = TRIM(myhome)//'/'//TRIM(casafile%cnpbiome)
+   casafile%phen = TRIM(myhome)//'/'//TRIM(casafile%phen)
+   
+   print *,  filename%veg                
+   print *,  filename%soil
 
    cable_runtime%offline = .TRUE.
    
@@ -360,10 +380,10 @@ PROGRAM cable_offline_driver
                WRITE(*,'(A33)') ' Spinup has converged - final run'
                WRITE(logn,'(A52)')                                             &
                           ' Spinup has converged - final run - writing all data'
-               WRITE(logn,'(A37,F7.5,A28)')                                    &
+               WRITE(logn,'(A37,F8.5,A28)')                                    &
                           ' Criteria: Change in soil moisture < ',             &
                           delsoilM, ' in any layer over whole run'
-               WRITE(logn,'(A40,F7.5,A28)' )                                   &
+               WRITE(logn,'(A40,F8.5,A28)' )                                   &
                           '           Change in soil temperature < ',          &
                           delsoilT, ' in any layer over whole run'
             END IF

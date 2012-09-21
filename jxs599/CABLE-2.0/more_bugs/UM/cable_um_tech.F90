@@ -93,7 +93,7 @@ CONTAINS
 SUBROUTINE cable_um_runtime_vars(runtime_vars_file) 
    USE cable_common_module, ONLY : cable_runtime, cable_user, filename,        &
                                    cable_user, knode_gl, redistrb, wiltParam,  &
-                                   satuParam
+                                   satuParam, myhome
 
 
    CHARACTER(LEN=*), INTENT(IN) :: runtime_vars_file
@@ -113,6 +113,9 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
             PRINT *, 'End CABLE_log:'; PRINT *, '  '
         ENDIF
       CLOSE(funit)
+   
+   filename%veg = TRIM(myhome)//'/'//TRIM(filename%veg)
+   filename%soil = TRIM(myhome)//'/'//TRIM(filename%soil)
                    
       !--- check value of variable 
       CALL check_nmlvar('filename%veg', filename%veg)
