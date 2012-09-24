@@ -1,16 +1,33 @@
-!=================================COPYRIGHT=====================================
-! The source codes are part of the australian
-! Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! Please register online at xxx and sign the agreement before use
-! contact: whox@xxxx.yyy about registration user agreement
-!===============================================================================
-
-!===============================================================================
-! Name: cable_output_module
-! Purpose: Output module for CABLE land surface scheme offline netcdf driver;
-
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Output module for CABLE offline 
+!
+! Contact: Bernard.Pak@csiro.au
+!
+! History: Developed by Gab Abramowitz
+!          Output of additional variables and parameters relative to v1.4b
+!
+!
+! ==============================================================================
 ! CALLed from:    cable_driver.F90
-
+!
 ! MODULEs used:   cable_abort_module
 !                 cable_common_module
 !                 cable_checks_module
@@ -24,9 +41,6 @@
 !                 close_output_file
 !                 create_restart
 !
-! Major contribution: land surface modeling team, CSIRO, Aspendale
-
-
 MODULE cable_output_module
 
 
@@ -811,15 +825,6 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
                           (ok, 'Error writing GrADS y coordinate variable to ' &
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
-    !    ! Write surffrac variable:
-    !    ALLOCATE(surffrac(mland,4))
-    !    surffrac(:,1) = landpt(:)%veg%frac
-    !    surffrac(:,2) = landpt(:)%urban%frac
-    !    surffrac(:,3) = landpt(:)%lake%frac
-    !    surffrac(:,4) = landpt(:)%ice%frac
-    !    CALL write_ovar(ncid_out,surffracID,'surffrac',surffrac, &
-    !         (/0.0,1.0/),.FALSE.,'surftype')
-    !    DEALLOCATE(surffrac)
 
     ! Write model parameters if requested:
     IF(output%params .OR. output%iveg) CALL write_ovar(ncid_out, opid%iveg,    &
@@ -1777,10 +1782,6 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                   (ok, 'Error defining mp_patch dimension in restart file. '// &
                    '(SUBROUTINE create_restart)')
-    !    ok = NF90_DEF_DIM(ncid_restart,'surftype',4,surftypeID)
-    !    IF (ok /= NF90_NOERR) CALL nc_abort &
-    !         (ok,'Error defining surftype dimension in restart file. '// &
-    !         '(SUBROUTINE create_restart)')
     ok = NF90_DEF_DIM(ncid_restart, 'soil', ms, soilID) ! number of soil layers
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
              (ok, 'Error defining vertical soil dimension in restart file. '// &
@@ -1837,17 +1838,6 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
        (ok, 'Error defining longitude variable attributes in restart file. '// &
         '(SUBROUTINE create_restart)')
-    !    ! Define surface type fraction variable:
-    !    ok=NF90_DEF_VAR(ncid_restart,'surffrac',NF90_FLOAT, &
-    !         (/mlandID,surftypeID/),surffracID)
-    !    IF (ok /= NF90_NOERR) CALL nc_abort &
-    !         (ok,'Error defining surffrac variable in restart file. '// &
-    !         '(SUBROUTINE create_restart)')
-    !    ok = NF90_PUT_ATT(ncid_restart,surffracID,'long_name',&
-    !         'Fraction of each surface type: vegetated; urban; lake; land ice')
-    !    IF (ok /= NF90_NOERR) CALL nc_abort &
-    !    (ok,'Error defining surffrac variable attributes in restart file. '// &
-    !         '(SUBROUTINE create_restart)')
     ! Define number of active patches variable:
     ok = NF90_DEF_VAR(ncid_restart, 'nap', NF90_FLOAT, (/mlandID/), napID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -2160,16 +2150,6 @@ CONTAINS
                                        'Error writing nap variable to '        &
                    //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
 
-    !    ! Write surface type fractions:
-    !    ALLOCATE(surffrac(mland,4))
-    !    surffrac(:,1) = landpt(:)%veg%frac
-    !    surffrac(:,2) = landpt(:)%urban%frac
-    !    surffrac(:,3) = landpt(:)%lake%frac
-    !    surffrac(:,4) = landpt(:)%ice%frac
-    !    ok=NF90_PUT_VAR(ncid_restart,surffracID,surffrac)
-    !    IF(ok/=NF90_NOERR) CALL nc_abort(ok,'Error writing surffrac to ' &
-    !         //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
-    !    DEALLOCATE(surffrac)
     ! Write vegetated patch fractions
     ok = NF90_PUT_VAR(ncid_restart, rpid%patchfrac,                            &
                       patch(:)%frac, start = (/1/), count = (/mp/))
@@ -2208,7 +2188,6 @@ CONTAINS
                      ranges%hyds, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%sucs, 'sucs', REAL(soil%sucs, 4),      &
                      ranges%sucs, .TRUE., 'real', .TRUE.)
-! CALL write_ovar (ncid_restart,rpid%rs20,'rs20',REAL(soil%rs20,4),ranges%rs20,&
     CALL write_ovar (ncid_restart, rpid%rs20, 'rs20', REAL(veg%rs20, 4),       &
                      ranges%rs20, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%ssat, 'ssat', REAL(soil%ssat, 4),      &

@@ -1,17 +1,33 @@
-
-!===COPYRIGHT==================================================================
-! The source codes are part of the australian 
-! Community Atmosphere Biosphere Land Exchange (CABLE) model. 
-! Please register online at xxx and sign the agreement before use 
-! contact: whox@xxxx.yyy about registration user agreement
 !==============================================================================
-
-
-!==============================================================================
-! Name: cable_driver
-! Purpose: offline driver for CABLE model
-! CALLed from: executed PROGRAM 
-!                 cable_def_types_mod
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Offline driver for CABLE
+!
+! Contact: Bernard.Pak@csiro.au
+!
+! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
+!          inclusion of call to CASA-CNP (icycle>0)
+!          soil_snow_type now ssnow (instead of ssoil)
+!
+!
+! ==============================================================================
+! Uses:           cable_def_types_mod
 !                 cable_IO_vars_module
 !                 cable_common_module
 !                 cable_input_module
@@ -23,7 +39,6 @@
 ! CALLs:       open_met_file
 !              load_parameters
 !              open_output_file
-!              spincasacnp
 !              get_met_data
 !              casa_feedback
 !              cbm
@@ -37,29 +52,19 @@
 !              close_output_file
 !              prepareFiles
 !
-! Major contribution: land surface modeling team, CSIRO, Aspendale
 !
-! input  file: ￼[SiteName].nc
-!              ￼poolcnpIn[SiteName].csv -- for CASA-CNP only
-!              ￼gridinfo_CSIRO_1x1.nc
-!              ￼def_veg_params.txt
-!              ￼def_soil_params.txt -- nearly redundant, can be switched on
-!              ￼restart_in.nc -- not strictly required
+! input  file: [SiteName].nc
+!              poolcnpIn[SiteName].csv -- for CASA-CNP only
+!              gridinfo_CSIRO_1x1.nc
+!              def_veg_params.txt
+!              def_soil_params.txt -- nearly redundant, can be switched on
+!              restart_in.nc -- not strictly required
 !
-! output file: ￼log_cable.txt
-!              ￼out_cable.nc
-!              ￼restart_out.nc
-!              ￼poolcnpOut.csv -- from CASA-CNP
-
+! output file: log_cable.txt
+!              out_cable.nc
+!              restart_out.nc
+!              poolcnpOut.csv -- from CASA-CNP
 !==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
 
 PROGRAM cable_offline_driver
    USE cable_def_types_mod
@@ -67,7 +72,7 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename,                    & 
+                                   cable_runtime, filename, myhome,            & 
                                    redistrb, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -85,7 +90,7 @@ PROGRAM cable_offline_driver
    IMPLICIT NONE
    
    ! CABLE namelist: model configuration, runtime/user switches 
-   CHARACTER(LEN=*), PARAMETER :: CABLE_NAMELIST = 'cable.nml'
+   CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
@@ -178,13 +183,17 @@ PROGRAM cable_offline_driver
 
    ! END header
 
-
-
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
+   IF( IARGC() > 0 ) THEN
+      CALL GETARG(1, filename%met)
+      CALL GETARG(2, casafile%cnpipool)
+   ENDIF
+
+    
    cable_runtime%offline = .TRUE.
    
    ! associate pointers used locally with global definitions
@@ -354,10 +363,10 @@ PROGRAM cable_offline_driver
                WRITE(*,'(A33)') ' Spinup has converged - final run'
                WRITE(logn,'(A52)')                                             &
                           ' Spinup has converged - final run - writing all data'
-               WRITE(logn,'(A37,F7.5,A28)')                                    &
+               WRITE(logn,'(A37,F8.5,A28)')                                    &
                           ' Criteria: Change in soil moisture < ',             &
                           delsoilM, ' in any layer over whole run'
-               WRITE(logn,'(A40,F7.5,A28)' )                                   &
+               WRITE(logn,'(A40,F8.5,A28)' )                                   &
                           '           Change in soil temperature < ',          &
                           delsoilT, ' in any layer over whole run'
             END IF

@@ -2,21 +2,67 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh vayu cher burn shin 
+}
+
+
+## shine-cl.nexus.csiro.au 
+host_shin()
+{
+   export NCDIR='/usr/local/intel/lib'
+   export NCMOD='/usr/local/intel/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/usr/local/intel/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+## burnet.hpsc.csiro.au 
+host_burn()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+
+## cherax.hpsc.csiro.au 
+host_cher()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
 }
 
 
 ## vayu.nci.org.au
 host_vayu()
 {
-   NCDF_ROOT=/apps/netcdf/3.6.3
-   export NCDIR=$NCDF_ROOT'/lib/Intel'
-   export NCMOD=$NCDF_ROOT'/include/Intel'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf'
    build_build
    cd ../
    build_status
@@ -36,14 +82,25 @@ host_read()
    
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF library." 
-   print "\te.g. lib"
+   print "\n\tPress enter for default [lib]."
    read NCDF_DIR
-   export NCDIR=$NCDF_ROOT/$NCDF_DIR
+   if [[ $NCDF_DIR == '' ]]; then
+      export NCDIR=$NCDF_ROOT/'lib'
+   else   
+      export NCDIR=$NCDF_ROOT/$NCDF_DIR
+   fi
+
    
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF .mod file."
-   print "\te.g. include"
+   print "\n\tPress enter for default [include]."
    read NCDF_MOD
+   if [[ $NCDF_MOD == '' ]]; then
+      export NCMOD=$NCDF_ROOT/'include'
+   else   
+      export NCDIR=$NCDF_ROOT/$NCDF_MOD
+   fi
+
    export NCMOD=$NCDF_ROOT/$NCDF_MOD
 
    print "\n\tWhat is the Fortran compiler you wish to use."
@@ -67,15 +124,8 @@ host_read()
       export CFLAGS=$CFLAGRESPONSE
    fi
 
-   print "\n\tWhat are the approriate linking options"
-   print "\te.g.(ifort) -O2 "
-   print "\n\tPress enter for default [-O2]."
-   read LDFRESPONSE 
-   if [[ $LDFRESPONSE == '' ]]; then
-      export LDFLAGS='-02'
-   else   
-      export LDFLAGS=$LDFRESPONSE
-   fi
+   iflags='-L'$NCDIR' -O2'
+   export LDFLAGS=$iflags
 
    print "\n\tWhat are the approriate libraries to link"
    print "\te.g.(most systems) -lnetcdf "
@@ -119,6 +169,17 @@ host_write()
 }
 
 
+clean_build()
+{
+      print '\ncleaning up\n'
+      rm -fr .tmp
+      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      read dummy 
+}
+
+
+
+
 not_recognized()
 {  
    print "\n\n\tThis is not a recognized host for which we " \
@@ -159,7 +220,7 @@ do_i_no_u()
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
          subr=host_${kh[$k]}
-         $subr
+         $subr $1
       fi        
       (( k = k + 1 ))
    done 
@@ -230,17 +291,15 @@ build_build()
 ###########################################
 
 if [[ $1 = 'clean' ]]; then
-   print '\ncleaning up\n'
-   rm -fr .tmp
-   print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
-   read dummy 
+   clean_build
 fi
+
    
 known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
 
-do_i_no_u
+do_i_no_u $1
 
 not_recognized
 
