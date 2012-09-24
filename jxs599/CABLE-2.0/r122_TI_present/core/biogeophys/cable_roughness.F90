@@ -1,3 +1,32 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Calculate roughness lengths as a function of soil and canopy 
+!          parameters
+!
+! Contact: Eva.Kowalczyk@csiro.au
+!
+! History: No significant changes since v1.4b except change to cope with 
+!          split timestep in ACCESS (zref_uv, zref_tq)
+!
+!
+! ==============================================================================
 
 MODULE cable_roughness_module
    
