@@ -46,10 +46,9 @@
 
 
 module cable_diag_module
-   use define_dimensions, only : i_d, r_1, r_2
    implicit none
-   integer(i_d), parameter :: gok=0
-   integer(i_d) :: galloctest=1
+   integer, parameter :: gok=0
+   integer :: galloctest=1
   
    !--- subrs overloaded to respond to call cable_diag 
    interface cable_diag
@@ -65,8 +64,8 @@ module cable_diag_module
 
    subroutine cable_diag1( Nvars, basename, dimx, dimy, timestep, node, &
                            vname1, var1 )
-      integer(i_d), intent(in) :: Nvars,dimx, dimy, timestep,node
-      real(r_1), intent(in), dimension(:) :: var1
+      integer, intent(in) :: Nvars,dimx, dimy, timestep,node
+      real, intent(in), dimension(:) :: var1
       integer :: i=0
       character(len=*), intent(in) :: basename, vname1
       character(len=30) :: filename, chnode
@@ -87,7 +86,7 @@ module cable_diag_module
 
    subroutine cable_diag_desc1( Nvars, filename, dimx, dimy, vname1 )
       implicit none
-      integer(i_d), intent(in) :: Nvars,dimx,dimy 
+      integer, intent(in) :: Nvars,dimx,dimy 
       character(len=*), intent(in) :: filename, vname1
       integer, save :: gopenstatus = 1
 
@@ -115,8 +114,8 @@ module cable_diag_module
 
    subroutine cable_diag_data1( Nvars, filename, dimx, timestep, kend, var1  )
       implicit none
-      integer(i_d), intent(in) :: Nvars, dimx, timestep, kend
-      real(r_1), intent(in), dimension(:) :: var1
+      integer, intent(in) :: Nvars, dimx, timestep, kend
+      real, intent(in), dimension(:) :: var1
       character(len=*), intent(in) :: filename
       integer, save :: gopenstatus = 1
 
