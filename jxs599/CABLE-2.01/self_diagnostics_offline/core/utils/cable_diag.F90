@@ -9,36 +9,6 @@
 !+++                                                                       +++! 
 !+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )     +++!
 !+++                                                                       +++! 
-!+++    OR                                                                 +++! 
-!+++                                                                       +++! 
-!+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, vname2, &  +++!
-!+++              var1, var2 )                                             +++!      
-!+++                                                                       +++! 
-!+++    OR                                                                 +++! 
-!+++                                                                       +++! 
-!+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, vname2, &  +++!
-!+++              vname3, var1, var2, var3 )                               +++!
-!+++                                                                       +++! 
-!+++ where:    Nvars       number of vars being written in call (1,2 or 3) +++!
-!+++           filename    base of preferred filename.dat, filename.bin    +++!
-!+++           dimx        length of x-dimension (# landpoints)            +++!      
-!+++           dimy        length of y-dimension (# time steps )           +++!     
-!+++           timestep    # of the timestep                               +++!     
-!+++           vnameX      preferred/recognizable  name of var             +++!
-!+++           varX        vsr to output                                   +++!   
-!+++                                                                       +++! 
-!+++ to plot the temp. of the first three soil layers in subr. bar()       +++!
-!+++                                                                       +++! 
-!+++ e.g.   in subr. bar()                                                 +++!
-!+++     .                                                                 +++! 
-!+++     .                                                                 +++! 
-!+++      use cable_diag_mod                                               +++! 
-!+++     .                                                                 +++! 
-!+++     .                                                                 +++! 
-!+++      call cable_diag( 3, 'bar_T', 2950, 48, ktau, 'tsoil1',           +++! 
-!+++                'tsoil2','tsoil3',tsoil(:,1), tsoil(:,2), tsoil(:,3))  +++!
-!+++     .                                                                 +++! 
-!+++     .                                                                 +++!
 !+++ following the run binaries can be interpreted from the command line   +++!
 !+++ using the cable_diag.pl command (see cable_diag.pl for details)       +++!  
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!

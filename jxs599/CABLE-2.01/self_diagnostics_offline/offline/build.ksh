@@ -234,7 +234,7 @@ build_status()
    	print '\nBUILD OK\n'
    else
       print '\nOooops. Something went wrong\n'        
-      print '\nKnow build issues:\n'        
+      print '\nKnown build issues:\n'        
       print '\nSome systems require additional library. \n'        
       print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'        
    fi
