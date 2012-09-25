@@ -332,7 +332,7 @@ PROGRAM cable_offline_driver
          !jhan: testing
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
          !+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
-         call cable_diag( 1, "LE_H", mp, kend, ktau, knode_gl, "FLUXES",       &
+         call cable_diag( 1, "FLUXES", mp, kend, ktau, knode_gl, "FLUXES",     &
                           canopy%fe + canopy%fh ) 
        END DO ! END Do loop over timestep ktau
 
