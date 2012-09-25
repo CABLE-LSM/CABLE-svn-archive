@@ -586,6 +586,11 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
          ENDDO
       ENDDO
 
+      !jhan: testing
+      !+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
+      CALL cable_diag( 1, "FLUXES", mp, kend, ktau, knode_gl, "FLUXES",        &
+                          canopy%fe + canopy%fh ) 
+
 END SUBROUTINE Implicit_unpack
 
 
