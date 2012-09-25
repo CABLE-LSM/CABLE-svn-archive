@@ -234,7 +234,7 @@ build_status()
    	print '\nBUILD OK\n'
    else
       print '\nOooops. Something went wrong\n'        
-      print '\nKnow build issues:\n'        
+      print '\nKnown build issues:\n'        
       print '\nSome systems require additional library. \n'        
       print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'        
    fi
@@ -267,10 +267,12 @@ build_build()
       mv cable cable.bu
    fi
    
+   UTIL="../core/utils"
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
    
+   /bin/cp -p $UTIL/*90 ./.tmp
    /bin/cp -p $CORE/*90 ./.tmp
    /bin/cp -p $DRV/*90 ./.tmp
    /bin/cp -p $CASA/*90 ./.tmp
