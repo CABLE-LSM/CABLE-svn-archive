@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
+   set -A kh vayu cher burn shin jigg
 }
+
+
+## jiggle
+host_jigg()
+{
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
+   export FC=gfortran
+   export CFLAGS='-O0 -x f95-cpp-input'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/local/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## shine-cl.nexus.csiro.au 
@@ -98,10 +115,8 @@ host_read()
    if [[ $NCDF_MOD == '' ]]; then
       export NCMOD=$NCDF_ROOT/'include'
    else   
-      export NCDIR=$NCDF_ROOT/$NCDF_MOD
+      export NCMOD=$NCDF_ROOT/$NCDF_MOD
    fi
-
-   export NCMOD=$NCDF_ROOT/$NCDF_MOD
 
    print "\n\tWhat is the Fortran compiler you wish to use."
    print "\te.g. ifort, gfortran"
@@ -154,8 +169,8 @@ host_write()
    print '## '$HOST_COMM >> junk
    print 'host_'$HOST_MACH'()' >> junk
    print '{' >> junk
-   print '   export NCDIR='"'"$NCDF_ROOT'/'$NCDF_DIR"'" >> junk
-   print '   export NCMOD='"'"$NCDF_ROOT'/'$NCDF_MOD"'" >> junk
+   print '   export NCDIR='"'"$NCDIR"'" >> junk
+   print '   export NCMOD='"'"$NCMOD"'" >> junk
    print '   export FC='$FC >> junk
    print '   export CFLAGS='"'"$CFLAGS"'" >> junk
    print '   export LD='"'"$LD"'" >> junk

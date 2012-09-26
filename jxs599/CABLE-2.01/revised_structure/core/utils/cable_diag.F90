@@ -9,36 +9,6 @@
 !+++                                                                       +++! 
 !+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )     +++!
 !+++                                                                       +++! 
-!+++    OR                                                                 +++! 
-!+++                                                                       +++! 
-!+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, vname2, &  +++!
-!+++              var1, var2 )                                             +++!      
-!+++                                                                       +++! 
-!+++    OR                                                                 +++! 
-!+++                                                                       +++! 
-!+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, vname2, &  +++!
-!+++              vname3, var1, var2, var3 )                               +++!
-!+++                                                                       +++! 
-!+++ where:    Nvars       number of vars being written in call (1,2 or 3) +++!
-!+++           filename    base of preferred filename.dat, filename.bin    +++!
-!+++           dimx        length of x-dimension (# landpoints)            +++!      
-!+++           dimy        length of y-dimension (# time steps )           +++!     
-!+++           timestep    # of the timestep                               +++!     
-!+++           vnameX      preferred/recognizable  name of var             +++!
-!+++           varX        vsr to output                                   +++!   
-!+++                                                                       +++! 
-!+++ to plot the temp. of the first three soil layers in subr. bar()       +++!
-!+++                                                                       +++! 
-!+++ e.g.   in subr. bar()                                                 +++!
-!+++     .                                                                 +++! 
-!+++     .                                                                 +++! 
-!+++      use cable_diag_mod                                               +++! 
-!+++     .                                                                 +++! 
-!+++     .                                                                 +++! 
-!+++      call cable_diag( 3, 'bar_T', 2950, 48, ktau, 'tsoil1',           +++! 
-!+++                'tsoil2','tsoil3',tsoil(:,1), tsoil(:,2), tsoil(:,3))  +++!
-!+++     .                                                                 +++! 
-!+++     .                                                                 +++!
 !+++ following the run binaries can be interpreted from the command line   +++!
 !+++ using the cable_diag.pl command (see cable_diag.pl for details)       +++!  
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
@@ -46,10 +16,9 @@
 
 
 module cable_diag_module
-   use define_dimensions, only : i_d, r_1, r_2
    implicit none
-   integer(i_d), parameter :: gok=0
-   integer(i_d) :: galloctest=1
+   integer, parameter :: gok=0
+   integer :: galloctest=1
   
    !--- subrs overloaded to respond to call cable_diag 
    interface cable_diag
@@ -65,8 +34,8 @@ module cable_diag_module
 
    subroutine cable_diag1( Nvars, basename, dimx, dimy, timestep, node, &
                            vname1, var1 )
-      integer(i_d), intent(in) :: Nvars,dimx, dimy, timestep,node
-      real(r_1), intent(in), dimension(:) :: var1
+      integer, intent(in) :: Nvars,dimx, dimy, timestep,node
+      real, intent(in), dimension(:) :: var1
       integer :: i=0
       character(len=*), intent(in) :: basename, vname1
       character(len=30) :: filename, chnode
@@ -87,7 +56,7 @@ module cable_diag_module
 
    subroutine cable_diag_desc1( Nvars, filename, dimx, dimy, vname1 )
       implicit none
-      integer(i_d), intent(in) :: Nvars,dimx,dimy 
+      integer, intent(in) :: Nvars,dimx,dimy 
       character(len=*), intent(in) :: filename, vname1
       integer, save :: gopenstatus = 1
 
@@ -115,8 +84,8 @@ module cable_diag_module
 
    subroutine cable_diag_data1( Nvars, filename, dimx, timestep, kend, var1  )
       implicit none
-      integer(i_d), intent(in) :: Nvars, dimx, timestep, kend
-      real(r_1), intent(in), dimension(:) :: var1
+      integer, intent(in) :: Nvars, dimx, timestep, kend
+      real, intent(in), dimension(:) :: var1
       character(len=*), intent(in) :: filename
       integer, save :: gopenstatus = 1
 
