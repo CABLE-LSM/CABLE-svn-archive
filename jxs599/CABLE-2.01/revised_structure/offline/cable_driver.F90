@@ -193,38 +193,19 @@ SUBROUTINE cable_driver
    ! configure CABLE runtime options via namelist, args etc
    ! includes checks
    CALL cable_config()
-   
+  
    ! CABLE-future releaswill be CALL cable_data_setup and do everything there
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
 
-   ! Open met data and get site information from netcdf file.
-   ! This retrieves time step size, number of timesteps, starting date,
-   ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, C%TFRZ )
- 
-   ! Checks where parameters and initialisations should be loaded from.
-   ! If they can be found in either the met file or restart file, they will 
-   ! load from there, with the met file taking precedence. Otherwise, they'll
-   ! be chosen from a coarse global grid of veg and soil types, based on 
-   ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
-   CALL load_parameters( met, air, ssnow, veg, bgc,                            &
-                         soil, canopy, rough, rad, sum_flux,                   &
-                         bal, logn, vegparmnew, casabiome, casapool,           &
-                         casaflux, casamet, casabal, phen, C%EMSOIL,        &
-                         C%TFRZ )
-   
-   ! Open output file: jahn: if it is just opening why send vars?
+   CALL init_old_data_struct() 
+  
+   CALL init_NEW_data_struct() 
+
+   ! Open output file: jhan: if it is just opening why send vars?
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
-   ! jhan:why are these here?
-   ssnow%otss_0 = ssnow%tgg(:,1)
-   ssnow%otss = ssnow%tgg(:,1)
-   canopy%fes_cor = 0.
-   canopy%fhs_cor = 0.
-   met%ofsd = 0.1
-   
-   ! outer loop - spinup loop no. ktau_tot :
+  ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
 
@@ -444,6 +425,38 @@ SUBROUTINE cable_config_checks
    
 END SUBROUTINE cable_config_checks
 
+
+SUBROUTINE init_old_data_struct 
+   ! Open met data and get site information from netcdf file.
+   ! This retrieves time step size, number of timesteps, starting date,
+   ! latitudes, longitudes, number of sites. 
+   CALL open_met_file( dels, kend, spinup, C%TFRZ )
+ 
+   ! Checks where parameters and initialisations should be loaded from.
+   ! If they can be found in either the met file or restart file, they will 
+   ! load from there, with the met file taking precedence. Otherwise, they'll
+   ! be chosen from a coarse global grid of veg and soil types, based on 
+   ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
+   CALL load_parameters( met, air, ssnow, veg, bgc,                            &
+                         soil, canopy, rough, rad, sum_flux,                   &
+                         bal, logn, vegparmnew, casabiome, casapool,           &
+                         casaflux, casamet, casabal, phen, C%EMSOIL,        &
+                         C%TFRZ )
+
+   ! jhan:why are these here?
+   ssnow%otss_0 = ssnow%tgg(:,1)
+   ssnow%otss = ssnow%tgg(:,1)
+   canopy%fes_cor = 0.
+   canopy%fhs_cor = 0.
+   met%ofsd = 0.1
+   
+ 
+END SUBROUTINE init_old_data_struct 
+
+
+SUBROUTINE init_NEW_data_struct
+   return 
+END SUBROUTINE init_NEW_data_struct 
 
 
 SUBROUTINE prepareFiles(ncciy)
