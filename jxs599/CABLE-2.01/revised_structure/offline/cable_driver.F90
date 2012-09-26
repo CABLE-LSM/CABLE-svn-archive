@@ -189,50 +189,14 @@ MODULE cable_offline_driver_mod
 CONTAINS
 
 SUBROUTINE cable_driver
-   ! Open, read and close the namelist file.
-   OPEN( 10, FILE = CABLE_NAMELIST )
-      READ( 10, NML=CABLE )   !where NML=CABLE defined above
-   CLOSE(10)
-
-   IF( IARGC() > 0 ) THEN
-      CALL GETARG(1, filename%met)
-      CALL GETARG(2, casafile%cnpipool)
-   ENDIF
-
-    
-   cable_runtime%offline = .TRUE.
    
+   ! configure CABLE runtime options via namelist, args etc
+   ! includes checks
+   CALL cable_config()
+   
+   ! CABLE-future releaswill be CALL cable_data_setup and do everything there
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
-    
-   IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
-      STOP 'icycle must be 1 to 3 when using casaCNP'
-   IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
-      STOP 'casaCNP required to get prognostic LAI or Vcmax'
-   IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
-      STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
-   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
-      STOP 'casaCNP must use new soil parameters'
-
-   ! Open log file:
-   OPEN(logn,FILE=filename%log)
- 
-   ! Check for gswp run
-   IF (ncciy /= 0) THEN
-      
-      PRINT *, 'Looking for global offline run info.'
-      
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-         STOP 'Please check input in namelist file.'
-      ELSE
-         
-         CALL prepareFiles(ncciy)
-      
-      ENDIF
-   
-   ENDIF
-   
 
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
@@ -249,11 +213,11 @@ SUBROUTINE cable_driver
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
-
    
-   ! Open output file:
+   ! Open output file: jahn: if it is just opening why send vars?
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
+   ! jhan:why are these here?
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
    canopy%fes_cor = 0.
@@ -336,7 +300,7 @@ SUBROUTINE cable_driver
          !jhan: testing
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
          !+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
-         call cable_diag( 1, "LE_H", mp, kend, ktau, knode_gl, "FLUXES",       &
+         call cable_diag( 1, "FLUXES", mp, kend, ktau, knode_gl, "FLUXES",       &
                           canopy%fe + canopy%fh ) 
        END DO ! END Do loop over timestep ktau
 
@@ -429,6 +393,56 @@ SUBROUTINE cable_driver
    CLOSE(logn)
 
 END SUBROUTINE cable_driver
+
+
+SUBROUTINE cable_config
+   ! Open, read and close the namelist file.
+   OPEN( 10, FILE = CABLE_NAMELIST )
+      READ( 10, NML=CABLE )   !where NML=CABLE defined above
+   CLOSE(10)
+
+   IF( IARGC() > 0 ) THEN
+      CALL GETARG(1, filename%met)
+      CALL GETARG(2, casafile%cnpipool)
+   ENDIF
+
+   cable_runtime%offline = .TRUE.
+   
+   CALL cable_config_checks()
+
+END SUBROUTINE cable_config
+
+
+SUBROUTINE cable_config_checks
+   IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
+      STOP 'icycle must be 1 to 3 when using casaCNP'
+   IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
+      STOP 'casaCNP required to get prognostic LAI or Vcmax'
+   IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
+      STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
+   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
+      STOP 'casaCNP must use new soil parameters'
+
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   ! Check for gswp run
+   IF (ncciy /= 0) THEN
+      
+      PRINT *, 'Looking for global offline run info.'
+      
+      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+         STOP 'Please check input in namelist file.'
+      ELSE
+         
+         CALL prepareFiles(ncciy)
+      
+      ENDIF
+   
+   ENDIF
+   
+END SUBROUTINE cable_config_checks
 
 
 
