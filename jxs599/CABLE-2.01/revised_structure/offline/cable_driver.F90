@@ -66,7 +66,7 @@
 !              poolcnpOut.csv -- from CASA-CNP
 !==============================================================================
 
-PROGRAM cable_offline_driver
+MODULE cable_offline_driver_mod
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
@@ -185,6 +185,10 @@ PROGRAM cable_offline_driver
 
    ! END header
 
+
+CONTAINS
+
+SUBROUTINE cable_driver
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -424,7 +428,8 @@ PROGRAM cable_offline_driver
    ! Close log file
    CLOSE(logn)
 
-END PROGRAM cable_offline_driver
+END SUBROUTINE cable_driver
+
 
 
 SUBROUTINE prepareFiles(ncciy)
@@ -469,6 +474,6 @@ END SUBROUTINE renameFiles
 
 
 
-
+END MODULE cable_offline_driver_mod
 
 
