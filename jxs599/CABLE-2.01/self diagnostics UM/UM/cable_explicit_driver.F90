@@ -537,7 +537,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       !jhan: testing
       ! cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
       call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl, "FLUXES",  &
-                       canopy%fe + canopy%fh ) 
+                       canopy_fe + canopy_fh ) 
 
       IF(first_cable_call) THEN 
          l_tile_pts = um1%l_tile_pts
