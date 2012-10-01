@@ -150,11 +150,6 @@ MODULE cable_offline_driver_mod
       delsoilM,         & ! allowed variation in soil moisture for spin up
       delsoilT            ! allowed variation in soil temperature for spin up
   
-   ! temporary storage for soil moisture/temp. in spin up mode
-   REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
-      soilMtemp,                         &   
-      soilTtemp      
-   
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -205,146 +200,22 @@ SUBROUTINE cable_driver
    ! Open output file: jhan: if it is just opening why send vars?
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
-  ! outer loop - spinup loop no. ktau_tot :
+   ! outer loop - spinup loop no. ktau_tot :
+   ! globally (WRT code) accessible kend through USE cable_common_module
    ktau_tot = 0 
-   DO
-
-      ! globally (WRT code) accessible kend through USE cable_common_module
-      kend_gl = kend
-      knode_gl = 0
+   kend_gl = kend
+   knode_gl = 0
       
-      ! time step loop over ktau
-      DO ktau=kstart, kend 
-         
-         ! increment total timstep counter
-         ktau_tot = ktau_tot + 1
-         
-         ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau_tot
-         
-         ! somethings (e.g. CASA-CNP) only need to be done once per day  
-         ktauday=int(24.0*3600.0/dels)
-         idoy = mod(ktau/ktauday,365)
-         IF(idoy==0) idoy=365
-         
-         ! needed for CASA-CNP
-         nyear =INT((kend-kstart+1)/(365*ktauday))
-   
-         canopy%oldcansto=canopy%cansto
-   
-         ! Get met data and LAI, set time variables.
-         ! Rainfall input may be augmented for spinup purposes:
-          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
-         CALL get_met_data( spinup, spinConv, met, soil,                    &
-                            rad, veg, kend, dels, C%TFRZ, ktau ) 
-   
-         ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
-                                                casapool, casamet )
-   
-         IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
-   
-         ! CALL land surface scheme for this timestep, all grid points:
-         CALL cbm( dels, air, bgc, canopy, met,                             &
-                   bal, rad, rough, soil, ssnow,                            &
-                   sum_flux, veg )
-   
-         ssnow%smelt = ssnow%smelt*dels
-         ssnow%rnof1 = ssnow%rnof1*dels
-         ssnow%rnof2 = ssnow%rnof2*dels
-         ssnow%runoff = ssnow%runoff*dels
-   
-   
-         !jhan this is insufficient testing. condition for 
-         !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
-         IF(icycle >0) THEN
-            call bgcdriver( ktau, kstart, kend, dels, met,                  &
-                            ssnow, canopy, veg, soil, casabiome,               &
-                            casapool, casaflux, casamet, casabal,              &
-                            phen, spinConv, spinup, ktauday, idoy,             &
-                            .FALSE., .FALSE. )
-         ENDIF 
-   
-         ! sumcflux is pulled out of subroutine cbm
-         ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
-                        canopy, soil, ssnow, sum_flux, veg,                    &
-                        met, casaflux, l_vcmaxFeedbk )
-   
-         ! Write time step's output to file if either: we're not spinning up 
-         ! or we're spinning up and the spinup has converged:
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-            CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
-                               C%EMLEAF, C%EMSOIL )
-   
-         !jhan: testing
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-         !+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
-         call cable_diag( 1, "FLUXES", mp, kend, ktau, knode_gl, "FLUXES",       &
-                          canopy%fe + canopy%fh ) 
-       END DO ! END Do loop over timestep ktau
+   IF( spinup ) THEN 
+      
+      DO WHILE( .NOT. spinConv)
+         CALL model_step() 
+         CALL spin_converg_test 
+      ENDDO 
 
+   ENDIF
 
-
-   
-      !jhan this is insufficient testing. condition for 
-      !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
-      ! see if spinup (if conducting one) has converged:
-      IF(spinup.AND..NOT.spinConv) THEN
-         
-         ! Write to screen and log file:
-         WRITE(*,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
-               ' of data set complete...'
-         WRITE(logn,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),   &
-               ' of data set complete...'
-         
-         ! IF not 1st run through whole dataset:
-         IF( INT( ktau_tot/kend ) > 1 ) THEN 
-            
-            ! evaluate spinup
-            IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
-                ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
-               
-               ! No complete convergence yet
-               PRINT *, 'ssnow%wb : ', ssnow%wb
-               PRINT *, 'soilMtemp: ', soilMtemp
-               PRINT *, 'ssnow%tgg: ', ssnow%tgg
-               PRINT *, 'soilTtemp: ', soilTtemp
-            
-            ELSE ! spinup has converged
-               
-               spinConv = .TRUE.
-               ! Write to screen and log file:
-               WRITE(*,'(A33)') ' Spinup has converged - final run'
-               WRITE(logn,'(A52)')                                             &
-                          ' Spinup has converged - final run - writing all data'
-               WRITE(logn,'(A37,F8.5,A28)')                                    &
-                          ' Criteria: Change in soil moisture < ',             &
-                          delsoilM, ' in any layer over whole run'
-               WRITE(logn,'(A40,F8.5,A28)' )                                   &
-                          '           Change in soil temperature < ',          &
-                          delsoilT, ' in any layer over whole run'
-            END IF
-
-         ELSE ! allocate variables for storage
-         
-           ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
-         
-         END IF
-         
-         ! store soil moisture and temperature
-         soilTtemp = ssnow%tgg
-         soilMtemp = REAL(ssnow%wb)
-
-      ELSE
-
-         ! if not spinning up, or spin up has converged, exit:
-         EXIT
-       
-      END IF
-
-   END DO
+   CALL model_step() 
 
    IF (icycle > 0) THEN
       
@@ -458,6 +329,132 @@ SUBROUTINE init_NEW_data_struct
    return 
 END SUBROUTINE init_NEW_data_struct 
 
+
+SUBROUTINE model_step 
+      ! time step loop over ktau
+      DO ktau=kstart, kend 
+         
+         ! increment total timstep counter
+         ktau_tot = ktau_tot + 1
+         
+         ! globally (WRT code) accessible kend through USE cable_common_module
+         ktau_gl = ktau_tot
+         
+         ! somethings (e.g. CASA-CNP) only need to be done once per day  
+         ktauday=int(24.0*3600.0/dels)
+         idoy = mod(ktau/ktauday,365)
+         IF(idoy==0) idoy=365
+         
+         ! needed for CASA-CNP
+         nyear =INT((kend-kstart+1)/(365*ktauday))
+   
+         canopy%oldcansto=canopy%cansto
+   
+         ! Get met data and LAI, set time variables.
+         ! Rainfall input may be augmented for spinup purposes:
+          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
+         CALL get_met_data( spinup, spinConv, met, soil,                    &
+                            rad, veg, kend, dels, C%TFRZ, ktau ) 
+   
+         ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
+         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
+                                                casapool, casamet )
+   
+         IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
+   
+         ! CALL land surface scheme for this timestep, all grid points:
+         CALL cbm( dels, air, bgc, canopy, met,                             &
+                   bal, rad, rough, soil, ssnow,                            &
+                   sum_flux, veg )
+   
+         ssnow%smelt = ssnow%smelt*dels
+         ssnow%rnof1 = ssnow%rnof1*dels
+         ssnow%rnof2 = ssnow%rnof2*dels
+         ssnow%runoff = ssnow%runoff*dels
+   
+   
+         !jhan this is insufficient testing. condition for 
+         !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
+         IF(icycle >0) THEN
+            call bgcdriver( ktau, kstart, kend, dels, met,                  &
+                            ssnow, canopy, veg, soil, casabiome,               &
+                            casapool, casaflux, casamet, casabal,              &
+                            phen, spinConv, spinup, ktauday, idoy,             &
+                            .FALSE., .FALSE. )
+         ENDIF 
+   
+         ! sumcflux is pulled out of subroutine cbm
+         ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
+                        canopy, soil, ssnow, sum_flux, veg,                    &
+                        met, casaflux, l_vcmaxFeedbk )
+   
+         ! Write time step's output to file if either: we're not spinning up 
+         ! or we're spinning up and the spinup has converged:
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+            CALL write_output( dels, ktau, met, canopy, ssnow,                    &
+                               rad, bal, air, soil, veg, C%SBOLTZ, &
+                               C%EMLEAF, C%EMSOIL )
+   
+         !jhan: testing
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+         !+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
+         call cable_diag( 1, "FLUXES", mp, kend, ktau, knode_gl, "FLUXES",       &
+                          canopy%fe + canopy%fh ) 
+       END DO ! END Do loop over timestep ktau
+
+END SUBROUTINE model_step 
+
+SUBROUTINE spin_converg_test 
+
+   ! temporary storage for soil moisture/temp. in spin up mode
+   REAL, SAVE,ALLOCATABLE, DIMENSION(:,:)  ::                                  & 
+      soilMtemp,                                                               & 
+      soilTtemp      
+   
+   IF(.NOT. ALLOCATED(soilMtemp))                                              &
+      ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
+         
+   
+   !jhan this is insufficient testing. condition for 
+   !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
+   ! see if spinup (if conducting one) has converged:
+   ! Write to screen and log file:
+   WRITE(*,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
+         ' of data set complete...'
+   WRITE(logn,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),   &
+         ' of data set complete...'
+   
+      ! evaluate spinup
+      IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
+          ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
+         
+         ! No complete convergence yet
+         PRINT *, 'ssnow%wb : ', ssnow%wb
+         PRINT *, 'soilMtemp: ', soilMtemp
+         PRINT *, 'ssnow%tgg: ', ssnow%tgg
+         PRINT *, 'soilTtemp: ', soilTtemp
+      
+      ELSE ! spinup has converged
+         
+         spinConv = .TRUE.
+         ! Write to screen and log file:
+         WRITE(*,'(A33)') ' Spinup has converged - final run'
+         WRITE(logn,'(A52)')                                             &
+                    ' Spinup has converged - final run - writing all data'
+         WRITE(logn,'(A37,F8.5,A28)')                                    &
+                    ' Criteria: Change in soil moisture < ',             &
+                    delsoilM, ' in any layer over whole run'
+         WRITE(logn,'(A40,F8.5,A28)' )                                   &
+                    '           Change in soil temperature < ',          &
+                    delsoilT, ' in any layer over whole run'
+      END IF
+      
+   ! store soil moisture and temperature
+   soilTtemp = ssnow%tgg
+   soilMtemp = REAL(ssnow%wb)
+
+END SUBROUTINE spin_converg_test 
 
 SUBROUTINE prepareFiles(ncciy)
   USE cable_IO_vars_module, ONLY: logn,gswpfile
