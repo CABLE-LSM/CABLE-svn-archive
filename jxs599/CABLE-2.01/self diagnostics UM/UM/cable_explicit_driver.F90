@@ -70,8 +70,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE cable_def_types_mod, ONLY : mp, ms, ssnow, rough, canopy, air, rad,     &
                                    met
 
-   USE cable_diag_module
-   
    IMPLICIT NONE
  
  
@@ -352,6 +350,8 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
    USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_runtime, cable_user, &
                                    ktau_gl, knode_gl, kend_gl 
+   USE cable_diag_module
+   
    IMPLICIT NONE         
 
 
