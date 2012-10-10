@@ -1,0 +1,53 @@
+diff /home/cmar/ste69f/plot/um_scripts/ncl_scripts/Mon_IntAnnVar.ncl .//Mon_IntAnnVar.ncl
+206,207c206,207
+< Eend   = Estart + nyrs*12 -1
+< ;Eend   = Estart + 19*12 -1
+---
+> ;Eend   = Estart + nyrs*12 -1
+> Eend   = Estart + 19*12 -1
+
+diff /home/cmar/ste69f/plot/um_scripts/ncl_scripts/Yr_IntAnnVar_Aust.ncl .//Yr_IntAnnVar_Aust.ncl
+67d66
+< if (isfilevar(moses_year,"field77")) then
+70,73d68
+< else
+< pMyr1           = moses_year ->precip
+< pCyr1           = cable_year ->precip
+< end if
+100d94
+< if (isfilevar(moses_year,"field77")) then
+103,106d96
+< else
+< pMyr1           = pMyr1*24*60*60
+< pCyr1           = pCyr1*24*60*60
+< end if
+244c234
+< ;data&time            = ispan(1978,2010,1)
+---
+> data&time            = ispan(1978,2010,1)
+
+diff /home/cmar/ste69f/plot/um_scripts/ncl_scripts/Yr_IntAnnVar.ncl .//Yr_IntAnnVar.ncl
+67d66
+< if (isfilevar(moses_year,"field77")) then
+70,73d68
+< else
+< pMyr1           = moses_year ->precip
+< pCyr1           = cable_year ->precip
+< end if
+100d94
+< if (isfilevar(moses_year,"field77")) then
+103,106d96
+< else
+< pMyr1           = pMyr1*24*60*60
+< pCyr1           = pCyr1*24*60*60
+< end if
+219,220d208
+< ;data!0               = ""
+< ;data!1               = "time"
+227,230c215
+< ;printVarSummary(data)
+< ;printVarSummary(wgt_tscrnM)
+< ;data&ht              = ispan(1978,2010,1)
+< ;data&time            = ispan(1978,2010,1)
+---
+> data&time            = ispan(1978,2010,1)
