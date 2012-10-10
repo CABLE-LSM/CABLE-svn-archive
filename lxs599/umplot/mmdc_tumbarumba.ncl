@@ -32,7 +32,7 @@ system("dmget " + tsDir + "MMDC_*_fv.nc" )
 flux1  = addfile(tsDir + "MMDC_tumbarumba_fv.nc" ,"r")
 mosfil = addfile(mossf,"r")
 cabfil = addfile(cabsf,"r")
-igbp   = addfile(home  + "MMDC_"+LongName+"_roll.nc","r")
+igbp   = addfile(tsDir + "MMDC_"+LongName+"_roll.nc","r")
 
 ;==============================================================================
 

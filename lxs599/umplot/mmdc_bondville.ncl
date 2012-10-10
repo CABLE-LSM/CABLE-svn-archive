@@ -34,7 +34,7 @@ flux2  = addfile(tsDir + "mmdc_bv98n_roll.nc" ,"r")
 flux3  = addfile(tsDir + "mmdc_bv99_roll.nc"  ,"r")
 mosfil = addfile(mossf,"r")
 cabfil = addfile(cabsf,"r")
-igbp   = addfile(home  + "MMDC_"+ LongName +"_roll.nc","r")
+igbp   = addfile(tsDir + "MMDC_"+ LongName +"_roll.nc","r")
 
 ;==============================================================================
 

@@ -28,14 +28,14 @@ tsDir = "/home/cmar/ste69f/umplot/obs/"
 home  = "/home/cmar/ste69f/"
 
 system("dmget " + tsDir + "mmdc*_roll.nc" )
-;flux = addfiles()
+;flux  = addfiles()
 flux1  = addfile(tsDir + "mmdc_th96e_roll.nc" ,"r")
 flux2  = addfile(tsDir + "mmdc_th97e_roll.nc" ,"r")
 flux3  = addfile(tsDir + "mmdc_th98e_roll.nc" ,"r")
 flux4  = addfile(tsDir + "mmdc_th99e_roll.nc" ,"r")
-mosfil  = addfile(mossf,"r")
-cabfil  = addfile(cabsf,"r")
-igbp   = addfile(home  + "MMDC_"+LongName+"_roll.nc","r")
+mosfil = addfile(mossf,"r")
+cabfil = addfile(cabsf,"r")
+igbp   = addfile(tsDir + "MMDC_"+LongName+"_roll.nc","r")
 
 ;==============================================================================
 
