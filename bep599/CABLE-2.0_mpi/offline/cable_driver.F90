@@ -260,6 +260,7 @@ PROGRAM cable_offline_driver
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
+      ktau_gl = 0
       kend_gl = kend
       knode_gl = 0
       
@@ -270,7 +271,7 @@ PROGRAM cable_offline_driver
          ktau_tot = ktau_tot + 1
          
          ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau_tot
+         ktau_gl = ktau_gl + 1
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          ktauday=int(24.0*3600.0/dels)
