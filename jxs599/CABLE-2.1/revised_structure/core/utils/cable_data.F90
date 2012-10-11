@@ -33,6 +33,8 @@ module cable_data_module
    public 
 
    ! definition of major types of constants
+
+! .............................................................................
     
    TYPE physical_constants
       real ::                                                                  & 
@@ -85,6 +87,7 @@ module cable_data_module
    END TYPE physical_constants
 
 
+! .............................................................................
 
 
    type math_constants
@@ -93,6 +96,8 @@ module cable_data_module
       real :: pi180 = 3.1415927/ 180.0 ! radians / degree
    end type math_constants
 
+! .............................................................................
+
    type other_constants
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
@@ -100,6 +105,8 @@ module cable_data_module
       real:: RAD_THRESH = 0.01 
       real:: LAI_THRESH = 0.01 
    end type other_constants
+
+! .............................................................................
 
    type photosynthetic_constants
       integer:: maxiter=20 ! max # interations for leaf temperature
@@ -133,7 +140,7 @@ module cable_data_module
       real :: trefk= 298.2  !reference temperature K
    end type photosynthetic_constants
 
-
+! .............................................................................
 
    ! instantiate major types of constants 
    type( physical_constants ), TARGET :: phys
@@ -141,6 +148,7 @@ module cable_data_module
    type( other_constants ), TARGET  :: other
    type( photosynthetic_constants ), TARGET :: photo
    
+! .............................................................................
 
    ! TYPEs of local pointers to global constants defined above 
    
@@ -150,6 +158,7 @@ module cable_data_module
          TFRZ, EMSOIL, EMLEAF, SBOLTZ
    END TYPE driver_type
 
+! .............................................................................
 
    TYPE icbm_type
       REAL, POINTER ::                                                         &
@@ -157,6 +166,7 @@ module cable_data_module
          GRAV, CAPP 
    END TYPE icbm_type
 
+! .............................................................................
 
    TYPE iair_type
       REAL, POINTER ::                                                         &
@@ -166,7 +176,7 @@ module cable_data_module
          CAPP, RMH2O, HL
    END TYPE iair_type
 
-
+! .............................................................................
 
    TYPE ialbedo_type
       ! local pointers to global constants defined above
@@ -177,7 +187,7 @@ module cable_data_module
          LAI_THRESH, RAD_THRESH 
    END TYPE ialbedo_type
 
-
+! .............................................................................
 
    TYPE icanopy_type
 
@@ -202,7 +212,7 @@ module cable_data_module
  
    END TYPE icanopy_type
 
-
+! .............................................................................
 
    TYPE icarbon_type
       REAL, POINTER ::                                                         &
@@ -210,7 +220,7 @@ module cable_data_module
          TFRZ
    END TYPE icarbon_type
 
-
+! .............................................................................
 
    TYPE irad_type
       REAL, POINTER ::                                                         &
@@ -225,6 +235,7 @@ module cable_data_module
          GAUSS_W
    END TYPE irad_type
 
+! .............................................................................
 
    TYPE irough_type
       REAL, POINTER ::                                                         &
@@ -233,6 +244,7 @@ module cable_data_module
          A33, CTL,  ZDLIN, CSW   
    END TYPE irough_type
 
+! .............................................................................
 
 
    TYPE issnow_type
@@ -241,10 +253,60 @@ module cable_data_module
          CAPP, TFRZ, HL, HLF
    END TYPE issnow_type
 
+! .............................................................................
 
+   ! Air variables:
+   TYPE air_model
+      
+      REAL, DIMENSION(:), POINTER ::                                           &
+         rho,     & ! dry air density (kg m-3)
+         volm,    & ! molar volume (m3 mol-1)
+         rlam,    & ! latent heat for water (j/kg)
+         qsat,    & ! saturation specific humidity
+         cmolar     ! conv. from m/s to mol/m2/s
 
-   
+   END TYPE air_model
 
+! .............................................................................
+
+   TYPE air_diag
+      
+      REAL, DIMENSION(:), POINTER ::                                           &
+         epsi,    & ! d(qsat)/dT ((kg/kg)/K)
+         visc,    & ! air kinematic viscosity (m2/s)
+         psyc,    & ! psychrometric constant
+         dsatdk     ! d(es)/dT (mb/K)
+
+   END TYPE air_diag
+
+! .............................................................................
+
+   TYPE model_type
+      
+      TYPE (air_model) :: air
+      !TYPE (soil_model) :: soil
+      
+   END TYPE model_type
+
+! .............................................................................
+
+   TYPE  diag_type
+      
+      TYPE (air_diag) :: air
+      !TYPE (soil_diag) :: soil
+      
+   END TYPE diag_type
+
+! .............................................................................
+
+   TYPE cable_type
+      
+      TYPE (model_type) :: m
+      TYPE (diag_type) :: m
+      
+   END TYPE cable_type
+
+! .............................................................................
  
    INTERFACE point2constants
       MODULE PROCEDURE driver_type_ptr, cbm_type_ptr, air_type_ptr,            &
