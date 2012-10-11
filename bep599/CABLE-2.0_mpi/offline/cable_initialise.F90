@@ -17,7 +17,7 @@
 ! limitations under the Licence.
 ! ==============================================================================
 !
-! Purpose: default initialisation model for CABLE offline
+! Purpose: default initialisation module for CABLE offline
 !
 ! Contact: Bernard.Pak@csiro.au
 !
