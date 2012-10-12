@@ -182,7 +182,8 @@ PROGRAM cable_offline_driver
                   cable_user           ! additional USER switches 
 
    ! END header
-
+   
+   CALL report_version_no()
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -459,6 +460,20 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
   ENDIF
 
 END SUBROUTINE renameFiles
+
+!pre-processor gets svn revision number at build
+#  define svn_rev '$Rev$'
+
+SUBROUTINE report_version_no
+   print *, ''
+   print *, '', svn_rev
+   print *, ''
+   print *, 'This is the latest revision of the source code at build time as'
+   print *, 'recorded by subversion. If your WC is not commited and updated,'
+   print *, 'or not using svn, this output is meaningless. Furthermore the '
+   print *, 'version of svn called by the build script should be the same as'
+   print *, 'that used in your WC.'
+END SUBROUTINE report_version_no
 
 
 

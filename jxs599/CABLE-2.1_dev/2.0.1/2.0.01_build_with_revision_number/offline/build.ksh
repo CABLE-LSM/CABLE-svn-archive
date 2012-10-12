@@ -273,6 +273,8 @@ i_do_now()
 
 build_build()
 {
+   svn propset svn:keywords "Revision" cable_driver.F90     
+
    if [[ ! -d .tmp ]]; then
       mkdir .tmp
    fi
