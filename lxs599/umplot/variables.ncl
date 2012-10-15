@@ -29,7 +29,7 @@ begin
 
 ; Switches etc -----------------------------------------------------
 
-  xaank_t = systemfunc("echo $T15")
+  xaank_t = "n" ;systemfunc("echo $T15")
   if (xaank_t .eq."y") then
    t15 = True
   else
@@ -63,7 +63,6 @@ begin
 ; Directories ------------------------------------------------------
 
   ObsDir = "/home/cmar/ste69f/umplot/obs/"
-  UeaDir = "/home/cmar/ste69f/obsdata/uea/"
   ;ModDir = fileDir
   ModDir = systemfunc("echo $PWD")
 
@@ -82,10 +81,6 @@ begin
             + " " + ObsDir + "ERAi_tmax_tmin.nc" \
             + " " + ObsDir + "bom_precip_monthly.nc" )
   ;         + " " + ObsDir + "Evap_Sea-Ann_Means_89-09_unpk.nc" ) ;\
-  ;         + " " + UeaDir + "UEA_rndobs.nc" \
-  ;         + " " + UeaDir + "UEA_tscrobs.nc" \
-  ;         + " " + UeaDir + "UEA_tmaxobs.nc" \
-  ;         + " " + UeaDir + "UEA_tminobs.nc" \
   ;         + " " + ObsDir + "ERAi_Means_tmax_tmin_89-09_unpk.nc" )
   ;print("Dmget Files Done")
 
@@ -111,10 +106,6 @@ end if
   bomopr     = addfile(ObsDir+"bom_precip_monthly.nc","r")
   ;obs_evp   = addfile(ObsDir+"Evap_Sea-Ann_Means_89-09_unpk.nc","r")
   ;obs_tmxx  = addfile(ObsDir+"ERAi_Means_tmax_tmin_89-09_unpk.nc","r")
-  ;uea_rnd   = addfile(UeaDir+"UEA_rndobs.nc","r")
-  ;uea_tscr  = addfile(UeaDir+"UEA_tscrobs.nc","r")
-  ;uea_tmax  = addfile(UeaDir+"UEA_tmaxobs.nc","r")
-  ;uea_tmin  = addfile(UeaDir+"UEA_tminobs.nc","r")
   ;print("Reading in NetCDFs Done")
   ;printVarSummary()
 
@@ -528,11 +519,15 @@ end if
   copy_VarMeta(era_t_rg(:,:,:),bias_tscrn)
   bias_tscrn@long_name  = "Screen Temperature Bias: UM-ERAi"
   bias_tscrn@units      = "deg K"
+  bias_tscrn!0          = "t"
+  bias_tscrn&t          = tscrn&t
 
   bias_precip           = precip(:,0,:,:)-era_p_rg(:,:,:)
   copy_VarMeta(era_p_rg(:,:,:),bias_precip)
   bias_precip@long_name = "Precipitation Bias: UM-ERAi"
   bias_precip@units     = "mm/day"
+  bias_precip!0         = "t"
+  bias_precip&t         = precip&t
 
 if(isvar("tmax")) then
   bias_tmax             = tmax(:,0,:,:)-era_x_rg

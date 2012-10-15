@@ -173,6 +173,7 @@ print("Creating Global Means for Carbon Fields")
 
 ;Table
 
+vals  = new(7,string)
 vals  = (/avg(npp_y),avg(gpp_y),avg(rlf_y),avg(rpl_y),avg(rso_y),\
    (avg(npp_y)-avg(rso_y)),((avg(rlf_y)+avg(rpl_y)+avg(rso_y))-avg(gpp_y))/)
 
@@ -233,7 +234,6 @@ system("ps2epsi "+pltName+".ps "+pltName+".eps")
   plots(3) = gsn_xy(wks,x,gpp_ym,res)
   plots(4) = gsn_xy(wks,x,rpl_ym,res)
   plots(5) = gsn_xy(wks,x,rlf_ym,res)
- 
 
    pres                  = True         ; Set panel resources.
    pres@gsnMaximize      = True         ; Maximize plots in panel.
@@ -241,6 +241,28 @@ system("ps2epsi "+pltName+".ps "+pltName+".eps")
    pres@txString         = "Flux [PgC/yr] global mean"
 
    gsn_panel(wks,plots,(/3,3/),pres)
+
+; Interannual variability
+  res4 = res
+  res4@tiXAxisString   = "Years"
+  xr = ispan(1,y,1)
+
+  wks1 = gsn_open_wks("ps","interann_carbon_"+numYr+"yrs")
+
+  plots1 = new(6,graphic)
+  plots1(0) = gsn_xy(wks1,x,npp_y,res4)
+  plots1(1) = gsn_xy(wks1,x,rso_y,res4)
+  plots1(2) = gsn_xy(wks1,x,nep_y,res4)
+  plots1(3) = gsn_xy(wks1,x,gpp_y,res4)
+  plots1(4) = gsn_xy(wks1,x,rpl_y,res4)
+  plots1(5) = gsn_xy(wks1,x,rlf_y,res4)
+
+  pres1                  = True         ; Set panel resources.
+  pres1@gsnMaximize      = True         ; Maximize plots in panel.
+  pres1@gsnPanelFigureStrings = (/"NPP","RSO","NEP","GPP","RPL","RLF"/)
+  pres1@txString         = "Flux [PgC/yr] global mean"
+
+  gsn_panel(wks1,plots1,(/3,3/),pres1)
 
 end if
 

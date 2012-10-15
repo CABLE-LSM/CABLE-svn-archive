@@ -20,7 +20,6 @@ jpeg = False
 end if
 
 home     = "/home/cmar/ste69f/"
-;testDir  = "/home/cmar/ste69f/access/xagpb_n96_m_20yrs" 
 
 system("dmget " + filDir + "/mmdc_*_roll_"+numYr+"yrs.nc" )
 

@@ -24,9 +24,6 @@ end if
 
 tsDir    = "/home/cmar/ste69f/umplot/obs/"
 home     = "/home/cmar/ste69f/"
-;testDir  = "/home/cmar/ste69f/access/xagpb_n96_m_20yrs" 
-;testDir  = "/home/cmar/ste69f/access/xaanv_10yrs_kow12jul2011"
-;testDir   = "/home/cmar/kow014/access/xaank_run243"
 
 ;system("dmget " + tsDir + LongName +"/mmdc*_roll.nc" )
 

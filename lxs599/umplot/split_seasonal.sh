@@ -57,7 +57,7 @@ if ($BLOCK == 1) then
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -5`
 
  set pels=`ls $pelist | head -20`
-if ($RUNID == uabab) then
+if ($REINIT == 1) then
  set pbls=`ls $pblist | head -60`
 else
  set pbls=`ls $pblist | head -20`
@@ -91,7 +91,7 @@ else if ($BLOCK == 2) then
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -10 | tail -5`
 
  set pels=`ls $pelist | head -40 | tail -20` #tail +21 | head -20
-if ($RUNID == uabab) then
+if ($REINIT == 1) then
  set pbls=`ls $pblist | head -120 | tail -60`
 else
  set pbls=`ls $pblist | head -40 | tail -20`
@@ -125,7 +125,7 @@ else if ($BLOCK == 3) then
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -15 | tail -5`
 
  set pels=`ls $pelist | head -60 | tail -20` # tail +41 | head -20
-if ($RUNID == uabab) then
+if ($REINIT == 1) then
  set pbls=`ls $pblist | head -180 | tail -60`
 else
  set pbls=`ls $pblist | head -60 | tail -20`
@@ -159,7 +159,7 @@ else if ($BLOCK == 4) then
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -20 | tail -5`
 
  set pels=`ls $pelist | tail -20`
-if ($RUNID == uabab) then
+if ($REINIT == 1) then
  set pbls=`ls $pblist | tail -60`
 else
  set pbls=`ls $pblist | tail -20`

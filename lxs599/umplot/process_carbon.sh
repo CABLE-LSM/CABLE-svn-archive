@@ -7,7 +7,7 @@ ncks -v field1390 Mmonthly_means_${YR}yrs.nc mm.presp_${YR}yrs.nc     # Presp
 ncks -v field1523 Mmonthly_means_${YR}yrs.nc mm.sresp_${YR}yrs.nc     # Sresp
 
 ncks -v field1519 Mmonthly_means_${YR}yrs.nc mm.gppt_${YR}yrs.nc      # GPP on Tiles
-ncks -v field1520 Mmonthly_means_${YR}yrs.nc mm.nppt_${YR}yrs.nc      # NPP on Tiles
+ncks -v field1521 Mmonthly_means_${YR}yrs.nc mm.nppt_${YR}yrs.nc      # NPP on Tiles
 ncks -v field1522 Mmonthly_means_${YR}yrs.nc mm.prespt_${YR}yrs.nc    # Presp on Tiles
 
 #set varnames=`cdo showname Mmonthly_means_${YR}yrs.nc`

@@ -125,7 +125,11 @@ end
 ;CABLE--------------------------------------------------------------------------------------
 
 ; SCREEN TEMP -------------------------
-tobs   = linint2(tp2m&longitude,tp2m&latitude,tp2m,True,ctemp&longitude_1,ctemp&latitude,0)
+  dNames = getvardims(ctemp)
+  nDims  = dimsizes(ctemp)
+  nSize  = dimsizes(nDims)
+  lon    = ctemp&$dNames(nSize-1)$
+tobs   = linint2(tp2m&longitude,tp2m&latitude,tp2m,True,lon,ctemp&latitude,0)
 tvar_o = dim_avg_n_Wrap(tobs,0)
 tvar_m = dim_avg_n_Wrap(ctemp(:,0,:,:),0)
 ctscrn = taylor_stats(wgt,tvar_o,tvar_m)
@@ -144,9 +148,13 @@ cc(0,0)    = ctscrn(1)
 ;print(oratio)
 
 ; PRECIP-------------------------------
+  pNames = getvardims(cprec)
+  pDims  = dimsizes(cprec)
+  pSize  = dimsizes(nDims)
+  lonp   = cprec&$dNames(nSize-1)$
 ;var_o = a[d=2,gx=field77[d=4],gy=field77[d=4],l=1:4@sum]/4
 ;var_m = (precip[d=4,l=1:4@sum]/4)*24*60*60 ;(field77[d=4,l=1:4@sum]/4)*48
-pobs   = linint2(prec&longitude,prec&latitude,prec,True,cprec&longitude_1,cprec&latitude,0)
+pobs   = linint2(prec&longitude,prec&latitude,prec,True,lonp,cprec&latitude,0)
 pvar_o = dim_avg_n_Wrap(pobs,0)
 pvar_m = dim_avg_n_Wrap(cprec(:,0,:,:),0)
 cprecip = taylor_stats(wgt,pvar_o,pvar_m)
@@ -174,9 +182,13 @@ ratio(0,3) = c_tmin(0)
 cc(0,3)    = c_tmin(1)
 
 ; SW RAD------------------------------
+  sNames = getvardims(csw)
+  sDims  = dimsizes(csw)
+  sSize  = dimsizes(nDims)
+  lons   = csw&$dNames(nSize-1)$
 ;var_o = RSS_ANN[d=8,gx=SOLAR[d=4],gy=SOLAR[d=4],l=1];:4@ave]
 ;var_m = SOLAR[d=4,l=1:4@sum]/4
-sobs   = linint2(sw&lon,sw&lat,sw,True,csw&longitude_1,csw&latitude,0)
+sobs   = linint2(sw&lon,sw&lat,sw,True,lons,csw&latitude,0)
 svar_o = dim_avg_n_Wrap(sobs,0)
 svar_m = dim_avg_n_Wrap(csw(:,0,:,:),0)
 c_sw    = taylor_stats(wgt,svar_o,svar_m)
@@ -184,9 +196,13 @@ ratio(0,4) = c_sw(0)
 cc(0,4)    = c_sw(1)
 
 ; LW RAD------------------------------
+  lNames = getvardims(clw)
+  lDims  = dimsizes(clw)
+  lSize  = dimsizes(nDims)
+  lonl   = clw&$dNames(nSize-1)$
 ;var_o = RLS_ANN[d=9,gx=LONGWAVE[d=4],gy=LONGWAVE[d=4],l=1];:4@ave]
 ;var_m = LONGWAVE[d=4,l=1:4@sum]/4
-lobs   = linint2(lw&lon,lw&lat,lw,True,clw&longitude_1,clw&latitude,0)
+lobs   = linint2(lw&lon,lw&lat,lw,True,lonl,clw&latitude,0)
 lvar_o = dim_avg_n_Wrap(lobs,0)
 lvar_m = dim_avg_n_Wrap(clw(:,0,:,:),0)
 c_lw    = taylor_stats(wgt,lvar_o,lvar_m)
@@ -194,9 +210,13 @@ ratio(0,5) = c_lw(0)
 cc(0,5)    = c_lw(1)
 
 ; SENS HEAT---------------------------
+  hNames = getvardims(csh)
+  hDims  = dimsizes(csh)
+  hSize  = dimsizes(nDims)
+  lonh   = csh&$dNames(nSize-1)$
 ;var_o = HFSS_ANN[d=11,gx=SH[d=4],gy=SH[d=4],l=1];:4@ave]
 ;var_m = SH[d=4,l=1:4@sum]/4
-shobs   = linint2(sh&lon,sh&lat,sh,True,csh&longitude_1,csh&latitude,0)
+shobs   = linint2(sh&lon,sh&lat,sh,True,lonh,csh&latitude,0)
 shvar_o = dim_avg_n_Wrap(shobs,0)
 shvar_m = dim_avg_n_Wrap(csh(:,0,:,:),0)
 c_sh     = taylor_stats(wgt,shvar_o,shvar_m)
@@ -204,9 +224,13 @@ ratio(0,6) = c_sh(0)
 cc(0,6)    = c_sh(1)
 
 ; LATENT HEAT-------------------------
+  tNames = getvardims(clh)
+  tDims  = dimsizes(clh)
+  tSize  = dimsizes(nDims)
+  lont   = clh&$dNames(nSize-1)$
 ;var_o = HFLS_ANN[d=10,gx=LH[d=4],gy=LH[d=4],l=1];:4@ave]
 ;var_m = LH[d=4,l=1:4@sum]/4
-lhobs   = linint2(lh&lon,lh&lat,lh,True,clh&longitude_1,clh&latitude,0)
+lhobs   = linint2(lh&lon,lh&lat,lh,True,lont,clh&latitude,0)
 lhvar_o = dim_avg_n_Wrap(lhobs,0)
 lhvar_m = dim_avg_n_Wrap(clh(:,0,:,:),0)
 c_lh     = taylor_stats(wgt,lhvar_o,lhvar_m)
@@ -216,7 +240,7 @@ cc(0,7)    = c_lh(1)
 ;MOSES---------------------------------------------------------------------------------------
 
 ; SCREEN TEMP ------------------------
-mtobs   = linint2(tp2m&longitude,tp2m&latitude,tp2m,True,mtemp&longitude_1,mtemp&latitude,0)
+mtobs   = linint2(tp2m&longitude,tp2m&latitude,tp2m,True,lon,mtemp&latitude,0)
 mtvar_o = dim_avg_n_Wrap(mtobs,0)
 mtvar_m = dim_avg_n_Wrap(mtemp(:,0,:,:),0) 
 ;mcorr  = pattern_cor(mtvar_o,mtvar_m,wgt,0)
@@ -228,7 +252,7 @@ cc(1,0)    = mtscrn(1)
 ; PRECIP------------------------------
 ;var_o = a[d=2,gx=field77[d=5],gy=field77[d=5],l=1:4@sum]/4
 ;var_m = (precip[d=5,l=1:4@sum]/4)*24*60*60 ;(field77[d=5,l=1:4@sum]/4)*48
-mpobs   = linint2(prec&longitude,prec&latitude,prec,True,mprec&longitude_1,mprec&latitude,0)
+mpobs   = linint2(prec&longitude,prec&latitude,prec,True,lonp,mprec&latitude,0)
 mpvar_o = dim_avg_n_Wrap(mpobs,0)
 mpvar_m = dim_avg_n_Wrap(mprec(:,0,:,:),0)
 mprecip = taylor_stats(wgt,mpvar_o,mpvar_m)
@@ -258,7 +282,7 @@ cc(1,3)    = m_tmin(1)
 ; SW RAD-----------------------------
 ;var_o = RSS_ANN[d=8,gx=SOLAR[d=5],gy=SOLAR[d=5],l=1];:4@ave]
 ;var_m = SOLAR[d=5,l=1:4@sum]/4
-msobs   = linint2(sw&lon,sw&lat,sw,True,msw&longitude_1,msw&latitude,0)
+msobs   = linint2(sw&lon,sw&lat,sw,True,lons,msw&latitude,0)
 msvar_o = dim_avg_n_Wrap(msobs,0)
 msvar_m = dim_avg_n_Wrap(msw(:,0,:,:),0)
 m_sw = taylor_stats(wgt,msvar_o,msvar_m)
@@ -268,7 +292,7 @@ cc(1,4)    = m_sw(1)
 ; LW RAD----------------------------
 ;var_o = RLS_ANN[d=9,gx=LONGWAVE[d=5],gy=LONGWAVE[d=5],l=1];:4@ave]
 ;var_m = LONGWAVE[d=5,l=1:4@sum]/4
-mlobs   = linint2(lw&lon,lw&lat,lw,True,mlw&longitude_1,mlw&latitude,0)
+mlobs   = linint2(lw&lon,lw&lat,lw,True,lonl,mlw&latitude,0)
 mlvar_o = dim_avg_n_Wrap(mlobs,0)
 mlvar_m = dim_avg_n_Wrap(mlw(:,0,:,:),0)
 m_lw = taylor_stats(wgt,mlvar_o,mlvar_m)
@@ -278,7 +302,7 @@ cc(1,5)    = m_lw(1)
 ; SENS HEAT-------------------------
 ;var_o = HFSS_ANN[d=11,gx=SH[d=5],gy=SH[d=5],l=1];:4@ave]
 ;var_m = SH[d=5,l=1:4@sum]/4
-mshobs   = linint2(sh&lon,sh&lat,sh,True,msh&longitude_1,msh&latitude,0)
+mshobs   = linint2(sh&lon,sh&lat,sh,True,lonh,msh&latitude,0)
 mshvar_o = dim_avg_n_Wrap(mshobs,0)
 mshvar_m = dim_avg_n_Wrap(msh(:,0,:,:),0)
 m_sh = taylor_stats(wgt,mshvar_o,mshvar_m)
@@ -288,7 +312,7 @@ cc(1,6)    = m_sh(1)
 ; LATENT HEAT-----------------------
 ;var_o = HFLS_ANN[d=10,gx=LH[d=5],gy=LH[d=5],l=1];:4@ave]
 ;var_m = LH[d=5,l=1:4@sum]/4
-mlhobs   = linint2(lh&lon,lh&lat,lh,True,mlh&longitude_1,mlh&latitude,0)
+mlhobs   = linint2(lh&lon,lh&lat,lh,True,lont,mlh&latitude,0)
 mlhvar_o = dim_avg_n_Wrap(mlhobs,0)
 mlhvar_m = dim_avg_n_Wrap(mlh(:,0,:,:),0)
 m_lh = taylor_stats(wgt,mlhvar_o,mlhvar_m)

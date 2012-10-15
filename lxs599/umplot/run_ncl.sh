@@ -1,55 +1,61 @@
 #!/bin/csh
-# Lauren Stevens, email: lauren.stevens@csiro.au
-# 2008-2011
+# UMPLOT
+# Created by Lauren Stevens, email: lauren.stevens@csiro.au
+# 2008-2012
 
-#echo " "
-#echo "Please Make Sure NCL is Loaded, If You Are Unfamiliar With This"
-#echo "Check the Website http://www.ncl.ucar.edu/"
-#echo " "
-
+# SET UP - see Chapter 2 in Documentation.
+# You must have certain modules loaded before running UMPLOT. E.g.
 #module load ncl
-#if ( ! -e ~/.hluresfile ) then
-# echo "You Do Not Have a ~/.hluresfile, Please Copy One to $HOME"
-#endif
 #module load nco
 #module load cdo
 #module load python
+#module load cdat
 
-echo "Please Enter Directory e.g. ~kow014/access/xaank, ~ste69f/access/xagpa :"
-setenv DIR $<
+if ( ! -e ~/.hluresfile ) then
+ echo " "
+ echo "(1)     You Do Not Have a ~/.hluresfile, Please Copy One to $HOME"
+ echo "(1)     It May Mean You Are Unfamiliar with NCL"
+ echo "(1)     Please Make Sure NCL is Loaded Properly, For Further Details"
+ echo "(1)     Check the Website http://www.ncl.ucar.edu/"
+ echo " "
+ exit (1)
+endif
+
+# Namelist replaces Questions - see Chapter 3 in Documentation.
+# Output Files Generally Located in $HOME/access.
+
 setenv DIRW $PWD
-echo "Please Enter Run Id e.g. xaank, xaiip, xagpa :"
-setenv RUNID $<
-echo "Please Enter No. of Years e.g. 1, 3, 5, 10, 15, 20 :"
-setenv YR $<
+
+if (! -d $HOME/umplot) then
+ mkdir $HOME/umplot
+ echo "(0)     Making Directory $HOME/umplot"
+endif
+if (! -d $HOME/umplot/nml) then
+ mkdir $HOME/umplot/nml
+ echo "(0)     Making Directory $HOME/umplot/nml"
+endif
+
+if ( -e $HOME/umplot/nml/umplot.nml ) then
+ source $HOME/umplot/nml/umplot.nml
+else
+ echo "(1)     Namelist File Does Not Exist"
+ echo "(1)     Please Create Namelist File in $HOME/umplot/nml"
+ echo "(1)     Example Namelist File: ~ste69f/umplot/nml/umplot.nml"
+ echo "(1)     and/or Email Lauren.Stevens@csiro.au"
+ echo " "
+ exit (1)
+endif
+
 setenv FullYrs $YR
 
-#if ($RUNID == ave*) then
-#echo "RUNID is similar to process files ave*.nc"
-#echo "Therefore files may be deleted"
-#exit (1)
+#set rfile=`ls $DIR/ave*a.p*.nc | wc -l`
+#if ($rfile > 0) then
+# echo "(1)     RUNID is similar to processed files ave*.nc"
+# echo "(1)     WARNING: Therefore necessary files may be deleted"
+# exit (1)
 #endif
 
-#Maybe have nml file in local directory ?
-if ( -e ~ste69f/umplot/nml/$RUNID.sh ) then
-source ~ste69f/umplot/nml/$RUNID.sh
-else
-echo "(1)     Namelist File Does Not Exist."
-echo "(1)     Please Create New Namelist File and/or"
-echo "(1)     Email Lauren.Stevens@csiro.au"
-echo " "
-exit (1)
-endif
-
-if ($RES == 96) then
-# 17Feb2012 Temporary Question for CABLE n96 - v1 or v2 mask used
-echo "Temporary Question: Which Mask ? e.g. 1, 2 :"
-setenv MASK $<
-endif
-
 if ($YR == 20 || $YR == 15 || $YR == 10) then
- echo "Do you want to split the run into 5 year blocks ? y or n"
- setenv SPLIT $< 
  if ($SPLIT == y || $SPLIT == "") then
   if ($YR == 20) then
    setenv block '1 2 3 4'
@@ -72,35 +78,12 @@ setenv TILE 9
 setenv SOIL 4
 endif
 
-echo "Do you want to Compare Runs: Taylor Plot, Barcharts and Fluxnet Plots ? y or n"
-setenv TAY $<
-if ($TAY == y || $TAY == "") then
- echo "Please Enter Another Model Directory for Comparison e.g. MOSES: ~ste69f/access/xaiyl_m48_20yrs .OR. ~ste69f/access/xagpb_n96_m_20yrs :"
- setenv LDIR $<
-endif
-
-if ($SPLIT == n) then
-echo "Do you want plots for PowerPoint (jpeg) ? y or n"
-setenv JPEG $<
-else
-setenv JPEG n
-endif
-
-#if ($SPLIT == n) then
-#if ($JPEG == n) then
-#echo "Do you want plots for PowerPoint (eps) ? y or n"
-#setenv EPS $<
+#echo " "
+#if ($DIRW == $DIR) then
+# echo "(0)     Working directory is the same as Data directory"
 #else
-#setenv EPS n
+# echo "(1)     Working directory is NOT the same as Data directory"
 #endif
-#endif
-
-echo " "
-if ($DIRW == $DIR) then
- echo "(0)     Working directory is the same as Data directory"
-else
- echo "(1)     Working directory is NOT the same as Data directory"
-endif
 
 echo " "
 echo "You have Set the Parameters of this Run as:"
@@ -110,27 +93,44 @@ if ($TAY == y || $TAY == "") then
 echo "You are Comparing results with" $LDIR
 endif
 
-#set a=a
+set a=a
 set date=`date`
 echo "Start Time:" $date
 echo " "
+
+if ($DIRW == $DIR) then
+ echo "(0)     Working directory is the same as Data directory"
+else
+ echo "(1)     Working directory is NOT the same as Data directory"
+endif
+echo " "
+
+#set pnc=`ls $DIR/$RUNID$a.p*.nc | wc -l`
+#if ( $pnc == 0 ) then
+# if ($CNV2NC == y || $CNV2NC == "") then
+#  echo "(0)     Converting Fields Files to NetCDF before Running"
+#  if ($REINIT == 1)
+#   $PLOT/new*/umtonc_ss* 
+#  else
+#   source # runallv ?
+#  endif
+# else
+#  echo "(1)     Fields Files Not Converted to NetCDF"
+#  echo "(1)     Cannot Run UMPLOT until NetCDFs are Present"
+#  echo "(1)     Either Convert Offline or Switch CNV2NC to y in Namelist"
+#  echo " "
+#  exit (1)
+# endif
+#else
+# echo "(0)     You Either Manually Converted to NetCDF or"
+# echo "(0)     Runallv Was Used to Create $RUNID$a.p*.nc Fields Files"
+# echo " "
+#endif
 
 # ==================================================================================
 
 if ($SPLIT == y || $SPLIT == "") then
 
-#if ( ! -e $DIR/$RUNID$a.pm*.nc ) then
-#echo "(1)     Please Convert Fields Files to NetCDF before Running"
-#echo "(0)     Or Do You Want to Convert Fields Files to NetCDF Now ? y or n"
-#setenv CONV2NC $<
-#if ($CONV2NC == y || $CONV2NC == "")
-#source 
-#else
-#exit (1)
-#endif
-#endif
-
-#echo "(0)     Runallv Was Used to Create .nc Fields Files"
 #/home/cmar/ste69f/umplot/cdo_copy.sh
 /home/cmar/ste69f/umplot/cdo_copy2.sh
 
@@ -151,18 +151,6 @@ ncrename -v $tname,tscrn Mmonthly_means_${YR}yrs.nc
 ncrename -v $tname,tscrn yearly_means_${YR}yrs.nc
 
 /home/cmar/ste69f/umplot/process_carbon.sh
-
-setenv T15 n
-if ($RUNID == xaank) then
-#set varnames=`cdo showname seasonal_means_${YR}yrs.nc`
-##setenv T15 n
-#foreach name ( $varnames )
-#if ($name == temp_15 && $T15 == n) then
-if ($tname == temp_15) then
-setenv T15 y
-endif
-#end
-endif
 
 echo " "
 ncl /home/cmar/ste69f/umplot/run.ncl
@@ -237,20 +225,11 @@ rm h[0123456789]*.nc i[0123456789]*.nc j[0123456789]*.nc k[0123456789]*.nc
 
 else if ($SPLIT == n) then
 
+#mkdir netcdf
+#mkdir dumps
+
 source ~ste69f/umplot/nml/envars.sh
 
-#if ( ! -e $DIR/$RUNID$a.pm*.nc ) then
-#echo "(1)     Please Convert Fields Files to NetCDF before Running"
-#echo "(0)     Or Do You Want to Convert Fields Files to NetCDF Now ? y or n"
-#setenv CONV2NC $<
-#if ($CONV2NC == y || $CONV2NC == "")
-#source
-#else
-#exit (1)
-#endif
-#endif
-
-#echo "(0)     Runallv Was Used to Create .nc Fields Files"
 if (! -e $DIRW/seasonal_means_${YR}yrs.nc ) then
 echo "(0)     Creating NetCDF Files"
 echo " "
@@ -265,18 +244,6 @@ ncrename -v $tname,tscrn Mmonthly_means_${YR}yrs.nc
 ncrename -v $tname,tscrn yearly_means_${YR}yrs.nc
 
 /home/cmar/ste69f/umplot/process_carbon.sh
-
-setenv T15 n
-if ($RUNID == xaank) then
-#set varnames=`cdo showname seasonal_means_${YR}yrs.nc`
-##setenv T15 n
-#foreach name ( $varnames )
-#if ($name == temp_15 && $T15 == n) then
-if ($tname == temp_15 && $T15 == n) then
-setenv T15 y
-endif
-#end
-endif
 
 else
 echo " "
@@ -358,6 +325,11 @@ endif
 #if ($EPS == y || $EPS == "") then
 #mv *.eps plots_eps/
 #endif
+
+# Need to first create dirs
+#mv *_${YR}yrs.nc netcdf/
+#mv $RUNID$a.p*.nc netcdf/
+#mv $RUNID$a.da* dumps/
 
 endif
 

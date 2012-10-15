@@ -57,7 +57,7 @@ dmget $DIR/$RUNID$a.pe*0.nc $DIR/$RUNID$a.pb*0*
 #module load hdf5/1.8.1 netcdf/4.0 cdo/1.4.0
 
 #~ste69f/umplot/pe2nc.sh
-if ($RUNID == uahfc || $RUNID == uahhe || $RUNID == uabab) then
+if ($REINIT == 1) then
 set pelist=`ls $DIR/$RUNID$a.pe*0.nc | head -$nom`
 else
 set pelist=`ls $DIR/$RUNID$a.pe*0.nc | head -$noy`
@@ -65,7 +65,7 @@ endif
 cdo copy $pelist Timeseries_${YR}yrs.nc
 
 # tmax and tmin
-if ($RUNID == uahfc || $RUNID == uahhe || $RUNID == uabab) then
+if ($REINIT == 1) then
 set pblist=`ls $DIR/$RUNID$a.pb*0.nc | head -$nom`
 else
 set pblist=`ls $DIR/$RUNID$a.pb*0.nc | head -$noy`

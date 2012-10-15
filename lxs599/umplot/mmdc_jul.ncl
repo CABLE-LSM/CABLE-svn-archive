@@ -23,7 +23,6 @@ end if
 
 tsDir    = "/home/cmar/ste69f/umplot/obs/"
 home     = "/home/cmar/ste69f/"
-;testDir  = "/home/cmar/ste69f/access/xagpb_n96_m_20yrs" 
 
 ;system("dmget " + tsDir + "mmdc*_roll.nc" )
 hayfil = addfile(tsDir + "hayobsjuly.nc"                ,"r")
@@ -31,7 +30,6 @@ manfil = addfile(tsDir + "mmdc_ma96_roll.nc"         ,"r")
 tbfil  = addfile(tsDir + "MMDC_tumbarumba_fv.nc" ,"r")
 vi97   = addfile(tsDir + "mmdc_vi97_roll.nc"       ,"r")
 
-;mosfil   = addfile(testDir+"/AnnualCycle_"+numYr+"yrs.nc"   ,"r")
 ;igbp     = addfile(home  + "MMDC_"+ LongName +"_roll.nc","r")
 
 ;==============================================================================
