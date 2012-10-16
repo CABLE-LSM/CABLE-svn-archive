@@ -3,7 +3,7 @@
 #FC = /apps/intel-fc/11.0.074/bin/intel64/ifort
 FC = ifort
 FLINK = -c 
-FFLAGS = -O2
+FFLAGS = -O0 -g 
 AUX= subr/
 OBJ= debug_common.o debug_read.o 
 
