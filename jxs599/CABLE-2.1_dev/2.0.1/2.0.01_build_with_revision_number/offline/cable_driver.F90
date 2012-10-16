@@ -72,8 +72,9 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            & 
-                                   redistrb, wiltParam, satuParam
+                                   cable_runtime, filename, myhome,            &
+                                   report_version_no, redistrb, wiltParam,     &
+                                   satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -183,18 +184,21 @@ PROGRAM cable_offline_driver
 
    ! END header
    
-   CALL report_version_no()
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   CALL report_version_no( logn )
+    
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
    ENDIF
 
-    
    cable_runtime%offline = .TRUE.
    
    ! associate pointers used locally with global definitions
@@ -209,9 +213,6 @@ PROGRAM cable_offline_driver
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
-   ! Open log file:
-   OPEN(logn,FILE=filename%log)
- 
    ! Check for gswp run
    IF (ncciy /= 0) THEN
       
@@ -460,20 +461,6 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
   ENDIF
 
 END SUBROUTINE renameFiles
-
-!pre-processor gets svn revision number at build
-#  define svn_rev '$Rev$'
-
-SUBROUTINE report_version_no
-   print *, ''
-   print *, '', svn_rev
-   print *, ''
-   print *, 'This is the latest revision of the source code at build time as'
-   print *, 'recorded by subversion. If your WC is not commited and updated,'
-   print *, 'or not using svn, this output is meaningless. Furthermore the '
-   print *, 'version of svn called by the build script should be the same as'
-   print *, 'that used in your WC.'
-END SUBROUTINE report_version_no
 
 
 
