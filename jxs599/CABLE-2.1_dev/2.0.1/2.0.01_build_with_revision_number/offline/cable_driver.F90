@@ -72,7 +72,7 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            &
+                                   cable_runtime, filename, myhome,            & 
                                    report_version_no, redistrb, wiltParam,     &
                                    satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
@@ -81,6 +81,8 @@ PROGRAM cable_offline_driver
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file
    USE cable_cbm_module
+   
+   USE cable_diag_module
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
@@ -183,7 +185,7 @@ PROGRAM cable_offline_driver
                   cable_user           ! additional USER switches 
 
    ! END header
-   
+
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -329,6 +331,11 @@ PROGRAM cable_offline_driver
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
+         !jhan: testing
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+            ! cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
+            call cable_diag( 1, "FLUXES", mp, kend, ktau, knode_gl, "FLUXES",  &
+                          canopy%fe + canopy%fh ) 
        END DO ! END Do loop over timestep ktau
 
 
