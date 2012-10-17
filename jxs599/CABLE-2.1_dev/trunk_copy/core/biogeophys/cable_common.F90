@@ -378,6 +378,23 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 
 END SUBROUTINE get_type_parameters
 
+!pre-processor gets svn revision number at build
+#  define svn_rev '$Rev: 316 $'
+
+SUBROUTINE report_version_no( logn )
+   INTEGER, INTENT(IN) :: logn
+   write(logn,*) ''
+   write(logn,*) '', svn_rev
+   write(logn,*) ''
+   write(logn,*)'This is the latest revision of the source code at build time as'
+   write(logn,*)'recorded by subversion. If your WC is not commited and updated,'
+   write(logn,*)'or not using svn, this output is meaningless. Furthermore the '
+   write(logn,*)'version of svn called by the build script should be the same as'
+   write(logn,*) 'that used in your WC.'
+   write(logn,*) ''
+END SUBROUTINE report_version_no
+
+
 
 END MODULE cable_common_module
 
