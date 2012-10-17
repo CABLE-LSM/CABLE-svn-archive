@@ -59,7 +59,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
-                                   knode_gl, kwidth_gl, kend_gl, myhome,       &
+                                   knode_gl, kwidth_gl, kend_gl,               &
                                    report_version_no
    
    !--- subr to (manage)interface UM data to CABLE
