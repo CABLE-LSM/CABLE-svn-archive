@@ -59,7 +59,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
-                                   knode_gl, kwidth_gl, kend_gl, myhome,       &
+                                   knode_gl, kwidth_gl, kend_gl,               &
                                    report_version_no
    
    !--- subr to (manage)interface UM data to CABLE
@@ -325,6 +325,15 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
+
+
+   ! dump bitwise reproducible testing data
+   IF( 
+      IF((.NOT.spinup).OR.(spinup.AND.spinConv))                               &
+         call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,         &
+                          "FLUXES", canopy%fe + canopy%fh )
+                
+   ENDIF
 
    cable_runtime%um_explicit = .FALSE.
 

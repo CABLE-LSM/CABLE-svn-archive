@@ -72,7 +72,7 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            & 
+                                   cable_runtime, filename,                    & 
                                    report_version_no, redistrb, wiltParam,     &
                                    satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
@@ -312,7 +312,7 @@ PROGRAM cable_offline_driver
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
          IF(icycle >0) THEN
-            call bgcdriver( ktau, kstart, kend, dels, met,                  &
+            call bgcdriver( ktau, kstart, kend, dels, met,                     &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
@@ -321,23 +321,26 @@ PROGRAM cable_offline_driver
    
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                         &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
    
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-            CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                            &
+            CALL write_output( dels, ktau, met, canopy, ssnow,                 &
+                               rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
    
-         !jhan: testing
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-            ! cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )
-            call cable_diag( 1, "FLUXES", mp, kend, ktau, knode_gl, "FLUXES",  &
-                          canopy%fe + canopy%fh ) 
-       END DO ! END Do loop over timestep ktau
+         ! dump bitwise reproducible testing data
+         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+                                knode_gl, "FLUXES",                            &
+                          canopy%fe + canopy%fh )
+         ENDIF
+                
+      END DO ! END Do loop over timestep ktau
 
 
 
