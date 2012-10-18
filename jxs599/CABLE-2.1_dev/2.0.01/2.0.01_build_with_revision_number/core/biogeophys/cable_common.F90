@@ -50,19 +50,25 @@ MODULE cable_common_module
    TYPE kbl_user_switches
       
       CHARACTER(LEN=200) ::                                                    &
-         VEG_PARS_FILE,       & ! 
-         LEAF_RESPIRATION,    & !
-         FWSOIL_SWITCH          !
+         VEG_PARS_FILE  ! 
       
-   CHARACTER(LEN=20) :: DIAG_SOIL_RESP !
-   CHARACTER(LEN=5) :: RUN_DIAG_LEVEL  !
-   CHARACTER(LEN=3) :: SSNOW_POTEV     !
-   LOGICAL ::                                                               &
-      INITIALIZE_MAPPING = .FALSE., & ! 
-      CONSISTENCY_CHECK = .FALSE.,  & !
-      CASA_DUMP_READ = .FALSE.,     & !
-      CASA_DUMP_WRITE = .FALSE.,    & !
-      CABLE_RUNTIME_COUPLED  = .FALSE.!
+      CHARACTER(LEN=20) ::                                                     &
+         FWSOIL_SWITCH     !
+      
+      CHARACTER(LEN=5) ::                                                      &
+         RUN_DIAG_LEVEL  !
+      
+      CHARACTER(LEN=3) ::                                                      &
+         SSNOW_POTEV,      & !
+         DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
+         LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
+
+      LOGICAL ::                                                               &
+         INITIALIZE_MAPPING = .FALSE., & ! 
+         CONSISTENCY_CHECK = .FALSE.,  & !
+         CASA_DUMP_READ = .FALSE.,     & !
+         CASA_DUMP_WRITE = .FALSE.,    & !
+         CABLE_RUNTIME_COUPLED  = .FALSE.!
 
 
    END TYPE kbl_user_switches
