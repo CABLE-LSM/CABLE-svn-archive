@@ -380,10 +380,6 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 
 END SUBROUTINE get_type_parameters
 
-!pre-processor gets svn revision number at build
-!gets "file" rev no & changes file!! thus cyclical mods to file 
-!#  define svn_rev '$Rev $'
-
 
 ! get svn revision number and status
 SUBROUTINE report_version_no( logn )

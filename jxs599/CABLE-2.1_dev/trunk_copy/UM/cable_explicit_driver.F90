@@ -328,7 +328,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
    ! dump bitwise reproducible testing data
-   IF( 
+   IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
       IF((.NOT.spinup).OR.(spinup.AND.spinConv))                               &
          call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,         &
                           "FLUXES", canopy%fe + canopy%fh )
