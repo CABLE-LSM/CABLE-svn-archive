@@ -21,8 +21,6 @@ host_jigg()
 }
 
 
-
-
 ## shine-cl.nexus.csiro.au 
 host_shin()
 {
