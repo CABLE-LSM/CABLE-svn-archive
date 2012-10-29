@@ -74,7 +74,8 @@ host_vayu()
    export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -ftrapuv' 
+      #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf'
@@ -231,7 +232,7 @@ do_i_no_u()
    
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
-         print 'Host recognized'
+         print 'Host recognized as' $HOST_MACH
          subr=host_${kh[$k]}
          $subr $1
       fi        
