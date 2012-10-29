@@ -1,10 +1,44 @@
 #################################################################################
 ##### This zero_diff directory contains tools necessary to quickly check    #####
-##### whether ANY changes you have made in the code have have inadvertently #####
-##### *changed* the CABLE model. A description of how to use these tools,   #####
-##### and what they are actually doing follows.                             #####
+##### whether ANY changes you have made in the code have inadvertently      #####
+##### *changed* the CABLE model.                                            #####
 #################################################################################
 
+# NAME
+#     zero_diff.ksh -- check that the CABLE model is bitwise identical between 
+#                      two revisions where this is indeed inteneded
+#
+# SYNOPSIS
+#     zero_diff.ksh [-n]
+
+# DESCRIPTION
+#     Executing the script zero_diff.ksh following an approriately          
+#     configured run, will compare binary output produed by the run TO      
+#     binary data from a standard run. Should the ttwo versions be bitwise 
+#     identical, the printed result of zero_diff.ksh will be ZERO. Else it 
+#     will be greater than zero.
+#
+#     CABLE reads a namelist file (cable.nml) at runtime to configure 
+#     the model. Setting the variable cable_user%RUN_DIAG_LEVEL to "zero" will 
+#     result in a CALL to subroutine cable_diag() being executed. This  
+#     subroutine is passed (amongst other things) the data to be written to file
+#     and the node #(N-1) from which it is written (starting from 00). A serial
+#     (single node) run this is only 00. The binary data is written to a file(s) 
+#     called FLUXES00.bin [to FLUXES(N-1).bin]. An additional file is output
+#     FLUXES.dat, which contains informattion regarding FLUXES.bin necessary
+#     to interpret the file in post-processing.
+#
+
+
+#####    This should be set to 'zero'. The model does not need to be        #####
+#####    re-built. Then simply run your online or offline application.      #####
+
+#     configured run, will compare binary output produed by the run TO      
+#     NO difference between the standard version of the model and your test 
+#     version. d run, will compare binary output produed by the run TO      
+
+##### configured run, will compare binary output produed by the run TO      #####
+#################################################################################
 
 #################################################################################
 ##### 1. The first thing to do is edit your namelist  file (cable.nml).     #####
