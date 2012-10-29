@@ -1,0 +1,40 @@
+#################################################################################
+##### This zero_diff directory contains tools necessary to quickly check    #####
+##### whether ANY changes you have made in the code have have inadvertently #####
+##### *changed* the CABLE model. A description of how to use these tools,   #####
+##### and what they are actually doing follows.                             #####
+#################################################################################
+
+
+#################################################################################
+##### 1. The first thing to do is edit your namelist  file (cable.nml).     #####
+#####    There is a variable in the CABLE model (declared in cable_common)  #####
+#####    called cable_user%RUN_DIAG_LEVEL. this can be set in cable.nml.    #####
+#####    This should be set to 'zero'. The model does not need to be        #####
+#####    re-built. Then simply run your online or offline application.      #####
+#####                                                                       #####
+#####    Setting this switch to 'zero' will activate IF loops at the        #####
+#####    top-level in CABLE. Offline this is in cable_driver, online this   #####
+#####    is in cable_explicit_driver. Effectively a CALL to cable_diag()    #####
+#####    subroutine will be executed. In this instance, the CALL to         #####
+#####    cable_diag() writes a binary file containing the sum of Latent     #####
+#####    heat flux and sensible heat flux to the boundary layer, at EVERY   #####
+#####    time step. We will revisit this further below.
+#################################################################################
+ZZ
+#################################################################################
+##### 2. Following your RUN, this will leave output file(s) in your         #####
+#####    execution directory. you should checkout svn @XXXX/zero_diff/      #####
+#####    In this directory is a blah directory etc.                         #####
+The script zero_diff.ksh basically writes a small text file for consumption by a Fortran program diffmain.F90. If no arguments are given to 
+#####    This should be set to 'zero'. The model does not need to be        #####
+#####    re-built. Then simply run your online or offline application.      #####
+#################################################################################
+
+
+
+
+cp OR link to base output FLUXES from CABLE (std.bin) and also comparable FLUXES (FLUXES00.bin)
+
+submit script zero_diff.ksh
+
