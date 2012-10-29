@@ -41,11 +41,11 @@ book_keeping()
    
    if [[ $HOST_MACH = 'vayu' ]]; then
    
-      if [[ ! -e cable.nml ]]; then
-         ln -s $CABLE_AUX/CABLE-AUX/offline/cable.nml .
+      if [[ ! -f cable.nml ]]; then
+         cp -r /projects/access/CABLE-AUX/offline/cable.nml .
       fi
-      if [[ ! -e sites.txt ]]; then
-         ln -s $CABLE_AUX/CABLE-AUX/offline/sites.txt .
+      if [[ ! -f sites.txt ]]; then
+         cp -r /projects/access/CABLE-AUX/offline/sites.txt .
       fi
       
    fi

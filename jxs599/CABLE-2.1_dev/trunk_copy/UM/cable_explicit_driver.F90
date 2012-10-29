@@ -58,9 +58,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                  met, bal, rad, rough, soil, ssnow, sum_flux, veg 
    
    !--- vars common to CABLE declared 
-   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
-                                   knode_gl, kwidth_gl, kend_gl,               &
-                                   report_version_no
+   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,          &
+                                   knode_gl, kwidth_gl, kend_gl, myhome
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
@@ -248,13 +247,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
    !--- initialize cable_runtime% switches 
-   IF(first_cable_call) THEN
+   IF(first_cable_call)                                                        & 
       cable_runtime%um = .TRUE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout
-   ENDIF
-      
+   
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
@@ -325,13 +320,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
-
-
-   ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
-                
 
    cable_runtime%um_explicit = .FALSE.
 
