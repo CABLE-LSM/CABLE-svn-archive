@@ -71,6 +71,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE cable_def_types_mod, ONLY : mp, ms, ssnow, rough, canopy, air, rad,     &
                                    met
 
+   !--- include subr called to write data for testing purposes 
+   USE cable_diag_module, ONLY : cbm
+
    IMPLICIT NONE
  
  
