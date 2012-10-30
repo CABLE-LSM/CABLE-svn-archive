@@ -5,7 +5,7 @@ FC = /apps/intel-fc/11.0.074/bin/intel64/ifort
 #cherax
 #FC = ifort
 FLINK = -c 
-FFLAGS = -O0 -fpp 
+FFLAGS = -O0 -fpp -r8 -i8 
 AUX= subr/
 #cherax
 #FPGPLOTLIBS = -L/usr/lib/ -lpgplot -L/usr/lib/ -lpng

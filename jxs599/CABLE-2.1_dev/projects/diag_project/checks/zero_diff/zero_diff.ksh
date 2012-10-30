@@ -5,7 +5,8 @@
 #                      two revisions where this is indeed inteneded
 #
 # SYNOPSIS
-#     zero_diff.ksh [-n ncpus]
+#     zero_diff.ksh -r [-n ncpus]
+#     zero_diff.ksh -d [-n ncpus]
 
 # DESCRIPTION
 #     Executing the script zero_diff.ksh following an approriately          
@@ -45,6 +46,14 @@
 #     another system. Otherwise contact cable_help@nf.nci.org.au to get the
 #     source code.
 #
+#    -r  executes fortran binaries built with standard, single REAL precision, 
+#        real*4. This should be used with FLUXES.bin and std.bin data produced
+#        using the same precision
+# 
+#    -d  executes fortran binaries built with DOUBLE precision, real*8. 
+#        This should be used with FLUXES.bin and std.bin data produced
+#        using the same precision
+# 
 #    -n  NCPUS Where a parallel run has resulted in NCPUS output files from 
 #        FLUXES00.bin to FLUXES(NCPUS-1).bin. The specified NCPUS directs the 
 #        script to concatenate NCPUS files into a single file for processing. 
@@ -52,22 +61,35 @@
 
 # these are the teo data files to compare
 set -A basename std FLUXES00	
+CABLE_tools='/projects/access/CABLE-AUX/tools'
+spec_tools='zero_diff'
 
-# if a run across multiple processors was conducted, this call 
-# concatenates all those files 
-if [[ $1 == '-n' ]]; then
-   print './diag_cat_nodes' ${basename[1]} $2 
+if [[ $1 == '-r' ]]; then
+
+   # if a run across multiple processors was conducted, this call 
+   # concatenates all those files 
+   if [[ $2 == '-n' ]]; then
+      $CABLE_tools/$spec_tools/diag_cat_nodes_r4 ${basename[1]} $3 
+   else
+      set basename[1]="FLUXES"	
+   fi  
+   
+   ### execute f90 program to do all the work desired
+   $CABLE_tools/$spec_tools/diff_main_r4 ${basename[0]} ${basename[1]}
+
+elif [[ $1 == '-d' ]]; then
+
+   if [[ $2 == '-n' ]]; then
+      $CABLE_tools/$spec_tools/diag_cat_nodes_r8 ${basename[1]} $3 
+   else
+      set basename[1]="FLUXES"	
+   fi  
+   
+   $CABLE_tools/$spec_tools/diff_main_r8 ${basename[0]} ${basename[1]}
+
 else
-   set basename[1]="FLUXES"	
-fi  
-
-### execute f90 program to do all the work desired
-#/projects/access/CABLE-AUX/tools/zero_diff/diff_main 
-./diff_main ${basename[0]} ${basename[1]}
-
-
-
-
+   print 'Supported KINDS are real*4 (-r) and real*8 (-d)'        
+fi
 
 
 
