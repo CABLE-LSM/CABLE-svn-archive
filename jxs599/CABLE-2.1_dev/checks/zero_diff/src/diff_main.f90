@@ -8,13 +8,12 @@ program debug
    use debug_read_mod   !only called funcs are public in this mod 
    implicit none
    integer :: t,j       !primarily counters, double as args also
-      !======================================================================!
-      !=== read perl script interp. (input.dat) of command line args      ===!
-      !--- which determine behaviour of program. which file to process,   ===!
-      !=== plot/write text file, how to smooth the data                   ===! 
-      !======================================================================!
-      call read_args
-      
+   
+      IF( IARGC() > 0 ) THEN
+         CALL GETARG(1, filename1)
+         CALL GETARG(2, filename2)
+      ENDIF
+
       !======================================================================!
       !=== read info about the spec. binary data which was created by the ===!
       !--- host so we know how many vars are contained within, how many   ===!
@@ -33,33 +32,6 @@ end program debug
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 
-
-
-
-!=============================================================================!
-!=== subr. to read command line args interpreted by perl script.comm. line ===!
-!=== see top description of program for further explanation                ===! 
-!=============================================================================!
-   
-subroutine read_args
-   use debug_common
-   implicit none
-   integer, parameter :: gok=0
-   integer :: gopenstatus
-   
-   open(unit=1,file='input.dat', status="unknown",action="read", &
-            iostat=gopenstatus )
-      if(gopenstatus==gok) then
-         read(1,*), filename1
-         read(1,*), filename2
-      else
-         write (*,*), 'input.dat',' NOT found to read'
-      endif
-   close(1)
-   return
-end subroutine read_args
-   
-     
 subroutine comp_diff( )
    use debug_common
    real :: sum_data
