@@ -12,15 +12,13 @@ host_jigg()
    export NCDIR='/usr/local/lib'
    export NCMOD='/usr/local/include'
    export FC=gfortran
-   export CFLAGS='-O0 -x f95-cpp-input'
+   export CFLAGS='-O2 -x f95-cpp-input'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/usr/local/lib -O2'
    build_build
    cd ../
    build_status
 }
-
-
 
 
 ## shine-cl.nexus.csiro.au 
@@ -233,7 +231,7 @@ do_i_no_u()
    
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
-         print 'Host recognized'
+         print 'Host recognized as' $HOST_MACH
          subr=host_${kh[$k]}
          $subr $1
       fi        
@@ -273,6 +271,14 @@ i_do_now()
 
 build_build()
 {
+   # write file for consumption by Fortran code
+   # get SVN revision number 
+   CABLE_REV=`svn info | grep Revis |cut -c 11-18`
+   print $CABLE_REV > ~/.cable_rev
+   # get SVN status 
+   CABLE_STAT=`svn status`
+   print $CABLE_STAT >> ~/.cable_rev
+ 
    if [[ ! -d .tmp ]]; then
       mkdir .tmp
    fi
@@ -282,12 +288,10 @@ build_build()
       mv cable cable.bu
    fi
    
-   UTIL="../core/utils"
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
    
-   /bin/cp -p $UTIL/*90 ./.tmp
    /bin/cp -p $CORE/*90 ./.tmp
    /bin/cp -p $DRV/*90 ./.tmp
    /bin/cp -p $CASA/*90 ./.tmp
