@@ -71,7 +71,7 @@ if [[ $1 == '-r' ]]; then
    if [[ $2 == '-n' ]]; then
       $CABLE_tools/$spec_tools/diag_cat_nodes_r4 ${basename[1]} $3 
    else
-      set basename[1]="FLUXES"	
+      basename[1]="FLUXES"	
    fi  
    
    ### execute f90 program to do all the work desired
@@ -82,7 +82,7 @@ elif [[ $1 == '-d' ]]; then
    if [[ $2 == '-n' ]]; then
       $CABLE_tools/$spec_tools/diag_cat_nodes_r8 ${basename[1]} $3 
    else
-      set basename[1]="FLUXES"	
+      basename[1]="FLUXES"	
    fi  
    
    $CABLE_tools/$spec_tools/diff_main_r8 ${basename[0]} ${basename[1]}
