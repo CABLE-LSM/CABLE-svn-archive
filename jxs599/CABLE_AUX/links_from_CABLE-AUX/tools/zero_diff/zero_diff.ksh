@@ -40,6 +40,12 @@
 #     compare, and the base files (std.bin & std.dat) into any same directory.  
 #     Just sym-linking the files will do. Execute zero_diff.ksh. 
 #
+#     A note on std.bin and std.dat. we have not provided these as it is 
+#     impossible to account for the possibilities. We suggest you do a run with
+#     the code before you made any changes. Move the FLUXES.* files to std.*
+#     equivalents, then build your new code and execute again. WITHOUT CHANGING
+#     the build configuration or run configuration. Even switching from -O0 to   #     -O2 will result in differences.
+#
 #     zero_diff.ksh is just a wrapper for the fortran program diff_main. This 
 #     program has been built on vayu, and is executed using the full path name
 #     in zero_diff.ksh. You might be lucky and the binary proves portable to 
@@ -57,10 +63,14 @@
 #    -n  NCPUS Where a parallel run has resulted in NCPUS output files from 
 #        FLUXES00.bin to FLUXES(NCPUS-1).bin. The specified NCPUS directs the 
 #        script to concatenate NCPUS files into a single file for processing. 
-# 
+#
+################################################################################ 
+################################################################################ 
+################################################################################ 
 
 # these are the teo data files to compare
-set -A basename std FLUXES00	
+set -A basename std FLUXES	
+
 CABLE_tools='/projects/access/CABLE-AUX/tools'
 spec_tools='zero_diff'
 
@@ -71,7 +81,7 @@ if [[ $1 == '-r' ]]; then
    if [[ $2 == '-n' ]]; then
       $CABLE_tools/$spec_tools/diag_cat_nodes_r4 ${basename[1]} $3 
    else
-      basename[1]="FLUXES"	
+      basename[1]="FLUXES00"	
    fi  
    
    ### execute f90 program to do all the work desired
@@ -82,7 +92,7 @@ elif [[ $1 == '-d' ]]; then
    if [[ $2 == '-n' ]]; then
       $CABLE_tools/$spec_tools/diag_cat_nodes_r8 ${basename[1]} $3 
    else
-      basename[1]="FLUXES"	
+      basename[1]="FLUXES00"	
    fi  
    
    $CABLE_tools/$spec_tools/diff_main_r8 ${basename[0]} ${basename[1]}
