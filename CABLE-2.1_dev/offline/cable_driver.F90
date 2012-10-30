@@ -81,6 +81,8 @@ PROGRAM cable_offline_driver
                                    write_output,close_output_file
    USE cable_cbm_module
    
+   USE cable_diag_module
+   
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
@@ -329,7 +331,15 @@ PROGRAM cable_offline_driver
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
    
-       END DO ! END Do loop over timestep ktau
+         ! dump bitwise reproducible testing data
+         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+                                knode_gl, "FLUXES",                            &
+                          canopy%fe + canopy%fh )
+         ENDIF
+                
+      END DO ! END Do loop over timestep ktau
 
 
 

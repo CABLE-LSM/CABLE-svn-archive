@@ -58,8 +58,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                  met, bal, rad, rough, soil, ssnow, sum_flux, veg 
    
    !--- vars common to CABLE declared 
-   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl, kend_gl,&
-                                   kwidth_gl, knode_gl, report_version_no
+   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
+                                   knode_gl, kwidth_gl, kend_gl,               &
+                                   report_version_no
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
@@ -69,6 +70,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    USE cable_def_types_mod, ONLY : mp, ms, ssnow, rough, canopy, air, rad,     &
                                    met
+
+   !--- include subr called to write data for testing purposes 
+   USE cable_diag_module
 
    IMPLICIT NONE
  
@@ -324,6 +328,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
+
+
+   ! dump bitwise reproducible testing data
+   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
+      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+                          "FLUXES", canopy%fe + canopy%fh )
+                
 
    cable_runtime%um_explicit = .FALSE.
 
