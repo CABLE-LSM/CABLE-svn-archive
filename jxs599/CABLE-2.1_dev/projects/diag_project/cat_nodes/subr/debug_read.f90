@@ -13,8 +13,8 @@ module debug_read_mod
       use debug_common
       implicit none
       character(len=*), intent(in) :: Lfilename
-      integer(i_d), parameter :: gok=0
-      integer(i_d) :: gopenstatus
+      integer, parameter :: gok=0
+      integer :: gopenstatus
       integer :: i
       integer, save :: first_time_caller=1
          open(unit=1,file=Lfilename//'.dat', status="old",action="read", iostat=gopenstatus )
@@ -32,8 +32,8 @@ module debug_read_mod
          close(1)
          dimx_i(first_time_caller) = dimx
          dimx_tot = dimx_tot + dimx
-!         print *, 'dim_tot, nodes  ',dimx_tot, n_nodes, first_time_caller
-         if (first_time_caller==n_nodes) then
+!         print *, 'dim_tot, nodes  ',dimx_tot, i_nodes, first_time_caller
+         if (first_time_caller==i_nodes) then
             allocate( ar_Nvars( Nvars*dimx_tot ) )
             allocate( ar_data(Nvars,dimy,dimx_tot) )
          endif
@@ -53,8 +53,8 @@ module debug_read_mod
       implicit none
       integer, intent(out) :: ndimx 
       character(len=*), intent(in) :: Lfilename
-      integer(i_d), parameter :: gok=0
-      integer(i_d) :: gopenstatus
+      integer, parameter :: gok=0
+      integer :: gopenstatus
       character(len=99) :: trash 
       integer :: i
       integer, save :: first_time_caller=1
@@ -87,10 +87,10 @@ module debug_read_mod
       implicit none
       integer, intent(in) :: Lfrom, Lto
       character(len=*), intent(in) :: Lfilename
-      integer(i_d), parameter :: gok=0
-      integer(i_d) :: gopenstatus
+      integer, parameter :: gok=0
+      integer :: gopenstatus
       integer :: i,j
-!      integer(i_d) :: frecl
+!      integer :: frecl
 !      frecl = Nvars * dimx*r_1
          open(unit=2,file=Lfilename//'.bin',status="unknown",action="read", &
                   iostat=gopenstatus, form="unformatted" )

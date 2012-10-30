@@ -17,8 +17,8 @@ module debug_write_mod
       implicit none
       character(len=*), intent(in) :: Lfilename
       integer, intent(in) :: Ldimx
-      integer(i_d), parameter :: gok=0
-      integer(i_d) :: gopenstatus
+      integer, parameter :: gok=0
+      integer :: gopenstatus
       integer :: i,j,k
          open(unit=1,file=Lfilename//'.dat', status="unknown",action="write", iostat=gopenstatus )
             if(gopenstatus==gok) then
@@ -47,12 +47,12 @@ module debug_write_mod
       use debug_common
       implicit none
       character(len=*), intent(in) :: Lfilename
-      integer(i_d), parameter :: gok=0
-      integer(i_d) :: gopenstatus
+      integer, parameter :: gok=0
+      integer :: gopenstatus
       integer :: i,j
-      real(r_1), dimension(:,:), allocatable :: Lar
+      real, dimension(:,:), allocatable :: Lar
       allocate( Lar(dimy, Nvars*dimx_tot) ) 
-!      integer(i_d) :: frecl
+!      integer :: frecl
 !      frecl = Nvars * dimx*r_1
          do i=1,dimy
             do j=1,Nvars

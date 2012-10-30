@@ -21,14 +21,14 @@ module cat_nodes_mod
       integer, save :: ndimx=0, pndimx=0
       character(len=30) :: nfilename, chnodes
       real(gs), dimension(:), allocatable :: ar_x
-        allocate( dimx_i(n_nodes) )
-        do i=1, n_nodes
+        allocate( dimx_i(i_nodes) )
+        do i=1, i_nodes
             write(chnodes,10), i-1 
   10        format(I2.2)   
             nfilename = trim( trim(filename)//trim(chnodes) )
             call read_txt_ifile( trim( nfilename) )
          end do   
-         do i=1, n_nodes
+         do i=1, i_nodes
             write(chnodes,10), i-1 
             nfilename = trim( trim(filename)//trim(chnodes) )
             pndimx = ndimx + pndimx 
