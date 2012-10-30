@@ -72,7 +72,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                    met
 
    !--- include subr called to write data for testing purposes 
-   USE cable_diag_module, ONLY : cbm
+   USE cable_diag_module
 
    IMPLICIT NONE
  
