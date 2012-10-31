@@ -208,6 +208,11 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       ALLOCATE( bwb(mp,ms,2) )
       ! initial vlaue of soil moisture
       bwb(:,:,1)=ssnow%wb
+      !jhan:otherwise doesn't initialize delwb
+      DO k=1,mp           ! current smoist - prev tstep smoist
+         delwb(k) = SUM((bwb(k,:,1)                                         &
+               - (bwb(k,:,2)))*soil%zse)*1000.0
+      END DO
    ELSE
       ! Calculate change in soil moisture b/w timesteps:
       IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep

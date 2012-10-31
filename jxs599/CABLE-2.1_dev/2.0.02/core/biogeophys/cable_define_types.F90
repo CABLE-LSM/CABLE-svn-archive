@@ -704,8 +704,9 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
-   ALLOCATE( var%refl(mp,2) ) !jhan:swb?
-   ALLOCATE( var%taul(mp,2) ) 
+!jhan: _paaraeters still useses [,3] - line 943
+   ALLOCATE( var%refl(mp,3) ) !jhan:swb?
+   ALLOCATE( var%taul(mp,3) ) 
    ALLOCATE( var%vlaimax(mp) ) 
 
 END SUBROUTINE alloc_veg_parameter_type
