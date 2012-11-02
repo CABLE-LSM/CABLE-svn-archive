@@ -101,7 +101,8 @@ PROGRAM cable_offline_driver
       kend,       &  ! no. of time steps in run
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
-      nyear          ! year counter for CASA-CNP
+      nyear,      &  ! year counter for CASA-CNP
+      maxdiff(2)     ! location of maximum in convergence test
 
    REAL :: dels                        ! time step size in seconds
    
@@ -352,10 +353,18 @@ PROGRAM cable_offline_driver
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
-               PRINT *, 'ssnow%wb : ', ssnow%wb
-               PRINT *, 'soilMtemp: ', soilMtemp
-               PRINT *, 'ssnow%tgg: ', ssnow%tgg
-               PRINT *, 'soilTtemp: ', soilTtemp
+!               PRINT *, 'ssnow%wb : ', ssnow%wb
+!               PRINT *, 'soilMtemp: ', soilMtemp
+!               PRINT *, 'ssnow%tgg: ', ssnow%tgg
+!               PRINT *, 'soilTtemp: ', soilTtemp
+               maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
+               PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+               PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
+               maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
+               PRINT *, 'Example location of temperature non-convergence: ',maxdiff
+               PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
             
             ELSE ! spinup has converged
                
