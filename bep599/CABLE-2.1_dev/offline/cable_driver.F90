@@ -103,7 +103,10 @@ PROGRAM cable_offline_driver
       kend,       &  ! no. of time steps in run
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
-      nyear          ! year counter for CASA-CNP
+      nyear,      &  ! year counter for CASA-CNP
+      maxdiff(2), &  ! location of maximum in convergence test
+      spinLoop,   &  ! specifying number of loops in spinup
+      ii             ! counter
 
    REAL :: dels                        ! time step size in seconds
    
@@ -137,6 +140,8 @@ PROGRAM cable_offline_driver
       vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
       spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
       spinConv = .FALSE.,         & ! has spinup converged?
+      spin_1yr = .FALSE.,         & ! only use 1 year of forcing for spinup
+      spin_sat = .FALSE.,         & ! spinup start with saturated soil
       spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
@@ -161,7 +166,9 @@ PROGRAM cable_offline_driver
                   vegparmnew,       & ! jhan: use new soil param. method
                   soilparmnew,      & ! jhan: use new soil param. method
                   spinup,           & ! spinup model (soil) to steady state 
-                  delsoilM,delsoilT,& ! 
+                  spin_1yr,spin_sat,& ! specifying spinup initial conditions
+                  spinLoop,         & ! specifying number of loops in spinup
+                  delsoilM,delsoilT,& ! or spinup convergence conditions
                   output,           &
                   patchout,         &
                   check,            &
@@ -236,6 +243,9 @@ PROGRAM cable_offline_driver
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kend, spinup, C%TFRZ )
+
+   ! spinup using 1 year data only, assume 365 days (normal spin use all data)
+   IF (spinup .AND. spin_1yr) kend = 365 * 24 * 3600.0 / dels
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -248,6 +258,14 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
+   ! spinup can specify to start from saturated soil
+   IF (spinup .AND. spin_sat) THEN
+      DO ii = 1, ms
+         ssnow%wb(:,ii) = soil%ssat(:)
+      ENDDO
+      PRINT *, 'Soil moisture altered to saturation: ', ssnow%wb(1,:)
+      WRITE(logn,'(A38,6f7.4)') ' Soil moisture altered to saturation: ', ssnow%wb(1,:)
+   ENDIF
    
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
@@ -363,10 +381,14 @@ PROGRAM cable_offline_driver
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
-               PRINT *, 'ssnow%wb : ', ssnow%wb
-               PRINT *, 'soilMtemp: ', soilMtemp
-               PRINT *, 'ssnow%tgg: ', ssnow%tgg
-               PRINT *, 'soilTtemp: ', soilTtemp
+               maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
+               PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+               PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
+               maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
+               PRINT *, 'Example location of temperature non-convergence: ',maxdiff
+               PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
             
             ELSE ! spinup has converged
                
@@ -388,7 +410,15 @@ PROGRAM cable_offline_driver
            ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
          
          END IF
-         
+
+         IF (spinup .AND. spin_1yr) THEN
+            IF (INT(ktau_tot/kend) < spinLoop-1) THEN
+               spinConv = .FALSE.
+            ELSE
+               spinConv = .TRUE.
+            END IF
+         END IF
+
          ! store soil moisture and temperature
          soilTtemp = ssnow%tgg
          soilMtemp = REAL(ssnow%wb)
