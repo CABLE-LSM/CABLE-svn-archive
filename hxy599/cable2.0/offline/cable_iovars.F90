@@ -1,13 +1,30 @@
-! cable_iovars.f90
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
-! Contains input/output related variables for CABLE; 
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
 !
-! Gab Abramowitz 2009 University of New South Wales, gabsun@gmail.com
+! Purpose: Defines input/output related variables for CABLE offline
 !
-! Contains one module without subroutines.
+! Contact: Bernard.Pak@csiro.au
 !
-! Please send bug reports to Bernard.Pak@csiro.au
+! History: Development by Gab Abramowitz 
+!          Additional code to use multiple vegetation types per grid-cell (patches)
 !
+! ==============================================================================
 MODULE cable_IO_vars_module
 
    USE cable_def_types_mod, ONLY : r_2, mvtype, mstype
@@ -107,10 +124,7 @@ MODULE cable_IO_vars_module
    
    LOGICAL ::                                                                  &
       verbose,    & ! print init and param details of all grid cells?
-      soilparmnew,& ! read IGBP new soil map. Q.Zhang @ 12/20/2010
-      redistrb      ! Turn on/off the hydraulic redistribution
-   
-   REAL :: wiltParam, satuParam
+      soilparmnew   ! read IGBP new soil map. Q.Zhang @ 12/20/2010
 
    ! ================ Veg and soil type variables ============================
    INTEGER, POINTER ::                                                         &

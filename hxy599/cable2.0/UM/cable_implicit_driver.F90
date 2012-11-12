@@ -1,3 +1,35 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Updates CABLE variables (as altered by first pass through boundary 
+!          layer and convection scheme), calls cbm, passes CABLE variables back 
+!          to UM. 'Implicit' is the second call to cbm in each UM timestep.
+!
+! Called from: UM code sf_impl
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: Developed for CABLE v1.8
+!
+! ==============================================================================
+
+
    !USE cable_data_module,   ONLY : PHYS
    !REAL, POINTER :: TFRZ
    !   TFRZ => PHYS%TFRZ
@@ -157,7 +189,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    
       ! FLAGS def. specific call to CABLE from UM
       cable_runtime%um_explicit = .FALSE.
-      cable_runtime%um_hydrology = .TRUE.
+      cable_runtime%um_implicit = .TRUE.
    
       dtlc = 0. ; dqwc = 0.
 
@@ -208,6 +240,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
        
+      cable_runtime%um_implicit = .FALSE.
   
 END SUBROUTINE cable_implicit_driver
 

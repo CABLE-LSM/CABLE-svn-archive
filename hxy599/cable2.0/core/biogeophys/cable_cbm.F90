@@ -1,3 +1,38 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Calls CABLE routines including define_air, surface_albedo, 
+!          define_canopy, soilsnow, carbon
+!          Note that cbm is called once per timestep in the offline case but
+!          twice per timestep in the ACCESS case. Not all parts of cbm 
+!          are executed in each of the ACCESS calls.
+!          
+! Called from: cable_driver for offline version
+!              cable_explicit_driver, cable_implicit_driver for ACCESS
+!
+! Contact: Yingping.Wang@csiro.au
+!
+! History: Calling sequence changes for ACCESS compared to v1.4b
+!
+!
+! ==============================================================================
+
 #define NO_CASA_YET 1
 
 MODULE cable_cbm_module
@@ -89,11 +124,12 @@ CONTAINS
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss
+   ! RML moved out of following IF after discussion with Eva
+   ssnow%owetfac = ssnow%wetfac
 
    IF( cable_runtime%um ) THEN
       
-      ssnow%owetfac = ssnow%wetfac
-      IF( cable_runtime%um_hydrology ) THEN
+     IF( cable_runtime%um_implicit ) THEN
          CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
       ENDIF
 
@@ -102,18 +138,22 @@ CONTAINS
    ENDIF
 
    ssnow%deltss = ssnow%tss-ssnow%otss
+   ! correction required for energy balance in online simulations
+   IF( cable_runtime%um ) THEN
+   
+      canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+      
+      canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+      
+      canopy%fh = canopy%fhv + canopy%fhs
 
-   canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-   
-   canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-   
-    canopy%fh = canopy%fhv + canopy%fhs
+      canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                     &
+                   ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+      
+      canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *             &
+                       ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
 
-   canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                        &
-                ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-   
-   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
-                    ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+   ENDIF
 
    ! need to adjust fe after soilsnow
    canopy%fev  = canopy%fevc + canopy%fevw

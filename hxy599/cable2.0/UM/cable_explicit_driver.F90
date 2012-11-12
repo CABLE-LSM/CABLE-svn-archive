@@ -1,18 +1,34 @@
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!++++ CABLE HEADER 
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!===============================================================================
-!=== CABLE is called in the UM from 4 locations. this is the first call at  
-!=== the beginning of the timestep from sf_exch(). others are:
-!===     cable_implicit_driver() from sf_impl(). 
-!===     cable_rad_driver from glue_ctl_rad()
-!===     cable_hyd_driver from hydrol()
-!=== the main purpose of this call is to calculate the surface-atmosphere 
-!=== exchange co-effs so that the UM can convect etc. at mid-timestep calls
-!=== cable_implicit() where it uses updated forcings. 
-!===============================================================================
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Passes UM variables to CABLE, calls cbm, passes CABLE variables 
+!          back to UM. 'Explicit' is the first of two routines that call cbm at 
+!          different parts of the UM timestep.
+!
+! Called from: UM code sf_exch
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: Developed for CABLE v1.8
+!
+!
+! ==============================================================================
 
 
 SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
@@ -42,8 +58,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                  met, bal, rad, rough, soil, ssnow, sum_flux, veg 
    
    !--- vars common to CABLE declared 
-   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,          &
-                                   knode_gl, kwidth_gl, kend_gl
+   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
+                                   knode_gl, kwidth_gl, kend_gl,               &
+                                   report_version_no
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
@@ -53,6 +70,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    USE cable_def_types_mod, ONLY : mp, ms, ssnow, rough, canopy, air, rad,     &
                                    met
+
+   !--- include subr called to write data for testing purposes 
+   USE cable_diag_module
 
    IMPLICIT NONE
  
@@ -222,11 +242,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !___ location of namelist file defining runtime vars
    CHARACTER(LEN=200), PARAMETER ::                                            & 
-      nml_path1 = '/CABLE-AUX/UM/cable.nml'
-
-   CHARACTER(LEN=200) ::                                                       & 
-      myhome,                                                                  & 
-      runtime_vars_file 
+      runtime_vars_file = 'cable.nml'
 
 
    !___ 1st call in RUN (!=ktau_gl -see below) 
@@ -234,14 +250,14 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
  
 
 
-
    !--- initialize cable_runtime% switches 
-   IF(first_cable_call)                                                        & 
+   IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
-   
-   CALL GETENV("HOME", myhome)   
-   runtime_vars_file = TRIM(myhome)//TRIM(nml_path1)
-
+      write(6,*) ""
+      write(6,*) "CABLE_log"
+      CALL report_version_no(6) ! wriite revision number to stdout
+   ENDIF
+      
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
@@ -312,6 +328,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
+
+
+   ! dump bitwise reproducible testing data
+   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
+      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+                          "FLUXES", canopy%fe + canopy%fh )
+                
 
    cable_runtime%um_explicit = .FALSE.
 

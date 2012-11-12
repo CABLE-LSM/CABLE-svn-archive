@@ -1,12 +1,34 @@
-!========================================================================!
-!=== PURPOSE: to enable accessibility of fundamental vars in global   ===!
-!=== model thru out program (mainly CABLE).                           ===!
-!=== USE: use module in subroutines (SRs) at top level of global model===!
-!--- 2 define cable_timestep_ data with vars peculiar to global model ===!
-!=== optionally call alias_ SR to give name smore familiar to cable   ===!
-!=== people. then again use this module in  any subsequent SR in which===!
-!=== you want to access this data.                                    ===!  
-!========================================================================!
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Reads vegetation and soil parameter files, fills vegin, soilin
+!          NB. Most soil parameters overwritten by spatially explicit datasets
+!          input as ancillary file (for ACCESS) or surface data file (for offline)
+!          Module enables accessibility of variables throughout CABLE
+!
+! Contact: Jhan.Srbinovsky@csiro.au
+!
+! History: v2.0 vegin%dleaf now calculated from leaf length and width
+!          Parameter files were read elsewhere in v1.8 (init_subrs)
+!
+!
+! ==============================================================================
 
 MODULE cable_common_module
    IMPLICIT NONE 
@@ -18,7 +40,7 @@ MODULE cable_common_module
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
-            um_radiation = .FALSE., um_hydrology = .FALSE.
+            um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    END TYPE kbl_internal_switches 
 
@@ -26,15 +48,21 @@ MODULE cable_common_module
 
    !---CABLE runtime switches def in this type
    TYPE kbl_user_switches
-      
+      !jhan: this is redundant now we all use filename%veg?
       CHARACTER(LEN=200) ::                                                    &
-         VEG_PARS_FILE,       & ! 
-         LEAF_RESPIRATION,    & !
-         FWSOIL_SWITCH          !
+         VEG_PARS_FILE  ! 
       
-      CHARACTER(LEN=20) :: DIAG_SOIL_RESP !
-      CHARACTER(LEN=5) :: RUN_DIAG_LEVEL  !
-      CHARACTER(LEN=3) :: SSNOW_POTEV     !
+      CHARACTER(LEN=20) ::                                                     &
+         FWSOIL_SWITCH     !
+      
+      CHARACTER(LEN=5) ::                                                      &
+         RUN_DIAG_LEVEL  !
+      
+      CHARACTER(LEN=3) ::                                                      &
+         SSNOW_POTEV,      & !
+         DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
+         LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
+
       LOGICAL ::                                                               &
          INITIALIZE_MAPPING = .FALSE., & ! 
          CONSISTENCY_CHECK = .FALSE.,  & !
@@ -66,6 +94,13 @@ MODULE cable_common_module
    END TYPE filenames_type
 
    TYPE(filenames_type) :: filename
+
+   ! hydraulic_redistribution switch _soilsnow module
+   LOGICAL ::                                                                  &
+      redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
+   
+   ! hydraulic_redistribution parameters _soilsnow module
+   REAL :: wiltParam=0.5, satuParam=0.8
 
 
    ! soil parameters read from file(filename%soil def. in cable.nml)
@@ -120,8 +155,8 @@ MODULE cable_common_module
          csoil,      & !
          ratecp,     & !
          ratecs,     & !
-         reflin,     & !
-         taulin        !
+         refl,     & !
+         taul        !
       
    END TYPE vegin_type
 
@@ -210,7 +245,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
-         vegin%reflin( nrb, mvtype ), vegin%taulin( nrb, mvtype ),             &
+         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
          veg_desc( mvtype ) )
       
       
@@ -228,8 +263,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                         &   vegin%length(jveg), vegin%frac4(jveg)
-            READ(40,*) vegin%reflin(1:3,jveg) ! rhowood not used ! BP may2011
-            READ(40,*) vegin%taulin(1:3,jveg) ! tauwood not used ! BP may2011
+            ! only refl(1:2) and taul(1:2) used
+            READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
+            READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
             READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
             READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
@@ -288,12 +324,12 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%ratecs(2,:)=vegin%ratecs(2,1)
          
          ! old table does not have taul and refl ! BP may2011
-         vegin%taulin(1,:) = 0.07
-         vegin%taulin(2,:) = 0.425
-         vegin%taulin(3,:) = 0.0
-         vegin%reflin(1,:) = 0.07
-         vegin%reflin(2,:) = 0.425
-         vegin%reflin(3,:) = 0.0
+         vegin%taul(1,:) = 0.07
+         vegin%taul(2,:) = 0.425
+         vegin%taul(3,:) = 0.0
+         vegin%refl(1,:) = 0.07
+         vegin%refl(2,:) = 0.425
+         vegin%refl(3,:) = 0.0
 
       ENDIF
 
@@ -301,7 +337,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       
    CLOSE(40)
       
-   ! new calculation dleaf sin ce April 2012 
+   ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
     
         
@@ -343,6 +379,52 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
    CLOSE(40)
 
 END SUBROUTINE get_type_parameters
+
+
+! get svn revision number and status
+SUBROUTINE report_version_no( logn )
+   INTEGER, INTENT(IN) :: logn
+   ! set from environment variable $HOME
+   CHARACTER(LEN=200) ::                                                       & 
+      myhome,       & ! $HOME (POSIX) environment/shell variable
+      fcablerev,    & ! recorded svn revision number at build time
+      icable_status   ! recorded svn STATUS at build time (ONLY 200 chars of it)
+
+   
+   INTEGER :: icable_rev, ioerror
+    
+   CALL getenv("HOME", myhome) 
+   fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
+   OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)
+
+      IF(ioerror/=0) then 
+         PRINT *, "We'll keep running but the generated revision number "     
+         PRINT *, " in the log & file will be meaningless."     
+      ENDIF
+      
+      ! get svn revision number (see WRITE comments)
+      READ(440,*) icable_rev
+       
+      WRITE(logn,*) ''
+      WRITE(logn,*) 'Revision nuber: ', icable_rev
+      WRITE(logn,*) ''
+      WRITE(logn,*)'This is the latest revision of you workin copy as sourced ' 
+      WRITE(logn,*)'by the SVN INFO command at build time. Please note that the' 
+      WRITE(logn,*)'accuracy of this number is dependent on how recently you ' 
+      WRITE(logn,*)'used SVN UPDATE.'
+   
+      ! get svn status (see WRITE comments)
+      ! (jhan: make this output prettier & not limitted to 200 chars) 
+      WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
+      WRITE(logn,*)'local changes: '
+      READ(440,'(A)',IOSTAT=ioerror) icable_status
+      WRITE(logn,*) TRIM(icable_status)
+      WRITE(logn,*) ''
+   
+   CLOSE(440)
+
+END SUBROUTINE report_version_no
+
 
 
 END MODULE cable_common_module

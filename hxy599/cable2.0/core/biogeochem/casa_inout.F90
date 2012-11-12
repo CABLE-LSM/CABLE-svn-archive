@@ -1,9 +1,33 @@
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Input and output code for CASA-CNP when run offline
+!          ACCESS version may use some of this code but split into different files?
+!
+! Contact: Yingping.Wang@csiro.au and Bernard.Pak@csiro.au
+!
+! History: Developed for offline code.  Expect to re-write for MPI and ACCESS 
+!          versions
+!
+!
+! ==============================================================================
 ! casa_inout.f90
-!
-! Model development by YingPing Wang, CSIRO Marine and Atmospheric Research.
-! Coupling to Mk3L by Bernard Pak,    CSIRO Marine and Atmospheric Research.
-!
-! Please send bug reports to Bernard.Pak@csiro.au
 !
 ! the following routines are used when "casacnp" is coupled to "cable"
 !   casa_readbiome
@@ -754,7 +778,6 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   OPEN(nout,file=casafile%cnpepool)
   PRINT *, 'Opened file ', casafile%cnpepool
 
-!  WRITE(*,91) nyear,cplantsum,clittersum,csoilsum 
   casabal%sumcbal=MIN(9999.0,MAX(-9999.0,casabal%sumcbal))
   casabal%sumnbal=MIN(9999.0,MAX(-9999.0,casabal%sumnbal))
   casabal%sumpbal=MIN(9999.0,MAX(-9999.0,casabal%sumpbal))
@@ -802,7 +825,6 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
 
   CLOSE(nout)
 
-91    format(i6,100(g9.3,2x))
 92    format(5(i6,',',2x),5(f15.6,',',2x),i6,',',2x,100(f15.6,',',2x))
 END SUBROUTINE casa_poolout
 

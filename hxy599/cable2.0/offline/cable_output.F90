@@ -1,16 +1,33 @@
-!=================================COPYRIGHT=====================================
-! The source codes are part of the australian
-! Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! Please register online at xxx and sign the agreement before use
-! contact: whox@xxxx.yyy about registration user agreement
-!===============================================================================
-
-!===============================================================================
-! Name: cable_output_module
-! Purpose: Output module for CABLE land surface scheme offline netcdf driver;
-
+!==============================================================================
+! This source code is part of the 
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: Output module for CABLE offline 
+!
+! Contact: Bernard.Pak@csiro.au
+!
+! History: Developed by Gab Abramowitz
+!          Output of additional variables and parameters relative to v1.4b
+!
+!
+! ==============================================================================
 ! CALLed from:    cable_driver.F90
-
+!
 ! MODULEs used:   cable_abort_module
 !                 cable_common_module
 !                 cable_checks_module
@@ -24,9 +41,6 @@
 !                 close_output_file
 !                 create_restart
 !
-! Major contribution: land surface modeling team, CSIRO, Aspendale
-
-
 MODULE cable_output_module
 
 
@@ -36,7 +50,7 @@ MODULE cable_output_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: ktau_gl, filename
+  USE cable_common_module, ONLY: filename
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -811,15 +825,6 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
                           (ok, 'Error writing GrADS y coordinate variable to ' &
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
-    !    ! Write surffrac variable:
-    !    ALLOCATE(surffrac(mland,4))
-    !    surffrac(:,1) = landpt(:)%veg%frac
-    !    surffrac(:,2) = landpt(:)%urban%frac
-    !    surffrac(:,3) = landpt(:)%lake%frac
-    !    surffrac(:,4) = landpt(:)%ice%frac
-    !    CALL write_ovar(ncid_out,surffracID,'surffrac',surffrac, &
-    !         (/0.0,1.0/),.FALSE.,'surftype')
-    !    DEALLOCATE(surffrac)
 
     ! Write model parameters if requested:
     IF(output%params .OR. output%iveg) CALL write_ovar(ncid_out, opid%iveg,    &
@@ -921,7 +926,7 @@ CONTAINS
 
   END SUBROUTINE open_output_file
   !=============================================================================
-  SUBROUTINE write_output(dels, met, canopy, ssnow,                            &
+  SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
     ! energy and mass balance routines. This subroutine is called 
@@ -929,6 +934,7 @@ CONTAINS
     ! depending on whether the user has specified that output should be 
     ! aggregated, e.g. to monthly or 6-hourly averages.
     REAL, INTENT(IN)              :: dels ! time step size
+    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
     REAL, INTENT(IN) :: SBOLTZ, EMLEAF, EMSOIL
     TYPE(met_type), INTENT(IN)         :: met  ! met data
     TYPE(canopy_type), INTENT(IN)      :: canopy ! canopy variable data
@@ -948,7 +954,7 @@ CONTAINS
     INTEGER :: backtrack  ! modify timetemp for averaged output
 
     ! IF asked to check mass/water balance:
-    IF(check%mass_bal) CALL mass_balance(dels, ssnow, soil, canopy,            &
+    IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
                                          met,air,bal)
 
     ! IF asked to check energy balance:
@@ -957,7 +963,7 @@ CONTAINS
                                              SBOLTZ, EMLEAF, EMSOIL ) 
 
     ! Initialise output time step counter and month counter:
-    IF(ktau_gl == 1) THEN
+    IF(ktau == 1) THEN
        out_timestep = 0
        out_month = 0
     END IF
@@ -967,12 +973,12 @@ CONTAINS
        ! Set flag to write data for current time step:
        writenow = .TRUE.
        ! Set output time step to be current model time step:
-       out_timestep = ktau_gl
+       out_timestep = ktau
        backtrack = 0
     ELSE IF(output%averaging(1:4) == 'user' .OR. output%averaging(1:2)=='da')  &
             THEN
        ! user defined output interval or daily output
-       IF(MOD(ktau_gl, output%interval) == 0) THEN ! i.e.ktau divisible by
+       IF(MOD(ktau, output%interval) == 0) THEN ! i.e.ktau divisible by
                                                    ! interval
           ! write to output file this time step 
           writenow = .TRUE.
@@ -984,7 +990,7 @@ CONTAINS
        END IF
     ELSE IF(output%averaging(1:2) == 'mo') THEN ! write monthly averages to file
        realyear = met%year
-       IF(ktau_gl >= 365*24*3600/INT(dels)) THEN
+       IF(ktau >= 365*24*3600/INT(dels)) THEN
          WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
        END IF
        
@@ -994,7 +1000,7 @@ CONTAINS
           IF(((ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,100)/=0)).OR. &
                (ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,400)==0)))) THEN
              
-             IF(ANY((lastdayl * 24 * 3600 / INT(dels)) == ktau_gl)) THEN
+             IF(ANY((lastdayl * 24 * 3600 / INT(dels)) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
                 ! write to output file this time step 
@@ -1008,7 +1014,7 @@ CONTAINS
              END IF
           ELSE ! not currently a leap year
              ! last time step of month
-             IF(ANY((lastday * 24 * 3600 / INT(dels)) == ktau_gl)) THEN
+             IF(ANY((lastday * 24 * 3600 / INT(dels)) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
                 ! write to output file this time step 
@@ -1022,7 +1028,7 @@ CONTAINS
              END IF
           END IF
        ELSE ! not using leap year timing in this run
-          IF(ANY((lastday*24*3600/INT(dels))==ktau_gl)) THEN ! last time step of
+          IF(ANY((lastday*24*3600/INT(dels))==ktau)) THEN ! last time step of
                                                              ! month
              ! increment output month counter
              out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
@@ -1048,7 +1054,7 @@ CONTAINS
     ! If this time step is an output time step:
     IF(writenow) THEN
        ! Write to temporary time variable:
-       timetemp(1) = DBLE(REAL(ktau_gl-backtrack)*dels)
+       timetemp(1) = DBLE(REAL(ktau-backtrack)*dels)
        ! Write time variable for this output time step:
        ok = NF90_PUT_VAR(ncid_out, ovid%tvar, timetemp,                        &
                                         start = (/out_timestep/), count = (/1/))
@@ -1723,13 +1729,14 @@ CONTAINS
 
   END SUBROUTINE close_output_file
   !=============================================================================
-  SUBROUTINE create_restart(logn, dels, soil, veg, ssnow,                      &
+  SUBROUTINE create_restart(logn, dels, ktau, soil, veg, ssnow,                      &
                             canopy, rough, rad, bgc, bal)
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
     ! not be active). It uses CABLE's internal variable names.
     INTEGER, INTENT(IN) :: logn ! log file number
     REAL, INTENT(IN) :: dels ! time step size
+    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
     TYPE (soil_snow_type), INTENT(IN)      :: ssnow  ! soil and snow variables
@@ -1775,10 +1782,6 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                   (ok, 'Error defining mp_patch dimension in restart file. '// &
                    '(SUBROUTINE create_restart)')
-    !    ok = NF90_DEF_DIM(ncid_restart,'surftype',4,surftypeID)
-    !    IF (ok /= NF90_NOERR) CALL nc_abort &
-    !         (ok,'Error defining surftype dimension in restart file. '// &
-    !         '(SUBROUTINE create_restart)')
     ok = NF90_DEF_DIM(ncid_restart, 'soil', ms, soilID) ! number of soil layers
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
              (ok, 'Error defining vertical soil dimension in restart file. '// &
@@ -1835,17 +1838,6 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
        (ok, 'Error defining longitude variable attributes in restart file. '// &
         '(SUBROUTINE create_restart)')
-    !    ! Define surface type fraction variable:
-    !    ok=NF90_DEF_VAR(ncid_restart,'surffrac',NF90_FLOAT, &
-    !         (/mlandID,surftypeID/),surffracID)
-    !    IF (ok /= NF90_NOERR) CALL nc_abort &
-    !         (ok,'Error defining surffrac variable in restart file. '// &
-    !         '(SUBROUTINE create_restart)')
-    !    ok = NF90_PUT_ATT(ncid_restart,surffracID,'long_name',&
-    !         'Fraction of each surface type: vegetated; urban; lake; land ice')
-    !    IF (ok /= NF90_NOERR) CALL nc_abort &
-    !    (ok,'Error defining surffrac variable attributes in restart file. '// &
-    !         '(SUBROUTINE create_restart)')
     ! Define number of active patches variable:
     ok = NF90_DEF_VAR(ncid_restart, 'nap', NF90_FLOAT, (/mlandID/), napID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -2138,7 +2130,7 @@ CONTAINS
                    //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
 
     ! Write time variable:
-    ok = NF90_PUT_VAR(ncid_restart, tvarID, DBLE(REAL(ktau_gl) * dels))
+    ok = NF90_PUT_VAR(ncid_restart, tvarID, DBLE(REAL(ktau) * dels))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error time variable to '           &
                    //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
 
@@ -2158,16 +2150,6 @@ CONTAINS
                                        'Error writing nap variable to '        &
                    //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
 
-    !    ! Write surface type fractions:
-    !    ALLOCATE(surffrac(mland,4))
-    !    surffrac(:,1) = landpt(:)%veg%frac
-    !    surffrac(:,2) = landpt(:)%urban%frac
-    !    surffrac(:,3) = landpt(:)%lake%frac
-    !    surffrac(:,4) = landpt(:)%ice%frac
-    !    ok=NF90_PUT_VAR(ncid_restart,surffracID,surffrac)
-    !    IF(ok/=NF90_NOERR) CALL nc_abort(ok,'Error writing surffrac to ' &
-    !         //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
-    !    DEALLOCATE(surffrac)
     ! Write vegetated patch fractions
     ok = NF90_PUT_VAR(ncid_restart, rpid%patchfrac,                            &
                       patch(:)%frac, start = (/1/), count = (/mp/))
@@ -2206,7 +2188,6 @@ CONTAINS
                      ranges%hyds, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%sucs, 'sucs', REAL(soil%sucs, 4),      &
                      ranges%sucs, .TRUE., 'real', .TRUE.)
-! CALL write_ovar (ncid_restart,rpid%rs20,'rs20',REAL(soil%rs20,4),ranges%rs20,&
     CALL write_ovar (ncid_restart, rpid%rs20, 'rs20', REAL(veg%rs20, 4),       &
                      ranges%rs20, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%ssat, 'ssat', REAL(soil%ssat, 4),      &
