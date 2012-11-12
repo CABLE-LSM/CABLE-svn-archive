@@ -357,7 +357,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
   IF (ncciy > 0) THEN
     WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
     ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
-    ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
+!    ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
     ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
     ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
     ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
@@ -377,6 +377,31 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Determine number of sites/gridcells.
     ! Find size of 'x' or 'lat' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'x', xdimID)
+
+  ! added by ypwang following Chris LU to account for diffferent orders of latitude and longtitude between GPCC and GSWP
+  IF(gswpfile%l_gpcc) then
+    IF(ok/=NF90_NOERR) THEN ! if failed
+       ! Try 'lat' instead of x
+       ok = NF90_INQ_DIMID(ncid_met,'lon', xdimID)
+       IF(ok/=NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding x dimension in '&
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    END IF
+    ok = NF90_INQUIRE_DIMENSION(ncid_met,xdimID,len=xdimsize)
+    IF(ok/=NF90_NOERR) CALL nc_abort &
+         (ok,'Error determining size of x dimension in ' &
+         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    ! Find size of 'y' dimension:
+    ok = NF90_INQ_DIMID(ncid_met,'y', ydimID)
+    IF(ok/=NF90_NOERR) THEN ! if failed
+       ! Try 'lon' instead of y
+       ok = NF90_INQ_DIMID(ncid_met,'lat', ydimID)
+       IF(ok/=NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding y dimension in ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    END IF
+ ELSE
+    ! for GSWP ypwang following Chris Lu
     IF(ok/=NF90_NOERR) THEN ! if failed
        ! Try 'lat' instead of x
        ok = NF90_INQ_DIMID(ncid_met,'lat', xdimID)
@@ -397,6 +422,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             (ok,'Error finding y dimension in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     END IF
+  ENDIF
+
     ok = NF90_INQUIRE_DIMENSION(ncid_met,ydimID,len=ydimsize)
     IF(ok/=NF90_NOERR) CALL nc_abort &
          (ok,'Error determining size of y dimension in ' &
@@ -896,7 +923,15 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     all_met = .TRUE. ! initialise
     ! Look for SWdown (essential):- - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_sw
-    ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
+
+   ! option was added by Chris Lu to allow for different variable names between GPCC and GSWP forcings
+   ! added by ypwang 30/oct/2012 
+    IF(gswpfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'dswrf',id%SWdown)
+    ELSE
+       ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -914,7 +949,13 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
     ! Look for Tair (essential):- - - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_ta
-    ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair)
+
+    IF(gswpfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'tas',id%Tair)
+    ELSE
+       ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Tair in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -937,7 +978,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
     ! Look for Qair (essential):- - - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_qa
-    ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
+    IF(gswpfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'shum',id%Qair)
+    ELSE
+       ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Qair in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -961,7 +1007,13 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_rain
-    ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
+
+    IF(gswpfile%l_gpcc)THEN                !Chris 6/Sep/2012
+       ok = NF90_INQ_VARID(ncid_met,'prcp',id%Rainf)
+    ELSE
+       ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -989,7 +1041,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
-    ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
+    IF(gswpfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'wind',id%Wind)
+    ELSE
+       ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
+    END IF
+
     IF(ok /= NF90_NOERR) THEN
        ! Look for vector wind:
        ok = NF90_INQ_VARID(ncid_met,'Wind_N',id%Wind)
@@ -1017,7 +1074,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Now "optional" variables:
     ! Look for LWdown (can be synthesised):- - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_lw
-    ok = NF90_INQ_VARID(ncid_met,'LWdown',id%LWdown)
+    IF(gswpfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'dlwrf',id%LWdown)
+    ELSE
+       ok = NF90_INQ_VARID(ncid_met,'LWdown',id%LWdown)
+    END IF
+
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LWdown = .TRUE. ! LWdown is present in met file
        ! Get LWdown units and check okay:
@@ -1041,7 +1103,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
     ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_ps
-    ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
+    IF(gswpfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'pres',id%PSurf)
+    ELSE
+       ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
+    END IF
+
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%PSurf = .TRUE. ! PSurf is present in met file
        ! Get PSurf units and check:
@@ -1142,7 +1209,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
     ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - - 
-    IF (ncciy > 0) ncid_met = ncid_snow
+    IF (.not. gswpfile%l_gpcc)Then
+       IF (ncciy > 0) ncid_met = ncid_snow
+    END IF
+
     ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%Snowf = .TRUE. ! Snowf is present in met file
@@ -1262,6 +1332,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                         (ok,'Error reading Snowf in met data file ' &
                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
                    ! Add total Snowf to this grid cell total:
+                   ! foor using with GPCC forcingins, ypwwang 31/10/2012
+                   tempPrecip3 = 0.0
+
                    PrecipTot = PrecipTot + &
                         (REAL(SUM(SUM(SUM(tempPrecip3,3),2))) &
                         * convert%Rainf)
@@ -1285,6 +1358,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                         (ok,'Error reading Snowf in met data file ' &
                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
                    ! Add total Snowf to this land grid cell total:
+                   ! for use with GPCC forcing, ypwang 31/10/2012
+                   tempPrecip2 = 0.0
+
                    PrecipTot = PrecipTot + (REAL(SUM(SUM(tempPrecip2,2))) &
                         * convert%Rainf)
                 END IF
