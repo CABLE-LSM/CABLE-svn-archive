@@ -24,35 +24,38 @@
 ! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
 !          inclusion of call to CASA-CNP (icycle>0)
 !          soil_snow_type now ssnow (instead of ssoil)
-!          Modified from cable_driver.F90 in CABLE-2.0_beta r171
+!
+!          MPI wrapper developed by Maciej Golebiewski (2012)
+!          Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
 !
 ! ==============================================================================
-! Uses:           cable_def_types_mod
+! Uses:           mpi
+!                 cable_mpicommon
+!                 cable_def_types_mod
 !                 cable_IO_vars_module
 !                 cable_common_module
+!                 cable_data_module
 !                 cable_input_module
 !                 cable_output_module
 !                 cable_cbm_module
 !                 casadimension
 !                 casavariable
+!                 phenvariable
 ! 
-! CALLs:       open_met_file
-!              load_parameters
-!              open_output_file
-!              spincasacnp
-!              get_met_data
+! CALLs:       point2constants
 !              casa_feedback
 !              cbm
 !              bgcdriver
 !              sumcflux
-!              write_output
-!              casa_poolout
-!              casa_fluxout
-!              create_restart
-!              close_met_file
-!              close_output_file
-!              prepareFiles
-!
+!              find_extents
+!              worker_decomp
+!              worker_cable_params
+!              worker_casa_params
+!              worker_intype
+!              worker_outtype
+!              worker_casa_type
+!              worker_restart_type
+!              worker_end
 !
 ! input  file: [SiteName].nc
 !              poolcnpIn[SiteName].csv -- for CASA-CNP only

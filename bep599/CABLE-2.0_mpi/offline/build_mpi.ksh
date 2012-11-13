@@ -65,7 +65,7 @@ host_vayu()
       export CFLAGS='-O0 -traceback -g -fp-model precise' 
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf'
+   export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
    build_status
