@@ -33,6 +33,7 @@ module debug_read_mod
                read (1,*), dimy 
             else
                write (*,*), Lfilename//'.dat',' NOT found to read'
+               STOP
             endif
          close(1)
          allocate( ar_Nvars( Nvars*dimx ) )
@@ -66,6 +67,7 @@ module debug_read_mod
                enddo
             else
                write (*,*), Lfilename//'.bin',' NOT found for read'
+               STOP
             endif
          close(2)
       return 
