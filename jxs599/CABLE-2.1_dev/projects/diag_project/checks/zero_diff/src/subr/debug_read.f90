@@ -1,76 +1,82 @@
 
+MODULE debug_read_mod
 
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+   IMPLICIT NONE
 
-module debug_read_mod
-   implicit none
-   contains
+CONTAINS
 
-   !==========================================================================!
-   !==========================================================================!
+!=============================================================================!
 
-   subroutine read_txt_file( Lfilename )
-      use debug_common
-      implicit none
-      character(len=*), intent(in) :: Lfilename
-      integer, parameter :: gok=0
-      integer :: gopenstatus
-      character(len=99) :: trash 
-      integer :: i
-         open(unit=1,file=Lfilename//'.dat', status="old",action="read", iostat=gopenstatus )
-            if(gopenstatus==gok) then
-               read(1,*)
-               read (1,*) Nvars; read (1,*), trash
-               allocate( ar_varname(Nvars) )
-               do i=1,Nvars
-                  read (1,*), ar_varname(i)
-               enddo
-               read (1,*), trash
-               read (1,*), dimx 
-               read (1,*), trash
-               read (1,*), dimy 
-            else
-               write (*,*), Lfilename//'.dat',' NOT found to read'
+   SUBROUTINE read_txt_file( Lfilename, dimx, dimy )
+
+      CHARACTER(LEN=*), INTENT(IN) :: Lfilename
+      INTEGER, INTENT(OUT) :: dimx, dimy
+      
+      INTEGER, PARAMETER :: gok=0
+      INTEGER :: gopenstatus
+      CHARACTER(LEN=99) :: trash 
+      INTEGER :: i
+ 
+         OPEN( UNIT=1,FILE=Lfilename//'.dat', STATUS="old",ACTION="read",      & 
+               IOSTAT=gopenstatus )
+            
+            IF(gopenstatus==gok) THEN
+               
+               READ(1,*)
+               READ (1,*), trash  
+               READ (1,*), trash
+               READ (1,*), trash
+
+               READ (1,*), trash
+               READ (1,*), dimx 
+               READ (1,*), trash
+               READ (1,*), dimy 
+            
+            ELSE
+
+               WRITE (*,*), Lfilename//'.dat',' NOT found to read'
                STOP
-            endif
-         close(1)
-         allocate( ar_Nvars( Nvars*dimx ) )
-         allocate( newdata(Nvars,dimy,dimx) )
-         allocate( olddata(Nvars,dimy,dimx) )
-         allocate( diff_data(Nvars,dimy,dimx) )
-      return 
-   end subroutine read_txt_file 
+         
+            ENDIF
+
+         CLOSE(1)
+         
+         ALLOCATE( newdata(dimy,dimx) )
+         ALLOCATE( olddata(dimy,dimx) )
+ 
+   END SUBROUTINE read_txt_file 
 
    !==========================================================================!
    !==========================================================================!
 
-   subroutine read_dat_file( Lfilename,ar_data )
-      use debug_common
-      implicit none
-      real, intent(out), dimension(:,:,:) :: ar_data
-      character(len=*), intent(in) :: Lfilename
-      integer, parameter :: gok=0
-      integer :: gopenstatus
-      integer :: i,j
-!      integer :: frecl
-!      frecl = Nvars * dimx*r_1
-         open(unit=2,file=Lfilename//'.bin',status="unknown",action="read", &
-                  iostat=gopenstatus, form="unformatted" )
-            if(gopenstatus==gok) then
-               do i=1,dimy
-                  read(2), ar_Nvars
-                  do j=1,Nvars
-                     ar_data(j,i,:) = ar_Nvars( ( (j-1)*dimx )+1 : j*dimx )
-                  enddo 
+   SUBROUTINE Read_dat_file( Lfilename, ar_data, dimx, dimy )
+   
+      REAL, INTENT(OUT), DIMENSION(:,:) :: ar_data
+      CHARACTER(LEN=*), INTENT(IN) :: Lfilename
+      INTEGER, INTENT(IN) :: dimx, dimy
+      
+      INTEGER, PARAMETER :: gok=0
+      INTEGER :: gopenstatus
+      INTEGER :: i
+
+         OPEN(UNIT=2, FILE=Lfilename//'.bin', STATUS="unknown", ACTION="read", &
+                  IOSTAT=gopenstatus, FORM="unformatted" )
+            
+            IF(gopenstatus==gok) THEN
+               
+               DO i=1,dimy
+                  READ(2), trash 
+                  ar_data(j,i,:) = ar_Nvars( ( (j-1)*dimx )+1 : j*dimx )
                enddo
-            else
-               write (*,*), Lfilename//'.bin',' NOT found for read'
+        
+            ELSE
+               WRITE (*,*), Lfilename//'.bin',' NOT found for read'
                STOP
-            endif
-         close(2)
-      return 
+        
+            ENDIF
+         
+         CLOSE(2)
+
    end subroutine read_dat_file 
 
    !==========================================================================!
