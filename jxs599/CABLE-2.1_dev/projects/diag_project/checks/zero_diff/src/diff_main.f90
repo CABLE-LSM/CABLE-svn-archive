@@ -7,7 +7,7 @@ PROGRAM zero_diff_main
    IMPLICIT NONE
    
    ! base of filenames (created by CABLE) - passed to PROGRAM 
-   CHARACTER(LEN=30) :: filename1, filename2 
+   CHARACTER(LEN=300) :: filename1, filename2 
 
    ! dimx = typically # landpoints over which the var is specified per timestep 
    ! dimy = # timesteps
@@ -114,14 +114,13 @@ END SUBROUTINE read_dat_file
 SUBROUTINE comp_diff( olddata, newdata, dimx, dimy )
 
    INTEGER, INTENT(IN) :: dimx, dimy
-   REAL, INTENT(IN), DIMENSION(dimx, dimy) :: newdata, olddata
+   REAL, INTENT(IN), DIMENSION(dimy, dimx) :: newdata, olddata
    REAL, DIMENSION(dimy,dimx) :: diff_data
    REAL :: sum_data
 
-      diff_data = olddata-newdata
+      diff_data = olddata - newdata
       sum_diff = SUM(diff_data)
-
-      PRINT *, ''
+      
       PRINT *, 'summed difference between old and new data :sum_diff'
       PRINT *, sum_diff
       PRINT *, ''
