@@ -74,7 +74,7 @@ host_vayu()
    export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -ftrapuv' 
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf'
