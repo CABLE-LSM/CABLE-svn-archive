@@ -35,6 +35,7 @@ module cat_nodes_mod
             call read_txt_file( trim( nfilename) , ndimx )
             call read_dat_file( trim( nfilename ), pndimx+1, pndimx+ndimx )
          end do   
+
          call rewrite_txt_file( trim(filename), pndimx+ndimx )
          call rewrite_dat_file( trim(filename) )
       return

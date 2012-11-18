@@ -90,25 +90,24 @@ module debug_read_mod
       integer, parameter :: gok=0
       integer :: gopenstatus
       integer :: i,j
-!      integer :: frecl
-!      frecl = Nvars * dimx*r_1
+
          open(unit=2,file=Lfilename//'.bin',status="unknown",action="read", &
                   iostat=gopenstatus, form="unformatted" )
             if(gopenstatus==gok) then
+
                do i=1,dimy
-                  !read(2), ar_Nvars(1:Lto-Lfrom )
-                  read(2), ar_Nvars(1:Nvars*dimx )
-                  do j=1,Nvars
-                     ar_data(j,i,Lfrom:Lto) = ar_Nvars( ( (j-1)*dimx )+1 : j*dimx )
-!                     print *, ar_data(j,i,Lfrom:Lto)
-!                     print *, 'Lfrom:Lto ',Lfrom,Lto
-                  enddo 
+   
+                  read(2), ar_Nvars(1:dimx )
+                  ar_data(1,i,Lfrom:Lto) = ar_Nvars( 1 : dimx )
+
                enddo
+
             else
                write (*,*), Lfilename//'.bin',' NOT found for read'
             endif
+
          close(2)
-      return 
+
    end subroutine read_dat_file 
    !==========================================================================!
    !==========================================================================!
