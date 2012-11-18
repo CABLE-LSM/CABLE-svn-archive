@@ -49,7 +49,7 @@ MODULE cable_diag_module
   
    !--- subrs overloaded to respond to call cable_diag 
    INTERFACE cable_diag
-      MODULE PROCEDURE cable_diag1
+      MODULE PROCEDURE cable_diag_zero
    END INTERFACE cable_diag
   
 CONTAINS
@@ -59,22 +59,36 @@ CONTAINS
 ! of data and format etc., and filename.bin containing the data   
 !==========================================================================!
 
-SUBROUTINE cable_diag1( Nvars, basename, dimx, dimy, timestep, node, &
-                        vname1, var1 )
-   integer, intent(in) :: Nvars,dimx, dimy, timestep,node
-   real, intent(in), dimension(:) :: var1
-   integer :: i=0
-   character(len=*), intent(in) :: basename, vname1
-   character(len=30) :: filename, chnode
-  
-      write(chnode,10) node
-   10 format(i2.2)   
-      filename=trim(trim(basename)//trim(chnode))
+SUBROUTINE cable_diag_zero( Nvars, basename, dimx, dimy, timestep, node,       &
+                        vname1, var1, level )
+   INTEGER, INTENT(IN) :: Nvars,dimx, dimy, timestep,node
+   REAL, INTENT(IN), DIMENSION(:) :: var1
+   INTEGER :: i=0, fstatus
+   INTEGER, DIMENSION(13) :: fvalues 
+   CHARACTER(LEN=*), INTENT(IN) :: basename, vname1, level
+   CHARACTER(LEN=30) :: filename, chnode
+ 
+      WRITE(chnode,10) node
+   10 FORMAT(i2.2)   
+      filename=TRIM(TRIM(basename)//TRIM(chnode))
+   
+      fstatus = STAT( filename, fvalues ) 
+      write(6,*) 'file status', fstatus 
+      stop 
+      ! if first timestep in run and file already exists stop 
+      IF( timestep == 1 ) THEN
+         WRITE(6,*) 'CABLE_log: file already exists', filename
+         STOP
+      ENDIF   
+      ! if NOT first timestep in run and file size is too large write WARNING 
+      IF (timestep == 1)                                                       & 
+      IF( timestep == 1 .AND. knode_gl==1 )                                                       & 
       
-      if (timestep == 1) & 
-         call cable_diag_desc1( Nvars, trim(filename), dimx, dimy, vname1 )
+      ! if NOT first timestep in run and file size is too large write WARNING 
+      IF (timestep == 1)                                                       & 
+         CALL cable_diag_desc1( Nvars, TRIM(filename), dimx, dimy, vname1 )
       
-      call cable_diag_data1( Nvars, trim(filename), dimx, timestep, dimy, &
+      CALL cable_diag_data1( Nvars, TRIM(filename), dimx, timestep, dimy,      &
                              var1 )
 END SUBROUTINE cable_diag1
 
@@ -83,53 +97,53 @@ END SUBROUTINE cable_diag1
 
 SUBROUTINE cable_diag_desc1( Nvars, filename, dimx, dimy, vname1 )
 
-   integer, intent(in) :: Nvars,dimx,dimy 
-   character(len=*), intent(in) :: filename, vname1
-   integer, save :: gopenstatus = 1
+   INTEGER, INTENT(IN) :: Nvars,dimx,dimy 
+   CHARACTER(LEN=*), INTENT(IN) :: filename, vname1
+   INTEGER, SAVE :: gopenstatus = 1
 
-     open(unit=713941,file=filename//'.dat', status="replace", &
-          action="write", iostat=gopenstatus )
+     OPEN(UNIT=713941,FILE=filename//'.dat', STATUS="replace",                 &
+          ACTION="write", IOSTAT=gopenstatus )
      
-      if(gopenstatus==gok) then
-            write (713941,*) 'Number of var(s): '
-            write (713941,*) Nvars
-            write (713941,*) 'Name of var(s): '
-            write (713941,7139) vname1 
- 7139       format(a)            
-            write (713941,*) 'dimension of var(s) in x: '
-            write (713941,*) dimx 
-            write (713941,*) 'dimension of var(s) in y: '
-            write (713941,*) dimy 
-      else
-         write (*,*), filename//'.dat',' Error: unable to write'
-      endif
+      IF(gopenstatus==gok) THEN
+            WRITE (713941,*) 'Number of var(s): '
+            WRITE (713941,*) Nvars
+            WRITE (713941,*) 'Name of var(s): '
+            WRITE (713941,7139) vname1 
+ 7139       FORMAT(a)            
+            WRITE (713941,*) 'dimension of var(s) in x: '
+            WRITE (713941,*) dimx 
+            WRITE (713941,*) 'dimension of var(s) in y: '
+            WRITE (713941,*) dimy 
+      ELSE
+         WRITE (*,*), filename//'.dat',' Error: unable to write'
+      ENDIF
       
-   close(713941)
+   CLOSE(713941)
   
 END SUBROUTINE cable_diag_desc1
 
 
 SUBROUTINE cable_diag_data1( Nvars, filename, dimx, timestep, kend, var1  )
 
-   integer, intent(in) :: Nvars, dimx, timestep, kend
-   real, intent(in), dimension(:) :: var1
-   character(len=*), intent(in) :: filename
-   integer, save :: gopenstatus = 1
+   INTEGER, INTENT(IN) :: Nvars, dimx, timestep, kend
+   REAL, INTENT(IN), DIMENSION(:) :: var1
+   CHARACTER(LEN=*), INTENT(IN) :: filename
+   INTEGER, SAVE :: gopenstatus = 1
 
-   if (timestep == 1)  then 
-      open(unit=713942,file=filename//'.bin',status="unknown", &
-           action="write", iostat=gopenstatus, form="unformatted", &
-           position='append' )
-   endif   
+   IF (timestep == 1)  THEN 
+      OPEN(UNIT=713942,FILE=filename//'.bin',STATUS="unknown",                 &
+           ACTION="write", IOSTAT=gopenstatus, FORM="unformatted",             &
+           POSITION='append' )
+   ENDIF   
  
-   if(gopenstatus==gok) then
-         write (713942) var1
-   else
-      write (*,*) filename//'.bin',' NOT open for write. Error'
-   endif
+   IF(gopenstatus==gok) THEN
+         WRITE (713942) var1
+   ELSE
+      WRITE (*,*) filename//'.bin',' NOT open for write. Error'
+   ENDIF
 
-   if (timestep == kend) & 
-      close(713942)
+   IF (timestep == kend)                                                       & 
+      CLOSE(713942)
 
 END SUBROUTINE cable_diag_data1
 
@@ -138,11 +152,11 @@ END SUBROUTINE cable_diag_data1
 !==========================================================================!
 
 SUBROUTINE cable_stat( routname)
-   use cable_common_module, only : ktau_gl, knode_gl
+   USE cable_common_module, ONLY : ktau_gl, knode_gl
 
-   character(len=*), intent(in) :: routname
-      if(knode_gl==1) & 
-         write(6,*) 'CABLE@  ', routname, ktau_gl
+   CHARACTER(LEN=*), INTENT(IN) :: routname
+      IF(knode_gl==1)                                                          & 
+         WRITE(6,*) 'CABLE_log @  ', routname, ktau_gl
 
 END SUBROUTINE cable_stat
 
