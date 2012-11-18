@@ -61,8 +61,9 @@
 
 # these are the teo data files to compare
 set -A basename std FLUXES00	
-CABLE_tools='/projects/access/CABLE-AUX/tools'
-spec_tools='zero_diff'
+#CABLE_tools='/projects/access/CABLE-AUX/tools'
+CABLE_tools='./'
+spec_tools=''
 
 if [[ $1 == '-r' ]]; then
 
