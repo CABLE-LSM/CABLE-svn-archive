@@ -43,14 +43,13 @@
 
 
 MODULE cable_diag_module
-   IMPLICIT NONe
+   IMPLICIT NONE
+
+   PUBLIC :: cable_diag_zero
+   PRIVATE
+
    INTEGER, PARAMETER :: gok=0
    INTEGER :: galloctest=1
-  
-   !--- subrs overloaded to respond to call cable_diag 
-   INTERFACE cable_diag
-      MODULE PROCEDURE cable_diag_zero
-   END INTERFACE cable_diag
   
 CONTAINS
 
@@ -60,51 +59,37 @@ CONTAINS
 !==========================================================================!
 
 SUBROUTINE cable_diag_zero( Nvars, basename, dimx, dimy, timestep, node,       &
-                        vname1, var1, level )
+                        vname1, var1 )
    INTEGER, INTENT(IN) :: Nvars,dimx, dimy, timestep,node
    REAL, INTENT(IN), DIMENSION(:) :: var1
-   INTEGER :: i=0, fstatus
-   INTEGER, DIMENSION(13) :: fvalues 
-   CHARACTER(LEN=*), INTENT(IN) :: basename, vname1, level
+   CHARACTER(LEN=*), INTENT(IN) :: basename, vname1
    CHARACTER(LEN=30) :: filename, chnode
  
       WRITE(chnode,10) node
    10 FORMAT(i2.2)   
       filename=TRIM(TRIM(basename)//TRIM(chnode))
    
-      fstatus = STAT( filename, fvalues ) 
-      write(6,*) 'file status', fstatus 
-      stop 
-      ! if first timestep in run and file already exists stop 
-      IF( timestep == 1 ) THEN
-         WRITE(6,*) 'CABLE_log: file already exists', filename
-         STOP
-      ENDIF   
-      ! if NOT first timestep in run and file size is too large write WARNING 
+      ! if first timestep in run create .dat file w basic params dimx, dimy etc 
       IF (timestep == 1)                                                       & 
-      IF( timestep == 1 .AND. knode_gl==1 )                                                       & 
+         CALL cable_diag_zero_dat( Nvars, TRIM(filename), dimx, dimy, vname1 )
       
-      ! if NOT first timestep in run and file size is too large write WARNING 
-      IF (timestep == 1)                                                       & 
-         CALL cable_diag_desc1( Nvars, TRIM(filename), dimx, dimy, vname1 )
-      
-      CALL cable_diag_data1( Nvars, TRIM(filename), dimx, timestep, dimy,      &
+      CALL cable_diag_zero_bin( Nvars, TRIM(filename), dimx, timestep, dimy,   &
                              var1 )
-END SUBROUTINE cable_diag1
+END SUBROUTINE cable_diag_zero
 
 !=============================================================================!
 !=============================================================================!
 
-SUBROUTINE cable_diag_desc1( Nvars, filename, dimx, dimy, vname1 )
+SUBROUTINE cable_diag_zero_dat( Nvars, filename, dimx, dimy, vname1 )
 
    INTEGER, INTENT(IN) :: Nvars,dimx,dimy 
    CHARACTER(LEN=*), INTENT(IN) :: filename, vname1
    INTEGER, SAVE :: gopenstatus = 1
 
-     OPEN(UNIT=713941,FILE=filename//'.dat', STATUS="replace",                 &
-          ACTION="write", IOSTAT=gopenstatus )
-     
-      IF(gopenstatus==gok) THEN
+      OPEN(UNIT=713941,FILE=filename//'.dat', STATUS="replace",                &
+           ACTION="write", IOSTAT=gopenstatus )
+ 
+         IF(gopenstatus==gok) THEN
             WRITE (713941,*) 'Number of var(s): '
             WRITE (713941,*) Nvars
             WRITE (713941,*) 'Name of var(s): '
@@ -114,38 +99,81 @@ SUBROUTINE cable_diag_desc1( Nvars, filename, dimx, dimy, vname1 )
             WRITE (713941,*) dimx 
             WRITE (713941,*) 'dimension of var(s) in y: '
             WRITE (713941,*) dimy 
-      ELSE
-         WRITE (*,*), filename//'.dat',' Error: unable to write'
-      ENDIF
+         ELSE
+            WRITE (*,*), filename//'.dat',' Error: unable to write'
+         ENDIF
       
    CLOSE(713941)
   
-END SUBROUTINE cable_diag_desc1
+END SUBROUTINE cable_diag_zero_dat
 
 
-SUBROUTINE cable_diag_data1( Nvars, filename, dimx, timestep, kend, var1  )
+SUBROUTINE cable_diag_zero_bin( Nvars, filename, dimx, timestep, kend, var1  )
 
    INTEGER, INTENT(IN) :: Nvars, dimx, timestep, kend
    REAL, INTENT(IN), DIMENSION(:) :: var1
    CHARACTER(LEN=*), INTENT(IN) :: filename
+   CHARACTER(LEN=300)  :: Ffilename
    INTEGER, SAVE :: gopenstatus = 1
+   INTEGER :: fsize
+   REAL :: fsize_real
+   LOGICAL, SAVE :: fsize_big=.FALSE., fsize0_big=.FALSE.
 
+      Ffilename=TRIM(filename//'.bin')
+   ! open file on first timestep only
    IF (timestep == 1)  THEN 
-      OPEN(UNIT=713942,FILE=filename//'.bin',STATUS="unknown",                 &
+      OPEN(UNIT=713942,FILE=TRIM(Ffilename),STATUS="unknown",                 &
            ACTION="write", IOSTAT=gopenstatus, FORM="unformatted",             &
            POSITION='append' )
    ENDIF   
  
    IF(gopenstatus==gok) THEN
+      
+      INQUIRE( UNIT=713942, SIZE=fsize ) 
+      fsize_real = real(fsize)/1000./1000. 
+      
+      IF( .NOT. fsize0_big )  THEN 
+         
+         IF( timestep == 1 .AND. fsize_real > 0.01 ) THEN
+            WRITE(6,*) ''
+            WRITE(6,*) 'CABLE_log:'
+            WRITE(6,*) 'It appears that ', TRIM(Ffilename),                    &
+                       ' is quite large on the first timestep.' 
+            WRITE(6,*) fsize_real, 'Mb'
+            WRITE(6,*) 'Perhaps it already existed? We caution that ' 
+            WRITE(6,*) TRIM(Ffilename), ' may be unreliable.' 
+            WRITE(6,*) ''
+            fsize0_big=.TRUE.
+         ENDIF
+      
+      ENDIF
+
+      IF( .NOT. fsize_big ) THEN 
+      
+         IF( fsize_real > 1. ) THEN
+            WRITE(6,*) ''
+            WRITE(6,*) 'CABLE_log:'
+            WRITE(6,*) 'It appears that ', TRIM(Ffilename), 'is now this big: ' 
+            WRITE(6,*) fsize_real, 'Mb'
+            WRITE(6,*) 'As a precaution we are not adding further to the file' 
+            WRITE(6,*) ''
+            fsize_big=.TRUE. 
+         ENDIF   
+      
+      ENDIF   
+
+      IF( .NOT. fsize_big )                                                    & 
          WRITE (713942) var1
+
    ELSE
-      WRITE (*,*) filename//'.bin',' NOT open for write. Error'
+      WRITE (*,*) Ffilename,' NOT open for write. Error'
    ENDIF
 
+   ! close file on last timestep only
    IF (timestep == kend)                                                       & 
       CLOSE(713942)
 
-END SUBROUTINE cable_diag_data1
+END SUBROUTINE cable_diag_zero_bin
 
 !==========================================================================!
 !--- cable generic print status
