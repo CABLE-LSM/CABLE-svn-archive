@@ -286,7 +286,6 @@ MODULE cable_def_types_mod
          wetfac_cs,&! 
          fevw,    & ! lat heat fl wet canopy (W/m2)
          fhvw,    & ! sens heatfl from wet canopy (W/m2)
-         oldcansto,&! canopy water storage (mm)
          fhv,     & ! sens heatfl from canopy (W/m2)
          fns,     & ! net rad avail to soil (W/m2)
          fhs,     & ! sensible heat flux from soil
@@ -769,7 +768,6 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fes(mp) )    
    ALLOCATE( var% fes_cor(mp) )    
    ALLOCATE( var% gswx(mp,mf) )  
-   ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
    
 END SUBROUTINE alloc_canopy_type
@@ -1164,7 +1162,6 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fes )    
    DEALLOCATE( var% fes_cor )    
    DEALLOCATE( var% gswx )  
-   DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
 
 END SUBROUTINE dealloc_canopy_type

@@ -2,7 +2,23 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg ubun
+}
+
+
+## Ubuntu
+host_ubun()
+{
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
+   export FC=ifort
+   #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all' 
+   export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/usr/local/lib -O0'
+   build_build
+   cd ../
+   build_status
 }
 
 
@@ -74,7 +90,7 @@ host_vayu()
    export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -ftrapuv' 
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf'
@@ -273,11 +289,11 @@ build_build()
 {
    # write file for consumption by Fortran code
    # get SVN revision number 
-   CABLE_REV=`svn info | grep Revis |cut -c 11-18`
-   print $CABLE_REV > ~/.cable_rev
-   # get SVN status 
-   CABLE_STAT=`svn status`
-   print $CABLE_STAT >> ~/.cable_rev
+#   CABLE_REV=`svn info | grep Revis |cut -c 11-18`
+#   print $CABLE_REV > ~/.cable_rev
+#   # get SVN status 
+#   CABLE_STAT=`svn status`
+#   print $CABLE_STAT >> ~/.cable_rev
  
    if [[ ! -d .tmp ]]; then
       mkdir .tmp

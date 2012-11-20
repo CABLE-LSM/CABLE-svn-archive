@@ -283,8 +283,6 @@ PROGRAM cable_offline_driver
          ! needed for CASA-CNP
          nyear =INT((kend-kstart+1)/(365*ktauday))
    
-         canopy%oldcansto=canopy%cansto
-   
          ! Get met data and LAI, set time variables.
          ! Rainfall input may be augmented for spinup purposes:
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)

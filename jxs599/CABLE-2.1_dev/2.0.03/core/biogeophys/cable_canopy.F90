@@ -43,8 +43,19 @@ MODULE cable_canopy_module
    
    TYPE( icanopy_type ) :: C
   
+   REAL, DIMENSION(:), ALLOCATABLE, SAVE ::                                    &
+      oldcansto        ! store cansto from previous timestep
+   
      
 CONTAINS
+ 
+SUBROUTINE allocate_local_memory()
+   
+   USE cable_def_types_mod, ONLY : mp
+
+      ALLOCATE( oldcansto(mp) ) 
+
+END SUBROUTINE allocate_local_memory
  
 
 SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
@@ -121,18 +132,21 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    INTEGER :: j
    
-   INTEGER, SAVE :: call_number =0
+   LOGICAL, SAVE :: first_call =.TRUE.
    
    ! END header
-   
-   call_number = call_number + 1
+  
+   ! allocate memory on fist time_step 
+   IF(first_call) THEN
+      CALL allocate_local_memory()
+      first_call =.FALSE.
+   ENDIF
            
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
    ! ACCESS version has this statement but elsewhere?
-   IF( .NOT. cable_runtime%um)                                                 &
-      canopy%cansto =  canopy%oldcansto
+   !IF( .NOT. cable_runtime%um)                                                 &
 
    ALLOCATE( cansat(mp), gbhu(mp,mf))
    ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
@@ -527,6 +541,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%dewmm = - (min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc)) * &
         dels * 1.0e3 / (C%RHOW*air%rlam)
 
+   ! store this value from previous timestep before it is updated 
+   oldcansto =  canopy%cansto
+
    ! Add dewfall to canopy water storage:
    canopy%cansto = canopy%cansto + canopy%dewmm
    
@@ -548,7 +565,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%cansto=canopy%cansto - canopy%spill
    
    ! Calculate the total change in canopy water store (mm/dels):
-   canopy%delwc = canopy%cansto-canopy%oldcansto
+   canopy%delwc = canopy%cansto - oldcansto
    
    ! calculate dgdtg, derivative of ghflux 3 instances
    ! d(canopy%fns)/d(ssnow%tgg)
