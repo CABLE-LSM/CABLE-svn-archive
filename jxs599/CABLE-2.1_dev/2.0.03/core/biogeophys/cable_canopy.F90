@@ -152,7 +152,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    !jhan: dealwith local vars        
    ALLOCATE( cansat(mp), gbhu(mp,mf))
-   ALLOCATE(  fwsoil(mp), tlfx(mp), tlfy(mp) )
+   ALLOCATE( fwsoil(mp), tlfx(mp), tlfy(mp) )
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
    ALLOCATE( ghwet(mp))
@@ -1339,9 +1339,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
    IF ( first_call ) THEN 
+      
       ALLOCATE( dsx(mp) )
       ALLOCATE( gswmin(mp,mf ))
+   
    ENDIF
+
+   IF( iter == 1) dsx = met%dva
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
@@ -1484,7 +1488,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    
             ! "d_{3}" in Wang and Leuning, 1998, appendix E:
             cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
-            cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i) +                    &
+            cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i) +                &
                      C%gam2 * tdiff(i) * tdiff(i ))
     
             ! All equations below in appendix E in Wang and Leuning 1998 are
@@ -1502,8 +1506,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     
             rdx(i,1) = (C%cfrd3*vcmxt3(i,1) + C%cfrd4*vcmxt4(i,1))*fwsoil(i)  
             rdx(i,2) = (C%cfrd3*vcmxt3(i,2) + C%cfrd4*vcmxt4(i,2))*fwsoil(i)
-            
-            IF ( first_call ) dsx = met%dva
             
             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                           * ( ( 1.0 - veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) &
@@ -1603,7 +1605,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      SUM( rad%gradis(i,:) )
 
             ! Update leaf surface vapour pressure deficit:
-            !dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
+            dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
 
             ! Store change in leaf temperature between successive iterations:
             deltlf(i) = tlfxx(i)-tlfx(i)
