@@ -41,7 +41,7 @@ MODULE cable_canopy_module
    PUBLIC define_canopy
    PRIVATE
    
-   TYPE( icanopy_type ) :: C
+   TYPE( icanopy_type ), SAVE :: C
   
    REAL, DIMENSION(:), ALLOCATABLE, SAVE ::                                    &
       oldcansto        ! store cansto from previous timestep
@@ -136,18 +136,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    ! END header
   
-   ! allocate memory on fist time_step 
    IF(first_call) THEN
+      
+      ! allocate memory on fist time_step 
       CALL allocate_local_memory()
       first_call =.FALSE.
+      
+      ! assign local ptrs to constants defined in cable_data_module
+      CALL point2constants(C)    
+
    ENDIF
-           
-   ! assign local ptrs to constants defined in cable_data_module
-   CALL point2constants(C)    
-
-   ! ACCESS version has this statement but elsewhere?
-   !IF( .NOT. cable_runtime%um)                                                 &
-
+   
+   !jhan: dealwith local vars        
    ALLOCATE( cansat(mp), gbhu(mp,mf))
    ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
@@ -189,7 +189,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%fess = 0.
    canopy%fesp = 0.
    ssnow%potev = 0.
-   canopy%fevw_pot = 0.
 
    CALL radiation( ssnow, veg, air, met, rad, canopy )
 
