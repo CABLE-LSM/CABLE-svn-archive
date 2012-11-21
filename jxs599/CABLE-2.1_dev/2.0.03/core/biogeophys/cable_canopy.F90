@@ -113,7 +113,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    REAL, DIMENSION(:), POINTER ::                                              & 
       cansat,        & ! max canopy intercept. (mm)
-      dsx,           & ! leaf surface vpd
       fwsoil,        & ! soil water modifier of stom. cond
       tlfx,          & ! leaf temp prev. iter (K)
       tlfy             ! leaf temp (K)
@@ -153,7 +152,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    !jhan: dealwith local vars        
    ALLOCATE( cansat(mp), gbhu(mp,mf))
-   ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
+   ALLOCATE(  fwsoil(mp), tlfx(mp), tlfy(mp) )
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
    ALLOCATE( ghwet(mp))
@@ -181,7 +180,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    CALL qsatfjh( qstvair, met%tvair - C%tfrz, met%pmb )
 
    met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
-   dsx = met%dva     ! init. leaf surface vpd
    
    tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
    tlfy = met%tk  ! initialise current leaf temp (K)
@@ -283,7 +281,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       sum_rad_rniso = SUM(rad%rniso,2)
 
       CALL dryLeaf( dels, rad, rough, air, met,                                &
-                    veg, canopy, soil, ssnow, met%dva,                             &
+                    veg, canopy, soil, ssnow,                                  &
                     fwsoil, tlfx, tlfy, ecy, hcy,                              &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter )
@@ -592,7 +590,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                 canopy%fwet  ! YP nov2009
 
    DEALLOCATE(cansat,gbhu)
-   DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
+   DEALLOCATE(fwsoil, tlfx, tlfy)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
@@ -1231,7 +1229,7 @@ END SUBROUTINE Surf_wetness_fact
 ! -----------------------------------------------------------------------------
 
 SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
-                    veg, canopy, soil, ssnow, dsx,                             &
+                    veg, canopy, soil, ssnow,                                  &
                     fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
                     rny, gbhu, gbhf, csx,                                      &
                     cansat, ghwet, iter )
@@ -1250,7 +1248,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    TYPE (soil_parameter_type), INTENT(inout)   :: soil
    
    REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
-      dsx,        & ! leaf surface vpd
       fwsoil,     & ! soil water modifier of stom. cond
       tlfx,       & ! leaf temp prev. iter (K)
       tlfy          ! leaf temp (K)
@@ -1327,16 +1324,24 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       frac42,     & ! 2D frac4
       temp2
 
-   REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
-   
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
    INTEGER :: i, j, k, kk  ! iteration count
+
+   LOGICAL, SAVE :: first_call = .TRUE.   
+   
+   REAL, DIMENSION(:), ALLOCATABLE, SAVE ::                                    & 
+      dsx            ! leaf surface vpd
+   
+   REAL, DIMENSION(:,:), ALLOCATABLE, SAVE :: gswmin ! min stomatal conductance
    
    ! END header
 
 
-   ALLOCATE( gswmin(mp,mf ))
+   IF ( first_call ) THEN 
+      ALLOCATE( dsx(mp) )
+      ALLOCATE( gswmin(mp,mf ))
+   ENDIF
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
@@ -1497,6 +1502,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     
             rdx(i,1) = (C%cfrd3*vcmxt3(i,1) + C%cfrd4*vcmxt4(i,1))*fwsoil(i)  
             rdx(i,2) = (C%cfrd3*vcmxt3(i,2) + C%cfrd4*vcmxt4(i,2))*fwsoil(i)
+            
+            IF ( first_call ) dsx = met%dva
             
             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                           * ( ( 1.0 - veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) &
@@ -1700,8 +1707,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%frday = 12.0 * SUM(rdy, 2)
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
-   
-   DEALLOCATE( gswmin )
+
+   first_call = .FALSE. 
 
 END SUBROUTINE dryLeaf
 
