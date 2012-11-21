@@ -35,6 +35,7 @@
 MODULE cable_canopy_module
    
    USE cable_data_module, ONLY : icanopy_type, point2constants 
+   USE cable_def_types_mod, ONLY : r_2 
    
    IMPLICIT NONE
    
@@ -48,10 +49,23 @@ MODULE cable_canopy_module
       fevw_pot         ! potential lat heat from canopy
      
    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
-         gswx           ! stom cond for water
+      gswx           ! stom cond for water
+
+   REAL(r_2), DIMENSION(:,:), ALLOCATABLE ::                                   &
+      sum_gbh       ! summed gbhu + gbhf 
+   
+   REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                     &
+      sum_gbh2       ! summed sum_gbh in 2nd dimension
+
+   REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
+      gbhu,          & ! forcedConvectionBndryLayerCond
+      gbhf             ! freeConvectionBndryLayerCond
+
 
 CONTAINS
  
+! ==============================================================================
+
 SUBROUTINE allocate_local_memory()
    
    USE cable_def_types_mod, ONLY : mp, mf
@@ -59,8 +73,12 @@ SUBROUTINE allocate_local_memory()
       ALLOCATE( oldcansto(mp), fevw_pot(mp) ) 
       ALLOCATE( gswx(mp,mf) ) 
 
+      ALLOCATE( sum_gbh(mp,mf), sum_gbh2(mf) )
+      ALLOCATE( gbhu(mp,mf), gbhf(mp,mf))
+
 END SUBROUTINE allocate_local_memory
  
+! ==============================================================================
 
 SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    USE cable_def_types_mod
@@ -127,14 +145,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ghwet             ! cond for heat for a wet canopy
    
    REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
-      gbhu,          & ! forcedConvectionBndryLayerCond
-      gbhf,          & ! freeConvectionBndryLayerCond
       csx              ! leaf surface CO2 concentration
 
    REAL  :: rt_min
 
    INTEGER :: j
    
+
    LOGICAL, SAVE :: first_call =.TRUE.
    
    ! END header
@@ -151,10 +168,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ENDIF
    
    !jhan: dealwith local vars        
-   ALLOCATE( cansat(mp), gbhu(mp,mf))
+   ALLOCATE( cansat(mp) )
    ALLOCATE( fwsoil(mp), tlfx(mp), tlfy(mp) )
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
-   ALLOCATE( gbhf(mp,mf), csx(mp,mf))
+   ALLOCATE( csx(mp,mf))
    ALLOCATE( ghwet(mp))
 
    ! BATS-type canopy saturation proportional to LAI:
@@ -280,15 +297,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       sum_rad_rniso = SUM(rad%rniso,2)
 
+      sum_gbh = gbhu + gbhf
+      sum_gbh2 = SUM(sum_gbh,2)
+      
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow,                                  &
                     fwsoil, tlfx, tlfy, ecy, hcy,                              &
-                    rny, gbhu, gbhf, csx, cansat,                              &
+                    rny, sum_gbh, sum_gbh2,csx, cansat,                        &
                     ghwet,  iter )
      
       CALL wetLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, cansat, tlfy,                                 &
-                    gbhu, gbhf, ghwet )
+                    sum_gbh, sum_gbh2, ghwet )
 
      
       ! Calculate latent heat from vegetation:
@@ -350,7 +370,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
 
 
-      CALL within_canopy( gbhu, gbhf )
+      CALL within_canopy( sum_gbh2 )
 
       ! Saturation specific humidity at soil/snow surface temperature:
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
@@ -589,10 +609,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
 
-   DEALLOCATE(cansat,gbhu)
+   DEALLOCATE(cansat)
    DEALLOCATE(fwsoil, tlfx, tlfy)
    DEALLOCATE(ecy, hcy, rny)
-   DEALLOCATE(gbhf, csx)
+   DEALLOCATE(csx)
    DEALLOCATE(ghwet)
 
 CONTAINS
@@ -729,13 +749,12 @@ END SUBROUTINE latent_heat_flux
 
 ! -----------------------------------------------------------------------------
 
-SUBROUTINE within_canopy( gbhu, gbhf )
+SUBROUTINE within_canopy( sum_gbh2 )
 
    USE cable_def_types_mod, only : mp, r_2
 
-   REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
-      gbhu,    &  ! forcedConvectionBndryLayerCond
-      gbhf        ! freeConvectionBndryLayerCond
+   REAL(r_2), INTENT(IN), DIMENSION(:) ::                                      &
+      sum_gbh2            ! summed forced & free ConvectionBndryLayerCond
       
    REAL, DIMENSION(mp) ::                                                      &
       rrsw,             & ! recipr. stomatal resistance for water
@@ -751,7 +770,7 @@ SUBROUTINE within_canopy( gbhu, gbhf )
  
    INTEGER :: j
    
-   rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT 
+   rrbw = sum_gbh2(2)/air%cmolar  ! MJT 
    
    ! leaf stomatal resistance for water
    rrsw = sum(gswx,2)/air%cmolar ! MJT
@@ -1051,7 +1070,7 @@ END FUNCTION rplant
 ! -----------------------------------------------------------------------------
 
 SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
-                    gbhu, gbhf, ghwet )
+                    sum_gbh, sum_gbh2, ghwet )
 
    USE cable_def_types_mod
 
@@ -1069,8 +1088,10 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
       cansat           ! max canopy intercept. (mm)
 
    REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
-      gbhu,          & ! forcedConvectionBndryLayerCond
-      gbhf             ! freeConvectionBndryLayerCond
+      sum_gbh            ! summed forced & free ConvectionBndryLayerCond
+
+   REAL(r_2), INTENT(IN), DIMENSION(:) ::                                    &
+      sum_gbh2            ! summed sum_gbh in dim. 2 
 
    REAL(r_2), INTENT(OUT), DIMENSION(:) ::                                     &
       ghwet            ! cond for heat for a wet canopy
@@ -1085,7 +1106,7 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
    
    !i sums, terms of convenience/readability
    REAL, DIMENSION(mp) ::                                                      &
-     sum_gbh, sum_rad_rniso, sum_rad_gradis, xx1
+     sum_rad_rniso, sum_rad_gradis, xx1
 
    INTEGER :: j
    
@@ -1096,7 +1117,7 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
    ghrwet= 1.0e-3
    canopy%fevw = 0.0
    canopy%fhvw = 0.0
-   sum_gbh = SUM((gbhu+gbhf),2)
+   
    sum_rad_rniso = SUM(rad%rniso,2)
    sum_rad_gradis = SUM(rad%gradis,2)
 
@@ -1106,8 +1127,8 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
 
          ! VEG SENSIBLE & LATENT HEAT FLUXES fevw, fhvw (W/m2) for a wet canopy
          ! calculate total thermal resistance, rthv in s/m
-         ghwet(j) = 2.0   * sum_gbh(j) 
-         gwwet(j) = 1.075 * sum_gbh(j) 
+         ghwet(j) = 2.0   * sum_gbh2(j) 
+         gwwet(j) = 1.075 * sum_gbh2(j) 
          ghrwet(j) = sum_rad_gradis(j) + ghwet(j)
          
          ! Calculate fraction of canopy which is wet:
@@ -1231,7 +1252,7 @@ END SUBROUTINE Surf_wetness_fact
 SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow,                                  &
                     fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
-                    rny, gbhu, gbhf, csx,                                      &
+                    rny, sum_gbh, sum_gbh2, csx,                                      &
                     cansat, ghwet, iter )
 
    USE cable_def_types_mod
@@ -1258,14 +1279,18 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       rny         !& !
 
    REAL(R_2),INTENT(INOUT), DIMENSION(:,:) ::                                  &
-      gbhu,       & ! forcedConvectionBndryLayerCond
-      gbhf,       & ! freeConvectionBndryLayerCond
       csx           ! leaf surface CO2 concentration
 
    REAL,INTENT(IN), DIMENSION(:) :: cansat
 
    REAL(r_2), INTENT(OUT), DIMENSION(:) ::                                     &
       ghwet  ! cond for heat for a wet canopy
+
+   REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
+      sum_gbh            ! summed forced & free ConvectionBndryLayerCond
+
+   REAL(r_2), INTENT(IN), DIMENSION(:) ::                                    &
+      sum_gbh2            ! summed sum_gbh in dim. 2 
 
    INTEGER,INTENT(IN) :: iter
  
@@ -1292,7 +1317,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       sum_rad_gradis,& ! 
       gwwet,         & ! cond for water for a wet canopy
       ghrwet,        & ! wet canopy cond: heat & thermal rad
-      sum_gbh,       & !
       ccfevw,        & ! limitation term for
                        ! wet canopy evaporation rate
       temp             !
@@ -1396,7 +1420,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ghrwet= 1.0e-3
    canopy%fevw = 0.0
    canopy%fhvw = 0.0
-   sum_gbh = SUM((gbhu+gbhf),2)
+   
    sum_rad_rniso = SUM(rad%rniso,2)
    sum_rad_gradis = SUM(rad%gradis,2)
 
@@ -1424,8 +1448,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          
          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
          
-            ghwet(i) = 2.0   * sum_gbh(i)
-            gwwet(i) = 1.075 * sum_gbh(i)
+            ghwet(i) = 2.0   * sum_gbh2(i)
+            gwwet(i) = 1.075 * sum_gbh2(i)
             ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
        
             ! Calculate fraction of canopy which is wet:
@@ -1449,7 +1473,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             gbhf(i,:) = MAX( 1.e-6, gbhf(i,:) )
       
             ! Conductance for heat:
-            gh(i,:) = 2.0 * (gbhu(i,:) + gbhf(i,:))
+            gh(i,:) = 2.0 * ( sum_gbh(i,:) )
       
             ! Conductance for heat and longwave radiation:
             ghr(i,:) = rad%gradis(i,:)+gh(i,:)
@@ -1540,7 +1564,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                IF(rad%fvlai(i,kk)>C%LAI_THRESH) THEN
 
                   csx(i,kk) = met%ca(i) - C%RGBWC*anx(i,kk) / (                &
-                              gbhu(i,kk) + gbhf(i,kk) )
+                              sum_gbh(i,kk) )
                   csx(i,kk) = MAX( 1.0e-4, csx(i,kk) )
 
                   gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk) +               &
@@ -1549,7 +1573,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                   !Recalculate conductance for water:
                   gw(i,kk) = 1.0 / ( 1.0 / gswx(i,kk) +                 &
-                             1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
+                             1.0 / ( 1.075 * ( sum_gbh(i,kk) ) ) )
 
                   gw(i,kk) = MAX( gw(i,kk), 0.00001 )
 
