@@ -47,13 +47,17 @@ MODULE cable_canopy_module
       oldcansto,     & ! store cansto from previous timestep
       fevw_pot         ! potential lat heat from canopy
      
+   REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
+         gswx           ! stom cond for water
+
 CONTAINS
  
 SUBROUTINE allocate_local_memory()
    
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, mf
 
       ALLOCATE( oldcansto(mp), fevw_pot(mp) ) 
+      ALLOCATE( gswx(mp,mf) ) 
 
 END SUBROUTINE allocate_local_memory
  
@@ -161,7 +165,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
 
    fevw_pot = 0.0
-   canopy%gswx = 1e-3     ! default stomatal conuctance 
+   gswx = 1e-3     ! default stomatal conuctance 
    gbhf = 1e-3     ! default free convection boundary layer conductance
    gbhu = 1e-3     ! default forced convection boundary layer conductance
    ssnow%evapfbl = 0.0
@@ -424,8 +428,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    !---diagnostic purposes
    canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         & 
-                   * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
-                   canopy%vlaiw(:))*canopy%gswx(:,2)
+                   * gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
+                   canopy%vlaiw(:))*gswx(:,2)
 
    canopy%gswx_T = max(1.e-05,canopy%gswx_T )
           
@@ -752,7 +756,7 @@ SUBROUTINE within_canopy( gbhu, gbhf )
    rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT 
    
    ! leaf stomatal resistance for water
-   rrsw = sum(canopy%gswx,2)/air%cmolar ! MJT
+   rrsw = sum(gswx,2)/air%cmolar ! MJT
    
    DO j=1,mp
    
@@ -1530,12 +1534,12 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                               gbhu(i,kk) + gbhf(i,kk) )
                   csx(i,kk) = MAX( 1.0e-4, csx(i,kk) )
 
-                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk) +               &
+                  gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk) +               &
                                       MAX( 0.0, C%RGSWC * xleuning(i,kk) *     &
                                       anx(i,kk) ) )
 
                   !Recalculate conductance for water:
-                  gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
+                  gw(i,kk) = 1.0 / ( 1.0 / gswx(i,kk) +                 &
                              1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
 
                   gw(i,kk) = MAX( gw(i,kk), 0.00001 )
@@ -1619,12 +1623,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             an_y(i,2) = anx(i,2)
             
             ! save last values calculated for ssnow%evapfbl
-            oldevapfbl(i,1) = ssnow%evapfbl(i,1)
-            oldevapfbl(i,2) = ssnow%evapfbl(i,2)
-            oldevapfbl(i,3) = ssnow%evapfbl(i,3)
-            oldevapfbl(i,4) = ssnow%evapfbl(i,4)
-            oldevapfbl(i,5) = ssnow%evapfbl(i,5)
-            oldevapfbl(i,6) = ssnow%evapfbl(i,6)
+            oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
          ENDIF
           

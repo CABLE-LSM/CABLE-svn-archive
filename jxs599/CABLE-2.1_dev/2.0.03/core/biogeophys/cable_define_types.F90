@@ -309,7 +309,6 @@ MODULE cable_def_types_mod
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
-         gswx,    & ! stom cond for water
          zetar      ! stability correction
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
@@ -765,7 +764,6 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fhvw(mp) )   
    ALLOCATE( var% fes(mp) )    
    ALLOCATE( var% fes_cor(mp) )    
-   ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% zetar(mp,NITER) )  
    
 END SUBROUTINE alloc_canopy_type
@@ -1158,7 +1156,6 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fhvw )   
    DEALLOCATE( var% fes )    
    DEALLOCATE( var% fes_cor )    
-   DEALLOCATE( var% gswx )  
    DEALLOCATE( var% zetar )  
 
 END SUBROUTINE dealloc_canopy_type
