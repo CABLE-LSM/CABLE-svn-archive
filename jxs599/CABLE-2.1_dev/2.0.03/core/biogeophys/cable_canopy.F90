@@ -1596,7 +1596,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      SUM( rad%gradis(i,:) )
 
             ! Update leaf surface vapour pressure deficit:
-            dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
+            !dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
 
             ! Store change in leaf temperature between successive iterations:
             deltlf(i) = tlfxx(i)-tlfx(i)
