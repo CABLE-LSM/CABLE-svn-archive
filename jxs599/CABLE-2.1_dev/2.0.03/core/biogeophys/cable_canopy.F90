@@ -44,8 +44,8 @@ MODULE cable_canopy_module
    TYPE( icanopy_type ), SAVE :: C
   
    REAL, DIMENSION(:), ALLOCATABLE, SAVE ::                                    &
-      oldcansto        ! store cansto from previous timestep
-   
+      oldcansto,     & ! store cansto from previous timestep
+      fevw_pot         ! potential lat heat from canopy
      
 CONTAINS
  
@@ -53,7 +53,7 @@ SUBROUTINE allocate_local_memory()
    
    USE cable_def_types_mod, ONLY : mp
 
-      ALLOCATE( oldcansto(mp) ) 
+      ALLOCATE( oldcansto(mp), fevw_pot(mp) ) 
 
 END SUBROUTINE allocate_local_memory
  
@@ -160,7 +160,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    !---compute surface wetness factor, update cansto, through
    CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
 
-   canopy%fevw_pot = 0.0
+   fevw_pot = 0.0
    canopy%gswx = 1e-3     ! default stomatal conuctance 
    gbhf = 1e-3     ! default free convection boundary layer conductance
    gbhu = 1e-3     ! default forced convection boundary layer conductance
@@ -388,17 +388,17 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             ssnow%potev(j) = min(-0.0002,ssnow%potev(j))
          ENDIF
          
-         IF (canopy%fevw_pot(j) .ge. 0.) then
-            canopy%fevw_pot(j) = max(0.000001,canopy%fevw_pot(j))
+         IF (fevw_pot(j) .ge. 0.) then
+            fevw_pot(j) = max(0.000001,fevw_pot(j))
          ELSE
-            canopy%fevw_pot(j) = min(-0.002,canopy%fevw_pot(j))
+            fevw_pot(j) = min(-0.002,fevw_pot(j))
          ENDIF
 
       ENDDO 
 
 
       canopy%rnet = canopy%fnv + canopy%fns  
-      canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
+      canopy%epot = ((1.-rad%transd) * fevw_pot +                              &
                     rad%transd*ssnow%potev) * dels/air%rlam  
 
       ! convert to mm/day
@@ -410,7 +410,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
          IF ( canopy%wetfac_cs(j) .LE. 0. )                                    &
             canopy%wetfac_cs(j) = MAX( 0., MIN( 1.,                            &
-                                  MAX( canopy%fev(j)/canopy%fevw_pot(j),       &
+                                  MAX( canopy%fev(j) / fevw_pot(j),            &
                                   canopy%fes(j)/ssnow%potev(j) ) ) )
       
       ENDDO 
@@ -1124,7 +1124,7 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
                          / ( air%dsatdk(j)+air%psyc(j)*ghrwet(j) / gwwet(j) )  &
                          , ccfevw(j) )
 
-         canopy%fevw_pot(j) = ( air%dsatdk(j)* (sum_rad_rniso(j) -             &
+         fevw_pot(j)        = ( air%dsatdk(j)* (sum_rad_rniso(j) -             &
                               C%CAPP * C%rmair * ( met%tvair(j) - met%tk(j) )  &
                               *sum_rad_gradis(j) )                             &
                               + C%CAPP * C%rmair * met%dva(j) * ghrwet(j))     &

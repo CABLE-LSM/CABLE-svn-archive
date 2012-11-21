@@ -279,7 +279,6 @@ MODULE cable_def_types_mod
          fev,     & ! latent hf from canopy (W/m2)
          epot,    & ! total potential evaporation 
          fnpp,    & ! npp flux
-         fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
          gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
@@ -759,7 +758,6 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE ( var % evapfbl(mp,ms) )
    ALLOCATE( var% epot(mp) )   
    ALLOCATE( var% fnpp(mp) )   
-   ALLOCATE( var% fevw_pot(mp) )  
    ALLOCATE( var% gswx_T(mp) )  
    ALLOCATE( var% cdtq(mp) )   
    ALLOCATE( var% wetfac_cs(mp) )  
@@ -1153,7 +1151,6 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE ( var % evapfbl )
    DEALLOCATE( var% epot )   
    DEALLOCATE( var% fnpp )   
-   DEALLOCATE( var% fevw_pot )  
    DEALLOCATE( var% gswx_T )  
    DEALLOCATE( var% cdtq )   
    DEALLOCATE( var% wetfac_cs )  
