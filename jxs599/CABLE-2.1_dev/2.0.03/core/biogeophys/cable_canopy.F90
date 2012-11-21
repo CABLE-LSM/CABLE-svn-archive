@@ -173,12 +173,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! Initialise in-canopy temperatures and humidity:
    csx = SPREAD(met%ca, 2, mf) ! initialise leaf surface CO2 concentration
    met%tvair = met%tk
+   canopy%tv = met%tk
    met%qvair = met%qv
-   canopy%tv = met%tvair
 
    CALL define_air (met, air)
    
-   CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
+   CALL qsatfjh( qstvair, met%tvair - C%tfrz, met%pmb )
 
    met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
    dsx = met%dva     ! init. leaf surface vpd
@@ -283,7 +283,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       sum_rad_rniso = SUM(rad%rniso,2)
 
       CALL dryLeaf( dels, rad, rough, air, met,                                &
-                    veg, canopy, soil, ssnow, dsx,                             &
+                    veg, canopy, soil, ssnow, met%dva,                             &
                     fwsoil, tlfx, tlfy, ecy, hcy,                              &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter )
