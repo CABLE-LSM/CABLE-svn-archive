@@ -47,8 +47,9 @@ MODULE cable_canopy_module
    REAL, DIMENSION(:), ALLOCATABLE, SAVE ::                                    &
       oldcansto,     & ! store cansto from previous timestep
       cansat,        & ! max canopy intercept. (mm)
-      fevw_pot         ! potential lat heat from canopy
-     
+      fevw_pot,      & ! potential lat heat from canopy
+      canopy_wcint     ! canopy intercepted precip.
+       
    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
       gswx             ! stom cond for water
 
@@ -72,6 +73,7 @@ SUBROUTINE allocate_local_memory()
 
       ALLOCATE( oldcansto(mp), fevw_pot(mp), cansat(mp) ) 
       ALLOCATE( gswx(mp,mf) ) 
+      ALLOCATE( canopy_wcint(mp) ) 
 
       ALLOCATE( sum_gbh(mp,mf), sum_gbh2(mp) )
       ALLOCATE( gbhu(mp,mf), gbhf(mp,mf))
@@ -1187,47 +1189,72 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    REAL,INTENT(INOUT), DIMENSION(:) :: cansat ! max canopy intercept. (mm)
 
    !local variables
-   REAL, DIMENSION(mp)  :: lower_limit, upper_limit,ftemp
+   REAL, DIMENSION(mp)  ::                                                     &
+      rem_sto_cap,       & ! remaining storage capacity 
+      posve_rem_sto_cap, & ! POSITIVE remaining storage capacity 
+      precip_limit_dt,   & ! limited precip rate on leaves (model stability) 
+      rain_dt,           & ! liquid rain this timestep
+      min_rain_dt,       & ! min. liquid rain this timestep
+      sourceA              ! MERGE arg
+   
+   LOGICAL, DIMENSION(mp) :: mask
+   
+   LOGICAL, SAVE :: first_call = .TRUE. 
    
    INTEGER :: j
 
-   REAL :: sec_per_day
+   REAL, PARAMETER :: sec_per_day = 86400. 
 
-   ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
+   ! precpitation seen by canopy limited to 4mm/day to avoid excessive 
+   ! direct canopy evaporation and instability (especially in tropics). 
+   ! excess goes straight to ground
+   IF( first_call)                                                             &
+      ! precip limit per timstep. 4mm/day * s/dt / s/day = mm/dt 
+      precip_limit_dt = 4.0 * MIN(dels,1800.0) / sec_per_day 
    
-   ! BATS-type canopy saturation proportional to LAI:
-   ! max. canopy intercept(per veg type) [mm/LAI * LAI]
+   ! liquid rainfall per timstep but limited by 4mm/day (see above) 
+   rain_dt =  met%precip - met%precip_sn
+   
+   ! would be liquid rainfall per timstep but limited by 4mm/day (see above) 
+   min_rain_dt= MIN( rain_dt, precip_limit_dt )
+
+   
+   ! BATS-type canopy saturation from params per veg type 
+   ! max. canopy intercept [mm/LAI] * LAI
    cansat = veg%canst1 * canopy%vlaiw
 
-   ! Rainfall variable is limited so canopy interception is limited,
-   ! used to stabilise latent fluxes.
-   ! to avoid excessive direct canopy evaporation (EK nov2007, snow scheme)
-   
-   ! seconds per day 
-   sec_per_day = 24 * 60 * 60
+   ! max. canopy intercept (param. per veg type) - prev dt cansto 
+   ! i.e. how much more can the canopy hold [mm]
+   rem_sto_cap = cansat - canopy%cansto
 
-   ! seconds per timestep * ??
-   ! fraction of a day * ??
-   upper_limit = 4.0 * MIN(dels,1800.0) / sec_per_day 
+!jhan: why is this a lower limit? a param. and an old value OR is cansto the prev canopy water NOT evaporated?
    
-   ! liquid rainfall
-   ftemp =MIN( met%precip - met%precip_sn, upper_limit )
+   ! upper limit to canopy interc. is then restrict to > 0.
+   ! this shouldn't need to be done? shouldn't it got to throughfall if -ve
+   posve_rem_sto_cap = max( rem_sto_cap, 0.0) 
 
-   lower_limit = cansat - canopy%cansto
-   upper_limit = max(lower_limit, 0.0) 
+ 
+   ! Calculate canopy intercepted rainfall (canopy_wcint) 
    
-   ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
-   canopy%wcint = MERGE( MIN( upper_limit, ftemp ), 0.0,                       &
-                  ftemp > 0.0  .AND. met%tk > C%tfrz)  !EAK, 09/10
+   ! first calc args for following MERGE(): 
+   ! water uptake by canopy limited by remainig storage capacity
+   sourceA = MIN( posve_rem_sto_cap, min_rain_dt )
+
+   ! given there is rain AND temp. above freezing
+   mask = min_rain_dt > 0.0  .AND. met%tk > C%tfrz  
+   
+   ! syntax: MERGE( A, B, mask )
+   ! wcint=A, where mask=.TRUE., wcint=B elsewhere  
+   canopy_wcint = MERGE( sourceA, 0.0, mask )                       
 
 
 
    ! Define canopy throughfall (100% of precip if temp < 0C, see above):
-   canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn ,          &
-                    MAX( 0.0, met%precip - met%precip_sn - canopy%wcint) ) 
+   canopy%through = met%precip_sn + MIN( rain_dt,                              &
+                    MAX( 0.0, met%precip - met%precip_sn - canopy_wcint) ) 
 
    ! Add canopy interception to canopy storage term:
-   canopy%cansto = canopy%cansto + canopy%wcint
+   canopy%cansto = canopy%cansto + canopy_wcint
 
    ! Calculate fraction of canopy which is wet:
    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
@@ -1258,6 +1285,8 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    ! especially in offline runs in which there may be discrepancies b/n
    ! timing of precip and temperature change (EAK apr2009)
    ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
+
+   first_call = .FALSE.
 
 END SUBROUTINE Surf_wetness_fact
 
