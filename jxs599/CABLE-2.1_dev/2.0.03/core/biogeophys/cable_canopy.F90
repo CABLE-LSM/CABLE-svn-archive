@@ -49,13 +49,13 @@ MODULE cable_canopy_module
       fevw_pot         ! potential lat heat from canopy
      
    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
-      gswx           ! stom cond for water
+      gswx             ! stom cond for water
 
    REAL(r_2), DIMENSION(:,:), ALLOCATABLE ::                                   &
-      sum_gbh       ! summed gbhu + gbhf 
+      sum_gbh          ! summed gbhu + gbhf 
    
    REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                     &
-      sum_gbh2       ! summed sum_gbh in 2nd dimension
+      sum_gbh2         ! summed sum_gbh in 2nd dimension
 
    REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
       gbhu,          & ! forcedConvectionBndryLayerCond
@@ -73,7 +73,7 @@ SUBROUTINE allocate_local_memory()
       ALLOCATE( oldcansto(mp), fevw_pot(mp) ) 
       ALLOCATE( gswx(mp,mf) ) 
 
-      ALLOCATE( sum_gbh(mp,mf), sum_gbh2(mf) )
+      ALLOCATE( sum_gbh(mp,mf), sum_gbh2(mp) )
       ALLOCATE( gbhu(mp,mf), gbhf(mp,mf))
 
 END SUBROUTINE allocate_local_memory
@@ -305,12 +305,15 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                     rny, gbhu, gbhf, csx, cansat,                              &
                     sum_gbh, sum_gbh2,                       &
                     ghwet,  iter )
-     
+      
       CALL wetLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, cansat, tlfy,                                 &
                     sum_gbh, sum_gbh2,                       &
                     gbhu, gbhf, ghwet )
 
+sum_gbh = gbhu + gbhf
+sum_gbh2 = SUM(sum_gbh,2)
+     
      
       ! Calculate latent heat from vegetation:
       ! Calculate sensible heat from vegetation:
@@ -371,7 +374,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
 
 
-      CALL within_canopy( gbhu, gbhf, sum_gbh2 )
+      CALL within_canopy( sum_gbh2 )
 
       ! Saturation specific humidity at soil/snow surface temperature:
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
@@ -750,13 +753,9 @@ END SUBROUTINE latent_heat_flux
 
 ! -----------------------------------------------------------------------------
 
-SUBROUTINE within_canopy( gbhu, gbhf, sum_gbh2 )
+SUBROUTINE within_canopy( sum_gbh2 )
 
    USE cable_def_types_mod, only : mp, r_2
-
-   REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
-      gbhu,          & ! forcedConvectionBndryLayerCond
-      gbhf             ! freeConvectionBndryLayerCond
 
    REAL(r_2), INTENT(IN), DIMENSION(:) ::                                      &
       sum_gbh2            ! summed forced & free ConvectionBndryLayerCond
@@ -775,7 +774,7 @@ SUBROUTINE within_canopy( gbhu, gbhf, sum_gbh2 )
  
    INTEGER :: j
    
-   rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT 
+   rrbw = sum_gbh2/air%cmolar  ! MJT 
    
    ! leaf stomatal resistance for water
    rrsw = sum(gswx,2)/air%cmolar ! MJT
