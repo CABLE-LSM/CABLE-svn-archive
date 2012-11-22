@@ -1189,10 +1189,12 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    REAL,INTENT(INOUT), DIMENSION(:) :: cansat ! max canopy intercept. (mm)
 
    !local variables
+   REAL, DIMENSION(:), ALLOCATABLE, SAVE  ::                                  &
+      precip_limit_dt      ! limited precip rate on leaves (model stability) 
+      
    REAL, DIMENSION(mp)  ::                                                     &
       rem_sto_cap,       & ! remaining storage capacity 
       posve_rem_sto_cap, & ! POSITIVE remaining storage capacity 
-      precip_limit_dt,   & ! limited precip rate on leaves (model stability) 
       rain_dt,           & ! liquid rain this timestep
       min_rain_dt,       & ! min. liquid rain this timestep
       sourceA              ! MERGE arg
@@ -1208,9 +1210,12 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    ! precpitation seen by canopy limited to 4mm/day to avoid excessive 
    ! direct canopy evaporation and instability (especially in tropics). 
    ! excess goes straight to ground
-   IF( first_call)                                                             &
+   IF( first_call) THEN
+      ALLOCATE( precip_limit_dt(mp) )
+      
       ! precip limit per timstep. 4mm/day * s/dt / s/day = mm/dt 
       precip_limit_dt = 4.0 * MIN(dels,1800.0) / sec_per_day 
+  ENDIF
    
    ! liquid rainfall per timstep but limited by 4mm/day (see above) 
    rain_dt =  met%precip - met%precip_sn
