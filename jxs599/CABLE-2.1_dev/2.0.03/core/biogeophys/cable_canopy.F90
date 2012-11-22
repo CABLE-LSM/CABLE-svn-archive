@@ -46,20 +46,20 @@ MODULE cable_canopy_module
   
    REAL, DIMENSION(:), ALLOCATABLE, SAVE ::                                    &
       oldcansto,     & ! store cansto from previous timestep
+      cansat,        & ! max canopy intercept. (mm)
       fevw_pot         ! potential lat heat from canopy
      
    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
       gswx             ! stom cond for water
 
-   REAL(r_2), DIMENSION(:,:), ALLOCATABLE ::                                   &
+   ! Boundary layer convection conductance
+   REAL(r_2), DIMENSION(:,:), ALLOCATABLE, SAVE  ::                            &
+      gbhu,          & ! forced
+      gbhf,          & ! free
       sum_gbh          ! summed gbhu + gbhf 
    
-   REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                     &
+   REAL(r_2), DIMENSION(:), ALLOCATABLE, SAVE  ::                              &
       sum_gbh2         ! summed sum_gbh in 2nd dimension
-
-   REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
-      gbhu,          & ! forcedConvectionBndryLayerCond
-      gbhf             ! freeConvectionBndryLayerCond
 
 
 CONTAINS
@@ -70,7 +70,7 @@ SUBROUTINE allocate_local_memory()
    
    USE cable_def_types_mod, ONLY : mp, mf
 
-      ALLOCATE( oldcansto(mp), fevw_pot(mp) ) 
+      ALLOCATE( oldcansto(mp), fevw_pot(mp), cansat(mp) ) 
       ALLOCATE( gswx(mp,mf) ) 
 
       ALLOCATE( sum_gbh(mp,mf), sum_gbh2(mp) )
@@ -130,7 +130,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       term1, term2, term3, term5 
 
    REAL, DIMENSION(:), POINTER ::                                              & 
-      cansat,        & ! max canopy intercept. (mm)
       fwsoil,        & ! soil water modifier of stom. cond
       tlfx,          & ! leaf temp prev. iter (K)
       tlfy             ! leaf temp (K)
@@ -167,14 +166,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ENDIF
    
    !jhan: dealwith local vars        
-   ALLOCATE( cansat(mp) )
    ALLOCATE( fwsoil(mp), tlfx(mp), tlfy(mp) )
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
    ALLOCATE( csx(mp,mf))
    ALLOCATE( ghwet(mp))
-
-   ! BATS-type canopy saturation proportional to LAI:
-   cansat = veg%canst1 * canopy%vlaiw
 
    !---compute surface wetness factor, update cansto, through
    CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
@@ -611,7 +606,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
 
-   DEALLOCATE(cansat)
    DEALLOCATE(fwsoil, tlfx, tlfy)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(csx)
@@ -1190,23 +1184,43 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    
    REAL, INTENT(IN) :: dels ! integration time setp (s)
 
-   REAL,INTENT(IN), DIMENSION(:) :: cansat ! max canopy intercept. (mm)
+   REAL,INTENT(INOUT), DIMENSION(:) :: cansat ! max canopy intercept. (mm)
 
    !local variables
    REAL, DIMENSION(mp)  :: lower_limit, upper_limit,ftemp
    
    INTEGER :: j
 
+   REAL :: sec_per_day
+
+   ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
+   
+   ! BATS-type canopy saturation proportional to LAI:
+   ! max. canopy intercept(per veg type) [mm/LAI * LAI]
+   cansat = veg%canst1 * canopy%vlaiw
+
    ! Rainfall variable is limited so canopy interception is limited,
    ! used to stabilise latent fluxes.
    ! to avoid excessive direct canopy evaporation (EK nov2007, snow scheme)
-   upper_limit = 4.0 * MIN(dels,1800.0) / (60.0 * 1440.0 ) 
-   ftemp =MIN(met%precip-met%precip_sn, upper_limit )
-   ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
+   
+   ! seconds per day 
+   sec_per_day = 24 * 60 * 60
+
+   ! seconds per timestep * ??
+   ! fraction of a day * ??
+   upper_limit = 4.0 * MIN(dels,1800.0) / sec_per_day 
+   
+   ! liquid rainfall
+   ftemp =MIN( met%precip - met%precip_sn, upper_limit )
+
    lower_limit = cansat - canopy%cansto
    upper_limit = max(lower_limit, 0.0) 
+   
+   ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
    canopy%wcint = MERGE( MIN( upper_limit, ftemp ), 0.0,                       &
                   ftemp > 0.0  .AND. met%tk > C%tfrz)  !EAK, 09/10
+
+
 
    ! Define canopy throughfall (100% of precip if temp < 0C, see above):
    canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn ,          &
@@ -1265,7 +1279,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    USE cable_def_types_mod
    USE cable_common_module
 
-   REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
+   REAL(r_2), DIMENSION(:,:) ::                                       &
       gbhu,          & ! forcedConvectionBndryLayerCond
       gbhf             ! freeConvectionBndryLayerCond
 
