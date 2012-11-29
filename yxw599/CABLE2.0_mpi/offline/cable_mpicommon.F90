@@ -75,7 +75,8 @@ MODULE cable_mpicommon
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
-  INTEGER, PARAMETER :: ncasa_mat = 15
+!  INTEGER, PARAMETER :: ncasa_mat = 15
+  INTEGER, PARAMETER :: ncasa_mat = 32    ! changed  ypw 27-bov-2012 17 new variables added for casa spinup
   INTEGER, PARAMETER :: ncasa_vec = 27
 
   ! MPI: number of fields included in restart_t type for data

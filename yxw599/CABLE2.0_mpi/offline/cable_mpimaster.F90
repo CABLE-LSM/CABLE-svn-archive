@@ -141,7 +141,7 @@ SUBROUTINE mpidrv_master (comm)
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
+                                  casa_met, casa_balance, mdyear
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
@@ -195,7 +195,7 @@ SUBROUTINE mpidrv_master (comm)
       vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
       spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
       spinConv = .FALSE.,         & ! has spinup converged?
-      spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
+      spincasainput = .TRUE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
@@ -223,6 +223,9 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
+
+   ! added variables by yp wang 7-npov-2012
+   INTEGER :: mloop
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -395,6 +398,22 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
+   ! added by ypwang following Chris Lu   
+   ! need to check with BP for the order of calling for MPI
+   !kstart = 1
+
+   spinConv = .FALSE. ! initialise spinup convergence variable
+   if(.not.spinup)  spinConv=.true.
+   
+   if(icycle>0) then
+    !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
+     if (spincasa) then
+      mloop = 3
+      CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
+      call spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                       casaflux,casamet,casabal,phen)
+     endif
+   endif
 
 ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
@@ -501,6 +520,7 @@ SUBROUTINE mpidrv_master (comm)
     CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
     met%ofsd = met%fsd(:,1) + met%fsd(:,2)
     canopy%oldcansto=canopy%cansto
+
     IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,         &
                                rad, bal, air, soil, veg, C%SBOLTZ,     &
@@ -586,6 +606,12 @@ SUBROUTINE mpidrv_master (comm)
                          casapool, casaflux, casamet, casabal, phen )
 
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+
+      print *, 'before ncdf_dump', spinConv, spincasainput
+
+    if ( spinConv .AND. spincasainput ) then
+       call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+    endif
   
    END IF
 
@@ -4901,6 +4927,109 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     ! added by ypwang 27-nov2012 for casa-cnp spinning up variables
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tairkspin(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%cgppspin(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%crmplantspin_1(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%crmplantspin_2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%crmplantspin_3(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_1(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_3(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_4(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_5(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_6(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_1(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_3(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_4(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_5(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
      &                             types(bidx), ierr)
      blocks(bidx) = 1
 

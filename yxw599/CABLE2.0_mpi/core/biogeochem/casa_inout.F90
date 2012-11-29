@@ -961,9 +961,12 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
   ENDIF 
 
 END SUBROUTINE casa_cnpflux
-
+! changed by yp wang following Chris Lu 5/nov/2012
 SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                    casamet,casabal,phen)
+                      casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
   USE cable_def_types_mod
   USE casadimension
   USE casa_cnp_module
@@ -979,6 +982,12 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
+
+  ! local variables added by ypwang following Chris Lu 5/nov/2012
+
+  real, dimension(mp), INTENT(OUT)   :: cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                                        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                                        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
 
   ! local variables
   REAL(r_2),    DIMENSION(mp) :: xnplimit,xNPuptake
@@ -1013,13 +1022,23 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                                      casapool,casaflux,casamet)
   ENDIF 
 
-  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
+  ! changed by ypwang following Chris Lu on 5/nov/2012
+  call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
+                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+  !  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
   call casa_delsoil(veg,casapool,casaflux,casamet)
 
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
+  ! modified by ypwang following Chris Lu on 5/nov/2012
 
-  IF (icycle==1) call casa_ndummy(casapool)
+  IF (icycle<2) then
+      call casa_ndummy(casapool)
+      IF (icycle<3) call casa_pdummy(casapool)
+  ENDIF
 
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casabal)
