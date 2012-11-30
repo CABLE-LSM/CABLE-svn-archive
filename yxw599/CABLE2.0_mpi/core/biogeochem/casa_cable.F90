@@ -614,7 +614,7 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
 
 END SUBROUTINE sumcflux
 
-SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                        casaflux,casamet,casabal,phen)
   USE cable_def_types_mod
   USE cable_carbon_module
@@ -623,6 +623,7 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   USE casavariable
   USE phenvariable
   IMPLICIT NONE
+  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: kstart
   INTEGER, INTENT(IN)    :: kend
@@ -646,6 +647,8 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   real(r_2), dimension(:), allocatable, save  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, avg_xksoil
 
   ! local variables
+  INTEGER                  :: myearspin,nyear
+  CHARACTER(LEN=99)        :: ncfile
   INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
   INTEGER, save            :: ndays
   real,      dimension(mp)      :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
@@ -668,8 +671,9 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
               avg_rationcsoilmic(mp),avg_rationcsoilslow(mp),avg_rationcsoilpass(mp),                                 &!chris 12/oct/2012 for spin up casa
               avg_nsoilmin(mp),  avg_psoillab(mp),    avg_psoilsorb(mp), avg_psoilocc(mp))
 
+  OPEN(91, file=fcnpspin)
+  read(91,*) myearspin
 
-  do nloop=1,mloop
   ! compute the mean fluxes and residence time of each carbon pool
      avg_cleaf2met=0.0; avg_cleaf2str=0.0; avg_croot2met=0.0; avg_croot2str=0.0; avg_cwood2cwd=0.0
      avg_nleaf2met=0.0; avg_nleaf2str=0.0; avg_nroot2met=0.0; avg_nroot2str=0.0; avg_nwood2cwd=0.0
@@ -678,6 +682,10 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      avg_xnplimit=0.0;  avg_xkNlimiting=0.0; avg_xklitter=0.0; avg_xksoil=0.0
      avg_nsoilmin=0.0;  avg_psoillab=0.0;    avg_psoilsorb=0.0; avg_psoilocc=0.0
      avg_rationcsoilmic=0.0;avg_rationcsoilslow=0.0;avg_rationcsoilpass=0.0
+  do nyear=1,myearspin
+     read(91,901) ncfile
+     call read_casa_dump(ncfile,casamet,casaflux,ktau,kend)
+901  format(A99)
     do idoy=1,mdyear
        ktau=(idoy-1)*ktauday +1
 !      CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend/ktauday )
@@ -755,43 +763,46 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         avg_rationcsoilslow = avg_rationcsoilslow + casapool%ratioNCsoilnew(:,slow)
         avg_rationcsoilpass = avg_rationcsoilpass + casapool%ratioNCsoilnew(:,pass)
     enddo
+    enddo
 
-    avg_cleaf2met = avg_cleaf2met/real(nday)
-    avg_cleaf2str = avg_cleaf2str/real(nday)
-    avg_croot2met = avg_croot2met/real(nday)
-    avg_croot2str = avg_croot2str/real(nday)
-    avg_cwood2cwd = avg_cwood2cwd/real(nday)
+    CLOSE(91)
 
-    avg_nleaf2met = avg_nleaf2met/real(nday)
-    avg_nleaf2str = avg_nleaf2str/real(nday)
-    avg_nroot2met = avg_nroot2met/real(nday)
-    avg_nroot2str = avg_nroot2str/real(nday)
-    avg_nwood2cwd = avg_nwood2cwd/real(nday)
+    avg_cleaf2met = avg_cleaf2met/real(nday*myearspin)
+    avg_cleaf2str = avg_cleaf2str/real(nday*myearspin)
+    avg_croot2met = avg_croot2met/real(nday*myearspin)
+    avg_croot2str = avg_croot2str/real(nday*myearspin)
+    avg_cwood2cwd = avg_cwood2cwd/real(nday*myearspin)
 
-    avg_pleaf2met = avg_pleaf2met/real(nday)
-    avg_pleaf2str = avg_pleaf2str/real(nday)
-    avg_proot2met = avg_proot2met/real(nday)
-    avg_proot2str = avg_proot2str/real(nday)
-    avg_pwood2cwd = avg_pwood2cwd/real(nday)
+    avg_nleaf2met = avg_nleaf2met/real(nday*myearspin)
+    avg_nleaf2str = avg_nleaf2str/real(nday*myearspin)
+    avg_nroot2met = avg_nroot2met/real(nday*myearspin)
+    avg_nroot2str = avg_nroot2str/real(nday*myearspin)
+    avg_nwood2cwd = avg_nwood2cwd/real(nday*myearspin)
 
-    avg_cgpp      = avg_cgpp/real(nday)
-    avg_cnpp      = avg_cnpp/real(nday)
-    avg_nuptake   = avg_nuptake/real(nday)
-    avg_puptake   = avg_puptake/real(nday)
+    avg_pleaf2met = avg_pleaf2met/real(nday*myearspin)
+    avg_pleaf2str = avg_pleaf2str/real(nday*myearspin)
+    avg_proot2met = avg_proot2met/real(nday*myearspin)
+    avg_proot2str = avg_proot2str/real(nday*myearspin)
+    avg_pwood2cwd = avg_pwood2cwd/real(nday*myearspin)
 
-    avg_xnplimit    = avg_xnplimit/real(nday)
-    avg_xkNlimiting = avg_xkNlimiting/real(nday)
-    avg_xklitter    = avg_xklitter/real(nday)
-    avg_xksoil      = avg_xksoil/real(nday)
+    avg_cgpp      = avg_cgpp/real(nday*myearspin)
+    avg_cnpp      = avg_cnpp/real(nday*myearspin)
+    avg_nuptake   = avg_nuptake/real(nday*myearspin)
+    avg_puptake   = avg_puptake/real(nday*myearspin)
 
-    avg_nsoilmin    = avg_nsoilmin/real(nday)
-    avg_psoillab    = avg_psoillab/real(nday)
-    avg_psoilsorb   = avg_psoilsorb/real(nday)
-    avg_psoilocc    = avg_psoilocc/real(nday)
+    avg_xnplimit    = avg_xnplimit/real(nday*myearspin)
+    avg_xkNlimiting = avg_xkNlimiting/real(nday*myearspin)
+    avg_xklitter    = avg_xklitter/real(nday*myearspin)
+    avg_xksoil      = avg_xksoil/real(nday*myearspin)
 
-    avg_rationcsoilmic  = avg_rationcsoilmic  /real(nday)
-    avg_rationcsoilslow = avg_rationcsoilslow /real(nday)
-    avg_rationcsoilpass = avg_rationcsoilpass /real(nday)
+    avg_nsoilmin    = avg_nsoilmin/real(nday*myearspin)
+    avg_psoillab    = avg_psoillab/real(nday*myearspin)
+    avg_psoilsorb   = avg_psoilsorb/real(nday*myearspin)
+    avg_psoilocc    = avg_psoilocc/real(nday*myearspin)
+
+    avg_rationcsoilmic  = avg_rationcsoilmic  /real(nday*myearspin)
+    avg_rationcsoilslow = avg_rationcsoilslow /real(nday*myearspin)
+    avg_rationcsoilpass = avg_rationcsoilpass /real(nday*myearspin)
 
     call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
                           casaflux,casamet,casabal,phen,                                         &
@@ -802,9 +813,14 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                           avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
                           avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
                           avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
-  end do
-   nloop = 0
-  DO nloop=1,1
+  DO nloop=1,10
+
+  OPEN(91,file=fcnpspin)
+  read(91,*)
+  DO nyear=1,myearspin
+     read(91,901) ncfile
+     call read_casa_dump(ncfile,casamet,casaflux,ktau,kend)
+
     DO idoy=1,mdyear
       ktauy=idoy*ktauday
 !      CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend )
@@ -831,6 +847,8 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
     ENDDO
+  ENDDO
+  close(91)
 !    IF((nloop+10)>mloop) THEN
 !      WRITE(*,151), nloop, casapool%cplant,casapool%clitter,casapool%csoil
 !    ENDIF

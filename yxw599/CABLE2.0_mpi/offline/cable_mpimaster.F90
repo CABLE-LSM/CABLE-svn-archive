@@ -409,8 +409,8 @@ SUBROUTINE mpidrv_master (comm)
     !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
      if (spincasa) then
       mloop = 3
-      CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
-      call spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
+      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                        casaflux,casamet,casabal,phen)
      endif
    endif
