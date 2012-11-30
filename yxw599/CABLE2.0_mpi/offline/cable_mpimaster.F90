@@ -408,7 +408,7 @@ SUBROUTINE mpidrv_master (comm)
    if(icycle>0) then
     !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
      if (spincasa) then
-      mloop = 3
+      mloop = 5
       ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
       call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                        casaflux,casamet,casabal,phen)
