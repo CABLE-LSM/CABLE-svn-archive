@@ -233,15 +233,19 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                        / rough%zref_tq ) ) / C%VONK
       
       rt_min = 5.      
-      rt0 = max(rt_min,rough%rt0us / canopy%us)
+      rt0 = restrict_range_MAX( rt_min, rough%rt0us / canopy%us, 'rt0' )
+      rt0 = max( REAL(rt_min),rough%rt0us / canopy%us)
       
       ! Aerodynamic resistance (sum 3 height integrals)/us
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
-      rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
+!jhan: is this supposed to be rt_min
+      rough%rt1 = restrict_range_MAX( rt_min,                                  &
+                                      ( rough%rt1usa + rough%rt1usb + rt1usc)  &
+                                      / canopy%us, 'rough%rt1' )
       
       DO j=1,mp
      
-         IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
+         IF( canopy%vlaiw(j) > C%LAI_THRESH ) THEN
             ssnow%rtsoil(j) = rt0(j)
          ELSE
             ssnow%rtsoil(j) = rt0(j) + rough%rt1(j)
@@ -249,8 +253,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
      
       ENDDO 
       
-      ssnow%rtsoil = max(rt_min,ssnow%rtsoil)   
-      
+      ssnow%rtsoil = restrict_range_MAX( rt_min, ssnow%rtsoil, 'ssnow%rtsoil' )   
       DO j=1,mp
       
          IF( ssnow%rtsoil(j) > 2.*ortsoil(j) .OR.                              &
@@ -261,6 +264,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
         ENDIF    
       
       ENDDO 
+
+
+
+
+
+
    
       ! Vegetation boundary-layer conductance (mol/m2/s)
       ! C%prandt = kinematic viscosity/molecular diffusivity
@@ -1222,7 +1231,6 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    
    ! would be liquid rainfall per timstep but limited by 4mm/day (see above) 
    min_rain_dt= MIN( rain_dt, precip_limit_dt )
-
    
    ! BATS-type canopy saturation from params per veg type 
    ! max. canopy intercept [mm/LAI] * LAI
@@ -1256,10 +1264,13 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
    ! Define canopy throughfall (100% of precip if temp < 0C, see above):
    canopy%through = met%precip_sn + MIN( rain_dt,                              &
-                    MAX( 0.0, met%precip - met%precip_sn - canopy_wcint) ) 
+                    MAX( 0.0, rain_dt - canopy_wcint) ) 
 
    ! Add canopy interception to canopy storage term:
    canopy%cansto = canopy%cansto + canopy_wcint
+
+!BUT this always going above %`cansto
+!limited to cansto ?`i
 
    ! Calculate fraction of canopy which is wet:
    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &

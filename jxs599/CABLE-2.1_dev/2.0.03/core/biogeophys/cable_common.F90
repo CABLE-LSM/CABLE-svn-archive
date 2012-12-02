@@ -167,6 +167,10 @@ MODULE cable_common_module
    TYPE(soilin_type), SAVE  :: soilin
    TYPE(vegin_type),  SAVE  :: vegin
 
+   INTERFACE restrict_range_max
+      MODULE PROCEDURE restrict_range_max_r1
+   END INTERFACE restrict_range_max
+
 !   !---parameters, tolerances, etc. could be set in _directives.h
 !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
 
@@ -406,6 +410,7 @@ SUBROUTINE report_version_no( logn )
       READ(440,*) icable_rev
        
       WRITE(logn,*) ''
+      write(logn,*) 'CABLE_log'
       WRITE(logn,*) 'Revision nuber: ', icable_rev
       WRITE(logn,*) ''
       WRITE(logn,*)'This is the latest revision of you workin copy as sourced ' 
@@ -425,6 +430,49 @@ SUBROUTINE report_version_no( logn )
 
 END SUBROUTINE report_version_no
 
+
+FUNCTION restrict_range_max_r1b( arg1, arg2, varname ) RESULT(fresult) 
+   
+   USE cable_def_types_mod, ONLY : mp
+    
+   REAL, DIMENSION(:), INTENT(IN) :: arg1, arg2
+   REAL, DIMENSION(:), POINTER :: fresult
+   CHARACTER(LEN=*) :: varname
+
+   ALLOCATE( fresult(mp) )
+   IF(ktau_gl==1 .AND. knode_gl==1) THEN
+      WRITE(6,*) 'CABLE_log'
+      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
+      WRITE(6,*) 'MAX( ', arg1, arg2, ' )'
+   ENDIF
+
+   fresult = MAX( arg1, arg2 )
+
+   RETURN 
+
+END FUNCTION restrict_range_max_r1b
+
+FUNCTION restrict_range_max_r1( arg1, arg2, varname ) RESULT(fresult) 
+   
+   USE cable_def_types_mod, ONLY : mp
+    
+   REAL, INTENT(IN) :: arg1
+   REAL, DIMENSION(:), INTENT(IN) :: arg2
+   REAL, DIMENSION(:), POINTER :: fresult
+   CHARACTER(LEN=*) :: varname
+
+   ALLOCATE( fresult(mp) )
+   IF(ktau_gl==1 .AND. knode_gl==1) THEN
+      WRITE(6,*) 'CABLE_log'
+      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
+      WRITE(6,*) 'MAX( ', arg1, arg2, ' )'
+   ENDIF
+
+   fresult = MAX( arg1, arg2 )
+
+   RETURN 
+
+END FUNCTION restrict_range_max_r1 
 
 
 END MODULE cable_common_module
