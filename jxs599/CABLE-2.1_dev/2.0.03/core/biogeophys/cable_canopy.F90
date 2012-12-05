@@ -662,27 +662,28 @@ END SUBROUTINE define_canopy
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE comp_friction_vel( psim_1, met_ua, z_eff, canopy_us)
+SUBROUTINE comp_friction_vel( zetar_iter, met_ua, z_eff, canopy_us)
 
    USE cable_def_types_mod, only : mp
    
-   REAL, DIMENSION(:), INTENT(IN) :: psim_1, met_ua, z_eff
+   REAL, DIMENSION(:), INTENT(IN) :: zetar_iter, met_ua, z_eff
    REAL, DIMENSION(:), INTENT(OUT) :: canopy_us
 
    REAL, DIMENSION(:), ALLOCATABLE, SAVE  :: lower_limit, rescale, psim_2
-   REAL, DIMENSION(:), ALLOCATABLE, SAVE  :: psim_arg 
+   REAL, DIMENSION(:), ALLOCATABLE, SAVE  :: psim_1, psim_arg 
    LOGICAL :: first_call = .TRUE.
 
 
    IF( FIRST_CALL ) THEN 
       ALLOCATE( psim_2(mp),rescale(mp), lower_limit(mp) )  
-      ALLOCATE( psim_arg(mp) )  
+      ALLOCATE( psim_1(mp), psim_arg(mp) )  
    ENDIF
 
 !jhan:CABLE_MAX       
 rescale = C%VONK * MAX( met_ua, C%UMIN )
 
-   psim_arg = psim_1 / z_eff 
+   psim_1 = psim(zetar_iter) 
+   psim_arg = zetar_iter / z_eff 
    !---fix for compiler limitation. bitwise reproducable whilst we  
    !---we know it to 11th decimal. psim_arg typically of a few 
    !psim_arg = nint(psim_arg * 1.e11)*1.e-11
