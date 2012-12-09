@@ -167,9 +167,17 @@ MODULE cable_common_module
    TYPE(soilin_type), SAVE  :: soilin
    TYPE(vegin_type),  SAVE  :: vegin
 
-   INTERFACE restrict_range_max
-      MODULE PROCEDURE restrict_range_max_r1
-   END INTERFACE restrict_range_max
+   INTERFACE CABLE_MAX
+      MODULE PROCEDURE restrict_range_MAX_r1,                                  &
+                       restrict_range_MAX_r1b,                                 &
+                       restrict_range_MAX_rar
+   END INTERFACE CABLE_MAX 
+
+   INTERFACE CABLE_MIN
+      MODULE PROCEDURE restrict_range_MIN_r1,                                  &
+                       restrict_range_MIN_r1b,                                 &
+                       restrict_range_MIN_rar
+   END INTERFACE CABLE_MIN
 
 !   !---parameters, tolerances, etc. could be set in _directives.h
 !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
@@ -430,36 +438,42 @@ SUBROUTINE report_version_no( logn )
 
 END SUBROUTINE report_version_no
 
+! -----------------------------------------------------------------------------
 
-FUNCTION restrict_range_max_r1b( arg1, arg2, varname ) RESULT(fresult) 
-   
-   USE cable_def_types_mod, ONLY : mp
-    
-   REAL, DIMENSION(:), INTENT(IN) :: arg1, arg2
-   REAL, DIMENSION(:), POINTER :: fresult
-   CHARACTER(LEN=*) :: varname
-
-   ALLOCATE( fresult(mp) )
-   IF(ktau_gl==1 .AND. knode_gl==1) THEN
-      WRITE(6,*) 'CABLE_log'
-      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
-      WRITE(6,*) 'MAX( ', arg1, arg2, ' )'
-   ENDIF
-
-   fresult = MAX( arg1, arg2 )
-
-   RETURN 
-
-END FUNCTION restrict_range_max_r1b
-
-FUNCTION restrict_range_max_r1( arg1, arg2, varname ) RESULT(fresult) 
+FUNCTION restrict_range_MAX_r1( varname, arg1name, arg1, arg2name, arg2 )      &
+                                RESULT(fresult) 
    
    USE cable_def_types_mod, ONLY : mp
     
    REAL, INTENT(IN) :: arg1
    REAL, DIMENSION(:), INTENT(IN) :: arg2
    REAL, DIMENSION(:), POINTER :: fresult
-   CHARACTER(LEN=*) :: varname
+   CHARACTER(LEN=*), INTENT(IN) :: varname, arg1name, arg2name
+
+   ALLOCATE( fresult(mp) )
+   IF(ktau_gl==1 .AND. knode_gl==1) THEN
+      WRITE(6,*) 'CABLE_log'
+      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
+      WRITE(6,*) 'MAX( ', arg1name, arg2name, ' )'
+   ENDIF
+
+   fresult = MAX( arg1, arg2 )
+
+   RETURN 
+
+END FUNCTION restrict_range_MAX_r1 
+
+! -----------------------------------------------------------------------------
+
+FUNCTION restrict_range_MAX_r1b( varname, arg1name, arg1, arg2name, arg2 )     &
+                                RESULT(fresult) 
+   
+   USE cable_def_types_mod, ONLY : mp
+    
+   REAL, INTENT(IN) :: arg2
+   REAL, DIMENSION(:), INTENT(IN) :: arg1
+   REAL, DIMENSION(:), POINTER :: fresult
+   CHARACTER(LEN=*), INTENT(IN) :: varname, arg1name, arg2name
 
    ALLOCATE( fresult(mp) )
    IF(ktau_gl==1 .AND. knode_gl==1) THEN
@@ -472,7 +486,109 @@ FUNCTION restrict_range_max_r1( arg1, arg2, varname ) RESULT(fresult)
 
    RETURN 
 
-END FUNCTION restrict_range_max_r1 
+END FUNCTION restrict_range_MAX_r1b 
+
+! -----------------------------------------------------------------------------
+
+
+FUNCTION restrict_range_MAX_rar( varname, arg1name, arg1, arg2name, arg2 )     &
+                                RESULT(fresult) 
+   
+   USE cable_def_types_mod, ONLY : mp
+    
+   REAL, DIMENSION(:), INTENT(IN) :: arg1, arg2
+   REAL, DIMENSION(:), POINTER :: fresult
+   CHARACTER(LEN=*), INTENT(IN) :: varname, arg1name, arg2name
+
+   ALLOCATE( fresult(mp) )
+   IF(ktau_gl==1 .AND. knode_gl==1) THEN
+      WRITE(6,*) 'CABLE_log'
+      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
+      WRITE(6,*) 'MAX( ', arg1name, arg2name, ' )'
+   ENDIF
+
+   fresult = MAX( arg1, arg2 )
+
+   RETURN 
+
+END FUNCTION restrict_range_MAX_rar
+
+! -----------------------------------------------------------------------------
+
+FUNCTION restrict_range_MIN_r1( varname, arg1name, arg1, arg2name, arg2 )      &
+                                RESULT(fresult) 
+   
+   USE cable_def_types_mod, ONLY : mp
+    
+   REAL, INTENT(IN) :: arg1
+   REAL, DIMENSION(:), INTENT(IN) :: arg2
+   REAL, DIMENSION(:), POINTER :: fresult
+   CHARACTER(LEN=*), INTENT(IN) :: varname, arg1name, arg2name
+
+   ALLOCATE( fresult(mp) )
+   IF(ktau_gl==1 .AND. knode_gl==1) THEN
+      WRITE(6,*) 'CABLE_log'
+      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
+      WRITE(6,*) 'MIN( ', arg1name, arg2name, ' )'
+   ENDIF
+
+   fresult = MIN( arg1, arg2 )
+
+   RETURN 
+
+END FUNCTION restrict_range_MIN_r1 
+
+! -----------------------------------------------------------------------------
+
+FUNCTION restrict_range_MIN_r1b( varname, arg1name, arg1, arg2name, arg2 )     &
+                                RESULT(fresult) 
+   
+   USE cable_def_types_mod, ONLY : mp
+    
+   REAL, INTENT(IN) :: arg2
+   REAL, DIMENSION(:), INTENT(IN) :: arg1
+   REAL, DIMENSION(:), POINTER :: fresult
+   CHARACTER(LEN=*), INTENT(IN) :: varname, arg1name, arg2name
+
+   ALLOCATE( fresult(mp) )
+   IF(ktau_gl==1 .AND. knode_gl==1) THEN
+      WRITE(6,*) 'CABLE_log'
+      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
+      WRITE(6,*) 'MIN( ', arg1name, arg2name, ' )'
+   ENDIF
+
+   fresult = MIN( arg1, arg2 )
+
+   RETURN 
+
+END FUNCTION restrict_range_MIN_r1b 
+
+! -----------------------------------------------------------------------------
+
+
+FUNCTION restrict_range_MIN_rar( varname, arg1name, arg1, arg2name, arg2 )     &
+                                RESULT(fresult) 
+   
+   USE cable_def_types_mod, ONLY : mp
+    
+   REAL, DIMENSION(:), INTENT(IN) :: arg1, arg2
+   REAL, DIMENSION(:), POINTER :: fresult
+   CHARACTER(LEN=*), INTENT(IN) :: varname, arg1name, arg2name
+
+   ALLOCATE( fresult(mp) )
+   IF(ktau_gl==1 .AND. knode_gl==1) THEN
+      WRITE(6,*) 'CABLE_log'
+      WRITE(6,*) 'Range of ', varname, ' is restricted to:'
+      WRITE(6,*) 'MIN( ', arg1name, arg2name, ' )'
+   ENDIF
+
+   fresult = MIN( arg1, arg2 )
+
+   RETURN 
+
+END FUNCTION restrict_range_MIN_rar
+
+! -----------------------------------------------------------------------------
 
 
 END MODULE cable_common_module
