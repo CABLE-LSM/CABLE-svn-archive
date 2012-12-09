@@ -220,7 +220,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       met%tvair = met%tk
       met%tvrad = met%tk
  
-      canopy%cansto = canopy%oldcansto
 
       CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)

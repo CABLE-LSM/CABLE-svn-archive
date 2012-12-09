@@ -300,8 +300,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil )                         
 
-   canopy%oldcansto=canopy%cansto
-
 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  

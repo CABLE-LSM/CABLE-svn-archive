@@ -500,7 +500,6 @@ SUBROUTINE initialize_canopy(canopy_tile)
          
      !---set canopy storage (already in dim(land_pts,ntiles) ) 
      canopy%cansto = pack(CANOPY_TILE, um1%l_tile_pts)
-     canopy%oldcansto=canopy%cansto
 
 END SUBROUTINE initialize_canopy
 
