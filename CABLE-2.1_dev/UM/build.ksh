@@ -16,7 +16,7 @@ host_vayu()
    export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0 -ftrapuv' 
    fi
    build_build
    cd ../
