@@ -24,27 +24,29 @@
 ! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
 !          inclusion of call to CASA-CNP (icycle>0)
 !          soil_snow_type now ssnow (instead of ssoil)
-!          Modified from cable_driver.F90 in CABLE-2.0_beta r171
+!
+!          MPI wrapper developed by Maciej Golebiewski (2012)
+!          Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
 !
 ! ==============================================================================
-! Uses:           cable_def_types_mod
+! Uses:           mpi
+!                 cable_mpicommon
+!                 cable_def_types_mod
 !                 cable_IO_vars_module
 !                 cable_common_module
+!                 cable_data_module
 !                 cable_input_module
 !                 cable_output_module
 !                 cable_cbm_module
 !                 casadimension
 !                 casavariable
-! 
-! CALLs:       open_met_file
+!                 phenvariable
+!
+! CALLs:       point2constants
+!              open_met_file
 !              load_parameters
 !              open_output_file
-!              spincasacnp
 !              get_met_data
-!              casa_feedback
-!              cbm
-!              bgcdriver
-!              sumcflux
 !              write_output
 !              casa_poolout
 !              casa_fluxout
@@ -52,7 +54,17 @@
 !              close_met_file
 !              close_output_file
 !              prepareFiles
-!
+!              find_extents
+!              master_decomp
+!              master_cable_params
+!              master_casa_params
+!              master_intypes
+!              master_outtypes
+!              master_casa_types
+!              master_restart_types
+!              master_send_input
+!              master_receive
+!              master_end
 !
 ! input  file: [SiteName].nc
 !              poolcnpIn[SiteName].csv -- for CASA-CNP only
@@ -161,7 +173,8 @@ SUBROUTINE mpidrv_master (comm)
       kend,       &  ! no. of time steps in run
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
-      nyear          ! year counter for CASA-CNP
+      nyear,      &  ! year counter for CASA-CNP
+      maxdiff(2)     ! location of maximum in convergence test
 
    REAL :: dels                        ! time step size in seconds
    
@@ -429,7 +442,6 @@ SUBROUTINE mpidrv_master (comm)
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
 
-! need to check how the following should change in the 'overlap' scheme ????
 !         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
          iktau = iktau + 1
@@ -469,11 +481,6 @@ SUBROUTINE mpidrv_master (comm)
 
          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          canopy%oldcansto=canopy%cansto
-!! ????????? ofsd and oldcansto should be done earlier?
-!! It seems OK as get_met_data writes into imet%fsd but not met%fsd
-!! and canopy%oldcansto is getting it from the data just send back by workers
-!! These 2 quantities will be used in the next round, not this round.
-!! But they should be done before CALL master_send_input ????
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
@@ -484,7 +491,6 @@ SUBROUTINE mpidrv_master (comm)
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
-!! ????????? should this write_output be using imet and iveg?
    
        END DO ! END Do loop over timestep ktau
 
@@ -493,6 +499,7 @@ SUBROUTINE mpidrv_master (comm)
     met%year = imet%year
     met%doy = imet%doy
     oktau = oktau + 1
+    ktau_tot= ktau_tot + 1
     ktau_gl = oktau
     CALL master_receive (ocomm, oktau, recv_ts)
     CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
@@ -523,11 +530,19 @@ SUBROUTINE mpidrv_master (comm)
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
-               PRINT *, 'ssnow%wb : ', ssnow%wb
-               PRINT *, 'soilMtemp: ', soilMtemp
-               PRINT *, 'ssnow%tgg: ', ssnow%tgg
-               PRINT *, 'soilTtemp: ', soilTtemp
-            
+!               PRINT *, 'ssnow%wb : ', ssnow%wb
+!               PRINT *, 'soilMtemp: ', soilMtemp
+!               PRINT *, 'ssnow%tgg: ', ssnow%tgg
+!               PRINT *, 'soilTtemp: ', soilTtemp
+               maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
+               PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+               PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
+               maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
+               PRINT *, 'Example location of temperature non-convergence: ',maxdiff
+               PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
+
             ELSE ! spinup has converged
                
                spinConv = .TRUE.
