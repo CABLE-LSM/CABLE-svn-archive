@@ -82,8 +82,6 @@ PROGRAM cable_offline_driver
                                    write_output,close_output_file
    USE cable_cbm_module
    
-   USE cable_diag_module
-   
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
