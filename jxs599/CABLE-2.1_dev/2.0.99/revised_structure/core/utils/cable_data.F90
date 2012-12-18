@@ -212,6 +212,9 @@ module cable_data_module
  
    END TYPE icanopy_type
 
+!jhan. needs to be sent canopy%cansto
+
+
 ! .............................................................................
 
    TYPE icarbon_type

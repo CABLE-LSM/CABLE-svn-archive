@@ -149,7 +149,8 @@ MODULE cable_offline_driver_mod
    REAL              :: &  
       delsoilM,         & ! allowed variation in soil moisture for spin up
       delsoilT            ! allowed variation in soil temperature for spin up
-  
+
+! these should be declared in one place as namelist configured vars & pointed to if necessary  
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 

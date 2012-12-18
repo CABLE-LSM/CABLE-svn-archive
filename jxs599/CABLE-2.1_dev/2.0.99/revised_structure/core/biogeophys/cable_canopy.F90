@@ -130,9 +130,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
+!jhan: cansto done here and in driver. CHECK
+!jhan:oldcanst should be local
+!jhan:%cansto only used in canooy and I/O
+
    ! ACCESS version has this statement but elsewhere?
    IF( .NOT. cable_runtime%um)                                                 &
       canopy%cansto =  canopy%oldcansto
+
+!jhan; allocate local vars once only where possible.
+
 
    ALLOCATE( cansat(mp), gbhu(mp,mf))
    ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
@@ -140,6 +147,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
    ALLOCATE( ghwet(mp))
 
+!veg%canst1 used only once
    ! BATS-type canopy saturation proportional to LAI:
    cansat = veg%canst1 * canopy%vlaiw
 
