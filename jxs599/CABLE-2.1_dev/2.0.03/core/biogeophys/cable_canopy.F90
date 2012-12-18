@@ -58,6 +58,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    REAL, DIMENSION(:), ALLOCATABLE, SAVE ::                                    &
       oldcansto,     & ! store cansto from previous timestep
+      cduv,          & ! drag coefficient for momentum
+      dewmm,   & ! dewfall (mm)
       cansat,        & ! max canopy intercept. (mm)
       fevw_pot         ! potential lat heat from canopy
        
@@ -468,7 +470,7 @@ ssnow%wetfac, met%qv, met%qvair, met%tvair, met%tk, ssnow%qstss, met%pmb, met%dv
    END DO           ! do iter = 1, NITER
 
 
-   canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
+   cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
    !---diagnostic purposes
    canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         & 
@@ -477,7 +479,7 @@ ssnow%wetfac, met%qv, met%qvair, met%tvair, met%tk, ssnow%qstss, met%pmb, met%dv
 
    canopy%gswx_T = max(1.e-05,canopy%gswx_T )
           
-   canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
+   canopy%cdtq = cduv *( LOG( rough%zref_uv / rough%z0m) -              &
                  psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
                  ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
                  - psis( canopy%zetar(:,NITER)) )
@@ -635,6 +637,13 @@ ssnow%wetfac, met%qv, met%qvair, met%tvair, met%tk, ssnow%qstss, met%pmb, met%dv
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
 
+   ! the value of cansto updated on the "implicit" call is needed 
+   ! thus restore cansto to the original value from previous imestep. 
+   ! NOT the value as updated on the "explicit" call which has not yet 
+   ! equilibrated more reliable fluxes occuring at current timestep 
+   IF( cable_runtime%um_explicit ) 
+      canopy%cansto = oldcansto 
+
    DEALLOCATE(fwsoil, tlfx, tlfy)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(csx)
@@ -648,7 +657,8 @@ SUBROUTINE allocate_local_memory()
    
    USE cable_def_types_mod, ONLY : mp, mf
 
-      ALLOCATE( oldcansto(mp), fevw_pot(mp), cansat(mp) ) 
+      ALLOCATE( oldcansto(mp), fevw_pot(mp), cansat(mp), cduv(mp) ) 
+      ALLOCATE( dewmm(mp) ) 
       ALLOCATE( gswx(mp,mf) ) 
 
       ALLOCATE( sum_gbh(mp,mf), sum_gbh2(mp) )
