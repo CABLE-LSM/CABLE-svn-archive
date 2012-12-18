@@ -16,7 +16,7 @@ host_vayu()
    export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0 -ftrapuv' 
+      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
    fi
    build_build
    cd ../
@@ -215,7 +215,7 @@ build_build()
    ## make library from CABLE object files
    /usr/bin/ar r libcable.a cable_explicit_driver.o cable_implicit_driver.o   \
       cable_rad_driver.o cable_hyd_driver.o cable_common.o  \
-      cable_define_types.o cable_data.o \
+      cable_define_types.o cable_data.o cable_diag.o \
       cable_soilsnow.o cable_air.o cable_albedo.o cable_radiation.o  \
       cable_roughness.o cable_carbon.o cable_canopy.o cable_cbm.o    \
       cable_um_tech.o cable_um_init_subrs.o cable_um_init.o 
