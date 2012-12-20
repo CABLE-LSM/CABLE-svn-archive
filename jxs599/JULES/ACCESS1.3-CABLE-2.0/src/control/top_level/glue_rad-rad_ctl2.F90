@@ -2260,47 +2260,11 @@
      &        land_field,land_index,ntiles,tile_pts,tile_index,         &
      &        L_snow_albedo,albsoil,cos_zenith_angle,frac,lai,          &
      &        rgrain,snow_tile,soot,tstar_tile,z0_tile,                 &
-     &        alb_tile,land_albedo,can_rad_mod )
-            tile_frac = 0.
-            if (ntiles == 1) then
-              tile_pts(1) = land_field
-              do l=1,land_field
-                tile_frac(l,1) = 1.
-                tile_index(l,1) = l
-              enddo
-            else
-              do n=1,ntype
-                do j=1,tile_pts(n)
-                  l = tile_index(j,n)
-                  tile_frac(l,n) = frac(l,n)
-                enddo
-              enddo
-            endif
-
-       ENDIF ! ( L_MOSES_II .or. l_cable) then
-
-       IF ( l_cable ) then
-
-! land_alb n cable_RADNum is only set on points where there is incoming
-! SW radiation at the previous timestep, therefore it will be zero over some
-! land points
-          if(istep_cur .gt. 1) then
-! DEPENDS ON: cable_rad_driver.o
-                  CALL cable_rad_driver(                &
-! IN atmospheric forcing
-!     &           surf_down_sw, cos_zenith_angle, L_TILE_PTS,   &
-     &           surf_down_sw, cos_zenith_angle,                       &
-! IN soil/vegetation/land surface data :
-     &           SNOW_TILE,SNOW_TMP3L,SNOW_RHO1L,TSOIL_TILE,            &
-     &           ISNOW_FLG3L,                                           &
-! IN  Time stepping infomation:
-     &           albsoil,                            &
-     &           LAND_ALBEDO,ALB_TILE,LAND_ALB                          &
-     &  )
-         endif  ! if if(istep_cur .gt. 1)
-      endif  ! if l_cable
-
-
+     &        alb_tile,land_albedo,can_rad_mod,                         &
+              surf_down_sw, SNOW_TMP3L,SNOW_RHO1L,TSOIL_TILE,           &
+     &        ISNOW_FLG3L, LAND_ALB, istep_cur, l_cable, tile_frac,     &
+              row_length, rows, sm_levels )
+      ENDIF 
 !  If L_VOLCTS set TRUE then
 !L  Expand aerosol optical depth time series to global field, ignoring 
 !L    haloes, which aren't passed down:

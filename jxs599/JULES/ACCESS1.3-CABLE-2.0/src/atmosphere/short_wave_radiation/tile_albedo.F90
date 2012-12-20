@@ -16,9 +16,11 @@
      & P_FIELD,LAND_FIELD,LAND_INDEX,NTILES,TILE_PTS,                   &
      & TILE_INDEX,L_SPEC_ALBEDO,ALBSOIL,                                &
      & COSZ,FRAC,LAI_IN,RGRAIN,SNOW_TILE,SOOT,TSTAR_TILE,Z0_TILE,       &
-     & ALB_TILE,LAND_ALBEDO,CAN_RAD_MOD                                 &
-     & )
-
+     & ALB_TILE,LAND_ALBEDO,CAN_RAD_MOD,                                &
+     ! arguments to support CABLE-JULES coupling
+     & surf_down_sw, SNOW_TMP3L,SNOW_RHO1L,TSOIL_TILE,                  &
+     & ISNOW_FLG3L, LAND_ALB, istep_cur, l_cable, row_length,           &
+     & rows, sm_levels )
 
 ! module for land-surface namelist
       USE LAND_SURF_MOD, ONLY :                                         &
@@ -37,6 +39,23 @@
                                    ! No. of land points.
      &,NTILES                      ! Number of surface tiles.
 
+   INTEGER :: istep_cur, row_length, rows, sm_levels
+   
+   INTEGER ::         &                                      
+      ISNOW_FLG3L(land_field,ntiles)
+   
+   Real ::                                                              &
+     & surf_down_sw(row_length,rows,4),                                 &
+     &SNOW_TMP3L(land_field,ntiles,3),       & ! Snow temperature (3 layer)
+     & SNOW_RHO1L(land_field,ntiles),          & ! snow cover in the ice tile.
+     &TSOIL_TILE(land_field,ntiles,SM_LEVELS), & ! Mean snow density (or 1 layer)
+                                     ! Effective radiative temperature
+     & tile_frac(land_field,ntiles), &
+     & land_alb(row_length, rows, 4)
+
+     LOGICAL                                &
+     & l_cable 
+     
       LOGICAL                                                           &
      & L_SPEC_ALBEDO               ! .TRUE. for spectral albedos
 !                                  ! and prognostic snow albedo.
@@ -325,6 +344,43 @@
           ENDDO
         ENDDO
       ENDIF
+
+!jhan: moved from glue_rad FOR CABLE sake
+            tile_frac = 0.
+
+            if (ntiles == 1) then
+              tile_pts(1) = land_field
+              do l=1,land_field
+                tile_frac(l,1) = 1.
+                tile_index(l,1) = l
+              enddo
+            else
+              do n=1,ntype
+                do j=1,tile_pts(n)
+                  l = tile_index(j,n)
+                  tile_frac(l,n) = frac(l,n)
+                enddo
+              enddo
+            endif
+
+
+       IF ( l_cable ) then
+! land_alb n cable_RADNum is only set on points where there is incoming
+! SW radiation at the previous timestep, therefore it will be zero over some
+! land points
+          if(istep_cur .gt. 1) then
+! DEPENDS ON: cable_rad_driver.o
+                  CALL cable_rad_driver(                &
+     &           surf_down_sw, cosz,                       &
+     &           SNOW_TILE,SNOW_TMP3L,SNOW_RHO1L,TSOIL_TILE,            &
+     &           ISNOW_FLG3L,                                           &
+     &           albsoil,                            &
+     &           LAND_ALBEDO,ALB_TILE,LAND_ALB                          &
+     &  )
+         endif  ! if if(istep_cur .gt. 1)
+      endif  ! if l_cable
+
+
 
       RETURN
       END SUBROUTINE TILE_ALBEDO
