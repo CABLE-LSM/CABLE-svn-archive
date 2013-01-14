@@ -44,7 +44,7 @@
 MODULE cable_output_module
 
 
-  USE cable_abort_module, ONLY: cable_abort, nc_abort
+  USE cable_abort_module, ONLY: abort, nc_abort
   USE cable_def_types_mod
   USE cable_IO_vars_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
@@ -798,7 +798,7 @@ CONTAINS
        ! Set output interval to be # time steps in 24 hours:
        output%interval = 3600*24/INT(dels)
     ELSE
-       CALL cable_abort ('Unknown output averaging interval specified '//            &
+       CALL abort ('Unknown output averaging interval specified '//            &
             'in namelist file. (SUBROUTINE open_output_file)')
     END IF
 
@@ -1044,7 +1044,7 @@ CONTAINS
        END IF ! using leap year timing or not
        backtrack = output%interval / 2
     ELSE ! type of output aggregation
-       CALL cable_abort('Unknown output averaging request in namelist file.'//       &
+       CALL abort('Unknown output averaging request in namelist file.'//       &
                   '(SUBROUTINE write_output)')
     END IF
 

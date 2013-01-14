@@ -51,8 +51,11 @@ all : $(PROG)
 
 #build PROG (cable executable) by linking all objects
 #$(PROG) : $(OBJS)
+
+	#echo $(LD)
+
 $(PROG) : cable_driver.o 
-	$(FC) $(LDFLAGS) -o $@ $(OBJS) $(LD) 
+	$(FC) -O0 -o $@ $(OBJS) $(LDFLAGS) $(LD) 
 
 
 # dependencies

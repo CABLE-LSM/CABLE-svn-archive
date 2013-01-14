@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg ubun
 }
+
+
+## ubun
+host_ubun()
+{
+   export NCDIR='/usr/local/lib/'
+   export NCMOD='/usr/local/include/'
+   export FC=ifort
+   export CFLAGS='-O0 -g -traceback'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/local/lib/'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## jiggle
@@ -12,9 +29,9 @@ host_jigg()
    export NCDIR='/usr/local/lib'
    export NCMOD='/usr/local/include'
    export FC=gfortran
-   export CFLAGS='-O2 -x f95-cpp-input'
+   export CFLAGS='-O0 -x f95-cpp-input -Wall'
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/local/lib -O2'
+   export LDFLAGS='-L/usr/local/lib -O0'
    build_build
    cd ../
    build_status

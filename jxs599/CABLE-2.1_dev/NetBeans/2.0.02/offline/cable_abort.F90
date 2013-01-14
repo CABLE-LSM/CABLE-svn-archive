@@ -69,7 +69,7 @@ CONTAINS
 !==============================================================================
 
 
-SUBROUTINE cable_abort( message )
+SUBROUTINE abort( message )
 
    ! Input arguments
    CHARACTER(LEN=*), INTENT(IN) :: message
@@ -77,7 +77,7 @@ SUBROUTINE cable_abort( message )
    WRITE(*, *) message
    STOP 1
 
-END SUBROUTINE cable_abort
+END SUBROUTINE abort
 
 !==============================================================================
 !

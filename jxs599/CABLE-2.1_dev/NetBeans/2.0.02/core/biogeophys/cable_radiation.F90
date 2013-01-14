@@ -166,7 +166,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
                                    veg_parameter_type, soil_snow_type,         &
                                    air_type, mp, mf, r_2
                                        
-   USE cable_common_module, only : cable_user
+   USE cable_common_module, only : cable_runtime, cable_user
 
    TYPE (canopy_type),   INTENT(IN) :: canopy
    TYPE (air_type),      INTENT(IN) :: air
@@ -352,6 +352,7 @@ END SUBROUTINE radiation
 SUBROUTINE calc_rhoch(veg,c1,rhoch) 
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
+   USE cable_common_module, only : cable_runtime   
 
    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
    REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
