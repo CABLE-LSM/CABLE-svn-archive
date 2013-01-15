@@ -68,37 +68,43 @@
 ################################################################################ 
 ################################################################################ 
 
-# these are the teo data files to compare
+# these are the the data files to compare
 set -A basename std FLUXES	
 
-CABLE_tools='/projects/access/CABLE-AUX/tools'
-spec_tools='zero_diff'
+zero_tools='zero_diff/execs'
 
+if [[ $zero_tools == 'UNSET' ]]; then	
+   print '\nYou have to set the path (zero_tools) to point to your installation of the zero tools executables'
+   exit
+fi
+	 
 if [[ $1 == '-r' ]]; then
 
    # if a run across multiple processors was conducted, this call 
    # concatenates all those files 
    if [[ $2 == '-n' ]]; then
-      $CABLE_tools/$spec_tools/diag_cat_nodes_r4 ${basename[1]} $3 
+      $zero_tools/diag_cat_nodes_r4 ${basename[1]} $3 
    else
       basename[1]="FLUXES00"	
    fi  
    
    ### execute f90 program to do all the work desired
-   $CABLE_tools/$spec_tools/diff_main_r4 ${basename[0]} ${basename[1]}
+   $zero_tools/diff_main_r4 ${basename[0]} ${basename[1]}
 
 elif [[ $1 == '-d' ]]; then
 
    if [[ $2 == '-n' ]]; then
-      $CABLE_tools/$spec_tools/diag_cat_nodes_r8 ${basename[1]} $3 
+      $zero_tools/diag_cat_nodes_r8 ${basename[1]} $3 
    else
       basename[1]="FLUXES00"	
    fi  
    
-   $CABLE_tools/$spec_tools/diff_main_r8 ${basename[0]} ${basename[1]}
+   $zero_tools/diff_main_r8 ${basename[0]} ${basename[1]}
 
 else
-   print 'Supported KINDS are real*4 (-r) and real*8 (-d)'        
+   print '\nUsage of zero_diff.ksh script:'  
+   print '\n\t zero_diff.ksh -KIND [-n ncpus]'
+   print '\nSupported KINDS are real*4 (-r) and real*8 (-d)'        
 fi
 
 
