@@ -792,8 +792,8 @@ SUBROUTINE within_canopy( gbhu, gbhf )
          met%qvair(j) =  MIN(met%qvair(j), upper_limit)
       
          ! Saturated specific humidity in canopy:
-         dum = met%tvair(j)-C%tfrz
-         CALL qsatfjh2(qstvair(j),dum,met%pmb(j))
+         dum(j) = met%tvair(j)-C%tfrz
+         CALL qsatfjh2(qstvair(j),dum(j),met%pmb(j))
          
          ! Saturated vapour pressure deficit in canopy:
          met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o         &
