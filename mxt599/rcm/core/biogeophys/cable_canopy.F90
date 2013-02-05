@@ -1491,7 +1491,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    
       dumcx1 = SPREAD( cx1(:), 2, mf )
       dumcx2 = SPREAD( cx2(:), 2, mf )
-      dumde1 = SPREAD( abs_deltlf, 2, mf )
+      dumdel = SPREAD( abs_deltlf, 2, mf )
       CALL photosynthesis( csx(:,:),                                           &
                            dumcx1,                                             &
                            dumcx2,                                             &
