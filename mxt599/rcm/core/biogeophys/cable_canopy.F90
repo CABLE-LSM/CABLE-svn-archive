@@ -94,7 +94,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! temporary buffers to simplify equations
    REAL, DIMENSION(mp) ::                                                      &
       ftemp,z_eff,psim_arg, psim_1, psim_2, rlower_limit,                      &
-      term1, term2, term3, term5 
+      term1, term2, term3, term5, dum 
 
    REAL, DIMENSION(mp) ::                                                      & 
       cansat,        & ! max canopy intercept. (mm)
@@ -154,7 +154,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    CALL define_air (met, air)
    
-   CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
+   dum = met%tvair-C%tfrz
+   CALL qsatfjh(qstvair,dum,met%pmb)
 
    met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
    dsx = met%dva     ! init. leaf surface vpd
@@ -308,7 +309,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
 
       ! Saturation specific humidity at soil/snow surface temperature:
-      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+      dum = ssnow%tss-C%tfrz
+      call qsatfjh(ssnow%qstss,dum,met%pmb)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
@@ -332,7 +334,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL within_canopy( gbhu, gbhf )
 
       ! Saturation specific humidity at soil/snow surface temperature:
-      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+      dum = ssnow%tss-C%tfrz
+      call qsatfjh(ssnow%qstss,dum,met%pmb)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
@@ -409,9 +412,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    canopy%vlaiw(:))*canopy%gswx(:,2)
 
    canopy%gswx_T = max(1.e-05,canopy%gswx_T )
-          
+    
+   dum = canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq      
    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
-                 psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
+                 psim( dum )                                                   &
                  ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
                  - psis( canopy%zetar(:,NITER)) )
 
@@ -421,8 +425,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
     tstar = - canopy%fh / ( air%rho*C%CAPP*canopy%us)
     qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us)
     zscrn = MAX(rough%z0m,2.0-rough%disp)
+    dum = canopy%zetar(:,iterplus) * zscrn / rough%zref_tq
     ftemp = ( LOG(rough%zref_tq/zscrn)- psis(canopy%zetar(:,iterplus)) +       &
-            psis(canopy%zetar(:,iterplus) * zscrn / rough%zref_tq) ) /C%VONK
+            psis( dum ) ) /C%VONK
 
     ! Calculate screen temperature:
     canopy%tscrn = met%tk - C%tfrz - tstar * ftemp
@@ -602,6 +607,7 @@ FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
       cc1,             & ! var for Penman-Monteith soil evap
       cc2,             & ! var for Penman-Monteith soil evap
       qsatfvar           !
+   REAL, DIMENSION(MP) :: dum
    INTEGER :: j
    
    ! Penman-Monteith formula
@@ -609,7 +615,8 @@ FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
    cc1=sss/(sss+air%psyc )
    cc2=air%psyc /(sss+air%psyc )
    
-   CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
+   dum = met%tvair-C%tfrz
+   CALL qsatfjh(qsatfvar,dum,met%pmb)
 
    ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
    cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
@@ -785,7 +792,8 @@ SUBROUTINE within_canopy( gbhu, gbhf )
          met%qvair(j) =  MIN(met%qvair(j), upper_limit)
       
          ! Saturated specific humidity in canopy:
-         CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
+         dum = met%tvair(j)-C%tfrz
+         CALL qsatfjh2(qstvair(j),dum,met%pmb(j))
          
          ! Saturated vapour pressure deficit in canopy:
          met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o         &
@@ -1299,6 +1307,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
+   REAL, DIMENSION(mp,mf) :: dumcx1, dumcx2, dumdel
+
    INTEGER :: i, j, k, kk  ! iteration count
    
    ! END header
@@ -1479,13 +1489,16 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          
       ENDDO !i=1,mp
    
+      dumcx1 = SPREAD( cx1(:), 2, mf )
+      dumcx2 = SPREAD( cx2(:), 2, mf )
+      dumde1 = SPREAD( abs_deltlf, 2, mf )
       CALL photosynthesis( csx(:,:),                                           &
-                           SPREAD( cx1(:), 2, mf ),                            &
-                           SPREAD( cx2(:), 2, mf ),                            &
+                           dumcx1,                                             &
+                           dumcx2,                                             &
                            gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
                            vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
                            xleuning(:,:), rad%fvlai(:,:),                      &
-                           SPREAD( abs_deltlf, 2, mf ),                        &
+                           dumdel,                                             &
                            anx(:,:) )
 
       DO i=1,mp
