@@ -78,7 +78,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
       coef_drght, & ! coeff. for drought stress (eq. 8)
       wbav          ! water stress index 
 
-    REAL, DIMENSION(:), ALLOCATABLE ::                                         &
+    REAL, DIMENSION(mvtype) ::                                                &
       rw,      & !
       tfcl,    & ! 
       tvclst,  & !
@@ -87,9 +87,6 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
       trnsf,   & !
       trnw
 
-
-   ALLOCATE( rw(mvtype), tfcl(mvtype), tvclst(mvtype),                        &
-              trnl(mvtype), trnr(mvtype), trnsf(mvtype), trnw(mvtype) )
 
    trnl = 3.17e-8
    trnr = 4.53e-9
@@ -207,8 +204,6 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
    
    bgc%csoil(:,:) = MAX(0.00, bgc%csoil(:,:))
   
-   DEALLOCATE( rw, tfcl, tvclst, trnl, trnr, trnsf, trnw )
-
 END SUBROUTINE carbon_pl
 
 ! -----------------------------------------------------------------------------

@@ -62,7 +62,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
       dummy2, & !
       dummy
 
-   REAL, DIMENSION(:,:), ALLOCATABLE, SAVE :: c1, rhoch
+   REAL, DIMENSION(mp,nrb) :: c1, rhoch
    
    LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
 
@@ -72,9 +72,6 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
    CALL point2constants(C) 
    
-   IF (.NOT. allocated(c1)) &
-      ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
-
    CALL surface_albedosn(ssnow, veg, met, soil)
 
    WHERE (soil%isoilm == 9)   ! use dry snow albedo (permanent ice)

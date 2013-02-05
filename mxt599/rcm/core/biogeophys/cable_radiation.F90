@@ -63,7 +63,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       xphi1,   & ! leaf angle parmameter 1
       xphi2      ! leaf angle parmameter 2
    
-   REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
+   REAL, DIMENSION(mp,nrb) ::                                                  &
       ! subr to calc these curr. appears twice. fix this  
       c1,      & !
       rhoch
@@ -72,12 +72,9 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
 
    INTEGER :: ictr
-  
    
    CALL point2constants( C ) 
    
-   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
-
    cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
 
    ! See Sellers 1985, eq.13 (leaf angle parameters):
@@ -123,19 +120,19 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
 
    ENDDO
    
-   IF( .NOT. cable_runtime%um) THEN
-   
-      ! Define beam fraction, fbeam:
-      rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
-      rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
-      ! coszen is set during met data read in.
-   
-      WHERE (met%coszen <1.0e-2)
-         rad%fbeam(:,1) = 0.0
-         rad%fbeam(:,2) = 0.0
-      END WHERE
-   
-   ENDIF
+   !IF( .NOT. cable_runtime%um) THEN
+   !
+   !   ! Define beam fraction, fbeam:
+   !   rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
+   !   rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
+   !   ! coszen is set during met data read in.
+   !
+   !   WHERE (met%coszen <1.0e-2)
+   !      rad%fbeam(:,1) = 0.0
+   !      rad%fbeam(:,2) = 0.0
+   !   END WHERE
+   ! 
+   !ENDIF
    
    ! In gridcells where vegetation exists....
    WHERE (canopy%vlaiw > C%LAI_THRESH)    

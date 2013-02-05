@@ -96,7 +96,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ftemp,z_eff,psim_arg, psim_1, psim_2, rlower_limit,                      &
       term1, term2, term3, term5 
 
-   REAL, DIMENSION(:), POINTER ::                                              & 
+   REAL, DIMENSION(mp) ::                                                      & 
       cansat,        & ! max canopy intercept. (mm)
       dsx,           & ! leaf surface vpd
       fwsoil,        & ! soil water modifier of stom. cond
@@ -110,9 +110,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ecy,           & ! lat heat fl dry big leaf
       hcy,           & ! veg. sens heat
       rny,           & ! net rad
-      ghwet             ! cond for heat for a wet canopy
+      ghwet            ! cond for heat for a wet canopy
    
-   REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
+   REAL(r_2), DIMENSION(mp,mf) ::                                              &
       gbhu,          & ! forcedConvectionBndryLayerCond
       gbhf,          & ! freeConvectionBndryLayerCond
       csx              ! leaf surface CO2 concentration
@@ -133,12 +133,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! ACCESS version has this statement but elsewhere?
    IF( .NOT. cable_runtime%um)                                                 &
       canopy%cansto =  canopy%oldcansto
-
-   ALLOCATE( cansat(mp), gbhu(mp,mf))
-   ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
-   ALLOCATE( ecy(mp), hcy(mp), rny(mp))
-   ALLOCATE( gbhf(mp,mf), csx(mp,mf))
-   ALLOCATE( ghwet(mp))
 
    ! BATS-type canopy saturation proportional to LAI:
    cansat = veg%canst1 * canopy%vlaiw
@@ -570,12 +564,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    bal%wetbal = canopy%fevw + canopy%fhvw - SUM(rad%rniso,2) * canopy%fwet      &
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
-
-   DEALLOCATE(cansat,gbhu)
-   DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
-   DEALLOCATE(ecy, hcy, rny)
-   DEALLOCATE(gbhf, csx)
-   DEALLOCATE(ghwet)
 
 CONTAINS
 
@@ -1307,7 +1295,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       frac42,     & ! 2D frac4
       temp2
 
-   REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
+   REAL, DIMENSION(mp,mf) :: gswmin ! min stomatal conductance
    
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
@@ -1315,8 +1303,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    
    ! END header
 
-
-   ALLOCATE( gswmin(mp,mf ))
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
@@ -1686,8 +1672,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
    
-   DEALLOCATE( gswmin )
-
 END SUBROUTINE dryLeaf
 
 ! -----------------------------------------------------------------------------
