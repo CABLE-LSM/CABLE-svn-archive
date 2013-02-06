@@ -106,7 +106,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    REAL(r_2), DIMENSION(mp) ::                                                 &
      gbvtop                   ! bnd layer cond. top leaf
 
-   REAL(r_2), DIMENSION(:), POINTER ::                                         &
+   REAL(r_2), DIMENSION(mp) ::                                                 &
       ecy,           & ! lat heat fl dry big leaf
       hcy,           & ! veg. sens heat
       rny,           & ! net rad
