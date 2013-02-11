@@ -1,6 +1,0 @@
-#!/bin/csh
-
-# make CABLE
-make -f Makefiles/Make_CABLE cable
-make -f Makefiles/Make_CABLE clean
-
