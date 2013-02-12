@@ -57,8 +57,11 @@ host_cher()
 ## vayu.nci.org.au
 host_vayu()
 {
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   module load netcdf/3.6.3 openmpi
+   export NCDIR='/apps/netcdf/3.6.3/lib/Intel'
+   export NCMOD='/apps/netcdf/3.6.3/include/Intel'
+   # export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   # export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='mpif90'
    export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
    if [[ $1 = 'debug' ]]; then      
