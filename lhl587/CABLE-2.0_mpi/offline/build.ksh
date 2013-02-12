@@ -71,15 +71,18 @@ host_cher()
 ## vayu.nci.org.au
 host_vayu()
 {
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   module load netcdf/4.1.1
+   # export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   # export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export NCDIR='/apps/netcdf/4.1.1/lib/Intel/libnetcdf.a'
+   export NCMOD='/apps/netcdf/4.1.1/include/Intel/netcdf.mod'
    export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf'
+   export LD='-lnetcdff -lnetcdf'
    build_build
    cd ../
    build_status
