@@ -409,6 +409,7 @@ SUBROUTINE mpidrv_master (comm)
     !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
      if (spincasa) then
       mloop = 5
+      print *, 'spincasacnp enabled with mloop= ', mloop
       ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
       call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                        casaflux,casamet,casabal,phen)
@@ -602,16 +603,21 @@ SUBROUTINE mpidrv_master (comm)
       CALL master_receive (comm, ktau_gl, casa_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
+      print *, 'output BGC pools'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
-
+      print *, 'output BGC fluxes'
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
-      print *, 'before ncdf_dump', spinConv, spincasainput
+      print *, 'output biome avergage fluxes and pool sizes'
+      open(92,file='cnpfluxpool.txt')
+      CALL pftcnpfluxpool(mloop,veg,casamet,casapool,casaflux,casabal)
+      close(92)
 
-    if ( spinConv .AND. spincasainput ) then
-       call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
-    endif
+      print *, 'before ncdf_dump', spinConv, spincasainput
+      if ( spinConv .AND. spincasainput ) then
+           call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+      endif
   
    END IF
 
@@ -3077,6 +3083,22 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmleafyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmwoodyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmrootyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrgrowyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casabal%FCrpyear(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -5087,6 +5109,26 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (casabal%FCnppyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmleafyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmwoodyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmrootyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrgrowyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrpyear(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1

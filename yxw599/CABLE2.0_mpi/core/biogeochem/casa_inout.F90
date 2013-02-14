@@ -856,6 +856,10 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
   xyear=1.0/FLOAT(myear)
   casabal%FCgppyear=casabal%FCgppyear * xyear
   casabal%FCnppyear=casabal%FCnppyear * xyear
+  casabal%FCrmleafyear=casabal%FCrmleafyear * xyear
+  casabal%FCrmwoodyear=casabal%FCrmwoodyear * xyear
+  casabal%FCrmrootyear=casabal%FCrmrootyear * xyear
+  casabal%FCrgrowyear=casabal%FCrgrowyear * xyear
   casabal%FCrsyear=casabal%FCrsyear * xyear
   casabal%FCneeyear=casabal%FCneeyear * xyear
   casabal%FNdepyear=casabal%FNdepyear * xyear
@@ -881,7 +885,9 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
         WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
             casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
             casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),  &
-            casabal%Fcnppyear(npt),  &
+            casabal%Fcnppyear(npt),                                 &
+            casabal%Fcrmleafyear(npt),casabal%Fcrmwoodyear(npt),     &
+            casabal%Fcrmrootyear(npt),casabal%Fcrgrowyear(npt),     &
             casabal%Fcrsyear(npt),casabal%Fcneeyear(npt)  ! ,           &
 !            clitterinput(npt,:),csoilinput(npt,:)
 
@@ -889,7 +895,10 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
         WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
             casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
             casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),  &
-        casabal%FCnppyear(npt),casabal%FCrsyear(npt), casabal%FCneeyear(npt), &
+            casabal%FCnppyear(npt),                                 &
+            casabal%Fcrmleafyear(npt),casabal%Fcrmwoodyear(npt),     &
+            casabal%Fcrmrootyear(npt),casabal%Fcrgrowyear(npt),     &
+            casabal%FCrsyear(npt), casabal%FCneeyear(npt),          &
 !        clitterinput(npt,:),csoilinput(npt,:), &
         casabal%FNdepyear(npt),casabal%FNfixyear(npt),casabal%FNsnetyear(npt), &
         casabal%FNupyear(npt), casabal%FNleachyear(npt),casabal%FNlossyear(npt)
@@ -897,8 +906,11 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
       CASE(3)
         WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt), &
         casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt),  &
-        casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt), &
-       casabal%FCnppyear(npt),casabal%FCrsyear(npt),   casabal%FCneeyear(npt),&
+        casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),   &
+        casabal%FCnppyear(npt),                                  &
+            casabal%Fcrmleafyear(npt),casabal%Fcrmwoodyear(npt),     &
+            casabal%Fcrmrootyear(npt),casabal%Fcrgrowyear(npt),     &
+        casabal%FCrsyear(npt),   casabal%FCneeyear(npt),         &
 !        clitterinput(npt,:),csoilinput(npt,:), &
        casabal%FNdepyear(npt),casabal%FNfixyear(npt),  casabal%FNsnetyear(npt),&
        casabal%FNupyear(npt), casabal%FNleachyear(npt),casabal%FNlossyear(npt),&
@@ -929,12 +941,16 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
 !  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
   INTEGER n
 
-  casabal%FCgppyear = casabal%FCgppyear + casaflux%Cgpp   * deltpool
-  casabal%FCrpyear  = casabal%FCrpyear  + casaflux%Crp    * deltpool
-  casabal%FCnppyear = casabal%FCnppyear + casaflux%Cnpp   * deltpool
-  casabal%FCrsyear  = casabal%FCrsyear  + casaflux%Crsoil * deltpool
-  casabal%FCneeyear = casabal%FCneeyear &
-                    + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
+  casabal%FCgppyear        = casabal%FCgppyear + casaflux%Cgpp   * deltpool
+  casabal%FCrpyear         = casabal%FCrpyear  + casaflux%Crp    * deltpool
+  casabal%FCrmleafyear(:)  = casabal%FCrmleafyear(:)  + casaflux%Crmplant(:,leaf)    * deltpool
+  casabal%FCrmwoodyear(:)  = casabal%FCrmwoodyear(:)  + casaflux%Crmplant(:,wood)    * deltpool
+  casabal%FCrmrootyear(:)  = casabal%FCrmrootyear(:)  + casaflux%Crmplant(:,froot)    * deltpool
+  casabal%FCrgrowyear      = casabal%FCrgrowyear  + casaflux%Crgplant              * deltpool
+  casabal%FCnppyear        = casabal%FCnppyear + casaflux%Cnpp   * deltpool
+  casabal%FCrsyear         = casabal%FCrsyear  + casaflux%Crsoil * deltpool
+  casabal%FCneeyear        = casabal%FCneeyear &
+                           + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
  
 !  DO n=1,3
 !    clitterinput(:,n)= clitterinput(:,n) + casaflux%kplant(:,n) * casapool%cplant(:,n) * deltpool
