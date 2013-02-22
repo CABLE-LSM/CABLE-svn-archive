@@ -246,6 +246,12 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          !--- these are temporary 
          soil%rhosoil =  soilin%rhosoil(soil%isoilm)
          soil%css     =  soilin%css(soil%isoilm)
+
+         !--- Lestevens 28 Sept 2012 - Fix Init for soil% textures 
+         !--- needed for CASA-CNP
+         soil%clay = soilin%clay(soil%isoilm)
+         soil%silt = soilin%silt(soil%isoilm)
+         soil%sand = soilin%sand(soil%isoilm)
          
             
          first_call= .FALSE.

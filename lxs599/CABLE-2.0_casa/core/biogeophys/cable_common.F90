@@ -40,6 +40,11 @@ MODULE cable_common_module
    ! set from environment variable $HOME
    CHARACTER(LEN=200) ::                                                       & 
       myhome
+
+   !---Lestevens Sept2012
+   !---CASACNP switches and cycle index
+   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
+   !INTEGER, SAVE :: icycle
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
