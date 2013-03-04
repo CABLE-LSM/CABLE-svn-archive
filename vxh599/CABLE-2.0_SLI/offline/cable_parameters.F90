@@ -67,6 +67,7 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
+  USE cable_common_module, ONLY: cable_user
   IMPLICIT NONE
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
@@ -940,10 +941,8 @@ CONTAINS
           veg%frac4(h)    = vegin%frac4(veg%iveg(h))
           veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
           veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
-          veg%taul(h,3)    = vegin%taul(3,veg%iveg(h))
           veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
           veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
-          veg%refl(h,3)    = vegin%refl(3,veg%iveg(h))
           veg%canst1(h)   = vegin%canst1(veg%iveg(h))
           veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
           veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
@@ -1057,6 +1056,27 @@ CONTAINS
     ELSEWHERE
       ssnow%wbice(:, :) = 0.0
     END WHERE
+
+		   ! SLI specific initialisations:
+    IF(cable_user%SOIL_STRUC=='sli') THEN
+       ssnow%h0(:) = 0.0
+       ssnow%S(:,:) = ssnow%wb(:,:)/SPREAD(soil%ssat,2,ms)
+	   ssnow%snowliq(:,:) = 0.0
+	   ssnow%Tsurface = 25.0
+    END IF
+
+	IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
+       met%tk_old = 298.
+	   met%qv_old = 0.005
+    END IF
+
+	IF(cable_user%SOIL_STRUC=='sli') THEN
+       soil%nhorizons = 2 ! use 2 soil horizons globally
+       soil%clitt = 5.0 ! (tC / ha)
+       veg%gamma = 1.e-5
+	   veg%F10 = 0.85
+       veg%ZR = 5.0
+    END IF
 
   END SUBROUTINE write_default_params
   !=============================================================================
@@ -1182,6 +1202,31 @@ CONTAINS
                     * 1000.0
     END DO
     bal%osnowd0 = ssnow%osnowd
+
+   IF(cable_user%SOIL_STRUC=='sli') THEN
+       soil%nhorizons = 2 ! use 2 soil horizons globally
+       ! For now just set B horizon parameters to be the same as A
+       soil%bchB = soil%bch
+       soil%clayB = soil%clay
+       soil%sandB = soil%sand ! MC: used later
+       soil%siltB = soil%silt !
+       soil%cssB = soil%css
+       soil%hydsB = soil%hyds
+       soil%rhosoilB = soil%rhosoil
+       soil%sfcB = soil%sfc
+       soil%ssatB = soil%ssat
+       soil%sucsB = soil%sucs
+       soil%swiltB = soil%swilt
+       soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+       soil%ssat_vec = SPREAD(soil%ssat,2,ms)
+       soil%sfc_vec = SPREAD(soil%sfc,2,ms)
+	   soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+
+       ! Arbitrarily set A horiz depth to be first three layers
+       soil%depthA = SUM(soil%zse(1:3))
+       soil%clitt = 5.0 ! (tC / ha)
+       soil%depthB = SUM(soil%zse(4:))
+    END IF
 
   END SUBROUTINE derived_parameters
   !============================================================================

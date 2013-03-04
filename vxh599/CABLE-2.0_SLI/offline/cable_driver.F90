@@ -86,6 +86,7 @@ PROGRAM cable_offline_driver
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
+   !USE DFLIB
 
    IMPLICIT NONE
    
@@ -188,10 +189,10 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
-   IF( IARGC() > 0 ) THEN
-      CALL GETARG(1, filename%met)
-      CALL GETARG(2, casafile%cnpipool)
-   ENDIF
+   !IF( Nargs() > 0 ) THEN
+   !   CALL GETARG(1, filename%met)
+   !   CALL GETARG(2, casafile%cnpipool)
+   !ENDIF
 
     
    cable_runtime%offline = .TRUE.
@@ -294,7 +295,7 @@ PROGRAM cable_offline_driver
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
    
          ! CALL land surface scheme for this timestep, all grid points:
-         CALL cbm( dels, air, bgc, canopy, met,                             &
+         CALL cbm( ktau, dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
    

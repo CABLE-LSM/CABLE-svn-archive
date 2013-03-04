@@ -29,6 +29,7 @@
 ! ==============================================================================
 
 MODULE cable_def_types_mod
+   
 
    ! Contains all variables which are not subroutine-internal
 
@@ -44,7 +45,8 @@ MODULE cable_def_types_mod
               mstype,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
-   INTEGER, PARAMETER ::                                                        &
+   INTEGER, PARAMETER :: i_d = SELECTED_INT_KIND(9) , &       ! IEEE 4 Byte Integer                                                      &
+      r_1 = SELECTED_REAL_KIND(6,37) , &   ! IEEE single Precision Real                                                      &
       r_2  = SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
@@ -129,6 +131,29 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
 
+	 ! Additional SLI parameters: 'B' suffix implies 2nd soil horizon parameters
+     INTEGER, DIMENSION(:), POINTER :: nhorizons ! number of soil horizons
+     REAL(r_2), DIMENSION(:), POINTER :: bchB         ! parameter b in Campbell equation
+     REAL(r_2), DIMENSION(:), POINTER :: clayB        ! fraction of soil which is clay
+     REAL(r_2), DIMENSION(:), POINTER :: cnsdB        ! thermal conductivity of dry soil [W/m/K]
+     REAL(r_2), DIMENSION(:), POINTER :: cssB         ! soil specific heat capacity [kJ/kg/K]
+     REAL(r_2), DIMENSION(:), POINTER :: hydsB        ! hydraulic conductivity @ saturation [m/s], Ksat
+     REAL(r_2), DIMENSION(:), POINTER :: rhosoilB     ! soil density [kg/m3]
+     REAL(r_2), DIMENSION(:), POINTER :: sandB        ! fraction of soil which is sand
+     REAL(r_2), DIMENSION(:), POINTER :: siltB        ! fraction of soil which is silt
+     REAL(r_2), DIMENSION(:), POINTER :: ssatB        ! vol H2O @ saturation
+     REAL(r_2), DIMENSION(:), POINTER :: sucsB        ! suction at saturation (m)
+     REAL(r_2), DIMENSION(:), POINTER :: swiltB       ! vol H2O @ wilting
+     REAL(r_2), DIMENSION(:), POINTER :: depthA       ! depth of A horizon
+     REAL(r_2), DIMENSION(:), POINTER :: depthB       ! depth of B horizon
+     REAL(r_2), DIMENSION(:), POINTER :: sfcB         ! field capacity of B horizon
+     REAL(r_2), DIMENSION(:), POINTER  :: clitt       ! litter (tC/ha)
+     REAL(r_2), DIMENSION(:), POINTER  :: zeta        ! macropore parameter
+     REAL(r_2), DIMENSION(:), POINTER  :: fsatmax     ! variably saturated area parameter
+     REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec  ! vol H2O @ wilting
+     REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec   ! vol H2O @ sat
+     REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec    ! vol H2O @ fc
+
   END TYPE soil_parameter_type
 
 ! .............................................................................
@@ -212,6 +237,36 @@ MODULE cable_def_types_mod
          wblf,    & !
          wbfice     !
 
+
+	     ! Additional SLI variables:
+     REAL(r_2), DIMENSION(:,:), POINTER  :: S      ! moisture content relative to sat value    (edit vh 23/01/08)
+     REAL(r_2), DIMENSION(:), POINTER :: SL        ! litter moisture content relative to sat value (edit vh 23/01/08)
+     REAL(r_2), DIMENSION(:), POINTER :: TL        ! litter temperature in K     (edit vh 23/01/08)
+     REAL(r_2), DIMENSION(:), POINTER :: h0        ! pond height in m            (edit vh 23/01/08)
+     REAL(r_2), DIMENSION(:,:), POINTER :: rex     ! root extraction from each layer (mm/dels)
+     REAL(r_2), DIMENSION(:,:), POINTER :: wflux   ! water flux at layer boundaries (mm s-1)
+     REAL(r_2), DIMENSION(:,:), POINTER :: hflux   ! heat flux at layer boundaries (J m-2 s-1)
+     REAL(r_2), DIMENSION(:), POINTER :: delwcol   ! change in water column (mm / dels)
+     REAL(r_2), DIMENSION(:), POINTER :: zdelta    ! water table depth           (edit vh 23/06/08)
+     REAL(r_2), DIMENSION(:,:), POINTER :: kth     ! thermal conductivity           (edit vh 29/07/08)
+     REAL(r_2), DIMENSION(:), POINTER :: Tsurface  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
+     REAL(r_2), DIMENSION(:), POINTER :: rh0       !  relative humidity at top of soil column (edit vh 22/10/08)
+     REAL(r_2), DIMENSION(:), POINTER :: rhsurface ! relative at surface (soil, pond or litter) (edit vh 22/10/08)
+     REAL(r_2), DIMENSION(:), POINTER :: lE        ! soil latent heat flux
+     REAL(r_2), DIMENSION(:), POINTER  :: evap     ! soil evaporation (mm / dels)
+     REAL(r_2), DIMENSION(:,:), POINTER  :: ciso   ! concentration of minor isotopologue in soil water (kg m-3 water)
+     REAL(r_2), DIMENSION(:), POINTER  :: cisoL    ! concentration of minor isotopologue in litter water (kg m-3 water)
+     REAL(r_2), DIMENSION(:), POINTER :: delwcolA  ! change in water column (A horizon) (mm / dels)
+     REAL(r_2), DIMENSION(:), POINTER :: delwcolB  ! change in water column (B horizon) (mm / dels)
+     REAL(r_2), DIMENSION(:), POINTER :: rexA      ! root extraction (A horizon) (mm / dels)
+     REAL(r_2), DIMENSION(:), POINTER :: rexB      ! root extraction (B horizon) (mm / dels)
+     REAL(r_2), DIMENSION(:), POINTER  :: SA       ! degree of saturation  (A horizon)
+     REAL(r_2), DIMENSION(:), POINTER  :: SB       ! degree of saturation  (B horizon)
+     REAL(r_2), DIMENSION(:), POINTER  :: leachAB  ! downward flux between A and B horizons (mm/dels)
+     REAL(r_2), DIMENSION(:), POINTER  :: rlitt    ! resistance to heat/moisture transfer through litter (m-1 s)
+     REAL(r_2), DIMENSION(:,:), POINTER  :: thetai ! volumetric ice content (MC)
+     REAL(r_2), DIMENSION(:,:), POINTER :: snowliq ! liquid snow content (mm H2O)
+
    END TYPE soil_snow_type
 
 ! .............................................................................
@@ -252,6 +307,14 @@ MODULE cable_def_types_mod
          refl,    &
          taul,    & 
          froot      ! fraction of root in each soil layer
+
+	    ! Additional SLI veg parameters:
+     REAL(r_2), DIMENSION(:), POINTER :: rootbeta ! parameter for estimating vertical root mass distribution (froot)
+     REAL(r_2), DIMENSION(:), POINTER :: gamma    ! parameter in root efficiency function (Lai and Katul 2000)
+     REAL(r_2), DIMENSION(:), POINTER :: ZR       ! maximum rooting depth (cm)
+     REAL(r_2), DIMENSION(:), POINTER :: F10      ! fraction of roots in top 10 cm
+     REAL(r_2), DIMENSION(:), POINTER :: d0c3     !
+     REAL(r_2), DIMENSION(:), POINTER :: a1c3     !
 
    END TYPE veg_parameter_type
 
@@ -320,7 +383,17 @@ MODULE cable_def_types_mod
          dgdtg,   & ! derivative of gflux wrt soil temp
          fes,     & ! latent heatfl from soil (W/m2)
          fes_cor, & ! latent heatfl from soil (W/m2)
-         fevc       ! dry canopy transpiration (W/m2)
+         fevc,     &  ! dry canopy transpiration (W/m2) 
+		 ofes     ! latent heatfl from soil (W/m2)
+
+	   ! Additional variables:
+     REAL(r_2), DIMENSION(:,:), POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
+     REAL(r_2), DIMENSION(:,:,:), POINTER :: ancj ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
+     REAL(r_2), DIMENSION(:,:), POINTER :: tlfy   ! sunlit and shaded leaf temperatures
+     REAL(r_2), DIMENSION(:,:), POINTER :: ecy    ! sunlit and shaded leaf transpiration (dry canopy)
+     REAL(r_2), DIMENSION(:,:), POINTER :: ecx    ! sunlit and shaded leaf latent heat flux
+     REAL(r_2), DIMENSION(:,:,:), POINTER :: ci   ! intra-cellular CO2 vh 6/7/09
+     REAL(r_2), DIMENSION(:), POINTER :: fwsoil   !
 
    END TYPE canopy_type
 
@@ -449,10 +522,13 @@ MODULE cable_def_types_mod
          qvair,   & ! within canopy specific humidity (g/g)
          da,      & ! water vap pressure deficit at ref height (Pa)
          dva,     & ! in canopy water vap pressure deficit (Pa)
-         coszen     ! cos(zenith angle of sun)
+         coszen,   &  ! cos(zenith angle of sun)
+		 tk_old,   &
+		 qv_old
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
          fsd  ! downward short-wave radiation (W/m2)
+	  
      
    END TYPE met_type
 
@@ -596,6 +672,35 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% pwb_min(mp) )  
    allocate( var% albsoilf(mp) )  
 
+   ! Allocate variables for SLI soil model:
+    !IF(cable_user%SOIL_STRUC=='sli') THEN
+       ALLOCATE ( var % nhorizons(mp) )
+       ALLOCATE ( var % bchB(mp) )
+       ALLOCATE ( var % clayB(mp) )
+       ALLOCATE ( var % cnsdB(mp) )
+       ALLOCATE ( var % cssB(mp) )
+       ALLOCATE ( var % hydsB(mp) )
+       ALLOCATE ( var % rhosoilB(mp) )
+       ALLOCATE ( var % sandB(mp) )
+       ALLOCATE ( var % siltB(mp) )
+       ALLOCATE ( var % ssatB(mp) )
+       ALLOCATE ( var % sucsB(mp) )
+       ALLOCATE ( var % swiltB(mp) )
+       ALLOCATE ( var % depthA(mp) )
+       ALLOCATE ( var % depthB(mp) )
+       ALLOCATE ( var % sfcB(mp) )
+       ALLOCATE ( var % clitt(mp) )
+       ALLOCATE ( var % zeta(mp) )
+       ALLOCATE ( var % fsatmax(mp) )
+       ALLOCATE ( var % swilt_vec(mp,ms) )
+       ALLOCATE ( var % ssat_vec(mp,ms) )
+       ALLOCATE ( var % sfc_vec(mp,ms) )
+	   IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var % swilt_vec(mp,ms) )
+       IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
+       IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
+   ! END IF
+
+
 END SUBROUTINE alloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -638,7 +743,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% ssdnn(mp) ) 
    ALLOCATE( var% tgg(mp,ms) )   
    ALLOCATE( var% tggsn(mp,msn) ) 
-   ALLOCATE( var% tss(mp) )   
+   ALLOCATE( var% tss(mp) )    
    ALLOCATE( var% tss_p(mp) )   
    ALLOCATE( var% deltss(mp) )   
    ALLOCATE( var% owb1(mp) )   
@@ -671,6 +776,35 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%qasrf(mp) )  
    ALLOCATE( var%qfsrf(mp) )  
    ALLOCATE( var%qssrf(mp) )  
+
+       ! Allocate variables for SLI soil model:
+   !IF(cable_user%SOIL_STRUC=='sli') THEN
+       ALLOCATE ( var % S(mp,ms) )
+       ALLOCATE ( var % SL(mp) )
+       ALLOCATE ( var % TL(mp) )
+       ALLOCATE ( var % h0(mp) )
+       ALLOCATE ( var % rex(mp,ms) )
+       ALLOCATE ( var % wflux(mp,0:ms) )
+       ALLOCATE ( var % hflux(mp,0:ms) )
+       ALLOCATE ( var % zdelta(mp) )
+       ALLOCATE ( var % kth(mp,ms) )
+       ALLOCATE ( var % Tsurface(mp) )
+       ALLOCATE ( var % rh0(mp) )
+       ALLOCATE ( var % rhsurface(mp) )
+       ALLOCATE ( var % lE(mp) )
+       ALLOCATE ( var % ciso(mp,ms+1) )
+       ALLOCATE ( var % cisoL(mp) )
+       ALLOCATE ( var % SA(mp) )
+       ALLOCATE ( var % SB(mp) )
+       ALLOCATE ( var % delwcolA(mp) )
+       ALLOCATE ( var % delwcolB(mp) )
+       ALLOCATE ( var % rexA(mp) )
+       ALLOCATE ( var % rexB(mp) )
+       ALLOCATE ( var % leachAB(mp) )
+       ALLOCATE ( var % rlitt(mp) )
+       ALLOCATE ( var % thetai(mp,ms) )
+       ALLOCATE ( var % snowliq(mp,3) )
+    !END IF
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -707,6 +841,20 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) ) 
+
+   !Allocate variables for SLI soil model:
+   ! IF(cable_user%SOIL_STRUC=='sli') THEN
+       ALLOCATE ( var % rootbeta(mp) )
+       ALLOCATE ( var % gamma(mp) )
+       ALLOCATE ( var % F10(mp) )
+       ALLOCATE ( var % ZR(mp) )
+       ALLOCATE ( var % d0c3(mp) )
+       ALLOCATE ( var % a1c3(mp) )
+    !END IF
+    ! Allocate variables for canopy_vh model:
+    !IF(cable_user%SOIL_STRUC=='sli') THEN
+       IF(.NOT.ASSOCIATED(var % gamma)) ALLOCATE ( var % gamma(mp) )
+    !END IF
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -771,6 +919,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
+   ALLOCATE ( var % fwsoil(mp) )
+   ALLOCATE ( var % ofes(mp) )
    
 END SUBROUTINE alloc_canopy_type
 
@@ -892,6 +1042,12 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % dva(mp) )
    ALLOCATE ( var % coszen(mp) )
 
+    ! Deallocate variables for SLI soil model:
+    !IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
+       ALLOCATE ( var % tk_old(mp) )
+	   ALLOCATE ( var % qv_old(mp) )
+    !END IF
+
 END SUBROUTINE alloc_met_type
    
 ! ------------------------------------------------------------------------------
@@ -994,6 +1150,34 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% pwb_min)  
    DEALLOCATE( var% albsoilf )  
+   ! Deallocate variables for SLI soil model:
+    !IF(cable_user%SOIL_STRUC=='sli') THEN
+       DEALLOCATE ( var % nhorizons)
+       DEALLOCATE ( var % bchB )
+       DEALLOCATE ( var % clayB )
+       DEALLOCATE ( var % cnsdB)
+       DEALLOCATE ( var % cssB)
+       DEALLOCATE ( var % hydsB)
+       DEALLOCATE ( var % rhosoilB)
+       DEALLOCATE ( var % sandB)
+       DEALLOCATE ( var % siltB)
+       DEALLOCATE ( var % ssatB)
+       DEALLOCATE ( var % sucsB )
+       DEALLOCATE ( var % swiltB )
+       DEALLOCATE ( var % depthA)
+       DEALLOCATE ( var % depthB)
+       DEALLOCATE ( var % sfcB)
+       DEALLOCATE ( var % clitt )
+       DEALLOCATE ( var % zeta )
+       DEALLOCATE ( var % fsatmax )
+       DEALLOCATE ( var % swilt_vec )
+       DEALLOCATE ( var % ssat_vec )
+       DEALLOCATE ( var % sfc_vec )
+	   IF(ASSOCIATED(var % swilt_vec)) DEALLOCATE ( var % swilt_vec )
+       IF(ASSOCIATED(var % ssat_vec)) DEALLOCATE ( var % ssat_vec )
+       IF(ASSOCIATED(var % sfc_vec)) DEALLOCATE ( var % sfc_vec )
+    !END IF
+
    
 END SUBROUTINE dealloc_soil_parameter_type
  
@@ -1069,6 +1253,34 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%qasrf )  
    DEALLOCATE( var%qfsrf )  
    DEALLOCATE( var%qssrf )  
+
+   !IF(cable_user%SOIL_STRUC=='sli') THEN
+       DEALLOCATE ( var % S )
+       DEALLOCATE ( var % SL )
+       DEALLOCATE ( var % TL )
+       DEALLOCATE ( var % h0)
+       DEALLOCATE ( var % rex )
+       DEALLOCATE ( var % wflux )
+       DEALLOCATE ( var % hflux )
+       DEALLOCATE ( var % zdelta )
+       DEALLOCATE ( var % kth )
+       DEALLOCATE ( var % Tsurface )
+       DEALLOCATE ( var % rh0 )
+       DEALLOCATE ( var % rhsurface )
+       DEALLOCATE ( var % lE )
+       DEALLOCATE ( var % ciso )
+       DEALLOCATE ( var % cisoL )
+       DEALLOCATE ( var % SA )
+       DEALLOCATE ( var % SB )
+       DEALLOCATE ( var % delwcolA )
+       DEALLOCATE ( var % delwcolB )
+       DEALLOCATE ( var % rexA )
+       DEALLOCATE ( var % rexB )
+       DEALLOCATE ( var % leachAB )
+       DEALLOCATE ( var % rlitt )
+       DEALLOCATE ( var % thetai )
+       DEALLOCATE (var % snowliq)
+   ! END IF
    
 END SUBROUTINE dealloc_soil_snow_type
    
@@ -1103,6 +1315,18 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
+
+    ! Deallocate variables for SLI soil model:
+    !IF(cable_user%SOIL_STRUC=='sli') THEN
+       DEALLOCATE ( var % rootbeta )
+       DEALLOCATE ( var % gamma ) ! vh 20/07/09
+       DEALLOCATE ( var % F10 )
+       DEALLOCATE ( var % ZR )
+       DEALLOCATE ( var % d0c3 )
+       DEALLOCATE ( var % a1c3 )
+	   IF(ASSOCIATED(var % gamma)) DEALLOCATE ( var % gamma )
+    ! END IF
+
    
 END SUBROUTINE dealloc_veg_parameter_type
    
@@ -1166,6 +1390,8 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
+   DEALLOCATE ( var % fwsoil )
+   DEALLOCATE ( var % ofes )
 
 END SUBROUTINE dealloc_canopy_type
    
@@ -1282,6 +1508,8 @@ SUBROUTINE dealloc_met_type(var)
    DEALLOCATE ( var % da )
    DEALLOCATE ( var % dva )
    DEALLOCATE ( var % coszen )
+   DEALLOCATE ( var % tk_old )
+   DEALLOCATE ( var % qv_old )
 
 END SUBROUTINE dealloc_met_type
 

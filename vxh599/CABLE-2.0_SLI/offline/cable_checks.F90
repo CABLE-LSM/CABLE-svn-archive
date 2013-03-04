@@ -63,9 +63,9 @@ MODULE cable_checks_module
            timestp,                            &      
            ! possible forcing variables for CABLE
            SWdown = (/0.0,1360.0/),            & ! W/m^2
-           LWdown = (/0.0,750.0/),             & ! W/m^2
-           Rainf = (/0.0,0.03/),               & ! mm/s
-           Snowf = (/0.0,0.0085/),             & ! mm/s
+           LWdown = (/0.0,950.0/),             & ! W/m^2
+           Rainf = (/0.0,0.1/),               & ! mm/s
+           Snowf = (/0.0,0.1/),             & ! mm/s
            PSurf = (/500.0,1100.0/),           & ! mbar/hPa
            Tair = (/200.0,333.0/),             & ! K
            Qair = (/0.0,0.04/),                & ! g/g
@@ -81,9 +81,9 @@ MODULE cable_checks_module
            ! SWnet = (/0.0,1250.0/),            & ! W/m^2
            LWnet = (/-500.0,510.0/),           & ! W/m^2 
            Rnet = (/-500.0,1250.0/),           & ! W/m^2 
-           Evap = (/-0.0003,0.00035/),         &      
-           Ewater = (/-0.0003,0.0003/),        &
-           ESoil = (/-0.0003,0.0003/),         &
+           Evap = (/-0.0005,0.0005/),         &      
+           Ewater = (/-0.0005,0.0005/),        &
+           ESoil = (/-0.0005,0.0005/),         &
            TVeg = (/-0.0003,0.0003/),          &
            ECanop = (/-0.0003,0.0003/),        &
            PotEvap = (/-0.0006,0.0006/),       &

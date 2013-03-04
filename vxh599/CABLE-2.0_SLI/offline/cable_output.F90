@@ -50,7 +50,7 @@ MODULE cable_output_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: filename
+  USE cable_common_module, ONLY: filename, cable_user
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -1677,6 +1677,9 @@ CONTAINS
           out%HeteroResp = 0.0
        END IF
     END IF
+	if (ktau.eq.3721) then
+	 write(*,*)
+	 endif
 
   END SUBROUTINE write_output
   !=============================================================================
@@ -1763,6 +1766,7 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     dummy = 0 ! initialise
 
@@ -1778,9 +1782,9 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                      (ok, 'Error defining mland dimension in restart file. '// &
                       '(SUBROUTINE create_restart)')
-    ok = NF90_DEF_DIM(ncid_restart, 'mp_patch', mp, mpID)
+    ok = NF90_DEF_DIM(ncid_restart, 'mp', mp, mpID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                  (ok, 'Error defining mp_patch dimension in restart file. '// &
+                  (ok, 'Error defining mp dimension in restart file. '// &
                    '(SUBROUTINE create_restart)')
     ok = NF90_DEF_DIM(ncid_restart, 'soil', ms, soilID) ! number of soil layers
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -2106,6 +2110,79 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%za_tq, 'za_tq', 'm',                   &
                      'Reference height (lowest atm. model layer) for scalars', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+   	    ! Soil-Litter-Iso soil model
+    IF(cable_user%SOIL_STRUC=='sli') THEN
+       ! Parameters for SLI:
+       CALL define_ovar(ncid_restart,rpid%nhorizons,'nhorizons','-', &
+            'Number of soil horizons',.TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
+	   CALL define_ovar(ncid_restart,rpid%zeta,'zeta','[ ]', &
+            'exponent factor in Topmodel eq',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+	   CALL define_ovar(ncid_restart,rpid%fsatmax,'fsatmax','[ ]', &
+            'param in Topmodel eq',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%depthA,'depthA','m', &
+            'Depth of soil horizon A',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%depthB,'depthB','m', &
+            'Depth of soil horizon B',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%clitt,'clitt','tC/ha', &
+            'Litter layer carbon content',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%clayB,'clayB','-', &
+            'Fraction of soil which is clay in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%sandB,'sandB','-', &
+            'Fraction of soil which is sand in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%siltB,'siltB','-', &
+            'Fraction of soil which is silt in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%ssatB,'ssatB','-', &
+            'Fraction of soil volume which is water @ saturation in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%sfcB,'sfcB','-', &
+            'Fraction of soil volume which is water @ field capacity in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%swiltB,'swiltB','-', &
+            'Fraction of soil volume which is water @ wilting point in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%bchB,'bchB','-', &
+            'Parameter b, Campbell eqn 1985, in B soil horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%hydsB,'hydsB','m/s', &
+            'Hydraulic conductivity @ saturation in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%sucsB,'sucsB','m', &
+            'Suction @ saturation in B horizon',.TRUE., &
+            'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%cssB,'cssB','J/kg/C', &
+            'Heat capacity of soil minerals in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%rhosoilB,'rhosoilB','kg/m^3', &
+            'Density of soil minerals in B horizon', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
+            'Parameter in root efficiency function (Lai and Katul 2000)', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%ZR,'ZR','cm', &
+            'Maximum rooting depth',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%F10,'F10','-', &
+            'Fraction of roots in top 10 cm', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       ! Variables for SLI:
+       CALL define_ovar(ncid_restart,SID,'S','-',&
+            'Fractional soil moisture content relative to saturated value', &
+            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
+	   CALL define_ovar(ncid_restart,snowliqID,'snowliq','mm',&
+            'liquid water content of snowpack', &
+            .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
+	   CALL define_ovar(ncid_restart,scondsID,'sconds','Wm-1K-1',&
+            'thermal cond of snowpack', &
+            .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,h0ID,'h0','m',&
+            'Pond height above soil', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+	   CALL define_ovar(ncid_restart,TsurfaceID,'Tsurface','degC',&
+            'soil or snow surface T', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+    END IF ! SLI soil model
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -2326,6 +2403,61 @@ CONTAINS
                      ranges%Albedo, .TRUE., 'radiation', .TRUE.)
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
                      REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
+
+ IF(cable_user%SOIL_STRUC=='sli') THEN
+       ! Write SLI parameters:
+       CALL write_ovar (ncid_restart,rpid%nhorizons,'nhorizons', &
+            REAL(soil%nhorizons,4),(/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%depthA,'depthA', &
+            REAL(soil%depthA,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%depthB,'depthB', &
+            REAL(soil%depthB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%clitt,'clitt', &
+            REAL(soil%clitt,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%bchB,'bchB', &
+            REAL(soil%bchB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%clayB,'clayB', &
+            REAL(soil%clayB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%sandB,'sandB', &
+            REAL(soil%sandB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%siltB,'siltB', &
+            REAL(soil%siltB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%cssB,'cssB', &
+            REAL(soil%cssB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%rhosoilB,'rhosoilB', &
+            REAL(soil%rhosoilB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%hydsB,'hydsB', &
+            REAL(soil%hydsB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%sucsB,'sucsB', &
+            REAL(soil%sucsB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%ssatB,'ssatB', &
+            REAL(soil%ssatB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%sfcB,'sfcB', &
+            REAL(soil%sfcB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%swiltB,'swiltB', &
+            REAL(soil%swiltB,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%gamma,'gamma', &
+            REAL(veg%gamma,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%ZR,'ZR', &
+            REAL(veg%ZR,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%F10,'F10', &
+            REAL(veg%F10,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       ! Write SLI variables:
+       CALL write_ovar (ncid_restart,SID,'S',REAL(ssnow%S,4), &
+            (/0.0,1.5/),.TRUE.,'soil',.TRUE.)
+	   CALL write_ovar (ncid_restart,snowliqID,'snowliq',REAL(ssnow%snowliq,4), &
+            (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
+	   CALL write_ovar (ncid_restart,scondsID,'sconds',REAL(ssnow%sconds,4), &
+            (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
+	   CALL write_ovar (ncid_restart,h0ID,'h0',REAL(ssnow%h0,4), &
+             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+	   CALL write_ovar (ncid_restart,TsurfaceID,'Tsurface',REAL(ssnow%Tsurface,4), &
+             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       
+    END IF
+
+
+
 
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)

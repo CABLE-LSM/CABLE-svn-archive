@@ -67,13 +67,14 @@ MODULE cable_common_module
       CASA_DUMP_READ = .FALSE.,     & !
       CASA_DUMP_WRITE = .FALSE.,    & !
       CABLE_RUNTIME_COUPLED  = .FALSE.!
-
+  CHARACTER(LEN=20) :: CANOPY_STRUC !
+  CHARACTER(LEN=20) :: SOIL_STRUC !
 
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user
 
-   ! external files read/written by CABLE
+   ! external files read/written by CABLE 
    TYPE filenames_type
 
    CHARACTER(LEN=99) ::                                                        &

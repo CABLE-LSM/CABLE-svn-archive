@@ -139,6 +139,10 @@ MODULE cable_IO_vars_module
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
           veg_class,soil_class,mvtype,mstype,patchfrac
+	   INTEGER :: bchB,clayB,cssB,rhosoilB,hydsB,sandB,sfcB,siltB, &
+          ssatB,sucsB,swiltB,nhorizons,depthA,depthB,clitt, &
+          zeta,fsatmax, &
+          gamma,ZR,F10
    
    END TYPE parID_type
   

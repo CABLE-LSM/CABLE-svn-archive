@@ -60,9 +60,10 @@ MODULE cable_soil_snow_module
  
    ! This module contains the following subroutines:
    PUBLIC soil_snow ! must be available outside this module
-   PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
+   PRIVATE snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb, smoisturev, snow_accum, stempv
    PRIVATE soilfreeze, remove_trans
+   PUBLIC snowdensity
 
 CONTAINS
 
@@ -527,6 +528,7 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
    ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
    
    dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
+   CALL point2constants( C ) 
    ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
    
    WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )

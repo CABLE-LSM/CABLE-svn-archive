@@ -43,8 +43,10 @@ host_burn()
 {
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
+   #export FC=$F90
+   export FC=ifort
+
+   export CFLAGS='-O0 -fp-model precise -debug all -g  '
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
