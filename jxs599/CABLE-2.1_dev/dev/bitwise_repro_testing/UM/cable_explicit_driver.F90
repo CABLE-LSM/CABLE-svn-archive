@@ -255,7 +255,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       cable_runtime%um = .TRUE.
       write(6,*) ""
       write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout
+      CALL report_version_no(6) ! wriite revision number to stdout(6)
    ENDIF
       
    !--- basic info from global model passed to cable_common_module 
