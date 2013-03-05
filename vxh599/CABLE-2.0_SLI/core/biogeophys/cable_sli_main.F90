@@ -86,18 +86,19 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   ! 2: condition lines
   ! 3: condition first lines then columns
   INTEGER, PARAMETER :: dosnow       = 1 ! implement snow model
+  LOGICAL, SAVE :: first = .false.
 
-  ! output files for testing purposes
-  if (irec .eq. 1) then
+
+    ! output files for testing purposes
+  if (first) then
      open (unit=332,file="vh08.out",status="replace",position="rewind")
      open (unit=334,file="S.out",status="replace",position="rewind")
      open (unit=336,file="Tsoil.out",status="replace",position="rewind")
      open (unit=335,file="SEB.out",status="replace",position="rewind")
-     !   !open(unit=37, file = "c:\soil_model\cable_met_test.inp",status="replace",position="rewind")
-     !   !open (unit=337,file="soil_log.out",status="replace",position="rewind")
      open(unit=338, file="thetai.out", status="replace", position="rewind")
      open(unit=339, file="test_dt.out",status="replace", position="rewind")
 	 open(unit=340, file="snow.out", status="replace", position="rewind")
+	 first = .false.
   endif
 
   fsat = 0.0

@@ -77,7 +77,7 @@ MODULE cable_common_module
    ! external files read/written by CABLE 
    TYPE filenames_type
 
-   CHARACTER(LEN=99) ::                                                        &
+   CHARACTER(LEN=200) ::                                                        &
       met,        & ! name of file for CABLE input
       out,        & ! name of file for CABLE output
       log,        & ! name of file for execution log

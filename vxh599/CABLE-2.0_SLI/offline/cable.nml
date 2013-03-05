@@ -1,6 +1,6 @@
 &cable
-   filename%met = '/home/cmar/hav014/CABLE-2.0/CABLE-2.0_SLI/CABLE-AUX/offline/TumbaFluxnet.1.3_met.nc'
-   filename%out = 'CABLE_out.nc'
+   filename%met = '/home/cmar/hav014/CABLE-2.0/CABLE-2.0_SLI/Data/GLASS/met/HarvardFluxnet.1.4_met.nc'
+   filename%out = '/home/cmar/hav014/CABLE-2.0/CABLE-2.0_SLI/Data/GLASS/out_r546_canopyvh/CABLE_out_HarvardFluxnet.1.4.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
    filename%restart_out = './restart_out.nc '
@@ -9,7 +9,7 @@
    filename%soil    = '/home/cmar/hav014/CABLE-2.0/CABLE-2.0_SLI/CABLE-AUX/core/biogeophys/def_soil_params.txt'
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
-   spinup = .FALSE.  ! do we spin up the model?
+   spinup = .TRUE.  ! do we spin up the model?
    delsoilM = 0.001   ! allowed variation in soil moisture for spin up
    delsoilT = 0.01    ! allowed variation in soil temperature for spin up
    output%restart = .FALSE.  ! should a restart file be created?
@@ -67,6 +67,6 @@
    cable_user%CASA_DUMP_READ = .FALSE.      ! TRUE reads CASA forcing from netcdf format
    cable_user%CASA_DUMP_WRITE = .FALSE.      ! TRUE outputs CASA forcing in netcdf format
    cable_user%SSNOW_POTEV= 'HDM'      ! Humidity Deficit Method
-   cable_user%CANOPY_STRUC = 'default' ! 'default','canopy_vh'
+   cable_user%CANOPY_STRUC = 'canopy_vh' ! 'default','canopy_vh'
    cable_user%SOIL_STRUC = 'sli' ! 'default','sli'
 &end
