@@ -86,7 +86,7 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   ! 2: condition lines
   ! 3: condition first lines then columns
   INTEGER, PARAMETER :: dosnow       = 1 ! implement snow model
-  LOGICAL, SAVE :: first = .false.
+  LOGICAL, SAVE :: first = .true.
 
 
     ! output files for testing purposes

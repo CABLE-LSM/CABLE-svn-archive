@@ -1068,6 +1068,8 @@ CONTAINS
 	IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
        met%tk_old = 298.
 	   met%qv_old = 0.005
+       veg%d0c3 = 1500.
+       veg%a1c3 = 9.0
     END IF
 
 	IF(cable_user%SOIL_STRUC=='sli') THEN

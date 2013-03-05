@@ -1,6 +1,6 @@
 &cable
    filename%met = '/home/cmar/hav014/CABLE-2.0/CABLE-2.0_SLI/Data/GLASS/met/HarvardFluxnet.1.4_met.nc'
-   filename%out = '/home/cmar/hav014/CABLE-2.0/CABLE-2.0_SLI/Data/GLASS/out_r546_canopyvh/CABLE_out_HarvardFluxnet.1.4.nc'
+   filename%out = '/home/cmar/hav014/CABLE-2.0/CABLE-2.0_SLI/Data/GLASS/out_r550_canopyvh/CABLE_out_HarvardFluxnet.1.4.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
    filename%restart_out = './restart_out.nc '
