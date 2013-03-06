@@ -317,7 +317,7 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   !qb = alpha * par(:,ms)%Ke*exp(-(par(:,ms)%zeta*zdelta))
   qex(:,ms) =  qex(:,ms) !+qb
 
-  if (irec.eq.1660) then ! for debugging
+  if (irec.eq.2717) then ! for debugging
       write (*,*) irec, vsnow(1)%hsnow(:), vsnow(1)%wcol
    endif
 

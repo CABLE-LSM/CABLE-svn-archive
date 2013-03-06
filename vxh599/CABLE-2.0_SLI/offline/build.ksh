@@ -46,7 +46,8 @@ host_burn()
    #export FC=$F90
    export FC=ifort
 
-   export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   #export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
