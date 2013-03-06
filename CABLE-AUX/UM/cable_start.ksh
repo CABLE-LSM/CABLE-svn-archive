@@ -33,7 +33,7 @@ fi
 
 # This is to ensure that each run in the same experiment uses the same cable.nml 
 
-if [[ $TYPE='NRUN' ]]; then
+if [[ $TYPE == 'NRUN' ]]; then
 
    /bin/cp $CABLE_AUX/CABLE-AUX/UM/cable.nml /short/p66/`whoami`/$RUNID
    /bin/cp /short/p66/`whoami`/$RUNID/cable.nml /short/p66/`whoami`/$RUNID/cable.nml.`date +%d.%m.%y`
