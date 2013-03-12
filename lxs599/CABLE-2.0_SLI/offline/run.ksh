@@ -132,7 +132,7 @@ run_run()
       print '\n*** CABLE RUN (appears) SUCCESSFULL ***\n'
       		
       # CABLE output + restart if applicable
-      mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$1]}
+      mv log_cable.txt out_cable.nc restart_out.nc fort.* out/${sites[$1]}
       cp cable.nml  out/${sites[$1]}
       # pools for CASA-CNP
       if [[ -e poolcnpOut.csv ]]; then

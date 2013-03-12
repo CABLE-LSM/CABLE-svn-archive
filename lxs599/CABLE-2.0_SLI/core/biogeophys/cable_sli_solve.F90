@@ -1639,7 +1639,13 @@ CONTAINS
 
 				   if (vsnow(kk)%nsnow.gt.0) then
 				     do i=1, vsnow(kk)%nsnow
-		              if (vsnow(kk)%hliq(i).gt.zero) then
+		                          if ((vsnow(kk)%hsnow(i)+dy(kk,-i+1)).lt.zero) then
+					         fac(kk) = 0.5
+						 iok(kk) = 0
+						 exit
+					  endif
+
+                                     if (vsnow(kk)%hliq(i).gt.zero) then
 				         if ((vsnow(kk)%hliq(i) + de(kk,-i+1)).gt.(dy(kk,-i+1) + vsnow(kk)%hsnow(i))) then
 				           fac(kk) = 0.5
 					       iok(kk) =0
@@ -2488,6 +2494,8 @@ CONTAINS
 	     vsnow(kk)%wcol = vsnow(kk)%wcol + &
 		  min(qprec_snow(kk)*dt(kk), max(zero,(deltahice(kk)+dx(kk,1)*delthetai(kk,1)))) + & ! accumulation
 		  max(-vsnow(kk)%wcol,min(zero,(deltahice(kk)+dx(kk,1)*delthetai(kk,1)))) ! melting 
+
+                  vsnow(kk)%wcol = max( vsnow(kk)%wcol,zero)
 
 		  if (h0(kk).gt.zero) then
 		     vsnow(kk)%wcol = min(vsnow(kk)%wcol, hice(kk))

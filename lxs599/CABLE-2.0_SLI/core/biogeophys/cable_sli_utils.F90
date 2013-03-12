@@ -1856,8 +1856,8 @@ CONTAINS
     rhocp = rmair*101325/rgas/(Ta+Tzero)*cpa
     gamma = 101325.*cpa/lambdav/(rmh2o/rmair)
     s  = slope_esat(Ta)
-    ea = esat(Ta) * rha
-    Da = ea/rha - ea
+    ea = esat(Ta) * max(rha, 0.1_r_2)
+    Da = ea/max(rha, 0.1_r_2) - ea
 
     E  = (rhocp*(Da*(k*rbh + dz*rhocp) + rbh*s*(dz*Rn + k*(-Ta + Tsoil)))) / &
          (gamma*rbw*(k*rbh + dz*rhocp) + dz*rbh*rhocp*s)
