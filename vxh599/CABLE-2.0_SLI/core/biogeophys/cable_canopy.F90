@@ -365,11 +365,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 		lambdav = 0.335e6
 	  ENDWHERE
 	    CALL qsatfjh(qsat,met%tvair-C%tfrz,met%pmb)
-	    rha = met%qv/qsat
+	    rha = met%qvair/qsat
 		Rn = real(canopy%fns, r_2)
 		rbh = real(ssnow%rtsoil, r_2)
 		rbw = real(ssnow%rtsoil, r_2)
-		Ta = real(canopy%tv-C%tfrz, r_2)
+		Ta = real(met%tvair-C%tfrz, r_2)
 	   call potential_evap(Rn, rbh, rbw, Ta, &
 	                       rha,Ts, &
 	                       kth, dz,lambdav, &
