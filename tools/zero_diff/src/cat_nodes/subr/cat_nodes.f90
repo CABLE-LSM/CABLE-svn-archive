@@ -1,6 +1,4 @@
 
-#include "debug_directives.f90"
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
@@ -20,7 +18,7 @@ module cat_nodes_mod
       integer :: i
       integer, save :: ndimx=0, pndimx=0
       character(len=30) :: nfilename, chnodes
-      real(gs), dimension(:), allocatable :: ar_x
+      real, dimension(:), allocatable :: ar_x
         allocate( dimx_i(i_nodes) )
         do i=1, i_nodes
             write(chnodes,10), i-1 

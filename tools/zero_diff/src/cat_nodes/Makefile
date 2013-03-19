@@ -1,9 +1,9 @@
 
 #FC = gfortran 
 # xe
-FC = /apps/intel-fc/11.0.074/bin/intel64/ifort
+#FC = /apps/intel-fc/11.0.074/bin/intel64/ifort
 #cherax
-#FC = ifort
+FC = ifort
 FLINK = -c 
 CFLAGS = -O0 -fpp
 FFLAGS = -O0 -fpp -r8 -i8 
