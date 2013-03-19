@@ -34,7 +34,7 @@ MODULE cable_soil_snow_module
    
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp           
+                             balances_type, r_2, ms, mp, msn           
    USE cable_data_module, ONLY : issnow_type, point2constants
 
    IMPLICIT NONE
@@ -523,91 +523,76 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
    INTEGER, DIMENSION(mp,3) :: ssnow_isflag_ssdn 
    REAL, DIMENSION(mp) :: ssnow_tgg_min1
    REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
+   INTEGER :: k,j
      
    ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
    
    dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
    ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
-   
-   WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )
+  
+   DO j=1,mp
+      IF( ssnow%snowd(j) > 0.1 .AND. ssnow%isflag(j) == 0 ) THEN
       
-      ssnow%ssdn(:,1) = MIN( max_ssdn, MAX( 120.0, ssnow%ssdn(:,1) + dels      &
-                        * ssnow%ssdn(:,1) * 3.1e-6 * EXP( -0.03 * ( 273.15 -   &
-                        ssnow_tgg_min1 ) - MERGE( 0.046, 0.0,                  &
-                        ssnow%ssdn(:,1) >= 150.0 ) * ( ssnow%ssdn(:,1) - 150.0)&
+         ssnow%ssdn(j,1) = MIN( max_ssdn, MAX( 120.0, ssnow%ssdn(j,1) + dels   &
+                        * ssnow%ssdn(j,1) * 3.1e-6 * EXP( -0.03 * ( 273.15 -   &
+                        ssnow_tgg_min1(j) ) - MERGE( 0.046, 0.0,               &
+                        ssnow%ssdn(j,1) >= 150.0 ) * ( ssnow%ssdn(j,1) - 150.0)&
                         ) ) )
 
-            ssnow%ssdn(:,1) = MIN(max_ssdn,ssnow%ssdn(:,1) + dels * 9.806      &
-          & * ssnow%ssdn(:,1) * 0.75 * ssnow%snowd                             &
-          & / (3.0e7 * EXP(0.021 * ssnow%ssdn(:,1) + 0.081                     &
-          & * (273.15 - MIN(C%TFRZ, ssnow%tgg(:,1) ) ) ) ) )
+         ssnow%ssdn(j,1) = MIN(max_ssdn,ssnow%ssdn(j,1) + dels * 9.806      &
+          & * ssnow%ssdn(j,1) * 0.75 * ssnow%snowd(j)                           &
+          & / (3.0e7 * EXP(0.021 * ssnow%ssdn(j,1) + 0.081                     &
+          & * (273.15 - MIN(C%TFRZ, ssnow%tgg(j,1) ) ) ) ) )
 
-      ! permanent ice: fix hard-wired number in next version
-      WHERE( soil%isoilm /= 9 ) ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
+         ! permanent ice: fix hard-wired number in next version
+         IF( soil%isoilm(j) /= 9 ) ssnow%ssdn(j,1) = MIN( 450.0, ssnow%ssdn(j,1)&
+                                                        )
+   
+         ssnow%sconds(j,1) = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(j,1)**2      &
+                             + 0.074, max_sconds ) )
+   
+         ssnow%sconds(j,2) = ssnow%sconds(j,1) 
+         ssnow%sconds(j,3) = ssnow%sconds(j,1) 
+         
+         ssnow%ssdnn(:) = ssnow%ssdn(j,1)
+         
+      ENDIF 
+   ENDDO
 
-      ssnow%sconds(:,1) = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(:,1)**2         &
-                          + 0.074, max_sconds ) )
-
-      ssnow%sconds(:,2) = ssnow%sconds(:,1) 
-      ssnow%sconds(:,3) = ssnow%sconds(:,1) 
+   DO j=1,mp
+      IF (ssnow%isflag(j) == 1) THEN
       
-      ssnow%ssdnn = ssnow%ssdn(:,1)
+      ssnow%ssdn(j,:) = ssnow%ssdn(j,:) + dels * ssnow%ssdn(j,:) * 3.1e-6      &
+            * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(j,:)))            &
+            - MERGE(0.046, 0.0, ssnow%ssdn(j,:) >= 150.0)                      &
+            * (ssnow%ssdn(j,:) - 150.0) )
       
-      ssnow%ssdn(:,2) = ssnow%ssdn(:,1)
-      ssnow%ssdn(:,3) = ssnow%ssdn(:,1)
-    
-   END WHERE
-  
-
-   WHERE (ssnow%isflag == 1)
+      ssnow%ssdn(j,1) = ssnow%ssdn(j,1) + dels * 9.806 * ssnow%ssdn(j,1)       &
+            * ssnow%t_snwlr(j)*ssnow%ssdn(j,1)                                 &
+            / (3.0e7 * EXP(.021 * ssnow%ssdn(j,1) + 0.081                      &
+            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(j,1)))))
       
-      ssnow%ssdn(:,1) = ssnow%ssdn(:,1) + dels * ssnow%ssdn(:,1) * 3.1e-6      &
-            * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,1)))            &
-            - MERGE(0.046, 0.0, ssnow%ssdn(:,1) >= 150.0)                      &
-            * (ssnow%ssdn(:,1) - 150.0) )
+      ssnow%ssdn(j,2) = ssnow%ssdn(j,2) + dels * 9.806 * ssnow%ssdn(j,2)       &
+            * (ssnow%t_snwlr(j) * ssnow%ssdn(j,1) + 0.5 * ssnow%smass(j,2) )   &
+            / (3.0e7 * EXP(.021 * ssnow%ssdn(j,2) + 0.081                      &
+            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(j,2)))))
       
-      ssnow%ssdn(:,2) = ssnow%ssdn(:,2) + dels * ssnow%ssdn(:,2) * 3.1e-6      &
-            * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,2)))            &
-            - MERGE(0.046, 0.0, ssnow%ssdn(:,2) >= 150.0)                      &
-            * (ssnow%ssdn(:,2) - 150.0) )
+      ssnow%ssdn(j,3) = ssnow%ssdn(j,3) + dels * 9.806 * ssnow%ssdn(j,3)       &
+            * (ssnow%t_snwlr(j)*ssnow%ssdn(j,1) + ssnow%smass(j,2)             &
+            + 0.5*ssnow%smass(j,3))                                            &
+            / (3.0e7 * EXP(.021 * ssnow%ssdn(j,3) + 0.081                      &
+            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(j,3)))))
       
-      ssnow%ssdn(:,3) = ssnow%ssdn(:,3) + dels * ssnow%ssdn(:,3) * 3.1e-6      &
-            * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,3)))            &
-            - MERGE(0.046, 0.0, ssnow%ssdn(:,3) >= 150.0)                      &
-            * (ssnow%ssdn(:,3) - 150.0) )
+      ssnow%sdepth(j,:) =  ssnow%smass(j,:) / ssnow%ssdn(j,:) 
       
-      ssnow%ssdn(:,1) = ssnow%ssdn(:,1) + dels * 9.806 * ssnow%ssdn(:,1)       &
-            * ssnow%t_snwlr*ssnow%ssdn(:,1)                                    &
-            / (3.0e7 * EXP(.021 * ssnow%ssdn(:,1) + 0.081                      &
-            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,1)))))
+      ssnow%ssdnn(j) = (ssnow%ssdn(j,1) * ssnow%smass(j,1) + ssnow%ssdn(j,2)   &
+            * ssnow%smass(j,2) + ssnow%ssdn(j,3) * ssnow%smass(j,3) )          &
+            / ssnow%snowd(j)
       
-      ssnow%ssdn(:,2) = ssnow%ssdn(:,2) + dels * 9.806 * ssnow%ssdn(:,2)       &
-            * (ssnow%t_snwlr * ssnow%ssdn(:,1) + 0.5 * ssnow%smass(:,2) )      &
-            / (3.0e7 * EXP(.021 * ssnow%ssdn(:,2) + 0.081                      &
-            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,2)))))
-      
-      ssnow%ssdn(:,3) = ssnow%ssdn(:,3) + dels * 9.806 * ssnow%ssdn(:,3)       &
-            * (ssnow%t_snwlr*ssnow%ssdn(:,1) + ssnow%smass(:,2)                &
-            + 0.5*ssnow%smass(:,3))                                            &
-            / (3.0e7 * EXP(.021 * ssnow%ssdn(:,3) + 0.081                      &
-            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,3)))))
-      
-      ssnow%sdepth(:,1) =  ssnow%smass(:,1) / ssnow%ssdn(:,1) 
-      ssnow%sdepth(:,2) =  ssnow%smass(:,2) / ssnow%ssdn(:,2) 
-      ssnow%sdepth(:,3) =  ssnow%smass(:,3) / ssnow%ssdn(:,3) 
-      
-      ssnow%ssdnn = (ssnow%ssdn(:,1) * ssnow%smass(:,1) + ssnow%ssdn(:,2)      &
-            * ssnow%smass(:,2) + ssnow%ssdn(:,3) * ssnow%smass(:,3) )          &
-            / ssnow%snowd
-      
-      ssnow%sconds(:,1) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,1) ** 2         &
+      ssnow%sconds(j,:) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(j,:) ** 2         &
                                                         & + 0.074, max_sconds) )
-      ssnow%sconds(:,2) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,2) ** 2 &
-                                                        & + 0.074, max_sconds) )
-      ssnow%sconds(:,3) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,3) ** 2 &
-                                                        & + 0.074, max_sconds) )
-   END WHERE
-
+      END IF 
+   ENDDO
 END SUBROUTINE snowdensity
 
 ! -----------------------------------------------------------------------------
