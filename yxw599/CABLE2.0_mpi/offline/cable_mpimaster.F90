@@ -227,6 +227,11 @@ SUBROUTINE mpidrv_master (comm)
    ! added variables by yp wang 7-npov-2012
    INTEGER :: mloop
 
+  ! extra variable for PEST optimization
+!  INTEGER  :: ivt
+!  real, dimension(17)  :: slax,leafagex,cnleafminu,vcx
+
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -325,6 +330,23 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
+
+  !  read in values of parameters to be optimized by PEST
+!  open(81,file='/data/flush/wan028/run-CABLE2.0-MPI/cableparm.txt')
+!  read(81,*) (slax(ivt),       ivt=1,17)
+!  read(81,*) (leafagex(ivt),    ivt=1,17)
+!  read(81,*) (vcx(ivt), ivt=1,17)
+!  close(81)
+
+!  casabiome%sla = slax
+!  casabiome%plantrate(:,1) = 1.0/(365.0*leafagex(:))
+!  veg%vcmax(:) =vcx(veg%iveg(:))*(1.0e-6)
+!  veg%ejmax(:) = 2.0* veg%vcmax(:)
+
+!  write(92,*)  'sla= ', casabiome%sla
+!  write(92,*)  'leafage=', casabiome%plantrate(:,1)
+
+
 
    ! MPI: above was standard serial code
    ! now it's time to initialize the workers

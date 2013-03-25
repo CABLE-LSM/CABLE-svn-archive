@@ -855,6 +855,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   ENDDO     ! end of nloop
 
   ! write the last five loop pool size by PFT type
+  open(92,file='cnpspinlast5.txt')
   write(92,921)
 921 format('PFT total area in 10**12 m2', f12.4)
   do nvt=1,mvtype
@@ -1017,7 +1018,7 @@ END SUBROUTINE spincasacnp
       enddo 
       ! write PFT mean flux and pool size data
        write(92,*) kloop
-       write(92,921) sum(bmarea)*(1.0e-15) 
+       write(92,921) sum(bmarea)*(1.0e-12) 
 921    format('PFT total area in 10**12 m2', f12.4)
        write(92,922) (bmarea(nvt)*(1.0e-12),   nvt=1,mvtype)
        write(92,922) (bmcgpp(nvt),   nvt=1,mvtype), sum(bmcgpp*bmarea)*(1.0e-15)
