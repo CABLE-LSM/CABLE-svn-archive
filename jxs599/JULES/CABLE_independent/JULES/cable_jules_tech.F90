@@ -59,7 +59,6 @@ MODULE cable_um_tech_mod
                  sm_levels, timestep 
       INTEGER, ALLOCATABLE, DIMENSION(:) :: tile_pts, land_index
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: tile_index
-      REAL :: rho_water
       REAL,ALLOCATABLE, DIMENSION(:,:) :: tile_frac
       REAL,ALLOCATABLE, DIMENSION(:,:) :: latitude, longitude
       LOGICAL,ALLOCATABLE, DIMENSION(:,:) :: l_tile_pts
@@ -170,13 +169,14 @@ SUBROUTINE alloc_um_interface_types( row_length, rows, land_pts, ntiles,       &
       
       INTEGER,INTENT(IN) :: row_length, rows, land_pts, ntiles, sm_levels   
 
+
          ALLOCATE( um1%land_index(land_pts) )
          ALLOCATE( um1%tile_pts(ntiles) )
          ALLOCATE( um1%tile_frac(land_pts, ntiles) )
          ALLOCATE( um1%tile_index(land_pts, ntiles) )
          ALLOCATE( um1%latitude(row_length, rows) )
          ALLOCATE( um1%longitude(row_length, rows) )
-         ALLOCATE( um1%l_tile_pts(land_pts, ntiles) ) 
+         ALLOCATE( um1%l_tile_pts(land_pts, ntiles) )
         !-------------------------------------------------------
          ALLOCATE( kblum_rad%sw_down_dir(row_length,rows) )
          ALLOCATE( kblum_rad%sw_down_dif(row_length,rows) )
