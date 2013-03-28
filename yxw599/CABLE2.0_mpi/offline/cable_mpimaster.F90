@@ -631,11 +631,6 @@ SUBROUTINE mpidrv_master (comm)
       print *, 'output BGC fluxes'
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
-      print *, 'output biome avergage fluxes and pool sizes'
-      open(92,file='cnpfluxpool.txt')
-      CALL pftcnpfluxpool(mloop,veg,casamet,casapool,casaflux,casabal)
-      close(92)
-
       print *, 'before ncdf_dump', spinConv, spincasainput
       if ( spinConv .AND. spincasainput ) then
            call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )

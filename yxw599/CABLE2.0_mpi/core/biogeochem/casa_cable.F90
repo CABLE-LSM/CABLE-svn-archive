@@ -812,6 +812,9 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
                           avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
                           avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
 
+  call totcnppools(1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                   bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
+
   nloop1= max(1,mloop-3)
 
   DO nloop=1,mloop
@@ -851,6 +854,8 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   ENDDO   ! end of nyear
   close(91)
 
+  if(nloop>=nloop1) call totcnppools(2+nloop-nloop1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                                     bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
 
   ENDDO     ! end of nloop
 
@@ -890,7 +895,8 @@ END SUBROUTINE spincasacnp
 
 
 
-  SUBROUTINE pftcnpfluxpool(kloop,veg,casamet,casapool,casaflux,casabal)
+  SUBROUTINE totcnppools(kloop,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                               bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
   ! this subroutine is temporary, and its needs to be modified for multiple tiles within a cell
   USE cable_def_types_mod
   USE casadimension
@@ -900,191 +906,66 @@ END SUBROUTINE spincasacnp
   INTEGER,                     INTENT(IN)  :: kloop
   TYPE (veg_parameter_type),   INTENT(IN)  :: veg  ! vegetation parameters
   TYPE(casa_pool),             INTENT(IN)  :: casapool
-  TYPE(casa_flux),             INTENT(IN)  :: casaflux
-  TYPE(casa_balance),          INTENT(IN)  :: casabal  
-  TYPE(casa_met),              INTENT(IN)  :: casamet 
+  TYPE(casa_met),              INTENT(IN)  :: casamet
+  real,      dimension(5,mvtype,mplant)    :: bmcplant,  bmnplant,  bmpplant
+  real,      dimension(5,mvtype,mlitter)   :: bmclitter, bmnlitter, bmplitter
+  real,      dimension(5,mvtype,msoil)     :: bmcsoil,   bmnsoil,   bmpsoil
+  real,      dimension(5,mvtype)           :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
+  real,      dimension(mvtype)             :: bmarea
   ! local variables
-  real,      dimension(mvtype)           :: bmcgpp, bmcnpp, bmcrsoil, bmcnee,bmcrmleaf,bmcrmwood,bmcrmroot,bmcrgrow         
-  real,      dimension(mvtype)           :: bmndep,bmnfix, bmnsnet,bmnup,bmnleach,bmnloss
-  real,      dimension(mvtype)           :: bmpwea,bmpdust,bmpup,bmpsnet,bmpleach,bmploss
-  real,      dimension(mvtype,mplant)    :: bmcplant,  bmnplant,  bmpplant
-  real,      dimension(mvtype,mlitter)   :: bmclitter, bmnlitter, bmplitter
-  real,      dimension(mvtype,msoil)     :: bmcsoil,   bmnsoil,   bmpsoil
-  real,      dimension(mvtype)           :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
-  real,      dimension(mvtype)           :: bmarea
-  ! local variables
-  INTEGER  npt,nvt,np,nl,ns
-  
+  INTEGER  npt,nvt
 
-      print *, 'pftcnpfluxpool', mvtype,mp,mplant, mlitter, msoil
 
-      bmcgpp(:)=0.0; bmcnpp(:)=0.0;  bmcrsoil(:)=0.0; bmcnee(:)=0.0
-      bmcrmleaf(:)=0.0; bmcrmwood(:)=0.0; bmcrmroot(:)=0.0; bmcrgrow(:)=0.0
-      bmndep(:)=0.0; bmnfix(:)=0.0;  bmnsnet(:)=0.0;  bmnup(:)=0.0;   bmnleach(:)=0.0; bmnloss(:)=0.0
-      bmpwea(:)=0.0; bmpdust(:)=0.0; bmpup(:)=0.0;    bmpsnet(:)=0.0; bmpleach(:)=0.0; bmploss(:)=0.0
-      bmcplant(:,:)  = 0.0;  bmnplant(:,:)  = 0.0; bmpplant(:,:)  = 0.0
-      bmclitter(:,:) = 0.0;  bmnlitter(:,:) = 0.0; bmplitter(:,:) = 0.0
-      bmcsoil(:,:)   = 0.0;  bmnsoil(:,:)   = 0.0; bmpsoil(:,:)   = 0.0
-      bmnsoilmin(:)  = 0.0;  bmpsoillab(:)  = 0.0; bmpsoilsorb(:) = 0.0;  bmpsoilocc(:) = 0.0
+     print *, 'totcnpools', mvtype,mp,mplant, mlitter, msoil
+
+      bmcplant(kloop,:,:)  = 0.0;  bmnplant(kloop,:,:)  = 0.0; bmpplant(kloop,:,:)  = 0.0
+      bmclitter(kloop,:,:) = 0.0;  bmnlitter(kloop,:,:) = 0.0; bmplitter(kloop,:,:) = 0.0
+      bmcsoil(kloop,:,:)   = 0.0;  bmnsoil(kloop,:,:)   = 0.0; bmpsoil(kloop,:,:)   = 0.0
+      bmnsoilmin(kloop,:)  = 0.0;  bmpsoillab(kloop,:)  = 0.0; bmpsoilsorb(kloop,:) = 0.0;  bmpsoilocc(kloop,:) = 0.0
 
       bmarea(:) = 0.0
-      
+
       do npt=1,mp
          nvt=veg%iveg(npt)
-         bmcgpp(nvt)     = bmcgpp(nvt)       + casabal%FCgppyear(npt) * casamet%areacell(npt)
-         bmcnpp(nvt)     = bmcnpp(nvt)       + casabal%FCnppyear(npt) * casamet%areacell(npt)
-         bmcnee(nvt)     = bmcnee(nvt)       + casabal%FCneeyear(npt) * casamet%areacell(npt)
-         bmcrsoil(nvt)   = bmcrsoil(nvt)     + casabal%FCrsyear(npt)  * casamet%areacell(npt)
-         bmcrmleaf(nvt)   = bmcrmleaf(nvt)   + casabal%FCrmleafyear(npt)  * casamet%areacell(npt)
-         bmcrmwood(nvt)   = bmcrmwood(nvt)   + casabal%FCrmwoodyear(npt)  * casamet%areacell(npt)
-         bmcrmroot(nvt)   = bmcrmroot(nvt)   + casabal%FCrmrootyear(npt)  * casamet%areacell(npt)
-         bmcrgrow(nvt)    = bmcrgrow(nvt)    + casabal%FCrgrowyear(npt)   * casamet%areacell(npt)
+         bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)   + casapool%cplant(npt,:) * casamet%areacell(npt)
+         bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)   + casapool%nplant(npt,:) * casamet%areacell(npt)
+         bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)   + casapool%pplant(npt,:) * casamet%areacell(npt)
 
-         bmndep(nvt)     = bmndep(nvt)       + casabal%FNdepyear(npt)   * casamet%areacell(npt)
-         bmnfix(nvt)     = bmnfix(nvt)       + casabal%FNfixyear(npt)   * casamet%areacell(npt)
-         bmnsnet(nvt)    = bmnsnet(nvt)      + casabal%FNsnetyear(npt)  * casamet%areacell(npt)
-         bmnup(nvt)      = bmnup(nvt)        + casabal%FNupyear(npt)    * casamet%areacell(npt)
-         bmnleach(nvt)   = bmnleach(nvt)     + casabal%FNleachyear(npt) * casamet%areacell(npt)
-         bmnloss(nvt)    = bmnloss(nvt)      + casabal%FNlossyear(npt)  * casamet%areacell(npt)
+         bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:) + casapool%clitter(npt,:) * casamet%areacell(npt)
+         bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:) + casapool%nlitter(npt,:) * casamet%areacell(npt)
+         bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:) + casapool%plitter(npt,:) * casamet%areacell(npt)
 
-         bmpwea(nvt)     = bmpwea(nvt)       + casabal%FPweayear(npt)   * casamet%areacell(npt)
-         bmpdust(nvt)    = bmpdust(nvt)       + casabal%FPdustyear(npt)  * casamet%areacell(npt)
-         bmpsnet(nvt)    = bmpsnet(nvt)      + casabal%FPsnetyear(npt)  * casamet%areacell(npt)
-         bmpup(nvt)      = bmpup(nvt)        + casabal%FPupyear(npt)    * casamet%areacell(npt)
-         bmpleach(nvt)   = bmpleach(nvt)     + casabal%FPleachyear(npt) * casamet%areacell(npt)
-         bmploss(nvt)    = bmploss(nvt)      + casabal%FPlossyear(npt)  * casamet%areacell(npt)
+         bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)     + casapool%csoil(npt,:) * casamet%areacell(npt)
+         bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)     + casapool%nsoil(npt,:) * casamet%areacell(npt)
+         bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)     + casapool%psoil(npt,:) * casamet%areacell(npt)
 
-         bmcplant(nvt,:) = bmcplant(nvt,:)   + casapool%cplant(npt,:) * casamet%areacell(npt)
-         bmnplant(nvt,:) = bmnplant(nvt,:)   + casapool%nplant(npt,:) * casamet%areacell(npt)
-         bmpplant(nvt,:) = bmpplant(nvt,:)   + casapool%pplant(npt,:) * casamet%areacell(npt)
-
-         bmclitter(nvt,:) = bmclitter(nvt,:) + casapool%clitter(npt,:) * casamet%areacell(npt)
-         bmnlitter(nvt,:) = bmnlitter(nvt,:) + casapool%nlitter(npt,:) * casamet%areacell(npt)
-         bmplitter(nvt,:) = bmplitter(nvt,:) + casapool%plitter(npt,:) * casamet%areacell(npt)
-
-         bmcsoil(nvt,:) = bmcsoil(nvt,:)     + casapool%csoil(npt,:) * casamet%areacell(npt)
-         bmnsoil(nvt,:) = bmnsoil(nvt,:)     + casapool%nsoil(npt,:) * casamet%areacell(npt)
-         bmpsoil(nvt,:) = bmpsoil(nvt,:)     + casapool%psoil(npt,:) * casamet%areacell(npt)
-
-         bmnsoilmin(nvt)  = bmnsoilmin(nvt)   + casapool%nsoilmin(npt) * casamet%areacell(npt)
-         bmpsoillab(nvt)  = bmpsoillab(nvt)   + casapool%psoillab(npt) * casamet%areacell(npt)
-         bmpsoilsorb(nvt) = bmpsoilsorb(nvt)  + casapool%psoilsorb(npt) * casamet%areacell(npt)
-         bmpsoilocc(nvt)  = bmpsoilocc(nvt)   + casapool%psoilocc(npt) * casamet%areacell(npt)
+         bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)   + casapool%nsoilmin(npt) * casamet%areacell(npt)
+         bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)   + casapool%psoillab(npt) * casamet%areacell(npt)
+         bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)  + casapool%psoilsorb(npt) * casamet%areacell(npt)
+         bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)   + casapool%psoilocc(npt) * casamet%areacell(npt)
          bmarea(nvt)  = bmarea(nvt) + casamet%areacell(npt)
       enddo
-      
+
       do nvt=1,mvtype
-         if(bmarea(nvt) > 0.0) then
-            bmcgpp(nvt)     = bmcgpp(nvt)/bmarea(nvt)
-            bmcnpp(nvt)     = bmcnpp(nvt)/bmarea(nvt)
-            bmcnee(nvt)     = bmcnee(nvt)/bmarea(nvt)
-            bmcrsoil(nvt)   = bmcrsoil(nvt)/bmarea(nvt)
-            bmcrmleaf(nvt)  = bmcrmleaf(nvt)/bmarea(nvt)
-            bmcrmwood(nvt)  = bmcrmwood(nvt)/bmarea(nvt)
-            bmcrmroot(nvt)  = bmcrmroot(nvt)/bmarea(nvt)
-            bmcrgrow(nvt)   = bmcrgrow(nvt)/bmarea(nvt)
+         bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)/bmarea(nvt)
+         bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)/bmarea(nvt)
+         bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)/bmarea(nvt)
 
-            bmndep(nvt)     = bmndep(nvt)/bmarea(nvt)
-            bmnfix(nvt)     = bmnfix(nvt)/bmarea(nvt)
-            bmnsnet(nvt)    = bmnsnet(nvt)/bmarea(nvt)
-            bmnup(nvt)      = bmnup(nvt)/bmarea(nvt)
-            bmnleach(nvt)   = bmnleach(nvt)/bmarea(nvt)
-            bmnloss(nvt)    = bmnloss(nvt)/bmarea(nvt)
+         bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:)/bmarea(nvt)
+         bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:)/bmarea(nvt)
+         bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:)/bmarea(nvt)
 
-            bmpwea(nvt)     = bmpwea(nvt)/bmarea(nvt)
-            bmpdust(nvt)    = bmpdust(nvt)/bmarea(nvt)
-            bmpsnet(nvt)    = bmpsnet(nvt)/bmarea(nvt)
-            bmpup(nvt)      = bmpup(nvt)/bmarea(nvt)
-            bmpleach(nvt)   = bmpleach(nvt)/bmarea(nvt)
-            bmploss(nvt)    = bmploss(nvt)/bmarea(nvt)
+         bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)/bmarea(nvt)
+         bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)/bmarea(nvt)
+         bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)/bmarea(nvt)
 
-            bmcplant(nvt,:) = bmcplant(nvt,:)/bmarea(nvt)
-            bmnplant(nvt,:) = bmnplant(nvt,:)/bmarea(nvt)
-            bmpplant(nvt,:) = bmpplant(nvt,:)/bmarea(nvt)
+         bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)/bmarea(nvt)
+         bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)/bmarea(nvt)
+         bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)/bmarea(nvt)
+         bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)/bmarea(nvt)
+      enddo
 
-            bmclitter(nvt,:) = bmclitter(nvt,:)/bmarea(nvt)
-            bmnlitter(nvt,:) = bmnlitter(nvt,:)/bmarea(nvt)
-            bmplitter(nvt,:) = bmplitter(nvt,:)/bmarea(nvt)
-
-            bmcsoil(nvt,:) = bmcsoil(nvt,:)/bmarea(nvt)
-            bmnsoil(nvt,:) = bmnsoil(nvt,:)/bmarea(nvt)
-            bmpsoil(nvt,:) = bmpsoil(nvt,:)/bmarea(nvt)
-
-            bmnsoilmin(nvt)  = bmnsoilmin(nvt)/bmarea(nvt)
-            bmpsoillab(nvt)  = bmpsoillab(nvt)/bmarea(nvt)
-            bmpsoilsorb(nvt) = bmpsoilsorb(nvt)/bmarea(nvt)
-            bmpsoilocc(nvt)  = bmpsoilocc(nvt)/bmarea(nvt)
-         endif
-      enddo 
-      ! write PFT mean flux and pool size data
-       write(92,*) kloop
-       write(92,921) sum(bmarea)*(1.0e-12) 
-921    format('PFT total area in 10**12 m2', f12.4)
-       write(92,922) (bmarea(nvt)*(1.0e-12),   nvt=1,mvtype)
-       write(92,922) (bmcgpp(nvt),   nvt=1,mvtype), sum(bmcgpp*bmarea)*(1.0e-15)
-       write(92,922) (bmcnpp(nvt),   nvt=1,mvtype), sum(bmcnpp*bmarea)*(1.0e-15)
-       write(92,922) (bmcnee(nvt),   nvt=1,mvtype), sum(bmcnee*bmarea)*(1.0e-15)
-       write(92,922) (bmcrmleaf(nvt), nvt=1,mvtype), sum(bmcrmleaf*bmarea)*(1.0e-15)
-       write(92,922) (bmcrmwood(nvt), nvt=1,mvtype), sum(bmcrmwood*bmarea)*(1.0e-15)
-       write(92,922) (bmcrmroot(nvt), nvt=1,mvtype), sum(bmcrmroot*bmarea)*(1.0e-15)
-       write(92,922) (bmcrgrow(nvt), nvt=1,mvtype), sum(bmcrgrow*bmarea)*(1.0e-15)
-       write(92,922) (bmcrsoil(nvt), nvt=1,mvtype), sum(bmcrsoil*bmarea)*(1.0e-15)
-       if(icycle >1) then
-          write(92,922) (bmndep(nvt),      nvt=1,mvtype), sum(bmndep*bmarea)*(1.0e-15)
-          write(92,922) (bmnfix(nvt),      nvt=1,mvtype), sum(bmnfix*bmarea)*(1.0e-15)
-          write(92,922) (bmnsnet(nvt),     nvt=1,mvtype), sum(bmnsnet*bmarea)*(1.0e-15)
-          write(92,922) (bmnup(nvt),       nvt=1,mvtype), sum(bmnup*bmarea)*(1.0e-15)
-          write(92,922) (bmnleach(nvt),    nvt=1,mvtype), sum(bmnleach*bmarea)*(1.0e-15)
-          write(92,922) (bmnloss(nvt),     nvt=1,mvtype), sum(bmnloss*bmarea)*(1.0e-15)
-       endif
-       if(icycle >2) then
-          write(92,922) (bmpwea(nvt),   nvt=1,mvtype),   sum(bmpwea*bmarea)*(1.0e-15)
-          write(92,922) (bmpdust(nvt),   nvt=1,mvtype),  sum(bmpdust*bmarea)*(1.0e-15)
-          write(92,922) (bmpsnet(nvt),   nvt=1,mvtype),  sum(bmpsnet*bmarea)*(1.0e-15)
-          write(92,922) (bmpup(nvt),   nvt=1,mvtype),    sum(bmpup*bmarea)*(1.0e-15)
-          write(92,922) (bmpleach(nvt), nvt=1,mvtype),   sum(bmpleach*bmarea)*(1.0e-15)
-          write(92,922) (bmploss(nvt), nvt=1,mvtype),    sum(bmploss*bmarea)*(1.0e-15)
-       endif
-
-       do np=1,mplant
-          write(92,922) (bmcplant(nvt,np),  nvt=1,mvtype), sum(bmcplant(:,np)*bmarea)*(1.0e-15)
-       enddo
-       do nl=1,mlitter
-          write(92,922) (bmclitter(nvt,nl), nvt=1,mvtype), sum(bmclitter(:,nl)*bmarea)*(1.0e-15)
-       enddo
-       do ns=1,msoil
-          write(92,922) (bmcsoil(nvt,ns),   nvt=1,mvtype), sum(bmcsoil(:,ns)*bmarea)*(1.0e-15)
-       enddo
-       if(icycle >1) then
-          do np=1,mplant
-             write(92,922) (bmnplant(nvt,np),  nvt=1,mvtype), sum(bmnplant(:,np)*bmarea)*(1.0e-15)
-          enddo
-          do nl=1,mlitter
-             write(92,922) (bmnlitter(nvt,nl), nvt=1,mvtype), sum(bmnlitter(:,nl)*bmarea)*(1.0e-15)
-          enddo
-          do ns=1,msoil
-             write(92,922) (bmnsoil(nvt,ns),   nvt=1,mvtype), sum(bmnsoil(:,ns)*bmarea)*(1.0e-15) 
-          enddo
-          write(92,922) (bmnsoilmin(nvt), nvt=1,mvtype),  sum(bmnsoilmin*bmarea)*(1.0e-15)
-       endif
-       if(icycle >2) then
-          do np=1,mplant
-             write(92,922) (bmpplant(nvt,np),  nvt=1,mvtype), sum(bmpplant(:,np)*bmarea)*(1.0e-15)
-          enddo
-          do nl=1,mlitter
-             write(92,922) (bmplitter(nvt,nl), nvt=1,mvtype), sum(bmplitter(:,np)*bmarea)*(1.0e-15)
-          enddo
-          do ns=1,msoil
-             write(92,922) (bmpsoil(nvt,ns),   nvt=1,mvtype) , sum(bmpsoil(:,ns)*bmarea)*(1.0e-15)
-          enddo
-          write(92,922) (bmpsoillab(nvt),  nvt=1,mvtype), sum(bmpsoillab*bmarea)*(1.0e-15)
-          write(92,922) (bmpsoilsorb(nvt), nvt=1,mvtype), sum(bmpsoilsorb*bmarea)*(1.0e-15)
-          write(92,922) (bmpsoilocc(nvt),  nvt=1,mvtype), sum(bmpsoilocc*bmarea)*(1.0e-15)
-       endif
-
-922    format(20(f10.4,2x))
-
-  END SUBROUTINE pftcnpfluxpool
+  END SUBROUTINE totcnppools
 
   SUBROUTINE analyticpool(kend,veg,soil,casabiome,casapool,                                 &
                           casaflux,casamet,casabal,phen,                                    &
