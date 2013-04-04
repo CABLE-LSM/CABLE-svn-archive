@@ -319,7 +319,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
   INTEGER :: npt
 
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
-  real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
+  real(r_2), dimension(mp,mplant) :: ratioPNplant                                        
+  real(r_2), dimension(mp)        :: delClabloss  ! C transfer from labile pooll when NPP<0
 
   ratioPNplant = 0.0
   Ygrow        = 0.0
@@ -363,10 +364,21 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
       casaflux%crgplant(:) = 0.0
     ENDWHERE
 
-    casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
-                     - casaflux%crgplant(:))) 
+!    casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
+!                     - casaflux%crgplant(:))) 
+
+    casaflux%Cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:) 
+
   ENDWHERE
 
+  delClabloss = 0.0
+  WHERE(casaflux%Cnpp < 0.0.and. casapool%Clabile >0.0)
+     delClabloss(:) = min(casapool%Clabile(:),-casaflux%Cnpp(:))
+     casaflux%clabloss(:) = casaflux%clabloss(:) + delClabloss(:)
+     casaflux%Cnpp(:)     = casaflux%Cnpp(:)     + delClabloss(:)
+  ENDWHERE
+
+        
 !  print *, 'calling rplant',veg%iveg(1),casamet%tairk(1)
 !,tkzeroc,casapool%nplant(1,:),casaflux%crmplant(1,:),casaflux%crgplant(1)
 
