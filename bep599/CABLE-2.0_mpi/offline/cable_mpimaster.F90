@@ -153,7 +153,7 @@ SUBROUTINE mpidrv_master (comm)
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
+                                  casa_met, casa_balance, mdyear
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
@@ -208,7 +208,7 @@ SUBROUTINE mpidrv_master (comm)
       vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
       spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
       spinConv = .FALSE.,         & ! has spinup converged?
-      spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
+      spincasainput = .TRUE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
@@ -236,6 +236,9 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
+
+   ! added variables by yp wang 7-npov-2012
+   INTEGER :: mloop
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -297,22 +300,25 @@ SUBROUTINE mpidrv_master (comm)
  
    ! Check for gswp run
    IF (ncciy /= 0) THEN
-      
-      PRINT *, 'Looking for global offline run info.'
-      
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-         PRINT *, 'Please check input in namelist file.'
-
-         ! MPI: stop all the workers, too!
-         CALL MPI_Abort (comm, 1, ierr)
-
-         STOP
-      ELSE
-         
+   ! modified by ypw wang 30/oct/2012 following Chris Lu
+    PRINT *, 'Looking for global offline run info.'
+    IF (gswpfile%l_gpcc)THEN
+       IF (ncciy < 1948 .OR. ncciy > 2008) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       ELSE
+          CALL prepareFiles(ncciy)
+       ENDIF
+    ELSE
+       IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       ELSE
          CALL prepareFiles(ncciy)
-      
-      ENDIF
+       END IF
+    END IF
    
    ENDIF
    
@@ -405,8 +411,25 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
+   ! added by ypwang following Chris Lu   
+   ! need to check with BP for the order of calling for MPI
+   !kstart = 1
+
+   spinConv = .FALSE. ! initialise spinup convergence variable
+   if(.not.spinup)  spinConv=.true.
    
-   ! outer loop - spinup loop no. ktau_tot :
+   if(icycle>0) then
+    !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
+     if (spincasa) then
+      mloop = 5
+      print *, 'spincasacnp enabled with mloop= ', mloop
+      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
+      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                       casaflux,casamet,casabal,phen)
+     endif
+   endif
+
+! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
 
@@ -505,6 +528,7 @@ SUBROUTINE mpidrv_master (comm)
     CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
     met%ofsd = met%fsd(:,1) + met%fsd(:,2)
     canopy%oldcansto=canopy%cansto
+
     IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,         &
                                rad, bal, air, soil, veg, C%SBOLTZ,     &
@@ -594,10 +618,21 @@ SUBROUTINE mpidrv_master (comm)
       CALL master_receive (comm, ktau_gl, casa_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
+      print *, 'output BGC pools'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
-
+      print *, 'output BGC fluxes'
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+
+      print *, 'output biome avergage fluxes and pool sizes'
+      open(92,file='cnpfluxpool.txt')
+      CALL pftcnpfluxpool(mloop,veg,casamet,casapool,casaflux,casabal)
+      close(92)
+
+      print *, 'before ncdf_dump', spinConv, spincasainput
+      if ( spinConv .AND. spincasainput ) then
+           call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+      endif
   
    END IF
 
@@ -641,33 +676,77 @@ SUBROUTINE prepareFiles(ncciy)
   USE cable_IO_vars_module, ONLY: logn,gswpfile
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: ncciy
-
+  ! modified by ypwang, following Chris Lu
+IF (.NOT. gswpfile%l_gpcc) THEN   !added by Chris Lu for gpcc 28/05/2012
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
-  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
-  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
+!  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
+!  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
+!  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
+!  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
+!  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
+!  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')   !Chris 6/Sep/2012
+!  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
+!  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
+
+  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf',1983,1995)
+  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf',1983,1995)
+  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown',1983,1995)
+  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown',1983,1995)
+  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf',1983,1995)
+  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair',1983,1995)
+  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair',1983,1995)
+  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind',1983,1995)
+ELSE
+  WRITE(logn,*) 'CABLE offline global run using gpcc forcing for ', ncciy
+  PRINT *,      'CABLE offline global run using gpcc forcing for ', ncciy
+
+  CALL renameFiles(logn,gswpfile%rainf,len(trim(gswpfile%rainf))-14,ncciy,'rainf',1948,2008)
+  CALL renameFiles(logn,gswpfile%LWdown,len(trim(gswpfile%LWdown))-14,ncciy,'LWdown',1948,2008)
+  CALL renameFiles(logn,gswpfile%SWdown,len(trim(gswpfile%SWdown))-14,ncciy,'SWdown',1948,2008)
+  CALL renameFiles(logn,gswpfile%PSurf,len(trim(gswpfile%PSurf))-14,ncciy,'PSurf',1948,2008)
+  CALL renameFiles(logn,gswpfile%Qair,len(trim(gswpfile%Qair))-14,ncciy,'Qair',1948,2008)
+  CALL renameFiles(logn,gswpfile%Tair,len(trim(gswpfile%Tair))-14,ncciy,'Tair',1948,2008)
+  CALL renameFiles(logn,gswpfile%wind,len(trim(gswpfile%wind))-14,ncciy,'wind',1948,2008)
+END IF
+
 
 END SUBROUTINE prepareFiles
 
+ ! replaced by ypwang, following Chris Lu 30/oct/2012
+!SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
+!  IMPLICIT NONE
+!  INTEGER, INTENT(IN) :: logn
+!  INTEGER, INTENT(IN) :: nn
+!  INTEGER, INTENT(IN) :: ncciy
+!  CHARACTER(LEN=99), INTENT(INOUT) :: inFile
+!  CHARACTER(LEN=*),  INTENT(IN)    :: inName
+!  INTEGER :: idummy
+!
+!  READ(inFile(nn:nn+3),'(i4)') idummy
+!  IF (idummy < 1800 .OR. idummy > 2100) THEN
+!    PRINT *, 'Check position of the year number in input gswp file', inFile
+!    STOP
+!  ELSE
+!    WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
+!    WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
+!  ENDIF
+!
+!END SUBROUTINE renameFiles
 
-SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
+SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName,startyr,endyr)
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: logn
   INTEGER, INTENT(IN) :: nn
   INTEGER, INTENT(IN) :: ncciy
   CHARACTER(LEN=99), INTENT(INOUT) :: inFile
   CHARACTER(LEN=*),  INTENT(IN)    :: inName
+  INTEGER, INTENT(IN) :: startyr,endyr        ! added by Chris Lu 28/05/2012
   INTEGER :: idummy
 
   READ(inFile(nn:nn+3),'(i4)') idummy
-  IF (idummy < 1983 .OR. idummy > 1995) THEN
+  IF (idummy < startyr .OR. idummy > endyr) THEN
     PRINT *, 'Check position of the year number in input gswp file', inFile
     STOP
   ELSE
@@ -676,7 +755,6 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
   ENDIF
 
 END SUBROUTINE renameFiles
-
 
 ! ============== PRIVATE SUBROUTINES USED ONLY BY THE MPI MASTER ===============
 
@@ -3020,6 +3098,22 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmleafyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmwoodyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmrootyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrgrowyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casabal%FCrpyear(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -4873,6 +4967,109 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      &                             types(bidx), ierr)
      blocks(bidx) = 1
 
+     ! added by ypwang 27-nov2012 for casa-cnp spinning up variables
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tairkspin(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%cgppspin(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%crmplantspin_1(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%crmplantspin_2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%crmplantspin_3(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_1(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_3(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_4(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_5(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%Tsoilspin_6(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_1(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_3(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_4(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_5(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
      last2d = bidx
 
      ! ------------- 1D vectors -------------
@@ -4927,6 +5124,26 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (casabal%FCnppyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmleafyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmwoodyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmrootyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrgrowyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrpyear(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1

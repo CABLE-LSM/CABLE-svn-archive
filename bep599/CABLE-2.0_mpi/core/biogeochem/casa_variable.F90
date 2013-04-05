@@ -259,10 +259,30 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:), POINTER   :: lat,      &
                                           lon,      &
                                           areacell
+    ! added yp wang 5/nov/2012
+    REAL(r_2), DIMENSION(:,:), POINTER :: Tairkspin,&
+                                          cgppspin,&
+                                          crmplantspin_1,&
+                                          crmplantspin_2,&
+                                          crmplantspin_3,&
+                                          Tsoilspin_1,&
+                                          Tsoilspin_2,&
+                                          Tsoilspin_3,&
+                                          Tsoilspin_4,&
+                                          Tsoilspin_5,&
+                                          Tsoilspin_6,&
+                                          moistspin_1,&
+                                          moistspin_2,&
+                                          moistspin_3,&
+                                          moistspin_4,&
+                                          moistspin_5,&
+                                          moistspin_6
+
   END TYPE casa_met
 
   TYPE casa_balance
-    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,             &
+    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,                 &
+            FCrmleafyear,FCrmwoodyear,FCrmrootyear,FCrgrowyear,               &
             FCrpyear, FCrsyear,FCneeyear,                                     &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear
@@ -293,6 +313,10 @@ MODULE casavariable
     CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes
     CHARACTER(LEN=99) :: cnpmetin      ! met file for spin up 
     CHARACTER(LEN=99) :: cnpmetout     ! met file for spin up 
+! added yp wang
+    CHARACTER(LEN=99) :: cnpspin       ! input file for spin up
+    CHARACTER(LEN=99) :: dump_cnpspin  ! name of dump file for spinning casa-cnp
+ 
     CHARACTER(LEN=99) :: phen        ! leaf phenology datafile
     CHARACTER(LEN=99) :: cnpflux     ! modelled mean yearly CNP fluxes
   END TYPE casafiles_type
@@ -457,11 +481,34 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casamet%isorder(arraysize),             &
            casamet%lat(arraysize),                 &
            casamet%lon(arraysize),                 &
-           casamet%areacell(arraysize))
+           casamet%areacell(arraysize),            &
+
+           casamet%Tairkspin(arraysize,mdyear),     &
+           casamet%cgppspin(arraysize,mdyear),      &
+           casamet%crmplantspin_1(arraysize,mdyear),&
+           casamet%crmplantspin_2(arraysize,mdyear),&
+           casamet%crmplantspin_3(arraysize,mdyear),&
+           casamet%Tsoilspin_1(arraysize,mdyear),   &
+           casamet%Tsoilspin_2(arraysize,mdyear),   &
+           casamet%Tsoilspin_3(arraysize,mdyear),   &
+           casamet%Tsoilspin_4(arraysize,mdyear),   &
+           casamet%Tsoilspin_5(arraysize,mdyear),   &
+           casamet%Tsoilspin_6(arraysize,mdyear),   &
+           casamet%moistspin_1(arraysize,mdyear),   &
+           casamet%moistspin_2(arraysize,mdyear),   &
+           casamet%moistspin_3(arraysize,mdyear),   &
+           casamet%moistspin_4(arraysize,mdyear),   &
+           casamet%moistspin_5(arraysize,mdyear),   &
+           casamet%moistspin_6(arraysize,mdyear))
+
 
   ALLOCATE(casabal%FCgppyear(arraysize),           &
            casabal%FCnppyear(arraysize),           &
            casabal%FCrpyear(arraysize),            &
+           casabal%FCrmleafyear(arraysize),        &
+           casabal%FCrmwoodyear(arraysize),        &
+           casabal%FCrmrootyear(arraysize),        &
+           casabal%FCrgrowyear(arraysize),         &
            casabal%FCrsyear(arraysize),            &
            casabal%FCneeyear(arraysize),           &
            casabal%FNdepyear(arraysize),           &

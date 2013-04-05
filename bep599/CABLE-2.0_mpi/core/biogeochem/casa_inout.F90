@@ -856,6 +856,10 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
   xyear=1.0/FLOAT(myear)
   casabal%FCgppyear=casabal%FCgppyear * xyear
   casabal%FCnppyear=casabal%FCnppyear * xyear
+  casabal%FCrmleafyear=casabal%FCrmleafyear * xyear
+  casabal%FCrmwoodyear=casabal%FCrmwoodyear * xyear
+  casabal%FCrmrootyear=casabal%FCrmrootyear * xyear
+  casabal%FCrgrowyear=casabal%FCrgrowyear * xyear
   casabal%FCrsyear=casabal%FCrsyear * xyear
   casabal%FCneeyear=casabal%FCneeyear * xyear
   casabal%FNdepyear=casabal%FNdepyear * xyear
@@ -881,7 +885,9 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
         WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
             casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
             casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),  &
-            casabal%Fcnppyear(npt),  &
+            casabal%Fcnppyear(npt),                                 &
+            casabal%Fcrmleafyear(npt),casabal%Fcrmwoodyear(npt),     &
+            casabal%Fcrmrootyear(npt),casabal%Fcrgrowyear(npt),     &
             casabal%Fcrsyear(npt),casabal%Fcneeyear(npt)  ! ,           &
 !            clitterinput(npt,:),csoilinput(npt,:)
 
@@ -889,7 +895,10 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
         WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
             casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
             casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),  &
-        casabal%FCnppyear(npt),casabal%FCrsyear(npt), casabal%FCneeyear(npt), &
+            casabal%FCnppyear(npt),                                 &
+            casabal%Fcrmleafyear(npt),casabal%Fcrmwoodyear(npt),     &
+            casabal%Fcrmrootyear(npt),casabal%Fcrgrowyear(npt),     &
+            casabal%FCrsyear(npt), casabal%FCneeyear(npt),          &
 !        clitterinput(npt,:),csoilinput(npt,:), &
         casabal%FNdepyear(npt),casabal%FNfixyear(npt),casabal%FNsnetyear(npt), &
         casabal%FNupyear(npt), casabal%FNleachyear(npt),casabal%FNlossyear(npt)
@@ -897,8 +906,11 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
       CASE(3)
         WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt), &
         casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt),  &
-        casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt), &
-       casabal%FCnppyear(npt),casabal%FCrsyear(npt),   casabal%FCneeyear(npt),&
+        casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),   &
+        casabal%FCnppyear(npt),                                  &
+            casabal%Fcrmleafyear(npt),casabal%Fcrmwoodyear(npt),     &
+            casabal%Fcrmrootyear(npt),casabal%Fcrgrowyear(npt),     &
+        casabal%FCrsyear(npt),   casabal%FCneeyear(npt),         &
 !        clitterinput(npt,:),csoilinput(npt,:), &
        casabal%FNdepyear(npt),casabal%FNfixyear(npt),  casabal%FNsnetyear(npt),&
        casabal%FNupyear(npt), casabal%FNleachyear(npt),casabal%FNlossyear(npt),&
@@ -929,12 +941,16 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
 !  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
   INTEGER n
 
-  casabal%FCgppyear = casabal%FCgppyear + casaflux%Cgpp   * deltpool
-  casabal%FCrpyear  = casabal%FCrpyear  + casaflux%Crp    * deltpool
-  casabal%FCnppyear = casabal%FCnppyear + casaflux%Cnpp   * deltpool
-  casabal%FCrsyear  = casabal%FCrsyear  + casaflux%Crsoil * deltpool
-  casabal%FCneeyear = casabal%FCneeyear &
-                    + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
+  casabal%FCgppyear        = casabal%FCgppyear + casaflux%Cgpp   * deltpool
+  casabal%FCrpyear         = casabal%FCrpyear  + casaflux%Crp    * deltpool
+  casabal%FCrmleafyear(:)  = casabal%FCrmleafyear(:)  + casaflux%Crmplant(:,leaf)    * deltpool
+  casabal%FCrmwoodyear(:)  = casabal%FCrmwoodyear(:)  + casaflux%Crmplant(:,wood)    * deltpool
+  casabal%FCrmrootyear(:)  = casabal%FCrmrootyear(:)  + casaflux%Crmplant(:,froot)    * deltpool
+  casabal%FCrgrowyear      = casabal%FCrgrowyear  + casaflux%Crgplant              * deltpool
+  casabal%FCnppyear        = casabal%FCnppyear + casaflux%Cnpp   * deltpool
+  casabal%FCrsyear         = casabal%FCrsyear  + casaflux%Crsoil * deltpool
+  casabal%FCneeyear        = casabal%FCneeyear &
+                           + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
  
 !  DO n=1,3
 !    clitterinput(:,n)= clitterinput(:,n) + casaflux%kplant(:,n) * casapool%cplant(:,n) * deltpool
@@ -961,9 +977,12 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
   ENDIF 
 
 END SUBROUTINE casa_cnpflux
-
+! changed by yp wang following Chris Lu 5/nov/2012
 SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                    casamet,casabal,phen)
+                      casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
   USE cable_def_types_mod
   USE casadimension
   USE casa_cnp_module
@@ -979,6 +998,12 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
+
+  ! local variables added by ypwang following Chris Lu 5/nov/2012
+
+  real, dimension(mp), INTENT(OUT)   :: cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                                        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                                        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
 
   ! local variables
   REAL(r_2),    DIMENSION(mp) :: xnplimit,xNPuptake
@@ -1013,13 +1038,23 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                                      casapool,casaflux,casamet)
   ENDIF 
 
-  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
+  ! changed by ypwang following Chris Lu on 5/nov/2012
+  call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
+                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+  !  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
   call casa_delsoil(veg,casapool,casaflux,casamet)
 
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
+  ! modified by ypwang following Chris Lu on 5/nov/2012
 
-  IF (icycle==1) call casa_ndummy(casapool)
+  IF (icycle<2) then
+      call casa_ndummy(casapool)
+      IF (icycle<3) call casa_pdummy(casapool)
+  ENDIF
 
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casabal)

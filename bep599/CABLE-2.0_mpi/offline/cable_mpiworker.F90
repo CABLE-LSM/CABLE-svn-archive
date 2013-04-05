@@ -2543,6 +2543,22 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmleafyear, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmwoodyear, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmrootyear, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrgrowyear, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casabal%FCrpyear, displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -5103,6 +5119,76 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * msoil
 
+  ! added by yp wang 27-nov-2012 for variables for spinning casa-cnp
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tairkspin(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%cgppspin(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%crmplantspin_1(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%crmplantspin_2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%crmplantspin_3(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_1(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_3(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_4(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_5(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_6(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_1(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_3(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_4(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_5(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
   ! ------------- 1D vectors -------------
 
   bidx = bidx + 1
@@ -5157,6 +5243,26 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
 
   bidx = bidx + 1
   CALL MPI_Get_address (casabal%FCnppyear(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmleafyear(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmwoodyear(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmrootyear(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrgrowyear(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrpyear(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
   bidx = bidx + 1

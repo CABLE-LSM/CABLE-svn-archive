@@ -55,7 +55,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: ncasaparam = 68
   !INTEGER, PARAMETER :: ncasaparam = 176
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
-  INTEGER, PARAMETER :: ncasaparam = 179
+!  INTEGER, PARAMETER :: ncasaparam = 179
+  INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
 
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
@@ -102,8 +103,10 @@ MODULE cable_mpicommon
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
-  INTEGER, PARAMETER :: ncasa_mat = 15
-  INTEGER, PARAMETER :: ncasa_vec = 27
+!  INTEGER, PARAMETER :: ncasa_mat = 15
+  INTEGER, PARAMETER :: ncasa_mat = 32    ! changed  ypw 27-bov-2012 17 new variables added for casa spinup
+!  INTEGER, PARAMETER :: ncasa_vec = 27
+  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
 
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run

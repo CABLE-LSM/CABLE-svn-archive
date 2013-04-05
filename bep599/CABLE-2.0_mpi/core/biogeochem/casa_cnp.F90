@@ -727,7 +727,12 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
 END SUBROUTINE casa_coeffsoil
 
-SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
+! modified by ypw following Chris Lu 5/nov/2012
+SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
+                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
 !  calculate the chnage in plant C, N and P pools
 !  uptake of N and P will be computed in casa_uptake
 !  labile C pool will be computed casa_labile
@@ -739,12 +744,38 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
   TYPE (casa_flux),          INTENT(INOUT) :: casaflux
   TYPE (casa_met),           INTENT(INOUT) :: casamet
 
+  ! added by ypwang following Chris Lu 5/nov/2012
+  real, dimension(mp),INTENT(OUT) :: cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                                     nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                                     pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
+
   INTEGER  npt,nL,nP,nland
 
    casaflux%FluxCtolitter = 0.0
    casaflux%FluxNtolitter = 0.0
    casaflux%FluxPtolitter = 0.0
 
+   ! added by ypwang following Chris Lu 5/nov/2012
+
+   cleaf2met = 0.0
+   cleaf2str = 0.0
+   croot2met = 0.0
+   croot2str = 0.0
+   cwood2cwd = 0.0
+
+   nleaf2met = 0.0
+   nleaf2str = 0.0
+   nroot2met = 0.0
+   nroot2str = 0.0
+   nwood2cwd = 0.0
+
+   pleaf2met = 0.0
+   pleaf2str = 0.0
+   proot2met = 0.0
+   proot2str = 0.0
+   pwood2cwd = 0.0
+
+  !MPI
   DO npt=1,mp
   IF(casamet%iveg2(npt)/=icewater) THEN
 !    PRINT *, 'npt = ', npt
@@ -755,6 +786,12 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
     ! calculate fraction c to labile pool as a fraction of gpp, not npp
     ! casapool%dClabiledt(npt)   = casaflux%Cnpp(npt)    * casaflux%fracClabile(npt)
     casapool%dClabiledt(npt)   =  casaflux%Cgpp(npt)  * casaflux%fracClabile(npt) - casaflux%clabloss(npt)
+    ! added by ypwang 5/nov/2012
+    cleaf2met(npt) = casaflux%fromPtoL(npt,metb,leaf)  * casaflux%kplant(npt,leaf)  * casapool%cplant(npt,leaf)
+    cleaf2str(npt) = casaflux%fromPtoL(npt,str,leaf)   * casaflux%kplant(npt,leaf)  * casapool%cplant(npt,leaf)
+    croot2met(npt) = casaflux%fromPtoL(npt,metb,froot) * casaflux%kplant(npt,froot) * casapool%cplant(npt,froot)
+    croot2str(npt) = casaflux%fromPtoL(npt,str,froot)  * casaflux%kplant(npt,froot) * casapool%cplant(npt,froot)
+    cwood2cwd(npt) = casaflux%fromPtoL(npt,cwd,wood)   * casaflux%kplant(npt,wood)  * casapool%cplant(npt,wood)
 
 !    PRINT *, 'npt, mp, iveg', npt, mp, veg%iveg(npt)
     IF(icycle > 1) THEN
@@ -769,7 +806,16 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
                                         * casabiome%ftransNPtoL(veg%iveg(npt),wood)
        casapool%dNplantdt(npt,froot)  = - casaflux%kplant(npt,froot) * casapool%Nplant(npt,froot) &
                                         * casabiome%ftransNPtoL(veg%iveg(npt),froot)
+       ! added by ypwang 5/nov/2012
 
+       nleaf2str(npt) = casaflux%fromPtoL(npt,str,leaf) * casaflux%kplant(npt,leaf)  &
+                      * casapool%cplant(npt,leaf)       * ratioNCstrfix
+       nroot2str(npt) = casaflux%fromPtoL(npt,str,froot)* casaflux%kplant(npt,froot) &
+                      * casapool%cplant(npt,froot)      * ratioNCstrfix
+
+       nleaf2met(npt) = - casapool%dNplantdt(npt,leaf)  - nleaf2str(npt)
+       nroot2met(npt) = - casapool%dNplantdt(npt,froot) - nleaf2str(npt)
+       nwood2cwd(npt) = -casapool%dNplantdt(npt,wood)
 
     ENDIF
 
@@ -787,9 +833,19 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
                                      * casabiome%ftransPPtoL(veg%iveg(npt),wood)
        casapool%dPplantdt(npt,froot)  = - casaflux%kplant(npt,froot) * casapool%Pplant(npt,froot) &
                                      * casabiome%ftransPPtoL(veg%iveg(npt),froot)
+       ! added by ypwang 5/nov/2012
+
+       pleaf2str(npt) = casaflux%fromPtoL(npt,str,leaf) * casaflux%kplant(npt,leaf)  &
+                      * casapool%cplant(npt,leaf)       * ratioPCstrfix
+       proot2str(npt) = casaflux%fromPtoL(npt,str,froot)* casaflux%kplant(npt,froot) &
+                      * casapool%cplant(npt,froot)      * ratioPCstrfix
+       pleaf2met(npt) = -casapool%dPplantdt(npt,leaf)  - pleaf2str(npt)
+       proot2met(npt) = -casapool%dPplantdt(npt,froot) - proot2str(npt)
+       pwood2cwd(npt) = -casapool%dPplantdt(npt,wood)
 
 
     ENDIF
+
 
     DO nL=1,mlitter
        DO nP=1,mplant
@@ -1778,6 +1834,14 @@ SUBROUTINE casa_ndummy(casapool)
   casapool%Nplant(:,:) = casapool%Cplant(:,:) * casapool%ratioNCplant(:,:)
 
 END SUBROUTINE casa_ndummy
+
+SUBROUTINE casa_pdummy(casapool)
+  IMPLICIT NONE
+  TYPE (casa_pool),             INTENT(INOUT) :: casapool
+
+  casapool%Pplant(:,:) = casapool%Cplant(:,:) * casapool%ratioPCplant(:,:)
+
+END SUBROUTINE casa_pdummy
 
 SUBROUTINE phenology(iday,veg,phen)
   IMPLICIT NONE
