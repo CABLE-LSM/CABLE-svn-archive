@@ -14,6 +14,7 @@ host_shin()
    export FC=ifort    ## need to check ??
 #   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
    export CFLAGS='-O0 -g -debug all -traceback'
+#   export CFLAGS='-O0 -g -debug all -traceback'
    export LD='-lnetcdf'
    export LDFLAGS='-L/usr/local/intel/lib -O2'
    build_build
@@ -61,12 +62,12 @@ host_vayu()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
+   export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise' 
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf'
+   export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
    build_status

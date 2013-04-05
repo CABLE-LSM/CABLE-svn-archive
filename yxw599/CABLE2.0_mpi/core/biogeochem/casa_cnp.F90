@@ -319,8 +319,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
   INTEGER :: npt
 
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
-  real(r_2), dimension(mp,mplant) :: ratioPNplant                                        
-  real(r_2), dimension(mp)        :: delClabloss  ! C transfer from labile pooll when NPP<0
+  real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
+  real(r_2), dimension(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0   
 
   ratioPNplant = 0.0
   Ygrow        = 0.0
@@ -333,6 +333,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 
   casaflux%crmplant(:,wood) = 0.0
   casaflux%crmplant(:,froot) = 0.0
+  delcrmwood   = 0.0
+  delcrmfroot  = 0.0
   casaflux%crgplant = 0.0
   casaflux%clabloss = 0.0
 
@@ -364,21 +366,19 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
       casaflux%crgplant(:) = 0.0
     ENDWHERE
 
-!    casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
+ !   casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
 !                     - casaflux%crgplant(:))) 
-
+    ! changes made by yp wang 5 april 2013
     casaflux%Cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:) 
-
+    WHERE(casaflux%Cnpp < 0.0)
+        delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood)/ max(0.01,( casaflux%crmplant(:,wood) + casaflux%crmplant(:,froot)))
+        delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot)/max(0.01, ( casaflux%crmplant(:,wood) + casaflux%crmplant(:,froot)))
+        casaflux%crmplant(:,wood) = casaflux%crmplant(:,wood) + delcrmwood(:)
+        casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+        casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+    ENDWHERE
   ENDWHERE
 
-  delClabloss = 0.0
-  WHERE(casaflux%Cnpp < 0.0.and. casapool%Clabile >0.0)
-     delClabloss(:) = min(casapool%Clabile(:),-casaflux%Cnpp(:))
-     casaflux%clabloss(:) = casaflux%clabloss(:) + delClabloss(:)
-     casaflux%Cnpp(:)     = casaflux%Cnpp(:)     + delClabloss(:)
-  ENDWHERE
-
-        
 !  print *, 'calling rplant',veg%iveg(1),casamet%tairk(1)
 !,tkzeroc,casapool%nplant(1,:),casaflux%crmplant(1,:),casaflux%crgplant(1)
 
@@ -1768,6 +1768,11 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
                  +(SUM((casaflux%kplant*casabal%cplantlast),2)-casaflux%Crsoil(:))*deltpool
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
+   do npt=1,mp
+      if(abs(casabal%cbalance(npt)) >0.001) then
+      print *, 'C imbalance ', npt,cbalplant(npt),cbalsoil(npt)
+      endif  
+   enddo
 
  !  npt=1
 
