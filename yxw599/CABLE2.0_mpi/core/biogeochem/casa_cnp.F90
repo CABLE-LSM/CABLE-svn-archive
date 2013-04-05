@@ -214,6 +214,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
   REAL(r_2), DIMENSION(mp)        :: ctotal
   REAL(r_2), DIMENSION(mp)        :: xLalloc,xwsalloc,xTalloc
   REAL(r_2), DIMENSION(mp)        :: xWorNalloc,xNalloc,xWalloc
+  REAL(r_2), DIMENSION(mp)        :: totfracCalloc                 
 
   ! initlization
   casaflux%fracCalloc  = 0.0
@@ -301,6 +302,11 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
     ENDWHERE
 
   ENDWHERE
+  ! normalization the allocation fraction to ensure they sum up to 1
+  totfracCalloc(:) = sum(casaflux%fracCalloc(:,:),2)
+  casaflux%fracCalloc(:,leaf) = casaflux%fracCalloc(:,leaf)/totfracCalloc(:)
+  casaflux%fracCalloc(:,wood) = casaflux%fracCalloc(:,wood)/totfracCalloc(:)
+  casaflux%fracCalloc(:,froot) = casaflux%fracCalloc(:,froot)/totfracCalloc(:)
 
 
 END SUBROUTINE casa_allocation  
@@ -1768,11 +1774,6 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
                  +(SUM((casaflux%kplant*casabal%cplantlast),2)-casaflux%Crsoil(:))*deltpool
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
-   do npt=1,mp
-      if(abs(casabal%cbalance(npt)) >0.001) then
-      print *, 'C imbalance ', npt,cbalplant(npt),cbalsoil(npt)
-      endif  
-   enddo
 
  !  npt=1
 
