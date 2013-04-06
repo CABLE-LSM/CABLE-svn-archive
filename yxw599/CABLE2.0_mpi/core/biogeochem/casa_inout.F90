@@ -639,19 +639,19 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
     DO npt =1, mp
       SELECT CASE(icycle)
       CASE(1)
-        READ(99,92) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
+        READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                    casamet%glai(npt),slaz,phen%phase(npt), &
                    casapool%clabile(npt),casapool%cplant(npt,:),  &
                    casapool%clitter(npt,:),casapool%csoil(npt,:)
       CASE(2)
-        READ(99,92) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
+        READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                    casamet%glai(npt),slaz,phen%phase(npt), &
                    casapool%clabile(npt),casapool%cplant(npt,:),   &
                    casapool%clitter(npt,:),casapool%csoil(npt,:),       &
                    casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
                    casapool%nsoil(npt,:),casapool%nsoilmin(npt)
       CASE(3)
-        READ(99,92) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
+        READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                    casamet%glai(npt),slaz,phen%phase(npt), &
                    casapool%clabile(npt),casapool%cplant(npt,:),   &
                    casapool%clitter(npt,:),casapool%csoil(npt,:),       &
