@@ -86,7 +86,7 @@ SUBROUTINE cable_rad_driver(                                                   &
       !     **** surf_down_sw is from the previous time step  ****
       !--- re-set UM rad. forcings to suit CABLE. also called in explicit call to 
       !--- CABLE from subr cable_um_expl_update() 
-      CALL update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
+      CALL update_kblum_radiation( sw_down, cos_zenith_angle )
    
       !--- set met. and rad. forcings to CABLE. also called in explicit call to 
       !--- CABLE from subr update_explicit_vars() 
