@@ -455,7 +455,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 !  data xnslope/0.64,0.71,0.70,0.67,0.42,0.40,0.45,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
 !  data xnslope/0.64,0.71,0.70,0.60,0.42,0.40,0.40,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
 ! Q.Zhang: test parameters 13/09/2011
-  data xnslope/1.00,1.00,2.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
+  data xnslope/0.70,1.00,2.00,1.00,1.00,1.00,1.00,1.00,0.70,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
   integer np,ivt
   real, dimension(mp)  :: ncleafx,npleafx  ! local variables
@@ -469,9 +469,15 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
     IF (casamet%iveg2(np)/=icewater & 
         .AND. casamet%glai(np)>casabiome%glaimin(ivt)  &
         .AND. casapool%cplant(np,leaf)>0.0) THEN
-      ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
-                        MAX(casabiome%ratioNCplantmin(ivt,leaf), &
+         ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
+                       MAX(casabiome%ratioNCplantmin(ivt,leaf), &
                             casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
+        ! add the following line
+         ncleafx(np) = (casapool%nplant(np,leaf)/casapool%cplant(np,leaf)) * veg%extkn(np)*casamet%glai(np) &
+                                                                            /(1.0-exp(-veg%extkn(np)*casamet%glai(np)))
+    !     write(*,991) np,casapool%nplant(np,leaf)/casapool%cplant(np,leaf),ncleafx(np),casapool%nplant(np,leaf),casapool%cplant(np,leaf), &
+    !                    casamet%glai(np), veg%extkn(np), 1.0-exp(-veg%extkn(np)*casamet%glai(np))
+991 format('np nc ratios ', i5,10(f10.4,2x))
       IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
         npleafx(np) = MIN(30.0,MAX(8.0,casapool%nplant(np,leaf) &
                                       /casapool%pplant(np,leaf)))

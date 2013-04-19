@@ -288,7 +288,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
     WHERE(phen%phase==3) 
 !      casaflux%fracClabile(:)  = casaflux%fracCalloc(:,leaf)
       casaflux%fracCalloc(:,froot) = 1.0-casaflux%fracCalloc(:,wood) 
-      casaflux%fracCalloc(:,leaf)    = 0.0
+      casaflux%fracCalloc(:,leaf)  = 0.0
     ENDWHERE
 
   ! IF Prognostic LAI reached glaimax, no C is allocated to leaf

@@ -742,7 +742,7 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName,startyr,endyr)
 
   READ(inFile(nn:nn+3),'(i4)') idummy
   IF (idummy < startyr .OR. idummy > endyr) THEN
-    PRINT *, 'Check position of the year number in input gswp file', inFile
+    PRINT *, 'Warning!!! Check position of the year number in input gswp file', inFile
     STOP
   ELSE
     WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
