@@ -1,12 +1,12 @@
 &cable
-   filename%met = '/projects/access/CABLE-AUX/offline/TumbaFluxnet.1.3_met.nc'
+   filename%met = ' *** SET PATH IN cable.nml *** '
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
    filename%restart_out = './restart_out.nc'
-   filename%type    = '/projects/access/CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc'
-   filename%veg    = '/projects/access/CABLE-AUX/core/biogeophys/def_veg_params.txt'
-   filename%soil    = '/projects/access/CABLE-AUX/core/biogeophys/def_soil_params.txt'
+   filename%type    = ' *** SET PATH IN cable.nml *** '
+   filename%veg    = ' *** SET PATH IN cable.nml *** '
+   filename%soil    = ' *** SET PATH IN cable.nml *** '
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
    spinup = .TRUE.  ! do we spin up the model?
@@ -35,12 +35,12 @@
    l_laiFeedbk   = .FALSE.  ! using prognostic LAI
    l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax
    icycle = 0   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P
-   casafile%cnpipool='/projects/access/CABLE-AUX/core/biogeochem/poolcnpInTumbarumba.csv'  ! 
-   casafile%cnpbiome='/projects/access/CABLE-AUX/core/biogeochem/pftlookup_csiro_v16_17tiles.csv'  ! biome specific BGC parameters
+   casafile%cnpipool=' *** SET PATH IN cable.nml *** '
+   casafile%cnpbiome=' *** SET PATH IN cable.nml *** '
    casafile%cnpepool='poolcnpOut.csv'    ! end of run pool size
    casafile%cnpmetout='casamet.nc'                ! output daily met forcing for spinning casacnp
    casafile%cnpmetin=''          ! list of daily met files for spinning casacnp
-   casafile%phen='/projects/access/CABLE-AUX/core/biogeochem/modis_phenology_csiro.txt'        ! modis phenology
+   casafile%phen=' *** SET PATH IN cable.nml *** '
    casafile%cnpflux='cnpfluxOut.csv'
    ncciy = 0 ! 0 for not using gswp; 4-digit year input for year of gswp met
    gswpfile%rainf = 'gswp/Rainf_gswp1987.nc'
