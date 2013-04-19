@@ -40,6 +40,9 @@ if [[ $TYPE == 'NRUN' ]]; then
 
 fi
 
+if [[ ! -f /short/p66/`whoami`/$RUNID/libcable.a ]]; then
+   /bin/cp $CABLE_AUX/CABLE-AUX/UM/libcable.a 
+fi
 
 if [[ -f /short/p66/`whoami`/$RUNID/libcable.a ]]; then
    /bin/cp $CABLE_AUX/CABLE-AUX/UM/libcable.a /short/p66/`whoami`/$RUNID
