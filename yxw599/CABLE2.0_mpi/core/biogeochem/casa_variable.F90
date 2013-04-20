@@ -127,7 +127,18 @@ MODULE casavariable
                                        kuptake,        &
                                        kminN,          &
                                        kuplabP,        &
-                                       kclabrate
+                                       kclabrate,      &
+                                       xnpmax,         &
+                                       q10soil,        &
+                                       xkoptlitter,    &
+                                       xkoptsoil,      &
+                                       xkpsorb,        &
+                                       prodptase,      &
+                                       costnpup,       &
+                                       maxfinelitter,  &
+                                       maxcwd,         &             
+                                       nintercept,     &  
+                                       nslope             
 
     REAL(r_2), DIMENSION(:,:),POINTER :: plantrate,     &
                                        rmplant,         &
@@ -355,6 +366,17 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%kminN(mvtype),                  &
            casabiome%KuplabP(mvtype),                &
            casabiome%kclabrate(mvtype),              &
+           casabiome%xnpmax(mvtype),                 &
+           casabiome%q10soil(mvtype),                &
+           casabiome%xkoptlitter(mvtype),            &
+           casabiome%xkoptsoil(mvtype),              &
+           casabiome%xkpsorb(mso),                   &
+           casabiome%prodptase(mvtype),              &
+           casabiome%costnpup(mvtype),               &
+           casabiome%maxfinelitter(mvtype),          &
+           casabiome%maxcwd(mvtype),                 &
+           casabiome%nintercept(mvtype),             &
+           casabiome%nslope(mvtype),                 &
            casabiome%plantrate(mvtype,mplant),       &
            casabiome%rmplant(mvtype,mplant),         &
            casabiome%fracnpptoP(mvtype,mplant),      &

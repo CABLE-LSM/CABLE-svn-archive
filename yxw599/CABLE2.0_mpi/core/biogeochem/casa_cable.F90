@@ -439,7 +439,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
   IMPLICIT NONE
   INTEGER,      INTENT(IN) :: ktau ! integration step number
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (casa_biome),          INTENT(IN) :: casabiome
+  TYPE (casa_biome),          INTENT(INOUT) :: casabiome
   TYPE (casa_pool),           INTENT(IN) :: casapool
   TYPE (casa_met),            INTENT(IN) :: casamet
   real, dimension(17)                   ::  nintercept,nslope,xnslope
@@ -460,6 +460,12 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
   integer np,ivt
   real, dimension(mp)  :: ncleafx,npleafx  ! local variables
 
+  !@@@@@@
+
+  casabiome%nintercept = nintercept
+  casabiome%nslope     = nslope
+
+  !@@@@@@ 
   ! first initialize 
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf) 
   npleafx = 14.2 
@@ -486,16 +492,16 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
     IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
       IF (ivt/=2) THEN
-        veg%vcmax(np) = ( nintercept(ivt) &
-                        + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+        veg%vcmax(np) = ( casabiome%nintercept(ivt) &
+                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
       ELSE
         IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
-          veg%vcmax(np) = ( nintercept(ivt)  &
-                          + nslope(ivt)*(0.4+9.0/npleafx(np)) &
+          veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
+                          + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
                           * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
         ELSE
-          veg%vcmax(np) = ( nintercept(ivt) &
-                          + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
+          veg%vcmax(np) = ( casabiome%nintercept(ivt) &
+                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
         ENDIF
       ENDIF
       veg%vcmax(np) = veg%vcmax(np) * xnslope(ivt)

@@ -2448,6 +2448,52 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Get_address (casabiome%kclabrate, displs(bidx), ierr)
   blen(bidx) = mvtype * extr2
 
+ !===============================================================
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xnpmax, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%q10soil, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkoptlitter, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkoptsoil, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%maxfinelitter, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%maxcwd, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%prodptase, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%costnpup, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkpsorb, displs(bidx), ierr)
+  blen(bidx) = mso * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nintercept, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nslope, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+!==================================================================
   bidx = bidx + 1
   CALL MPI_Get_address (casabiome%plantrate, displs(bidx), ierr)
   blen(bidx) = mvtype * mplant * extr2
