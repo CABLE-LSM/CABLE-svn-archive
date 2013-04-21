@@ -675,10 +675,19 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
+  !@@@@@@@@@@@@@@@@@@@@@@@
+  REAL(r_2), DIMENSION(12)          :: xkpsorb
+  data xkpsorb/0.67,0.75,0.50,0.54,0.78,0.87,0.71,0.77,0.99,0.77,0.99,0.77/
+  !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   ! local variables
   INTEGER j,k,kk,nland             !i: for plant pool, j for litter, k for soil
+  !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  casabiome%xkplab = 0.5 *1.0/365.0 
+  casabiome%xkpsorb(:) = (0.01/365.0) *xkpsorb(:)
+  casabiome%xkpocc(:) = 0.01/365.0 
 
+  !@@@@@@@@@@@@@@@@@@@@@@@@
   casaflux%fromLtoS(:,:,:)      = 0.0   
   casaflux%fromStoS(:,:,:)      = 0.0                                
                                           ! flow from soil to soil
@@ -701,9 +710,9 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
                                * (1.0 - 0.75 *(soil%silt(:)+soil%clay(:)))
     casaflux%ksoil(:,slow)     = xksoil(:) * casabiome%soilrate(veg%iveg(:),slow)
     casaflux%ksoil(:,pass)     = xksoil(:) * casabiome%soilrate(veg%iveg(:),pass)
-    casaflux%kplab(:)          = xksoil(:) * xkplab
-    casaflux%kpsorb(:)         = xksoil(:) * xkpsorb
-    casaflux%kpocc(:)          = xksoil(:) * xkpocc
+    casaflux%kplab(:)          = xksoil(:) * casabiome%xkplab(casamet%isorder(:))
+    casaflux%kpsorb(:)         = xksoil(:) * casabiome%xkpsorb(casamet%isorder(:))
+    casaflux%kpocc(:)          = xksoil(:) * casabiome%xkpocc(casamet%isorder(:))
 
 
     WHERE(veg%iveg==cropland)      ! for cultivated land type
@@ -937,9 +946,9 @@ SUBROUTINE casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
   ! local variables
   REAL(r_2), DIMENSION(mp)    :: xdplabsorb, fluxptase
   REAL(r_2), DIMENSION(17)          :: prodptase, costNpup
-  REAL(r_2), DIMENSION(12)          :: xkpsorb
-
-  data xkpsorb/0.67,0.75,0.50,0.54,0.78,0.87,0.71,0.77,0.99,0.77,0.99,0.77/
+!  REAL(r_2), DIMENSION(12)          :: xkpsorb
+!
+!  data xkpsorb/0.67,0.75,0.50,0.54,0.78,0.87,0.71,0.77,0.99,0.77,0.99,0.77/
 
 !  add prodptase and costNpup defined by CSIRO type. Q.Zhang @ 02/02/2011
   data prodptase/0.5, 0.2,  0.5, 0.5,  0.5, 0.5, 0.5, 0.5, 0.5, 0.5, &
@@ -958,7 +967,7 @@ SUBROUTINE casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
   INTEGER i,j,jj,k,kk,kkk,n,iv,npt,nL,nS,nSS,nland
 
   !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-   casabiome%xkpsorb = xkpsorb
+!   casabiome%xkpsorb = xkpsorb
    casabiome%prodptase = prodptase
    casabiome%costNpup  = costNpup
   !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
@@ -1205,7 +1214,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
       casapool%dPsoillabdt(nland)= casaflux%Psnet(nland) + fluxptase(nland)         &
                                  + casaflux%Pdep(nland) + casaflux%Pwea(nland)      &
                                  - casaflux%Pleach(nland)-casaflux%pupland(nland)   &
-                                 - casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) 
+                                 - casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) 
 !&
 !                                 + casaflux%kpocc(nland) * casapool%Psoilocc(nland)
       ! here the dPsoillabdt =(dPsoillabdt+dPsoilsorbdt)
@@ -1213,7 +1222,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
       casapool%dPsoillabdt(nland)  = casapool%dPsoillabdt(nland)/xdplabsorb(nland)
       casapool%dPsoilsorbdt(nland) = 0.0
 
-      casapool%dPsoiloccdt(nland)  = casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
+      casapool%dPsoiloccdt(nland)  = casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
                                    - casaflux%kpocc(nland) * casapool%Psoilocc(nland)
       ! P loss to non-available P pools
       casaflux%Ploss(nland)        = casaflux%kpocc(nland) * casapool%Psoilocc(nland)

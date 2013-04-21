@@ -2482,7 +2482,15 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mvtype * extr2
  
   bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkplab, displs(bidx), ierr)
+  blen(bidx) = mso * extr2
+ 
+  bidx = bidx + 1
   CALL MPI_Get_address (casabiome%xkpsorb, displs(bidx), ierr)
+  blen(bidx) = mso * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkpocc, displs(bidx), ierr)
   blen(bidx) = mso * extr2
  
   bidx = bidx + 1

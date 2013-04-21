@@ -87,7 +87,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   INTEGER :: nv0,nv1,nv2,nv3,nv4,nv5,nv6,nv7,nv8,nv9,nv10,nv11,nv12
   REAL(r_2), DIMENSION(mvtype)       :: xxnpmax,xq10soil,xxkoptlitter,xxkoptsoil,xprodptase, &
                                         xcostnpup,xmaxfinelitter,xmaxcwd,xnintercept,xnslope
-  REAL(r_2), DIMENSION(mso)          :: xxkpsorb
+  REAL(r_2), DIMENSION(mso)          :: xxkplab,xxkpsorb,xxkpocc
  
 
   OPEN(101,file=casafile%cnpbiome)
@@ -229,7 +229,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 !  READ(101,*)
 !  READ(101,*)
 !  DO ns=1,mso    
-!    READ(101,*) nv12, xxkpsorb(ns)
+!    READ(101,*) nv12, xxkplab(ns),xxkpsorb(ns),xxkpocc
 !  ENDDO
 !@@@@@@@@@@@@@@@@@@@@@
 
@@ -284,10 +284,14 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 !@@@@@@@@@@@@@@
   ENDDO
 
-  DO ns=1,mso
-    casabiome%xkpsorb(ns)         =  xxkpsorb(ns)
-  ENDDO
+!@@@@@@@@@@@@@@
+!  DO ns=1,mso
+!    casabiome%xkplab(ns)          =  xxkplab(ns)
+!    casabiome%xkpsorb(ns)         =  xxkpsorb(ns)
+!    casabiome%xkpocc(ns)          =  xxkpocc(ns)
+!  ENDDO
  
+!@@@@@@@@@@@@@@
 
 !  PRINT *, 'casabiome%ivt2 = ', casabiome%ivt2
 

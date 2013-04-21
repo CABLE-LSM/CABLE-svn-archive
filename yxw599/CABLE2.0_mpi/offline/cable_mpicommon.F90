@@ -57,7 +57,7 @@ MODULE cable_mpicommon
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
 !  INTEGER, PARAMETER :: ncasaparam = 179
 !  INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
-  INTEGER, PARAMETER :: ncasaparam = 194      ! changed ypw to add 11  new variables in casabiome%
+  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
 
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
