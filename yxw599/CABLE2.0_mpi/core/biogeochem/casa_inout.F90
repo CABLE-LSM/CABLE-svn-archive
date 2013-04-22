@@ -205,7 +205,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   READ(101,*)
   DO iso=1,mso
     READ(101,*) nv9,xkmlabp(iso),xpsorbmax(iso),xfPleach(iso), &
-                ratioNPsoil(iso,mic),ratioNPsoil(iso,slow),ratioNPsoil(iso,pass)
+                ratioNPsoil(iso,mic),ratioNPsoil(iso,slow),ratioNPsoil(iso,pass), &
+                xxkplab(iso),xxkpsorb(iso),xxkpocc(iso)
 !     PRINT *, 'nv9',nv9
   ENDDO
   READ(101,*)
@@ -218,19 +219,13 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   ENDDO
 
  !@@@@@@@@@@@@@@@@@@@@@@@@@
-!  READ(101,*)
-!  READ(101,*)
-!  DO nv=1,mvtype
-!    READ(101,*) nv11, &
-!         xxnpmax(nv),xq10soil(nv),xxkoptlitter(nv),xxkoptsoil(nv),xprodptase(nv), &
-!         xcostnpup(nv),xmaxfinelitter(nv),xmaxcwd(nv),xnintercept(nv),xnslope(nv)                   
-!  ENDDO
-!
-!  READ(101,*)
-!  READ(101,*)
-!  DO ns=1,mso    
-!    READ(101,*) nv12, xxkplab(ns),xxkpsorb(ns),xxkpocc
-!  ENDDO
+  READ(101,*)
+  READ(101,*)
+  DO nv=1,mvtype
+    READ(101,*) nv11, &
+         xxnpmax(nv),xq10soil(nv),xxkoptlitter(nv),xxkoptsoil(nv),xprodptase(nv), &
+         xcostnpup(nv),xmaxfinelitter(nv),xmaxcwd(nv),xnintercept(nv),xnslope(nv)                   
+  ENDDO
 !@@@@@@@@@@@@@@@@@@@@@
 
   CLOSE(101)
@@ -271,25 +266,25 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casabiome%kclabrate(nv)       = deltcasa/clabileage(nv)
 
 !@@@@@@@@@@@@@@@@@
-!    casabiome%xnpmax(nv)          = xxnpmax(nv)
-!    casabiome%q10soil(nv)         = xq10soil(nv)
-!    casabiome%xkoptlitter(nv)     = xxkoptlitter(nv)
-!    casabiome%xkoptsoil(nv)       = xxkoptsoil(nv)
-!    casabiome%prodptase(nv)       = xprodptase(nv)
-!    casabiome%costnpup(nv)        = xcostnpup(nv)
-!    casabiome%maxfinelitter(nv)   = xmaxfinelitter(nv)
-!    casabiome%maxcwd(nv)          = xmaxcwd(nv)
-!    casabiome%nintercept(nv)      = xnintercept(nv)
-!    casabiome%nslope(nv)          = xnslope(nv)
+    casabiome%xnpmax(nv)          = xxnpmax(nv)
+    casabiome%q10soil(nv)         = xq10soil(nv)
+    casabiome%xkoptlitter(nv)     = xxkoptlitter(nv)
+    casabiome%xkoptsoil(nv)       = xxkoptsoil(nv)
+    casabiome%prodptase(nv)       = xprodptase(nv)
+    casabiome%costnpup(nv)        = xcostnpup(nv)
+    casabiome%maxfinelitter(nv)   = xmaxfinelitter(nv)
+    casabiome%maxcwd(nv)          = xmaxcwd(nv)
+    casabiome%nintercept(nv)      = xnintercept(nv)
+    casabiome%nslope(nv)          = xnslope(nv)
 !@@@@@@@@@@@@@@
   ENDDO
 
 !@@@@@@@@@@@@@@
-!  DO ns=1,mso
-!    casabiome%xkplab(ns)          =  xxkplab(ns)
-!    casabiome%xkpsorb(ns)         =  xxkpsorb(ns)
-!    casabiome%xkpocc(ns)          =  xxkpocc(ns)
-!  ENDDO
+  DO ns=1,mso
+    casabiome%xkplab(ns)          =  xxkplab(ns)
+    casabiome%xkpsorb(ns)         =  xxkpsorb(ns)
+    casabiome%xkpocc(ns)          =  xxkpocc(ns)
+  ENDDO
  
 !@@@@@@@@@@@@@@
 

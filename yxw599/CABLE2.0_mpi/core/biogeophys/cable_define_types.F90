@@ -237,13 +237,24 @@ MODULE cable_def_types_mod
          shelrb,  & ! sheltering factor (dimensionless)
          vegcf,   & ! kdcorbin, 08/10
          tminvj,  & ! min temperature of the start of photosynthesis
+         toptvj,  & ! opt temperature of the start of photosynthesis
          tmaxvj,  & ! max temperature of the start of photosynthesis
          vbeta,   & ! 
          vcmax,   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
          xfang,   & ! leaf angle PARAMETER
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
+         wai,     & ! wood area index (stem+branches+twigs)
+         a1gs,    & ! a1 parameter in the Ball-Berry-Leuning stomatal model
+         d0gs,    & ! D0 parameter in the Ball-Berry-Leuning stomatal model
+         alpha,   & ! initial slope of J to Qpar (mol/mol)                              
+         convex,  & ! convexity of the response curve of J to Qpar                      
+         cfrd,    & ! ratio of Rday/vcmax                             
+         gswmin,  & ! min stomatal conductance  (mol/m2/s)                                      
+         conkc0,  & ! michaelis-menton constant for carboxylase (micromil/mol)
+         conko0,  & ! michaelis-menton constant for oxygenase   (nmol/mol)              
+         ekc,     & ! activation energy for Kc    (J/mol)                             
+         eko        ! activation energy for Ko    (J/mol)   see Leuning (1990, AJPP) 
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -696,12 +707,23 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var% shelrb(mp) ) 
    ALLOCATE( var% vegcf(mp) )  
    ALLOCATE( var% tminvj(mp) ) 
+   ALLOCATE( var% toptvj(mp) ) 
    ALLOCATE( var% tmaxvj(mp) ) 
    ALLOCATE( var% vbeta(mp) )  
    ALLOCATE( var% vcmax(mp) )  
    ALLOCATE( var% xfang(mp) )  
    ALLOCATE( var%extkn(mp) ) 
    ALLOCATE( var%wai(mp) )   
+   ALLOCATE( var%a1gs(mp) )   
+   ALLOCATE( var%d0gs(mp) )   
+   ALLOCATE( var%alpha(mp) )   
+   ALLOCATE( var%convex(mp) )   
+   ALLOCATE( var%cfrd(mp) )   
+   ALLOCATE( var%gswmin(mp) )   
+   ALLOCATE( var%conkc0(mp) )   
+   ALLOCATE( var%conko0(mp) )   
+   ALLOCATE( var%ekc(mp) )   
+   ALLOCATE( var%eko(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
@@ -1093,12 +1115,23 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var% shelrb ) 
    DEALLOCATE( var% vegcf )  
    DEALLOCATE( var% tminvj ) 
+   DEALLOCATE( var% toptvj ) 
    DEALLOCATE( var% tmaxvj ) 
    DEALLOCATE( var% vbeta)  
    DEALLOCATE( var% vcmax )  
    DEALLOCATE( var% xfang )  
    DEALLOCATE( var%extkn ) 
    DEALLOCATE( var%wai )   
+   DEALLOCATE( var%a1gs )   
+   DEALLOCATE( var%d0gs )   
+   DEALLOCATE( var%alpha )   
+   DEALLOCATE( var%convex )   
+   DEALLOCATE( var%cfrd )   
+   DEALLOCATE( var%gswmin )   
+   DEALLOCATE( var%conkc0 )   
+   DEALLOCATE( var%conko0 )   
+   DEALLOCATE( var%ekc )   
+   DEALLOCATE( var%eko )   
    DEALLOCATE( var%deciduous ) 
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
