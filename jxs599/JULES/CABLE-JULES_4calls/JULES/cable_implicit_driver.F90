@@ -42,11 +42,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
                                   TSTAR_TILE,        &
                                   SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
-                                  EI_TILE, RADNET_TILE, TOT_ALB, SNAGE_TILE,   &
+                                  EI_TILE, RADNET_TILE, SNAGE_TILE,   &
                                   CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
                                   CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
-                                  RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
+                                  RESP_S_TOT, RESP_P, RESP_P_FT,  &
                                   G_LEAF )   
 
    USE cable_def_types_mod, ONLY : mp
@@ -98,6 +98,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
      
      !___ INOUT Surface net radiation on tiles (W/m2)
      RADNET_TILE, &
+     !jhan: move to loacal vars section
      TOT_ALB,     & ! total albedo
      EI_TILE,     & ! OUT EI for land tiles.
      ECAN_TILE,   & ! OUT ECAN for snow-free land tiles
@@ -167,6 +168,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       TSTAR_TILE_CAB,&
       TSTAR_TILE,    &
       SURF_HTF_T_CAB,& 
+      !jhan: move to local vars section
       RESP_S_TILE,   & 
       RESP_P_FT,     &
       RESP_P_FT_old, &
