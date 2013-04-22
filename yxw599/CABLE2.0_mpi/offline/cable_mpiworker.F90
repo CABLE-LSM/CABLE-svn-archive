@@ -1102,6 +1102,14 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (veg%taul, displs(bidx), ierr)
   blen(bidx) = 2 * r1len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%a1gs, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%d0gs, displs(bidx), ierr)
+  blen(bidx) = r1len
+
   ! ----------- bgc --------------
 
   bidx = bidx + 1
