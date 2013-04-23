@@ -241,7 +241,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%rootbeta( mvtype ), vegin%shelrb( mvtype ),                     &
          vegin%vegcf( mvtype ), vegin%frac4( mvtype ),                         &
          vegin%xalbnir( mvtype ), vegin%extkn( mvtype ),                       &
-         vegin%tminvj( mvtype ), vegin%toptvj( mvtype ),vegin%tmaxvj( mvtype ),&
+         vegin%tminvj( mvtype ), vegin%tmaxvj( mvtype ),&
          vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
@@ -273,7 +273,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%vcmax(jveg), vegin%rp20(jveg),                    &
                        vegin%rpcoef(jveg),                                     &
                        vegin%rs20(jveg)
-            READ(40,*) vegin%tminvj(jveg),vegin%toptvj(jveg), vegin%tmaxvj(jveg),  &
+            READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),  &
                        vegin%vbeta(jveg), vegin%rootbeta(jveg)
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
