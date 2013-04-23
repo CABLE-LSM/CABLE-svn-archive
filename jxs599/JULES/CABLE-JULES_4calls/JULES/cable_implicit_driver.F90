@@ -185,7 +185,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, POINTER :: TFRZ
    
-return   
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -227,20 +226,20 @@ return
            rad, rough, soil, ssnow, sum_flux, veg)
   
         
-      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
-                            SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
-                            snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
-                            SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
-                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
-                            FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
-                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
-                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
-                            ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
-                            SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
-                            Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
-                            DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
-                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
-       
+!      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
+!                            SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
+!                            snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
+!                            SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
+!                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
+!                            FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
+!                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
+!                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
+!                            ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
+!                            SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
+!                            Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
+!                            DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
+!                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
+!       
       cable_runtime%um_implicit = .FALSE.
   
 END SUBROUTINE cable_implicit_driver

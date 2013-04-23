@@ -83,7 +83,6 @@ SUBROUTINE cable_rad_driver(                                                   &
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
-return   
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
@@ -120,10 +119,10 @@ return
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.
-      ALB_TILE(:,:,1) = UNPACK(rad%reffbm(:,1),um1%L_TILE_PTS, miss)
-      ALB_TILE(:,:,2) = UNPACK(rad%reffdf(:,1),um1%L_TILE_PTS, miss)
-      ALB_TILE(:,:,3) = UNPACK(rad%reffbm(:,2),um1%L_TILE_PTS, miss)
-      ALB_TILE(:,:,4) = UNPACK(rad%reffdf(:,2),um1%L_TILE_PTS, miss)
+!      ALB_TILE(:,:,1) = UNPACK(rad%reffbm(:,1),um1%L_TILE_PTS, miss)
+!      ALB_TILE(:,:,2) = UNPACK(rad%reffdf(:,1),um1%L_TILE_PTS, miss)
+!      ALB_TILE(:,:,3) = UNPACK(rad%reffbm(:,2),um1%L_TILE_PTS, miss)
+!      ALB_TILE(:,:,4) = UNPACK(rad%reffdf(:,2),um1%L_TILE_PTS, miss)
 
       rad_vis = ( (1.0-rad%fbeam(:,1) ) * rad%reffdf(:,1) + rad%fbeam(:,1) *   &
                 rad%reffbm(:,1) ) 

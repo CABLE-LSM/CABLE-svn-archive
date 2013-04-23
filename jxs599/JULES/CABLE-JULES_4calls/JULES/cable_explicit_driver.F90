@@ -185,7 +185,8 @@
    REAL, INTENT(IN), DIMENSION(land_pts) :: & 
       fland 
    
-   REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
+   !REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
+   REAL, DIMENSION(row_length,rows) :: &
       sw_down,          & 
       cos_zenith_angle
    
@@ -200,7 +201,8 @@
       z1_tq,      &
       z1_uv
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   !REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   REAL, DIMENSION(land_pts, ntiles) ::                         &
       snow_tile
 
    REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
@@ -216,7 +218,8 @@
       snow_rho1l, &
       snage_tile
    
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+   !REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+   REAL, DIMENSION(land_pts, ntiles,3) ::                       &
       snow_cond
    
    REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
@@ -249,14 +252,17 @@
       Z0M_TILE
 
    !___return friction velocities/drags/ etc
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       U_S_STD_TILE      ! Surface friction velocity
 
-   REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
+   !REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
+   REAL, DIMENSION(row_length,rows)  :: &
       U_S               ! Surface friction velocity (m/s)
    
    !___return miscelaneous 
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       RADNET_TILE,   & ! Surface net radiation
       RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
                        ! factor for fraction (1-FRACA) of snow-free land tiles
@@ -378,8 +384,10 @@
    
    cable_runtime%um = .TRUE. 
    cable_runtime%um_explicit = .TRUE. 
-
-print *, 'jhan'
+   
+   IF(timestep_number==92) THEN
+      print *, "" 
+   ENDIF      
 
    IF(first_call) THEN
       CALL cable_um_runtime_vars(runtime_vars_file) 
@@ -457,18 +465,18 @@ print *, 'jhan'
             tsoil_tile     & ! -> ssnow%tgg
    )                         
 
-   CALL cable_expl_unpack( FTL_TILE, FQW_TILE,       &
-                           TSTAR_TILE, &
-                           U_S, U_S_STD_TILE, &
-                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
-                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
-                           RECIP_L_MO_TILE, EPOT_TILE, &
-                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
-                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
-                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
-                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
-                           rad%transd, rough%z0m, rough%zref_tq )
-
+!   CALL cable_expl_unpack( FTL_TILE, FQW_TILE,       &
+!                           TSTAR_TILE, &
+!                           U_S, U_S_STD_TILE, &
+!                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
+!                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
+!                           RECIP_L_MO_TILE, EPOT_TILE, &
+!                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
+!                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
+!                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
+!                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
+!                           rad%transd, rough%z0m, rough%zref_tq )
+!
 
 END SUBROUTINE cable_explicit
 
@@ -506,23 +514,28 @@ SUBROUTINE cable_expl_unpack( FTL_TILE, FQW_TILE,       &
    !___ UM variables to recieve unpacked CABLE vars
 
    !___return fluxes
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) :: &
       FQW_TILE       ! Surface FQW for land tiles     
 
    !___return temp and roughness
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) :: &
       TSTAR_TILE,  Z0H_TILE, Z0M_TILE
 
    !___return friction velocities/drags/ etc
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) :: &
       CD_TILE,    &     ! Drag coefficient
       CH_TILE,    &     ! Transfer coefficient for heat & moisture
       U_S_STD_TILE      ! Surface friction velocity
-   REAL, INTENT(OUT), DIMENSION(um1%row_length,um1%rows)  :: &
+   !REAL, INTENT(OUT), DIMENSION(um1%row_length,um1%rows)  :: &
+   REAL, DIMENSION(um1%row_length,um1%rows)  :: &
       U_S               ! Surface friction velocity (m/s)
 
    !___return miscelaneous 
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) :: &
       RADNET_TILE,   & ! Surface net radiation
       RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
                        ! factor for fraction (1-FRACA) of snow-free land tiles
@@ -695,7 +708,6 @@ SUBROUTINE cable_expl_unpack( FTL_TILE, FQW_TILE,       &
 
    
 END SUBROUTINE cable_expl_unpack
-
 
 !========================================================================= 
 !========================================================================= 

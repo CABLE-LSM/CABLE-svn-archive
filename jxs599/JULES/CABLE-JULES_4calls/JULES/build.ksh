@@ -1,8 +1,28 @@
 #!/bin/ksh
 known_hosts()
 {
-   set -A kh vayu ubun 
+   set -A kh v135 vayu ubun 
 }
+
+## vayu.nci.org.au
+host_v135()
+{
+   NCDF_ROOT=/apps/netcdf/3.6.3
+   export NCDIR=$NCDF_ROOT'/lib/Intel'
+   export NCMOD=$NCDF_ROOT'/include/Intel'
+   export FC=ifort
+   export CFLAGS='-O2 -g -traceback -fp-model precise -ftz -fpe0'  
+   export CINC='-I$(NCMOD)'
+   if [[ $1 = 'debug' ]]; then      
+      #export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+   fi
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## 
@@ -15,9 +35,9 @@ host_ubun()
    #export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
    export CFLAGS='-O0 -g -traceback -fp-model precise -ftz -fpe0'  
    export CINC='-I$(NCMOD)'
-   #if [[ $1 = 'debug' ]]; then      
-   #   export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
-   #fi
+   if [[ $1 = 'debug' ]]; then      
+      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
+   fi
    build_build
    cd ../
    build_status
@@ -32,10 +52,10 @@ host_vayu()
    export NCDIR=$NCDF_ROOT'/lib/Intel'
    export NCMOD=$NCDF_ROOT'/include/Intel'
    export FC=ifort
-   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
+   export CFLAGS='-O2 -g -traceback -fp-model precise -ftz -fpe0'  
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
    build_build
    cd ../
