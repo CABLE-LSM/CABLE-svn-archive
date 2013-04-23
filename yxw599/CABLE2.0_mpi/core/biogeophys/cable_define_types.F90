@@ -247,9 +247,14 @@ MODULE cable_def_types_mod
          wai,     & ! wood area index (stem+branches+twigs)
          a1gs,    & ! a1 parameter in stomatal conductance model
          d0gs,    & ! d0 in stomatal conductance model      
-         alpha,   & ! d0 in stomatal conductance model      
-         convex,  & ! d0 in stomatal conductance model      
-         cfrd       ! d0 in stomatal conductance model      
+         alpha,   & ! initial slope of J-Q response curve   
+         convex,  & ! convexity of J-Q response curve       
+         cfrd,    & ! ratio of day respiration to vcmax
+         gswmin,  & ! minimal stomatal conductance
+         conkc0,  &  ! Michaelis-menton constant for caroxylase
+         conko0,  &  ! Michaelis-menton constant for oxygenase
+         ekc,     & ! activation energy for caroxylagse
+         eko        ! acvtivation enegery for oxygenase
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -720,6 +725,11 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%alpha(mp) ) 
    ALLOCATE( var%convex(mp) ) 
    ALLOCATE( var%cfrd(mp) ) 
+   ALLOCATE( var%gswmin(mp) ) 
+   ALLOCATE( var%conkc0(mp) ) 
+   ALLOCATE( var%conko0(mp) ) 
+   ALLOCATE( var%ekc(mp) ) 
+   ALLOCATE( var%eko(mp) ) 
 
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1127,6 +1137,11 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%alpha ) 
    DEALLOCATE( var%convex ) 
    DEALLOCATE( var%cfrd ) 
+   DEALLOCATE( var%gswmin ) 
+   DEALLOCATE( var%conkc0 ) 
+   DEALLOCATE( var%conko0 ) 
+   DEALLOCATE( var%ekc ) 
+   DEALLOCATE( var%eko ) 
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
    

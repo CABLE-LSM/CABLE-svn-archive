@@ -1336,9 +1336,12 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
-
-   gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
-   lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
+ !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!   gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
+!   lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
+   gsw_term = SPREAD(veg%gswmin,2,mf)
+   lower_limit2 = rad%scalex * gsw_term
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
    gswmin = max(1.e-6,lower_limit2)
          
 
@@ -1447,13 +1450,23 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             tdiff(i) = tlfx(i) - C%TREFK
             
             ! Michaelis menten constant of Rubisco for CO2:
-            conkct(i) = C%conkc0 * EXP( (C%ekc / ( C%rgas*C%trefk) ) *         &
+!            conkct(i) = C%conkc0 * EXP( (C%ekc / ( C%rgas*C%trefk) ) *         &
+!                        ( 1.0 - C%trefk/tlfx(i) ) )
+!
+!            ! Michaelis menten constant of Rubisco for oxygen:
+!            conkot(i) = C%conko0 * EXP( ( C%eko / (C%rgas*C%trefk) ) *         &
+!                        ( 1.0 - C%trefk/tlfx(i) ) )
+!   
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+            ! Michaelis menten constant of Rubisco for CO2:
+            conkct(i) = veg%conkc0(i) * EXP( (veg%ekc(i) / ( C%rgas*C%trefk) ) *         &
                         ( 1.0 - C%trefk/tlfx(i) ) )
 
             ! Michaelis menten constant of Rubisco for oxygen:
-            conkot(i) = C%conko0 * EXP( ( C%eko / (C%rgas*C%trefk) ) *         &
+            conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (C%rgas*C%trefk) ) *         &
                         ( 1.0 - C%trefk/tlfx(i) ) )
-   
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
             ! Store leaf temperature
             tlfxx(i) = tlfx(i)
    
