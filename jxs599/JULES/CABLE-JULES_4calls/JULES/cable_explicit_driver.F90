@@ -360,7 +360,8 @@
 
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_call = .TRUE.
-   
+  
+  
 
 !jhan: use after defined cable%
    !--- basic info from global model passed to cable_common_module 
@@ -377,6 +378,8 @@
    
    cable_runtime%um = .TRUE. 
    cable_runtime%um_explicit = .TRUE. 
+
+print *, 'jhan'
 
    IF(first_call) THEN
       CALL cable_um_runtime_vars(runtime_vars_file) 

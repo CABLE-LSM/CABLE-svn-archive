@@ -55,6 +55,7 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
    REAL :: miss =0. 
    REAL, POINTER :: TFRZ
       
+return   
       TFRZ => PHYS%TFRZ
    
       SNOW_TILE= UNPACK(ssnow%snowd, um1%L_TILE_PTS, miss) 

@@ -30,12 +30,15 @@
 
 SUBROUTINE cable_rad_driver(                                                   &
                              ! IN atmospheric forcing
-                             surf_down_sw, cos_zenith_angle,                   &
+                             !surf_down_sw, cos_zenith_angle,                   &
+                             cos_zenith_angle,                   &
                              ! IN soil/vegetation/land surface data :
-                             SNOW_TILE, SNOW_TMP3L, SNOW_RHO1L, TSOIL_TILE,    &
-                             ISNOW_FLG3L, ALBSOIL,                             &
+                             !SNOW_TILE, SNOW_TMP3L, SNOW_RHO1L, TSOIL_TILE,    &
+                             !ISNOW_FLG3L, 
+                             ALBSOIL,                             &
                              ! OUT
-                             LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
+                             !LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
+                             ALB_TILE ) 
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_albedo_module, ONLY : surface_albedo
@@ -80,6 +83,7 @@ SUBROUTINE cable_rad_driver(                                                   &
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
+return   
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
@@ -105,11 +109,11 @@ SUBROUTINE cable_rad_driver(                                                   &
       ! soil%albsoil should be set to geograpically explicit data for 
       ! snow free soil albedo in VIS and NIR  
       ! get the latest surface condtions
-      ssnow%snowd  =     PACK( SNOW_TILE, um1%L_TILE_PTS )
-      ssnow%ssdnn  =     PACK( SNOW_RHO1L, um1%L_TILE_PTS )
-      ssnow%isflag =     PACK( ISNOW_FLG3L, um1%L_TILE_PTS )
-      ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
-      ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
+      !ssnow%snowd  =     PACK( SNOW_TILE, um1%L_TILE_PTS )
+      !ssnow%ssdnn  =     PACK( SNOW_RHO1L, um1%L_TILE_PTS )
+      !ssnow%isflag =     PACK( ISNOW_FLG3L, um1%L_TILE_PTS )
+      !ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
+      !ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
 
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)

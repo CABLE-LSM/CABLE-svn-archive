@@ -185,6 +185,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, POINTER :: TFRZ
    
+return   
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
