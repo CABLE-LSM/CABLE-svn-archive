@@ -1477,11 +1477,21 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     
             rdx(i,1) = (C%cfrd3*vcmxt3(i,1) + C%cfrd4*vcmxt4(i,1))*fwsoil(i)  
             rdx(i,2) = (C%cfrd3*vcmxt3(i,2) + C%cfrd4*vcmxt4(i,2))*fwsoil(i)
+            
+!            xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+!                          * ( ( 1.0 - veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) &
+!                          / C%d0c3 ) + veg%frac4(i)    * C%A1C4 / (1.0+dsx(i)/ &
+!                          C%d0c4) )
 
+!            xleuning(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
+!                            * ( (1.0-veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) /&
+!                            C%d0c3 ) + veg%frac4(i)    * C%A1C4 / (1.0+ dsx(i)/&
+!                            C%d0c4) )
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    
             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                          * veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i))
-         
-            xleuning(i,2) = xleuning(i,2)
+                          * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+            xleuning(i,2) = xleuning(i,1)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@    
          ENDIF
          
       ENDDO !i=1,mp

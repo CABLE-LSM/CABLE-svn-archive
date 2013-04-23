@@ -245,6 +245,9 @@ MODULE cable_def_types_mod
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
          wai,     & ! wood area index (stem+branches+twigs)
+         a1gs,    & ! a1 parameter in stomatal conductance model
+         d0gs       ! d0 in stomatal conductance model      
+         wai,     & ! wood area index (stem+branches+twigs)
          a1gs,    & ! a1 parameter in the Ball-Berry-Leuning stomatal model
          d0gs,    & ! D0 parameter in the Ball-Berry-Leuning stomatal model
          alpha,   & ! initial slope of J to Qpar (mol/mol)                              
@@ -729,6 +732,12 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) ) 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   ALLOCATE( var%a1gs(mp) ) 
+   ALLOCATE( var%d0gs(mp) ) 
+
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -1136,6 +1145,12 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   DEALLOCATE( var%a1gs ) 
+   DEALLOCATE( var%d0gs ) 
+
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
    
 END SUBROUTINE dealloc_veg_parameter_type
    

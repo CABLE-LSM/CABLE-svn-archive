@@ -46,7 +46,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 285   ! add two more parameters to veg%
+  INTEGER, PARAMETER :: nparam = 285    ! add 2 vairable to veg%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -58,8 +58,7 @@ MODULE cable_mpicommon
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
 !  INTEGER, PARAMETER :: ncasaparam = 179
 !  INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
-!  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
-  INTEGER, PARAMETER :: ncasaparam = 197      ! changed ypw to add 1  new variables in veg%
+  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
 
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
