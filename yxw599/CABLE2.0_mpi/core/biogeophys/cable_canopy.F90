@@ -1467,17 +1467,21 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! RuBP limited, sink limited
             temp2(i,1) = rad%qcan(i,1,1) * jtomol * (1.0-veg%frac4(i))
             temp2(i,2) = rad%qcan(i,2,1) * jtomol * (1.0-veg%frac4(i))
-            vx3(i,1)  = ej3x(temp2(i,1),ejmxt3(i,1))
-            vx3(i,2)  = ej3x(temp2(i,2),ejmxt3(i,2))
-    
+!@@@@@@@@@@@@@@
+            vx3(i,1)  = ej3x(temp2(i,1),veg%alpha(i),veg%convex(i),ejmxt3(i,1))
+            vx3(i,2)  = ej3x(temp2(i,2),veg%alpha(i),veg%convex(i),ejmxt3(i,2))
+!@@@@@@@@@@@@@@@@@@@@@@    
             temp2(i,1) = rad%qcan(i,1,1) * jtomol * veg%frac4(i)
             temp2(i,2) = rad%qcan(i,2,1) * jtomol * veg%frac4(i)
-            vx4(i,1)  = ej4x(temp2(i,1),vcmxt4(i,1))
-            vx4(i,2)  = ej4x(temp2(i,2),vcmxt4(i,2))
+            vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
+            vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
     
-            rdx(i,1) = (C%cfrd3*vcmxt3(i,1) + C%cfrd4*vcmxt4(i,1))*fwsoil(i)  
-            rdx(i,2) = (C%cfrd3*vcmxt3(i,2) + C%cfrd4*vcmxt4(i,2))*fwsoil(i)
-            
+!            rdx(i,1) = (C%cfrd3*vcmxt3(i,1) + C%cfrd4*vcmxt4(i,1))*fwsoil(i)  
+!            rdx(i,2) = (C%cfrd3*vcmxt3(i,2) + C%cfrd4*vcmxt4(i,2))*fwsoil(i)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            
+            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))*fwsoil(i)  
+            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))*fwsoil(i)
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 !            xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
 !                          * ( ( 1.0 - veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) &
 !                          / C%d0c3 ) + veg%frac4(i)    * C%A1C4 / (1.0+dsx(i)/ &
@@ -1908,30 +1912,41 @@ END SUBROUTINE photosynthesis
 
 ! ------------------------------------------------------------------------------
 
-FUNCTION ej3x(parx,x) RESULT(z)
+FUNCTION ej3x(parx,alpha,convex,x) RESULT(z)
    
    REAL, INTENT(IN)     :: parx
+   REAL, INTENT(IN)     :: alpha
+   REAL, INTENT(IN)     :: convex
    REAL, INTENT(IN)     :: x
    REAL                 :: z
    
-   z = MAX(0.0,                                                                &
-       0.25*((C%alpha3*parx+x-sqrt((C%alpha3*parx+x)**2 -                      &
-       4.0*C%convx3*C%alpha3*parx*x)) /(2.0*C%convx3)) )
+!   z = MAX(0.0,                                                                &
+!       0.25*((C%alpha3*parx+x-sqrt((C%alpha3*parx+x)**2 -                      &
+!       4.0*C%convx3*C%alpha3*parx*x)) /(2.0*C%convx3)) )
 
+   z = MAX(0.0,                                                                &
+       0.25*((alpha*parx+x-sqrt((alpha*parx+x)**2 -                      &
+       4.0*convex*alpha*parx*x)) /(2.0*convex)) )
 END FUNCTION ej3x
 
 ! ------------------------------------------------------------------------------
 
-FUNCTION ej4x(parx,x) RESULT(z)
+FUNCTION ej4x(parx,alpha,convex,x) RESULT(z)
    
    REAL, INTENT(IN)     :: parx
+   REAL, INTENT(IN)     :: alpha
+   REAL, INTENT(IN)     :: convex
    REAL, INTENT(IN)     :: x
    REAL                 :: z
  
-   z = MAX(0.0,                                                                &
-        (C%alpha4*parx+x-sqrt((C%alpha4*parx+x)**2 -                           &
-        4.0*C%convx4*C%alpha4*parx*x))/(2.0*C%convx4))
+!   z = MAX(0.0,                                                                &
+!        (C%alpha4*parx+x-sqrt((C%alpha4*parx+x)**2 -                           &
+!        4.0*C%convx4*C%alpha4*parx*x))/(2.0*C%convx4))
  
+   z = MAX(0.0,                                                                &
+        (alpha*parx+x-sqrt((alpha*parx+x)**2 -                           &
+        4.0*convex*alpha*parx*x))/(2.0*convex))
+
 END FUNCTION ej4x
 
 ! ------------------------------------------------------------------------------

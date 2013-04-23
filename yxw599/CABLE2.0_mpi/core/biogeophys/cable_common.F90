@@ -147,7 +147,10 @@ MODULE cable_common_module
          tmaxvj,     & !
          vbeta,      &
          a1gs,       &
-         d0gs         !
+         d0gs,       &  
+         alpha,      &  
+         convex,     &  
+         cfrd           
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -247,7 +250,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
          veg_desc( mvtype ),                                                   &
-         vegin%a1gs(mvtype), vegin%d0gs(mvtype) )
+         vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
+         vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype)  )
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -263,7 +267,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             veg_desc(jveg) = vegnametmp 
                
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
-                        &   vegin%length(jveg), vegin%frac4(jveg)
+                           vegin%length(jveg), vegin%frac4(jveg)
             ! only refl(1:2) and taul(1:2) used
             READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
             READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
@@ -278,7 +282,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
-            READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg) 
+            READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
 
          END DO
 
@@ -317,6 +321,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          READ(40,*) vegin%ratecp(:,1)
          READ(40,*) vegin%a1gs
          READ(40,*) vegin%d0gs           
+         READ(40,*) vegin%alpha          
+         READ(40,*) vegin%convex         
+         READ(40,*) vegin%cfrd           
             
          ! Set ratecp to be the same for all veg types:
          vegin%ratecp(1,:)=vegin%ratecp(1,1)

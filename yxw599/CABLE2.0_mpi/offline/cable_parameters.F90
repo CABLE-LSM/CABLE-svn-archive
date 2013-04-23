@@ -966,6 +966,9 @@ CONTAINS
   !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
           veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
           veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
+          veg%alpha(h)  = vegin%alpha(veg%iveg(h))
+          veg%convex(h) = vegin%convex(veg%iveg(h))
+          veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
   !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
@@ -1017,7 +1020,7 @@ CONTAINS
                vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
-               vegin%a1gs, vegin%d0gs   )
+               vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd   )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous

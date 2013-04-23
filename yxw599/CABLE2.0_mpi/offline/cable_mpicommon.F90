@@ -46,7 +46,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 285    ! add 2 vairable to veg%
+  INTEGER, PARAMETER :: nparam = 288    ! add 5 vairable to veg%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1

@@ -246,7 +246,10 @@ MODULE cable_def_types_mod
          vlaimax, & ! extinction coef for vertical
          wai,     & ! wood area index (stem+branches+twigs)
          a1gs,    & ! a1 parameter in stomatal conductance model
-         d0gs       ! d0 in stomatal conductance model      
+         d0gs,    & ! d0 in stomatal conductance model      
+         alpha,   & ! d0 in stomatal conductance model      
+         convex,  & ! d0 in stomatal conductance model      
+         cfrd       ! d0 in stomatal conductance model      
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -714,6 +717,9 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
    ALLOCATE( var%a1gs(mp) ) 
    ALLOCATE( var%d0gs(mp) ) 
+   ALLOCATE( var%alpha(mp) ) 
+   ALLOCATE( var%convex(mp) ) 
+   ALLOCATE( var%cfrd(mp) ) 
 
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1118,6 +1124,9 @@ SUBROUTINE dealloc_veg_parameter_type(var)
 
    DEALLOCATE( var%a1gs ) 
    DEALLOCATE( var%d0gs ) 
+   DEALLOCATE( var%alpha ) 
+   DEALLOCATE( var%convex ) 
+   DEALLOCATE( var%cfrd ) 
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
    
