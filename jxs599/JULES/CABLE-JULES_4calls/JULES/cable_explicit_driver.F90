@@ -466,6 +466,18 @@
             tsoil_tile     & ! -> ssnow%tgg
    )                         
 
+
+   canopy%oldcansto=canopy%cansto
+
+   !---------------------------------------------------------------------!
+   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
+   !--- req'd by Mk3L  --------------------------------------------------!
+   !---------------------------------------------------------------------!
+   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg )
+
+
+
   CALL cable_expl_unpack( FTL_TILE, FQW_TILE,       &
                            TSTAR_TILE, &
                            U_S, U_S_STD_TILE, &
