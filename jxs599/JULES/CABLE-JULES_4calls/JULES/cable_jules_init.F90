@@ -140,7 +140,7 @@ SUBROUTINE explicit_call_initialization(                                       &
       isnow_flg3l    ! flag for 3-layer snow 
 
    !___UM parameters 
-   INTEGER, INTENT(IN) :: timestep
+   REAL, INTENT(IN) :: timestep
    REAL, INTENT(IN), DIMENSION(sm_levels) ::                                   &
       dzsoil
 
@@ -244,7 +244,7 @@ SUBROUTINE explicit_call_initialization(                                       &
       ENDIF       
       
       CALL assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,        &
-                                    npft, sm_levels, timestep,            &
+                                    npft, sm_levels, timestep,                 &
                                     latitude,      &
                                     longitude, land_index, tile_frac,          &
                                     tile_pts, tile_index &
@@ -419,7 +419,7 @@ SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
    USE cable_common_module, ONLY : cable_user
 
    INTEGER, INTENT(IN) :: row_length, rows, land_pts, ntiles, npft, sm_levels
-   INTEGER, INTENT(IN) :: timestep 
+   REAL, INTENT(IN) :: timestep 
    REAL, INTENT(IN), DIMENSION(row_length,rows) :: latitude, longitude 
    INTEGER, INTENT(IN), DIMENSION(land_pts)  :: land_index 
    INTEGER, INTENT(IN), DIMENSION(ntiles)  :: tile_pts 
@@ -432,7 +432,7 @@ SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
       um1%ntiles = ntiles   
       um1%npft = npft   
       um1%sm_levels = sm_levels
-      um1%timestep = timestep
+      um1%timestep = INT(timestep)
       um1%latitude = latitude
       um1%longitude = longitude
       um1%land_index = land_index

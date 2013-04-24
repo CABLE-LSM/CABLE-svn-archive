@@ -150,7 +150,8 @@
       sm_levels           ! # of soil layers 
 
    ! end step of experiment, this step, step width, processor num
-   INTEGER, INTENT(IN) :: timestep, endstep, timestep_number, mype
+   REAL, INTENT(IN) :: timestep
+   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
 
    ! index of land points being processed
    INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
@@ -375,7 +376,7 @@
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
                                  !the same as timestep of particular RUN
    knode_gl = mype               !which processor am i on?
-   kwidth_gl = timestep          !width of timestep (secs)
+   kwidth_gl = INT(timestep)     !width of timestep (secs)
    kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
@@ -465,18 +466,18 @@
             tsoil_tile     & ! -> ssnow%tgg
    )                         
 
-!   CALL cable_expl_unpack( FTL_TILE, FQW_TILE,       &
-!                           TSTAR_TILE, &
-!                           U_S, U_S_STD_TILE, &
-!                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
-!                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
-!                           RECIP_L_MO_TILE, EPOT_TILE, &
-!                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
-!                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
-!                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
-!                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
-!                           rad%transd, rough%z0m, rough%zref_tq )
-!
+  CALL cable_expl_unpack( FTL_TILE, FQW_TILE,       &
+                           TSTAR_TILE, &
+                           U_S, U_S_STD_TILE, &
+                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
+                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
+                           RECIP_L_MO_TILE, EPOT_TILE, &
+                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
+                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
+                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
+                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
+                           rad%transd, rough%z0m, rough%zref_tq )
+
 
 END SUBROUTINE cable_explicit
 

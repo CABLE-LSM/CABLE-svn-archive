@@ -52,11 +52,11 @@ host_vayu()
    export NCDIR=$NCDF_ROOT'/lib/Intel'
    export NCMOD=$NCDF_ROOT'/include/Intel'
    export FC=ifort
-   export CFLAGS='-O2 -g -traceback -fp-model precise -ftz -fpe0'  
+   #export CFLAGS='-O2 -g -traceback -fp-model precise -ftz -fpe0'  
    export CINC='-I$(NCMOD)'
-   if [[ $1 = 'debug' ]]; then      
+   #if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
+   #fi
    build_build
    cd ../
    build_status
