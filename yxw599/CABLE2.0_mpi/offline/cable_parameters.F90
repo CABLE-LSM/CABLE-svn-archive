@@ -963,7 +963,6 @@ CONTAINS
           veg%extkn(h)    = vegin%extkn(veg%iveg(h))
           veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
           veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
-  !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
           veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
           veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
           veg%alpha(h)  = vegin%alpha(veg%iveg(h))
@@ -974,7 +973,6 @@ CONTAINS
           veg%conko0(h) = vegin%conko0(veg%iveg(h))
           veg%ekc(h)    = vegin%ekc(veg%iveg(h))
           veg%eko(h)    = vegin%eko(veg%iveg(h))
-  !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))

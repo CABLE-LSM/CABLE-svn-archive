@@ -1405,7 +1405,6 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (veg%deciduous(off), displs(bidx), ierr)
   blen(bidx) = r1len
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%a1gs(off), displs(bidx), ierr)
@@ -1446,8 +1445,6 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (veg%eko(off), displs(bidx), ierr)
   blen(bidx) = r1len
-
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%refl(off,1), displs(bidx), ierr)
