@@ -236,6 +236,7 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
+   REAL xalpha,xtheta,xa1gs,xd0gs,xcfrd,xcanst1,xfracleaf,xfracwood,xleafage,xwoodage,xxnvcmax,xxkoptl,xxkopts,xxksoil,xcnsoil
 
    ! added variables by yp wang 7-npov-2012
    INTEGER :: mloop
@@ -338,6 +339,34 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
+   ! reading the values of parameters for optimization
+   open(91,file='cableparm.txt')
+     read(91,*) xalpha,xtheta,xa1gs,xd0gs,xcfrd,xcanst1,xfracleaf,xfracwood,xleafage,xwoodage,xxnvcmax,xxkoptl,xxkopts,xxksoil,xcnsoil
+   close(91)
+   ! overwrite the values in the lookup tables
+   veg%alpha(:) = xalpha
+   veg%convex(:) = xtheta
+   veg%a1gs(:)   = xa1gs
+   veg%d0gs      = xd0gs
+   veg%cfrd      = xcfrd
+   veg%canst1    = xcanst1
+   casaflux%fracCalloc(:,1) = xfracleaf
+   casaflux%fracCalloc(:,2) = xfracwood
+   casaflux%fracCalloc(:,3) = 1.0-xfracleaf-xfracwood
+   casabiome%plantrate(:,1) = 1.0/(xleafage*365.0)
+   casabiome%plantrate(:,2) = 1.0/(xwoodage*365.0)
+   casabiome%nintercept(:)  = casabiome%nintercept(:) * xxnvcmax
+   casabiome%nslope(:)  = casabiome%nslope(:) * xxnvcmax
+   casabiome%xkoptlitter = xxkoptl
+   casabiome%xkoptsoil   = xxkopts
+   casabiome%soilrate(:,2) = casabiome%soilrate(:,2) * xxksoil
+   casabiome%soilrate(:,3) = casabiome%soilrate(:,3) * xxksoil
+   casapool%ratioNCsoil(:,2) = 1.0/xcnsoil
+   casapool%ratioNCsoil(:,3) = 1.0/xcnsoil
+   casapool%ratioNCsoilmin(:,2) = 0.8/xcnsoil
+   casapool%ratioNCsoilmin(:,3) = 0.8/xcnsoil
+   casapool%ratioNCsoilmax(:,2) = 1.2/xcnsoil
+   casapool%ratioNCsoilmax(:,3) = 1.2/xcnsoil
 
    ! MPI: above was standard serial code
    ! now it's time to initialize the workers
