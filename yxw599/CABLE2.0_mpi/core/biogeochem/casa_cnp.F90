@@ -168,7 +168,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 END SUBROUTINE casa_xnp
 
 
-SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
+SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 ! compute fraction of net photosynthate allocated to leaf, wood and froot
 !
 ! inputs
@@ -187,6 +187,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
   TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
   TYPE (casa_biome),          INTENT(INOUT) :: casabiome
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
+  TYPE (casa_pool),           INTENT(INOUT) :: casapool
   TYPE (casa_met),            INTENT(INOUT) :: casamet
   TYPE (phen_variable),       INTENT(INOUT) :: phen
 
@@ -208,7 +209,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
 
   CASE(2)   !
     ! calculate the allocation coefficients
-    call casa_wolf(veg,casabiome,casapool,casaflux,casamet)
+    call casa_wolf(veg,casabiome,casaflux,casapool,casamet)
 
   CASE(1)   ! dynamic allocation
     WHERE(casamet%iveg2/=icewater) 
@@ -299,7 +300,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
 
 END SUBROUTINE casa_allocation  
 
-SUBROUTINE casa_wolf(veg,casabiome,casapool,casaflux,casamet)
+SUBROUTINE casa_wolf(veg,casabiome,casaflux,casapool,casamet)
    ! carbon allocation based on
    ! Wolf,Field and Berry, 2011. Ecological Applications, p1546-1556
    ! Wolf et al. 2011. Global Biogeochemical Cycles, 25, GB3015, doi:10.1019/2010GB003917

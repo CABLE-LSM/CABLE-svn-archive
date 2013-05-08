@@ -237,6 +237,7 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
    REAL xalpha,xtheta,xa1gs,xd0gs,xcfrd,xcanst1,xfracleaf,xfracwood,xleafage,xwoodage,xxnvcmax,xxkoptl,xxkopts,xxksoil,xcnsoil
+   REAL xtotal
 
    ! added variables by yp wang 7-npov-2012
    INTEGER :: mloop
@@ -350,9 +351,15 @@ SUBROUTINE mpidrv_master (comm)
    veg%d0gs      = xd0gs
    veg%cfrd      = xcfrd
    veg%canst1    = xcanst1
-   casaflux%fracCalloc(:,1) = xfracleaf
-   casaflux%fracCalloc(:,2) = xfracwood
-   casaflux%fracCalloc(:,3) = 1.0-xfracleaf-xfracwood
+   xtotal = xfracleaf+xfracwood
+   if(xtotal > 0.95) then
+      xfracleaf = xfracleaf *0.95/xtotal
+      xfracwood = xfracwood *0.95/xtotal 
+   endif
+   casabiome%fracnpptoP(:,1) = xfracleaf
+   casabiome%fracnpptoP(:,2) = xfracwood
+   
+   casabiome%fracnpptop(:,3) = 1.0-xfracleaf-xfracwood
    casabiome%plantrate(:,1) = 1.0/(xleafage*365.0)
    casabiome%plantrate(:,2) = 1.0/(xwoodage*365.0)
    casabiome%nintercept(:)  = casabiome%nintercept(:) * xxnvcmax
