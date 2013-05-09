@@ -140,10 +140,9 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
-  
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            &
-                                   redistrb, wiltParam, satuParam
+                                   cable_runtime, filename, redistrb,          & 
+                                   report_version_no, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
