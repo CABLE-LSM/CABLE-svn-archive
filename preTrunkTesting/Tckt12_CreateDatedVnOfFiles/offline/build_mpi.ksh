@@ -2,25 +2,8 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin 
 }
-
-
-## 
-host_jigg()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
 
 
 ## shine-cl.nexus.csiro.au 
