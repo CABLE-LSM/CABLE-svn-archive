@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
+   set -A kh vayu cher burn shin jigg
 }
+
+
+## 
+host_jigg()
+{
+   export NCDIR='/'
+   export NCMOD='/'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## shine-cl.nexus.csiro.au 
@@ -76,14 +93,14 @@ host_vayu()
 ## unknown machine, user entering options stdout 
 host_read()
 {
-   print "\n\tWhat is the root path of your NetCDF library" \
+   print "\n\tWhat is the ROOT path of your NetCDF library" \
          "and .mod file. "
    print "\tRemember these have to be created by the same " \
          "Fortran compiler you" 
    print "\twant to use to build CABLE. e.g./usr/local/intel"
    read NCDF_ROOT
    
-   print "\n\tWhat is the path, relative to this root, of " \
+   print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF library." 
    print "\n\tPress enter for default [lib]."
    read NCDF_DIR
@@ -94,7 +111,7 @@ host_read()
    fi
 
    
-   print "\n\tWhat is the path, relative to this root, of " \
+   print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF .mod file."
    print "\n\tPress enter for default [include]."
    read NCDF_MOD
@@ -306,8 +323,8 @@ build_build()
    fi
    
    if [[ -f cable-mpi ]]; then
-      print '\ncable-mpi executable exists. copying to cable-mpi.bu\n' 
-      mv cable-mpi cable-mpi.bu
+      print '\ncable-mpi executable exists. copying to a dated backup file\n' 
+      mv cable-mpi cable-mpi.`date +%d.%m.%y`
    fi
    
    CORE="../core/biogeophys"
