@@ -189,7 +189,6 @@ build_build()
       mv $libpath $libpathbu
    fi
   
-      print $libpathbu'\n' 
    CORE="../core/biogeophys"
    DRV="."
    
