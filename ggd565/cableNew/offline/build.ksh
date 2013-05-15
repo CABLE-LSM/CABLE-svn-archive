@@ -12,7 +12,7 @@ host_neto()
    export NCDIR='/home/giftd/bin/netcdf//lib'
    export NCMOD='/home/giftd/bin/netcdf//include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O0 -g -traceback -fp-model precise'
    export LD='-lnetcdff -lnetcdf'
    export LDFLAGS='-L/home/giftd/bin/netcdf//lib -O2'
    build_build
