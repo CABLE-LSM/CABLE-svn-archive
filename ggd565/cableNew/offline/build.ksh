@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg neto
 }
+
+
+## ntoz
+host_neto()
+{
+   export NCDIR='/home/giftd/bin/netcdf//lib'
+   export NCMOD='/home/giftd/bin/netcdf//include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/home/giftd/bin/netcdf//lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## jiggle
@@ -145,7 +162,7 @@ host_read()
    print "\n\tPress enter for default [-lnetcdf]."
    read LDRESPONSE 
    if [[ $LDRESPONSE == '' ]]; then
-      export LD='-lnetcdf'
+      export LD='-lnetcdf -lnetcdff'
    else   
       export LD=$LDRESPONSE
    fi
