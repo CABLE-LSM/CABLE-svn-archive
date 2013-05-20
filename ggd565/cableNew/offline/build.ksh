@@ -2,24 +2,23 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg neto
+   set -A kh vayu cher burn shin jigg neto ubun
 }
 
 
 ## ntoz
-host_neto()
+host_ubun()
 {
-   export NCDIR='/home/giftd/bin/netcdf//lib'
-   export NCMOD='/home/giftd/bin/netcdf//include'
+   export NCDIR='/home/giftd/local/netcdf/lib'
+   export NCMOD='/home/giftd/local/netcdf/include'
    export FC=ifort
-   export CFLAGS='-O0 -g -traceback -fp-model precise'
-   export LD='-lnetcdff -lnetcdf'
-   export LDFLAGS='-L/home/giftd/bin/netcdf//lib -O2'
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/home/giftd/local/netcdf/lib -O2'
    build_build
    cd ../
    build_status
 }
-
 
 
 
