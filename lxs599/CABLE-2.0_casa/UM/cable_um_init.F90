@@ -50,7 +50,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
                               dzsoil, CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,      &
                               SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
-                              PHENPHASE )                         
+                              PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
    
@@ -192,6 +192,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !INTEGER, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       PHENPHASE
 
+   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+      NPP_FT_ACC,   &
+      RESP_W_FT_ACC
+
    !------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM cable_explicit_driver() -------------------------
    !------------------------------------------------------------------------- 
@@ -291,11 +295,17 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                                  surf_down_sw, sin_theta_latitude, ls_rain, &
                                  ls_snow, tl_1, qw_1, vshr_land, pstar,     &
                                  co2_mmr ) 
-                   
+
  
       IF( first_call ) THEN
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
+
+      !--- initialize respiration for CASA-CNP
+      !--- Lestevens 23apr13
+      !IF (l_casacnp) THEN ?
+         CALL init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
+
       ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
          if (l_casacnp) then
            if (knode_gl==0) then
@@ -308,6 +318,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                              ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
                              GLAI,PHENPHASE)
          endif
+
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
       ENDIF      

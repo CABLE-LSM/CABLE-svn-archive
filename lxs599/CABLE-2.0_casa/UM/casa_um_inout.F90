@@ -1,3 +1,31 @@
+!==============================================================================
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing,
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose: CASA-CNP
+!
+! Contact: Yingping Wang, Lauren Stevens
+!
+! History: 2012
+!
+!
+! ==============================================================================
+
 ! Lauren Stevens Jan-Apr 2011
 ! Casa CNP for UM
 !
@@ -11,7 +39,7 @@
 
 MODULE casa_um_inout_mod
 
-!!  USE cable_um_tech_mod    !, ONLY : um1, veg, soil           ! cable types (replaces cable_variables)
+!!  USE cable_um_tech_mod    !, ONLY : um1, veg, soil   
 !!  USE define_dimensions    ! mp, r_1, r_2, i_d
 !!  USE casadimension        ! icycle,mplant,mlitter,msoil
 !!  USE cable_common_module  ! ktau_gl, kend_gl
@@ -24,17 +52,16 @@ CONTAINS
 !========================================================================
 !========================================================================
 
-!SUBROUTINE cable_casa_init(sin_theta_latitude,um1,cpool_tile,npool_tile,ppool_tile, &
 SUBROUTINE init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,ppool_tile, &
                            soil_order,nidep,nifix,pwea,pdust,GLAI,PHENPHASE)
 ! Les 20 Jan 2011
     USE cable_def_types_mod
     !USE define_dimensions
     !USE define_types
-    USE cable_um_tech_mod, ONLY : um1, veg, soil
+    USE cable_um_tech_mod, ONLY : um1, veg, soil, canopy
     USE casavariable
     USE phenvariable
-    USE casa_types
+    USE casa_types_mod
     !USE casa_inout
 
 IMPLICIT NONE
@@ -69,14 +96,13 @@ IMPLICIT NONE
     CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
     CALL alloc_phenvariable(phen,mp)
 
-    !CALL casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet,um1, &
     CALL casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet, &
                           nidep,nifix,pwea,pdust,soil_order)
     CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     CALL casa_readphen(veg,casamet,phen)
-    CALL casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,phen, &
+    CALL casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,canopy,phen, &
                      cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
-                     !um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
+
  return
 END SUBROUTINE init_casacnp
 
@@ -86,7 +112,6 @@ END SUBROUTINE init_casacnp
 
 SUBROUTINE casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet, &
                            nidep,nifix,pwea,pdust,soil_order)
-!SUBROUTINE casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet,um1, &
 
     USE cable_def_types_mod
     !USE define_dimensions    ! mp, r_1, r_2, i_d
@@ -174,7 +199,7 @@ END SUBROUTINE casa_readpoint_pk
 !========================================================================
 !========================================================================
 
-SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,phen, &
+SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,canopy,phen, &
                        cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
 !                       um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
 !  initialize some values in phenology parameters and leaf growth phase
@@ -195,7 +220,7 @@ IMPLICIT NONE
   TYPE (casa_met),     INTENT(INOUT)    :: casamet
   TYPE (casa_pool),    INTENT(INOUT)    :: casapool
   TYPE (casa_balance), INTENT(INOUT)    :: casabal
-  TYPE (veg_parameter_type), INTENT(IN) :: veg
+  TYPE (canopy_type),  INTENT(INOUT)       :: canopy
   TYPE (phen_variable),   INTENT(INOUT) :: phen
 !  TYPE (um_dimensions), INTENT(IN)      :: um1
 ! LOGICAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: L_tile_pts
@@ -215,14 +240,13 @@ IMPLICIT NONE
   casamet%moist(:,:) = 0.0
   casaflux%cgpp(:)   = 0.0
   casaflux%cnpp(:)   = 0.0
-  casaflux%Crsoil(:) = 0.0
-  casaflux%crgplant(:)   = 0.0
+  casaflux%Crsoil(:) = canopy%frs*86400.     !0.0
+  casaflux%crgplant(:)   = canopy%frp*86400. !0.0
   casaflux%crmplant(:,:) = 0.0
   casaflux%clabloss(:)   = 0.0
 !print *,'Les - Crsoil',casaflux%Crsoil
 
   IF (initcasa==1) THEN
-   !CALL pack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
    CALL pack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
                      ppool_tile,GLAI,PHENPHASE)
   ENDIF
@@ -266,7 +290,7 @@ IMPLICIT NONE
     casapool%pplant       = MAX(1.0e-7,casapool%pplant)
     casapool%plitter      = MAX(1.0e-7,casapool%plitter)
     casapool%psoil        = MAX(1.0e-7,casapool%psoil)
-    casapool%Psoillab     = MAX(1.0e-7,casapool%psoillab)  ! was 2.0, changed according to  YP
+    casapool%Psoillab     = MAX(1.0e-7,casapool%psoillab)  ! was 2.0, YPW
     casapool%psoilsorb    = MAX(1.0e-7,casapool%psoilsorb) ! was 10.0, -
     casapool%psoilocc     = MAX(1.0e-7,casapool%psoilocc)  ! was 50.0, -
     casabal%pplantlast    = casapool%pplant
@@ -287,7 +311,6 @@ END SUBROUTINE casa_init_pk
 !========================================================================
 
 SUBROUTINE pack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
-!SUBROUTINE pack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
                         ppool_tile,GLAI,PHENPHASE)
 
     USE cable_um_tech_mod, ONLY : um1
@@ -498,7 +521,6 @@ IMPLICIT NONE
   ENDDO
 
 ! Lestevens 28 Jan 2011
-!    CALL unpack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
     CALL unpack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
                         ppool_tile,GLAI,PHENPHASE)
 
@@ -509,7 +531,6 @@ END SUBROUTINE casa_poolout_unpk
 !========================================================================
 !========================================================================
 
-!SUBROUTINE unpack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
 SUBROUTINE unpack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
                           ppool_tile,GLAI,PHENPHASE)
 

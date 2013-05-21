@@ -35,6 +35,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      spinConv, spinup, ktauday, idoy, dump_read, dump_write )
 
    USE cable_def_types_mod
+   !USE cable_common_module, only: cable_runtime
    USE casadimension
    USE casaparm
    USE casavariable
@@ -66,6 +67,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    !    phen%phase = 2
 
    if ( .NOT. dump_read ) then
+   ! Lest 13may13: will require loop when prog resp are init nonzero
+   ! need for mk3l ?
+   !IF( cable_runtime%offline .or. cable_runtime%mk3l ) THEN
       if(ktau == kstart) then
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
@@ -77,10 +81,12 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casaflux%Crsoil   = 0.0
          casaflux%crgplant = 0.0
          casaflux%crmplant = 0.0
+         ! Lest 13may13 ---
          casaflux%clabloss = 0.0
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
       ENDIF
+   !ENDIF
       IF(mod(ktau,ktauday)==1) THEN
          casamet%tairk = met%tk
          casamet%tsoil = ssnow%tgg
