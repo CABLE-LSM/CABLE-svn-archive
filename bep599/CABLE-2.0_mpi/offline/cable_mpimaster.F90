@@ -367,6 +367,11 @@ SUBROUTINE mpidrv_master (comm)
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
 
+   ! MPI: mvtype and mstype send out here instead of inside master_casa_params
+   !      so that old CABLE carbon module can use them. (BP May 2013)
+   CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+
    ! MPI: casa parameters scattered only if cnp module is active
    IF (icycle>0) THEN
      ! MPI:
@@ -423,13 +428,13 @@ SUBROUTINE mpidrv_master (comm)
      if (spincasa) then
       mloop = 5
       print *, 'spincasacnp enabled with mloop= ', mloop
-      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
-      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
+      ! CALL read_casa_dump(casafile%dump_cnpspin,casamet,casaflux,kstart,kend)
+      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
+                       casabiome,casapool,casaflux,casamet,casabal,phen)
      endif
    endif
 
-! outer loop - spinup loop no. ktau_tot :
+   ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
 
@@ -505,35 +510,50 @@ SUBROUTINE mpidrv_master (comm)
          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          canopy%oldcansto=canopy%cansto
 
+!         IF (icycle > 0) THEN
+!            ! MPI: gather casa results from all the workers
+!            CALL master_receive (comm, ktau_gl, casa_out)
+!            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+!         END IF
+
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
          ! MPI: TODO: pull mass and energy balance calculation from write_output
          ! and refactor into worker code
          ktau_gl = oktau
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
+!            IF (icycle > 0) CALL casa_fluxout( dels, ktau, casabal, casamet)
+         END IF
    
-       END DO ! END Do loop over timestep ktau
+      END DO ! END Do loop over timestep ktau
 
 
-    ! MPI: read ahead tail to receive (last step and write)
-    met%year = imet%year
-    met%doy = imet%doy
-    oktau = oktau + 1
-    ktau_tot= ktau_tot + 1
-    ktau_gl = oktau
-    CALL master_receive (ocomm, oktau, recv_ts)
-    CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-    met%ofsd = met%fsd(:,1) + met%fsd(:,2)
-    canopy%oldcansto=canopy%cansto
+      ! MPI: read ahead tail to receive (last step and write)
+      met%year = imet%year
+      met%doy = imet%doy
+      oktau = oktau + 1
+      ktau_tot= ktau_tot + 1
+      ktau_gl = oktau
+      CALL master_receive (ocomm, oktau, recv_ts)
+      CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+      met%ofsd = met%fsd(:,1) + met%fsd(:,2)
+      canopy%oldcansto=canopy%cansto
 
-    IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-            CALL write_output( dels, ktau, met, canopy, ssnow,         &
-                               rad, bal, air, soil, veg, C%SBOLTZ,     &
-                               C%EMLEAF, C%EMSOIL )
+!      IF (icycle > 0) THEN
+!         ! MPI: gather casa results from all the workers
+!         CALL master_receive (comm, ktau_gl, casa_out)
+!         CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+!      END IF
 
+      IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
+         CALL write_output( dels, ktau, met, canopy, ssnow,         &
+                            rad, bal, air, soil, veg, C%SBOLTZ,     &
+                            C%EMLEAF, C%EMSOIL )
+!         IF (icycle > 0) CALL write_casaout( dels, ktau, casabal, casamet)
+      END IF
    
       !jhan this is insufficient testing. condition for 
       !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
@@ -618,16 +638,16 @@ SUBROUTINE mpidrv_master (comm)
       CALL master_receive (comm, ktau_gl, casa_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
-      print *, 'output BGC pools'
-      CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-                         casapool, casaflux, casamet, casabal, phen )
-      print *, 'output BGC fluxes'
-      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-
-      print *, 'output biome avergage fluxes and pool sizes'
-      open(92,file='cnpfluxpool.txt')
-      CALL pftcnpfluxpool(mloop,veg,casamet,casapool,casaflux,casabal)
-      close(92)
+!      print *, 'output BGC pools'
+!      CALL casa_poolout( ktau, veg, soil, casabiome,                        &
+!                         casapool, casaflux, casamet, casabal, phen )
+!      print *, 'output BGC fluxes'
+!      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+!
+!      print *, 'output biome avergage fluxes and pool sizes'
+!      open(92,file='cnpfluxpool.txt')
+!      CALL pftcnpfluxpool(mloop,veg,casamet,casapool,casaflux,casabal)
+!      close(92)
 
       print *, 'before ncdf_dump', spinConv, spincasainput
       if ( spinConv .AND. spincasainput ) then
@@ -649,6 +669,14 @@ SUBROUTINE mpidrv_master (comm)
 
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
+
+      IF (icycle > 0) THEN
+         WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
+         CALL casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
+                           casabal,phen)
+         WRITE(logn, '(A36)') '   Restart file complete and closed.'
+      END IF
+
    END IF
 
    ! MPI: cleanup
@@ -2351,8 +2379,9 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: rank, off, cnt
 
-  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
-  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+!  moved to calling before this subroutine (BP May 2013)
+!  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+!  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   ntyp = ncasaparam
 

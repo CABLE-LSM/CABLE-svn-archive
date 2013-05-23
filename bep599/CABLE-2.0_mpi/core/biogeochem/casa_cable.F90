@@ -107,31 +107,32 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
          casamet%moist=casamet%moist/FLOAT(ktauday)
    
-        ! added ypwang 5/nov/2012                      
-       if(ktau/ktauday .le. 365)then
-          casamet%Tairkspin     (:,idoy) = casamet%tairk(:)
-          casamet%cgppspin      (:,idoy) = casaflux%cgpp(:)
-          casamet%crmplantspin_1(:,idoy) = casaflux%crmplant(:,1)
-          casamet%crmplantspin_2(:,idoy) = casaflux%crmplant(:,2)
-          casamet%crmplantspin_3(:,idoy) = casaflux%crmplant(:,3)
-          casamet%Tsoilspin_1   (:,idoy) = casamet%tsoil(:,1)
-          casamet%Tsoilspin_2   (:,idoy) = casamet%tsoil(:,2)
-          casamet%Tsoilspin_3   (:,idoy) = casamet%tsoil(:,3)
-          casamet%Tsoilspin_4   (:,idoy) = casamet%tsoil(:,4)
-          casamet%Tsoilspin_5   (:,idoy) = casamet%tsoil(:,5)
-          casamet%Tsoilspin_6   (:,idoy) = casamet%tsoil(:,6)
-          casamet%moistspin_1   (:,idoy) = casamet%moist(:,1)
-          casamet%moistspin_2   (:,idoy) = casamet%moist(:,2)
-          casamet%moistspin_3   (:,idoy) = casamet%moist(:,3)
-          casamet%moistspin_4   (:,idoy) = casamet%moist(:,4)
-          casamet%moistspin_5   (:,idoy) = casamet%moist(:,5)
-          casamet%moistspin_6   (:,idoy) = casamet%moist(:,6)
-       end if
+         ! added ypwang 5/nov/2012                      
+         if(ktau/ktauday .le. 365)then
+           casamet%Tairkspin     (:,idoy) = casamet%tairk(:)
+           casamet%cgppspin      (:,idoy) = casaflux%cgpp(:)
+           casamet%crmplantspin_1(:,idoy) = casaflux%crmplant(:,1)
+           casamet%crmplantspin_2(:,idoy) = casaflux%crmplant(:,2)
+           casamet%crmplantspin_3(:,idoy) = casaflux%crmplant(:,3)
+           casamet%Tsoilspin_1   (:,idoy) = casamet%tsoil(:,1)
+           casamet%Tsoilspin_2   (:,idoy) = casamet%tsoil(:,2)
+           casamet%Tsoilspin_3   (:,idoy) = casamet%tsoil(:,3)
+           casamet%Tsoilspin_4   (:,idoy) = casamet%tsoil(:,4)
+           casamet%Tsoilspin_5   (:,idoy) = casamet%tsoil(:,5)
+           casamet%Tsoilspin_6   (:,idoy) = casamet%tsoil(:,6)
+           casamet%moistspin_1   (:,idoy) = casamet%moist(:,1)
+           casamet%moistspin_2   (:,idoy) = casamet%moist(:,2)
+           casamet%moistspin_3   (:,idoy) = casamet%moist(:,3)
+           casamet%moistspin_4   (:,idoy) = casamet%moist(:,4)
+           casamet%moistspin_5   (:,idoy) = casamet%moist(:,5)
+           casamet%moistspin_6   (:,idoy) = casamet%moist(:,6)
+         end if
 
-       CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                    casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
-                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
-                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+         CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+                         casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,  &
+                         xksoil,xkleaf,xkleafcold,xkleafdry,&
+                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,   &
                          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
        ! modified ypwang 5/nov/2012 
@@ -155,10 +156,11 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       ! modified yp wang 5/nov/2012
 
        CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                    casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
-                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
-                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                       casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,  &
+                       xksoil,xkleaf,xkleafcold,xkleafdry,&
+                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
+                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,   &
+                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
       !CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
       !                casamet,casabal,phen)

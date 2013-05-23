@@ -375,13 +375,13 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     !!=====================VV Determine spatial details VV=================
     ! Determine number of sites/gridcells.
-    ! Find size of 'x' or 'lat' dimension:
+    ! Find size of 'x' or 'lon' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'x', xdimID)
 
   ! added by ypwang following Chris LU to account for diffferent orders of latitude and longtitude between GPCC and GSWP
   IF(gswpfile%l_gpcc) then
     IF(ok/=NF90_NOERR) THEN ! if failed
-       ! Try 'lat' instead of x
+       ! Try 'lon' instead of x
        ok = NF90_INQ_DIMID(ncid_met,'lon', xdimID)
        IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding x dimension in '&
@@ -394,7 +394,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Find size of 'y' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'y', ydimID)
     IF(ok/=NF90_NOERR) THEN ! if failed
-       ! Try 'lon' instead of y
+       ! Try 'lat' instead of y
        ok = NF90_INQ_DIMID(ncid_met,'lat', ydimID)
        IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding y dimension in ' &
@@ -403,8 +403,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
  ELSE
     ! for GSWP ypwang following Chris Lu
     IF(ok/=NF90_NOERR) THEN ! if failed
-       ! Try 'lat' instead of x
-       ok = NF90_INQ_DIMID(ncid_met,'lat', xdimID)
+       ! Try 'lon' instead of x
+       ok = NF90_INQ_DIMID(ncid_met,'lon', xdimID)
        IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding x dimension in '&
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -416,8 +416,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Find size of 'y' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'y', ydimID)
     IF(ok/=NF90_NOERR) THEN ! if failed
-       ! Try 'lon' instead of y
-       ok = NF90_INQ_DIMID(ncid_met,'lon', ydimID)
+       ! Try 'lat' instead of y
+       ok = NF90_INQ_DIMID(ncid_met,'lat', ydimID)
        IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding y dimension in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
