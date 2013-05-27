@@ -312,6 +312,26 @@ CONTAINS
           IF(ok /= NF90_NOERR) CALL nc_abort                                   &
                                     (ok,'Error reading '//parname//' in file ' &
                                     //TRIM(filename)//' (SUBROUTINE readpar_r)')
+       ELSE IF(dimswitch == 'cnp') THEN ! ie par has dimension (mp,3) e.g.
+                                        ! casapool%Csoil
+          IF(PRESENT(from_restart)) THEN
+             CALL abort('CASA-CNP variable '//parname//                        &
+                        ' not to be read in this section.')
+!             ok = NF90_INQUIRE_VARIABLE(ncid, parID, ndims=pardims)
+!             IF(pardims == 2) THEN
+!                ok = NF90_GET_VAR(ncid, parID, var_r, start=(/1, 1/), &
+!                                  count=(/INpatch, 3/))
+!                IF(ok /= NF90_NOERR) CALL nc_abort                          &
+!                                   (ok,'Error reading '//parname//' in file ' &
+!                                   //TRIM(filename)//' (SUBROUTINE readpar_r)')
+!             ELSE
+!                CALL abort('Dimension of '//parname//                         &
+!                           ' parameter in met file unknown.')
+!             END IF
+          ELSE
+             CALL abort('CASA-CNP variable '//parname//                        &
+                        ' not ready for files other than restart file.')
+          END IF
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
@@ -539,6 +559,8 @@ CONTAINS
           dimctr = ncp ! i.e. horizontal spatial and plant carbon pools
        ELSE IF(dimswitch == 'ncs') THEN
           dimctr = ncs ! i.e. horizontal spatial and soil carbon pools
+       ELSE IF(dimswitch == 'cnp') THEN
+          dimctr = 3   ! i.e. spatial (mp) and 3 pools
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
@@ -554,10 +576,9 @@ CONTAINS
              IF(PRESENT(from_restart)) THEN
                 ok = NF90_GET_VAR(ncid, parID, var_r2, start=(/1, 1/),         &
                                   count=(/INpatch, dimctr/))
-!    WRITE(45,*) 'Is tgg read here?'
                 IF(ok /= NF90_NOERR) CALL nc_abort                             &
                                     (ok, 'Error reading '//parname//' in file' &
-                                   //TRIM(filename)//' (SUBROUTINE readpar_rd)')
+                                   //TRIM(filename)//' (SUBROUTINE readpar_r2)')
              ELSE
                 ALLOCATE(tmp2r(1, dimctr))
                 DO i = 1, mland ! over all land points/grid cells
@@ -637,7 +658,7 @@ CONTAINS
                                      count=(/INpatch, dimctr/))
                    IF(ok /= NF90_NOERR) CALL nc_abort                          &
                                      (ok,'Error reading '//parname//' in file' &
-                                   //TRIM(filename)//' (SUBROUTINE readpar_rd)')
+                                   //TRIM(filename)//' (SUBROUTINE readpar_r2)')
                 ELSE
                    DO i = 1, mland ! over all land points/grid cells
                       ok = NF90_GET_VAR(ncid, parID, tmpjh, start=(/i/))

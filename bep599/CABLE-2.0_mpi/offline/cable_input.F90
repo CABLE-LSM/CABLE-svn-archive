@@ -2468,7 +2468,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL write_cnp_params(veg,casaflux,casamet)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
-      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+!      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
     ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done
@@ -2487,7 +2487,10 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       WRITE(logn,*) ' Pre-loaded default initialisations are used.'
       WRITE(*,*)    ' Could not find restart file ', TRIM(filename%restart_in)
       WRITE(*,*)    ' Pre-loaded default initialisations are used.'
-
+      IF (icycle > 0) THEN
+        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
+        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+      ENDIF
     ELSE
       ! Restart file exists, parameters and init will be loaded from it.
       WRITE(logn,*) ' Overwriting initialisations with values in ', &
@@ -2518,7 +2521,12 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       ! Load initialisations and parameters from restart file:
       CALL get_restart_data(logn,ssnow,canopy,rough,bgc,bal,veg, &
                             soil,rad,vegparmnew, EMSOIL )
-
+      IF (icycle > 0) THEN
+!        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
+!        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+        WRITE(logn,*) ' Initialize pool sizes with values in restart file.'
+        CALL get_casa_restart(casamet,casapool,casabal,phen)
+      ENDIF
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
