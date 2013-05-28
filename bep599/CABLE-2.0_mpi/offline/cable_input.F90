@@ -2495,7 +2495,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       ! Restart file exists, parameters and init will be loaded from it.
       WRITE(logn,*) ' Overwriting initialisations with values in ', &
                     'restart file: ', TRIM(filename%restart_in)
-      WRITE(*,*)    ' Overwriting initialisations with values in ', &
+      WRITE(*,*)    'Overwriting initialisations with values in ', &
                     'restart file: ', TRIM(filename%restart_in)
      
       ! Check total number of patches in restart file:

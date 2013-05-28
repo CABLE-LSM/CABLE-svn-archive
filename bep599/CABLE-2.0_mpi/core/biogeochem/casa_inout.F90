@@ -773,11 +773,11 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
                 max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'Clabile',dummy,casapool%Clabile,filename%restart_in, &
                 max_vegpatches,'def',from_restart,mp)
-  CALL readpar(ncid,'Cplant',dummy,casapool%Cplant,filename%restart_in, &
+  CALL readpar(ncid,'CASA_Cplant',dummy,casapool%Cplant,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'Clitter',dummy,casapool%Clitter,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
-  CALL readpar(ncid,'Csoil',dummy,casapool%Csoil,filename%restart_in, &
+  CALL readpar(ncid,'CASA_Csoil',dummy,casapool%Csoil,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'Nplant',dummy,casapool%Nplant,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)

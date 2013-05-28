@@ -335,7 +335,7 @@ CONTAINS
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
-                     ' - in INTERFACE readpar')
+                     ' - in readpar_r')
        END IF ! dimension of parameter i.e. is this zse or ratecp or ratecs
     END IF ! parameter's existence
 
@@ -506,7 +506,7 @@ CONTAINS
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
-                     ' - in INTERFACE readpar')
+                     ' - in readpar_rd')
        END IF ! dimension of parameter i.e. is this zse or ratecp or ratecs
     END IF ! parameter's existence
 
@@ -729,10 +729,12 @@ CONTAINS
           dimctr = ncp ! i.e. horizontal spatial and plant carbon pools
        ELSE IF(dimswitch(1:3) == 'ncs') THEN
           dimctr = ncs ! i.e. horizontal spatial and soil carbon pools
+       ELSE IF(dimswitch == 'cnp') THEN
+          dimctr = 3   ! i.e. spatial (mp) and 3 pools
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
-                     ' - in INTERFACE readpar')
+                     ' - in readpar_r2d')
        END IF
        ! Check for grid type - restart file uses land type grid
        IF(metGrid == 'land' .OR. PRESENT(from_restart)) THEN
@@ -745,8 +747,8 @@ CONTAINS
              ! from the netcdf restart file, dimswitch will show this:
              ! equivalent to using "IF(PRESENT(from_restart)) THEN"
              IF(dimswitch == 'msd' .OR. dimswitch == 'snowd' .OR.              &
-                dimswitch == 'nrbd' .OR. dimswitch == 'ncpd'                   &
-                .OR. dimswitch == 'ncsd') THEN
+                dimswitch == 'nrbd' .OR. dimswitch == 'ncpd' .OR.              &
+                dimswitch == 'ncsd' .OR. dimswitch == 'cnp') THEN
                ALLOCATE(tmp2rd(INpatch, dimctr))
                ok = NF90_GET_VAR(ncid, parID, tmp2rd,                          &
                                  start=(/1, 1/), count=(/INpatch, dimctr/))
