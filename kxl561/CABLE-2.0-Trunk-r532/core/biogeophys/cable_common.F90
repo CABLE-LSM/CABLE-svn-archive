@@ -86,6 +86,7 @@ MODULE cable_common_module
       type,       & ! file for default veg/soil type
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
+      soilcolor,  & ! file for soil color(mksrf_soilcol_global_c090324_1x1.nc) 
       inits,      & ! name of file for initialisations
       soilIGBP      ! name of file for IGBP soil map
 
