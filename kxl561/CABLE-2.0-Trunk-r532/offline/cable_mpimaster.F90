@@ -139,13 +139,13 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   patch_type,soilparmnew,calcsoilalbedo
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, myhome,            &
                                    redistrb, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
-                                   get_met_data,close_met_file
+                                   get_met_data,close_met_file,read_soilcolor
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file
    USE cable_cbm_module
@@ -242,6 +242,7 @@ SUBROUTINE mpidrv_master (comm)
                   filename,         & ! TYPE, containing input filenames 
                   vegparmnew,       & ! jhan: use new soil param. method
                   soilparmnew,      & ! jhan: use new soil param. method
+                  calcsoilalbedo,   & ! Newly added by Kai Requested by Jatin
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
@@ -332,7 +333,10 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
-
+   ! Newly added IF BLOCK by Kai Requested by Jatin
+   IF (calcsoilalbedo) THEN
+     CALL read_soilcolor(soil, logn)
+   ENDIF
    ! MPI: above was standard serial code
    ! now it's time to initialize the workers
 
@@ -847,6 +851,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   ! MPI: TODO: free landp_t and patch_t types?
 
   ntyp = nparam
+  ! Newly added IF Block by Kai
+  IF (calcsoilalbedo) THEN
+    ntyp = 284
+  END IF
 
   ALLOCATE (param_ts(wnp))
 
@@ -1461,7 +1469,12 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (soil%zshh, displs(bidx), ierr)
   blen(bidx) = (ms + 1) * extr1
-
+  ! Newly added IF BLOCK by Kai 
+  IF (calcsoilalbedo) THEN
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%soilcol, displs(bidx), ierr)
+     blen(bidx) = r1len
+  END IF
   ! ----------- canopy --------------
 
   bidx = bidx + 1
