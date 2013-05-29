@@ -672,6 +672,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ntyp = nparam
 
+  IF (calcsoilalbedo) THEN
+     ntyp = 284
+  ENDIF
+
   ALLOCATE (blen(ntyp))
   ALLOCATE (displs(ntyp))
   ALLOCATE (types(ntyp))
@@ -1966,10 +1970,6 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   END IF
 
   ntyp = ncasaparam
-  ! Newly added IF BLOCK by Kai
-  IF (calcsoilalbedo) THEN
-     ntyp = 284
-  ENDIF
 
   ALLOCATE (blen(ntyp))
   ALLOCATE (displs(ntyp))
