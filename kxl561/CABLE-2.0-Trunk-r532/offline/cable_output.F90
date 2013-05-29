@@ -1519,6 +1519,8 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        out%Albedo = out%Albedo + REAL((rad%albedo(:, 1) + rad%albedo(:, 2))    &
                                        * 0.5, 4)
+       out%visAlbedo = out%visAlbedo + REAL(rad%albedo(:, 1) , 4)
+       out%nirAlbedo = out%nirAlbedo + REAL(rad%albedo(:, 2) , 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Albedo = out%Albedo / REAL(output%interval, 4)
@@ -1527,6 +1529,14 @@ CONTAINS
                      out%Albedo, ranges%Albedo, patchout%Albedo, 'default', met)
           ! Reset temporary output variable:
           out%Albedo = 0.0
+          out%visAlbedo = out%visAlbedo / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%visAlbedo, 'visAlbedo', &
+            out%visAlbedo, ranges%visAlbedo, patchout%visAlbedo, 'default', met)
+          out%visAlbedo = 0.0
+          out%nirAlbedo = out%nirAlbedo / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%nirAlbedo, 'nirAlbedo', &
+            out%nirAlbedo, ranges%nirAlbedo, patchout%nirAlbedo, 'default', met)
+          out%nirAlbedo = 0.0
        END IF
     END IF
     ! RadT: Radiative surface temperature [K]
