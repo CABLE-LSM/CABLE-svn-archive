@@ -123,8 +123,8 @@ MODULE cable_IO_vars_module
       logn          ! log file unit number
    
    LOGICAL ::                                                                  &
-      verbose,    & ! print init and param details of all grid cells?
-      soilparmnew   ! read IGBP new soil map. Q.Zhang @ 12/20/2010
+      verbose,     & ! print init and param details of all grid cells?
+      soilparmnew, & ! read IGBP new soil map. Q.Zhang @ 12/20/2010
       calcsoilalbedo ! calculate soil albedo: added by Kai Requested by Jatin
 
    ! ================ Veg and soil type variables ============================
@@ -223,6 +223,8 @@ MODULE cable_IO_vars_module
          ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
          SoilWet = .FALSE.,   & ! 29 total soil wetness [-] 
          Albedo = .FALSE.,    & ! 30 albedo [-] 
+         visAlbedo = .FALSE., & 
+         nirAlbedo = .FALSE., & 
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
