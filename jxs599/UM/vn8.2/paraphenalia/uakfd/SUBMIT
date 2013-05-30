@@ -59,7 +59,7 @@ RUN_OUTPUT_FILE=$TARGET_OUT_PATH/$RUN_OUTFILE
 
 # Run switches for all models
 RUN_ATM=true
-RUN_RCF=true
+RUN_RCF=false
 RUN_NEMO=false
 RUN_CICE=false
 RUN_NEMO_CICE=false
