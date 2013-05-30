@@ -58,7 +58,7 @@ RUN_OUTPUT_FILE=$TARGET_OUT_PATH/$RUN_OUTFILE
 . $JOBDIR/COMP_SWITCHES
 
 # Run switches for all models
-RUN_ATM=false
+RUN_ATM=true
 RUN_RCF=true
 RUN_NEMO=false
 RUN_CICE=false
