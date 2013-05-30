@@ -19,6 +19,7 @@
 export ANCIL=/short/p66/pfu599/ancil_files/HG3A31_cal365
 export DATADIR=/short/$PROJECT/$USER
 export SPECTRAL=${UMDIR}/vn${VN}/ctldata/spectral/ga3_0
+export ACCESS_ANCIL=/data/projects/access/ancil/access_v2
 
 #---------------------------------------------
 # Job specific variables
