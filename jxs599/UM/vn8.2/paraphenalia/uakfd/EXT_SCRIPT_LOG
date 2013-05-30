@@ -31,11 +31,11 @@ Now running /home/599/jxs599/umui_jobs/eds/cable.ed
 ----- End of /home/599/jxs599/umui_jobs/eds/cable.ed -----
 
 Now running /home/599/jxs599/umui_jobs/eds/mod_date.ed
- FIXHD(21)=1982,
- FIXHD(28)=1982,
-6304
-6330
-6356
+ FIXHD(21)=0,
+ FIXHD(28)=0,
+6298
+6324
+6350
 ----- End of /home/599/jxs599/umui_jobs/eds/mod_date.ed -----
 
 End of Hand edits
