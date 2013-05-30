@@ -214,6 +214,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
   REAL(r_2), DIMENSION(mp)        :: ctotal
   REAL(r_2), DIMENSION(mp)        :: xLalloc,xwsalloc,xTalloc
   REAL(r_2), DIMENSION(mp)        :: xWorNalloc,xNalloc,xWalloc
+  REAL(r_2), DIMENSION(mp)        :: totfracCalloc
 
   ! initlization
   casaflux%fracCalloc  = 0.0
@@ -302,6 +303,11 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
 
   ENDWHERE
 
+  ! normalizing the allocation fraction to ensure they sum up to 1 (YPW Apr2013)
+  totfracCalloc(:) = sum(casaflux%fracCalloc(:,:),2)
+  casaflux%fracCalloc(:,leaf) = casaflux%fracCalloc(:,leaf)/totfracCalloc(:)
+  casaflux%fracCalloc(:,wood) = casaflux%fracCalloc(:,wood)/totfracCalloc(:)
+  casaflux%fracCalloc(:,froot) = casaflux%fracCalloc(:,froot)/totfracCalloc(:)
 
 END SUBROUTINE casa_allocation  
 
@@ -320,6 +326,7 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
   real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
+  real(r_2), dimension(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0   
 
   ratioPNplant = 0.0
   Ygrow        = 0.0
@@ -332,6 +339,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 
   casaflux%crmplant(:,wood) = 0.0
   casaflux%crmplant(:,froot) = 0.0
+  delcrmwood   = 0.0
+  delcrmfroot  = 0.0
   casaflux%crgplant = 0.0
   casaflux%clabloss = 0.0
 
@@ -363,8 +372,23 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
       casaflux%crgplant(:) = 0.0
     ENDWHERE
 
-    casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
-                     - casaflux%crgplant(:))) 
+!    casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2)&
+!                     - casaflux%crgplant(:))) 
+    ! changes made by yp wang 5 april 2013
+    ! to reduce wood and root resp when NPP < 0.0
+    casaflux%Cnpp(:) = casaflux%Cgpp(:) - SUM(casaflux%crmplant(:,:),2) &
+                     - casaflux%crgplant(:)
+    WHERE(casaflux%Cnpp < 0.0)
+      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
+                     / max(0.01,(casaflux%crmplant(:,wood) &
+                               + casaflux%crmplant(:,froot)))
+      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
+                     / max(0.01,(casaflux%crmplant(:,wood) &
+                               + casaflux%crmplant(:,froot)))
+      casaflux%crmplant(:,wood) = casaflux%crmplant(:,wood) + delcrmwood(:)
+      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+      casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+    ENDWHERE
   ENDWHERE
 
 !  print *, 'calling rplant',veg%iveg(1),casamet%tairk(1)
