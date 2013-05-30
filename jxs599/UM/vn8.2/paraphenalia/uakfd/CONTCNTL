@@ -7,7 +7,7 @@
  RUN_RESUBMIT_INC= 0, 1, 0, 0, 0, 0,
  MODEL_STATUS='NonOperational',
  MODEL_BASIS_TIME= 1982 , 1 , 1 , 0 , 0 , 0 ,
- ANCIL_REFTIME= 1981 , 12 , 1 , 0 , 0 , 0 ,
+ ANCIL_REFTIME= 0 , 0 , 0 , 0 , 0 , 0 ,
  RUN_TARGET_END= 0 , 0 , 1 , 0 , 0 , 0 , 
  LCLIMREALYR=.FALSE.,
  LTIMER=.FALSE., 
