@@ -130,8 +130,8 @@ stage_2_scr=$JOBDIR/stage_2_submit
 # Processor usage                                 #
 ###################################################
 
-NMPPE=4           # E-W decomposition
-NMPPN=4           # N-S decomposition
+NMPPE=1           # E-W decomposition
+NMPPN=1           # N-S decomposition
 NEMO_NPROC=0
 FLUME_STASH_NPROC=0
 FLUME_IOS_NPROC=0
@@ -227,7 +227,7 @@ NRUN_TIME_LIMIT=00:10:00
 CRUN_TIME_LIMIT=01:40:00
 
 # Job memory
-TOTAL_MEM_REQ=32gb
+TOTAL_MEM_REQ=2gb
 
   cat >>$run_header<<EOF
 #!/bin/ksh
