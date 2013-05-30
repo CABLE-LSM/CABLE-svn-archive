@@ -41,7 +41,7 @@
  /
 
  &JULES_NSTYPES
- NPFT=5,
+ NPFT=13
  NNVG=4, 
  /
 
