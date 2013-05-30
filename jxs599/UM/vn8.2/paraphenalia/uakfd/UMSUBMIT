@@ -184,8 +184,8 @@ if test $CC -eq 0; then
       MYSHELL=`grep \#! ${rundir}/${runscript} | head -1 | cut -d \! -f2`
       $remote_shell_command $host -l $uid -n "SHELL=${MYSHELL:-/bin/ksh} at -f ${rundir}/${runscript} now"  
     else
-      echo "Submitting ${rundir}/${runscript} via 'qsub' on $host"
-      $remote_shell_command $host -l $uid -n "qsub ${rundir}/${runscript} "
+      echo "Submitting ${rundir}/${runscript} via 'qsub -q express' on $host"
+      $remote_shell_command $host -l $uid -n "qsub -q express -l vmem=32GB -l walltime=600 -l ncpus=16  ${rundir}/${runscript} "
     fi  
   fi
 fi
