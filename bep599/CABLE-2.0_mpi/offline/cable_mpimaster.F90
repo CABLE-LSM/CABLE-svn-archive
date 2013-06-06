@@ -208,7 +208,7 @@ SUBROUTINE mpidrv_master (comm)
       vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
       spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
       spinConv = .FALSE.,         & ! has spinup converged?
-      spincasainput = .TRUE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
+      spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
@@ -237,7 +237,8 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
-   ! added variables by yp wang 7-npov-2012
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
    INTEGER :: mloop
 
    ! switches etc defined thru namelist (by default cable.nml)
@@ -256,6 +257,7 @@ SUBROUTINE mpidrv_master (comm)
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  mloop,            &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
@@ -295,30 +297,29 @@ SUBROUTINE mpidrv_master (comm)
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
+   IF( .NOT. spinup )  spinConv = .TRUE.
+
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
    ! Check for gswp run
    IF (ncciy /= 0) THEN
-   ! modified by ypw wang 30/oct/2012 following Chris Lu
-    PRINT *, 'Looking for global offline run info.'
-    IF (gswpfile%l_gpcc)THEN
+
+     ! modified by ypw wang 30/oct/2012 following Chris Lu
+     PRINT *, 'Looking for global offline run info.'
+     IF (gswpfile%l_gpcc)THEN
        IF (ncciy < 1948 .OR. ncciy > 2008) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
-       ELSE
-          CALL prepareFiles(ncciy)
        ENDIF
-    ELSE
+     ELSE
        IF (ncciy < 1986 .OR. ncciy > 1995) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
-       ELSE
-         CALL prepareFiles(ncciy)
        END IF
-    END IF
+     END IF
    
    ENDIF
    
@@ -416,21 +417,13 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   ! added by ypwang following Chris Lu   
-   ! need to check with BP for the order of calling for MPI
-   !kstart = 1
 
-   spinConv = .FALSE. ! initialise spinup convergence variable
-   if(.not.spinup)  spinConv=.true.
-   
+   ! added by ypwang following Chris Lu   
    if(icycle>0) then
-    !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
      if (spincasa) then
-      mloop = 5
-      print *, 'spincasacnp enabled with mloop= ', mloop
-      ! CALL read_casa_dump(casafile%dump_cnpspin,casamet,casaflux,kstart,kend)
-      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
-                       casabiome,casapool,casaflux,casamet,casabal,phen)
+       print *, 'spincasacnp enabled with mloop= ', mloop
+       call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
+                        casabiome,casapool,casaflux,casamet,casabal,phen)
      endif
    endif
 

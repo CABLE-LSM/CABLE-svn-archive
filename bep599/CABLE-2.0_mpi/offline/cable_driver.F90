@@ -84,7 +84,7 @@ PROGRAM cable_offline_driver
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
+                                  casa_met, casa_balance, mdyear
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
@@ -153,7 +153,11 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-   
+
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -170,6 +174,7 @@ PROGRAM cable_offline_driver
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  mloop,            &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
@@ -209,22 +214,29 @@ PROGRAM cable_offline_driver
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
+   IF( .NOT. spinup )  spinConv = .TRUE.
+
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
    ! Check for gswp run
    IF (ncciy /= 0) THEN
       
-      PRINT *, 'Looking for global offline run info.'
-      
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-         STOP 'Please check input in namelist file.'
-      ELSE
-         
-         CALL prepareFiles(ncciy)
-      
-      ENDIF
+     ! modified by ypw wang 30/oct/2012 following Chris Lu
+     PRINT *, 'Looking for global offline run info.'
+     IF (gswpfile%l_gpcc)THEN
+       IF (ncciy < 1948 .OR. ncciy > 2008) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       ENDIF
+     ELSE
+       IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       END IF
+     END IF
    
    ENDIF
    
@@ -254,7 +266,16 @@ PROGRAM cable_offline_driver
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+
+   ! added by ypwang following Chris Lu   
+   if(icycle>0) then
+     if (spincasa) then
+       print *, 'spincasacnp enabled with mloop= ', mloop
+       call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
+                        casabiome,casapool,casaflux,casamet,casabal,phen)
+     endif
+   endif
+
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -324,10 +345,12 @@ PROGRAM cable_offline_driver
    
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-            CALL write_output( dels, ktau, met, canopy, ssnow,                    &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
+            CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
+!            IF (icycle > 0) CALL casa_fluxout( dels, ktau, casabal, casamet)
+         END IF
    
        END DO ! END Do loop over timestep ktau
 
@@ -402,18 +425,31 @@ PROGRAM cable_offline_driver
 
    IF (icycle > 0) THEN
       
-      CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-                         casapool, casaflux, casamet, casabal, phen )
+!      CALL casa_poolout( ktau, veg, soil, casabiome,                         &
+!                         casapool, casaflux, casamet, casabal, phen )
+!
+!      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
-      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-  
+      print *, 'before ncdf_dump', spinConv, spincasainput
+      if ( spinConv .AND. spincasainput ) then
+           call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+      endif
+
    END IF
 
    ! Write restart file if requested:
-   IF(output%restart)                                                          &
+   IF(output%restart) THEN
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
-      
+      IF (icycle > 0) THEN
+         WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
+         CALL casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
+                           casabal,phen)
+         WRITE(logn, '(A36)') '   Restart file complete and closed.'
+      END IF
+
+   END IF
+
    ! Close met data input file:
    CALL close_met_file
  

@@ -110,7 +110,7 @@ casa_cable.o: casa_cable.F90 cable_define_types.o  cable_carbon.o casa_variable.
 
 casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o 
 
-casa_inout.o: casa_inout.F90 cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o casa_dump.o cable_common.o cable_write.o cable_checks.o cable_abort.o
+casa_inout.o: casa_inout.F90 cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o casa_dump.o cable_common.o cable_write.o cable_checks.o cable_abort.o cable_read.o
 
 casa_dump.o: casa_dump.F90 cable_define_types.o
 

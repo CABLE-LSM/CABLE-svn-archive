@@ -41,6 +41,9 @@ host_shin()
 ## burnet.hpsc.csiro.au 
 host_burn()
 {
+   . /apps/modules/Modules/default/init/ksh
+   module add netcdf/3.6.3 openmpi
+
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC=$F90
