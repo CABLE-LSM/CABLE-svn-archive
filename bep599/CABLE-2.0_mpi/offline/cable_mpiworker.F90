@@ -201,6 +201,10 @@ CONTAINS
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -217,6 +221,7 @@ CONTAINS
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  mloop,            &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
@@ -255,6 +260,8 @@ CONTAINS
       STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
+
+   IF( .NOT. spinup )  spinConv = .TRUE.
 
    ! Open log file:
    ! MPI: worker logs go to the black hole
