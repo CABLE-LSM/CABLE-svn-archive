@@ -141,7 +141,7 @@ CSIRO veg type parameters (2nd guess calibration)
     0      0      0      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 15  noveg      urban
- 0.2   0.00   0.000  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
+ 0.2   0.00   0.001  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.143  0.275  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
 0.023  0.113  0.010  0.001  0.001  0.010  ! tauleaf-vis,nir,therm, tauwood-vis,nir,therm
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
@@ -151,7 +151,7 @@ CSIRO veg type parameters (2nd guess calibration)
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 16  noveg      lakes
- 0.2   0.00   0.000  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
+ 0.2   0.00   0.001  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.143  0.275  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
 0.023  0.113  0.010  0.001  0.001  0.010  ! tauleaf-vis,nir,therm, tauwood-vis,nir,therm
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
@@ -161,7 +161,7 @@ CSIRO veg type parameters (2nd guess calibration)
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 17  noveg      ice
- 0.2   0.00   0.000  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
+ 0.2   0.00   0.001  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.159  0.305  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
 0.026  0.113  0.010  0.001  0.001  0.010  ! tauleaf-vis,nir,therm, tauwood-vis,nir,therm
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
