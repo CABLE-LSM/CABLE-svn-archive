@@ -59,6 +59,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   TYPE (phen_variable),       INTENT(INOUT) :: phen
 
   ! local variables
+  REAL(r_2), DIMENSION(mvtype)       :: slawright
   REAL(r_2), DIMENSION(mvtype)       :: leafage,frootage,woodage
   REAL(r_2), DIMENSION(mvtype)       :: totroot
   REAL(r_2), DIMENSION(mvtype)       :: cwdage,metage,strage
@@ -114,7 +115,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
                 casabiome%kminN(nv), casabiome%kuplabP(nv),           &
                 xfherbivore(nv),leafage(nv),woodage(nv),frootage(nv), &
                 metage(nv),strage(nv),cwdage(nv),  &
-                micage(nv),slowage(nv),passage(nv),clabileage(nv) 
+                micage(nv),slowage(nv),passage(nv),clabileage(nv),slawright(nv) 
 !     PRINT *, 'nv1',nv,nv1
   ENDDO  
 
@@ -238,7 +239,9 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   ENDDO
 
   DO nv=1,mvtype
-    casabiome%sla(nv)             = 0.025 * (leafage(nv)**(-0.5)) ! see eqn A1 of Arora and Boer, GCB, 2005
+! use the value from Wright et al. (2004) (read in) instead of equation 
+    casabiome%sla(nv)             = slawright(nv)
+!    casabiome%sla(nv)             = 0.025 * (leafage(nv)**(-0.5)) ! see eqn A1 of Arora and Boer, GCB, 2005
 !    casabiome%sla(nv)             = 2.0E-4 * exp(6.15)/((12*leafage(nv))**0.46) ! see eqn 6 of Sitch, GCB, 2003
 !    casabiome%fherbivore(nv)     = deltcasa*xfherbivore(nv)
     casabiome%fraclabile(nv,leaf) = deltcasa*0.6    !1/day
