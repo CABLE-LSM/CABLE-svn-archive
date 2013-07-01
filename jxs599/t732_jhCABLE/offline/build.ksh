@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg ubun
 }
+
+
+## 
+host_ubun()
+{
+   export NCDIR='/lib'
+   export NCMOD='/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## jiggle

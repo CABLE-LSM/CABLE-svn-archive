@@ -158,14 +158,6 @@ module cable_data_module
    END TYPE icbm_type
 
 
-   TYPE iair_type
-      REAL, POINTER ::                                                         &
-         ! physical constants
-         TFRZ, RMAIR, RGAS,                                                    &
-         TETENA, TETENB, TETENC,                                               &      
-         CAPP, RMH2O, HL
-   END TYPE iair_type
-
 
 
    TYPE ialbedo_type
@@ -247,7 +239,7 @@ module cable_data_module
 
  
    INTERFACE point2constants
-      MODULE PROCEDURE driver_type_ptr, cbm_type_ptr, air_type_ptr,            &
+      MODULE PROCEDURE driver_type_ptr, cbm_type_ptr,                          &
                        albedo_type_ptr, canopy_type_ptr, carbon_type_ptr,      &
                        rad_type_ptr, rough_type_ptr, ssnow_type_ptr  
    END INTERFACE 
@@ -276,23 +268,6 @@ SUBROUTINE cbm_type_ptr(C)
 END SUBROUTINE cbm_type_ptr 
 
 ! ------------------------------------------------------------------------------
-
-SUBROUTINE air_type_ptr(C)
-
-   TYPE(iair_type) :: C
-      
-   C%TFRZ  => PHYS%TFRZ
-   C%RMAIR => PHYS%RMAIR
-   C%RGAS  => PHYS%RGAS            
-   C%TETENA => PHYS%TETENA 
-   C%TETENB => PHYS%TETENB 
-   C%TETENC => PHYS%TETENC 
-   C%CAPP  => PHYS%CAPP
-   C%RMH2O => PHYS%RMH2O
-   C%HL     => PHYS%HL 
-
-END SUBROUTINE air_type_ptr
-
 ! ------------------------------------------------------------------------------
 
 SUBROUTINE albedo_type_ptr(C) 

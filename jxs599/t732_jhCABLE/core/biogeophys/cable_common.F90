@@ -167,6 +167,14 @@ MODULE cable_common_module
    TYPE(soilin_type), SAVE  :: soilin
    TYPE(vegin_type),  SAVE  :: vegin
 
+   ! unit numbers, open status return codes
+   ! ============
+   
+   INTEGER, PARAMETER :: unit_codeLog = 793
+   INTEGER, PARAMETER :: gok = 0 ! open=0, FAIL\=0
+   INTEGER :: openStat_codeLog = 1 
+
+
 !   !---parameters, tolerances, etc. could be set in _directives.h
 !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
 
@@ -174,6 +182,37 @@ MODULE cable_common_module
 !   real, dimension(:,:), pointer,save :: c1, rhoch
       
 CONTAINS
+
+
+SUBROUTINE open_code_log( filename ) 
+
+   CHARACTER(LEN=*) :: filename
+
+   OPEN( UNIT=unit_codeLog, FILE=filename, STATUS="unknown",                  &
+           ACTION="write", IOSTAT=openStat_codeLog, FORM="formatted",          &
+           POSITION='append' )
+
+END SUBROUTINE open_code_log
+
+ 
+ 
+SUBROUTINE report_min( chvar, chargA, chargB, message )
+
+   CHARACTER(LEN=*) :: chvar, chargA, chargB, message
+  
+   IF( knode_gl==0 .AND. ktau_gl== 1 ) THEN
+      IF(openStat_codeLog==gok) THEN
+         WRITE ( unit_codeLog, *)
+         WRITE ( unit_codeLog, *), 'Variable restricted: '
+         WRITE ( unit_codeLog, *), chvar 
+         WRITE ( unit_codeLog, *), 'restricted to MIN between:'
+         WRITE ( unit_codeLog, *), chargA, " ", chargB 
+         WRITE ( unit_codeLog, *)
+      ENDIF
+   ENDIF
+   
+END SUBROUTINE report_min
+
 
 
 SUBROUTINE get_type_parameters(logn,vegparmnew, classification)

@@ -412,9 +412,7 @@ MODULE cable_def_types_mod
       
       REAL, DIMENSION(:), POINTER ::                                           &
          rho,     & ! dry air density (kg m-3)
-         volm,    & ! molar volume (m3 mol-1)
          rlam,    & ! latent heat for water (j/kg)
-         qsat,    & ! saturation specific humidity
          epsi,    & ! d(qsat)/dT ((kg/kg)/K)
          visc,    & ! air kinematic viscosity (m2/s)
          psyc,    & ! psychrometric constant
@@ -853,9 +851,7 @@ SUBROUTINE alloc_air_type(var, mp)
    INTEGER, INTENT(in) :: mp
    
    ALLOCATE ( var % rho(mp) )
-   ALLOCATE ( var % volm(mp) )
    ALLOCATE ( var % rlam(mp) )
-   ALLOCATE ( var % qsat(mp) )
    ALLOCATE ( var % epsi(mp) )
    ALLOCATE ( var % visc(mp) )
    ALLOCATE ( var % psyc(mp) )
@@ -1245,9 +1241,7 @@ SUBROUTINE dealloc_air_type(var)
    TYPE(air_type), INTENT(inout) :: var
    
    DEALLOCATE ( var % rho )
-   DEALLOCATE ( var % volm )
    DEALLOCATE ( var % rlam )
-   DEALLOCATE ( var % qsat )
    DEALLOCATE ( var % epsi )
    DEALLOCATE ( var % visc )
    DEALLOCATE ( var % psyc )
