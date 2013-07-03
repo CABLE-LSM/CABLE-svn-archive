@@ -29,8 +29,6 @@
 !
 ! ==============================================================================
 
-
-
 !air% type variables calculated here and used elsewhere in model
 !IN _CANOPY
 !air%rho
@@ -46,9 +44,12 @@
 !air%cmolar
 
 
-
 MODULE cable_air_module
 
+   ! local pointers to global constants defined in
+   USE cable_data_module
+   !USE cable_data_module, ONLY : iair_type, point2constants
+   
    IMPLICIT NONE
 
    PUBLIC define_air
@@ -64,25 +65,22 @@ MODULE cable_air_module
          CAPP, RMH2O, HL
    END TYPE iair_type
 
-   ! local pointers setup to to global constants TYPE defined above
-   ! local constants TYPE declared here as C% 
    TYPE( iair_type ) :: C
 
 
 CONTAINS
 
-
 SUBROUTINE define_air(met,air)
 
    USE cable_def_types_mod,   ONLY : air_type, met_type, mp    
-   USE cable_common_module,   ONLY : cable_runtime, cable_user, ktau_gl 
-   USE cable_common_module,   ONLY : open_code_log, report_min 
+   USE cable_common_module,   ONLY : cable_runtime, cable_user, ktau_gl,       & 
+                                     open_code_log, report_min 
 
    TYPE (air_type), INTENT(INOUT) :: air ! air_type variables
    TYPE (met_type), INTENT(IN)    :: met ! meteorological variables
    
    ! local vatiables 
-   REAL, DIMENSION(mp) ::                                           &
+    REAL, DIMENSION(mp) ::                                                     &
       es,               & ! sat vapour pressure (mb)   
       volm,             & ! molar volume (m3 mol-1)
       qsat,             & ! saturation specific humidity
@@ -90,37 +88,31 @@ SUBROUTINE define_air(met,air)
       Ratio_water2Air,  & ! 4 convenience comp. Ratio 
       Teten_ratio,      & ! 4 convenience comp. Ratio 
       Teten_exp           ! 4 convenience comp. Exponential
-
-   ! END header
+ 
+! END header
    
    ! local ptrs to constants defined in cable_data_module
    CALL air_type_ptr 
  
+   ! 4 Concenience calculate: 
    ! a few things depend on relative tvair above freezing 
    above_freezing = met%tvair - C%TFRZ 
-   
-   ! 4 Concenience calculate: 
    Ratio_water2Air = C%RMH2O / C%RMAIR
-   !Teten_ratio = C%TETENB *  above_freezing / ( C%TETENC +  above_freezing ) 
-!jhan: although algebraically these 2 forms for tten_ratio are the same, 
-!they give different results when computed
-   Teten_ratio = C%TETENB / ( C%TETENC +  1.  ) 
+   Teten_ratio = C%TETENB *  above_freezing / ( C%TETENC +  above_freezing ) 
    Teten_exp = EXP( Teten_ratio ) 
+
+   ! Calculate saturation vapour pressure
+   es =  C%TETENA * Teten_exp
    
    ! Calculate conversion factor from from m/s to mol/m2/s
    air%cmolar = met%pmb * 100.0 / (C%RGAS * (met%tvair))
-   
-  
-   !es = C%TETENA * EXP( C%TETENB *  above_freezing                      &
-   !     / ( C%TETENC +  above_freezing  ) )
-   ! Calculate saturation vapour pressure
-   es =  C%TETENA * Teten_exp
              
    ! saturation specific humidity
    qsat = Ratio_water2Air * es / met%pmb
 
 !jhan: move to driver  
 CALL open_code_log( "code_log.txt" ) 
+
 
 !jhan: why 1.3
    ! Calculate dry air density:
@@ -130,25 +122,31 @@ CALL open_code_log( "code_log.txt" )
 !jhan: why 100.0
    ! molar volume (m^3/mol)
    volm = C%RGAS * (met%tvair) / (100.0 * met%pmb)
-   
+
    ! latent heat for water (j/kg)
-   air%rlam = C%HL
+   air%rlam= C%HL
+   
+   ! saturation specific humidity
+   air%qsat = (C%RMH2O / C%RMAIR) * es / met%pmb
    
    ! d(qsat)/dT ((kg/kg)/K)
-   air%epsi = (air%rlam / C%CAPP) * Ratio_water2Air * es * C%TETENC *     &
-              Teten_ratio / ( C%TETENC + above_freezing ) / met%pmb
-   
+   air%epsi = (air%rlam / C%CAPP) * Ratio_water2Air * es * C%TETENB *          &
+              C%TETENC / ( C%TETENC + above_freezing ) ** 2 / met%pmb
+              
 !jhan: why 1.35 etc
    ! air kinematic viscosity (m^2/s)
    air%visc = 1e-5 * MAX(1.0, 1.35 + 0.0092 * above_freezing )
-!CALL report_min( "air%rho", "1.3", "RMAIR * cmolar", "" )
+
+CALL report_min( "air%visc", "1.0", "1.35+.0092+  ", "please explain ..." )
    
    ! psychrometric constant
-   air%psyc = met%pmb * 100.0 * C%CAPP * air%rlam / Ratio_water2Air 
+    air%psyc = met%pmb * 100.0 * C%CAPP / air%rlam / Ratio_water2Air 
+
    
    ! d(es)/dT (mb/K)
    air%dsatdk = 100.0*(C%TETENA*C%TETENB*C%TETENC)/( above_freezing +      &
                 C%TETENC)**2 * Teten_exp
+
   
 END SUBROUTINE define_air
 
