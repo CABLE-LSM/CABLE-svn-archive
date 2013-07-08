@@ -46,10 +46,16 @@ SUBROUTINE cable_rad_driver(                                                   &
       SNOW_TMP3L  ! Snow temperature (3 layer)
                                                                    
    INTEGER :: i,J,N,K,L
+   INTEGER :: idjd,idjd1,idjd2,idjd3,idjd4
    REAL :: miss = 0.0
    LOGICAL :: skip =.TRUE. 
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
+
+       idjd1 = 1036
+       idjd2 = 9682
+       idjd3 = 17386
+       idjd4 = 21140
 
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
@@ -130,6 +136,25 @@ SUBROUTINE cable_rad_driver(                                                   &
                                 um1%TILE_FRAC(L,N)*LAND_ALB_CABLE_TILE(L,N)
          ENDDO
       ENDDO
+
+!  print 101,rad%albedo(idjd1,1),rad%albedo(idjd1,2),rad%reffdf(idjd1,1),rad%reffdf(idjd1,2), &
+!                         rad%reffbm(idjd1,1),rad%reffbm(idjd1,2),soil%albsoil(idjd1,1),soil%albsoil(idjd1,2), &
+!                          ssnow%albsoilsn(idjd1,:),ssnow%snowd(idjd1)
+!101 format(1x,'atm_ph1albedo1R',11f6.3,2f6.1)
+!     print 102,rad%albedo(idjd2,1),rad%albedo(idjd2,2),rad%reffdf(idjd2,1),rad%reffdf(idjd2,2), &
+!                         rad%reffbm(idjd2,1),rad%reffbm(idjd2,2),soil%albsoil(idjd2,1),soil%albsoil(idjd2,2), &
+!                          ssnow%albsoilsn(idjd2,:),ssnow%snowd(idjd2)
+!102 format(1x,'atm_ph1albedo2R',11f6.3,2f6.1)
+!     print 103,rad%albedo(idjd3,1),rad%albedo(idjd3,2),rad%reffdf(idjd3,1),rad%reffdf(idjd3,2), &
+!                         rad%reffbm(idjd3,1),rad%reffbm(idjd3,2),soil%albsoil(idjd3,1),soil%albsoil(idjd3,2), &
+!                          ssnow%albsoilsn(idjd3,:),ssnow%snowd(idjd3)
+!103 format(1x,'atm_ph1albedo3R',11f6.3,2f6.1)
+!     print 104,rad%albedo(idjd4,1),rad%albedo(idjd4,2),rad%reffdf(idjd4,1),rad%reffdf(idjd4,2), &
+!                         rad%reffbm(idjd4,1),rad%reffbm(idjd4,2),soil%albsoil(idjd4,1),soil%albsoil(idjd4,2), &
+!                          ssnow%albsoilsn(idjd4,:),ssnow%snowd(idjd4)
+!104 format(1x,'atm_ph1albedo4R',11f6.3,2f6.1)
+!
+!
 
       cable_runtime%um_radiation= .FALSE.
 

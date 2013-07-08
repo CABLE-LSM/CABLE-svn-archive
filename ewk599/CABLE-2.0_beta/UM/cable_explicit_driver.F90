@@ -198,6 +198,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(IN) ::  timestep     
    
    INTEGER:: itimestep
+   INTEGER:: k,j
     
    !___return miscelaneous 
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
@@ -283,6 +284,28 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil )                         
+
+!         if( ktau_gl .lt. 2 ) then
+!         do k=1,mp
+!          print 129, soil%isoilm(k),ssnow%isflag(k),k,soil%ssat(k),soil%sfc(k),soil%swilt(k), &
+!            soil%sucs(k),soil%hyds(k)*10.e6, &
+!            soil%cnsd(k),soil%bch(k),(ssnow%wb(k,J),j=1,ms), &
+!            (ssnow%wbice(k,J),j=1,ms),(ssnow%tgg(k,J),j=1,ms), soil%isoilm(k),  &
+!             veg%iveg(k),veg%vlai(k),soil%albsoil(k,1),soil%albsoil(k,2),ssnow%snowd(k), &
+!             ssnow%ifland(k),ssnow%fland(k),veg%hc(k),met%tk(k),(ssnow%tggsn(k,J),j=1,3), &
+!             ssnow%tggav(k),rough%za_tq(k),rough%za_uv(k)
+!     129  format("SLT",2i2,x,i5,3(x,f3.2),f4.2,f4.0,x,f3.2,f4.1,x,6(f4.3),x,6(f3.2),x,6f6.1, &
+!                       i2,x,i2,f5.2,x,2f3.2,f6.0,f6.0,f5.2,f5.2,f6.1,4f6.1,2f4.0)
+!           if(veg%iveg(k) .eq. 17 .and. soil%isoilm(k) .ne. 9 ) print 141, &
+!            k,veg%iveg(k),soil%isoilm(k),soil%albsoil(k,1),soil%albsoil(k,2),veg%vlai(k),veg%hc(k), &
+!            ssnow%snowd(k),(ssnow%tgg(k,J),j=1,ms),ssnow%ifland(k),ssnow%fland(k)
+!141         format(1x,'wrong ice point 1',i5,2i3,2f6.2,x,2f7.3,f6.0,6f6.1,f6.0,f5.2)
+!           if(veg%iveg(k) .ne. 17 .and. soil%isoilm(k) .eq. 9 ) print 142, &
+!            k,veg%iveg(k),soil%isoilm(k),soil%albsoil(k,1),soil%albsoil(k,2),veg%vlai(k),veg%hc(k), &
+!            ssnow%snowd(k),(ssnow%tgg(k,J),j=1,ms),ssnow%ifland(k),ssnow%fland(k)
+!142         format(1x,'wrong ice point 2',i5,2i3,2f6.2,x,2f7.3,f6.0,6f6.1,f6.0,f5.2)
+!         enddo
+!         endif ! if( ktau_gl .lt. 2 )
 
    canopy%oldcansto=canopy%cansto
 
@@ -455,7 +478,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
 
    !___local miscelaneous
    REAL, DIMENSION(mp)  :: &
-   THETAST,fraca_cab,rfsfs_cab, RECIPLMOTILE, fe_dlh
+   THETAST,fraca_cab,rfsfs_cab, RECIPLMOTILE, fe_dlh,fev_dlh,fes_dlh
    INTEGER :: i,j,k,N,L
    REAL :: miss = 0.0
    LOGICAL, SAVE :: first_cable_call = .true.
@@ -469,7 +492,10 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       FQW_TILE_CAB = UNPACK(canopy_fe,  um1%l_tile_pts, miss)
       LE_TILE_CAB = UNPACK(canopy_fe,  um1%l_tile_pts, miss)
       LE_CAB = SUM(um1%TILE_FRAC * LE_TILE_CAB,2)
+      !fev_dlh = canopy_fev/(air_rlam)
+      !fes_dlh = canopy_fes/(air_rlam*ssnow_cls)
       fe_dlh = canopy_fe/(air_rlam*ssnow_cls)
+      !fe_dlh  = fev_dlh + fes_dlh 
       FTL_TILE = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
       FTL_TILE = FTL_TILE / capp
       FQW_TILE = UNPACK(fe_dlh, um1%l_tile_pts, miss)
@@ -479,7 +505,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       TSTAR_CAB = SUM(um1%TILE_FRAC * TSTAR_TILE_CAB,2)
       TSTAR_TILE = UNPACK(rad_trad,  um1%l_tile_pts, miss)
       Z0M_TILE = UNPACK(rough_z0m,  um1%l_tile_pts, miss)
-      Z0H_TILE = Z0M_TILE
+      Z0H_TILE = 0.1*Z0M_TILE
       
       !___return friction velocities/drags/ etc
       U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)

@@ -417,11 +417,10 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       FQW_TILE_CAB = UNPACK(canopy%fe,  um1%l_tile_pts, miss)
       LE_TILE_CAB = FQW_TILE_CAB 
       LE_CAB = SUM(um1%TILE_FRAC * LE_TILE_CAB,2)
-      fe_dlh = canopy%fe/(air%rlam*ssnow%cls)
-      where ( fe_dlh .ge. 0.0 ) fe_dlh = MAX ( 1.e-6, fe_dlh )
-      where ( fe_dlh .lt. 0.0 ) fe_dlh = MIN ( -1.e-6, fe_dlh )
+!      fe_dlh = canopy%fe/(air%rlam*ssnow%cls)
       fes_dlh = canopy%fes/(air%rlam*ssnow%cls)
       fev_dlh = canopy%fev/air%rlam
+      fe_dlh =  fev_dlh + fes_dlh 
 
       !---preserve fluxes from the previous time step for the coastal grids
       FTL_TILE_old = FTL_TILE

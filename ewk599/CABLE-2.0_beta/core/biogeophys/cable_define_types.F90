@@ -352,7 +352,7 @@ MODULE cable_def_types_mod
      
 
       REAL, DIMENSION(:,:,:), POINTER ::                                       &
-         qcan ! absorbed radiation for canopy (W/m^2)
+         qcan ! absorbed radiation by canopy (W/m^2)
     
     
   END TYPE radiation_type

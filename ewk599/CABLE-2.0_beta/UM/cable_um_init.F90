@@ -156,6 +156,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !--- logn, vegparmnew can be set thru cable.nml
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
+   integer :: jmp,n,k,l
+
          
 
       !---------------------------------------------------------------------!
@@ -248,6 +250,32 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
       ENDIF      
+! EAK testing
+!           jmp =0
+!           do n=1,um1%ntiles
+!            DO K=1,um1%TILE_PTS(N)
+!              L = um1%TILE_INDEX(K,N)  ! K must be landpt index
+!              J=(um1%LAND_INDEX(L)-1)/um1%ROW_LENGTH + 1
+!              I = um1%LAND_INDEX(L) - (J-1)*um1%ROW_LENGTH
+!                if( um1%TILE_FRAC(L,N) .gt. 0.0 )  then
+!                    jmp = jmp + 1
+!          write(0,119) N,K,L,I,J,um1%TILE_PTS(N),um1%TILE_FRAC(L,N),FLAND(L),jmp, &
+!                      !SMCL(L,1)/DZSOIL(1)/RHO_WATER,SMCL(L,2)/DZSOIL(2)/RHO_WATER, &
+!                      !SMCL(L,3)/DZSOIL(3)/RHO_WATER,SMCL(L,4)/DZSOIL(4)/RHO_WATER, &
+!                      !SNOW_TILE(L,N),TSTAR_TILE(L,N), &
+!                      SNOW_TILE(L,N), &
+!                      TL_1(I,J),QW_1(I,J),cos_zenith_angle(I,J),LW_DOWN(I,J), &
+!                      (surf_down_sw(I,J,1)+surf_down_sw(I,J,2) + &
+!                      surf_down_sw(I,J,3)+surf_down_sw(I,J,4))*cos_zenith_angle(I,J), &
+!                      SMVCST(L),albsoil(L),SNOW_TILE(L,N)
+!119 format(1x,"EAK N,K",i2,2i6,2i3,i5,2f5.2,x,i5,x,f6.0,f6.1, &
+!                       f7.4,f5.2,2f5.0,x,f6.2,x,f4.2,f6.0,i6)
+!
+!                endif
+!            enddo
+!           enddo
+
+
       
 END SUBROUTINE interface_UM_data
                                    

@@ -132,6 +132,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       IF( first_call ) THEN 
 
          ssnow%pudsto = 0.0; ssnow%pudsmx = 0.0
+! is pudso & pudsmx in restart file?
       
          !--- soil%isoilm defines soiltype. 
          ! currently is either 2 (arbitrarily) or 9.
@@ -517,7 +518,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL :: first_call = .TRUE.
-
+!     not sure if this is in restart file hence repeted again
+      ssnow%pudsto = 0.0; ssnow%pudsmx = 0.0
       ssnow%wbtot1 = 0
       ssnow%wbtot2 = 0
       TFRZ => PHYS%TFRZ
@@ -654,6 +656,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          first_call = .FALSE.
 
       ENDIF ! END: if (first_call)       
+
+      !ssnow%wb_lake = ssnow%wb_lake + MAX( ssnow%wbtot2 - ssnow%wbtot1, 0.)
 
 END SUBROUTINE initialize_soilsnow
  
