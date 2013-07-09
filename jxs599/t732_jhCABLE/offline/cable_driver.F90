@@ -67,6 +67,8 @@
 !==============================================================================
 
 PROGRAM cable_offline_driver
+
+   USE cable_admin_module, ONLY : open_files
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
@@ -191,17 +193,18 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
-   ! Open log file:
-   OPEN(logn,FILE=filename%log)
- 
+   ! open cable_log files
+   CALL open_files( logn, filename%log )
+    
    CALL report_version_no( logn )
     
+   ! if args are given on the command line as in some apps
+   ! overwrite namelist values for ... 
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
    ENDIF
-
-    
+   
    cable_runtime%offline = .TRUE.
    
    ! associate pointers used locally with global definitions

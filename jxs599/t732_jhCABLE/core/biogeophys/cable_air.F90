@@ -46,10 +46,6 @@
 
 MODULE cable_air_module
 
-   ! local pointers to global constants defined in
-   USE cable_data_module
-   !USE cable_data_module, ONLY : iair_type, point2constants
-   
    IMPLICIT NONE
 
    PUBLIC define_air
@@ -73,8 +69,9 @@ CONTAINS
 SUBROUTINE define_air(met,air)
 
    USE cable_def_types_mod,   ONLY : air_type, met_type, mp    
-   USE cable_common_module,   ONLY : cable_runtime, cable_user, ktau_gl,       & 
-                                     open_code_log, report_min 
+   USE cable_common_module,   ONLY : cable_runtime, cable_user, ktau_gl
+   USE cable_admin_module,    ONLY : report_min, report_max 
+
 
    TYPE (air_type), INTENT(INOUT) :: air ! air_type variables
    TYPE (met_type), INTENT(IN)    :: met ! meteorological variables
@@ -89,58 +86,58 @@ SUBROUTINE define_air(met,air)
       Teten_ratio,      & ! 4 convenience comp. Ratio 
       Teten_exp           ! 4 convenience comp. Exponential
  
-! END header
+   ! END header
    
    ! local ptrs to constants defined in cable_data_module
    CALL air_type_ptr 
  
    ! 4 Concenience calculate: 
-   ! a few things depend on relative tvair above freezing 
+   ! relative tvair (canopy air Temp) above freezing 
    above_freezing = met%tvair - C%TFRZ 
+   ! relative molecular weights [kg/mol]
    Ratio_water2Air = C%RMH2O / C%RMAIR
+!Teten?
    Teten_ratio = C%TETENB *  above_freezing / ( C%TETENC +  above_freezing ) 
    Teten_exp = EXP( Teten_ratio ) 
 
-   ! Calculate saturation vapour pressure
+   ! saturation vapour pressure ~ func(Temp) [T=0, es=TetenA]
    es =  C%TETENA * Teten_exp
    
-   ! Calculate conversion factor from from m/s to mol/m2/s
-   air%cmolar = met%pmb * 100.0 / (C%RGAS * (met%tvair))
+!jhan:and below, dimensionally inconsistent w coments 
+   ! conversion factor from m/s to mol/m2/s
+   ! %pmb = surf air pressure[mbar], Rgas= universal gas const [J/mol/K]
+   air%cmolar = met%pmb * 100.0 / (C%RGAS * met%tvair)
              
-   ! saturation specific humidity
+!jhan: why 1.3
+   ! dry air density: [kg/m3]
+   air%rho = MIN(1.3,C%RMAIR * air%cmolar)
+   CALL report_min( "air%rho", "1.3", "RMAIR * cmolar" )
+  
+   ! saturation specific humidity (vapour/air Pressure)
    qsat = Ratio_water2Air * es / met%pmb
 
-!jhan: move to driver  
-CALL open_code_log( "code_log.txt" ) 
-
-
-!jhan: why 1.3
-   ! Calculate dry air density:
-   air%rho = MIN(1.3,C%RMAIR * air%cmolar)
-   CALL report_min( "air%rho", "1.3", "RMAIR * cmolar", "" )
-  
 !jhan: why 100.0
    ! molar volume (m^3/mol)
-   volm = C%RGAS * (met%tvair) / (100.0 * met%pmb)
-
+   volm = C%RGAS * met%tvair / (100.0 * met%pmb)
+   volm = 1./air%cmolar
    ! latent heat for water (j/kg)
    air%rlam= C%HL
-   
-   ! saturation specific humidity
-   air%qsat = (C%RMH2O / C%RMAIR) * es / met%pmb
-   
+  
+    ! d(qsat)/dT ((kg/kg)/K)
+   !air%epsi = (air%rlam / C%CAPP) * Ratio_water2Air * es * C%TETENB *          &
+   !           C%TETENC / ( C%TETENC + above_freezing ) ** 2 / met%pmb
+   !the below is algebraically equivalent but givesslight zero-diff
    ! d(qsat)/dT ((kg/kg)/K)
-   air%epsi = (air%rlam / C%CAPP) * Ratio_water2Air * es * C%TETENB *          &
-              C%TETENC / ( C%TETENC + above_freezing ) ** 2 / met%pmb
+   air%epsi = (air%rlam / C%CAPP) * qsat * C%TETENB * C%TETENC /               &
+              ( C%TETENC + above_freezing ) ** 2 
               
 !jhan: why 1.35 etc
    ! air kinematic viscosity (m^2/s)
    air%visc = 1e-5 * MAX(1.0, 1.35 + 0.0092 * above_freezing )
-
-CALL report_min( "air%visc", "1.0", "1.35+.0092+  ", "please explain ..." )
+   CALL report_max( "air%visc", "1.0", "1.35+.0092+  ", "please explain ..." )
    
    ! psychrometric constant
-    air%psyc = met%pmb * 100.0 * C%CAPP / air%rlam / Ratio_water2Air 
+   air%psyc = met%pmb * 100.0 * C%CAPP / air%rlam / Ratio_water2Air 
 
    
    ! d(es)/dT (mb/K)
