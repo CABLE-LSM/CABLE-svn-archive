@@ -53,8 +53,8 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    USE cable_common_module, ONLY : cable_runtime, cable_user
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
-
    TYPE(roughness_type), INTENT(INOUT) :: rough
+!pass these vars from types in cbm
    TYPE (canopy_type),   INTENT(INOUT) :: canopy
    TYPE(soil_snow_type), INTENT(IN)    :: ssnow
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
@@ -83,6 +83,12 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    REAL, DIMENSION(mp) :: xx_term
 
    LOGICAL, DIMENSION(mp) :: BareSoil_mask
+   
+   REAL ::                                                                     & 
+      z0m_GrowthFactor, & ! factor inside exponential  
+      z0m_expGrowth       ! compute exponential for calc of roughness  
+       
+   INTEGER :: i      
 
 !jhan: do same thing here as in cable_air,i.e.bring subr into local module 
    CALL point2constants( C ) 
@@ -98,19 +104,25 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !...............................................................................
 
    ! Roughness length of bare snow (m): ?BUT we are calcuating this everywhere
-   
-   ! in this case we consider snow density doesnt go above 20  
+!jhan: this stops roughness length of bare snow from going negative
+!jhan: isnt it better to just range this from 0:calc'ed   
+   ! in this case we consider snow density doesnt go above 20 i.e.(0:20) 
    Eff_SnowDepth = MIN( ssnow%snowd, 20. )
 
-   ! Adjusted Roughness length of bare snow (m):
-   rough%z0soilsn = z0soil - 0.5e-7 * Eff_SnowDepth
+!jhan: why not just put z0soil =0
+!jhan: i.e.  rough%z0soilsn = z0soil - 5.e-8 * ssnow%snowd
+!jhan: but why 5.e-8
+!fair enough is less friction than soil but by how much (5.e-8?)
 
+!snow depth can be zero -> rough%z0soilsn = z0soil = 1.e-6 
+!either way if eff_snowd=20, %z0soiln= 2.e1 * 5e-8 = 1.e-7 
+
+   ! Adjusted Roughness length of bare snow (m), i.e.(9:10)e-7
+   rough%z0soilsn = z0soil - 5.e-8 * Eff_SnowDepth
+
+!jhan: this will never happen!! delete
    ! Restricted Roughness length of bare snow (m):
-   rough%z0soilsn = MAX( rough%z0soilsn, 0.1e-7 )
-
-   !orig
-   rough%z0soilsn = MAX( z0soil - 0.5e-7 * MIN( ssnow%snowd, 20. ),      &
-                    0.1e-7 )
+   rough%z0soilsn = MAX( rough%z0soilsn, 1.e-8 )
 
 !...............................................................................
 
@@ -126,11 +138,13 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !jhan: BUt surely this can be 0. or bare snow (z0soilsn) if trees are 
 ! buried under snow 
 !jhan: ?1.2?
+!BUT this isn't dimensionally sound
    rough%hruff = veg%hc - 1.2 * ssnow%snowd / Eff_SnowDensity  
    
 !jhan: USE report_max subr
    ! rough%hruff is limited here to not be less than 0.01 
    rough%hruff = MAX( 0.01, rough%hruff ) 
+!therefore it will NEVER trigger second half of mask 
    
 !...............................................................................
 
@@ -142,6 +156,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !jhan: chheck this
    ! veg%vlai is the input LAI
 !jhan: LAI modified by roughness height relative to real height ? why?
+!ratio of exposed to buried affects LAI same ratio
    canopy%vlaiw = veg%vlai * rough%hruff / Eff_height 
 
    ! By default rghLAI = snow adjusted LAI 
@@ -190,8 +205,8 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !...............................................................................
 
 !jhan:explain     
-      xx_term = MAX( Eff_LAI, 0.0005 ) 
-      xx = SQRT( C%CCD * xx_term )
+   xx_term = MAX( Eff_LAI, 0.0005 ) 
+   xx = SQRT( C%CCD * xx_term )
     
    ! Displacement height/canopy height:
    ! eq.8 Raupach 1994, BLM, vol 71, p211-216
@@ -202,6 +217,8 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    rough%coexp = rough%usuh / ( C%VONK * C%CCW_C * ( 1.0 - dh ) )
 
 !-------------------------------------------------------------------------------
+
+   ! These initializations are over-written on vegetated surfaces
 
    ! zero-plane displacement
    rough%disp = 0.0
@@ -223,7 +240,26 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
 !...............................................................................
 
-   ! set roughness AND resistance(s) for VEGETATED SURFACEs
+   ! VEGETATED SURFACEs
+
+   ! set zero-plane displacement
+   WHERE( .NOT. BareSoil_mask )                                               &
+      rough%disp = dh * rough%hruff
+
+   ! set roughness 
+   DO i=1,mp
+
+      IF( .NOT. BareSoil_mask(i) ) THEN
+
+         rough%z0m(i) = ( 1.0 - dh(i) ) * exponentialGrowth( rough%usuh(i) )   &
+                        * rough%hruff(i)
+      
+      ENDIF
+
+   ENDDO
+
+ 
+   ! set resistance(s) for VEGETATED SURFACEs
    WHERE( .NOT. BareSoil_mask )
       
       ! Calculate zero-plane displacement:
@@ -269,5 +305,20 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
 END SUBROUTINE ruff_resist
 
+!-------------------------------------------------------------------------------
+
+FUNCTION exponentialGrowth( usuh ) RESULT (zexp)
+
+   REAL, INTENT(IN) :: usuh
+   REAL :: factor, zexp 
+
+         factor = LOG( C%CCW_C ) - 1. + ( 1. / C%CCW_C )             &
+                            - ( C%VONK / usuh )
+
+         zexp= EXP( factor )
+
+END FUNCTION exponentialGrowth 
+
+!-------------------------------------------------------------------------------
 
 END MODULE cable_roughness_module
