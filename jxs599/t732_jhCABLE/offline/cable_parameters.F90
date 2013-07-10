@@ -1139,7 +1139,8 @@ CONTAINS
     soil%ibp2   = NINT(soil%bch) + 2
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
-    rough%hruff_grmx = rough%hruff 
+    !jhan: this is never used - delete
+    !rough%hruff_grmx = rough%hruff 
     ! owetfac introduced by EAK apr2009
     ssnow%owetfac = MAX(0.0, MIN(1.0,                                          &
                    (REAL(ssnow%wb(:, 1)) - soil%swilt) /                  &

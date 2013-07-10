@@ -372,23 +372,24 @@ MODULE cable_def_types_mod
 
    ! Roughness variables:
    TYPE roughness_type
-      
+
+      ! Forcing from GCM, initialized offline
       REAL, DIMENSION(:), POINTER ::                                           &
+         za_uv,   & ! level of lowest atmospheric model layer
+         za_tq      ! level of lowest atmospheric model layer
+
+      REAL, DIMENSION(:), POINTER ::                                           &
+         rt0us,   & ! eq. 3.54, SCAM manual (CSIRO tech report 132)
          disp,    & ! zero-plane displacement
          hruff,   & ! canopy height above snow level
-         hruff_grmx,&! max ht of canopy from tiles on same grid 
-         rt0us,   & ! eq. 3.54, SCAM manual (CSIRO tech report 132)
          rt1usa,  & ! resistance from disp to hruf
          rt1usb,  & ! resist fr hruf to zruffs (zref if zref<zruffs)
          rt1,     & ! 1/aerodynamic conductance
-         za_uv,   & ! level of lowest atmospheric model layer
-         za_tq,   & ! level of lowest atmospheric model layer
          z0m,     & ! roughness length
          zref_uv, & ! Reference height for met forcing
          zref_tq, & ! Reference height for met forcing
          zruffs,  & ! SCALAR Roughness sublayer depth (ground=origin)
-         z0soilsn,& ! roughness length of bare soil surface
-         z0soil     ! roughness length of bare soil surface
+         z0soilsn   ! roughness length of bare soil surface
       
       ! "coexp": coefficient in exponential in-canopy wind profile
       ! U(z) = U(h)*exp(coexp*(z/h-1)), found by gradient-matching
@@ -399,10 +400,6 @@ MODULE cable_def_types_mod
       ! "usuh": us/uh (us=friction velocity, uh = mean velocity at z=h)
       REAL, DIMENSION(:), POINTER ::                                           &
          usuh ! Friction velocity/windspeed at canopy height
-   
-      REAL, DIMENSION(:), POINTER ::                                           &
-         term2, term3, term5, term6 ! for aerodyn resist. calc.
-   
    END TYPE roughness_type
 
 ! .............................................................................
@@ -822,15 +819,10 @@ SUBROUTINE alloc_roughness_type(var, mp)
    ALLOCATE ( var % coexp(mp) )
    ALLOCATE ( var % disp(mp) )
    ALLOCATE ( var % hruff(mp) )
-   ALLOCATE ( var % hruff_grmx(mp) )
    ALLOCATE ( var % rt0us(mp) )
    ALLOCATE ( var % rt1usa(mp) )
    ALLOCATE ( var % rt1usb(mp) )
    ALLOCATE ( var % rt1(mp) )
-   ALLOCATE ( var % term2(mp) )
-   ALLOCATE ( var % term3(mp) )
-   ALLOCATE ( var % term5(mp) )
-   ALLOCATE ( var % term6(mp) )
    ALLOCATE ( var % usuh(mp) )
    ALLOCATE ( var % za_uv(mp) )
    ALLOCATE ( var % za_tq(mp) )
@@ -839,7 +831,6 @@ SUBROUTINE alloc_roughness_type(var, mp)
    ALLOCATE ( var % zref_tq(mp) )
    ALLOCATE ( var % zruffs(mp) )
    ALLOCATE ( var % z0soilsn(mp) )
-   ALLOCATE ( var % z0soil(mp) )
 
 END SUBROUTINE alloc_roughness_type
 
@@ -1213,15 +1204,10 @@ SUBROUTINE dealloc_roughness_type(var)
    DEALLOCATE ( var % coexp )
    DEALLOCATE ( var % disp )
    DEALLOCATE ( var % hruff )
-   DEALLOCATE ( var % hruff_grmx )
    DEALLOCATE ( var % rt0us )
    DEALLOCATE ( var % rt1usa )
    DEALLOCATE ( var % rt1usb )
    DEALLOCATE ( var % rt1 )
-   DEALLOCATE ( var % term2 )
-   DEALLOCATE ( var % term3 )
-   DEALLOCATE ( var % term5 )
-   DEALLOCATE ( var % term6 )
    DEALLOCATE ( var % usuh )
    DEALLOCATE ( var % za_uv )
    DEALLOCATE ( var % za_tq )
@@ -1230,7 +1216,6 @@ SUBROUTINE dealloc_roughness_type(var)
    DEALLOCATE ( var % zref_tq )
    DEALLOCATE ( var % zruffs )
    DEALLOCATE ( var % z0soilsn )
-   DEALLOCATE ( var % z0soil )
   
 END SUBROUTINE dealloc_roughness_type
    
