@@ -82,6 +82,8 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
    REAL, DIMENSION(mp) :: xx_term
 
+   LOGICAL, DIMENSION(mp) :: BareSoil_mask
+
 !jhan: do same thing here as in cable_air,i.e.bring subr into local module 
    CALL point2constants( C ) 
 
@@ -164,27 +166,26 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    ! Effective LAI to consider in calc of friction velocity 
    Eff_LAI = canopy%vlaiw * 0.5
 
-!use masking here .NOT. mask etc
-   ! Where snow adjsuted LAI is very small
-   WHERE( canopy%vlaiw .LT. 0.01 .OR.                                          &
-          rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
-      
-      ! set to zero as veg%hc doesnt really matter here
+   ! Mask of Bare Soil surfaces
+   BareSoil_mask = canopy%vlaiw .LT. 0.01 .OR.                                 &
+                   rough%hruff .LT. rough%z0soilsn 
+
+   ! set exposed height to zero when bare soil anyway 
+   WHERE( BareSoil_mask )                                                      &
       rough%hruff = 0.0
   
-   ELSEWHERE ! VEGETATED SURFACE
-
-      ! Effective LAI to consider here
+   ! set Effective LAI to consider for VEGETATED SURFACEs
+   WHERE( .NOT. BareSoil_mask )                                                &
       Eff_LAI = canopy%rghlai * 0.5
      
-    END WHERE
+!...............................................................................
 
-      ! Friction velocity/windspeed at canopy height
-      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
-      ! (C%USUHM set in physical_constants module):
-      ! Effective LAI to consider here
-      rough%usuh = SQRT( C%CSD + C%CRD * Eff_LAI )
-      rough%usuh = MIN( rough%usuh, C%USUHM )
+   ! Friction velocity/windspeed at canopy height
+   ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
+   ! (C%USUHM set in physical_constants module):
+   ! Effective LAI to consider here
+   rough%usuh = SQRT( C%CSD + C%CRD * Eff_LAI )
+   rough%usuh = MIN( rough%usuh, C%USUHM )
 
 !...............................................................................
 
@@ -192,13 +193,13 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       xx_term = MAX( Eff_LAI, 0.0005 ) 
       xx = SQRT( C%CCD * xx_term )
     
-      ! Displacement height/canopy height:
-      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
-      dh = 1.0 - ( 1.0 - EXP( -xx ) ) / xx
- 
-      ! Extinction coefficient for wind profile in canopy:
-      ! eq. 3.14, SCAM manual (CSIRO tech report 132)
-      rough%coexp = rough%usuh / ( C%VONK * C%CCW_C * ( 1.0 - dh ) )
+   ! Displacement height/canopy height:
+   ! eq.8 Raupach 1994, BLM, vol 71, p211-216
+   dh = 1.0 - ( 1.0 - EXP( -xx ) ) / xx
+
+   ! Extinction coefficient for wind profile in canopy:
+   ! eq. 3.14, SCAM manual (CSIRO tech report 132)
+   rough%coexp = rough%usuh / ( C%VONK * C%CCW_C * ( 1.0 - dh ) )
 
 !-------------------------------------------------------------------------------
 
@@ -222,11 +223,8 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
 !...............................................................................
 
-!jhan: where .NOT. MASK
-   ! Where snow adjsuted LAI is very small
-   WHERE( canopy%vlaiw .LT. 0.01 .OR.                                          &
-          rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
-   ELSEWHERE ! VEGETATED SURFACE
+   ! set roughness AND resistance(s) for VEGETATED SURFACEs
+   WHERE( .NOT. BareSoil_mask )
       
       ! Calculate zero-plane displacement:
       rough%disp = dh * rough%hruff
