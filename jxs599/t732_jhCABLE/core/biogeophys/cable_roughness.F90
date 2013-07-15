@@ -50,9 +50,13 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    !      MRR draft paper "Simplified expressions...", dec-92
    ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
+                                   ktau => ktau_gl,                            &
+                                   kend => kend_gl, knode_gl
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
+   USE cable_diag_module
+   
    TYPE(roughness_type), INTENT(INOUT) :: rough
 !pass these vars from types in cbm
    TYPE (canopy_type),   INTENT(INOUT) :: canopy
@@ -83,23 +87,22 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    REAL, DIMENSION(mp) :: xx_term
 
    LOGICAL, DIMENSION(mp) :: BareSoil_mask
-   
-   REAL ::                                                                     & 
-      z0m_GrowthFactor, & ! factor inside exponential  
-      z0m_expGrowth       ! compute exponential for calc of roughness  
-       
-   INTEGER :: i      
+
+   INTEGER, SAVE :: iDiag1=0      
 
 !jhan: do same thing here as in cable_air,i.e.bring subr into local module 
    CALL point2constants( C ) 
 
 !...............................................................................
 
-      ! Reference height zref is height above the displacement height
-      ! za_uv,tq are forcing
+   ! Reference height zref is height above the displacement height
+   ! za_uv,tq are forcing
 !jhan: isnt this very artificial, imposing ahard minimum      
-      rough%zref_uv = MAX( 3.5, rough%za_uv )
-      rough%zref_tq = MAX( 3.5, rough%za_tq )
+   rough%zref_uv = MAX( 3.5, rough%za_uv )
+   rough%zref_tq = MAX( 3.5, rough%za_tq )
+
+   call cable_diag( iDiag1, "za_uv", mp, kend, ktau,                   &
+                    knode_gl, "za_uv", rough%za_uv )
 
 !...............................................................................
 
@@ -144,7 +147,6 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !jhan: USE report_max subr
    ! rough%hruff is limited here to not be less than 0.01 
    rough%hruff = MAX( 0.01, rough%hruff ) 
-!therefore it will NEVER trigger second half of mask 
    
 !...............................................................................
 
@@ -240,26 +242,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
 !...............................................................................
 
-   ! VEGETATED SURFACEs
-
-   ! set zero-plane displacement
-   WHERE( .NOT. BareSoil_mask )                                               &
-      rough%disp = dh * rough%hruff
-
-   ! set roughness 
-   DO i=1,mp
-
-      IF( .NOT. BareSoil_mask(i) ) THEN
-
-         rough%z0m(i) = ( 1.0 - dh(i) ) * exponentialGrowth( rough%usuh(i) )   &
-                        * rough%hruff(i)
-      
-      ENDIF
-
-   ENDDO
-
- 
-   ! set resistance(s) for VEGETATED SURFACEs
+   ! set roughness AND resistance(s) for VEGETATED SURFACEs
    WHERE( .NOT. BareSoil_mask )
       
       ! Calculate zero-plane displacement:

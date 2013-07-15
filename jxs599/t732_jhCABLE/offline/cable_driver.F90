@@ -158,6 +158,8 @@ PROGRAM cable_offline_driver
       soilMtemp,                         &   
       soilTtemp      
    
+   INTEGER, SAVE :: iDiag1=0
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -339,7 +341,7 @@ PROGRAM cable_offline_driver
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
             IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+               call cable_diag( iDiag1, "FLUXES", mp, kend, ktau,              &
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
          ENDIF

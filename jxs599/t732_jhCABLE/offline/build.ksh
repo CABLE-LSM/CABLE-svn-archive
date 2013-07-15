@@ -12,7 +12,7 @@ host_ubun()
    export NCDIR='/lib'
    export NCMOD='/include'
    export FC=ifort
-   export CFLAGS='-O0 -fp-model precise'
+   export CFLAGS='-O0 -g -traceback -fp-model precise'
    export LD='-lnetcdf'
    export LDFLAGS='-L/lib -O0'
    build_build
