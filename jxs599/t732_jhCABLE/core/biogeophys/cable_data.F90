@@ -218,13 +218,6 @@ module cable_data_module
    END TYPE irad_type
 
 
-   TYPE irough_type
-      REAL, POINTER ::                                                         &
-         ! physical constants
-         CSD, CRD, CCD, CCW_C, USUHM, VONK,                                    &
-         A33, CTL,  ZDLIN, CSW   
-   END TYPE irough_type
-
 
 
    TYPE issnow_type
@@ -241,7 +234,7 @@ module cable_data_module
    INTERFACE point2constants
       MODULE PROCEDURE driver_type_ptr, cbm_type_ptr,                          &
                        albedo_type_ptr, canopy_type_ptr, carbon_type_ptr,      &
-                       rad_type_ptr, rough_type_ptr, ssnow_type_ptr  
+                       rad_type_ptr, ssnow_type_ptr  
    END INTERFACE 
 
 CONTAINS   
@@ -376,23 +369,6 @@ SUBROUTINE rad_type_ptr(C)
    C%CAPP  => PHYS%CAPP
 
 END SUBROUTINE rad_type_ptr
-
-! ------------------------------------------------------------------------------
-
-SUBROUTINE rough_type_ptr(C)    
-   TYPE(irough_type) :: C
-   ! physical constants
-         C%CSD   => PHYS%CSD                                                     
-         C%CRD   => PHYS%CRD                                                      
-         C%CCD   => PHYS%CCD                                                      
-         C%CSW   => PHYS%CSW                                                      
-         C%CCW_C => PHYS%CCW_C                                                      
-         C%USUHM => PHYS%USUHM                                                  
-         C%VONK  => PHYS%VONK                                                   
-         C%A33   => PHYS%A33                                                      
-         C%CTL   => PHYS%CTL                                                    
-         C%ZDLIN => PHYS%ZDLIN                                                    
-END SUBROUTINE rough_type_ptr 
 
 ! ------------------------------------------------------------------------------
 

@@ -30,13 +30,21 @@
 
 MODULE cable_roughness_module
    
-   USE cable_data_module, ONLY : irough_type, point2constants
-   
    IMPLICIT NONE
    
-   TYPE ( irough_type ) :: C 
-   PRIVATE
    PUBLIC ruff_resist
+   PRIVATE
+
+   ! subset of CABLE defined constants in cable_data that are used here 
+   ! are pointed to in subr rough_type_ptr below.   
+   TYPE irough_type
+      REAL, POINTER ::                                                         &
+         ! physical constants
+         CSD, CRD, CCD, CCW_C, USUHM, VONK,                                    &
+         A33, CTL,  ZDLIN, CSW   
+   END TYPE irough_type
+
+   TYPE ( irough_type ) :: C 
 
 CONTAINS
 
@@ -68,10 +76,6 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       dh         ! d/h where d is zero-plane displacement
                                     ! tiles belonging to the same grid
    REAL, DIMENSION(mp) ::                                                      &
-         za_uv,   & ! level of lowest atmospheric model layer
-         za_tq      ! level of lowest atmospheric model layer
-   
-   REAL, DIMENSION(mp) ::                                                      &
       Eff_SnowDensity, & 
       Eff_SnowDepth, & 
       Eff_LAI, &
@@ -90,11 +94,12 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
    INTEGER, SAVE :: iDiag1=0      
 
-!jhan: do same thing here as in cable_air,i.e.bring subr into local module 
-   CALL point2constants( C ) 
-
 !...............................................................................
 
+   ! subset of CABLE defined constants in cable_data that are used here 
+   ! are pointed to in subr rough_type_ptr below.   
+   CALL rough_type_ptr()    
+   
    ! Reference height zref is height above the displacement height
    ! za_uv,tq are forcing
 !jhan: isnt this very artificial, imposing ahard minimum      
@@ -287,6 +292,26 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
 
 END SUBROUTINE ruff_resist
+
+! ------------------------------------------------------------------------------
+
+SUBROUTINE rough_type_ptr()    
+
+   USE cable_data_module, ONLY : PHYS 
+   
+   ! physical constants
+         C%CSD   => PHYS%CSD                                                     
+         C%CRD   => PHYS%CRD                                                      
+         C%CCD   => PHYS%CCD                                                      
+         C%CSW   => PHYS%CSW                                                      
+         C%CCW_C => PHYS%CCW_C                                                      
+         C%USUHM => PHYS%USUHM                                                  
+         C%VONK  => PHYS%VONK                                                   
+         C%A33   => PHYS%A33                                                      
+         C%CTL   => PHYS%CTL                                                    
+         C%ZDLIN => PHYS%ZDLIN                                                    
+END SUBROUTINE rough_type_ptr 
+
 
 !-------------------------------------------------------------------------------
 
