@@ -96,7 +96,7 @@ cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cab
 
 cable_radiation.o: cable_radiation.F90 cable_define_types.o cable_common.o cable_data.o 
 
-cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable_data.o
+cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable_data.o cable_diag.o
 
 cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
 
