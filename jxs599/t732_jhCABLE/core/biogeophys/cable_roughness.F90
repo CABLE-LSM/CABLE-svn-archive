@@ -50,7 +50,11 @@ CONTAINS
 
 !-------------------------------------------------------------------------------
 
-SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
+SUBROUTINE ruff_resist( rough, &
+                        ssnow_snowd, ssnow_ssdnn, &
+                        canopy_vlaiw, canopy_rghlai, &
+                        veg_hc, veg_vlai, veg_iveg &
+                      )  
 
    ! m.r. raupach, 24-oct-92
    ! see: Raupach, 1992, BLM 60 375-395
@@ -61,16 +65,29 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
                                    ktau => ktau_gl,                            &
                                    kend => kend_gl, knode_gl
-   USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
-                                   soil_snow_type, canopy_type, mp  
+
+   USE cable_def_types_mod, ONLY : roughness_type, mp  
+
    USE cable_diag_module
    
    TYPE(roughness_type), INTENT(INOUT) :: rough
-!pass these vars from types in cbm
-   TYPE (canopy_type),   INTENT(INOUT) :: canopy
-   TYPE(soil_snow_type), INTENT(IN)    :: ssnow
-   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
 
+   INTEGER, DIMENSION(mp), INTENT(IN)  ::                                      &
+      veg_iveg         !
+   
+   REAL, DIMENSION(mp), INTENT(IN)  ::                                         &
+      ssnow_snowd,   & !
+      ssnow_ssdnn,   & !
+      veg_hc,        & !
+      veg_vlai         !
+   
+   REAL, DIMENSION(mp), INTENT(OUT)  ::                                        &
+      canopy_rghlai    !
+       
+   REAL, DIMENSION(mp), INTENT(INOUT)  ::                                      &
+      canopy_vlaiw     ! 
+  
+   ! local vars 
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =C%CCD*LAI; working variable 
       dh         ! d/h where d is zero-plane displacement
@@ -106,8 +123,8 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    rough%zref_uv = MAX( 3.5, rough%za_uv )
    rough%zref_tq = MAX( 3.5, rough%za_tq )
 
-   call cable_diag( iDiag1, "za_uv", mp, kend, ktau,                   &
-                    knode_gl, "za_uv", rough%za_uv )
+   !call cable_diag( iDiag1, "za_uv", mp, kend, ktau,                   &
+   !                 knode_gl, "za_uv", rough%za_uv )
 
 !...............................................................................
 
@@ -115,10 +132,10 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !jhan: this stops roughness length of bare snow from going negative
 !jhan: isnt it better to just range this from 0:calc'ed   
    ! in this case we consider snow density doesnt go above 20 i.e.(0:20) 
-   Eff_SnowDepth = MIN( ssnow%snowd, 20. )
+   Eff_SnowDepth = MIN( ssnow_snowd, 20. )
 
 !jhan: why not just put z0soil =0
-!jhan: i.e.  rough%z0soilsn = z0soil - 5.e-8 * ssnow%snowd
+!jhan: i.e.  rough%z0soilsn = z0soil - 5.e-8 * ssnow_snowd
 !jhan: but why 5.e-8
 !fair enough is less friction than soil but by how much (5.e-8?)
 
@@ -136,18 +153,18 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
    ! Set canopy height above snow level:
    
-   ! ssnow%ssdn = snow density
+   ! ssnow_ssdn = snow density
    ! in this case we consider snow density doesnt go below 100  
-   Eff_SnowDensity = MAX( ssnow%ssdnn, 100. )  
+   Eff_SnowDensity = MAX( ssnow_ssdnn, 100. )  
 
    ! Set canopy height above snow level:
-   ! if there is no snow = veg%hc
-   ! veg%hc = roughness height of canopy (veg-snow) ?comment? 
+   ! if there is no snow = veg_hc
+   ! veg_hc = roughness height of canopy (veg-snow) ?comment? 
 !jhan: BUt surely this can be 0. or bare snow (z0soilsn) if trees are 
 ! buried under snow 
 !jhan: ?1.2?
 !BUT this isn't dimensionally sound
-   rough%hruff = veg%hc - 1.2 * ssnow%snowd / Eff_SnowDensity  
+   rough%hruff = veg_hc - 1.2 * ssnow_snowd / Eff_SnowDensity  
    
 !jhan: USE report_max subr
    ! rough%hruff is limited here to not be less than 0.01 
@@ -156,26 +173,27 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !...............................................................................
 
 !jhan: can this effective height be used to get hruff above  i.e. 
-   !rough%hruff = Eff_height - 1.2 * ssnow%snowd / Eff_SnowDensity  
-   Eff_height = MAX( 0.01, veg%hc )
+   !rough%hruff = Eff_height - 1.2 * ssnow_snowd / Eff_SnowDensity  
+   Eff_height = MAX( 0.01, veg_hc )
+!jhan: chheck this
    
    ! LAI decreases due to snow and vegetation fraction:
 !jhan: chheck this
-   ! veg%vlai is the input LAI
+   ! veg_vlai is the input LAI
 !jhan: LAI modified by roughness height relative to real height ? why?
 !ratio of exposed to buried affects LAI same ratio
-   canopy%vlaiw = veg%vlai * rough%hruff / Eff_height 
+   canopy_vlaiw = veg_vlai * rough%hruff / Eff_height 
 
    ! By default rghLAI = snow adjusted LAI 
-   canopy%rghlai = canopy%vlaiw
+   canopy_rghlai = canopy_vlaiw
 
 !...............................................................................
    
    ! We need to compute a rghLAI to include in vlaiw that  
    ! Where ~NO snow AND is not broadleaf evergreen? forest
    ! rghLAI does not exceed 3 Why?
-   WHERE( ssnow%snowd .LT. 0.001 .AND. veg%iveg .NE. 1 )                       &
-      canopy%rghlai = MIN( 3., canopy%rghlai )
+   WHERE( ssnow_snowd .LT. 0.001 .AND. veg_iveg .NE. 1 )                       &
+      canopy_rghlai = MIN( 3., canopy_rghlai )
 
 !...............................................................................
 
@@ -186,10 +204,10 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 !jhan: canopy height above snow LT roughness of bare snow (which should never happen as roughness length ~10% of height) 
   
    ! Effective LAI to consider in calc of friction velocity 
-   Eff_LAI = canopy%vlaiw * 0.5
+   Eff_LAI = canopy_vlaiw * 0.5
 
    ! Mask of Bare Soil surfaces
-   BareSoil_mask = canopy%vlaiw .LT. 0.01 .OR.                                 &
+   BareSoil_mask = canopy_vlaiw .LT. 0.01 .OR.                                 &
                    rough%hruff .LT. rough%z0soilsn 
 
    ! set exposed height to zero when bare soil anyway 
@@ -198,7 +216,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
   
    ! set Effective LAI to consider for VEGETATED SURFACEs
    WHERE( .NOT. BareSoil_mask )                                                &
-      Eff_LAI = canopy%rghlai * 0.5
+      Eff_LAI = canopy_rghlai * 0.5
      
 !...............................................................................
 
@@ -257,10 +275,10 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%z0m = ( (1.0 - dh) * EXP( LOG( C%CCW_C ) - 1. + 1. / C%CCW_C       &
                   - C%VONK / rough%usuh ) ) * rough%hruff
        
-      term2  = EXP( 2 * C%CSW * canopy%rghlai *                          &
+      term2  = EXP( 2 * C%CSW * canopy_rghlai *                          &
                      ( 1 - rough%disp / rough%hruff ) )
 
-      term3  = C%A33**2 * C%CTL * 2 * C%CSW * canopy%rghlai
+      term3  = C%A33**2 * C%CTL * 2 * C%CSW * canopy_rghlai
       
       term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
       
@@ -270,7 +288,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%rt0us  = term5 * ( C%ZDLIN * LOG(                            &
                      C%ZDLIN * rough%disp / rough%z0soilsn ) +                 &
                      ( 1 - C%ZDLIN ) )                                         &
-                     * ( EXP( 2 * C%CSW * canopy%rghlai )  -  term2 )    &
+                     * ( EXP( 2 * C%CSW * canopy_rghlai )  -  term2 )    &
                      / term3  
       
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.49:
