@@ -100,7 +100,7 @@ MODULE cable_IO_vars_module
   
    ! =============== File details ==========================
 
-   TYPE gswp_type
+   TYPE globalMet_type
       
       CHARACTER(LEN=99) ::                                                     &
          rainf, &
@@ -112,10 +112,14 @@ MODULE cable_IO_vars_module
          Tair, &
          wind
 
-       LOGICAL         :: l_gpcc    ! added by ypwang following Chris Lu on 30/oct/2012
-   END TYPE gswp_type
+      LOGICAL           ::                                                     &
+         l_gpcc, &         ! ypwang following Chris Lu (30/oct/2012)
+         l_gswp, &         ! BP May 2013
+         l_access          ! BP May 2013
+
+   END TYPE globalMet_type
    
-   TYPE(gswp_type)      :: gswpfile
+   TYPE(globalMet_type)      :: globalMetfile
    
 
    INTEGER ::                                                                  &

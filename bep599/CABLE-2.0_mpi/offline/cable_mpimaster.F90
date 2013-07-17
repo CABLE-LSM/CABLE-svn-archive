@@ -137,7 +137,7 @@ SUBROUTINE mpidrv_master (comm)
    USE mpi
 
    USE cable_def_types_mod
-   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+   USE cable_IO_vars_module, ONLY: logn,globalMetfile,ncciy,leaps,             &
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
@@ -264,7 +264,7 @@ SUBROUTINE mpidrv_master (comm)
                   icycle,           &
                   casafile,         &
                   ncciy,            &
-                  gswpfile,         &
+                  globalMetfile,    &
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
@@ -302,23 +302,39 @@ SUBROUTINE mpidrv_master (comm)
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
-   ! Check for gswp run
+   ! Check for global run
    IF (ncciy /= 0) THEN
 
      ! modified by ypw wang 30/oct/2012 following Chris Lu
      PRINT *, 'Looking for global offline run info.'
-     IF (gswpfile%l_gpcc)THEN
+     IF (globalMetfile%l_gpcc)THEN
+       globalMetfile%l_gswp   = .FALSE.
+       globalMetfile%l_access = .FALSE.
+       PRINT *, 'Using GPCC met forcing.'
        IF (ncciy < 1948 .OR. ncciy > 2008) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
        ENDIF
-     ELSE
+     ELSEIF (globalMetfile%l_gswp) THEN
+       globalMetfile%l_access = .FALSE.
+       PRINT *, 'Using GSWP met forcing.'
        IF (ncciy < 1986 .OR. ncciy > 1995) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
        END IF
+     ELSEIF (globalMetfile%l_access) THEN
+       PRINT *, 'Using ACCESS met forcing.'
+       IF (ncciy < 1950 .OR. ncciy > 2005) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       END IF
+     ELSE
+       PRINT *, 'Switches l_gpcc, l_gswp and l_access are false!'
+       PRINT *, 'Please check input in namelist file.'
+       STOP
      END IF
    
    ENDIF
@@ -692,90 +708,6 @@ SUBROUTINE mpidrv_master (comm)
 
 END SUBROUTINE mpidrv_master
 
-
-SUBROUTINE prepareFiles(ncciy)
-  USE cable_IO_vars_module, ONLY: logn,gswpfile
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: ncciy
-  ! modified by ypwang, following Chris Lu
-IF (.NOT. gswpfile%l_gpcc) THEN   !added by Chris Lu for gpcc 28/05/2012
-  WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
-  PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
-
-!  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-!  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-!  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-!  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-!  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-!  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')   !Chris 6/Sep/2012
-!  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-!  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
-
-  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf',1983,1995)
-  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf',1983,1995)
-  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown',1983,1995)
-  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown',1983,1995)
-  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf',1983,1995)
-  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair',1983,1995)
-  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair',1983,1995)
-  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind',1983,1995)
-ELSE
-  WRITE(logn,*) 'CABLE offline global run using gpcc forcing for ', ncciy
-  PRINT *,      'CABLE offline global run using gpcc forcing for ', ncciy
-
-  CALL renameFiles(logn,gswpfile%rainf,len(trim(gswpfile%rainf))-14,ncciy,'rainf',1948,2008)
-  CALL renameFiles(logn,gswpfile%LWdown,len(trim(gswpfile%LWdown))-14,ncciy,'LWdown',1948,2008)
-  CALL renameFiles(logn,gswpfile%SWdown,len(trim(gswpfile%SWdown))-14,ncciy,'SWdown',1948,2008)
-  CALL renameFiles(logn,gswpfile%PSurf,len(trim(gswpfile%PSurf))-14,ncciy,'PSurf',1948,2008)
-  CALL renameFiles(logn,gswpfile%Qair,len(trim(gswpfile%Qair))-14,ncciy,'Qair',1948,2008)
-  CALL renameFiles(logn,gswpfile%Tair,len(trim(gswpfile%Tair))-14,ncciy,'Tair',1948,2008)
-  CALL renameFiles(logn,gswpfile%wind,len(trim(gswpfile%wind))-14,ncciy,'wind',1948,2008)
-END IF
-
-
-END SUBROUTINE prepareFiles
-
- ! replaced by ypwang, following Chris Lu 30/oct/2012
-!SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
-!  IMPLICIT NONE
-!  INTEGER, INTENT(IN) :: logn
-!  INTEGER, INTENT(IN) :: nn
-!  INTEGER, INTENT(IN) :: ncciy
-!  CHARACTER(LEN=99), INTENT(INOUT) :: inFile
-!  CHARACTER(LEN=*),  INTENT(IN)    :: inName
-!  INTEGER :: idummy
-!
-!  READ(inFile(nn:nn+3),'(i4)') idummy
-!  IF (idummy < 1800 .OR. idummy > 2100) THEN
-!    PRINT *, 'Check position of the year number in input gswp file', inFile
-!    STOP
-!  ELSE
-!    WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
-!    WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
-!  ENDIF
-!
-!END SUBROUTINE renameFiles
-
-SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName,startyr,endyr)
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: logn
-  INTEGER, INTENT(IN) :: nn
-  INTEGER, INTENT(IN) :: ncciy
-  CHARACTER(LEN=99), INTENT(INOUT) :: inFile
-  CHARACTER(LEN=*),  INTENT(IN)    :: inName
-  INTEGER, INTENT(IN) :: startyr,endyr        ! added by Chris Lu 28/05/2012
-  INTEGER :: idummy
-
-  READ(inFile(nn:nn+3),'(i4)') idummy
-  IF (idummy < startyr .OR. idummy > endyr) THEN
-    PRINT *, 'Check position of the year number in input gswp file', inFile
-    STOP
-  ELSE
-    WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
-    WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
-  ENDIF
-
-END SUBROUTINE renameFiles
 
 ! ============== PRIVATE SUBROUTINES USED ONLY BY THE MPI MASTER ===============
 
