@@ -1343,9 +1343,9 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
   ! modified by ypwang following Chris Lu on 5/nov/2012
 
-  IF (icycle<2) then
+  IF (icycle<3) then
       call casa_ndummy(casapool)
-      IF (icycle<3) call casa_pdummy(casapool)
+      IF (icycle<2) call casa_pdummy(casapool)
   ENDIF
 
   call casa_cnpbal(casapool,casaflux,casabal)
