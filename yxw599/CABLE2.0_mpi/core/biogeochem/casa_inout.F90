@@ -355,7 +355,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%psoilocc(npt)    = xpocc(iv1)
     casaflux%kmlabp(npt)      = xkmlabp(iso)
     casaflux%psorbmax(npt)    = xpsorbmax(iso)
-    casaflux%fpleach(npt)     = xfPleach(iso)
+    casaflux%fpleach(npt)     = xfPleach(iso)/(365.0)    ! convert from 1/year to 1/day
 !   we used the spatially explicit estimate N fixation by Wang and Houlton (GRL)
 !    casaflux%Nminfix(npt)     = xnfixrate(iv1)/365.0  
 
@@ -1063,6 +1063,11 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
   call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
+!  write(*,991)casaflux%cgpp(2058),casaflux%cnpp(2058),casaflux%fracClabile(2058), &
+!            casaflux%fracCalloc(2058,:),casaflux%crmplant(2058,:),casaflux%crgplant(2058), casapool%Nsoilmin(2058), &
+!            casaflux%cgpp(2058)-casaflux%cnpp(2058)-casaflux%fracClabile(2058)*casaflux%cgpp(2058)-sum(casaflux%crmplant(2058,:))-casaflux%crgplant(2058)
+!991  format('point 2058',20(f10.4,2x))
+
   call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
   call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
@@ -1089,9 +1094,9 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
   ! modified by ypwang following Chris Lu on 5/nov/2012
 
-  IF (icycle<2) then
-      call casa_ndummy(casapool)
-      IF (icycle<3) call casa_pdummy(casapool)
+  IF (icycle<3) then
+      call casa_pdummy(casapool)
+      IF (icycle<2) call casa_ndummy(casapool)
   ENDIF
 
   call casa_cnpbal(casapool,casaflux,casabal)

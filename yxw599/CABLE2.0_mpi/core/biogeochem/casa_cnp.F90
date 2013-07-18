@@ -153,6 +153,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
   xnplimit(:)  = 1.0
   xNPuptake(:)     = min(xnuptake(:), xpuptake(:))
+  
   do np =1, mp
      if(casamet%iveg2(np)/=icewater.and.casaflux%cnpp(np) > 0.0.and.xNPuptake(np) < 1.0) then
         casaflux%fracClabile(np) =min(1.0,max(0.0,(1.0- xNPuptake(np)))) * max(0.0,casaflux%cnpp(np))/(casaflux%cgpp(np) +1.0e-10)
@@ -425,14 +426,17 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 !                     - casaflux%crgplant(:))) 
     ! changes made by yp wang 5 april 2013
     casaflux%Cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:) 
-    WHERE(casaflux%Cnpp < 0.0)
-        delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood)/ max(0.01,( casaflux%crmplant(:,wood) + casaflux%crmplant(:,froot)))
-        delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot)/max(0.01, ( casaflux%crmplant(:,wood) + casaflux%crmplant(:,froot)))
-        casaflux%crmplant(:,wood) = casaflux%crmplant(:,wood) + delcrmwood(:)
-        casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
-        casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
-    ENDWHERE
   ENDWHERE
+!$$$$$$$$$$$$$$$$$$$$$$
+!    WHERE(casaflux%Cnpp < 0.0)
+!        delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood)/ (1.0e-10+ casaflux%crmplant(:,wood) + casaflux%crmplant(:,froot))
+!        delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot)/(1.0e-10+ casaflux%crmplant(:,wood) + casaflux%crmplant(:,froot))
+!        casaflux%crmplant(:,wood) = casaflux%crmplant(:,wood) + delcrmwood(:)
+!        casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+!        casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+!    ENDWHERE
+!$$$$$$$$$$$$$$$$$$$$$$$
+!  ENDWHERE
 
 !  print *, 'calling rplant',veg%iveg(1),casamet%tairk(1)
 !,tkzeroc,casapool%nplant(1,:),casaflux%crmplant(1,:),casaflux%crgplant(1)
@@ -1096,11 +1100,11 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  +casaflux%Psimm(nland)
                                       ! net mineralization 
 
-      casaflux%Pleach(nland)  =  (1.0e-4) &
-                                 * max(0.0,casapool%Psoillab(nland))
-
-!      casaflux%Pleach(nland)  =  casaflux%fPleach(nland) &
+!      casaflux%Pleach(nland)  =  (1.0e-4) &
 !                                 * max(0.0,casapool%Psoillab(nland))
+
+      casaflux%Pleach(nland)  =  casaflux%fPleach(nland) &
+                                 * max(0.0,casapool%Psoillab(nland))
 
       DO k=1,msoil
          DO j=1,mlitter
