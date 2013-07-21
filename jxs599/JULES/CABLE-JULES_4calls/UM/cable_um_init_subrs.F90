@@ -125,7 +125,7 @@ CONTAINS
   
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
-                            smvccl, albsoil,                                   &
+                            smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
                             dzsoil ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
@@ -143,6 +143,12 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       smvccl, &
       albsoil 
    
+   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%sm_levels) :: sthu
+   
+   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) :: &
+      sthu_tile,     &
+      tsoil_tile
+
    REAL, INTENT(IN), DIMENSION(um1%sm_levels) :: dzsoil
 
    !___defs 1st call to CABLE in this run
@@ -369,7 +375,7 @@ END SUBROUTINE init_veg_pars_fr_vegin
 !========================================================================
         
 SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
-                                 ls_rain,    &
+                                 surf_down_sw, sin_theta_latitude, ls_rain,    &
                                  ls_snow, tl_1, qw_1, vshr_land, pstar, co2_mmr ) 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS, OTHER
@@ -380,10 +386,13 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
    REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
    
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) ::                    & 
-      lw_down
+      lw_down,           &
+      sin_theta_latitude
    
    REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: cos_zenith_angle
 
+   REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows, 4) :: surf_down_sw 
+   
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) ::                    & 
       ls_rain,    &
       ls_snow,    &   
@@ -412,7 +421,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       
       ! re-set UM rad. forcings to suit CABLE. also called in explicit call to 
       ! CABLE from subr cable_um_expl_update() 
-      CALL update_kblum_radiation( sw_down, cos_zenith_angle )
+      CALL update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
       
       ! set met. and rad. forcings to CABLE. also called in radiation call to 
       ! CABLE from subr cable_rad_() !jhan?
@@ -436,9 +445,12 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       CALL um2cable_rr( QW_1, met%qv)
       CALL um2cable_rr( VSHR_LAND, met%ua)
       CALL um2cable_rr( PSTAR*0.01, met%pmb)
-     
+   
       !---re-set some of CABLE's forcing variables
       met%precip   =  met%precip + met%precip_sn 
+      !met%precip   =  (met%precip + conv_rain_prevstep) &
+      !               + (met%precip_sn +  conv_snow_prevstep)
+      !               + (met%precip_sn +  conv_rain_prevstep)
       met%tvair =     met%tk
       met%tvrad =     met%tk
       met%coszen =    max(met%coszen,1e-8) 
@@ -558,7 +570,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ssnow%ssdn(:,J)  = PACK(SNOW_RHO3L(:,:,J),um1%l_tile_pts)  
          ssnow%tggsn(:,J) = PACK(SNOW_TMP3L(:,:,J),um1%l_tile_pts)  
          ssnow%sconds(:,J)= PACK(SNOW_COND(:,:,J),um1%l_tile_pts)  
-
+         
          WHERE( veg%iveg == 16 ) ! lakes: remove hard-wired number in future version
             ssnow%wbtot1 = ssnow%wbtot1 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
                            soil%zse(J)
@@ -569,11 +581,11 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ENDWHERE
       
       ENDDO 
+       
       DO J=1,um1%sm_levels
          ssnow%tgg(:,J) = PACK(TSOIL_TILE(:,:,J),um1%l_tile_pts)
       ENDDO 
       
-
       ssnow%snage = PACK(SNAGE_TILE, um1%l_tile_pts)
       ssnow%wb_lake = MAX( ssnow%wbtot2 - ssnow%wbtot1, 0.)
 
@@ -622,7 +634,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
            DO K=1,um1%TILE_PTS(N)                                           
            I = um1%TILE_INDEX(K,N)                                      
              DO J = 1,um1%SM_LEVELS
-               fwork(I,N,J) = SMCL_TILE(I,N,J)/soil%zse(j) / PHYS%RHOW
+               fwork(I,N,J) = SMCL_TILE(I,N,J)/soil%zse(j) / um1%RHO_WATER
                fwork(I,N,J+um1%SM_LEVELS) = STHF_TILE(I,N,J)*SMVCST(I)
              ENDDO ! J
            ENDDO
@@ -730,16 +742,47 @@ END SUBROUTINE initialize_roughness
 !========================================================================
 !========================================================================
 
-SUBROUTINE update_kblum_radiation( sw_down, cos_zenith_angle )
+SUBROUTINE update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
    USE cable_um_tech_mod!, only : um1, um_rad, kblum_rad
   
    REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: cos_zenith_angle
-      
-      kblum_rad%SW_DOWN_VIS =  0.5 * sw_down
+   REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows, 4) :: surf_down_sw 
 
-      kblum_rad%SW_DOWN_NIR =  0.5 * sw_down
-      
+      !jhan: do you really want to be changing sw_down            
+      SW_DOWN = ( surf_down_sw(:,:,1)                                          &
+                        + surf_down_sw(:,:,2)                                  &
+                        + surf_down_sw(:,:,3)                                  &
+                        + surf_down_sw(:,:,4) )                                &
+                        * cos_zenith_angle(:,:)
+
+      kblum_rad%SW_DOWN_DIR = ( surf_down_sw(:,:,1)                            &
+                        + surf_down_sw(:,:,3) )                                &
+                        * cos_zenith_angle(:,:)
+
+      kblum_rad%SW_DOWN_DIF = ( surf_down_sw(:,:,2)                            & 
+                              + surf_down_sw(:,:,4) )                          &
+                              *cos_zenith_angle(:,:)
+
+      kblum_rad%SW_DOWN_VIS = (surf_down_sw(:,:,1)                             & 
+                              + surf_down_sw(:,:,2) )                          &
+                              * cos_zenith_angle(:,:)
+
+      kblum_rad%SW_DOWN_NIR = ( surf_down_sw(:,:,3)                            &
+                              + surf_down_sw(:,:,4) )                          &
+                              *cos_zenith_angle(:,:)
+      ! fbeam for VIS
+      kblum_rad%FBEAM(:,:,1) = surf_down_sw(:,:,1)                             &
+                              * cos_zenith_angle(:,:)                          &
+                                 / max( 0.1, kblum_rad%SW_DOWN_VIS )
+      ! fbeam for NIR
+      kblum_rad%FBEAM(:,:,2) = surf_down_sw(:,:,3)                             &
+                              * cos_zenith_angle(:,:)                          &
+                              / max( 0.1, kblum_rad%SW_DOWN_NIR )
+      !---fbeam for all solar 
+      kblum_rad%FBEAM(:,:,3) = kblum_rad%SW_DOWN_DIR /                         &
+                              MAX( 0.1, SW_DOWN )
+       
 END SUBROUTINE Update_kblum_radiation
 
 !========================================================================
@@ -756,6 +799,12 @@ SUBROUTINE  um2cable_met_rad( cos_zenith_angle)
       CALL um2cable_rr( cos_zenith_angle, met%coszen)
       CALL um2cable_rr( kblum_rad%SW_DOWN_VIS, met%fsd(:,1))
       CALL um2cable_rr( kblum_rad%SW_DOWN_NIR, met%fsd(:,2))
+      
+      !--- CABLE radiation type forcings
+      !--- kblum_rad% vars are computed in subroutine update_kblum_radiation 
+      CALL um2cable_rr( kblum_rad%FBEAM(:,:,1), rad%fbeam(:,1))
+      CALL um2cable_rr( kblum_rad%FBEAM(:,:,2), rad%fbeam(:,2))
+      CALL um2cable_rr( kblum_rad%FBEAM(:,:,3), rad%fbeam(:,3))
 
 END SUBROUTINE  um2cable_met_rad
 

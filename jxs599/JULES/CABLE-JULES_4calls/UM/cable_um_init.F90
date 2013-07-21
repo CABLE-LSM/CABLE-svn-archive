@@ -30,79 +30,27 @@
 ! ==============================================================================
 
 MODULE cable_um_init_mod
-
    IMPLICIT NONE   
+   PUBLIC :: interface_UM_data
+   PRIVATE  
 
 CONTAINS
 
-SUBROUTINE explicit_call_initialization(                                       & 
-            ! cable% type yet to be officailly implemented
-            row_length, & ! -> cable%row_length 
-            rows,       & ! -> cable%rows
-            land_pts,   & ! -> cable%land_pts
-            ntiles,     & ! -> cable%ntiles
-            npft,       & ! -> cable%npft 
-            sm_levels,  & ! -> cable%ms
-            timestep,   & ! -> cable%timestep_width
-            latitude,   & ! -> cable%latitude
-            longitude,  & ! -> cable%longitude
-            land_index, & ! -- necessary for packing 
-            tile_frac,  & ! -> cable%tile_frac
-            tile_pts,   & ! -> cable%
-            tile_index, & ! -- necessary for packing
-            dzsoil,     & ! -> soil%zse                        
-            ! soil properties from UM/JULES
-            bexp,       & ! -> soil%bch
-            hcon,       & ! ~> soil%cnsd
-            satcon,     & ! ~> soil%hyds
-            sathh,      & ! -> soil%sucs
-            smvcst,     & ! -> soil%ssat
-            smvcwt,     & ! -> soil%swilt
-            smvccl,     & ! -> soil%sfc
-            albsoil,    & ! -> soil%albsoil
-            ! canopy properties from UM/JULES
-            canht_ft,   & ! ~> veg%hc
-            lai_ft,     & ! ~> veg%lai
-            ! forcing from JULES
-            sw_down,    & ! ~> met%fsd
-            lw_down,    & ! -> met%fld 
-            ls_rain,    & ! ~> met%precip
-            ls_snow,    & ! ~> met%precip_sn
-            tl_1,       & ! -> met%tk
-            qw_1,       & ! -> met%qv
-            vshr_land,  & ! -> met%ua
-            pstar,      & ! ~> met%pmb
-            z1_tq,      & ! -> rough%za_tq
-            z1_uv,      & ! -> rough%za_uv
-            canopy_tile,& ! -> canopy%cansto
-            Fland,      & ! -> ssnow%fland
-            CO2_MMR,    & ! ~> met%ca
-         
-            !jhan:adapted from JULES var cosz, done elsewhere, move to here 
-            ! and make switchable
-            cos_zenith_angle,    & ! ->met%coszen
-         
-            ! snow properties from UM/JULES
-            snow_tile,     & ! -> ssnow%snowd
-         
-            ! snow properties from CABLE vars 
-            snage_tile,    & ! -> ssnow%snage
-            snow_rho1l,    & ! -> ssnow%ssdnn
-            isnow_flg3l,   & ! -> ssnow%isflag
-            snow_rho3l,    & ! -> ssnow%ssdn
-            snow_depth3l,  & ! -> ssnow%sdepth
-            snow_tmp3l,    & ! -> ssnow%tggsn
-            snow_mass3l,   & ! -> ssnow%smass
-            snow_cond,     & ! -> ssnow%sconds
-         
-         
-            !soil properties from CABLE vars 
-            smcl_tile,     & ! ~> soil%wb
-            sthf_tile,     & ! ~> soil%wbice
-            tsoil_tile     & ! -> ssnow%tgg
-   )                         
+SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
+                              npft, sm_levels, itimestep, latitude, longitude, &
+                              land_index, tile_frac, tile_pts, tile_index,     &
+                              bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
+                              smvccl, albsoil, snow_tile, snow_rho1l,          &
+                              snage_tile, isnow_flg3l, snow_rho3l, snow_cond,  &
+                              snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
+                              lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
+                              ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,    &
+                              z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,&
+                              CO2_MMR, sthu_tile, smcl_tile, sthf_tile, sthu,  &
+                              tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
+                              dzsoil )                         
 
-   USE cable_um_init_subrs_mod     ! where most subrs called from here reside
+   USE cable_um_init_subrs_mod          ! where most subrs called from here reside
    
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
@@ -140,7 +88,8 @@ SUBROUTINE explicit_call_initialization(                                       &
       isnow_flg3l    ! flag for 3-layer snow 
 
    !___UM parameters 
-   INTEGER, INTENT(IN) :: timestep
+   INTEGER, INTENT(IN) :: itimestep
+   REAL, INTENT(IN) :: rho_water 
    REAL, INTENT(IN), DIMENSION(sm_levels) ::                                   &
       dzsoil
 
@@ -180,6 +129,9 @@ SUBROUTINE explicit_call_initialization(                                       &
       snow_rho1l,&   !
       snage_tile     !
 
+   REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
+      surf_down_sw 
+
    REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
       canht_ft, & !
       lai_ft      !
@@ -196,17 +148,21 @@ SUBROUTINE explicit_call_initialization(                                       &
       snow_mass3l,  &   ! 
       snow_tmp3l
 
+   REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
+      sthu  !
+
    REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) ::                 &
+      sthu_tile, &   !
       sthf_tile, &   !
       smcl_tile, &   !
       tsoil_tile     !
 
    REAL, INTENT(IN) :: co2_mmr
 
-   LOGICAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                  &
+   LOGICAL, INTENT(INOUT),DIMENSION(land_pts, ntiles) ::                       &
       L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
   
-   REAL, DIMENSION(row_length,rows) ::                             & 
+   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             & 
       sin_theta_latitude
 
    !------------------------------------------------------------------------- 
@@ -226,13 +182,6 @@ SUBROUTINE explicit_call_initialization(                                       &
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
          
 
-   
-   IF( .NOT. ALLOCATED(L_tile_pts) )                                           & 
-      ALLOCATE( L_tile_pts(land_pts, ntiles) )
-     
-   !jhan: move this into interface_UM_data
-   sin_theta_latitude  = sin(latitude)
-
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
       !--- dimensions etc, which are used frequently throughout interfaces. !
@@ -244,12 +193,10 @@ SUBROUTINE explicit_call_initialization(                                       &
       ENDIF       
       
       CALL assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,        &
-                                    npft, sm_levels, timestep,            &
-                                    latitude,      &
+                                    npft, sm_levels, itimestep, latitude,      &
                                     longitude, land_index, tile_frac,          &
-                                    tile_pts, tile_index &
-                                  )
-
+                                    tile_pts, tile_index, l_tile_pts,          &
+                                    rho_water  )
 
 
 
@@ -261,24 +208,22 @@ SUBROUTINE explicit_call_initialization(                                       &
       !--- IF the tile is "active"
       IF ( first_call ) THEN
       
-         L_TILE_PTS = .FALSE.
-         mp = SUM(TILE_PTS)
+         um1%L_TILE_PTS = .FALSE.
+         mp = SUM(um1%TILE_PTS)
          
          CALL alloc_cable_types()
          
          DO i=1,land_pts
             DO j=1,ntiles
                
-               IF( TILE_FRAC(i,j) .GT. 0.0 ) THEN 
-                     L_TILE_PTS(i,j) = .TRUE.
+               IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
+                     um1%L_TILE_PTS(i,j) = .TRUE.
                   !jhan:can set veg%iveg from  here ?
                   tile_index_mp(i,j) = j 
                ENDIF
             
             ENDDO
          ENDDO
-         
-         um1%L_TILE_PTS = L_TILE_PTS 
       
       ENDIF
          
@@ -298,7 +243,7 @@ SUBROUTINE explicit_call_initialization(                                       &
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
-                            smvccl, albsoil,                                &
+                            smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
                             dzsoil ) 
         
       !--- initialize roughness
@@ -316,7 +261,7 @@ SUBROUTINE explicit_call_initialization(                                       &
  
       !--- initialize radiation & met forcing
       CALL initialize_radiation( sw_down, lw_down, cos_zenith_angle,        &
-                                 ls_rain, &
+                                 surf_down_sw, sin_theta_latitude, ls_rain, &
                                  ls_snow, tl_1, qw_1, vshr_land, pstar,     &
                                  co2_mmr ) 
                    
@@ -328,84 +273,8 @@ SUBROUTINE explicit_call_initialization(                                       &
          first_call = .FALSE. 
       ENDIF      
       
-END SUBROUTINE explicit_call_initialization
- 
-!============================================================================
-!============================================================================
-!============================================================================
-
-
-SUBROUTINE implicit_call_initialization(                                       & 
-            row_length, rows, & ! grid resolution
-            ls_rain,    & ! ~>  met%precip
-            ls_snow,    & ! ~>  met%precip_sn
-            conv_rain,  & ! ~~> met%precip
-            conv_snow,  & ! ~~> met%precip_sn
-            dtl_1,      & !~~> met%precip_sn
-            dqw_1       & !~~> met%precip_sn
-   )
-    
-   USE cable_def_types_mod, ONLY : mp
-   USE cable_um_tech_mod, ONLY : um1, met
-   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
-        
-   INTEGER, INTENT(IN) ::                                                      &
-      row_length, rows
-
-   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
-      ls_rain,    &
-      ls_snow     
-
-   REAL, DIMENSION(ROW_LENGTH,ROWS) ::                                         &
-      CONV_RAIN, & ! IN Convective rain
-      CONV_SNOW   ! IN Convective snow
-   
-   REAL, DIMENSION(ROW_LENGTH,ROWS) ::                                         &
-      DTL_1,    & ! IN Level 1 increment to T field 
-      DQW_1       ! IN Level 1 increment to q field 
-
-   REAL, DIMENSION(:),  ALLOCATABLE, SAVE ::                                   & 
-      dtlc, & 
-      dqwc, &
-      conv_rain_prevstep, &
-      conv_snow_prevstep
-     
-   LOGICAL, SAVE :: first_call = .TRUE. 
-
-      IF(first_call) THEN
-         ALLOCATE( &
-                   dtlc(mp),               & 
-                   dqwc(mp),               &
-                   conv_rain_prevstep(mp), &
-                   conv_snow_prevstep(mp)  &
-                 )  
-         first_call = .FALSE. 
-      ENDIF
-
-      dtlc = 0. ; dqwc = 0.
-      
-      ! should be no change from explicit call offline
-      CALL um2cable_rr( (LS_RAIN+CONV_RAIN)*um1%TIMESTEP, met%precip)
-      CALL um2cable_rr( (LS_SNOW+CONV_SNOW)*um1%TIMESTEP, met%precip_sn)
-      CALL um2cable_rr( dtl_1, dtlc)
-      CALL um2cable_rr( dqw_1, dqwc)
-      
-      ! in JULES this increment is meaningless
-      !jhan
-      dtlc = 0. ; dqwc = 0.
-      
-      !--- conv_rain(snow)_prevstep are added to precip. in explicit call
-      CALL um2cable_rr( (CONV_RAIN)*um1%TIMESTEP, conv_rain_prevstep)
-      CALL um2cable_rr( (CONV_snow)*um1%TIMESTEP, conv_snow_prevstep)
-      
-      met%precip   =  met%precip + met%precip_sn
-      met%tk = met%tk + dtlc
-      met%qv = met%qv + dqwc
-      met%tvair = met%tk
-      met%tvrad = met%tk
-   
-END SUBROUTINE implicit_call_initialization                                  
-!
+END SUBROUTINE interface_UM_data
+                                   
 !============================================================================
 !============================================================================
 !============================================================================
@@ -413,18 +282,20 @@ END SUBROUTINE implicit_call_initialization
 SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
                                     npft, sm_levels, timestep, latitude,    &
                                     longitude, land_index, tile_frac,       &
-                                    tile_pts, tile_index                    &
-                                  )
+                                    tile_pts, tile_index, l_tile_pts,       &
+                                    rho_water  )
    USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_user
 
    INTEGER, INTENT(IN) :: row_length, rows, land_pts, ntiles, npft, sm_levels
    INTEGER, INTENT(IN) :: timestep 
    REAL, INTENT(IN), DIMENSION(row_length,rows) :: latitude, longitude 
+   REAL,INTENT(IN):: rho_water
    INTEGER, INTENT(IN), DIMENSION(land_pts)  :: land_index 
    INTEGER, INTENT(IN), DIMENSION(ntiles)  :: tile_pts 
    INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles)  :: tile_index
    REAL, INTENT(IN), DIMENSION(land_pts, ntiles)  :: tile_frac 
+   LOGICAL, INTENT(IN), DIMENSION(land_pts,ntiles)  :: l_tile_pts 
      
       um1%row_length = row_length
       um1%rows = rows
@@ -439,6 +310,7 @@ SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
       um1%tile_frac = tile_frac
       um1%tile_pts = tile_pts
       um1%tile_index = tile_index
+      um1%rho_water= rho_water 
 
 END SUBROUTINE assign_um_basics_to_um1
 
