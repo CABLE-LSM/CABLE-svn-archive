@@ -2,8 +2,30 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh vayu ubun 
 }
+
+
+## 
+host_ubun()
+{
+   NCDF_ROOT=/usr/local
+   export NCDIR=$NCDF_ROOT'/lib'
+   export NCMOD=$NCDF_ROOT'/include'
+   export FC=ifort
+   #export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
+   export CFLAGS='-O0 -g -traceback -fp-model precise -ftz -fpe0'  
+   export CINC='-I$(NCMOD)'
+   if [[ $1 = 'debug' ]]; then      
+      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
+   fi
+   build_build
+   cd ../
+   build_status
+}
+
+
+
 
 
 ## vayu.nci.org.au
@@ -205,7 +227,7 @@ build_build()
    
    make -f Makefile_CABLE-UM
 
-   if [[ -f cable_explicit_driver.o ]]; then
+   if [[ -f cable_main.o ]]; then
       print '\nCompile appears successful. Now build library\n'
    else
       print'\nCompile failed\n'
@@ -213,12 +235,12 @@ build_build()
    fi
    
    ## make library from CABLE object files
-   /usr/bin/ar r libcable.a cable_explicit_driver.o cable_implicit_driver.o   \
-      cable_rad_driver.o cable_hyd_driver.o cable_common.o  \
+   /usr/bin/ar r libcable.a cable_main.o \
+      cable_common.o  \
       cable_define_types.o cable_data.o cable_diag.o \
       cable_soilsnow.o cable_air.o cable_albedo.o cable_radiation.o  \
       cable_roughness.o cable_carbon.o cable_canopy.o cable_cbm.o    \
-      cable_um_tech.o cable_um_init_subrs.o cable_um_init.o 
+      cable_jules_tech.o cable_jules_init_subrs.o cable_jules_init.o 
 
    if [[ -f libcable.a ]]; then
       print '\nLibrary build successful. Copying libcable.a to ' $libroot
