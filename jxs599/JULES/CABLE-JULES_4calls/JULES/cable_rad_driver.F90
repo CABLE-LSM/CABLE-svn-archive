@@ -27,18 +27,25 @@
 !
 !
 ! ==============================================================================
+      CALL cable_rad_driver(                &
+! IN atmospheric forcing
+               fsurf_down_sw, fcos_zenith_angle, &
+! IN soil/vegetation/land surface data :
+               fSNOW_TILE,fSNOW_TMP3L,fSNOW_RHO1L,fTSOIL_TILE,            &
+               fSNOW_FLG3L,                                           &
+! IN  Time stepping infomation:
+               falbsoil )
 
 SUBROUTINE cable_rad_driver(                                                   &
                              ! IN atmospheric forcing
-                             !surf_down_sw, cos_zenith_angle,                   &
-                             cos_zenith_angle,                   &
+                             surf_down_sw, cos_zenith_angle,                   &
                              ! IN soil/vegetation/land surface data :
-                             !SNOW_TILE, SNOW_TMP3L, SNOW_RHO1L, TSOIL_TILE,    &
-                             !ISNOW_FLG3L, 
-                             ALBSOIL,                             &
+                             SNOW_TILE, SNOW_TMP3L, SNOW_RHO1L, TSOIL_TILE,    &
+                             ISNOW_FLG3L, 
+                             ALBSOIL )
                              ! OUT
                              !LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
-                             ALB_TILE ) 
+                             !ALB_TILE ) 
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_albedo_module, ONLY : surface_albedo
@@ -133,35 +140,35 @@ SUBROUTINE cable_rad_driver(                                                   &
       rad_albedo_tot = met_fsd_tot_rel  * rad_vis                              &
                        + ( 1.- met_fsd_tot_rel ) * rad_nir
 
-      LAND_ALBEDO_CABLE =0.
-      LAND_ALB_CABLE =0.
-      LAND_ALB_CABLE_TILE = UNPACK( rad_albedo_tot, um1%L_TILE_PTS, miss )
+      !LAND_ALBEDO_CABLE =0.
+      !LAND_ALB_CABLE =0.
+      !LAND_ALB_CABLE_TILE = UNPACK( rad_albedo_tot, um1%L_TILE_PTS, miss )
 
-      DO N=1,um1%NTILES
-         DO K=1,um1%TILE_PTS(N)
-            L = um1%TILE_INDEX(K,N)
-            J=(um1%LAND_INDEX(L)-1)/um1%ROW_LENGTH + 1
-            I = um1%LAND_INDEX(L) - (J-1)*um1%ROW_LENGTH
-            
-            ! direct beam visible
-            LAND_ALBEDO_CABLE(I,J,1) = LAND_ALBEDO_CABLE(I,J,1) +              &
-                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,1)
-
-            ! diffuse beam visible
-            LAND_ALBEDO_CABLE(I,J,2) = LAND_ALBEDO_CABLE(I,J,2) +              &
-                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,2)
-
-            ! direct beam nearinfrared 
-            LAND_ALBEDO_CABLE(I,J,3) = LAND_ALBEDO_CABLE(I,J,3) +              &
-                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,3)
-
-            ! diffuse beam nearinfrared
-            LAND_ALBEDO_CABLE(I,J,4) = LAND_ALBEDO_CABLE(I,J,4) +              &
-                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,4)
-            LAND_ALB_CABLE(I,J) = LAND_ALB_CABLE(I,J) +                        &
-                                um1%TILE_FRAC(L,N)*LAND_ALB_CABLE_TILE(L,N)
-         ENDDO
-      ENDDO
+!      DO N=1,um1%NTILES
+!         DO K=1,um1%TILE_PTS(N)
+!            L = um1%TILE_INDEX(K,N)
+!            J=(um1%LAND_INDEX(L)-1)/um1%ROW_LENGTH + 1
+!            I = um1%LAND_INDEX(L) - (J-1)*um1%ROW_LENGTH
+!            
+!            ! direct beam visible
+!            LAND_ALBEDO_CABLE(I,J,1) = LAND_ALBEDO_CABLE(I,J,1) +              &
+!                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,1)
+!
+!            ! diffuse beam visible
+!            LAND_ALBEDO_CABLE(I,J,2) = LAND_ALBEDO_CABLE(I,J,2) +              &
+!                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,2)
+!
+!            ! direct beam nearinfrared 
+!            LAND_ALBEDO_CABLE(I,J,3) = LAND_ALBEDO_CABLE(I,J,3) +              &
+!                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,3)
+!
+!            ! diffuse beam nearinfrared
+!            LAND_ALBEDO_CABLE(I,J,4) = LAND_ALBEDO_CABLE(I,J,4) +              &
+!                                       um1%TILE_FRAC(L,N)*ALB_TILE(L,N,4)
+!            LAND_ALB_CABLE(I,J) = LAND_ALB_CABLE(I,J) +                        &
+!                                um1%TILE_FRAC(L,N)*LAND_ALB_CABLE_TILE(L,N)
+!         ENDDO
+!      ENDDO
 
       cable_runtime%um_radiation= .FALSE.
 

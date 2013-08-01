@@ -29,26 +29,40 @@
 !
 ! ==============================================================================
 
-
-   !USE cable_data_module,   ONLY : PHYS
-   !REAL, POINTER :: TFRZ
-   !   TFRZ => PHYS%TFRZ
-subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
-                                  DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
+SUBROUTINE cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       &
+                                  DTL_1,DQW_1,& 
+                                  T_SOIL, TSOIL_TILE, SMCL,       &
                                   SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
-                                  ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
+                                  SNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
                                   SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
                                   FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
                                   TSTAR_TILE,        &
                                   SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
-                                  EI_TILE, RADNET_TILE, SNAGE_TILE,   &
-                                  CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
+                                  EI_TILE, RADNET_TILE, SNow_AGE,   &
+                                  CANOPY, GS, T1P5M_TILE, Q1P5M_TILE,     &
                                   CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, RESP_P, RESP_P_FT,  &
                                   G_LEAF )   
 
+
+!subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
+!                                  DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
+!                                  SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
+!                                  STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
+!                                  ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
+!                                  SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
+!                                  FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
+!                                  TSTAR_TILE,        &
+!                                  SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
+!                                  EI_TILE, RADNET_TILE, SNAGE_TILE,   &
+!                                  CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
+!                                  CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
+!                                  DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
+!                                  RESP_S_TOT, RESP_P, RESP_P_FT,  &
+!                                  G_LEAF )   
+!
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep, &

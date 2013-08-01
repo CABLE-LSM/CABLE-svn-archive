@@ -29,92 +29,175 @@
 !
 !
 ! ==============================================================================
-
-  SUBROUTINE cable_explicit(                                           &
-           ! vars native to JULES/UM 
-           !
-           ! # grid cells 
-           row_length, rows, &
-           ! # AND index of land points
-           land_pts, land_index, &
-           ! model levels (modified for CABLE)
-           ntiles, npft, sm_levels,   &
-           ! time info 
-           timestep, timestep_number, &
-           ! time info in UM (passing dummy in JULES) 
-           endstep, &
-           ! # of processor in UM (passing dummy in JULES) 
-           mype, &
-           ! grid cell data
-           latitude, longitude, &
-           ! fraction of land on each grid cell 
-           Fland, & 
-           ! fraction of each tile (modified for CABLE)
-           tile_frac,  &
-           ! # AND index of tile points following tile_frac
-           tile_pts, tile_index,&
-           ! canopy height, LAI, soil levels 
-           ! as prescribed in JULES 
-           canht_ft,       &
-           lai_ft, dzsoil,       &
-           ! soil vars used in initialization of CABLE vars
-           ! INTENT(IN)  used on first CALL only
-           !jhan: ultimately read in as tiled vars
-           bexp, hcon, satcon, sathh, smvcst,           &
-           smvcwt, smvccl, albsoil, &
-           ! JULES non-tiled unfrozen soil. returned from CABLE 
-           sthu, &
-           ! used in initialization of CABLE var every step
-           ! returned to JULES from cable_hydrolog AND cable_implicit
-           snow_tile,          &
-           ! canopy water storage - reieved as canopy_tile in CABLE
-           !unpacked from CABLE - but only for dumping?
-           canopy_tile,   &
-           ! CO2 mass mixing ratio INTENT(IN) 
-           CO2_MMR, &
-           !
-           !
-           ! JULES forcing  
-           sw_down, &
-           lw_down,   &
-           ls_rain, ls_snow, &
-           cos_zenith_angle, & ! constructed for CABLE
-           tl_1, qw_1, vshr_land, pstar, z1_tq,&
-           z1_uv, &
-           !
-           ! End - vars native to JULES/UM 
-           !
-           !from IMPLICIT CALL
-           dtl_1, dqw_1, &
-           TSOIL, SMCL, STHF,  &
-           FTL_1,FQW_1,  &
-           SURF_HT_FLUX_LAND, &
-           ECAN_TILE,ESOIL_TILE,EI_TILE,&
-           GS, T1P5M_TILE, Q1P5M_TILE, &
-           CANOPY_GB, MELT_TILE, DIM_CS1,DIM_CS2, NPP, NPP_FT, &
-           GPP, GPP_FT, RESP_S, &
-           RESP_S_TOT, RESP_P, RESP_P_FT,  &
-           G_LEAF, &
-           !
-           ! new CABLE vars
-           !
-           ! CABLE_vars initialized from ancillaries
-           !
-           ! snow vars - passed as read 
-           isnow_flg3l, snow_rho1l, snage_tile,          &
-           ! snow vars - read as separate var per layer and pre-packed 
-           snow_rho3l, snow_depth3l, snow_tmp3l, snow_mass3l, &
-           ! soil vars - read as separate var per layer and pre-packed
-           sthu_tile, smcl_tile, sthf_tile, tsoil_tile, &
-           ! snow_cond requires no init from file?
-           snow_cond, &
-           FTL_TILE,  &
-           FQW_TILE, TSTAR_TILE,   &
-           U_S, U_S_STD_TILE,&
-           RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
-           Z0M_TILE, EPOT_TILE & 
-                                  )    
-
+         SUBROUTINE cable_explicit_driver(                                        &
+               ! vars native to JULES/UM 
+               ! ........................
+               ! # grid cells 
+               row_length, rows, &
+               ! # AND index of land points
+               land_pts, land_index, &
+               ! model levels (modified for CABLE)
+               ntiles, npft, fsm_levels,   &
+               ! time info 
+               timestep, timestep_number, &
+               ! time info in UM (passing dummy in JULES) 
+               endstep, &
+               ! # of processor in UM (passing dummy in JULES) 
+               mype, &
+               ! grid cell data
+               latitude, longitude, &
+               ! fraction of land on each grid cell 
+               Fland, & 
+               ! fraction of each tile (modified for CABLE)
+               tile_frac,  &
+               ! # AND index of tile points following tile_frac
+               tile_pts, tile_index,&
+               ! canopy height, LAI, soil levels 
+               ! as prescribed in JULES 
+               canht_ft,       &
+               lai_ft,         &
+               dzsoil,       &
+               ! soil vars used in initialization of CABLE vars
+               ! INTENT(IN)  used on first CALL only
+               !jhan: ultimately read in as tiled vars
+                bexp, & 
+                !currently being passed 
+                hcon, &
+                satcon, sathh, &
+                smvcst,           &
+                smvcwt, smvccl, &
+                albsoil, & ! SOIL_ALB (atm_step)
+                ! JULES non-tiled unfrozen soil. returned from CABLE 
+                sthu, &
+                ! used in initialization of CABLE var every step
+                ! returned to JULES from cable_hydrolog AND cable_implicit
+                snow_tile,          &
+                ! canopy water storage - reieved as canopy_tile in CABLE
+                !unpacked from CABLE - but only for dumping?
+                canopy,   &
+                ! CO2 mass mixing ratio INTENT(IN) 
+                CO2_MMR, &
+                !
+                ! JULES forcing  
+                !sw_down_cable, &
+                !lw_down_cable,   &
+                lw_down, &
+                ! large scale rain, snow
+                ls_rain, ls_snow, &
+                cos_zenith_angle, & 
+                tl_1, qw_1, vshr_land, pstar, z1_tq,&
+                z1_uv, &
+                !
+                ! End - vars native to JULES/UM 
+                !
+                ! new CABLE vars
+                !
+                ! CABLE_vars initialized from ancillaries
+                !
+                ! snow vars - passed as read 
+                snow_flg3l, snow_rho1l, snow_age,          &
+                ! snow vars - (JULES-read as separate var per layer and pre-packed) 
+                snow_rho3l, snow_depth3l,snow_tmp3l, snow_mass3l, &
+                ! soil vars - (JULES-read as separate var per layer and pre-packed)
+                !sthf_tile is set_atm FIELD, but sthu_tile is simply dec in atm_step
+                sthu_tile, smcl_tile, sthf_tile, tsoil_tile, &
+                !
+                ! snow_cond requires no init from file
+                snow_cond, &
+                ! redec.by CABLE. prior scope glue_rad down only  
+                surf_down_sw, &
+                FTL_TILE,  &
+                FQW_TILE, TSTAR_TILE,   &
+                U_S, &
+                U_S_STD_TILE,&
+                RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
+                Z0M_TILE, EPOT_TILE & 
+                )
+!  SUBROUTINE cable_explicit(                                           &
+!           ! vars native to JULES/UM 
+!           !
+!           ! # grid cells 
+!           row_length, rows, &
+!           ! # AND index of land points
+!           land_pts, land_index, &
+!           ! model levels (modified for CABLE)
+!           ntiles, npft, sm_levels,   &
+!           ! time info 
+!           timestep, timestep_number, &
+!           ! time info in UM (passing dummy in JULES) 
+!           endstep, &
+!           ! # of processor in UM (passing dummy in JULES) 
+!           mype, &
+!           ! grid cell data
+!           latitude, longitude, &
+!           ! fraction of land on each grid cell 
+!           Fland, & 
+!           ! fraction of each tile (modified for CABLE)
+!           tile_frac,  &
+!           ! # AND index of tile points following tile_frac
+!           tile_pts, tile_index,&
+!           ! canopy height, LAI, soil levels 
+!           ! as prescribed in JULES 
+!           canht_ft,       &
+!           lai_ft, dzsoil,       &
+!           ! soil vars used in initialization of CABLE vars
+!           ! INTENT(IN)  used on first CALL only
+!           !jhan: ultimately read in as tiled vars
+!           bexp, hcon, satcon, sathh, smvcst,           &
+!           smvcwt, smvccl, albsoil, &
+!           ! JULES non-tiled unfrozen soil. returned from CABLE 
+!           sthu, &
+!           ! used in initialization of CABLE var every step
+!           ! returned to JULES from cable_hydrolog AND cable_implicit
+!           snow_tile,          &
+!           ! canopy water storage - reieved as canopy_tile in CABLE
+!           !unpacked from CABLE - but only for dumping?
+!           canopy_tile,   &
+!           ! CO2 mass mixing ratio INTENT(IN) 
+!           CO2_MMR, &
+!           !
+!           !
+!           ! JULES forcing  
+!           sw_down, &
+!           lw_down,   &
+!           ls_rain, ls_snow, &
+!           cos_zenith_angle, & ! constructed for CABLE
+!           tl_1, qw_1, vshr_land, pstar, z1_tq,&
+!           z1_uv, &
+!           !
+!           ! End - vars native to JULES/UM 
+!           !
+!           !from IMPLICIT CALL
+!           dtl_1, dqw_1, &
+!           TSOIL, SMCL, STHF,  &
+!           FTL_1,FQW_1,  &
+!           SURF_HT_FLUX_LAND, &
+!           ECAN_TILE,ESOIL_TILE,EI_TILE,&
+!           GS, T1P5M_TILE, Q1P5M_TILE, &
+!           CANOPY_GB, MELT_TILE, DIM_CS1,DIM_CS2, NPP, NPP_FT, &
+!           GPP, GPP_FT, RESP_S, &
+!           RESP_S_TOT, RESP_P, RESP_P_FT,  &
+!           G_LEAF, &
+!           !
+!           ! new CABLE vars
+!           !
+!           ! CABLE_vars initialized from ancillaries
+!           !
+!           ! snow vars - passed as read 
+!           isnow_flg3l, snow_rho1l, snage_tile,          &
+!           ! snow vars - read as separate var per layer and pre-packed 
+!           snow_rho3l, snow_depth3l, snow_tmp3l, snow_mass3l, &
+!           ! soil vars - read as separate var per layer and pre-packed
+!           sthu_tile, smcl_tile, sthf_tile, tsoil_tile, &
+!           ! snow_cond requires no init from file?
+!           snow_cond, &
+!           FTL_TILE,  &
+!           FQW_TILE, TSTAR_TILE,   &
+!           U_S, U_S_STD_TILE,&
+!           RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
+!           Z0M_TILE, EPOT_TILE & 
+!                                  )    
+!
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars
