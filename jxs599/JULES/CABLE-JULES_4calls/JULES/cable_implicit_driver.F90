@@ -29,43 +29,26 @@
 !
 ! ==============================================================================
 
-SUBROUTINE cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       &
+SUBROUTINE cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,      &
                                   DTL_1,DQW_1,& 
-                                  T_SOIL, TSOIL_TILE, SMCL,       &
+                                  TSOIL, TSOIL_TILE, SMCL,       &
                                   SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
-                                  SNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
+                                  iSNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
                                   SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
                                   FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
                                   TSTAR_TILE,        &
                                   SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
                                   EI_TILE, RADNET_TILE, SNow_AGE,   &
-                                  CANOPY, GS, T1P5M_TILE, Q1P5M_TILE,     &
+                                  CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
                                   CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, RESP_P, RESP_P_FT,  &
                                   G_LEAF )   
 
-
-!subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
-!                                  DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
-!                                  SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
-!                                  STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
-!                                  ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
-!                                  SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
-!                                  FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
-!                                  TSTAR_TILE,        &
-!                                  SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
-!                                  EI_TILE, RADNET_TILE, SNAGE_TILE,   &
-!                                  CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
-!                                  CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
-!                                  DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
-!                                  RESP_S_TOT, RESP_P, RESP_P_FT,  &
-!                                  G_LEAF )   
-!
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep, &
+   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
                                   ssnow, sum_flux, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user
@@ -77,7 +60,7 @@ SUBROUTINE cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       
    REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
       LS_RAIN,  & ! IN Large scale rain
       LS_SNOW,  & ! IN Large scale snow
-      CON_RAIN, & ! IN Convective rain
+      CONV_RAIN, & ! IN Convective rain
       CONV_SNOW,& ! IN Convective snow
       DTL_1,    & ! IN Level 1 increment to T field 
       DQW_1       ! IN Level 1 increment to q field 
@@ -173,7 +156,7 @@ SUBROUTINE cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       
    REAL, DIMENSION( um1%land_pts,um1%ntiles ) ::                               &
       SNOW_TILE,     &
       SNOW_RHO1L,    &  ! Mean snow density
-      SNAGE_TILE,    &
+      snow_age,      &
       CANOPY_TILE,   &
       FTL_TILE_CAB,  & 
       LE_TILE_CAB,   &
@@ -219,13 +202,13 @@ SUBROUTINE cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       
       !--- where mask tells um2cable_rr whether or not to use default value 
       !--- for snow tile 
       !-------------------------------------------------------------------
-      CALL um2cable_rr( (LS_RAIN+CON_RAIN)*um1%TIMESTEP, met%precip)
+      CALL um2cable_rr( (LS_RAIN+CONV_RAIN)*um1%TIMESTEP, met%precip)
       CALL um2cable_rr( (LS_SNOW+CONV_SNOW)*um1%TIMESTEP, met%precip_sn)
       CALL um2cable_rr( dtl_1, dtlc)
       CALL um2cable_rr( dqw_1, dqwc)
       
       !--- conv_rain(snow)_prevstep are added to precip. in explicit call
-      CALL um2cable_rr( (CON_RAIN)*um1%TIMESTEP, conv_rain_prevstep)
+      CALL um2cable_rr( (CONV_RAIN)*um1%TIMESTEP, conv_rain_prevstep)
       CALL um2cable_rr( (CONV_snow)*um1%TIMESTEP, conv_snow_prevstep)
       
       met%precip   =  met%precip + met%precip_sn
@@ -240,20 +223,20 @@ SUBROUTINE cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       
            rad, rough, soil, ssnow, sum_flux, veg)
   
         
-!      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
-!                            SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
-!                            snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
-!                            SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
-!                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
-!                            FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
-!                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
-!                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
-!                            ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
-!                            SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
-!                            Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
-!                            DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
-!                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
-!       
+      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
+                            SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
+                            snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
+                            SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
+                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
+                            FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
+                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
+                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
+                            ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
+                            snow_age, CANOPY_TILE, GS, T1P5M_TILE,           &
+                            Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
+                            DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
+                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
+       
       cable_runtime%um_implicit = .FALSE.
   
 END SUBROUTINE cable_implicit_driver
@@ -272,7 +255,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
                             TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
                             SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
-                            SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
+                            snow_age, CANOPY_TILE, GS, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
@@ -368,7 +351,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
       SNOW_TILE,     & !
       SNOW_RHO1L,    & ! Mean snow density
-      SNAGE_TILE,    & !
+      snow_age,    & !
       CANOPY_TILE,   & !
       FTL_TILE_CAB,  & !
       LE_TILE_CAB,   & !
@@ -494,7 +477,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
      ESOIL_TILE = UNPACK(fes_dlh, um1%L_TILE_PTS, miss)
      ECAN_TILE = UNPACK(fev_dlh,  um1%L_TILE_PTS, miss)
      EI_TILE = 0.
-     SNAGE_TILE = UNPACK(ssnow%snage, um1%L_TILE_PTS, miss) 
+     snow_age= UNPACK(ssnow%snage, um1%L_TILE_PTS, miss) 
 
      !unpack screen level (1.5m) variables
      !Convert back to K 

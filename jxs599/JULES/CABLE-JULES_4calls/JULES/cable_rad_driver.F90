@@ -27,21 +27,13 @@
 !
 !
 ! ==============================================================================
-      CALL cable_rad_driver(                &
-! IN atmospheric forcing
-               fsurf_down_sw, fcos_zenith_angle, &
-! IN soil/vegetation/land surface data :
-               fSNOW_TILE,fSNOW_TMP3L,fSNOW_RHO1L,fTSOIL_TILE,            &
-               fSNOW_FLG3L,                                           &
-! IN  Time stepping infomation:
-               falbsoil )
 
 SUBROUTINE cable_rad_driver(                                                   &
                              ! IN atmospheric forcing
                              surf_down_sw, cos_zenith_angle,                   &
                              ! IN soil/vegetation/land surface data :
                              SNOW_TILE, SNOW_TMP3L, SNOW_RHO1L, TSOIL_TILE,    &
-                             ISNOW_FLG3L, 
+                             ISNOW_FLG3L,                                      & 
                              ALBSOIL )
                              ! OUT
                              !LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
