@@ -50,7 +50,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
                                   G_LEAF, TRANSP_TILE, CPOOL_TILE, NPOOL_TILE, &
-                                  PPOOL_TILE, GLAI, PHENPHASE )   
+                                  PPOOL_TILE, GLAI, PHENPHASE, NPP_FT_ACC,     &
+                                  RESP_W_FT_ACC )
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
@@ -64,7 +65,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    USE casavariable
    USE phenvariable
-   USE casa_types
+   USE casa_types_mod
    !USE casa_cable
    USE casa_um_inout_mod
 
@@ -198,6 +199,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    !INTEGER, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                              &
       PHENPHASE
 
+   ! Lestevens 23apr13
+   REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
+      NPP_FT_ACC, &
+      RESP_W_FT_ACC
+
    INTEGER ::     &
       ktauday,    &  ! day counter for CASA-CNP
       idoy           ! day of year (1:365) counter for CASA-CNP
@@ -280,7 +286,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,& 
-                            TRANSP_TILE )
+                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC )
 
 ! Lestevens Sept2012 - Call CASA-CNP
       if (l_casacnp) then
@@ -320,7 +326,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,&
-                            TRANSP_TILE )
+                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC )
  
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
@@ -409,6 +415,11 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       RESP_P,     & 
       NPP,        & 
       GPP
+
+   ! Lestevens 23apr13
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
+      NPP_FT_ACC,    & ! sresp for CASA-CNP
+      RESP_W_FT_ACC    ! presp for CASA-CNP
    
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
       SNOW_TILE,     & !
@@ -624,6 +635,15 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       ENDDO
 
      RESP_S_TILE=FRS_TILE*1.e-3
+     ! Lestevens 23apr13 - possible miss match ntiles<-->npft
+     DO N=1,um1%NTILES
+        DO K=1,um1%TILE_PTS(N)
+           L = um1%TILE_INDEX(K,N)
+           !---convert units to kg C m-2 s-1
+           NPP_FT_ACC(L,N)    = FRS_TILE(L,N)*1.e-3
+           RESP_W_FT_ACC(L,N) = FRP_TILE(L,N)*1.e-3
+        ENDDO
+     ENDDO
 
       DO N=1,um1%NTILES 
          DO K=1,um1%TILE_PTS(N)

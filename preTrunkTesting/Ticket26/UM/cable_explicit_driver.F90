@@ -53,7 +53,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
                                   CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
                                   SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  GLAI, PHENPHASE,                             &
+                                  GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
                                   endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
@@ -78,7 +78,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- include subr called to write data for testing purposes 
    USE cable_diag_module
    USE casavariable
-   USE casa_types
+   USE casa_types_mod
 
    IMPLICIT NONE
  
@@ -255,6 +255,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       GLAI, &          ! Leaf Area Index for Prognostics LAI
       PHENPHASE        ! Phenology Phase for Casa-CNP
+                                  
+   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+      NPP_FT_ACC,     &
+      RESP_W_FT_ACC
      
    !-------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM sf_exch() ----------------------------------------
@@ -325,7 +329,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil,                         &
                            CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
-                           NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE )                         
+                           NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
+                           NPP_FT_ACC,RESP_W_FT_ACC )
 
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!

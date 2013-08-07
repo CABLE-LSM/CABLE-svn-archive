@@ -1,11 +1,39 @@
-      module casa_types
+!==============================================================================
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from
+! http://www.accessimulator.org.au/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing,
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and
+! limitations under the Licence.
+! ==============================================================================
+!
+! Purpose:
+!
+! Contact:
+!
+! History:
+!
+!
+! ==============================================================================
 
-      use casavariable
-      use phenvariable
+module casa_types_mod
 
-      implicit none
+ use casavariable
+ use phenvariable
 
-      private
+ implicit none
+
+ private
 
       ! Les 19 Jan 2011
 !      TYPE (casa_biome)    , save   :: casabiome  !
@@ -23,10 +51,10 @@
      !TYPE (casafiles_type)   :: casafile   !
 
       ! Save these so only have to do the allocation once.
-      save casabiome, casapool, &
-           casaflux, casamet, casabal, phen!, casafile
-      public casabiome, casapool, &
-           casaflux, casamet, casabal, phen!, casafile
+ save casabiome, casapool, &
+      casaflux, casamet, casabal, phen!, casafile
+ public casabiome, casapool, &
+        casaflux, casamet, casabal, phen!, casafile
 
-      end module casa_types
+end module casa_types_mod
    
