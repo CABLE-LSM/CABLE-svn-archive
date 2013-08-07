@@ -72,6 +72,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%moist  = 0.0
          casaflux%cgpp  = 0.0
          ! add initializations (BP jul2010)
+         !! Les 10jan13 - init cnpp ?
+         !casaflux%cnpp  = 0.0
          casaflux%Crsoil   = 0.0
          casaflux%crgplant = 0.0
          casaflux%crmplant = 0.0
@@ -417,6 +419,7 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
        sum_flux%sumrs = sum_flux%sumrs+canopy%frs*dels
     endif
     ! Set net ecosystem exchange after adjustments to frs:
+    canopy%fnpp = -1.0* canopy%fpn - canopy%frp
     IF (icycle <= 1) THEN
       canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
     ELSE

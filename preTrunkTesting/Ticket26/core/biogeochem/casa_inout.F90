@@ -47,6 +47,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   USE casaparm
   USE casavariable
   USE phenvariable
+  USE cable_common_module, ONLY : knode_gl
   IMPLICIT NONE
 !  INTEGER,               INTENT(IN)    :: mvt,mst
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
@@ -88,6 +89,15 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   INTEGER :: nv0,nv1,nv2,nv3,nv4,nv5,nv6,nv7,nv8,nv9,nv10
 
   OPEN(101,file=casafile%cnpbiome)
+
+  if (knode_gl==0) then    
+    print *, '  '; print *, 'CASA_log:'
+    print *, '  Opened file - '
+    print *, '  ', trim(casafile%cnpbiome)
+    print *, '  for reading cnpbiome vars.'
+    print *, 'End CASA_log:'; print *, '  '
+  endif
+
   DO i=1,3
     READ(101,*) 
   ENDDO
@@ -362,6 +372,7 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
   USE casaparm
   USE casavariable
   USE phenvariable
+  USE cable_common_module, ONLY : knode_gl
   IMPLICIT NONE
 !  INTEGER,              INTENT(IN)    :: mvt
   TYPE (veg_parameter_type), INTENT(IN)    :: veg  ! vegetation parameters
@@ -382,6 +393,15 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
   phendoy1(:,:)= 2
 
   OPEN(101,file=casafile%phen)
+
+  if (knode_gl==0) then
+    print *, '  '; print *, 'CASA_log:'
+    print *, '  Opened file - '
+    print *, '  ', trim(casafile%phen)
+    print *, '  for reading phen vars.'
+    print *, 'End CASA_log:'; print *, '  '
+  endif
+
   READ(101,*)
   READ(101,*) (ivtx(nx),nx=1,nphen) ! fixed at 10, as only 10 of 17 IGBP PFT
                                     ! have seasonal leaf phenology
@@ -514,7 +534,7 @@ END SUBROUTINE casa_readphen
 !     casaflux%Pdep(p)    = annPdust(ii,jj)/365.0     ! gP/m2/day
 !     casaflux%Pwea(p)    = annPwea(ii,jj)/365.0      ! gP/m2/day
 !
-!     if(veg%iveg(p)==9 .or. veg%iveg(p)==10) then
+!     if(veg%iveg(p)==cropland .or. veg%iveg(p)==croplnd2) then
 !     ! P fertilizer =13 Mt P globally in 1994
 !       casaflux%Pdep(p) = casaflux%Pdep(p)+0.7/365.0
 !     ! N fertilizer =86 Mt N globally in 1994
@@ -583,7 +603,7 @@ END SUBROUTINE casa_readphen
 !!      STOP
 !!    END IF
 !!
-!!    if(veg%iveg(np)==9 .or. veg%iveg(np)==10) then
+!!    if(veg%iveg(np)==cropland .or. veg%iveg(np)==croplnd2) then
 !!    ! P fertilizer =13 Mt P globally in 1994
 !!      casaflux%Pdep(np) = casaflux%Pdep(np)+0.7/365.0
 !!    ! N fertilizer =86 Mt N globally in 1994
@@ -635,6 +655,7 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
   PRINT *, 'initial pool from ',TRIM(casafile%cnpipool)
   PRINT *, 'icycle,initcasa,mp ', icycle,initcasa,mp
   !phen%phase = 2
+
   IF (initcasa==1) THEN
     OPEN(99,file=casafile%cnpipool)
 
