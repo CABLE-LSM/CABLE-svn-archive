@@ -2,7 +2,9 @@ MODULE sli_utils
 
   USE cable_def_types_mod, ONLY: r_2, i_d, r_1
   USE cable_def_types_mod,      ONLY: soil_parameter_type
-  USE sli_numbers,       ONLY: zero, half, one, two, four, e3, &
+  USE sli_numbers,       ONLY: &
+       experiment, &
+       zero, half, one, two, four, e3, &
        Tzero, gravity, Rgas, thousand, Mw, rlambda, Dva, &
        params, vars_aquifer, vars, rapointer, &
        rhow, lambdaf, lambdas, csice, cswat,cpa,&
@@ -19,7 +21,8 @@ MODULE sli_utils
   PUBLIC :: aquifer_props, flux, generic_thomas, getfluxes_vp, getheatfluxes, hyofh, hyofS, isosub ! subroutines
   PUBLIC :: litter_props, massman_sparse, potential_evap, setlitterpar, setpar, setsol, setx, tri
   PUBLIC :: csat, csoil, dthetalmaxdT, dthetalmaxdTh, esat, esat_ice, gammln, igamma, phi, rh0_sol, rtbis_rh0 ! functions
-  PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, zerovars, Tthetalmax
+  PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, zerovars, Tthetalmax, Tfrozen
+  PUBLIC :: rtbis_Tfrozen, GTfrozen, JSoilLayer
 
   REAL(r_2),        DIMENSION(:,:),   ALLOCATABLE :: dx
   REAL(r_2),        DIMENSION(:),     ALLOCATABLE :: dxL
@@ -174,14 +177,16 @@ CONTAINS
 
     ! gf is gravity factor (0 to 1) assumed available in module
     if (gf < zero) then
-       if ((v1%isat /= 0 .and. v2%isat /= 0) .or. v1%h-gf*(-dz) >= parin%he) then
+       !if ((v1%isat /= 0 .and. v2%isat /= 0) .or. v1%h-gf*(-dz) >= parin%he) then
+       if ((v1%isat /= 0 .and. v2%isat /= 0) .or. v1%h-gf*(-dz) >= v1%he) then
           w = one
        else
           w = weight(parin, v1%h, v1%K*v1%macropore_factor, v1%phi, -dz)
           w = one-w
        end if
     else
-       if ((v1%isat /= 0 .and. v2%isat /= 0) .or. v2%h-gf*dz >= parin%he) then
+       !if ((v1%isat /= 0 .and. v2%isat /= 0) .or. v2%h-gf*dz >= parin%he) then
+       if ((v1%isat /= 0 .and. v2%isat /= 0) .or. v2%h-gf*dz >= v2%he) then
           w = zero
        else
           w = weight(parin, v2%h, v2%K*v2%macropore_factor, v2%phi, dz)
@@ -353,14 +358,14 @@ CONTAINS
     REAL(r_2),    DIMENSION(0:n), INTENT(INOUT) :: qyb
     REAL(r_2),    DIMENSION(0:n), INTENT(INOUT) :: qTa
     REAL(r_2),    DIMENSION(0:n), INTENT(INOUT) :: qTb
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: ql
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: qlya
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: qlyb
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: qv
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: qvT
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: qvh
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: qvya
-    REAL(r_2),    DIMENSION(0:n), INTENT(OUT)   :: qvyb
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: ql
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qlya
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qlyb
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qv
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qvT
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qvh
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qvya
+    REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qvyb
     INTEGER(i_d),                 INTENT(IN)    :: iflux
     LOGICAL,                      INTENT(IN)    :: init
     LOGICAL,                      INTENT(IN)    :: getq0
@@ -432,33 +437,8 @@ CONTAINS
     l = 0
     do i=1, n-1
        if (iflux==1 .or. var(i)%isat/=0 .or. var(i+1)%isat/=0 .or. nsat/=nsatlast) then ! get flux
-          if (parin(i)%isahorizon == parin(i+1)%isahorizon) then ! same soil type, no interface
+          if (parin(i)%ishorizon == parin(i+1)%ishorizon) then ! same soil type, no interface
              call flux(parin(i), var(i), var(i+1), dz(i), q(i), qya(i), qyb(i), qTa(i), qTb(i))
-
-             ! if ((var(i)%phi<parin(i)%phie.and.var(i+1)%phi>parin(i)%phie) .or. &
-             !      (var(i)%phi>parin(i)%phie.and.var(i+1)%phi<parin(i)%phie)) then
-             !    ! if (var(i)%phi<parin(i)%phie.and.var(i+1)%phi>parin(i)%phie) then  ! saturated layer below
-             !    !       if (dzs>dx(i+1)/2) then
-             !    !               var(i)%zsat = dx(i)/2 - (dz(i)-dzs) ! height of sat front wrt bottom of layer
-             !    !       else
-             !    !               var(i+1)%zsat = dx(i+1)/2 + dzs
-             !    !       endif
-
-             !    ! elseif (var(i)%phi>parin(i)%phie.and.var(i+1)%phi<parin(i)%phie) then ! saturated layer above
-             !    !       if (dzs>dx(i)/2) then
-             !    !               var(i+1)%zsat = dx(i+1)/2 - (dzs-dz(i)) ! height of sat front wrt bottom of layer
-             !    !       else
-             !    !               var(i)%zsat = dx(i)/2 - dzs
-             !    !       endif
-
-             !    ! endif
-
-             !    !if ( var(i+1)%zsat<0.or.var(i)%zsat<0) then
-             !    !write(*,*)
-             !    !endif
-
-             ! endif
-
           else ! interface
              l  = l+1
              if (init) then ! initialise
@@ -491,8 +471,8 @@ CONTAINS
                    vi1%KS = Khi1/vi1%K ! use dK/dphi, not dK/dS
                 else
                    vi1%isat = 1
-                   vi1%K    = parin(i)%Ke
-                   phii1    = parin(i)%phie+(hi-parin(i)%he)*parin(i)%Ke
+                   vi1%K    = var(i)%Ksat
+                   phii1    = var(i)%phie+(hi-parin(i)%he)*var(i)%Ksat
                    vi1%KS   = zero
                 end if
 
@@ -513,8 +493,8 @@ CONTAINS
                    vi2%KS = Khi2/vi2%K ! dK/dphi
                 else
                    vi2%isat = 1
-                   vi2%K    = parin(i+1)%Ke
-                   vi2%phi  = parin(i+1)%phie+(hi-parin(i+1)%he)*parin(i+1)%Ke
+                   vi2%K    = var(i+1)%Ksat
+                   vi2%phi  = var(i+1)%phie+(hi-parin(i+1)%he)*var(i+1)%Ksat
                 end if
 
                 vi2%h    = hi
@@ -770,16 +750,16 @@ CONTAINS
     ! get other fluxes
     do i=1, n-1
        l1(:) = (iflux(:)==1 .or. var(:,i)%isat/=0 .or. var(:,i+1)%isat/=0 .or. nsat(:)/=nsatlast(:))
-       if (any(l1(:) .and. (parin(:,i)%isahorizon==parin(:,i+1)%isahorizon))) &
+       if (any(l1(:) .and. (parin(:,i)%ishorizon==parin(:,i+1)%ishorizon))) &
             call flux(parin(:,i), var(:,i), var(:,i+1), dz(:,i), ztmp1(:), ztmp2(:), ztmp3(:), ztmp4(:), ztmp5(:))
-       where (l1(:) .and. (parin(:,i)%isahorizon==parin(:,i+1)%isahorizon)) ! same soil type, no interface
+       where (l1(:) .and. (parin(:,i)%ishorizon==parin(:,i+1)%ishorizon)) ! same soil type, no interface
           q(:,i)   = ztmp1(:)
           qya(:,i) = ztmp2(:)
           qyb(:,i) = ztmp3(:)
           qTa(:,i) = ztmp4(:)
           qTb(:,i) = ztmp5(:)
        endwhere
-       l2(:) = l1(:) .and. (parin(:,i)%isahorizon /= parin(:,i+1)%isahorizon) ! interface
+       l2(:) = l1(:) .and. (parin(:,i)%ishorizon /= parin(:,i+1)%ishorizon) ! interface
        htmp(:) = hmin
        if (any(l2(:) .and. init(:))) &
             call hyofh(htmp(:), parin(:,i), ztmp1(:), ztmp2(:), ztmp3(:))
@@ -814,8 +794,8 @@ CONTAINS
              endwhere
              where (l3(:) .and. (hi(:)>=parin(:,i)%he))
                 vi1(:)%isat = 1
-                vi1(:)%K    = parin(:,i)%Ke
-                phii1(:)    = parin(:,i)%phie+(hi(:)-parin(:,i)%he)*parin(:,i)%Ke
+                vi1(:)%K    = var(:,i)%Ksat
+                phii1(:)    = var(:,i)%phie+(hi(:)-parin(:,i)%he)*var(:,i)%Ksat
                 vi1(:)%KS   = zero
              endwhere
 
@@ -852,8 +832,8 @@ CONTAINS
              endwhere
              where (l3(:) .and. (hi(:)>=parin(:,i+1)%he))
                 vi2(:)%isat = 1
-                vi2(:)%K    = parin(:,i+1)%Ke
-                vi2(:)%phi  = parin(:,i+1)%phie+(hi(:)-parin(:,i+1)%he)*parin(:,i+1)%Ke
+                vi2(:)%K    = var(:,i+1)%Ksat
+                vi2(:)%phi  = var(:,i+1)%phie+(hi(:)-parin(:,i+1)%he)*var(:,i+1)%Ksat
              endwhere
 
              where (l3(:))
@@ -1046,10 +1026,10 @@ CONTAINS
     INTEGER(i_d),               INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
 
-    REAL(r_2),  PARAMETER :: kw=0.57
     INTEGER(i_d)          :: i
     REAL(r_2)             :: rdz, w, keff
     REAL(r_2), DIMENSION(1:n-1) :: dz
+    REAL(r_2) :: dTqwdTa, dTqwdTb, Tqw
 
     dz(:) = half*(dx(1:n-1)+dx(2:n))
 
@@ -1076,18 +1056,31 @@ CONTAINS
        qhTa(i) = keff
        qhTb(i) = -keff
 
+
        ! add advective terms
        if (advection==1) then
-          if (q(i).gt.zero) then
-             w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
-          else
-             w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
-          endif
-          qadv(i) = rhow*cswat*q(i)*(w*(T(i)+Tzero)+(1.-w)*(T(i+1)+Tzero))
-          qadvya(i) =  rhow*cswat*qya(i)*(w*(T(i)+Tzero)+(1.-w)*(T(i+1)+Tzero))
-          qadvyb(i) =  rhow*cswat*qyb(i)*(w*(T(i)+Tzero)+(1.-w)*(T(i+1)+Tzero))
-          qadvTa(i) =  rhow*cswat*q(i)*w
-          qadvTb(i) =  rhow*cswat*q(i)*(1.-w)
+          !          if (q(i) > zero) then
+          !             w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
+          !          else
+          !             w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
+          !          endif
+          !          qadv(i) = rhow*cswat*q(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
+          !          qadvya(i) =  rhow*cswat*qya(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
+          !          qadvyb(i) =  rhow*cswat*qyb(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
+          !          qadvTa(i) =  rhow*cswat*q(i)*w
+          !          qadvTb(i) =  rhow*cswat*q(i)*(one-w)
+
+
+          Tqw  = merge(T(i), T(i+1), q(i)>zero) +zero
+          dTqwdTa = merge(one, zero, q(i)>zero)
+          dTqwdTb = merge(zero,one, q(i)>zero)
+
+          qadv(i) = rhow*cswat*q(i)*Tqw
+          qadvya(i) =  rhow*cswat*qya(i)*Tqw
+          qadvyb(i) =  rhow*cswat*qyb(i)*Tqw
+
+          qadvTa(i) =  rhow*cswat*q(i)*dTqwdTa + rhow*cswat*Tqw*qTa(i)
+          qadvTb(i) =  rhow*cswat*q(i)*dTqwdTb  +  rhow*cswat*Tqw*qTb(i)
 
           qh(i) = qh(i) + qadv(i)
           qhya(i) = qhya(i) + qadvya(i)
@@ -1140,7 +1133,6 @@ CONTAINS
     INTEGER(i_d),   INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
 
-    REAL(r_2),  PARAMETER :: kw=0.57
     INTEGER(i_d)          :: i, n
     REAL(r_2),  DIMENSION(1:size(dx,1))                :: rdz
     REAL(r_2),  DIMENSION(1:size(dx,1))                :: keff
@@ -1210,7 +1202,7 @@ CONTAINS
        ! add advective terms
        if (advection==1) then
 
-          Tqw  = merge(T(:,i), T(:,i+1), q(:,i)>zero) +Tzero
+          Tqw  = merge(T(:,i), T(:,i+1), q(:,i)>zero) +zero
           dTqwdTa = merge(one, zero, q(:,i)>zero)
           dTqwdTb = merge(zero,one, q(:,i)>zero)
 
@@ -1272,20 +1264,21 @@ CONTAINS
 
     a    =  -parin%lam * parin%eta
     K    =  parin%Ke * exp(a*log(h/parin%he))
-    Kh   =  a * K / h ! exp and log may be faster than **
+    Kh   =  a * K / h
     phi  =  K * h / (one+a)
 
   END SUBROUTINE hyofh
 
   !**********************************************************************************************************************
 
-  ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var,z)
+  ! For debug: remove elemental pure
+  ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
+    ! SUBROUTINE hyofS(S, Tsoil, parin, var)
 
     IMPLICIT NONE
 
     REAL(r_2),    INTENT(IN)    :: S
     REAL(r_2),    INTENT(IN)    :: Tsoil
-    REAL(r_2),    INTENT(IN)    :: z ! depth of soil layer
     TYPE(params), INTENT(IN)    :: parin
     TYPE(vars),   INTENT(INOUT) :: var
     ! Get soil water variables from S.
@@ -1294,12 +1287,13 @@ CONTAINS
     ! ms        - no. of soil layers.
     ! jt(1:ms)  - layer soil type nos.
     ! var(1:ms) - other water vars of layers.
-    REAL(r_2) :: lnS, v1, v2, theta, c, lnSat, v3, v4
+    REAL(r_2) :: lnS, theta, c, v3, v4
     REAL(r_2) :: dhdS, lambda, crh, int
-    REAL(r_2) :: dhdT, thetal_max
-    REAL(r_2) :: Sliq, Sliqsat
+    REAL(r_2) :: thetal_max
+    REAL(r_2) :: Sliq
     REAL(r_2) :: A, B, D, E, C1
-    REAL(r_2) :: macropore_modifier
+    REAL(r_2) :: F1, F2, F
+    !REAL(r_2) :: macropore_modifier
 
     theta         = S*(parin%thre) + (parin%the - parin%thre)
     var%lambdav   = rlambda       ! latent heat of vaporisation
@@ -1314,46 +1308,31 @@ CONTAINS
        var%thetai = (theta - thetal_max) ! volumetric ice content (m3(liq H2O)/m3 soil)
        var%thetal = thetal_max
        ! liquid water content, relative to saturation
-       !Sliq    = (var%thetal - (parin%the-parin%thre))/parin%thre
-	   Sliq    = min((var%thetal - (parin%the-parin%thre))/(parin%thre-var%thetai),one)
+       Sliq      = (var%thetal - (parin%the-parin%thre))/parin%thre
+       !Sliq      = min((var%thetal - (parin%the-parin%thre))/(parin%thre-var%thetai),one)
        ! saturated liquid water content (< 1 for frozen soil)
-       !Sliqsat = (thetal_max - (parin%the-parin%thre))/parin%thre
-	   Sliqsat = one
-       lnSat      = log(Sliqsat)
-       v1         = exp(-lnSat/parin%lam)
        ! air entry potential, flux matric potential and hydraulic conductivity for saturated frozen soil
-       v2     = exp(parin%eta*lnSat)
-       var%he   = parin%he*v1
-       var%phie = parin%phie*v1*v2
-       var%Ksat = parin%Ke*v2
+       var%he    = parin%he
+       lnS        = log(Sliq)
+       v3         = exp(-lnS/parin%lam)
+       v4         = exp(parin%eta*lnS)
+       var%phie  = parin%phie*v3*v4
+       var%Ksat  = parin%Ke*v4
+       ! !MC-Impedance - K
+       ! var%Ksat = var%Ksat * 10._r_2**(-7._r_2*var%thetai/parin%thre)
 
-
-       lnS    = log(Sliq)
-       v3     = exp(-lnS/parin%lam)
-       v4     = exp(parin%eta*lnS)
-       var%h    = parin%he*v3  ! matric potential
-       dhdT   =  (lambdaf*273.15_r_2 + csol*Rgas*(Tsoil + Tzero)**2)/(gravity*(Tsoil + Tzero)**2)
+       var%h  = parin%he*v3  ! matric potential
        dhdS   = zero
-       var%K    = parin%Ke*v4 !* (parin%thre-var%thetai)/parin%thre
-       var%KS   = zero
-       var%KT   = var%dthetaldT * parin%Ke * parin%eta * (Sliq**(parin%eta-one))/parin%thre !* &
-	               !(parin%thre-var%thetai)/parin%thre
-       !MC strange in original: used dthetaldT instead of v%dthetaldT -> KT=0
-       !MC set KT=0 to be consistent
-       var%KT   = zero
-       var%phi  = parin%phie*v3*v4 !* &
-	               !(parin%thre-var%thetai)/parin%thre
+       var%K  = var%Ksat
+       var%KS = zero
+       var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
+       ! !MC-Impedance - K
+       ! var%KT = var%KT * 10._r_2**(-7._r_2*var%thetai/parin%thre)
+       if (var%isat==0) var%phi = var%phie
        var%phiS = zero
-       var%phiT = parin%Ke * (var%h/parin%he)**(-parin%eta*parin%lam) * dhdT * &
-	               (parin%thre-var%thetai)/parin%thre
+       var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
+            (parin%eta-one/parin%lam)/(parin%thre)
        var%rh   = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
-
-	   ! reduced conductivity for high thetai
-	   !if ((parin%the-var%thetai).lt.0.13) then
-	   !   var%K = zero
-	   !elseif ((parin%the-var%thetai).gt.0.13)
-	   !   var%K = (parin%the-var%thetai-0.13)/(parin%the-0.13)*var%K
-	   !endif
     else ! no ice
        var%he     = parin%he
        var%phie   = parin%phie
@@ -1364,7 +1343,6 @@ CONTAINS
        var%dthetaldT = zero
        dhdS   = zero
        Sliq    = S        ! liquid water content, relative to saturation
-       Sliqsat = one
        lnS     = log(Sliq)
        v3      = exp(-lnS/parin%lam)
        v4      = exp(parin%eta*lnS)
@@ -1376,7 +1354,6 @@ CONTAINS
     endif
     if ((Tsoil >= var%Tfrz) .and. (S < one)) then ! unsaturated
        var%h    = parin%he*v3  ! matric potential
-       dhdT     = zero
        dhdS     = -parin%he/parin%lam*S**(-one/parin%lam-one)
        var%K    = parin%Ke*v4
        var%phi  = parin%phie*v3*v4
@@ -1388,7 +1365,6 @@ CONTAINS
     endif
     if ((Tsoil >= var%Tfrz) .and. (S >= one)) then ! saturated
        var%h    = parin%he
-       dhdT     = zero
        dhdS     = zero
        var%K    = parin%Ke
        var%phi  = parin%phie
@@ -1400,7 +1376,6 @@ CONTAINS
        var%KT   = zero
     endif
 
-
     !  variables required for vapour phase transfer
     theta  =  S*(parin%thre) + (parin%the - parin%thre)
 
@@ -1410,9 +1385,7 @@ CONTAINS
     !else
     ! var%macropore_factor = 1.
     !endif
-
-    var%macropore_factor = 1.
-
+    var%macropore_factor = one
 
     var%sl = slope_esat(Tsoil) * Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
     c      = Mw*gravity/Rgas/(Tsoil+Tzero)
@@ -1437,13 +1410,40 @@ CONTAINS
          ( (parin%thre)*c*exp(c*var%h) - parin%thre*c*(var%h/parin%he)**(-parin%lam)*exp(c*var%h) )
     var%kv    = var%Dv * var%cvsat *c * var%rh
 
-    ! calculate v%kH as in Campbell (1985) p.32 eq. 4.20
-    A          = 0.65_r_2 - 0.78_r_2*parin%rho/thousand + 0.60_r_2*(parin%rho/thousand)**2 ! need to substitute 1600 for rhob
-    C1         = one + 2.6_r_2 * parin%clay**(-0.5_r_2)
-    B          = 2.8_r_2 * (one-parin%thre)*theta
-    D          = 0.03_r_2 + 0.7_r_2*(one-parin%thre)**2
-    E          = four
-    var%kH     = (A + B*theta-(A-D)*exp(-(C1*theta)**E))
+    select case(experiment)
+    case(11) ! Hansson et al. (2004)
+       ! Hansson et al. (2004) - 13b
+       ! A=C1, B=C2, C1=C3, D=C4, E=C5
+       A  = 0.55_r_2
+       B  = 0.8_r_2
+       C1 = 3.07_r_2
+       D  = 0.13_r_2
+       E  = four
+       !var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E)
+       ! Hansson et al. (2004) - 15
+       F1 = 13.05_r_2
+       F2 = 1.06_r_2
+       F  = one + F1*var%thetai**F2
+       var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+    case default
+       ! calculate v%kH as in Campbell (1985) p.32 eq. 4.20
+       A  = 0.65_r_2 - 0.78_r_2*parin%rho/thousand + 0.60_r_2*(parin%rho/thousand)**2 ! need to substitute 1600 for rhob
+       B  = 2.8_r_2 * (one-parin%thre)!*theta
+       if (parin%clay.gt.zero) then
+        C1 = one + 2.6_r_2 * one/sqrt(parin%clay)
+       else
+        C1 = one
+       endif
+       D  = 0.03_r_2 + 0.7_r_2*(one-parin%thre)**2
+       E  = four
+       var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E)
+       ! Hansson et al. (2004) - 15
+       F1 = 13.05_r_2
+       F2 = 1.06_r_2
+       F  = one + F1*var%thetai**F2
+       !write(*,*) A, B, theta, F, var%thetai, D, C1, E, (C1*(theta+F*var%thetai))**E
+       var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(max(-(C1*(theta+F*var%thetai))**E,-20.))
+    end select
     var%eta_th = one
     var%kE     = var%Dv*var%rh*var%sl*thousand*var%lambdav*var%eta_th
     var%kth    = var%kE + var%kH ! thermal conductivity of soil (includes contribution from vapour phase)
@@ -1895,7 +1895,7 @@ CONTAINS
     plit%the   = 0.09_r_2
     plit%thre  = 0.09_r_2
     plit%he    = -35.0_r_2
-    plit%lam   = 1._r_2/2.4_r_2
+    plit%lam   = one/2.4_r_2
     plit%Ke    = zero
     plit%eta   = zero
     plit%KSe   = zero
@@ -1913,66 +1913,37 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),              INTENT(IN)    :: mp
-    INTEGER(i_d),              INTENT(IN)    :: ms
-    REAL(r_2), DIMENSION(:,:), INTENT(IN)    :: x2dx
-    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
-    integer(i_d), DIMENSION(:),  INTENT(IN) :: index
+    INTEGER(i_d),                 INTENT(IN)    :: mp
+    INTEGER(i_d),                 INTENT(IN)    :: ms
+    REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: x2dx
+    TYPE(soil_parameter_type),    INTENT(INOUT) :: soil
+    integer(i_d), DIMENSION(:),   INTENT(IN)    :: index
 
-    REAL(r_2), DIMENSION(1:mp) :: depthA
     INTEGER(i_d) :: i
 
     allocate(par(mp,ms))
 
-    depthA(:) = real(soil%DepthA(index),r_2)
     do i=1, ms
-       where (x2dx(:,i) < depthA(:))
-          par(:,i)%isahorizon = one
-          par(:,i)%isbhorizon = zero
-          par(:,i)%thw        = real(soil%swilt(index),r_2)
-          par(:,i)%thfc        = real(soil%sfc(index),r_2)
-          par(:,i)%the        = real(soil%ssat(index),r_2)
-          par(:,i)%thr        = zero    ! Assume theta_r is zero
-          par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr
-          par(:,i)%he         = real(soil%sucs(index),r_2)
-          par(:,i)%Ke         = real(soil%hyds(index),r_2)
-          par(:,i)%lam        = one/real(soil%bch(index),r_2)
-          !p%eta                 = 9.14 !(special for Braud test-cases)
-          par(:,i)%eta        = two/par(:,i)%lam + two + one
-          par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
-          par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
-          par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
-          par(:,i)%kd         = real(soil%cnsd(index),r_2)
-          par(:,i)%css        = real(soil%css(index),r_2)
-          par(:,i)%rho        = real(soil%rhosoil(index),r_2)
-          par(:,i)%tortuosity = 0.67_r_2
-          par(:,i)%clay       = real(soil%clay(index),r_2)
-          par(:,i)%zeta = real(soil%zeta(index),r_2)
-          par(:,i)%fsatmax = real(soil%fsatmax(index),r_2)
-       elsewhere
-          par(:,i)%isahorizon = zero
-          par(:,i)%isbhorizon = one
-          par(:,i)%thw        = real(soil%swiltB(index),r_2)
-          par(:,i)%thfc        = real(soil%sfcB(index),r_2)
-          par(:,i)%the        = real(soil%ssatB(index),r_2)
-          par(:,i)%thr        = zero    ! Assume theta_r is zero
-          par(:,i)%thre       = real(soil%ssatB(index),r_2) - par(:,i)%thr
-          par(:,i)%he         = real(soil%sucsB(index),r_2)
-          par(:,i)%Ke         = real(soil%hydsB(index),r_2)
-          par(:,i)%lam        = one/real(soil%bchB(index),r_2)
-          !p%eta                  = 9.14 !(special for Braud test-cases)
-          par(:,i)%eta        = two/par(:,i)%lam + two + one
-          par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
-          par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
-          par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
-          par(:,i)%kd         = real(soil%cnsdB(index),r_2)
-          par(:,i)%css        = real(soil%cssB(index),r_2)
-          par(:,i)%rho        = real(soil%rhosoilB(index),r_2)
-          par(:,i)%tortuosity = 0.67_r_2
-          par(:,i)%clay       = real(soil%clayB(index),r_2)
-          par(:,i)%zeta = real(soil%zeta(index),r_2)
-          par(:,i)%fsatmax = real(soil%fsatmax(index),r_2)
-       endwhere
+       par(:,i)%ishorizon  = 1
+       par(:,i)%thw        = real(soil%swilt(index),r_2)
+       par(:,i)%thfc       = real(soil%sfc(index),r_2)
+       par(:,i)%the        = real(soil%ssat(index),r_2)
+       par(:,i)%thr        = zero
+       par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr
+       par(:,i)%he         = real(soil%sucs(index),r_2)
+       par(:,i)%Ke         = real(soil%hyds(index),r_2)
+       par(:,i)%lam        = one/real(soil%bch(index),r_2)
+       par(:,i)%eta        = two/par(:,i)%lam + two + one
+       par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
+       par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
+       par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
+       par(:,i)%kd         = real(soil%cnsd(index),r_2)
+       par(:,i)%css        = real(soil%css(index),r_2)
+       par(:,i)%rho        = real(soil%rhosoil(index),r_2)
+       par(:,i)%tortuosity = 0.67_r_2
+       par(:,i)%clay       = real(soil%clay(index),r_2)
+       par(:,i)%zeta       = real(soil%zeta(index),r_2)
+       par(:,i)%fsatmax    = real(soil%fsatmax(index),r_2)
     enddo
 
   END SUBROUTINE setpar
@@ -2531,7 +2502,7 @@ CONTAINS
 
     fmid = rh0_sol(x2,sol)
     f    = rh0_sol(x1,sol)
-    if (f < 0.0_r_2) then
+    if (f < zero) then
        rtbis_rh0 = x1
        dx        = x2-x1
     else
@@ -2539,11 +2510,11 @@ CONTAINS
        dx        = x1-x2
     end if
     do j=1, MAXIT
-       dx   = dx*0.5_r_2
+       dx   = dx*half
        xmid = rtbis_rh0+dx
        fmid = rh0_sol(xmid,sol)
-       if (fmid <= 0.0_r_2) rtbis_rh0 = xmid
-       if (abs(dx) < xacc .or. fmid == 0.0_r_2) RETURN
+       if (fmid <= zero) rtbis_rh0 = xmid
+       if (abs(dx) < xacc .or. fmid == zero) RETURN
     end do
 
   END FUNCTION rtbis_rh0
@@ -2579,39 +2550,36 @@ CONTAINS
     slope_esat = esat * esatb*esatc/(T+esatc)**2
 
   END FUNCTION slope_esat
-!*********************************************************************************************************************
 
-   ELEMENTAL FUNCTION esat_ice(T)
-   USE sli_numbers, ONLY:  esata_ice, esatb_ice, esatc_ice
+  !*********************************************************************************************************************
 
+  REAL(r_2) ELEMENTAL FUNCTION esat_ice(T)
+    !returns sat vapour pressure curve in Pa
+    USE sli_numbers, ONLY:  esata_ice, esatb_ice, esatc_ice
 
     IMPLICIT NONE
 
-    real(r_2), intent(in) :: T 
-	real(r_2) :: esat_ice
+    real(r_2), intent(in) :: T
 
-    !returns sat vapour pressure curve in Pa
     esat_ice = esata_ice * exp(esatb_ice*T/(T+esatc_ice))
 
   END FUNCTION esat_ice
 
-!**********************************************************************************************************************
+  !**********************************************************************************************************************
 
-   ELEMENTAL FUNCTION slope_esat_ice(T)
-   USE sli_numbers, ONLY:  esata_ice, esatb_ice, esatc_ice
+  REAL(r_2) ELEMENTAL FUNCTION slope_esat_ice(T)
+    !returns slope of sat vapour pressure curve in Pa K^-1
+    USE sli_numbers, ONLY:  esata_ice, esatb_ice, esatc_ice
+
     IMPLICIT NONE
 
-    real(r_2), intent(in) :: T 
-    real(r_2) :: esat_ice, slope_esat_ice
+    real(r_2), intent(in) :: T
+    real(r_2) :: esat_ice
 
-    !returns slope of sat vapour pressure curve in Pa K^-1
     esat_ice       = esata_ice * exp(esatb_ice*T/(T+esatc_ice))
     slope_esat_ice = esat_ice * esatb_ice*esatc_ice/(T+esatc_ice)**2
 
   END FUNCTION slope_esat_ice
-
-!**********************************************************************************************************************
- 
 
   !**********************************************************************************************************************
 
@@ -2634,17 +2602,17 @@ CONTAINS
 
   REAL(r_2) ELEMENTAL PURE FUNCTION Tfrz(S,he,b)
     ! determines freezing point temperature for a given moisture content
-    USE sli_numbers, ONLY: gravity, lambdaf, csol, Rgas, Tzero
+    USE sli_numbers, ONLY: one, two, four, gravity, lambdaf, csol, Rgas, Tzero
 
     IMPLICIT NONE
 
     real(r_2), intent(in) :: S, he, b
 
     if (csol > e3) then
-       Tfrz = (gravity*he - (S)**b* (lambdaf + 2.*csol*Rgas*Tzero) + &
-            sqrt(gravity**2*he**2 - 2.*gravity*he*lambdaf*(S)**b + &
-            lambdaf*(S)**(2.*b)*(lambdaf + 4.*csol*Rgas*Tzero)))/ &
-            (2.*csol*Rgas*(S)**b)
+       Tfrz = (gravity*he - (min(S,one))**b * (lambdaf + two*csol*Rgas*Tzero) + &
+            sqrt(gravity**2 * he**2 - two*gravity*he*lambdaf*(min(S,one))**b + &
+            lambdaf*(min(S,one))**(two*b)*(lambdaf + four*csol*Rgas*Tzero)))/ &
+            (two*csol*Rgas*(min(S,one))**b)
     else
        Tfrz = (gravity*he*Tzero) / (-(gravity*he) + lambdaf*(S)**b)
     endif
@@ -2652,6 +2620,122 @@ CONTAINS
   END FUNCTION Tfrz
 
   !**********************************************************************************************************************
+
+  REAL(r_2) ELEMENTAL PURE FUNCTION Tfrozen(J, dx, theta, thetal, csoil, rhosoil, h0, thetasat)
+    ! determines temperature of frozen soil, given total energy content J and liquid water content thetal
+    USE sli_numbers, ONLY: csice, cswat, rhow, lambdaf
+
+    IMPLICIT NONE
+
+    real(r_2), intent(in) :: J, dx, theta, thetal, csoil, rhosoil, h0, thetasat
+
+    if (h0 > zero) then
+       Tfrozen = (cswat*h0*rhow*theta + h0*lambdaf*rhow*theta - &
+            cswat*h0*rhow*thetal - h0*lambdaf*rhow*thetal + &
+            J*thetasat - cswat*h0*rhow*thetasat + &
+            dx*lambdaf*rhow*theta*thetasat - &
+            dx*lambdaf*rhow*thetal*thetasat)/ &
+            (csice*h0*rhow*theta - csice*h0*rhow*thetal + &
+            csoil*dx*rhosoil*thetasat + csice*dx*rhow*theta*thetasat - &
+            csice*dx*rhow*thetal*thetasat +  &
+            cswat*dx*rhow*thetal*thetasat)
+    else
+       Tfrozen = (J + dx*lambdaf*rhow*theta - dx*lambdaf*rhow*thetal)/ &
+            (dx*(csoil*rhosoil + csice*rhow*theta - csice*rhow*thetal +   cswat*rhow*thetal))
+    endif
+
+  END FUNCTION Tfrozen
+
+  !**********************************************************************************************************************
+
+  REAL(r_2) ELEMENTAL PURE FUNCTION GTfrozen(T, J, dx, theta, csoil, rhosoil, h0, thre, the, he, b)
+    ! GTfrozen = sensible heat + latent heat - total energy (should be zero)
+    USE sli_numbers, ONLY: one, csice, cswat, rhow, lambdaf
+
+    IMPLICIT NONE
+
+    real(r_2), intent(in) :: T, J, dx, theta, csoil, rhosoil, h0, thre, the, he, b
+    real(r_2) :: thetal, S
+
+    S = (theta-(the-thre))/thre
+    !thetal = thetalmax(T,min(S,one),he,b,thre,the)
+
+    if (T<Tfrz(S,he,b)) then
+       thetal = thetalmax(T,min(S,one),he,b,thre,the)
+    else
+       thetal = theta
+    endif
+
+    GTfrozen = -J + dx*(csoil*rhosoil*T + rhow*(-lambdaf + csice*T)*(theta - thetal) + &
+         cswat*rhow*T*thetal) + cswat*T*h0*rhow*(1 - (theta - thetal)/thre) + &
+         (h0*rhow*(-lambdaf + csice*T)*(theta - thetal)/thre)
+
+  END FUNCTION GTfrozen
+
+  !**********************************************************************************************************************
+
+  REAL(r_2) ELEMENTAL PURE FUNCTION JSoilLayer(T, dx, theta, csoil, rhosoil, h0, thre, the, he, b)
+    ! JSsoilLayer = sensible heat + latent heat (total energy in soil layer J/m2)
+    USE sli_numbers, ONLY: one, csice, cswat, rhow, lambdaf
+
+    IMPLICIT NONE
+
+    real(r_2), intent(in) :: T,  dx, theta, csoil, rhosoil, h0, thre, the, he, b
+    real(r_2) :: thetal, S
+
+    S = (theta-(the-thre))/thre
+
+    if (T<Tfrz(S,he,b)) then
+       thetal = thetalmax(T,min(S,one),he,b,thre,the)
+    else
+       thetal = theta
+    endif
+
+    JSoilLayer =  dx*(csoil*rhosoil*T + rhow*(-lambdaf + csice*T)*(theta - thetal) + &
+         cswat*rhow*T*thetal) + cswat*T*h0*rhow*(one - (theta - thetal)/thre) + &
+         (h0*rhow*(-lambdaf + csice*T)*(theta - thetal)/thre)
+
+  END FUNCTION JSoilLayer
+
+
+  !**********************************************************************************************************************
+
+  ! Using an elemental subroutine as a function argument is not Fortran90 standard.
+  ! This would have been rh0_sol in function rtbis. intel's ifort and nag's f95 accept it but gfortran does not.
+  ! Write rh0_sol into rtbis -> rtbis_rh0
+  ! It does not check that f(x1) and f(x2) have different signs and not if iteration > MAXIT
+
+  REAL(r_2) ELEMENTAL PURE FUNCTION rtbis_Tfrozen(J, dxsoil, theta,csoil, rhosoil, h0, thre, the, he, b, x1, x2, xacc)
+
+    IMPLICIT NONE
+
+    real(r_2), intent(in) :: J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b
+    REAL(r_2), INTENT(IN) :: x1, x2, xacc
+
+    INTEGER(i_d), PARAMETER :: MAXIT=80
+    INTEGER(i_d) :: k
+    REAL(r_2)    :: dx, f, fmid, xmid
+
+    fmid = GTfrozen(x2,J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b)
+    f    = GTfrozen(x1,J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b)
+    if (f < zero) then
+       rtbis_Tfrozen = x1
+       dx            = x2-x1
+    else
+       rtbis_Tfrozen = x2
+       dx            = x1-x2
+    end if
+    do k=1, MAXIT
+       dx   = dx*half
+       xmid = rtbis_Tfrozen+dx
+       fmid = GTfrozen(xmid,J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b)
+       if (fmid <= zero) rtbis_Tfrozen = xmid
+       if (abs(dx) < xacc .or. fmid == zero) RETURN
+    end do
+
+  END FUNCTION rtbis_Tfrozen
+
+  !*********************************************************************************************************************
 
   REAL(r_2) ELEMENTAL PURE FUNCTION thetalmax(Tin,S,he,b,thre,the)
     ! determines maximum liquid water content, given T
@@ -2664,39 +2748,36 @@ CONTAINS
 
     T   = min(Tfrz(S,he,b),Tin)
     PI  = -csol *Rgas *(T+Tzero)/gravity ! osmotic potential (m)
-    psi = lambdaf*T/(gravity*(T+Tzero)) ! matric potential in presence of ice
-    h   = psi-PI       ! moisture potential in presence of ice
+    psi = lambdaf*T/(gravity*(T+Tzero))  ! matric potential in presence of ice
+    h   = psi-PI                         ! moisture potential in presence of ice
 
     thetalmax = thre*(h/he)**(-1/b) + (the-thre)
 
   END FUNCTION thetalmax
+
   !**********************************************************************************************************************
 
   REAL(r_2) ELEMENTAL PURE FUNCTION Tthetalmax(thetal,Tin,S,he,b,thre,the)
-
-    ! determines  T,given maximum liquid water content 
+    ! determines T, given maximum liquid water content
     USE sli_numbers, ONLY: gravity, lambdaf, csol, Rgas, Tzero
 
     IMPLICIT NONE
 
     real(r_2), intent(in) :: thetal,S,he,b,thre,the,Tin
-    real(r_2)             :: PI, psi, h, T
-	integer(i_d) :: k
+    real(r_2)             :: PI, psi, h, T, Tfreezing
+
+    !integer(i_d) :: k
+
     T = Tin
-	!do k=1,20
-
-    T   = min(Tfrz(S,he,b),T)
-    PI  = -csol *Rgas *(T+Tzero)/gravity ! osmotic potential (m)
-   
-
-	h = he*((thetal-(the-thre))/thre)**(-b) ! moisture potential in presence of ice
-	psi = h+PI
+    !do k=1,20
+    Tfreezing  = Tfrz(S,he,b)
+    T          = min(Tfreezing,T)
+    PI         = -csol *Rgas *(T+Tzero)/gravity                ! osmotic potential (m)
+    h          = he*(max((thetal-(the-thre)),0.01_r_2)/thre)**(-b) ! moisture potential in presence of ice
+    psi        = h + PI
     Tthetalmax = psi*(gravity*(T+Tzero)) / lambdaf
-	!T = T + 0.1*(Tthetalmax-T)
-
+    !T = T + 0.1*(Tthetalmax-T)
     !enddo
-	
-
 
   END FUNCTION Tthetalmax
 

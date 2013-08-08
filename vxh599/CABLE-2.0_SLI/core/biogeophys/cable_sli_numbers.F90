@@ -5,55 +5,6 @@ MODULE sli_numbers
 
   IMPLICIT NONE
 
-  ! define types
-  TYPE vars_met
-     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, ra, rs, Rn, u, Da, cva, civa, ha, phiva, qevappot
-  END TYPE vars_met
-
-  TYPE vars
-     INTEGER(i_d) :: isat
-     REAL(r_2)    :: h, phi, phiS, K, KS, Dv, cvsat, rh, phiv, phivS, kH
-     REAL(r_2)    :: kE, kth, csoil, eta_th, hS, rhS, sl, cv, cvsatT, cvS, kv
-     INTEGER(i_d) :: iice
-     REAL(r_2)    :: thetai, thetal, phiT, KT, lambdav, lambdaf
-     REAL(r_2)    :: he, phie, Ksat ! air-entry potential values (different to core sp params for frozen soil)
-     REAL(r_2)    :: dthetaldT
-     REAL(r_2)    :: Tfrz ! freezing point (deg C) depends on csol and S
-     REAL(r_2)    :: csoileff
-     REAL(r_2)    :: zsat ! height of saturated/unsaturated boundary (relative to bottom of layer)
-     REAL(r_2)    :: macropore_factor
-  END TYPE vars
-
-  TYPE vars_snow
-	!REAL(r_2), DIMENSION(3) :: depth,hsnow, wcol, dens,tsn, kH, kE,kth, Dv,cv,sl
-	REAL(r_2), DIMENSION(3):: depth,hsnow,hliq, dens,tsn, kH, kE,kth, Dv,cv,sl,melt, &
-	            Jsensible,Jlatent,Qadv_melt, Qadv_vap, Qcond_net, &
-				Qadv_transfer, FluxDivergence, deltaJlatent, deltaJsensible
-	REAL(r_2) ::  wcol,Qadv_snow, Qadv_rain
-	INTEGER(i_d) :: nsnow, nsnow_last
-  END TYPE vars_snow
-  TYPE vars_aquifer
-     INTEGER(i_d) :: isat
-     REAL(r_2)    :: zdelta, zsoil, zzero, K, Wa, discharge, f, Rsmax, Sy
-  END TYPE vars_aquifer
-
-  TYPE params
-     REAL(r_2) :: the, thre, he, lam, Ke, eta,thr
-     REAL(r_2) :: KSe, phie, phiSe, rho, thw,thfc, kd, css, clay, tortuosity
-     REAL(r_2) :: isahorizon, isbhorizon
-     REAL(r_2) :: zeta
-     REAL(r_2) :: fsatmax
-  END TYPE params
-
-  TYPE rapointer
-     REAL(r_2), DIMENSION(:), POINTER :: p
-  END TYPE rapointer
-
-  TYPE solve_type ! for energy and moisture balance in rh0_sol, etc.
-     INTEGER(i_d) :: k
-     REAL(r_2)    :: T1, Ta, cva, Rnet, hr1, hra, Dv, gv, gh, Dh, dz, phie, he, K1, eta,lambda, Ks, lambdav
-  END TYPE solve_type
-
   ! define some numbers
   REAL(r_2), PARAMETER :: zero      = 0.0
   REAL(r_2), PARAMETER :: half      = 0.5
@@ -73,6 +24,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: Tzero     = tfrz      ! Celcius -> Kelvin
   REAL(r_2), PARAMETER :: gravity   = grav      ! gravitation constant [m/s2]
   REAL(r_2), PARAMETER :: Mw        = rmh2o     ! weight of 1 mol of water [kg]
+  REAL(r_2), PARAMETER :: Mw18        = 0.018   ! weight of 1 mol of water [kg] (main isotopologue only)
   REAL(r_2), PARAMETER :: cpa       = capp      ! specific heat capacity of dry air at 0-40 degC [J/kgK]
   REAL(r_2), PARAMETER :: esata     = tetena*100.0_r_2 ! constants for saturated vapour pressure calculation
   REAL(r_2), PARAMETER :: esatb     = tetenb    ! %
@@ -99,28 +51,26 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: kw        = 0.58    ! dito
 
   ! numerical limits
-
-
   REAL(r_2), PARAMETER :: dSfac     = 1.25
   REAL(r_2), PARAMETER :: dpmaxr    = 0.5
   REAL(r_2), PARAMETER :: h0min     = -2.e-4
   REAL(r_2), PARAMETER :: snmin     = 0.001_r_2 ! depth of snowpack (m) without dedicated snow layer(s)
   REAL(r_2), PARAMETER :: fsnowliq_max = 0.08  ! max fraction of snow water in liquid phase
   INTEGER(i_d), PARAMETER :: nsnow_max = 1 ! maximum number of dedicated snow layers
- 
+
   REAL(r_2), PARAMETER :: dh0max    = 0.0001
   REAL(r_2), PARAMETER :: SLmax     = 1.01
   REAL(r_2), PARAMETER :: SLmin     = 0.001
-  REAL(r_2), PARAMETER :: Smax      = 1.0001
+  REAL(r_2), PARAMETER :: Smax      = 1.01
   REAL(r_2), PARAMETER :: h0max     = 0.05
   REAL(r_2), PARAMETER :: qprecmax  = 1.0e10
   REAL(r_2), PARAMETER :: dSmax     = 0.1
   REAL(r_2), PARAMETER :: dSmaxr    = 0.1
-  REAL(r_2), PARAMETER :: dtmax     = 3600.
+  REAL(r_2), PARAMETER :: dtmax     = 86400.
   REAL(r_2), PARAMETER :: dtmin     = 0.01
   REAL(r_2), PARAMETER :: dsmmax    = 1.0
-  REAL(r_2), PARAMETER :: dTsoilmax = 2.0
-  REAL(r_2), PARAMETER :: dTLmax    = 2.0
+  REAL(r_2), PARAMETER :: dTsoilmax = 1.0
+  REAL(r_2), PARAMETER :: dTLmax    = 1.0
   REAL(r_2), PARAMETER :: tol_dthetaldT = 1.e-12_r_2
   INTEGER(i_d), PARAMETER ::nsteps_ice_max = 20
   !MC-ToDo! Identify why smaller time-steps are needed for isotopes
@@ -133,12 +83,67 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: rhmin     = 0.05   ! minimum relative humidity in soil and litter
 
   ! boundary conditions
-  REAL(r_2),         PARAMETER :: hbot  = 0.0
-  CHARACTER(LEN=20), PARAMETER :: botbc = "free drainage"
-  !CHARACTER(LEN=20), PARAMETER :: botbc = "zero flux"
-  !CHARACTER(LEN=20), PARAMETER :: botbc = "aquifer"
-  !CHARACTER(LEN=20), PARAMETER :: botbc = "constant head"
-  !CHARACTER(LEN=20), PARAMETER :: botbc = "seepage"
+  REAL(r_2), PARAMETER :: hbot  = 0.0
+  CHARACTER(LEN=20)    :: botbc = "free drainage"
+  ! CHARACTER(LEN=20)    :: botbc = "zero flux"
+  ! CHARACTER(LEN=20)    :: botbc = "aquifer"
+  ! CHARACTER(LEN=20)    :: botbc = "constant head"
+  ! CHARACTER(LEN=20)    :: botbc = "seepage"
   INTEGER(i_d), SAVE :: count_sparse, count_hyofS
+
+  ! Special setups for sli stand-alone, such as 1-8: testcases of Haverd & Cuntz (2010);
+  ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
+  ! 0=normal run
+  INTEGER(i_d) :: experiment = 0
+
+  ! define types
+  TYPE vars_met
+     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, ra, rs, Rn, u, Da, cva, civa, ha, phiva, qevappot
+  END TYPE vars_met
+
+  TYPE vars
+     INTEGER(i_d) :: isat
+     REAL(r_2)    :: h, phi, phiS, K, KS, Dv, cvsat, rh, phiv, phivS, kH
+     REAL(r_2)    :: kE, kth, csoil, eta_th, hS, rhS, sl, cv, cvsatT, cvS, kv
+     INTEGER(i_d) :: iice
+     REAL(r_2)    :: thetai, thetal, phiT, KT, lambdav, lambdaf
+     REAL(r_2)    :: he, phie, Ksat ! air-entry potential values (different to core sp params for frozen soil)
+     REAL(r_2)    :: dthetaldT
+     REAL(r_2)    :: Tfrz ! freezing point (deg C) depends on csol and S
+     REAL(r_2)    :: csoileff
+     REAL(r_2)    :: zsat ! height of saturated/unsaturated boundary (relative to bottom of layer)
+     REAL(r_2)    :: macropore_factor
+  END TYPE vars
+
+  TYPE vars_snow
+     REAL(r_2), DIMENSION(nsnow_max):: depth, hsnow, hliq, dens, tsn, kH, kE, kth, &
+          Dv, cv, sl, melt, &
+          Jsensible, Jlatent,  Qadv_melt, Qadv_vap, Qcond_net, &
+          Qadv_transfer, FluxDivergence, deltaJlatent, deltaJsensible
+     REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain
+     INTEGER(i_d) :: nsnow, nsnow_last
+  END TYPE vars_snow
+
+  TYPE vars_aquifer
+     INTEGER(i_d) :: isat
+     REAL(r_2)    :: zdelta, zsoil, zzero, K, Wa, discharge, f, Rsmax, Sy
+  END TYPE vars_aquifer
+
+  TYPE params
+     REAL(r_2) :: the, thre, he, lam, Ke, eta, thr
+     REAL(r_2) :: KSe, phie, phiSe, rho, thw,thfc, kd, css, clay, tortuosity
+     INTEGER(i_d) :: ishorizon
+     REAL(r_2) :: zeta
+     REAL(r_2) :: fsatmax
+  END TYPE params
+
+  TYPE rapointer
+     REAL(r_2), DIMENSION(:), POINTER :: p
+  END TYPE rapointer
+
+  TYPE solve_type ! for energy and moisture balance in rh0_sol, etc.
+     INTEGER(i_d) :: k
+     REAL(r_2)    :: T1, Ta, cva, Rnet, hr1, hra, Dv, gv, gh, Dh, dz, phie, he, K1, eta,lambda, Ks, lambdav
+  END TYPE solve_type
 
 END MODULE sli_numbers

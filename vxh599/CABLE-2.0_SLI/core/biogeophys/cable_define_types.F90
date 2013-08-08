@@ -256,16 +256,11 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:), POINTER  :: evap     ! soil evaporation (mm / dels)
      REAL(r_2), DIMENSION(:,:), POINTER  :: ciso   ! concentration of minor isotopologue in soil water (kg m-3 water)
      REAL(r_2), DIMENSION(:), POINTER  :: cisoL    ! concentration of minor isotopologue in litter water (kg m-3 water)
-     REAL(r_2), DIMENSION(:), POINTER :: delwcolA  ! change in water column (A horizon) (mm / dels)
-     REAL(r_2), DIMENSION(:), POINTER :: delwcolB  ! change in water column (B horizon) (mm / dels)
-     REAL(r_2), DIMENSION(:), POINTER :: rexA      ! root extraction (A horizon) (mm / dels)
-     REAL(r_2), DIMENSION(:), POINTER :: rexB      ! root extraction (B horizon) (mm / dels)
-     REAL(r_2), DIMENSION(:), POINTER  :: SA       ! degree of saturation  (A horizon)
-     REAL(r_2), DIMENSION(:), POINTER  :: SB       ! degree of saturation  (B horizon)
-     REAL(r_2), DIMENSION(:), POINTER  :: leachAB  ! downward flux between A and B horizons (mm/dels)
      REAL(r_2), DIMENSION(:), POINTER  :: rlitt    ! resistance to heat/moisture transfer through litter (m-1 s)
      REAL(r_2), DIMENSION(:,:), POINTER  :: thetai ! volumetric ice content (MC)
      REAL(r_2), DIMENSION(:,:), POINTER :: snowliq ! liquid snow content (mm H2O)
+     REAL(r_2), DIMENSION(:), POINTER :: nsteps ! number of iterations at each timestep
+
 
    END TYPE soil_snow_type
 
@@ -695,7 +690,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
        ALLOCATE ( var % swilt_vec(mp,ms) )
        ALLOCATE ( var % ssat_vec(mp,ms) )
        ALLOCATE ( var % sfc_vec(mp,ms) )
-	   IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var % swilt_vec(mp,ms) )
+       IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var % swilt_vec(mp,ms) )
        IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
        IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
    ! END IF
@@ -786,24 +781,20 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
        ALLOCATE ( var % rex(mp,ms) )
        ALLOCATE ( var % wflux(mp,0:ms) )
        ALLOCATE ( var % hflux(mp,0:ms) )
+       ALLOCATE ( var % delwcol(mp) )
        ALLOCATE ( var % zdelta(mp) )
        ALLOCATE ( var % kth(mp,ms) )
        ALLOCATE ( var % Tsurface(mp) )
        ALLOCATE ( var % rh0(mp) )
        ALLOCATE ( var % rhsurface(mp) )
        ALLOCATE ( var % lE(mp) )
+       ALLOCATE ( var % evap(mp) )
        ALLOCATE ( var % ciso(mp,ms+1) )
        ALLOCATE ( var % cisoL(mp) )
-       ALLOCATE ( var % SA(mp) )
-       ALLOCATE ( var % SB(mp) )
-       ALLOCATE ( var % delwcolA(mp) )
-       ALLOCATE ( var % delwcolB(mp) )
-       ALLOCATE ( var % rexA(mp) )
-       ALLOCATE ( var % rexB(mp) )
-       ALLOCATE ( var % leachAB(mp) )
        ALLOCATE ( var % rlitt(mp) )
        ALLOCATE ( var % thetai(mp,ms) )
        ALLOCATE ( var % snowliq(mp,3) )
+       ALLOCATE ( var % nsteps(mp) )
     !END IF
 
 END SUBROUTINE alloc_soil_snow_type
@@ -922,6 +913,14 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE ( var % fwsoil(mp) )
    ALLOCATE ( var % ofes(mp) )
    
+   ALLOCATE ( var % gw(mp,mf) )     ! dry canopy conductance (ms-1) edit vh 6/7/09
+   ALLOCATE ( var % ancj(mp,mf,3) ) ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
+   ALLOCATE ( var % tlfy(mp,mf) )   ! sunlit and shaded leaf temperatures
+   ALLOCATE ( var % ecy(mp,mf) )    ! sunlit and shaded leaf transpiration (dry canopy)
+   ALLOCATE ( var % ecx(mp,mf) )    ! sunlit and shaded leaf latent heat flux
+   ALLOCATE ( var % ci(mp,mf,3) )   ! intra-cellular CO2 vh 6/7/09
+   ALLOCATE ( var % fwsoil (mp) )
+
 END SUBROUTINE alloc_canopy_type
 
 ! ------------------------------------------------------------------------------
@@ -1262,24 +1261,20 @@ SUBROUTINE dealloc_soil_snow_type(var)
        DEALLOCATE ( var % rex )
        DEALLOCATE ( var % wflux )
        DEALLOCATE ( var % hflux )
+       DEALLOCATE ( var % delwcol )
        DEALLOCATE ( var % zdelta )
        DEALLOCATE ( var % kth )
        DEALLOCATE ( var % Tsurface )
        DEALLOCATE ( var % rh0 )
        DEALLOCATE ( var % rhsurface )
        DEALLOCATE ( var % lE )
+       DEALLOCATE ( var % evap )
        DEALLOCATE ( var % ciso )
        DEALLOCATE ( var % cisoL )
-       DEALLOCATE ( var % SA )
-       DEALLOCATE ( var % SB )
-       DEALLOCATE ( var % delwcolA )
-       DEALLOCATE ( var % delwcolB )
-       DEALLOCATE ( var % rexA )
-       DEALLOCATE ( var % rexB )
-       DEALLOCATE ( var % leachAB )
        DEALLOCATE ( var % rlitt )
        DEALLOCATE ( var % thetai )
        DEALLOCATE (var % snowliq)
+       DEALLOCATE (var % nsteps)
    ! END IF
    
 END SUBROUTINE dealloc_soil_snow_type
