@@ -54,7 +54,11 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
 
    REAL :: miss =0. 
    REAL, POINTER :: TFRZ
-      
+logical :: test=.true.
+IF(test) THEN      
+   print *, "jhan:cable_hyd:shape(snow_tile) ", shape(snow_tile) 
+   return 
+ELSE
       TFRZ => PHYS%TFRZ
    
       SNOW_TILE= UNPACK(ssnow%snowd, um1%L_TILE_PTS, miss) 
@@ -72,7 +76,7 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
 
       TOT_TFALL_TILE = UNPACK(canopy%through, um1%L_TILE_PTS, miss)
       TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
-      
+ENDIF  
 END SUBROUTINE cable_hyd_driver
       
 

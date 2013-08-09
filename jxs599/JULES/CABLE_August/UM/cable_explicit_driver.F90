@@ -31,28 +31,92 @@
 ! ==============================================================================
 
 
-SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
-                                  sm_levels, timestep, latitude, longitude,    &
-                                  land_index, tile_frac,  tile_pts, tile_index,&
-                                  bexp, hcon, satcon, sathh, smvcst,           &
-                                  smvcwt,  smvccl, albsoil, snow_tile,         &
-                                  snow_rho1l, snage_tile, isnow_flg3l,         &
-                                  snow_rho3l, snow_cond, snow_depth3l,         &
-                                  snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
-                                  cos_zenith_angle, surf_down_sw, ls_rain,     &
-                                  ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
-                                  z1_uv, rho_water, L_tile_pts, canopy_tile,   &
-                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
-                                  sthf_tile, sthu, tsoil_tile, canht_ft,       &
-                                  lai_ft, sin_theta_latitude, dzsoil,          &
-                                  LAND_MASK, FTL_TILE_CAB, FTL_CAB, FTL_TILE,  &
-                                  FQW_TILE, LE_TILE_CAB, LE_CAB, TSTAR_TILE,   &
-                                  TSTAR_TILE_CAB, TSTAR_CAB, U_S, U_S_STD_TILE,&
-                                  U_S_CAB, CH_CAB, CD_CAB, CD_TILE, CH_TILE,   &
-                                  RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
-                                  Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
-                                  endstep, timestep_number, mype )    
-   
+   SUBROUTINE cable_explicit_driver(                                        &
+               ! vars native to JULES/UM 
+               ! ........................
+               ! # grid cells 
+               row_length, rows, &
+               ! # AND index of land points
+               land_pts, land_index, &
+               ! model levels (modified for CABLE)
+               ntiles, npft, sm_levels,   &
+               ! 
+               dim_cs1, dim_cs2,   &
+               ! time info 
+               timestep, timestep_number, &
+               ! time info in UM (passing dummy in JULES) 
+               endstep, &
+               ! # of processor in UM (passing dummy in JULES) 
+               mype, &
+               ! grid cell data
+               latitude, longitude, &
+               ! fraction of land on each grid cell 
+               Fland, & 
+               ! fraction of each tile (modified for CABLE)
+               tile_frac,  &
+               ! # AND index of tile points following tile_frac
+               tile_pts, tile_index,&
+               ! canopy height, LAI, soil levels 
+               ! as prescribed in JULES 
+               canht_ft,       &
+               lai_ft,         &
+               dzsoil,       &
+               ! soil vars used in initialization of CABLE vars
+               ! INTENT(IN)  used on first CALL only
+               !jhan: ultimately read in as tiled vars
+                bexp, & 
+                !currently being passed 
+                hcon &!, &
+  !              satcon, sathh, &
+  !              smvcst,           &
+  !              smvcwt, smvccl, &
+  !              albsoil, & ! SOIL_ALB (atm_step)
+  !              ! JULES non-tiled unfrozen soil. returned from CABLE 
+  !              sthu, &
+  !              ! used in initialization of CABLE var every step
+  !              ! returned to JULES from cable_hydrolog AND cable_implicit
+  !              snow_tile,          &
+  !              ! canopy water storage - reieved as canopy_tile in CABLE
+  !              !unpacked from CABLE - but only for dumping?
+  !              canopy_tile,   &
+  !              ! CO2 mass mixing ratio INTENT(IN) 
+  !              CO2_MMR, &
+  !              !
+  !              ! JULES forcing  
+  !              !sw_down_cable, &
+  !              !lw_down_cable,   &
+  !              lw_down, &
+  !              ! large scale rain, snow
+  !              ls_rain, ls_snow, &
+  !              cos_zenith_angle, & 
+  !              tl_1, qw_1, vshr_land, pstar, z1_tq,&
+  !              z1_uv, &
+  !              !
+  !              ! End - vars native to JULES/UM 
+  !              !
+  !              ! new CABLE vars
+  !              !
+  !              ! CABLE_vars initialized from ancillaries
+  !              !
+  !              ! snow vars - passed as read 
+  !              isnow_flg3l, snow_rho1l, snow_age,          &
+  !              ! snow vars - (JULES-read as separate var per layer and pre-packed) 
+  !              snow_rho3l, snow_depth3l, snow_tmp3l, snow_mass3l, &
+  !              ! soil vars - (JULES-read as separate var per layer and pre-packed)
+  !              !sthf_tile is set_atm FIELD, but sthu_tile is simply dec in atm_step
+  !              sthu_tile, smcl_tile, sthf_tile, tsoil_tile, &
+  !              !
+  !              ! snow_cond requires no init from file
+  !              snow_cond, &
+  !              ! 
+  !              FTL_TILE,  &
+  !              FQW_TILE, TSTAR_TILE,   &
+  !              U_S, &
+  !              U_S_STD_TILE,&
+  !              RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
+  !              Z0M_TILE, EPOT_TILE, cd_tile & 
+                )
+
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
                                  met, bal, rad, rough, soil, ssnow, sum_flux, veg 
@@ -83,20 +147,25 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !-------------------------------------------------------------------------- 
    
    !___IN: UM dimensions, array indexes, flags
-   INTEGER, INTENT(IN) ::                                                      & 
+   !INTEGER, INTENT(IN) ::                                                      & 
+   INTEGER ::                                                      & 
       row_length, rows, & ! UM grid resolution
       land_pts,         & ! # of land points being processed
       ntiles,           & ! # of tiles 
       npft,             & ! # of plant functional types
-      sm_levels           ! # of soil layers 
+      sm_levels,        & ! # of soil layers 
+      dim_cs1, dim_cs2
 
    ! index of land points being processed
-   INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
+   !INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
+   INTEGER, DIMENSION(land_pts) :: land_index 
 
    ! # of land points on each tile
-   INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
+   !INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
+   INTEGER, DIMENSION(ntiles) :: tile_pts 
    
-   INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
+   !INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
+   INTEGER, DIMENSION(land_pts, ntiles) ::                         & 
       tile_index ,& ! index of tile points being processed
       isnow_flg3l   ! 3 layer snow flag
 
@@ -105,11 +174,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    LOGICAL,DIMENSION(row_length,rows) :: land_mask   
 
    !___UM parameters: water density, soil layer thicknesses 
-   REAL, INTENT(IN) :: rho_water 
-   REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
+   !REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
+   REAL, DIMENSION(sm_levels) :: dzsoil
 
    !___UM soil/snow/radiation/met vars
-   REAL, INTENT(IN), DIMENSION(land_pts) :: & 
+   !REAL, INTENT(IN), DIMENSION(land_pts) :: & 
+   REAL, DIMENSION(land_pts) :: & 
       bexp,    & ! => parameter b in Campbell equation 
       hcon,    & ! Soil thermal conductivity (W/m/K).
       satcon,  & ! hydraulic conductivity @ saturation [mm/s]
@@ -120,11 +190,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       albsoil, &
       fland 
    
-   REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
-      sw_down,          & 
+   !REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
+   REAL, DIMENSION(row_length,rows) :: &
       cos_zenith_angle
    
-   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
+   !REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
+   REAL, DIMENSION(row_length,rows) ::                             &
       latitude,   &
       longitude,  &
       lw_down,    &
@@ -137,90 +208,90 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       z1_tq,      &
       z1_uv
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   !REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   REAL, DIMENSION(land_pts, ntiles) ::                         &
       snow_tile
 
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                            &
+   !REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                            &
+   REAL, DIMENSION(land_pts, ntiles) ::                            &
       tile_frac,  &    
       snow_rho1l, &
-      snage_tile
+      snow_age
    
-   REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
-      surf_down_sw 
+   !REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                        &
+   !   surf_down_sw 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+   !REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+   REAL, DIMENSION(land_pts, npft) ::                              &
       canht_ft, lai_ft 
    
-   REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
+   !REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
+   REAL, DIMENSION(land_pts, ntiles) ::                             &
       canopy_tile
    
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+   !REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+   REAL, DIMENSION(land_pts, ntiles,3) ::                       &
       snow_cond
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
+   !REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
+   REAL, DIMENSION(land_pts, ntiles,3) ::                          &
       snow_rho3l,    &
       snow_depth3l,  &
       snow_mass3l,   &
       snow_tmp3l
    
-   REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
+   !REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
+   REAL, DIMENSION(land_pts, sm_levels) ::                         &
       sthu 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) :: & 
+   !REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) :: & 
+   REAL, DIMENSION(land_pts, ntiles, sm_levels) :: & 
       sthu_tile, &
       sthf_tile, &
       smcl_tile, &
       tsoil_tile
    
-   REAL, INTENT(IN) :: co2_mmr
+   !REAL, INTENT(IN) :: co2_mmr
+   REAL :: co2_mmr
 
-   !___true IF vegetation (tile) fraction is greater than 0
-   LOGICAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) :: L_tile_pts
-  
    REAL :: sin_theta_latitude(row_length,rows) 
      
    !___return fluxes
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::   &
-      FTL_CAB, &
-      LE_CAB
-
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      FTL_TILE_CAB, &
+   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL,  DIMENSION(land_pts,ntiles) :: &
       FTL_TILE,   &  ! Surface FTL for land tiles     
-      FQW_TILE,   &  ! Surface FQW for land tiles     
-      LE_TILE_CAB
+      FQW_TILE       ! Surface FQW for land tiles     
 
    !___return temp and roughness
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      TSTAR_TILE_CAB,   &
+   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       TSTAR_TILE,       & 
       Z0H_TILE,         &
       Z0M_TILE
 
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::  TSTAR_CAB
 
    !___return friction velocities/drags/ etc
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL,  DIMENSION(land_pts,ntiles) :: &
       CD_TILE,    &     ! Drag coefficient
-      CH_TILE,    &     ! Transfer coefficient for heat & moisture
+!      CH_TILE,    &     ! Transfer coefficient for heat & moisture
       U_S_STD_TILE      ! Surface friction velocity
 
-   REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
+   !REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
+   REAL,  DIMENSION(row_length,rows)  :: &
       U_S               ! Surface friction velocity (m/s)
    
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::                  &
-      CH_CAB,  &  ! Turbulent surface exchange
-      CD_CAB,  &  ! Turbulent surface exchange
-      U_S_CAB     ! Surface friction velocity (m/s)
-
    ! end step of experiment, this step, step width, processor num
-   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
-   REAL, INTENT(IN) ::  timestep     
+   !INTEGER, INTENT(IN) :: endstep, timestep_number, mype
+   INTEGER :: endstep, timestep_number, mype
+   !REAL, INTENT(IN) ::  timestep     
+   REAL ::  timestep     
    
    INTEGER:: itimestep
     
    !___return miscelaneous 
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       RADNET_TILE,   & ! Surface net radiation
       RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
                        ! factor for fraction (1-FRACA) of snow-free land tiles
@@ -228,7 +299,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                        ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,        
                        ! 1 for snow.    
       FRACA,         & ! Fraction of surface moisture
-      RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
       EPOT_TILE
      
    !-------------------------------------------------------------------------- 
@@ -240,6 +310,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !___ declare local vars 
    
+   !___true IF vegetation (tile) fraction is greater than 0
+   LOGICAL, DIMENSION(land_pts, ntiles) :: L_tile_pts
+  
    !___ location of namelist file defining runtime vars
    CHARACTER(LEN=200), PARAMETER ::                                            & 
       runtime_vars_file = 'cable.nml'
@@ -248,36 +321,128 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
+   print *, "jhan:cable_expl: "
 
+      z0m_TILE = 0. 
+      z0h_TILE = 0. 
+      FTL_TILE = 0. 
+      FQW_TILE = 0.
+      epot_TILe = 0.
+      TSTAR_TILe = 0.
+      RADNET_TILE =0.
+      RESFS = 0.     
+      RESFT = 0.
+      fraca = 0.
+      u_s= 0.
+      u_s_std_tile = 0.
+      radnet_tile = 0.     
+                 
 
-   !--- initialize cable_runtime% switches 
-   IF(first_cable_call) THEN
-      cable_runtime%um = .TRUE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout(6)
-   ENDIF
-      
-   !--- basic info from global model passed to cable_common_module 
-   !--- vars so don't need to be passed around, just USE _module
-   ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
-                                 !the same as timestep of particular RUN
-   knode_gl = mype               !which processor am i on?
-   itimestep = INT(timestep)    !realize for 'call cbm' pass
-   kwidth_gl = itimestep          !width of timestep (secs)
-   kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
+              print *, " row_length ",               row_length 
+              print *, " rows ",               rows
+              print *, " land_pts  ",               land_pts 
+              print *, " land_index ",                land_index
+              print *, " ntiles  ",                ntiles 
+              print *, " npft  ",                npft 
+              print *, " sm_levels ",               sm_levels
+              print *, " dim_cs1  ",                dim_cs1 
+              print *, " dim_cs2 ",                dim_cs2
+              print *, " timestep  ",               timestep 
+              print *, " timestep_number ",                timestep_number
+              print *, " endstep ",                endstep
+              print *, " mype ",                mype
+              print *, " latitude  ", shape(               latitude  )
+              print *, " longitude ",  shape(              longitude)
+              print *, " Fland ",  shape(              Fland)
+              print *, " tile_frac ",  shape(                tile_frac)
+              print *, " tile_pts  ",  shape(               tile_pts )
+              print *, " tile_index ",  shape(             tile_index)
+              print *, " canht_ft ",  shape(               canht_ft)
+              print *, " lai_ft ",  shape(               lai_ft)
+              print *, " dzsoil ",  shape(                dzsoil)
+              print *, "  bexp ",  shape(                 bexp)
+              print *, "  hcon  ",  shape(                hcon )
+  
+  
+  !              satcon, sathh, &
+  !              smvcst,           &
+  !              smvcwt, smvccl, &
+  !              albsoil, & ! SOIL_ALB (atm_step)
+  !              ! JULES non-tiled unfrozen soil. returned from CABLE 
+  !              sthu, &
+  !              ! used in initialization of CABLE var every step
+  !              ! returned to JULES from cable_hydrolog AND cable_implicit
+  !              snow_tile,          &
+  !              ! canopy water storage - reieved as canopy_tile in CABLE
+  !              !unpacked from CABLE - but only for dumping?
+  !              canopy_tile,   &
+  !              ! CO2 mass mixing ratio INTENT(IN) 
+  !              CO2_MMR, &
+  !              !
+  !              ! JULES forcing  
+  !              !sw_down_cable, &
+  !              !lw_down_cable,   &
+  !              lw_down, &
+  !              ! large scale rain, snow
+  !              ls_rain, ls_snow, &
+  !              cos_zenith_angle, & 
+  !              tl_1, qw_1, vshr_land, pstar, z1_tq,&
+  !              z1_uv, &
+  !              !
+  !              ! End - vars native to JULES/UM 
+  !              !
+  !              ! new CABLE vars
+  !              !
+  !              ! CABLE_vars initialized from ancillaries
+  !              !
+  !              ! snow vars - passed as read 
+  !              isnow_flg3l, snow_rho1l, snow_age,          &
+  !              ! snow vars - (JULES-read as separate var per layer and pre-packed) 
+  !              snow_rho3l, snow_depth3l, snow_tmp3l, snow_mass3l, &
+  !              ! soil vars - (JULES-read as separate var per layer and pre-packed)
+  !              !sthf_tile is set_atm FIELD, but sthu_tile is simply dec in atm_step
+  !              sthu_tile, smcl_tile, sthf_tile, tsoil_tile, &
+  !              !
+  !              ! snow_cond requires no init from file
+  !              snow_cond, &
+  !              ! 
+  !              FTL_TILE,  &
+  !              FQW_TILE, TSTAR_TILE,   &
+  !              U_S, &
+  !              U_S_STD_TILE,&
+  !              RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
+  !              Z0M_TILE, EPOT_TILE, cd_tile & 
+   
+ 
 
-   !--- internal FLAGS def. specific call of CABLE from UM
-   !--- from cable_common_module
-   cable_runtime%um_explicit = .TRUE.
-
-   !--- user FLAGS, variables etc def. in cable.nml is read on 
-   !--- first time step of each run. these variables are read at 
-   !--- runtime and for the most part do not require a model rebuild.
-   IF(first_cable_call) THEN
-      CALL cable_um_runtime_vars(runtime_vars_file) 
-      first_cable_call = .FALSE.
-   ENDIF      
+!   !--- initialize cable_runtime% switches 
+!   IF(first_cable_call) THEN
+!      cable_runtime%um = .TRUE.
+!      write(6,*) ""
+!      write(6,*) "CABLE_log"
+!      CALL report_version_no(6) ! wriite revision number to stdout(6)
+!   ENDIF
+!      
+!   !--- basic info from global model passed to cable_common_module 
+!   !--- vars so don't need to be passed around, just USE _module
+!   ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
+!                                 !the same as timestep of particular RUN
+!   knode_gl = mype               !which processor am i on?
+!   itimestep = INT(timestep)    !realize for 'call cbm' pass
+!   kwidth_gl = itimestep          !width of timestep (secs)
+!   kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
+!
+!   !--- internal FLAGS def. specific call of CABLE from UM
+!   !--- from cable_common_module
+!   cable_runtime%um_explicit = .TRUE.
+!
+!   !--- user FLAGS, variables etc def. in cable.nml is read on 
+!   !--- first time step of each run. these variables are read at 
+!   !--- runtime and for the most part do not require a model rebuild.
+!   IF(first_cable_call) THEN
+!      CALL cable_um_runtime_vars(runtime_vars_file) 
+!      first_cable_call = .FALSE.
+!   ENDIF      
 
 
 
@@ -286,57 +451,57 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- initialize CABLE using UM forcings etc. these args are passed ---!
    !--- down from UM.                                                 ---! 
    !---------------------------------------------------------------------!
-   CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,           & 
-                           sm_levels, itimestep, latitude, longitude,          &
-                           land_index, tile_frac, tile_pts, tile_index,        &
-                           bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
-                           smvccl, albsoil, snow_tile, snow_rho1l,             &
-                           snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
-                           snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
-                           lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
-                           ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
-                           z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
-                           CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
-                           sthu, tsoil_tile, canht_ft, lai_ft,                 &
-                           sin_theta_latitude, dzsoil )                         
-
-   canopy%oldcansto=canopy%cansto
-
-
-   !---------------------------------------------------------------------!
-   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
-   !--- req'd by Mk3L  --------------------------------------------------!
-   !---------------------------------------------------------------------!
-   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg )
-
-
-
-
-   !---------------------------------------------------------------------!
-   !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
-   !--- back to UM.                                                   ---!
-   !---------------------------------------------------------------------!
-   call cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,          &
-                           LE_TILE_CAB, LE_CAB, TSTAR_TILE, TSTAR_TILE_CAB,    &
-                           TSTAR_CAB, U_S, U_S_STD_TILE, U_S_CAB, CH_CAB,      &
-                           CD_CAB, CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
-                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
-                           RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
-                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
-                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
-                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
-                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
-                           rad%transd, rough%z0m, rough%zref_tq )
-
-
-   ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
-                
-
-   cable_runtime%um_explicit = .FALSE.
+!   CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,           & 
+!                           sm_levels, itimestep, latitude, longitude,          &
+!                           land_index, tile_frac, tile_pts, tile_index,        &
+!                           bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
+!                           smvccl, albsoil, snow_tile, snow_rho1l,             &
+!                           snow_age, isnow_flg3l, snow_rho3l, snow_cond,     &
+!                           snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
+!                           lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
+!                           ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
+!                           z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
+!                           CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
+!                           sthu, tsoil_tile, canht_ft, lai_ft,                 &
+!                           sin_theta_latitude, dzsoil )                         
+!
+!   canopy%oldcansto=canopy%cansto
+!
+!
+!   !---------------------------------------------------------------------!
+!   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
+!   !--- req'd by Mk3L  --------------------------------------------------!
+!   !---------------------------------------------------------------------!
+!   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+!             rad, rough, soil, ssnow, sum_flux, veg )
+!
+!
+!
+!
+!   !---------------------------------------------------------------------!
+!   !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
+!   !--- back to UM.                                                   ---!
+!   !---------------------------------------------------------------------!
+!   call cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,          &
+!                           LE_TILE_CAB, LE_CAB, TSTAR_TILE, TSTAR_TILE_CAB,    &
+!                           TSTAR_CAB, U_S, U_S_STD_TILE, U_S_CAB, CH_CAB,      &
+!                           CD_CAB, CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
+!                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
+!                           RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
+!                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
+!                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
+!                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
+!                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
+!                           rad%transd, rough%z0m, rough%zref_tq )
+!
+!
+!   ! dump bitwise reproducible testing data
+!   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
+!      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+!                          "FLUXES", canopy%fe + canopy%fh )
+!                
+!
+!   cable_runtime%um_explicit = .FALSE.
 
 
 END SUBROUTINE cable_explicit_driver
