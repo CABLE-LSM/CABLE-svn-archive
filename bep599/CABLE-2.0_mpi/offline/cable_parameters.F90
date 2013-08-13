@@ -462,6 +462,7 @@ CONTAINS
       inPwea  = inPwea  / 365.0
       inPdust = inPdust / 365.0
 
+    IF (ACCESS_run) THEN
       ! casaCNP pool sizes
       ALLOCATE( inClab     (nlon, nlat, npatch) )
       ALLOCATE( inCplant   (nlon, nlat, npatch, 3) )
@@ -547,6 +548,7 @@ CONTAINS
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_strongly_sorbed.')
       ok = NF90_GET_VAR(ncid, varID, inPocc)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_strongly_sorbed.')
+    ENDIF
 
     ENDIF
 
@@ -975,7 +977,7 @@ CONTAINS
   !   soiltype_metfile- via cable_IO_vars_module, dim(mland,nmetpatches)
   ! Output variables:
   !   max_vegpatches - via cable_IO_vars_module
-  !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
+  !   landpt(mland)% - via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
     USE cable_common_module, only : vegin, soilin
@@ -1113,6 +1115,10 @@ CONTAINS
       DO is = 1, 12
         defaultLAI(landpt(e)%cstart:landpt(e)%cend,is) =                       &
                                         inLAI(landpt(e)%ilon,landpt(e)%ilat,is)
+      END DO
+      ! Make sure permanent ice patch do not have LAI value
+      DO is = 1, mp
+        IF (veg%iveg(is) == 17)  defaultLAI(is,:) = 0.0
       END DO
 
       ! Set IGBP soil texture values, Q.Zhang @ 12/20/2010.
@@ -1496,6 +1502,18 @@ CONTAINS
     END WHERE
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
+
+    ! Initialise lake variables:
+    ssnow%wbtot1 = 0.0
+    ssnow%wbtot2 = 0.0
+    DO j=1, msn   ! N.B. only use first 3 layers, so not using 'ms'
+    WHERE( veg%iveg == 16 )
+      ssnow%wbtot1 = ssnow%wbtot1 + REAL(ssnow%wb(:,j)) * 1000.0 * soil%zse(j)
+      ssnow%wb(:,j)= soil%sfc
+      ssnow%wbtot2 = ssnow%wbtot2 + REAL(ssnow%wb(:,j)) * 1000.0 * soil%zse(j)
+    ENDWHERE
+    ENDDO
+    ssnow%wb_lake = MAX( ssnow%wbtot2 - ssnow%wbtot1, 0.)
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
