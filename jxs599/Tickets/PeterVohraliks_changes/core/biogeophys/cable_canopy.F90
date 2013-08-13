@@ -414,13 +414,19 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
                    canopy%vlaiw(:))*canopy%gswx(:,2)
 
-   canopy%gswx_T = max(1.e-05,canopy%gswx_T )
-          
+   ! Peter Vohralik's mods from ACCESS-1.3 - yet untested in CABLE2
+   canopy%gswx_T = max(1.e-07,canopy%gswx_T )  
+   canopy%gs_vs = canopy%gswx_T + rad%transd * (0.01*ssoil%wb(:,1)/soil%sfc)**2  
+   where ( soil%isoilm == 9 ) canopy%gs_vs = 1.e6                               
+
    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
                  psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
                  ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
                  - psis( canopy%zetar(:,NITER)) )
-
+   
+   ! Peter Vohralik's mods from ACCESS-1.3 - yet untested in CABLE2
+   canopy%cdtq =   min( canopy%cduv,  max( 0.1*canopy%cduv, canopy%cdtq) )
+   
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
    ! screen temp., windspeed and relative humidity at 2.0m
