@@ -30,28 +30,24 @@
 ! ==============================================================================
 
 
-   !USE cable_data_module,   ONLY : PHYS
-   !REAL, POINTER :: TFRZ
-   !   TFRZ => PHYS%TFRZ
-SUBROUTINE cable_implicit_driver( resp_s_tot,LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW       &
-!subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
-!                                  DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
-!                                  SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
-!                                  STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
-!                                  ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
-!                                  SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
-!                                  FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB,          &
-!                                  LE_CAB, FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
-!                                  TSTAR_TILE, TSTAR_TILE_CAB, TSTAR_CAB,       &
-!                                  SMCL_CAB, TSOIL_CAB, SURF_HTF_CAB,           &
-!                                  SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
-!                                  EI_TILE, RADNET_TILE, TOT_ALB, SNAGE_TILE,   &
-!                                  CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
-!                                  CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
-!                                  DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
-!                                  RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
-!                                  G_LEAF &   
-            )
+!SUBROUTINE cable_implicit_driver( resp_s_tot,LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW       &
+
+subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
+                                  DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
+                                  SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
+                                  STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
+                                  ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
+                                  SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
+                                  FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
+                                  TSTAR_TILE, & 
+                                  SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
+                                  EI_TILE, RADNET_TILE, SNAGE_TILE,   &
+                                  CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
+                                  CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
+                                  DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
+                                  RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
+                                  G_LEAF )
+
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep, &
@@ -68,125 +64,116 @@ SUBROUTINE cable_implicit_driver( resp_s_tot,LS_RAIN, CON_RAIN, LS_SNOW, CONV_SN
       LS_RAIN,  & ! IN Large scale rain
       LS_SNOW,  & ! IN Large scale snow
       CON_RAIN, & ! IN Convective rain
-      CONV_SNOW!,& ! IN Convective snow
-!      DTL_1,    & ! IN Level 1 increment to T field 
-!      DQW_1       ! IN Level 1 increment to q field 
+      CONV_SNOW,& ! IN Convective snow
+      DTL_1,    & ! IN Level 1 increment to T field 
+      DQW_1       ! IN Level 1 increment to q field 
 
-!   REAL :: timestep
-!
-!   INTEGER ::                                                                  &
-!      DIM_CS1, DIM_CS2 
-!
-!   REAL, DIMENSION(um1%land_pts) ::                                            &
-!      GS,      &  ! OUT "Stomatal" conductance to
-!      SMVCST,  &  ! IN Volumetric saturation point
-!      FLAND       ! IN Land fraction on land tiles
-!   
-!   REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
-!      !--- Net downward heat flux at surface over land.
-!      !--- fraction of gridbox (W/m2).
-!      SURF_HT_FLUX_LAND,                                                       &   
-!      !--- Moisture flux between layers. (kg/m^2/sec).
-!      !--- FQW(,1) is total water flux from surface, 'E'.
-!      FQW_1,                                                                   &  
-!      !--- FTL(,K) =net turbulent sensible heat flux into layer K
-!      !--- from below; so FTL(,1) = surface sensible heat, H.(W/m2)
-!      FTL_1         
-!
-!   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                              &
-!      !___Surface FTL, FQL for land tiles
-!      FTL_TILE, FQW_TILE, FQW_TILE_CAB,                                     &
-!      
-!      !___(tiled) latent heat flux, melting, stomatatal conductance
-!     LE_TILE, MELT_TILE, GS_TILE,                                           &
-!     
-!     !___ INOUT Surface net radiation on tiles (W/m2)
-!     RADNET_TILE, &
-!     TOT_ALB,     & ! total albedo
-!     EI_TILE,     & ! OUT EI for land tiles.
-!     ECAN_TILE,   & ! OUT ECAN for snow-free land tiles
-!     ESOIL_TILE     ! evapotranspiration from soil moisture store (kg/m2/s) 
-!
-!   !___ soil prognostics: moisture, frozen, unfrozen content, soil temp.
-!   !___ runoff ??
-!   REAL, dimension(um1%land_pts,um1%sm_levels) ::                           &
-!      SMCL,       & ! 
-!      STHF,       & !
-!      STHU,       & !
-!      SMCL_CAB,   & !
-!      TSOIL_CAB,  & !
-!      TSOIL,      & !
-!      SURF_CAB_ROFF !       
-!
-!   !___(tiled) soil prognostics: as above 
-!   REAL, dimension(um1%land_pts,um1%ntiles,um1%sm_levels) ::                &
-!      SMCL_TILE, & !
-!      STHU_TILE, & !
-!      TSOIL_TILE,& !
-!      STHF_TILE    !
-!
-!   !___flag for 3 layer snow pack
-!   INTEGER :: ISNOW_FLG3L(um1%LAND_PTS,um1%NTILES)
-!   
-!   !___(tiled, 3 layer) Snow depth (m), mass, density, temp., conductivity
-!   REAL, dimension(um1%land_pts,um1%ntiles,3) :: &
-!      SNOW_DEPTH3L,  & ! 
-!      SNOW_MASS3L,   & !
-!      SNOW_RHO3L,    & !
-!      SNOW_TMP3L,    & !
-!      SNOW_COND        !
-!
-!   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                              &
-!      FRS_TILE,   & ! Local
-!      NEE_TILE,   & ! Local
-!      NPP_TILE,   & ! Local
-!      GPP_TILE,   & ! Local
-!      GLEAF_TILE, & ! Local, kdcorbin, 10/10
-!      FRP_TILE,   &
-!      NPP_FT,     &
-!      NPP_FT_old, &
-!      GPP_FT,     &
-!      GPP_FT_old       
-!
-!   REAL, DIMENSION(um1%land_pts) ::                                         &
-!      SNOW_GRD,    & !
-!      CANOPY_GB,   & !
-!      FTL_CAB,     & !   
-!      LE_CAB,      & !
-!      TSTAR_CAB,   & !  
-!      SURF_HTF_CAB,& !
-!      RESP_P,      & !
-!      NPP,         & !
-!      GPP            !
-!      
-!   REAL, DIMENSION( um1%land_pts,um1%ntiles ) ::                               &
-!      SNOW_TILE,     &
-!      SNOW_RHO1L,    &  ! Mean snow density
-!      SNAGE_TILE,    &
-!      CANOPY_TILE,   &
-!      FTL_TILE_CAB,  & 
-!      LE_TILE_CAB,   &
-!      T1P5M_TILE,    &
-!      Q1P5M_TILE,    &
-!      TSTAR_TILE_CAB,&
-!      TSTAR_TILE,    &
-!      SURF_HTF_T_CAB,& 
-!      RESP_S_TILE,   & 
-!      RESP_P_FT,     &
-!      RESP_P_FT_old, &
-!      G_LEAF
-!
-   REAL ::                                                                     &
-!      RESP_S(um1%LAND_PTS,DIM_CS1),     &
-!      RESP_S_old(um1%LAND_PTS,DIM_CS1), &
-!      RESP_S_TOT(DIM_CS2)    
-      RESP_S_TOT(:)    
+   REAL :: timestep
+
+   INTEGER ::                                                                  &
+      DIM_CS1, DIM_CS2 
+
+   REAL, DIMENSION(um1%land_pts) ::                                            &
+      GS,      &  ! OUT "Stomatal" conductance to
+      SMVCST,  &  ! IN Volumetric saturation point
+      FLAND       ! IN Land fraction on land tiles
+   
+   REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
+      !--- Net downward heat flux at surface over land.
+      !--- fraction of gridbox (W/m2).
+      SURF_HT_FLUX_LAND,                                                       &   
+      !--- Moisture flux between layers. (kg/m^2/sec).
+      !--- FQW(,1) is total water flux from surface, 'E'.
+      FQW_1,                                                                   &  
+      !--- FTL(,K) =net turbulent sensible heat flux into layer K
+      !--- from below; so FTL(,1) = surface sensible heat, H.(W/m2)
+      FTL_1         
+
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                              &
+      !___Surface FTL, FQL for land tiles
+      FTL_TILE, FQW_TILE, &
+      
+      !___(tiled) latent heat flux, melting, stomatatal conductance
+     LE_TILE, MELT_TILE, GS_TILE,                                           &
      
-!   REAL, DIMENSION(mp) ::                                                      & 
-!      dtlc, & 
-!      dqwc
-!
-!   REAL, POINTER :: TFRZ
+     !___ INOUT Surface net radiation on tiles (W/m2)
+     RADNET_TILE, &
+     EI_TILE,     & ! OUT EI for land tiles.
+     ECAN_TILE,   & ! OUT ECAN for snow-free land tiles
+     ESOIL_TILE     ! evapotranspiration from soil moisture store (kg/m2/s) 
+
+   !___ soil prognostics: moisture, frozen, unfrozen content, soil temp.
+   !___ runoff ??
+   REAL, dimension(um1%land_pts,um1%sm_levels) ::                           &
+      SMCL,       & ! 
+      STHF,       & !
+      STHU,       & !
+      TSOIL
+
+   !___(tiled) soil prognostics: as above 
+   REAL, dimension(um1%land_pts,um1%ntiles,um1%sm_levels) ::                &
+      SMCL_TILE, & !
+      STHU_TILE, & !
+      TSOIL_TILE,& !
+      STHF_TILE    !
+
+   !___flag for 3 layer snow pack
+   INTEGER :: ISNOW_FLG3L(um1%LAND_PTS,um1%NTILES)
+   
+   !___(tiled, 3 layer) Snow depth (m), mass, density, temp., conductivity
+   REAL, dimension(um1%land_pts,um1%ntiles,3) :: &
+      SNOW_DEPTH3L,  & ! 
+      SNOW_MASS3L,   & !
+      SNOW_RHO3L,    & !
+      SNOW_TMP3L,    & !
+      SNOW_COND        !
+
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                              &
+      FRS_TILE,   & ! Local
+      NEE_TILE,   & ! Local
+      NPP_TILE,   & ! Local
+      GPP_TILE,   & ! Local
+      GLEAF_TILE, & ! Local, kdcorbin, 10/10
+      FRP_TILE,   &
+      NPP_FT,     &
+      NPP_FT_old, &
+      GPP_FT,     &
+      GPP_FT_old       
+
+   REAL, DIMENSION(um1%land_pts) ::                                         &
+      SNOW_GRD,    & !
+      CANOPY_GB,   & !
+      FTL_CAB,     & !   
+      LE_CAB,      & !
+      TSTAR_CAB,   & !  
+      SURF_HTF_CAB,& !
+      RESP_P,      & !
+      NPP,         & !
+      GPP            !
+      
+   REAL, DIMENSION( um1%land_pts,um1%ntiles ) ::                               &
+      SNOW_TILE,     &
+      SNOW_RHO1L,    &  ! Mean snow density
+      SNAGE_TILE,    &
+      CANOPY_TILE,   &
+      T1P5M_TILE,    &
+      Q1P5M_TILE,    &
+      TSTAR_TILE,    &
+      RESP_S_TILE,   & 
+      RESP_P_FT,     &
+      RESP_P_FT_old, &
+      G_LEAF
+
+  REAL ::                                                                     &
+      RESP_S(um1%LAND_PTS,DIM_CS1),     &
+      RESP_S_old(um1%LAND_PTS,DIM_CS1), &
+      RESP_S_TOT(DIM_CS2)    
+    
+   REAL, DIMENSION(mp) ::                                                      & 
+      dtlc, & 
+      dqwc
+
+   REAL, POINTER :: TFRZ
    
 print *, "jhan:_impl_dv:shape(ls_rain)", shape(ls_rain)
 return
