@@ -172,6 +172,18 @@ MODULE cable_common_module
 
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
+ 
+ 
+    ! array of names use in cable_NaN
+   integer, parameter ::                     & 
+   cable_farray_nmax = 50
+    
+   character(len=30), dimension(cable_farray_nmax) :: &
+      cable_farray_names  
+       
+   real, dimension(:,:), allocatable :: & 
+      cable_farray_fields
+
       
 CONTAINS
 
