@@ -357,7 +357,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ! Soil sensible heat:
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-      canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
+      !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
+      canopy%ga = canopy%fns-canopy%fhs-canopy%fes
       
       ! Set total latent heat:
       canopy%fe = canopy%fev + canopy%fes
@@ -421,7 +422,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                  ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
                  - psis( canopy%zetar(:,NITER)) )
 
-     canopy%cdtq = max(0.1*canopy%cduv, canopy%cdtq )
+     !canopy%cdtq = max(0.1*canopy%cduv, canopy%cdtq )
+     canopy%cdtq = min( 0.9*canopy%cduv, max(0.1*canopy%cduv, canopy%cdtq ))
+
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
    ! screen temp., windspeed and relative humidity at 2.0m
@@ -557,12 +560,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fes)/d(dq)
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
    ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil      
-   ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam/ssnow%rtsoil  
+   ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil  
   
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
-   canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%cls*ssnow%dfe_ddq *    &
+   canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
                   ssnow%ddq_dtg
 
    bal%drybal = REAL(ecy+hcy) - SUM(rad%rniso,2)                               &
@@ -697,7 +700,7 @@ SUBROUTINE Latent_heat_flux()
       IF (ssnow%snowd(j) >= 0.1 .and. ssnow%potev(j) > 0.) THEN
 
          ssnow%cls(j) = 1.1335
-         canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j)),               &
+         canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j))*ssnow%cls(j), &
                           ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j))
       
       ENDIF
@@ -2064,7 +2067,6 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-   REAL, DIMENSION(mp) :: rwater ! soil water availability
    INTEGER   :: ns
    REAL, parameter ::rootgamma = 0.01   ! (19may2010)
    REAL, DIMENSION(mp)  :: dummy, normFac

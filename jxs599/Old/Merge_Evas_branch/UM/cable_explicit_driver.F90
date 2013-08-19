@@ -540,7 +540,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       TSTAR_CAB = SUM(um1%TILE_FRAC * TSTAR_TILE_CAB,2)
       TSTAR_TILE = UNPACK(rad_trad,  um1%l_tile_pts, miss)
       Z0M_TILE = UNPACK(rough_z0m,  um1%l_tile_pts, miss)
-      Z0H_TILE = Z0M_TILE
+      Z0H_TILE = 0.1*Z0M_TILE
       
       !___return friction velocities/drags/ etc
       U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)

@@ -610,7 +610,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL :: first_call = .TRUE.
-
+!     not sure if this is in restart file hence repeted again
+      ssnow%pudsto = 0.0; ssnow%pudsmx = 0.0
       ssnow%wbtot1 = 0
       ssnow%wbtot2 = 0
       TFRZ => PHYS%TFRZ
