@@ -419,11 +419,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
                  psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
-                 ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
-                 - psis( canopy%zetar(:,NITER)) )
-
-     !canopy%cdtq = max(0.1*canopy%cduv, canopy%cdtq )
-     canopy%cdtq = min( 0.9*canopy%cduv, max(0.1*canopy%cduv, canopy%cdtq ))
+               + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq ) & ! new term from Ian Harman
+                 ) / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
+               - psis( canopy%zetar(:,NITER))                                  &
+               + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! new term from Ian Harman
 
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
@@ -547,7 +546,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! Initialise 'throughfall to soil' as 'throughfall from canopy'; 
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
-   
+
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
    
