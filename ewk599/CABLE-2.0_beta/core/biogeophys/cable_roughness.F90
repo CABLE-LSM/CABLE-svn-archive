@@ -13,7 +13,7 @@ CONTAINS
 
 
 
-SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
+SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, met)
 
    ! m.r. raupach, 24-oct-92
    ! see: Raupach, 1992, BLM 60 375-395
@@ -23,11 +23,12 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
    USE cable_common_module, ONLY : cable_runtime, cable_user
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
-                                   soil_snow_type, canopy_type, mp  
+                                   soil_snow_type, canopy_type, met_type,  mp  
 
    TYPE(roughness_type), INTENT(INOUT) :: rough
    TYPE (canopy_type),   INTENT(INOUT) :: canopy
    TYPE(soil_snow_type), INTENT(IN)    :: ssnow
+   TYPE(met_type), INTENT(IN)          :: met 
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
 
    REAL, DIMENSION(mp) ::                                                      &
@@ -45,18 +46,20 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    ! maximum height of canopy from tiles belonging to the same grid
    !hmax = rough%hruff_grmx
    
-   ! LAI decreases due to snow and vegetation fraction:
+   ! LAI decreases due to snow:
    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
    canopy%rghlai = canopy%vlaiw
    WHERE( ssnow%snowd .LT. 0.001 ) canopy%rghlai = MIN( 5., canopy%vlaiw )
 
    ! Roughness length of bare soil (m):
-    rough%z0soil = 1.e-2
-    rough%z0soilsn = 1.e-2
-   WHERE( ssnow%snowd .GT. 0.01   )
-     rough%z0soil =  max( 0.1e-7, 1.e-2 + 0.1*( 1.e-6 - 1.e-2) * ssnow%snowd)
-     rough%z0soilsn = rough%z0soil
-   END WHERE
+    rough%z0soil = 0.009*min(1.0,canopy%vlaiw) + 1.e-3
+!    rough%z0soil =  0.0009 * min(1.0,canopy%vlaiw) + 1.e-4
+!    where ( met%fsd(:,1) + met%fsd(:,1)  > 1.0 )  &
+!            rough%z0soil = 0.009*min(1.0,canopy%vlaiw) + 1.e-3
+    rough%z0soilsn = rough%z0soil
+
+   WHERE( ssnow%snowd .GT. 0.01   )  &
+     rough%z0soilsn =  max( 0.1e-7, rough%z0soil + 0.1*(1.e-6 - rough%z0soil) * ssnow%snowd)
 
 
    WHERE( canopy%vlaiw .LT. 0.01 .OR.                                          &

@@ -242,9 +242,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                     gbhu, gbhf, ghwet )
 
      
+       !canopy%fevw = canopy%fevw +  min(0.0_r_2,canopy%fevc)    ! add the negative transpiration to fevw
+
       ! Calculate latent heat from vegetation:
       ! Calculate sensible heat from vegetation:
       ! Calculate net rad absorbed by canopy:
+      !canopy%fev = REAL(max(0.,0.0_r_2,canopy%fevc)) + canopy%fevw
       canopy%fev = REAL(canopy%fevc + canopy%fevw)
       ftemp = (1.0 - canopy%fwet) *  REAL(hcy) + canopy%fhvw
       canopy%fhv = real(ftemp) 
@@ -386,11 +389,28 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
                  psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
-                 ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
-                 - psis( canopy%zetar(:,NITER)) )
+               + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq ) & ! new term from Ian Harman
+                 ) / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
+               - psis( canopy%zetar(:,NITER))                                  &
+               + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! new term from Ian Harman
+                !) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
+                !- psis( canopy%zetar(:,NITER)) )
 
      !canopy%cdtq = max(0.1*canopy%cduv, canopy%cdtq )
-     canopy%cdtq = min( 0.9*canopy%cduv, max(0.1*canopy%cduv, canopy%cdtq ))
+     !canopy%cdtq = min( 0.9*canopy%cduv, max(0.1*canopy%cduv, canopy%cdtq ))
+
+!    DO j=1,mp
+!      if (  canopy%cdtq(j)  .lt. 0.0 ) print 100,ktau_gl,j, canopy%cdtq(j),canopy%cduv(j), &
+!       met%ua(j),canopy%us(j),canopy%zetar(j,NITER),rough%z0m(j),rough%zref_uv(j),rough%zref_tq(j), &
+!       canopy%fhv(j),canopy%fhs(j),canopy%fev(j),canopy%fes(j),canopy%fevw(j),canopy%fevc(j),ssnow%tss(j), &
+!       met%tk(j),canopy%tv(j),ssnow%snowd(j)
+!100    format(1x,'cdtq',2i5,2f7.3,1x,f7.3,f9.6,1x,f7.2,f11.8,2f5.1,6f7.1,1x,3f6.1,f8.0)
+!    ENDDO
+!    DO j=1,mp
+!       if (  canopy%fevc(j)  .lt. 0.0 ) print 101,ktau_gl,j,canopy%fevc(j),canopy%fevw(j),canopy%fes(j), &
+!          canopy%tv(j),met%tk(j),ssnow%tss(j),canopy%vlaiw(j)
+!101    format(1x,'canopyfevc',2i5,3f11.6,3f7.2,f8.5)
+!    ENDDO
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
    ! screen temp., windspeed and relative humidity at 2.0m
@@ -494,6 +514,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
 
    ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
+   !canopy%dewmm = - (min(0.0,canopy%fevw) ) * dels * 1.0e3 / (C%RHOW*air%rlam)
    canopy%dewmm = - (min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc)) * &
         dels * 1.0e3 / (C%RHOW*air%rlam)
 
@@ -513,6 +534,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! Initialise 'throughfall to soil' as 'throughfall from canopy'; 
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
+   !canopy%precis = max(0.,canopy%through) -  min(0.0_r_2,canopy%fevc) * &
+   !                                          dels * 1.0e3 / (C%RHOW*air%rlam)
+
    
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
