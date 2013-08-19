@@ -211,8 +211,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !--- logn, vegparmnew can be set thru cable.nml
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
-         
 
+         
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
       !--- dimensions etc, which are used frequently throughout interfaces. !
@@ -322,7 +322,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
       ENDIF      
-      
+
 END SUBROUTINE interface_UM_data
                                    
 !============================================================================
