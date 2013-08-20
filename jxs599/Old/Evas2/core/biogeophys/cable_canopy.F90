@@ -414,8 +414,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
                    canopy%vlaiw(:))*canopy%gswx(:,2)
 
-   canopy%gswx_T = max(1.e-05,canopy%gswx_T ) + rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2
+   canopy%gswx_T = max(1.e-07,canopy%gswx_T ) + rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2
    where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6
+
+   canopy%gs_vs = canopy%gswx_T + rad%transd * (0.01*ssoil%wb(:,1)/soil%sfc)**2  
+   where ( soil%isoilm == 9 ) canopy%gs_vs = 1.e6                               
 
    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
                  psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
