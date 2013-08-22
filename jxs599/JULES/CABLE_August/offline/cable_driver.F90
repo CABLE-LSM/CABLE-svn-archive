@@ -249,7 +249,6 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
-   
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
@@ -270,6 +269,7 @@ PROGRAM cable_offline_driver
       
       ! time step loop over ktau
       DO ktau=kstart, kend 
+  print *, "jhan:driver:met%ua ssnow%sconds canopy%cansto", met%ua, ssnow%sconds(:,1), canopy%cansto
          
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1

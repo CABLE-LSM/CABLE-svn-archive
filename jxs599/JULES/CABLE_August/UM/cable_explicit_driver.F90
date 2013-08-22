@@ -321,21 +321,15 @@
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-      z0m_TILE = 0. 
-      z0h_TILE = 0. 
-      FTL_TILE = 0. 
-      FQW_TILE = 0.
-      epot_TILe = 0.
-      TSTAR_TILe = 0.
-      RADNET_TILE =0.
-      RESFS = 0.     
-      RESFT = 0.
-      fraca = 0.
-      u_s= 0.
-      u_s_std_tile = 0.
-      radnet_tile = 0.     
+   character(len=30), dimension(:), allocatable :: expl1CheckNames 
+   real, dimension(:,:), allocatable :: expl1CheckFields
 
-      print *, "jhan:cable_expl surf_down_sw",shape( surf_down_sw )
+   character(len=30), dimension(:), allocatable :: expl2CheckNames 
+   real, dimension(:,:,:), allocatable :: expl2CheckFields
+
+   character(len=30), dimension(:), allocatable :: expl3CheckNames 
+   real, dimension(:,:,:), allocatable :: expl3CheckFields
+
 
 !      print *, "jhan:cable_expl row_length ",row_length 
 !      print *, "jhan:cable_expl rows ",      rows
@@ -350,7 +344,137 @@
 !      print *, "jhan:cable_expl timestep_number ", timestep_number
 !      print *, "jhan:cable_expl endstep ",   endstep
 !      print *, "jhan:cable_expl mype ",      mype
-!CALL cable_NaN(mp,"latitude",latitude, 6)
+!
+!      print *, "jhan:cable_ex:lw_down ",          lw_down
+!
+!   CALL cable_farray( land_pts, expl1CheckNames, expl1CheckFields,   &
+!      "bexp",   bexp,    & 
+!      "hcon",   hcon,    &
+!      "satcon", satcon,  &
+!      "sathh",  sathh,   &
+!      "smvcst", smvcst,  &
+!      "smvcwt", smvcwt,  &
+!      "smvccl", smvccl,  &
+!      "albsoil",albsoil, &
+!      "fland",   fland    ) 
+!   
+!   CALL cable_NaN(expl1CheckNames,expl1CheckFields, knode_gl )
+!
+!   CALL cable_farray( row_length,rows, expl2CheckNames, expl2CheckFields,   &
+!      "cos_zenith_angle", cos_zenith_angle, &
+!      "latitude", latitude,   &
+!      "longitude", longitude,  &
+!      "lw_down",          lw_down,    &
+!      "ls_rain",         ls_rain,    &
+!      "ls_snow",      ls_snow,    &
+!      "tl_1",         tl_1,       &
+!      "qw_1",        qw_1,       &  
+!      "vshr_land",        vshr_land,  &
+!      "pstar",         pstar,      &
+!      "z1_tq",        z1_tq,      &
+!      "z1_uv", z1_uv )
+!
+!   CALL cable_NaN(expl2CheckNames,expl2CheckFields, knode_gl )
+!   CALL cable_extremes2(expl2CheckNames,expl2CheckFields, knode_gl )
+!
+!   CALL cable_farray( land_pts, ntiles, expl3CheckNames, expl3CheckFields,   &
+!      "snow_tile",snow_tile,  &
+!      "tile_frac",tile_frac,  &    
+!      "snow_rho1l",snow_rho1l, &
+!      "snow_age",  snow_age )
+!   
+!   CALL cable_NaN(expl3CheckNames,expl3CheckFields, knode_gl )
+!   CALL cable_extremes2(expl3CheckNames,expl3CheckFields, knode_gl )
+
+!   !REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                        &
+!   REAL,  DIMENSION(row_length, rows, 4) ::                        &
+!      surf_down_sw 
+!   
+!   !REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+!   REAL, DIMENSION(land_pts, npft) ::                              &
+!      canht_ft, lai_ft 
+!   
+!   !REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
+!   REAL, DIMENSION(land_pts, ntiles) ::                             &
+!      canopy_tile
+!   
+!   !REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+!   REAL, DIMENSION(land_pts, ntiles,3) ::                       &
+!      snow_cond
+!   
+!   !REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
+!   REAL, DIMENSION(land_pts, ntiles,3) ::                          &
+!      snow_rho3l,    &
+!      snow_depth3l,  &
+!      snow_mass3l,   &
+!      snow_tmp3l
+!   
+!   !REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
+!   REAL, DIMENSION(land_pts, sm_levels) ::                         &
+!      sthu 
+!   
+!   !REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) :: & 
+!   REAL, DIMENSION(land_pts, ntiles, sm_levels) :: & 
+!      sthu_tile, &
+!      sthf_tile, &
+!      smcl_tile, &
+!      tsoil_tile
+!   
+!   !REAL, INTENT(IN) :: co2_mmr
+!   REAL :: co2_mmr
+!
+!   REAL :: sin_theta_latitude(row_length,rows) 
+!     
+!   !___return fluxes
+!   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+!   REAL,  DIMENSION(land_pts,ntiles) :: &
+!      FTL_TILE,   &  ! Surface FTL for land tiles     
+!      FQW_TILE       ! Surface FQW for land tiles     
+!
+!   !___return temp and roughness
+!   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+!   REAL, DIMENSION(land_pts,ntiles) :: &
+!      TSTAR_TILE,       & 
+!      Z0H_TILE,         &
+!      Z0M_TILE
+!
+!
+!   !___return friction velocities/drags/ etc
+!   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+!   REAL,  DIMENSION(land_pts,ntiles) :: &
+!      CD_TILE,    &     ! Drag coefficient
+!!      CH_TILE,    &     ! Transfer coefficient for heat & moisture
+!      U_S_STD_TILE      ! Surface friction velocity
+!
+!   !REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
+!   REAL,  DIMENSION(row_length,rows)  :: &
+!      U_S               ! Surface friction velocity (m/s)
+!   
+!   ! end step of experiment, this step, step width, processor num
+!   !INTEGER, INTENT(IN) :: endstep, timestep_number, mype
+!   INTEGER :: endstep, timestep_number, mype
+!   !REAL, INTENT(IN) ::  timestep     
+!   REAL ::  timestep     
+!   
+!   INTEGER:: itimestep
+!    
+!   !___return miscelaneous 
+!   !REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+!   REAL, DIMENSION(land_pts,ntiles) :: &
+!      RADNET_TILE,   & ! Surface net radiation
+!      RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
+!                       ! factor for fraction (1-FRACA) of snow-free land tiles
+!      RESFT,         & ! Total resistance factor.
+!                       ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,        
+!                       ! 1 for snow.    
+!      FRACA,         & ! Fraction of surface moisture
+!      EPOT_TILE
+! 
+
+
+!      print *, "jhan:cable_expl shlw_down", shape( lw_down  )
+!      print *, "jhan:cable_expl lw_down",  lw_down 
+
 !      print *, "jhan:cable_expl latitude  ", shape( latitude  )
 !      print *, "jhan:cable_expl longitude ",  shape(longitude)
 !      print *, "jhan:cable_expl Fland ",  shape(Fland)
@@ -441,6 +565,9 @@
       first_cable_call = .FALSE.
    ENDIF      
 
+      call cable_diag( 1, "lw_down", rows, 1, ktau_gl, knode_gl,            &
+                          "lw_down", lw_down(1,:) )
+                
 
       print *, "jhan:cable_expl 1"
 ! shapes are wrong 
@@ -737,16 +864,27 @@ SUBROUTINE cable_expl_unpack( FTL_TILE, FQW_TILE,       &
       CH_CAB_TILE =  UNPACK(canopy_cdtq,um1%l_tile_pts, miss)
       CH_CAB= SUM(um1%TILE_FRAC * CH_CAB_TILE,2)
 
-      CALL cable_farray( mp, explUnpackCheckNames, explUnpackCheckFields,      &
-                         "canopy%fh", canopy_fh,        &                        
-                         "canopy%us", canopy_us,        &                        
-                         "canopy%fe", canopy_fe ) !,        &                        
-      CALL cable_NaN( explUnpackCheckNames, explUnpackCheckFields, 6 )
+      !CALL cable_farray( mp, explUnpackCheckNames, explUnpackCheckFields,      &
+      !                   "canopy%fh", canopy_fh,        &                        
+      !                   "canopy%us", canopy_us,        &                        
+      !                   "met%ua", met_ua,        &                        
+      !                   "cdcab", cdcab,        &                        
+      !                   "canopy%fe", canopy_fe ) !,        &                        
+      
+      !CALL cable_NaN( explUnpackCheckNames, explUnpackCheckFields, knode_gl )
                          
       
+     print*, "jhan:cable_expl_unpack 2" 
+
       U_S_STD_TILE=U_S_TILE
+     print*, "jhan:cable_expl_unpack 3" 
+
       CD_TILE = CD_CAB_TILE
+     print*, "jhan:cable_expl_unpack 4" 
+
       CH_TILE = CH_CAB_TILE
+     print*, "jhan:cable_expl_unpack 5" 
+
 
       U_S = 0.
       DO N=1,um1%ntiles

@@ -458,6 +458,9 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       !---this is necessary clobrring at present 
       WHERE(met%ua < 0.001 ) met%ua = 0.001
       
+!jhan:quick debug fix
+      met%ua = 2.0
+      
       ! rml 24/2/11 Set atmospheric CO2 seen by cable to CO2_MMR (value seen 
       ! by radiation scheme).  Option in future to have cable see interactive 
       ! (3d) CO2 field Convert CO2 from kg/kg to mol/mol ( m_air, 
@@ -500,6 +503,8 @@ SUBROUTINE initialize_canopy(canopy_tile)
          
      !---set canopy storage (already in dim(land_pts,ntiles) ) 
      canopy%cansto = pack(CANOPY_TILE, um1%l_tile_pts)
+!jhan:quick debug fix
+     canopy%cansto = 0.000 
      canopy%oldcansto=canopy%cansto
 
 END SUBROUTINE initialize_canopy
@@ -569,7 +574,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ssnow%smass(:,J) = PACK(SNOW_MASS3L(:,:,J),um1%l_tile_pts)  
          ssnow%ssdn(:,J)  = PACK(SNOW_RHO3L(:,:,J),um1%l_tile_pts)  
          ssnow%tggsn(:,J) = PACK(SNOW_TMP3L(:,:,J),um1%l_tile_pts)  
-         ssnow%sconds(:,J)= PACK(SNOW_COND(:,:,J),um1%l_tile_pts)  
+!jhan:quick debug fix
+         ssnow%sconds(:,J)= PACK(SNOW_COND(:,:,1),um1%l_tile_pts)  
          
          WHERE( veg%iveg == 16 ) ! lakes: remove hard-wired number in future version
             ssnow%wbtot1 = ssnow%wbtot1 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
@@ -732,6 +738,7 @@ SUBROUTINE initialize_roughness( z1_tq, z1_uv, htveg )
       ENDDO
       
       rough%hruff= MAX(0.01,veg%hc)
+      !this is not used anymore
       rough%hruff_grmx = pack(jHRUFF, um1%l_tile_pts) 
 
       DEALLOCATE( jhruff, jhwork ) 

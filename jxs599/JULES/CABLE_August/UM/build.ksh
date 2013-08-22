@@ -2,11 +2,11 @@
 
 known_hosts()
 {
-   set -A kh vayu v124
+   set -A kh vayu v134
 }
 
 ## temp #node vayu.nci.org.au
-host_v124()
+host_v134()
 {
    NCDF_ROOT=/apps/netcdf/3.6.3
    export NCDIR=$NCDF_ROOT'/lib/Intel'

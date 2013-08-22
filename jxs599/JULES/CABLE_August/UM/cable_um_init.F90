@@ -52,19 +52,22 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
    
-   USE cable_um_tech_mod,   ONLY :                                             &
-      alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
-      dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
-      um1,                       & ! um1% type UM basics 4 convenience
-      kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
+   USE cable_um_tech_mod!,   ONLY :                                             &
+      !alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
+      !dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
+      !um1,                       & ! um1% type UM basics 4 convenience
+      !kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
 
-   USE cable_common_module, ONLY :                                             &
+   USE cable_common_module , ONLY :                                             &
       cable_user,       & ! cable_user% type inherits user definition
                           ! via namelist (cable.nml) 
-      get_type_parameters ! veg and soil parameters READ subroutine  
+      get_type_parameters,& ! veg and soil parameters READ subroutine  
+      knode_gl, kend_gl, ktau_gl 
 
    USE cable_def_types_mod, ONLY : mp ! number of points CABLE works on
 
+   USE cable_diag_module
+   
 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
@@ -182,6 +185,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
          
+   character(len=30), dimension(:), allocatable :: packCheckNames 
+   real, dimension(:,:), allocatable :: packCheckFields
+
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -273,7 +279,61 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
       ENDIF      
-      
+     
+     
+      CALL cable_farray( mp, packCheckNames,packCheckFields,      &
+'soil%albsoil(:,1)',soil%albsoil(:,1), &
+'soil%bch', soil%bch, &
+'soil%cnsd', soil%cnsd, &
+'soil%hyds', soil%hyds, &
+'soil%sucs', soil%sucs, &
+'soil%ssat', soil%ssat, &
+'soil%swilt',soil%swilt, &
+'soil%sfc', soil%sfc, &
+'veg%iveg ',real(veg%iveg) , &
+'veg%vlai', veg%vlai, &
+'veg%hc ', veg%hc , &
+'met%fld', met%fld, &
+'met%precip', met%precip, &
+'met%precip_sn', met%precip_sn, &
+'met%tk', met%tk, &
+'met%qv', met%qv, &
+'met%ua', met%ua, &
+'met%pmb', met%pmb, &
+'rad%longitude', rad%longitude, &
+'canopy%cansto', canopy%cansto, &
+'ssnow%snowd', ssnow%snowd, &
+'ssnow%ssdnn', ssnow%ssdnn, &
+'ssnow%isflag', real(ssnow%isflag), &
+'ssnow%sdepth(:,1)', ssnow%sdepth(:,1), &
+'ssnow%sdepth(:,2)', ssnow%sdepth(:,2), &
+'ssnow%sdepth(:,3)', ssnow%sdepth(:,3), &
+'ssnow%smass(:,1)', ssnow%smass(:,1), &
+'ssnow%smass(:,2)', ssnow%smass(:,2), &
+'ssnow%smass(:,3)', ssnow%smass(:,3), &
+'ssnow%ssdn(:,1)', ssnow%ssdn(:,1), &
+'ssnow%ssdn(:,2)', ssnow%ssdn(:,2), &
+'ssnow%ssdn(:,3)', ssnow%ssdn(:,3), &
+'ssnow%tggsn(:,1)',ssnow%tggsn(:,1), &
+'ssnow%tggsn(:,2)',ssnow%tggsn(:,2), &
+'ssnow%tggsn(:,3)',ssnow%tggsn(:,3), &
+'ssnow%sconds(:,1)',ssnow%sconds(:,1), &
+'ssnow%sconds(:,2)',ssnow%sconds(:,2), &
+'ssnow%sconds(:,3)',ssnow%sconds(:,3), &
+'rough%za_tq', rough%za_tq, &
+'rough%za_uv', rough%za_uv, &
+'met%coszen', met%coszen, &
+'met%fsd(:,1)',met%fsd(:,1), &
+'met%fsd(:,2)',met%fsd(:,2), &
+'rad%fbeam(:,1)', rad%fbeam(:,1), &
+'rad%fbeam(:,2)', rad%fbeam(:,2), &
+'rad%fbeam(:,3)', rad%fbeam(:,3) &
+)
+
+      !CALL cable_NaN( packCheckNames, packCheckFields, knode_gl )
+      !call cable_diag( 1, "tsoil", mp, kend_gl, ktau_gl, knode_gl,            &
+      !                    "tsoil", ssnow%tgg(:,1) )
+                         
 END SUBROUTINE interface_UM_data
                                    
 !============================================================================
