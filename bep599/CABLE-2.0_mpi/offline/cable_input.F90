@@ -1337,9 +1337,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                         (ok,'Error reading Snowf in met data file ' &
                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
                    ! Add total Snowf to this grid cell total:
-                   ! foor using with GPCC forcingins, ypwwang 31/10/2012
-                   tempPrecip3 = 0.0
-
                    PrecipTot = PrecipTot + &
                         (REAL(SUM(SUM(SUM(tempPrecip3,3),2))) &
                         * convert%Rainf)
@@ -1363,9 +1360,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                         (ok,'Error reading Snowf in met data file ' &
                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
                    ! Add total Snowf to this land grid cell total:
-                   ! for use with GPCC forcing, ypwang 31/10/2012
-                   tempPrecip2 = 0.0
-
                    PrecipTot = PrecipTot + (REAL(SUM(SUM(tempPrecip2,2))) &
                         * convert%Rainf)
                 END IF
