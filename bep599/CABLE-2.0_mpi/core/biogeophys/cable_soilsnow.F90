@@ -938,6 +938,14 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
    ! ssnow%rnof1 = (1. - fracm) * ssnow%rnof1 
 
    ! Scaling  runoff to kg/m^2/s to match rest of the model
+   ssnow%sinfil = 0.0 
+   ! lakes: replace hard-wired vegetation number in next version 
+   WHERE( veg%iveg == 16 ) 
+      ssnow%sinfil = MIN( ssnow%rnof1, ssnow%wb_lake + MAX( 0.,canopy%segg ) ) 
+      ssnow%rnof1 = MAX( 0.0, ssnow%rnof1 - ssnow%sinfil ) 
+      ssnow%wb_lake = ssnow%wb_lake - ssnow%sinfil 
+      ssnow%rnof2 = MAX( 0.0, ssnow%rnof2 - ssnow%wb_lake ) 
+   ENDWHERE 
 
 !jhan:replace nested wheres 
 
@@ -979,15 +987,15 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
    
    END IF
 
-!  Rescale drainage to remove water added to lakes (wb_lake)  
-   wb_lake_T = 0.0
-   rnof2_T = 0.0
-   DO j=1,mp
-      IF( ssnow%wb_lake(j) >  0.0 ) wb_lake_T = wb_lake_T + ssnow%wb_lake(j)
-      rnof2_T = rnof2_T + ssnow%rnof2(j)
-   END DO
-   ratio = min( 1.0, wb_lake_T/max(rnof2_T,1.0))
-   ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
+!!  Rescale drainage to remove water added to lakes (wb_lake)  
+!   wb_lake_T = 0.0
+!   rnof2_T = 0.0
+!   DO j=1,mp
+!      IF( ssnow%wb_lake(j) >  0.0 ) wb_lake_T = wb_lake_T + ssnow%wb_lake(j)
+!      rnof2_T = rnof2_T + ssnow%rnof2(j)
+!   END DO
+!   ratio = min( 1.0, wb_lake_T/max(rnof2_T,1.0))
+!   ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
 
    ssnow%rnof1 = ssnow%rnof1 / dels + rnof5/dels
    ssnow%rnof2 = ssnow%rnof2 / dels
