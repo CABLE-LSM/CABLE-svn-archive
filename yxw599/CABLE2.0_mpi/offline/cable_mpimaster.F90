@@ -659,6 +659,9 @@ SUBROUTINE mpidrv_master (comm)
       print *, 'output BGC pools'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
+
+      print *, 'cable_mpimaster plitter 1', casapool%plitter(1,:)
+
       print *, 'output BGC fluxes'
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
@@ -2260,7 +2263,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r1len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbtot1(off), displs(bidx), ierr)
+  CALL MPI_Get_address (ssnow%wbtot2(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1

@@ -1839,7 +1839,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r1len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbtot1, displs(bidx), ierr)
+  CALL MPI_Get_address (ssnow%wbtot2, displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1

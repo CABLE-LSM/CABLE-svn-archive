@@ -426,6 +426,7 @@ PROGRAM cable_offline_driver
 
    IF (icycle > 0) THEN
       
+      print *, 'calling poolout'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
 
