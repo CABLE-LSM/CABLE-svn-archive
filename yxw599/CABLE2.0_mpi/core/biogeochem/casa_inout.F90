@@ -368,7 +368,6 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%ratioNCsoilmin(npt,:)   = 1.0/ratioCNsoilmax(iv1,:)
     casapool%ratioNCsoilmax(npt,:)   = 1.0/ratioCNsoilmin(iv1,:)
     casapool%ratioNCsoilnew(npt,:)   = casapool%ratioNCsoilmax(npt,:)
-
   ENDDO
 
   IF (icycle==1) THEN
@@ -845,7 +844,7 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   DO npt =1, mp
     nso = casamet%isorder(npt)
     totpsoil(npt) = psorder(nso) *xpsoil50(nso)
-
+  if(casamet%iveg2(npt)>0 ) then
     IF (icycle<2) THEN
       casapool%nplant(npt,:) = casapool%rationcplant(npt,:)  &
                              * casapool%cplant(npt,:)
@@ -855,21 +854,37 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
                              * casapool%Csoil(npt,:)
       casapool%nsoilmin(npt) = 2.0
       casabal%sumnbal(npt)   = 0.0 
+      if(casamet%iveg2(npt)==grass) then
+         casapool%nplant(npt,wood) = 0.0
+         casapool%nlitter(npt,cwd) = 0.0
+      endif
     ENDIF 
 
     IF (icycle<3) THEN
       casabal%sumpbal(npt)   = 0.0
-      casapool%pplant(npt,:) = casapool%ratiopcplant(npt,:)  &
-                             * casapool%cplant(npt,:)
-      casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:) &
-                             * casapool%clitter(npt,:)
-      casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)   &
-                             * casapool%Csoil(npt,:)
+      casapool%pplant(npt,:) = (casapool%ratioPCplant(npt,:)/casapool%ratioNCplant(npt,:))  &
+                             * casapool%Nplant(npt,:)
+      casapool%plitter(npt,:)= (casapool%ratioPClitter(npt,:)/casapool%ratioNClitter(npt,:)) &
+                             * casapool%Nlitter(npt,:)
+      casapool%psoil(npt,:)  = (casapool%ratioPCsoil(npt,:)/casapool%ratioNCsoil(npt,:))   &
+                             * casapool%Nsoil(npt,:)
       casapool%psoillab(npt) = totpsoil(npt) *fracpLab(nso)
       casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                 /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
       casapool%psoilocc(npt) = totpsoil(npt) *fracPocc(nso)
-    ENDIF 
+      if(casamet%iveg2(npt)==grass) then
+         casapool%pplant(npt,wood) = 0.0
+         casapool%plitter(npt,cwd) = 0.0
+      endif
+   ENDIF 
+  else
+     casapool%cplant(npt,:)=0.0; casapool%clitter(npt,:)=0.0; casapool%csoil(npt,:) = 0.0; casapool%clabile(npt) = 0.0
+     casapool%nplant(npt,:)=0.0; casapool%nlitter(npt,:)=0.0; casapool%nsoil(npt,:) = 0.0; casapool%nsoilmin(npt) = 0.0
+     casapool%pplant(npt,:)=0.0; casapool%plitter(npt,:)=0.0; casapool%psoil(npt,:) = 0.0
+     casapool%psoillab(npt) = 0.0; casapool%psoilsorb(npt) = 0.0; casapool%psoilocc(npt) = 0.0
+     casabal%sumcbal(npt) =0.0; casabal%sumnbal(npt) =0.0; casabal%sumpbal(npt) = 0.0
+  endif
+
 
     WRITE(nout,92) ktau,npt,veg%iveg(npt),soil%isoilm(npt),     &
         casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
@@ -1071,6 +1086,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
+
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
   call avgsoil(veg,soil,casamet)
@@ -1123,7 +1139,6 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casabal)
-
 
 END SUBROUTINE biogeochem
 

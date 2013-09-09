@@ -276,8 +276,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                            vegin%length(jveg), vegin%frac4(jveg)
             ! only refl(1:2) and taul(1:2) used
-            READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
-            READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
+            READ(40,*) vegin%refl(1:nrb,jveg) ! rhowood not used ! BP may2011
+            READ(40,*) vegin%taul(1:nrb,jveg) ! tauwood not used ! BP may2011
             READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
             READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
@@ -350,10 +350,10 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          ! old table does not have taul and refl ! BP may2011
          vegin%taul(1,:) = 0.07
          vegin%taul(2,:) = 0.425
-         vegin%taul(3,:) = 0.0
+      !   vegin%taul(3,:) = 0.0
          vegin%refl(1,:) = 0.07
          vegin%refl(2,:) = 0.425
-         vegin%refl(3,:) = 0.0
+      !   vegin%refl(3,:) = 0.0
 
       ENDIF
 
