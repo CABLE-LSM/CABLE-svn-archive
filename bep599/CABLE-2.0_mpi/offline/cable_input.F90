@@ -62,7 +62,8 @@ MODULE cable_input_module
    IMPLICIT NONE
    
    PRIVATE
-   PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,      &
+!   PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,     &
+   PUBLIC open_met_file, close_met_file,load_parameters,                  &
         allocate_cable_vars, get_met_data
 
    INTEGER                      ::                                        & 
@@ -132,124 +133,124 @@ MODULE cable_input_module
 
 CONTAINS
 
-!==============================================================================
+!!==============================================================================
+!!
+!! Name: get_default_lai
+!!
+!! Purpose: Reads all monthly LAI from default gridded netcdf file
+!!
+!! CALLed from: load_parameters
+!!
+!! CALLs: nc_abort
+!!        abort
+!!
+!! Input file: [LAI].nc
+!!
+!!==============================================================================
 !
-! Name: get_default_lai
+!SUBROUTINE get_default_lai
 !
-! Purpose: Reads all monthly LAI from default gridded netcdf file
+!   ! Input variables:
+!   !   filename%LAI      - via cable_IO_vars_module
+!   !   landpt            - via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
+!   !   exists%laiPatch   - via cable_IO_vars_module
+!   ! Output variables:
+!   !   defaultLAI(mp,12) - via cable_IO_vars_module
 !
-! CALLed from: load_parameters
+!   ! Local variables
+!   INTEGER                              ::                                &
+!        ncid,                                   &
+!        xID,                                    &
+!        yID,                                    &
+!        pID,                                    &
+!        tID,                                    &
+!        laiID,                                  &
+!        nlon,                                   &
+!        nlat,                                   &
+!        nLaiPatches,                            &
+!        ntime,                                  &
+!        e, tt                                     ! do loop counter
+!   REAL, DIMENSION(:,:,:),  ALLOCATABLE :: inLai3D
+!   REAL, DIMENSION(:,:,:,:),ALLOCATABLE :: inLai4D
 !
-! CALLs: nc_abort
-!        abort
+!   ! Allocate default LAI variable: changed mland to mp (BP apr2010)
+!   ALLOCATE(defaultLAI(mp,12))   ! mp = mp_global
 !
-! Input file: [LAI].nc
+!   WRITE(logn,*) ' Loading LAI from default file ', TRIM(filename%LAI)
+!   ! Open netcdf file
+!   ok = NF90_OPEN(filename%LAI,0,ncid) 
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening default LAI file.')
 !
-!==============================================================================
-
-SUBROUTINE get_default_lai
-
-   ! Input variables:
-   !   filename%LAI      - via cable_IO_vars_module
-   !   landpt            - via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
-   !   exists%laiPatch   - via cable_IO_vars_module
-   ! Output variables:
-   !   defaultLAI(mp,12) - via cable_IO_vars_module
-
-   ! Local variables
-   INTEGER                              ::                                &
-        ncid,                                   &
-        xID,                                    &
-        yID,                                    &
-        pID,                                    &
-        tID,                                    &
-        laiID,                                  &
-        nlon,                                   &
-        nlat,                                   &
-        nLaiPatches,                            &
-        ntime,                                  &
-        e, tt                                     ! do loop counter
-   REAL, DIMENSION(:,:,:),  ALLOCATABLE :: inLai3D
-   REAL, DIMENSION(:,:,:,:),ALLOCATABLE :: inLai4D
-
-   ! Allocate default LAI variable: changed mland to mp (BP apr2010)
-   ALLOCATE(defaultLAI(mp,12))   ! mp = mp_global
-
-   WRITE(logn,*) ' Loading LAI from default file ', TRIM(filename%LAI)
-   ! Open netcdf file
-   ok = NF90_OPEN(filename%LAI,0,ncid) 
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening default LAI file.')
-
-   ok = NF90_INQ_DIMID(ncid,'x',xID)
-   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
-      ok = NF90_INQ_DIMID(ncid,'longitude',xID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring x dimension.')
-   END IF
-   
-   ok = NF90_INQUIRE_DIMENSION(ncid,xID,LEN=nlon)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting x dimension.')
-   ok = NF90_INQ_DIMID(ncid,'y',yID)
-   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
-      ok = NF90_INQ_DIMID(ncid,'latitude',yID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring y dimension.')
-   END IF
-   ok = NF90_INQUIRE_DIMENSION(ncid,yID,LEN=nlat)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting y dimension.')
-   ok = NF90_INQ_DIMID(ncid,'patch',pID)
-   IF(ok/=NF90_NOERR) THEN ! if failed
-      exists%laiPatch = .FALSE.
-      WRITE(logn,*) ' **ALL patches will be given the same LAI**'
-   ELSE
-      exists%laiPatch = .TRUE.
-      ok = NF90_INQUIRE_DIMENSION(ncid,pID,len=nLaiPatches)
-      IF(ANY(landpt(:)%nap>nLaiPatches)) THEN
-         WRITE(logn,*) ' **Some patches will be given the same LAI**'
-      END IF
-      IF(nLaiPatches>max_vegpatches) THEN ! input file can have more info
-         WRITE(*,*) ' Note that LAI input file has ', nLaiPatches, ' patches.'
-         WRITE(*,*) ' while the model has max at ', max_vegpatches, ' patches.'
-      END IF
-   END IF
-   ok = NF90_INQ_DIMID(ncid,'time',tID)
-   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
-      ok = NF90_INQ_DIMID(ncid,'month',tID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring t dimension.')
-   END IF
-   ok = NF90_INQUIRE_DIMENSION(ncid,tID,LEN=ntime)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting time dimension.')
-   IF (ntime /= 12) CALL abort('Time dimension not 12 months.')
-
-   ok = NF90_INQ_VARID(ncid,'LAI',laiID)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding LAI variable.')
-
-   ! Read LAI values:
-   IF (exists%laiPatch) THEN
-      ALLOCATE(inLai4D(nlon,nlat,nLaiPatches,ntime))
-      ok = NF90_GET_VAR(ncid,laiID,inLai4D)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 4D LAI variable.')
-      DO e = 1, mland  ! over all land grid points
-         DO tt = 1, ntime
-            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
-                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
-         END DO
-      END DO
-   ELSE
-      ALLOCATE(inLai3D(nlon,nlat,ntime))
-      ok = NF90_GET_VAR(ncid,laiID,inLai3D)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 3D LAI variable.')
-      DO e = 1, mland
-         DO tt = 1, ntime
-            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
-                inLai3D(landpt(e)%ilon,landpt(e)%ilat,tt)
-         END DO
-      END DO
-   END IF
-
-   ! Close netcdf file
-   ok = NF90_CLOSE(ncid)
-
-   
-END SUBROUTINE get_default_lai
+!   ok = NF90_INQ_DIMID(ncid,'x',xID)
+!   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
+!      ok = NF90_INQ_DIMID(ncid,'longitude',xID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring x dimension.')
+!   END IF
+!   
+!   ok = NF90_INQUIRE_DIMENSION(ncid,xID,LEN=nlon)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting x dimension.')
+!   ok = NF90_INQ_DIMID(ncid,'y',yID)
+!   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
+!      ok = NF90_INQ_DIMID(ncid,'latitude',yID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring y dimension.')
+!   END IF
+!   ok = NF90_INQUIRE_DIMENSION(ncid,yID,LEN=nlat)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting y dimension.')
+!   ok = NF90_INQ_DIMID(ncid,'patch',pID)
+!   IF(ok/=NF90_NOERR) THEN ! if failed
+!      exists%laiPatch = .FALSE.
+!      WRITE(logn,*) ' **ALL patches will be given the same LAI**'
+!   ELSE
+!      exists%laiPatch = .TRUE.
+!      ok = NF90_INQUIRE_DIMENSION(ncid,pID,len=nLaiPatches)
+!      IF(ANY(landpt(:)%nap>nLaiPatches)) THEN
+!         WRITE(logn,*) ' **Some patches will be given the same LAI**'
+!      END IF
+!      IF(nLaiPatches>max_vegpatches) THEN ! input file can have more info
+!         WRITE(*,*) ' Note that LAI input file has ', nLaiPatches, ' patches.'
+!         WRITE(*,*) ' while the model has max at ', max_vegpatches, ' patches.'
+!      END IF
+!   END IF
+!   ok = NF90_INQ_DIMID(ncid,'time',tID)
+!   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
+!      ok = NF90_INQ_DIMID(ncid,'month',tID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring t dimension.')
+!   END IF
+!   ok = NF90_INQUIRE_DIMENSION(ncid,tID,LEN=ntime)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting time dimension.')
+!   IF (ntime /= 12) CALL abort('Time dimension not 12 months.')
+!
+!   ok = NF90_INQ_VARID(ncid,'LAI',laiID)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding LAI variable.')
+!
+!   ! Read LAI values:
+!   IF (exists%laiPatch) THEN
+!      ALLOCATE(inLai4D(nlon,nlat,nLaiPatches,ntime))
+!      ok = NF90_GET_VAR(ncid,laiID,inLai4D)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 4D LAI variable.')
+!      DO e = 1, mland  ! over all land grid points
+!         DO tt = 1, ntime
+!            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
+!                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
+!         END DO
+!      END DO
+!   ELSE
+!      ALLOCATE(inLai3D(nlon,nlat,ntime))
+!      ok = NF90_GET_VAR(ncid,laiID,inLai3D)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 3D LAI variable.')
+!      DO e = 1, mland
+!         DO tt = 1, ntime
+!            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
+!                inLai3D(landpt(e)%ilon,landpt(e)%ilat,tt)
+!         END DO
+!      END DO
+!   END IF
+!
+!   ! Close netcdf file
+!   ok = NF90_CLOSE(ncid)
+!
+!   
+!END SUBROUTINE get_default_lai
 !==============================================================================
 !
 ! Name: open_met_file
