@@ -56,6 +56,25 @@ MODULE cable_def_types_mod
       niter = 4,     & ! number of iterations for za/L
       ms = 6           ! # soil layers
 
+   ! Below is added by Kai and Jatin
+   ! Look-up tables for soil albedo
+   ! saturated soil albedos for 20 color classes and 2 wavebands (1=vis, 2=nir)
+   REAL(r_2), PARAMETER, DIMENSION(20,nrb) ::                                   &
+      albsat = (/ (/ 0.25,0.23,0.21,0.20,0.19,0.18,0.17,0.16,0.15,0.14,0.13,    &
+                     0.12,0.11,0.10,0.09,0.08,0.07,0.06,0.05,0.04 /),           &
+                  (/ 0.50,0.46,0.42,0.40,0.38,0.36,0.34,0.32,0.30,0.28,0.26,    &
+                     0.24,0.22,0.20,0.18,0.16,0.14,0.12,0.10,0.08/),            &
+                  (/ 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,                    &
+                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0. /) /),              &
+   ! dry soil albedos for 20 color classes and 2 wavebands (1=vis, 2=nir)
+      albdry = (/ (/ 0.36,0.34,0.32,0.31,0.30,0.29,0.28,0.27,0.26,0.25,0.24,    &
+                     0.23,0.22,0.20,0.18,0.16,0.14,0.12,0.10,0.08 /),           &
+                  (/ 0.61,0.57,0.53,0.51,0.49,0.48,0.45,0.43,0.41,0.39,0.37,    &
+                     0.35,0.33,0.31,0.29,0.27,0.25,0.23,0.21,0.16 /),           &
+                  (/ 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,                    &
+                     0., 0., 0., 0., 0., 0., 0., 0., 0., 0. /) /)
+   ! Above is added by Kai and Jatin
+
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
 ! .............................................................................
@@ -120,6 +139,7 @@ MODULE cable_def_types_mod
          swilt,   & ! vol H2O @ wilting
          zse,     & ! thickness of each soil layer (1=top) in m
          zshh,    & ! distance between consecutive layer midpoints (m)
+         soilcol, & ! keep color for all patches/tiles
          albsoilf   ! soil reflectance
      
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
@@ -594,7 +614,8 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% cnsd(mp) )  
    allocate( var% albsoil(mp, nrb) )  
    allocate( var% pwb_min(mp) )  
-   allocate( var% albsoilf(mp) )  
+   allocate( var% albsoilf(mp) ) 
+   allocate( var% soilcol(mp) )
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -704,7 +725,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
-   !was nrb(=3), but never uses (:,3) in model   
+   !was nrb(=3), but never uses (:,3) in model
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) ) 
@@ -994,7 +1015,8 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% albsoil )  
    DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% pwb_min)  
-   DEALLOCATE( var% albsoilf )  
+   DEALLOCATE( var% albsoilf )
+   DEALLOCATE( var% soilcol )  
    
 END SUBROUTINE dealloc_soil_parameter_type
  
