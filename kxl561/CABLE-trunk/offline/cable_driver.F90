@@ -73,7 +73,8 @@ PROGRAM cable_offline_driver
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
-                                   report_version_no, wiltParam, satuParam
+                                   report_version_no, wiltParam, satuParam,    &
+                                   calcsoilalbedo
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -161,6 +162,7 @@ PROGRAM cable_offline_driver
                   filename,         & ! TYPE, containing input filenames 
                   vegparmnew,       & ! jhan: use new soil param. method
                   soilparmnew,      & ! jhan: use new soil param. method
+                  calcsoilalbedo,   & ! Added by Kai and Jatin
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
