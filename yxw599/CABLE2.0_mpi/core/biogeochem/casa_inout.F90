@@ -270,7 +270,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casabiome%q10soil(nv)         = xq10soil(nv)
     casabiome%xkoptlitter(nv)     = xxkoptlitter(nv)
     casabiome%xkoptsoil(nv)       = xxkoptsoil(nv)
-    casabiome%prodptase(nv)       = xprodptase(nv)
+    casabiome%prodptase(nv)       = xprodptase(nv)/365.0   ! convert from yearly to daily
     casabiome%costnpup(nv)        = xcostnpup(nv)
     casabiome%maxfinelitter(nv)   = xmaxfinelitter(nv)
     casabiome%maxcwd(nv)          = xmaxcwd(nv)

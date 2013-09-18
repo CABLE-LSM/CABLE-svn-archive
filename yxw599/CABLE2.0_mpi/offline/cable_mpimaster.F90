@@ -660,8 +660,6 @@ SUBROUTINE mpidrv_master (comm)
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
 
-      print *, 'cable_mpimaster plitter 1', casapool%plitter(1,:)
-
       print *, 'output BGC fluxes'
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 

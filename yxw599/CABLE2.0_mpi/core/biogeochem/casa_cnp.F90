@@ -1078,19 +1078,29 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 
       DO kk=1,msoil
          DO jj=1,mlitter    ! immobilisation from litter to soil
+!            casaflux%Psimm(nland) = casaflux%Psimm(nland) &
+!                                     - casaflux%fromLtoS(nland,kk,jj) &
+!                                     * casaflux%klitter(nland,jj)     &
+!                                     * casapool%Clitter(nland,jj)     &
+!                                     * casapool%ratioPCsoil(nland,kk)
             casaflux%Psimm(nland) = casaflux%Psimm(nland) &
                                      - casaflux%fromLtoS(nland,kk,jj) &
                                      * casaflux%klitter(nland,jj)     &
-                                     * casapool%Clitter(nland,jj)     &
-                                     * casapool%ratioPCsoil(nland,kk)
+                                     * casapool%Nlitter(nland,jj)     &
+                                     * casapool%ratioPCsoil(nland,kk)/casapool%ratioNCsoil(nland,kk)
          ENDDO
          DO kkk=1,msoil      ! immobilisation from soil to soil
             IF(kkk.ne.kk) THEN
+!               casaflux%Psimm(nland) = casaflux%Psimm(nland) &
+!                                        - casaflux%fromStoS(nland,kk,kkk)  &
+!                                        * casaflux%ksoil(nland,kkk) &
+!                                        * casapool%Csoil(nland,kkk) &
+!                                        * casapool%ratioPCsoil(nland,kk)
                casaflux%Psimm(nland) = casaflux%Psimm(nland) &
                                         - casaflux%fromStoS(nland,kk,kkk)  &
                                         * casaflux%ksoil(nland,kkk) &
-                                        * casapool%Csoil(nland,kkk) &
-                                        * casapool%ratioPCsoil(nland,kk)
+                                        * casapool%Nsoil(nland,kkk) &
+                                        * casapool%ratioPCsoil(nland,kk)/casapool%ratioNCsoil(nland,kk)
             ENDIF
          ENDDO
       ENDDO  ! immobilization
@@ -1108,19 +1118,29 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 
       DO k=1,msoil
          DO j=1,mlitter
+!            casaflux%FluxPtosoil(nland,k) =  casaflux%FluxPtosoil(nland,k)  &
+!                                 + casaflux%fromLtoS(nland,k,j) &
+!                                 * casaflux%klitter(nland,j)    &
+!                                 * casapool%Clitter(nland,j)    &
+!                                 * casapool%ratioPCsoil(nland,k)
             casaflux%FluxPtosoil(nland,k) =  casaflux%FluxPtosoil(nland,k)  &
                                  + casaflux%fromLtoS(nland,k,j) &
                                  * casaflux%klitter(nland,j)    &
-                                 * casapool%Clitter(nland,j)    &
-                                 * casapool%ratioPCsoil(nland,k)
+                                 * casapool%Nlitter(nland,j)    &
+                                 * casapool%ratioPCsoil(nland,k)/casapool%ratioNCsoil(nland,k)
          ENDDO  ! end of "j"
          DO kk=1,msoil
             IF(kk.ne.k) THEN
+!               casaflux%FluxPtosoil(nland,k) = casaflux%FluxPtosoil(nland,k)  &
+!                                    + casaflux%fromStoS(nland,k,kk) &
+!                                    * casaflux%ksoil(nland,kk)      &
+!                                    * casapool%Csoil(nland,kk)      &
+!                                    * casapool%ratioPCsoil(nland,k)
                casaflux%FluxPtosoil(nland,k) = casaflux%FluxPtosoil(nland,k)  &
                                     + casaflux%fromStoS(nland,k,kk) &
                                     * casaflux%ksoil(nland,kk)      &
-                                    * casapool%Csoil(nland,kk)      &
-                                    * casapool%ratioPCsoil(nland,k)
+                                    * casapool%Nsoil(nland,kk)      &
+                                    * casapool%ratioPCsoil(nland,k)/casapool%ratioNCsoil(nland,k)
             ENDIF
          ENDDO ! end of "kk"
       ENDDO    ! end of "k"
@@ -1128,6 +1148,15 @@ IF(casamet%iveg2(nland)/=icewater) THEN
    ENDIF
 ENDIF  ! end of /=icewater
 ENDDO  ! end of nland
+
+
+
+!   write(*,991) casaflux%psnet(1883),casaflux%Plittermin(1883), casaflux%Psmin(1883),casaflux%Psimm(1883), &
+!                casaflux%klitter(1883,:), casaflux%ksoil(1883,:),casaflux%fromLtoS(1883,:,:), casaflux%fromStoS(1883,:,:), &
+!                casapool%clitter(1883,:),casapool%csoil(1883,:),casapool%nlitter(1883,:), casapool%nsoil(1883,:), &
+!                casapool%plitter(1883,:),casapool%psoil(1883,:),  &
+!                casapool%ratioPCsoil(1883,:),casapool%ratioNCsoil(1883,:)/casapool%ratioPCsoil(1883,:)
+!991  format(' delsoil point 1883 ', 100(f15.8,1x))
 
 DO nland=1,mp
 IF(casamet%iveg2(nland)/=icewater) THEN
@@ -1152,10 +1181,13 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 
    IF(icycle >2) THEN
 
-      fluxptase(nland) =  casabiome%prodptase(veg%iveg(nland))*deltcasa  &
-                       *  max(0.0,(casapool%Psoil(nland,2)+casapool%Psoil(nland,3))) &
-                       *  max(0.0,(casabiome%costNpup(veg%iveg(nland))-15.0))/(max(0.0,(casabiome%costNpup(veg%iveg(nland))-15.0)) + 150.0)
+!      fluxptase(nland) =  casabiome%prodptase(veg%iveg(nland))  &
+!                       *  max(0.0,(casapool%Psoil(nland,2)+casapool%Psoil(nland,3))) &
+!                       *  max(0.0,(casabiome%costNpup(veg%iveg(nland))-15.0))/(max(0.0,(casabiome%costNpup(veg%iveg(nland))-15.0)) + 150.0)
 
+      fluxptase(nland) =  casabiome%prodptase(veg%iveg(nland))  &
+                       *  max(0.0,(casapool%Psoil(nland,2)*casaflux%ksoil(nland,2)+casapool%Psoil(nland,3)*casaflux%ksoil(nland,3))) &
+                       *  max(0.0,(casabiome%costNpup(veg%iveg(nland))-15.0))/(max(0.0,(casabiome%costNpup(veg%iveg(nland))-15.0)) + 150.0)
       !fluxptase(nland)  = 0.0
       xdplabsorb(nland) = 1.0+ casaflux%Psorbmax(nland)*casaflux%kmlabp(nland) &
                         /((casaflux%kmlabp(nland)+casapool%Psoillab(nland))**2)
