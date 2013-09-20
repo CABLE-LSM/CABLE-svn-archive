@@ -656,13 +656,13 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ENDWHERE
       
       ENDDO 
+      ssnow%wb_lake = MAX( ssnow%wbtot2 - ssnow%wbtot1, 0.)
        
       DO J=1,um1%sm_levels
          ssnow%tgg(:,J) = PACK(TSOIL_TILE(:,:,J),um1%l_tile_pts)
       ENDDO 
       
       ssnow%snage = PACK(SNAGE_TILE, um1%l_tile_pts)
-      ssnow%wb_lake = MAX( ssnow%wbtot2 - ssnow%wbtot1, 0.)
 
       IF( first_call) THEN 
         
