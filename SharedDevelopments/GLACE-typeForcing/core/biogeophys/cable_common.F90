@@ -56,6 +56,7 @@ MODULE cable_common_module
          FWSOIL_SWITCH     !
       
       CHARACTER(LEN=5) ::                                                      &
+         GLACE_STATUS, & !
          RUN_DIAG_LEVEL  !
       
       CHARACTER(LEN=3) ::                                                      &

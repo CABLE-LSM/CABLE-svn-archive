@@ -82,6 +82,7 @@ PROGRAM cable_offline_driver
    USE cable_cbm_module
    
    USE cable_diag_module
+   USE cable_diag_read_mod
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
@@ -155,6 +156,9 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
+   
+   REAL, POINTER, DIMENSION(:)  :: & 
+      ftemp
    
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -237,6 +241,7 @@ PROGRAM cable_offline_driver
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kend, spinup, C%TFRZ )
+
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -276,7 +281,6 @@ PROGRAM cable_offline_driver
          
          ! globally (WRT code) accessible kend through USE cable_common_module
          ktau_gl = ktau_gl + 1
-         
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          ktauday=int(24.0*3600.0/dels)
          idoy = mod(ktau/ktauday,365)
@@ -299,6 +303,39 @@ PROGRAM cable_offline_driver
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
    
+         ! dump GLACE-type forcing data
+         IF(ktau_gl == 1 ) & 
+            WRITE(6,*)'CABLE_log:GLACE_STATUS ',trim(cable_user%GLACE_STATUS)
+         
+         IF( cable_user%GLACE_STATUS== 'WRITE') THEN
+            
+            IF(ktau_gl == 1 ) & 
+               WRITE(6,*)'CABLE_log: GLACE_STATUS write loop activated'
+            
+            IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
+               call cable_diag( 1, "smcl1_", mp, kend, ktau,                   &
+                                knode_gl, "smcl layer 1",                      &
+                          REAL(ssnow%wb(:,1)) )
+            ENDIF
+         
+            ENDIF
+         
+         IF( cable_user%GLACE_STATUS== 'READ') THEN
+            
+            IF(ktau_gl == 1 ) & 
+               WRITE(6,*)'CABLE_log: GLACE_STATUS read loop activated'
+            
+            IF(ktau_gl == 1 ) ALLOCATE( ftemp(mp) )
+            
+            IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
+               call cable_diagRead( 1, "smcl1_", mp, kend, ktau,              &
+                                   knode_gl, "smcl layer 1",                   &
+                                 ftemp )
+               ssnow%wb(:,1) = REAL(ftemp, r_2) 
+            ENDIF
+         
+         ENDIF
+
          ! CALL land surface scheme for this timestep, all grid points:
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
@@ -340,6 +377,7 @@ PROGRAM cable_offline_driver
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
          ENDIF
+                
                 
       END DO ! END Do loop over timestep ktau
 

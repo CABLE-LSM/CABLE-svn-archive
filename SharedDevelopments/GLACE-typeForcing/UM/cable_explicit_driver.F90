@@ -73,6 +73,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !--- include subr called to write data for testing purposes 
    USE cable_diag_module
+   !--- include subr called to read data for GLaCE-type experiments 
+   USE cable_diag_read_mod 
 
    IMPLICIT NONE
  
@@ -247,7 +249,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
- 
+
+!jhan: not needed in UM as compiled -r8   
+   !___ temporary array 
+   REAL, POINTER, DIMENSION(:)  :: & 
+      ftemp
+   
 
 
    !--- initialize cable_runtime% switches 
@@ -258,6 +265,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       CALL report_version_no(6) ! wriite revision number to stdout(6)
    ENDIF
       
+      write(6,*) "CABLE_log out of the loop"
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
@@ -301,6 +309,41 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sin_theta_latitude, dzsoil )                         
 
    canopy%oldcansto=canopy%cansto
+
+   ! read/write GLACE-type forcing data
+   IF(ktau_gl == 1 ) & 
+      WRITE(6,*)'CABLE_log:GLACE_STATUS ',trim(cable_user%GLACE_STATUS)
+   
+   IF( cable_user%GLACE_STATUS== 'WRITE') THEN
+      
+      IF(ktau_gl == 1 ) & 
+         WRITE(6,*)'CABLE_log: GLACE_STATUS write loop activated'
+      
+      !IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
+      call cable_diag( 1, "smcl1_", mp, kend_gl, ktau_gl,knode_gl,                &
+                          "smcl layer 1", REAL(ssnow%wb(:,1)) )
+      !ENDIF
+   
+   ENDIF
+   
+   IF( cable_user%GLACE_STATUS== 'READ') THEN
+      
+      IF(ktau_gl == 1 ) & 
+         WRITE(6,*)'CABLE_log: GLACE_STATUS read loop activated'
+      
+      IF(ktau_gl == 1 ) ALLOCATE( ftemp(mp) )
+      
+      !IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
+         call cable_diagRead( 1, "smcl1_", mp, kend_gl, ktau_gl,              &
+                             knode_gl, "smcl layer 1", ftemp )
+         !offline needs r_2
+         !ssnow%wb(:,1) = REAL(ftemp, r_2) 
+         ssnow%wb(:,1) = ftemp
+      !ENDIF
+   
+   ENDIF
+
+
 
 
    !---------------------------------------------------------------------!
