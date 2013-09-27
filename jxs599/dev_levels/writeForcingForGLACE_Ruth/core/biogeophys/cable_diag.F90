@@ -66,7 +66,7 @@ SUBROUTINE cable_diag1( Nvars, basename, dimx, dimy, timestep, node, &
    integer :: i=0
    character(len=*), intent(in) :: basename, vname1
    character(len=30) :: filename, chnode
-  
+     
       write(chnode,10) node
    10 format(i2.2)   
       filename=trim(trim(basename)//trim(chnode))
@@ -148,6 +148,83 @@ END SUBROUTINE cable_stat
 
 
 END MODULE cable_diag_module
+
+
+
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+
+MODULE cable_diag_read_mod 
+
+   IMPLICIT NONE
+
+CONTAINS
+  
+   SUBROUTINE cable_diagRead( Nvars, basename, dimx, dimy, timestep, node, &
+                        vname, fdata )
+
+      integer :: Nvars, dimx, dimy, timestep, node
+      !dimx = typically #landpoints over which the var is specified per timestep 
+      ! dimy = # timesteps
+      !INTEGER ::dimx, dimy 
+
+      ! passed filename (per field, per processor, at present)
+      character(len=*), intent(in) :: basename, vname
+      
+      character(len=30) :: filename, chnode
+ 
+      ! field (2D at present - one time, one spatial ) 
+      REAL, DIMENSION(:), POINTER :: fdata
+
+ 
+      write(chnode,10) node
+   10 format(i2.2)   
+      filename=trim(trim(basename)//trim(chnode))
+   
+      ! read the binary data andstore in 2nd arg 
+      CALL read_dat_file( TRIM(filename), fdata, dimx )
+
+   END SUBROUTINE cable_diagRead   
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+
+SUBROUTINE Read_dat_file( filename, fdata, dimx )
+
+   INTEGER, INTENT(IN) :: dimx
+   REAL, DIMENSION(:), POINTER :: fdata
+   CHARACTER(LEN=*), INTENT(IN) :: filename
+   
+   INTEGER, PARAMETER :: gok=0
+   INTEGER, SAVE :: gopenstatus
+   LOGICAL, SAVE :: first_call = .TRUE. 
+
+      IF (first_call) THEN
+         OPEN(UNIT=2, FILE=filename//'.bin', STATUS="unknown", ACTION="read", &
+               IOSTAT=gopenstatus, FORM="unformatted" )
+         first_call= .FALSE.
+      ENDIF   
+
+         IF(gopenstatus==gok) THEN
+            
+            READ(2), fdata(:) 
+     
+         ELSE
+            WRITE (*,*), filename//'.bin',' NOT found for read'
+            STOP
+     
+         ENDIF
+      
+      !CLOSE(2)
+
+END SUBROUTINE read_dat_file 
+
+!==========================================================================!
+      
+
+END MODULE cable_diag_read_mod 
+
 
 
 
