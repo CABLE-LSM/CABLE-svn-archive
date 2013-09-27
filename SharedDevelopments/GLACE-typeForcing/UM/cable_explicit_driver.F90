@@ -250,11 +250,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
 
-!jhan: not needed in UM as compiled -r8   
+!jhan: not needed in UM as compiled -r8  ? 
    !___ temporary array 
    REAL, POINTER, DIMENSION(:)  :: & 
       ftemp
-   
+
+   !___ unique unit/file identifiers for cable_diag 
+  INTEGER :: iDiag_Zero, iDiag1 
 
 
    !--- initialize cable_runtime% switches 
@@ -320,7 +322,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
          WRITE(6,*)'CABLE_log: GLACE_STATUS write loop activated'
       
       !IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
-      call cable_diag( 1, "smcl1_", mp, kend_gl, ktau_gl,knode_gl,                &
+      call cable_diag( iDiag1, "smcl1_", mp, kend_gl, ktau_gl,knode_gl,                &
                           "smcl layer 1", REAL(ssnow%wb(:,1)) )
       !ENDIF
    
@@ -334,7 +336,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       IF(ktau_gl == 1 ) ALLOCATE( ftemp(mp) )
       
       !IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
-         call cable_diagRead( 1, "smcl1_", mp, kend_gl, ktau_gl,              &
+         call cable_diagRead( iDiag1, "smcl1_", mp, kend_gl, ktau_gl,              &
                              knode_gl, "smcl layer 1", ftemp )
          !offline needs r_2
          !ssnow%wb(:,1) = REAL(ftemp, r_2) 
@@ -375,7 +377,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    ! dump bitwise reproducible testing data
    IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+      call cable_diag( iDiag_zero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
                           "FLUXES", canopy%fe + canopy%fh )
                 
 

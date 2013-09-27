@@ -171,13 +171,13 @@ MODULE cable_diag_read_mod
 
 CONTAINS
   
-   SUBROUTINE cable_diagRead( Nvars, basename, dimx, dimy, timestep, node, &
+   SUBROUTINE cable_diagRead( iDiag, basename, dimx, dimy, timestep, node, &
                         vname, fdata )
 
-      integer :: Nvars, dimx, dimy, timestep, node
+      integer :: iDiag, dimx, dimy, timestep, node
       !dimx = typically #landpoints over which the var is specified per timestep 
       ! dimy = # timesteps
-      !INTEGER ::dimx, dimy 
+      !INTEGER ::dimx, dimyiDiag 
 
       ! passed filename (per field, per processor, at present)
       character(len=*), intent(in) :: basename, vname
@@ -193,15 +193,16 @@ CONTAINS
       filename=trim(trim(basename)//trim(chnode))
    
       ! read the binary data andstore in 2nd arg 
-      CALL read_dat_file( TRIM(filename), fdata, dimx )
+      CALL read_dat_file(iDiag, TRIM(filename), fdata, dimx )
 
    END SUBROUTINE cable_diagRead   
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 
-SUBROUTINE Read_dat_file( filename, fdata, dimx )
+SUBROUTINE Read_dat_file( iDiag, filename, fdata, dimx )
 
+   INTEGER :: iDiag
    INTEGER, INTENT(IN) :: dimx
    REAL, DIMENSION(:), POINTER :: fdata
    CHARACTER(LEN=*), INTENT(IN) :: filename
@@ -211,14 +212,14 @@ SUBROUTINE Read_dat_file( filename, fdata, dimx )
    LOGICAL, SAVE :: first_call = .TRUE. 
 
       IF (first_call) THEN
-         OPEN(UNIT=2, FILE=filename//'.bin', STATUS="unknown", ACTION="read", &
+         OPEN(UNIT=iDiag, FILE=filename//'.bin', STATUS="unknown", ACTION="read", &
                IOSTAT=gopenstatus, FORM="unformatted" )
          first_call= .FALSE.
       ENDIF   
 
          IF(gopenstatus==gok) THEN
             
-            READ(2), fdata(:) 
+            READ(iDiag), fdata(:) 
      
          ELSE
             WRITE (*,*), filename//'.bin',' NOT found for read'
@@ -226,7 +227,7 @@ SUBROUTINE Read_dat_file( filename, fdata, dimx )
      
          ENDIF
       
-      !CLOSE(2)
+      !CLOSE(iDiag)
 
 END SUBROUTINE read_dat_file 
 
