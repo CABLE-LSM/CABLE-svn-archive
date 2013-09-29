@@ -2,7 +2,24 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
+   set -A kh raijin vayu cher burn shin 
+}
+
+## raijin.nci.org.au
+host_raijin()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC='mpif90'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then      
+      export CFLAGS='-O0 -traceback -g -fp-model precise' 
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
 }
 
 
@@ -347,7 +364,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-4`
+HOST_MACH=`uname -n | cut -c 1-6`
 
 do_i_no_u $1
 

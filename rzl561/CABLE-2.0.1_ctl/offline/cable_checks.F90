@@ -68,6 +68,10 @@ MODULE cable_checks_module
            Snowf = (/0.0,0.0085/),             & ! mm/s
            PSurf = (/500.0,1100.0/),           & ! mbar/hPa
            Tair = (/200.0,333.0/),             & ! K
+!RL: add Tmax and Tmin
+           Tmax = (/200.0,333.0/),             & ! K
+           Tmin = (/200.0,333.0/),             & ! K
+!RL: end
            Qair = (/0.0,0.04/),                & ! g/g
            CO2air = (/160.0,2000.0/),          & ! ppmv   
            Wind = (/0.0,75.0/),                & ! m/s

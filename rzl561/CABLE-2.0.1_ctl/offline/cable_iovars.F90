@@ -202,6 +202,10 @@ MODULE cable_IO_vars_module
          Snowf = .FALSE.,     & ! 9 snowfall [kg/m2/s]
          PSurf = .FALSE.,     & ! 10 surface pressure [Pa]
          Tair = .FALSE.,      & ! 11 surface air temperature [K]
+!RL: add Tmax and Tmin
+         Tmax = .FALSE.,      & ! maximum air temperature [K]
+         Tmin = .FALSE.,      & ! minimum air temperature [K]
+!RL: end
          Qair = .FALSE.,      & ! 12 specific humidity [kg/kg]
          CO2air = .FALSE.,    & ! 13 CO2 concentration [ppmv]
          Wind = .FALSE.,      & ! 14 windspeed [m/s]

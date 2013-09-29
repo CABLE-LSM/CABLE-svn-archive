@@ -58,8 +58,11 @@ MODULE cable_output_module
   REAL :: missing_value = -999999.0 ! for netcdf output
   TYPE out_varID_type ! output variable IDs in netcdf file
     INTEGER :: SWdown, LWdown, Wind, Wind_E, PSurf,                       &
-                    Tair, Qair, Rainf, Snowf, CO2air,                          &
-                    Qle, Qh, Qg, NEE, SWnet,                                   &
+!RL: add Tmax and Tmin
+!                    Tair, Qair, Rainf, Snowf, CO2air,                          &
+                    Tair, Tmax, Tmin, Qair, Rainf, Snowf,                      &
+                    CO2air, Qle, Qh, Qg, NEE, SWnet,                           &
+!RL: end
                     LWnet, SoilMoist, SoilTemp, Albedo, Qs,                    &
                     Qsb, Evap, BaresoilT, SWE, SnowT,                          &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
@@ -79,6 +82,12 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: PSurf  ! 10 surface pressure [Pa]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tair   ! 11 surface air temperature
                                                   ! [K]
+!RL: add Tmax and Tmin
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tmax   ! maximum temperature
+                                                  ! [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tmin   ! minimum temperature
+                                                  ! [K]
+!RL: end
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qair   ! 12 specific humidity [kg/kg]
     REAL(KIND=4), POINTER, DIMENSION(:) :: CO2air ! 13 CO2 concentration [ppmv]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind   ! 14 windspeed [m/s]
@@ -329,6 +338,24 @@ CONTAINS
        ALLOCATE(out%Tair(mp))
        out%Tair = 0.0 ! initialise
     END IF
+!RL: add Tmax and Tmin, but only if averaging daily
+    IF(output%averaging == 'daily') THEN 
+       IF(output%met .OR. output%Tmax) THEN
+           CALL define_ovar(ncid_out, ovid%Tmax,                                   &
+                           'Tmax', 'K', 'Maximum temperature', patchout%Tmax, &
+                           'ALMA', xID, yID, zID, landID, patchID, tID)
+          ALLOCATE(out%Tmax(mp))
+          out%Tmax = -999.9 ! initialise
+       END IF
+       IF(output%met .OR. output%Tmin) THEN
+          CALL define_ovar(ncid_out, ovid%Tmin,                                   &
+                           'Tmin', 'K', 'Minimum temperature', patchout%Tmin, &
+                           'ALMA', xID, yID, zID, landID, patchID, tID)
+          ALLOCATE(out%Tmin(mp))
+          out%Tmin = 999.9 ! initialise
+       END IF
+    END IF
+!RL: end
     IF(output%met .OR. output%Rainf) THEN
        CALL define_ovar(ncid_out, ovid%Rainf, 'Rainf',                         &
                         'kg/m^2/s', 'Rainfall+snowfall', patchout%Rainf,       &
@@ -1110,6 +1137,34 @@ CONTAINS
           out%Tair = 0.0
        END IF
     END IF
+!RL: add Tmax and Tmin
+    IF(output%averaging == 'daily') THEN 
+        ! Tmax: maximum temperature [K]
+        IF(output%met .OR. output%Tmax) THEN
+           ! Find maximum, current timestep larger than temporarily saved so far?
+           out%Tmax = max(out%Tmax,REAL(met%tk, 4))
+           IF(writenow) THEN
+              ! Write value to file:
+              CALL write_ovar(out_timestep, ncid_out, ovid%Tmax, 'Tmax', out%Tmax, &
+                                            ranges%Tmax, patchout%Tmax, 'ALMA', met)
+              ! Reset temporary output variable:
+              out%Tmax = -999.0
+           END IF
+        END IF
+        ! Tmin: minimum temperature [K]
+        IF(output%met .OR. output%Tmin) THEN
+           ! Find minimum, current timestep smaller than temporarily saved so far?
+           out%Tmin = min(out%Tmin,REAL(met%tk, 4))
+           IF(writenow) THEN
+              ! Write value to file:
+              CALL write_ovar(out_timestep, ncid_out, ovid%Tmin, 'Tmin', out%Tmin, &
+                                            ranges%Tmin, patchout%Tmin, 'ALMA', met)
+              ! Reset temporary output variable:
+              out%Tmin = 999.0
+           END IF
+        END IF
+    END IF
+!RL: end
     ! Rainf: rainfall [kg/m^2/s]
     IF(output%met .OR. output%Rainf) THEN
        ! Add current timestep's value to total of temporary output variable:
