@@ -5775,6 +5775,9 @@ SUBROUTINE spinmpi_worker (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
                 bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
                 bmpsoilocc,bmarea)
 
+      ! for timing purposes only
+      CALL MPI_Barrier (comm, ierr)
+
       nloop1= max(1,mloop-3)
 
       DO nloop=1,mloop
@@ -5815,6 +5818,9 @@ SUBROUTINE spinmpi_worker (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
                 bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
                 bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
                 bmpsoilocc,bmarea)
+
+         ! for timing purposes only
+         CALL MPI_Barrier (comm, ierr)
 
       ENDDO     ! end of nloop
 

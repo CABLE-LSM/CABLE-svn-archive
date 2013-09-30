@@ -371,7 +371,10 @@ SUBROUTINE mpidrv_master (comm)
    CALL find_extents
 
    ! MPI: calculate and broadcast landpoint decomposition to the workers
-   CALL master_decomp(comm, mland, mp)
+!   CALL master_decomp(comm, mland, mp)
+   ! new decomposition code to balance number of patches across workers
+   ! (but no landpoint is broken between multiple workers)
+   CALL master_decomp_vlai(comm, mland, mp)
 
    ! MPI: set up stuff for new irecv isend code that separates completion
    ! from posting of requests
@@ -809,6 +812,135 @@ SUBROUTINE master_decomp (comm, mland, mp)
   RETURN
 
 END SUBROUTINE master_decomp
+
+! MPI: calculates balanced grid decomposition based on cost of land patches
+! as function of vlai
+! and sends grid decomposition info to the workers
+! merged from MIC_dev/CABLE-2.0-lai r103
+SUBROUTINE master_decomp_vlai (comm, mland, mp)
+
+  USE mpi
+
+  USE cable_IO_vars_module, ONLY : landpt, patch, defaultLAI
+  USE cable_data_module,    ONLY: icanopy_type, point2constants
+
+  IMPLICIT NONE
+
+  INTEGER, INTENT(IN)   :: comm ! MPI communicator to talk to the workers
+  INTEGER, INTENT(IN)   :: mland ! total number of landpoints in the global grid
+  INTEGER, INTENT(IN)   :: mp ! total number of land patches in the global grid
+
+!  REAL, INTENT(IN)      :: vlai(mp)
+
+  TYPE(icanopy_type) :: C
+
+  INTEGER :: lpw  ! average number of landpoints per worker
+  INTEGER :: rank, rest, nxt, pcnt, ierr, i, tmp
+  INTEGER :: patchcnt  ! sum of patches for a range landpoints
+
+  REAL, ALLOCATABLE :: pcost(:), lcost(:), avgvlai(:)
+  ! global patch and land cost (should be the same, actually)
+  REAL :: gvpcost, gvlcost
+  REAL :: cwvlaicost
+  REAL :: tcost, ncost
+
+  ! temp: no lai balancing to be able to use standard cable.nml files
+  ! this results in balancing number of patches across workers
+  ! without regard to their computational complexity
+  REAL, PARAMETER :: laiCost = 1.2
+
+  ! associate pointers used locally with global definitions
+  CALL point2constants( C )
+
+  ! how many workers do we have?
+  CALL MPI_Comm_size (comm, wnp, ierr)
+  wnp = wnp - 1
+
+  ALLOCATE (wland(wnp), STAT=ierr)
+  IF (ierr /= 0) THEN
+          ! TODO: print an error message
+          CALL MPI_Abort(comm, 0, ierr)
+  END IF
+
+  ! calculate average yearly vlai values from default grid
+  ! TODO: replace average with median
+  ALLOCATE (avgvlai(mp))
+  DO i = 1, mp
+     avgvlai(i) = SUM(defaultLAI(i,:))/12.0
+  END DO
+
+!  print *,'avgvlai: ',avgvlai
+
+  ! calculate patch cost
+  ALLOCATE (pcost(mp))
+  WHERE (avgvlai > C%LAI_THRESH)
+     pcost = laiCost
+  ELSEWHERE
+     pcost = 1.0
+  END WHERE
+  DEALLOCATE (avgvlai)
+
+  ! calculate landpoint cost
+  ALLOCATE (lcost(mland))
+  DO i = 1, mland
+     lcost(i) = SUM(pcost(landpt(i)%cstart:landpt(i)%cend))
+  END DO
+
+  ! global cost of whole grid
+  gvpcost = SUM(pcost)
+  gvlcost = SUM(lcost)
+  ! distribute cost equally among wnp workers
+  cwvlaicost = gvpcost / wnp
+
+  print *,'landp: ',mland,', patches: ',mp,', lai cost function: ',laiCost
+  print *,'global cost landpoints: ',gvlcost,', patches: ',gvpcost
+  print *,'workers: ',wnp,', per worker cost: ',cwvlaicost
+
+  ! each worker gets as many landpoints as it needs to meet per worker cost
+  nxt = 1
+  DO rank = 1, wnp
+     wland(rank)%landp0 = nxt
+     ! rebalance cost of remaining (undistributed) points
+     gvlcost = SUM(lcost(nxt:mland))
+     cwvlaicost = gvlcost / (wnp - rank + 1)
+     IF (rank < wnp) THEN
+         tcost = 0.0
+         pcnt = 0
+         ! loop to accumulate running cost until threshold is reached
+         ! upper bound mland-1 to ensure last rank gets at least 1 landpoint
+         DO lpw = nxt, mland-1
+            pcnt = pcnt + 1
+            tcost = tcost + lcost(lpw)
+            IF (tcost >= cwvlaicost) EXIT
+         END DO
+     ELSE
+         ! last worker is a special case: it gets all remaining points
+         tcost = SUM(lcost(nxt:mland))
+         pcnt = mland - nxt + 1
+     END IF
+     wland(rank)%nland = pcnt
+
+     CALL MPI_Send (pcnt, 1, MPI_INTEGER, rank, 0, comm, ierr)
+
+     wland(rank)%patch0 = landpt(nxt)%cstart
+     patchcnt = landpt(nxt+pcnt-1)%cend - landpt(nxt)%cstart + 1
+     wland(rank)%npatch = patchcnt
+
+     CALL MPI_Send (wland(rank)%npatch, 1, MPI_INTEGER, rank, 0, comm, ierr)
+
+     print *,"worker ",rank," lpoints: ",pcnt,", patches: ",patchcnt,&
+             ", from: ",wland(rank)%patch0,", cost: ",tcost
+
+     nxt = nxt + pcnt
+  END DO
+
+  DEALLOCATE (lcost)
+  DEALLOCATE (pcost)
+
+  RETURN
+
+END SUBROUTINE master_decomp_vlai
+
 
 
 ! MPI: creates param_t type for the master to scatter the default parameters
@@ -5650,6 +5782,8 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: recv_stats
       integer :: ierr
 
+      double precision :: start, t0, t1, elapsed
+
       ALLOCATE (inp_req(wnp))
       ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
       ALLOCATE (recv_req(wnp))
@@ -5683,6 +5817,9 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
 !      avg_nsoilmin=0.0;  avg_psoillab=0.0;    avg_psoilsorb=0.0; avg_psoilocc=0.0
 !      avg_rationcsoilmic=0.0;avg_rationcsoilslow=0.0;avg_rationcsoilpass=0.0
 
+      start = MPI_Wtime ()
+      t0 = start
+
       do nyear=1,myearspin
          read(91,901) ncfile
          call read_casa_dump(ncfile,casamet,casaflux,ktau,kend)
@@ -5701,12 +5838,22 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
 
       CLOSE(91)
 
+      ! for timing purposes only
+      CALL MPI_Barrier (comm, ierr)
+
+      t1 = MPI_Wtime()
+      elapsed = t1 - t0
+      print *,'spincasa elapsed start: ',elapsed,' seconds'
+
       nloop1= max(1,mloop-3)
 
       DO nloop=1,mloop
 
          OPEN(91,file=fcnpspin)
          read(91,*)
+
+         t0 = MPI_Wtime()
+
          DO nyear=1,myearspin
             read(91,901) ncfile
             call read_casa_dump(ncfile,casamet,casaflux,ktau,kend)
@@ -5718,6 +5865,12 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
          END DO
 
          close(91)
+
+         ! for timing purposes only
+         CALL MPI_Barrier (comm, ierr)
+         t1 = MPI_Wtime()
+         elapsed = t1 - t0
+         print *,'spincasa elapsed nloop ',nloop,': ',elapsed,' seconds'
 
       ENDDO     ! end of nloop
 
@@ -5801,6 +5954,9 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
 922   format(i4,20(f10.4,2x))
       CLOSE(92)   
 
+      t1 = MPI_Wtime()
+      elapsed = t1 - start
+      print *,'spincasa elapsed total: ',elapsed,' seconds'
 
 151   FORMAT(i6,100(f12.5,2x))
       RETURN
