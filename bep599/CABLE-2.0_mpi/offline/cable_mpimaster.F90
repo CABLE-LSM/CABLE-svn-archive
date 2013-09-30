@@ -326,7 +326,7 @@ SUBROUTINE mpidrv_master (comm)
        END IF
      ELSEIF (globalMetfile%l_access) THEN
        PRINT *, 'Using ACCESS met forcing.'
-       IF (ncciy < 1950 .OR. ncciy > 2005) THEN
+       IF (ncciy < 370 .OR. ncciy > 2005) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
