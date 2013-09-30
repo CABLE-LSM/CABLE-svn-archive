@@ -256,7 +256,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       ftemp
 
    !___ unique unit/file identifiers for cable_diag 
-  INTEGER :: iDiag_Zero, iDiag1 
+  INTEGER, SAVE :: iDiag_Zero=0, iDiag1=0 
 
 
    !--- initialize cable_runtime% switches 
