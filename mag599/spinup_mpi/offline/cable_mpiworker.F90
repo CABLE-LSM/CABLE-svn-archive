@@ -88,6 +88,9 @@ MODULE cable_mpiworker
   ! MPI: MPI derived datatype for receiving input from the master
   INTEGER :: inp_t
 
+  ! MPI: MPI derived datatype for receiving casa params from the master
+  INTEGER :: casap_t
+
   ! MPI: MPI derived datatype for sending results back to the master
   INTEGER :: send_t
 
@@ -344,6 +347,8 @@ CONTAINS
      ! MPI:
      CALL worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
      &                        casabal,phen)
+     ! now receive all the parameters
+     CALL MPI_Recv (MPI_BOTTOM, 1, casap_t, 0, 0, comm, stat, ierr)
    END IF
 
    ! MPI: create inp_t type to receive input data from the master
@@ -376,7 +381,18 @@ CONTAINS
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+
+   ! added by gol124 following ypwang
+   if(icycle>0) then
+     if (spincasa) then
+!       print *, 'spincasacnp enabled with mloop= ', mloop
+!       call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
+!                        casabiome,casapool,casaflux,casamet,casabal,phen)
+       call spinmpi_worker(comm,casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
+                           casabiome,casapool,casaflux,casamet,casabal,phen)
+     endif
+   endif
+
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -1949,7 +1965,8 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: stat(MPI_STATUS_SIZE), ierr
   ! INTEGER :: landp_t, patch_t, param_t
-  INTEGER :: casa_t
+  ! factored out to be reused by spinup code
+!  INTEGER :: casa_t
 
   INTEGER :: r1len, r2len, ilen, llen ! block lengths
   INTEGER :: bidx ! block index
@@ -2735,17 +2752,17 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
-     WRITE (*,*) 'worker ',rank,' invalid number of casa_t param fields ',bidx,', fix it!'
+     WRITE (*,*) 'worker ',rank,' invalid number of casap_t param fields ',bidx,', fix it!'
      CALL MPI_Abort (comm, 1, ierr)
   END IF
 
-  CALL MPI_Type_create_struct (bidx, blen, displs, types, casa_t, ierr)
-  CALL MPI_Type_commit (casa_t, ierr)
+  CALL MPI_Type_create_struct (bidx, blen, displs, types, casap_t, ierr)
+  CALL MPI_Type_commit (casap_t, ierr)
 
-  CALL MPI_Type_size (casa_t, tsize, ierr)
-  CALL MPI_Type_get_extent (casa_t, tmplb, text, ierr)
+  CALL MPI_Type_size (casap_t, tsize, ierr)
+  CALL MPI_Type_get_extent (casap_t, tmplb, text, ierr)
 
-  WRITE (*,*) 'worker casa_t param blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+  WRITE (*,*) 'worker casap_t param blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
 
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
@@ -2758,13 +2775,15 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   ! if anything went wrong the master will mpi_abort
   ! which mpi_recv below is going to catch...
 
-  CALL MPI_Barrier (comm, ierr)
+!  CALL MPI_Barrier (comm, ierr)
 
+! factored out
   ! so, now receive all the parameters
-  CALL MPI_Recv (MPI_BOTTOM, 1, casa_t, 0, 0, comm, stat, ierr)
+!  CALL MPI_Recv (MPI_BOTTOM, 1, casa_t, 0, 0, comm, stat, ierr)
 
+! disabled so casa_t can be re-used during spinup
   ! finally free the MPI type
-  CALL MPI_Type_Free (casa_t, ierr)
+!  CALL MPI_Type_Free (casa_t, ierr)
 
   ! all casa parameters have been received from the master by now
 
@@ -5520,6 +5539,7 @@ SUBROUTINE worker_end(icycle, restart)
 
   IF (icycle>0) THEN
      CALL MPI_Type_free (casa_t, ierr)
+     CALL MPI_Type_free (casap_t, ierr)
   END IF
 
   IF (restart) THEN
@@ -5529,6 +5549,315 @@ SUBROUTINE worker_end(icycle, restart)
   RETURN
 
 END SUBROUTINE worker_end
+
+! MPI worker version of spincasacnp from casa_cable.f90
+SUBROUTINE spinmpi_worker (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                           casaflux,casamet,casabal,phen)
+
+      USE cable_def_types_mod
+      USE cable_carbon_module
+      USE casadimension
+      USE casaparm
+      USE casavariable
+      USE phenvariable
+
+      USE mpi
+
+      IMPLICIT NONE
+
+      INTEGER, INTENT(IN)    :: comm
+      CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
+      REAL,    INTENT(IN)    :: dels
+      INTEGER, INTENT(IN)    :: kstart
+      INTEGER, INTENT(IN)    :: kend
+      INTEGER, INTENT(IN)    :: mloop
+      TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+      TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
+      TYPE (casa_biome),            INTENT(INOUT) :: casabiome
+      TYPE (casa_pool),             INTENT(INOUT) :: casapool
+      TYPE (casa_flux),             INTENT(INOUT) :: casaflux
+      TYPE (casa_met),              INTENT(INOUT) :: casamet
+      TYPE (casa_balance),          INTENT(INOUT) :: casabal
+      TYPE (phen_variable),         INTENT(INOUT) :: phen
+
+      ! local variables
+      real,      dimension(:), allocatable, save  :: avg_cleaf2met, avg_cleaf2str, avg_croot2met, &
+                                                     avg_croot2str, avg_cwood2cwd
+      real,      dimension(:), allocatable, save  :: avg_nleaf2met, avg_nleaf2str, avg_nroot2met, &
+                                                     avg_nroot2str, avg_nwood2cwd
+      real,      dimension(:), allocatable, save  :: avg_pleaf2met, avg_pleaf2str, avg_proot2met, &
+                                                     avg_proot2str, avg_pwood2cwd
+      real,      dimension(:), allocatable, save  :: avg_cgpp,      avg_cnpp,      avg_nuptake,   &
+                                                     avg_puptake
+      real,      dimension(:), allocatable, save  :: avg_nsoilmin,  avg_psoillab,  avg_psoilsorb, &
+                                                     avg_psoilocc
+      real,      dimension(:), allocatable, save  :: avg_ratioNCsoilmic,  avg_ratioNCsoilslow,  &
+                                                     avg_ratioNCsoilpass !chris 12/oct/2012 for spin up casa
+      real(r_2), dimension(:), allocatable, save  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, &
+                                                     avg_xksoil
+
+      ! local variables
+      INTEGER                  :: myearspin,nyear, nloop1
+      CHARACTER(LEN=99)        :: ncfile
+      INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
+      INTEGER, save            :: ndays
+      real,      dimension(mp)      :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
+      real,      dimension(mp)      :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
+      real,      dimension(mp)      :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
+      real,      dimension(mp)      :: xcgpp,     xcnpp,     xnuptake,  xpuptake
+      real,      dimension(mp)      :: xnsoilmin, xpsoillab, xpsoilsorb,xpsoilocc
+      real(r_2), dimension(mp)      :: xnplimit,  xkNlimiting, xklitter, xksoil,xkleaf, xkleafcold, &
+                                       xkleafdry
+
+      ! more variables to store the spinup pool size over the last 10 loops. Added by Yp Wang 30 Nov 2012
+      real,      dimension(5,mvtype,mplant)  :: bmcplant,  bmnplant,  bmpplant
+      real,      dimension(5,mvtype,mlitter) :: bmclitter, bmnlitter, bmplitter
+      real,      dimension(5,mvtype,msoil)   :: bmcsoil,   bmnsoil,   bmpsoil
+      real,      dimension(5,mvtype)         :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
+      real,      dimension(mvtype)           :: bmarea
+      integer nptx,nvt,kloop
+
+      INTEGER :: stat(MPI_STATUS_SIZE)
+      integer :: ierr
+
+      ktauday=int(24.0*3600.0/dels)
+      nday=(kend-kstart+1)/ktauday
+
+      allocate(avg_cleaf2met(mp), avg_cleaf2str(mp), avg_croot2met(mp), avg_croot2str(mp), &
+               avg_cwood2cwd(mp), avg_nleaf2met(mp), avg_nleaf2str(mp), avg_nroot2met(mp), &
+               avg_nroot2str(mp), avg_nwood2cwd(mp), avg_pleaf2met(mp), avg_pleaf2str(mp), &
+               avg_proot2met(mp), avg_proot2str(mp), avg_pwood2cwd(mp), avg_cgpp(mp),      &
+               avg_cnpp(mp),      avg_nuptake(mp),   avg_puptake(mp),                      &
+               avg_xnplimit(mp),  avg_xkNlimiting(mp), avg_xklitter(mp), avg_xksoil(mp),   &
+               avg_rationcsoilmic(mp),avg_rationcsoilslow(mp),avg_rationcsoilpass(mp),     &!chris 12/oct/2012 for spin up casa
+               avg_nsoilmin(mp),  avg_psoillab(mp),    avg_psoilsorb(mp), avg_psoilocc(mp))
+
+      CALL MPI_Bcast (myearspin, 1, MPI_INTEGER, 0, comm, ierr)
+
+      ! compute the mean fluxes and residence time of each carbon pool
+      avg_cleaf2met=0.0; avg_cleaf2str=0.0; avg_croot2met=0.0; avg_croot2str=0.0; avg_cwood2cwd=0.0
+      avg_nleaf2met=0.0; avg_nleaf2str=0.0; avg_nroot2met=0.0; avg_nroot2str=0.0; avg_nwood2cwd=0.0
+      avg_pleaf2met=0.0; avg_pleaf2str=0.0; avg_proot2met=0.0; avg_proot2str=0.0; avg_pwood2cwd=0.0
+      avg_cgpp=0.0;      avg_cnpp=0.0;      avg_nuptake=0.0;   avg_puptake=0.0
+      avg_xnplimit=0.0;  avg_xkNlimiting=0.0; avg_xklitter=0.0; avg_xksoil=0.0
+      avg_nsoilmin=0.0;  avg_psoillab=0.0;    avg_psoilsorb=0.0; avg_psoilocc=0.0
+      avg_rationcsoilmic=0.0;avg_rationcsoilslow=0.0;avg_rationcsoilpass=0.0
+
+      do nyear=1,myearspin
+
+         ! MPI: receive input from the master
+         CALL MPI_Recv (MPI_BOTTOM, 1, casap_t, 0, 0, comm, stat, ierr)
+
+         do idoy=1,mdyear
+            ktau=(idoy-1)*ktauday +1
+            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
+            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
+            casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
+            casamet%tsoil(:,3)     = casamet%Tsoilspin_3(:,idoy)
+            casamet%tsoil(:,4)     = casamet%Tsoilspin_4(:,idoy)
+            casamet%tsoil(:,5)     = casamet%Tsoilspin_5(:,idoy)
+            casamet%tsoil(:,6)     = casamet%Tsoilspin_6(:,idoy)
+            casamet%moist(:,1)     = casamet%moistspin_1(:,idoy)
+            casamet%moist(:,2)     = casamet%moistspin_2(:,idoy)
+            casamet%moist(:,3)     = casamet%moistspin_3(:,idoy)
+            casamet%moist(:,4)     = casamet%moistspin_4(:,idoy)
+            casamet%moist(:,5)     = casamet%moistspin_5(:,idoy)
+            casamet%moist(:,6)     = casamet%moistspin_6(:,idoy)
+            casaflux%cgpp(:)       = casamet%cgppspin(:,idoy)
+            casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
+            casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
+            casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
+
+            CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+                    casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
+                    xkleafcold,xkleafdry, &
+                    cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                    nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                    pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+            WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
+               xkNlimiting = 0.001
+            END WHERE
+            nptx=8173
+
+            avg_cleaf2met = avg_cleaf2met + cleaf2met
+            avg_cleaf2str = avg_cleaf2str + cleaf2str
+            avg_croot2met = avg_croot2met + croot2met
+            avg_croot2str = avg_croot2str + croot2str
+            avg_cwood2cwd = avg_cwood2cwd + cwood2cwd
+
+            avg_nleaf2met = avg_nleaf2met + nleaf2met
+            avg_nleaf2str = avg_nleaf2str + nleaf2str
+            avg_nroot2met = avg_nroot2met + nroot2met
+            avg_nroot2str = avg_nroot2str + nroot2str
+            avg_nwood2cwd = avg_nwood2cwd + nwood2cwd
+
+            avg_pleaf2met = avg_pleaf2met + pleaf2met
+            avg_pleaf2str = avg_pleaf2str + pleaf2str
+            avg_proot2met = avg_proot2met + proot2met
+            avg_proot2str = avg_proot2str + proot2str
+            avg_pwood2cwd = avg_pwood2cwd + pwood2cwd
+
+            avg_cgpp      = avg_cgpp      + casaflux%cgpp
+            avg_cnpp      = avg_cnpp      + casaflux%cnpp
+            avg_nuptake   = avg_nuptake   + casaflux%Nminuptake
+            avg_puptake   = avg_puptake   + casaflux%Plabuptake
+
+            avg_xnplimit    = avg_xnplimit    + xnplimit
+            avg_xkNlimiting = avg_xkNlimiting + xkNlimiting
+            avg_xklitter    = avg_xklitter    + xklitter
+            avg_xksoil      = avg_xksoil      + xksoil
+
+            avg_nsoilmin    = avg_nsoilmin    + casapool%nsoilmin
+            avg_psoillab    = avg_psoillab    + casapool%psoillab
+            avg_psoilsorb   = avg_psoilsorb   + casapool%psoilsorb
+            avg_psoilocc    = avg_psoilocc    + casapool%psoilocc
+
+            avg_rationcsoilmic  = avg_rationcsoilmic  + casapool%ratioNCsoilnew(:,mic)
+            avg_rationcsoilslow = avg_rationcsoilslow + casapool%ratioNCsoilnew(:,slow)
+            avg_rationcsoilpass = avg_rationcsoilpass + casapool%ratioNCsoilnew(:,pass)
+         enddo ! idoy=1,mdyear
+
+         ! MPI: master does not need those?
+!         CALL MPI_Send (MPI_BOTTOM, 1, spin_out_t, 0, nyear, comm, ierr)
+
+      enddo ! nyear=1,myearspin
+
+      avg_cleaf2met = avg_cleaf2met/real(nday*myearspin)
+      avg_cleaf2str = avg_cleaf2str/real(nday*myearspin)
+      avg_croot2met = avg_croot2met/real(nday*myearspin)
+      avg_croot2str = avg_croot2str/real(nday*myearspin)
+      avg_cwood2cwd = avg_cwood2cwd/real(nday*myearspin)
+
+      avg_nleaf2met = avg_nleaf2met/real(nday*myearspin)
+      avg_nleaf2str = avg_nleaf2str/real(nday*myearspin)
+      avg_nroot2met = avg_nroot2met/real(nday*myearspin)
+      avg_nroot2str = avg_nroot2str/real(nday*myearspin)
+      avg_nwood2cwd = avg_nwood2cwd/real(nday*myearspin)
+
+      avg_pleaf2met = avg_pleaf2met/real(nday*myearspin)
+      avg_pleaf2str = avg_pleaf2str/real(nday*myearspin)
+      avg_proot2met = avg_proot2met/real(nday*myearspin)
+      avg_proot2str = avg_proot2str/real(nday*myearspin)
+      avg_pwood2cwd = avg_pwood2cwd/real(nday*myearspin)
+
+      avg_cgpp      = avg_cgpp/real(nday*myearspin)
+      avg_cnpp      = avg_cnpp/real(nday*myearspin)
+      avg_nuptake   = avg_nuptake/real(nday*myearspin)
+      avg_puptake   = avg_puptake/real(nday*myearspin)
+
+      avg_xnplimit    = avg_xnplimit/real(nday*myearspin)
+      avg_xkNlimiting = avg_xkNlimiting/real(nday*myearspin)
+      avg_xklitter    = avg_xklitter/real(nday*myearspin)
+      avg_xksoil      = avg_xksoil/real(nday*myearspin)
+
+      avg_nsoilmin    = avg_nsoilmin/real(nday*myearspin)
+      avg_psoillab    = avg_psoillab/real(nday*myearspin)
+      avg_psoilsorb   = avg_psoilsorb/real(nday*myearspin)
+      avg_psoilocc    = avg_psoilocc/real(nday*myearspin)
+
+      avg_rationcsoilmic  = avg_rationcsoilmic  /real(nday*myearspin)
+      avg_rationcsoilslow = avg_rationcsoilslow /real(nday*myearspin)
+      avg_rationcsoilpass = avg_rationcsoilpass /real(nday*myearspin)
+
+      call analyticpool(kend,veg,soil,casabiome,casapool,                              &
+                casaflux,casamet,casabal,phen,                                         &
+                avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
+                avg_nleaf2met,avg_nleaf2str,avg_nroot2met,avg_nroot2str,avg_nwood2cwd, &
+                avg_pleaf2met,avg_pleaf2str,avg_proot2met,avg_proot2str,avg_pwood2cwd, &
+                avg_cgpp, avg_cnpp, avg_nuptake, avg_puptake,                          &
+                avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
+                avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
+                avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
+
+      call totcnppools(1,veg,casamet,casapool, &
+                bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
+                bmpsoilocc,bmarea)
+
+      nloop1= max(1,mloop-3)
+
+      DO nloop=1,mloop
+
+         DO nyear=1,myearspin
+            ! MPI: receive input from the master
+            CALL MPI_Recv (MPI_BOTTOM, 1, casap_t, 0, 0, comm, stat, ierr)
+
+            DO idoy=1,mdyear
+               ktauy=idoy*ktauday
+               casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
+               casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
+               casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
+               casamet%tsoil(:,3)     = casamet%Tsoilspin_3(:,idoy)
+               casamet%tsoil(:,4)     = casamet%Tsoilspin_4(:,idoy)
+               casamet%tsoil(:,5)     = casamet%Tsoilspin_5(:,idoy)
+               casamet%tsoil(:,6)     = casamet%Tsoilspin_6(:,idoy)
+               casamet%moist(:,1)     = casamet%moistspin_1(:,idoy)
+               casamet%moist(:,2)     = casamet%moistspin_2(:,idoy)
+               casamet%moist(:,3)     = casamet%moistspin_3(:,idoy)
+               casamet%moist(:,4)     = casamet%moistspin_4(:,idoy)
+               casamet%moist(:,5)     = casamet%moistspin_5(:,idoy)
+               casamet%moist(:,6)     = casamet%moistspin_6(:,idoy)
+               casaflux%cgpp(:)       = casamet%cgppspin(:,idoy)
+               casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
+               casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
+               casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
+               call biogeochem(ktauy,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+                      casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+            ENDDO   ! end of idoy
+
+         END DO
+
+         if(nloop>=nloop1) call totcnppools(2+nloop-nloop1,veg,casamet,casapool, &
+                bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
+                bmpsoilocc,bmarea)
+
+      ENDDO     ! end of nloop
+
+      ! TODO: MPI total sum bmarea across all workers
+      CALL MPI_Reduce (bmarea, bmarea, mvtype, MPI_REAL, MPI_SUM, 0, comm, ierr)
+
+      ! TODO: MPI: send to master the other results:
+      ! bmcplant, bmclitter, bmcsoil
+      CALL MPI_Reduce (bmcplant, bmcplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmclitter, bmclitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmcsoil, bmcsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+
+      ! bmnplant, bmnlitter, bmnsoil, bmnsoilmin
+      CALL MPI_Reduce (bmnplant, bmnplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmnlitter, bmnlitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmnsoil, bmnsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmnsoilmin, bmnsoilmin, 5*mvtype, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+
+      ! bmpplant, bmplitter, bmpsoil, bmpsoillab, bmpsoilsorb, bmpsoilocc
+      CALL MPI_Reduce (bmpplant, bmpplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmplitter, bmplitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmpsoil, bmpsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmpsoillab, bmpsoillab, 5*mvtype, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmpsoilsorb, bmpsoilsorb, 5*mvtype, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+      CALL MPI_Reduce (bmpsoilocc, bmpsoilocc, 5*mvtype, MPI_REAL, MPI_SUM, &
+                       0, comm, ierr)
+
+
+      RETURN
+
+END SUBROUTINE spinmpi_worker
 
 END MODULE cable_mpiworker
 
