@@ -5773,21 +5773,21 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
       integer nptx,nvt,kloop
 
       ! MPI: isend request array for scattering input data to the workers
-      INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_req
+!      INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_req
       ! MPI: isend status array for scattering input data to the workers
-      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: inp_stats
+!      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: inp_stats
       ! MPI: irecv request array for gathering results from the workers
-      INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_req
+!      INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_req
       ! MPI: irecv status array for gathering results from the workers
-      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: recv_stats
+!      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: recv_stats
       integer :: ierr
 
       double precision :: start, t0, t1, elapsed
 
-      ALLOCATE (inp_req(wnp))
-      ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
-      ALLOCATE (recv_req(wnp))
-      ALLOCATE (recv_stats(MPI_STATUS_SIZE, wnp))
+!      ALLOCATE (inp_req(wnp))
+!      ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
+!      ALLOCATE (recv_req(wnp))
+!      ALLOCATE (recv_stats(MPI_STATUS_SIZE, wnp))
 
       ktauday=int(24.0*3600.0/dels)
       nday=(kend-kstart+1)/ktauday
