@@ -847,7 +847,7 @@ SUBROUTINE master_decomp_vlai (comm, mland, mp)
   ! temp: no lai balancing to be able to use standard cable.nml files
   ! this results in balancing number of patches across workers
   ! without regard to their computational complexity
-  REAL, PARAMETER :: laiCost = 1.2
+  REAL, PARAMETER :: laiCost = 1.0
 
   ! associate pointers used locally with global definitions
   CALL point2constants( C )
@@ -5779,10 +5779,15 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
       ! MPI: irecv request array for gathering results from the workers
 !      INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_req
       ! MPI: irecv status array for gathering results from the workers
-!      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: recv_stats
-      integer :: ierr
+      INTEGER, DIMENSION(MPI_STATUS_SIZE) :: stat
+      integer :: col, me, wcomm, ierr
 
       double precision :: start, t0, t1, elapsed
+
+      CALL MPI_Comm_rank (comm, me, ierr)
+      col = MPI_UNDEFINED
+      ! create worker-only communicator
+      CALL MPI_Comm_split (comm, col, me, wcomm, ierr)
 
 !      ALLOCATE (inp_req(wnp))
 !      ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
@@ -5876,7 +5881,8 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
 
       ! MPI total sum bmarea across all workers
       bmarea = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmarea, mvtype, MPI_REAL, MPI_SUM, 0, comm, ierr)
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmarea, mvtype, MPI_REAL, MPI_SUM, 0, comm, ierr)
+      CALL MPI_Recv (bmarea, mvtype, MPI_REAL, 1, 0, comm, stat, ierr)
 
       ! write the last five loop pool size by PFT type
       open(92,file='cnpspinlast5.txt')
@@ -5888,49 +5894,62 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
 
       ! TODO: gather the data below - may need reductions etc.
       ! bmcplant, bmclitter, bmcsoil
-      bmcplant = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmcplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmclitter = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmclitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmcsoil = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmcsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
+!      bmcplant = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmcplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmcplant, 5*mvtype*mplant, MPI_REAL, 1, 0, comm, stat, ierr)
+!      bmclitter = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmclitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmclitter, 5*mvtype*mlitter, MPI_REAL, 1, 0, comm, stat, ierr)
+!      bmcsoil = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmcsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmcsoil, 5*mvtype*msoil, MPI_REAL, 1, 0, comm, stat, ierr)
 
       ! bmnplant, bmnlitter, bmnsoil, bmnsoilmin
-      bmnplant = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmnplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmnlitter = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmnlitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmnsoil = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmnsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmnsoilmin = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmnsoilmin, 5*mvtype, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
+!      bmnplant = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmnplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmnplant, 5*mvtype*mplant, MPI_REAL, 1, 0, comm, stat, ierr)
+!      bmnlitter = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmnlitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmnlitter, 5*mvtype*mlitter, MPI_REAL, 1, 0, comm, stat, ierr)
+!      bmnsoil = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmnsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv(bmnsoil, 5*mvtype*msoil, MPI_REAL, 1, 0, comm, ierr)
+!      bmnsoilmin = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmnsoilmin, 5*mvtype, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv(bmnsoilmin, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
 
       ! bmpplant, bmplitter, bmpsoil, bmpsoillab, bmpsoilsorb, bmpsoilocc
-      bmpplant = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmpplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmplitter = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmplitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmpsoil = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmpsoillab = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoillab, 5*mvtype, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmpsoilsorb = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoilsorb, 5*mvtype, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
-      bmpsoilocc = 0.0
-      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoilocc, 5*mvtype, MPI_REAL, MPI_SUM, &
-                       0, comm, ierr)
+!      bmpplant = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmpplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmpplant, 5*mvtype*mplant, MPI_REAL, 1, 0, comm, ierr)
+!      bmplitter = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmplitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmplitter, 5*mvtype*mlitter, MPI_REAL, 1, 0, comm, ierr)
+!      bmpsoil = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmpsoil, 5*mvtype*msoil, MPI_REAL, 1, 0, comm, ierr)
+!      bmpsoillab = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoillab, 5*mvtype, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmpsoillab, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
+!      bmpsoilsorb = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoilsorb, 5*mvtype, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmpsoilsorb, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
+!      bmpsoilocc = 0.0
+!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoilocc, 5*mvtype, MPI_REAL, MPI_SUM, &
+!                       0, comm, ierr)
+      CALL MPI_Recv (bmpsoilocc, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
 
       do nvt=1,mvtype
          if(bmarea(nvt) >0.0) then
