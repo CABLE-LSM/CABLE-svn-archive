@@ -252,7 +252,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 !jhan: not needed in UM as compiled -r8  ? 
    !___ temporary array 
-   REAL, POINTER, DIMENSION(:)  :: & 
+   REAL, POINTER, DIMENSION(:), SAVE  :: & 
       ftemp
 
    !___ unique unit/file identifiers for cable_diag 
@@ -267,7 +267,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       CALL report_version_no(6) ! wriite revision number to stdout(6)
    ENDIF
       
-      write(6,*) "CABLE_log out of the loop"
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
