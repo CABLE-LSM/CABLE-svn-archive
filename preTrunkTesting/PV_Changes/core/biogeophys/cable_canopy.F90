@@ -413,15 +413,29 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
                    canopy%vlaiw(:))*canopy%gswx(:,2)
 
-   canopy%gswx_T = max(1.e-05,canopy%gswx_T ) + rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2
-   where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6
+!  The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
+   canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
+                  rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
+   where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
+
+
+!   canopy%gswx_T = max(1.e-05,canopy%gswx_T ) + rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2
+!   where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6
+!
+!   canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
+!                 psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
+!                 ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
+!                 - psis( canopy%zetar(:,NITER)) )
+!
+!     canopy%cdtq = max(0.1*canopy%cduv, canopy%cdtq )
 
    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
                  psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
-                 ) / ( LOG( rough%zref_uv /(0.1*rough%z0m) )                   &
-                 - psis( canopy%zetar(:,NITER)) )
+               + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq ) & ! new term from Ian Harman
+                 ) / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
+               - psis( canopy%zetar(:,NITER))                                  &
+               + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
 
-     canopy%cdtq = max(0.1*canopy%cduv, canopy%cdtq )
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
    ! screen temp., windspeed and relative humidity at 2.0m
@@ -544,6 +558,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! Initialise 'throughfall to soil' as 'throughfall from canopy'; 
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
+   canopy%through = canopy%through / dels   ! change units for stash output
    
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
