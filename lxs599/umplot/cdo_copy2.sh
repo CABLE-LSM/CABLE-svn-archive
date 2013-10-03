@@ -1,14 +1,18 @@
 #!/bin/csh
 
+unalias ls
+
 set a=a
 set dir=$DIR
 set rid=$RUNID
 set decade=(h i j k)
 set year=(0 1 2 3 4 5 6 7 8 9)
 
+rm h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc
+
 dmget $DIR/$rid$a.pm*.nc
 
-#set count_all=`ls h[0123456789]*.nc i[0123456789]*.nc j[0123456789]*.nc k[0123456789]*.nc | wc -l`
+#set count_all=`ls h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc | wc -l`
 
 #if ($count_all != $YR) then
  foreach dec ( $decade )
@@ -19,6 +23,7 @@ dmget $DIR/$rid$a.pm*.nc
     set count=0
    endif
    if ($count != 12) then
+    setenv fullstrt F
     if ( -e $dir/$rid$a.pm$dec$yr\jan.nc ) then 
      if ($count == 1) then
       cp $dir/$rid$a.pm$dec$yr\jan.nc $dec$yr.nc
@@ -70,6 +75,7 @@ dmget $DIR/$rid$a.pm*.nc
     endif
    else 
     if ( -e $dir/$rid$a.pm$dec$yr\jan.nc && -e $dir/$rid$a.pm$dec$yr\dec.nc ) then
+     setenv fullstrt T
      cdo -b 64 copy $dir/$rid$a.pm$dec$yr\jan.nc $dir/$rid$a.pm$dec$yr\feb.nc $dir/$rid$a.pm$dec$yr\mar.nc $dir/$rid$a.pm$dec$yr\apr.nc $dir/$rid$a.pm$dec$yr\may.nc $dir/$rid$a.pm$dec$yr\jun.nc $dir/$rid$a.pm$dec$yr\jul.nc $dir/$rid$a.pm$dec$yr\aug.nc $dir/$rid$a.pm$dec$yr\sep.nc $dir/$rid$a.pm$dec$yr\oct.nc $dir/$rid$a.pm$dec$yr\nov.nc $dir/$rid$a.pm$dec$yr\dec.nc $dec$yr.nc
     endif
    endif
@@ -81,7 +87,7 @@ dmget $DIR/$rid$a.pm*.nc
 set count_all=`ls h[0123456789]*.nc i[0123456789]*.nc j[0123456789]*.nc k[0123456789]*.nc | wc -l`
 
 if ($SPLIT == n) then
- if ($count_all == $numyr) then
+ if ($count_all == $numyr && $fullstrt == F) then
 
   set short = `ls h[0123456789]*.nc i[0123456789]*.nc j[0123456789]*.nc k[0123456789]*.nc | head -${numyr}`
   cdo copy $short Mmonthly_means_${YR}yrs.nc
@@ -95,7 +101,7 @@ if ($SPLIT == n) then
 
  endif
 
-rm h[0123456789]*.nc i[0123456789]*.nc j[0123456789]*.nc k[0123456789]*.nc
+rm h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc
 
 endif
 

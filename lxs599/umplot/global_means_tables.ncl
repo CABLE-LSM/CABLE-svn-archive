@@ -20,10 +20,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "/home/cmar/ste69f/umplot/regrid.ncl"
 load "/home/cmar/ste69f/umplot/tables.ncl"
-;load "/home/599/lxs599/umplot/regrid.ncl"
-;load "/home/599/lxs599/umplot/tables.ncl"
 
-;procedure GMcTables()
+;procedure GMTables()
 
 begin
 
@@ -36,6 +34,7 @@ vMask  = systemfunc("echo $MASK")
 ;Runid  = systemfunc("echo $RUNID")
 ;cabdir = systemfunc("echo $CABLE")
 ;mosdir = systemfunc("echo $MOSES")
+tname =  systemfunc("echo $tname")
 
 ; FILES --------------------------------------------------------------
 
@@ -48,23 +47,28 @@ PltDir = "/home/cmar/ste69f/umplot/data/"
 sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 tsea_file = addfile(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 if (resol.eq.48) then 
-lsm_file = addfile(PltDir+"LSM_UMn"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_n48.nc","r")
+ lsm_file = addfile(PltDir+"LSM_UMn"+resol+".nc","r")
+ frac_file = addfile(PltDir+"landfrac_n48.nc","r")
 else
-if (vMask.eq.2) then
-lsm_file = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_v2.nc","r")
-else
-lsm_file = addfile(PltDir+"mask_accessV1_n"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
-end if
+ if (vMask.eq.2) then
+  lsm_file = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")
+  frac_file = addfile(PltDir+"landfrac_v2.nc","r")
+  area_file = addfile(PltDir+"areacella_fx_ACCESS1-0_historical_r0i0p0.nc","r")
+ else
+  lsm_file = addfile(PltDir+"mask_accessV1_n"+resol+".nc","r")
+  frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
+ end if
 end if
 
 ;couple = "n" ;systemfunc("echo $CPL")
 
 ; SET-UP -------------------------------------------------------------
 
-tscrn  = sea_file ->tscrn     ;tas
+if (isfilevar(sea_file,"tscrn")) then
+ tscrn  = sea_file ->tscrn     ;tas
+else
+ tscrn  = sea_file ->$tname$     ;tas
+end if
 tmax   = tsea_file ->temp     ;tasmax
 tmin   = tsea_file ->temp_1   ;tasmin
 sh     = sea_file ->sh        ;hfss
@@ -75,13 +79,17 @@ if (isfilevar(sea_file,"field1526")) then
  evap1 = sea_file ->field1526 ;evspsblsoi
  evap2 = sea_file ->field1527 ;evspsblveg
 end if
+;if (isfilevar(sea_file,"field1528")) then
+ ;evap3 = sea_file ->field1528 ;evspsbsubll
+;end if
 lh     = sea_file->lh         ;hfls
 if (isfilevar(sea_file,"field184")) then
-mflx   = sea_file->field184
+ mflx   = sea_file->field184
 end if
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
 ;lsm    = frac_file ->lsm
+area   = area_file->areacella
 srunoff= sea_file->field1532  ; mrros
 drunoff= sea_file->field1533  ; mrro;mrross-is it processed?
 
@@ -154,8 +162,8 @@ precip@units = "mm/day"
 ;precip_m@units = "mm/day"
 
 if (isvar("mflx")) then
-mflx = mflx*24*60*60
-mflx@units = "mm/day"
+ mflx = mflx*24*60*60
+ mflx@units = "mm/day"
 end if
 
 if (isvar("couple")) then
@@ -175,12 +183,17 @@ else
 ; evap_m@units   = "mm/day"
 end if
 else
+;if () then
+; evap         = (evap1+evap2+evap3)*24*60*60
+; evap@units   = "mm/day"
+;else
 ; evap         = sea_file ->evspsbl
 ; evap         = (evap)*24*60*60
  evap         = (evap1+evap2)*24*60*60
  evap@units   = "mm/day"
 ; evap_m         = (evap1_m+evap2_m)*24*60*60
 ; evap_m@units   = "mm/day"
+;end if
 end if
 
 lh            = (lh/rlam)*24*60*60
@@ -278,6 +291,7 @@ dydx = dy * dx
 
 wgt   = new((/nlat,mlon/),double)
 wgt   = conform(wgt,dydx,0)
+;wgt = area
 wgto  = wgt*(1-lfrac(0,0,:,:))
 wgtl  = wgt*lfrac(0,0,:,:)
 wgtlm = wgt*(lsm(0,0,:,:))
@@ -286,59 +300,56 @@ wgtom = wgt*(1-lsm(0,0,:,:))
 ; ANN WBAL -----------------------------------------------------------
 ;region -> Land ---------------------------
 
-pr_l           = wgt_areaave2(prec,wgtl,0)
-;pr_l_m         = wgt_areaave2(prec_m,wgtl,0)
-sh_l           = wgt_areaave2(sensh,wgtl,0)
-;sh_l_m         = wgt_areaave2(sensh_m,wgtl,0)
-rn_l           = wgt_areaave2(radnet,wgtl,0)
+pr_l           = wgt_areaave2(prec    ,wgtl,0)
+sh_l           = wgt_areaave2(sensh   ,wgtl,0)
+rn_l           = wgt_areaave2(radnet  ,wgtl,0)
+;pr_l_m         = wgt_areaave2(prec_m  ,wgtl,0)
+;sh_l_m         = wgt_areaave2(sensh_m ,wgtl,0)
 ;rn_l_m         = wgt_areaave2(radnet_m,wgtl,0)
 
-ld_l           = wgt_areaave2(rld,wgtl,0)
+ld_l           = wgt_areaave2(rld  ,wgtl,0)
+lu_l           = wgt_areaave2(rlu  ,wgtl,0)
+sd_l           = wgt_areaave2(rsd  ,wgtl,0)
+su_l           = wgt_areaave2(rsu  ,wgtl,0)
 ;ld_l_m         = wgt_areaave2(rld_m,wgtl,0)
-lu_l           = wgt_areaave2(rlu,wgtl,0)
 ;lu_l_m         = wgt_areaave2(rlu_m,wgtl,0)
-sd_l           = wgt_areaave2(rsd,wgtl,0)
 ;sd_l_m         = wgt_areaave2(rsd_m,wgtl,0)
-su_l           = wgt_areaave2(rsu,wgtl,0)
 ;su_l_m         = wgt_areaave2(rsu_m,wgtl,0)
 
-ts_l           = wgt_areaave2(tscr,wgtl,0)
+ts_l           = wgt_areaave2(tscr  ,wgtl,0)
 ts_l           = ts_l-273.16
+tx_l           = wgt_areaave2(tmx   ,wgtl,0)
+tx_l           = tx_l-273.16
+tn_l           = wgt_areaave2(tmn   ,wgtl,0)
+tn_l           = tn_l-273.16
 ;ts_l_m         = wgt_areaave2(tscr_m,wgtl,0)
 ;ts_l_m         = ts_l_m-273.16
-tx_l           = wgt_areaave2(tmx,wgtl,0)
-tx_l           = tx_l-273.16
-;tx_l_m         = wgt_areaave2(tmx_m,wgtl,0)
+;tx_l_m         = wgt_areaave2(tmx_m ,wgtl,0)
 ;tx_l_m         = tx_l_m-273.16
-tn_l           = wgt_areaave2(tmn,wgtl,0)
-tn_l           = tn_l-273.16
-;tn_l_m         = wgt_areaave2(tmn_m,wgtl,0)
+;tn_l_m         = wgt_areaave2(tmn_m ,wgtl,0)
 ;tn_l_m         = tn_l_m-273.16
 
-
 if (isvar("mflx")) then
-mf_l           = wgt_areaave2(moist,wgtl,0)
+ mf_l          = wgt_areaave2(moist,wgtl,0)
+ ;mf_l_m        = wgt_areaave2(moist_m,wgtl,0)
 end if
-lhf_l          = wgt_areaave2(lathf,wgtl,0)
-;lhf_l_m        = wgt_areaave2(lathf_m,wgtl,0)
-ev_l           = wgt_areaave2(evp,wgtl,0)
-;ev_l           = wgt_areaave2(evp,wgtlm,0)
-;ev_l_m         = wgt_areaave2(evp_m,wgtl,0)
-;;ev_l_m         = wgt_areaave2(evp_m,wgtlm,0)
-lh_l            = wgt_areaave2(lath,wgtl,0)
-lh_l2           = wgt_areaave2(lath_snw,wgtl,0)
-;lh_l_m          = wgt_areaave2(lath_m,wgtl,0)
-;lh_l2_m         = wgt_areaave2(lath_snw_m,wgtl,0)
+lhf_l          = wgt_areaave2(lathf     ,wgtl,0)
+ev_l           = wgt_areaave2(evp       ,wgtl,0) ; wgtlm
+lh_l           = wgt_areaave2(lath      ,wgtl,0)
+lh_l2          = wgt_areaave2(lath_snw  ,wgtl,0)
+;lhf_l_m        = wgt_areaave2(lathf_m   ,wgtl,0)
+;ev_l_m         = wgt_areaave2(evp_m     ,wgtl,0) ; wgtlm
+;lh_l_m         = wgt_areaave2(lath_m    ,wgtl,0)
+;lh_l2_m        = wgt_areaave2(lath_snw_m,wgtl,0)
 
-rf_l           = wgt_areaave2(srf,wgtlm,0)
+rf_l           = wgt_areaave2(srf  ,wgtl,0) ; wgtlm
+dr_l           = wgt_areaave2(dr   ,wgtl,0) ; wgtlm
+trf_l          = wgt_areaave2(trf  ,wgtl,0) ; wgtlm
 ;rf_l_m         = wgt_areaave2(srf_m,wgtlm,0)
-dr_l           = wgt_areaave2(dr,wgtlm,0)
-;dr_l_m         = wgt_areaave2(dr_m,wgtlm,0)
-trf_l          = wgt_areaave2(trf,wgtlm,0)
-;trf_l_m         = wgt_areaave2(trf_m,wgtlm,0)
+;dr_l_m         = wgt_areaave2(dr_m ,wgtlm,0)
+;trf_l_m        = wgt_areaave2(trf_m,wgtlm,0)
 
-tot_l          = wgt_areaave2(wbal,wgtl,0)
-;tot_l          = wgt_areaave2(wbal,wgtlm,0)
+tot_l          = wgt_areaave2(wbal,wgtl,0) ;wgtlm
 ;print((/tot_l,tot_l2/))
 
 resi_l   = pr_l-ev_l-rf_l-dr_l
@@ -356,59 +367,57 @@ end if
 
 ;region -> Ocean ---------------------------
 
-pr_o           = wgt_areaave2(prec,wgto,0)
-;pr_o_m         = wgt_areaave2(prec_m,wgto,0)
-sh_o           = wgt_areaave2(sensh,wgto,0)
-;sh_o_m         = wgt_areaave2(sensh_m,wgto,0)
-rn_o           = wgt_areaave2(radnet,wgto,0)
+pr_o           = wgt_areaave2(prec    ,wgto,0)
+sh_o           = wgt_areaave2(sensh   ,wgto,0)
+rn_o           = wgt_areaave2(radnet  ,wgto,0)
+;pr_o_m         = wgt_areaave2(prec_m  ,wgto,0)
+;sh_o_m         = wgt_areaave2(sensh_m ,wgto,0)
 ;rn_o_m         = wgt_areaave2(radnet_m,wgto,0)
 
-ld_o           = wgt_areaave2(rld,wgto,0)
+ld_o           = wgt_areaave2(rld  ,wgto,0)
+lu_o           = wgt_areaave2(rlu  ,wgto,0)
+sd_o           = wgt_areaave2(rsd  ,wgto,0)
+su_o           = wgt_areaave2(rsu  ,wgto,0)
 ;ld_o_m         = wgt_areaave2(rld_m,wgto,0)
-lu_o           = wgt_areaave2(rlu,wgto,0)
 ;lu_o_m         = wgt_areaave2(rlu_m,wgto,0)
-sd_o           = wgt_areaave2(rsd,wgto,0)
 ;sd_o_m         = wgt_areaave2(rsd_m,wgto,0)
-su_o           = wgt_areaave2(rsu,wgto,0)
 ;su_o_m         = wgt_areaave2(rsu_m,wgto,0)
 
-ts_o           = wgt_areaave2(tscr,wgto,0)
+ts_o           = wgt_areaave2(tscr  ,wgto,0)
 ts_o           = ts_o-273.16
+tx_o           = wgt_areaave2(tmx   ,wgto,0)
+tx_o           = tx_o-273.16
+tn_o           = wgt_areaave2(tmn   ,wgto,0)
+tn_o           = tn_o-273.16
 ;ts_o_m         = wgt_areaave2(tscr_m,wgto,0)
 ;ts_o_m         = ts_o_m-273.16
-tx_o           = wgt_areaave2(tmx,wgto,0)
-tx_o           = tx_o-273.16
-;tx_o_m         = wgt_areaave2(tmx_m,wgto,0)
+;tx_o_m         = wgt_areaave2(tmx_m ,wgto,0)
 ;tx_o_m         = tx_o_m-273.16
-tn_o           = wgt_areaave2(tmn,wgto,0)
-tn_o           = tn_o-273.16
-;tn_o_m         = wgt_areaave2(tmn_m,wgto,0)
+;tn_o_m         = wgt_areaave2(tmn_m ,wgto,0)
 ;tn_o_m         = tn_o_m-273.16
 
 if (isvar("mflx")) then
-mf_o           = wgt_areaave2(moist,wgto,0)
+ mf_o           = wgt_areaave2(moist  ,wgto,0)
+ ;mf_o           = wgt_areaave2(moist_m,wgto,0)
 end if
-lhf_o          = wgt_areaave2(lathf,wgto,0)
-;lhf_o_m        = wgt_areaave2(lathf_m,wgto,0)
-ev_o           = wgt_areaave2(evp,wgto,0)
-;ev_o           = wgt_areaave2(evp,wgtom,0)
-;ev_o_m         = wgt_areaave2(evp_m,wgto,0)
-;;ev_o_m         = wgt_areaave2(evp_m,wgtom,0)
-lh_o           = wgt_areaave2(lath,wgto,0)
-lh_o2          = wgt_areaave2(lath_snw,wgto,0)
-;lh_o_m         = wgt_areaave2(lath_m,wgto,0)
+lhf_o          = wgt_areaave2(lathf     ,wgto,0)
+ev_o           = wgt_areaave2(evp       ,wgto,0) ; wgtom
+lh_o           = wgt_areaave2(lath      ,wgto,0)
+lh_o2          = wgt_areaave2(lath_snw  ,wgto,0)
+;lhf_o_m        = wgt_areaave2(lathf_m   ,wgto,0)
+;ev_o_m         = wgt_areaave2(evp_m     ,wgto,0) ; wgtom
+;lh_o_m         = wgt_areaave2(lath_m    ,wgto,0)
 ;lh_o2_m        = wgt_areaave2(lath_snw_m,wgto,0)
 
-rf_o           = wgt_areaave2(srf,wgtom,0)
-;rf_o_m         = wgt_areaave2(srf_m,wgtom,0)
-dr_o           = wgt_areaave2(dr,wgtom,0)
-;dr_o_m         = wgt_areaave2(dr_m,wgtom,0)
-trf_o          = wgt_areaave2(trf,wgtom,0)
-;trf_o_m         = wgt_areaave2(trf_m,wgtom,0)
+rf_o           = wgt_areaave2(srf  ,wgto,0) ;wgtom
+dr_o           = wgt_areaave2(dr   ,wgto,0) ;wgtom
+trf_o          = wgt_areaave2(trf  ,wgto,0) ;wgtom
+;rf_o_m         = wgt_areaave2(srf_m,wgto,0) ;wgtom
+;dr_o_m         = wgt_areaave2(dr_m ,wgto,0) ;wgtom
+;trf_o_m        = wgt_areaave2(trf_m,wgto,0) ;wgtom
 ; -9999 or _FillVal as no values of runoff over ocean
 
-tot_o          = wgt_areaave2(obal,wgto,0)
-;tot_o          = wgt_areaave2(obal,wgtom,0)
+tot_o          = wgt_areaave2(obal,wgto,0) ;wgtom
 
 resi_o   = pr_o - ev_o
 resi_o2  = pr_o - lh_o
@@ -425,56 +434,53 @@ end if
 
 ;;region -> Global ---------------------------------------
 
-pr_g   = wgt_areaave2(prec,wgt,0)
-;pr_g_m = wgt_areaave2(prec_m,wgt,0)
-sh_g   = wgt_areaave2(sensh,wgt,0)
-;sh_g_m = wgt_areaave2(sensh_m,wgt,0)
-rn_g   = wgt_areaave2(radnet,wgt,0)
+pr_g   = wgt_areaave2(prec    ,wgt,0)
+sh_g   = wgt_areaave2(sensh   ,wgt,0)
+rn_g   = wgt_areaave2(radnet  ,wgt,0)
+;pr_g_m = wgt_areaave2(prec_m  ,wgt,0)
+;sh_g_m = wgt_areaave2(sensh_m ,wgt,0)
 ;rn_g_m = wgt_areaave2(radnet_m,wgt,0)
 
-ld_g   = wgt_areaave2(rld,wgt,0)
+ld_g   = wgt_areaave2(rld  ,wgt,0)
+lu_g   = wgt_areaave2(rlu  ,wgt,0)
+sd_g   = wgt_areaave2(rsd  ,wgt,0)
+su_g   = wgt_areaave2(rsu  ,wgt,0)
 ;ld_g_m = wgt_areaave2(rld_m,wgt,0)
-lu_g   = wgt_areaave2(rlu,wgt,0)
 ;lu_g_m = wgt_areaave2(rlu_m,wgt,0)
-sd_g   = wgt_areaave2(rsd,wgt,0)
 ;sd_g_m = wgt_areaave2(rsd_m,wgt,0)
-su_g   = wgt_areaave2(rsu,wgt,0)
 ;su_g_m = wgt_areaave2(rsu_m,wgt,0)
 
-ts_g   = wgt_areaave2(tscr,wgt,0)
+ts_g   = wgt_areaave2(tscr  ,wgt,0)
 ts_g   = ts_g-273.16
+tx_g   = wgt_areaave2(tmx   ,wgt,0)
+tx_g   = tx_g-273.16
+tn_g   = wgt_areaave2(tmn   ,wgt,0)
+tn_g   = tn_g-273.16
 ;ts_g_m = wgt_areaave2(tscr_m,wgt,0)
 ;ts_g_m = ts_g_m-273.16
-tx_g   = wgt_areaave2(tmx,wgt,0)
-tx_g   = tx_g-273.16
-;tx_g_m = wgt_areaave2(tmx_m,wgt,0)
+;tx_g_m = wgt_areaave2(tmx_m ,wgt,0)
 ;tx_g_m = tx_g_m-273.16
-tn_g   = wgt_areaave2(tmn,wgt,0)
-tn_g   = tn_g-273.16
-;tn_g_m = wgt_areaave2(tmn_m,wgt,0)
+;tn_g_m = wgt_areaave2(tmn_m ,wgt,0)
 ;tn_g_m = tn_g_m-273.16
 
 if (isvar("mflx")) then
-mf_g   = wgt_areaave2(moist,wgt,0)
+ mf_g   = wgt_areaave2(moist,wgt,0)
+ ;mf_g   = wgt_areaave2(moist_m,wgt,0)
 end if
-lhf_g  = wgt_areaave2(lathf,wgt,0)
-;lhf_g_m= wgt_areaave2(lathf_m,wgt,0)
-
-;ev_g   = wgt_areaave(evp,cos(lat*rad),1.0,0)
-;ev_g_m  = wgt_areaave(evp_m,cos(lat*rad),1.0,0)
-ev_g    = wgt_areaave2(evp,wgt,0)
-;ev_g_m  = wgt_areaave2(evp_m,wgt,0)
-
-lh_g   = wgt_areaave2(lath,wgt,0)
-lh_g2  = wgt_areaave2(lath_snw,wgt,0)
-;lh_g_m  = wgt_areaave2(lath_m,wgt,0)
+lhf_g   = wgt_areaave2(lathf     ,wgt,0)
+ev_g    = wgt_areaave2(evp       ,wgt,0)
+lh_g    = wgt_areaave2(lath      ,wgt,0)
+lh_g2   = wgt_areaave2(lath_snw  ,wgt,0)
+;lhf_g_m = wgt_areaave2(lathf_m   ,wgt,0)
+;ev_g_m  = wgt_areaave2(evp_m     ,wgt,0)
+;lh_g_m  = wgt_areaave2(lath_m    ,wgt,0)
 ;lh_g2_m = wgt_areaave2(lath_snw_m,wgt,0)
 
-rf_g   = wgt_areaave2(srf,wgt,0)
-;rf_g_m = wgt_areaave2(srf_m,wgt,0)
-dr_g   = wgt_areaave2(dr,wgt,0)
-;dr_g_m = wgt_areaave2(dr_m,wgt,0)
-trf_g   = wgt_areaave2(trf,wgt,0)
+rf_g    = wgt_areaave2(srf  ,wgt,0)
+dr_g    = wgt_areaave2(dr   ,wgt,0)
+trf_g   = wgt_areaave2(trf  ,wgt,0)
+;rf_g_m  = wgt_areaave2(srf_m,wgt,0)
+;dr_g_m  = wgt_areaave2(dr_m ,wgt,0)
 ;trf_g_m = wgt_areaave2(trf_m,wgt,0)
 
 tot_g  = wgt_areaave(wbal,cos(lat*rad),1.0,0)
@@ -576,7 +582,7 @@ brr_l = 0.73
 if (isvar("mflx")) then
 land_vals   = (/pr_l,mf_l,rf_l,dr_l,resi_l4,lh_l,resi_l2/);,lh_l2,resi_l3/)
 ocean_vals  = (/pr_o,mf_o,rf_o,dr_o,resi_o4,lh_o,resi_o2/);,lh_o2,resi_o3/)
-global_vals = (/pr_g,mf_g,-999,-999,resi_g4,lh_g,resi_g2/);,lh_g2,resi_g3/)
+global_vals = (/pr_g,mf_g,rf_g,dr_g,resi_g4,lh_g,resi_g2/);,lh_g2,resi_g3/)
 else
 land_vals   = (/pr_l,ev_l,rf_l,dr_l,resi_l,lh_l,resi_l2/);,lh_l2,resi_l3/)
 ocean_vals  = (/pr_o,ev_o,rf_o,dr_o,resi_o,lh_o,resi_o2/);,lh_o2,resi_o3/)

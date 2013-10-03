@@ -1,63 +1,43 @@
-import cdms2, MV2, os , sys
+import cdms2, sys
+import numpy as np
 
-#Sflag = cdms2.getNetcdfShuffleFlag()
-#Dflag = cdms2.getNetcdfDeflateFlag()
-#Lflag = cdms2.getNetcdfDeflateLevelFlag()
-#print Sflag,Dflag,Lflag
-#if hasattr(cdms2, 'setNetcdfDeflateFlag'):
-#  cdms2.setNetcdfShuffleFlag(0) ## where value is either 0 or 1
-#  cdms2.setNetcdfDeflateFlag(1) ## where value is either 0 or 1
-#  cdms2.setNetcdfDeflateLevelFlag(1) ## where value is a integer bw 0 and 9 inc
-#0 1 1
-#/apps/python/2.7.2/lib/python2.7/site-packages/cdms2/dataset.py:1660: Warning: Since CDAT Version 5.2 File are now written with compression and shuffling
-#You can query different values of compression using the functions:
-#cdms2.getNetcdfShuffleFlag() returning 1 if shuffling is enabled, 0 otherwise
-#cdms2.getNetcdfDeflateFlag() returning 1 if deflate is used, 0 otherwise
-#cdms2.getNetcdfDeflateLevelFlag() returning the level of compression for the deflate method
-#If you want to turn that off or set different values of compression use the functions:
-#cdms2.setNetcdfShuffleFlag(value) ## where value is either 0 or 1
-#cdms2.setNetcdfDeflateFlag(value) ## where value is either 0 or 1
-#cdms2.setNetcdfDeflateLevelFlag(value) ## where value is a integer between 0 and 9 included
-#Turning all values to 0 will produce NetCDF3 Classic files
+cfile = cdms2.open('MMDC_%syrs.nc' % sys.argv[1])
 
+tas   = cfile['tas']     # (18,TS,12)
+lh    = cfile['hfls']
+sh    = cfile['hfss']
+pr    = cfile['field5226']
+rnet  = cfile['field3333']
+tas2  = cfile['variable_14'] # (21,TS,12,20)
+lh2   = cfile['variable_18']
+sh2   = cfile['variable_22']
+pr2   = cfile['variable_26']
+rnet2 = cfile['variable_30']
 
-year = os.getenv('YR')
-cfile = cdms2.open('Timeseries_%syrs.nc' % sys.argv[1])
-tas = cfile['tas']
-qh  = cfile['hfss']
-qle = cfile['hfls']
-apr = cfile['field5226']
-rnt = cfile['field3333']
+tas3  = np.roll(tas,-3,axis=0)
+lh3   = np.roll(lh,-3,axis=0)
+sh3   = np.roll(sh,-3,axis=0)
+pr3   = np.roll(pr,-3,axis=0)
+rnet3 = np.roll(rnet,-3,axis=0)
+tas4  = np.roll(tas2,-3,axis=1)
+lh4   = np.roll(lh2,-3,axis=1)
+sh4   = np.roll(sh2,-3,axis=1)
+pr4   = np.roll(pr2,-3,axis=1)
+rnet4 = np.roll(rnet2,-3,axis=1)
 
-tstep = (tas.shape[0]/(12*30*int(year)))
+cfout = cdms2.createDataset('MeanMnthDailyCycles_%syrs.nc' % sys.argv[1])
+cfout.write(tas3,id=tas.id,axes=[tas.getAxisList()[0],tas.getAxisList()[1],tas.getAxisList()[2]])
+cfout.write(lh3,id=lh.id,axes=[lh.getAxisList()[0],lh.getAxisList()[1],lh.getAxisList()[2]])
+cfout.write(sh3,id=sh.id,axes=[sh.getAxisList()[0],sh.getAxisList()[1],sh.getAxisList()[2]])
+cfout.write(pr3,id=pr.id,axes=[pr.getAxisList()[0],pr.getAxisList()[1],pr.getAxisList()[2]])
+cfout.write(rnet3,id=rnet.id,axes=[rnet.getAxisList()[0],rnet.getAxisList()[1],rnet.getAxisList()[2]])
 
-tas2 = MV2.reshape(tas,(int(year),12,30,tstep,tas.shape[1]))
-sh = MV2.reshape(qh,(int(year),12,30,tstep,qh.shape[1]))
-lh = MV2.reshape(qle,(int(year),12,30,tstep,qle.shape[1]))
-ap = MV2.reshape(apr,(int(year),12,30,tstep,apr.shape[1]))
-rn = MV2.reshape(rnt,(int(year),12,30,tstep,rnt.shape[1]))
-T1 = MV2.average(tas2[:,:,:,:,:],2)
-L1 = MV2.average(lh[:,:,:,:,:],2)
-S1 = MV2.average(sh[:,:,:,:,:],2)
-P1 = MV2.average(ap[:,:,:,:,:],2)
-R1 = MV2.average(rn[:,:,:,:,:],2)
-T2 = MV2.average(T1[:,:,:,:],0)
-L2 = MV2.average(L1[:,:,:,:],0)
-S2 = MV2.average(S1[:,:,:,:],0)
-P2 = MV2.average(P1[:,:,:,:],0)
-R2 = MV2.average(R1[:,:,:,:],0)
-
-cfout = cdms2.createDataset('MMDC_%syrs.nc' % sys.argv[1])
-cfout.write(T2,id=tas.id)
-cfout.write(L2,id=qle.id)
-cfout.write(S2,id=qh.id)
-cfout.write(P2,id=apr.id)
-cfout.write(R2,id=rnt.id)
-cfout.write(T1)
-cfout.write(L1)
-cfout.write(S1)
-cfout.write(P1)
-cfout.write(R1)
+cfout.write(tas4,id=tas2.id,axes=[tas2.getAxisList()[0],tas2.getAxisList()[1],tas2.getAxisList()[2],tas2.getAxisList()[3]])
+cfout.write(lh4,id=lh2.id,axes=[lh2.getAxisList()[0],lh2.getAxisList()[1],lh2.getAxisList()[2],lh2.getAxisList()[3]])
+cfout.write(sh4,id=sh2.id,axes=[sh2.getAxisList()[0],sh2.getAxisList()[1],sh2.getAxisList()[2],sh2.getAxisList()[3]])
+cfout.write(pr4,id=pr2.id,axes=[pr2.getAxisList()[0],pr2.getAxisList()[1],pr2.getAxisList()[2],pr2.getAxisList()[3]])
+cfout.write(rnet4,id=rnet2.id,axes=[rnet2.getAxisList()[0],rnet2.getAxisList()[1],rnet2.getAxisList()[2],rnet2.getAxisList()[3]])
 cfout.sync()
 
 cfile.close()
+

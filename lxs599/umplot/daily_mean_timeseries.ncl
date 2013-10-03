@@ -40,14 +40,49 @@ begin
 
  ; read in vars----------
  tsc  = fa[:]->temp
+ if (.not.isfilevar(fa[0],"temp_2")) then
+ tas  = fa[:]->temp_1
+ else
  tas  = fa[:]->temp_2
+ end if
  smc  = fa[:]->sm
+ if (isfilevar(fa[0],"soiltemp")) then
  tsl  = fa[:]->soiltemp
+ else
+ tsl = new(dimsizes(smc),typeof(smc))
+ tsl = 0.
+ copy_VarMeta(smc,tsl)
+ end if
+ if (isfilevar(fa[0],"lh")) then
+ lh   = fa[:]->lh
+ sh   = fa[:]->sh
+ else
  lh   = fb[:]->lh
  sh   = fb[:]->sh
+ end if
+ if (isfilevar(fb[0],"precip")) then
  pr   = fb[:]->precip
+ else
+ pr   = new(dimsizes(lh),typeof(lh))
+ pr   = 0.
+ copy_VarMeta(lh,pr)
+ end if
+ if (isfilevar(fa[0],"field1526")) then
+ evp1 = fa[:]->field1526
+ evp2 = fa[:]->field1527
+ else
+ if (isfilevar(fb[0],"field1526")) then
  evp1 = fb[:]->field1526
  evp2 = fb[:]->field1527
+ else
+ evp1 = new(dimsizes(lh),typeof(lh))
+ evp2 = new(dimsizes(lh),typeof(lh))
+ evp1 = 0.
+ evp2 = 0.
+ copy_VarMeta(lh,evp1)
+ copy_VarMeta(lh,evp2)
+ end if
+ end if
  ;printVarSummary(pr)
  
  lsm1 = lsm_file->lsm

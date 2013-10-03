@@ -29,6 +29,7 @@ jpeg = True
 else
 jpeg = False
 end if
+tname =  systemfunc("echo $tname")
 
 ObsDir = "/home/cmar/ste69f/umplot/obs/"
 LsmDir = "/home/cmar/ste69f/umplot/data/"
@@ -38,7 +39,9 @@ tmxx_obs   = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
 
 moses_file = addfile(mosDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable_file = addfile(cabDir+"/seasonal_means_"+numYr+"yrs.nc","r")
+if (isfilepresent(mosDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 tmoses     = addfile(mosDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
+end if
 tcable     = addfile(cabDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 ;moses_file = addfile(mossea,"r")
 ;cable_file = addfile(cabsea,"r")
@@ -47,12 +50,29 @@ tcable     = addfile(cabDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 
 ; Variables ------------------------------------------------------------------
 
-tscrnM1         = moses_file ->tscrn
+if (isfilevar(moses_file,"tas")) then
+ tscrnM1         = moses_file ->tas
+else
+if (isfilevar(moses_file,"tscrn")) then
+ tscrnM1         = moses_file ->tscrn
+else
+ tscrnM1         = moses_file ->$tname$
+end if
+end if
+if (isfilevar(cable_file,"tscrn")) then
 tscrnC1         = cable_file ->tscrn
+else
+tscrnC1         = cable_file ->$tname$
+end if
 era_t2m1        = tscrn_obs  ->a
-tmaxM1          = tmoses     ->temp
+if (isfilevar(moses_file,"tasmax")) then
+ tmaxM1          = moses_file->tasmax
+ tminM1          = moses_file->tasmin
+else
+ tmaxM1          = tmoses     ->temp
+ tminM1          = tmoses     ->temp_1
+end if
 tmaxC1          = tcable     ->temp
-tminM1          = tmoses     ->temp_1
 tminC1          = tcable     ->temp_1
 era_tmax1       = tmxx_obs   ->mx2t
 era_tmin1       = tmxx_obs   ->mn2t
@@ -61,10 +81,17 @@ era_t2m1            = era_t2m1+273.15
 era_t2m1@long_name  = "ERA Interim Temperature at 2m"
 era_t2m1@units      = "deg K"
 
+if (isfilevar(moses_file,"tasmax")) then
+tmaxM1!2 = "longitude_1"
+tmaxC1!2 = "longitude_1"
+tminM1!2 = "longitude_1"
+tminC1!2 = "longitude_1"
+else
 tmaxM1!3 = "longitude_1"
 tmaxC1!3 = "longitude_1"
 tminM1!3 = "longitude_1"
 tminC1!3 = "longitude_1"
+end if
 
 eraT_max           = new((/4,121,240/),double)
 eraT_max(0,:,:)    = (era_tmax1(0,:,:)+era_tmax1(1,:,:)+era_tmax1(11,:,:))/ 3
@@ -133,31 +160,63 @@ era_n_rg@units        = "deg K"
   nSize  = dimsizes(nDims)
   ;lon    = var_gd&$dNames(nSize-1)$
   ;lat    = var_gd&$dNames(nSize-2)$
+if (isfilevar(moses_file,"tas")) then
+Mtbias4 = tscrnM1(:,:,:)-era_t_rg
+else
 Mtbias4 = tscrnM1(:,0,:,:)-era_t_rg
+end if
 Ctbias4 = tscrnC1(:,0,:,:)-era_t_rg
-Dtbias4 = tscrnC1-tscrnM1
+if (isfilevar(moses_file,"tas")) then
+Dtbias4 = tscrnC1(:,0,:,:)-tscrnM1
+else
+Dtbias4 = tscrnC1(:,0,:,:)-tscrnM1(:,0,:,:)
+end if
 Mtbias4!0 = "seasons"
 Mtbias4!1 = "latitude"
 Mtbias4!2 = "longitude_1"
+if (isdim(tscrnM1,"time")) then
+Mtbias4&seasons   = tscrnM1&time
+else
 Mtbias4&seasons   = tscrnM1&t;ime
+end if
+if (isdim(tscrnM1,"lat")) then
+Mtbias4&latitude  = tscrnM1&lat
+else
 Mtbias4&latitude  = tscrnM1&latitude
+end if
 Mtbias4&longitude_1 = tscrnM1&$dNames(nSize-1)$ ;longitude_1
 copy_VarMeta(Mtbias4,Ctbias4)
-copy_VarMeta(tscrnC1,Dtbias4)
+copy_VarMeta(tscrnC1(:,0,:,:),Dtbias4)
 
+if (isfilevar(moses_file,"tas")) then
+Mxbias4 = tmaxM1(:,:,:)-era_x_rg
+else
 Mxbias4 = tmaxM1(:,0,:,:)-era_x_rg
+end if
 Cxbias4 = tmaxC1(:,0,:,:)-era_x_rg
-Dxbias4 = tmaxC1-tmaxM1
+if (isfilevar(moses_file,"tas")) then
+Dxbias4 = tmaxC1(:,0,:,:)-tmaxM1
+else
+Dxbias4 = tmaxC1(:,0,:,:)-tmaxM1(:,0,:,:)
+end if
 copy_VarMeta(Mtbias4,Mxbias4)
 copy_VarMeta(Mtbias4,Cxbias4)
-copy_VarMeta(tmaxC1,Dxbias4)
+copy_VarMeta(tmaxC1(:,0,:,:),Dxbias4)
 
+if (isfilevar(moses_file,"tas")) then
+Mnbias4 = tminM1(:,:,:)-era_n_rg
+else
 Mnbias4 = tminM1(:,0,:,:)-era_n_rg
+end if
 Cnbias4 = tminC1(:,0,:,:)-era_n_rg
-Dnbias4 = tminC1-tminM1
+if (isfilevar(moses_file,"tas")) then
+Dnbias4 = tminC1(:,0,:,:)-tminM1
+else
+Dnbias4 = tminC1(:,0,:,:)-tminM1(:,0,:,:)
+end if
 copy_VarMeta(Mtbias4,Mnbias4)
 copy_VarMeta(Mtbias4,Cnbias4)
-copy_VarMeta(tminC1,Dnbias4)
+copy_VarMeta(tminC1(:,0,:,:),Dnbias4)
 
 Mtbias = dim_avg_n_Wrap(Mtbias4,0)
 Ctbias = dim_avg_n_Wrap(Ctbias4,0)
@@ -172,24 +231,25 @@ Dnbias = dim_avg_n_Wrap(Dnbias4,0)
 ; Plot ----------------------------------------------------------------------
 
 print("Plotting 3 Panel Bias Plots")
+print("")
 
 ;ann------------------------------
 
-Panel3Plot("bias_ann_tscrn_3p",Ctbias,Mtbias,Dtbias(0,:,:),jpeg)
-;Panel3Plot("bias_ann_tmax_3p",Cxbias,Mxbias,Dxbias(0,:,:),jpeg)
-Panel3Plot("bias_ann_tmin_3p",Cnbias,Mnbias,Dnbias(0,:,:),jpeg)
+Panel3Plot("bias_ann_tscrn_3p",Ctbias,Mtbias,Dtbias(:,:),jpeg)
+;Panel3Plot("bias_ann_tmax_3p",Cxbias,Mxbias,Dxbias(:,:),jpeg)
+Panel3Plot("bias_ann_tmin_3p",Cnbias,Mnbias,Dnbias(:,:),jpeg)
 
 ;djf------------------------------
 
-Panel3Plot("bias_djf_tscrn_3p",Ctbias4(0,:,:),Mtbias4(0,:,:),Dtbias4(0,0,:,:),jpeg)
-;Panel3Plot("bias_djf_tmax_3p",Cxbias4(0,:,:),Mxbias4(0,:,:),Dxbias4(0,0,:,:),jpeg)
-Panel3Plot("bias_djf_tmin_3p",Cnbias4(0,:,:),Mnbias4(0,:,:),Dnbias4(0,0,:,:),jpeg)
+Panel3Plot("bias_djf_tscrn_3p",Ctbias4(0,:,:),Mtbias4(0,:,:),Dtbias4(0,:,:),jpeg)
+;Panel3Plot("bias_djf_tmax_3p",Cxbias4(0,:,:),Mxbias4(0,:,:),Dxbias4(0,:,:),jpeg)
+Panel3Plot("bias_djf_tmin_3p",Cnbias4(0,:,:),Mnbias4(0,:,:),Dnbias4(0,:,:),jpeg)
 
 ;jja------------------------------
 
-Panel3Plot("bias_jja_tscrn_3p",Ctbias4(2,:,:),Mtbias4(2,:,:),Dtbias4(2,0,:,:),jpeg)
-;Panel3Plot("bias_jja_tmax_3p",Cxbias4(2,:,:),Mxbias4(2,:,:),Dxbias4(2,0,:,:),jpeg)
-Panel3Plot("bias_jja_tmin_3p",Cnbias4(2,:,:),Mnbias4(2,:,:),Dnbias4(2,0,:,:),jpeg)
+Panel3Plot("bias_jja_tscrn_3p",Ctbias4(2,:,:),Mtbias4(2,:,:),Dtbias4(2,:,:),jpeg)
+;Panel3Plot("bias_jja_tmax_3p",Cxbias4(2,:,:),Mxbias4(2,:,:),Dxbias4(2,:,:),jpeg)
+Panel3Plot("bias_jja_tmin_3p",Cnbias4(2,:,:),Mnbias4(2,:,:),Dnbias4(2,:,:),jpeg)
 
 end
 

@@ -9,7 +9,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 ; =================================================================
 
 procedure Polar_Plot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
-                     field:numeric,region:logical,sysFlag:logical,cnLevels:numeric, \
+                     field:numeric,region:logical,smthFlag:logical,cnLevels:numeric, \
                      Hem:string,jpeg:logical)
 
 begin
@@ -48,10 +48,10 @@ begin
   res@gsnLeftString        = ""                ;
   res@gsnRightString       = ""                ;
 
-  if(sysFlag) then
-   ;print("label bar scale")
-   ;symMinMaxPlt(field,12,False,res)
-  end if
+  ;if(sysFlag) then
+  ; ;print("label bar scale")
+  ; ;symMinMaxPlt(field,12,False,res)
+  ;end if
 
 ;  if(cnLevels.eq."0") then
 ;    res@cnLevelSelectionMode = "AutomaticLevels"
@@ -142,19 +142,20 @@ begin
 
 ; Paneled Plot ====================================================
 
-  panel_res                       = True
-  panel_res@gsnMaximize           = True
-  panel_res@gsnOrientation        = "landscape"
-  panel_res@gsnPanelLabelBar      = True
-  panel_res@gsnPanelFigureStrings = (/"DJF","MAM","JJA","SON"/)
-  panel_res@gsnPanelRowSpec       = True
-  panel_res@pmLabelBarWidthF      = 0.8         ; makes label bar bigger
-  panel_res@txString              = (field@long_name + " (" + field@units + ")")
+  pres                       = True
+  pres@gsnMaximize           = True
+  pres@gsnOrientation        = "landscape"
+  pres@gsnPanelLabelBar      = True
+  pres@gsnPanelFigureStrings = (/"DJF","MAM","JJA","SON"/)
+  pres@gsnPanelRowSpec       = True
+  pres@pmLabelBarWidthF      = 0.8         ; makes label bar bigger
+  pres@txString              = (field@long_name + " (" + field@units + ")")
   
-  gsn_panel(wks,plot,(/2,2/),panel_res)
+  gsn_panel(wks,plot,(/2,2/),pres)
 
  if(jpeg) then
- system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  end if
 
 end

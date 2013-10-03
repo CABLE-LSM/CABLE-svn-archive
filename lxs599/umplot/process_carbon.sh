@@ -3,6 +3,8 @@
 # Extract fields
 ncks -v field1388 Mmonthly_means_${YR}yrs.nc mm.gpp_${YR}yrs.nc       # GPP
 ncks -v field1389 Mmonthly_means_${YR}yrs.nc mm.npp_${YR}yrs.nc       # NPP
+#ncks -v field1389_1 Mmonthly_means_${YR}yrs.nc mm.npp_${YR}yrs.nc       # NPP
+#ncks -v $nname Mmonthly_means_${YR}yrs.nc mm.npp_${YR}yrs.nc       # NPP
 ncks -v field1390 Mmonthly_means_${YR}yrs.nc mm.presp_${YR}yrs.nc     # Presp
 ncks -v field1523 Mmonthly_means_${YR}yrs.nc mm.sresp_${YR}yrs.nc     # Sresp
 

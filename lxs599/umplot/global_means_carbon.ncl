@@ -31,6 +31,12 @@ if (isfilepresent("mm.sresp_"+numYr+"yrs.nc")) then
    lresp_d = lin->field1499
 ;end if
 
+delete(slin)
+delete(nin)
+delete(gin)
+delete(pin)
+delete(lin)
+
 ; load area for each grid cell
 
    Dir = "/home/cmar/ste69f/umplot/"
@@ -38,14 +44,19 @@ if (isfilepresent("mm.sresp_"+numYr+"yrs.nc")) then
    grid_area = ain->areacella
    ;ain = addfile("grid_area.nc","r")
    ;grid_area = ain->grid_area
+delete(ain)
 
 ; load PFT fractions for each tile
    Sfrac = addfile("seasonal_means_"+numYr+"yrs.nc","r")
   if (resol.eq.96) then
-   frac  = Sfrac->field1893(0,0:12,:,:)
+   ;frac  = Sfrac->field1893(0,:,:,:)
+   frac1 = Sfrac->field1893 ;(0,0:12,:,:)
+   dim   = dimsizes(frac1)
+   frac  = frac1(0,0:dim(1)-5,:,:)
   else
    frac  = Sfrac->field1893(0,0:4,:,:)
   end if
+delete(Sfrac)
 
 ; load land faction 
 
@@ -66,28 +77,38 @@ if (isfilepresent("mm.sresp_"+numYr+"yrs.nc")) then
    land_frac = where(lfrac.eq.0,lfrac@_FillValue,lfrac)
    land_frac@_FillValue = lfrac@_FillValue
 ;printVarSummary(land_frac)
+delete(fland)
 
 ; need to convert from double to float
    npp   = dble2flt(npp_d)
    soil  = dble2flt(soil_d)
    gpp   = dble2flt(gpp_d)
    presp = dble2flt(presp_d)
-;if (isvar("lresp_d")) then
-   lrsp  = dble2flt(lresp_d)
-;end if
    prsp  = dble2flt(presp_d)
    gpplf = dble2flt(gpp_d)
+;printVarSummary(lresp_d)
+delete(npp_d)
+delete(soil_d)
+delete(gpp_d)
+delete(presp_d)
+;print(systemfunc("ps u"))
+   ;if (isvar("lresp_d")) then
+   lrsp  = dble2flt(lresp_d)
+   ;end if
+delete(lresp_d)
+
    do ts=0,t-1,1
-;if (isvar("lrsp")) then
-   lrsp(ts,:,:,:)  = lrsp(ts,:,:,:)*frac(:,:,:)
-;end if
-   prsp(ts,:,:,:)  = presp(ts,:,:,:)/land_frac(0,:,:,:)
-   gpplf(ts,:,:,:) = gpp(ts,:,:,:)/land_frac(0,:,:,:)
+   ;if (isvar("lrsp")) then
+    lrsp(ts,:,:,:)  = lrsp(ts,:,:,:)*frac(:,:,:)
+   ;end if
+    prsp(ts,:,:,:)  = presp(ts,:,:,:)/land_frac(0,:,:,:)
+    gpplf(ts,:,:,:) = gpp(ts,:,:,:)/land_frac(0,:,:,:)
    end do
+
 ;if (isvar("lrsp")) then
    lresp = dim_sum_n_Wrap(lrsp,1)
    do ts=0,t-1,1
-   lresp(ts,:,:) = lresp(ts,:,:)*land_frac(0,0,:,:)
+    lresp(ts,:,:) = lresp(ts,:,:)*land_frac(0,0,:,:)
    end do
 ;end if
 
@@ -106,7 +127,7 @@ if (isfilepresent("mm.sresp_"+numYr+"yrs.nc")) then
    rpl_m  = new(t,float)
    rlf_m  = new(t,float)
   
-print("Creating Global Means for Carbon Fields")
+print("Calculating Global Means for Carbon Fields")
 
    nep_1 = npp-soil
    nep_2 = (soil(:,0,:,:)+presp(:,0,:,:)+lresp(:,:,:))-gpp(:,0,:,:)
@@ -124,7 +145,6 @@ print("Creating Global Means for Carbon Fields")
       rpl_m(j)  = sum(presp(j,0,:,:) * grid_area * c)               ; PgC per yr
       rlf_m(j)  = sum(lresp(j,:,:) * grid_area * c)                 ; PgC per yr
    end do
-
 
 ; annual global mean 
    rso_y = new((/y/),float)
@@ -164,18 +184,20 @@ print("Creating Global Means for Carbon Fields")
    ;print(npp_ym(5,:))
    ;print(rso_ym(5,:))
    ;print(nep_ym(5,:))
-   print(avg(npp_y))
-   print(avg(gpp_y))
-   print(avg(rlf_y))
-   print(avg(rpl_y))
-   print(avg(rso_y))
-   print(avg(nep_y))
+;   print(avg(npp_y))
+;   print(avg(gpp_y))
+;   print(avg(rlf_y))
+;   print(avg(rpl_y))
+;   print(avg(rso_y))
+;   print(avg(nep_y))
 
 ;Table
 
-vals  = new(7,string)
+val   = new(7,string)
+vals  = new(7,float)
 vals  = (/avg(npp_y),avg(gpp_y),avg(rlf_y),avg(rpl_y),avg(rso_y),\
    (avg(npp_y)-avg(rso_y)),((avg(rlf_y)+avg(rpl_y)+avg(rso_y))-avg(gpp_y))/)
+val = "" + decimalPlaces(vals,3,True)
 
 ;ncr1  = (/1,2/)
 ;x1    = (/.205,.700/)
@@ -190,7 +212,7 @@ text2 = (/"NPP","GPP","LEAF*","PLANT","SOIL","NEP = npp-soil","NEP = resp-gpp"/)
 ncr3        = (/7,1/)
 x3          = (/.450,.700/)
 y3          = (/.115,.9/)
-text_values = vals
+text_values = val;s
 
 res1               = True
 res1@txFontHeightF = 0.016
@@ -205,12 +227,18 @@ res3@txFontHeightF = 0.016
 
 pltName = "carbon_table_"+numYr+"yrs"
 wksT = gsn_open_wks("ps","carbon_table_"+numYr+"yrs")
+
 print("Creating Carbon Balance Table")
+if (y.le.1) then
+print("")
+end if
+
 ;gsn_table(wksT,ncr1,x1,y1,text1,res1)
 gsn_table(wksT,ncr2,x2,y2,text2,res2)
 gsn_table(wksT,ncr3,x3,y3,text_values,res3)
 
 system("ps2epsi "+pltName+".ps "+pltName+".eps")
+system("rm "+pltName+".ps")
 
 ; plots (global setting)
   res = True
@@ -243,6 +271,10 @@ system("ps2epsi "+pltName+".ps "+pltName+".eps")
    gsn_panel(wks,plots,(/3,3/),pres)
 
 ; Interannual variability
+if (y.gt.1) then
+  
+  print("Plotting Inter-Annual Var of Carbon")
+  print("")
   res4 = res
   res4@tiXAxisString   = "Years"
   xr = ispan(1,y,1)
@@ -250,12 +282,12 @@ system("ps2epsi "+pltName+".ps "+pltName+".eps")
   wks1 = gsn_open_wks("ps","interann_carbon_"+numYr+"yrs")
 
   plots1 = new(6,graphic)
-  plots1(0) = gsn_xy(wks1,x,npp_y,res4)
-  plots1(1) = gsn_xy(wks1,x,rso_y,res4)
-  plots1(2) = gsn_xy(wks1,x,nep_y,res4)
-  plots1(3) = gsn_xy(wks1,x,gpp_y,res4)
-  plots1(4) = gsn_xy(wks1,x,rpl_y,res4)
-  plots1(5) = gsn_xy(wks1,x,rlf_y,res4)
+  plots1(0) = gsn_xy(wks1,xr,npp_y,res4)
+  plots1(1) = gsn_xy(wks1,xr,rso_y,res4)
+  plots1(2) = gsn_xy(wks1,xr,nep_y,res4)
+  plots1(3) = gsn_xy(wks1,xr,gpp_y,res4)
+  plots1(4) = gsn_xy(wks1,xr,rpl_y,res4)
+  plots1(5) = gsn_xy(wks1,xr,rlf_y,res4)
 
   pres1                  = True         ; Set panel resources.
   pres1@gsnMaximize      = True         ; Maximize plots in panel.
@@ -263,6 +295,11 @@ system("ps2epsi "+pltName+".ps "+pltName+".eps")
   pres1@txString         = "Flux [PgC/yr] global mean"
 
   gsn_panel(wks1,plots1,(/3,3/),pres1)
+end if
+
+else
+
+print("No Carbon Table Produced, as mm.var_yrs.nc Files Don't Exist")
 
 end if
 

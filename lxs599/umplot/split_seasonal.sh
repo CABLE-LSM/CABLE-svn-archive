@@ -1,10 +1,13 @@
-#!/bin/csh
+#!/bin/csh 
 
+unalias ls
+#alias ls ls
 set a=a
 set date=`date`
 set DIRW=$PWD
 #module load hdf5/1.8.1 netcdf/4.0 cdo/1.4.0
 #dmget $DIR/$RUNID$a.ps*.nc 
+echo " "
 dmget $DIR/$RUNID$a.pa*.nc
 dmget $DIR/$RUNID$a.pb*.nc 
 dmget $DIR/$RUNID$a.pe*.nc 
@@ -24,7 +27,7 @@ dmget $DIR/$RUNID$a.pm*.nc
 @ noy = ($FullYrs * 4)
 @ nom = ($FullYrs * 12)
 @ Numyr= $FullYrs + 1
-set count_all=`ls $DIRW/h[0123456789]*.nc $DIRW/i[0123456789]*.nc $DIRW/j[0123456789]*.nc $DIRW/k[0123456789]*.nc | wc -l`
+set count_all=`ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | wc -l`
 @ countm1 = $count_all - 1
 @ countm2 = $count_all - 2
 
@@ -32,14 +35,21 @@ if (! -d $DIRW/block${BLOCK}_5yrs) then
  mkdir $DIRW/block${BLOCK}_5yrs
  cd $DIRW/block${BLOCK}_5yrs
 
+if ($REINIT == 1) then
+ set pelist=`ls $DIR/$RUNID$a.pe*0.nc | head -${nom}`
+ #set pelist=`ls $DIR/$RUNID$a.pe?????.nc | head -${nom}`
+ set pblist=`ls $DIR/$RUNID$a.pb?????.nc | head -${nom}`
+else
  set pelist=`ls $DIR/$RUNID$a.pe*0.nc | head -${noy}`
- set pblist=`ls $DIR/$RUNID$a.pb*0.nc | head -${noy}`
+ #set pelist=`ls $DIR/$RUNID$a.pe?????.nc | head -${noy}`
+ set pblist=`ls $DIR/$RUNID$a.pb?????.nc | head -${noy}`
  if ($RUNID == xaiya) then
  set palist=`ls $DIR/$RUNID$a.pa*0.avg.nc | head -${noy}`
  endif
+endif
  if ($count_all == $Numyr) then
  echo "(1)     Warning: Number of Years = YR+1. Please Check."
- set monlist=`ls $DIRW/h[0123456789]*.nc $DIRW/i[0123456789]*.nc $DIRW/j[0123456789]*.nc $DIRW/k[0123456789]*.nc | head -${countm1} | tail -${countm2}` ### head -$NumYrs ???
+ set monlist=`ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | head -${countm1} | tail -${countm2}` ### head -$NumYrs ???
  endif
 
 if ($BLOCK == 1) then
@@ -56,20 +66,21 @@ if ($BLOCK == 1) then
  set pmnov=`ls $DIR/$RUNID$a.pm*nov.nc | head -5`
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -5`
 
- set pels=`ls $pelist | head -20`
 if ($REINIT == 1) then
+ set pels=`ls $pelist | head -60`
  set pbls=`ls $pblist | head -60`
 else
+ set pels=`ls $pelist | head -20`
  set pbls=`ls $pblist | head -20`
-endif
  if ($RUNID == xaiya) then
  set pals=`ls $palist | head -20`
  endif
+endif
 
  if ($count_all == $Numyr) then
  set cdo_blk=`ls $monlist | head -5`
  else
- set cdo_blk=`ls $DIRW/h[0123456789]*.nc $DIRW/i[0123456789]*.nc $DIRW/j[0123456789]*.nc $DIRW/k[0123456789]*.nc | head -5`
+ set cdo_blk=`ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | head -5`
  endif
 
 #if (-e $DIR/$RUNID$a.pb*0.avg.nc) then
@@ -90,20 +101,21 @@ else if ($BLOCK == 2) then
  set pmnov=`ls $DIR/$RUNID$a.pm*nov.nc | head -10 | tail -5`
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -10 | tail -5`
 
- set pels=`ls $pelist | head -40 | tail -20` #tail +21 | head -20
 if ($REINIT == 1) then
+ set pels=`ls $pelist | head -120 | tail -60` #tail +21 | head -20
  set pbls=`ls $pblist | head -120 | tail -60`
 else
+ set pels=`ls $pelist | head -40 | tail -20` #tail +21 | head -20
  set pbls=`ls $pblist | head -40 | tail -20`
-endif
  if ($RUNID == xaiya) then
  set pals=`ls $palist | head -40 | tail -20`
  endif
+endif
 
  if ($count_all == $Numyr) then
  set cdo_blk=`ls $monlist | head -10 | tail -5`
  else
- set cdo_blk=`ls $DIRW/h[0123456789]*.nc $DIRW/i[0123456789]*.nc $DIRW/j[0123456789]*.nc $DIRW/k[0123456789]*.nc | head -10 | tail -5`
+ set cdo_blk=`ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | head -10 | tail -5`
  endif
 
 #if (-e $DIR/$RUNID$a.pb*0.avg.nc) then
@@ -124,20 +136,21 @@ else if ($BLOCK == 3) then
  set pmnov=`ls $DIR/$RUNID$a.pm*nov.nc | head -15 | tail -5`
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -15 | tail -5`
 
- set pels=`ls $pelist | head -60 | tail -20` # tail +41 | head -20
 if ($REINIT == 1) then
+ set pels=`ls $pelist | head -180 | tail -60` # tail +41 | head -20
  set pbls=`ls $pblist | head -180 | tail -60`
 else
+ set pels=`ls $pelist | head -60 | tail -20` # tail +41 | head -20
  set pbls=`ls $pblist | head -60 | tail -20`
-endif
  if ($RUNID == xaiya) then
  set pals=`ls $palist | head -60 | tail -20`
  endif
+endif
 
  if ($count_all == $Numyr) then
  set cdo_blk=`ls $monlist | head -15 | tail -5`
  else
- set cdo_blk=`ls $DIRW/h[0123456789]*.nc $DIRW/i[0123456789]*.nc $DIRW/j[0123456789]*.nc $DIRW/k[0123456789]*.nc | head -15 | tail -5`
+ set cdo_blk=`ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | head -15 | tail -5`
  endif
 
 #if (-e $DIR/$RUNID$a.pb*0.avg.nc) then
@@ -158,20 +171,21 @@ else if ($BLOCK == 4) then
  set pmnov=`ls $DIR/$RUNID$a.pm*nov.nc | head -20 | tail -5`
  set pmdec=`ls $DIR/$RUNID$a.pm*dec.nc | head -20 | tail -5`
 
- set pels=`ls $pelist | tail -20`
 if ($REINIT == 1) then
+ set pels=`ls $pelist | tail -60`
  set pbls=`ls $pblist | tail -60`
 else
+ set pels=`ls $pelist | tail -20`
  set pbls=`ls $pblist | tail -20`
-endif
  if ($RUNID == xaiya) then
  set pals=`ls $palist | tail -20`
  endif
+endif
 
  if ($count_all == $Numyr) then
  set cdo_blk=`ls $monlist | tail -5`
  else
- set cdo_blk=`ls $DIRW/h[0123456789]*.nc $DIRW/i[0123456789]*.nc $DIRW/j[0123456789]*.nc $DIRW/k[0123456789]*.nc | head -20 | tail -5`
+ set cdo_blk=`ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | head -20 | tail -5`
  endif
 
 #if (-e $DIR/$RUNID$a.pb*0.avg.nc) then
@@ -201,8 +215,15 @@ ncrcat -O avejan.nc avefeb.nc avemar.nc aveapr.nc avemay.nc avejun.nc avejul.nc 
 ncrcat -O avedjf.nc avemam.nc avejja.nc aveson.nc seasonal_5yrs.nc
 #ncrcat -O avedjf.nc avemam.nc avejja.nc aveson.nc seasonal_means_5yrs.nc
 
-cdo copy $pels Timeseries_5yrs.nc
-cdo copy $pbls Tempseries_5yrs.nc
+cdo mergetime $pels Timeseries_5yrs.nc
+cdo mergetime $pbls Tempseries_5yrs.nc
+#cdo copy $pels Timeseries_5yrs.nc
+#cdo copy $pbls Tempseries_5yrs.nc
+if ($RUNID == uabab) then
+ ncrename -v temp,temp_2 Tempseries_5yrs.nc
+ ncrename -v temp_1,temp Tempseries_5yrs.nc
+ ncrename -v temp_2,temp_1 Tempseries_5yrs.nc
+endif
 if ($RUNID == xaiya) then
 cdo copy $pals Runfseries_5yrs.nc
 endif
@@ -222,6 +243,7 @@ cdo ymonavg Tempseries_5yrs.nc Tmonthly_means_5yrs.nc
 if ($RUNID == xaiya) then
 cdo yseasavg Runfseries_5yrs.nc Rseasonal_means_5yrs.nc
 cdo ymonavg Runfseries_5yrs.nc Rmonthly_means_5yrs.nc
+#cdo chname,temp_26,tscrn ifile ofile
 ncrename -v sm,sm_1 seasonal_5yrs.nc
 ncrename -v sm,sm_1 monthly_5yrs.nc
 cdo merge seasonal_5yrs.nc Rseasonal_means_5yrs.nc seasonal_means_5yrs.nc
@@ -234,7 +256,9 @@ endif
 # cd $DIRW
 
 else
- echo "(1)     $date - Directory already Exists"
+ echo "(1)     $date - Block Directory Already Exists"
+ echo "(1)     Please Delete Directory and Run Again"
+ exit (1)
 endif
 
 rm ave*.nc

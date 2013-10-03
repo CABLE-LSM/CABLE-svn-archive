@@ -8,7 +8,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 ; =================================================================
 
 procedure IndPlot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
-                        field:numeric,region:logical,sysFlag:logical,cnLevels:numeric,  \
+                        field:numeric,region:logical,smthFlag:logical,cnLevels:numeric,  \
                         lmask:logical,jpeg:logical)
 
 begin
@@ -21,7 +21,12 @@ begin
 
 ; Color Map ===========================================================
 
-  gsn_define_colormap(wks,pltColor)
+;if (pltColor.eq."cmaps") then
+; cmap = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+; gsn_define_colormap(wks,cmap)
+;else
+ gsn_define_colormap(wks,pltColor)
+;end if
 
 ; Resources ========================================================
 
@@ -55,10 +60,10 @@ end if
   res@gsnLeftString        = ""                ;
   res@gsnRightString       = ""                ;
 
-  if(sysFlag) then
-   ;print("label bar scale")
-   ;symMinMaxPlt(field,12,False,res)
-  end if
+  ;if(sysFlag) then
+  ; ;print("label bar scale")
+  ; ;symMinMaxPlt(field,12,False,res)
+  ;end if
 
 ;  if(cnLevels.eq."0") then
 ;    res@cnLevelSelectionMode = "AutomaticLevels"
@@ -141,9 +146,11 @@ end if
 ; Plot ------------------------------------------------------------------
        
   plot = gsn_csm_contour_map(wks,field({latS:latN},{lonL:lonR}),res)
+  ;plot = gsn_csm_contour_map(wks,field(0,{latS:latN},{lonL:lonR}),res)
 
  if(jpeg) then  
- system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  end if
 
 end

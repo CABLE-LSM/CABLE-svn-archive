@@ -35,6 +35,7 @@ vMask  = systemfunc("echo $MASK")
 ;Runid  = systemfunc("echo $RUNID")
 cabdir = systemfunc("echo $CABLE")
 mosdir = systemfunc("echo $MOSES")
+tname =  systemfunc("echo $tname")
 
 ; FILES --------------------------------------------------------------
 
@@ -65,7 +66,11 @@ end if
 
 ; SET-UP -------------------------------------------------------------
 
+if (isfilevar(cable_file,"tscrn")) then
 tscrn  = cable_file ->tscrn     ;tas
+else
+tscrn  = cable_file ->$tname$   ;tas
+end if
 tmax   = table_file ->temp      ;tasmax
 tmin   = table_file ->temp_1    ;tasmin
 sh     = cable_file ->sh        ;hfss
@@ -76,6 +81,9 @@ if (isfilevar(cable_file,"field1526")) then
  evap1 = cable_file ->field1526 ;evspsblsoi
  evap2 = cable_file ->field1527 ;evspsblveg
 end if
+;if (isfilevar(cable_file,"field1528")) then
+; evap3 = cable_file ->field1528 ;evspsblsubl
+;end if
 lh     = cable_file->lh         ;hfls
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
@@ -102,7 +110,11 @@ copy_VarMeta(rld1,rlus)
 if (isfilevar(moses_file,"tscrn")) then
 tscrn_m  = moses_file ->tscrn      ;tas
 else
+if (isfilevar(moses_file,"tas")) then
 tscrn_m  = moses_file ->tas
+else
+tscrn_m  = moses_file ->$tname$
+end if
 end if
 if (isfilevar(moses_file,"tasmax")) then
 tmax_m   = moses_file ->tasmax
@@ -133,6 +145,9 @@ if (isfilevar(moses_file,"field1526")) then
  evap1_m = moses_file ->field1526  ;evspsblsoi
  evap2_m = moses_file ->field1527  ;evspsblveg
 end if
+;if (isfilevar(moses_file,"field1528")) then
+; evap3_m = moses_file ->field1528  ;evspsblsubl
+;end if
 if (isfilevar(moses_file,"hfls")) then
 lh_m     = moses_file ->hfls
 else
@@ -215,12 +230,19 @@ else
  evap_m@units   = "mm/day"
 end if
 else
+;if () then
+; evap         = (evap1+evap2+evap3)*24*60*60
+; evap@units   = "mm/day"
+; evap_m         = (evap1_m+evap2_m+evap3_m)*24*60*60
+; evap_m@units   = "mm/day"
+;else
 ; evap         = cable_file ->evspsbl
 ; evap         = (evap)*24*60*60
  evap         = (evap1+evap2)*24*60*60
  evap@units   = "mm/day"
  evap_m         = (evap1_m+evap2_m)*24*60*60
  evap_m@units   = "mm/day"
+;end if
 end if
 copy_VarMeta(evap1,evap)
 copy_VarMeta(evap1_m,evap_m)

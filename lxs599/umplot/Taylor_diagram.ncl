@@ -18,6 +18,7 @@ mossea=systemfunc("echo $mossea")
 cabsea=systemfunc("echo $cabsea")
 mostem=systemfunc("echo $mostem")
 cabtem=systemfunc("echo $cabtem")
+tname =  systemfunc("echo $tname")
 
 ;FILES-----------------------------------------------------------------------------------------------------
 
@@ -36,7 +37,11 @@ era_sh = addfile("/home/cmar/ste69f/umplot/obs/ERA_INT_hfss_ann.nc","r") ; sh er
 
 ;----------------------------------------------------------------------------------------------------------
 
+if (isfilevar(cable_file,"tscrn")) then
 ctemp = cable_file ->tscrn
+else
+ctemp = cable_file ->$tname$
+end if
 ctmax = cable_tmp  ->temp
 ctmin = cable_tmp  ->temp_1
 cprec = cable_file ->precip
@@ -45,7 +50,11 @@ csh   = cable_file ->sh
 csw   = cable_file ->solar
 clw   = cable_file ->longwave
 
+if (isfilevar(moses_file,"tscrn")) then
 mtemp = moses_file ->tscrn
+else
+mtemp = moses_file ->$tname$
+end if
 mtmax = moses_tmp  ->temp
 mtmin = moses_tmp  ->temp_1
 mprec = moses_file ->precip
@@ -357,6 +366,7 @@ res@centerDiffRMS_color = "LightGray"
 res@gsnMaximize         = True
 
 print("Plotting Taylor Diagram")
+print("")
 
 ;plot                    = taylor_diagram(wks,ratio1,cc1,res)
 plot                    = taylor_diagram(wks,ratio,cc,res)

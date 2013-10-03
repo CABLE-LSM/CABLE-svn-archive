@@ -10,6 +10,7 @@
 ;load "NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 ; -------------------------------------------------------
 
+;undef("get_wgt")
 function get_wgt(var)
 
 begin

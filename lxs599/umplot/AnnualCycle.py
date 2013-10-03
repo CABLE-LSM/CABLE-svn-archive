@@ -1,5 +1,9 @@
 import cdms2, MV2, os, sys
 
+cdms2.setNetcdfShuffleFlag(0) ## where value is either 0 or 1
+cdms2.setNetcdfDeflateFlag(0) ## where value is either 0 or 1
+cdms2.setNetcdfDeflateLevelFlag(0) ## where value is a integer bw 0 and 9 inc
+
 year  = os.getenv('YR')
 cfile = cdms2.open('Timeseries_%syrs.nc' % sys.argv[1])
 ta    = cfile['tas']

@@ -4,7 +4,7 @@ set a=a
 set rid=$RUNID
 
 # Just change the EXT letter i.e. pb,pc,pm etc
-set pext = ( b )
+set pext = ( e )
 #set pext = ( b c f g )
 
 foreach ext ( $pext )
@@ -27,7 +27,7 @@ set newlist=`echo $newlist | sed -e 's/nov/110/g'`
 set newlist=`echo $newlist | sed -e 's/dec/120/g'`
 
 foreach pfile ( $plist )
-  #echo $pfile $newlist[$i]
+  echo $pfile $newlist[$i]
   mv $pfile $newlist[$i]
   @ i++
 end

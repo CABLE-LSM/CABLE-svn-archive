@@ -53,24 +53,34 @@ endif
 
 # Timeseries ---------------------------------------------------------
 
-dmget $DIR/$RUNID$a.pe*0.nc $DIR/$RUNID$a.pb*0*
+dmget $DIR/$RUNID$a.pe*.nc $DIR/$RUNID$a.pb*
+#dmget $DIR/$RUNID$a.pe*0.nc $DIR/$RUNID$a.pb*0*
 #module load hdf5/1.8.1 netcdf/4.0 cdo/1.4.0
 
 #~ste69f/umplot/pe2nc.sh
 if ($REINIT == 1) then
 set pelist=`ls $DIR/$RUNID$a.pe*0.nc | head -$nom`
+#set pelist=`ls $DIR/$RUNID$a.pe?????.nc | head -$nom`
 else
 set pelist=`ls $DIR/$RUNID$a.pe*0.nc | head -$noy`
+#set pelist=`ls $DIR/$RUNID$a.pe?????.nc | head -$noy`
 endif
-cdo copy $pelist Timeseries_${YR}yrs.nc
+cdo mergetime $pelist Timeseries_${YR}yrs.nc
+#cdo copy $pelist Timeseries_${YR}yrs.nc
 
 # tmax and tmin
 if ($REINIT == 1) then
-set pblist=`ls $DIR/$RUNID$a.pb*0.nc | head -$nom`
+set pblist=`ls $DIR/$RUNID$a.pb?????.nc | head -$nom`
 else
-set pblist=`ls $DIR/$RUNID$a.pb*0.nc | head -$noy`
+set pblist=`ls $DIR/$RUNID$a.pb?????.nc | head -$noy`
 endif
-cdo copy $pblist Tempseries_${YR}yrs.nc
+cdo mergetime $pblist Tempseries_${YR}yrs.nc
+#cdo copy $pblist Tempseries_${YR}yrs.nc
+if ($RUNID == uabab) then
+ ncrename -v temp,temp_2 Tempseries_${YR}yrs.nc
+ ncrename -v temp_1,temp Tempseries_${YR}yrs.nc
+ ncrename -v temp_2,temp_1 Tempseries_${YR}yrs.nc
+endif
 
 #dmget $DIR/$RUNID$a.pb*
 #set pbum=`ls $DIR/$RUNID$a.pb*0 | head -$noy`
@@ -99,6 +109,7 @@ set pasub=`ls $DIR/$RUNID$a.pa*0.avg.nc | head -$noy`
 cdo copy $pasub TotRunoff_${YR}yrs.nc
 cdo yseasavg TotRunoff_${YR}yrs.nc Rseasonal_means_${YR}yrs.nc
 cdo ymonavg TotRunoff_${YR}yrs.nc Rmonthly_means_${YR}yrs.nc
+#cdo chname,temp_26,tscrn ifile ofile
 ncrename -v sm,sm_1 seasonal_${YR}yrs.nc
 ncrename -v sm,sm_1 monthly_${YR}yrs.nc
 cdo merge seasonal_${YR}yrs.nc Rseasonal_means_${YR}yrs.nc seasonal_means_${YR}yrs.nc 

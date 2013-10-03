@@ -16,11 +16,12 @@ begin
 
 cabDir = systemfunc("echo $CABLE")
 mosDir = systemfunc("echo $MOSES")
-resol  = systemfunc("echo $RES")
 numYr  = systemfunc("echo $YR")
+resol  = systemfunc("echo $RES")
 lcable = systemfunc("echo $MODEL")
 vMask  = systemfunc("echo $MASK")
-split   = systemfunc("echo $SPLIT")
+split  = systemfunc("echo $SPLIT")
+tname  =  systemfunc("echo $tname")
 if (split.eq."y") then
 blck  = True
 blk   = systemfunc("echo $BLOCK")
@@ -40,7 +41,7 @@ end if
 ObsDir = "/home/cmar/ste69f/umplot/obs/"
 LsmDir = "/home/cmar/ste69f/umplot/data/"
 
-system("dmget "+ObsDir+"ERA*")
+;system("dmget "+ObsDir+"ERA*")
 moses_file = addfile(mosDir+"/Mmonthly_means_"+numYr+"yrs.nc","r")
 cable_file = addfile(cabDir+"/Mmonthly_means_"+numYr+"yrs.nc","r")
 tscrn_obs  = addfile(ObsDir+"ERAi_monavg_t2m.nc","r")
@@ -59,14 +60,33 @@ end if
 
 ; Variables ------------------------------------------------------------------
 
+if (isfilevar(moses_file,"tscrn")) then
 tscrnM1         = moses_file ->tscrn
+else
+if (isfilevar(moses_file,"tas")) then
+tscrnM1         = moses_file ->tas
+else
+tscrnM1         = moses_file ->$tname$
+end if
+end if
+if (isfilevar(cable_file,"tscrn")) then
 tscrnC1         = cable_file ->tscrn
+else
+if (isfilevar(cable_file,"tas")) then
+tscrnC1         = cable_file ->tas
+else
+tscrnC1         = cable_file ->$tname$
+end if
+end if
 era_t2m1        = tscrn_obs  ->t2m
 if (isfilevar(moses_file,"field77")) then
 prM1            = moses_file ->field77
-prC1            = cable_file ->field77
 else
 prM1            = moses_file ->precip
+end if
+if (isfilevar(cable_file,"field77")) then
+prC1            = cable_file ->field77
+else
 prC1            = cable_file ->precip
 end if
 era_pr1         = pr_obs     ->pr
@@ -103,9 +123,12 @@ end if
 
 if (isfilevar(moses_file,"field77")) then
 prM1            = prM1*48
-prC1            = prC1*48
 else
 prM1            = prM1*24*60*60
+end if
+if (isfilevar(cable_file,"field77")) then
+prC1            = prC1*48
+else
 prC1            = prC1*24*60*60
 end if
 era_pr1         = era_pr1*24*60*60
@@ -122,13 +145,20 @@ emsk&time       = emsk1&time
 
 nmon = stringtoint(numYr)*12
 nyrs = stringtoint(numYr)
+tpr = dimsizes(era_pr1)
+ttp = dimsizes(era_t2m1)
 
 tscrnM          = tscrnM1(0:nmon-1,:,:,:)
 tscrnC          = tscrnC1(0:nmon-1,:,:,:)
-era_t2m         = era_t2m1(0:nmon-1,:,:)
+if ( nmon .gt. ttp(0) ) then
+ era_t2m         = era_t2m1(0:ttp(0)-1,:,:)
+ era_pr          = era_pr1(0:tpr(0)-1,:,:)
+else
+ era_t2m         = era_t2m1(0:nmon-1,:,:)
+ era_pr          = era_pr1(0:nmon-1,:,:)
+end if
 prM             = prM1(0:nmon-1,:,:,:)
 prC             = prC1(0:nmon-1,:,:,:)
-era_pr          = era_pr1(0:nmon-1,:,:)
 
 LandTm          = tscrnM 
 LandTc          = tscrnC
@@ -143,9 +173,16 @@ do k=0,nmon-1,1
 ;land_only=mask(tscrnM,lsmask,1)
 LandTm(k:k,:,:,:) = where(lsm.gt.0,tscrnM(k:k,:,:,:),-9999)
 LandTc(k:k,:,:,:) = where(lsm.gt.0,tscrnC(k:k,:,:,:),-9999)
-LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
+;LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
 LandPm(k:k,:,:,:) = where(lsm.gt.0,prM(k:k,:,:,:),-9999)
 LandPc(k:k,:,:,:) = where(lsm.gt.0,prC(k:k,:,:,:),-9999)
+;LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
+end do
+
+do k=0,ttp(0)-1,1
+LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
+end do
+do k=0,tpr(0)-1,1
 LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
 end do
 
@@ -198,13 +235,19 @@ wgt_prE&time    = era_pr&time
 ; + :119 for 10 yrs
 ; + :239 for 20 yrs
 
-Mstart = (Myear - 1978) *12 + (Mmon - 1)
+strtyr = 1978
+
+Mstart = (Myear - strtyr) *12 + (Mmon - 1)
 Mend   = Mstart + nyrs*12 -1
-Cstart = (Cyear - 1978) *12 + (Cmon - 1)
+Cstart = (Cyear - strtyr) *12 + (Cmon - 1)
 Cend   = Cstart + nyrs*12 -1
-Estart = (1989 - 1978) *12
-Eend   = Estart + nyrs*12 -1
+Estart = (1989 - strtyr) *12
+if (nmon .gt. tpr(0)) then
+Eend   = Estart + 20*12 -1
 ;Eend   = Estart + 19*12 -1
+else
+Eend   = Estart + nyrs*12 -1
+end if
 
 data                 = new((/3,396/),double) ; data starts at 1978-2010
 data(0,:)            = -9999
@@ -212,7 +255,7 @@ data(1,:)            = -9999
 data(2,:)            = -9999
 data(0,Mstart:Mend)  = wgt_tscrnM(:,0)
 data(1,Cstart:Cend)  = wgt_tscrnC(:,0)
-data(2,Estart:Eend)  = wgt_erat2m(:)
+data(2,Estart:Eend)  = wgt_erat2m(0:239)
 
 data2                = new((/3,396/),double)
 data2(0,:)           = -9999
@@ -220,7 +263,7 @@ data2(1,:)           = -9999
 data2(2,:)           = -9999
 data2(0,Mstart:Mend) = wgt_prM(:,0)
 data2(1,Cstart:Cend) = wgt_prC(:,0)
-data2(2,Estart:Eend) = wgt_prE(:) 
+data2(2,Estart:Eend) = wgt_prE(0:239) 
 
 yyyymm            = yyyymm_time(1978,2010,"integer")
 yyyyfrac          = yyyymm_to_yyyyfrac(yyyymm,0)
@@ -253,6 +296,7 @@ res@tmYLLabelFontHeightF       = 0.015
 res@tmXBLabelFontHeightF       = 0.015
 
 print("Plotting Inter-Annual Variability (Monthly Means)")
+print("")
 
 plot              = new(2,graphic)
 
@@ -282,13 +326,13 @@ add                      = gsn_add_annotation(plot(1),lgd,addres)
 
 ; Panel Plot -----------------------------------------------------------------
 
-panel_res                      = True
-panel_res@gsnMaximize          = True
-panel_res@txString             = "Interannual Variability - Monthly"
-panel_res@gsnPanelBottom       = 0.18
-;panel_res@txFontHeightF       = 0.03
-;panel_res@pmLegendDisplayMode = "Always"
-gsn_panel(wks,plot,(/2,1/),panel_res)
+pres                      = True
+pres@gsnMaximize          = True
+pres@txString             = "Interannual Variability - Monthly"
+pres@gsnPanelBottom       = 0.18
+;pres@txFontHeightF       = 0.03
+;pres@pmLegendDisplayMode = "Always"
+gsn_panel(wks,plot,(/2,1/),pres)
 
 end
 

@@ -46,9 +46,9 @@ begin
 ; swd swu sh lh lwu lwd rn
 ; TEST FIRST
 
-land  = "" + decimalPlaces(land_vals,2,True)
-ocean = "" + decimalPlaces(ocean_vals,2,True)
-globe = "" + decimalPlaces(global_vals,2,True)
+land  = "" + decimalPlaces(land_vals,3,True)
+ocean = "" + decimalPlaces(ocean_vals,3,True)
+globe = "" + decimalPlaces(global_vals,3,True)
 
 ; Header-------------------------
 
@@ -296,6 +296,7 @@ res3@txFontHeightF = 0.012
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
 print("Creating Temp. Table")
+print("")
 gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr8,x8,y8,text8,res1)
 ;gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
@@ -318,9 +319,9 @@ procedure ecomps_compr(land_vals,ocean_vals,global_vals,numYr,region,modv)
 
 begin
 
-land  = "" + decimalPlaces(land_vals,1,True)
-ocean = "" + decimalPlaces(ocean_vals,1,True)
-globe = "" + decimalPlaces(global_vals,1,True)
+land  = "" + decimalPlaces(land_vals,3,True)
+ocean = "" + decimalPlaces(ocean_vals,3,True)
+globe = "" + decimalPlaces(global_vals,3,True)
 
 if (modv.eq."1") then
 source = (/"A1.0","A1.1","Est","A1.0","A1.1","Est",\
@@ -392,12 +393,13 @@ res2@txFontHeightF = 0.012
 ;res2@gsFillColor   = (/"forestgreen","deepskyblue2","darkorchid2"/)
 res3               = True
 ;res3@gsnMaximize   = True
-res3@txFontHeightF = 0.012
+res3@txFontHeightF = 0.008
 ;res3@gsFillColor   = (/ (/"white","white","white","white","white","gray","gray","gray","gray","white","white","white"/), \
 ;                        (/"white","gray","gray","gray","gray","gray","gray","gray","gray","white","white","white"/),     \
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
-print("Creating Energy Components Table")
+print("Creating Energy Components cTable")
+print("")
 ;gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
 gsn_table(wks,ncr1_2,x1_2,y1_2,text12,res1)
@@ -421,9 +423,9 @@ procedure temp_compr(land_vals,ocean_vals,global_vals,numYr,region,modv)
 
 begin
 
-land  = "" + decimalPlaces(land_vals,2,True)
-ocean = "" + decimalPlaces(ocean_vals,2,True)
-globe = "" + decimalPlaces(global_vals,2,True)
+land  = "" + decimalPlaces(land_vals,3,True)
+ocean = "" + decimalPlaces(ocean_vals,3,True)
+globe = "" + decimalPlaces(global_vals,3,True)
 
 if (modv.eq."1") then
 source = (/"A1.0","A1.1","NOAA","A1.0","A1.1",\
@@ -483,7 +485,7 @@ res3@txFontHeightF = 0.012
 ;                        (/"white","gray","gray","gray","gray","gray","gray","gray","gray","white","white","white"/),     \
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
-print("Creating Temp. Table")
+print("Creating Temp. cTable")
 ;gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
 gsn_table(wks,ncr1_2,x1_2,y1_2,text12,res1)
@@ -506,9 +508,9 @@ procedure ebal_compr(land_vals,ocean_vals,global_vals,numYr,region,modv)
 
 begin
 
-land  = "" + decimalPlaces(land_vals,2,True)
-ocean = "" + decimalPlaces(ocean_vals,2,True)
-globe = "" + decimalPlaces(global_vals,2,True)
+land  = "" + decimalPlaces(land_vals,3,True)
+ocean = "" + decimalPlaces(ocean_vals,3,True)
+globe = "" + decimalPlaces(global_vals,3,True)
 
 if (modv.eq."1") then
 source = (/"A1.0","A1.1","NOAA","A1.0","A1.1","Bud",\
@@ -570,12 +572,12 @@ res2@txFontHeightF = 0.012
 ;res2@gsFillColor   = (/"forestgreen","deepskyblue2","darkorchid2"/)
 res3               = True
 ;res3@gsnMaximize   = True
-res3@txFontHeightF = 0.012
+res3@txFontHeightF = 0.010
 ;res3@gsFillColor   = (/ (/"white","white","white","white","white","gray","gray","gray","gray","white","white","white"/), \
 ;                        (/"white","gray","gray","gray","gray","gray","gray","gray","gray","white","white","white"/),     \
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
-print("Creating Energy Balance Table")
+print("Creating Energy Balance cTable")
 ;gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
 gsn_table(wks,ncr1_2,x1_2,y1_2,text12,res1)
@@ -598,9 +600,9 @@ procedure wbal_compr(land_vals,ocean_vals,global_vals,numYr,region,modv)
 
 begin
 
-land  = "" + decimalPlaces(land_vals,2,True)
-ocean = "" + decimalPlaces(ocean_vals,2,True)
-globe = "" + decimalPlaces(global_vals,2,True)
+land  = "" + decimalPlaces(land_vals,3,True)
+ocean = "" + decimalPlaces(ocean_vals,3,True)
+globe = "" + decimalPlaces(global_vals,3,True)
 ;print(land)
 ;print(ocean)
 ;print(globe)
@@ -678,7 +680,7 @@ res3@txFontHeightF = 0.012
 ;                        (/"white","gray","gray","gray","gray","gray","gray","gray","gray","white","white","white"/),     \
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
-print("Creating Water Balance Table")
+print("Creating Water Balance cTable")
 ;gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
 gsn_table(wks,ncr1_2,x1_2,y1_2,text12,res1)

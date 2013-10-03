@@ -8,7 +8,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 ; =================================================================
 
 procedure AnnPlot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
-                        field:numeric,region:logical,sysFlag:logical,cnLevels:numeric,  \
+                        field:numeric,region:logical,smthFlag:logical,cnLevels:numeric,  \
                         lmask:logical,jpeg:logical)
 
 begin
@@ -23,7 +23,12 @@ begin
 
 ; Color Map ===========================================================
 
+cmap = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+;if (pltColor.eq."cmap") then
+;  gsn_define_colormap(wks,cmap)
+;else
   gsn_define_colormap(wks,pltColor)
+;end if
 
 ; Resources ========================================================
 
@@ -39,6 +44,9 @@ if (varName.eq."austbias_tscrn".or.varName.eq."austbias_precip".or. \
     varName.eq."aust_tscrn".or.varName.eq."aust_precip") then
   res@cnRasterSmoothingOn  = True
 end if
+;if (varName.eq."austann_srnf".or.varName.eq."austann_tot_rnf") then
+;  res@cnRasterSmoothingOn  = True
+;end if
   res@cnLineLabelsOn       = False             ; Turn off line labels.
   res@cnInfoLabelOn        = False             ; Turn off info label.
   if(lmask)
@@ -54,10 +62,10 @@ end if
   res@gsnLeftString        = ""                ;
   res@gsnRightString       = ""                ;
 
-  if(sysFlag) then
-   ;print("label bar scale")
-   ;symMinMaxPlt(field,12,False,res)
-  end if
+  ;if(sysFlag) then
+  ; ;print("label bar scale")
+  ; ;symMinMaxPlt(field,12,False,res)
+  ;end if
 
 ;  if(cnLevels.eq."0") then
 ;    res@cnLevelSelectionMode = "AutomaticLevels"
@@ -142,7 +150,8 @@ end if
   plot = gsn_csm_contour_map(wks,new_field({latS:latN},{lonL:lonR}),res)
 
  if(jpeg) then  
- system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  end if
 
 end

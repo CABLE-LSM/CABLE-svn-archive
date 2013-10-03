@@ -4,7 +4,7 @@ set a=a
 set rid=$RUNID
 
 # Just change the EXT letter i.e. pb,pc,pm etc
-set pext = ( m )
+set pext = ( e )
 
 foreach ext ( $pext )
 

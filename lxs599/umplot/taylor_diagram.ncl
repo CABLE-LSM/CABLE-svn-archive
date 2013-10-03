@@ -1,3 +1,4 @@
+;undef("taylor_diagram")
 function taylor_diagram (wks:graphic ,RATIO[*][*]:numeric, CC[*][*]:numeric \
                                      ,rOpts:logical)
 ;--------------------------------------------------------------------
@@ -383,7 +384,7 @@ begin
      ptRes@txFontColor     = gsRes@gsMarkerColor
     do i=0,nVar-1
        dum10(n*nVar+i) = gsn_add_polymarker(wks,taylor,X(n,i),Y(n,i),gsRes) 
-       print("X(n,i) = " + X(n,i) + " " + "Y(n,i) = " + Y(n,i)) 
+       ;print("X(n,i) = " + X(n,i) + " " + "Y(n,i) = " + Y(n,i)) 
        dum11(n*nVar+i) = gsn_add_text(wks,taylor,(i+1),X(n,i),Y(n,i)+markerTxYOffset,ptRes)
     end do
   end do

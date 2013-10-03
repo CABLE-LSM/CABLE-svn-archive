@@ -72,18 +72,20 @@ plot(2)           = gsn_csm_contour_map(wks,bottom,res)
 
 ; Panel Plot -----------------------------------------------------------------
 
-panel_res                      = True
-panel_res@gsnMaximize          = True
-panel_res@txString             = ""
-panel_res@gsnPanelFigureStrings = (/"cable","moses","cable-moses"/)
-panel_res@gsnPanelLabelBar      = True
-panel_res@gsnPanelBottom       = 0.18
-;panel_res@txFontHeightF       = 0.03
-;panel_res@pmLegendDisplayMode = "Always"
-gsn_panel(wks,plot,(/3,1/),panel_res)
+pres                      = True
+pres@gsnMaximize          = True
+pres@txString             = ""
+;pres@gsnPanelFigureStrings = (/"cable","moses","cable-moses"/)
+pres@gsnPanelFigureStrings = (/"new (c)","old (m)","new-old"/)
+pres@gsnPanelLabelBar      = True
+pres@gsnPanelBottom       = 0.18
+;pres@txFontHeightF       = 0.03
+;pres@pmLegendDisplayMode = "Always"
+gsn_panel(wks,plot,(/3,1/),pres)
 
 if(jpeg)then
-system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
+system("convert -density 1000 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
+;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
 end if
 
 end

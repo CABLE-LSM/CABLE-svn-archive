@@ -35,6 +35,7 @@ vMask  = systemfunc("echo $MASK")
 ;Runid  = systemfunc("echo $RUNID")
 ;cabdir = systemfunc("echo $CABLE")
 ;mosdir = systemfunc("echo $MOSES")
+tname =  systemfunc("echo $tname")
 
 ; FILES --------------------------------------------------------------
 
@@ -63,7 +64,11 @@ end if
 
 ; SET-UP -------------------------------------------------------------
 
+if (isfilevar(sea_file,"tscrn")) then
 tscrn  = sea_file ->tscrn     ;tas
+else
+tscrn  = sea_file ->$tname$   ;tas
+end if
 tmax   = tsea_file ->temp     ;tasmax
 tmin   = tsea_file ->temp_1   ;tasmin
 sh     = sea_file ->sh        ;hfss
@@ -74,6 +79,9 @@ if (isfilevar(sea_file,"field1526")) then
  evap1 = sea_file ->field1526 ;evspsblsoi
  evap2 = sea_file ->field1527 ;evspsblveg
 end if
+;if (isfilevar(sea_file,"field1528")) then
+; evap3 = sea_file ->field1528 ;evspsblsubl
+;end if
 lh     = sea_file->lh         ;hfls
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
@@ -95,7 +103,11 @@ copy_VarMeta(rld1,rlus)
 ;rlds   = sea_file->rlds
 ;rlus   = sea_file->rlus
 
+;if (isfilevar(moses_file,"tscrn")) then
 ;tscrn_m  = moses_file ->tscrn      ;tas
+;else
+;tscrn_m  = moses_file ->$tname$    ;tas
+;end if
 ;tmax_m   = moses_file ->temp       ;tasmax
 ;tmin_m   = moses_file ->temp_1     ;tasmin
 ;sh_m     = moses_file ->sh         ;hfss
@@ -140,7 +152,7 @@ lhf     = lh
 ;;drunoff_m = trunoff_m - srunoff_m
 ;lhf_m     = lh_m
 
-rlam  = 2500000             ;
+rlam  = 2501000             ;
 cls   = 1.1335              ;
 rad   = 4.0*atan(1.0)/180.
 
@@ -170,12 +182,17 @@ else
 ; evap_m@units   = "mm/day"
 end if
 else
+;if () then
+; evap         = (evap1+evap2+evap3)*24*60*60
+; evap@units   = "mm/day"
+;else
 ; evap         = sea_file ->evspsbl
 ; evap         = (evap)*24*60*60
  evap         = (evap1+evap2)*24*60*60
  evap@units   = "mm/day"
 ; evap_m         = (evap1_m+evap2_m)*24*60*60
 ; evap_m@units   = "mm/day"
+;end if
 end if
 copy_VarMeta(evap1,evap)
 

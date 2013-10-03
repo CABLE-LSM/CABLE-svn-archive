@@ -9,7 +9,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 ; =================================================================
 
 procedure Panel_Plot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
-                        field:numeric,region:logical,sysFlag:logical,cnLevels:numeric,  \
+                        field:numeric,region:logical,smthFlag:logical,cnLevels:numeric,  \
                         lmask:logical,jpeg:logical)
 
 begin
@@ -37,10 +37,17 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
 cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
 
   ;gsn_define_colormap(wks,cmap)
-if (varName.eq."bias_tscrn") then
+if (varName.eq."bias_tscrn".or.varName.eq."bias_totcl".or. \
+    varName.eq."bias_tmax".or. \
+    varName.eq."bias_tmin".or. \
+    varName.eq."bias_tamp") then
   gsn_define_colormap(wks,cmap_bT)
 else
+;if (pltColor.eq."cmap") then
+;  gsn_define_colormap(wks,cmap_bT)
+;else
   gsn_define_colormap(wks,pltColor)
+;end if
 end if
 
 ; Resources ========================================================
@@ -57,6 +64,9 @@ if (varName.eq."austbias_tscrn".or.varName.eq."austbias_precip".or. \
     varName.eq."aust_tscrn".or.varName.eq."aust_precip") then
   res@cnRasterSmoothingOn  = True
 end if
+;if (varName.eq."aust_srnf".or.varName.eq."aust_tot_rnf") then
+;  res@cnRasterSmoothingOn  = True
+;end if
   res@cnLineLabelsOn       = False             ; Turn off line labels.
   res@cnInfoLabelOn        = False             ; Turn off info label.
   if(lmask)
@@ -73,10 +83,10 @@ end if
   res@gsnLeftString        = ""                ;
   res@gsnRightString       = ""                ;
 
-  if(sysFlag) then
-   ;print("label bar scale")
-   ;symMinMaxPlt(field,12,False,res)
-  end if
+  ;if(sysFlag) then
+  ; ;print("label bar scale")
+  ; ;symMinMaxPlt(field,12,False,res)
+  ;end if
 
 ;  if(cnLevels.eq."0") then
 ;    res@cnLevelSelectionMode = "AutomaticLevels"
@@ -86,7 +96,8 @@ end if
 ;  end if
 
   if (varName.eq."bias_precip".or.varName.eq."bias_evap" \
-  .or.varName.eq."austbias_precip".or.varName.eq."austbias_precip_bom") then
+  .or.varName.eq."austbias_precip".or.varName.eq."austbias_precip_bom" \
+  .or.varName.eq."bias_totcl") then
    gsn_reverse_colormap(wks)
   end if
   if ( varName.eq."seas_smc".or.varName.eq."seas_smc1"  \
@@ -170,19 +181,20 @@ end if
   
 ; Paneled Plot ====================================================
 
-  panel_res                       = True
-  panel_res@gsnMaximize           = True
-  panel_res@gsnOrientation        = "landscape"
-  panel_res@gsnPanelLabelBar      = True
-  panel_res@gsnPanelFigureStrings = (/"DJF","MAM","JJA","SON"/)
-  panel_res@gsnPanelRowSpec       = True
-  panel_res@pmLabelBarWidthF      = 0.8         ; makes label bar bigger
-  panel_res@txString              = (field@long_name + " (" + field@units + ")")
+  pres                       = True
+  pres@gsnMaximize           = True
+  pres@gsnOrientation        = "landscape"
+  pres@gsnPanelLabelBar      = True
+  pres@gsnPanelFigureStrings = (/"DJF","MAM","JJA","SON"/)
+  pres@gsnPanelRowSpec       = True
+  pres@pmLabelBarWidthF      = 0.8         ; makes label bar bigger
+  pres@txString              = (field@long_name + " (" + field@units + ")")
   
-  gsn_panel(wks,plot,(/2,2/),panel_res)
+  gsn_panel(wks,plot,(/2,2/),pres)
 
   if(jpeg) then
-  system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+  system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+  ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
   end if
 
 end

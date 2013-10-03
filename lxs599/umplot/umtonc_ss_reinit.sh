@@ -9,11 +9,12 @@ set i=1
 set a=a
 set rid=$RUNID
 
-set palist=`ls $rid$a.pa*[nbrylgptv] $rid$a.pa*dec` # pm (monthly values)
-set pblist=`ls $rid$a.pc*[nbrylgptv] $rid$a.pc*dec` # pb (daily tmin, tmax)
-set pelist=`ls $rid$a.pe*[nbrylgptv] $rid$a.pe*dec` # pa (daily values)
-set pflist=`ls $rid$a.pf*[nbrylgptv] $rid$a.pf*dec` # pe (timeseries)
-set pjlist=`ls $rid$a.pj*[nbrylgptv] $rid$a.pj*dec` # pj (monthly values)
+set palist=`ls $rid$a.pa?????` # pm (monthly values)
+set pblist=`ls $rid$a.pc?????` # pb (daily tmin, tmax)
+set pelist=`ls $rid$a.pe?????` # pa (daily values)
+set pflist=`ls $rid$a.pf?????` # pe (timeseries)
+set pglist=`ls $rid$a.pg?????` # pg (timeseries)
+set pjlist=`ls $rid$a.pj?????` # pj (monthly values)
 
 ## change months to numbers in .pa
 #set newlist=`echo $palist | sed -e 's/jan/010/g'`
@@ -121,11 +122,36 @@ set i=1
 
 foreach ffile ( $pflist )
   if (! -e $newlist[$i].nc) then
-     python ~dix043/src/python/um/um_timeseries.py -i $ffile -o $newlist[$i].nc
+     ~ste69f/umutils/conv2nc.tcl -i $ffile -o $newlist[$i].nc
+     #python ~dix043/src/python/um/um_timeseries.py -i $ffile -o $newlist[$i].nc
   endif
   # rename .pf to .pe
   set newname=`echo $newlist[$i].nc | sed -e 's/\.pf/\.pe/'`
   mv $newlist[$i].nc $newname
+  @ i++
+end
+
+# change months to numbers in .pg file
+set newlist=`echo $pglist | sed -e 's/jan/010/g'`
+set newlist=`echo $newlist | sed -e 's/feb/020/g'`
+set newlist=`echo $newlist | sed -e 's/mar/030/g'`
+set newlist=`echo $newlist | sed -e 's/apr/040/g'`
+set newlist=`echo $newlist | sed -e 's/may/050/g'`
+set newlist=`echo $newlist | sed -e 's/jun/060/g'`
+set newlist=`echo $newlist | sed -e 's/jul/070/g'`
+set newlist=`echo $newlist | sed -e 's/aug/080/g'`
+set newlist=`echo $newlist | sed -e 's/sep/090/g'`
+set newlist=`echo $newlist | sed -e 's/oct/100/g'`
+set newlist=`echo $newlist | sed -e 's/nov/110/g'`
+set newlist=`echo $newlist | sed -e 's/dec/120/g'`
+
+set i=1
+
+foreach gfile ( $pglist )
+  if (! -e $newlist[$i].nc) then
+     ~ste69f/umutils/conv2nc.tcl -i $gfile -o $newlist[$i].nc
+     #python ~dix043/src/python/um/um_timeseries.py -i $gfile -o $newlist[$i].nc
+  endif
   @ i++
 end
 

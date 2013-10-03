@@ -10,6 +10,7 @@ begin
 ;var_field = (/"field1388","field1389","field1390","field1499",     \
 ;              "field1523","field1563","field1564"/)
 var_name  = (/"gpp","npp","presp","sresp"/)
+;var_field = (/"gpp","npp","ra","rh"/)
 var_field = (/"field1388","field1389","field1390","field1523"/)
 ; note lresp has lat,lon,13,time 
 ; co2ppm has 38 levels
@@ -17,6 +18,7 @@ var_field = (/"field1388","field1389","field1390","field1523"/)
 
 numYr    = systemfunc("echo $YR")
 filDir   = systemfunc("echo $PWD")
+;filDir   = systemfunc("echo $DIRW")
 resol    = systemfunc("echo $RES")
 vMask    = systemfunc("echo $MASK")
 jpg      = systemfunc("echo $JPEG")
@@ -28,12 +30,16 @@ end if
 
 Dir  = "/home/cmar/ste69f/umplot/"
 
-print("Creating Zonal Means for Carbon Fields")
+print("Calculating Zonal Means for Carbon Fields")
+print("")
 
 do m=0,dimsizes(var_name)-1,1
 
-; load soil respiration (rsoil,sresp,field1523)
+; load soil respiration (rsoil,sresp,field1523,rh)
    filin  = addfile(filDir+"/mm."+var_name(m)+"_"+numYr+"yrs.nc","r")
+   if (m.eq.1.and.isfilevar(filin,"field1389_1")) then
+    var_field(1) = "field1389_1"
+   end if
    soil_d = filin->$var_field(m)$
 
 if (var_name(m).eq."gpp") then
@@ -129,6 +135,7 @@ end if
    do l = 0,ntim-1
       do j = 0,nlat-1
 
+        ;if (ismissing(sum(soil(l,j,:))) .or. ismissing(sum(land_frac(0,0,j,:)))) then
         if (ismissing(sum(soil(l,0,j,:)))) then
            mean_soil_1(l,j) = -999 ; soil@_FillValue
            mean_soil_2(l,j) = -999 ; soil@_FillValue

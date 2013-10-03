@@ -1,6 +1,10 @@
 import cdms2, sys
 import numpy as np
 
+cdms2.setNetcdfShuffleFlag(0) ## where value is either 0 or 1
+cdms2.setNetcdfDeflateFlag(0) ## where value is either 0 or 1
+cdms2.setNetcdfDeflateLevelFlag(0) ## where value is a integer bw 0 and 9 inc
+
 cfile=cdms2.open('AnnCycle_%syrs.nc' % sys.argv[1])
 
 tas=cfile['tas']     # (18,12)

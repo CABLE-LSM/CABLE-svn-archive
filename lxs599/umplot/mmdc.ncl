@@ -11,7 +11,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 begin
 
 numYr    = systemfunc("echo $YR")
-filDir   = systemfunc("echo $PWD")
+filDir   = systemfunc("echo $DIRW")
 jpg     = systemfunc("echo $JPEG")
 if(jpg.eq."y") then
 jpeg = True
@@ -87,7 +87,8 @@ pres@gsnPanelFigureStrings = (/"Rnet","SH","LH","Pr","TAS"/)
 gsn_panel(wks,plot,(/2,3/),pres)
 
 if(jpeg) then
-system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
 end if
 
 end do 

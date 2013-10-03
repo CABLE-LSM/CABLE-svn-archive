@@ -22,6 +22,7 @@ resol  = systemfunc("echo $RES")
 lcable = systemfunc("echo $MODEL")
 vMask  = systemfunc("echo $MASK")
 split  = systemfunc("echo $SPLIT")
+tname =  systemfunc("echo $tname")
 if (split.eq."y") then
 blck  = True
 blk   = systemfunc("echo $BLOCK")
@@ -61,15 +62,42 @@ end if
 
 ; Variables ------------------------------------------------------------------
 
-tMyr1           = moses_year ->tscrn
-tCyr1           = cable_year ->tscrn
+if (isfilevar(moses_year,"tscrn")) then
+ tMyr1           = moses_year ->tscrn
+else
+ if (isfilevar(moses_year,"tas")) then
+  tMyr1           = moses_year ->tas
+ else
+  tMyr1           = moses_year ->$tname$
+ end if
+end if
+if (isfilevar(cable_year,"tscrn")) then
+ tCyr1           = cable_year ->tscrn
+else
+ if (isfilevar(cable_year,"tas")) then
+  tCyr1           = cable_year ->tas
+ else
+  tCyr1           = cable_year ->$tname$
+ end if
+end if
 tEyr1           = t2mobs_yr  ->t2m
 if (isfilevar(moses_year,"field77")) then
 pMyr1           = moses_year ->field77
+else
+if (isfilevar(moses_year,"precip")) then
+pMyr1           = moses_year ->precip
+else
+pMyr1           = moses_year ->pr
+end if
+end if
+if (isfilevar(cable_year,"field77")) then
 pCyr1           = cable_year ->field77
 else
-pMyr1           = moses_year ->precip
+if (isfilevar(cable_year,"precip")) then
 pCyr1           = cable_year ->precip
+else
+pCyr1           = cable_year ->pr
+end if
 end if
 pEyr1           = pr_obs_yr  ->pr
 lsm             = lsm_file   ->lsm
@@ -80,7 +108,7 @@ Ctime           = cable_year ->time
 Myear           = stringtoint(str_get_field(str_get_field(Mtime@units,3," "),1,"-"))
 Cyear           = stringtoint(str_get_field(str_get_field(Ctime@units,3," "),1,"-"))
 Mmon            = stringtoint(str_get_field(str_get_field(Mtime@units,3," "),2,"-"))
-Cmon            = stringtoint(str_get_field(str_get_field(Mtime@units,3," "),2,"-"))
+Cmon            = stringtoint(str_get_field(str_get_field(Ctime@units,3," "),2,"-"))
 
 if (blck) then
 if (block.eq.2) then
@@ -99,9 +127,12 @@ end if
 
 if (isfilevar(moses_year,"field77")) then
 pMyr1           = pMyr1*48
-pCyr1           = pCyr1*48
 else
 pMyr1           = pMyr1*24*60*60
+end if
+if (isfilevar(cable_year,"field77")) then
+pCyr1           = pCyr1*48
+else
 pCyr1           = pCyr1*24*60*60
 end if
 pEyr1           = pEyr1*24*60*60
@@ -117,23 +148,30 @@ emsk&longitude  = emsk1&longitude
 emsk&time       = emsk1&time
 
 nyrs = stringtoint(numYr)
+ttp = dimsizes(tEyr1)
+tpr = dimsizes(pEyr1)
 
 if (Mmon.ne.1.and.split.eq."n") then 
-tMyr            = tMyr1(0:nyrs,:,:,:)
-pMyr            = pMyr1(0:nyrs,:,:,:)
+ tMyr           = tMyr1(0:nyrs,:,:,:)
+ pMyr           = pMyr1(0:nyrs,:,:,:)
 else
-tMyr            = tMyr1(0:nyrs-1,:,:,:)
-pMyr            = pMyr1(0:nyrs-1,:,:,:)
+ tMyr           = tMyr1(0:nyrs-1,:,:,:)
+ pMyr           = pMyr1(0:nyrs-1,:,:,:)
 end if
 if (Cmon.ne.1.and.split.eq."n") then
-tCyr            = tCyr1(0:nyrs,:,:,:)
-pCyr            = pCyr1(0:nyrs,:,:,:)
+ tCyr           = tCyr1(0:nyrs,:,:,:)
+ pCyr           = pCyr1(0:nyrs,:,:,:)
 else
-tCyr            = tCyr1(0:nyrs-1,:,:,:)
-pCyr            = pCyr1(0:nyrs-1,:,:,:)
+ tCyr           = tCyr1(0:nyrs-1,:,:,:)
+ pCyr           = pCyr1(0:nyrs-1,:,:,:)
 end if
+if (nyrs .gt. ttp(0)) then
+tEyr            = tEyr1(0:ttp(0)-1,:,:)
+pEyr            = pEyr1(0:tpr(0)-1,:,:)
+else
 tEyr            = tEyr1(0:nyrs-1,:,:)
 pEyr            = pEyr1(0:nyrs-1,:,:)
+end if
 
 LandTm          = tMyr 
 LandTc          = tCyr
@@ -147,9 +185,16 @@ LandPe          = pEyr
 do k=0,nyrs-1,1
 LandTm(k:k,:,:,:) = where(lsm.gt.0,tMyr(k:k,:,:,:),-9999)
 LandTc(k:k,:,:,:) = where(lsm.gt.0,tCyr(k:k,:,:,:),-9999)
-LandTe(k:k,:,:)   = where(emsk.eq.1,tEyr(k:k,:,:),-9999)
+;LandTe(k:k,:,:)   = where(emsk.eq.1,tEyr(k:k,:,:),-9999)
 LandPm(k:k,:,:,:) = where(lsm.gt.0,pMyr(k:k,:,:,:),-9999)
 LandPc(k:k,:,:,:) = where(lsm.gt.0,pCyr(k:k,:,:,:),-9999)
+;LandPe(k:k,:,:)   = where(emsk.eq.1,pEyr(k:k,:,:),-9999)
+end do
+
+do k=0,ttp(0)-1,1
+LandTe(k:k,:,:)   = where(emsk.eq.1,tEyr(k:k,:,:),-9999)
+end do
+do k=0,tpr(0)-1,1
 LandPe(k:k,:,:)   = where(emsk.eq.1,pEyr(k:k,:,:),-9999)
 end do
 
@@ -200,20 +245,26 @@ wgt_prE&time    = pEyr&time
 ; + :9  for 10 yrs
 ; + :19 for 20 yrs
 
-Mstart = (Myear - 1978)
+strtyr = 1978
+
+Mstart = (Myear - strtyr)
 if (Mmon.ne.1.and.split.eq."n") then
 Mend   = Mstart + nyrs
 else
 Mend   = Mstart + nyrs -1
 end if
-Cstart = (Cyear - 1978)
+Cstart = (Cyear - strtyr)
 if (Cmon.ne.1.and.split.eq."n") then
 Cend   = Cstart + nyrs
 else
 Cend   = Cstart + nyrs -1
 end if
-Estart = (1989 - 1978)
+Estart = (1989 - strtyr)
+if (nyrs .gt. ttp(0)) then
+Eend   = Estart + 20 -1
+else
 Eend   = Estart + nyrs -1
+end if
 
 data                 = new((/3,33/),double) ; data starts at 1978-2010
 data(0,:)            = -9999
@@ -221,7 +272,7 @@ data(1,:)            = -9999
 data(2,:)            = -9999
 data(0,Mstart:Mend)  = wgt_tscrnM(:,0)
 data(1,Cstart:Cend)  = wgt_tscrnC(:,0)
-data(2,Estart:Eend)  = wgt_erat2m(:)
+data(2,Estart:Eend)  = wgt_erat2m(0:19)
 ;data&time            = ispan(1978,2010,1)
 
 data2                = new((/3,33/),double)
@@ -230,7 +281,7 @@ data2(1,:)           = -9999
 data2(2,:)           = -9999
 data2(0,Mstart:Mend) = wgt_prM(:,0)
 data2(1,Cstart:Cend) = wgt_prC(:,0)
-data2(2,Estart:Eend) = wgt_prE(:) 
+data2(2,Estart:Eend) = wgt_prE(0:19) 
  
 yyyymm            = yyyymm_time(1978,2010,"integer")
 yyyyfrac          = yyyymm_to_yyyyfrac(yyyymm,0)
@@ -264,6 +315,7 @@ res@tmYLLabelFontHeightF       = 0.015
 res@tmXBLabelFontHeightF       = 0.015
 
 print("Plotting Inter-Annual Variability (Yearly Means)")
+print("")
 
 plot              = new(2,graphic)
 
@@ -293,13 +345,13 @@ add                      = gsn_add_annotation(plot(1),lgd,addres)
 
 ; Panel Plot -----------------------------------------------------------------
 
-panel_res                      = True
-panel_res@gsnMaximize          = True
-panel_res@txString             = "Interannual Variability - Yearly"
-panel_res@gsnPanelBottom       = 0.18
-;panel_res@txFontHeightF       = 0.03
-;panel_res@pmLegendDisplayMode = "Always"
-gsn_panel(wks,plot,(/2,1/),panel_res)
+pres                      = True
+pres@gsnMaximize          = True
+pres@txString             = "Interannual Variability - Yearly"
+pres@gsnPanelBottom       = 0.18
+;pres@txFontHeightF       = 0.03
+;pres@pmLegendDisplayMode = "Always"
+gsn_panel(wks,plot,(/2,1/),pres)
 
 end
 

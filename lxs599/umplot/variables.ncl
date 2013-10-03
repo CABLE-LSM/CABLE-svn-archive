@@ -65,6 +65,8 @@ begin
   ObsDir = "/home/cmar/ste69f/umplot/obs/"
   ;ModDir = fileDir
   ModDir = systemfunc("echo $PWD")
+  ;ModDir = systemfunc("echo $DIRW")
+  tname =  systemfunc("echo $tname")
 
 ; Obs & Model netCDF ----------------------------------------------- 
 
@@ -112,7 +114,11 @@ end if
 ; Variables ========================================================
 
 ;sea_file ----------------------------------------------------------
+if (isfilevar(sea_file,"tscrn")) then
   tscrn    = sea_file    ->tscrn       ;Screen Temperature degK (T at 1.5m)
+else
+  tscrn    = sea_file    ->$tname$     ;Screen Temperature degK (T at 1.5m)
+end if
   precip   = sea_file    ->precip      ;field77     ; Total Precip Accum kg/m2
 if(isfilevar(sea_file,"temp")) then
   tsurf    = sea_file    ->temp        ; Surface Temperature (deg K)
@@ -219,7 +225,11 @@ if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 end if
 ;mon_file-----------------------------------------------------------
   prmn     = mon_file    ->precip      ;field77
+if (isfilevar(mon_file,"tscrn")) then
   t2mn     = mon_file    ->tscrn       ;temp_3
+else
+  t2mn     = mon_file    ->$tname$     ;temp_3
+end if
 if(isfilevar(sea_file,"field1894")) then
   laimn    = mon_file    ->field1894   ;
   chtmn    = mon_file    ->field1895   ;
@@ -297,12 +307,20 @@ end if
 if(isvar("lai")) then  
   canht@long_name = "Canopy Height"
   canht@units     = "m"
+  do i= 0,npft-1,1
+   lai(:,i,:,:) = where(sfrac(:,i,:,:).gt.0,lai(:,i,:,:),0)
+  end do
   lai@long_name   = "Leaf Area Index"
   lai@units       = "LAI"
 end if
 if(isvar("laimn")) then
   chtmn@long_name = "Canopy Height"
   chtmn@units     = "m"
+  do i= 0,npft-1,1
+  do j= 0,11,1
+   laimn(j,i,:,:) = where(sfrac(0,i,:,:).gt.0,laimn(j,i,:,:),0)
+  end do
+  end do
   laimn@long_name = "Leaf Area Index"
   laimn@units     = "LAI"
 end if
@@ -372,6 +390,9 @@ if(isvar("smcl")) then
    end if
   end if
 
+if (Runid.eq."saaba") then
+nsoil = 4
+end if
   do i=0,nsoil-1,1
    smcl(:,i,:,:)       = smcl(:,i,:,:) / (slayers(i) *1000)
   end do
@@ -569,6 +590,7 @@ levrnf = (/0.1,0.5,1,2,4,8,16/)
 cmapr  = (/"white","black","cornsilk3","dodgerblue","chartreuse3","gold","darkorange","red","firebrick"/)
 cmaprn = (/"white","black","cornsilk3","blueviolet","dodgerblue","chartreuse3","gold","darkorange","red","firebrick"/) ; mediumpurple
 levdf  = (/2,4,6,8,10,12,14,16,18,20,22,24,26/)
+levam  = ispan(2,16,1)
 levlai = (/0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,6,7,8/)
 levalb = (/0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.10,0.11,0.12,0.13,0.14/)
 ;levsnw = (/5,10,15,20,25,30,35,40,45,50,55,60,80,100,120,140,160,180/)
@@ -605,7 +627,7 @@ AnnPlot(pltDir,"ann_precip"    ,numYr,type,cmapr,precip(:,0,:,:),False,True,levp
 if(isvar("tmax")) then
 Panel_Plot(pltDir,"seas_tmax"  ,numYr,type,"BlAqGrYeOrReVi200",tmax(:,0,:,:)  ,False,True,levtp,True,jpeg) 
 Panel_Plot(pltDir,"seas_tmin"  ,numYr,type,"BlAqGrYeOrReVi200",tmin(:,0,:,:)  ,False,True,levtp,True,jpeg)
-Panel_Plot(pltDir,"seas_tamp"  ,numYr,type,"BlAqGrYeOrReVi200",tamp(:,0,:,:)  ,False,True,levdf,True,jpeg)
+Panel_Plot(pltDir,"seas_tamp"  ,numYr,type,"BlAqGrYeOrReVi200",tamp(:,0,:,:)  ,False,True,levam,True,jpeg)
 end if
 
 ;cmapr2  = (/"white","black","cornsilk3","skyblue","dodgerblue","darkolivegreen1","chartreuse3","gold","darkorange","red","firebrick","darkorchid4"/)
@@ -615,7 +637,7 @@ Panel_Plot(pltDir,"erai_tscrn" ,"20",type,"BlAqGrYeOrReVi200",era_tp2m ,False,Tr
 Panel_Plot(pltDir,"erai_precip","20",type, cmapr2            ,era_prec ,False,True,levbpr ,False,jpeg)
 ;Panel_Plot(pltDir,"erai_tmax"  ,"20",type,"BlAqGrYeOrReVi200",eraT_max ,False,True,levtp ,True,jpeg)
 ;Panel_Plot(pltDir,"erai_tmin"  ,"20",type,"BlAqGrYeOrReVi200",eraT_min ,False,True,levtp ,True,jpeg)
-;Panel_Plot(pltDir,"erai_tamp"  ,"20",type,"BlAqGrYeOrReVi200",era_tamp ,False,True,levdf ,True,jpeg)
+;Panel_Plot(pltDir,"erai_tamp"  ,"20",type,"BlAqGrYeOrReVi200",era_tamp ,False,True,levam ,True,jpeg)
 ;Panel_Plot(pltDir,"erai_evap"  ,"20",type, cmapsn            ,era_evp  ,False,True,levevp,True,jpeg)
 AnnPlot(pltDir,"erai_atscrn","20",type,"BlAqGrYeOrReVi200",era_tp2m,False,True,levtp,False,jpeg)
 AnnPlot(pltDir,"erai_aprec" ,"20",type,cmapr2             ,era_prec,False,True,levbpr,False,jpeg)
@@ -773,7 +795,7 @@ IndPlot(pltDir,"apr_son",numYr,type,cmapr2,precip(3,0,:,:),True,True,levbpr,True
 if(isvar("tmax")) then
 Panel_Plot(pltDir,"aust_tmax"  ,numYr,type,"BlAqGrYeOrReVi200",tmax(:,0,:,:)  ,True,True,levtp,True,jpeg)
 Panel_Plot(pltDir,"aust_tmin"  ,numYr,type,"BlAqGrYeOrReVi200",tmin(:,0,:,:)  ,True,True,levtp,True,jpeg)
-Panel_Plot(pltDir,"aust_tamp"  ,numYr,type,"BlAqGrYeOrReVi200",tamp(:,0,:,:)  ,True,True,levdf,True,jpeg)
+Panel_Plot(pltDir,"aust_tamp"  ,numYr,type,"BlAqGrYeOrReVi200",tamp(:,0,:,:)  ,True,True,levam,True,jpeg)
 end if
 
 if(isvar("lai")) then
@@ -901,7 +923,7 @@ MmnPanel(pltDir,"mmn_tscrn"  ,numYr,type,"BlAqGrYeOrReVi200",t2mn(:,0,:,:) ,Fals
 if(isvar("tmax")) then
 MmnPanel(pltDir,"mmn_tmax"   ,numYr,type,"BlAqGrYeOrReVi200",txmn(:,0,:,:) ,False,True,levtp,False)
 MmnPanel(pltDir,"mmn_tmin"   ,numYr,type,"BlAqGrYeOrReVi200",tnmn(:,0,:,:) ,False,True,levtp,False)
-MmnPanel(pltDir,"mmn_tamp"   ,numYr,type,"BlAqGrYeOrReVi200",tamn(:,0,:,:) ,False,True,levdf,False)
+MmnPanel(pltDir,"mmn_tamp"   ,numYr,type,"BlAqGrYeOrReVi200",tamn(:,0,:,:) ,False,True,levam,False)
 end if
 if(isvar("lalb")) then
 MmnPanel(pltDir,"mmn_lalb"   ,numYr,type,"BlAqGrYeOrReVi200",albmn(:,0,:,:),False,True,levalb,False)
@@ -950,6 +972,7 @@ end if
 ; Map Projections =================================================
 
 print("Plotting Map Projections")
+print("")
 
 nHem = "NH"
 sHem = "SH"

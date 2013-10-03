@@ -14,7 +14,7 @@ begin
 
 ;LongName = "hyytiala"
 numYr    = systemfunc("echo $YR")
-filDir   = systemfunc("echo $PWD")
+filDir   = systemfunc("echo $DIRW")
 jpg = systemfunc("echo $JPEG")
 if(jpg.eq."y") then
 jpeg = True
@@ -27,13 +27,15 @@ home     = "/home/cmar/ste69f/"
 
 ;system("dmget " + tsDir + LongName +"/mmdc*_roll.nc" )
 
+;obs
 flux_ma  = addfile(tsDir + "MA96_lu_u0_mm_flx.nc"        ,"r")
 met_ma   = addfile(tsDir + "MA96_mm_met.nc"              ,"r")
 flux_tb  = addfile(tsDir + "AnnCycles_tumbarumba.nc" ,"r")
+; model
 mosfil   = addfile(filDir+"/AnnualCycle_"+numYr+"yrs.nc"        ,"r")
 ;igbp     = addfile(home  + "igbp/"+ LongName +"/MMDC_"+ LongName +"_roll.nc","r")
 
-;==============================================================================
+;OBS===========================================================================
 
 fils   = systemfunc("ls "+tsDir+"*-*_lu_u0_mm_flx.nc")
 f      = addfiles(fils,"r")
@@ -59,7 +61,7 @@ rad_tb  = flux_tb ->rnet_8yr_mean  ;Rnet  ;Rn
 temp_tb = flux_tb ->tair_8yr_mean  ;Tair  ;Ta
 prec_tb = flux_tb ->rainf_8yr_mean ;Rainf ;PPT
 
-;==============================================================================
+;OBS===========================================================================
 
 sensht            = new((/11,12/),double)
 latht             = new((/11,12/),double)
@@ -102,6 +104,8 @@ precip(10,:)      = prec_tb(0:11) ;PPT
 ;rainf   = igbp  ->Rainf
 ;----------------------
 
+;MODEL==========================================
+
 ;csh     = cabfil ->hfss
 msh     = mosfil ->hfss
 ;clh     = cabfil ->hfls
@@ -119,24 +123,24 @@ dNrad   = getfilevardims(mosfil,"field3333")
 ;print(dNames)
 
 mrad_ro = new((/11,12/),double)
-mrad_ro(0,:)  = mrad(axis_4|10,axis_1|:) ; bv
-mrad_ro(1,:)  = mrad(axis_4|15,axis_1|:) ; hv
-mrad_ro(2,:)  = mrad(axis_4|5,axis_1|:)  ; hy
-mrad_ro(3,:)  = mrad(axis_4|12,axis_1|:) ; lw
-mrad_ro(4,:)  = mrad(axis_4|14,axis_1|:) ; lo
-mrad_ro(5,:)  = mrad(axis_4|16,axis_1|:) ; nb
-mrad_ro(6,:)  = mrad(axis_4|9,axis_1|:)  ; th
-mrad_ro(7,:)  = mrad(axis_4|17,axis_1|:) ; vi
-mrad_ro(8,:)  = mrad(axis_4|13,axis_1|:) ; wb
-mrad_ro(9,:)  = mrad(axis_4|0,axis_1|:)  ; ma
-mrad_ro(10,:) = mrad(axis_4|8,axis_1|:)  ; tb
+mrad_ro(0,:)  = mrad($dNames(1)$|10,$dNames(0)$|:) ; bv
+mrad_ro(1,:)  = mrad($dNames(1)$|15,$dNames(0)$|:) ; hv
+mrad_ro(2,:)  = mrad($dNames(1)$|5 ,$dNames(0)$|:) ; hy
+mrad_ro(3,:)  = mrad($dNames(1)$|14,$dNames(0)$|:) ; lo
+mrad_ro(4,:)  = mrad($dNames(1)$|12,$dNames(0)$|:) ; lw
+mrad_ro(5,:)  = mrad($dNames(1)$|16,$dNames(0)$|:) ; nb
+mrad_ro(6,:)  = mrad($dNames(1)$|9 ,$dNames(0)$|:) ; th
+mrad_ro(7,:)  = mrad($dNames(1)$|17,$dNames(0)$|:) ; vi
+mrad_ro(8,:)  = mrad($dNames(1)$|13,$dNames(0)$|:) ; wb
+mrad_ro(9,:)  = mrad($dNames(1)$|0 ,$dNames(0)$|:) ; ma
+mrad_ro(10,:) = mrad($dNames(1)$|8 ,$dNames(0)$|:) ; tb
 
 msh_ro = new((/11,12/),double)
 msh_ro(0,:)  = msh($dNames(1)$|10,$dNames(0)$|:) ; bv
 msh_ro(1,:)  = msh($dNames(1)$|15,$dNames(0)$|:) ; hv
 msh_ro(2,:)  = msh($dNames(1)$|5 ,$dNames(0)$|:) ; hy
-msh_ro(3,:)  = msh($dNames(1)$|12,$dNames(0)$|:) ; lw
-msh_ro(4,:)  = msh($dNames(1)$|14,$dNames(0)$|:) ; lo
+msh_ro(3,:)  = msh($dNames(1)$|14,$dNames(0)$|:) ; lo
+msh_ro(4,:)  = msh($dNames(1)$|12,$dNames(0)$|:) ; lw
 msh_ro(5,:)  = msh($dNames(1)$|16,$dNames(0)$|:) ; nb
 msh_ro(6,:)  = msh($dNames(1)$|9 ,$dNames(0)$|:) ; th
 msh_ro(7,:)  = msh($dNames(1)$|17,$dNames(0)$|:) ; vi
@@ -148,8 +152,8 @@ mlh_ro = new((/11,12/),double)
 mlh_ro(0,:)  = mlh($dNames(1)$|10,$dNames(0)$|:) ; bv
 mlh_ro(1,:)  = mlh($dNames(1)$|15,$dNames(0)$|:) ; hv
 mlh_ro(2,:)  = mlh($dNames(1)$|5 ,$dNames(0)$|:) ; hy
-mlh_ro(3,:)  = mlh($dNames(1)$|12,$dNames(0)$|:) ; lw
-mlh_ro(4,:)  = mlh($dNames(1)$|14,$dNames(0)$|:) ; lo
+mlh_ro(3,:)  = mlh($dNames(1)$|14,$dNames(0)$|:) ; lo
+mlh_ro(4,:)  = mlh($dNames(1)$|12,$dNames(0)$|:) ; lw
 mlh_ro(5,:)  = mlh($dNames(1)$|16,$dNames(0)$|:) ; nb
 mlh_ro(6,:)  = mlh($dNames(1)$|9 ,$dNames(0)$|:) ; th
 mlh_ro(7,:)  = mlh($dNames(1)$|17,$dNames(0)$|:) ; vi
@@ -343,14 +347,41 @@ wks  = gsn_open_wks("ps","annualc_"+numYr+"yrs")
 res = True
 res@gsnFrame = False
 res@gsnDraw  = False
-res@xyLineColors           = (/"black","blue","red","green","purple","cyan","magenta","firebrick","orange","SlateBlue","navy","SkyBlue"/)
+res@xyLineColors           = (/"black","deepskyblue1","red","green","mediumorchid1","cyan","magenta","firebrick","orange","SlateBlue","navy","SkyBlue"/)
 res@xyDashPatterns         = (/0,0,0,0,0,0,0,0,0,0,1,2/)
 res@xyLineThicknesses      = (/2,2,2,2,2,2,2,2,2,2,2,2/)
 res@gsnYRefLine            = 0.
 ;res@gsnLeftString          = ""
-res@tiYAxisString          = "W/m2"
-res@trYMinF                = -90
-res@trYMaxF                = 120
+;res@tiYAxisString          = "W/m2"
+
+res@tiYAxisFontHeightF = 0.02
+res@tiYAxisOffsetXF    = 0.005
+res@tiYAxisString      = "W/m2"
+res@tiXAxisString      = "months"
+;if (rid.eq."saaca") then
+;res@gsnLeftString      = "Annual - A1.0"
+;else
+res@gsnLeftString      = "Annual" ; - A1.1"
+;end if
+res@gsnLeftStringFontHeightF    =  0.02
+res@gsnLeftStringOrthogonalPosF = -0.10
+res@gsnLeftStringParallelPosF   =  0.05
+
+mxf    = (/0.,0.,0./)
+;mxf!0  = "axis_0"
+;mxf&axis_0 = (/1,2,3/)
+mxf(0) = dble2flt(max(rad_ANN))
+mxf(1) = dble2flt(max(sh_ANN))
+mxf(2) = dble2flt(max(lh_ANN))
+mnf    = (/0.,0.,0./)
+;mnf!0  = "axis_0"
+;mnf&axis_0 = (/1,2,3/)
+mnf(0) = dble2flt(min(rad_ANN))
+mnf(1) = dble2flt(min(sh_ANN))
+mnf(2) = dble2flt(min(lh_ANN))
+;print((/floor(min(mnf)),ceil(max(mxf))/))
+res@trYMinF                = floor(min(mnf));-90
+res@trYMaxF                = ceil(max(mxf)) ;120
 
 ;res@pmLegendDisplayMode    = "Always"            ; turn on legend
 ;res@pmLegendSide           = "Top"            ; Change location of
@@ -368,6 +399,15 @@ res@trYMaxF                = 120
 plot = new(3,graphic)
 plot(0) = gsn_csm_xy(wks,y,rad_ANN,res)
 plot(1) = gsn_csm_xy(wks,y,sh_ANN,res)
+ res@pmLegendDisplayMode    = "Always"            ; turn on legend
+ res@pmLegendSide           = "Bottom"            ; Change location of
+ res@pmLegendParallelPosF   = .15                 ; move units right
+ res@pmLegendOrthogonalPosF = -0.55               ; move units down
+ res@pmLegendWidthF         = 0.16                ; Change width and
+ res@pmLegendHeightF        = 0.22                ; height of legend.
+ res@lgPerimOn              = False               ; turn off box around
+ res@lgLabelFontHeightF     = .015                ; label font height
+ res@xyExplicitLegendLabels = (/"bond","harv","hyyt","loob","lwas","nbor","thar","","wbra","","","hay"/)
 plot(2) = gsn_csm_xy(wks,y,lh_ANN,res)
 
 ; bv hv hy lw lo nb th vi wb ma tb
@@ -431,14 +471,13 @@ gsn_panel(wks,plot,(/1,3/),pres)
 ;end create
 
 
-colors = (/"black","blue","red","green","darkviolet","cyan","magenta","firebrick","orange","SlateBlue","navy","forestgreen"/)
+colors = (/"black","deepskyblue1","red","green","mediumorchid1","cyan","magenta","firebrick","orange","SlateBlue","navy","forestgreen"/)
 ;labels = (/"bondville","harvardforest","hyytiala","littlewashita","loobos","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)
-labels = (/"Tumbarumba","Manaus","WalkerBranch","Vielsalm","Tharandt","NsaBoreas","Loobos","LittleWashita","Hyytiala","HarvardForest","Bondville"/)
+labels = (/"Tumbarumba","Manaus","WalkerBranch","Vielsalm","Tharandt","NsaBoreas","LittleWashita","Loobos","Hyytiala","HarvardForest","Bondville"/)
 
 lgres                    = True
 lgres@vpWidthF           = 0.6                         ; width of legend (NDC)
 lgres@vpHeightF          = 0.7                         ; height of legend (NDC)
-;;lgres@lgLineColors       = (/"black","blue","red","green","purple","cyan","magenta","firebrick","orange","SlateBlue","navy","SkyBlue"/)    ; colors for legend lines
 ;;lgres@lgDashIndex       = 0.
 ;lgres@lgPerimOn          = False                       ; turn off perimeter
 lgres@lgDashIndexes     = (/0,0,0,0,0,0,0,0,0,0,1,1/)  ; dash indexes
@@ -451,6 +490,7 @@ lgres@lgLabelAngleF      = 270
 ;lgres@gsnMaximize         = True
 ;lgres@gsnPaperOrientation = "landscape"
 ;lgres@wkOrientation = "seascape"
+lgres@lgBoxMinorExtentF      = 0.2
 
 xpos = 0.30  ;(/0.05,0.05,0.05,0.25,0.25,0.25,0.5,0.5,0.5,0.75,0.75/)
 ypos = 0.95 ;(/0.05,.1,.2,0.05,.1,.2,0.05,.1,.2,0.05,.1/)
@@ -469,7 +509,8 @@ gsn_legend_ndc(wks,11,labels,xpos,ypos,lgres)
 frame(wks)
 
  if (jpeg) then
- system("convert -density 1000 -geometry 1200x1600 "+pltName+".ps "+pltName+".jpg")
+ system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
+ ;system("convert -density 1000 -geometry 1200x1600 "+pltName+".ps "+pltName+".jpg")
  end if
 
 end

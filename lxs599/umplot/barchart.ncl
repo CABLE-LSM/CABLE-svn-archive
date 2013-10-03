@@ -1,15 +1,15 @@
-; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------
 ; Lauren Stevens 2 June 2011
 ; Interannual Variability
 ; NCL - XY Plots
-; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------
 
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "/home/cmar/ste69f/umplot/plot_bar.ncl"
 
-; Set-Up ----------------------------------------------------------------------
+; Set-Up ----------------------------------------------------------
 
 ;procedure BarChart(pltDir:string,:string,Yr:string,pltType:string,Mstp:string)
 
@@ -21,6 +21,7 @@ resol  = systemfunc("echo $RES")
 mosDir = systemfunc("echo $MOSES")
 cabDir = systemfunc("echo $CABLE")
 vMask  = systemfunc("echo $MASK")
+tname =  systemfunc("echo $tname")
 
 ;rid  = systemfunc("echo $RUNID")
 ;OtherDir = systemfunc("echo $LDIR")
@@ -48,25 +49,47 @@ era_mask   = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 if (resol.eq.48) then
 lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
 orog_file  = addfile(LsmDir+"orography_UMn48.nc","r")
+lf_file   = addfile(LsmDir+"landfrac_n48.nc","r")
 else
 if (vMask.eq.2) then
 lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
 orog_file  = addfile(LsmDir+"qrparm.orog_hg2.nc","r")
+;orog_file  = addfile(LsmDir+"qrparm.orog_accessV2.nc","r")
+lf_file   = addfile(LsmDir+"landfrac_v2.nc","r")
 else
 lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
 orog_file  = addfile(LsmDir+"qrparm.orog_v1.nc","r")
+lf_file   = addfile(LsmDir+"landfrac_ACCESS_N96.nc","r")
 end if
 end if
 
-; Variables ------------------------------------------------------------------
+; Variables -------------------------------------------------------
 
 ;prM1              = moses_file ->field77
 ;prC1              = cable_file ->field77
 ;era_pr1           = pr_obs     ->pr
-tscrnM1           = moses_file ->tscrn
-tscrnC1           = cable_file ->tscrn
+if (isfilevar(moses_file,"tscrn")) then
+tscrnM1           = moses_file ->tscrn ; tas
+else
+if (isfilevar(moses_file,"tas")) then
+tscrnM1           = moses_file ->tas
+else
+tscrnM1           = moses_file ->$tname$ ; tas
+end if
+end if
+if (isfilevar(cable_file,"tscrn")) then
+tscrnC1           = cable_file ->tscrn ; tas
+else
+if (isfilevar(cable_file,"tas")) then
+tscrnC1           = cable_file ->tas
+else
+tscrnC1           = cable_file ->$tname$ ; tas
+end if
+end if
 era_t2m1          = tscrn_obs  ->a ;t2m
-lsm               = lsm_file   ->lsm
+;lsm               = lsm_file   ->lsm
+;lfr               = lf_file   ->lsm
+lsm               = lf_file   ->lsm
 orog              = orog_file  ->ht
 emsk1             = era_mask   ->lsm
 
@@ -106,7 +129,7 @@ era_t2m&latitude  = era_t2m1&latitude
 era_t2m&longitude = era_t2m1&longitude
 ;copy_VarMeta(era_t2m,era_t2m)
 
-; Land-Only: Mask Ocean ------------------------------------------------------
+; Land-Only: Mask Ocean -------------------------------------------
 
 LandTm          = tscrnM1 
 LandTc          = tscrnC1
@@ -138,7 +161,7 @@ LandTmA = dim_avg_n_Wrap(LandTm,0)
 LandTcA = dim_avg_n_Wrap(LandTc,0)
 LandTeA = dim_avg_n_Wrap(LandTe,0)
 
-; Weighted Averages ---------------------------------------------------------
+; Weighted Averages -----------------------------------------------
 
 mlat      = new((/2,6/),float)
 mlat(:,0) = (/-90, 90/)    ; Global
@@ -150,17 +173,48 @@ mlat(:,5) = (/-90,-66/)    ; High Southern Latitudes (hSlat)
 dlat      = dimsizes(mlat)
 ;print(mlat)
 
-rad = 4.0*atan(1.0) / 180.  ; 0.01745329
+rad = 4.0*atan(1.0) / 180.  ; pi/180. = 0.01745329 ; radi<-->deg
 
 gdata            = new((/21/),double)
 gdata            = -9999
 gdata@_FillValue = -9999
-; gdata #7 will be for b1500m (orog mask), surrently set to -9999 (missing)
+; gdata #7 will be for b1500m (orog mask), currently set to -9999 (missing)
 
 land_data            = new((/21/),double)
 land_data            = -9999
 land_data@_FillValue = -9999
-; land_data #7 will be for b1500m (orog mask), surrently set to -9999 (missing)
+; land_data #7 will be for b1500m (orog mask), currently set to -9999 (missing)
+
+re    = 6.37122e06
+con   = re * rad
+clat  = cos(tscrnC&latitude*rad)
+
+dNames = getvardims(tscrnC)
+dims = dimsizes(tscrnC)
+nsiz = dimsizes(dims)
+nlat = dims(nsiz-2)
+mlon = dims(nsiz-1)
+
+dlon = (tscrnC&$dNames(nsiz-1)$(2)-tscrnC&$dNames(nsiz-1)$(1))
+dlati = (tscrnC&latitude(2)-tscrnC&latitude(1))
+dx   = con * dlon * clat
+dy   = con * dlati
+dydx = dy * dx
+
+wgt  = new((/nlat,mlon/),double)
+wgt!0 = "lat"
+wgt!1 = "lon"
+wgt&lat = tscrnC&latitude
+wgt&lon = tscrnC&$dNames(nsiz-1)$ ;longitude
+wgt  = conform(wgt,dydx,0)
+;wgto = wgt*(1-lfr(0,0,:,:))
+;wgtl = wgt*lfr(0,0,:,:)
+wgtlm = wgt*(lsm(0,0,:,:)) ;lsm = lfr
+;wgtom = wgt*(1-lsm(0,0,:,:))
+wgtlm!0 = "lat"
+wgtlm!1 = "lon"
+wgtlm&lat = tscrnC&latitude
+wgtlm&lon = tscrnC&$dNames(nsiz-1)$ ;longitude
 
 k    = 0
 do i = 0,dlat(1)-1,1
@@ -168,19 +222,23 @@ latS       = mlat(0,i)
 latN       = mlat(1,i)
 lat        = latitude({latS:latN})
 late       = lat_era({latS:latN})
-wgt_M      = wgt_areaave(tscrnM(:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_M      = wgt_areaave2(tscrnM(:,{latS:latN},:),wgt({latS:latN},:),0)
+;wgt_M      = wgt_areaave(tscrnM(:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_M!0    = "ht"
 wgt_M@ht   = tscrnM1&ht
-wgt_C      = wgt_areaave(tscrnC(:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_C      = wgt_areaave2(tscrnC(:,{latS:latN},:),wgt({latS:latN},:),0)
+;wgt_C      = wgt_areaave(tscrnC(:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_C!0    = "ht"
 wgt_C@ht   = tscrnC1&ht
 wgt_E      = wgt_areaave(era_t2m({latS:latN},:),cos(late*rad),1.0,0)
 wgt_E!0    = "ht"
 wgt_E@ht   = tscrnC1&ht
-wgt_lM     = wgt_areaave(LandTmA(:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_lM     = wgt_areaave2(LandTmA(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+;wgt_lM     = wgt_areaave(LandTmA(:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_lM!0   = "ht"
 wgt_lM@ht  = tscrnM1&ht
-wgt_lC     = wgt_areaave(LandTcA(:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_lC     = wgt_areaave2(LandTcA(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+;wgt_lC     = wgt_areaave(LandTcA(:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_lC!0   = "ht"
 wgt_lC@ht  = tscrnC1&ht
 wgt_lE     = wgt_areaave(LandTeA({latS:latN},:),cos(late*rad),1.0,0)
@@ -226,12 +284,12 @@ end do
 
 print("Plotting Annual Barcharts")
 
-BarPlot("Global Annual Means"    ,gdata        ,"bar_tscrn_gann_"+numYr+"yrs"    ,"ps",False)
-BarPlot("Global Annual Biases"   ,bias_ann     ,"bar_tscrn_gbias_"+numYr+"yrs"   ,"ps",False)
-BarPlot("Land Only Annual Means" ,land_data    ,"bar_tscrn_land_"+numYr+"yrs"    ,"ps",False)
-BarPlot("Land Only Annual Biases",land_bias_ann,"bar_tscrn_landbias_"+numYr+"yrs","ps",False)
+PlotBar("Global Annual Screen Temperature Means"    ,gdata        ,"bar_tscrn_gann_"+numYr+"yrs"    ,"ps",False)
+PlotBar("Global Annual Screen Temperature Biases"   ,bias_ann     ,"bar_tscrn_gbias_"+numYr+"yrs"   ,"ps",False)
+PlotBar("Annual Screen Temperature Means for Land" ,land_data    ,"bar_tscrn_land_"+numYr+"yrs"    ,"ps",False)
+PlotBar("Annual Screen Temperature Biases for Land",land_bias_ann,"bar_tscrn_landbias_"+numYr+"yrs","ps",False)
 
-; seasonal ===============================================================
+; seasonal ========================================================
 
 sdata            = new((/4,21/),double)
 sdata            = -9999
@@ -250,19 +308,23 @@ latS       = mlat(0,i)
 latN       = mlat(1,i)
 lat        = latitude({latS:latN})
 late       = lat_era({latS:latN})
-wgt_M      = wgt_areaave(tscrnM1(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_M      = wgt_areaave2(tscrnM1(j,:,{latS:latN},:),wgt({latS:latN},:),0)
+;wgt_M      = wgt_areaave(tscrnM1(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_M!0    = "ht"
 wgt_M@ht   = tscrnM1&ht
-wgt_C      = wgt_areaave(tscrnC1(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_C      = wgt_areaave2(tscrnC1(j,:,{latS:latN},:),wgt({latS:latN},:),0)
+;wgt_C      = wgt_areaave(tscrnC1(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_C!0    = "ht"
 wgt_C@ht   = tscrnC1&ht
 wgt_E      = wgt_areaave(era_t2m1(j,{latS:latN},:),cos(late*rad),1.0,0)
 wgt_E!0    = "ht"
 wgt_E@ht   = tscrnC1&ht
-wgt_lM     = wgt_areaave(LandTm(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_lM     = wgt_areaave2(LandTm(j,:,{latS:latN},:),wgtlm({latS:latN},:),0)
+;wgt_lM     = wgt_areaave(LandTm(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_lM!0   = "ht"
 wgt_lM@ht  = tscrnM1&ht
-wgt_lC     = wgt_areaave(LandTc(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
+wgt_lC     = wgt_areaave2(LandTc(j,:,{latS:latN},:),wgtlm({latS:latN},:),0)
+;wgt_lC     = wgt_areaave(LandTc(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_lC!0   = "ht"
 wgt_lC@ht  = tscrnC1&ht
 wgt_lE     = wgt_areaave(LandTe(j,{latS:latN},:),cos(late*rad),1.0,0)
@@ -307,14 +369,14 @@ end do
 
 print("Plotting Seasonal BarCharts")
 
-BarPlot("Global Seasonal Means"    ,sdata             ,"bar_tscrn_gsea_"+numYr+"yrs"       ,"ps",True)
-BarPlot("Global Seasonal Biases"   ,bias_sea          ,"bar_tscrn_gseabias_"+numYr+"yrs"   ,"ps",True)
-BarPlot("Land Only Seasonal Means" ,land_sdata        ,"bar_tscrn_sealand_"+numYr+"yrs"    ,"ps",True)
-BarPlot("Land Only Seasonal Biases",land_bias_sea     ,"bar_tscrn_sealandbias_"+numYr+"yrs","ps",True)
-;BarPlot("Land Only DJF Biases"     ,land_bias_sea(0,:),"bar_tscrn_djflandbias_"+numYr+"yrs" ,"ps",False)
-;BarPlot("Land Only MAM Biases"     ,land_bias_sea(1,:),"bar_tscrn_mamlandbias_"+numYr+"yrs" ,"ps",False)
-;BarPlot("Land Only JJA Biases"     ,land_bias_sea(2,:),"bar_tscrn_jjalandbias_"+numYr+"yrs" ,"ps",False)
-;BarPlot("Land Only SON Biases"     ,land_bias_sea(3,:),"bar_tscrn_sonlandbias_"+numYr+"yrs" ,"ps",False)
+PlotBar("Global Seasonal Screen Temperature Means"   ,sdata             ,"bar_tscrn_gsea_"+numYr+"yrs"       ,"ps",True)
+PlotBar("Global Seasonal Screen Temperature Biases"  ,bias_sea          ,"bar_tscrn_gseabias_"+numYr+"yrs"   ,"ps",True)
+PlotBar("Seasonal Screen Temperature Means for Land" ,land_sdata        ,"bar_tscrn_sealand_"+numYr+"yrs"    ,"ps",True)
+PlotBar("Seasonal Screen Temperature Biases for Land",land_bias_sea     ,"bar_tscrn_sealandbias_"+numYr+"yrs","ps",True)
+;PlotBar("DJF Screen Temperature Biases for Land"     ,land_bias_sea(0,:),"bar_tscrn_djflandbias_"+numYr+"yrs" ,"ps",False)
+;PlotBar("MAM Screen Temperature Biases for Land"     ,land_bias_sea(1,:),"bar_tscrn_mamlandbias_"+numYr+"yrs" ,"ps",False)
+;PlotBar("JJA Screen Temperature Biases for Land"     ,land_bias_sea(2,:),"bar_tscrn_jjalandbias_"+numYr+"yrs" ,"ps",False)
+;PlotBar("SON Screen Temperature Biases for Land"     ,land_bias_sea(3,:),"bar_tscrn_sonlandbias_"+numYr+"yrs" ,"ps",False)
 
 ; ================================================================
 
