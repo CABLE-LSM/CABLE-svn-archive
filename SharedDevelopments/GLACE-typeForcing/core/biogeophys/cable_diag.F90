@@ -76,7 +76,7 @@ SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
       ENDIF
          
       write(chnode,10) node
-   10 format(i2.2)   
+   10 format(i3.3)   
       filename=trim(trim(basename)//trim(chnode))
       
       if (timestep == 1) & 
@@ -189,7 +189,7 @@ CONTAINS
 
  
       write(chnode,10) node
-   10 format(i2.2)   
+   10 format(i3.3)   
       filename=trim(trim(basename)//trim(chnode))
    
       ! read the binary data andstore in 2nd arg 
