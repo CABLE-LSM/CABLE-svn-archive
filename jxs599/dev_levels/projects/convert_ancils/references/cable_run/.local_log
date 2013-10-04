@@ -1,0 +1,20 @@
+24/2/09/
+-----------
+
+-  still have to reinstat if(check for obs Rnet in plotting) DONE
+-  include if plottypes requested   REJECTED
+
+25/2/09
+--------
+
+- Hyytlia seems to have no oNEE in obs.nc file
+ 
+12-3-09
+--------
+
+- re-visited after a few weeks off on mk3l stuff. Hy.. seems o be working, atleast for window plot. maybe i made the neccessary changes (see above) already.
+
+- check other plots are working, check all sites, and check on gof array production
+
+ 
+

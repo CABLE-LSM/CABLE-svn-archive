@@ -1,0 +1,22 @@
+# C shell commands to define IDL environment variables and aliases.
+#
+# This script can be used by IDL users who use csh as their interactive shell
+# to define the environment variables and aliases required by IDL
+# related commands (idl, idlde, idlhelp, idldemo) if the symbolic links to
+# the default directory (/usr/local/itt/idl) are not being used.
+#
+# csh users should source idl_setup from their .cshrc files,
+# using the following command:
+#
+#    source /opt/idl-7.0/idl70/bin/idl_setup
+#
+
+setenv ITT_DIR $RSI_DIR
+#setenv IDL_DIR /opt/idl-7.0/idl70
+alias ittlicense $IDL_DIR/bin/ittlicense
+alias idl $IDL_DIR/bin/idl
+alias idlde $IDL_DIR/bin/idlde
+alias idlhelp $IDL_DIR/bin/idlhelp
+alias idlman $IDL_DIR/bin/idlman
+alias idlrpc $IDL_DIR/bin/idlrpc
+alias idldemo $IDL_DIR/bin/idldemo

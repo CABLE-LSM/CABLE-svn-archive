@@ -1,0 +1,29 @@
+Loading required package: survival
+Loading required package: splines
+
+Attaching package: 'Hmisc'
+
+
+	The following object(s) are masked from package:survival :
+
+	 untangle.specials 
+
+
+	The following object(s) are masked from package:base :
+
+	 format.pval,
+	 round.POSIXt,
+	 trunc.POSIXt,
+	 units 
+
+
+Attaching package: 'boot'
+
+
+	The following object(s) are masked from package:survival :
+
+	 aml 
+
+> proc.time()
+   user  system elapsed 
+ 58.611   0.296  59.304 

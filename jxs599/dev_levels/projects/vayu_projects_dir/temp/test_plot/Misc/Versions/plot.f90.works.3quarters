@@ -1,0 +1,103 @@
+
+   module def_points_module
+      real, dimension (6) :: fanmfp
+      contains
+      subroutine def_Fanpoints
+         use plot_cases
+         implicit none
+
+         return
+      end subroutine
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   end module 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   PROGRAM plot
+      use plot_interface
+      use plot_cases
+      use genericread_module
+      implicit none
+      integer, parameter :: N=29
+      integer i
+      real, dimension (6) :: fanlambda
+      real, dimension (6) ::fanlambdaraw=(/0.864730,0.741575,0.727832,0.579494,0.418643,-0.099272/)
+      real, dimension (6) ::fanz=(/5.05,5.25,5.45,5.65,5.85,6.1/)
+      type (fiducial_case) :: lambda,bh5,bh6,srb005,srb010,srb040,srb080
+      type (fesc_case) :: fesc5,fesc10,fesc20 
+      type (mypoints) :: uni,zval
+      type (BHpoints) :: bhz 
+      type (Fanpoints) :: fan 
+         call pgbeg(0,"/cps",1,2); call pgpage
+         call readfile("Input/lambda.dat",N,lambda%x) !read mfp which is common to everything
+         fanlambda=(1+fanz)*(10**fanlambdaraw)       
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!   TOP PLOT: Gamma(mfp)                !!!!!!   
+!!!!!!   my model req. Gamma(mfp) - see      !!!!!!
+!!!!!!   nazgul /raid2/dPdfesc.../Grid3/.... !!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       call plot_case(lambda,srb005,N,1,3,1,"Input/myGamma.005")
+       call plot_case(lambda,srb010,N,1,3,1,"Input/myGamma.010")
+       call plot_case(lambda,srb040,N,1,3,1,"Input/myGamma.040")
+       call plot_case(lambda,srb080,N,1,3,1,"Input/myGamma.080")
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!  Boltons Analytic relation Gamma(mfp) !!!!!!
+!!!!!!  alla Bolton&Haehhelt (2007)          !!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       call plot_case(lambda,bh5,N,1,3,1,"Input/BHGamma.5.0")
+       call plot_case(lambda,bh6,N,1,3,1,"Input/BHGamma.6.0")
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!  my model points: z=5.5,5.7,6.0       !!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       call plot_case(zval,3,1,3,1,"Input/MyGamma.dat",.false.,24)
+       call plot_case(uni,3,1,3,1,"Input/MyGamma_uniform.dat",.true.,26)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!  Fan et al (2006) pts.  z~5.0->6.0    !!!!!!
+!!!!!!  Fan mfp array defined in main prog   !!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         fan%filename="Input/FanGamma.dat"; fan%uniform=.false.
+         fan%N=6; fan%sci=5;fan%slw=5; fan%sls=1;fan%marker=-3
+         call plotl(fanlambda,fan)  !green
+         call pgbox('BNCST', 0.0, 0, 'BSTNC', 0.0,0)  !draw box art end
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!  BH07 points.predicted at  z=5.0,6.0  !!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         bhz%filename="Input/BoltonGamma.dat";
+         bhz%uniform=.false.;bhz%analytica=bh5;bhz%analyticb=bh6;bhz%Nlambda=srb005%N 
+         bhz%N=2;  bhz%sci=4;bhz%slw=5; bhz%sls=1;bhz%marker=24;bhz%errdirn=1
+         call plotl(lambda%x,bhz)  !green
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!   BOTTOM PLOT: Gamma(mfp)             !!!!!!   
+!!!!!!   my model fesc & Gamma(mfp) - see    !!!!!!
+!!!!!!   nazgul /raid2/dPdfesc.../Grid3/.... !!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+         call pgpage
+!my model of IBG contours of fesc
+         fesc5%filename="Input/J21_mfp.dat"; fesc5%fesc=0.05
+         fesc5%N=N;  fesc5%sci=1;fesc5%slw=3; fesc5%sls=1
+         fesc10%fesc=0.1;fesc20%fesc=0.2
+         call plotl(lambda%x,fesc5)
+         call plotl(lambda%x,fesc5,fesc10%fesc)
+         call plotl(lambda%x,fesc5,fesc20%fesc)
+!again - overlaid points
+!plot points. my z=5.5,5.7,6.0 predicted values
+         uni%filename="Input/MyGamma_uniform.dat";uni%uniform=.true.
+         uni%N=3;uni%sci=2;uni%slw=3; uni%sls=1; uni%marker=26
+         call plotl(uni)   !red
+         zval%filename="Input/MyGamma.dat"; zval%uniform=.false.;zval%errdirn=1
+         zval%N=3;  zval%sci=3;zval%slw=3; zval%sls=1;zval%marker=26
+         call plotl(zval)  !green
+!BH07 points. z=5.0,6.0 predicted values
+         bhz%filename="Input/BoltonGamma.dat"; bhz%uniform=.false.
+         bhz%N=2;  bhz%sci=4;bhz%slw=5; bhz%sls=1;bhz%marker=14;bhz%errdirn=1
+ !        call plotl(lambda,bhz)  !green
+!Fan et al (2006) points. my z~5.0->6.0 predicted values from observation
+         fan%filename="Input/FanGamma.dat"; fan%uniform=.false.
+         fan%N=6; fan%sci=5;fan%slw=5; fan%sls=1;fan%marker=-3
+         call plotl(fanlambda,fan)  !green 
+         call pgbox('BNCST', 0.0, 0, 'BSTNC', 0.0,0)  !draw box at end 
+         call pgend
+      stop
+   end program plot
+
+
+

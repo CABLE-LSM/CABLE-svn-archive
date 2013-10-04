@@ -1,0 +1,1 @@
+i have added lines into run_cable.gprof to rm rad* created binaries by cable_debug routine when benchmarking writing binaries against just printing out values

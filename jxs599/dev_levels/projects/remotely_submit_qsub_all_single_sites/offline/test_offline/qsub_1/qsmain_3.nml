@@ -1,0 +1,2 @@
+  sitenames = c( 'WeidenBrunnen') 
+  obsfiles = c( 'data/sample_met/Weidenbrunnen_csiro.nc') 

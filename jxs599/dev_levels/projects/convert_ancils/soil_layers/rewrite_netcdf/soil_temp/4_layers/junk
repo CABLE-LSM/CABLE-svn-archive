@@ -1,0 +1,48 @@
+--- qt	2009-08-18 14:17:50.502998350 +1000
++++ nt	2009-08-18 14:17:57.843321969 +1000
+@@ -1,34 +1,33 @@
+-netcdf qrclim {
++netcdf newqrclim {
+ dimensions:
+ 	longitude = 96 ;
+ 	latitude = 73 ;
+ 	surface = 4 ;
+-	t = UNLIMITED ; // (12 currently)
++	t = 12 ;
+ variables:
+-	float longitude(longitude) ;
++	double longitude(longitude) ;
+ 		longitude:units = "degrees_east" ;
+ 		longitude:point_spacing = "even" ;
+ 		longitude:modulo = " " ;
+-	float latitude(latitude) ;
++	double latitude(latitude) ;
+ 		latitude:units = "degrees_north" ;
+ 		latitude:point_spacing = "even" ;
+-	float surface(surface) ;
++	double surface(surface) ;
+ 		surface:units = "level" ;
+ 		surface:positive = "up" ;
+-	float t(t) ;
++	double t(t) ;
+ 		t:units = "days since 0000-01-01 00:00:00" ;
+ 		t:modulo = " " ;
+ 		t:calendar = "360_day" ;
+ 		t:time_origin = "01-JAN-0000:00:00:00" ;
+ 	float soiltemp(t, surface, latitude, longitude) ;
+-		soiltemp:source = "Unified Model Output (Vn 6.0):" ;
+-		soiltemp:name = "soiltemp" ;
+-		soiltemp:title = "DEEP SOIL TEMP AFTER TIMESTEP" ;
+-		soiltemp:date = "01/01/00" ;
+-		soiltemp:time = "00:00" ;
+-		soiltemp:long_name = "DEEP SOIL TEMP AFTER TIMESTEP" ;
+ 		soiltemp:units = "K" ;
+ 		soiltemp:missing_value = 2.e+20f ;
++		soiltemp:long_name = "DEEP SOIL TEMP AFTER TIMESTEP" ;
++		soiltemp:Source = "Unified Model Output (Vn 6.0):" ;
++		soiltemp:title = "DEEP SOIL TEMP AFTER TIMESTEP" ;
++		soiltemp:temp_date = "01/01/00" ;
++		soiltemp:temp_time = "00:00" ;
+ 		soiltemp:_FillValue = 2.e+20f ;
+ 		soiltemp:valid_min = 193.9265f ;
+ 		soiltemp:valid_max = 318.2573f ;

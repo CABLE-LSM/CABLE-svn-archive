@@ -1,0 +1,86 @@
+! Global Definitions:   
+#define CONTROL
+!#define TIMER
+#define REPROD
+#define MPP
+
+! Atmospheric Model Definitions:
+#define ATMOS
+#define GLOBAL
+#define A04_ALL
+
+! Atmospheric Sections Definitions:
+#define A01_3A
+#define A02_3A
+#define A03_8B
+#define A04_3D
+#define A05_4A
+#define A06_4A
+#define A08_7A
+#define A09_2A
+#define A10_2A
+#define A11_2A
+#define A12_2A
+#define A13_2A
+#define A14_1B
+#define A15_1A
+#define A16_1A
+#define A17_0A
+#define A18_0A
+#define A19_1A
+#define A25_0A
+#define A26_0A
+#define A30_1A
+#define A31_0A
+#define A32_1A
+#define A33_0A
+#define A34_0A
+#define A35_0A
+#define A70_1B
+#define A71_1A
+
+
+! Oceanic Sections Definitions:    
+#define O30_0A
+#define O31_0A
+#define O32_0A
+#define O35_0A
+#define O52_0A
+#define O53_0A
+#define O54_0A
+#define O56_0A
+#define O57_0A
+#define O59_0A
+#define O60_0A
+#define O66_0A
+
+
+! Slab Sections Definitions:    
+#define S40_0A
+
+
+! WAVE Sections Definitions:    
+#define W01_0A
+#define W02_0A
+#define W03_0A
+#define W04_0A
+#define W05_0A
+#define W06_0A
+#define W07_0A
+#define W08_0A
+
+
+! All-model Sections Definitions:    
+#define C70_1A
+#define C72_0A
+#define C80_1A
+#define C82_1A
+#define C84_1A
+#define C92_2A
+#define C94_1A
+#define C95_2A
+#define C96_1A
+#define C97_3A
+#define C99_0A
+
+! END OF FILE  

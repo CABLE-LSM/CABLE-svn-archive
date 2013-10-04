@@ -1,0 +1,6 @@
+soil temp. done months ago
+
+soil_snow read ancil directly w xconv, highlight all fields and convert to netcdf, read this in w R script, process and the spit out a new netcdf file
+
+convert from netcdf to ancil using xancil
+

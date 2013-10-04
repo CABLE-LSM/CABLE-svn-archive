@@ -1,0 +1,7 @@
+
+all data needed should be in convert_ancil/data/
+
+convert from netcdf to ancil using xancili: THIS HAS TO BE DONE ON CHERAX
+
+conversion of pft files at this time is not neceesary as is per land point anyway, not per tile. development of R-scriptis only partially done.
+

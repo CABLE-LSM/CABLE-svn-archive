@@ -1,0 +1,28 @@
+! Lauren Stevens 12 March 2010
+! Ferret script to plot differnces of soil layer temp./moisture/frozen fraction E.g. From 9/17 tiles, diff tiles 1&1, 6&14, 9&17
+
+let JOB1={spawn:"echo $rid"}
+let JOB2={spawn:"echo $rid2"}
+let DIR ={spawn:"echo $PWD"}
+let SEA ={spawn:"echo $son"}
+let YR  ={spawn:"echo $dec"}
+USE "`DIR`/`JOB1`a.da`YR``SEA`10.nc" 
+USE "`DIR`/`JOB2`a.da`YR``SEA`10.nc"
+!go "/cs/datastore/u/csdar/ste69f/plot/ocean_mask.jnl"
+!shade/o/pal=white if(myrose le 0) then 0
+
+
+set mode metafile pl1.plt
+shade TEMP[d=1,k=1]-TEMP[d=2,k=1]
+go land
+PPL CLSPLT
+spawn Fprint -l cps -R pl1.plt -o tsoil_1-1.ps
+
+set mode metafile pl2.plt
+shade TEMP[d=1,k=6]-TEMP[d=2,k=14]
+go land
+PPL CLSPLT
+spawn Fprint -l cps -R pl2.plt -o tsoil_6-14.ps
+
+
+

@@ -1,0 +1,4 @@
+#!/bin/csh
+
+make -f cable_makefile   
+rm -f *.o #cable_txt *.mod

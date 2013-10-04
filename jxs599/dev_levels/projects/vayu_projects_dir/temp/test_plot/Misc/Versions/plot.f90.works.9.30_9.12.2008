@@ -1,0 +1,184 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   module plot_types_module
+      type fiducial_case 
+         character (len=99) :: filename 
+         integer :: N
+         real, pointer :: x(:)
+         integer :: sci,slw,sls
+      end type
+      type fesc_case 
+         character (len=99) :: filename 
+         integer :: N
+         real, pointer :: x(:)
+         real :: fesc
+         integer :: sci,slw,sls
+      end type
+      type datapoints
+         character (len=99) :: filename 
+         integer :: N,errdirn=1
+         logical :: uniform=.false.
+         real, pointer :: x(:),upper(:),lower(:)
+         integer :: sci,slw,sls,marker
+         real :: y,z
+      end type
+   end module
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   module plot_interface
+      interface plotl
+         module procedure plottop,plotbottom,plotfesc_repeat,plotpoints,plotpointso 
+      end interface 
+      contains 
+         subroutine plottop(lambda,casex) 
+            use genericread_module
+            use plot_types_module
+            implicit none
+            type (fiducial_case) :: casex
+            real, dimension (casex%N) :: lambda
+            real ::  xmin=0.0,xmax=78,ymin=0.02,ymax=0.48   
+               call readfile(casex%filename,casex%N,casex%x)
+               !call pgsvp(0.1,0.6,0.1,0.9)
+               call pgmtxt("B",2.0,0.5,0.5,"\gl\\dMFP\\u (Mpc)")
+               call pgmtxt('L',2.0,0.5,0.5,"\gG\\d12\\u")
+               call pgswin(xmin,xmax,ymin,ymax)
+               call pgline(casex%N,lambda,casex%x) 
+               call pgbox('BNCST', 0.0, 0, 'BSTNC', 0.0,0)
+            return
+         end subroutine 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         subroutine plotbottom(lambda,casex) 
+            use genericread_module
+            use plot_types_module
+            implicit none
+            type (fesc_case) :: casex
+            real, dimension (casex%N) :: lambda
+            real ::  xmin=0.0,xmax=78,ymin=0.02,ymax=0.48   
+               call readfile(casex%filename,casex%N,casex%x)
+               !call pgsvp(0.1,0.6,0.1,0.9)
+               call pgmtxt("B",2.0,0.5,0.5,"\gl\\dMFP\\u (Mpc)")
+               call pgmtxt('L',2.0,0.5,0.5,"\gG\\d12\\u")
+               call pgswin(xmin,xmax,ymin,ymax)
+               call pgline(casex%N,lambda,casex%fesc*casex%x) 
+               call pgbox('BNCST', 0.0, 0, 'BSTNC', 0.0,0)
+            return
+         end subroutine 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         subroutine plotfesc_repeat(lambda,casex,ifesc) 
+            use genericread_module
+            use plot_types_module
+            implicit none
+            type (fesc_case) :: casex
+            real, dimension (casex%N) :: lambda
+            real :: ifesc
+               call pgline(casex%N,lambda,ifesc*casex%x) 
+            return
+         end subroutine 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         subroutine plotpoints(casex) 
+            use genericread_module
+            use plot_types_module
+            implicit none
+            type (datapoints) :: casex
+            real, dimension (casex%N) :: mfp
+            real :: correction_factor = (0.38/0.7)   !!correction for SED integral  
+               mfp=(/28.7,18.9,4.2/)   !!these are in Mpc
+               call pgsci(casex%sci); call pgsls(casex%sls); call pgslw(casex%slw) 
+               if(casex%uniform) then
+print *, "uni"
+                  call readfile(casex%filename,casex%N,casex%x,casex%uniform)
+                  call pgpt(casex%N,mfp,correction_factor*casex%x,casex%marker)
+               else
+                  call readfile(casex%filename,casex%N,casex%x,casex%lower,casex%upper,casex%errdirn)
+print *, "zval"
+                  call pgpt(casex%N,mfp,correction_factor*casex%x,casex%marker)
+               endif
+!               casex%uniform=.false.
+               call pgsci(1); 
+print *,
+            return
+         end subroutine 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+         subroutine plotpointso(lambda,casex) 
+            use genericread_module
+            use plot_types_module
+            implicit none
+            type (datapoints) :: casex
+            real, dimension (casex%N) :: lambda
+            real :: correction_factor = (0.38/0.7)   !!correction for SED integral  
+               call pgsci(casex%sci); call pgsls(casex%sls); call pgslw(casex%slw) 
+               call readfile(casex%filename,casex%N,casex%x,casex%lower,casex%upper,casex%errdirn)
+               call pgpt(casex%N,lambda,correction_factor*casex%x,casex%marker)
+               call pgsci(1); 
+            return
+         end subroutine 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   end module
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   PROGRAM plot
+      use plot_types_module
+      use plot_interface
+      use genericread_module
+      implicit none
+      integer, parameter :: N=29
+      integer i
+      real, dimension (6) :: fanlambda
+      real, dimension (2) :: bhlambda=(/60,10/)
+      type (fiducial_case) :: lambda,bh5,bh6,srb005,srb010,srb040,srb080
+      type (fesc_case) :: fesc5,fesc10,fesc20 
+      type (datapoints) :: uni,zval,bhz,fan 
+         call readfile("Input/lambda.dat",N,lambda%x)
+         bh5%filename="Input/BHGamma.5.5"
+         bh5%N=N;bh5%sci=1;bh5%slw=3; bh5%sls=1
+         bh6%filename="Input/BHGamma.6.0"
+         bh6%N=N;bh6%sci=1;bh6%slw=3;bh6%sls=1
+         srb005%filename="Input/myGamma.005"
+         srb005%N=N;  srb005%sci=1;srb005%slw=3; srb005%sls=1
+         srb010%filename="Input/myGamma.010"
+         srb010%N=N; srb010%sci=1;srb010%slw=3; srb010%sls=1
+         srb040%filename="Input/myGamma.040"
+         srb040%N=N;  srb040%sci=1;srb040%slw=3; srb040%sls=1
+         srb080%filename="Input/myGamma.080"
+         srb080%N=N;  srb080%sci=1;srb080%slw=3; srb080%sls=1
+         fesc5%filename="Input/J21_mfp.dat"; fesc5%fesc=0.05
+         fesc5%N=N;  fesc5%sci=1;fesc5%slw=3; fesc5%sls=1
+         fesc10%fesc=0.1;fesc20%fesc=0.2
+         uni%filename="Input/MyGamma_uniform.dat";uni%uniform=.true.
+         uni%N=3;uni%sci=2;uni%slw=3; uni%sls=1; uni%marker=26
+
+         call pgbeg(0,"/cps",1,2); call pgpage
+         call plotl(lambda%x,bh5)
+         call plotl(lambda%x,bh6)
+         call plotl(lambda%x,srb005)
+         call plotl(lambda%x,srb010)
+         call plotl(lambda%x,srb040)
+         call plotl(lambda%x,srb080)
+         call plotl(uni)   !red
+         zval%filename="Input/MyGamma.dat"; zval%uniform=.false.;zval%errdirn=1
+         zval%N=3;  zval%sci=3;zval%slw=3; zval%sls=1;zval%marker=26
+         call plotl(zval)  !green
+         bhz%filename="Input/BoltonGamma.dat"; bhz%uniform=.false.
+         bhz%N=2;  bhz%sci=4;bhz%slw=5; bhz%sls=1;bhz%marker=14;bhz%errdirn=1
+         call plotl(bhlambda,bhz)  !green
+!         fan%filename="Input/FanGamma.dat"; fan%uniform=.false.
+!         fan%N=6; fan%sci=5;fan%slw=5; fan%sls=1;fan%marker=-3
+!        call plotl(ifanlambda,fan)  !green
+
+         uni%filename="Input/MyGamma_uniform.dat";uni%uniform=.true.
+         uni%N=3;  uni%sci=2;uni%slw=3; uni%sls=1;uni%marker=26
+         call pgpage
+         call plotl(lambda%x,fesc5)
+         call plotl(lambda%x,fesc5,fesc10%fesc)
+         call plotl(lambda%x,fesc5,fesc20%fesc)
+         call plotl(uni)
+         zval%filename="Input/MyGamma.dat"; zval%uniform=.false.
+         zval%N=3;  zval%sci=3;zval%slw=3; zval%sls=1;zval%marker=26
+         call plotl(zval)
+         call pgend
+      stop
+   end program plot
+
+
+

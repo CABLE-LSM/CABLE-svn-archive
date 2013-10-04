@@ -1,0 +1,40 @@
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+rm: No match.
+rm: No match.
+CABLE appears to have run successfully.
+ Arguments file has been read
+ Variable file has been read
+ ERROR: ncdf creating ebal_tot_cncheck.nc
+ Arguments file has been read
+ Variable file has been read
+ ERROR: ncdf creating ebal_tot.nc
+ Copyright (C) 1995-2011 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.0.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+ Arguments file has been read
+ Variable file has been read
+ ERROR: ncdf creating wbal_tot.nc
+ Copyright (C) 1995-2011 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.0.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+
+
+=============================================================================
+                                     Resource usage:
+                                       CPU time:              00:03:22
+   JobId:     708574.vu-pbs            Elapsed time:          00:07:00
+   Project:             p66            Requested time:        00:45:00
+   Service Units:      0.35 
+                                       Max physical memory:       85MB
+                                       Max virtual memory:        93MB
+                                       Requested memory:        3072MB
+
+                                       Max jobfs disk use:       0.0GB
+                                       Requested jobfs:          2.0GB
+=============================================================================
+
