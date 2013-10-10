@@ -2,8 +2,27 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh vayu raij 
 }
+
+## raij.nci.org.au
+host_raij()
+{
+   NCDF_ROOT=/apps/netcdf/3.6.3
+   export NCDIR=$NCDF_ROOT'/lib/Intel'
+   export NCMOD=$NCDF_ROOT'/include/Intel'
+   export FC=ifort
+   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
+   export CINC='-I$(NCMOD)'
+   if [[ $1 = 'debug' ]]; then      
+      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
+   fi
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## vayu.nci.org.au
@@ -28,20 +47,20 @@ host_vayu()
 ## unknown machine, user entering options stdout 
 host_read()
 {
-   print "\n\tWhat is the ROOT path of your NetCDF library" \
+   print "\n\tWhat is the root path of your NetCDF library" \
          "and .mod file. "
    print "\tRemember these have to be created by the same " \
          "Fortran compiler you" 
    print "\twant to use to build CABLE. e.g./usr/local/intel"
    read NCDF_ROOT
    
-   print "\n\tWhat is the path, relative to the above ROOT, of " \
+   print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF library." 
    print "\te.g. lib"
    read NCDF_DIR
    export NCDIR=$NCDF_ROOT/$NCDF_DIR
    
-   print "\n\tWhat is the path, relative to the above ROOT, of " \
+   print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF .mod file."
    print "\te.g. include"
    read NCDF_MOD
@@ -184,7 +203,7 @@ build_build()
       print '\n\tCABLE library exists at\n' 
       print $libpath 
       print '\nCopying to\n'
-      libpathbu=$libpath'.'`date +%d.%m.%y`
+      libpathbu=$libpath'.bu'
       print $libpathbu'\n' 
       mv $libpath $libpathbu
    fi
