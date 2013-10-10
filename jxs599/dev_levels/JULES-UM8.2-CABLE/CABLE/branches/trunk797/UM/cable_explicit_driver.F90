@@ -57,7 +57,7 @@
                         endstep, &          
                         row_length, &       
                         rows, &             
-                        land_points, &   
+                        land_pts, &   
                         ntiles, &           
                         !npft, &           
                         sm_levels, &        
@@ -114,7 +114,7 @@
    INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
    
    INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
-      tile_index ,& ! index of tile points being processed
+      tile_index !,& ! index of tile points being processed
 
    REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
 
@@ -122,26 +122,74 @@
       latitude,   &
       longitude   !,  &
 
+
+   INTEGER:: timestep=1
+   INTEGER:: itimestep
+   INTEGER, SAVE ::  iDiag1=0
+
+
+
+    
+!   !--- initialize cable_runtime% switches 
+!   IF(first_cable_call) THEN
+!      cable_runtime%um = .TRUE.
+!      write(6,*) ""
+!      write(6,*) "CABLE_log"
+!      CALL report_version_no(6) ! wriite revision number to stdout(6)
+!   ENDIF
+!      
+   !--- basic info from global model passed to cable_common_module 
+   !--- vars so don't need to be passed around, just USE _module
+   ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
+                                 !the same as timestep of particular RUN
+   knode_gl = mype               !which processor am i on?
+   itimestep = INT(timestep)    !realize for 'call cbm' pass
+   kwidth_gl = itimestep          !width of timestep (secs)
+   kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
+
+!   !--- internal FLAGS def. specific call of CABLE from UM
+!   !--- from cable_common_module
+!   cable_runtime%um_explicit = .TRUE.
+!
+!   !--- user FLAGS, variables etc def. in cable.nml is read on 
+!   !--- first time step of each run. these variables are read at 
+!   !--- runtime and for the most part do not require a model rebuild.
+!   IF(first_cable_call) THEN
+!      CALL cable_um_runtime_vars(runtime_vars_file) 
+!      first_cable_call = .FALSE.
+!   ENDIF      
+!
+!
 print *, "jhan:killed in expl_dr" 
 
-     open(unit=713948,file='cable_mp'//'.dat', status="unknown", &
-          action="write", position="append")
-   
-               write(713948,*) 'mype',  mype 
-               write(713948,*) 'timestep_number',timestep_number 
-               write(713948,*) 'endstep',endstep 
-               write(713948,*) 'row_length',row_length
-               write(713948,*) 'rows',rows 
-               write(713948,*) 'land_points',land_points 
-               write(713948,*) 'ntiles',ntiles 
-               write(713948,*) 'sm_levels',sm_levels 
-               write(713948,*) 'dim_cs1',dim_cs1 
-               write(713948,*) 'dim_cs2',dim_cs2 
-  
-   !close(713941)
-  
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          "mype", mype)
+                
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'timestep_number',timestep_number ) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'endstep',endstep) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'row_length',row_length) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'rows',rows) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'land_points',land_pts) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'ntiles',ntiles) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'sm_levels',sm_levels) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'dim_cs1',dim_cs1) 
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                          'dim_cs2',dim_cs2) 
+      !call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+      !                     'npft',npft)
+      
 
  STOP 
+
+
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM sf_exch() --------------------------------------------
    !-------------------------------------------------------------------------- 
@@ -270,8 +318,6 @@ print *, "jhan:killed in expl_dr"
 !   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
 !   REAL, INTENT(IN) ::  timestep     
 !   
-!   INTEGER:: itimestep
-!    
 !   !___return miscelaneous 
 !   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
 !      RADNET_TILE,   & ! Surface net radiation
@@ -302,37 +348,7 @@ print *, "jhan:killed in expl_dr"
 !   LOGICAL, SAVE :: first_cable_call = .TRUE.
 ! 
 !
-!
-!   !--- initialize cable_runtime% switches 
-!   IF(first_cable_call) THEN
-!      cable_runtime%um = .TRUE.
-!      write(6,*) ""
-!      write(6,*) "CABLE_log"
-!      CALL report_version_no(6) ! wriite revision number to stdout(6)
-!   ENDIF
-!      
-!   !--- basic info from global model passed to cable_common_module 
-!   !--- vars so don't need to be passed around, just USE _module
-!   ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
-!                                 !the same as timestep of particular RUN
-!   knode_gl = mype               !which processor am i on?
-!   itimestep = INT(timestep)    !realize for 'call cbm' pass
-!   kwidth_gl = itimestep          !width of timestep (secs)
-!   kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
-!
-!   !--- internal FLAGS def. specific call of CABLE from UM
-!   !--- from cable_common_module
-!   cable_runtime%um_explicit = .TRUE.
-!
-!   !--- user FLAGS, variables etc def. in cable.nml is read on 
-!   !--- first time step of each run. these variables are read at 
-!   !--- runtime and for the most part do not require a model rebuild.
-!   IF(first_cable_call) THEN
-!      CALL cable_um_runtime_vars(runtime_vars_file) 
-!      first_cable_call = .FALSE.
-!   ENDIF      
-!
-!
+
 !
 !
 !   !---------------------------------------------------------------------!
