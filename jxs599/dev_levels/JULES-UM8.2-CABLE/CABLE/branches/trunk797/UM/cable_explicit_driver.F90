@@ -28,21 +28,6 @@
 ! History: Developed for CABLE v1.8
 !
 !
-! ==============================================================================
-
-
-SUBROUTINE cable_explicit_driver(                                       &
-               mype, &
-               timestep_number, &
-               endstep, &          
-               row_length, &       
-               rows, &             
-               land_points, &   
-               ntiles, &           
-               sm_levels, &        
-               dim_cs1, & 
-               dim_cs2 &!, & 
-            )          
 !SUBROUTINE cable_explicit_driver()! row_length, rows, land_pts, ntiles,npft,     &
                                   !sm_levels, timestep, latitude, longitude,    &
                                   !land_index, tile_frac,  tile_pts, tile_index,&
@@ -64,6 +49,27 @@ SUBROUTINE cable_explicit_driver(                                       &
                                   !RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
                                   !Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
                                   !endstep, timestep_number, mype )    
+! ==============================================================================
+
+         SUBROUTINE cable_explicit_driver(                                       &
+                        mype, &
+                        timestep_number, &
+                        endstep, &          
+                        row_length, &       
+                        rows, &             
+                        land_points, &   
+                        ntiles, &           
+                        !npft, &           
+                        sm_levels, &        
+                        dzsoil, &        
+                        tile_pts, &        
+                        land_Index, &        
+                        tile_Index, &        
+                        dim_cs1, & 
+                        dim_cs2, &!, & 
+                        latitude, &        
+                        longitude &        
+                        )
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -94,11 +100,27 @@ SUBROUTINE cable_explicit_driver(                                       &
                endstep, &          
                row_length, &       
                rows, &             
-               land_points, &   
+               land_pts, &   
                ntiles, &           
+               !npft,             & ! # of plant functional types
                sm_levels, &        
                dim_cs1, & 
                dim_cs2
+
+   ! index of land points being processed
+   INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
+
+   ! # of land points on each tile
+   INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
+   
+   INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
+      tile_index ,& ! index of tile points being processed
+
+   REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
+
+   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
+      latitude,   &
+      longitude   !,  &
 
 print *, "jhan:killed in expl_dr" 
 
@@ -125,21 +147,13 @@ print *, "jhan:killed in expl_dr"
    !-------------------------------------------------------------------------- 
    
 !   !___IN: UM dimensions, array indexes, flags
-!   INTEGER, INTENT(IN) ::                                                      & 
-!      row_length, rows, & ! UM grid resolution
-!      land_pts,         & ! # of land points being processed
-!      ntiles,           & ! # of tiles 
-!      npft,             & ! # of plant functional types
-!      sm_levels           ! # of soil layers 
 !
-!   ! index of land points being processed
-!   INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
-!
-!   ! # of land points on each tile
-!   INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
-!   
+
+
+
+
+
 !   INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
-!      tile_index ,& ! index of tile points being processed
 !      isnow_flg3l   ! 3 layer snow flag
 !
 !   !--- TRUE if land, F elsewhere.
@@ -148,7 +162,6 @@ print *, "jhan:killed in expl_dr"
 !
 !   !___UM parameters: water density, soil layer thicknesses 
 !   REAL, INTENT(IN) :: rho_water 
-!   REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
 !
 !   !___UM soil/snow/radiation/met vars
 !   REAL, INTENT(IN), DIMENSION(land_pts) :: & 
@@ -167,8 +180,6 @@ print *, "jhan:killed in expl_dr"
 !      cos_zenith_angle
 !   
 !   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
-!      latitude,   &
-!      longitude,  &
 !      lw_down,    &
 !      ls_rain,    &
 !      ls_snow,    &
