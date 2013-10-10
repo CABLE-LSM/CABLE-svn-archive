@@ -31,7 +31,19 @@
 ! ==============================================================================
 
 
-SUBROUTINE cable_explicit_driver()! row_length, rows, land_pts, ntiles,npft,     &
+SUBROUTINE cable_explicit_driver(                                       &
+               mype, &
+               timestep_number, &
+               endstep, &          
+               row_length, &       
+               rows, &             
+               land_points, &   
+               ntiles, &           
+               sm_levels, &        
+               dim_cs1, & 
+               dim_cs2 &!, & 
+            )          
+!SUBROUTINE cable_explicit_driver()! row_length, rows, land_pts, ntiles,npft,     &
                                   !sm_levels, timestep, latitude, longitude,    &
                                   !land_index, tile_frac,  tile_pts, tile_index,&
                                   !bexp, hcon, satcon, sathh, smvcst,           &
@@ -76,7 +88,39 @@ SUBROUTINE cable_explicit_driver()! row_length, rows, land_pts, ntiles,npft,    
 
    IMPLICIT NONE
  
+   INTEGER, INTENT(IN) ::                                                      & 
+               mype, &
+               timestep_number, &
+               endstep, &          
+               row_length, &       
+               rows, &             
+               land_points, &   
+               ntiles, &           
+               sm_levels, &        
+               dim_cs1, & 
+               dim_cs2
+
 print *, "jhan:killed in expl_dr" 
+
+     open(unit=713948,file='cable_mp'//'.dat', status="replace", &
+          action="write", iostat=gopenstatus )
+   
+               write(713948,*) 'mype',  mype 
+               write(713948,*) 'timestep_number',timestep_number 
+               write(713948,*) 'endstep',endstep 
+               write(713948,*) 'row_length',row_length
+               write(713948,*) 'rows',rows 
+               write(713948,*) 'land_points',land_points 
+               write(713948,*) 'ntiles',ntiles 
+               write(713948,*) 'sm_levels',sm_levels 
+               write(713948,*) 'dim_cs1',dim_cs1 
+               write(713948,*) 'dim_cs2',dim_cs2 
+  
+   !close(713941)
+  
+END SUBROUTINE cable_diag_desc1
+
+
  STOP 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM sf_exch() --------------------------------------------
