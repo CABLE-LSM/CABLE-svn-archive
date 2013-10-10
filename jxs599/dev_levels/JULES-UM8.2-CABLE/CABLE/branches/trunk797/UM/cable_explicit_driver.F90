@@ -102,8 +102,8 @@ SUBROUTINE cable_explicit_driver(                                       &
 
 print *, "jhan:killed in expl_dr" 
 
-     open(unit=713948,file='cable_mp'//'.dat', status="append", &
-          action="write")
+     open(unit=713948,file='cable_mp'//'.dat', status="unknown", &
+          action="write", position="append")
    
                write(713948,*) 'mype',  mype 
                write(713948,*) 'timestep_number',timestep_number 
