@@ -59,7 +59,7 @@
                         rows, &             
                         land_pts, &   
                         ntiles, &           
-                        !npft, &           
+                        npft, &           
                         sm_levels, &        
                         dzsoil, &        
                         tile_pts, &        
@@ -102,7 +102,7 @@
                rows, &             
                land_pts, &   
                ntiles, &           
-               !npft,             & ! # of plant functional types
+               npft,             & ! # of plant functional types
                sm_levels, &        
                dim_cs1, & 
                dim_cs2
@@ -183,8 +183,8 @@ print *, "jhan:killed in expl_dr"
                           'dim_cs1',dim_cs1) 
       call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
                           'dim_cs2',dim_cs2) 
-      !call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
-      !                     'npft',npft)
+      call cable_fprintf( iDiag1, "args", mp, kend_gl, ktau_gl, knode_gl,            &
+                           'npft',npft)
       
 
  STOP 
