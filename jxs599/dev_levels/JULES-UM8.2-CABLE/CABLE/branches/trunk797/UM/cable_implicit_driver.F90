@@ -185,6 +185,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, POINTER :: TFRZ
    
+print *, "jhan:Start of implicit CABLE"
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -241,6 +242,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
        
       cable_runtime%um_implicit = .FALSE.
+
+print *, "jhan:End of implicit CABLE"
   
 END SUBROUTINE cable_implicit_driver
 

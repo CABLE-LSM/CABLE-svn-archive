@@ -232,15 +232,15 @@ build_build()
    fi
    
    ## make library from CABLE object files
-   /usr/bin/ar r libcable.a cable_explicit_driver.o cable_implicit_driver.o   \
+   /usr/bin/ar r libcablejules.a cable_explicit_driver.o cable_implicit_driver.o   \
       cable_rad_driver.o cable_hyd_driver.o cable_common.o  \
       cable_define_types.o cable_data.o cable_diag.o \
       cable_soilsnow.o cable_air.o cable_albedo.o cable_radiation.o  \
       cable_roughness.o cable_carbon.o cable_canopy.o cable_cbm.o    \
       cable_um_tech.o cable_um_init_subrs.o cable_um_init.o 
 
-   if [[ -f libcable.a ]]; then
-      print '\nLibrary build successful. Copying libcable.a to ' $libroot
+   if [[ -f libcablejules.a ]]; then
+      print '\nLibrary build successful. Copying libcablejules.a to ' $libroot
    else
       print '\nBuild failed\n'
       exit
@@ -255,7 +255,7 @@ build_build()
       rm -f $libpath
    fi
    
-   /bin/cp -p libcable.a $libroot 
+   /bin/cp -p libcablejules.a $libroot 
    
    if [[ -f $libpath ]]; then
       print "\nYour timestamped library should be this one:\n"
@@ -282,7 +282,7 @@ if [[ $1 = 'clean' ]]; then
 fi
    
 export libroot=$CABLE_AUX'/CABLE-AUX/UM'
-export libpath=$libroot'/libcable.a'
+export libpath=$libroot'/libcablejules.a'
 
 known_hosts
 
