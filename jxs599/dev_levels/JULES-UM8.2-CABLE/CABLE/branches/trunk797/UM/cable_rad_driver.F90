@@ -80,7 +80,6 @@ SUBROUTINE cable_rad_driver(                                                   &
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
-print *, "jhan:Start of rad CABLE"
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
@@ -162,7 +161,6 @@ print *, "jhan:Start of rad CABLE"
       ENDDO
 
       cable_runtime%um_radiation= .FALSE.
-print *, "jhan:End of rad CABLE"
 
 END SUBROUTINE cable_rad_driver
 
