@@ -143,6 +143,103 @@ SUBROUTINE cable_diag_data1( iDiag, filename, dimx, timestep, kend, var1  )
 
 END SUBROUTINE cable_diag_data1
 
+!=============================================================================!
+!=============================================================================!
+
+!RL: add cable_diag2 for 3d array (tiles on proc, sm_level, timesteps)
+
+SUBROUTINE cable_diag2( iDiag, basename, dimx, dimy, dimz, timestep, &
+                        node, vname2, var2 )
+   integer, intent(inOUT) :: iDiag 
+   integer, SAVE :: pDiag=713 
+   integer, intent(in) :: dimx, dimy, dimz, timestep,node
+   real, intent(in), dimension(:,:) :: var2
+   integer :: Nvars=1 !this WAS input
+   integer :: i=0
+   character(len=*), intent(in) :: basename, vname2
+   character(len=30) :: filename, chnode
+ 
+      IF(iDiag==0) tHEN
+         pDiag = pDiag+2  
+         iDiag=pDiag
+      ENDIF
+         
+      write(chnode,10) node
+   10 format(i3.3)   
+      filename=trim(trim(basename)//trim(chnode))
+      
+      if (timestep == 1) & 
+      call cable_diag_desc2( iDiag, trim(filename), dimx, dimy, &
+      	   		     dimz, vname2 )
+      
+      call cable_diag_data2( iDiag, trim(filename), dimx, dimz, timestep, &
+                             dimy, var2 )
+END SUBROUTINE cable_diag2
+
+!=============================================================================!
+!=============================================================================!
+
+SUBROUTINE cable_diag_desc2( iDiag, filename, dimx, dimy, dimz, vname2 )
+
+   integer, intent(in) :: iDiag,dimx,dimy,dimz 
+   integer, PARAMETER :: Nvars=1
+   character(len=*), intent(in) :: filename, vname2
+   integer, save :: gopenstatus = 1
+
+     open(unit=iDiag,file=filename//'.dat', status="replace", &
+          action="write", iostat=gopenstatus )
+     
+      if(gopenstatus==gok) then
+            write (iDiag,*) 'Number of var(s): '
+            write (iDiag,*) Nvars
+            write (iDiag,*) 'Name of var(s): '
+            write (iDiag,7139) vname2 
+ 7139       format(a)            
+            write (iDiag,*) 'dimension of var(s) in x: '
+            write (iDiag,*) dimx 
+            write (iDiag,*) 'dimension of var(s) in y: '
+            write (iDiag,*) dimy
+            write (iDiag,*) 'dimension of var(s) in z: '
+            write (iDiag,*) dimz 
+      else
+         write (*,*), filename//'.dat',' Error: unable to write'
+      endif
+      
+   close(iDiag)
+  
+END SUBROUTINE cable_diag_desc2
+
+
+SUBROUTINE cable_diag_data2( iDiag, filename, dimx, dimz, timestep, kend, var2  )
+
+   integer, intent(in) :: iDiag, dimx, dimz, timestep, kend
+   integer, PARAMETER :: Nvars=1
+   real, intent(in), dimension(:,:) :: var2
+   character(len=*), intent(in) :: filename
+   integer, save :: gopenstatus = 1
+   integer :: i,k
+ 
+   if (timestep == 1)  then 
+      open(unit=iDiag+1,file=filename//'.bin',status="unknown", &
+           action="write", iostat=gopenstatus, form="unformatted", &
+           position='append' )
+   endif   
+ 
+   if(gopenstatus==gok) then
+      do i=1,dimx
+      	 do k=1,dimz
+            write (iDiag+1) var2(i,k)
+	 enddo
+	 enddo
+   else
+      write (*,*) filename//'.bin',' NOT open for write. Error'
+   endif
+
+   if (timestep == kend) & 
+      close(iDiag+1)
+
+END SUBROUTINE cable_diag_data2
+
 !==========================================================================!
 !--- cable generic print status
 !==========================================================================!
@@ -165,51 +262,53 @@ END MODULE cable_diag_module
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 
-MODULE cable_diag_read_mod 
+MODULE cable_diag_read_mod !RL: changed to read 3d variable
 
    IMPLICIT NONE
 
 CONTAINS
   
-   SUBROUTINE cable_diagRead( iDiag, basename, dimx, dimy, timestep, node, &
+   SUBROUTINE cable_diagRead( iDiag, basename, dimx, dimy, dimz, timestep, node, &
                         vname, fdata )
 
-      integer :: iDiag, dimx, dimy, timestep, node
-      !dimx = typically #landpoints over which the var is specified per timestep 
+      integer :: iDiag, dimx, dimy, dimz, timestep, node
+      ! dimx = typically #landpoints over which the var is specified per timestep 
       ! dimy = # timesteps
-      !INTEGER ::dimx, dimyiDiag 
+      ! dimz = # soil levels
+      !INTEGER ::dimx, dimy, dimz, iDiag 
 
       ! passed filename (per field, per processor, at present)
       character(len=*), intent(in) :: basename, vname
       
       character(len=30) :: filename, chnode
  
-      ! field (2D at present - one time, one spatial ) 
-      REAL, DIMENSION(:), POINTER :: fdata
+      ! field (3D at present - one time, one spatial, one vertical ) 
+      REAL, DIMENSION(:,:), POINTER :: fdata
 
  
       write(chnode,10) node
    10 format(i3.3)   
       filename=trim(trim(basename)//trim(chnode))
    
-      ! read the binary data andstore in 2nd arg 
-      CALL read_dat_file(iDiag, TRIM(filename), fdata, dimx )
+      ! read the binary data and store in 2nd arg 
+      CALL read_dat_file(iDiag, TRIM(filename), fdata, dimx, dimz, timestep, dimy)
 
    END SUBROUTINE cable_diagRead   
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 
-SUBROUTINE Read_dat_file( iDiag, filename, fdata, dimx )
+SUBROUTINE read_dat_file( iDiag, filename, fdata, dimx, dimz, timestep, kend)
 
    INTEGER :: iDiag
-   INTEGER, INTENT(IN) :: dimx
-   REAL, DIMENSION(:), POINTER :: fdata
+   INTEGER, INTENT(IN) :: dimx, dimz, timestep, kend 
+   REAL, DIMENSION(:,:), POINTER :: fdata
    CHARACTER(LEN=*), INTENT(IN) :: filename
    
    INTEGER, PARAMETER :: gok=0
    INTEGER, SAVE :: gopenstatus
    LOGICAL, SAVE :: first_call = .TRUE. 
+   INTEGER :: i,k
 
       IF (first_call) THEN
          OPEN(UNIT=iDiag, FILE=filename//'.bin', STATUS="unknown", ACTION="read", &
@@ -218,16 +317,19 @@ SUBROUTINE Read_dat_file( iDiag, filename, fdata, dimx )
       ENDIF   
 
          IF(gopenstatus==gok) THEN
-            
-            READ(iDiag), fdata(:) 
+	    DO i=1,dimx
+               DO k=1,dimz
+               	  READ(iDiag), fdata(i,k)
+	       ENDDO 
+	    ENDDO
      
          ELSE
             WRITE (*,*), filename//'.bin',' NOT found for read'
             STOP
      
          ENDIF
-      
-      !CLOSE(iDiag)
+
+!    CLOSE(iDiag)
 
 END SUBROUTINE read_dat_file 
 

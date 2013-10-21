@@ -220,7 +220,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(IN) ::  timestep     
    
    INTEGER:: itimestep
-    
+!   INTEGER::   k			   !RL: index for sm_levels loop 
+   
    !___return miscelaneous 
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
       RADNET_TILE,   & ! Surface net radiation
@@ -250,10 +251,15 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
 
+!RL: for GLACE
 !jhan: not needed in UM as compiled -r8  ? 
-   !___ temporary array 
-   REAL, POINTER, DIMENSION(:), SAVE  :: & 
+   !___ temporary array , RL:changed to 2d
+   REAL, POINTER, DIMENSION(:,:), SAVE  :: & 
       ftemp
+
+!RL:!___path and sm level for GLACE filename (writing/reading soil moisture)
+   CHARACTER(LEN=200) :: glacedir
+
 
    !___ unique unit/file identifiers for cable_diag 
   INTEGER, SAVE :: iDiag_Zero=0, iDiag1=0 
@@ -311,6 +317,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    canopy%oldcansto=canopy%cansto
 
+
+   !---------------------------------------------------------------------!
+   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
+   !--- req'd by Mk3L  --------------------------------------------------!
+   !---------------------------------------------------------------------!
+   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg )
+
+!   glacedir = trim(cable_user%GLACE_DIR)
+
    ! read/write GLACE-type forcing data
    IF(ktau_gl == 1 ) & 
       WRITE(6,*)'CABLE_log:GLACE_STATUS ',trim(cable_user%GLACE_STATUS)
@@ -321,41 +337,33 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
          WRITE(6,*)'CABLE_log: GLACE_STATUS write loop activated'
       
       !IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
-      call cable_diag( iDiag1, "smcl1_", mp, kend_gl, ktau_gl,knode_gl,                &
-                          "smcl layer 1", REAL(ssnow%wb(:,1)) )
+
+      call cable_diag2( iDiag1, "smcl_", mp, kend_gl, ms, ktau_gl,knode_gl,            &
+                          "smcl per layer ", REAL(ssnow%wb(:,:)) )
       !ENDIF
-   
    ENDIF
    
+!RL: overwrite soil moisture if GLACE=READ
    IF( cable_user%GLACE_STATUS== 'READ') THEN
       
       IF(ktau_gl == 1 ) & 
          WRITE(6,*)'CABLE_log: GLACE_STATUS read loop activated'
       
-      IF(ktau_gl == 1 ) ALLOCATE( ftemp(mp) )
-      
+      IF(ktau_gl == 1 ) ALLOCATE( ftemp(mp,ms) )
+
+
       !IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
-         call cable_diagRead( iDiag1, "smcl1_", mp, kend_gl, ktau_gl,              &
-                             knode_gl, "smcl layer 1", ftemp )
+      IF (mp /= 0 ) THEN
+         call cable_diagRead( iDiag1, "smcl_", mp, kend_gl, ms, ktau_gl,              &
+                             knode_gl, "smcl per layer ", ftemp )
          !offline needs r_2
-         !ssnow%wb(:,1) = REAL(ftemp, r_2) 
-         ssnow%wb(:,1) = ftemp
+         !ssnow%wb(:,k) = REAL(ftemp, r_2) 
+         ssnow%wb(:,:) = ftemp
+	 ENDIF
       !ENDIF
-   
+
    ENDIF
-
-
-
-
-   !---------------------------------------------------------------------!
-   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
-   !--- req'd by Mk3L  --------------------------------------------------!
-   !---------------------------------------------------------------------!
-   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg )
-
-
-
+!RL: end   
 
    !---------------------------------------------------------------------!
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!

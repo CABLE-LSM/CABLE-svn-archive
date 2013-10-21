@@ -67,6 +67,9 @@
                                                  ! 1. NONE
                                                  ! 2. WRITE
                                                  ! 3. READ
+
+   cable_user%GLACE_DIR = '/short/dt6/rzl561/GLACE1_output/'
+
    cable_user%CONSISTENCY_CHECK= .TRUE.      ! TRUE outputs combined fluxes at each timestep for comparisson to A control run 
    cable_user%CASA_DUMP_READ = .FALSE.      ! TRUE reads CASA forcing from netcdf format
    cable_user%CASA_DUMP_WRITE = .FALSE.      ! TRUE outputs CASA forcing in netcdf format
