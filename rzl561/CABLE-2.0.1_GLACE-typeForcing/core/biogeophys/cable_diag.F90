@@ -148,18 +148,19 @@ END SUBROUTINE cable_diag_data1
 
 !RL: add cable_diag2 for 3d array (tiles on proc, sm_level, timesteps)
 
-SUBROUTINE cable_diag2( iDiag, basename, dimx, dimy, dimz, timestep, &
-                        node, vname2, var2 )
+SUBROUTINE cable_diag2( iDiag, basename, dimx, dimy, dimz, &
+                        timestep, node, vname2, var2, start_run )
    integer, intent(inOUT) :: iDiag 
    integer, SAVE :: pDiag=713 
-   integer, intent(in) :: dimx, dimy, dimz, timestep,node
+   integer, intent(in) :: dimx, dimy, dimz, timestep, node
    real, intent(in), dimension(:,:) :: var2
+   logical, intent(in) :: start_run
    integer :: Nvars=1 !this WAS input
    integer :: i=0
    character(len=*), intent(in) :: basename, vname2
    character(len=30) :: filename, chnode
  
-      IF(iDiag==0) tHEN
+      IF(iDiag==0) THEN
          pDiag = pDiag+2  
          iDiag=pDiag
       ENDIF
@@ -168,12 +169,12 @@ SUBROUTINE cable_diag2( iDiag, basename, dimx, dimy, dimz, timestep, &
    10 format(i3.3)   
       filename=trim(trim(basename)//trim(chnode))
       
-      if (timestep == 1) & 
+      if (start_run) & 
       call cable_diag_desc2( iDiag, trim(filename), dimx, dimy, &
       	   		     dimz, vname2 )
       
-      call cable_diag_data2( iDiag, trim(filename), dimx, dimz, timestep, &
-                             dimy, var2 )
+      call cable_diag_data2( iDiag, trim(filename),dimx, dimz,  &
+                              timestep, dimy, var2, start_run )
 END SUBROUTINE cable_diag2
 
 !=============================================================================!
@@ -210,16 +211,18 @@ SUBROUTINE cable_diag_desc2( iDiag, filename, dimx, dimy, dimz, vname2 )
 END SUBROUTINE cable_diag_desc2
 
 
-SUBROUTINE cable_diag_data2( iDiag, filename, dimx, dimz, timestep, kend, var2  )
+SUBROUTINE cable_diag_data2( iDiag, filename, dimx, dimz,	&
+	   		      timestep, kend, var2, start_run  )
 
    integer, intent(in) :: iDiag, dimx, dimz, timestep, kend
    integer, PARAMETER :: Nvars=1
    real, intent(in), dimension(:,:) :: var2
    character(len=*), intent(in) :: filename
+   logical, intent(in) :: start_run
    integer, save :: gopenstatus = 1
    integer :: i,k
  
-   if (timestep == 1)  then 
+   if (start_run)  then 
       open(unit=iDiag+1,file=filename//'.bin',status="unknown", &
            action="write", iostat=gopenstatus, form="unformatted", &
            position='append' )
@@ -280,7 +283,7 @@ CONTAINS
       ! passed filename (per field, per processor, at present)
       character(len=*), intent(in) :: basename, vname
       
-      character(len=30) :: filename, chnode
+      character(len=50) :: filename, chnode
  
       ! field (3D at present - one time, one spatial, one vertical ) 
       REAL, DIMENSION(:,:), POINTER :: fdata
@@ -311,7 +314,7 @@ SUBROUTINE read_dat_file( iDiag, filename, fdata, dimx, dimz, timestep, kend)
    INTEGER :: i,k
 
       IF (first_call) THEN
-         OPEN(UNIT=iDiag, FILE=filename//'.bin', STATUS="unknown", ACTION="read", &
+         OPEN(UNIT=iDiag, FILE=trim(filename)//'.bin', STATUS="unknown", ACTION="read", &
                IOSTAT=gopenstatus, FORM="unformatted" )
          first_call= .FALSE.
       ENDIF   
@@ -324,7 +327,7 @@ SUBROUTINE read_dat_file( iDiag, filename, fdata, dimx, dimz, timestep, kend)
 	    ENDDO
      
          ELSE
-            WRITE (*,*), filename//'.bin',' NOT found for read'
+            WRITE (*,*), trim(filename)//'.bin',' NOT found for read'
             STOP
      
          ENDIF
