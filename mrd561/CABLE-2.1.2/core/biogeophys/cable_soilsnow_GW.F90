@@ -2741,18 +2741,20 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL  soilfreeze(dels, soil, ssnow)
 
-   ssnow%fwtop = canopy%precis + ssnow%smelt   !water for infiltration   
 
-    CALL calcwtd (ssnow, soil,prin)                         !update the wtd.  diagnostic
+   ssnow%fwtop = canopy%precis + ssnow%smelt   !water for infiltration   
+   
+
+    CALL calcwtd (ssnow, soil,prin)                         !update the wtd
     CALL ovrlndflx (dels, ktau, ssnow, soil, prin )         !surface runoff, incorporate ssnow%pudsto?
-s
+
     CALL smoistgw (dels,ktau,ssnow,soil,prin)               !vertical soil moisture movement.  LIS verions trans is rex removed here
     !note: canopy%segg appears to be soil evap.
     !canopy%fesp/C%HL*dels is the puddle evaporation
     
     ssoil%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff
   
-    ! Scaling  runoff to kg/m^2/s i.e. mm/s to match rest of the model
+    ! Scaling  runoff to kg/m^2/s (mm/s) to match rest of the model
     ssnow%sinfil = 0.0
     ! lakes: replace hard-wired vegetation number in next version
     WHERE( veg%iveg == 16 )

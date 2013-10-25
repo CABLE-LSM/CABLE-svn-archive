@@ -2,8 +2,23 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg md
 }
+
+##my laptop
+host_md()
+{
+   export NCDIR='/usr/lib64'
+   export NCMOD='/usr/include'
+   export FC=gfortran
+   export CFLAGS='-O2 -x f95-cpp-input -march=native'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/lib64 -O2 -lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 ## jiggle
@@ -318,7 +333,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-4`
+HOST_MACH=`uname -n | cut -c 1-2`
 
 do_i_no_u $1
 

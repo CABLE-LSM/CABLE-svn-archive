@@ -322,7 +322,7 @@ MODULE cable_IO_vars_module
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
-         za  = .FALSE.        &  ! something to do with roughness ????
+         za  = .FALSE.,       &  ! something to do with roughness ????
 
          !MD GW
          WatSat=.FALSE.,      & ! soil moisture at saturation [mm3/mm3]

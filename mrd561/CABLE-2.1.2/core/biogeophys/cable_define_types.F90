@@ -145,7 +145,7 @@ MODULE cable_def_types_mod
          GWwatr,    & !residual water content of the aquifer
          GWz,       & !node depth of the aquifer
          GWdz,      & !thickness of the aquifer
-         GWdensoil  & !density of the aquifer substrate
+         GWdensoil    !density of the aquifer substrate
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
@@ -743,11 +743,11 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWhk(mp) )
    ALLOCATE( var%GWdhkdw(mp) )
    ALLOCATE( var%GWdsmpdw(mp) )
-   ALLOCATE( var%GWwtd(mp) )
+   ALLOCATE( var%wtd(mp) )
    ALLOCATE( var%GWsmp(mp) )
    ALLOCATE( var%GWwbeq(mp) )
    ALLOCATE( var%GWzq(mp) )
-   ALLOCATE( var%GWqhz(mp) )
+   ALLOCATE( var%qhz(mp) )
    !soil moisture variables
    ALLOCATE( var%wbeq(mp,ms) )
    ALLOCATE( var%zq(mp,ms) )
@@ -1182,11 +1182,11 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%GWhk )
    DEALLOCATE( var%GWdhkdw )
    DEALLOCATE( var%GWdsmpdw )
-   DEALLOCATE( var%GWwtd )
+   DEALLOCATE( var%wtd )
    DEALLOCATE( var%GWsmp )
    DEALLOCATE( var%GWwbeq )
    DEALLOCATE( var%GWzq )
-   DEALLOCATE( var%GWqhz )
+   DEALLOCATE( var%qhz )
    !soil moisture variables
    DEALLOCATE( var%wbeq )
    DEALLOCATE( var%zq )
