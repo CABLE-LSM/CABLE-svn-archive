@@ -184,7 +184,10 @@ MODULE cable_checks_module
            GWHkSat = (/0.0,1.0e10/),           &
            FrcSand = (/0.0,1.0e2/),            &
            FrcClay = (/0.0,1.0e2/),            &
-           ClappB = (/0.0,1.0e2/)
+           ClappB = (/0.0,1.0e2/),             &
+           Watr = (/0.0,0.5/),                 &
+           GWWatr = (/0.0,0.5/),               &
+           Qinfl = (/0.0,1e10/)
            
            
            

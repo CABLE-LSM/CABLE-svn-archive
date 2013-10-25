@@ -68,7 +68,7 @@ MODULE cable_output_module
                     HVeg, HSoil, Rnet, tvar,                                   &
                     !MD
                     WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
-                    EqGWMoist,EqGWSoilMatPot
+                    EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -163,15 +163,15 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
     !MD GW
-    REAL(KIND=4), POINTER, DIMENSION(:) :: GWMoist       ! water balance of aquifer [mm3/mm3]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: WatTable      ! water table depth [m]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilMatPot    ! soil matric potential [mm]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: EqSoilMatPot  ! equilibirum soil matric potential [mm]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: EqSoilMoist   ! equilibirum soil moisture [mm3/mm3]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: EqGWMoist     ! equilibrium water of aquifer
-    REAL(KIND=4), POINTER, DIMENSION(:) :: EqGWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: GWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]     
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qinfl         !infiltration rate into first soil layer [mm/s] 
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMatPot    ! soil matric potential [mm]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: EqSoilMatPot  ! equilibirum soil matric potential [mm]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: EqSoilMoist   ! equilibirum soil moisture [mm3/mm3]    
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: GWMoist       ! water balance of aquifer [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: WatTable      ! water table depth [m]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: EqGWMoist     ! equilibrium water of aquifer
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: EqGWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: GWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]     
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Qinfl         !infiltration rate into first soil layer [mm/s] 
 
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
@@ -2365,45 +2365,45 @@ CONTAINS
                      
                      
     !MD
-    CALL define_ovar(ncid_restart, ripd%WatSat, &
+    CALL define_ovar(ncid_restart, rpid%WatSat, &
                      'WatSat', '-', 'Max water content in soil layer', &
                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)       
-    CALL define_ovar(ncid_restart, ripd%GWWatSat, &
+    CALL define_ovar(ncid_restart, rpid%GWWatSat, &
                      'GWWatSat', '-', 'Max water content in aquifer', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)        
-    CALL define_ovar(ncid_restart, ripd%Watr, &
+    CALL define_ovar(ncid_restart, rpid%Watr, &
                      'Watr', '-', 'residual water content in soil layer', &
                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
                  
-    CALL define_ovar(ncid_restart, ripd%GWWatr, &
+    CALL define_ovar(ncid_restart, rpid%GWWatr, &
                      'GWWatr', '-', 'residual water content in aquifer', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)                  
                  
-    CALL define_ovar(ncid_restart, ripd%SoilMatPotSat, &
+    CALL define_ovar(ncid_restart, rpid%SoilMatPotSat, &
                      'SoilMatPotSat', '-', 'soil matric potent at saturation content in soil layer', &
                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
                  
-    CALL define_ovar(ncid_restart, ripd%GWSoilMatPotSat, &
+    CALL define_ovar(ncid_restart, rpid%GWSoilMatPotSat, &
                      'GWSoilMatPotSat', '-', 'soil matric potent at saturation content in aquifer', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)  
                  
-    CALL define_ovar(ncid_restart, ripd%HkSat, &
+    CALL define_ovar(ncid_restart, rpid%HkSat, &
                      'HkSat', '-', 'Max hydraulic conductivity in soil layer', &
                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
                  
-    CALL define_ovar(ncid_restart, ripd%GWHkSat, &
+    CALL define_ovar(ncid_restart, rpid%GWHkSat, &
                      'GWHkSat', '-', 'Max hydraulic conductivityin aquifer', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
                  
-    CALL define_ovar(ncid_restart, ripd%FrcSand, &
+    CALL define_ovar(ncid_restart, rpid%FrcSand, &
                      'FrcSand', '-', 'sand fraction  in soil layer', &
                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)    
                  
-    CALL define_ovar(ncid_restart, ripd%FrcClay, &
+    CALL define_ovar(ncid_restart, rpid%FrcClay, &
                      'FrcClay', '-', 'clay fraction  in soil layer', &
                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)  
                  
-    CALL define_ovar(ncid_restart, ripd%ClappB, &
+    CALL define_ovar(ncid_restart, rpid%ClappB, &
                      'ClappB', '-', 'clapp and horn b param  in soil layer', &
                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)          
                      

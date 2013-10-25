@@ -910,7 +910,7 @@ CONTAINS
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
     !MD aquifer layers
-    soil%GWgz = 30.0                          !30 m thick aquifer
+    soil%GWdz = 30.0                          !30 m thick aquifer
 
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -1014,46 +1014,46 @@ CONTAINS
       !MD
       !possibly heterogeneous soil properties
       DO klev=1,ms
-        ssnow%smpsat(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+        soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
                                          
-        ssnow%hksat(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+        soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
                                          
-        ssnow%clappB(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+        soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          inbch(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
-        ssnow%Fclay(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+        soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          inclay(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
-        ssnow%Fsand(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+        soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          insand(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
-        ssnow%densoil(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+        soil%densoil(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
-        ssnow%watsat(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+        soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        ssnow%watr(landpt(e)%cstart:landpt(e)%cend,k) =  0.01  !use a simple constant for now
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01  !use a simple constant for now
       END DO
       !Aquifer properties
-      ssnow%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                         &
+      soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                         &
                                          insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
                                          
-      ssnow%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
+      soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
                                          inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
                                          
-      ssnow%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                         &
+      soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                         &
                                          inbch(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
-      ssnow%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                         &
+      soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                         &
                                          inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
-      ssnow%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                         &
+      soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                         &
                                          inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-      ssnow%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.01  !use a simple constant for now
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.01  !use a simple constant for now
 
       ENDIF
 

@@ -58,7 +58,12 @@ MODULE cable_soil_snow_gw_module
    REAL, PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
                       qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
-                      watmin  = 0.05            !min soil water [mm]      
+                      watmin  = 0.05,         & !min soil water [mm]      
+                      wtd_uncert = 5.0,       &  ! uncertaintiy in wtd calcultations [mm]
+                      wtd_max = 100000.0,     & ! maximum wtd [mm]
+                      wtd_min = 10.0,         & ! minimum wtd [mm]
+                      denliq = 1000.0,        & ! denisty of liquid water [kg/m3]
+                      denice = 917.0            !denisty of ice
                       
    INTEGER, PARAMETER :: mx_wtd_iterations = 25 ! maximum number of iterations to find the water table depth                    
   
@@ -2054,8 +2059,8 @@ END SUBROUTINE hydraulic_redistribution
     integer, intent(in) :: n
 !   local variables
     integer  :: k
-    REAL(r_2), DIMENSION(mp_patch,ms+1) ::  gam  
-    REAL(r_2), DIMENSION(mp_patch)      ::  bet 
+    REAL(r_2), DIMENSION(mp,ms+1) ::  gam  
+    REAL(r_2), DIMENSION(mp)      ::  bet 
 !-----------------------------------------------------------------------
 
     ! Solve the matrix
@@ -2090,13 +2095,13 @@ END SUBROUTINE hydraulic_redistribution
     INTEGER, PARAMETER                       :: ntest = 0 ! for snow diag prints
     INTEGER, PARAMETER                       :: nglacier = 2 ! 0 original, 1 off, 2 new Eva
     INTEGER                                  :: k
-    REAL, DIMENSION(mp_patch)                :: rnof5
-    REAL, DIMENSION(mp_patch)                :: sgamm
-    REAL, DIMENSION(mp_patch)                :: smasstot
-    REAL, DIMENSION(mp_patch,0:3)            :: smelt1
-    REAL(r_2), DIMENSION(mp_patch)           :: xxx,fice,icef,efpor
-    REAL(r_2), DIMENSION(mp_patch)           :: tmpa,tmpb,inflmx,fcov
-    REAL(r_2), dimension(mp_patch)           :: satfrac
+    REAL, DIMENSION(mp)                :: rnof5
+    REAL, DIMENSION(mp)                :: sgamm
+    REAL, DIMENSION(mp)                :: smasstot
+    REAL, DIMENSION(mp,0:3)            :: smelt1
+    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor
+    REAL(r_2), DIMENSION(mp)           :: tmpa,tmpb,inflmx,fcov
+    REAL(r_2), dimension(mp)           :: satfrac
     logical                                  :: prinall = .false.  !for debugging
     
     !For now assume there is no puddle?
@@ -2134,8 +2139,8 @@ END SUBROUTINE hydraulic_redistribution
           !---- change local tg to account for energy - clearly not best method
           WHERE (ssoil%isflag == 0)
              smasstot = 0.0
-             ssoil%tgg(:,1) = ssoil%tgg(:,1) - rnof5 * hlf &
-                  & / REAL(ssoil%gammzz(:,1),r_1)
+             ssoil%tgg(:,1) = ssoil%tgg(:,1) - rnof5 * C%HLF &
+                  & / ssoil%gammzz(:,1)
              ssoil%snowd = 1000.0
           ELSEWHERE
              smasstot = ssoil%smass(:,1) + ssoil%smass(:,2) + ssoil%smass(:,3)
@@ -2149,7 +2154,7 @@ END SUBROUTINE hydraulic_redistribution
                   & 0.9 * ssoil%smass(:,k) )
              ssoil%smass(:,k) = ssoil%smass(:,k) - smelt1(:,k)
              ssoil%snowd = ssoil%snowd - smelt1(:,k)
-             ssoil%tggsn(:,k) = ssoil%tggsn(:,k) - smelt1(:,k) * hlf / sgamm
+             ssoil%tggsn(:,k) = ssoil%tggsn(:,k) - smelt1(:,k) * C%HLF / sgamm
           END WHERE
        END DO
     END IF
@@ -2172,14 +2177,14 @@ END SUBROUTINE hydraulic_redistribution
    TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
    LOGICAL, INTENT(IN)                       :: prin  !print info?
   !Local vars 
-  REAL(r_2), DIMENSION(mp_patch,ms)          :: dzmm
+  REAL(r_2), DIMENSION(mp,ms)          :: dzmm
   REAL(r_2), DIMENSION(ms+1)                 :: zimm
   REAL(r_2), DIMENSION(ms)                   :: zmm
-  REAL(r_2), DIMENSION(mp_patch)             :: GWzimm,temp
-  REAL(r_2), DIMENSION(mp_patch)             :: def,defc     
+  REAL(r_2), DIMENSION(mp)             :: GWzimm,temp
+  REAL(r_2), DIMENSION(mp)             :: def,defc     
 
   REAL(r_2)                                  :: deffunc,tempa,tempb,derv,calc
-  REAL(r_2), DIMENSION(mp_patch)             :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
+  REAL(r_2), DIMENSION(mp)             :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   !local loop counters
   INTEGER :: k,i,wttd,jlp
   LOGICAL :: keeplooping     !used to exit iterations on wtd
@@ -2188,7 +2193,7 @@ END SUBROUTINE hydraulic_redistribution
   !make code cleaner define these here 
   invB       = soil%clappB(:,ms)                            !1 over C&H B
   Nsmpsat(:) = soil%smpsat(:,ms)                            !psi_saturated mm
-  dzmm(:,:)  = spread((soil%zse(:)) * 1000.0,1,mp_patch)    !layer thickness mm
+  dzmm(:,:)  = spread((soil%zse(:)) * 1000.0,1,mp)    !layer thickness mm
   zimm(0)    = 0.0_r_2                                      !depth of layer interfaces mm
   zimm(1:ms) = zimm(0:ms-1) + real(dzmm(1,1:ms),r_2)
   
@@ -2197,10 +2202,9 @@ END SUBROUTINE hydraulic_redistribution
   where (defc(:) .le. 0.0_r_2) defc(:) = 0.1_r_2
   def(:) = sum((soil%watsat(:,:)-ssoil%wb(:,:))*dzmm(:,:),2)
      
-  do i=1,mp_patch
+  do i=1,mp
     keeplooping = .TRUE.
     if (defc(i) > def(i)) then                 !iterate tfor wtd
-       if (prin) write(LIS_logunit,*) 'defc > def'
        jlp=0
        mainloop: DO WHILE (keeplooping)
           tempa   = 1.0_r_2
@@ -2210,7 +2214,7 @@ END SUBROUTINE hydraulic_redistribution
           tempa   = 1.0_r_2
           tempb   = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(1.0_r_2-invB(i))
           deffunc = (soil%watsat(i,ms))*(ssoil%wtd(i) +&
-	                Nsmpsat(i)/(1.0_r_2-invB(i))* &
+                     Nsmpsat(i)/(1.0_r_2-invB(i))* &
                         (tempa-tempb)) - def(i)
           calc    = ssoil%wtd(i) - deffunc/derv
           IF ((abs(calc-ssoil%wtd(i))) .le. wtd_uncert) THEN
@@ -2225,7 +2229,6 @@ END SUBROUTINE hydraulic_redistribution
        END DO mainloop
     elseif (defc(i) .lt. def(i)) then
        jlp=0
-       if (prin) write(LIS_logunit,*) 'defc < def'
        mainloop2: DO WHILE (keeplooping)
           tempa    = ((Nsmpsat(i)+ssoil%wtd(i)-zimm(ms))/&
 	               Nsmpsat(i))**(-invB(i))
@@ -2275,40 +2278,40 @@ END SUBROUTINE hydraulic_redistribution
     LOGICAL, INTENT(IN)                       :: prin
     
     !Local variables.  
-    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: at     ! coef "A" in finite diff eq
-    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: bt     ! coef "B" in finite diff eq
-    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: ct     ! coef "C" in finite diff eq
-    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: rt
-!    REAL(r_2), DIMENSION(mp_patch)      :: fact
-!    REAL(r_2), DIMENSION(mp_patch)      :: fact2
-!    REAL(r_2), DIMENSION(mp_patch)      :: fluxhi
-!    REAL(r_2), DIMENSION(mp_patch)      :: fluxlo
-    REAL(r_2), DIMENSION(mp_patch)            :: hydss  ! hydraulic
+    REAL(r_2), DIMENSION(mp,ms+1)       :: at     ! coef "A" in finite diff eq
+    REAL(r_2), DIMENSION(mp,ms+1)       :: bt     ! coef "B" in finite diff eq
+    REAL(r_2), DIMENSION(mp,ms+1)       :: ct     ! coef "C" in finite diff eq
+    REAL(r_2), DIMENSION(mp,ms+1)       :: rt
+!    REAL(r_2), DIMENSION(mp)      :: fact
+!    REAL(r_2), DIMENSION(mp)      :: fact2
+!    REAL(r_2), DIMENSION(mp)      :: fluxhi
+!    REAL(r_2), DIMENSION(mp)      :: fluxlo
+    REAL(r_2), DIMENSION(mp)            :: hydss  ! hydraulic
                                                 ! conductivity adjusted for ice
 	
     INTEGER                                   :: k,kk
-    REAL(r_2), DIMENSION(mp_patch,ms)         :: eff_por,old_wb  !effective porosity and wb at start
-    REAL(r_2), DIMENSION(mp_patch)            :: den
-    REAL(r_2), DIMENSION(mp_patch)            :: dne
-    REAL(r_2), DIMENSION(mp_patch)            :: num
-    REAL(r_2), DIMENSION(mp_patch)            :: qin
-    REAL(r_2), DIMENSION(mp_patch)            :: qout
-    REAL(r_2), DIMENSION(mp_patch)            :: dqidw0
-    REAL(r_2), DIMENSION(mp_patch)            :: dqidw1
-    REAL(r_2), DIMENSION(mp_patch)            :: dqodw0
-    REAL(r_2), DIMENSION(mp_patch)            :: dqodw1,dqodw2
-    REAL(r_2), DIMENSION(mp_patch)            :: s1,s2,tmpi,temp0,voleq1,tempi
+    REAL(r_2), DIMENSION(mp,ms)         :: eff_por,old_wb  !effective porosity and wb at start
+    REAL(r_2), DIMENSION(mp)            :: den
+    REAL(r_2), DIMENSION(mp)            :: dne
+    REAL(r_2), DIMENSION(mp)            :: num
+    REAL(r_2), DIMENSION(mp)            :: qin
+    REAL(r_2), DIMENSION(mp)            :: qout
+    REAL(r_2), DIMENSION(mp)            :: dqidw0
+    REAL(r_2), DIMENSION(mp)            :: dqidw1
+    REAL(r_2), DIMENSION(mp)            :: dqodw0
+    REAL(r_2), DIMENSION(mp)            :: dqodw1,dqodw2
+    REAL(r_2), DIMENSION(mp)            :: s1,s2,tmpi,temp0,voleq1,tempi
     REAL(r_2), DIMENSION(ms)                  :: dzmm
     REAL(r_2), DIMENSION(ms+1)                :: zimm
     REAL(r_2), DIMENSION(ms)                  :: zmm
-    REAL(r_2), DIMENSION(mp_patch)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
-    REAL(r_2), DIMENSION(mp_patch)            :: xsi,xs1,GWmsliq
-    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: qhlev,del_wb
-    INTEGER, DIMENSION(mp_patch)              :: idlev
-    REAL(r_2),DIMENSION(mp_patch)             :: watmin
+    REAL(r_2), DIMENSION(mp)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
+    REAL(r_2), DIMENSION(mp)            :: xsi,xs1,GWmsliq
+    REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
+    INTEGER, DIMENSION(mp)              :: idlev
+    REAL(r_2),DIMENSION(mp)             :: watmin
     REAL(r_2)                                 :: dri  !ratio of density of ice to density of water
                                                 !ensures smp is independent of liq->ice conversion
-    REAL(r_2), DIMENSION(mp_patch,ms)         :: msliq,msice
+    REAL(r_2), DIMENSION(mp,ms)         :: msliq,msice
     logical                                   :: prinall = .false.   !another debug flag
     character (len=30)                        :: fmt  !format to output some debug info
     
@@ -2397,7 +2400,7 @@ END SUBROUTINE hydraulic_redistribution
        ssoil%fracice(:,k) = (ssoil%icefrac(:,k)- exp(-3.0))/(1.0-exp(-3.0))
        ssoil%fracice(:,k) = max(min(ssoil%fracice(:,k),1.0_r_2),0.0_r_2)
     end do
-    fice_avg(:)  = sum(ssoil%fracice(:,:)*spread(dzmm(:),1,mp_patch),2) / sum(dzmm(:))
+    fice_avg(:)  = sum(ssoil%fracice(:,:)*spread(dzmm(:),1,mp),2) / sum(dzmm(:))
     fice_avg(:)  = min(max(fice_avg(:) / ms,0.0_r_2),0.95_r_2)
     where(fice_avg(:) < ssoil%fracice(:,ms)) fice_avg(:) = ssoil%fracice(:,ms)         !frozen ms limits qh
        
@@ -2564,7 +2567,7 @@ END SUBROUTINE hydraulic_redistribution
         endif
     end do
 
-    ssoil%wb(:,:) = msliq(:,:) / spread(dzmm(:),1,mp_patch)                 !convert from mm to volumetric
+    ssoil%wb(:,:) = msliq(:,:) / spread(dzmm(:),1,mp)                 !convert from mm to volumetric
     ssoil%GWwb(:) = GWmsliq(:) / GWdzmm(:)	  
 
     ssoil%rnof2(:) = ssoil%qhz(:)*dels  !in mm
@@ -2604,6 +2607,9 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3 
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0 
+   LOGICAL :: prin
+   
+   prin = .FALSE.
    
    CALL point2constants( C ) 
    cp = C%CAPP
@@ -2752,7 +2758,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
     !note: canopy%segg appears to be soil evap.
     !canopy%fesp/C%HL*dels is the puddle evaporation
     
-    ssoil%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff
+    ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff
   
     ! Scaling  runoff to kg/m^2/s (mm/s) to match rest of the model
     ssnow%sinfil = 0.0
@@ -2822,4 +2828,4 @@ END SUBROUTINE soil_snow_gw
 
 
 
-END MODULE cable_soil_snow_module
+END MODULE cable_soil_snow_gw_module

@@ -265,7 +265,8 @@ MODULE cable_IO_vars_module
          EqSoilMatPot=.FALSE.,& ! equilibirum soil matric potential [mm]
          EqSoilMoist=.FALSE., & ! equilibirum soil moisture [mm3/mm3]
          EqGWMoist=.FALSE.,   & ! equilibrium water of aquifer
-         EqGWMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
+         GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
+         EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
          Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
 
          !parameters

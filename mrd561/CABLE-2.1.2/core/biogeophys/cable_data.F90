@@ -81,11 +81,6 @@ module cable_data_module
       zetpos = 1.0,  & ! positive limit on za/L when niter>=3
       zdlin  = 1.0,  & ! height frac of d below which TL linear
       umin   = 0.01
-      
-      
-      !MW GW constants
-      denice = 917.0,  &  !density of ice
-      denliq = 1000.0     !density of liquid water
        
    END TYPE physical_constants
 
