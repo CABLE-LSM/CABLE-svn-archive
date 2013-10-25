@@ -2178,7 +2178,7 @@ END SUBROUTINE hydraulic_redistribution
    LOGICAL, INTENT(IN)                       :: prin  !print info?
   !Local vars 
   REAL(r_2), DIMENSION(mp,ms)          :: dzmm
-  REAL(r_2), DIMENSION(ms+1)                 :: zimm
+  REAL(r_2), DIMENSION(0:ms+1)                 :: zimm
   REAL(r_2), DIMENSION(ms)                   :: zmm
   REAL(r_2), DIMENSION(mp)             :: GWzimm,temp
   REAL(r_2), DIMENSION(mp)             :: def,defc     
@@ -2302,7 +2302,7 @@ END SUBROUTINE hydraulic_redistribution
     REAL(r_2), DIMENSION(mp)            :: dqodw1,dqodw2
     REAL(r_2), DIMENSION(mp)            :: s1,s2,tmpi,temp0,voleq1,tempi
     REAL(r_2), DIMENSION(ms)                  :: dzmm
-    REAL(r_2), DIMENSION(ms+1)                :: zimm
+    REAL(r_2), DIMENSION(0:ms+1)                :: zimm
     REAL(r_2), DIMENSION(ms)                  :: zmm
     REAL(r_2), DIMENSION(mp)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
     REAL(r_2), DIMENSION(mp)            :: xsi,xs1,GWmsliq

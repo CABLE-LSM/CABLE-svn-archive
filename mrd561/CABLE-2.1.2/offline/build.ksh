@@ -37,8 +37,8 @@ host_ccrc()
 ##my laptop
 host_md()
 {
-   export NCDIR='/usr/lib64'
-   export NCMOD='/usr/include'
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
    export FC=gfortran
    export CFLAGS='-O2 -x f95-cpp-input -march=native'
    export LD='-lnetcdf -lnetcdff'
@@ -362,7 +362,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-4`
+HOST_MACH=`uname -n | cut -c 1-2`
 
 do_i_no_u $1
 
