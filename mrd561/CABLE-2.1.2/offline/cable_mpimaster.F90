@@ -142,7 +142,7 @@ SUBROUTINE mpidrv_master (comm)
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
-                                   report_version_no, wiltParam, satuParam
+                                   wiltParam, satuParam!,report_version_no
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -275,7 +275,7 @@ SUBROUTINE mpidrv_master (comm)
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
-   CALL report_version_no( logn )
+   !CALL report_version_no( logn )
     
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)

@@ -2,8 +2,24 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
+   set -A kh vayu cher burn shin cycl
 }
+
+
+host_cycl()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## shine-cl.nexus.csiro.au 
