@@ -59,6 +59,9 @@ MODULE cable_soil_snow_gw_module
                       qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
                       watmin  = 0.05            !min soil water [mm]      
+                      
+   INTEGER, PARAMETER :: mx_wtd_iterations = 25 ! maximum number of iterations to find the water table depth                    
+  
    
    REAL :: cp    ! specific heat capacity for air
    
@@ -2115,10 +2118,10 @@ END SUBROUTINE hydraulic_redistribution
     inflmx(:)= ((1.0-soil%clappB(:,1)*soil%smpsat(:,1)/(0.5*soil%zse(1)*1000.0)&
                     *(tmpb-1.0))*soil%hksat(:,1))
      ! Surface runoff         
-    ssoil%rnof1(:) =  satfrac(:) * ssoil%fwtop(:) + &
-                       (1.0-satfrac(:)) * max(ssoil%fwtop(:)-inflmx,0.0_r_2)
+    ssoil%rnof1(:) =  (satfrac(:) * ssoil%fwtop(:) + &
+                       (1.0-satfrac(:)) * max(ssoil%fwtop(:)-inflmx,0.0_r_2))  !in mm?
 
-    ssoil%fwtop(:) = ssoil%fwtop(:) - ssoil%rnof1(:)
+    ssoil%fwtop(:) = ssoil%fwtop(:) - ssoil%rnof1(:)  !in mm
            
     !in soil_snow_gw subroutine of this module
     !ssoil%runoff = ssoil%rnof1! + ssoil%rnof2    
@@ -2213,7 +2216,7 @@ END SUBROUTINE hydraulic_redistribution
           IF ((abs(calc-ssoil%wtd(i))) .le. wtd_uncert) THEN
               ssoil%wtd(i) = calc
               keeplooping = .FALSE.
-          ELSEIF (jlp==25) THEN
+          ELSEIF (jlp==mx_wtd_iterations) THEN
               keeplooping = .FALSE.
           ELSE
               jlp=jlp+1
@@ -2236,7 +2239,7 @@ END SUBROUTINE hydraulic_redistribution
           IF ((abs(calc-ssoil%wtd(i))) .le. wtd_uncert) THEN
              ssoil%wtd(i) = calc
              keeplooping = .FALSE.
-          ELSEIF (jlp==25) THEN
+          ELSEIF (jlp==mx_wtd_iterations) THEN
              keeplooping = .FALSE.
           ELSE
              jlp=jlp+1
@@ -2564,7 +2567,7 @@ END SUBROUTINE hydraulic_redistribution
     ssoil%wb(:,:) = msliq(:,:) / spread(dzmm(:),1,mp_patch)                 !convert from mm to volumetric
     ssoil%GWwb(:) = GWmsliq(:) / GWdzmm(:)	  
 
-    ssoil%rnof2(:) = ssoil%qhz(:)
+    ssoil%rnof2(:) = ssoil%qhz(:)*dels  !in mm
 
 
  END SUBROUTINE smoistgw
