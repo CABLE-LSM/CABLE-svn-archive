@@ -27,7 +27,7 @@
 !               NB Currently hard-wired to veg types 2 and 7 
 !                  (usually evergreen broadleaf and c4 grass)
 !          v2.0 ssoil variable renamed ssnow
-!          Mark Decker - Forked ssnow to devlope ssgw
+!          Mark Decker - used ssnow as base for ssgw.  Could be part of same module
 !
 ! ==============================================================================
 
@@ -52,7 +52,7 @@ MODULE cable_soil_snow_gw_module
       snmin = 1.,          & ! for 3-layer;
       max_ssdn = 750.0,    & !
       max_sconds = 2.51,   & !
-      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
+      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95) 
       
    !MD GW params
    REAL, PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
@@ -2119,9 +2119,7 @@ END SUBROUTINE hydraulic_redistribution
                        (1.0-satfrac(:)) * max(ssoil%fwtop(:)-inflmx,0.0_r_2)
 
     ssoil%fwtop(:) = ssoil%fwtop(:) - ssoil%rnof1(:)
-       
-    !if (prin .and. prinall) write(LIS_logunit,*)  "infiltration ",ssoil%fwtop
-    
+           
     !in soil_snow_gw subroutine of this module
     !ssoil%runoff = ssoil%rnof1! + ssoil%rnof2    
 
@@ -2181,6 +2179,7 @@ END SUBROUTINE hydraulic_redistribution
   REAL(r_2), DIMENSION(mp_patch)             :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   !local loop counters
   INTEGER :: k,i,wttd,jlp
+  LOGICAL :: keeplooping     !used to exit iterations on wtd
      
    
   !make code cleaner define these here 
@@ -2191,30 +2190,31 @@ END SUBROUTINE hydraulic_redistribution
   zimm(1:ms) = zimm(0:ms-1) + real(dzmm(1,1:ms),r_2)
   
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1-invB(:))* &
-    (1-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1-invB(:))))             !def if wtd=zimm(ms)
-  where (defc(:) .le. 0.0) defc(:) = 0.1
+    (1.0_r_2-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1.0_r_2-invB(:))))             !def if wtd=zimm(ms)
+  where (defc(:) .le. 0.0_r_2) defc(:) = 0.1_r_2
   def(:) = sum((soil%watsat(:,:)-ssoil%wb(:,:))*dzmm(:,:),2)
      
   do i=1,mp_patch
+    keeplooping = .TRUE.
     if (defc(i) > def(i)) then                 !iterate tfor wtd
-       write(LIS_logunit,*) 'defc > def'
+       if (prin) write(LIS_logunit,*) 'defc > def'
        jlp=0
-       mainloop: DO
+       mainloop: DO WHILE (keeplooping)
           tempa   = 1.0_r_2
-          tempb   = (1+ssoil%wtd(i)/Nsmpsat(i))**(-invB(i))
+          tempb   = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(-invB(i))
           derv    = max((soil%watsat(i,ms))*(tempa-tempb) + &
                                           soil%watsat(i,ms),0.001_r_2)
           tempa   = 1.0_r_2
-          tempb   = (1+ssoil%wtd(i)/Nsmpsat(i))**(1.0-invB(i))
+          tempb   = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(1.0_r_2-invB(i))
           deffunc = (soil%watsat(i,ms))*(ssoil%wtd(i) +&
-	                Nsmpsat(i)/(1-invB(i))* &
+	                Nsmpsat(i)/(1.0_r_2-invB(i))* &
                         (tempa-tempb)) - def(i)
           calc    = ssoil%wtd(i) - deffunc/derv
           IF ((abs(calc-ssoil%wtd(i))) .le. wtd_uncert) THEN
               ssoil%wtd(i) = calc
-              EXIT mainloop
+              keeplooping = .FALSE.
           ELSEIF (jlp==25) THEN
-              EXIT mainloop
+              keeplooping = .FALSE.
           ELSE
               jlp=jlp+1
               ssoil%wtd(i) = calc
@@ -2222,22 +2222,22 @@ END SUBROUTINE hydraulic_redistribution
        END DO mainloop
     elseif (defc(i) .lt. def(i)) then
        jlp=0
-       write(LIS_logunit,*) 'defc < def'
-       mainloop2: DO
+       if (prin) write(LIS_logunit,*) 'defc < def'
+       mainloop2: DO WHILE (keeplooping)
           tempa    = ((Nsmpsat(i)+ssoil%wtd(i)-zimm(ms))/&
 	               Nsmpsat(i))**(-invB(i))
-          tempb    = (1+ssoil%wtd(i)/Nsmpsat(i))**(-invB(i))
+          tempb    = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(-invB(i))
           derv     = max((soil%watsat(i,ms))*(tempa-tempb),0.001_r_2)
-          tempa    = ((Nsmpsat(i)+ssoil%wtd(i)-zimm(ms))/Nsmpsat(i))**(1.0-invB(i))
-          tempb    = (1+ssoil%wtd(i)/Nsmpsat(i))**(1.0-invB(i))
+          tempa    = ((Nsmpsat(i)+ssoil%wtd(i)-zimm(ms))/Nsmpsat(i))**(1.0_r_2-invB(i))
+          tempb    = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(1.0-invB(i))
           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
-                      Nsmpsat(i)/(1-invB(i))*(tempa-tempb))-def(i)
+                      Nsmpsat(i)/(1.0_r_2-invB(i))*(tempa-tempb))-def(i)
           calc     = ssoil%wtd(i) - deffunc/derv
           IF ((abs(calc-ssoil%wtd(i))) .le. wtd_uncert) THEN
              ssoil%wtd(i) = calc
-             EXIT mainloop2
+             keeplooping = .FALSE.
           ELSEIF (jlp==25) THEN
-             EXIT mainloop2
+             keeplooping = .FALSE.
           ELSE
              jlp=jlp+1
              ssoil%wtd(i) = calc
@@ -2246,7 +2246,8 @@ END SUBROUTINE hydraulic_redistribution
     else
        ssoil%wtd(i) = zimm(ms)
     endif
-  end do
+    
+  end do   !mp patches loop
 
   where (ssoil%wtd(:) .gt. wtd_max) ssoil%wtd(:) = wtd_max
   where (ssoil%wtd(:) .lt. wtd_min) ssoil%wtd(:) = wtd_min
@@ -2283,22 +2284,7 @@ END SUBROUTINE hydraulic_redistribution
                                                 ! conductivity adjusted for ice
 	
     INTEGER                                   :: k,kk
-!     REAL(r_2), DIMENSION(mp_patch)            :: phi
-!     REAL(r_2), DIMENSION(mp_patch)            :: pwb
-!     REAL(r_2), DIMENSION(mp_patch)            :: speed_k
-!     REAL(r_2), DIMENSION(mp_patch)            :: ssatcurr_k
-!     REAL(r_2), DIMENSION(mp_patch,ms+1)       :: wbh
-!     REAL, DIMENSION(mp_patch,ms+1)            :: z1mult
-!     REAL(r_2), DIMENSION(mp_patch,0:ms)       :: fluxh
-!     REAL(r_2), DIMENSION(mp_patch,0:ms)       :: delt
-!     REAL(r_2), DIMENSION(mp_patch,0:ms)       :: dtt
-!     REAL(r_2), DIMENSION(mp_patch)            :: pwb_wbh
     REAL(r_2), DIMENSION(mp_patch,ms)         :: eff_por,old_wb  !effective porosity and wb at start
-!     REAL, DIMENSION(mp_patch)                 :: wbficemx
-!     REAL(r_2), DIMENSION(mp_patch)            :: wbh_k
-!     REAL(r_2), DIMENSION(mp_patch)            :: wbl_k
-!     REAL(r_2), DIMENSION(mp_patch)            :: wbl_kp
-!     REAL(r_2), DIMENSION(mp_patch)            :: wh
     REAL(r_2), DIMENSION(mp_patch)            :: den
     REAL(r_2), DIMENSION(mp_patch)            :: dne
     REAL(r_2), DIMENSION(mp_patch)            :: num
@@ -2544,7 +2530,7 @@ END SUBROUTINE hydraulic_redistribution
     do k=1,ms 
        ssoil%wb(:,k) = old_wb(:,k) + del_wb(:,k)
        msliq(:,k)    = (ssoil%wb(:,k))*dzmm(k)                           !mass of soil liq [mm] from volumetric
-       msice(:,k)    = denice*ssoil%wbice(:,k)*dzmm(k)/1000.0            !mass of soil ice
+       msice(:,k)    = denice*ssoil%wbice(:,k)*dzmm(k)/denliq            !mass of soil ice
        eff_por(:,k)  = (soil%watsat(:,k)) - ssoil%wbice(:,k)
     end do
     GWmsliq(:) = ssoil%GWwb(:)*GWdzmm                                    !mass aquifer liq 

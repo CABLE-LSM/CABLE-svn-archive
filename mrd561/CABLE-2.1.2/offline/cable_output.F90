@@ -57,7 +57,7 @@ MODULE cable_output_module
   INTEGER :: ncid_out ! output data netcdf file ID
   REAL :: missing_value = -999999.0 ! for netcdf output
   TYPE out_varID_type ! output variable IDs in netcdf file
-    INTEGER :: SWdown, LWdown, Wind, Wind_E, PSurf,                       &
+    INTEGER :: SWdown, LWdown, Wind, Wind_E, PSurf,                            &
                     Tair, Qair, Rainf, Snowf, CO2air,                          &
                     Qle, Qh, Qg, NEE, SWnet,                                   &
                     LWnet, SoilMoist, SoilTemp, Albedo, Qs,                    &
@@ -65,7 +65,10 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar
+                    HVeg, HSoil, Rnet, tvar,                                   &
+                    !MD
+                    WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
+                    EqGWMoist,EqGWSoilMatPot
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -159,6 +162,17 @@ MODULE cable_output_module
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
+    !MD GW
+    REAL(KIND=4), POINTER, DIMENSION(:) :: GWMoist       ! water balance of aquifer [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: WatTable      ! water table depth [m]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilMatPot    ! soil matric potential [mm]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: EqSoilMatPot  ! equilibirum soil matric potential [mm]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: EqSoilMoist   ! equilibirum soil moisture [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: EqGWMoist     ! equilibrium water of aquifer
+    REAL(KIND=4), POINTER, DIMENSION(:) :: EqGWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: GWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]     
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qinfl         !infiltration rate into first soil layer [mm/s] 
+
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -613,6 +627,73 @@ CONTAINS
        out%NPP = 0.0 ! initialise
     END IF
 
+    !MD groundwater related variables
+    IF(output%soil .OR. output%WatTable) THEN
+       CALL define_ovar(ncid_out, ovid%WatTable, 'WatTable', 'mm',      &
+                        'Water Table Depth', patchout%WatTable,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%WatTable(mp))
+       out%WatTable = 0.0 ! initialise
+    END IF
+    IF(output%soil .OR. output%GWMoist) THEN
+       CALL define_ovar(ncid_out, ovid%GWMoist, 'GWMoist', 'mm3/mm3',      &
+                        'Aquifer mositure content', patchout%GWMoist,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%GWMoist(mp))
+       out%GWMoist = 0.0 ! initialise
+    END IF
+    IF(output%soil .OR. output%EqGWMoist) THEN
+       CALL define_ovar(ncid_out, ovid%EqGWMoist, 'EqGWMoist', 'mm3/mm3',      &
+                        'Aquifer Equilibrium moisture content', patchout%EqGWMoist,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%EqGWMoist(mp))
+       out%EqGWMoist = 0.0 ! initialise
+    END IF    
+    IF(output%soil .OR. output%EqGWSoilMatPot) THEN
+       CALL define_ovar(ncid_out, ovid%EqGWSoilMatPot, 'EqGWSoilMatPot', 'mm',      &
+                        'Aquifer equilibiruim matric potential', patchout%EqGWSoilMatPot,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%EqGWSoilMatPot(mp))
+       out%EqGWSoilMatPot = 0.0 ! initialise
+    END IF      
+    IF(output%soil .OR. output%GWSoilMatPot) THEN
+       CALL define_ovar(ncid_out, ovid%GWSoilMatPot, 'GWSoilMatPot', 'mm',      &
+                        'Aquifer  matric potential', patchout%GWSoilMatPot,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%EqGWSoilMatPot(mp))
+       out%EqGWSoilMatPot = 0.0 ! initialise
+    END IF         
+    IF(output%soil .OR. output%SoilMatPot) THEN
+       CALL define_ovar(ncid_out, ovid%SoilMatPot, 'SoilMatPot', 'mm',      &
+                        'Average layer soil matric potential', patchout%SoilMatPot,     &
+                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       ALLOCATE(out%SoilMatPot(mp,ms))
+       out%SoilMatPot = 0.0 ! initialise
+    END IF    
+    IF(output%soil .OR. output%EqSoilMatPot) THEN
+       CALL define_ovar(ncid_out, ovid%EqSoilMatPot, 'EqSoilMatPot', 'mm',      &
+                        'Average layer soil equilibiruim matric potential', patchout%EqSoilMatPot,     &
+                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       ALLOCATE(out%EqSoilMatPot(mp,ms))
+       out%EqSoilMatPot = 0.0 ! initialise
+    END IF    
+    IF(output%soil .OR. output%EqSoilMoist) THEN
+       CALL define_ovar(ncid_out, ovid%EqSoilMoist, 'EqSoilMoist', 'mm3/mm3',      &
+                        'Average layer eq soil moisture', patchout%EqSoilMoist,     &
+                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       ALLOCATE(out%EqSoilMoist(mp,ms))
+       out%EqSoilMoist = 0.0 ! initialise
+    END IF     
+    
+    IF(output%soil .OR. output%Qinfl) THEN
+       CALL define_ovar(ncid_out, ovid%Qinfl, 'Qinfl', 'mm/s',      &
+                        'infiltration rate into first soil layer', patchout%Qinfl,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qinfl(mp))
+       out%Qinfl = 0.0 ! initialise
+    END IF         
+    
+
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
                      'iveg', '-', 'Vegetation type', patchout%iveg, 'integer', &
@@ -744,6 +825,52 @@ CONTAINS
     IF(output%params .OR. output%froot) CALL define_ovar(ncid_out, opid%froot, &
                          'froot', '-', 'Fraction of roots in each soil layer', &
                  patchout%froot, soilID, 'soil', xID, yID, zID, landID, patchID)
+                 
+         
+    !MD
+    IF(output%params .OR. output%WatSat) CALL define_ovar(ncid_out, opid%WatSat, &
+                         'WatSat', '-', 'Max water content in soil layer', &
+                 patchout%WatSat, soilID, 'soil', xID, yID, zID, landID, patchID)
+                 
+    IF(output%params .OR. output%GWWatSat) CALL define_ovar(ncid_out, opid%GWWatSat, &
+                         'GWWatSat', '-', 'Max water content in aquifer', &
+                 patchout%GWWatSat, 'real', xID, yID, zID, landID, patchID)      
+                 
+    IF(output%params .OR. output%Watr) CALL define_ovar(ncid_out, opid%Watr, &
+                         'Watr', '-', 'residual water content in soil layer', &
+                 patchout%Watr, soilID, 'soil', xID, yID, zID, landID, patchID)
+                 
+    IF(output%params .OR. output%GWWatr) CALL define_ovar(ncid_out, opid%GWWatr, &
+                         'GWWatr', '-', 'residual water content in aquifer', &
+                 patchout%GWWatr, 'real', xID, yID, zID, landID, patchID)                  
+                 
+    IF(output%params .OR. output%SoilMatPotSat) CALL define_ovar(ncid_out, opid%SoilMatPotSat, &
+                         'SoilMatPotSat', '-', 'soil matric potent at saturation content in soil layer', &
+                 patchout%SoilMatPotSat, soilID, 'soil', xID, yID, zID, landID, patchID)    
+                 
+    IF(output%params .OR. output%GWSoilMatPotSat) CALL define_ovar(ncid_out, opid%GWSoilMatPotSat, &
+                         'GWSoilMatPotSat', '-', 'soil matric potent at saturation content in aquifer', &
+                 patchout%GWSoilMatPotSat, 'real', xID, yID, zID, landID, patchID)
+                 
+    IF(output%params .OR. output%HkSat) CALL define_ovar(ncid_out, opid%HkSat, &
+                         'HkSat', '-', 'Max hydraulic conductivity in soil layer', &
+                 patchout%HkSat, soilID, 'soil', xID, yID, zID, landID, patchID)
+                 
+    IF(output%params .OR. output%GWHkSat) CALL define_ovar(ncid_out, opid%GWHkSat, &
+                         'GWHkSat', '-', 'Max hydraulic conductivityin aquifer', &
+                 patchout%GWHkSat, 'real', xID, yID, zID, landID, patchID)  
+                 
+    IF(output%params .OR. output%FrcSand) CALL define_ovar(ncid_out, opid%FrcSand, &
+                         'FrcSand', '-', 'sand fraction  in soil layer', &
+                 patchout%FrcSand, soilID, 'soil', xID, yID, zID, landID, patchID)       
+                 
+    IF(output%params .OR. output%FrcClay) CALL define_ovar(ncid_out, opid%FrcClay, &
+                         'FrcClay', '-', 'clay fraction  in soil layer', &
+                 patchout%FrcClay, soilID, 'soil', xID, yID, zID, landID, patchID)    
+                 
+    IF(output%params .OR. output%ClappB) CALL define_ovar(ncid_out, opid%ClappB, &
+                         'ClappB', '-', 'clapp and horn b param  in soil layer', &
+                 patchout%ClappB, soilID, 'soil', xID, yID, zID, landID, patchID)                     
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -831,8 +958,8 @@ CONTAINS
                'iveg', REAL(veg%iveg, 4), ranges%iveg, patchout%iveg, 'integer')
     IF((output%params .OR. output%patchfrac)                                   &
        .AND. (patchout%patchfrac .OR. output%patch))                           &
-       CALL write_ovar(ncid_out, opid%patchfrac, 'patchfrac',                  &
-               REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'real')
+       CALL write_ovar(ncid_out, opid%patchfrac, 'patchfrac'                   &
+               ,REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'real')
     IF(output%params .OR. output%isoil) CALL write_ovar(ncid_out, opid%isoil,  &
           'isoil', REAL(soil%isoilm, 4), ranges%isoil, patchout%isoil,'integer')
     IF(output%params .OR. output%bch) CALL write_ovar(ncid_out, opid%bch,      &
@@ -923,7 +1050,31 @@ CONTAINS
     IF(output%params .OR. output%zse) CALL write_ovar(ncid_out, opid%zse,      &
                            'zse', SPREAD(REAL(soil%zse, 4), 1, mp),ranges%zse, &
                                 patchout%zse, 'soil')! no spatial dim at present
-
+                                
+    !MD
+    IF(output%params .OR. output%WatSat) CALL write_ovar (ncid_out, opid%WatSat, &
+              'WatSat', REAL(soil%watsat, 4), ranges%WatSat, patchout%WatSat, 'soil')
+    IF(output%params .OR. output%Watr) CALL write_ovar (ncid_out, opid%Watr, &
+              'Watr', REAL(soil%watr, 4), ranges%Watr, patchout%Watr, 'soil')
+    IF(output%params .OR. output%GWWatSat) CALL write_ovar (ncid_out, opid%GWWatSat, &
+              'GWWatSat', REAL(soil%GWwatsat, 4), ranges%GWWatSat, patchout%GWWatSat, 'real')
+    IF(output%params .OR. output%GWWatr) CALL write_ovar (ncid_out, opid%GWWatr, &
+              'GWWatr', REAL(soil%GWwatr, 4), ranges%GWWatr, patchout%GWWatr, 'real')     
+    IF(output%params .OR. output%SoilMatPotSat) CALL write_ovar (ncid_out, opid%SoilMatPotSat, &
+              'SoilMatPotSat', REAL(soil%smpsat, 4), ranges%SoilMatPotSat, patchout%SoilMatPotSat, 'soil')   
+    IF(output%params .OR. output%GWSoilMatPotSat) CALL write_ovar (ncid_out, opid%GWSoilMatPotSat, &
+              'GWSoilMatPotSat', REAL(soil%GWsmpsat, 4), ranges%GWSoilMatPotSat, patchout%GWSoilMatPotSat, 'real')     
+    IF(output%params .OR. output%HkSat) CALL write_ovar (ncid_out, opid%HkSat, &
+              'HkSat', REAL(soil%hksat, 4), ranges%HkSat, patchout%HkSat, 'soil')       
+    IF(output%params .OR. output%GWHkSat) CALL write_ovar (ncid_out, opid%GWHkSat, &
+              'GWHkSat', REAL(soil%GWhksat, 4), ranges%GWHkSat, patchout%GWHkSat, 'real')                  
+    IF(output%params .OR. output%FrcSand) CALL write_ovar (ncid_out, opid%FrcSand, &
+              'FrcSand', REAL(soil%FSand, 4), ranges%FrcSand, patchout%FrcSand, 'soil')          
+    IF(output%params .OR. output%FrcClay) CALL write_ovar (ncid_out, opid%FrcClay, &
+              'FrcClay', REAL(soil%FClay, 4), ranges%FrcClay, patchout%FrcClay, 'soil')          
+    IF(output%params .OR. output%ClappB) CALL write_ovar (ncid_out, opid%ClappB, &
+              'ClappB', REAL(soil%clappB, 4), ranges%ClappB, patchout%ClappB, 'soil')    
+              
   END SUBROUTINE open_output_file
   !=============================================================================
   SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
@@ -1677,7 +1828,137 @@ CONTAINS
           out%HeteroResp = 0.0
        END IF
     END IF
-
+    
+    
+    
+    !MD Write the hydrology output data from the groundwater module calculations
+    !water table depth
+    IF(output%soil .OR. output%WatTable) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%WatTable = out%WatTable + REAL(ssnow%wtd, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%WatTable = out%WatTable / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%WatTable, 'WatTable', &
+               out%WatTable, ranges%WatTable, patchout%WatTable, 'default', met)
+          ! Reset temporary output variable:
+          out%WatTable = 0.0
+       END IF
+    END IF    
+    !aquifer water content
+    IF(output%soil .OR. output%GWMoist) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%GWMoist = out%GWMoist / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%GWMoist, 'GWMoist', &
+               out%GWMoist, ranges%GWMoist, patchout%GWMoist, 'default', met)
+          ! Reset temporary output variable:
+          out%GWMoist = 0.0
+       END IF
+    END IF      
+    !aquifer equilibrium water content
+    IF(output%soil .OR. output%EqGWMoist) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%EqGWMoist = out%EqGWMoist + REAL(ssnow%GWwbeq, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%EqGWMoist = out%EqGWMoist / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%EqGWMoist, 'EqGWMoist', &
+               out%EqGWMoist, ranges%EqGWMoist, patchout%EqGWMoist, 'default', met)
+          ! Reset temporary output variable:
+          out%EqGWMoist = 0.0
+       END IF
+    END IF        
+    !aquifer soil matric potential
+    IF(output%soil .OR. output%GWSoilMatPot) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%GWSoilMatPot = out%GWSoilMatPot + REAL(ssnow%GWsmp, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%GWSoilMatPot = out%GWSoilMatPot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%GWSoilMatPot, 'GWSoilMatPot', &
+               out%GWSoilMatPot, ranges%GWSoilMatPot, patchout%GWSoilMatPot, 'default', met)
+          ! Reset temporary output variable:
+          out%GWSoilMatPot = 0.0
+       END IF
+    END IF         
+    !equilibrium aquifer soil matric potential
+    IF(output%soil .OR. output%EqGWSoilMatPot) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%EqGWSoilMatPot = out%EqGWSoilMatPot + REAL(ssnow%GWzq, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%EqGWSoilMatPot = out%EqGWSoilMatPot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%EqGWSoilMatPot, 'EqGWSoilMatPot', &
+               out%EqGWSoilMatPot, ranges%EqGWSoilMatPot, patchout%EqGWSoilMatPot, 'default', met)
+          ! Reset temporary output variable:
+          out%EqGWSoilMatPot = 0.0
+       END IF
+    END IF     
+    ! soil matric potential
+    IF(output%soil .OR. output%SoilMatPot) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%SoilMatPot = out%SoilMatPot + REAL(ssnow%smp, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%SoilMatPot = out%SoilMatPot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SoilMatPot, 'SoilMatPot', &
+               out%SoilMatPot, ranges%SoilMatPot, patchout%SoilMatPot, 'soil', met)
+          ! Reset temporary output variable:
+          out%SoilMatPot = 0.0
+       END IF
+    END IF     
+    ! equilibrium soil matric potential
+    IF(output%soil .OR. output%EqSoilMatPot) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%EqSoilMatPot = out%EqSoilMatPot + REAL(ssnow%zq, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%EqSoilMatPot = out%EqSoilMatPot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%EqSoilMatPot, 'EqSoilMatPot', &
+               out%EqSoilMatPot, ranges%EqSoilMatPot, patchout%EqSoilMatPot, 'soil', met)
+          ! Reset temporary output variable:
+          out%EqSoilMatPot = 0.0
+       END IF
+    END IF  
+    ! equilibrium soil water content
+    IF(output%soil .OR. output%EqSoilMoist) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%EqSoilMoist = out%EqSoilMoist + REAL(ssnow%wbeq, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%EqSoilMoist = out%EqSoilMoist / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%EqSoilMoist, 'EqSoilMoist', &
+               out%EqSoilMoist, ranges%EqSoilMoist, patchout%EqSoilMoist, 'soil', met)
+          ! Reset temporary output variable:
+          out%EqSoilMoist = 0.0
+       END IF
+    END IF      
+    ! infiltration rate
+    IF(output%soil .OR. output%Qinfl) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qinfl = out%Qinfl + REAL(ssnow%fwtop/dels, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Qinfl = out%Qinfl / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qinfl, 'Qinfl', &
+               out%Qinfl, ranges%Qinfl, patchout%Qinfl, 'default', met)
+          ! Reset temporary output variable:
+          out%Qinfl = 0.0
+       END IF
+    END IF      
+    
   END SUBROUTINE write_output
   !=============================================================================
   SUBROUTINE close_output_file(bal, air, bgc, canopy, met,                     &
@@ -1762,7 +2043,7 @@ CONTAINS
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                    csoilID, tradID, albedoID
+                    csoilID, tradID, albedoID, gwID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     dummy = 0 ! initialise
 
@@ -2079,6 +2360,54 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%xalbnir, 'xalbnir', '-',               &
                      'modifier for albedo in near ir band',                    &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+                     
+                     
+                     
+                     
+    !MD
+    CALL define_ovar(ncid_restart, ripd%WatSat, &
+                     'WatSat', '-', 'Max water content in soil layer', &
+                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)       
+    CALL define_ovar(ncid_restart, ripd%GWWatSat, &
+                     'GWWatSat', '-', 'Max water content in aquifer', &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)        
+    CALL define_ovar(ncid_restart, ripd%Watr, &
+                     'Watr', '-', 'residual water content in soil layer', &
+                     .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+                 
+    CALL define_ovar(ncid_restart, ripd%GWWatr, &
+                     'GWWatr', '-', 'residual water content in aquifer', &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)                  
+                 
+    CALL define_ovar(ncid_restart, ripd%SoilMatPotSat, &
+                     'SoilMatPotSat', '-', 'soil matric potent at saturation content in soil layer', &
+                     .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+                 
+    CALL define_ovar(ncid_restart, ripd%GWSoilMatPotSat, &
+                     'GWSoilMatPotSat', '-', 'soil matric potent at saturation content in aquifer', &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)  
+                 
+    CALL define_ovar(ncid_restart, ripd%HkSat, &
+                     'HkSat', '-', 'Max hydraulic conductivity in soil layer', &
+                     .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+                 
+    CALL define_ovar(ncid_restart, ripd%GWHkSat, &
+                     'GWHkSat', '-', 'Max hydraulic conductivityin aquifer', &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+                 
+    CALL define_ovar(ncid_restart, ripd%FrcSand, &
+                     'FrcSand', '-', 'sand fraction  in soil layer', &
+                     .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)    
+                 
+    CALL define_ovar(ncid_restart, ripd%FrcClay, &
+                     'FrcClay', '-', 'clay fraction  in soil layer', &
+                     .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)  
+                 
+    CALL define_ovar(ncid_restart, ripd%ClappB, &
+                     'ClappB', '-', 'clapp and horn b param  in soil layer', &
+                     .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)          
+                     
+                     
     ! ratecp (Plant carbon rate constant):
     ok = NF90_DEF_VAR(ncid_restart, 'ratecp', NF90_FLOAT, (/plantcarbID/),     &
                       rpid%ratecp)
@@ -2106,6 +2435,10 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%za_tq, 'za_tq', 'm',                   &
                      'Reference height (lowest atm. model layer) for scalars', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+                     
+    CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3',                          &
+                     'Aquifer water content',                         &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)                     
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -2181,8 +2514,8 @@ CONTAINS
                      ranges%silt, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%css, 'css', REAL(soil%css, 4),         &
                      ranges%css, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%rhosoil, 'rhosoil',                    &
-                     REAL(soil%rhosoil,4), ranges%rhosoil, .TRUE., 'real',     &
+    CALL write_ovar (ncid_restart, rpid%rhosoil, 'rhosoil'                    &
+                     ,REAL(soil%rhosoil,4), ranges%rhosoil, .TRUE., 'real',     &
                      .TRUE.)
     CALL write_ovar (ncid_restart, rpid%hyds, 'hyds', REAL(soil%hyds, 4),      &
                      ranges%hyds, .TRUE., 'real', .TRUE.)
@@ -2207,6 +2540,28 @@ CONTAINS
                      ranges%SoilMoist, .TRUE., 'soil', .TRUE.)
     CALL write_ovar (ncid_restart, gammzzID, 'gammzz', ssnow%gammzz,           &
                      (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+                     
+   !MD
+    CALL write_ovar (ncid_restart, rpid%WatSat, 'WatSat', REAL(soil%watsat, 4),    &
+                     ranges%WatSat, .TRUE., 'soil', .TRUE.)   
+    CALL write_ovar (ncid_restart, rpid%SoilMatPotSat, 'SoilMatPotSat', REAL(soil%smpsat, 4),    &
+                     ranges%SoilMatPotSat, .TRUE., 'soil', .TRUE.)                
+    CALL write_ovar (ncid_restart, rpid%HkSat, 'HkSat', REAL(soil%hksat, 4),    &
+                     ranges%HkSat, .TRUE., 'soil', .TRUE.)   
+    CALL write_ovar (ncid_restart, rpid%ClappB, 'ClappB', REAL(soil%clappB, 4),    &
+                     ranges%ClappB, .TRUE., 'soil', .TRUE.)   
+    CALL write_ovar (ncid_restart, rpid%FrcSand, 'FrcSand', REAL(soil%Fsand, 4),    &
+                     ranges%FrcSand, .TRUE., 'soil', .TRUE.)                       
+    CALL write_ovar (ncid_restart, rpid%FrcClay, 'FrcClay', REAL(soil%Fclay, 4),    &
+                     ranges%FrcClay, .TRUE., 'soil', .TRUE.)                 
+    !GW MD
+    CALL write_ovar (ncid_restart, rpid%GWWatSat, 'GWWatSat', REAL(soil%watsat, 4),    &
+                     ranges%GWWatSat, .TRUE., 'real', .TRUE.)   
+    CALL write_ovar (ncid_restart, rpid%GWSoilMatPotSat, 'GWSoilMatPotSat', REAL(soil%smpsat, 4),    &
+                     ranges%GWSoilMatPotSat, .TRUE., 'real', .TRUE.)                
+    CALL write_ovar (ncid_restart, rpid%GWHkSat, 'GWHkSat', REAL(soil%hksat, 4),    &
+                     ranges%GWHkSat, .TRUE., 'real', .TRUE.)       
+                     
     ! Snow dimensioned variables/parameters:
     CALL write_ovar (ncid_restart, ssdnID, 'ssdn', REAL(ssnow%ssdn, 4),        &
                      (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
@@ -2326,6 +2681,9 @@ CONTAINS
                      ranges%Albedo, .TRUE., 'radiation', .TRUE.)
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
                      REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
+    !MD
+    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),           &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)                     
 
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)
