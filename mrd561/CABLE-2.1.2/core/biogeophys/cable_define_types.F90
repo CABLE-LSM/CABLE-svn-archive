@@ -125,6 +125,27 @@ MODULE cable_def_types_mod
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          cnsd,    & ! thermal conductivity of dry soil [W/m/K]
          pwb_min    ! working variable (swilt/ssat)**ibp2
+         
+      !MD parameters for GW module that vary with soil layer
+      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
+         smpsat, & !psi at saturation in mm
+         hksat,  & !saturated hydraulic conductivity  [mm/s]
+         clappB, & !C and H B
+         Fclay,  & !fraction of soil that is clay
+         Fsand,  & !fraction of soil that is sand
+         densoil,& !soil density
+         watsat, & !volumetric water content at saturation
+         watr 
+      !MD parameters for GW module for the aquifer
+      REAL(r_2), DIMENSION(:), POINTER ::                                       &
+         GWsmpsat,  &  !head in the aquifer
+         GWhksat,   &  !saturated hydraulic conductivity of the aquifer
+         GWclappB,  & !clapp and horn b of the aquifer
+         GWwatsat,  & !saturated water content of the aquifer
+         GWwatr,    & !residual water content of the aquifer
+         GWz,       & !node depth of the aquifer
+         GWdz,      & !thickness of the aquifer
+         GWdensoil  & !density of the aquifer substrate
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
@@ -212,6 +233,30 @@ MODULE cable_def_types_mod
          wblf,    & !
          wbfice     !
 
+      !MD variables for the revised soil moisture + GW scheme
+      REAL(r_2), DIMENSION(:), POINTER   ::                                     &
+         GWwb,    &  ! water content in aquifer
+         GWhk,    &  ! aquifer hydraulic conductivity
+         GWdhkdw, &  ! aquifer d(hk) over d(water content)
+         GWdsmpdw,&  ! aquifer d(smp) / dw
+         wtd,     &  ! water table depth
+         GWsmp,   &  ! aquifer soil matric potential
+         GWwbeq,  &  ! equilibrium aquifer water content 
+         GWzq,    &  ! equilibrium aquifer smp
+         qhz         ! horizontal hydraulic conductivity in 1D gw model for soil layers      
+     
+     
+      REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
+         wbeq,    &    ! equilibrium water content
+         zq,      &    ! equilibrium smp      
+         icefrac, &    ! ice fraction
+         fracice, &    ! alternate ice fraction
+         hk,      &    ! hydraulic conductivity for soil layers
+         smp,     &    ! soil matric potential for soil layers        
+         dhkdw,   &    ! d(hydraulic conductivity ) d(water) for soil layers
+         dsmpdw       ! d(smp)/ d(water) for soil layers
+         
+         
    END TYPE soil_snow_type
 
 ! .............................................................................
@@ -268,7 +313,7 @@ MODULE cable_def_types_mod
          dewmm,   & ! dewfall (mm)
          fe,      & ! total latent heat (W/m2)
          fh,      & ! total sensible heat (W/m2)
-         fpn,     & ! plant photosynthesis (g C m-2 s-1)
+         fpn,     & ! plant photosynthesis (g C s-1)
          frp,     & ! plant respiration (g C m-2 s-1)
          frpw,    & ! plant respiration (g C m-2 s-1)???
          frpr,    & ! plant respiration (g C m-2 s-1)???
@@ -595,6 +640,26 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% albsoil(mp, nrb) )  
    allocate( var% pwb_min(mp) )  
    allocate( var% albsoilf(mp) )  
+   
+   !MD
+   !Aquifer properties
+   ALLOCATE( var%GWhksat(mp) )
+   ALLOCATE( var%GWsmpsat(mp) )
+   ALLOCATE( var%GWclappB(mp) )
+   ALLOCATE( var%GWwatsat(mp) )
+   ALLOCATE( var%GWwatr(mp) )
+   ALLOCATE( var%GWz(mp) )
+   ALLOCATE( var%GWdz(mp) )
+   ALLOCATE( var%GWdensoil(mp) )
+   !soil properties (vary by layer)
+   ALLOCATE( var%hksat(mp,ms) )
+   ALLOCATE( var%smpsat(mp,ms) )
+   ALLOCATE( var%clappB(mp,ms) )
+   ALLOCATE( var%watsat(mp,ms) )
+   ALLOCATE( var%watr(mp,ms) )
+   ALLOCATE( var%Fsand(mp,ms) )
+   ALLOCATE( var%Fclay(mp,ms) )
+   ALLOCATE( var%densoil(mp,ms) )
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -671,6 +736,27 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%qasrf(mp) )  
    ALLOCATE( var%qfsrf(mp) )  
    ALLOCATE( var%qssrf(mp) )  
+   
+   !MD
+   !Aquifer variables
+   ALLOCATE( var%GWwb(mp) )
+   ALLOCATE( var%GWhk(mp) )
+   ALLOCATE( var%GWdhkdw(mp) )
+   ALLOCATE( var%GWdsmpdw(mp) )
+   ALLOCATE( var%GWwtd(mp) )
+   ALLOCATE( var%GWsmp(mp) )
+   ALLOCATE( var%GWwbeq(mp) )
+   ALLOCATE( var%GWzq(mp) )
+   ALLOCATE( var%GWqhz(mp) )
+   !soil moisture variables
+   ALLOCATE( var%wbeq(mp,ms) )
+   ALLOCATE( var%zq(mp,ms) )
+   ALLOCATE( var%icefrac(mp,ms) )
+   ALLOCATE( var%fracice(mp,ms) )
+   ALLOCATE( var%hk(mp,ms) )
+   ALLOCATE( var%smp(mp,ms) )
+   ALLOCATE( var%dhkdw(mp,ms) )
+   ALLOCATE( var%dsmpdw(mp,ms) )
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -704,7 +790,6 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
-   !was nrb(=3), but never uses (:,3) in model   
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) ) 
@@ -996,6 +1081,26 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% pwb_min)  
    DEALLOCATE( var% albsoilf )  
    
+   !MD
+   !Aquifer properties
+   DEALLOCATE( var%GWhksat )
+   DEALLOCATE( var%GWsmpsat )
+   DEALLOCATE( var%GWclappB )
+   DEALLOCATE( var%GWwatsat )
+   DEALLOCATE( var%GWwatr )
+   DEALLOCATE( var%GWz )
+   DEALLOCATE( var%GWdz )
+   DEALLOCATE( var%GWdensoil )
+   !soil properties (vary by layer)
+   DEALLOCATE( var%hksat )
+   DEALLOCATE( var%smpsat )
+   DEALLOCATE( var%clappB )
+   DEALLOCATE( var%watsat )
+   DEALLOCATE( var%watr )
+   DEALLOCATE( var%Fsand )
+   DEALLOCATE( var%Fclay )
+   DEALLOCATE( var%densoil )   
+   
 END SUBROUTINE dealloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -1070,6 +1175,27 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%qasrf )  
    DEALLOCATE( var%qfsrf )  
    DEALLOCATE( var%qssrf )  
+   
+   !MD
+   !Aquifer variables
+   DEALLOCATE( var%GWwb )
+   DEALLOCATE( var%GWhk )
+   DEALLOCATE( var%GWdhkdw )
+   DEALLOCATE( var%GWdsmpdw )
+   DEALLOCATE( var%GWwtd )
+   DEALLOCATE( var%GWsmp )
+   DEALLOCATE( var%GWwbeq )
+   DEALLOCATE( var%GWzq )
+   DEALLOCATE( var%GWqhz )
+   !soil moisture variables
+   DEALLOCATE( var%wbeq )
+   DEALLOCATE( var%zq )
+   DEALLOCATE( var%icefrac )
+   DEALLOCATE( var%fracice )
+   DEALLOCATE( var%hk )
+   DEALLOCATE( var%smp )
+   DEALLOCATE( var%dhkdw )
+   DEALLOCATE( var%dsmpdw )   
    
 END SUBROUTINE dealloc_soil_snow_type
    
