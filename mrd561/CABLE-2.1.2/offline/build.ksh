@@ -40,9 +40,9 @@ host_md()
    export NCDIR='/usr/local/lib'
    export NCMOD='/usr/local/include'
    export FC=gfortran
-   export CFLAGS='-O2 -x f95-cpp-input -march=native'
+   export CFLAGS='-O3 -x f95-cpp-input -march=native'
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/lib64 -O2 -lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/lib64 -O3 -lnetcdf -lnetcdff'
    build_build
    cd ../
    build_status

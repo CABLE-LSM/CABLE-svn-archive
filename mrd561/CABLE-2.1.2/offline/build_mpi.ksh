@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin cycl
+   set -A kh vayu cher burn shin cycl md
 }
+
+
+
+##my laptop
+host_md()
+{
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
+   export FC=mpif90
+   export CFLAGS='-O3 -x f95-cpp-input -march=native'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/lib64 -O3 -lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 host_cycl()
@@ -372,7 +389,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-4`
+HOST_MACH=`uname -n | cut -c 1-2`
 
 do_i_no_u $1
 
