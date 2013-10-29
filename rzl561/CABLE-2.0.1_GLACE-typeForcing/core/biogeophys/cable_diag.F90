@@ -148,18 +148,21 @@ END SUBROUTINE cable_diag_data1
 
 !RL: add cable_diag2 for 3d array (tiles on proc, sm_level, timesteps)
 
-SUBROUTINE cable_diag2( iDiag, basename, dimx, dimy, dimz, &
-                        timestep, node, vname2, var2, start_run )
+SUBROUTINE cable_diag2( iDiag, basename, dimx, kend, dimz, timestep, &
+                        node, vname2, var2, start_run )
    integer, intent(inOUT) :: iDiag 
    integer, SAVE :: pDiag=713 
-   integer, intent(in) :: dimx, dimy, dimz, timestep, node
+   integer, intent(in) :: dimx, kend, dimz, timestep, node
    real, intent(in), dimension(:,:) :: var2
    logical, intent(in) :: start_run
    integer :: Nvars=1 !this WAS input
    integer :: i=0
+   integer :: dimy
    character(len=*), intent(in) :: basename, vname2
    character(len=30) :: filename, chnode
  
+   dimy = kend-timestep+1
+
       IF(iDiag==0) THEN
          pDiag = pDiag+2  
          iDiag=pDiag
@@ -170,19 +173,20 @@ SUBROUTINE cable_diag2( iDiag, basename, dimx, dimy, dimz, &
       filename=trim(trim(basename)//trim(chnode))
       
       if (start_run) & 
-      call cable_diag_desc2( iDiag, trim(filename), dimx, dimy, &
-      	   		     dimz, vname2 )
+      call cable_diag_desc2( iDiag, trim(filename), dimx, &
+      	   		      dimy, dimz, vname2, timestep )
       
       call cable_diag_data2( iDiag, trim(filename),dimx, dimz,  &
-                              timestep, dimy, var2, start_run )
+                              timestep, kend, var2, start_run )
 END SUBROUTINE cable_diag2
 
 !=============================================================================!
 !=============================================================================!
 
-SUBROUTINE cable_diag_desc2( iDiag, filename, dimx, dimy, dimz, vname2 )
+SUBROUTINE cable_diag_desc2( iDiag, filename, dimx, &
+	   		     dimy, dimz, vname2, timestep )
 
-   integer, intent(in) :: iDiag,dimx,dimy,dimz 
+   integer, intent(in) :: iDiag, dimx, dimy, dimz, timestep
    integer, PARAMETER :: Nvars=1
    character(len=*), intent(in) :: filename, vname2
    integer, save :: gopenstatus = 1
@@ -195,7 +199,9 @@ SUBROUTINE cable_diag_desc2( iDiag, filename, dimx, dimy, dimz, vname2 )
             write (iDiag,*) Nvars
             write (iDiag,*) 'Name of var(s): '
             write (iDiag,7139) vname2 
- 7139       format(a)            
+ 7139       format(a)   
+            write (iDiag,*) 'Timestep is: '
+            write (iDiag,*)  timestep        
             write (iDiag,*) 'dimension of var(s) in x: '
             write (iDiag,*) dimx 
             write (iDiag,*) 'dimension of var(s) in y: '

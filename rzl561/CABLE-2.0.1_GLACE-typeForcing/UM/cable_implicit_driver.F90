@@ -282,8 +282,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       
       !IF( (.NOT.spinup) .OR. (spinup.AND.spinConv) ) THEN
 
-      call cable_diag2( iDiag1, trim(sm_filename), mp, kend_gl, ms,		  &
-                        ktau_gl, knode_gl, "smcl per layer ",		  &
+      call cable_diag2( iDiag1, trim(sm_filename), mp, kend_gl, ms,	&
+                        ktau_gl, knode_gl, "smcl per layer ",		&
 			REAL(ssnow%wb(:,:)), first_atmstep_call )
       !ENDIF
    ENDIF
