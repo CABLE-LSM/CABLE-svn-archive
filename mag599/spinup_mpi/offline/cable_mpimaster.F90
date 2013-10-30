@@ -109,6 +109,14 @@ MODULE cable_mpimaster
   ! MPI derived datatype handles for sending casa params to the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: casap_ts
 
+  ! MPI derived datatype handles for sending casa params to the workers
+  ! during spinup
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: spinp_ts
+
+  ! MPI derived datatype handles for receiving input to totcnppools from
+  ! the workers during spinup
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: spint_ts
+
   ! MPI derived datatype handles for receiving output from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_ts
 
@@ -154,9 +162,9 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
-   USE casadimension,       ONLY: icycle 
+   USE casadimension,       ONLY: icycle, mdyear
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance, mdyear
+                                  casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
@@ -669,7 +677,7 @@ SUBROUTINE mpidrv_master (comm)
 !      CALL pftcnpfluxpool(mloop,veg,casamet,casapool,casaflux,casabal)
 !      close(92)
 
-      print *, 'before ncdf_dump', spinConv, spincasainput
+!      print *, 'before ncdf_dump', spinConv, spincasainput
       if ( spinConv .AND. spincasainput ) then
            call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
       endif
@@ -678,12 +686,6 @@ SUBROUTINE mpidrv_master (comm)
 
    ! Write restart file if requested:
    IF(output%restart) THEN
-      ! MPI: TODO: receive variables that are required by create_restart
-      ! but not write_output
-      !CALL receive_restart (comm,ktau,dels,soil,veg,ssnow, &
-      !       &              canopy,rough,rad,bgc,bal)
-      ! gol124: how about call master_receive (comm, ktau, restart_ts)
-      ! instead of a separate receive_restart sub?
       CALL master_receive (comm, ktau_gl, restart_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
@@ -2354,13 +2356,13 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Type_size (param_ts(rank), tsize, ierr)
   CALL MPI_Type_get_extent (param_ts(rank), tmplb, text, ierr)
 
-  WRITE (*,*) 'master to rank param_t blocks, size, extent and lb: ',bidx,tsize,text,tmplb
+!  WRITE (*,*) 'master to rank param_t blocks, size, extent and lb: ',bidx,tsize,text,tmplb
 
   localtotal = localtotal + tsize
 
   END DO ! rank
 
-  WRITE (*,*) 'total cable params size sent to all workers: ', localtotal
+!  WRITE (*,*) 'total cable params size sent to all workers: ', localtotal
 
   DEALLOCATE(types)
   DEALLOCATE(displs)
@@ -2371,10 +2373,11 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   remotetotal = 0
   CALL MPI_Reduce (MPI_IN_PLACE, remotetotal, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
 
-  WRITE (*,*) 'total cable params size received by all workers: ', remotetotal
+!  WRITE (*,*) 'total cable params size received by all workers: ', remotetotal
 
   IF (localtotal /= remotetotal) THEN
-          WRITE (*,*) 'error: total length of cable params sent and received differ'
+          WRITE (*,*) 'error: total length of cable params sent and received differ: ',&
+                      localtotal, remotetotal
           CALL MPI_Abort (comm, 0, ierr)
   END IF
 
@@ -3419,13 +3422,13 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Type_size (casap_ts(rank), tsize, ierr)
   CALL MPI_Type_get_extent (casap_ts(rank), tmplb, text, ierr)
 
-  WRITE (*,*) 'master to rank casap_t param blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+!  WRITE (*,*) 'master to rank casap_t param blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
 
   localtotal = localtotal + tsize
 
   END DO ! rank
 
-  WRITE (*,*) 'total casa params size sent to all workers: ', localtotal
+!  WRITE (*,*) 'total casa params size sent to all workers: ', localtotal
   DEALLOCATE(types)
   DEALLOCATE(displs)
   DEALLOCATE(blen)
@@ -3435,10 +3438,11 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   remotetotal = 0
   CALL MPI_Reduce (MPI_IN_PLACE, remotetotal, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
 
-  WRITE (*,*) 'total casa params size received by all workers: ', remotetotal
+!  WRITE (*,*) 'total casa params size received by all workers: ', remotetotal
 
   IF (localtotal /= remotetotal) THEN
-          WRITE (*,*) 'error: total length of casa params sent and received differ'
+          WRITE (*,*) 'error: total length of casa params sent and received differ: ',&
+                      localtotal, remotetotal
           CALL MPI_Abort (comm, 0, ierr)
   END IF
 
@@ -3622,8 +3626,8 @@ SUBROUTINE master_intypes (comm,met,veg)
      CALL MPI_Type_size (inp_ts(rank), tsize, ierr)
      CALL MPI_Type_get_extent (inp_ts(rank), tmplb, text, ierr)
 
-     WRITE (*,*) 'master to ',rank,': intype struct blocks, size, extent and lb: ', &
-                 bidx,tsize,text,tmplb
+!     WRITE (*,*) 'master to ',rank,': intype struct blocks, size, extent and lb: ', &
+!                 bidx,tsize,text,tmplb
 
      localtotal = localtotal + tsize
 
@@ -3633,17 +3637,18 @@ SUBROUTINE master_intypes (comm,met,veg)
   DEALLOCATE(displs)
   DEALLOCATE(blocks)
 
-  WRITE (*,*) 'total input data size sent to all workers: ', localtotal
+!  WRITE (*,*) 'total input data size sent to all workers: ', localtotal
 
   ! MPI: check whether total size of send input data equals total
   ! data received by all the workers
   remotetotal = 0
   CALL MPI_Reduce (MPI_IN_PLACE, remotetotal, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
 
-  WRITE (*,*) 'total input data size received by all workers: ', remotetotal
+!  WRITE (*,*) 'total input data size received by all workers: ', remotetotal
 
   IF (localtotal /= remotetotal) THEN
-          WRITE (*,*) 'error: total length of input data sent and received differ'
+          WRITE (*,*) 'error: total length of input data sent and received differ: ',&
+                      localtotal, remotetotal
           CALL MPI_Abort (comm, 0, ierr)
   END IF
 
@@ -4876,14 +4881,14 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Type_size (recv_ts(rank), tsize, ierr)
      CALL MPI_Type_get_extent (recv_ts(rank), tmplb, text, ierr)
 
-     WRITE (*,*) 'master: data recv from ',rank,': size, extent, lb: ', &
-   &       tsize,text,tmplb
+!     WRITE (*,*) 'master: data recv from ',rank,': size, extent, lb: ', &
+!   &       tsize,text,tmplb
 
      totalrecv = totalrecv + tsize
 
   END DO
 
-  WRITE (*,*) 'total data size received from all workers: ', totalrecv
+!  WRITE (*,*) 'total data size received from all workers: ', totalrecv
 
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
@@ -4891,10 +4896,11 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
     &     0, comm, ierr)
 
-  WRITE (*,*) 'total data size sent by all workers: ', totalsend
+!  WRITE (*,*) 'total data size sent by all workers: ', totalsend
 
   IF (totalrecv /= totalsend) THEN
-          WRITE (*,*) 'error master: totalsend and totalrecv differ'
+          WRITE (*,*) 'error master: totalsend and totalrecv differ: ',&
+                      totalsend, totalrecv
           CALL MPI_Abort (comm, 0, ierr)
   END IF
 
@@ -5316,8 +5322,8 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      CALL MPI_Type_size (casa_ts(rank), tsize, ierr)
      CALL MPI_Type_get_extent (casa_ts(rank), tmplb, text, ierr)
 
-     WRITE (*,*) 'casa results recv from worker, size, extent, lb: ', &
-   &       rank,tsize,text,tmplb
+!     WRITE (*,*) 'casa results recv from worker, size, extent, lb: ', &
+!   &       rank,tsize,text,tmplb
 
      totalrecv = totalrecv + tsize
 
@@ -5329,7 +5335,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
   END DO
 
-  WRITE (*,*) 'total size of casa results received from all workers: ', totalrecv
+!  WRITE (*,*) 'total size of casa results received from all workers: ', totalrecv
 
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
@@ -5337,10 +5343,11 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
     &     0, comm, ierr)
 
-  WRITE (*,*) 'total size of casa results sent by all workers: ', totalsend
+!  WRITE (*,*) 'total size of casa results sent by all workers: ', totalsend
 
   IF (totalrecv /= totalsend) THEN
-          WRITE (*,*) 'error: casa results totalsend and totalrecv differ'
+          WRITE (*,*) 'error: casa results totalsend and totalrecv differ: ',&
+                      totalsend, totalrecv
           CALL MPI_Abort (comm, 0, ierr)
   END IF
 
@@ -5505,8 +5512,8 @@ SUBROUTINE master_restart_types (comm, canopy, air)
      CALL MPI_Type_size (restart_ts(rank), tsize, ierr)
      CALL MPI_Type_get_extent (restart_ts(rank), tmplb, text, ierr)
 
-     WRITE (*,*) 'restart results recv from worker, size, extent, lb: ', &
-   &       rank,tsize,text,tmplb
+!     WRITE (*,*) 'restart results recv from worker, size, extent, lb: ', &
+!   &       rank,tsize,text,tmplb
 
      totalrecv = totalrecv + tsize
 
@@ -5517,7 +5524,7 @@ SUBROUTINE master_restart_types (comm, canopy, air)
 
   END DO
 
-  WRITE (*,*) 'total size of restart fields received from all workers: ', totalrecv
+!  WRITE (*,*) 'total size of restart fields received from all workers: ', totalrecv
 
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
@@ -5525,10 +5532,11 @@ SUBROUTINE master_restart_types (comm, canopy, air)
   CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
     &     0, comm, ierr)
 
-  WRITE (*,*) 'total size of restart fields sent by all workers: ', totalsend
+!  WRITE (*,*) 'total size of restart fields sent by all workers: ', totalsend
 
   IF (totalrecv /= totalsend) THEN
-          WRITE (*,*) 'error: restart fields totalsend and totalrecv differ'
+          WRITE (*,*) 'error: restart fields totalsend and totalrecv differ: ',&
+                      totalsend, totalrecv
           CALL MPI_Abort (comm, 0, ierr)
   END IF
 
@@ -5736,33 +5744,12 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
       TYPE (phen_variable),         INTENT(INOUT) :: phen
 
       ! local variables
-      real,      dimension(:), allocatable, save  :: avg_cleaf2met, avg_cleaf2str, avg_croot2met, &
-                                                     avg_croot2str, avg_cwood2cwd
-      real,      dimension(:), allocatable, save  :: avg_nleaf2met, avg_nleaf2str, avg_nroot2met, &
-                                                     avg_nroot2str, avg_nwood2cwd
-      real,      dimension(:), allocatable, save  :: avg_pleaf2met, avg_pleaf2str, avg_proot2met, &
-                                                     avg_proot2str, avg_pwood2cwd
-      real,      dimension(:), allocatable, save  :: avg_cgpp,      avg_cnpp,      avg_nuptake,   &
-                                                     avg_puptake
-      real,      dimension(:), allocatable, save  :: avg_nsoilmin,  avg_psoillab,  avg_psoilsorb, &
-                                                     avg_psoilocc
-      real,      dimension(:), allocatable, save  :: avg_ratioNCsoilmic,  avg_ratioNCsoilslow,  &
-                                                     avg_ratioNCsoilpass !chris 12/oct/2012 for spin up casa
-      real(r_2), dimension(:), allocatable, save  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, &
-                                                     avg_xksoil
 
       ! local variables
       INTEGER                  :: myearspin,nyear, nloop1
       CHARACTER(LEN=99)        :: ncfile
       INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
       INTEGER, save            :: ndays
-      real,      dimension(mp)      :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
-      real,      dimension(mp)      :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
-      real,      dimension(mp)      :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
-      real,      dimension(mp)      :: xcgpp,     xcnpp,     xnuptake,  xpuptake
-      real,      dimension(mp)      :: xnsoilmin, xpsoillab, xpsoilsorb,xpsoilocc
-      real(r_2), dimension(mp)      :: xnplimit,  xkNlimiting, xklitter, xksoil,xkleaf, xkleafcold, &
-                                       xkleafdry
 
       ! more variables to store the spinup pool size over the last 10 loops. Added by Yp Wang 30 Nov 2012
       real,      dimension(5,mvtype,mplant)  :: bmcplant,  bmnplant,  bmpplant
@@ -5770,41 +5757,20 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
       real,      dimension(5,mvtype,msoil)   :: bmcsoil,   bmnsoil,   bmpsoil
       real,      dimension(5,mvtype)         :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
       real,      dimension(mvtype)           :: bmarea
-      integer nptx,nvt,kloop
+      integer nptx,nvt,kloop, npt
 
-      ! MPI: isend request array for scattering input data to the workers
-!      INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_req
-      ! MPI: isend status array for scattering input data to the workers
-!      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: inp_stats
-      ! MPI: irecv request array for gathering results from the workers
-!      INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_req
       ! MPI: irecv status array for gathering results from the workers
       INTEGER, DIMENSION(MPI_STATUS_SIZE) :: stat
-      integer :: col, me, wcomm, ierr
+      integer :: ierr !, col, me, wcomm
 
       double precision :: start, t0, t1, elapsed
 
-      CALL MPI_Comm_rank (comm, me, ierr)
-      col = MPI_UNDEFINED
-      ! create worker-only communicator
-      CALL MPI_Comm_split (comm, col, me, wcomm, ierr)
-
-!      ALLOCATE (inp_req(wnp))
-!      ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
-!      ALLOCATE (recv_req(wnp))
-!      ALLOCATE (recv_stats(MPI_STATUS_SIZE, wnp))
+      ! create new MPI types for casacnp data read from the dumps
+      CALL master_spin_params (mdyear, casamet, casaflux)
+      CALL master_spin_totcnp (casapool)
 
       ktauday=int(24.0*3600.0/dels)
       nday=(kend-kstart+1)/ktauday
-
-!      allocate(avg_cleaf2met(mp), avg_cleaf2str(mp), avg_croot2met(mp), avg_croot2str(mp), &
-!               avg_cwood2cwd(mp), avg_nleaf2met(mp), avg_nleaf2str(mp), avg_nroot2met(mp), &
-!               avg_nroot2str(mp), avg_nwood2cwd(mp), avg_pleaf2met(mp), avg_pleaf2str(mp), &
-!               avg_proot2met(mp), avg_proot2str(mp), avg_pwood2cwd(mp), avg_cgpp(mp),      &
-!               avg_cnpp(mp),      avg_nuptake(mp),   avg_puptake(mp),                      &
-!               avg_xnplimit(mp),  avg_xkNlimiting(mp), avg_xklitter(mp), avg_xksoil(mp),   &
-!               avg_rationcsoilmic(mp),avg_rationcsoilslow(mp),avg_rationcsoilpass(mp),     &!chris 12/oct/2012 for spin up casa
-!               avg_nsoilmin(mp),  avg_psoillab(mp),    avg_psoilsorb(mp), avg_psoilocc(mp))
 
       OPEN(91, file=fcnpspin)
       read(91,*) myearspin
@@ -5812,18 +5778,8 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
       ! bcast to workers
       CALL MPI_Bcast (myearspin, 1, MPI_INTEGER, 0, comm, ierr)
 
-      ! compute the mean fluxes and residence time of each carbon pool
-      ! TODO: MPI: perhaps this needs to be done on workers only?
-!      avg_cleaf2met=0.0; avg_cleaf2str=0.0; avg_croot2met=0.0; avg_croot2str=0.0; avg_cwood2cwd=0.0
-!      avg_nleaf2met=0.0; avg_nleaf2str=0.0; avg_nroot2met=0.0; avg_nroot2str=0.0; avg_nwood2cwd=0.0
-!      avg_pleaf2met=0.0; avg_pleaf2str=0.0; avg_proot2met=0.0; avg_proot2str=0.0; avg_pwood2cwd=0.0
-!      avg_cgpp=0.0;      avg_cnpp=0.0;      avg_nuptake=0.0;   avg_puptake=0.0
-!      avg_xnplimit=0.0;  avg_xkNlimiting=0.0; avg_xklitter=0.0; avg_xksoil=0.0
-!      avg_nsoilmin=0.0;  avg_psoillab=0.0;    avg_psoilsorb=0.0; avg_psoilocc=0.0
-!      avg_rationcsoilmic=0.0;avg_rationcsoilslow=0.0;avg_rationcsoilpass=0.0
-
-      start = MPI_Wtime ()
-      t0 = start
+!      start = MPI_Wtime ()
+!      t0 = start
 
       do nyear=1,myearspin
          read(91,901) ncfile
@@ -5831,24 +5787,32 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
 901   format(A99)
 
          ! MPI: send/distribute input to workers
-         CALL master_send_input (comm, casap_ts, 0)
+         CALL master_send_input (comm, spinp_ts, 0)
          CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
-
-         ! MPI: receive results from workers
-         ! TODO: is there anything to receive, actually?
-!         CALL master_receive (comm, nyear, spin_out_ts)
-!         CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
       enddo ! nyear=1,myearspin
 
       CLOSE(91)
 
-      ! for timing purposes only
-      CALL MPI_Barrier (comm, ierr)
+      bmarea = 0.0
+      DO npt = 1, mp
+         nvt=veg%iveg(npt)
+         bmarea(nvt)  = bmarea(nvt) + casamet%areacell(npt)
+      END DO
 
-      t1 = MPI_Wtime()
-      elapsed = t1 - t0
-      print *,'spincasa elapsed start: ',elapsed,' seconds'
+      CALL master_receive (comm, 1, spint_ts)
+      CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+      call totcnppools(1,veg,casamet,casapool, &
+                bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
+                bmpsoilocc,bmarea)
+
+      ! for timing purposes only
+!      CALL MPI_Barrier (comm, ierr)
+
+!      t1 = MPI_Wtime()
+!      elapsed = t1 - t0
+!      print *,'spincasa elapsed start: ',elapsed,' seconds'
 
       nloop1= max(1,mloop-3)
 
@@ -5857,32 +5821,36 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
          OPEN(91,file=fcnpspin)
          read(91,*)
 
-         t0 = MPI_Wtime()
+!         t0 = MPI_Wtime()
 
          DO nyear=1,myearspin
             read(91,901) ncfile
             call read_casa_dump(ncfile,casamet,casaflux,ktau,kend)
 
             ! MPI: send/distribute input to workers
-            CALL master_send_input (comm, casap_ts, 0)
+            CALL master_send_input (comm, spinp_ts, 0)
             CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
          END DO
 
          close(91)
 
+         if (nloop >= nloop1) then
+             CALL master_receive (comm, nloop, spint_ts)
+             CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+             call totcnppools(2+nloop-nloop1,veg,casamet,casapool, &
+                bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
+                bmpsoilocc,bmarea)
+         end if
+
          ! for timing purposes only
-         CALL MPI_Barrier (comm, ierr)
-         t1 = MPI_Wtime()
-         elapsed = t1 - t0
-         print *,'spincasa elapsed nloop ',nloop,': ',elapsed,' seconds'
+!         CALL MPI_Barrier (comm, ierr)
+!         t1 = MPI_Wtime()
+!         elapsed = t1 - t0
+!         print *,'spincasa elapsed nloop ',nloop,': ',elapsed,' seconds'
 
       ENDDO     ! end of nloop
-
-      ! MPI total sum bmarea across all workers
-      bmarea = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmarea, mvtype, MPI_REAL, MPI_SUM, 0, comm, ierr)
-      CALL MPI_Recv (bmarea, mvtype, MPI_REAL, 1, 0, comm, stat, ierr)
 
       ! write the last five loop pool size by PFT type
       open(92,file='cnpspinlast5.txt')
@@ -5891,65 +5859,6 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
       do nvt=1,mvtype
          write(92,*) bmarea(nvt)
       enddo
-
-      ! TODO: gather the data below - may need reductions etc.
-      ! bmcplant, bmclitter, bmcsoil
-!      bmcplant = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmcplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmcplant, 5*mvtype*mplant, MPI_REAL, 1, 0, comm, stat, ierr)
-!      bmclitter = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmclitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmclitter, 5*mvtype*mlitter, MPI_REAL, 1, 0, comm, stat, ierr)
-!      bmcsoil = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmcsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmcsoil, 5*mvtype*msoil, MPI_REAL, 1, 0, comm, stat, ierr)
-
-      ! bmnplant, bmnlitter, bmnsoil, bmnsoilmin
-!      bmnplant = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmnplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmnplant, 5*mvtype*mplant, MPI_REAL, 1, 0, comm, stat, ierr)
-!      bmnlitter = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmnlitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmnlitter, 5*mvtype*mlitter, MPI_REAL, 1, 0, comm, stat, ierr)
-!      bmnsoil = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmnsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv(bmnsoil, 5*mvtype*msoil, MPI_REAL, 1, 0, comm, ierr)
-!      bmnsoilmin = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmnsoilmin, 5*mvtype, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv(bmnsoilmin, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
-
-      ! bmpplant, bmplitter, bmpsoil, bmpsoillab, bmpsoilsorb, bmpsoilocc
-!      bmpplant = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmpplant, 5*mvtype*mplant, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmpplant, 5*mvtype*mplant, MPI_REAL, 1, 0, comm, ierr)
-!      bmplitter = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmplitter, 5*mvtype*mlitter, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmplitter, 5*mvtype*mlitter, MPI_REAL, 1, 0, comm, ierr)
-!      bmpsoil = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoil, 5*mvtype*msoil, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmpsoil, 5*mvtype*msoil, MPI_REAL, 1, 0, comm, ierr)
-!      bmpsoillab = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoillab, 5*mvtype, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmpsoillab, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
-!      bmpsoilsorb = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoilsorb, 5*mvtype, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmpsoilsorb, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
-!      bmpsoilocc = 0.0
-!      CALL MPI_Reduce (MPI_IN_PLACE, bmpsoilocc, 5*mvtype, MPI_REAL, MPI_SUM, &
-!                       0, comm, ierr)
-      CALL MPI_Recv (bmpsoilocc, 5*mvtype, MPI_REAL, 1, 0, comm, ierr)
 
       do nvt=1,mvtype
          if(bmarea(nvt) >0.0) then
@@ -5973,14 +5882,299 @@ SUBROUTINE spinmpi_master (comm, fcnpspin,dels,kstart,kend,mloop,veg,soil,casabi
 922   format(i4,20(f10.4,2x))
       CLOSE(92)   
 
-      t1 = MPI_Wtime()
-      elapsed = t1 - start
-      print *,'spincasa elapsed total: ',elapsed,' seconds'
+!      t1 = MPI_Wtime()
+!      elapsed = t1 - start
+!      print *,'spincasa elapsed total: ',elapsed,' seconds'
 
 151   FORMAT(i6,100(f12.5,2x))
       RETURN
 
 END SUBROUTINE spinmpi_master
+
+
+! creates new MPI types for sending casacnp data read from the dumps
+SUBROUTINE master_spin_params (mdyear, casamet, casaflux)
+
+      USE mpi
+
+      USE cable_def_types_mod
+      USE casavariable
+
+      IMPLICIT NONE
+
+      ! arguments
+      INTEGER, INTENT(IN) :: mdyear
+
+      TYPE (casa_met)    , INTENT(INOUT) :: casamet
+      TYPE (casa_flux)   , INTENT(INOUT) :: casaflux
+
+      ! local vars
+
+      ! temp arrays for marshalling all fields into a single struct
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+      INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+      ! temp vars for verifying block number and total length of inp_t
+      INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+      INTEGER :: tsize, localtotal, remotetotal
+
+      INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride, istride
+      INTEGER :: r1len, r2len, ilen, llen ! block lengths
+      INTEGER :: bidx ! block index
+      INTEGER :: ntyp ! total number of blocks
+
+      INTEGER :: rank, off, cnt, spinhvec, ierr
+
+      ntyp = nspinparam
+
+      ALLOCATE (spinp_ts(wnp))
+
+      ALLOCATE (blen(ntyp))
+      ALLOCATE (displs(ntyp))
+      ALLOCATE (types(ntyp))
+
+      ! MPI: array strides for multi-dimensional types
+!      r1stride = mp * extr1
+      r2stride = mp * extr2
+!      istride = mp * extid
+
+      ! create a separate MPI derived datatype for each worker
+      DO rank = 1, wnp
+
+         ! starting patch and number for each worker rank
+         off = wland(rank)%patch0
+         cnt = wland(rank)%npatch
+
+!         r1len = cnt * extr1
+         r2len = cnt * extr2
+!         ilen = cnt * extid
+
+         ! hvec made of mdyear contig blocks of r2len byte long each,
+         ! r2stride bytes apart
+         ! (each rank gets its own)
+         CALL MPI_Type_create_hvector (mdyear, r2len, r2stride, MPI_BYTE, &
+ &                                     spinhvec, ierr)
+         types = spinhvec
+         blen = 1
+
+         bidx = 0
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%Tairkspin(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%Tsoilspin_1(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%Tsoilspin_2(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%Tsoilspin_3(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%Tsoilspin_4(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%Tsoilspin_5(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%Tsoilspin_6(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%moistspin_1(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%moistspin_2(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%moistspin_3(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%moistspin_4(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%moistspin_5(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%cgppspin(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%crmplantspin_1(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%crmplantspin_2(off,1), displs(bidx), ierr)
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casamet%crmplantspin_3(off,1), displs(bidx), ierr)
+
+         ! MPI: sanity check
+         IF (bidx /= ntyp) THEN
+            WRITE (*,*) 'master: invalid number of spinp_t param fields ',bidx,', fix it!'
+            CALL MPI_Abort (MPI_COMM_WORLD, 1, ierr)
+         END IF
+
+         CALL MPI_Type_create_struct (bidx, blen, displs, types, spinp_ts(rank), ierr)
+         CALL MPI_Type_commit (spinp_ts(rank), ierr)
+
+      END DO
+
+      DEALLOCATE(types)
+      DEALLOCATE(displs)
+      DEALLOCATE(blen)
+
+      RETURN
+
+END SUBROUTINE master_spin_params
+
+! creates new MPI types for sending casacnp data read from the dumps
+SUBROUTINE master_spin_totcnp (casapool)
+
+      USE mpi
+
+      USE cable_def_types_mod
+      USE casavariable
+
+      IMPLICIT NONE
+
+      ! arguments
+      TYPE (casa_pool)   , INTENT(INOUT) :: casapool
+
+      ! local vars
+
+      ! temp arrays for marshalling all fields into a single struct
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+      INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+      ! temp vars for verifying block number and total length of inp_t
+      INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+      INTEGER :: tsize, localtotal, remotetotal
+
+      INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride, istride
+      INTEGER :: r1len, r2len, ilen, llen ! block lengths
+      INTEGER :: bidx ! block index
+      INTEGER :: ntyp ! total number of blocks
+
+      INTEGER :: rank, off, cnt, planthvec, litterhvec, soilhvec, ierr
+
+      ntyp = nspintot ! 13
+
+      ALLOCATE (spint_ts(wnp))
+
+      ALLOCATE (blen(ntyp))
+      ALLOCATE (displs(ntyp))
+      ALLOCATE (types(ntyp))
+
+      ! MPI: array strides for multi-dimensional types
+!      r1stride = mp * extr1
+      r2stride = mp * extr2
+!      istride = mp * extid
+
+      ! create a separate MPI derived datatype for each worker
+      DO rank = 1, wnp
+
+         ! starting patch and number for each worker rank
+         off = wland(rank)%patch0
+         cnt = wland(rank)%npatch
+
+!         r1len = cnt * extr1
+         r2len = cnt * extr2
+!         ilen = cnt * extid
+
+         ! hvec made of mdyear contig blocks of r2len byte long each,
+         ! r2stride bytes apart
+         ! (each rank gets its own)
+         CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+ &                                     planthvec, ierr)
+!         types = spinhvec
+
+         CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+ &                                     litterhvec, ierr)
+
+         CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+ &                                     soilhvec, ierr)
+         blen = 1
+
+         bidx = 0
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%cplant(off,1), displs(bidx), ierr)
+         types(bidx) = planthvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%nplant(off,1), displs(bidx), ierr)
+         types(bidx) = planthvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%pplant(off,1), displs(bidx), ierr)
+         types(bidx) = planthvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%clitter(off,1), displs(bidx), ierr)
+         types(bidx) = litterhvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%nlitter(off,1), displs(bidx), ierr)
+         types(bidx) = litterhvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%plitter(off,1), displs(bidx), ierr)
+         types(bidx) = litterhvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%csoil(off,1), displs(bidx), ierr)
+         types(bidx) = soilhvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%nsoil(off,1), displs(bidx), ierr)
+         types(bidx) = soilhvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%psoil(off,1), displs(bidx), ierr)
+         types(bidx) = soilhvec
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%nsoilmin(off), displs(bidx), ierr)
+         blen(bidx) = r2len
+         types(bidx) = MPI_BYTE
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%psoillab(off), displs(bidx), ierr)
+         blen(bidx) = r2len
+         types(bidx) = MPI_BYTE
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%psoilsorb(off), displs(bidx), ierr)
+         blen(bidx) = r2len
+         types(bidx) = MPI_BYTE
+
+         bidx = bidx + 1
+         CALL MPI_Get_address (casapool%psoilocc(off), displs(bidx), ierr)
+         blen(bidx) = r2len
+         types(bidx) = MPI_BYTE
+
+         ! MPI: sanity check
+         IF (bidx /= ntyp) THEN
+            WRITE (*,*) 'master: invalid number of spint_t param fields ',bidx,', fix it!'
+            CALL MPI_Abort (MPI_COMM_WORLD, 1, ierr)
+         END IF
+
+         CALL MPI_Type_create_struct (bidx, blen, displs, types, spint_ts(rank), ierr)
+         CALL MPI_Type_commit (spint_ts(rank), ierr)
+
+      END DO
+
+      DEALLOCATE(types)
+      DEALLOCATE(displs)
+      DEALLOCATE(blen)
+
+      RETURN
+
+END SUBROUTINE master_spin_totcnp
 
 END MODULE cable_mpimaster
 
