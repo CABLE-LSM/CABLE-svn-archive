@@ -13,7 +13,7 @@ host_md()
    export NCDIR='/usr/local/lib'
    export NCMOD='/usr/local/include'
    export FC=mpif90
-   export CFLAGS='-O3 -x f95-cpp-input -march=native'
+   export CFLAGS='-O3 -x f95-cpp-input -march=native -fstack-arrays -funroll-loops'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/usr/lib64 -O3 -lnetcdf -lnetcdff'
    build_build
@@ -379,7 +379,7 @@ if [[ $1 = 'clean' ]]; then
    clean_build
 fi
 
-if [[ ! -d ~/CABLE-AUX ]];then
+if [[ ! -d /CABLE-AUX ]];then
    set_up_CABLE_AUX
 else
    print "\n~/CABLE-AUX is at least present.\n"
