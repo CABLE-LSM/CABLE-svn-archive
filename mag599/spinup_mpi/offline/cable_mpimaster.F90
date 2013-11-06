@@ -383,6 +383,7 @@ SUBROUTINE mpidrv_master (comm)
    ! new decomposition code to balance number of patches across workers
    ! (but no landpoint is broken between multiple workers)
    CALL master_decomp_vlai(comm, mland, mp)
+   CALL write_decomp_csv
 
    ! MPI: set up stuff for new irecv isend code that separates completion
    ! from posting of requests
@@ -930,8 +931,8 @@ SUBROUTINE master_decomp_vlai (comm, mland, mp)
 
      CALL MPI_Send (wland(rank)%npatch, 1, MPI_INTEGER, rank, 0, comm, ierr)
 
-     print *,"worker ",rank," lpoints: ",pcnt,", patches: ",patchcnt,&
-             ", from: ",wland(rank)%patch0,", cost: ",tcost
+!     print *,"worker ",rank," lpoints: ",pcnt,", patches: ",patchcnt,&
+!             ", from: ",wland(rank)%patch0,", cost: ",tcost
 
      nxt = nxt + pcnt
   END DO
@@ -943,6 +944,33 @@ SUBROUTINE master_decomp_vlai (comm, mland, mp)
 
 END SUBROUTINE master_decomp_vlai
 
+
+! write decomposition info to a file, in CSV format
+! what is required for:
+! 1. find which rank holds global patch:
+!    - first global patch on each rank
+! 2. find global patch of local patch on rank i:
+!    - number of patches on each rank
+SUBROUTINE write_decomp_csv
+
+      IMPLICIT NONE
+
+      INTEGER :: rank, decompf
+
+      decompf = 42
+
+      OPEN(decompf,FILE="decomp.info")
+
+      write (decompf,*) wnp
+      DO rank = 1, wnp
+         write (decompf,*) rank,wland(rank)%landp0,wland%(rank)%nland,wland(rank)%patch0,wland(rank)%npatch
+      END DO
+
+      CLOSE (decompf)
+
+      RETURN
+
+END SUBROUTINE write_decomp_csv
 
 
 ! MPI: creates param_t type for the master to scatter the default parameters
