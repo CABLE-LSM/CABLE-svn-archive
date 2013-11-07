@@ -17,7 +17,7 @@ LongName = "loobos"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $moslob") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf    = systemfunc("echo $cablob") ; cabsf = systemfunc("echo $"+cabDir+"")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else

@@ -71,9 +71,9 @@ if (isfilevar(sea_file,"field1526")) then
  evap1   = sea_file ->field1526
  evap2   = sea_file ->field1527
 end if
-;if (isfilevar(sea_file,"field1528")) then
-; evap3   = sea_file ->field1528
-;end if
+if (isfilevar(sea_file,"field1528")) then
+ evap3   = sea_file ->field1528
+end if
 lh      = sea_file ->lh ;hfls
 if (isfilevar(sea_file,"field184")) then
  mflx   = sea_file->field184
@@ -131,17 +131,23 @@ if (isvar("couple")) then
   evap         = (lh/rlam)*24*60*60
   evap@units   = "mm/day"
  else
-  evap         = (evap1+evap2)*24*60*60
-  evap@units   = "mm/day"
+  if (isvar("evap3")) then
+   evap         = (evap1+evap2+evap3)*24*60*60
+   evap@units   = "mm/day"
+  else
+   evap         = (evap1+evap2)*24*60*60
+   evap@units   = "mm/day"
+  end if
  end if
 else
-;if () then
-; evap         = (evap1+evap2+evap3)*24*60*60
-; evap@units   = "mm/day"
-;else
+if (isvar("evap3")) then
+ evap         = (evap1+evap2)*24*60*60
+ ;evap         = (evap1+evap2+evap3)*24*60*60
+ evap@units   = "mm/day"
+else
  evap         = (evap1+evap2)*24*60*60
  evap@units   = "mm/day"
-;end if
+end if
 end if
 
 lh            = (lh/rlam)*24*60*60
@@ -267,7 +273,8 @@ globe = "" + decimalPlaces(global_vals,3,True)
 ncr1  = (/1,12/) ;9
 x1    = (/0.085,0.995/) ;.104
 y1    = (/0.800,0.855/)
-text1 = (/"Precip","Ev+Es","SurfRun","Drainage","Res 1", \
+;text1 = (/"Precip","Ev+Es","SurfRun","Drainage","Res 1", \
+text1 = (/"Precip","Ev+s+i","SurfRun","Drainage","Res 1", \
           "Evp(LH)","Res 2", \
           "E(LHsnw)","Res 3",\
           "SH","LH","Rnet"/)

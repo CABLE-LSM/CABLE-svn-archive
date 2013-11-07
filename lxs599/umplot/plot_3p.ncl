@@ -14,7 +14,7 @@ procedure Panel3Plot(pltName:string,top:numeric,middle:numeric,bottom:numeric,jp
 begin
 
 numYr = systemfunc("echo $YR")
-;jpg = systemfunc("echo $JPEG")
+;jpg = systemfunc("echo $CHFMT")
 ;if(jpg.eq."y")then
 ;jpeg = True
 ;else
@@ -84,7 +84,9 @@ pres@gsnPanelBottom       = 0.18
 gsn_panel(wks,plot,(/3,1/),pres)
 
 if(jpeg)then
-system("convert -density 1000 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
+system("ps2epsi "+PltNam+".ps "+PltNam+".eps")
+system("convert -density 500 -rotate 270 "+PltNam+".eps "+PltNam+".jpg")
+;system("convert -density 1000 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
 ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
 end if
 

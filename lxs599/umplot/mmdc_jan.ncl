@@ -13,8 +13,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 begin
 
 numYr    = systemfunc("echo $YR")
-filDir   = systemfunc("echo $DIRW")
-jpg      = systemfunc("echo $JPEG")
+filDir   = systemfunc("echo $PWD")
+;filDir   = systemfunc("echo $DIRW")
+jpg      = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else
@@ -27,7 +28,7 @@ home     = "/home/cmar/ste69f/"
 ;system("dmget " + tsDir + "mmdc*_roll.nc" )
 ;hayfil = addfile(tsDir + "hayobsjuly.nc"                ,"r")
 manfil = addfile(tsDir + "mmdc_ma96_roll.nc"         ,"r")
-tbfil  = addfile(tsDir + "MMDC_tumbarumba_fv.nc" ,"r")
+tbfil  = addfile(tsDir + "mmdc_tumbarumba_fv.nc" ,"r")
 vi97   = addfile(tsDir + "mmdc_vi97_roll.nc"       ,"r")
 
 ;igbp     = addfile(home  + "MMDC_"+ LongName +"_roll.nc","r")
@@ -344,8 +345,12 @@ gsn_legend_ndc(wks,11,labels,xpos,ypos,lgres)
 ;draw(legend)
 frame(wks)
 
+print(" ")
+
 if (jpeg) then
-system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
+system("ps2epsi "+pltName+".ps "+pltName+".eps")
+system("convert -density 500 "+pltName+".eps "+pltName+".jpg")
+;system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
 ;system("convert -density 1000 -geometry 1200x1600 "+pltName+".ps "+pltName+".jpg")
 end if
 

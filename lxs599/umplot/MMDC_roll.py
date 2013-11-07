@@ -3,6 +3,8 @@ import numpy as np
 
 cfile = cdms2.open('MMDC_%syrs.nc' % sys.argv[1])
 
+# For a start date other than Jan
+
 tas   = cfile['tas']     # (18,TS,12)
 lh    = cfile['hfls']
 sh    = cfile['hfss']

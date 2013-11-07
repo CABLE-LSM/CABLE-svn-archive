@@ -17,7 +17,7 @@ LongName = "tumbarumba"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $mostum") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf    = systemfunc("echo $cabtum") ; cabsf = systemfunc("echo $"+cabDir+"")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else

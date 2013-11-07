@@ -17,7 +17,7 @@ LongName = "little_washita"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $moslit") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf    = systemfunc("echo $cablit") ; cabsf = systemfunc("echo $"+cabDir+"")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else

@@ -69,8 +69,13 @@ if (isfilevar(sea_file,"tscrn")) then
 else
  tscrn  = sea_file ->$tname$     ;tas
 end if
-tmax   = tsea_file ->temp     ;tasmax
-tmin   = tsea_file ->temp_1   ;tasmin
+if (isfilevar(tsea_file,"tmax")) then
+ tmax   = tsea_file ->tmax
+ tmin   = tsea_file ->tmin
+else
+ tmax   = tsea_file ->temp     ;tasmax
+ tmin   = tsea_file ->temp_1   ;tasmin
+end if
 sh     = sea_file ->sh        ;hfss
 ;rnet1  = sea_file ->field3333 ;field202_1
 precip = sea_file ->precip    ;pr
@@ -79,9 +84,9 @@ if (isfilevar(sea_file,"field1526")) then
  evap1 = sea_file ->field1526 ;evspsblsoi
  evap2 = sea_file ->field1527 ;evspsblveg
 end if
-;if (isfilevar(sea_file,"field1528")) then
- ;evap3 = sea_file ->field1528 ;evspsbsubll
-;end if
+if (isfilevar(sea_file,"field1528")) then
+ evap3 = sea_file ->field1528 ;evspsbsubll
+end if
 lh     = sea_file->lh         ;hfls
 if (isfilevar(sea_file,"field184")) then
  mflx   = sea_file->field184
@@ -183,17 +188,17 @@ else
 ; evap_m@units   = "mm/day"
 end if
 else
-;if () then
-; evap         = (evap1+evap2+evap3)*24*60*60
-; evap@units   = "mm/day"
-;else
+if (isvar("evap3")) then
+ evap         = (evap1+evap2+evap3)*24*60*60
+ evap@units   = "mm/day"
+else
 ; evap         = sea_file ->evspsbl
 ; evap         = (evap)*24*60*60
  evap         = (evap1+evap2)*24*60*60
  evap@units   = "mm/day"
 ; evap_m         = (evap1_m+evap2_m)*24*60*60
 ; evap_m@units   = "mm/day"
-;end if
+end if
 end if
 
 lh            = (lh/rlam)*24*60*60

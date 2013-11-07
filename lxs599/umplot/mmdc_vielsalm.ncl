@@ -17,7 +17,7 @@ LongName = "vielsalm"
 numYr = systemfunc("echo $YR")
 mossf = systemfunc("echo $mosvie") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf = systemfunc("echo $cabvie") ; cabsf = systemfunc("echo $"+cabDir+"")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHMFT")
 if(jpg.eq."y") then
 jpeg = True
 else

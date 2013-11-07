@@ -1,3 +1,4 @@
 # This directory is for namelist files.
-# expca.sh ->cable and expmo.sh ->moses 
-# serve ONLY as examples.
+# Examples for cable and moses are
+# example_cable.nml and example_moses.nml
+# and serve ONLY as examples.

@@ -42,8 +42,13 @@ ctemp = cable_file ->tscrn
 else
 ctemp = cable_file ->$tname$
 end if
-ctmax = cable_tmp  ->temp
-ctmin = cable_tmp  ->temp_1
+if (isfilevar(cable_tmp,"tmax")) then
+ ctmax = cable_tmp  ->tmax
+ ctmin = cable_tmp  ->tmin
+else
+ ctmax = cable_tmp  ->temp
+ ctmin = cable_tmp  ->temp_1
+end if
 cprec = cable_file ->precip
 clh   = cable_file ->lh
 csh   = cable_file ->sh
@@ -55,8 +60,13 @@ mtemp = moses_file ->tscrn
 else
 mtemp = moses_file ->$tname$
 end if
-mtmax = moses_tmp  ->temp
-mtmin = moses_tmp  ->temp_1
+if (isfilevar(moses_tmp,"tmax")) then
+ mtmax = moses_tmp  ->tmax
+ mtmin = moses_tmp  ->tmin
+else
+ mtmax = moses_tmp  ->temp
+ mtmin = moses_tmp  ->temp_1
+end if
 mprec = moses_file ->precip
 mlh   = moses_file ->lh
 msh   = moses_file ->sh

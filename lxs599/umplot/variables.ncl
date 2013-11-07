@@ -134,6 +134,9 @@ if(isfilevar(sea_file,"field1526")) then
   evap1    = sea_file    ->field1526   ; Evaporation from soil or canopy
   evap2    = sea_file    ->field1527   ; Evaporation from soil or canopy
 end if
+if(isfilevar(sea_file,"field1528")) then
+  evap3    = sea_file    ->field1528   ; Evaporation from soil or canopy
+end if
 if(isfilevar(sea_file,"field1894")) then
   lai      = sea_file    ->field1894   ; Leaf Area Index (LAI)
   canht    = sea_file    ->field1895   ; Canopy height
@@ -214,14 +217,18 @@ if (lcable.and.t15) then
   soilT(:,5,:,:,:) = sea_file ->temp_7 ;soilT6
  end if
 end if
-;if (Runid.eq."xaank".or.Runid.eq."xaanv".and.lcable) then
 if (isfilevar(sea_file,"soiltemp")) then
   deepST   = sea_file    ->soiltemp    ; 
 end if
 ;tsea_file----------------------------------------------------------
 if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+ if(isfilevar(tsea_file,"tmax")) then
+  tmax     = tsea_file   ->tmax        ; Maximum Screen Temp degK
+  tmin     = tsea_file   ->tmin        ; Minimum Screen temp degK
+ else
   tmax     = tsea_file   ->temp        ; Maximum Screen Temp degK
   tmin     = tsea_file   ->temp_1      ; Minimum Screen temp degK
+ end if
 end if
 ;mon_file-----------------------------------------------------------
   prmn     = mon_file    ->precip      ;field77
@@ -255,8 +262,13 @@ end if
 end if
 ;tmp_file-----------------------------------------------------------
 if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+ if(isfilevar(tmon_file,"tmax")) then
+  txmn     = tmon_file    ->tmax        ;
+  tnmn     = tmon_file    ->tmin        ;
+ else
   txmn     = tmon_file    ->temp        ;
   tnmn     = tmon_file    ->temp_1      ;
+ end if
 end if
 ;obs----------------------------------------------------------------
   era_prec = obs_prec    ->a            ; Era Int Prec  Obs
@@ -298,7 +310,11 @@ if (isvar("tmax")) then
 end if
 
 if(isvar("evap1")) then
+ if(isvar("evap3")) then
+  evap                = ( evap1 + evap2 + evap3 ) *365 *24 *60 *60
+ else
   evap                = ( evap1 + evap2 ) *365 *24 *60 *60
+ end if
   copy_VarMeta(evap1,evap)
   evap@units          = "mm/yr"
   evap@long_name      = "Evaporation - soil+canopy"
@@ -736,7 +752,6 @@ Panel_Plot(pltDir,"seas_seb" ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,Tr
 AnnPlot(pltDir,"ann_seb"      ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,True,levseb,True,jpeg)
 
 ; soil temp -----------
-;if (Runid.eq."xaank".or.Runid.eq."xaanv".and.lcable) then
 if (isvar("deepST")) then
 do n = 0,nsoil-1,1
 f = n + 1
@@ -957,7 +972,6 @@ MmnPanel(pltDir,"mmn_drnf"   ,numYr,type,cmaprn,drmn(:,0,:,:) ,False,True,levrnf
 end if
 
 ; soil temp -----------
-;;if (Runid.eq."xaank".and.lcable) then
 ;if (isvar("deepST")) then
 ;do i = 0,nsoil-1,1
 ;MmnPanel(pltDir,"mmn_tsl",numYr,type,"BlAqGrYeOrReVi200",deepST(:,n,:,:),False,True,levtp,False);,jpeg)

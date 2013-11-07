@@ -24,7 +24,7 @@ vMask  = systemfunc("echo $MASK")
 tname =  systemfunc("echo $tname")
 
 ;rid  = systemfunc("echo $RUNID")
-;OtherDir = systemfunc("echo $LDIR")
+;OtherDir = systemfunc("echo $BDIR")
 ;lmod = systemfunc("echo $MODEL")
 ;if (lmod.eq."c") then
 ; cable = True

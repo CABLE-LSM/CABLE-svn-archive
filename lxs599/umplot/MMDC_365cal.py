@@ -16,9 +16,15 @@ qh  = tfile['hfss']
 qle = tfile['hfls']
 apr = tfile['field5226']
 rnt = tfile['field3333']
+#tas = tfile['temp']
+#qh  = tfile['lh']
+#qle = tfile['sh']
+#apr = tfile['precip']
+#rnt = tfile['field202']
 
 #tstep = 48 # hardwired, (tas.shape[0]/(12*30*int(year)))
-tstep = (tas.shape[0]/(365.25*int(year)))
+tstep = (tas.shape[0]/(365*int(year)))
+#tstep = (tas.shape[0]/(365.25*int(year)))
 nsites = tas.shape[1]
 
 a = MV2.zeros((int(year),12,tstep,tas.shape[1]))

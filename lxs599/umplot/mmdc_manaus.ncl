@@ -17,7 +17,7 @@ LongName = "manaus"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $mosman")
 cabsf    = systemfunc("echo $cabman")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else

@@ -153,7 +153,9 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
   gsn_panel(wks,plot,2,pres)
 
  if(jpeg) then
- system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ system("ps2epsi "+pltName+".ps "+pltName+".eps")
+ system("convert -density 500 -rotate 270 "+pltName+".eps "+pltName+".jpg")
+ ;system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  end if
 

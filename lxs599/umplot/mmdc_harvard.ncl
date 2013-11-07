@@ -17,7 +17,7 @@ LongName = "harvard_forest"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $moshar")
 cabsf    = systemfunc("echo $cabhar")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else

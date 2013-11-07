@@ -17,7 +17,7 @@ LongName = "bondville"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $mosbon")
 cabsf    = systemfunc("echo $cabbon")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else

@@ -21,7 +21,7 @@ filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
 resol    = systemfunc("echo $RES")
 vMask    = systemfunc("echo $MASK")
-jpg      = systemfunc("echo $JPEG")
+jpg      = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else

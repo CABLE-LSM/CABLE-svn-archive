@@ -73,8 +73,13 @@ tscrn  = cable_file ->tscrn     ;tas
 else
 tscrn  = cable_file ->$tname$   ;tas
 end if
-tmax   = table_file ->temp      ;tasmax
-tmin   = table_file ->temp_1    ;tasmin
+if (isfilevar(table_file,"tmax")) then
+ tmax   = table_file ->tmax      ;tasmax
+ tmin   = table_file ->tmin      ;tasmin
+else
+ tmax   = table_file ->temp      ;tasmax
+ tmin   = table_file ->temp_1    ;tasmin
+end if
 sh     = cable_file ->sh        ;hfss
 ;rnet1  = cable_file ->field3333 ;field202_1
 precip = cable_file ->precip    ;pr
@@ -83,9 +88,9 @@ if (isfilevar(cable_file,"field1526")) then
  evap1 = cable_file ->field1526 ;evspsblsoi
  evap2 = cable_file ->field1527 ;evspsblveg
 end if
-;if (isfilevar(cable_file,"field1528")) then
-; evap3 = cable_file ->field1528 ;evspsblsubl
-;end if
+if (isfilevar(cable_file,"field1528")) then
+ evap3 = cable_file ->field1528 ;evspsblsubl
+end if
 lh     = cable_file->lh         ;hfls
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
@@ -120,12 +125,20 @@ end if
 if (isfilevar(moses_file,"tasmax")) then
 tmax_m   = moses_file ->tasmax
 else
-tmax_m   = toses_file ->temp
+ if (isfilevar(toses_file,"tmax")) then
+  tmax_m   = toses_file ->tmax
+ else
+  tmax_m   = toses_file ->temp
+ end if
 end if
 if (isfilevar(moses_file,"tasmin")) then
 tmin_m   = moses_file ->tasmin
 else
-tmin_m   = toses_file ->temp_1
+ if (isfilevar(toses_file,"tmin")) then
+  tmin_m   = toses_file ->tmin
+ else
+  tmin_m   = toses_file ->temp_1
+ end if
 end if
 if (isfilevar(moses_file,"hfss")) then
 sh_m     = moses_file ->hfss
@@ -146,9 +159,9 @@ if (isfilevar(moses_file,"field1526")) then
  evap1_m = moses_file ->field1526  ;evspsblsoi
  evap2_m = moses_file ->field1527  ;evspsblveg
 end if
-;if (isfilevar(moses_file,"field1528")) then
-; evap3_m = moses_file ->field1528  ;evspsblsubl
-;end if
+if (isfilevar(moses_file,"field1528")) then
+ evap3_m = moses_file ->field1528  ;evspsblsubl
+end if
 if (isfilevar(moses_file,"hfls")) then
 lh_m     = moses_file ->hfls
 else
@@ -256,19 +269,19 @@ else
  evap_m@units   = "mm/day"
 end if
 else
-;if () then
-; evap         = (evap1+evap2+evap3)*24*60*60
-; evap@units   = "mm/day"
-; evap_m         = (evap1_m+evap2_m+evap3_m)*24*60*60
-; evap_m@units   = "mm/day"
-;else
+if (isvar("evap3")) then
+ evap         = (evap1+evap2+evap3)*24*60*60
+ evap@units   = "mm/day"
+ evap_m         = (evap1_m+evap2_m+evap3_m)*24*60*60
+ evap_m@units   = "mm/day"
+else
 ; evap         = cable_file ->evspsbl
 ; evap         = (evap)*24*60*60
  evap         = (evap1+evap2)*24*60*60
  evap@units   = "mm/day"
  evap_m         = (evap1_m+evap2_m)*24*60*60
  evap_m@units   = "mm/day"
-;end if
+end if
 end if
 
 lh            = (lh/rlam)*24*60*60

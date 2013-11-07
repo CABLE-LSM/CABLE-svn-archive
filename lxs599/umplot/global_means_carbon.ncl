@@ -18,7 +18,11 @@ if (isfilepresent("mm.sresp_"+numYr+"yrs.nc")) then
    soil_d = slin->field1523
 
    nin = addfile("mm.npp_"+numYr+"yrs.nc","r")
-   npp_d = nin->field1389
+   if (isfilevar(nin,"field1389")) then
+    npp_d = nin->field1389
+   else
+    npp_d = nin->field1389_1
+   end if
 
    gin = addfile("mm.gpp_"+numYr+"yrs.nc","r")
    gpp_d = gin->field1388

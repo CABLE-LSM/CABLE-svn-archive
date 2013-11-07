@@ -2,22 +2,34 @@
 
 #=============Job Setup==================
 
-setenv DIR ~ste69f/access/xakfz_wblake_test1         # Directory - where files are 
-setenv RUNID xakfz                      # Runid or Jobid from UMUI
-setenv YR 1                             # Number of Years - run or otherwise
-setenv REINIT 3                         # 1/3 - For processing when output files are 1/3 months in length
+setenv DIR ~ste69f/access/xakfy         # Directory - where files are 
+setenv RUNID xakfy                      # Runid or Jobid from UMUI
+setenv YR 10                            # Number of Years - run or otherwise
+#setenv SYR n                            # 
+#setenv SELYR 1989/1992                  # 
+setenv REINIT 1                         # 1/3 - For processing when output files are 1/3 months in length
 #setenv RESUB 3                          # Not used
-setenv Pmonth pa                        # Ext. letter for Files containing Monthly Means
-setenv Pdaily pe                        # Ext. letter for Files containing Daily Means & Min/Max
 
 #=============Processing=================
 
-setenv CNV2NC y                         # convert UM ppfiles to NetCDF before running umplot
+setenv NCI_CP n                         # 
+setenv NCI_ID lxs599                    # 
+
+setenv CNV2NC n                         # convert UM ppfiles to NetCDF before running umplot
 #setenv PROC n                           # Not used
+
+setenv Pmonth pa                        # Monthly Means
+setenv Pdaily pe                        # Daily Means & Min/Max
+setenv Ptemp1 pe                        # from: Daily Means & Min/Max
+setenv Ptemps pb                        #   to: Daily Means & Min/Max
+setenv Ptimes pf                        # Timeseries
+setenv PcasaC pj                        # Carbon
 
 #=============Temp Varname===============
 
 setenv tname temp                       # temp_`number` - variable name for tscrn
+setenv txname temp                      # temp_`number` - variable name for tmax
+setenv tiname temp_1                    # temp_`number` - variable name for tmin
 
 #=============Model Setup================
 
@@ -29,21 +41,23 @@ setenv CASA n                           # y/n - did you run with CASA-CNP ?
 
 #=============UMPLOT Setup===============
 
-setenv SPLIT n                          # y/n - ONLY if YR is a multiple of 5 and  >= 10
-setenv TAY n                            # y/n
-setenv LDIR /home/cmar/ste69f/access/xakfb_c96v2_24y_newparam
-#setenv LDIR ~zie022/access/results/testruns/uahhk                      
-#setenv LDIR /home/cmar/kow014/access/uabab_run21/block1_5yrs
-#setenv LDIR ~zie022/access/results/uaaxl
+setenv SPLIT y                          # y/n - ONLY if YR is a multiple of 5 and  >= 10
+setenv BMRK n                           # y/n
+setenv BDIR /home/cmar/ste69f/access/xakfz_wblake_test1
+#setenv BDIR /home/cmar/ste69f/access/xakfz_wblake_test1
+#setenv BDIR /home/cmar/ste69f/access/xakfy_wblake_test3
+#setenv BDIR /home/cmar/ste69f/access/xakfb_c96v2_24y_newparam
+#setenv BDIR ~zie022/access/results/testruns/uahhk                      
+#setenv BDIR /home/cmar/kow014/access/uabab_run21/block1_5yrs
+#setenv BDIR ~zie022/access/results/uaaxl
                                         # default: $HOME
-                                        # ONLY needs to be set to something other than $HOME if $TAY is y E.g.
+                                        # ONLY needs to be set to something other than $HOME if $BMRK is y E.g.
                                         # MOSES: ~ste69f/access/xaiyl_m48_20yrs .OR. ~ste69f/access/xagpb_n96_m_20yrs
 
 #=============Format Setup===============
 
-setenv JPEG n                           # y/n
-#setenv CHFMT n                          # Not used yet
-#setenv FMT pdf                          # pdf/eps/jpg - Not used yet
+setenv CHFMT n                          # Not used yet
+setenv FMT jpg                          # pdf/eps/jpg - Not used yet
 
 exit
 

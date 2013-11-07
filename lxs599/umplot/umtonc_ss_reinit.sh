@@ -9,6 +9,13 @@ set i=1
 set a=a
 set rid=$RUNID
 
+#set mext=$Pmonth #pa # monthly files    e.g. pm
+#set dext=$Pdaily #pe # daily files      e.g. pa
+#set 1ext=$Ptemp1 #pe # from: max/min T files e.g. pb
+#set bext=$Ptemps #pb #   to: max/min T files e.g. pb
+#set text=$Ptimes #pf # timeseries files e.g. pe
+#set jext=$PcasaC #pj # carbon files e.g. pj
+
 set palist=`ls $rid$a.pa?????` # pm (monthly values)
 set pblist=`ls $rid$a.pc?????` # pb (daily tmin, tmax)
 set pelist=`ls $rid$a.pe?????` # pa (daily values)

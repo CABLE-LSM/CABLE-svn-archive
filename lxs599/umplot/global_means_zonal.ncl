@@ -29,7 +29,8 @@ begin
 
 numYr  = systemfunc("echo $YR")
 filDir = systemfunc("echo $DIR")
-ModDir = systemfunc("echo $DIRW")
+ModDir = systemfunc("echo $PWD")
+;ModDir = systemfunc("echo $DIRW")
 resol  = systemfunc("echo $RES")
 vMask  = systemfunc("echo $MASK")
 ;Runid  = systemfunc("echo $RUNID")
@@ -65,12 +66,17 @@ end if
 ; SET-UP -------------------------------------------------------------
 
 if (isfilevar(sea_file,"tscrn")) then
-tscrn  = sea_file ->tscrn     ;tas
+ tscrn  = sea_file ->tscrn     ;tas
 else
-tscrn  = sea_file ->$tname$   ;tas
+ tscrn  = sea_file ->$tname$   ;tas
 end if
-tmax   = tsea_file ->temp     ;tasmax
-tmin   = tsea_file ->temp_1   ;tasmin
+if (isfilevar(tsea_file,"tmax")) then
+ tmax   = tsea_file ->tmax
+ tmin   = tsea_file ->tmin
+else
+ tmax   = tsea_file ->temp     ;tasmax
+ tmin   = tsea_file ->temp_1   ;tasmin
+end if
 sh     = sea_file ->sh        ;hfss
 ;rnet1  = sea_file ->field3333 ;field202_1
 precip = sea_file ->precip    ;pr
@@ -79,9 +85,9 @@ if (isfilevar(sea_file,"field1526")) then
  evap1 = sea_file ->field1526 ;evspsblsoi
  evap2 = sea_file ->field1527 ;evspsblveg
 end if
-;if (isfilevar(sea_file,"field1528")) then
-; evap3 = sea_file ->field1528 ;evspsblsubl
-;end if
+if (isfilevar(sea_file,"field1528")) then
+ evap3 = sea_file ->field1528 ;evspsblsubl
+end if
 lh     = sea_file->lh         ;hfls
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
@@ -182,17 +188,17 @@ else
 ; evap_m@units   = "mm/day"
 end if
 else
-;if () then
-; evap         = (evap1+evap2+evap3)*24*60*60
-; evap@units   = "mm/day"
-;else
+if (isvar("evap3")) then
+ evap         = (evap1+evap2+evap3)*24*60*60
+ evap@units   = "mm/day"
+else
 ; evap         = sea_file ->evspsbl
 ; evap         = (evap)*24*60*60
  evap         = (evap1+evap2)*24*60*60
  evap@units   = "mm/day"
 ; evap_m         = (evap1_m+evap2_m)*24*60*60
 ; evap_m@units   = "mm/day"
-;end if
+end if
 end if
 copy_VarMeta(evap1,evap)
 

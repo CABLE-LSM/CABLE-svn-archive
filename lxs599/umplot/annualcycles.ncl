@@ -14,8 +14,9 @@ begin
 
 ;LongName = "hyytiala"
 numYr    = systemfunc("echo $YR")
-filDir   = systemfunc("echo $DIRW")
-jpg = systemfunc("echo $JPEG")
+filDir   = systemfunc("echo $PWD")
+;filDir   = systemfunc("echo $DIRW")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else
@@ -508,8 +509,12 @@ gsn_legend_ndc(wks,11,labels,xpos,ypos,lgres)
 ;draw(legend)
 frame(wks)
 
+print(" ")
+
  if (jpeg) then
- system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
+ system("ps2epsi "+pltName+".ps "+pltName+".esp")
+ system("convert -density 500 "+pltName+".eps "+pltName+".jpg")
+ ;system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
  ;system("convert -density 1000 -geometry 1200x1600 "+pltName+".ps "+pltName+".jpg")
  end if
 

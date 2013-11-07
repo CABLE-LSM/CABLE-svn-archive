@@ -23,7 +23,7 @@ mosDir = systemfunc("echo $MOSES")
 ;cabtem = systemfunc("echo $cabtem")
 ;mostem = systemfunc("echo $mostem")
 numYr  = systemfunc("echo $YR")
-jpg    = systemfunc("echo $JPEG")
+jpg    = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else
@@ -69,11 +69,21 @@ if (isfilevar(moses_file,"tasmax")) then
  tmaxM1          = moses_file->tasmax
  tminM1          = moses_file->tasmin
 else
+if (isfilevar(tmoses,"tmax")) then
+ tmaxM1          = tmoses     ->tmax
+ tminM1          = tmoses     ->tmin
+else
  tmaxM1          = tmoses     ->temp
  tminM1          = tmoses     ->temp_1
 end if
-tmaxC1          = tcable     ->temp
-tminC1          = tcable     ->temp_1
+end if
+if (isfilevar(tcable,"tmax")) then
+ tmaxC1          = tcable     ->tmax
+ tminC1          = tcable     ->tmin
+else
+ tmaxC1          = tcable     ->temp
+ tminC1          = tcable     ->temp_1
+end if
 era_tmax1       = tmxx_obs   ->mx2t
 era_tmin1       = tmxx_obs   ->mn2t
 
@@ -231,7 +241,6 @@ Dnbias = dim_avg_n_Wrap(Dnbias4,0)
 ; Plot ----------------------------------------------------------------------
 
 print("Plotting 3 Panel Bias Plots")
-print("")
 
 ;ann------------------------------
 
@@ -250,6 +259,8 @@ Panel3Plot("bias_djf_tmin_3p",Cnbias4(0,:,:),Mnbias4(0,:,:),Dnbias4(0,:,:),jpeg)
 Panel3Plot("bias_jja_tscrn_3p",Ctbias4(2,:,:),Mtbias4(2,:,:),Dtbias4(2,:,:),jpeg)
 ;Panel3Plot("bias_jja_tmax_3p",Cxbias4(2,:,:),Mxbias4(2,:,:),Dxbias4(2,:,:),jpeg)
 Panel3Plot("bias_jja_tmin_3p",Cnbias4(2,:,:),Mnbias4(2,:,:),Dnbias4(2,:,:),jpeg)
+
+print("")
 
 end
 

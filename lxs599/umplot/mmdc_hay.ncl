@@ -17,7 +17,7 @@ LongName = "hay"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $moshay")
 cabsf    = systemfunc("echo $cabhay")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else
@@ -408,7 +408,9 @@ gsn_panel(wks,plot,(/2,2/),pres)
 ;gsn_panel(wks3,prplot,(/1,2/),pres)
 
 if(jpeg) then
-system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
+system("ps2epsi "+pltName+".ps "+pltName+".eps")
+system("convert -density 500 "+pltName+".eps "+pltName+".jpg")
+;system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
 ;system("convert -density 1000 -geometry 1200x1600 "+pltName+".ps "+pltName+".jpg")
 end if
 

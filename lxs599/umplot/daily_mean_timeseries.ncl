@@ -12,6 +12,8 @@ begin
  numyr = systemfunc("echo $YR")
  resol = systemfunc("echo $RES")
  vMask = systemfunc("echo $MASK")
+ Pdai  = systemfunc("echo $Pdaily")
+ Ptem  = systemfunc("echo $Ptemps")
 
  nfil = stringtoint(numyr)*4
  ;print(nfil)
@@ -20,11 +22,11 @@ begin
 
  ; read in files----------
 
- fila = systemfunc("ls "+dir+"/"+rid+"a.pa*0.nc | head -"+nfil)
+ fila = systemfunc("ls "+dir+"/"+rid+"a."+Pdai+"?????.nc | head -"+nfil)
  fa   = addfiles(fila,"r")
  ListSetType(fa,"cat")    ; "join" adds extra dim (5,12,nlat,nlon)
 
- filb = systemfunc("ls "+dir+"/"+rid+"a.pb*0.nc | head -"+nfil)
+ filb = systemfunc("ls "+dir+"/"+rid+"a."+Ptem+"?????.nc | head -"+nfil)
  fb   = addfiles(filb,"r")
  ListSetType(fb,"cat")    ; while "cat" extends time dim (60,nlat,nlon)
 
@@ -39,49 +41,50 @@ begin
  end if
 
  ; read in vars----------
- tsc  = fa[:]->temp
- if (.not.isfilevar(fa[0],"temp_2")) then
- tas  = fa[:]->temp_1
- else
- tas  = fa[:]->temp_2
- end if
+ tsc  = fa[:]->temp_2
+ ;if (.not.isfilevar(fa[0],"temp_2")) then
+ ;tas  = fa[:]->temp_1
+ ;else
+ ;tas  = fa[:]->temp_2
+ tas  = fa[:]->temp_34
+ ;end if
  smc  = fa[:]->sm
  if (isfilevar(fa[0],"soiltemp")) then
  tsl  = fa[:]->soiltemp
  else
  tsl = new(dimsizes(smc),typeof(smc))
- tsl = 0.
+ tsl = -9999
  copy_VarMeta(smc,tsl)
  end if
- if (isfilevar(fa[0],"lh")) then
+ ;if (isfilevar(fa[0],"lh")) then
  lh   = fa[:]->lh
  sh   = fa[:]->sh
- else
- lh   = fb[:]->lh
- sh   = fb[:]->sh
- end if
- if (isfilevar(fb[0],"precip")) then
- pr   = fb[:]->precip
- else
- pr   = new(dimsizes(lh),typeof(lh))
- pr   = 0.
- copy_VarMeta(lh,pr)
- end if
+ ;else
+ ;lh   = fb[:]->lh
+ ;sh   = fb[:]->sh
+ ;end if
+ ;if (isfilevar(fa[0],"precip")) then
+ pr   = fa[:]->precip
+ ;else
+ ;pr   = new(dimsizes(lh),typeof(lh))
+ ;pr   = 0.
+ ;copy_VarMeta(lh,pr)
+ ;end if
  if (isfilevar(fa[0],"field1526")) then
  evp1 = fa[:]->field1526
  evp2 = fa[:]->field1527
  else
- if (isfilevar(fb[0],"field1526")) then
- evp1 = fb[:]->field1526
- evp2 = fb[:]->field1527
- else
- evp1 = new(dimsizes(lh),typeof(lh))
- evp2 = new(dimsizes(lh),typeof(lh))
- evp1 = 0.
- evp2 = 0.
- copy_VarMeta(lh,evp1)
- copy_VarMeta(lh,evp2)
- end if
+ ;if (isfilevar(fa[0],"field1526")) then
+ evp1 = fa[:]->field1526
+ evp2 = fa[:]->field1527
+ ;else
+ ;evp1 = new(dimsizes(lh),typeof(lh))
+ ;evp2 = new(dimsizes(lh),typeof(lh))
+ ;evp1 = 0.
+ ;evp2 = 0.
+ ;copy_VarMeta(lh,evp1)
+ ;copy_VarMeta(lh,evp2)
+ ;end if
  end if
  ;printVarSummary(pr)
  

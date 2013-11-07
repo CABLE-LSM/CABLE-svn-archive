@@ -19,7 +19,7 @@ begin
   ; lcable:logical,\   ; Model. True for CABLE, False for MOSES
   ; jpeg:logical)      ; Converts all files to jpeg for PowerPoint
 
-  ; LDIR or ODIR: Comparison Run
+  ; BDIR or ODIR: Comparison Run
   ;Cab9tn48   = "/home/cmar/kow014/access/xaank_run244"         ; N48
   ;Cab17tn96  = "/home/cmar/kow014/access/xaanv_run32"          ; N96
   ;;Mos9tn48   = "/home/cmar/ste69f/access/xafqb_n48_m_20yrs"    ; N48
@@ -34,7 +34,7 @@ begin
   soil = systemfunc("echo $SOIL")
   resn = systemfunc("echo $RES")
 
-  jpg = systemfunc("echo $JPEG")
+  jpg = systemfunc("echo $CHFMT")
   if (jpg.eq."y") then
   jpeg = True
   else
@@ -59,39 +59,22 @@ begin
    lcable = False
   end if
 
-  extra = systemfunc("echo $TAY")
+  extra = systemfunc("echo $BMRK")
   if (extra.eq."y") then
    tay  = True
-   odir = systemfunc("echo $LDIR")
+   odir = systemfunc("echo $BDIR")
   else
    tay  = False
    odir = systemfunc("echo $HOME")
   end if
 
-; Call variables.ncl
+; Call to variables.ncl
   run_ncl(dir,rid,year,tile,soil,"n"+resn,split,tay,odir,lcable,jpeg)
 
 ;Examples:
-  ;dir    = "./" ;"/home/cmar/ste69f/access/xaiip"
-  ;dir    = "/home/cmar/kow014/access/xaank"
-  ;rid    = "xaiip"
-  ;year   = "5"
-  ;tile   = "17"
-  ;soil   = "6"
-  ;resn   = "96"
-  ;split  = False ; if (split) then yr = year/5 ; do i =0, yr-1,1 k=i+1 system("mkdir block"+k+"_5yrs") end do end if; system("./cdo_copy2.sh") etc
-  ;tay    = False
-  ;odir   = "./"
-  ;lcable = True
-  ;jpeg   = False
-
-  ;run_ncl("./","xagpb","20","9","4","n96",False,False,"./",False,False) 
-  ;                                                 ; 20 year n96 Moses Run ( 9 tiles, 4 soil levs )
-  ;                                                 ; Run for full 20 years with no special plots
-  ;
-  ;run_ncl("./","xaiia","5","17","6","n96",False,False,"./",False,False)
+  ;run_ncl("./","xagpb","20","9" ,"4","n96",False,False,"./",False,False) 
   ;run_ncl("./","xaanv","10","17","6","n96",False,False,"./",False,False)
-  ;run_ncl("./","xaank","10","9","4","n48",False,False,"./",False,False)
+  ;run_ncl("./","xaank","10","9" ,"4","n48",False,False,"./",False,False)
 
   ; Currently Split functionality not working and
   ; also Special plots not working for NCL control script

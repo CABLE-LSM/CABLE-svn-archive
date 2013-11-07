@@ -31,7 +31,7 @@ blck  = False
 end if
 
 ;rid  = systemfunc("echo $RUNID")
-;OtherDir = systemfunc("echo $LDIR")
+;OtherDir = systemfunc("echo $BDIR")
 ;if (lmod.eq."c") then
 ; cable = True
 ;else
@@ -61,33 +61,33 @@ end if
 ; Variables ------------------------------------------------------------------
 
 if (isfilevar(moses_file,"tscrn")) then
-tscrnM1         = moses_file ->tscrn
+ tscrnM1         = moses_file ->tscrn
 else
 if (isfilevar(moses_file,"tas")) then
-tscrnM1         = moses_file ->tas
+ tscrnM1         = moses_file ->tas
 else
-tscrnM1         = moses_file ->$tname$
+ tscrnM1         = moses_file ->$tname$
 end if
 end if
 if (isfilevar(cable_file,"tscrn")) then
-tscrnC1         = cable_file ->tscrn
+ tscrnC1         = cable_file ->tscrn
 else
 if (isfilevar(cable_file,"tas")) then
-tscrnC1         = cable_file ->tas
+ tscrnC1         = cable_file ->tas
 else
-tscrnC1         = cable_file ->$tname$
+ tscrnC1         = cable_file ->$tname$
 end if
 end if
 era_t2m1        = tscrn_obs  ->t2m
 if (isfilevar(moses_file,"field77")) then
-prM1            = moses_file ->field77
+ prM1            = moses_file ->field77
 else
-prM1            = moses_file ->precip
+ prM1            = moses_file ->precip
 end if
 if (isfilevar(cable_file,"field77")) then
-prC1            = cable_file ->field77
+ prC1            = cable_file ->field77
 else
-prC1            = cable_file ->precip
+ prC1            = cable_file ->precip
 end if
 era_pr1         = pr_obs     ->pr
 lsm             = lsm_file   ->lsm
@@ -122,14 +122,14 @@ end if
 end if
 
 if (isfilevar(moses_file,"field77")) then
-prM1            = prM1*48
+ prM1            = prM1*48
 else
-prM1            = prM1*24*60*60
+ prM1            = prM1*24*60*60
 end if
 if (isfilevar(cable_file,"field77")) then
-prC1            = prC1*48
+ prC1            = prC1*48
 else
-prC1            = prC1*24*60*60
+ prC1            = prC1*24*60*60
 end if
 era_pr1         = era_pr1*24*60*60
 era_pr1!1       = "latitude"
@@ -179,12 +179,19 @@ LandPc(k:k,:,:,:) = where(lsm.gt.0,prC(k:k,:,:,:),-9999)
 ;LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
 end do
 
+if (nmon .gt. ttp(0)) then
 do k=0,ttp(0)-1,1
 LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
 end do
 do k=0,tpr(0)-1,1
 LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
 end do
+else
+do k=0,nmon-1,1
+LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
+LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
+end do
+end if
 
 LandTm@_FillValue = -9999
 LandTc@_FillValue = -9999
@@ -255,7 +262,11 @@ data(1,:)            = -9999
 data(2,:)            = -9999
 data(0,Mstart:Mend)  = wgt_tscrnM(:,0)
 data(1,Cstart:Cend)  = wgt_tscrnC(:,0)
+if (nmon .gt. ttp(0))
 data(2,Estart:Eend)  = wgt_erat2m(0:239)
+else
+data(2,Estart:Eend)  = wgt_erat2m(0:12*nyrs-1)
+end if
 
 data2                = new((/3,396/),double)
 data2(0,:)           = -9999
@@ -263,7 +274,11 @@ data2(1,:)           = -9999
 data2(2,:)           = -9999
 data2(0,Mstart:Mend) = wgt_prM(:,0)
 data2(1,Cstart:Cend) = wgt_prC(:,0)
+if (nmon .gt. tpr(0)) then
 data2(2,Estart:Eend) = wgt_prE(0:239) 
+else
+data2(2,Estart:Eend) = wgt_prE(0:12*nyrs-1) 
+end if
 
 yyyymm            = yyyymm_time(1978,2010,"integer")
 yyyyfrac          = yyyymm_to_yyyyfrac(yyyymm,0)

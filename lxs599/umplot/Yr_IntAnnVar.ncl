@@ -33,7 +33,7 @@ end if
 
 ;dir  = systemfunc("echo $DIR")
 ;rid  = systemfunc("echo $RUNID")
-;ldir = systemfunc("echo $LDIR")
+;bdir = systemfunc("echo $BDIR")
 ;lmod = systemfunc("echo $MODEL")
 ;if (lmod.eq."c") then
 ; cable = True
@@ -191,12 +191,19 @@ LandPc(k:k,:,:,:) = where(lsm.gt.0,pCyr(k:k,:,:,:),-9999)
 ;LandPe(k:k,:,:)   = where(emsk.eq.1,pEyr(k:k,:,:),-9999)
 end do
 
-do k=0,ttp(0)-1,1
-LandTe(k:k,:,:)   = where(emsk.eq.1,tEyr(k:k,:,:),-9999)
-end do
-do k=0,tpr(0)-1,1
-LandPe(k:k,:,:)   = where(emsk.eq.1,pEyr(k:k,:,:),-9999)
-end do
+if (nyrs .gt. ttp(0)) then
+ do k=0,ttp(0)-1,1
+  LandTe(k:k,:,:)   = where(emsk.eq.1,tEyr(k:k,:,:),-9999)
+ end do
+ do k=0,tpr(0)-1,1
+  LandPe(k:k,:,:)   = where(emsk.eq.1,pEyr(k:k,:,:),-9999)
+ end do
+else
+ do k=0,nyrs-1,1
+  LandTe(k:k,:,:)   = where(emsk.eq.1,tEyr(k:k,:,:),-9999)
+  LandPe(k:k,:,:)   = where(emsk.eq.1,pEyr(k:k,:,:),-9999)
+ end do
+end if
 
 LandTm@_FillValue = -9999
 LandTc@_FillValue = -9999
@@ -272,7 +279,11 @@ data(1,:)            = -9999
 data(2,:)            = -9999
 data(0,Mstart:Mend)  = wgt_tscrnM(:,0)
 data(1,Cstart:Cend)  = wgt_tscrnC(:,0)
+if (nyrs .gt. ttp(0)) then
 data(2,Estart:Eend)  = wgt_erat2m(0:19)
+else
+data(2,Estart:Eend)  = wgt_erat2m(0:nyrs-1)
+end if
 ;data&time            = ispan(1978,2010,1)
 
 data2                = new((/3,33/),double)
@@ -281,8 +292,12 @@ data2(1,:)           = -9999
 data2(2,:)           = -9999
 data2(0,Mstart:Mend) = wgt_prM(:,0)
 data2(1,Cstart:Cend) = wgt_prC(:,0)
+if (nyrs .gt. tpr(0)) then
 data2(2,Estart:Eend) = wgt_prE(0:19) 
- 
+else
+data2(2,Estart:Eend) = wgt_prE(0:nyrs-1) 
+end if
+
 yyyymm            = yyyymm_time(1978,2010,"integer")
 yyyyfrac          = yyyymm_to_yyyyfrac(yyyymm,0)
 yyyy              = ispan(1978,2010,1)

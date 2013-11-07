@@ -17,7 +17,7 @@ LongName = "nsa_boreas"
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $mosnsa") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf    = systemfunc("echo $cabnsa") ; cabsf = systemfunc("echo $"+cabDir+"")
-jpg = systemfunc("echo $JPEG")
+jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
 jpeg = True
 else
