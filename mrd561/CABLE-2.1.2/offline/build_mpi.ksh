@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin cycl md
+   set -A kh vayu cher burn shin cy md
 }
 
 
@@ -23,7 +23,7 @@ host_md()
 
 
 
-host_cycl()
+host_cy()
 {
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'

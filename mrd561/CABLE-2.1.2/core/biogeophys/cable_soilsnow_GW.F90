@@ -58,7 +58,7 @@ MODULE cable_soil_snow_gw_module
    REAL, PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
                       qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
-                      watmin  = 0.05,         & !min soil water [mm]      
+                      volwatmin  = 0.05,         & !min soil water [mm]      
                       wtd_uncert = 5.0,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
@@ -2331,6 +2331,9 @@ END SUBROUTINE hydraulic_redistribution
     GWdzmm(:) = real(1000.0*soil%GWdz(:),r_2)   
     GWzimm(:) = zimm(ms)+GWdzmm(:)
     zaq(:)    = real(1000.0*soil%GWz(:),r_2)
+    
+    
+    watmin(:) = volwatmin * denliq
 
     ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     ! preset to allow for non-land & snow points in trimb
@@ -2541,36 +2544,50 @@ END SUBROUTINE hydraulic_redistribution
     end do
     GWmsliq(:) = ssoil%GWwb(:)*GWdzmm                                    !mass aquifer liq 
           
-    xsi(:)      = max(GWmsliq(:) - soil%GWwatsat(:)*GWdzmm,0.0_r_2)      !ensure liq < liq_maximum (in mm)
-    GWmsliq(:)  = min(soil%GWwatsat(:)*GWdzmm(:),GWmsliq(:))  	  
+    xsi(:)      = GWmsliq(:) - soil%GWwatsat(:)*GWdzmm
+    where (xsi(:) .lt. 0.0_r_2) xsi(:) = 0.0_r_2
+    where (xsi(:) .gt. 0.0_r_2) GWmsliq(:) = soil%GWwatsat(:)*GWdzmm(:) 	  
     msliq(:,ms) = msliq(:,ms) + xsi(:)
-	  
-    do k = ms,2,-1
-       xsi(:)       = max(msliq(:,k)-eff_por(:,k)*dzmm(k),0._r_2)
-       msliq(:,k)   = min(eff_por(:,k)*dzmm(k), msliq(:,k))
-       msliq(:,k-1) = msliq(:,k-1) + xsi(:)
-    end do
-    xs1(:)       = max(msliq(:,1)-soil%watsat(:,1)*dzmm(1)-msice(:,1),0._r_2)
-    msliq(:,1)   = min((soil%watsat(:,1))*dzmm(1)-msice(:,1), msliq(:,1))
-    ssoil%qhz(:) = ssoil%qhz(:) + xs1(:) / dels
  
-    do k = 1, ms                                                           !ensure liq < liq_minimum (using mm)
+    do k = ms,2,-1
+       where ((xsi(:) .lt. (msliq(:,k)-eff_por(:,k)*dzmm(k))) .and. (xsi(:) .gt. 0.0_r_2))
+          msliq(:,k) = msliq(:,k) + xsi(:)
+       elsewhere (xsi(:) .gt. 0.0_r_2)
+          xsi(:)     = xsi(:) - (eff_por(:,k)*dzmm(k)-msliq(:,k))
+          msliq(:,k) = eff_por(:,k)*dzmm(k)
+       end where
+       !xsi(:)       = max(msliq(:,k)-eff_por(:,k)*dzmm(k),0._r_2)
+       !msliq(:,k)   = min(eff_por(:,k)*dzmm(k), msliq(:,k))
+       !msliq(:,k-1) = msliq(:,k-1) + xsi(:)
+    end do
+    xs1(:) = msliq(:,1)-eff_por(:,1)*dzmm(1)
+    where(xs1(:) .lt. 0.0_r_2) xs1(:) = 0.0_r_2
+
+    where(xs1(:) .gt. 0.0_r_2) 
+       msliq(:,1) = eff_por(:,1)*dzmm(1)
+       ssoil%qhz(:) = ssoil%qhz(:) + xs1(:) / dt
+       xs1(:) = 0.0_r_2
+   end where
+ 
+    do k = 1,ms-1                                                           !ensure liq < liq_minimum (using mm)
        xs(:) = 0.0_r_2
-       where (msliq(:,k) < watmin)
+       where (msliq(:,k) .lt. watmin)
           xs(:) = watmin - msliq(:,k)
-       endwhere
+       end where
        msliq(:,k  ) = msliq(:,k  ) + xs(:)
        if (k .le. (ms-1)) then
           msliq(:,k+1) = msliq(:,k+1) - xs(:)
        else
           GWmsliq(:) = GWmsliq(:) - xs(:)
-        endif
+       endif
     end do
 
-    ssoil%wb(:,:) = msliq(:,:) / spread(dzmm(:),1,mp)                 !convert from mm to volumetric
-    ssoil%GWwb(:) = GWmsliq(:) / GWdzmm(:)	  
+    ssoil%wb(:,:) = msliq(:,:) / spread(dzmm(:),1,mp_patch)                 !convert from mm to volumetric
+    ssoil%GWwb(:) = GWmsliq(:) / GWdzmm(:)  
 
-    ssoil%rnof2(:) = ssoil%qhz(:)*dels  !in mm
+    ssoil%rnof2(:) = ssoil%qhz(:)          
+          
+          
 
 
  END SUBROUTINE smoistgw
