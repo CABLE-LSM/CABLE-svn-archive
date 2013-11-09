@@ -2122,11 +2122,13 @@ END SUBROUTINE hydraulic_redistribution
     tmpb(:)  = max((tmpa(:)-satfrac(:)) / (1.0_r_2-satfrac(:)),0.0_r_2)
     inflmx(:)= ((1.0-soil%clappB(:,1)*soil%smpsat(:,1)/(0.5*soil%zse(1)*1000.0)&
                     *(tmpb-1.0))*soil%hksat(:,1))
-     ! Surface runoff         
-    ssoil%rnof1(:) =  (satfrac(:) * ssoil%fwtop(:) + &
-                       (1.0-satfrac(:)) * max(ssoil%fwtop(:)-inflmx,0.0_r_2))  !in mm?
-
-    ssoil%fwtop(:) = ssoil%fwtop(:) - ssoil%rnof1(:)  !in mm
+     ! Surface runoff
+    where (ssoil%fwtop(:) .gt. inflmx*dels)
+       ssoil%rnof1(:) =  (satfrac(:) * ssoil%fwtop(:)/dels + &
+                       (1.0-satfrac(:)) * ssoil%fwtop(:)/dels-inflmx)  !in mm/s
+    elsewhere
+       ssoil%fwtop(:) = ssoil%fwtop(:).dels - ssoil%rnof1(:)  !in mm/s
+    end where
            
     !in soil_snow_gw subroutine of this module
     !ssoil%runoff = ssoil%rnof1! + ssoil%rnof2    
@@ -2183,7 +2185,7 @@ END SUBROUTINE hydraulic_redistribution
   REAL(r_2), DIMENSION(mp)             :: GWzimm,temp
   REAL(r_2), DIMENSION(mp)             :: def,defc     
 
-  REAL(r_2)                                  :: deffunc,tempa,tempb,derv,calc
+  REAL(r_2)                                  :: deffunc,tempa,tempb,derv,calc,tmpc
   REAL(r_2), DIMENSION(mp)             :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   !local loop counters
   INTEGER :: k,i,wttd,jlp
@@ -2209,8 +2211,9 @@ END SUBROUTINE hydraulic_redistribution
        mainloop: DO WHILE (keeplooping)
           tempa   = 1.0_r_2
           tempb   = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(-invB(i))
-          derv    = max((soil%watsat(i,ms))*(tempa-tempb) + &
-                                          soil%watsat(i,ms),0.001_r_2)
+          derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
+                                          soil%watsat(i,ms)
+          if (abs(derv) .lt. 1e-5) derv = sign(1e-5,derv)
           tempa   = 1.0_r_2
           tempb   = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(1.0_r_2-invB(i))
           deffunc = (soil%watsat(i,ms))*(ssoil%wtd(i) +&
@@ -2230,15 +2233,19 @@ END SUBROUTINE hydraulic_redistribution
     elseif (defc(i) .lt. def(i)) then
        jlp=0
        mainloop2: DO WHILE (keeplooping)
-          tempa    = ((Nsmpsat(i)+ssoil%wtd(i)-zimm(ms))/&
-	               Nsmpsat(i))**(-invB(i))
-          tempb    = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(-invB(i))
-          derv     = max((soil%watsat(i,ms))*(tempa-tempb),0.001_r_2)
+          tmpc     = Nsmpsat(i)+ssoil%wtd(i)-zimm(ms)
+          if (abs(tmpc) .lt. 1e-4) tmpc = sign(1e-4,tmpc)
+          tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
+          
+          derv     = (soil%watsat(i,ms))*(tempa-tempb)
+          if (abs(derv) .lt. 1e-1) derv = sign(1e-1,derv)
+          
           tempa    = ((Nsmpsat(i)+ssoil%wtd(i)-zimm(ms))/Nsmpsat(i))**(1.0_r_2-invB(i))
           tempb    = (1.0_r_2+ssoil%wtd(i)/Nsmpsat(i))**(1.0-invB(i))
           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
                       Nsmpsat(i)/(1.0_r_2-invB(i))*(tempa-tempb))-def(i)
-          calc     = ssoil%wtd(i) - deffunc/derv
+          !calc     = ssoil%wtd(i) - deffunc/derv
+          calc     = max(ssoil%wtd(i) - deffunc/derv,1.0)   !prevent wtd < 0
           IF ((abs(calc-ssoil%wtd(i))) .le. wtd_uncert) THEN
              ssoil%wtd(i) = calc
              keeplooping = .FALSE.
