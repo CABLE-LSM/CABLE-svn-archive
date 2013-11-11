@@ -441,6 +441,8 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
     IF (phen%doyphase(np,4) > 365) phen%doyphase(np,4)=phen%doyphase(np,4)-365
   ENDDO
 
+!  write(77,701) phen%doyphase(10546,:)
+701 format('phase doy at 10546 ', 10(i4,2x))
 END SUBROUTINE casa_readphen
 
 !SUBROUTINE casa_readpoint(veg,soil,casaflux,casamet,rad)
@@ -1140,5 +1142,11 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casabal)
 
+  npt=10546
+
+!  write(77,*)   idoy,phen%doyphase(npt,:), phen%phase(npt)
+!  write(77,701) ktau/24,casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:), &
+!                     casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%crmplant(npt,:),casaflux%Nminuptake(npt),real(phen%phase(npt)),casaflux%fracCalloc(npt,:)
+701 format('pool: ',i6,100(f12.5,2x))
 END SUBROUTINE biogeochem
 
