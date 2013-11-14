@@ -7,7 +7,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  8.6   1.0    0.10   2.0    9.0   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  28.0e-6      3.0000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    2.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   200  10217    876    184    367         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -19,7 +19,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
 20.0   1.0    0.10   2.0    14.0   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  55.0e-6      0.600  0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    2.0    0.962                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.962                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   300  16833   1443    303    606         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -31,7 +31,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  4.6   1.0    0.10   2.0    9.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  40.0e-6      3.0000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
-   5    10    2.0    0.966                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+   5    10    1.0    0.966                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   200   5967    511    107    214         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -43,7 +43,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  8.6   1.0    0.10   2.0     8.0   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  48.0e-6      2.2000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
-   5    15    2.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+   5    15    1.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   300  12000   1029    216    432         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -55,7 +55,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.400  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  4.4   0.0    0.10   2.0    5.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  39.0e-6      1.0000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.964                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.964                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   159   5000    500    100    250         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -67,7 +67,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.250  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0     7.0   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  48.0e-6      1.5000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -79,7 +79,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.250  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0    7.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  8.0e-6      2.8000 0.0832 1.0            ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 4.0   1500.0  0.05   0.8    0.02          ! a1, d0, alpha, convex, cfrd
@@ -91,7 +91,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.250  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0    5.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  35.0e-6      2.5000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -103,7 +103,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0    7.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  35.0e-6      1.5000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    2.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   150      0    607    149    300         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -115,7 +115,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0    1.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  8.00e-5      1.0000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    2.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   150      0    607    149    300         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 4.0   1500.0  0.05   0.80   0.02          ! a1, d0, alpha, convex, cfrd
@@ -127,7 +127,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0    7.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
 60.00e-6      1.5000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -139,7 +139,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0    7.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
 60.00e-6      1.5000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -151,7 +151,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  6.0   0.0    0.10   2.0    7.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
 60.00e-6      1.5000 0.0832 1.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -163,7 +163,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.151  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  0.0   0.0    0.10   2.0    1.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  1.40e-5      1.0000 0.0832 0.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -175,7 +175,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  0.0   0.0    0.10   2.0    1.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  1.70e-5      1.0000 0.0832 0.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -187,7 +187,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  0.0   0.0    0.10   2.0    1.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  1.70e-5      1.0000 0.0832 0.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
@@ -199,7 +199,7 @@ CSIRO veg type parameters (2nd guess calibration)
 0.100  0.225  0.020  1.00                 ! rhosoil-vis,nir,therm; xalbnir
  0.0   0.0    0.10   2.0    1.00   0.001  ! LAImax(m2/m2),WoodAI(m2/m2),canst1,shelrb,vegcf,extkn
  1.70e-5      1.0000 0.0832 0.0           ! vcmax(mol/m2/s), rp20, rpcoeff(/oC), rs20
- -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
+ -15   -10    1.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
 9.0   1500.0  0.20   0.01   0.01          ! a1, d0, alpha, convex, cfrd
