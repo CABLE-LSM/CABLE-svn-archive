@@ -1,5 +1,5 @@
 &cable
-  filename%veg     = '/projects/access/CABLE-AUX/core/biogeophys/def_veg_params.txt' 
+  filename%veg     = '/projects/access/CABLE-AUX/core/biogeophys/veg_params_vbeta1.txt' 
   filename%soil    = '/projects/access/CABLE-AUX/core/biogeophys/def_soil_params.txt'
   redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
   wiltParam = 0.5  !requires value if redistrb=.true. ELSE not used
