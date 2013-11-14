@@ -8,7 +8,7 @@ setenv YR 5                             # Number of Years - run or otherwise
 #setenv SYR n                           # Number of Years - run or otherwise
 #setenv SELYR                           # Number of Years - run or otherwise
 setenv REINIT 3                         # 1/3 - For processing when output files are 1/3 months in length
-#setenv RESUB 3                          # Not used
+#setenv RESUB 3                         # Not used
 
 #=============Processing=================
 
@@ -17,20 +17,20 @@ setenv NCI_CP n
 setenv NCI_ID 599
 
 setenv CNV2NC n                         # convert UM ppfiles to NetCDF before running umplot
-#setenv PROC n                           # Not used
+#setenv PROC n                          # Not used
 
 setenv Pmonth pa                        # Ext. letter for Files containing Monthly Means
-#setenv Pdaily pe                        # Ext. letter for Files containing Daily Means & Min/Max
-#setenv Pdaily pe                        # Ext. letter for Files containing Daily Means & Min/Max
-#setenv Pdaily pe                        # Ext. letter for Files containing Daily Means & Min/Max
-#setenv Pdaily pe                        # Ext. letter for Files containing Daily Means & Min/Max
-#setenv Pdaily pe                        # Ext. letter for Files containing Daily Means & Min/Max
+setenv Pdaily pe                        # Ext. letter for Files containing Daily Means & Min/Max
+setenv Ptemp1 pb                        # Ext. letter for Files containing Daily Means & Min/Max
+setenv Ptemps pb                        # Ext. letter for Files containing Daily Means & Min/Max
+setenv Ptimes pf                        # Ext. letter for Files containing Daily Means & Min/Max
+setenv PcasaC pj                        # Ext. letter for Files containing Daily Means & Min/Max
 
 #=============Temp Varname===============
 
 setenv tname temp_3                     # temp_`number` - variable name for tscrn
-#setenv txname temp_3                     # temp_`number` - variable name for tscrn
-#setenv tiname temp_3                     # temp_`number` - variable name for tscrn
+setenv txname temp_3                    # temp_`number` - variable name for tscrn
+setenv tiname temp_3                    # temp_`number` - variable name for tscrn
 
 #=============Model Setup================
 
@@ -42,6 +42,7 @@ setenv CASA n                           # y/n - did you run with CASA-CNP ?
 
 #=============UMPLOT Setup===============
 
+setenv UMPLT y                          # n/y - do you want to run umplot ?
 setenv SPLIT n                          # y/n - ONLY if YR is a multiple of 5 and  >= 10
 setenv BMRK n                           # y/n - For comparision plots eg Taylor Plot, please set BDIR is BMRK y
 setenv BDIR ~kow014/access/xaank_run305                      
