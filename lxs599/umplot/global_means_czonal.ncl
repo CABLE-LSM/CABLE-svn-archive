@@ -20,8 +20,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "/home/cmar/ste69f/umplot/regrid.ncl"
 load "/home/cmar/ste69f/umplot/tables.ncl"
-;load "/home/599/lxs599/umplot/regrid.ncl"
-;load "/home/599/lxs599/umplot/tables.ncl"
+load "/home/cmar/ste69f/umplot/wgt_func.ncl"
 
 ;procedure GMcTables()
 
@@ -40,12 +39,19 @@ tname =  systemfunc("echo $tname")
 ; FILES --------------------------------------------------------------
 
 moses_file = addfile(mosdir+"/seasonal_means_"+numYr+"yrs.nc","r") 
+toses_file = addfile(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc","r") 
+if (isfilepresent(mosdir+"/clt_yseasmean.nc")) then
 coses_file = addfile(mosdir+"/clt_yseasmean.nc","r") 
+end if
 cable_file = addfile(cabdir+"/seasonal_means_"+numYr+"yrs.nc","r")
 table_file = addfile(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 
 ObsDir = "/home/cmar/ste69f/umplot/obs/"
 PltDir = "/home/cmar/ste69f/umplot/data/"
+
+erai_file = addfile(ObsDir+"ERAi_tp2m.nc","r")
+erat_file = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
+elsm_file = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 ;sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 ;tsea_file = addfile(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
@@ -78,6 +84,9 @@ else
  tmax   = table_file ->temp      ;tasmax
  tmin   = table_file ->temp_1    ;tasmin
 end if
+etmp = erai_file->a
+emax = erat_file->mx2t
+emin = erat_file->mn2t
 sh     = cable_file ->sh        ;hfss
 ;rnet1  = cable_file ->field3333 ;field202_1
 precip = cable_file ->precip    ;pr
@@ -90,6 +99,7 @@ if (isfilevar(cable_file,"field1528")) then
  evap3 = cable_file ->field1528 ;evspsblsubl
 end if
 lh     = cable_file->lh         ;hfls
+elsm   = elsm_file ->lsm
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
 ;lsm    = frac_file ->lsm
@@ -124,19 +134,19 @@ end if
 if (isfilevar(moses_file,"tasmax")) then
 tmax_m   = moses_file ->tasmax
 else
- if (isfilevar(moses_file,"tmax")) then
-  tmax_m   = moses_file ->tmax
+ if (isfilevar(toses_file,"tmax")) then
+  tmax_m   = toses_file ->tmax
  else
-  tmax_m   = moses_file ->temp
+  tmax_m   = toses_file ->temp
  end if
 end if
 if (isfilevar(moses_file,"tasmin")) then
 tmin_m   = moses_file ->tasmin
 else
- if (isfilevar(moses_file,"tmin")) then
-  tmin_m   = moses_file ->tmin
+ if (isfilevar(toses_file,"tmin")) then
+  tmin_m   = toses_file ->tmin
  else
-  tmin_m   = moses_file ->temp_1
+  tmin_m   = toses_file ->temp_1
  end if
 end if
 if (isfilevar(moses_file,"hfss")) then
@@ -177,11 +187,16 @@ else
  trunoff_m = srunoff_m
  trunoff_m = trunoff_m + drunoff_m
 end if
-if (isfilevar(coses_file,"clt")) then
-clt_m = coses_file->clt
+if (isfilepresent(mosdir+"/clt_yseasmean.nc")) then
+ if (isfilevar(coses_file,"clt")) then
+  clt_m = coses_file->clt
+ else
+  clt_m = moses_file->field30_1
+  clt_m = clt_m*100
+ end if
 else
-clt_m = moses_file->field30_1
-clt_m = clt_m*100
+ clt_m = moses_file->field30_1
+ clt_m = clt_m*100
 end if
 
 if (isfilevar(moses_file,"rsds")) then
@@ -200,6 +215,8 @@ else
  rlus_m = (-1)*(rld1_m-rlds_m)
  rnet_m = rsd1_m + rld1_m
  copy_VarMeta(rsd1_m,rnet_m)
+ copy_VarMeta(rsd1_m,rlus_m)
+ copy_VarMeta(rsd1_m,rsus_m)
 end if
 
 rnet = rsd1 + rld1
@@ -291,6 +308,9 @@ lathf        = dim_avg_n_Wrap(lhf,0)
 tscr         = dim_avg_n_Wrap(tscrn,0)
 tmx          = dim_avg_n_Wrap(tmax,0)
 tmn          = dim_avg_n_Wrap(tmin,0)
+etm          = dim_avg_n_Wrap(etmp,0)
+emx          = dim_avg_n_Wrap(emax,0)
+emn          = dim_avg_n_Wrap(emin,0)
 evp          = dim_avg_n_Wrap(evap,0)
 srf          = dim_avg_n_Wrap(srunoff,0)
 dr           = dim_avg_n_Wrap(drunoff,0)
@@ -326,11 +346,13 @@ cld_m        = dim_avg_n_Wrap(clt_m,0)
 ;wbal         = precip-evap-(srunoff+drunoff)
 ;wbal         = prec-lath-(srf+dr)
 wbal         = prec-evp-(srf+dr)
-copy_VarMeta(prec,wbal)
 wbal_m       = prec_m-evp_m-(srf_m+dr_m)
+copy_VarMeta(prec,wbal)
+copy_VarMeta(prec_m,wbal_m)
 obal         = prec-evp
-copy_VarMeta(prec,obal)
 obal_m       = prec_m-evp_m
+copy_VarMeta(prec,obal)
+copy_VarMeta(prec_m,obal_m)
 ebal         = radnet-sensh-lathf 
 ebal2        = rsd-rsu+rld-rlu-sensh-lathf 
 ebal_m       = radnet_m-sensh_m-lathf_m 
@@ -389,6 +411,22 @@ wgtom!1 = "lon"
 wgtom&lat = precip&latitude
 wgtom&lon = precip&longitude
 
+wgte  = get_wgt(emx)
+wgtle = where(elsm(0,:,:).gt.0,wgte*elsm(0,:,:),-9999)
+wgtlo = where(elsm(0,:,:).le.0,wgte*(1-elsm(0,:,:)),-9999)
+wgte!0    = "lat"
+wgte!1    = "lon"
+wgte&lat  = emax&latitude
+wgte&lon  = emax&longitude
+wgtle!0   = "lat"
+wgtle!1   = "lon"
+wgtle&lat = emax&latitude
+wgtle&lon = emax&longitude
+wgtlo!0   = "lat"
+wgtlo!1   = "lon"
+wgtlo&lat = emax&latitude
+wgtlo&lon = emax&longitude
+
 ; ANN WBAL -----------------------------------------------------------
 
 ; have a external chv ?
@@ -410,55 +448,102 @@ latr       = lat({latS:latN})
 
 ;region -> Land ---------------------------
 
-pr_l           = wgt_areaave2(prec(:,{latS:latN},:),wgtl({latS:latN},:),0)
-pr_l_m         = wgt_areaave2(prec_m({latS:latN},:),wgtl({latS:latN},:),0)
-sh_l           = wgt_areaave2(sensh(:,{latS:latN},:),wgtl({latS:latN},:),0)
-sh_l_m         = wgt_areaave2(sensh_m({latS:latN},:),wgtl({latS:latN},:),0)
-rn_l           = wgt_areaave2(radnet(:,{latS:latN},:),wgtl({latS:latN},:),0)
-rn_l_m         = wgt_areaave2(radnet_m({latS:latN},:),wgtl({latS:latN},:),0)
+if(dimsizes(dimsizes(prec)).gt.2) then
+ pr_l          = wgt_areaave2(    prec(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ sh_l          = wgt_areaave2(   sensh(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ rn_l          = wgt_areaave2(  radnet(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ld_l          = wgt_areaave2(     rld(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ lu_l          = wgt_areaave2(     rlu(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ sd_l          = wgt_areaave2(     rsd(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ su_l          = wgt_areaave2(     rsu(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ts_l          = wgt_areaave2(    tscr(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ tx_l          = wgt_areaave2(     tmx(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ tn_l          = wgt_areaave2(     tmn(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ lhf_l         = wgt_areaave2(   lathf(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ev_l          = wgt_areaave2(     evp(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ;ev_l          = wgt_areaave2(     evp(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ lh_l          = wgt_areaave2(    lath(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ lh_l2         = wgt_areaave2(lath_snw(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ rf_l          = wgt_areaave2(     srf(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ dr_l          = wgt_areaave2(      dr(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ trf_l         = wgt_areaave2(     trf(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ tot_l         = wgt_areaave2(    wbal(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ;tot_l         = wgt_areaave2(    wbal(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+else
+ pr_l          = wgt_areaave2(    prec({latS:latN},:), wgtl({latS:latN},:),0)
+ sh_l          = wgt_areaave2(   sensh({latS:latN},:), wgtl({latS:latN},:),0)
+ rn_l          = wgt_areaave2(  radnet({latS:latN},:), wgtl({latS:latN},:),0)
+ ld_l          = wgt_areaave2(     rld({latS:latN},:), wgtl({latS:latN},:),0)
+ lu_l          = wgt_areaave2(     rlu({latS:latN},:), wgtl({latS:latN},:),0)
+ sd_l          = wgt_areaave2(     rsd({latS:latN},:), wgtl({latS:latN},:),0)
+ su_l          = wgt_areaave2(     rsu({latS:latN},:), wgtl({latS:latN},:),0)
+ ts_l          = wgt_areaave2(    tscr({latS:latN},:), wgtl({latS:latN},:),0)
+ tx_l          = wgt_areaave2(     tmx({latS:latN},:), wgtl({latS:latN},:),0)
+ tn_l          = wgt_areaave2(     tmn({latS:latN},:), wgtl({latS:latN},:),0)
+ lhf_l         = wgt_areaave2(   lathf({latS:latN},:), wgtl({latS:latN},:),0)
+ ev_l          = wgt_areaave2(     evp({latS:latN},:), wgtl({latS:latN},:),0)
+ lh_l          = wgt_areaave2(    lath({latS:latN},:), wgtl({latS:latN},:),0)
+ lh_l2         = wgt_areaave2(lath_snw({latS:latN},:), wgtl({latS:latN},:),0)
+ rf_l          = wgt_areaave2(     srf({latS:latN},:),wgtlm({latS:latN},:),0)
+ dr_l          = wgt_areaave2(      dr({latS:latN},:),wgtlm({latS:latN},:),0)
+ trf_l         = wgt_areaave2(     trf({latS:latN},:),wgtlm({latS:latN},:),0)
+ tot_l         = wgt_areaave2(    wbal({latS:latN},:), wgtl({latS:latN},:),0)
+end if
+if(dimsizes(dimsizes(prec_m)).gt.2) then
+ pr_l_m        = wgt_areaave2(    prec_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ sh_l_m        = wgt_areaave2(   sensh_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ rn_l_m        = wgt_areaave2(  radnet_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ld_l_m        = wgt_areaave2(     rld_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ lu_l_m        = wgt_areaave2(     rlu_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ sd_l_m        = wgt_areaave2(     rsd_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ su_l_m        = wgt_areaave2(     rsu_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ts_l_m        = wgt_areaave2(    tscr_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ tx_l_m        = wgt_areaave2(     tmx_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ tn_l_m        = wgt_areaave2(     tmn_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ lhf_l_m       = wgt_areaave2(   lathf_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ev_l_m        = wgt_areaave2(     evp_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ;ev_l_m        = wgt_areaave2(     evp_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ lh_l_m        = wgt_areaave2(    lath_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ lh_l2_m       = wgt_areaave2(lath_snw_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ rf_l_m        = wgt_areaave2(     srf_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ dr_l_m        = wgt_areaave2(      dr_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ trf_l_m       = wgt_areaave2(     trf_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ tot_l_m       = wgt_areaave2(    wbal_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
+ ;tot_l_m       = wgt_areaave2(    wbal_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+else
+ pr_l_m        = wgt_areaave2(    prec_m({latS:latN},:), wgtl({latS:latN},:),0)
+ sh_l_m        = wgt_areaave2(   sensh_m({latS:latN},:), wgtl({latS:latN},:),0)
+ rn_l_m        = wgt_areaave2(  radnet_m({latS:latN},:), wgtl({latS:latN},:),0)
+ ld_l_m        = wgt_areaave2(     rld_m({latS:latN},:), wgtl({latS:latN},:),0)
+ lu_l_m        = wgt_areaave2(     rlu_m({latS:latN},:), wgtl({latS:latN},:),0)
+ sd_l_m        = wgt_areaave2(     rsd_m({latS:latN},:), wgtl({latS:latN},:),0)
+ su_l_m        = wgt_areaave2(     rsu_m({latS:latN},:), wgtl({latS:latN},:),0)
+ ts_l_m        = wgt_areaave2(    tscr_m({latS:latN},:), wgtl({latS:latN},:),0)
+ tx_l_m        = wgt_areaave2(     tmx_m({latS:latN},:), wgtl({latS:latN},:),0)
+ tn_l_m        = wgt_areaave2(     tmn_m({latS:latN},:), wgtl({latS:latN},:),0)
+ lhf_l_m       = wgt_areaave2(   lathf_m({latS:latN},:), wgtl({latS:latN},:),0)
+ ev_l_m        = wgt_areaave2(     evp_m({latS:latN},:), wgtl({latS:latN},:),0)
+ lh_l_m        = wgt_areaave2(    lath_m({latS:latN},:), wgtl({latS:latN},:),0)
+ lh_l2_m       = wgt_areaave2(lath_snw_m({latS:latN},:), wgtl({latS:latN},:),0)
+ rf_l_m        = wgt_areaave2(     srf_m({latS:latN},:),wgtlm({latS:latN},:),0)
+ dr_l_m        = wgt_areaave2(      dr_m({latS:latN},:),wgtlm({latS:latN},:),0)
+ trf_l_m       = wgt_areaave2(     trf_m({latS:latN},:),wgtlm({latS:latN},:),0)
+ tot_l_m       = wgt_areaave2(    wbal_m({latS:latN},:), wgtl({latS:latN},:),0)
+end if
 
-ld_l           = wgt_areaave2(rld(:,{latS:latN},:),wgtl({latS:latN},:),0)
-ld_l_m         = wgt_areaave2(rld_m({latS:latN},:),wgtl({latS:latN},:),0)
-lu_l           = wgt_areaave2(rlu(:,{latS:latN},:),wgtl({latS:latN},:),0)
-lu_l_m         = wgt_areaave2(rlu_m({latS:latN},:),wgtl({latS:latN},:),0)
-sd_l           = wgt_areaave2(rsd(:,{latS:latN},:),wgtl({latS:latN},:),0)
-sd_l_m         = wgt_areaave2(rsd_m({latS:latN},:),wgtl({latS:latN},:),0)
-su_l           = wgt_areaave2(rsu(:,{latS:latN},:),wgtl({latS:latN},:),0)
-su_l_m         = wgt_areaave2(rsu_m({latS:latN},:),wgtl({latS:latN},:),0)
-
-ts_l           = wgt_areaave2(tscr(:,{latS:latN},:),wgtl({latS:latN},:),0)
 ts_l           = ts_l-273.16
-ts_l_m         = wgt_areaave2(tscr_m({latS:latN},:),wgtl({latS:latN},:),0)
-ts_l_m         = ts_l_m-273.16
-tx_l           = wgt_areaave2(tmx(:,{latS:latN},:),wgtl({latS:latN},:),0)
 tx_l           = tx_l-273.16
-tx_l_m         = wgt_areaave2(tmx_m({latS:latN},:),wgtl({latS:latN},:),0)
-tx_l_m         = tx_l_m-273.16
-tn_l           = wgt_areaave2(tmn(:,{latS:latN},:),wgtl({latS:latN},:),0)
 tn_l           = tn_l-273.16
-tn_l_m         = wgt_areaave2(tmn_m({latS:latN},:),wgtl({latS:latN},:),0)
+ts_l_m         = ts_l_m-273.16
+tx_l_m         = tx_l_m-273.16
 tn_l_m         = tn_l_m-273.16
 
-lhf_l          = wgt_areaave2(lathf(:,{latS:latN},:),wgtl({latS:latN},:),0)
-lhf_l_m        = wgt_areaave2(lathf_m({latS:latN},:),wgtl({latS:latN},:),0)
-ev_l           = wgt_areaave2(evp(:,{latS:latN},:),wgtl({latS:latN},:),0)
-;ev_l           = wgt_areaave2(evp(:,{latS:latN},:),wgtlm({latS:latN},:),0)
-ev_l_m         = wgt_areaave2(evp_m({latS:latN},:),wgtl({latS:latN},:),0)
-;ev_l_m         = wgt_areaave2(evp_m({latS:latN},:),wgtlm({latS:latN},:),0)
-lh_l            = wgt_areaave2(lath(:,{latS:latN},:),wgtl({latS:latN},:),0)
-lh_l2           = wgt_areaave2(lath_snw(:,{latS:latN},:),wgtl({latS:latN},:),0)
-lh_l_m          = wgt_areaave2(lath_m({latS:latN},:),wgtl({latS:latN},:),0)
-lh_l2_m         = wgt_areaave2(lath_snw_m({latS:latN},:),wgtl({latS:latN},:),0)
+et_l           = wgt_areaave2(etm({latS:latN},:),wgtle({latS:latN},:),0)
+ex_l           = wgt_areaave2(emx({latS:latN},:),wgtle({latS:latN},:),0)
+ex_l           = ex_l-273.16
+en_l           = wgt_areaave2(emn({latS:latN},:),wgtle({latS:latN},:),0)
+en_l           = en_l-273.16
 
-rf_l           = wgt_areaave2(srf(:,{latS:latN},:),wgtlm({latS:latN},:),0)
-rf_l_m         = wgt_areaave2(srf_m({latS:latN},:),wgtlm({latS:latN},:),0)
-dr_l           = wgt_areaave2(dr(:,{latS:latN},:),wgtlm({latS:latN},:),0)
-dr_l_m         = wgt_areaave2(dr_m({latS:latN},:),wgtlm({latS:latN},:),0)
-trf_l          = wgt_areaave2(trf(:,{latS:latN},:),wgtlm({latS:latN},:),0)
-trf_l_m         = wgt_areaave2(trf_m({latS:latN},:),wgtlm({latS:latN},:),0)
-
-tot_l          = wgt_areaave2(wbal(:,{latS:latN},:),wgtl({latS:latN},:),0)
-;tot_l          = wgt_areaave2(wbal(:,{latS:latN},:),wgtlm({latS:latN},:),0)
 ;print((/tot_l,tot_l2/))
 
 resi_l   = pr_l-ev_l-rf_l-dr_l
@@ -473,56 +558,109 @@ resi_lm3 = pr_l_m-lh_l2_m-rf_l_m-dr_l_m
 
 ;region -> Ocean ---------------------------
 
-pr_o           = wgt_areaave2(prec(:,{latS:latN},:),wgto({latS:latN},:),0)
-pr_o_m         = wgt_areaave2(prec_m({latS:latN},:),wgto({latS:latN},:),0)
-sh_o           = wgt_areaave2(sensh(:,{latS:latN},:),wgto({latS:latN},:),0)
-sh_o_m         = wgt_areaave2(sensh_m({latS:latN},:),wgto({latS:latN},:),0)
-rn_o           = wgt_areaave2(radnet(:,{latS:latN},:),wgto({latS:latN},:),0)
-rn_o_m         = wgt_areaave2(radnet_m({latS:latN},:),wgto({latS:latN},:),0)
+if (dimsizes(dimsizes(prec)).gt.2) then
+ pr_o          = wgt_areaave2(    prec(:,{latS:latN},:), wgto({latS:latN},:),0)
+ sh_o          = wgt_areaave2(   sensh(:,{latS:latN},:), wgto({latS:latN},:),0)
+ rn_o          = wgt_areaave2(  radnet(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ld_o          = wgt_areaave2(     rld(:,{latS:latN},:), wgto({latS:latN},:),0)
+ lu_o          = wgt_areaave2(     rlu(:,{latS:latN},:), wgto({latS:latN},:),0)
+ sd_o          = wgt_areaave2(     rsd(:,{latS:latN},:), wgto({latS:latN},:),0)
+ su_o          = wgt_areaave2(     rsu(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ts_o          = wgt_areaave2(    tscr(:,{latS:latN},:), wgto({latS:latN},:),0)
+ tx_o          = wgt_areaave2(     tmx(:,{latS:latN},:), wgto({latS:latN},:),0)
+ tn_o          = wgt_areaave2(     tmn(:,{latS:latN},:), wgto({latS:latN},:),0)
+ lhf_o         = wgt_areaave2(   lathf(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ev_o          = wgt_areaave2(     evp(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ;ev_o          = wgt_areaave2(     evp(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ lh_o          = wgt_areaave2(    lath(:,{latS:latN},:), wgto({latS:latN},:),0)
+ lh_o2         = wgt_areaave2(lath_snw(:,{latS:latN},:), wgto({latS:latN},:),0)
+ rf_o          = wgt_areaave2(     srf(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ dr_o          = wgt_areaave2(      dr(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ trf_o         = wgt_areaave2(     trf(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ ; -9999 or _FillVal as no values of runoff over ocean
+ tot_o         = wgt_areaave2(    obal(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ;tot_o         = wgt_areaave2(    obal(:,{latS:latN},:),wgtom({latS:latN},:),0)
+else
+ pr_o          = wgt_areaave2(    prec({latS:latN},:), wgto({latS:latN},:),0)
+ sh_o          = wgt_areaave2(   sensh({latS:latN},:), wgto({latS:latN},:),0)
+ rn_o          = wgt_areaave2(  radnet({latS:latN},:), wgto({latS:latN},:),0)
+ ld_o          = wgt_areaave2(     rld({latS:latN},:), wgto({latS:latN},:),0)
+ lu_o          = wgt_areaave2(     rlu({latS:latN},:), wgto({latS:latN},:),0)
+ sd_o          = wgt_areaave2(     rsd({latS:latN},:), wgto({latS:latN},:),0)
+ su_o          = wgt_areaave2(     rsu({latS:latN},:), wgto({latS:latN},:),0)
+ ts_o          = wgt_areaave2(    tscr({latS:latN},:), wgto({latS:latN},:),0)
+ tx_o          = wgt_areaave2(     tmx({latS:latN},:), wgto({latS:latN},:),0)
+ tn_o          = wgt_areaave2(     tmn({latS:latN},:), wgto({latS:latN},:),0)
+ lhf_o         = wgt_areaave2(   lathf({latS:latN},:), wgto({latS:latN},:),0)
+ ev_o          = wgt_areaave2(     evp({latS:latN},:), wgto({latS:latN},:),0)
+ ;ev_o          = wgt_areaave2(     evp({latS:latN},:),wgtom({latS:latN},:),0)
+ lh_o          = wgt_areaave2(    lath({latS:latN},:), wgto({latS:latN},:),0)
+ lh_o2         = wgt_areaave2(lath_snw({latS:latN},:), wgto({latS:latN},:),0)
+ rf_o          = wgt_areaave2(     srf({latS:latN},:),wgtom({latS:latN},:),0)
+ dr_o          = wgt_areaave2(      dr({latS:latN},:),wgtom({latS:latN},:),0)
+ trf_o         = wgt_areaave2(     trf({latS:latN},:),wgtom({latS:latN},:),0)
+ ; -9999 or _FillVal as no values of runoff over ocean
+ tot_o         = wgt_areaave2(    obal({latS:latN},:), wgto({latS:latN},:),0)
+ ;tot_o         = wgt_areaave2(    obal({latS:latN},:),wgtom({latS:latN},:),0)
+end if
+if (dimsizes(dimsizes(prec_m)).gt.2) then
+ pr_o_m        = wgt_areaave2(    prec_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ sh_o_m        = wgt_areaave2(   sensh_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ rn_o_m        = wgt_areaave2(  radnet_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ld_o_m        = wgt_areaave2(     rld_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ lu_o_m        = wgt_areaave2(     rlu_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ sd_o_m        = wgt_areaave2(     rsd_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ su_o_m        = wgt_areaave2(     rsu_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ts_o_m        = wgt_areaave2(    tscr_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ tx_o_m        = wgt_areaave2(     tmx_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ tn_o_m        = wgt_areaave2(     tmn_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ lhf_o_m       = wgt_areaave2(   lathf_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ev_o_m        = wgt_areaave2(     evp_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ;ev_o_m        = wgt_areaave2(     evp_m(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ lh_o_m        = wgt_areaave2(    lath_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ lh_o2_m       = wgt_areaave2(lath_snw_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ rf_o_m        = wgt_areaave2(     srf_m(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ dr_o_m        = wgt_areaave2(      dr_m(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ trf_o_m       = wgt_areaave2(     trf_m(:,{latS:latN},:),wgtom({latS:latN},:),0)
+ ; -9999 or _FillVal as no values of runoff over ocean
+ tot_o         = wgt_areaave2(    obal_m(:,{latS:latN},:), wgto({latS:latN},:),0)
+ ;tot_o         = wgt_areaave2(    obal_m(:,{latS:latN},:),wgtom({latS:latN},:),0)
+else
+ pr_o_m        = wgt_areaave2(    prec_m({latS:latN},:), wgto({latS:latN},:),0)
+ sh_o_m        = wgt_areaave2(   sensh_m({latS:latN},:), wgto({latS:latN},:),0)
+ rn_o_m        = wgt_areaave2(  radnet_m({latS:latN},:), wgto({latS:latN},:),0)
+ ld_o_m        = wgt_areaave2(     rld_m({latS:latN},:), wgto({latS:latN},:),0)
+ lu_o_m        = wgt_areaave2(     rlu_m({latS:latN},:), wgto({latS:latN},:),0)
+ sd_o_m        = wgt_areaave2(     rsd_m({latS:latN},:), wgto({latS:latN},:),0)
+ su_o_m        = wgt_areaave2(     rsu_m({latS:latN},:), wgto({latS:latN},:),0)
+ ts_o_m        = wgt_areaave2(    tscr_m({latS:latN},:), wgto({latS:latN},:),0)
+ tx_o_m        = wgt_areaave2(     tmx_m({latS:latN},:), wgto({latS:latN},:),0)
+ tn_o_m        = wgt_areaave2(     tmn_m({latS:latN},:), wgto({latS:latN},:),0)
+ lhf_o_m       = wgt_areaave2(   lathf_m({latS:latN},:), wgto({latS:latN},:),0)
+ ev_o_m        = wgt_areaave2(     evp_m({latS:latN},:), wgto({latS:latN},:),0)
+ ;ev_o_m        = wgt_areaave2(     evp_m({latS:latN},:),wgtom({latS:latN},:),0)
+ lh_o_m        = wgt_areaave2(    lath_m({latS:latN},:), wgto({latS:latN},:),0)
+ lh_o2_m       = wgt_areaave2(lath_snw_m({latS:latN},:), wgto({latS:latN},:),0)
+ rf_o_m        = wgt_areaave2(     srf_m({latS:latN},:),wgtom({latS:latN},:),0)
+ dr_o_m        = wgt_areaave2(      dr_m({latS:latN},:),wgtom({latS:latN},:),0)
+ trf_o_m       = wgt_areaave2(     trf_m({latS:latN},:),wgtom({latS:latN},:),0)
+ ; -9999 or _FillVal as no values of runoff over ocean
+ tot_o         = wgt_areaave2(    obal_m({latS:latN},:), wgto({latS:latN},:),0)
+ ;tot_o         = wgt_areaave2(    obal_m({latS:latN},:),wgtom({latS:latN},:),0)
+end if
 
-ld_o           = wgt_areaave2(rld(:,{latS:latN},:),wgto({latS:latN},:),0)
-ld_o_m         = wgt_areaave2(rld_m({latS:latN},:),wgto({latS:latN},:),0)
-lu_o           = wgt_areaave2(rlu(:,{latS:latN},:),wgto({latS:latN},:),0)
-lu_o_m         = wgt_areaave2(rlu_m({latS:latN},:),wgto({latS:latN},:),0)
-sd_o           = wgt_areaave2(rsd(:,{latS:latN},:),wgto({latS:latN},:),0)
-sd_o_m         = wgt_areaave2(rsd_m({latS:latN},:),wgto({latS:latN},:),0)
-su_o           = wgt_areaave2(rsu(:,{latS:latN},:),wgto({latS:latN},:),0)
-su_o_m         = wgt_areaave2(rsu_m({latS:latN},:),wgto({latS:latN},:),0)
-
-ts_o           = wgt_areaave2(tscr(:,{latS:latN},:),wgto({latS:latN},:),0)
 ts_o           = ts_o-273.16
-ts_o_m         = wgt_areaave2(tscr_m({latS:latN},:),wgto({latS:latN},:),0)
-ts_o_m         = ts_o_m-273.16
-tx_o           = wgt_areaave2(tmx(:,{latS:latN},:),wgto({latS:latN},:),0)
 tx_o           = tx_o-273.16
-tx_o_m         = wgt_areaave2(tmx_m({latS:latN},:),wgto({latS:latN},:),0)
-tx_o_m         = tx_o_m-273.16
-tn_o           = wgt_areaave2(tmn(:,{latS:latN},:),wgto({latS:latN},:),0)
 tn_o           = tn_o-273.16
-tn_o_m         = wgt_areaave2(tmn_m({latS:latN},:),wgto({latS:latN},:),0)
+ts_o_m         = ts_o_m-273.16
+tx_o_m         = tx_o_m-273.16
 tn_o_m         = tn_o_m-273.16
 
-lhf_o          = wgt_areaave2(lathf(:,{latS:latN},:),wgto({latS:latN},:),0)
-lhf_o_m        = wgt_areaave2(lathf_m({latS:latN},:),wgto({latS:latN},:),0)
-ev_o           = wgt_areaave2(evp(:,{latS:latN},:),wgto({latS:latN},:),0)
-;ev_o           = wgt_areaave2(evp(:,{latS:latN},:),wgtom({latS:latN},:),0)
-ev_o_m         = wgt_areaave2(evp_m({latS:latN},:),wgto({latS:latN},:),0)
-;ev_o_m         = wgt_areaave2(evp_m({latS:latN},:),wgtom({latS:latN},:),0)
-lh_o           = wgt_areaave2(lath(:,{latS:latN},:),wgto({latS:latN},:),0)
-lh_o2          = wgt_areaave2(lath_snw(:,{latS:latN},:),wgto({latS:latN},:),0)
-lh_o_m         = wgt_areaave2(lath_m({latS:latN},:),wgto({latS:latN},:),0)
-lh_o2_m        = wgt_areaave2(lath_snw_m({latS:latN},:),wgto({latS:latN},:),0)
-
-rf_o           = wgt_areaave2(srf(:,{latS:latN},:),wgtom({latS:latN},:),0)
-rf_o_m         = wgt_areaave2(srf_m({latS:latN},:),wgtom({latS:latN},:),0)
-dr_o           = wgt_areaave2(dr(:,{latS:latN},:),wgtom({latS:latN},:),0)
-dr_o_m         = wgt_areaave2(dr_m({latS:latN},:),wgtom({latS:latN},:),0)
-trf_o          = wgt_areaave2(trf(:,{latS:latN},:),wgtom({latS:latN},:),0)
-trf_o_m         = wgt_areaave2(trf_m({latS:latN},:),wgtom({latS:latN},:),0)
-; -9999 or _FillVal as no values of runoff over ocean
-
-tot_o          = wgt_areaave2(obal(:,{latS:latN},:),wgto({latS:latN},:),0)
-;tot_o          = wgt_areaave2(obal(:,{latS:latN},:),wgtom({latS:latN},:),0)
+et_o           = wgt_areaave2(etm({latS:latN},:),wgtlo({latS:latN},:),0)
+ex_o           = wgt_areaave2(emx({latS:latN},:),wgtlo({latS:latN},:),0)
+ex_o           = ex_o-273.16
+en_o           = wgt_areaave2(emn({latS:latN},:),wgtlo({latS:latN},:),0)
+en_o           = en_o-273.16
 
 resi_o   = pr_o - ev_o
 resi_o2  = pr_o - lh_o
@@ -536,56 +674,103 @@ resi_o3m = pr_o_m - lh_o2_m
 
 ;;region -> Global ---------------------------------------
 
-pr_g   = wgt_areaave2(prec(:,{latS:latN},:),wgt({latS:latN},:),0)
-pr_g_m = wgt_areaave2(prec_m({latS:latN},:),wgt({latS:latN},:),0)
-sh_g   = wgt_areaave2(sensh(:,{latS:latN},:),wgt({latS:latN},:),0)
-sh_g_m = wgt_areaave2(sensh_m({latS:latN},:),wgt({latS:latN},:),0)
-rn_g   = wgt_areaave2(radnet(:,{latS:latN},:),wgt({latS:latN},:),0)
-rn_g_m = wgt_areaave2(radnet_m({latS:latN},:),wgt({latS:latN},:),0)
+if (dimsizes(dimsizes(prec)).gt.2) then
+ pr_g   = wgt_areaave2(    prec(:,{latS:latN},:),wgt({latS:latN},:),0)
+ sh_g   = wgt_areaave2(   sensh(:,{latS:latN},:),wgt({latS:latN},:),0)
+ rn_g   = wgt_areaave2(  radnet(:,{latS:latN},:),wgt({latS:latN},:),0)
+ ld_g   = wgt_areaave2(     rld(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lu_g   = wgt_areaave2(     rlu(:,{latS:latN},:),wgt({latS:latN},:),0)
+ sd_g   = wgt_areaave2(     rsd(:,{latS:latN},:),wgt({latS:latN},:),0)
+ su_g   = wgt_areaave2(     rsu(:,{latS:latN},:),wgt({latS:latN},:),0)
+ ts_g   = wgt_areaave2(    tscr(:,{latS:latN},:),wgt({latS:latN},:),0)
+ tx_g   = wgt_areaave2(     tmx(:,{latS:latN},:),wgt({latS:latN},:),0)
+ tn_g   = wgt_areaave2(     tmn(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lhf_g  = wgt_areaave2(   lathf(:,{latS:latN},:),wgt({latS:latN},:),0)
+ ;ev_g   = wgt_areaave(      evp(:,{latS:latN},:),cos(lat({latS:latN},:)*rad),1.0,0)
+ ev_g   = wgt_areaave2(     evp(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lh_g   = wgt_areaave2(    lath(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lh_g2  = wgt_areaave2(lath_snw(:,{latS:latN},:),wgt({latS:latN},:),0)
+ rf_g   = wgt_areaave2(     srf(:,{latS:latN},:),wgt({latS:latN},:),0)
+ dr_g   = wgt_areaave2(      dr(:,{latS:latN},:),wgt({latS:latN},:),0)
+ trf_g  = wgt_areaave2(     trf(:,{latS:latN},:),wgt({latS:latN},:),0)
+ tot_g  = wgt_areaave(     wbal(:,{latS:latN},:),cos(lat({latS:latN})*rad),1.0,0)
+ ;tot_g  = wgt_areaave2(    wbal(:,{latS:latN},:),wgt({latS:latN},:),0)
+else
+ pr_g   = wgt_areaave2(    prec({latS:latN},:),wgt({latS:latN},:),0)
+ sh_g   = wgt_areaave2(   sensh({latS:latN},:),wgt({latS:latN},:),0)
+ rn_g   = wgt_areaave2(  radnet({latS:latN},:),wgt({latS:latN},:),0)
+ ld_g   = wgt_areaave2(     rld({latS:latN},:),wgt({latS:latN},:),0)
+ lu_g   = wgt_areaave2(     rlu({latS:latN},:),wgt({latS:latN},:),0)
+ sd_g   = wgt_areaave2(     rsd({latS:latN},:),wgt({latS:latN},:),0)
+ su_g   = wgt_areaave2(     rsu({latS:latN},:),wgt({latS:latN},:),0)
+ ts_g   = wgt_areaave2(    tscr({latS:latN},:),wgt({latS:latN},:),0)
+ tx_g   = wgt_areaave2(     tmx({latS:latN},:),wgt({latS:latN},:),0)
+ tn_g   = wgt_areaave2(     tmn({latS:latN},:),wgt({latS:latN},:),0)
+ lhf_g  = wgt_areaave2(   lathf({latS:latN},:),wgt({latS:latN},:),0)
+ ;ev_g   = wgt_areaave(      evp({latS:latN},:),cos(lat({latS:latN},:)*rad),1.0,0)
+ ev_g   = wgt_areaave2(     evp({latS:latN},:),wgt({latS:latN},:),0)
+ lh_g   = wgt_areaave2(    lath({latS:latN},:),wgt({latS:latN},:),0)
+ lh_g2  = wgt_areaave2(lath_snw({latS:latN},:),wgt({latS:latN},:),0)
+ rf_g   = wgt_areaave2(     srf({latS:latN},:),wgt({latS:latN},:),0)
+ dr_g   = wgt_areaave2(      dr({latS:latN},:),wgt({latS:latN},:),0)
+ trf_g  = wgt_areaave2(     trf({latS:latN},:),wgt({latS:latN},:),0)
+ tot_g  = wgt_areaave(     wbal({latS:latN},:),cos(lat({latS:latN})*rad),1.0,0)
+ ;tot_g  = wgt_areaave2(    wbal({latS:latN},:),wgt({latS:latN},:),0)
+end if
+if (dimsizes(dimsizes(prec_m)).gt.2) then
+ pr_g_m = wgt_areaave2(    prec_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ sh_g_m = wgt_areaave2(   sensh_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ rn_g_m = wgt_areaave2(  radnet_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ ld_g_m = wgt_areaave2(     rld_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lu_g_m = wgt_areaave2(     rlu_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ sd_g_m = wgt_areaave2(     rsd_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ su_g_m = wgt_areaave2(     rsu_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ ts_g_m = wgt_areaave2(    tscr_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ tx_g_m = wgt_areaave2(     tmx_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ tn_g_m = wgt_areaave2(     tmn_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lhf_g_m= wgt_areaave2(   lathf_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ ;ev_g_m = wgt_areaave(      evp_m(:,{latS:latN},:),cos(lat({latS:latN},:)*rad),1.0,0)
+ ev_g_m = wgt_areaave2(     evp_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lh_g_m = wgt_areaave2(    lath_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ lh_g2_m= wgt_areaave2(lath_snw_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ rf_g_m = wgt_areaave2(     srf_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ dr_g_m = wgt_areaave2(      dr_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ trf_g_m= wgt_areaave2(     trf_m(:,{latS:latN},:),wgt({latS:latN},:),0)
+ tot_g_m= wgt_areaave2(      wbal(:,{latS:latN},:),wgt({latS:latN},:),0)
+else
+ pr_g_m = wgt_areaave2(    prec_m({latS:latN},:),wgt({latS:latN},:),0)
+ sh_g_m = wgt_areaave2(   sensh_m({latS:latN},:),wgt({latS:latN},:),0)
+ rn_g_m = wgt_areaave2(  radnet_m({latS:latN},:),wgt({latS:latN},:),0)
+ ld_g_m = wgt_areaave2(     rld_m({latS:latN},:),wgt({latS:latN},:),0)
+ lu_g_m = wgt_areaave2(     rlu_m({latS:latN},:),wgt({latS:latN},:),0)
+ sd_g_m = wgt_areaave2(     rsd_m({latS:latN},:),wgt({latS:latN},:),0)
+ su_g_m = wgt_areaave2(     rsu_m({latS:latN},:),wgt({latS:latN},:),0)
+ ts_g_m = wgt_areaave2(    tscr_m({latS:latN},:),wgt({latS:latN},:),0)
+ tx_g_m = wgt_areaave2(     tmx_m({latS:latN},:),wgt({latS:latN},:),0)
+ tn_g_m = wgt_areaave2(     tmn_m({latS:latN},:),wgt({latS:latN},:),0)
+ lhf_g_m= wgt_areaave2(   lathf_m({latS:latN},:),wgt({latS:latN},:),0)
+ ;ev_g_m = wgt_areaave(      evp_m({latS:latN},:),cos(lat({latS:latN},:)*rad),1.0,0)
+ ev_g_m = wgt_areaave2(     evp_m({latS:latN},:),wgt({latS:latN},:),0)
+ lh_g_m = wgt_areaave2(    lath_m({latS:latN},:),wgt({latS:latN},:),0)
+ lh_g2_m= wgt_areaave2(lath_snw_m({latS:latN},:),wgt({latS:latN},:),0)
+ rf_g_m = wgt_areaave2(     srf_m({latS:latN},:),wgt({latS:latN},:),0)
+ dr_g_m = wgt_areaave2(      dr_m({latS:latN},:),wgt({latS:latN},:),0)
+ trf_g_m= wgt_areaave2(     trf_m({latS:latN},:),wgt({latS:latN},:),0)
+ tot_g_m= wgt_areaave2(      wbal({latS:latN},:),wgt({latS:latN},:),0)
+end if
 
-ld_g   = wgt_areaave2(rld(:,{latS:latN},:),wgt({latS:latN},:),0)
-ld_g_m = wgt_areaave2(rld_m({latS:latN},:),wgt({latS:latN},:),0)
-lu_g   = wgt_areaave2(rlu(:,{latS:latN},:),wgt({latS:latN},:),0)
-lu_g_m = wgt_areaave2(rlu_m({latS:latN},:),wgt({latS:latN},:),0)
-sd_g   = wgt_areaave2(rsd(:,{latS:latN},:),wgt({latS:latN},:),0)
-sd_g_m = wgt_areaave2(rsd_m({latS:latN},:),wgt({latS:latN},:),0)
-su_g   = wgt_areaave2(rsu(:,{latS:latN},:),wgt({latS:latN},:),0)
-su_g_m = wgt_areaave2(rsu_m({latS:latN},:),wgt({latS:latN},:),0)
+ts_g    = ts_g-273.16
+tx_g    = tx_g-273.16
+tn_g    = tn_g-273.16
+ts_g_m  = ts_g_m-273.16
+tx_g_m  = tx_g_m-273.16
+tn_g_m  = tn_g_m-273.16
 
-ts_g   = wgt_areaave2(tscr(:,{latS:latN},:),wgt({latS:latN},:),0)
-ts_g   = ts_g-273.16
-ts_g_m = wgt_areaave2(tscr_m({latS:latN},:),wgt({latS:latN},:),0)
-ts_g_m = ts_g_m-273.16
-tx_g   = wgt_areaave2(tmx(:,{latS:latN},:),wgt({latS:latN},:),0)
-tx_g   = tx_g-273.16
-tx_g_m = wgt_areaave2(tmx_m({latS:latN},:),wgt({latS:latN},:),0)
-tx_g_m = tx_g_m-273.16
-tn_g   = wgt_areaave2(tmn(:,{latS:latN},:),wgt({latS:latN},:),0)
-tn_g   = tn_g-273.16
-tn_g_m = wgt_areaave2(tmn_m({latS:latN},:),wgt({latS:latN},:),0)
-tn_g_m = tn_g_m-273.16
-
-lhf_g  = wgt_areaave2(lathf(:,{latS:latN},:),wgt({latS:latN},:),0)
-lhf_g_m= wgt_areaave2(lathf_m({latS:latN},:),wgt({latS:latN},:),0)
-;ev_g   = wgt_areaave(evp(:,{latS:latN},:),cos(lat({latS:latN},:)*rad),1.0,0)
-;ev_g_m  = wgt_areaave(evp_m({latS:latN},:),cos(lat({latS:latN},:)*rad),1.0,0)
-ev_g    = wgt_areaave2(evp(:,{latS:latN},:),wgt({latS:latN},:),0)
-ev_g_m  = wgt_areaave2(evp_m({latS:latN},:),wgt({latS:latN},:),0)
-lh_g   = wgt_areaave2(lath(:,{latS:latN},:),wgt({latS:latN},:),0)
-lh_g2  = wgt_areaave2(lath_snw(:,{latS:latN},:),wgt({latS:latN},:),0)
-lh_g_m  = wgt_areaave2(lath_m({latS:latN},:),wgt({latS:latN},:),0)
-lh_g2_m = wgt_areaave2(lath_snw_m({latS:latN},:),wgt({latS:latN},:),0)
-
-rf_g   = wgt_areaave2(srf(:,{latS:latN},:),wgt({latS:latN},:),0)
-rf_g_m = wgt_areaave2(srf_m({latS:latN},:),wgt({latS:latN},:),0)
-dr_g   = wgt_areaave2(dr(:,{latS:latN},:),wgt({latS:latN},:),0)
-dr_g_m = wgt_areaave2(dr_m({latS:latN},:),wgt({latS:latN},:),0)
-trf_g   = wgt_areaave2(trf(:,{latS:latN},:),wgt({latS:latN},:),0)
-trf_g_m = wgt_areaave2(trf_m({latS:latN},:),wgt({latS:latN},:),0)
-
-tot_g  = wgt_areaave(wbal(:,{latS:latN},:),cos(lat({latS:latN})*rad),1.0,0)
-;tot_g  = wgt_areaave2(wbal(:,{latS:latN},:),wgt({latS:latN},:),0)
-;tot_g_m = wgt_areaave2(wbal({latS:latN},:),wgt({latS:latN},:),0)
+et_g           = wgt_areaave2(etm({latS:latN},:),wgte({latS:latN},:),0)
+ex_g           = wgt_areaave2(emx({latS:latN},:),wgte({latS:latN},:),0)
+ex_g           = ex_g-273.16
+en_g           = wgt_areaave2(emn({latS:latN},:),wgte({latS:latN},:),0)
+en_g           = en_g-273.16
 
 resi_g  = pr_g-ev_g-rf_g-dr_g       ; NOTE: -rf_g-dr_g  == -rf_l-dr_l 
 resi_g2 = pr_g-lh_g-rf_g-dr_g       ; But not for coupled runs bc of ocean
@@ -605,9 +790,15 @@ resi_g3m = pr_g_m-lh_g2_m-rf_g_m-dr_g_m
 ; Tables -----------------------------------------------------------------------
 
 ; Obs. Est. from Budyko 1978 (bu), Henning 1989 (hn), and NOAA (Smith et. al. 2008, no)
-not_l = 8.5
-not_o = 16.1
-not_g = 13.9
+if (chv.ne.0) then
+ not_l = -999
+ not_o = -999 
+ not_g = -999 
+else
+ not_l = 8.5
+ not_o = 16.1
+ not_g = 13.9
+end if
 bus_l = 63 *0.484583  ; Ly/d --> Wm-2
 bus_o = 25 *0.484583
 bus_g = 36 *0.484583
@@ -678,13 +869,13 @@ delete(global_vals)
 
 ;=========================
 ; Obs. Estimates from NOAA (Smith et. al. 2008 ,no)
-;not_l = 8.5
-;not_o = 16.1
-;not_g = 13.9
+;not_l = 8.5 or missing
+;not_o = 16.1 or missing
+;not_g = 13.9 or missing
 
-land_vals   = (/ts_l_m,ts_l,not_l,tx_l_m,tx_l,tn_l_m,tn_l/)
-ocean_vals  = (/ts_o_m,ts_o,not_o,tx_o_m,tx_o,tn_o_m,tn_o/)
-global_vals = (/ts_g_m,ts_g,not_g,tx_g_m,tx_g,tn_g_m,tn_g/)
+land_vals   = (/ts_l_m,ts_l,not_l,et_l,tx_l_m,tx_l,ex_l,tn_l_m,tn_l,en_l/)
+ocean_vals  = (/ts_o_m,ts_o,not_o,et_o,tx_o_m,tx_o,ex_o,tn_o_m,tn_o,en_o/)
+global_vals = (/ts_g_m,ts_g,not_g,et_g,tx_g_m,tx_g,ex_g,tn_g_m,tn_g,en_g/)
 land_vals@_FillValue   = -999
 ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999

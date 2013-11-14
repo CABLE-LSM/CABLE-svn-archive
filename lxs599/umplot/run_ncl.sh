@@ -61,6 +61,7 @@ if ($rfile > 0) then
  echo " "
  exit (1)
 endif
+echo " "
 
 if ($YR == 20 || $YR == 15 || $YR == 10) then
 # lxs 4oct13: use mod func ?
@@ -91,11 +92,12 @@ if (${?NCI_CP} == 1) then
 if ($NCI_CP == y) then
  ~ste69f/umplot/tools/rsync_raijin.sh
 else
- echo "(0)     No Files Transferred"
+ echo "(0)     No Fields Files Transferred from Raijin"
  echo ""
 endif
 else
- echo "NCI_CP not set. Please update umplot.nml"
+ echo "(1)     NCI_CP not set. Please update umplot.nml"
+ echo "(1)     Contact Lauren.Stevens@csiro.au"
 endif
 #set date=`date`
 
@@ -143,24 +145,30 @@ set chk=`ls -s $DIR/$RUNID$a.p??????.nc`
 set i = 0
  while ($i < $pnc2)
   @ k = 2 * $i + 1
+  @ m = 2 * $i + 2
    if ( $chk[$k] == "4") then
     echo " "
-    echo "(1)     NetCDF Haven't Been Converted Properly"
-    echo "(1)     If you get a message like: 'please enter files interactively'"
-    echo "(1)     Or If You See Netcdf (i.e. $RUNID$a.p*.nc) with SIZE 32"
-    echo "(1)     Try Removing $RUNID$a.p*.nc and Run Again"
-    #echo "(1)     Try Removing $RUNID$a.p*.nc and Set CNV2NC to y and Run Again"
+    echo "(1)     Not all NetCDF Have Been Converted Properly"
+    echo " "
+    echo "(1)     See File" $chk[$m]
+    echo " "
+    echo "(1)     If You See Netcdf (i.e. $RUNID$a.p*.nc) with SIZE 32"
+    echo "(1)     You'll Need to Delete the UM File(s) and the Netcdf(s)"
+    echo "(1)     Or Set CNV2NC = n Once the Netcdf(s) Have been Removed"
+    echo "(1)     WARNING: There Could be More than one File with Size 32"
     exit (1)
    endif
   @ i ++
  end
 
-set pmnc=`ls $DIR/$RUNID$a.$Pmonth?????.nc | wc -l`
- if ( $pmnc == 0 ) then
-    echo " "
-    echo "(1)     If you get a message like: 'please enter files interactively'"
-    echo "(1)     Make Sure Monthly Files are in Directory (i.e. $RUNID$a.$Pmonth?????.nc)"
- endif
+# Lest 12.11.13 will move to umplot.nml
+if (${?UMPLT} == 0) then
+setenv UMPLT y
+else
+echo "(1)     NOTE: UMPLT is Set and set to" $UMPLT
+endif
+
+if ($UMPLT == y) then
 
 echo " "
 echo "========================= Running UMPLOT ========================="
@@ -172,9 +180,12 @@ if ($BMRK == y) then
 echo "You are Comparing results with" $BDIR
 endif
 
+echo " "
 #set a=a
 set date=`date`
 echo "Start Time:" $date
+echo " "
+echo "====================================================================="
 echo " "
 
 if ($DIRW == $DIR) then
@@ -197,6 +208,15 @@ else
  endif
 
 endif
+
+set pmnc=`ls $DIR/$RUNID$a.$Pmonth?????.nc | wc -l`
+ if ( $pmnc == 0 ) then
+    echo " "
+    echo "(1)     If you get a message like: 'please enter files interactively'"
+    echo "(1)     Make Sure Monthly Netcdf Files are in Directory"
+    echo "(1)     i.e. $RUNID$a.$Pmonth?????.nc"
+ endif
+
 echo " "
 
 # ==================================================================================
@@ -474,10 +494,10 @@ endif
 
 endif
 
-#--------------------------------------------------------
+#---------------------------------------------------------------------------
 
 echo " "
-echo "(0)     Finished Plotting"
+echo "========================= Finished UMPLOT ==========================="
 echo " "
 echo "You have Set the Parameters of this UMPLOT Run as:"
 echo "Jobid:" $RUNID "with files in Directory:" $DIR
@@ -487,13 +507,15 @@ echo "You are Comparing results with" $BDIR
 endif
 
 echo " "
-echo "========================= Finished UMPLOT ==========================="
+echo "====================================================================="
 echo " "
 
 echo "Start Time:" $date
 set date=`date`
 echo "End   Time:" $date
 echo " "
+
+endif # UMPLT
 
 exit
 

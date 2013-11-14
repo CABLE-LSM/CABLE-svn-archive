@@ -20,6 +20,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "/home/cmar/ste69f/umplot/regrid.ncl"
 load "/home/cmar/ste69f/umplot/tables.ncl"
+load "/home/cmar/ste69f/umplot/wgt_func.ncl"
 
 ;procedure GMcTables()
 
@@ -48,6 +49,10 @@ table_file = addfile(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 
 ObsDir = "/home/cmar/ste69f/umplot/obs/"
 PltDir = "/home/cmar/ste69f/umplot/data/"
+
+erai_file = addfile(ObsDir+"ERAi_tp2m.nc","r")
+erat_file = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
+elsm_file = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 ;sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 if (resol.eq.48) then 
@@ -80,6 +85,10 @@ else
  tmax   = table_file ->temp      ;tasmax
  tmin   = table_file ->temp_1    ;tasmin
 end if
+etmp = erai_file->a
+emax = erat_file->mx2t
+emin = erat_file->mn2t
+
 sh     = cable_file ->sh        ;hfss
 ;rnet1  = cable_file ->field3333 ;field202_1
 precip = cable_file ->precip    ;pr
@@ -92,6 +101,7 @@ if (isfilevar(cable_file,"field1528")) then
  evap3 = cable_file ->field1528 ;evspsblsubl
 end if
 lh     = cable_file->lh         ;hfls
+elsm   = elsm_file ->lsm
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
 ;lsm    = frac_file ->lsm
@@ -315,6 +325,9 @@ lathf        = dim_avg_n_Wrap(lhf,0)
 tscr         = dim_avg_n_Wrap(tscrn,0)
 tmx          = dim_avg_n_Wrap(tmax,0)
 tmn          = dim_avg_n_Wrap(tmin,0)
+etm          = dim_avg_n_Wrap(etmp,0)
+emx          = dim_avg_n_Wrap(emax,0)
+emn          = dim_avg_n_Wrap(emin,0)
 evp          = dim_avg_n_Wrap(evap,0)
 srf          = dim_avg_n_Wrap(srunoff,0)
 dr           = dim_avg_n_Wrap(drunoff,0)
@@ -380,6 +393,13 @@ wgtl  = wgt*lfrac(0,0,:,:)
 wgtlm = wgt*(lsm(0,0,:,:))
 wgtom = wgt*(1-lsm(0,0,:,:))
 
+wgte  = get_wgt(emx)
+;wgtle = wgte*elsm(0,:,:)
+;wgtlo = wgte*(1-elsm(0,:,:))
+wgtle= where(elsm(0,:,:).gt.0,wgte*elsm(0,:,:),-9999)
+wgtlo= where(elsm(0,:,:).le.0,wgte*(1 - elsm(0,:,:)),-9999)
+
+
 ; ANN WBAL -----------------------------------------------------------
 ;region -> Land ---------------------------
 
@@ -413,6 +433,13 @@ tx_l_m         = wgt_areaave2(tmx_m ,wgtl,0)
 tx_l_m         = tx_l_m-273.16
 tn_l_m         = wgt_areaave2(tmn_m ,wgtl,0)
 tn_l_m         = tn_l_m-273.16
+
+et_l           = wgt_areaave2(etm   ,wgtle,0)
+;et_l           = et_l-273.16
+ex_l           = wgt_areaave2(emx   ,wgtle,0)
+ex_l           = ex_l-273.16
+en_l           = wgt_areaave2(emn   ,wgtle,0)
+en_l           = en_l-273.16
 
 ;if () then
 ;
@@ -481,6 +508,13 @@ tx_o_m         = tx_o_m-273.16
 tn_o_m         = wgt_areaave2(tmn_m ,wgto,0)
 tn_o_m         = tn_o_m-273.16
 
+et_o           = wgt_areaave2(etm,wgtlo,0)
+;et_o           = et_o-273.16
+ex_o           = wgt_areaave2(emx,wgtlo,0)
+ex_o           = ex_o-273.16
+en_o           = wgt_areaave2(emn,wgtlo,0)
+en_o           = en_o-273.16
+
 ;if () then
 ;
 ;end if
@@ -522,55 +556,62 @@ resi_o3m = pr_o_m - lh_o2_m
 
 ;;region -> Global ---------------------------------------
 
-pr_g   = wgt_areaave2(prec    ,wgt,0)
-sh_g   = wgt_areaave2(sensh   ,wgt,0)
-rn_g   = wgt_areaave2(radnet  ,wgt,0)
-pr_g_m = wgt_areaave2(prec_m  ,wgt,0)
-sh_g_m = wgt_areaave2(sensh_m ,wgt,0)
-rn_g_m = wgt_areaave2(radnet_m,wgt,0)
+pr_g        = wgt_areaave2(prec    ,wgt,0)
+sh_g        = wgt_areaave2(sensh   ,wgt,0)
+rn_g        = wgt_areaave2(radnet  ,wgt,0)
+pr_g_m      = wgt_areaave2(prec_m  ,wgt,0)
+sh_g_m      = wgt_areaave2(sensh_m ,wgt,0)
+rn_g_m      = wgt_areaave2(radnet_m,wgt,0)
 
-ld_g   = wgt_areaave2(rld  ,wgt,0)
-lu_g   = wgt_areaave2(rlu  ,wgt,0)
-sd_g   = wgt_areaave2(rsd  ,wgt,0)
-su_g   = wgt_areaave2(rsu  ,wgt,0)
-cl_g   = wgt_areaave2(cld  ,wgt,0)
-ld_g_m = wgt_areaave2(rld_m,wgt,0)
-lu_g_m = wgt_areaave2(rlu_m,wgt,0)
-sd_g_m = wgt_areaave2(rsd_m,wgt,0)
-su_g_m = wgt_areaave2(rsu_m,wgt,0)
-cl_g_m = wgt_areaave2(cld_m,wgt,0)
+ld_g        = wgt_areaave2(rld  ,wgt,0)
+lu_g        = wgt_areaave2(rlu  ,wgt,0)
+sd_g        = wgt_areaave2(rsd  ,wgt,0)
+su_g        = wgt_areaave2(rsu  ,wgt,0)
+cl_g        = wgt_areaave2(cld  ,wgt,0)
+ld_g_m      = wgt_areaave2(rld_m,wgt,0)
+lu_g_m      = wgt_areaave2(rlu_m,wgt,0)
+sd_g_m      = wgt_areaave2(rsd_m,wgt,0)
+su_g_m      = wgt_areaave2(rsu_m,wgt,0)
+cl_g_m      = wgt_areaave2(cld_m,wgt,0)
 
-ts_g   = wgt_areaave2(tscr  ,wgt,0)
-ts_g   = ts_g-273.16
-tx_g   = wgt_areaave2(tmx   ,wgt,0)
-tx_g   = tx_g-273.16
-tn_g   = wgt_areaave2(tmn   ,wgt,0)
-tn_g   = tn_g-273.16
-ts_g_m = wgt_areaave2(tscr_m,wgt,0)
-ts_g_m = ts_g_m-273.16
-tx_g_m = wgt_areaave2(tmx_m ,wgt,0)
-tx_g_m = tx_g_m-273.16
-tn_g_m = wgt_areaave2(tmn_m ,wgt,0)
-tn_g_m = tn_g_m-273.16
+ts_g        = wgt_areaave2(tscr  ,wgt,0)
+ts_g        = ts_g-273.16
+tx_g        = wgt_areaave2(tmx   ,wgt,0)
+tx_g        = tx_g-273.16
+tn_g        = wgt_areaave2(tmn   ,wgt,0)
+tn_g        = tn_g-273.16
+ts_g_m      = wgt_areaave2(tscr_m,wgt,0)
+ts_g_m      = ts_g_m-273.16
+tx_g_m      = wgt_areaave2(tmx_m ,wgt,0)
+tx_g_m      = tx_g_m-273.16
+tn_g_m      = wgt_areaave2(tmn_m ,wgt,0)
+tn_g_m      = tn_g_m-273.16
+
+et_g        = wgt_areaave2(etm, wgte,0)
+;et_g        = et_g-273.16
+ex_g        = wgt_areaave2(emx, wgte,0)
+ex_g        = ex_g-273.16
+en_g        = wgt_areaave2(emn, wgte,0)
+en_g        = en_g-273.16
 
 ;if () then
 ;
 ;end if
-lhf_g  = wgt_areaave2(lathf     ,wgt,0)
-ev_g   = wgt_areaave(evp        ,cos(lat*rad),1.0,0)
-lh_g   = wgt_areaave2(lath      ,wgt,0)
-lh_g2  = wgt_areaave2(lath_snw  ,wgt,0)
-lhf_g_m= wgt_areaave2(lathf_m   ,wgt,0)
-ev_g_m = wgt_areaave(evp_m      ,cos(lat*rad),1.0,0)
-lh_g_m = wgt_areaave2(lath_m    ,wgt,0)
-lh_g2_m= wgt_areaave2(lath_snw_m,wgt,0)
+lhf_g       = wgt_areaave2(lathf     ,wgt,0)
+ev_g        = wgt_areaave( evp       ,cos(lat*rad),1.0,0)
+lh_g        = wgt_areaave2(lath      ,wgt,0)
+lh_g2       = wgt_areaave2(lath_snw  ,wgt,0)
+lhf_g_m     = wgt_areaave2(lathf_m   ,wgt,0)
+ev_g_m      = wgt_areaave( evp_m     ,cos(lat*rad),1.0,0)
+lh_g_m      = wgt_areaave2(lath_m    ,wgt,0)
+lh_g2_m     = wgt_areaave2(lath_snw_m,wgt,0)
 
-rf_g    = wgt_areaave(srf   ,cos(lat*rad),1.0,0)
-dr_g    = wgt_areaave(dr    ,cos(lat*rad),1.0,0)
-trf_g   = wgt_areaave(trf   ,cos(lat*rad),1.0,0)
-rf_g_m  = wgt_areaave2(srf_m,wgt,0)
-dr_g_m  = wgt_areaave2(dr_m ,wgt,0)
-trf_g_m = wgt_areaave(trf_m ,cos(lat*rad),1.0,0)
+rf_g        = wgt_areaave( srf  ,cos(lat*rad),1.0,0)
+dr_g        = wgt_areaave( dr   ,cos(lat*rad),1.0,0)
+trf_g       = wgt_areaave( trf  ,cos(lat*rad),1.0,0)
+rf_g_m      = wgt_areaave2(srf_m,wgt,0)
+dr_g_m      = wgt_areaave2(dr_m ,wgt,0)
+trf_g_m     = wgt_areaave( trf_m,cos(lat*rad),1.0,0)
 
 tot_g  = wgt_areaave(wbal  ,cos(lat*rad),1.0,0)
 tot_g_m= wgt_areaave(wbal_m,cos(lat*rad),1.0,0)
@@ -658,13 +699,14 @@ delete(global_vals)
 
 ;=========================
 ; Obs. Estimates from NOAA (Smith et. al. 2008 ,no)
+; from above
 ;not_l = 8.5
 ;not_o = 16.1
 ;not_g = 13.9
 
-land_vals   = (/ts_l_m,ts_l,not_l,tx_l_m,tx_l,tn_l_m,tn_l/)
-ocean_vals  = (/ts_o_m,ts_o,not_o,tx_o_m,tx_o,tn_o_m,tn_o/)
-global_vals = (/ts_g_m,ts_g,not_g,tx_g_m,tx_g,tn_g_m,tn_g/)
+land_vals   = (/ts_l_m,ts_l,not_l,et_l,tx_l_m,tx_l,ex_l,tn_l_m,tn_l,en_l/)
+ocean_vals  = (/ts_o_m,ts_o,not_o,et_o,tx_o_m,tx_o,ex_o,tn_o_m,tn_o,en_o/)
+global_vals = (/ts_g_m,ts_g,not_g,et_g,tx_g_m,tx_g,ex_g,tn_g_m,tn_g,en_g/)
 land_vals@_FillValue   = -999
 ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999

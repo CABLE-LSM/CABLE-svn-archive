@@ -38,6 +38,10 @@ dydx   = dy * dx
 
 wgt    = new((/nlat,mlon/),double)
 wgt    = conform(wgt,dydx,0)
+wgt!0  = "latitude"
+wgt!1  = "longitude"
+wgt&latitude  = var&$dNames(nsiz-2)$
+wgt&longitude = var&$dNames(nsiz-1)$
 
 ;--land frac o-ocean and l-land--
 ;wgto   = wgt*(1-lfrac(0,0,:,:))

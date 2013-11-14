@@ -141,8 +141,8 @@ if (isvar("couple")) then
  end if
 else
 if (isvar("evap3")) then
- evap         = (evap1+evap2)*24*60*60
- ;evap         = (evap1+evap2+evap3)*24*60*60
+ ;evap         = (evap1+evap2)*24*60*60
+ evap         = (evap1+evap2+evap3)*24*60*60
  evap@units   = "mm/day"
 else
  evap         = (evap1+evap2)*24*60*60

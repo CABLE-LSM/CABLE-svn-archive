@@ -9,7 +9,7 @@
 set saveid = $NCI_ID
 #set saveid = lxs599
 set SAVEHOST = raijin.nci.org.au
-#set SAVEHOST = r-dm.nci.org.au
+#set SAVEHOST = raijin1.nci.org.au
 set LOCALSAVE = ~/access
 set SAVEBASE = /short/p66/$saveid
 #set SAVEBASE = /short/p66/$saveid/save
@@ -19,6 +19,10 @@ set a = @
 set A = a
 set t = "~"
 set date = `date`
+@ nom = ${YR} * 12
+
+set pext = (pa pb pc pd pe pf pg ph pi pj pm pt)
+#set pext2 = (ps px py) # 4seas, decadal, yearly
 
 #####################################################################  
 # MOVE FORECAST DATA TO DATASTORE 
@@ -46,10 +50,16 @@ if ( $png != "" ) then
       mkdir $LOCALSAVE/$topdir
      else
       echo " "
-      echo "NOTE: newer files might replace older files in" $LOCALSAVE/$topdir
+      echo "(0)     NOTE: newer files might replace older files in" $LOCALSAVE/$topdir
       echo " "
      endif
-     rsync -avu -e ssh $saveid$a$SAVEHOST$c"$SAVEBASE/$topdir/$topdir$A.p*" $LOCALSAVE/$topdir/
+     #rsync -avu -e ssh $saveid$a$SAVEHOST$c"$SAVEBASE/$topdir/$topdir$A.p*" $LOCALSAVE/$topdir/
+     foreach ext ($pext)
+      set filelist=`ssh -l $saveid $SAVEHOST "ls $SAVEBASE/$topdir/$topdir$A.$ext* | head -${nom}"`
+      if ( ${#filelist} > 0 ) then
+       rsync -avu -e ssh $saveid$a$SAVEHOST$c"$filelist" $LOCALSAVE/$topdir/
+      endif
+     end
     #endif
 
   end # foreach topdir

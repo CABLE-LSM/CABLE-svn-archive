@@ -428,27 +428,36 @@ ocean = "" + decimalPlaces(ocean_vals,3,True)
 globe = "" + decimalPlaces(global_vals,3,True)
 
 if (modv.eq."1") then
-source = (/"A1.0","A1.1","NOAA","A1.0","A1.1",\
-           "A1.0","A1.1"/)
+;source = (/"A1.0","A1.1","NOAA","A1.0","A1.1",\
+;           "A1.0","A1.1"/)
+source = (/"A1.0","A1.1","NOAA","ERAi",\
+           "A1.0","A1.1","ERAi",\
+           "A1.0","A1.1","ERAi"/)
 else
-source = (/"A1.0","A1.3","NOAA","A1.0","A1.3",\
-           "A1.0","A1.3"/)
+;source = (/"A1.0","A1.3","NOAA","A1.0","A1.3",\
+;           "A1.0","A1.3"/)
+source = (/"A1.0","A1.3","NOAA","ERAi",\
+           "A1.0","A1.3","ERAi",\
+           "A1.0","A1.3","ERAi"/)
 end if
 
 ; Header-------------------------
 
 ncr1_1= (/1,1/)
-x1_1  = (/0.085,.475/)
+x1_1  = (/0.085,.449/)
+;x1_1  = (/0.085,.475/)
 y1_1  = (/0.800,0.855/)
 text11= (/"Screen Temp ~S~o~N~C"/)
 
 ncr1_2= (/1,1/)
-x1_2  = (/0.475,.735/)
+x1_2  = (/0.449,.722/)
+;x1_2  = (/0.475,.735/)
 y1_2  = (/0.800,0.855/)
 text12= (/"Max. Screen Temp ~S~o~N~C"/)
 
 ncr1_3= (/1,1/)
-x1_3  = (/0.735,0.995/)
+x1_3  = (/0.722,0.995/)
+;x1_3  = (/0.735,0.995/)
 y1_3  = (/0.800,0.855/)
 text13= (/"Min. Screen Temp ~S~o~N~C"/)
 
@@ -464,7 +473,8 @@ y8    = (/0.800,0.855/)
 text8 = (/region/)
 
 ; Main Table Body----------------
-ncr3        = (/4,7/)
+ncr3        = (/4,10/)
+;ncr3        = (/4,7/)
 x3          = (/0.085,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/source,land,ocean,globe/)
