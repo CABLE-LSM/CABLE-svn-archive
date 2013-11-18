@@ -61,36 +61,29 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =C%CCD*LAI; working variable 
-      dh,      & ! d/h where d is zero-plane displacement
-      hmax       ! maximum height of canopy from
-                                    ! tiles belonging to the same grid
+      dh         ! d/h where d is zero-plane displacement
    
-   CALL point2constants( C ) 
+   CALL point2constants( C )
    
    ! Set canopy height above snow level:
-   rough%hruff = MAX( 0.01, veg%hc - 1.2 * ssnow%snowd /                       &
+   rough%hruff = MAX( 1.e-6, veg%hc - 1.2 * ssnow%snowd /                       &
                  MAX( ssnow%ssdnn, 100. ) ) 
    
-   ! maximum height of canopy from tiles belonging to the same grid
-   hmax = rough%hruff_grmx
-   
-   ! LAI decreases due to snow and vegetation fraction:
+   ! LAI decreases due to snow:
    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
    canopy%rghlai = canopy%vlaiw
 
-   WHERE( ssnow%snowd .LT. 0.001 .AND. veg%iveg .NE. 1 )                       &
-      canopy%rghlai = MIN( 3., canopy%vlaiw )
-
    ! Roughness length of bare soil (m):
-   rough%z0soil = 1.e-6
-   rough%z0soilsn = MAX( rough%z0soil - 0.5e-7 * MIN( ssnow%snowd, 20. ),      &
-                    0.1e-7 )
+   rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
+   rough%z0soilsn = rough%z0soil 
 
+    WHERE( ssnow%snowd .GT. 0.01   )  &
+     rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
+     
    WHERE( canopy%vlaiw .LT. 0.01 .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
      
       rough%z0m = rough%z0soilsn
-      rough%hruff = 0.0
       rough%rt0us = 0.0  
       rough%disp = 0.0
     
