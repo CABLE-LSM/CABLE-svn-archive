@@ -289,7 +289,7 @@ CONTAINS
       ! passed filename (per field, per processor, at present)
       character(len=*), intent(in) :: basename, vname
       
-      character(len=50) :: filename, chnode
+      character(len=100) :: filename, chnode
  
       ! field (3D at present - one time, one spatial, one vertical ) 
       REAL, DIMENSION(:,:), POINTER :: fdata
