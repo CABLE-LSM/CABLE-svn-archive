@@ -60,7 +60,7 @@ MODULE cable_soil_snow_gw_module
                       qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
-                      wtd_uncert = 5.0,       &  ! uncertaintiy in wtd calcultations [mm]
+                      wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
                       denliq = 1000.0,        & ! denisty of liquid water [kg/m3]
@@ -1594,7 +1594,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
          ! Calculate the amount (perhaps moisture/ice limited)
          ! which can be removed:
          xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
-         diff(:,k) = MAX( 0.0, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3
+         diff(:,k) = MAX( 0.0, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3  soil%watr?
                      * soil%zse(k)*1000.0
          xxd = xx - diff(:,k)
        
@@ -2806,7 +2806,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    !max_glacier_snowd = 50000.0
    ! appropriate for ACCESS1.3 
    max_glacier_snowd = 1100.0
-
+   
    zsetot = sum(soil%zse) 
    ssnow%tggav = 0.
    DO k = 1, ms
@@ -2827,7 +2827,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%smelt = 0.0 ! initialise snowmelt
    ssnow%dtmlt = 0.0 
    ssnow%osnowd = ssnow%snowd
-
+   
+   ssnow%wbliq = ssnow%wb - ssnow%wbice   
 
    IF( .NOT.cable_user%cable_runtime_coupled ) THEN
    
@@ -2838,7 +2839,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
          DO k = 1, ms
-            ssnow%wb(:,k)  = MIN( soil%ssat,MAX ( ssnow%wb(:,k), soil%swilt ))
+            ssnow%wb(:,k)  = MIN( soil%ssat,MAX ( ssnow%wb(:,k), soil%swilt ))                !ignores water conservation 
          END DO
    
          ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-2),           &
@@ -2891,17 +2892,9 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
             & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1) +   &
             & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
 
+   ssnow%wblf   = max(0.01_r_2,ssnow%wbliq/soil%watsat)
+   ssnow%wbfice = max(0.01_r_2,ssnow%wbice/soil%watsat)   
 
-
-   DO k = 1, ms ! for stempv
-      
-      ! Set liquid soil water fraction (fraction of saturation value):
-      ssnow%wblf(:,k) = MAX( 0.01_r_2, (ssnow%wb(:,k) - ssnow%wbice(:,k)) )    &
-           & / REAL(soil%ssat,r_2)
-      
-      ! Set ice soil water fraction (fraction of saturation value):
-      ssnow%wbfice(:,k) = REAL(ssnow%wbice(:,k)) / soil%ssat
-   END DO
  
    CALL snowcheck (dels, ssnow, soil, met )
 
@@ -2918,7 +2911,6 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ! snow aging etc...
    CALL snowl_adjust(dels, ssnow, canopy )
 
-   !!!CALL stempv(dels, canopy, ssnow, soil)
    !do the soil and snow melting, freezing prior to water movement
    
    ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
@@ -2928,59 +2920,32 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ! Add new snow melt to global snow melt variable: 
    ssnow%smelt = ssnow%smelt + snowmlt
 
-   !CALL remove_trans(dels, soil, ssnow, canopy, veg)
-
    CALL  soilfreeze(dels, soil, ssnow)
 
-
-   ssnow%fwtop = canopy%precis + ssnow%smelt   !water for infiltration   
+   ssnow%fwtop = canopy%precis + ssnow%smelt                !water for infiltration   
    
 
-    CALL calcwtd (ssnow, soil, ktau, prin)                         !update the wtd
-    CALL ovrlndflx (dels, ktau, ssnow, soil, prin )         !surface runoff, incorporate ssnow%pudsto?
+   CALL calcwtd (ssnow, soil, ktau, prin)                  !update the wtd
+   CALL ovrlndflx (dels, ktau, ssnow, soil, prin )         !surface runoff, incorporate ssnow%pudsto?
 
-    CALL smoistgw (dels,ktau,ssnow,soil,prin)               !vertical soil moisture movement.  LIS verions trans is rex removed here
-    !note: canopy%segg appears to be soil evap.
-    !canopy%fesp/C%HL*dels is the puddle evaporation
+   CALL smoistgw (dels,ktau,ssnow,soil,prin)               !vertical soil moisture movement. 
+   !note: canopy%segg appears to be soil evap.
+   !canopy%fesp/C%HL*dels is the puddle evaporation
     
-    ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff
+   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff
   
-    ! Scaling  runoff to kg/m^2/s (mm/s) to match rest of the model
-    ssnow%sinfil = 0.0
-    ! lakes: replace hard-wired vegetation number in next version
-    WHERE( veg%iveg == 16 )
+   ! Scaling  runoff to kg/m^2/s (mm/s) to match rest of the model
+   ssnow%sinfil = 0.0
+   ! lakes: replace hard-wired vegetation number in next version
+   WHERE( veg%iveg == 16 )
       ssnow%sinfil = MIN( ssnow%rnof1, ssnow%wb_lake + MAX( 0.,canopy%segg ) )
       ssnow%rnof1 = MAX( 0.0, ssnow%rnof1 - ssnow%sinfil )
       ssnow%wb_lake = ssnow%wb_lake - ssnow%sinfil
       ssnow%rnof2 = MAX( 0.0, ssnow%rnof2 - ssnow%wb_lake )
-    ENDWHERE    
+   ENDWHERE    
     
-    CALL remove_trans(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer
-    
-    !test is top layer fully sat then put into pond?
-    
+   CALL remove_trans(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer
 
-!    ! total available liquid including puddle
-!    weting = totwet + max(0.,ssnow%pudsto - canopy%fesp/C%HL*dels) 
-!    xxx=soil%ssat - ssnow%wb(:,1)
-!   
-!    sinfil1 = MIN( 0.95*xxx*soil%zse(1)*rhowat, weting) !soil capacity
-!    xxx=soil%ssat - ssnow%wb(:,2)
-!    sinfil2 = MIN( 0.95*xxx*soil%zse(2)*rhowat, weting - sinfil1) !soil capacity
-!    xxx=soil%ssat - ssnow%wb(:,3)
-!    sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
-!    
-!    ! net water flux to the soil
-!    ssnow%fwtop1 = sinfil1 / dels - canopy%segg          
-!    ssnow%fwtop2 = sinfil2 / dels           
-!    ssnow%fwtop3 = sinfil3 / dels           
-! 
-!    ! Puddle for the next time step
-!    ssnow%pudsto = max( 0., weting - sinfil1 - sinfil2 - sinfil3 )
-!    ssnow%rnof1 = max(0.,ssnow%pudsto - ssnow%pudsmx)
-!    ssnow%pudsto = ssnow%pudsto - ssnow%rnof1
-! 
-!    CALL surfbv(dels, met, ssnow, soil, veg, canopy )
 
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um) THEN
@@ -2991,19 +2956,14 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       canopy%fes = canopy%fes+canopy%fes_cor
    ENDIF
 
-   ! redistrb (set in cable.nml) by default==.FALSE. 
-   !IF( redistrb )                                                              &
-   !   CALL hydraulic_redistribution( dels, soil, ssnow, canopy, veg, met )
-
    ssnow%smelt = ssnow%smelt/dels
 
    ! Set weighted soil/snow surface temperature
    ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
 
-   ssnow%wbtot = 0._r_2
-   DO k = 1, ms
-      ssnow%wbtot = ssnow%wbtot + REAL(ssnow%wb(:,k)*1000.0*soil%zse(k),r_2)
-   END DO
+   ssnow%wbtot = sum(ssnow%wbliq(:,:)*denliq*spread(soil%zse,1,mp),2) + &
+                 sum(ssnow%wbice(:,:)*denice*spread(soil%zse,1,mp),2)
+
 
 END SUBROUTINE soil_snow_gw
 
