@@ -254,7 +254,8 @@ MODULE cable_def_types_mod
          hk,      &    ! hydraulic conductivity for soil layers
          smp,     &    ! soil matric potential for soil layers        
          dhkdw,   &    ! d(hydraulic conductivity ) d(water) for soil layers
-         dsmpdw       ! d(smp)/ d(water) for soil layers
+         dsmpdw,  &    ! d(smp)/ d(water) for soil layers
+         wbliq         ! volumetric liquid water content
          
          
    END TYPE soil_snow_type
