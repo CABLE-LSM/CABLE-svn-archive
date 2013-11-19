@@ -55,6 +55,7 @@ MODULE cable_soil_snow_gw_module
       frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95) 
       
    !MD GW params
+   !Should read some in from namelist?
    REAL, PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
                       qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
@@ -63,7 +64,8 @@ MODULE cable_soil_snow_gw_module
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
                       denliq = 1000.0,        & ! denisty of liquid water [kg/m3]
-                      denice = 917.0            !denisty of ice
+                      denice = 917.0,         & !denisty of ice
+                      maxSatFrac = 0.3
                       
    INTEGER, PARAMETER :: mx_wtd_iterations = 25 ! maximum number of iterations to find the water table depth                    
   
@@ -2121,7 +2123,7 @@ END SUBROUTINE hydraulic_redistribution
     where (fice(:) > 1.0_r_2) fice(:) = 1.0_r_2
 
     ! Saturated fraction
-    satfrac(:) = (1.0-fice(:))*0.3*exp(-0.5_r_2*ssnow%wtd(:)/1000.0_r_2)+fice(:)
+    satfrac(:) = (1.0-fice(:))*maxSatFrac*exp(-0.5_r_2*ssnow%wtd(:)/1000.0_r_2)+fice(:)
 
     ! Maximum infiltration capacity
 
