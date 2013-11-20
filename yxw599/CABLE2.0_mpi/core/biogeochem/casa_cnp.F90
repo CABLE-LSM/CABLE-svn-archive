@@ -1833,22 +1833,29 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
- !  npt=1
+   ! test
+!   casabal%cbalance(:) = sum(casapool%cplant,2)+casapool%clabile+sum(casapool%clitter,2)+sum(casapool%csoil,2) &
+!                       - sum(casabal%cplantlast,2)-casabal%clabilelast-sum(casabal%clitterlast,2)-sum(casabal%csoillast,2) &
+!                       - (casaflux%cnpp(:)+casapool%dClabiledt(:)-casaflux%crsoil(:))*deltpool
 
- !  write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
- !             ! casapool%cplant(npt,:),casabal%cplantlast(npt,:),casapool%dcplantdt(npt,:), &
- !             ! casaflux%kplant(npt,:)*casabal%cplantlast(npt,:),                            &
- !             ! casaflux%fraccalloc(npt,:), &
- !             ! casaflux%cnpp(npt)*casaflux%fraccalloc(npt,1)-casaflux%kplant(npt,1)*casabal%cplantlast(npt,1), &
- !             ! casaflux%cnpp(npt)*casaflux%fraccalloc(npt,2)-casaflux%kplant(npt,2)*casabal%cplantlast(npt,2), &
- !             ! casaflux%cnpp(npt)*casaflux%fraccalloc(npt,3)-casaflux%kplant(npt,3)*casabal%cplantlast(npt,3), &
- !             ! casapool%clitter(npt,:),casabal%clitterlast(npt,:),casapool%dClitterdt(npt,:), &
- !             ! sum(casaflux%kplant(npt,:)*casabal%cplantlast(npt,:)),sum(casaflux%fluxCtolitter(npt,:)), &
- !             ! sum(casaflux%fluxCtolitter(npt,:)-casaflux%klitter(npt,:)*casabal%clitterlast(npt,:)),   &             
- !             ! casapool%csoil(npt,:),casabal%csoillast(npt,:),casapool%dCsoildt(npt,:),                  &
- !             ! sum(casaflux%fluxctosoil(npt,:))-casaflux%Crsoil(npt),          &
- !             ! sum(casapool%dCsoildt(npt,:)),casapool%csoil(npt,2)-casabal%csoillast(npt,2)-casapool%dCsoildt(npt,2), &
- !              casaflux%ksoil(npt,2)*casabal%csoillast(npt,2)
+!   npt=2590
+!
+!   write(77,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
+!               casapool%cplant(npt,:),casabal%cplantlast(npt,:),casapool%dcplantdt(npt,:), &
+!               casaflux%kplant(npt,:)*casabal%cplantlast(npt,:),                            &
+!               casaflux%fraccalloc(npt,:), &
+!               casaflux%cnpp(npt)*casaflux%fraccalloc(npt,1)-casaflux%kplant(npt,1)*casabal%cplantlast(npt,1), &
+!               casaflux%cnpp(npt)*casaflux%fraccalloc(npt,2)-casaflux%kplant(npt,2)*casabal%cplantlast(npt,2), &
+!               casaflux%cnpp(npt)*casaflux%fraccalloc(npt,3)-casaflux%kplant(npt,3)*casabal%cplantlast(npt,3), &
+!               casapool%clitter(npt,:),casabal%clitterlast(npt,:),casapool%dClitterdt(npt,:), &
+!               sum(casaflux%kplant(npt,:)*casabal%cplantlast(npt,:)),sum(casaflux%fluxCtolitter(npt,:)), &
+!               sum(casaflux%fluxCtolitter(npt,:)-casaflux%klitter(npt,:)*casabal%clitterlast(npt,:)),   &             
+!               casapool%csoil(npt,:),casabal%csoillast(npt,:),casapool%dCsoildt(npt,:),                  &
+!               sum(casaflux%fluxctosoil(npt,:))-casaflux%Crsoil(npt),          &
+!               sum(casapool%dCsoildt(npt,:)),casapool%csoil(npt,2)-casabal%csoillast(npt,2)-casapool%dCsoildt(npt,2), &
+!               casaflux%ksoil(npt,2)*casabal%csoillast(npt,2), &
+!               casapool%clabile(npt), casabal%clabilelast(npt),casapool%dClabiledt(npt), &
+!               casaflux%cnpp(npt), casaflux%crsoil(npt)
 
 
    casabal%cplantlast  = casapool%cplant

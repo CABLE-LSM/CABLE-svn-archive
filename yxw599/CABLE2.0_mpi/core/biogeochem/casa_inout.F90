@@ -1007,13 +1007,14 @@ END SUBROUTINE casa_fluxout
 
 ! clitterinput and csoilinput are for Julie Tang; comment out (BP apr2010)
 !SUBROUTINE casa_cnpflux(clitterinput,csoilinput)
-SUBROUTINE casa_cnpflux(casaflux,casabal)
+SUBROUTINE casa_cnpflux(casaflux,casapool,casabal)
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
   USE casavariable
   IMPLICIT NONE
   TYPE (casa_flux),    INTENT(INOUT) :: casaflux
+  TYPE (casa_pool),    INTENT(INOUT) :: casapool
   TYPE (casa_balance), INTENT(INOUT) :: casabal
 !  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
   INTEGER n
@@ -1022,9 +1023,10 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
   casabal%FCrpyear         = casabal%FCrpyear  + casaflux%Crp    * deltpool
   casabal%FCrmleafyear(:)  = casabal%FCrmleafyear(:)  + casaflux%Crmplant(:,leaf)    * deltpool
   casabal%FCrmwoodyear(:)  = casabal%FCrmwoodyear(:)  + casaflux%Crmplant(:,wood)    * deltpool
-  casabal%FCrmrootyear(:)  = casabal%FCrmrootyear(:)  + casaflux%Crmplant(:,froot)    * deltpool
-  casabal%FCrgrowyear      = casabal%FCrgrowyear  + casaflux%Crgplant              * deltpool
-  casabal%FCnppyear        = casabal%FCnppyear + casaflux%Cnpp   * deltpool
+  casabal%FCrmrootyear(:)  = casabal%FCrmrootyear(:)  + casaflux%Crmplant(:,froot)   * deltpool
+  casabal%FCrgrowyear      = casabal%FCrgrowyear  + casaflux%Crgplant                * deltpool
+  ! change made ypwang 17-nov-2013 to accoutn for change in labile carbon pool  size
+  casabal%FCnppyear        = casabal%FCnppyear + (casaflux%Cnpp+casapool%dClabiledt)   * deltpool
   casabal%FCrsyear         = casabal%FCrsyear  + casaflux%Crsoil * deltpool
   casabal%FCneeyear        = casabal%FCneeyear &
                            + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
@@ -1140,7 +1142,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   ENDIF
 
   call casa_cnpbal(casapool,casaflux,casabal)
-  call casa_cnpflux(casaflux,casabal)
+  call casa_cnpflux(casaflux,casapool,casabal)
 
   npt=10546
 
