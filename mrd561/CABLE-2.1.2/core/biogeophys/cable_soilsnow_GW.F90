@@ -1916,7 +1916,7 @@ END SUBROUTINE hydraulic_redistribution
        END WHERE
     end do
     ssnow%wbeq(:,:) = max(ssnow%wbeq(:,:),soil%watr(:,:)+0.01_r_2)
-    ssnow%wbeq(:,:) = min(real(soil%watsat(:,:)-soil%wtar(:,:),r_2),ssnow%wbeq(:,:))       
+    ssnow%wbeq(:,:) = min(real(soil%watsat(:,:),r_2),ssnow%wbeq(:,:))       
     ssnow%zq(:,:)   = -soil%smpsat(:,:)*(max((ssnow%wbeq(:,:)-soil%watr(:,:))/&
                          real(soil%watsat(:,:)-soil%watr(:,:),r_2),0.01_r_2))**(-soil%clappB(:,:))
     ssnow%zq(:,:)   = max(sucmin, ssnow%zq(:,:))    
@@ -1939,7 +1939,7 @@ END SUBROUTINE hydraulic_redistribution
        ssnow%GWwbeq(:) = (voleq1*(ssnow%wtd(:)-zimm(ms)) + (soil%GWwatsat(:)-soil%GWwatr(:))*&
 	                   (GWzimm(:)-ssnow%wtd(:)))/(GWzimm(:)-zimm(ms)) + soil%GWwatr(:)
     END WHERE
-    ssnow%GWwbeq(:) = min(real(soil%GWwatsat(:),r_2)-soil%GWatr(:),ssnow%GWwbeq(:))
+    ssnow%GWwbeq(:) = min(real(soil%GWwatsat(:),r_2),ssnow%GWwbeq(:))
     ssnow%GWwbeq(:) = max(ssnow%GWwbeq(:),soil%GWatr(:)+0.01_r_2)    
     ssnow%GWzq(:) = -soil%GWsmpsat(:)*(max((ssnow%GWwbeq(:)-soil%GWwatr(:))/&
                       (soil%GWwatsat(:)-soil%GWwatr(:)),0.01_r_2))**(-soil%GWclappB(:))
