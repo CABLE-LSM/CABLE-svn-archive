@@ -4,7 +4,43 @@ module cable_routing
   use cable_types
 
   implicit none
-
+  
+  
+  type grid_type    !will move to cable types eventually
+    private
+    
+    integer                            :: nlat
+    integer                            :: nlon
+    integer                            :: npts
+    
+    real(r_2), pointer, dimension(:,:) :: lat
+    real(r_2), pointer, dimension(:,:) :: lon
+    real(r_2), pointer, dimension(:,:) :: latN
+    real(r_2), pointer, dimension(:,:) :: latS
+    real(r_2), pointer, dimension(:,:) :: lonE
+    real(r_2), pointer, dimension(:,:) :: lonW
+    
+    real(r_2), pointer, dimension(:) :: lat1d   !1dimensional array stored as lon=0,lat={1,nlat}; lon=1,lat={1,nlat}, etc
+    real(r_2), pointer, dimension(:) :: lon1d
+    real(r_2), pointer, dimension(:) :: latS1d
+    real(r_2), pointer, dimension(:) :: latN1d
+    real(r_2), pointer, dimension(:) :: lonE1d
+    real(r_2), pointer, dimension(:) :: lonW1d
+    
+    
+  end type grid_type
+  
+  
+  type river_flow_type
+    private
+    
+    real(r_2) :: wat_vol
+    real(r_2) :: wat_mass
+    real(r_2) :: wat_vel
+    
+  end type river_flow_type
+    
+    
 
 
 contains
@@ -81,7 +117,15 @@ contains
 
 
 !-----------------------------------------------------------------------------
-  subroutine map_cable2river()
+  subroutine map_cable2river(grid_i,grid_o,data_i,data_o,weights_i2o,mapindex_i2o)
+    type(grid_type), intent(in)   :: grid_i
+    type(grid_type), intent(in)   :: grid_o
+    real(kind=r_2), intent(in)    :: data_i(:,:)
+    real(kind=r_2), intent(out)   :: data_o(:,:)
+    real(kind=r_2), intent(inout) :: weights_i2o(:,:)
+    integer, intent(inout)        :: mapindex_i2o(:,:)
+  
+  
 
   end subroutine map_cable2river
 !-----------------------------------------------------------------------------
