@@ -2,8 +2,28 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg Mart
 }
+
+
+## mgk576.nci.org.au
+host_Mart()
+{
+   export NCDIR='/opt/local/lib'
+   export NCMOD='/opt/local/include'
+   export FC=gfortran
+   export CFLAGS='-O2'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/opt/local/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+
+
+
 
 
 ## jiggle
