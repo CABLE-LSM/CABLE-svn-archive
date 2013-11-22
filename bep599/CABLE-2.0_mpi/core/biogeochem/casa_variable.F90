@@ -102,9 +102,6 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: frootparmb =-0.0485
   REAL(r_2), PARAMETER :: frootparmc = 0.1755
   REAL(r_2), PARAMETER :: xweightalloc = 0.2
-  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
-  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
-  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
 END MODULE casaparm
 
 MODULE casavariable
@@ -127,7 +124,20 @@ MODULE casavariable
                                        kuptake,        &
                                        kminN,          &
                                        kuplabP,        &
-                                       kclabrate
+                                       kclabrate,      &
+                                       xnpmax,         &
+                                       q10soil,        &
+                                       xkoptlitter,    &
+                                       xkoptsoil,      &
+                                       xkplab,         &
+                                       xkpsorb,        &
+                                       xkpocc,         &
+                                       prodptase,      &
+                                       costnpup,       &
+                                       maxfinelitter,  &
+                                       maxcwd,         &
+                                       nintercept,     &
+                                       nslope
 
     REAL(r_2), DIMENSION(:,:),POINTER :: plantrate,     &
                                        rmplant,         &
@@ -355,6 +365,19 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%kminN(mvtype),                  &
            casabiome%KuplabP(mvtype),                &
            casabiome%kclabrate(mvtype),              &
+           casabiome%xnpmax(mvtype),                 &
+           casabiome%q10soil(mvtype),                &
+           casabiome%xkoptlitter(mvtype),            &
+           casabiome%xkoptsoil(mvtype),              &
+           casabiome%xkplab(mso),                    &
+           casabiome%xkpsorb(mso),                   &
+           casabiome%xkpocc(mso),                    &
+           casabiome%prodptase(mvtype),              &
+           casabiome%costnpup(mvtype),               &
+           casabiome%maxfinelitter(mvtype),          &
+           casabiome%maxcwd(mvtype),                 &
+           casabiome%nintercept(mvtype),             &
+           casabiome%nslope(mvtype),                 &
            casabiome%plantrate(mvtype,mplant),       &
            casabiome%rmplant(mvtype,mplant),         &
            casabiome%fracnpptoP(mvtype,mplant),      &
