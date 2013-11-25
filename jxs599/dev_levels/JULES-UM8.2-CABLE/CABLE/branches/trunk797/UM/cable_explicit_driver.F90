@@ -31,7 +31,8 @@
 ! ==============================================================================
 
 
-SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
+SUBROUTINE cable_explicit_driver( &
+   row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
                                   land_index, tile_frac,  tile_pts, tile_index,&
                                   bexp, hcon, satcon, sathh, smvcst,           &
@@ -45,13 +46,14 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Fland, CO2_MMR, sthu_tile, smcl_tile,        &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
-                                  LAND_MASK, FTL_TILE_CAB, FTL_CAB, FTL_TILE,  &
-                                  FQW_TILE, LE_TILE_CAB, LE_CAB, TSTAR_TILE,   &
-                                  TSTAR_TILE_CAB, TSTAR_CAB, U_S, U_S_STD_TILE,&
-                                  U_S_CAB, CH_CAB, CD_CAB, CD_TILE, CH_TILE,   &
+                                  LAND_MASK, FTL_TILE,  &
+                                  FQW_TILE, TSTAR_TILE,   &
+                                  U_S, U_S_STD_TILE,&
+                                  CD_TILE, CH_TILE,   &
                                   RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
-                                  endstep, timestep_number, mype )    
+                                  endstep, timestep_number, mype & 
+)    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -180,24 +182,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL :: sin_theta_latitude(row_length,rows) 
      
    !___return fluxes
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::   &
-      FTL_CAB, &
-      LE_CAB
 
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      FTL_TILE_CAB, &
       FTL_TILE,   &  ! Surface FTL for land tiles     
-      FQW_TILE,   &  ! Surface FQW for land tiles     
-      LE_TILE_CAB
+      FQW_TILE       ! Surface FQW for land tiles     
 
    !___return temp and roughness
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      TSTAR_TILE_CAB,   &
       TSTAR_TILE,       & 
       Z0H_TILE,         &
       Z0M_TILE
-
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::  TSTAR_CAB
 
    !___return friction velocities/drags/ etc
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
@@ -207,11 +201,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
       U_S               ! Surface friction velocity (m/s)
-   
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::                  &
-      CH_CAB,  &  ! Turbulent surface exchange
-      CD_CAB,  &  ! Turbulent surface exchange
-      U_S_CAB     ! Surface friction velocity (m/s)
 
    ! end step of experiment, this step, step width, processor num
    INTEGER, INTENT(IN) :: endstep, timestep_number, mype
@@ -235,7 +224,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- end INPUT ARGS FROM sf_exch() ----------------------------------------
    !-------------------------------------------------------------------------- 
    
-
+   
 
    
    !___ declare local vars 
@@ -250,6 +239,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
  
    INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
 
+
+!print *, "jhan:_explicit: args read"
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -282,6 +273,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
 
+!print *, "jhan:_explicit: pre interface", mype, shape(tile_frac)
 
    !---------------------------------------------------------------------!
    !--- initialize CABLE using UM forcings etc. these args are passed ---!
@@ -303,6 +295,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    canopy%oldcansto=canopy%cansto
 
+!print *, "jhan:_explicit: pre cbm", mype
 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
@@ -312,16 +305,17 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
              rad, rough, soil, ssnow, sum_flux, veg )
 
 
+!print *, "jhan:_explicit: pre unpack"
 
 
    !---------------------------------------------------------------------!
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
    !--- back to UM.                                                   ---!
    !---------------------------------------------------------------------!
-   call cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,          &
-                           LE_TILE_CAB, LE_CAB, TSTAR_TILE, TSTAR_TILE_CAB,    &
-                           TSTAR_CAB, U_S, U_S_STD_TILE, U_S_CAB, CH_CAB,      &
-                           CD_CAB, CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
+   call cable_expl_unpack( FTL_TILE, FQW_TILE,          &
+                           TSTAR_TILE, &
+                           U_S, U_S_STD_TILE, &
+                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
                            FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
                            RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
                            ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
@@ -339,6 +333,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    cable_runtime%um_explicit = .FALSE.
 
+!print *, "jhan:_explicit: end _explicit"
 
 END SUBROUTINE cable_explicit_driver
 
@@ -349,10 +344,10 @@ END SUBROUTINE cable_explicit_driver
 !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
 !--- back to UM.                                                   ---!
 !---------------------------------------------------------------------!
-SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
-                           LE_TILE_CAB, LE_CAB, TSTAR_TILE, TSTAR_TILE_CAB,    &
-                           TSTAR_CAB, U_S, U_S_STD_TILE, U_S_CAB, CH_CAB,      &
-                           CD_CAB, CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
+SUBROUTINE cable_expl_unpack( FTL_TILE, FQW_TILE,       &
+                           TSTAR_TILE, &
+                           U_S, U_S_STD_TILE, &
+                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
                            FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
                            RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
                            ssnow_snowd, ssnow_cls, air_rlam, air_rho,          &
@@ -377,20 +372,14 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
    !___ UM variables to recieve unpacked CABLE vars
 
    !___return fluxes
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::   &
-      FTL_CAB, &
-      LE_CAB
    REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      FTL_TILE_CAB, &
       FTL_TILE,   &  ! Surface FTL for land tiles     
-      FQW_TILE,   &  ! Surface FQW for land tiles     
-      LE_TILE_CAB
+      FQW_TILE      ! Surface FQW for land tiles     
 
    !___return temp and roughness
    REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      TSTAR_TILE_CAB, TSTAR_TILE,  Z0H_TILE, Z0M_TILE
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::                  &
-      TSTAR_CAB
+      Z0H_TILE,         &
+      Z0M_TILE
 
    !___return friction velocities/drags/ etc
    REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
@@ -399,10 +388,6 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       U_S_STD_TILE      ! Surface friction velocity
    REAL, INTENT(OUT), DIMENSION(um1%row_length,um1%rows)  :: &
       U_S               ! Surface friction velocity (m/s)
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::                  &
-      CH_CAB,  &  ! Turbulent surface exchange
-      CD_CAB,  &  ! Turbulent surface exchange
-      U_S_CAB     ! Surface friction velocity (m/s)
 
    !___return miscelaneous 
    REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
@@ -463,19 +448,18 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
 
 
    
+   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
+      TSTAR_TILE
         
    !___vars in local calc. of latent heat fluxes
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                  &
-      FQW_TILE_CAB,  &
       LE_TILE
 
    !___vars in local calc of Surface friction velocities
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                  &
-      CD_CAB_TILE,   &  
-      CH_CAB_TILE,   &  ! (bulk transfer) coeff. for momentum
       U_S_TILE
    REAL, DIMENSION(mp)  :: &
-      CDCAB,CHCAB
+      CDCAB
 
    !___local miscelaneous
    REAL, DIMENSION(mp)  :: &
@@ -488,37 +472,25 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       CAPP => PHYS%CAPP
       
       !___return fluxes
-      FTL_TILE_CAB = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
-      FTL_CAB = SUM(um1%TILE_FRAC * FTL_TILE_CAB,2)
-      FQW_TILE_CAB = UNPACK(canopy_fe,  um1%l_tile_pts, miss)
-      LE_TILE_CAB = UNPACK(canopy_fe,  um1%l_tile_pts, miss)
-      LE_CAB = SUM(um1%TILE_FRAC * LE_TILE_CAB,2)
       fe_dlh = canopy_fe/(air_rlam*ssnow_cls)
       FTL_TILE = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
       FTL_TILE = FTL_TILE / capp
       FQW_TILE = UNPACK(fe_dlh, um1%l_tile_pts, miss)
 
       !___return temp and roughness
-      TSTAR_TILE_CAB = UNPACK(rad_trad, um1%l_tile_pts, miss)
-      TSTAR_CAB = SUM(um1%TILE_FRAC * TSTAR_TILE_CAB,2)
       TSTAR_TILE = UNPACK(rad_trad,  um1%l_tile_pts, miss)
       Z0M_TILE = UNPACK(rough_z0m,  um1%l_tile_pts, miss)
       Z0H_TILE = Z0M_TILE
       
       !___return friction velocities/drags/ etc
       U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)
-      U_S_CAB  = SUM(um1%TILE_FRAC *  U_S_TILE,2)
       CDCAB = canopy_us**2/met_ua**2   ! met%ua is always above umin = 0.1m/s
       ! for Cable CD*
-      CD_CAB_TILE =  UNPACK(CDCAB,um1%l_tile_pts, miss)
-      CD_CAB= SUM(um1%TILE_FRAC * CD_CAB_TILE,2)
+      CD_TILE =  UNPACK(CDCAB,um1%l_tile_pts, miss)
       ! for Cable CH*
-      CH_CAB_TILE =  UNPACK(canopy_cdtq,um1%l_tile_pts, miss)
-      CH_CAB= SUM(um1%TILE_FRAC * CH_CAB_TILE,2)
+      CH_TILE =  UNPACK(canopy_cdtq,um1%l_tile_pts, miss)
 
       U_S_STD_TILE=U_S_TILE
-      CD_TILE = CD_CAB_TILE
-      CH_TILE = CH_CAB_TILE
 
       U_S = 0.
       DO N=1,um1%ntiles

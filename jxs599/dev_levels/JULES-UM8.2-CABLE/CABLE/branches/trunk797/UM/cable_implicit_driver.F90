@@ -39,10 +39,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
                                   ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
                                   SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
-                                  FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB,          &
-                                  LE_CAB, FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
-                                  TSTAR_TILE, TSTAR_TILE_CAB, TSTAR_CAB,       &
-                                  SMCL_CAB, TSOIL_CAB, SURF_HTF_CAB,           &
+                                  FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
+                                  TSTAR_TILE, &
                                   SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
                                   EI_TILE, RADNET_TILE, TOT_ALB, SNAGE_TILE,   &
                                   CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
@@ -93,7 +91,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                              &
       !___Surface FTL, FQL for land tiles
-      FTL_TILE, FQW_TILE, FQW_TILE_CAB,                                     &
+      FTL_TILE, FQW_TILE,                                                   &
       
       !___(tiled) latent heat flux, melting, stomatatal conductance
      LE_TILE, MELT_TILE, GS_TILE,                                           &
@@ -111,10 +109,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       SMCL,       & ! 
       STHF,       & !
       STHU,       & !
-      SMCL_CAB,   & !
-      TSOIL_CAB,  & !
-      TSOIL,      & !
-      SURF_CAB_ROFF !       
+      TSOIL         !
 
    !___(tiled) soil prognostics: as above 
    REAL, dimension(um1%land_pts,um1%ntiles,um1%sm_levels) ::                &
@@ -149,10 +144,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    REAL, DIMENSION(um1%land_pts) ::                                         &
       SNOW_GRD,    & !
       CANOPY_GB,   & !
-      FTL_CAB,     & !   
-      LE_CAB,      & !
-      TSTAR_CAB,   & !  
-      SURF_HTF_CAB,& !
       RESP_P,      & !
       NPP,         & !
       GPP            !
@@ -162,13 +153,9 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       SNOW_RHO1L,    &  ! Mean snow density
       SNAGE_TILE,    &
       CANOPY_TILE,   &
-      FTL_TILE_CAB,  & 
-      LE_TILE_CAB,   &
       T1P5M_TILE,    &
       Q1P5M_TILE,    &
-      TSTAR_TILE_CAB,&
       TSTAR_TILE,    &
-      SURF_HTF_T_CAB,& 
       RESP_S_TILE,   & 
       RESP_P_FT,     &
       RESP_P_FT_old, &
@@ -230,10 +217,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
-                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
                             FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
-                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
-                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
+                            SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
                             SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
@@ -253,10 +238,8 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
-                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
                             FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
-                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
-                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
+                            SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
                             SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
@@ -290,7 +273,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
 
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
       !___Surface FTL, FQL for land tiles
-      FTL_TILE, FQW_TILE, FQW_TILE_CAB,   &  
+      FTL_TILE, FQW_TILE,                 &  
       !___(tiled) latent heat flux, melting, stomatatal conductance
       LE_TILE, MELT_TILE, GS_TILE,     &  
       RADNET_TILE, & ! INOUT Surface net radiation on tiles (W/m2)
@@ -305,10 +288,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       SMCL,       & !
       STHF,       &
       STHU,       &
-      SMCL_CAB,   &
-      TSOIL_CAB,  &
-      TSOIL,      &
-      SURF_CAB_ROFF !      
+      TSOIL       
 
    !___(tiled) soil prognostics: as above 
    REAL, DIMENSION(um1%land_pts,um1%ntiles,um1%sm_levels) ::                   &
@@ -333,6 +313,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       NEE_TILE,   & ! Local
       NPP_TILE,   & ! Local
       GPP_TILE,   & ! Local
+      SURF_HTF_T_CAB, &
       GLEAF_TILE, & ! Local, kdcorbin, 10/10
       FRP_TILE,   &
       NPP_FT,     &
@@ -343,10 +324,6 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
    REAL, dimension(um1%land_pts) ::                                            &
       SNOW_GRD,   &  
       CANOPY_GB,  &
-      FTL_CAB,    &
-      LE_CAB,     &
-      TSTAR_CAB,  &
-      SURF_HTF_CAB,&
       RESP_P,     & 
       NPP,        & 
       GPP
@@ -356,13 +333,9 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       SNOW_RHO1L,    & ! Mean snow density
       SNAGE_TILE,    & !
       CANOPY_TILE,   & !
-      FTL_TILE_CAB,  & !
-      LE_TILE_CAB,   & !
       T1P5M_TILE,    &
       Q1P5M_TILE,    &
-      TSTAR_TILE_CAB,&
       TSTAR_TILE,    &
-      SURF_HTF_T_CAB,& 
       RESP_S_TILE,   & 
       RESP_P_FT,     &
       RESP_P_FT_old, &
@@ -394,15 +367,12 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       TFRZ => PHYS%TFRZ
   
       !--- set UM vars to zero
-      TSOIL_CAB = 0.; SMCL_CAB = 0.; TSOIL_TILE = 0.; 
       SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
 
       DO j = 1,um1%SM_LEVELS
          TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), um1%L_TILE_PTS, miss)
-         TSOIL_CAB(:,j) = SUM(um1%TILE_FRAC * TSOIL_TILE(:,:,j),2)
          SMCL_TILE(:,:,j)= UNPACK(REAL(ssnow%wb(:,j)), um1%L_TILE_PTS, miss)
          SMCL_TILE(:,:,j)=SMCL_TILE(:,:,j)*soil%zse(j)*um1%RHO_WATER
-         SMCL_CAB(:,j) = SUM(um1%TILE_FRAC * SMCL_TILE(:,:,j),2)
          STHF_TILE(:,:,j)= UNPACK(REAL(ssnow%wbice(:,j)), um1%L_TILE_PTS, miss)
          SMCL(:,j) = SUM(um1%TILE_FRAC * SMCL_TILE(:,:,j),2)
          TSOIL(:,j) = SUM(um1%TILE_FRAC * TSOIL_TILE(:,:,j),2)
@@ -444,37 +414,26 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       GS_TILE = UNPACK(canopy%gswx_T,um1%L_TILE_PTS,miss)
       GS =  SUM(um1%TILE_FRAC * GS_TILE,2)
 
+      !---preserve fluxes from the previous time step for the coastal grids
+      FTL_TILE_old = FTL_TILE
+      FQW_TILE_old = FQW_TILE
       !___return fluxes
-      FTL_TILE_CAB = UNPACK(canopy%fh,  um1%l_tile_pts, miss)
-      FTL_CAB = SUM(um1%TILE_FRAC * FTL_TILE_CAB,2)
-      FQW_TILE_CAB = UNPACK(canopy%fe,  um1%l_tile_pts, miss)
-      LE_TILE_CAB = FQW_TILE_CAB 
-      LE_CAB = SUM(um1%TILE_FRAC * LE_TILE_CAB,2)
+      FTL_TILE = UNPACK(canopy%fh,  um1%l_tile_pts, miss)
       fe_dlh = canopy%fe/(air%rlam*ssnow%cls)
       where ( fe_dlh .ge. 0.0 ) fe_dlh = MAX ( 1.e-6, fe_dlh )
       where ( fe_dlh .lt. 0.0 ) fe_dlh = MIN ( -1.e-6, fe_dlh )
       fes_dlh = canopy%fes/(air%rlam*ssnow%cls)
       fev_dlh = canopy%fev/air%rlam
 
-      !---preserve fluxes from the previous time step for the coastal grids
-      FTL_TILE_old = FTL_TILE
-      FQW_TILE_old = FQW_TILE
-      
       !---update fluxes 
-      FTL_TILE = FTL_TILE_CAB 
       FQW_TILE = UNPACK(fe_dlh, um1%l_tile_pts, miss)
 
 
       !___return temp and roughness
-      TSTAR_TILE_CAB = UNPACK(rad%trad, um1%l_tile_pts, miss)
-      TSTAR_CAB = SUM(um1%TILE_FRAC * TSTAR_TILE_CAB,2)
-      TSTAR_TILE = TSTAR_TILE_CAB 
+      TSTAR_TILE = UNPACK(rad%trad, um1%l_tile_pts, miss)
 
       !___return miscelaneous 
       RADNET_TILE = unpack( canopy%rnet , um1%l_tile_pts, miss)
-
-      SURF_HTF_T_CAB = UNPACK(canopy%ga,um1%L_TILE_PTS,miss)
-      SURF_HTF_CAB = SUM(um1%TILE_FRAC * SURF_HTF_T_CAB,2)
 
      TOT_ALB=UNPACK(rad%albedo_T,um1%L_TILE_PTS, miss) 
      ESOIL_TILE = UNPACK(fes_dlh, um1%L_TILE_PTS, miss)
