@@ -387,9 +387,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
                     rad%transd*ssnow%potev) * dels/air%rlam  
 
-      ! convert to mm/day
       rlower_limit = canopy%epot * air%rlam / dels
       
+      where (rlower_limit .gt. 0.) 
+         rlower_limit = rlower_limit + 1.e-7 !prevent from 0. 
+                                             !by adding 1e-7
+                                             !(W/m2)
+      elsewhere
+         rlower_limit = rlower_limit - 1.e-7 !prevent from 0. 
+                                             !by adding -1e-7
+                                             !(W/m2)
+      end where
+
       canopy%wetfac_cs = max(0., min(1.0,canopy%fe / rlower_limit ))
       
       DO j=1,mp
