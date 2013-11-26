@@ -1998,23 +1998,22 @@ END SUBROUTINE hydraulic_redistribution
     ssnow%qhz(:)  = qhmax *exp(-8.0_r_2*ssnow%wtd(:)/1000.0)*((1.0_r_2 - fice_avg(:))**3.0)
     !find index of soil layer with the water table
     qhlev(:,:)   = 0.0  !set to zero except for layer that contains the wtd
-    idlev(:)     = ms
-    do k=1,ms
-       WHERE ((ssnow%wtd(:) > zimm(k-1)) .and. (ssnow%wtd(:) <= zimm(k)))
+    idlev(:)     = ms+1
+    do k=ms,1,-1
+       WHERE (ssnow%wtd(:) <= zimm(k))
          idlev(:) = k
-         qhlev(:,k) = ssnow%qhz(:)
        END WHERE
     end do  
-    WHERE (ssnow%wtd(:) > zimm(ms))
-       idlev(:) = ms+1
-       qhlev(:,ms+1) = ssnow%qhz(:)
-    END WHERE
-       
+    do i=1,mp
+      qhlev(i,idlev(i)) = ssnow%qhz(i)
+    end do
+      
+    end do
     rt(:,:) = 0.0_r_2; at(:,:) = 0.0_r_2     !ensure input to tridiag is valid
     bt(:,:) = 1.0_r_2; ct(:,:) = 0.0_r_2
 	
     k = 1
-       qin    = ssnow%fwtop(:)/dels
+       qin    = ssnow%sinfil(:)
        den    = (zmm(k+1)-zmm(k))
        dne    = (ssnow%zq(:,k+1)-ssnow%zq(:,k))
        num    = (ssnow%smp(:,k+1)-ssnow%smp(:,k)) - dne
@@ -2058,6 +2057,13 @@ END SUBROUTINE hydraulic_redistribution
        qout   = -ssnow%hk(:,k)*num/den
        dqodw1 = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2 = -( ssnow%hk(:,k)*ssnow%GWdsmpdw(:) + num*ssnow%dhkdw(:,k))/den
+
+       where (idlev(:) .lt. ms)
+         qout(:)   = 0._r_2
+         dqodw2(:) = 0._r_2
+         dqodw1(:) = 0._r_2
+       end where
+
        rt(:,k) =  qin - qout  - qhlev(:,k) !- ssnow%rex(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
@@ -2208,6 +2214,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%smelt = 0.0 ! initialise snowmelt
    ssnow%dtmlt = 0.0 
    ssnow%osnowd = ssnow%snowd
+   ! Scaling  runoff to kg/m^2/s (mm/s) to match rest of the model
+   ssnow%sinfil = 0.0   
    
    ssnow%wbliq = ssnow%wb - ssnow%wbice   
 
@@ -2309,7 +2317,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    CALL calcwtd (ssnow, soil, ktau, prin)                  !update the wtd
    CALL ovrlndflx (dels, ktau, ssnow, soil, prin )         !surface runoff, incorporate ssnow%pudsto?
    
-   ssnow%fwtop = ssnow%fwtop - canopy%segg
+   !ssnow%fwtop = ssnow%fwtop - canopy%segg
+   ssnow%sinfil = ssnow%fwtop  - canopy%segg
 
    CALL smoistgw (dels,ktau,ssnow,soil,prin)               !vertical soil moisture movement. 
    !note: canopy%segg appears to be soil evap.
@@ -2317,8 +2326,6 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
     
    ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff
   
-   ! Scaling  runoff to kg/m^2/s (mm/s) to match rest of the model
-   ssnow%sinfil = 0.0
    ! lakes: replace hard-wired vegetation number in next version
    WHERE( veg%iveg == 16 )
       ssnow%sinfil = MIN( ssnow%rnof1, ssnow%wb_lake + MAX( 0.,canopy%segg ) )
