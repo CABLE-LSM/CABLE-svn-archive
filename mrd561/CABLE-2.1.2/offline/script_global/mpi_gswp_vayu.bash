@@ -6,7 +6,7 @@
 #PBS -l vmem=6gb
 #PBS -l walltime=40:00
 module add netcdf openmpi
-cd /short/p66/YOUR_IDENT/runCABLE2.0/
+cd /short/w35/mrd561/runCABLE2.0/
 ulimit -s 65536
 yr=1986
 while [ $yr -le 1995 ]

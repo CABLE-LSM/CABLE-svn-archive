@@ -1,8 +1,8 @@
-#!/home/z3362708/ksh.2012-08-06.linux.i386-64
+#!/bin/ksh
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin sq md
+   set -A kh vayu cher burn shin cycl md raij
 }
 
 
@@ -23,7 +23,7 @@ host_md()
 
 
 
-host_sq()
+host_cy()
 {
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
@@ -103,6 +103,24 @@ host_vayu()
    cd ../
    build_status
 }
+
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC='mpif90'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 
@@ -389,7 +407,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-2`
+HOST_MACH=`uname -n | cut -c 1-4`
 
 do_i_no_u $1
 
