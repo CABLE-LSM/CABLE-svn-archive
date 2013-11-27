@@ -1,8 +1,8 @@
-#!/bin/ksh
+#!/home/z3362708/ksh.2012-08-06.linux.i386-64
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin cy md
+   set -A kh vayu cher burn shin sq md
 }
 
 
@@ -23,7 +23,7 @@ host_md()
 
 
 
-host_cy()
+host_sq()
 {
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'

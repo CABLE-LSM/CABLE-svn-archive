@@ -68,7 +68,7 @@ MODULE cable_soil_snow_gw_module
                       maxSatFrac = 0.3,       &
                       dri = 0.917               !ratio of density of ice to density of liquid [unitless]
                       
-   INTEGER, PARAMETER :: mx_wtd_iterations = 50 ! maximum number of iterations to find the water table depth                    
+   INTEGER, PARAMETER :: wtd_iter_mx = 50 ! maximum number of iterations to find the water table depth                    
   
    
    REAL :: cp    ! specific heat capacity for air
@@ -79,7 +79,7 @@ MODULE cable_soil_snow_gw_module
    ! This module contains the following subroutines:
    PUBLIC soil_snow_gw ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
-   PRIVATE trimb, smoisturev, snow_accum, stempv
+   PRIVATE trimb,snow_accum, stempv
    PRIVATE soilfreeze, remove_trans
    PRIVATE smoistgw, ovrlndflx, solve_tridiag
 
@@ -545,7 +545,7 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
     
    INTEGER :: k
 
-   CALL smoisturev( dels, ssnow, soil, veg )
+   !CALL smoisturev( dels, ssnow, soil, veg )
 
    DO k = 1, ms
       xxx = REAL( soil%ssat,r_2 )
@@ -1506,7 +1506,7 @@ END SUBROUTINE hydraulic_redistribution
     where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
     !srf frozen fraction.  should be based on topography
     icef(:) = icemass(:,1) / totmass(:,1)
-    fice(:) = (exp(-3.0*(1.0-icefrac(:)))- exp(-3.0))/(1.0-exp(-3.0))
+    fice(:) = (exp(-3.0*(1.0-icef(:)))- exp(-3.0))/(1.0-exp(-3.0))
     where (fice(:) < 0.0_r_2) fice(:) = 0.0_r_2
     where (fice(:) > 1.0_r_2) fice(:) = 1.0_r_2
 
@@ -1515,7 +1515,7 @@ END SUBROUTINE hydraulic_redistribution
 
     ! Maximum infiltration capacity
 
-    tmpa = ssnow%wbliq(:) / efpor(:)
+    tmpa = ssnow%wbliq(:,1) / efpor(:)
     where (satfrac .lt. 0.99_r_2)
        tmpb = (tmpa-satfrac) / (1.0_r_2 - satfrac)
     elsewhere
@@ -1524,12 +1524,12 @@ END SUBROUTINE hydraulic_redistribution
     where ( tmpb .lt. 0.0_r_2) tmpb = 0.0_r_2
     tmpa = -2._r_2*soil%clappB(:,1)*soil%smpsat(:,1)/(soil%zse(1)*1000._r_2)
 
-    qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*soil*hksat(:,1)
+    qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*soil%hksat(:,1)
 
      ! Surface runoff
     where (ssnow%fwtop(:) .gt. qinmax)
        ssnow%rnof1(:) =  (satfrac(:) * ssnow%fwtop(:)/dels + &
-                       (1.0-satfrac(:)) * ssnow%fwtop(:)-inflmx)  !in mm/s
+                       (1.0-satfrac(:)) * ssnow%fwtop(:)-qinmax)  !in mm/s
     elsewhere
        ssnow%rnof1(:) = satfrac(:) * ssnow%fwtop(:)  !in mm/s
     end where
@@ -1539,33 +1539,42 @@ END SUBROUTINE hydraulic_redistribution
     !in soil_snow_gw subroutine of this module
     !ssnow%runoff = ssnow%rnof1! + ssnow%rnof2    
 
-    !---  glacier formation
-    IF (nglacier == 2) THEN
-       WHERE (ssnow%snowd > 1000.0)
-          rnof5 = ssnow%snowd - 1000.0
-          ssnow%runoff = ssnow%runoff + rnof5
-          !---- change local tg to account for energy - clearly not best method
-          WHERE (ssnow%isflag == 0)
-             smasstot = 0.0
-             ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * C%HLF &
-                  & / ssnow%gammzz(:,1)
-             ssnow%snowd = 1000.0
-          ELSEWHERE
-             smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
-          END WHERE
-       END WHERE
-       
-       DO k = 1, 3
-          WHERE (ssnow%snowd > 1000.0 .AND. ssnow%isflag > 0)
-             sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
-             smelt1(:,k) = MIN(rnof5 * ssnow%smass(:,k) / smasstot, &
-                  & 0.9 * ssnow%smass(:,k) )
-             ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
-             ssnow%snowd = ssnow%snowd - smelt1(:,k)
-             ssnow%tggsn(:,k) = ssnow%tggsn(:,k) - smelt1(:,k) * C%HLF / sgamm
-          END WHERE
-       END DO
-    END IF
+   !---  glacier formation
+   rnof5= 0.
+
+   IF (nglacier == 2) THEN
+      smelt1=0.
+      WHERE( ssnow%snowd > max_glacier_snowd )
+
+         rnof5 = MIN( 0.1, ssnow%snowd - max_glacier_snowd )
+
+         !---- change local tg to account for energy - clearly not best method
+         WHERE( ssnow%isflag == 0 )
+            smasstot = 0.0
+            ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * C%HLF                    &
+                             / REAL( ssnow%gammzz(:,1) )
+            ssnow%snowd = ssnow%snowd - rnof5
+         ELSEWHERE
+            smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
+         END WHERE
+
+      END WHERE
+
+      DO k = 1, 3
+         
+         WHERE( ssnow%snowd > max_glacier_snowd  .AND.  ssnow%isflag > 0 )
+            sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
+            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,            &
+                          0.2 * ssnow%smass(:,k) )
+            ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
+            ssnow%snowd = ssnow%snowd - smelt1(:,k)
+         END WHERE
+      
+      END DO
+   
+      WHERE( ssnow%isflag > 0 ) rnof5 = smelt1(:,1) + smelt1(:,2) + smelt1(:,3)
+   
+   END IF
 
   END SUBROUTINE ovrlndflx
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
@@ -1587,14 +1596,14 @@ END SUBROUTINE hydraulic_redistribution
 
  
   !Local vars 
-  REAL(r_2), DIMENSION(mp_patch,ms)   :: dzmm
+  REAL(r_2), DIMENSION(mp,ms)   :: dzmm
   REAL(r_2), DIMENSION(ms+1)          :: zimm
   REAL(r_2), DIMENSION(ms)            :: zmm
-  REAL(r_2), DIMENSION(mp_patch)      :: GWzimm,temp
-  REAL(r_2), DIMENSION(mp_patch)      :: def,defc     
+  REAL(r_2), DIMENSION(mp)      :: GWzimm,temp
+  REAL(r_2), DIMENSION(mp)      :: def,defc     
 
   REAL(r_2)                           :: deffunc,tempa,tempb,derv,calc,tmpc
-  REAL(r_2), DIMENSION(mp_patch)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
+  REAL(r_2), DIMENSION(mp)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   INTEGER :: k,i,wttd,jlp
   LOGICAL :: empwtd
    
@@ -1604,7 +1613,7 @@ END SUBROUTINE hydraulic_redistribution
   !make code cleaner define these here 
   invB       = soil%clappB(:,ms)                            !1 over C&H B
   Nsmpsat(:) = soil%smpsat(:,ms)                            !psi_saturated mm
-  dzmm(:,:)  = spread((soil%zse(:)) * 1000.0,1,mp_patch)    !layer thickness mm
+  dzmm(:,:)  = spread((soil%zse(:)) * 1000.0,1,mp)    !layer thickness mm
   zimm(0)    = 0.0_r_2                                      !depth of layer interfaces mm
   zimm(1:ms) = zimm(0:ms-1) + real(dzmm(1,1:ms),r_2)
   
@@ -1623,9 +1632,8 @@ END SUBROUTINE hydraulic_redistribution
 
   if (ktau .le. 1)  ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
      
-  do i=1,mp_patch
+  do i=1,mp
     if (defc(i) > def(i)) then                 !iterate tfor wtd
-       if (prin) write(LIS_logunit,*) 'defc > def'
        jlp=0
        mainloop: DO
           tempa   = 1.0_r_2
@@ -1642,7 +1650,7 @@ END SUBROUTINE hydraulic_redistribution
           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
               ssnow%wtd(i) = calc
               EXIT mainloop
-          ELSEIF (jlp==100) THEN
+          ELSEIF (jlp==wtd_iter_mx) THEN
               EXIT mainloop
           ELSE
               jlp=jlp+1
@@ -1651,49 +1659,23 @@ END SUBROUTINE hydraulic_redistribution
        END DO mainloop
     elseif (defc(i) .lt. def(i)) then
        jlp=0
-       if (prin) write(LIS_logunit,*) 'defc < def'
-
        mainloop2: DO
           tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
           if (abs(tmpc) .lt. 1e-4) tmpc = sign(1e-4,tmpc)
-
           tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
           if (abs(tempa) .lt. 1e-4) tempa = sign(1e-4,tempa)
-
-          if (prin) write(LIS_logunit,*) 'tempa ',tempa
-          if (prin) write(LIS_logunit,*) 'wtd/smpsat ' ,ssnow%wtd(i)/Nsmpsat(i)
-          if (prin) write(LIS_logunit,*) '1+wtd/smpsat ' ,1+ssnow%wtd(i)/Nsmpsat(i)
-
           tempb    = (1+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
-
-          if ( prin) write(LIS_logunit,*) 'tempb ',tempb
-
           derv     = (soil%watsat(i,ms))*(tempa-tempb)
           if (abs(derv) .lt. 1e-1) derv = sign(1e-1,derv)
-
-          if ( prin) write(LIS_logunit,*) 'derv ',derv
-
           tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1.0-invB(i))
-
-          if ( prin) write(LIS_logunit,*) 'tempa ',tempa
-
           tempb    = (1+ssnow%wtd(i)/Nsmpsat(i))**(1.0-invB(i))
-
-          if ( prin) write(LIS_logunit,*) 'tempb ',tempb
-
           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
                       Nsmpsat(i)/(1-invB(i))*(tempa-tempb))-def(i)
-
-          if ( prin) write(LIS_logunit,*) 'deffunc ',deffunc
-
           calc     = max(ssnow%wtd(i) - deffunc/derv,1.0)
-
-          if ( prin) write(LIS_logunit,*) 'calc ',calc
-
           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
              ssnow%wtd(i) = calc
              EXIT mainloop2
-          ELSEIF (jlp==100) THEN
+          ELSEIF (jlp==wtd_iter_mx) THEN
              EXIT mainloop2
           ELSE
              jlp=jlp+1
@@ -1840,7 +1822,7 @@ END SUBROUTINE hydraulic_redistribution
     REAL(r_2), DIMENSION(mp,ms+1)       :: rt
 
 	
-    INTEGER                             :: k,kk
+    INTEGER                             :: k,kk,i
     REAL(r_2), DIMENSION(mp,ms)         :: eff_por,old_wb,mss_por  !effective porosity (mm3/mm3),wb at start (mm3/mm3),mass (mm) of liq that layer can hold in eff_por
     REAL(r_2), DIMENSION(mp,ms)         :: msliq,msice             !mass of the soil liquid and ice water    
     REAL(r_2), DIMENSION(mp)            :: den
@@ -1936,7 +1918,7 @@ END SUBROUTINE hydraulic_redistribution
 	                   (GWzimm(:)-ssnow%wtd(:)))/(GWzimm(:)-zimm(ms)) + soil%GWwatr(:)
     END WHERE
     ssnow%GWwbeq(:) = min(real(soil%GWwatsat(:),r_2),ssnow%GWwbeq(:))
-    ssnow%GWwbeq(:) = max(ssnow%GWwbeq(:),soil%GWatr(:)+0.01_r_2)    
+    ssnow%GWwbeq(:) = max(ssnow%GWwbeq(:),soil%GWwatr(:)+0.01_r_2)    
     ssnow%GWzq(:) = -soil%GWsmpsat(:)*(max((ssnow%GWwbeq(:)-soil%GWwatr(:))/&
                       (soil%GWwatsat(:)-soil%GWwatr(:)),0.01_r_2))**(-soil%GWclappB(:))
     ssnow%GWzq(:) = max(sucmin, ssnow%GWzq(:))
@@ -2003,11 +1985,10 @@ END SUBROUTINE hydraulic_redistribution
     do i=1,mp
       qhlev(i,idlev(i)) = ssnow%qhz(i)
     end do
-      
-    end do
+
     rt(:,:) = 0.0_r_2; at(:,:) = 0.0_r_2     !ensure input to tridiag is valid
     bt(:,:) = 1.0_r_2; ct(:,:) = 0.0_r_2
-	
+
     k = 1
        qin    = ssnow%sinfil(:)
        den    = (zmm(k+1)-zmm(k))
@@ -2095,7 +2076,7 @@ END SUBROUTINE hydraulic_redistribution
     msliq(:,ms) = msliq(:,ms) + xsi(:)
  
     do k = ms,2,-1  !loop from bottom to top adding extra water to each layer
-       where ((xsi(:) .lt. (msliq(:,k)-mss_por(:,k)) .and. (xsi(:) .gt. 0.0_r_2))
+       where ((xsi(:) .lt. (msliq(:,k)-mss_por(:,k))) .and. (xsi(:) .gt. 0.0_r_2))
           msliq(:,k) = msliq(:,k) + xsi(:)
        elsewhere (xsi(:) .gt. 0.0_r_2)
           xsi(:)     = xsi(:) - (mss_por(:,k)-msliq(:,k))
@@ -2107,7 +2088,7 @@ END SUBROUTINE hydraulic_redistribution
     
     where(xs1(:) .gt. 0.0_r_2)                                             !if soil column is saturated add extra to runoff
        msliq(:,1)   = mss_por(:,1)
-       ssnow%qhz(:) = ssnow%qhz(:) + xs1(:) / dt
+       ssnow%qhz(:) = ssnow%qhz(:) + xs1(:) / dels
        xs1(:) = 0.0_r_2
    end where
  
@@ -2237,9 +2218,12 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
             ssnow%snowd = max_glacier_snowd
             ssnow%osnowd = max_glacier_snowd
             ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
-            ssnow%wb    = 0.95 * soil%watsat
-            ssnow%wbice = 0.90 * ssnow%wb
-         ENDWHERE
+         END WHERE
+
+         WHERE (spread(soil%isoilm,2,ms) == 9)
+              ssnow%wb    = 0.95 * soil%watsat
+              ssnow%wbice = 0.90 * ssnow%wb
+         END WHERE
          
          xx=soil%css * soil%rhosoil
          
