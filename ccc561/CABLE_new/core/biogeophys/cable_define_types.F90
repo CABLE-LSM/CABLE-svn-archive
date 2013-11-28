@@ -991,7 +991,6 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% zshh )  
    DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% albsoil )  
-   DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% pwb_min)  
    DEALLOCATE( var% albsoilf )  
    
