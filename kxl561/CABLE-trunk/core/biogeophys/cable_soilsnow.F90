@@ -34,7 +34,7 @@ MODULE cable_soil_snow_module
    
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp, nrb, albsat, albdry
+                             balances_type, r_2, ms, mp, nrb
    USE cable_data_module, ONLY : issnow_type, point2constants
 
    IMPLICIT NONE
