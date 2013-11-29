@@ -984,10 +984,10 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 !  Rescale drainage to remove water added to lakes (wb_lake) 
    ssnow%sinfil = 0.0
    WHERE( veg%iveg == 16 )
-      ssnow%sinfil  = MIN( ssnow%rnof1, ssnow%wb_lake ) ! water that can be extracted friom the rnof1
+      ssnow%sinfil  = MIN( ssnow%rnof1, ssnow%wb_lake ) ! water that can be extracted from the rnof1
       ssnow%rnof1   = MAX( 0.0, ssnow%rnof1 - ssnow%sinfil )
       ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
-      ssnow%sinfil  = MIN( ssnow%rnof2, ssnow%wb_lake ) ! water that can be extracted friom the rnof2
+      ssnow%sinfil  = MIN( ssnow%rnof2, ssnow%wb_lake ) ! water that can be extracted from the rnof2
       ssnow%rnof2   = MAX( 0.0, ssnow%rnof2 - ssnow%sinfil )
       ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
       xxx = MAX(0.0, (ssnow%wb(:,ms) - soil%sfc(:))*soil%zse(ms)*1000.0)
@@ -999,12 +999,24 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
       ssnow%wb(:,ms) = ssnow%wb(:,ms) - ssnow%sinfil / (soil%zse(ms)*1000.0)
       ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
    ENDWHERE
-
-   wb_lake_T = sum( ssnow%wb_lake )
-   rnof2_T = sum( ssnow%rnof2 )
-   ratio = min( 1., wb_lake_T/max(rnof2_T,1.))
-   ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
    ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
+   !wb_lake_T = 0.0
+   !rnof2_T = 0.
+   !DO j=1,mp
+   !   IF( ssnow%wb_lake(j) >  0.0 ) wb_lake_T = wb_lake_T + ssnow%wb_lake(j)
+   !   rnof2_T = rnof2_T + ssnow%rnof2(j)
+   !END DO
+   !ratio = min( 1., wb_lake_T/max(rnof2_T,1.))
+   !ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
+   !ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
+
+   !wb_lake_T = sum( ssnow%wb_lake )
+   !rnof2_T = sum( ssnow%rnof2 )
+   !ratio = min( 1., wb_lake_T/max(rnof2_T,1.))
+   !ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
+   !ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
+
+!  Rescale drainage to remove water added to lakes (wb_lake)
    !wb_lake_T = 0.0
    !rnof2_T = 0.
    !DO j=1,mp
