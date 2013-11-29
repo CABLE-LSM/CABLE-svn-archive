@@ -1312,6 +1312,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        END IF
     END IF  ! if a spinup is to be performed
 
+    write(*,*) 'after spinup'
+
     ! Look for veg type - - - - - - - - - - - - - - - - -:
     ok = NF90_INQ_VARID(ncid_met,'iveg',id%iveg)
     IF(ok == NF90_NOERR) THEN ! If 'iveg' exists in the met file
@@ -1952,6 +1954,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
+      write(*,*) 'line 1957'
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
     ELSE IF(metGrid=='land') THEN
