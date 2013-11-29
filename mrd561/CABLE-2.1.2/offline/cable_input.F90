@@ -560,6 +560,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Set global mland value (number of land points), used to allocate
     ! all of CABLE's arrays:
     mland = mland_fromfile
+    write(*,*) 'the total number of land points is ', mland
+
 
     ! Write number of land points to log file:
     WRITE(logn,'(24X,I7,A29)') mland_fromfile, ' of which are land grid cells'

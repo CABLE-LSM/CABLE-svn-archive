@@ -340,6 +340,9 @@ SUBROUTINE mpidrv_master (comm)
 
    ! MPI: bcast to workers so that they don't need to open the met
    ! file themselves
+
+   write(logn,*) 'about to bcast'
+
    CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
    CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
 
@@ -355,11 +358,16 @@ SUBROUTINE mpidrv_master (comm)
    ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
    ALLOCATE (recv_req(wnp))
    ALLOCATE (recv_stats(MPI_STATUS_SIZE, wnp))
+
+   write(logn,*) 'about to comm_dup'
+
    CALL MPI_Comm_dup (comm, icomm, ierr)
    CALL MPI_Comm_dup (comm, ocomm, ierr)
 
    ! MPI: data set in load_parameter is now scattered out to the
    ! workers
+   write(logn,*) 'send parameter values to the workers'
+
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
 

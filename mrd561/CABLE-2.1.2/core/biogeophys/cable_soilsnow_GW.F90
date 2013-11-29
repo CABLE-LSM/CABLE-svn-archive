@@ -1476,6 +1476,8 @@ END SUBROUTINE hydraulic_redistribution
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
   !-------------------------------------------------------------------------
   SUBROUTINE ovrlndflx (dels, ktau, ssnow, soil,prin )
+USE cable_common_module
+
   IMPLICIT NONE
     REAL, INTENT(IN)                         :: dels ! integration time step (s)
     INTEGER, INTENT(IN)                      :: ktau ! integration step number
@@ -1807,6 +1809,8 @@ END SUBROUTINE hydraulic_redistribution
   ! using a single layer groundwater module
   !
   SUBROUTINE smoistgw (dels,ktau,ssnow,soil,prin)
+USE cable_common_module
+
   IMPLICIT NONE
   
     REAL, INTENT(IN)                          :: dels  ! time step size (s)

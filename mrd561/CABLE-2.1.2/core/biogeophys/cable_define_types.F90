@@ -757,6 +757,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%smp(mp,ms) )
    ALLOCATE( var%dhkdw(mp,ms) )
    ALLOCATE( var%dsmpdw(mp,ms) )
+   ALLOCATE( var%wbliq(mp,ms) )
+
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -1196,6 +1198,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%smp )
    DEALLOCATE( var%dhkdw )
    DEALLOCATE( var%dsmpdw )   
+   DEALLOCATE( var%wbliq )
    
 END SUBROUTINE dealloc_soil_snow_type
    

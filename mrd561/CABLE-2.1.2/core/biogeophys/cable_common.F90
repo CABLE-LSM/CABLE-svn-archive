@@ -253,10 +253,10 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
-            
+        write(logn,*) 'in vegparmnew branch'           
          ! Read in parameter values for each vegetation type:
          DO a = 1,mvtype 
-            
+            write(logn,*) 'reading vegetation type ',a 
             READ(40,*) jveg, vegtypetmp, vegnametmp
                  
             IF( jveg .GT. mvtype )                                             &
@@ -266,26 +266,68 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                         &   vegin%length(jveg), vegin%frac4(jveg)
+
+            write(logn,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),&
+                           vegin%length(jveg), vegin%frac4(jveg)
+
             ! only refl(1:2) and taul(1:2) used
             READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
+
+            write(logn,*) 'vegin%ref ',vegin%refl(1:3,jveg) 
             READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
+            write(logn,*) 'vegin%tau ',vegin%taul(1:3,jveg)
+
             READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
+
+            write(logn,*) 'vegin%albnir ',vegin%xalbnir(jveg)
+
             READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
+
+            write(logn,*) 'vegin%wai ', notused, vegin%wai(jveg),vegin%canst1(jveg),&
+                          vegin%shelrb(jveg), vegin%vegcf(jveg),vegin%extkn(jveg)
+  
+
             READ(40,*) vegin%vcmax(jveg), vegin%rp20(jveg),                    &
                        vegin%rpcoef(jveg),                                     &
                        vegin%rs20(jveg)
+
+            write(logn,*) 'vegin%vcmax ', &
+                          vegin%vcmax(jveg), vegin%rp20(jveg),                 &
+                       vegin%rpcoef(jveg),                                     &
+                       vegin%rs20(jveg)
+
+
+
+
             READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),                 &
                        vegin%vbeta(jveg), vegin%rootbeta(jveg)
+
+           write(logn,*) 'vegin%tminvj ',&
+                           vegin%tminvj(jveg), vegin%tmaxvj(jveg),&
+                           vegin%vbeta(jveg), vegin%rootbeta(jveg)
+
+
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
+
+            write(logn,*) 'vegin%cplant ',vegin%cplant(1:3,jveg),&
+                                             vegin%csoil(1:2,jveg)
+             
+
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
+
+            write(logn,*) 'vegin%ratecp ',vegin%ratecp(1:3,jveg),&
+                                             vegin%ratecs(1:2,jveg)
+
+
 
          END DO
 
       ELSE
-
+         write(logn,*) 'vegparmnew is false'
          DO a = 1,mvtype 
+            write(logn,*) 'reading type ',a
             READ(40,'(8X,A70)') veg_desc(a) ! Read description of each veg type
          END DO
 
