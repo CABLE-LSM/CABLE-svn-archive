@@ -1144,8 +1144,15 @@ CONTAINS
 
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
-                       insucs, inrhosoil, incss, incnsd,&
-                       inGWsucs,inGWhyds,inGWbch,inGWsilt,inGWsand,inGWclay,inGWssat) ! Q,Zhang @ 12/20/2010, MD
+                       insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010, MD
+    if (allocated(inGWsucs)) deallocate(inGWsucs)
+    if (allocated(inGWsucs)) deallocate(inGWhyds)
+    if (allocated(inGWsucs)) deallocate(inGWbch)
+    if (allocated(inGWsucs)) deallocate(inGWsilt)
+    if (allocated(inGWsucs)) deallocate(inGWsand)
+    if (allocated(inGWsucs)) deallocate(inGWclay)
+    if (allocated(inGWsucs)) deallocate(inGWssat)
+
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&

@@ -92,8 +92,6 @@ CONTAINS
    ICYCLE = 0
 #endif
 
-   write(*,*) 'in cable cbm'
-
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
