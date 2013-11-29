@@ -633,13 +633,13 @@ CONTAINS
     INTEGER :: nlat
     INTEGER :: xID, yID
     INTEGER :: varID
-    INTEGER :: e
+    INTEGER :: r, e
 
-    REAL,    DIMENSION(:),          ALLOCATABLE :: inLon
-    REAL,    DIMENSION(:),          ALLOCATABLE :: inLat
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLonSoilCol
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLatSoilCol
 
     ok = NF90_OPEN(filename%soilcolor, 0, ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening soil color file.')
 
     ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
     IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
@@ -653,21 +653,31 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
 
 
-    ALLOCATE( inLon(nlon), inLat(nlat) )
+    ALLOCATE( inLonSoilCol(nlon), inLatSoilCol(nlat) )
     ALLOCATE( inSoilColor(nlon, nlat) )
     ! ALLOCATE( soilcol(mp) )
 
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable longitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLon)
+    ok = NF90_GET_VAR(ncid, varID, inLonSoilCol)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable longitude.')
 
+    DO r = 1, nlon 
+      IF ( inLonSoilCol(r) /= inLon(r) ) CALL nc_abort(ok,                     &
+                                               'Wrong resolution in longitude.')
+    END DO
+
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLat)
+    ok = NF90_GET_VAR(ncid, varID, inLatSoilCol)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
+
+    DO r = 1, nlat
+      IF ( inLatSoilCol(r) /= inLat(r) ) CALL nc_abort(ok,                     &
+                                               'Wrong resolution in latitude.')
+    END DO
 
     ok = NF90_INQ_VARID(ncid, 'SOIL_COLOR', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable soil color.')
@@ -675,7 +685,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable soil color.')
 
     ok = NF90_CLOSE(ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing soil color file.')
 
   END SUBROUTINE read_soilcolor
   !=============================================================================
