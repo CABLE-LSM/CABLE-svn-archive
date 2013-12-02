@@ -1035,7 +1035,7 @@ CONTAINS
         soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
                                          inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01  !use a simple constant for now
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.03  !use a simple constant for now
       END DO
       !Aquifer properties
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                         &
@@ -1053,7 +1053,7 @@ CONTAINS
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                         &
                                          inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.01  !use a simple constant for now
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.03  !use a simple constant for now
 
       ENDIF
 

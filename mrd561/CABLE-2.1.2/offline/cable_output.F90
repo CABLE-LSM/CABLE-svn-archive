@@ -872,6 +872,10 @@ CONTAINS
                          'ClappB', '-', 'clapp and horn b param  in soil layer', &
                  patchout%ClappB, soilID, 'soil', xID, yID, zID, landID, patchID)                     
 
+    !MDeck
+    write(*,*) 'write global attributes for th file'
+
+
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
     todaydate = todaydate(1:4)//'/'//todaydate(5:6)//'/'//todaydate(7:8)
