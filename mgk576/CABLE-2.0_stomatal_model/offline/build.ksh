@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg Mart
+   set -A kh vayu cher burn shin jigg Mart IT-4
 }
+
+
+## mgk576.nci.org.au
+host_IT-4()
+{
+   export NCDIR='/opt/local/lib'
+   export NCMOD='/opt/local/include'
+   export FC=gfortran
+   export CFLAGS='-O2'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/opt/local/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## mgk576.nci.org.au

@@ -243,7 +243,9 @@ MODULE cable_def_types_mod
          xfang,   & ! leaf angle PARAMETER
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
+         wai,     & ! wood area index (stem+branches+twigs)
+         g0,      & ! Belinda's stomatal model intercept, MDK, Nov 23 2013 
+         g1         ! Belinda's stomatal model slope,  MDK, Nov 23 2013   
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -707,6 +709,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) ) 
+   ALLOCATE( var% g0(mp) )   ! MDK, Nov 23 2013 
+   ALLOCATE( var% g1(mp) )   ! MDK, Nov 23 2013 
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -1102,7 +1106,10 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%deciduous ) 
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
-   DEALLOCATE( var%taul ) 
+   DEALLOCATE( var%taul )
+   DEALLOCATE( var%g0 ) !  MDK, Nov 23 2013 
+   DEALLOCATE( var%g1 ) !  MDK, Nov 23 2013 
+    
    
 END SUBROUTINE dealloc_veg_parameter_type
    

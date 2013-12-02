@@ -585,6 +585,11 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'xalbnir',dummy,veg%xalbnir,filename%restart_in,      &
                 max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'g0',dummy,veg%g0,filename%restart_in,                &
+                max_vegpatches,'def',from_restart,mp) ! MDK, Nov 23 2013 
+   CALL readpar(ncid_rin,'g1',dummy,veg%g0,filename%restart_in,                &
+                max_vegpatches,'def',from_restart,mp) ! MDK, Nov 23 2013 
+                
    veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)

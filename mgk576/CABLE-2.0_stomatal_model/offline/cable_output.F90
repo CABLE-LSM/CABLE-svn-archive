@@ -722,6 +722,13 @@ CONTAINS
     IF(output%params .OR. output%meth) CALL define_ovar(ncid_out, opid%meth,   &
                      'meth', '-', 'Canopy turbulence parameterisation choice', &
                           patchout%meth, 'real', xID, yID, zID, landID, patchID)
+    !IF(output%params .OR. output%g0) CALL define_ovar(ncid_out, opid%g0, &
+    !                       'g0', '-', 'Stomatal intercept', &
+    !                     patchout%g0, 'real', xID, yID, zID, landID, patchID)
+    !IF(output%params .OR. output%g1) CALL define_ovar(ncid_out, opid%g0, &
+    !                       'g1', '-', 'Stomatal slope', &
+    !                     patchout%g1, 'real', xID, yID, zID, landID, patchID)
+                         
     IF(output%params .OR. output%za) THEN
       CALL define_ovar(ncid_out, opid%za_uv, 'za_uv', 'm',                     &
                     'Reference height (lowest atm. model layer) for momentum', &
@@ -906,6 +913,11 @@ CONTAINS
                                        ranges%xalbnir, patchout%xalbnir, 'real')
     IF(output%params .OR. output%meth) CALL write_ovar(ncid_out, opid%meth,    &
                'meth', REAL(veg%meth, 4), ranges%meth, patchout%meth, 'integer')
+    !IF(output%params .OR. output%g0) CALL write_ovar(ncid_out, opid%g0,  &
+    !          'g0', REAL(veg%g0, 4), ranges%g0, patchout%g0, 'real')
+    !IF(output%params .OR. output%g1) CALL write_ovar(ncid_out, opid%g1,  &
+    !          'g1', REAL(veg%g1, 4), ranges%g1, patchout%g1, 'real')
+    
     IF(output%params .OR. output%za) THEN
       CALL write_ovar(ncid_out, opid%za_uv,                                    &
                   'za_uv', REAL(rough%za_uv, 4), ranges%za, patchout%za, 'real')
@@ -2079,6 +2091,13 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%xalbnir, 'xalbnir', '-',               &
                      'modifier for albedo in near ir band',                    &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    !CALL define_ovar(ncid_restart, rpid%g0, 'g0', '-',                   &
+    !                 'Intercept of gs model',                        &
+    !                 .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    !CALL define_ovar(ncid_restart, rpid%g1, 'g1', '-',                   &
+    !                 'Slope of gs model',                        &
+    !                 .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    
     ! ratecp (Plant carbon rate constant):
     ok = NF90_DEF_VAR(ncid_restart, 'ratecp', NF90_FLOAT, (/plantcarbID/),     &
                       rpid%ratecp)
@@ -2265,6 +2284,11 @@ CONTAINS
     CALL write_ovar (ncid_restart, rpid%xalbnir, 'xalbnir',                    &
                      REAL(veg%xalbnir, 4), ranges%xalbnir, .TRUE.,             &
                      'real', .TRUE.)
+    !CALL write_ovar (ncid_restart, rpid%g0, 'g0', REAL(veg%g0, 4),    &
+    !                 ranges%dleaf, .TRUE., 'real', .TRUE.)
+    !CALL write_ovar (ncid_restart, rpid%g0, 'g1', REAL(veg%g1, 4),    &
+    !                 ranges%dleaf, .TRUE., 'real', .TRUE.)
+                     
     CALL write_ovar (ncid_restart, rpid%tmaxvj, 'tmaxvj', REAL(veg%tmaxvj, 4), &
                      ranges%tmaxvj, .TRUE., 'real', .TRUE.)
     ok = NF90_PUT_VAR(ncid_restart, rpid%ratecp, REAL(bgc%ratecp, 4))

@@ -165,7 +165,10 @@ MODULE cable_checks_module
            tmaxvj = (/-15.0,30.0/),            &
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
-           soil_class = (/1.0,20.0/)  
+           soil_class = (/1.0,20.0/),          & 
+           g0 = (/-0.5,0.5/),                  & ! MDK, Nov 23 2013 
+           g1 = (/0.0,20.0/)                     ! MDK, Nov 23 2013 
+           
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 

@@ -138,7 +138,7 @@ MODULE cable_IO_vars_module
           ejmax,frac4,hc,lai,rp20,rpcoef,shelrb, vbeta, xalbnir,               &
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
-          veg_class,soil_class,mvtype,mstype,patchfrac
+          veg_class,soil_class,mvtype,mstype,patchfrac,g0,g1   ! MDK 23nov,2013
    
    END TYPE parID_type
   
@@ -309,8 +309,10 @@ MODULE cable_IO_vars_module
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
-         za  = .FALSE.          ! something to do with roughness ????
-   
+         za  = .FALSE.,       & ! something to do with roughness ????
+         g0 = .FALSE.,        & ! Belinda's gs model intercept, MDK 23rd Nov 2013
+         g1 = .FALSE.           ! Belinda's gs model slope, MDK 23rd Nov 2013
+                  
    END TYPE output_inclusion_type
 
 
