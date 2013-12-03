@@ -50,6 +50,8 @@ MODULE cable_common_module
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
+      !MD
+      LOGICAL :: run_gw_model = .FALSE.
    END TYPE kbl_internal_switches 
 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
@@ -77,7 +79,8 @@ MODULE cable_common_module
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
          CABLE_RUNTIME_COUPLED  = .FALSE.!
-
+     !MD
+      LOGICAL :: GW_MODEL = .FALSE.
 
    END TYPE kbl_user_switches
 
