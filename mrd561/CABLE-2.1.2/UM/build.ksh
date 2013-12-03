@@ -2,9 +2,8 @@
 
 known_hosts()
 {
-   set -A kh vayu raij
+   set -A kh raij
 }
-
 ## raijin.nci.org.au
 host_raij()
 {
@@ -13,35 +12,14 @@ host_raij()
    export NCMOD=$NCDF_ROOT'/include/Intel'
    export FC=ifort
    export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
-   #export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
    fi
    build_build
    cd ../
    build_status
 }
-
-
-## vayu.nci.org.au
-host_vayu()
-{
-   NCDF_ROOT=/apps/netcdf/3.6.3
-   export NCDIR=$NCDF_ROOT'/lib/Intel'
-   export NCMOD=$NCDF_ROOT'/include/Intel'
-   export FC=ifort
-   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
-   #export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
-   export CINC='-I$(NCMOD)'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
-   fi
-   build_build
-   cd ../
-   build_status
-}
-
 
 
 ## unknown machine, user entering options stdout 
@@ -127,7 +105,7 @@ not_recognized()
 
    print "\n\tPlease supply a comment include the new build " \
          "script." 
-   print "\n\tGenerally the host URL e.g. vayu.nci.org.au "
+   print "\n\tGenerally the host URL e.g. raijin.nci.org.au "
    read HOST_COMM
    
    build_build
@@ -183,11 +161,17 @@ build_build()
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
+
+   if [[ $CABLE_REV == "" ]]; then
+      echo "this is not an svn checkout"
+      CABLE_REV=0
+      echo "setting CABLE revision number to " $CABLE_REV 
+   fi         
    print $CABLE_REV > ~/.cable_rev
    # get SVN status 
    CABLE_STAT=`svn status`
    print $CABLE_STAT >> ~/.cable_rev
- 
+
    if [[ ! -d .tmp ]]; then
       mkdir .tmp
    fi
@@ -247,31 +231,32 @@ build_build()
 
    if [[ -f libcable.a ]]; then
       print '\nLibrary build successful. Copying libcable.a to ' $libroot
+      print '\nLibrary build successful. In this case - NOT Copying libcable.a to ' $libroot
    else
       print '\nBuild failed\n'
       exit
    fi
    
-   if [[ -h $libpath ]]; then
-      print "\nThis library already exists in some form. Most likely it is the"
-      print "\tdefault linked library. If you wish to overwrite this library"
-      print "\tthen press Enter to proceeed. Otherwise Control-C to abort. \n"
-      read dummy
-      mv $libpath $libroot/original_link 
-      rm -f $libpath
-   fi
+#   if [[ -h $libpath ]]; then
+#      print "\nThis library already exists in some form. Most likely it is the"
+#      print "\tdefault linked library. If you wish to overwrite this library"
+#      print "\tthen press Enter to proceeed. Otherwise Control-C to abort. \n"
+#      read dummy
+#      mv $libpath $libroot/original_link 
+#      rm -f $libpath
+#   fi
+#   
+##   /bin/cp -p libcable.a $libroot 
    
-   /bin/cp -p libcable.a $libroot 
-   
-   if [[ -f $libpath ]]; then
+#   if [[ -f $libpath ]]; then
       print "\nYour timestamped library should be this one:\n"
-      echo `ls -alt $libpath`
+      echo `ls -alt .tmp/`
       print '\nDONE\n'
       exit
-   else
-      print '\nSomething went wrong!\n'
-      exit
-   fi
+#   else
+#      print '\nSomething went wrong!\n'
+#      exit
+#   fi
 
 }
 
