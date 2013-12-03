@@ -165,32 +165,7 @@ MODULE cable_checks_module
            tmaxvj = (/-15.0,30.0/),            &
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
-           soil_class = (/1.0,20.0/),          &
-           
-           !MD
-           WatTable = (/0.0,1.0e10/),          &
-           GWMoist = (/0.0,1.0/),              &
-           EqGWMoist = (/0.0,1.0/),            & 
-           EqGWSoilMatPot = (/-1.0e8,0.0/),    &
-           GWSoilMatPot = (/-1.0e8,0.0/),      &
-           SoilMatPot = (/-1.0e8,0.0/),        &
-           EqSoilMatPot = (/-1.0e8,0.0/),      &
-           EqSoilMoist = (/0.0,1.0/),          & 
-           WatSat = (/0.0,1.0/),               & 
-           GWWatSat = (/0.0,1.0/),             &
-           SoilMatPotSat = (/-1.0e8,0.0/),     &
-           GWSoilMatPotSat = (/-1.0e8,0.0/),   &
-           HkSat = (/0.0,1.0e10/),             &
-           GWHkSat = (/0.0,1.0e10/),           &
-           FrcSand = (/0.0,1.0e2/),            &
-           FrcClay = (/0.0,1.0e2/),            &
-           ClappB = (/0.0,1.0e2/),             &
-           Watr = (/0.0,0.5/),                 &
-           GWWatr = (/0.0,0.5/),               &
-           Qinfl = (/0.0,1e10/)
-           
-           
-           
+           soil_class = (/1.0,20.0/)  
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 

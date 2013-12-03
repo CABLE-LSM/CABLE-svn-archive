@@ -2,42 +2,8 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa md raij
+   set -A kh vayu cher burn shin 
 }
-
-
-
-
-##my laptop
-host_md()
-{
-   export NCDIR='/usr/local/lib'
-   export NCMOD='/usr/local/include'
-   export FC=mpif90
-   export CFLAGS='-O3 -x f95-cpp-input -march=native -fstack-arrays -funroll-loops'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/lib64 -O3 -lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-host_squa()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
 
 
 ## shine-cl.nexus.csiro.au 
@@ -104,24 +70,6 @@ host_vayu()
    cd ../
    build_status
 }
-
-## raijin.nci.org.au
-host_raij()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise'
-   fi
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
 
 
 
@@ -357,6 +305,11 @@ build_build()
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
+   if [[ $CABLE_REV="" ]]; then
+      echo "this is not an svn checkout"
+      CABLE_REV=0
+      echo "setting CABLE revision number to " $CABLE_REV 
+   fi         
    print $CABLE_REV > ~/.cable_rev
    # get SVN status 
    CABLE_STAT=`svn status`
@@ -398,7 +351,7 @@ if [[ $1 = 'clean' ]]; then
    clean_build
 fi
 
-if [[ ! -d /CABLE-AUX ]];then
+if [[ ! -d ~/CABLE-AUX ]];then
    set_up_CABLE_AUX
 else
    print "\n~/CABLE-AUX is at least present.\n"

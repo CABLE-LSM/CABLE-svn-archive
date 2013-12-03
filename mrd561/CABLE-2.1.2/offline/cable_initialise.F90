@@ -444,13 +444,6 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    CALL readpar(ncid_rin,'trad',dummy,rad%trad,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    
-   !MD
-   ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   END IF
-   
    ! Get model parameters =============================================
    ! rad%latitude set above in lat/lon checking section   
    ALLOCATE(INvar(mp))
@@ -615,65 +608,6 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'ncp',from_restart,mp)
    CALL readpar(ncid_rin,'ratecs',dummy,bgc%ratecs,filename%restart_in,        &
                 max_vegpatches,'ncs',from_restart,mp)
-                
-   !MD check to see if restart has gw params and variables
-   ok = NF90_INQ_VARID(ncid_rin,'WatSat',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'WatSat',dummy,soil%watsat,filename%restart_in,            &
-                max_vegpatches,'ms',from_restart,mp)   
-   END IF  
-   
-   ok = NF90_INQ_VARID(ncid_rin,'SoilMatPotSat',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'SoilMatPotSat',dummy,soil%smpsat,filename%restart_in,            &
-                max_vegpatches,'ms',from_restart,mp)   
-   END IF    
-   
-   ok = NF90_INQ_VARID(ncid_rin,'FrcSand',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'FrcSand',dummy,soil%clay,filename%restart_in,            &
-                max_vegpatches,'ms',from_restart,mp)   
-   END IF       
-   
-   ok = NF90_INQ_VARID(ncid_rin,'FrcClay',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'FrcClay',dummy,soil%Fsand,filename%restart_in,            &
-                max_vegpatches,'ms',from_restart,mp)   
-   END IF       
-   
-   ok = NF90_INQ_VARID(ncid_rin,'ClappB',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'ClappB',dummy,soil%clappB,filename%restart_in,            &
-                max_vegpatches,'ms',from_restart,mp)   
-   END IF  
-   
-   ok = NF90_INQ_VARID(ncid_rin,'HkSat',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'HkSat',dummy,soil%hksat,filename%restart_in,            &
-                max_vegpatches,'ms',from_restart,mp)   
-   END IF          
-   
-   
- !MD check to see if restart has gw params and variables
-   ok = NF90_INQ_VARID(ncid_rin,'GWWatSat',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'GWWatSat',dummy,soil%GWwatsat,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   END IF  
-   
-   ok = NF90_INQ_VARID(ncid_rin,'GWSoilMatPotSat',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'GWSoilMatPotSat',dummy,soil%GWsmpsat,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   END IF    
-   
-   ok = NF90_INQ_VARID(ncid_rin,'GWHkSat',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'GWHkSat',dummy,soil%GWhksat,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   END IF          
-   
-   
    
    ! Close restart file:
    ok = NF90_CLOSE(ncid_rin)

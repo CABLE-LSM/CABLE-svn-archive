@@ -142,7 +142,7 @@ SUBROUTINE mpidrv_master (comm)
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
-                                   wiltParam, satuParam!,report_version_no
+                                   report_version_no, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -275,7 +275,7 @@ SUBROUTINE mpidrv_master (comm)
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
-   !CALL report_version_no( logn )
+   CALL report_version_no( logn )
     
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
@@ -340,9 +340,6 @@ SUBROUTINE mpidrv_master (comm)
 
    ! MPI: bcast to workers so that they don't need to open the met
    ! file themselves
-
-   write(logn,*) 'about to bcast'
-
    CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
    CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
 
@@ -358,16 +355,11 @@ SUBROUTINE mpidrv_master (comm)
    ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
    ALLOCATE (recv_req(wnp))
    ALLOCATE (recv_stats(MPI_STATUS_SIZE, wnp))
-
-   write(logn,*) 'about to comm_dup'
-
    CALL MPI_Comm_dup (comm, icomm, ierr)
    CALL MPI_Comm_dup (comm, ocomm, ierr)
 
    ! MPI: data set in load_parameter is now scattered out to the
    ! workers
-   write(logn,*) 'send parameter values to the workers'
-
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
 

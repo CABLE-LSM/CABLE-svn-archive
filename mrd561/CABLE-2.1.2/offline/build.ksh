@@ -2,68 +2,8 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg md ccrc cycl squa
+   set -A kh vayu cher burn shin jigg raij
 }
-
-
-host_squa()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-
-host_cycl()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L//share/apps/netcdf/intel/4.1.3/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-host_ccrc()
-{
-   export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
-   export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/local/netcdf/intel/4.1.3/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-##my laptop
-host_md()
-{
-   export NCDIR='/usr/local/lib'
-   export NCMOD='/usr/local/include'
-   export FC=gfortran
-   export CFLAGS='-O3 -x f95-cpp-input -march=native'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/lib64 -O3 -lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
 
 
 ## jiggle
@@ -143,7 +83,22 @@ host_vayu()
    build_status
 }
 
-
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ## unknown machine, user entering options stdout 
 host_read()
@@ -276,7 +231,7 @@ not_recognized()
 
    print "\n\tPlease supply a comment include the new build " \
          "script." 
-   print "\n\tGenerally the host URL e.g. vayu.nci.org.au "
+   print "\n\tGenerally the host URL e.g. raijin.nci.org.au "
    read HOST_COMM
    
    build_build
@@ -334,6 +289,11 @@ build_build()
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
+   if [[ $CABLE_REV="" ]]; then
+      echo "this is not an svn checkout"
+      CABLE_REV=0
+      echo "setting CABLE revision number to " $CABLE_REV 
+   fi         
    print $CABLE_REV > ~/.cable_rev
    # get SVN status 
    CABLE_STAT=`svn status`
