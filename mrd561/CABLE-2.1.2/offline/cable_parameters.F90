@@ -1014,46 +1014,46 @@ CONTAINS
       !MD
       !possibly heterogeneous soil properties
       DO klev=1,ms
-        soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
-                                         insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
+        soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+         abs(insucs(landpt(e)%ilon, landpt(e)%ilat))/1000.0 !convert to mm
                                          
-        soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
-                                         inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+        soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+             inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
                                          
-        soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
-                                         inbch(landpt(e)%ilon, landpt(e)%ilat)                       
+        soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+              inbch(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
-        soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
-                                         inclay(landpt(e)%ilon, landpt(e)%ilat)                      
+        soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+            inclay(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
-        soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
-                                         insand(landpt(e)%ilon, landpt(e)%ilat)                       
+        soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+            insand(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
-        soil%densoil(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
-                                         inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
+        soil%densoil(landpt(e)%cstart:landpt(e)%cend,klev) =                  &
+           inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
-        soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                         &
-                                         inssat(landpt(e)%ilon, landpt(e)%ilat) 
+        soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+             inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.03  !use a simple constant for now
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.03!constant for now
       END DO
-      !Aquifer properties
-      soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                         &
-                                         insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
+      !Aquifer properties  same as bottom soil layer for now
+      soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
+             insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
                                          
       soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
-                                         inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+            inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
                                          
-      soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                         &
-                                         inbch(landpt(e)%ilon, landpt(e)%ilat)                       
+      soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
+              inbch(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
-      soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                         &
-                                         inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
+      soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
+           inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
-      soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                         &
-                                         inssat(landpt(e)%ilon, landpt(e)%ilat) 
+      soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
+             inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.03  !use a simple constant for now
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.03  !constant for now
 
       ENDIF
 
@@ -1118,6 +1118,13 @@ CONTAINS
           soil%silt(h)    =  soilin%silt(soil%isoilm(h))
           soil%clay(h)    =  soilin%clay(soil%isoilm(h))
           soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+
+          !MDeck
+          do klev=1,ms
+            soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
+            soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+          end do
+
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
@@ -1127,6 +1134,24 @@ CONTAINS
             soil%sucs(h)    =  soilin%sucs(soil%isoilm(h))
             soil%rhosoil(h) =  soilin%rhosoil(soil%isoilm(h))
             soil%css(h)     =  soilin%css(soil%isoilm(h))
+
+            !MD
+            do klev=1,ms
+              soil%smpsat(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))/1000.0
+              soil%hksat(h,klev)   = soilin%hyds(soil%isoilm(h))/1000.0
+              soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
+              soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
+              soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
+              soil%watr(h,klev)    = 0.03!soilin%hyds(soil%isoilm(h))
+            end do
+
+            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))/1000.0
+            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))/1000.0
+            soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
+            soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
+            soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
+            soil%GWwatr(h)    = 0.03!soilin%hyds(soil%isoilm(h))
+
           END IF
           rad%latitude(h) = latitude(e)
           veg%ejmax(h) = 2.0 * veg%vcmax(h)

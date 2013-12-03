@@ -132,6 +132,8 @@ CONTAINS
 
    !MDeck
    write(*,*) 'just called srf albedo'   
+   write(*,*) maxval(ssnow%wb)
+   write(*,*) minval(ssnow%wb)
  
    ! Calculate canopy variables:
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
