@@ -27,6 +27,7 @@
 !               NB Currently hard-wired to veg types 2 and 7 
 !                  (usually evergreen broadleaf and c4 grass)
 !          v2.0 ssoil variable renamed ssnow
+!          Mark Decker - Forked ssnow to devlope ssgw
 !
 ! ==============================================================================
 
