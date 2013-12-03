@@ -57,7 +57,7 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL, PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
+                      qhmax   = 5e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
