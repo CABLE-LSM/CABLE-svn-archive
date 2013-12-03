@@ -859,7 +859,7 @@ CONTAINS
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
-    INTEGER :: klev   !soil layer
+    INTEGER :: klev,k   !soil layer
 
 !    The following is for the alternate method to calculate froot by Zeng 2001
 !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -899,7 +899,7 @@ CONTAINS
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
     !MD aquifer layers
-    soil%GWgz = 30.0                          !30 m thick aquifer
+    soil%GWdz = 30.0                          !30 m thick aquifer
 
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -1002,7 +1002,7 @@ CONTAINS
                                           
       !MD
       !possibly heterogeneous soil properties
-      DO klev=1,ms
+      DO k=1,ms
         soil%smpsat(landpt(e)%cstart:landpt(e)%cend,k) =                         &
                                          insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
                                          
