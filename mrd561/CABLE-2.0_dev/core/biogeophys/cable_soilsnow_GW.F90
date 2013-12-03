@@ -2048,7 +2048,7 @@ END SUBROUTINE hydraulic_redistribution
     real(r_2), intent(in)    :: ct(:,:)    ! 1 right of diagonal 
     real(r_2), intent(in)    :: rt(:,:)    ! right hand side
     real(r_2), intent(inout) :: ut(:,:)    ! solution to the system of eqs
-    integer(i_d), intent(in) :: n
+    integer, intent(in) :: n
 !   local variables
     integer  :: k
     REAL(r_2), DIMENSION(mp_patch,ms+1) ::  gam  
@@ -2079,22 +2079,22 @@ END SUBROUTINE hydraulic_redistribution
   !-------------------------------------------------------------------------
   SUBROUTINE ovrlndflx (dt, ktau, ssoil, soil,prin )
   IMPLICIT NONE
-    REAL(r_1), INTENT(IN)                    :: dt   ! integration time step (s)
-    INTEGER(i_d), INTENT(IN)                 :: ktau ! integration step number
+    REAL, INTENT(IN)                         :: dt   ! integration time step (s)
+    INTEGER, INTENT(IN)                      :: ktau ! integration step number
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssoil  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
     LOGICAL, INTENT(IN)                      :: prin
-    INTEGER(i_d), PARAMETER      :: ntest = 0 ! for snow diag prints
-    INTEGER(i_d), PARAMETER      :: nglacier = 2 ! 0 original, 1 off, 2 new Eva
-    INTEGER(i_d)                 :: k
-    REAL(r_1), DIMENSION(mp_patch)     :: rnof5
-    REAL(r_1), DIMENSION(mp_patch)     :: sgamm
-    REAL(r_1), DIMENSION(mp_patch)     :: smasstot
-    REAL(r_1), DIMENSION(mp_patch,0:3) :: smelt1
-    REAL(r_2), DIMENSION(mp_patch)     :: xxx,fice,icef,efpor
-    REAL(r_2), DIMENSION(mp_patch)     :: tmpa,tmpb,inflmx,fcov
-    REAL(r_2), dimension(mp_patch)     :: satfrac
-    logical :: prinall = .false.
+    INTEGER, PARAMETER                       :: ntest = 0 ! for snow diag prints
+    INTEGER, PARAMETER                       :: nglacier = 2 ! 0 original, 1 off, 2 new Eva
+    INTEGER                                  :: k
+    REAL, DIMENSION(mp_patch)                :: rnof5
+    REAL, DIMENSION(mp_patch)                :: sgamm
+    REAL, DIMENSION(mp_patch)                :: smasstot
+    REAL, DIMENSION(mp_patch,0:3)            :: smelt1
+    REAL(r_2), DIMENSION(mp_patch)           :: xxx,fice,icef,efpor
+    REAL(r_2), DIMENSION(mp_patch)           :: tmpa,tmpb,inflmx,fcov
+    REAL(r_2), dimension(mp_patch)           :: satfrac
+    logical                                  :: prinall = .false.  !for debugging
     
     !For now assume there is no puddle?
     ssoil%pudsto = 0._r_2
@@ -2170,16 +2170,16 @@ END SUBROUTINE hydraulic_redistribution
    TYPE (soil_snow_type), INTENT(INOUT)      :: ssoil ! soil and snow variables
    TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
    LOGICAL, INTENT(IN)                       :: prin  !print info?
-     
   !Local vars 
-  REAL(r_2), DIMENSION(mp_patch,ms)   :: dzmm
-  REAL(r_2), DIMENSION(ms+1)          :: zimm
-  REAL(r_2), DIMENSION(ms)            :: zmm
-  REAL(r_2), DIMENSION(mp_patch)      :: GWzimm,temp
-  REAL(r_2), DIMENSION(mp_patch)      :: def,defc     
+  REAL(r_2), DIMENSION(mp_patch,ms)          :: dzmm
+  REAL(r_2), DIMENSION(ms+1)                 :: zimm
+  REAL(r_2), DIMENSION(ms)                   :: zmm
+  REAL(r_2), DIMENSION(mp_patch)             :: GWzimm,temp
+  REAL(r_2), DIMENSION(mp_patch)             :: def,defc     
 
-  REAL(r_2)                           :: deffunc,tempa,tempb,derv,calc
-  REAL(r_2), DIMENSION(mp_patch)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
+  REAL(r_2)                                  :: deffunc,tempa,tempb,derv,calc
+  REAL(r_2), DIMENSION(mp_patch)             :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
+  !local loop counters
   INTEGER :: k,i,wttd,jlp
      
    
@@ -2247,7 +2247,10 @@ END SUBROUTINE hydraulic_redistribution
        ssoil%wtd(i) = zimm(ms)
     endif
   end do
-  ssoil%wtd(:) = max(min(ssoil%wtd(:),wtd_max),wtd_min)
+
+  where (ssoil%wtd(:) .gt. wtd_max) ssoil%wtd(:) = wtd_max
+  where (ssoil%wtd(:) .lt. wtd_min) ssoil%wtd(:) = wtd_min
+
 
   END SUBROUTINE calcwtd
     
@@ -2261,69 +2264,69 @@ END SUBROUTINE hydraulic_redistribution
   SUBROUTINE smoistgw (dt,ktau,ssoil,soil,prin)
   IMPLICIT NONE
   
-    REAL(r_1), INTENT(IN)                     :: dt    ! time step size (s)
-    INTEGER(i_d), INTENT(IN)                  :: ktau  ! integration step number
+    REAL, INTENT(IN)                          :: dt    ! time step size (s)
+    INTEGER, INTENT(IN)                       :: ktau  ! integration step number
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssoil ! soil and snow variables
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil  ! soil parameters
     LOGICAL, INTENT(IN)                       :: prin
     
     !Local variables.  
-    REAL(r_2), DIMENSION(mp_patch,3*ms) :: at     ! coef "A" in finite diff eq
-    REAL(r_2), DIMENSION(mp_patch,3*ms) :: bt     ! coef "B" in finite diff eq
-    REAL(r_2), DIMENSION(mp_patch,3*ms) :: ct     ! coef "C" in finite diff eq
-    REAL(r_2), DIMENSION(mp_patch,3*ms) :: rt
-    REAL(r_2), DIMENSION(mp_patch)      :: fact
-    REAL(r_2), DIMENSION(mp_patch)      :: fact2
-    REAL(r_2), DIMENSION(mp_patch)      :: fluxhi
-    REAL(r_2), DIMENSION(mp_patch)      :: fluxlo
-    REAL(r_2), DIMENSION(mp_patch)      :: hydss  ! hydraulic
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: at     ! coef "A" in finite diff eq
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: bt     ! coef "B" in finite diff eq
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: ct     ! coef "C" in finite diff eq
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: rt
+!    REAL(r_2), DIMENSION(mp_patch)      :: fact
+!    REAL(r_2), DIMENSION(mp_patch)      :: fact2
+!    REAL(r_2), DIMENSION(mp_patch)      :: fluxhi
+!    REAL(r_2), DIMENSION(mp_patch)      :: fluxlo
+    REAL(r_2), DIMENSION(mp_patch)            :: hydss  ! hydraulic
                                                 ! conductivity adjusted for ice
 	
-    INTEGER(i_d)                        :: k,kk
-    REAL(r_2), DIMENSION(mp_patch)      :: phi
-    REAL(r_2), DIMENSION(mp_patch)      :: pwb
-    REAL(r_2), DIMENSION(mp_patch)      :: rat
-    REAL(r_2), DIMENSION(mp_patch)      :: speed_k
-    REAL(r_2), DIMENSION(mp_patch)      :: ssatcurr_k
-    REAL(r_2), DIMENSION(mp_patch,ms+1) :: wbh
-    REAL(r_2), DIMENSION(mp_patch,ms+1) :: z1
-    REAL(r_2), DIMENSION(mp_patch,ms+1) :: z2
-    REAL(r_2), DIMENSION(mp_patch,ms+1) :: z3
-    REAL(r_1), DIMENSION(mp_patch,ms+1) :: z1mult
-    REAL(r_2), DIMENSION(mp_patch,0:ms) :: fluxh
-    REAL(r_2), DIMENSION(mp_patch,0:ms) :: delt
-    REAL(r_2), DIMENSION(mp_patch,0:ms) :: dtt
-    REAL(r_2), DIMENSION(mp_patch)      :: pwb_wbh
-    REAL(r_2), DIMENSION(mp_patch,ms)   :: eff_por,old_wb  !effective porosity and wb at start
-    REAL(r_1), DIMENSION(mp_patch)      :: wbficemx
-    REAL(r_2), DIMENSION(mp_patch)      :: wbh_k
-    REAL(r_2), DIMENSION(mp_patch)      :: wbl_k
-    REAL(r_2), DIMENSION(mp_patch)      :: wbl_kp
-    REAL(r_2), DIMENSION(mp_patch)      :: wh
-    REAL(r_2), DIMENSION(mp_patch)      :: z3_k
-    REAL(r_2), DIMENSION(mp_patch)      :: den
-    REAL(r_2), DIMENSION(mp_patch)      :: dne
-    REAL(r_2), DIMENSION(mp_patch)      :: num
-    REAL(r_2), DIMENSION(mp_patch)      :: qin
-    REAL(r_2), DIMENSION(mp_patch)      :: qout
-    REAL(r_2), DIMENSION(mp_patch)      :: dqidw0
-    REAL(r_2), DIMENSION(mp_patch)      :: dqidw1
-    REAL(r_2), DIMENSION(mp_patch)      :: dqodw0
-    REAL(r_2), DIMENSION(mp_patch)      :: dqodw1,dqodw2
-    REAL(r_2), DIMENSION(mp_patch)      :: s1,s2,tmpi,temp0,voleq1,tempi
-    REAL(r_2), DIMENSION(ms)            :: dzmm
-    REAL(r_2), DIMENSION(ms+1)          :: zimm
-    REAL(r_2), DIMENSION(ms)            :: zmm
-    REAL(r_2), DIMENSION(mp_patch)      :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
-    REAL(r_2), DIMENSION(mp_patch)      :: xsi,xs1,GWmsliq
-    REAL(r_2), DIMENSION(mp_patch,ms+1) :: qhlev,del_wb
-    INTEGER(i_d), DIMENSION(mp_patch)   :: idlev
-    REAL(r_2),DIMENSION(mp_patch)       :: watmin
-    REAL(r_2)                           :: dri  !ratio of density of ice to density of water
+    INTEGER                                   :: k,kk
+    REAL(r_2), DIMENSION(mp_patch)            :: phi
+    REAL(r_2), DIMENSION(mp_patch)            :: pwb
+    REAL(r_2), DIMENSION(mp_patch)            :: rat
+    REAL(r_2), DIMENSION(mp_patch)            :: speed_k
+    REAL(r_2), DIMENSION(mp_patch)            :: ssatcurr_k
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: wbh
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: z1
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: z2
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: z3
+    REAL, DIMENSION(mp_patch,ms+1)            :: z1mult
+    REAL(r_2), DIMENSION(mp_patch,0:ms)       :: fluxh
+    REAL(r_2), DIMENSION(mp_patch,0:ms)       :: delt
+    REAL(r_2), DIMENSION(mp_patch,0:ms)       :: dtt
+    REAL(r_2), DIMENSION(mp_patch)            :: pwb_wbh
+    REAL(r_2), DIMENSION(mp_patch,ms)         :: eff_por,old_wb  !effective porosity and wb at start
+    REAL, DIMENSION(mp_patch)                 :: wbficemx
+    REAL(r_2), DIMENSION(mp_patch)            :: wbh_k
+    REAL(r_2), DIMENSION(mp_patch)            :: wbl_k
+    REAL(r_2), DIMENSION(mp_patch)            :: wbl_kp
+    REAL(r_2), DIMENSION(mp_patch)            :: wh
+    REAL(r_2), DIMENSION(mp_patch)            :: z3_k
+    REAL(r_2), DIMENSION(mp_patch)            :: den
+    REAL(r_2), DIMENSION(mp_patch)            :: dne
+    REAL(r_2), DIMENSION(mp_patch)            :: num
+    REAL(r_2), DIMENSION(mp_patch)            :: qin
+    REAL(r_2), DIMENSION(mp_patch)            :: qout
+    REAL(r_2), DIMENSION(mp_patch)            :: dqidw0
+    REAL(r_2), DIMENSION(mp_patch)            :: dqidw1
+    REAL(r_2), DIMENSION(mp_patch)            :: dqodw0
+    REAL(r_2), DIMENSION(mp_patch)            :: dqodw1,dqodw2
+    REAL(r_2), DIMENSION(mp_patch)            :: s1,s2,tmpi,temp0,voleq1,tempi
+    REAL(r_2), DIMENSION(ms)                  :: dzmm
+    REAL(r_2), DIMENSION(ms+1)                :: zimm
+    REAL(r_2), DIMENSION(ms)                  :: zmm
+    REAL(r_2), DIMENSION(mp_patch)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
+    REAL(r_2), DIMENSION(mp_patch)            :: xsi,xs1,GWmsliq
+    REAL(r_2), DIMENSION(mp_patch,ms+1)       :: qhlev,del_wb
+    INTEGER, DIMENSION(mp_patch)              :: idlev
+    REAL(r_2),DIMENSION(mp_patch)             :: watmin
+    REAL(r_2)                                 :: dri  !ratio of density of ice to density of water
                                                 !ensures smp is independent of liq->ice conversion
-    REAL(r_2), DIMENSION(mp_patch,ms)   :: msliq,msice
-    logical :: prinall = .false.
-    character (len=30)                  :: fmt  !format to output some debug info
+    REAL(r_2), DIMENSION(mp_patch,ms)         :: msliq,msice
+    logical                                   :: prinall = .false.   !another debug flag
+    character (len=30)                        :: fmt  !format to output some debug info
     
     fmt='(A6,6(1X,F8.6))'
  
