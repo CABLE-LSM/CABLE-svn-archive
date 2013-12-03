@@ -108,6 +108,16 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inclay
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
+  
+  !MD temp vars for reading in aquifer properties
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWssat
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWhyds
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWsucs
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWrhosoil
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWclay
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWsilt
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWsand
 
 CONTAINS
 
@@ -395,6 +405,8 @@ CONTAINS
     REAL, DIMENSION(:,:,:,:), ALLOCATABLE :: indummy
     REAL, DIMENSION(:,:),     ALLOCATABLE :: sfact, dummy2
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
+    
+    integer :: ok2
 
     ok = NF90_OPEN(filename%type, 0, ncid)
 
@@ -413,6 +425,16 @@ CONTAINS
     ALLOCATE(    inclay(nlon, nlat) )
     ALLOCATE(    insilt(nlon, nlat) )
     ALLOCATE(    insand(nlon, nlat) )
+    
+    !MD Aquifer properties
+    ALLOCATE(    inGWssat(nlon, nlat) )
+    ALLOCATE(     inGWbch(nlon, nlat) )
+    ALLOCATE(    inGWhyds(nlon, nlat) )
+    ALLOCATE(    inGWsucs(nlon, nlat) )
+    ALLOCATE( inGWrhosoil(nlon, nlat) )
+    ALLOCATE(    inGWclay(nlon, nlat) )
+    ALLOCATE(    inGWsilt(nlon, nlat) )
+    ALLOCATE(    inGWsand(nlon, nlat) )
 
     ! 1
     ok = NF90_INQ_VARID(ncid, 'swilt', fieldID)
@@ -479,7 +501,75 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable UM albedo')
     ok = NF90_GET_VAR(ncid, fieldID, in2alb)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
-
+    
+    
+    
+    !MD try to read aquifer properties from the file
+    ! if they don't exist set aquifer properties to the same as the soil
+    ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWssat(:,:) = inssat(:,:)
+    END IF
+    
+    ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWsucs(:,:) = insucs(:,:)
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWbch', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWbch)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWbch(:,:) = inbch(:,:)
+    END IF    
+        
+    ok = NF90_INQ_VARID(ncid, 'GWhyds', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWhyds)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWhyds(:,:) = inhyds(:,:)
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWrhosoil', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWrhosoil)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWrhosoil(:,:) = inrhosoil(:,:)
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWsand', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWsand)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWsand(:,:) = insand(:,:)
+    END IF        
+    
+     ok = NF90_INQ_VARID(ncid, 'GWclay', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWclay)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWclay(:,:) = inclay(:,:)
+    END IF       
+    
+    ok = NF90_INQ_VARID(ncid, 'GWsilt', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWsilt)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWsilt(:,:) = insilt(:,:)
+    END IF        
+    
 ! Use this code if need to process original UM file soil fields into CABLE 
 ! offline format
 !    ! 1
@@ -769,6 +859,7 @@ CONTAINS
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
+    INTEGER :: klev   !soil layer
 
 !    The following is for the alternate method to calculate froot by Zeng 2001
 !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -807,6 +898,9 @@ CONTAINS
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+    !MD aquifer layers
+    soil%GWgz = 30.0                          !30 m thick aquifer
+
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
     rough%za_tq = 40.0
@@ -905,6 +999,50 @@ CONTAINS
                                            incss(landpt(e)%ilon, landpt(e)%ilat)
       soil%cnsd(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           incnsd(landpt(e)%ilon, landpt(e)%ilat)
+                                          
+      !MD
+      !possibly heterogeneous soil properties
+      DO klev=1,ms
+        soil%smpsat(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+                                         insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
+                                         
+        soil%hksat(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+                                         inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+                                         
+        soil%clappB(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+                                         inbch(landpt(e)%ilon, landpt(e)%ilat)                       
+                                         
+        soil%Fclay(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+                                         inclay(landpt(e)%ilon, landpt(e)%ilat)                      
+                                         
+        soil%Fsand(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+                                         insand(landpt(e)%ilon, landpt(e)%ilat)                       
+                                         
+        soil%densoil(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+                                         inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
+                                         
+        soil%watsat(landpt(e)%cstart:landpt(e)%cend,k) =                         &
+                                         inssat(landpt(e)%ilon, landpt(e)%ilat) 
+                                         
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,k) =  0.01  !use a simple constant for now
+      END DO
+      !Aquifer properties
+      soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                         &
+                                         insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
+                                         
+      soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
+                                         inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+                                         
+      soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                         &
+                                         inbch(landpt(e)%ilon, landpt(e)%ilat)                       
+                                         
+      soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                         &
+                                         inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
+                                         
+      soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                         &
+                                         inssat(landpt(e)%ilon, landpt(e)%ilat) 
+                                         
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.01  !use a simple constant for now
 
       ENDIF
 
@@ -995,7 +1133,8 @@ CONTAINS
 
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
-                       insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010
+                       insucs, inrhosoil, incss, incnsd,&
+                       inGWsucs,inGWhyds,inGWbch,inGWsilt,inGWsand,inGWclay,inGWssat) ! Q,Zhang @ 12/20/2010, MD
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
@@ -1130,6 +1269,12 @@ CONTAINS
                                      ! midpoints:
     soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
     soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
+    
+    !MD aquifer node depth
+    soil%GWz = 0.5*soil%GWdz + sum(soil%zse)  !node is halfway through aquifer depth
+    
+    
+    
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity

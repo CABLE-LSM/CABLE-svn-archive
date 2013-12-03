@@ -194,7 +194,8 @@ PROGRAM cable_offline_driver
    ENDIF
 
     
-   cable_runtime%offline = .TRUE.
+   cable_runtime%offline  = .TRUE.
+   cable_runtime%run_gw_model = cable_user%GW_MODEL
    
    ! associate pointers used locally with global definitions
    CALL point2constants( C )

@@ -63,6 +63,9 @@ CONTAINS
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants 
    
+   !MD
+   USE cable_soil_snow_gw_module
+   
    !ptrs to local constants 
    TYPE( icbm_type ) :: C
    ! CABLE model variables
@@ -131,10 +134,15 @@ CONTAINS
       
      IF( cable_runtime%um_implicit ) THEN
          CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
-      ENDIF
+     ENDIF
 
    ELSE
-      call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+      !switch to use soil_snow or soil_snow_gw goes here
+      IF (cable_runtime%run_gw_model) then
+         CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+      ELSE
+         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+      END IF
    ENDIF
 
    ssnow%deltss = ssnow%tss-ssnow%otss
