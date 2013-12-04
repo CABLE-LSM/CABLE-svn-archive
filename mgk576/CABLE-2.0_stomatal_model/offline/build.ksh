@@ -2,12 +2,12 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg Mart IT-4
+   set -A kh vayu cher burn shin jigg IT
 }
 
 
 ## mgk576.nci.org.au
-host_IT-4()
+host_IT()
 {
    export NCDIR='/opt/local/lib'
    export NCMOD='/opt/local/include'
@@ -19,25 +19,6 @@ host_IT-4()
    cd ../
    build_status
 }
-
-
-
-
-## mgk576.nci.org.au
-host_Mart()
-{
-   export NCDIR='/opt/local/lib'
-   export NCMOD='/opt/local/include'
-   export FC=gfortran
-   export CFLAGS='-O2'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/opt/local/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
 
 
 
@@ -351,8 +332,8 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-4`
-
+HOST_MACH=`uname -n | cut -c 1-2`
+#HOST_MACH=`uname -n | cut -c 1-4`
 do_i_no_u $1
 
 not_recognized
