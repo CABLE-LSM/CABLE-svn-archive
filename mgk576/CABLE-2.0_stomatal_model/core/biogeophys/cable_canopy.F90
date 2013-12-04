@@ -1526,7 +1526,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF
-            print *, "****", fwsoil(i)
          ENDIF
          
       ENDDO !i=1,mp
