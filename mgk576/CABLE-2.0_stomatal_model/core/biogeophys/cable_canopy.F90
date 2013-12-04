@@ -1314,7 +1314,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
    INTEGER :: i, j, k, kk  ! iteration count
-   REAL :: vpd
+   REAL :: vpd  ! VPD (kPa)
    
    ! END header
 
@@ -1350,6 +1350,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ELSEIF(cable_user%GS_MODEL == 'medlyn') THEN
        gswmin = veg%g0(1)
    ENDIF
+   
+   
+   
    gw = 1.0e-3 ! default values of conductance
    gh = 1.0e-3
    ghr= 1.0e-3
@@ -1489,46 +1492,41 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! MDK, 22 November 2013
             ! added switch to choose between the Leuning and Medlyn gs models.
             IF(cable_user%GS_MODEL == 'leuning') THEN
-                gs_coeff(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                          * ( ( 1.0 - veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) &
-                          / C%d0c3 ) + veg%frac4(i)    * C%A1C4 / (1.0+dsx(i)/ &
-                          C%d0c4) )
-
-                gs_coeff(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
-                                * ( (1.0-veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) /&
-                                C%d0c3 ) + veg%frac4(i)    * C%A1C4 / (1.0+ dsx(i)/&
-                                C%d0c4) )
+                gs_coeff(i,1) = (fwsoil(i) / (csx(i,1) - co2cp3)) * &
+                                ((1.0 - veg%frac4(i)) * C%A1C3 /    &
+                                (1.0 + dsx(i) / C%d0c3) +           &
+                                 veg%frac4(i) * C%A1C4 /            &
+                                (1.0+dsx(i) / C%d0c4))
+                
+                gs_coeff(i,2) = (fwsoil(i) / (csx(i,2) - co2cp3)) * &
+                                ((1.0 - veg%frac4(i)) * C%A1C3 /    &
+                                (1.0 + dsx(i) / C%d0c3) +           &
+                                 veg%frac4(i) * C%A1C4 /            &
+                                (1.0+dsx(i) / C%d0c4))
+                
+            ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_MODEL == 'medlyn') THEN
-                vpd = dsx(i) / 1000.  ! pascal -> kPa           
-                IF (vpd < 0.0) THEN
-                    gs_coeff(i,1) = 0.0
-                    gs_coeff(i,2) = 0.0
+                IF (dsx(i) < 50.0) THEN
+                    vpd  = 0.05 ! kPa
                 ELSE
-                    gs_coeff(i,1) = (1.0 + (veg%g1(i) * fwsoil(i)) / & 
-                                     SQRT(vpd)) * 1.0 / (csx(i,1)*1E6) ! convert CO2 
-                                                                       ! bar to 
-                                                                       ! umol/mol
-                    gs_coeff(i,2) = (1.0 + (veg%g1(i) * fwsoil(i)) / &
-                                     SQRT(vpd)) * 1.0 / (csx(i,2)*1E6) ! convert CO2 
-                                                                       ! bar to 
-                                                                       ! umol/mol
-                    ! Convert gs from mol to umol
-                    gs_coeff(i,1) = gs_coeff(i,1) * 1E6 
-                    gs_coeff(i,2) = gs_coeff(i,2) * 1E6
+                    vpd = dsx(i) * 1E-04 ! Pa -> kPa  
+                    
+                gs_coeff(i,1) = (1.0 + (veg%g1(i) * fwsoil(i)) / & 
+                                 SQRT(vpd)) * 1.0 / (csx(i,1)*1E6) ! convert CO2 
+                                                                   ! bar to 
+                                                                   ! umol/mol
+                gs_coeff(i,2) = (1.0 + (veg%g1(i) * fwsoil(i)) / &
+                                 SQRT(vpd)) * 1.0 / (csx(i,2)*1E6) ! convert CO2 
+                                                                   ! bar to 
+                                                                   ! umol/mol
+                ! Convert gs from mol to umol
+                gs_coeff(i,1) = gs_coeff(i,1) * 1E6 
+                gs_coeff(i,2) = gs_coeff(i,2) * 1E6
                 END IF
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF
-            print *,co2cp3
-            stop
-       
-
-            
-            
-            
-            
-          
-         
+            print *, "****", fwsoil(i)
          ENDIF
          
       ENDDO !i=1,mp
