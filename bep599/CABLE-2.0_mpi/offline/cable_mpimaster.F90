@@ -326,6 +326,13 @@ SUBROUTINE mpidrv_master (comm)
           PRINT *, 'Please check input in namelist file.'
           STOP
        END IF
+     ELSEIF (globalMetfile%l_ncar) THEN
+       PRINT *, 'Using NCAR met forcing.'
+       IF (ncciy < 1900 .OR. ncciy > 2100) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       END IF
      ELSEIF (globalMetfile%l_access) THEN
        PRINT *, 'Using ACCESS met forcing.'
        IF (ncciy < 370 .OR. ncciy > 2005) THEN
@@ -334,7 +341,7 @@ SUBROUTINE mpidrv_master (comm)
           STOP
        END IF
      ELSE
-       PRINT *, 'Switches l_gpcc, l_gswp and l_access are false!'
+       PRINT *, 'Switches l_gpcc, l_gswp, l_ncar and l_access are false!'
        PRINT *, 'Please check input in namelist file.'
        STOP
      END IF
@@ -511,21 +518,28 @@ SUBROUTINE mpidrv_master (comm)
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau, recv_ts)
+!!!         IF (icycle > 0) THEN
+!!!            ! MPI: gather casa results from all the workers
+!!!            CALL master_receive (comm, oktau, casa_out)
+!!!         ENDIF
 
          ! MPI: scatter input data to the workers
          CALL master_send_input (icomm, inp_ts, iktau)
 
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+!!!         IF (icycle > 0) THEN
+!!!            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+!!!         END IF
          CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          canopy%oldcansto=canopy%cansto
 
-!         IF (icycle > 0) THEN
-!            ! MPI: gather casa results from all the workers
-!            CALL master_receive (comm, ktau_gl, casa_out)
-!            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-!         END IF
+!!!         IF (icycle > 0) THEN
+!!!            ! MPI: gather casa results from all the workers
+!!!            CALL master_receive (comm, ktau_gl, casa_out)
+!!!            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+!!!         END IF
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
@@ -536,7 +550,7 @@ SUBROUTINE mpidrv_master (comm)
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
-!            IF (icycle > 0) CALL casa_fluxout( dels, ktau, casabal, casamet)
+!!!            IF (icycle > 0) CALL write_casa_flux( dels, ktau, casabal, casamet)
          END IF
    
       END DO ! END Do loop over timestep ktau

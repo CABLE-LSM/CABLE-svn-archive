@@ -336,6 +336,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         temparray2                ! temp read in variable
    REAL(4),POINTER,DIMENSION(:,:,:) :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
+        L_mask,  &  ! mask in met file or not   
         all_met     ! ALL required met in met file (no synthesis)?
 
     ! Initialise parameter loading switch - will be set to TRUE when 
@@ -368,12 +369,21 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          (ok,'Error opening netcdf met forcing file '// &
          TRIM(globalMetfile%snowf)//' (SUBROUTINE open_met_file)')
     ENDIF
-    ok = NF90_OPEN(globalMetfile%LWdown,0,ncid_lw)
-    ok = NF90_OPEN(globalMetfile%SWdown,0,ncid_sw)
-    ok = NF90_OPEN(globalMetfile%PSurf,0,ncid_ps)
-    ok = NF90_OPEN(globalMetfile%Qair,0,ncid_qa)
-    ok = NF90_OPEN(globalMetfile%Tair,0,ncid_ta)
-    ok = NF90_OPEN(globalMetfile%wind,0,ncid_wd)
+    IF (.NOT. globalMetfile%l_ncar) THEN
+      ok = NF90_OPEN(globalMetfile%LWdown,0,ncid_lw)
+      ok = NF90_OPEN(globalMetfile%SWdown,0,ncid_sw)
+      ok = NF90_OPEN(globalMetfile%PSurf,0,ncid_ps)
+      ok = NF90_OPEN(globalMetfile%Qair,0,ncid_qa)
+      ok = NF90_OPEN(globalMetfile%Tair,0,ncid_ta)
+      ok = NF90_OPEN(globalMetfile%wind,0,ncid_wd)
+    ELSE
+      ncid_lw  = ncid_rain
+      ncid_sw  = ncid_rain
+      ncid_ps  = ncid_rain
+      ncid_qa  = ncid_rain
+      ncid_ta  = ncid_rain
+      ncid_wd  = ncid_rain
+    ENDIF
     ncid_met = ncid_rain
     filename%met = globalMetfile%rainf
   ELSE
@@ -422,43 +432,72 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Find latitude variable (try 'latitude' and 'nav_lat'(ALMA)):
     ok = NF90_INQ_VARID(ncid_met, 'latitude', latitudeID)
     IF(ok /= NF90_NOERR) THEN
-       ok = NF90_INQ_VARID(ncid_met, 'nav_lat', latitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+      ok = NF90_INQ_VARID(ncid_met, 'nav_lat', latitudeID)
+      IF(ok /= NF90_NOERR) THEN
+        ok = NF90_INQ_VARID(ncid_met, 'lat', latitudeID)
+        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding latitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+      END IF
     END IF
     ! Allocate space for lat_all variable and its temp counterpart:
     ALLOCATE(lat_all(xdimsize,ydimsize))
     ALLOCATE(temparray2(xdimsize,ydimsize))
     ! Get latitude values for entire region:
     ok= NF90_GET_VAR(ncid_met,latitudeID,temparray2)
-    IF(ok /= NF90_NOERR) CALL nc_abort &
+    IF(ok /= NF90_NOERR) THEN
+       ALLOCATE(temparray1(ydimsize))
+       ok= NF90_GET_VAR(ncid_met,latitudeID,temparray1)
+       IF(ok /= NF90_NOERR) THEN
+         CALL nc_abort &
          (ok,'Error reading latitude variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    ! Needed since r_1 will be double precision with -r8:
-    lat_all = REAL(temparray2)
+       ELSE
+         lat_all = SPREAD(REAL(temparray1),1,xdimsize)
+       END IF
+       DEALLOCATE(temparray1)
+    ELSE
+       ! Needed since r_1 will be double precision with -r8:
+       lat_all = REAL(temparray2)
+    END IF
     ! Find longitude variable (try 'longitude' and 'nav_lon'(ALMA)):
     ok = NF90_INQ_VARID(ncid_met, 'longitude', longitudeID)
     IF(ok /= NF90_NOERR) THEN
-       ok = NF90_INQ_VARID(ncid_met, 'nav_lon', longitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+      ok = NF90_INQ_VARID(ncid_met, 'nav_lon', longitudeID)
+      IF(ok /= NF90_NOERR) THEN
+        ok = NF90_INQ_VARID(ncid_met, 'lon', longitudeID)
+        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding longitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+      END IF
     END IF
     ! Allocate space for lon_all variable:
     ALLOCATE(lon_all(xdimsize,ydimsize))
     ! Get longitude values for entire region:
     ok= NF90_GET_VAR(ncid_met,longitudeID,temparray2)
-    IF(ok /= NF90_NOERR) CALL nc_abort &
+    IF(ok /= NF90_NOERR) THEN
+       ALLOCATE(temparray1(xdimsize))
+       ok= NF90_GET_VAR(ncid_met,longitudeID,temparray1)
+       IF(ok /= NF90_NOERR) THEN 
+         CALL nc_abort &
          (ok,'Error reading longitude variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    ! Needed since r_1 will be double precision with -r8:
-    lon_all = REAL(temparray2)
+       ELSE 
+         lon_all = SPREAD(REAL(temparray1),2,ydimsize)
+       END IF
+       DEALLOCATE(temparray1)
+    ELSE
+       ! Needed since r_1 will be double precision with -r8:
+       lon_all = REAL(temparray2)
+    END IF
 
     ! Check for "mask" variable or "land" variable to tell grid type
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
     ! with dims x,y and "land" is a 1D variable.
+    L_mask = .FALSE.
     ok = NF90_INQ_VARID(ncid_met, 'mask', maskID) ! check for "mask"
+    IF(ok /= NF90_NOERR) THEN
+    ok = NF90_INQ_VARID(ncid_met, 'pftmask', maskID) ! check for "mask" in NCAR
     IF(ok /= NF90_NOERR) THEN ! if error, i.e. no "mask" variable:
        ! Check for "land" variable:
        ok = NF90_INQ_VARID(ncid_met, 'land', landID)
@@ -527,7 +566,13 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              land_y(j) = y
           END DO
        END IF ! does "land" variable exist 
+    ELSE ! i.e. "pftmask" variable exists
+       L_mask = .TRUE.
+    END IF
     ELSE ! i.e. "mask" variable exists
+       L_mask = .TRUE.
+    END IF
+    IF (L_mask) THEN
        ! Allocate "mask" variable:
        ALLOCATE(mask(xdimsize,ydimsize))
        metGrid='mask' ! Use mask system
@@ -568,7 +613,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        land_y = land_ytmp(1:mland_fromfile)
        ! Clear lon_temp, lat_temp,land_xtmp,land_ytmp
        DEALLOCATE(lat_temp,lon_temp,land_xtmp,land_ytmp)
-    END IF ! "mask" variable or no "mask" variable
+    END IF ! "mask" variable or "pftmask" variable
 
     ! Set global mland value (number of land points), used to allocate
     ! all of CABLE's arrays:
@@ -589,7 +634,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQUIRE_DIMENSION(ncid_met,patchdimID,len=nmetpatches)
     END IF
     ! ACCESS has all patches in each grid
-    IF(globalMetfile%l_access) THEN
+    IF(globalMetfile%l_access .OR. globalMetfile%l_ncar) THEN
        nmetpatches = 17
     END IF
 
@@ -639,6 +684,20 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Set time step size:
     dels = REAL(timevar(2) - timevar(1))
+    !********* NCAR input file has poor precision in timevar **************
+    IF (ncciy > 0 .AND. globalMetfile%l_ncar) THEN
+      PRINT *, 'original time step size = ', dels, ' days'
+      PRINT *, 'which is wrong due to precision problem, changed to 3600 s'
+      dels = 3600.0
+      ! save year number before changes
+      syear = timevar(1) / 365
+      ! change timevar units from days to seconds
+      timevar(1) = 0.0
+      DO i = 1, kend - 1
+        timevar(i+1) = timevar(i) + dels
+      ENDDO
+    ENDIF
+    !********* done bug fixing for NCAR time step size and units **********
     WRITE(logn,'(1X,A29,I8,A3,F10.3,A5)') 'Number of time steps in run: ',&
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
 
@@ -665,6 +724,15 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding time variable units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
+    ! ************ fixing NCAR met file time attribute ***********
+    IF (ncciy > 0 .AND. globalMetfile%l_ncar) THEN
+      READ(timeunits(12:15),*) tsyear
+      syear = syear + tsyear
+      timeunits = 'seconds since 1901-01-01 00:00:00'
+      WRITE(timeunits(15:18),'(i4.4)') syear
+    ENDIF
+    !****** done bug fixing for NCAR time attribute ***********
 
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
     IF (timevar(1) == 0.0) THEN
@@ -920,6 +988,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQ_VARID(ncid_met,'dswrf',id%SWdown)
     ELSE IF(globalMetfile%l_access)THEN
        ok = NF90_INQ_VARID(ncid_met,'rsds',id%SWdown)
+    ELSE IF(globalMetfile%l_ncar)THEN
+       ok = NF90_INQ_VARID(ncid_met,'FSDS',id%SWdown)
     ELSE    ! for gswp and single site
        ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
     END IF
@@ -947,6 +1017,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQ_VARID(ncid_met,'tas',id%Tair)
     ELSE IF(globalMetfile%l_access)THEN
        ok = NF90_INQ_VARID(ncid_met,'tas',id%Tair)
+    ELSE IF(globalMetfile%l_ncar)THEN
+       ok = NF90_INQ_VARID(ncid_met,'TBOT',id%Tair)
     ELSE    ! for gswp and single site
        ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair)
     END IF
@@ -977,6 +1049,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQ_VARID(ncid_met,'shum',id%Qair)
     ELSE IF(globalMetfile%l_access)THEN
        ok = NF90_INQ_VARID(ncid_met,'huss',id%Qair)
+    ELSE IF(globalMetfile%l_ncar)THEN
+       ok = NF90_INQ_VARID(ncid_met,'QBOT',id%Qair)
     ELSE    ! for gswp and single site
        ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
     END IF
@@ -1010,6 +1084,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQ_VARID(ncid_met,'prcp',id%Rainf)
     ELSE IF(globalMetfile%l_access)THEN
        ok = NF90_INQ_VARID(ncid_met,'pr',id%Rainf)
+    ELSE IF(globalMetfile%l_ncar)THEN
+       ok = NF90_INQ_VARID(ncid_met,'RAIN',id%Rainf)
     ELSE    ! for gswp and single site
        ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
     END IF
@@ -1044,6 +1120,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF (ncciy > 0) ncid_met = ncid_wd
     IF(globalMetfile%l_gpcc .OR. globalMetfile%l_access)THEN
        ok = NF90_INQ_VARID(ncid_met,'wind',id%Wind)
+    ELSE IF(globalMetfile%l_ncar)THEN
+       ok = NF90_INQ_VARID(ncid_met,'WIND',id%Wind)
     ELSE    ! for gswp and single site
        ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
     END IF
@@ -1079,6 +1157,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQ_VARID(ncid_met,'dlwrf',id%LWdown)
     ELSE IF(globalMetfile%l_access)THEN
        ok = NF90_INQ_VARID(ncid_met,'rlds',id%LWdown)
+    ELSE IF(globalMetfile%l_ncar)THEN
+       ok = NF90_INQ_VARID(ncid_met,'FLDS',id%LWdown)
     ELSE    ! for gswp and single site
        ok = NF90_INQ_VARID(ncid_met,'LWdown',id%LWdown)
     END IF
@@ -1111,6 +1191,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQ_VARID(ncid_met,'pres',id%PSurf)
     ELSE IF(globalMetfile%l_access)THEN
        ok = NF90_INQ_VARID(ncid_met,'ps',id%PSurf)
+    ELSE IF(globalMetfile%l_ncar)THEN
+       ok = NF90_INQ_VARID(ncid_met,'PBOT',id%PSurf)
     ELSE    ! for gswp and single site
        ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
     END IF
@@ -1215,11 +1297,15 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
     ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - - 
-    IF (ncciy > 0 .AND. globalMetfile%l_gswp)Then
+    IF (ncciy > 0 .AND. (globalMetfile%l_gswp .OR. globalMetfile%l_ncar))Then
        ncid_met = ncid_snow
     END IF
 
-    ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
+    IF (globalMetfile%l_ncar) Then
+      ok = NF90_INQ_VARID(ncid_met,'SNOW',id%Snowf)
+    ELSE ! gswp and single sites
+      ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
+    END IF
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%Snowf = .TRUE. ! Snowf is present in met file
        ! Get Snowf units:
@@ -1757,6 +1843,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     IF(metGrid=='mask') THEN
       ! N.B. not for GSWP runs, therefore only one met file here.
       ! Also, xdimsize and ydimsize are passed from io_variables.
+      ! NCAR also used one met file only.
 
       ALLOCATE(tmpDat2(xdimsize,ydimsize))
       ALLOCATE(tmpDat3(xdimsize,ydimsize,1))
@@ -1780,6 +1867,18 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
 
       ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
+    IF(globalMetfile%l_ncar) THEN
+      ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat3, &
+           start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort &
+           (ok,'Error reading Tair in met data file ' &
+           //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      ! Assign value to met data variable with units change:
+      DO i=1,mland ! over all land points/grid cells
+        met%tk(landpt(i)%cstart:landpt(i)%cend) = &
+             REAL(tmpDat3(land_x(i),land_y(i),1)) + convert%Tair
+      ENDDO
+    ELSE
       ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat4, &
            start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1790,9 +1889,21 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         met%tk(landpt(i)%cstart:landpt(i)%cend) = &
              REAL(tmpDat4(land_x(i),land_y(i),1,1)) + convert%Tair
       ENDDO
+    ENDIF
 
       ! Get PSurf data for mask grid:- - - - - - - - - - - - - - - - - -
       IF(exists%PSurf) THEN ! IF PSurf is in met file:
+       IF(globalMetfile%l_ncar) THEN
+        ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat3, &
+             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading PSurf in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%pmb(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat3(land_x(i),land_y(i),1)) * convert%PSurf
+        ENDDO
+       ELSE
         ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1802,6 +1913,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%pmb(landpt(i)%cstart:landpt(i)%cend) = &
                REAL(tmpDat4(land_x(i),land_y(i),1,1)) * convert%PSurf
         ENDDO
+       ENDIF
       ELSE ! PSurf must be fixed as a function of site elevation and T:
         DO i=1,mland ! over all land points/grid cells
          met%pmb(landpt(i)%cstart:landpt(i)%cend)=1013.25* &
@@ -1811,8 +1923,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
+    IF(globalMetfile%l_ncar) THEN
+      ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat3, &
+           start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+    ELSE
       ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat4, &
            start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+    ENDIF
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Qair in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
@@ -1826,14 +1943,33 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%qv(landpt(i)%cstart:landpt(i)%cend) = met%qv(landpt(i)%cstart)
         ENDDO
       ELSE
+       IF(globalMetfile%l_ncar) THEN
+        DO i=1,mland ! over all land points/grid cells
+          met%qv(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat3(land_x(i),land_y(i),1))
+        ENDDO
+       ELSE
         DO i=1,mland ! over all land points/grid cells
           met%qv(landpt(i)%cstart:landpt(i)%cend) = &
                REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
+       ENDIF
       END IF
 
       ! Get Wind data for mask grid: - - - - - - - - - - - - - - - - - -
       IF(exists%Wind) THEN ! Scalar Wind
+       IF(globalMetfile%l_ncar) THEN
+        ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat3, &
+           start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Wind in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        ! Assign value to met data variable (no units change required):
+        DO i=1,mland ! over all land points/grid cells
+          met%ua(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat3(land_x(i),land_y(i),1))
+        ENDDO
+       ELSE
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1844,6 +1980,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%ua(landpt(i)%cstart:landpt(i)%cend) = &
                REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
+       ENDIF
       ELSE ! Vector wind
         ! Get Wind_N:
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
@@ -2469,7 +2606,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
 !      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
-      IF (globalMetfile%l_access) CALL init_cnp_pools(veg, casapool, casabal)
+      IF (globalMetfile%l_access .OR. globalMetfile%l_ncar) &
+         CALL init_cnp_pools(veg, casapool, casabal)
     ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done
@@ -2490,7 +2628,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       WRITE(*,*)    ' Pre-loaded default initialisations are used.'
       ! This is added here as some versions still have not put pool sizes
       ! in the gridinfo input file. Remove when that is done. (BP July 2013)
-      IF (icycle > 0 .AND. (.NOT. globalMetfile%l_access)) THEN
+      IF (icycle > 0 .AND. (.NOT. (globalMetfile%l_access &
+                              .OR. globalMetfile%l_ncar))) THEN
         WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
         CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
       ENDIF

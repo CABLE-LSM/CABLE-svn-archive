@@ -115,6 +115,7 @@ MODULE cable_IO_vars_module
       LOGICAL           ::                                                     &
          l_gpcc, &         ! ypwang following Chris Lu (30/oct/2012)
          l_gswp, &         ! BP May 2013
+         l_ncar, &         ! BP Dec 2013
          l_access          ! BP May 2013
 
    END TYPE globalMet_type

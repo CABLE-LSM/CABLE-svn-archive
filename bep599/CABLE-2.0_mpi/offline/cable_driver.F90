@@ -245,6 +245,13 @@ PROGRAM cable_offline_driver
           PRINT *, 'Please check input in namelist file.'
           STOP
        END IF
+     ELSEIF (globalMetfile%l_ncar) THEN
+       PRINT *, 'Using NCAR met forcing.'
+       IF (ncciy < 1900 .OR. ncciy > 2100) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       END IF
      ELSEIF (globalMetfile%l_access) THEN
        PRINT *, 'Using ACCESS met forcing.'
        IF (ncciy < 370 .OR. ncciy > 2005) THEN
@@ -253,7 +260,7 @@ PROGRAM cable_offline_driver
           STOP
        END IF
      ELSE
-       PRINT *, 'Switches l_gpcc, l_gswp and l_access are false!'
+       PRINT *, 'Switches l_gpcc, l_gswp, l_ncar and l_access are false!'
        PRINT *, 'Please check input in namelist file.'
        STOP
      END IF
@@ -369,7 +376,7 @@ PROGRAM cable_offline_driver
             CALL write_output( dels, ktau, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
-!            IF (icycle > 0) CALL casa_fluxout( dels, ktau, casabal, casamet)
+!!!         IF (icycle > 0) CALL write_casa_flux( dels, ktau, casabal, casamet)
          END IF
    
          ! dump bitwise reproducible testing data

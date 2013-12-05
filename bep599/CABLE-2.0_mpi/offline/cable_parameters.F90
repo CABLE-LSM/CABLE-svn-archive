@@ -916,10 +916,16 @@ CONTAINS
           landpt(kk)%cend = ncount
           IF (landpt(kk)%cend < landpt(kk)%cstart) THEN
             PRINT *, 'Land point ', kk, ' does not have veg type!'
-            PRINT *, 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend
+            PRINT *, 'landpt%cstart, cend = ', landpt(kk)%cstart, ncount
             PRINT *, 'inPFrac = ', inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,:)
-            STOP
+            PRINT *, 'assume to be barren instead.'
+            ncount = ncount + 1
+            landpt(kk)%nap = 1
+            inVeg(landpt(kk)%ilon,landpt(kk)%ilat,1)   = 14
+            inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,1) = 1.0
+            PRINT *, 'New inPFrac = ',inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,:)
           END IF
+          landpt(kk)%cend = ncount
         ELSE
           PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1 or 17.'
           PRINT *, 'If soil patches exist, add new code.'
@@ -1231,8 +1237,11 @@ CONTAINS
     soil%albsoil = ssnow%albsoilsn
 
     ! check tgg and alb
-    IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
-           CALL abort('Soil temps nuts')
+    IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0)) THEN
+       PRINT *, 'tgg max, min = ', MAXVAL(ssnow%tgg), MINVAL(ssnow%tgg)
+       PRINT *, 'at locations = ', MAXLOC(ssnow%tgg), MINLOC(ssnow%tgg)
+       CALL abort('Soil temps nuts')
+    ENDIF
     IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
            CALL abort('Albedo nuts')
 

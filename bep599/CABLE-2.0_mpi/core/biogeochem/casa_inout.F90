@@ -1450,6 +1450,10 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casapool,casabal)
 
+!  ! for spinning up only
+!  casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+!  casapool%Psoillab = max(casapool%Psoillab,0.1)
+
 
 END SUBROUTINE biogeochem
 
