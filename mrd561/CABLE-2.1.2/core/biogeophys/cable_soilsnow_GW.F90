@@ -56,7 +56,7 @@ MODULE cable_soil_snow_gw_module
       
    !MD GW params
    !Should read some in from namelist?
-   REAL, PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
+   REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
                       qhmax   = 5e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
@@ -1626,8 +1626,8 @@ USE cable_common_module
   where (defc(:) .le. 0.0) defc(:) = 0.1
   def(:) = sum((soil%watsat(:,:)-ssnow%wb(:,:))*dzmm(:,:),2)
 
-  !write(*,*) 'def(:) is ',def
-  !write(*,*) 'defc(:) is ',defc
+  !write(*,*) 'def(:) is ',def    !MDeck
+  !write(*,*) 'defc(:) is ',defc    !MDeck
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
@@ -1851,11 +1851,15 @@ USE cable_common_module
     REAL(r_2),DIMENSION(mp)             :: watmin
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
-    
+   
+    !MD DEBUG VARS
+    INTEGER :: imp,ims
+
+ 
     fmt='(A6,6(1X,F8.6))'
  
 
-    
+!    write(*,*) 'inside of smoistgw subroutine '    !MDeck
 
     !make code cleaner define these here
     dzmm(:)    = 1000.0_r_2 * real(soil%zse(:),r_2)
@@ -1881,6 +1885,8 @@ USE cable_common_module
     ct = 0.0
     old_wb(:,:) = ssnow%wb(:,:)
     
+!    write(*,*) 'about to calc the eq head and water content '  !MDeck
+
     !equilibrium water content
     do k=1,ms
        WHERE ((ssnow%wtd(:) .le. zimm(k-1)))          !fully saturated
@@ -1895,77 +1901,109 @@ USE cable_common_module
 		                  *(zimm(k)-ssnow%wtd(:)))/(zimm(k)-zimm(k-1)) + soil%watr(:,k)
        END WHERE
        WHERE (ssnow%wtd .ge. zimm(k))
-          tempi = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k))/soil%smpsat(:,k)))**(1-1/soil%clappB(:,k))
-          temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1-1/soil%clappB(:,k))   
+          tempi = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k))/soil%smpsat(:,k)))**(1.0-1.0/soil%clappB(:,k))
+          temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1.0-1.0/soil%clappB(:,k))   
           ssnow%wbeq(:,k) = -soil%smpsat(:,k)*(soil%watsat(:,k)-soil%watr(:,k))/&
-		                 (1-1/soil%clappB(:,k))/(zimm(k)-zimm(k-1))*(tempi-temp0)+soil%watr(:,k)
+		                 (1.0-1.0/soil%clappB(:,k))/(zimm(k)-zimm(k-1))*(tempi-temp0)+soil%watr(:,k)
        END WHERE
     end do
-    ssnow%wbeq(:,:) = max(ssnow%wbeq(:,:),soil%watr(:,:)+0.01_r_2)
-    ssnow%wbeq(:,:) = min(real(soil%watsat(:,:),r_2),ssnow%wbeq(:,:))       
-    ssnow%zq(:,:)   = -soil%smpsat(:,:)*(max((ssnow%wbeq(:,:)-soil%watr(:,:))/&
-                         real(soil%watsat(:,:)-soil%watr(:,:),r_2),0.01_r_2))**(-soil%clappB(:,:))
-    ssnow%zq(:,:)   = max(sucmin, ssnow%zq(:,:))    
+
+!    write(*,*) ' done with looping over soil layers '  !MDeck
+
+    !ssnow%wbeq(:,:) = max(ssnow%wbeq(:,:),soil%watr(:,:)+0.01_r_2)
+    !ssnow%wbeq(:,:) = min(real(soil%watsat(:,:),r_2),ssnow%wbeq(:,:))       
+    !ssnow%zq(:,:)   = -soil%smpsat(:,:)*(max((ssnow%wbeq(:,:)-soil%watr(:,:))/&
+    !                     real(soil%watsat(:,:)-soil%watr(:,:),r_2),0.01_r_2))**(-soil%clappB(:,:))
+    !ssnow%zq(:,:)   = max(sucmin, ssnow%zq(:,:))    
+
+    where (ssnow%wbeq(:,:) .gt. soil%watsat(:,:))        ssnow%wbeq(:,:) = soil%watsat(:,:)
+    where (ssnow%wbeq(:,:) .le. soil%watr(:,:)) ssnow%wbeq(:,:) = soil%watr(:,:)+0.01_r_2
+    msice(:,:) = (ssnow%wbeq(:,:) - soil%watr(:,:))/(soil%watsat(:,:) - soil%watr(:,:))
+    where (msice .lt. 0.1_r_2) msice = 0.1_r_2
+    where (msice .gt. 1._r_2)   msice = 1._r_2
+
+    ssnow%zq(:,:) = -soil%smpsat(:,:)*(msice(:,:)**(-soil%clappB(:,:)))
+    where (ssnow%zq(:,:) .lt. sucmin) ssnow%zq(:,:)       = sucmin
+    where (ssnow%zq(:,:) .gt. -soil%smpsat) ssnow%zq(:,:) = -soil%smpsat
+
+
+!    write(*,*) 'found soil eq '  !MDeck
        
     !Aquifer Equilibrium water content
     WHERE (ssnow%wtd(:) .le. zimm(ms))                                          !fully saturated
        ssnow%GWwbeq(:) = real(soil%GWwatsat(:)-soil%GWwatr(:),r_2)
     END WHERE
     WHERE ((ssnow%wtd(:) .gt. GWzimm(:)))                                       !fully unsaturated
-       tempi = (((soil%GWsmpsat(:)+ssnow%wtd(:)-GWzimm(:))/soil%GWsmpsat(:)))**(1-1/soil%GWclappB(:))
-       temp0 = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1-1/soil%GWclappB(:))   
+       tempi = (((soil%GWsmpsat(:)+ssnow%wtd(:)-GWzimm(:))/soil%GWsmpsat(:)))**(1.0-1.0/soil%GWclappB(:))
+       temp0 = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1.0-1.0/soil%GWclappB(:))   
        ssnow%GWwbeq(:) = -soil%GWsmpsat(:)*soil%GWwatsat(:)/&
-	                 (1-1/soil%GWclappB(:))/(GWzimm(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)	 
+                          (1.0-1.0/soil%GWclappB(:))/(GWzimm(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)	 
     END WHERE           
     WHERE ((ssnow%wtd(:) .le. GWzimm(:)) .and. (ssnow%wtd(:) .gt. zimm(ms)))    !partially saturated
        tempi  = 1.0_r_2
        temp0  = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1.0-1.0/soil%GWclappB(:))               
        voleq1 = -soil%GWsmpsat(:)*(soil%GWwatsat(:)-soil%GWwatr(:))/&
-	          (1.0-1.0/soil%GWclappB(:))/(ssnow%wtd(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)
+                (1.0-1.0/soil%GWclappB(:))/(ssnow%wtd(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)
        ssnow%GWwbeq(:) = (voleq1*(ssnow%wtd(:)-zimm(ms)) + (soil%GWwatsat(:)-soil%GWwatr(:))*&
-	                   (GWzimm(:)-ssnow%wtd(:)))/(GWzimm(:)-zimm(ms)) + soil%GWwatr(:)
+                         (GWzimm(:)-ssnow%wtd(:)))/(GWzimm(:)-zimm(ms)) + soil%GWwatr(:)
     END WHERE
     ssnow%GWwbeq(:) = min(real(soil%GWwatsat(:),r_2),ssnow%GWwbeq(:))
     ssnow%GWwbeq(:) = max(ssnow%GWwbeq(:),soil%GWwatr(:)+0.01_r_2)    
     ssnow%GWzq(:) = -soil%GWsmpsat(:)*(max((ssnow%GWwbeq(:)-soil%GWwatr(:))/&
                       (soil%GWwatsat(:)-soil%GWwatr(:)),0.01_r_2))**(-soil%GWclappB(:))
     ssnow%GWzq(:) = max(sucmin, ssnow%GWzq(:))
-              
+    
+
+!    write(*,*) 'found aquifer eq '  !MDeck
+          
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
     do k=1,ms
-       ssnow%icefrac(:,k) = ssnow%wbice(:,k)/(max(ssnow%wbice(:,k)+ssnow%wbliq(:,k),0.01_r_2))
-       ssnow%fracice(:,k) = (ssnow%icefrac(:,k)- exp(-3.0))/(1.0-exp(-3.0))
+       ssnow%icefrac(:,k) = ssnow%wbice(:,k)/(max(ssnow%wb(:,k),0.01_r_2))
+       ssnow%fracice(:,k) = ssnow%icefrac(:,k)- exp(-3.0)
        ssnow%fracice(:,k) = max(min(ssnow%fracice(:,k),1.0_r_2),0.0_r_2)
     end do
     fice_avg(:)  = sum(ssnow%fracice(:,:)*spread(dzmm(:),1,mp),2) / sum(dzmm(:))
-    fice_avg(:)  = min(max(fice_avg(:) / ms,0.0_r_2),0.95_r_2)
+    fice_avg(:)  = min(max(fice_avg(:),0.0_r_2),0.95_r_2)
     where(fice_avg(:) < ssnow%fracice(:,ms)) fice_avg(:) = ssnow%fracice(:,ms)         !frozen ms limits qh
-       
+      
+!    write(*,*) ' found ice frac for qh'  !MDeck
+ 
     do k=1,ms   
        kk=min(k+1,ms)
-       if (k < ms) then
-          s1 = min(0.5*(ssnow%wb(:,k)-soil%watr(:,k) + ssnow%wb(:,kk)-soil%watr(:,kk)) / &
-               (0.5*(soil%watsat(:,k)-soil%watr(:,k) + soil%watsat(:,kk)-soil%watr(:,kk))),1.0_r_2)
+       if (k .lt. ms) then
+          s1 = 0.5*(ssnow%wb(:,k)-soil%watr(:,k) + ssnow%wb(:,kk)-soil%watr(:,kk)) / &
+               (0.5*(soil%watsat(:,k)-soil%watr(:,k) + soil%watsat(:,kk)-soil%watr(:,kk)))
+          where (s1 .gt. 1._r_2)   s1 = 1._r_2
+          where (s1 .lt. 0.01_r_2) s1 = 0.01_r_2
           s2 = soil%hksat(:,k)*s1**(2.0*soil%clappB(:,k)+2.0)
           ssnow%hk(:,k)    = (1.0-0.5*(ssnow%fracice(:,k)+ssnow%fracice(:,kk)))*s1*s2
           ssnow%dhkdw(:,k) = (1.0-0.5*(ssnow%fracice(:,k)+ssnow%fracice(:,kk)))* &
                     (2.0*soil%clappB(:,k)+3.0)*s2*0.5/(soil%watsat(:,k)-soil%watr(:,k))
        else
-          s1 = min(0.5*(ssnow%wb(:,k)-soil%watr(:,k) + ssnow%GWwb(:)-soil%GWwatr(:)) / &
-               (0.5*(soil%watsat(:,k)-soil%watr(:,k) + soil%GWwatsat(:)-soil%GWwatr(:))),1.0_r_2)
+          s1 = 0.5*(ssnow%wb(:,k)-soil%watr(:,k) + ssnow%GWwb(:)-soil%GWwatr(:)) / &
+               (0.5*(soil%watsat(:,k)-soil%watr(:,k) + soil%GWwatsat(:)-soil%GWwatr(:)))
+          where (s1 .gt. 1._r_2)   s1 = 1._r_2
+          where (s1 .lt. 0.01_r_2) s1 = 0.01_r_2
           s2 = soil%hksat(:,k)*s1**(2.0*soil%clappB(:,k)+2.0)
           ssnow%hk(:,k)    = s1*s2*(1.0-ssnow%fracice(:,k))* exp (-hkrz*zimm(ms)/1000.0_r_2)
           ssnow%dhkdw(:,k) = (1.0-ssnow%fracice(:,k))* (2.0*soil%clappB(:,k)+3.0)*&
-	                         s2*0.5/(soil%watsat(:,k)-soil%watr(:,k)*exp (hkrz*zimm(ms)/1000.0_r_2))
+                         s2*0.5/(soil%watsat(:,k)-soil%watr(:,k)*exp (hkrz*zimm(ms)/1000.0_r_2))
        end if
-	  
-       s_mid = max(min((ssnow%wb(:,k)+dri*ssnow%wbice(:,k)-soil%watr(:,k))/&
-              (soil%watsat(:,k)-soil%watr(:,k)),1.0_r_2),0.01_r_2)
-       ssnow%smp(:,k) = max(min(-soil%smpsat(:,k)*s_mid**(-soil%clappB(:,k)),&
-	                         -soil%smpsat(:,k)),sucmin)
+  
+       s_mid = (ssnow%wb(:,k)+dri*ssnow%wbice(:,k)-soil%watr(:,k))/&
+              (soil%watsat(:,k)-soil%watr(:,k))
+       where (s_mid .gt. 1._r_2)   s_mid = 1._r_2
+       where (s_mid .lt. 0.01_r_2) s_mid = 0.01_r_2
+       ssnow%smp(:,k) = -soil%smpsat(:,k)*s_mid**(-soil%clappB(:,k))
+       where (ssnow%smp(:,k) .gt. -soil%smpsat(:,k)) ssnow%smp(:,k) = -soil%smpsat(:,k)
+       where (ssnow%smp(:,k) .lt. sucmin)            ssnow%smp(:,k) = sucmin
        ssnow%dsmpdw(:,k) = -soil%clappB(:,k)*ssnow%smp(:,k)/&
-	                    (max(s_mid*(soil%watsat(:,k)-soil%watr(:,k)),0.001_r_2))          
+                    (max(s_mid*(soil%watsat(:,k)-soil%watr(:,k)),0.001_r_2))          
     end do
+
+
+!    write(*,*) ' found soil porperties '  !MDeck
+
     !Aquifer properties
     s_mid = (ssnow%GWwb(:)-soil%GWwatr(:))/(soil%GWwatsat(:)-soil%GWwatr(:))
     s_mid = max(min(s_mid,1.0_r_2),0.01_r_2)   
@@ -1975,8 +2013,13 @@ USE cable_common_module
     ssnow%GWdhkdw(:)  = (1.0-ssnow%fracice(:,ms))* (2.0*soil%clappB(:,ms)+3.0)*&
                          s2*0.5/(soil%GWwatsat(:)-soil%GWwatr(:))
     ssnow%GWsmp(:)    = -soil%smpsat(:,ms)*s_mid**(-soil%clappB(:,ms))
-    ssnow%GWdsmpdw(:) = -soil%clappB(:,ms)*ssnow%GWsmp(:)/(s_mid*(soil%GWwatsat(:)-soil%GWwatr(:)))
-       
+    where (ssnow%GWsmp .lt. sucmin)         ssnow%GWsmp = sucmin
+    where (ssnow%GWsmp .gt. -soil%GWsmpsat) ssnow%GWsmp = -soil%GWsmpsat
+    ssnow%GWdsmpdw(:) = -soil%GWclappB(:)*ssnow%GWsmp(:)/(s_mid*(soil%GWwatsat(:)-soil%GWwatr(:)))
+      
+
+!    write(*,*) 'found aquifer porperties '  !MDeck
+ 
     !Note: temporaary parameteriation of horizontal drainage
     !too be replaced with explivit treatment of subgrid scale, topographically
     !based subsurface flux convergence flowing to river channels 
@@ -1996,7 +2039,7 @@ USE cable_common_module
 
     rt(:,:) = 0.0_r_2; at(:,:) = 0.0_r_2     !ensure input to tridiag is valid
     bt(:,:) = 1.0_r_2; ct(:,:) = 0.0_r_2
-
+!    write(*,*) 'finding qin qout '  !MDeck
     k = 1
        qin    = ssnow%sinfil(:)
        den    = (zmm(k+1)-zmm(k))
@@ -2064,61 +2107,72 @@ USE cable_common_module
        at(:,k) = -dqidw0
        bt(:,k) =  GWdzmm(:)/dels - dqidw1
        ct(:,k) =  0.0_r_2
-          
+
+!    write(*,*) 'calced qin qout etc '            !MDeck
     CALL solve_tridiag(at, bt, ct, rt, del_wb,ms+1)                      !solve system of eqns
 
+!    write(*,*) 'found del wb '  !MDeck
     !alternate method that solves only using the ms layers
-    !ssnow%GWwb(:) = ssnow%GWwb(:) + (qout-dqodw1*del_wb(:,ms)-qhlev(:,ms+1))*dels                       !add del-h2o to soil  
+    !ssnow%GWwb(:) = ssnow%GWwb(:) + (qout-dqodw1*del_wb(:,ms)-qhlev(:,ms+1))*dels      !add del-h2o to soil  
 
     !deal with extra/to little liquid in terms of mass not volume
 
-    msliq(:,:)   = (ssnow%wbliq+del_wb(:,1:ms))*spread(dzmm,1,mp)         !mass of liquid water including update from vertical movement
+    msliq(:,:)   = (ssnow%wbliq+del_wb(:,1:ms))*spread(dzmm,1,mp)         !mass of liquid water including (updated)
     msice(:,:)   = (ssnow%wbice)*dri * spread(dzmm,1,mp)                  !mass of ice.  not updated as no ice flow
     eff_por(:,:) = soil%watsat - ssnow%wbice                              !effective porosity (saturated minus vol of ice)
     mss_por(:,:) = eff_por/spread(dzmm,1,mp)                              !mass of liquid the effective porosity can hole
     GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
+
+!    write(*,*) ' updated soil liq mass '
           
     xsi(:)       = GWmsliq(:) - soil%GWwatsat(:)*GWdzmm                   !if > 0 it is oversaturation in aquifer
     where (xsi(:) .lt. 0.0_r_2) xsi(:) = 0.0_r_2
-    where (xsi(:) .gt. 0.0_r_2) GWmsliq(:) = soil%GWwatsat(:)*GWdzmm(:) 	!set aquifer to saturated  
+    where (xsi(:) .gt. 0.0_r_2) GWmsliq(:) = soil%GWwatsat(:)*GWdzmm(:)   !set aquifer to saturated  
     msliq(:,ms) = msliq(:,ms) + xsi(:)
- 
+
+!    write(*,*) 'before xs loop '  !MDeck
+     
     do k = ms,2,-1  !loop from bottom to top adding extra water to each layer
        where ((xsi(:) .lt. (msliq(:,k)-mss_por(:,k))) .and. (xsi(:) .gt. 0.0_r_2))
           msliq(:,k) = msliq(:,k) + xsi(:)
-       elsewhere (xsi(:) .gt. 0.0_r_2)
+       end where
+       where (xsi(:) .gt. 0.0_r_2 .and. xsi(:) .lt. (msliq(:,k)-mss_por(:,k)))
           xsi(:)     = xsi(:) - (mss_por(:,k)-msliq(:,k))
           msliq(:,k) = mss_por(:,k)
        end where
     end do
     xs1(:) = msliq(:,1)-mss_por(:,1)
     where(xs1(:) .lt. 0.0_r_2) xs1(:) = 0.0_r_2
-    
+   
+!    write(*,*) '1st layer xs calc '  !MDeck
+ 
     where(xs1(:) .gt. 0.0_r_2)                                             !if soil column is saturated add extra to runoff
        msliq(:,1)   = mss_por(:,1)
        ssnow%qhz(:) = ssnow%qhz(:) + xs1(:) / dels
        xs1(:) = 0.0_r_2
    end where
- 
-    do k = 1,ms-1                                                          !ensure liq < liq_minimum (using mm)
+!   write(*,*) 'about to ensure liq > liq min '   !MDeck
+    do k = 1,ms                                                        !ensure liq < liq_minimum (using mm)
        xs(:) = 0.0_r_2
        where (msliq(:,k) .lt. watmin)
           xs(:) = watmin - msliq(:,k)
+       elsewhere
+          xs(:) = 0._r_2
        end where
-       msliq(:,k  ) = msliq(:,k  ) + xs(:)
-       if (k .le. (ms-1)) then
+       msliq(:,k) = msliq(:,k  ) + xs(:)
+       if (k .lt. ms) then
           msliq(:,k+1) = msliq(:,k+1) - xs(:)
        else
           GWmsliq(:) = GWmsliq(:) - xs(:)
        endif
     end do
-
+!    write(*,*) 'done with liq < liq min '  !MDeck
     ssnow%wbliq(:,:) = msliq(:,:) / spread(dzmm(:),1,mp)                   !convert from mm to volumetric
     ssnow%GWwb(:)    = GWmsliq(:) / GWdzmm(:)  
 
     ssnow%rnof2(:) = ssnow%qhz(:)          
           
-          
+!    write(*,*) 'end of smoistgw '            !MDeck
 
 
  END SUBROUTINE smoistgw
@@ -2159,9 +2213,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    
    prin = .FALSE.
   
-
-   !MDeck
-   write(*,*) 'in soil snow gw'
+!   write(*,*) 'in soil snow gw'  !MDeck
  
    CALL point2constants( C ) 
    cp = C%CAPP
@@ -2198,8 +2250,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%sinfil = 0.0   
   
 
-   !MDeck
-   write(*,*) 'set up ktau <=1'
+!   write(*,*) 'set up ktau <=1'  !MDeck
 
  
    IF( .NOT.cable_user%cable_runtime_coupled ) THEN
@@ -2263,22 +2314,21 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%wblf   = max(0.01_r_2,ssnow%wbliq/soil%watsat)
    ssnow%wbfice = max(0.01_r_2,ssnow%wbice/soil%watsat)   
 
-   !MDeck
-   write(*,*) 'call snowcheck'
+
+!   write(*,*) 'call snowcheck'  !MDeck
  
    CALL snowcheck (dels, ssnow, soil, met )
 
 
-   !MDeck
-   write(*,*) 'snow density'
+!   write(*,*) 'snow density'  !MDeck
 
    CALL snowdensity (dels, ssnow, soil)
-   !MDeck
-   write(*,*) 'snow accum'
+
+!   write(*,*) 'snow accum'  !MDeck
 
    CALL snow_accum (dels, canopy, met, ssnow, soil )
-   !MDeck
-   write(*,*) 'snow melt'
+
+!   write(*,*) 'snow melt'  !MDeck
    CALL snow_melting (dels, snowmlt, ssnow, soil )
 
    ! Add snow melt to global snow melt variable:
@@ -2286,41 +2336,41 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    ! Adjust levels in the snowpack due to snow accumulation/melting,
    ! snow aging etc...
-   !MDeck
-   write(*,*) 'snow adj'
+
+!   write(*,*) 'snow adj'  !MDeck
    CALL snowl_adjust(dels, ssnow, canopy )
 
    !do the soil and snow melting, freezing prior to water movement
    
    ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
    !MDeck
-   write(*,*) 'snow melt'
+!   write(*,*) 'snow melt'
    CALL snow_melting (dels, snowmlt, ssnow, soil )
    
    ! Add new snow melt to global snow melt variable: 
    ssnow%smelt = ssnow%smelt + snowmlt
-   !MDeck
-   write(*,*) 'soil freeze'
+
+!   write(*,*) 'soil freeze'  !MDeck
    CALL  soilfreeze(dels, soil, ssnow)
 
    ssnow%fwtop = canopy%precis + ssnow%smelt                !water for infiltration   
    
-   !MDeck
-   write(*,*) 'calc wtd'
+
+!   write(*,*) 'calc wtd'  !MDeck
 
    CALL calcwtd (ssnow, soil, ktau, prin)                  !update the wtd
-   !MDeck
-   write(*,*) 'ovrland flux'
+
+!   write(*,*) 'ovrland flux'  !MDeck
    CALL ovrlndflx (dels, ktau, ssnow, soil, prin )         !surface runoff, incorporate ssnow%pudsto?
    
    !ssnow%fwtop = ssnow%fwtop - canopy%segg
    ssnow%sinfil = ssnow%fwtop  - canopy%segg
 
-   !MDeck
-   write(*,*) 'soil moist gw'
+
+!   write(*,*) 'soil moist gw'  !MDeck
    CALL smoistgw (dels,ktau,ssnow,soil,prin)               !vertical soil moisture movement. 
    !canopy%fesp/C%HL*dels is the puddle evaporation
-    
+!   write(*,*) 'done soil moist gw'     !MDeck
    ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff (in mm)
   
    ! lakes: replace hard-wired vegetation number in next version
@@ -2330,8 +2380,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       ssnow%wb_lake = ssnow%wb_lake - ssnow%sinfil
       ssnow%rnof2 = MAX( 0.0, ssnow%rnof2 - ssnow%wb_lake )
    ENDWHERE    
-   !MDeck
-   write(*,*) 'remove transp'    
+
+!   write(*,*) 'remove transp'      !MDeck
    CALL remove_trans(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer
 
 

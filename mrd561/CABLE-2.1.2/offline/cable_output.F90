@@ -629,7 +629,7 @@ CONTAINS
 
     !MD groundwater related variables
     IF(output%soil .OR. output%WatTable) THEN
-       CALL define_ovar(ncid_out, ovid%WatTable, 'WatTable', 'mm',      &
+       CALL define_ovar(ncid_out, ovid%WatTable, 'WatTable', 'm',      &
                         'Water Table Depth', patchout%WatTable,     &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%WatTable(mp))
@@ -650,28 +650,28 @@ CONTAINS
        out%EqGWMoist = 0.0 ! initialise
     END IF    
     IF(output%soil .OR. output%EqGWSoilMatPot) THEN
-       CALL define_ovar(ncid_out, ovid%EqGWSoilMatPot, 'EqGWSoilMatPot', 'mm',      &
+       CALL define_ovar(ncid_out, ovid%EqGWSoilMatPot, 'EqGWSoilMatPot', 'm',      &
                         'Aquifer equilibiruim matric potential', patchout%EqGWSoilMatPot,     &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%EqGWSoilMatPot(mp))
        out%EqGWSoilMatPot = 0.0 ! initialise
     END IF      
     IF(output%soil .OR. output%GWSoilMatPot) THEN
-       CALL define_ovar(ncid_out, ovid%GWSoilMatPot, 'GWSoilMatPot', 'mm',      &
-                        'Aquifer  matric potential', patchout%GWSoilMatPot,     &
+       CALL define_ovar(ncid_out, ovid%GWSoilMatPot, 'GWSoilMatPot', 'm',      &
+                        'Aquifer  pressure (matric potential)', patchout%GWSoilMatPot,     &
                         'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%EqGWSoilMatPot(mp))
-       out%EqGWSoilMatPot = 0.0 ! initialise
+       ALLOCATE(out%GWSoilMatPot(mp))
+       out%GWSoilMatPot = 0.0 ! initialise
     END IF         
     IF(output%soil .OR. output%SoilMatPot) THEN
-       CALL define_ovar(ncid_out, ovid%SoilMatPot, 'SoilMatPot', 'mm',      &
+       CALL define_ovar(ncid_out, ovid%SoilMatPot, 'SoilMatPot', 'm',      &
                         'Average layer soil matric potential', patchout%SoilMatPot,     &
                         'soil', xID, yID, zID, landID, patchID, soilID, tID)
        ALLOCATE(out%SoilMatPot(mp,ms))
        out%SoilMatPot = 0.0 ! initialise
     END IF    
     IF(output%soil .OR. output%EqSoilMatPot) THEN
-       CALL define_ovar(ncid_out, ovid%EqSoilMatPot, 'EqSoilMatPot', 'mm',      &
+       CALL define_ovar(ncid_out, ovid%EqSoilMatPot, 'EqSoilMatPot', 'm',      &
                         'Average layer soil equilibiruim matric potential', patchout%EqSoilMatPot,     &
                         'soil', xID, yID, zID, landID, patchID, soilID, tID)
        ALLOCATE(out%EqSoilMatPot(mp,ms))
@@ -1107,6 +1107,9 @@ CONTAINS
     INTEGER, SAVE :: out_month ! counter for output month
     INTEGER, DIMENSION(mp) :: realyear ! fix problem for yr b4 leap yr
     INTEGER :: backtrack  ! modify timetemp for averaged output
+
+
+    !write(*,*) ' in write_output '    !MDeck
 
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
@@ -1838,8 +1841,9 @@ CONTAINS
     !MD Write the hydrology output data from the groundwater module calculations
     !water table depth
     IF(output%soil .OR. output%WatTable) THEN
+       !write(*,*) 'wtd'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       out%WatTable = out%WatTable + REAL(ssnow%wtd, 4)
+       out%WatTable = out%WatTable + REAL(ssnow%wtd/1000.0, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%WatTable = out%WatTable / REAL(output%interval, 4)
@@ -1852,6 +1856,7 @@ CONTAINS
     END IF    
     !aquifer water content
     IF(output%soil .OR. output%GWMoist) THEN
+       !write(*,*) 'GWmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
        IF(writenow) THEN
@@ -1866,6 +1871,7 @@ CONTAINS
     END IF      
     !aquifer equilibrium water content
     IF(output%soil .OR. output%EqGWMoist) THEN
+       !write(*,*) 'EQ-GWmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqGWMoist = out%EqGWMoist + REAL(ssnow%GWwbeq, 4)
        IF(writenow) THEN
@@ -1880,8 +1886,11 @@ CONTAINS
     END IF        
     !aquifer soil matric potential
     IF(output%soil .OR. output%GWSoilMatPot) THEN
+       !write(*,*) 'GW smp'  !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       out%GWSoilMatPot = out%GWSoilMatPot + REAL(ssnow%GWsmp, 4)
+       out%GWSoilMatPot = out%GWSoilMatPot + REAL(ssnow%GWsmp/1000.0, 4)
+       !write(*,*) minval(out%GWSoilMatPot),'  ',minval(ssnow%GWsmp)  !MDeck
+       !write(*,*) maxval(out%GWSoilMatPot),'  ',maxval(ssnow%GWsmp)  !MDeck
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GWSoilMatPot = out%GWSoilMatPot / REAL(output%interval, 4)
@@ -1894,8 +1903,9 @@ CONTAINS
     END IF         
     !equilibrium aquifer soil matric potential
     IF(output%soil .OR. output%EqGWSoilMatPot) THEN
+!       write(*,*) 'EQ-GW smp'   !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       out%EqGWSoilMatPot = out%EqGWSoilMatPot + REAL(ssnow%GWzq, 4)
+       out%EqGWSoilMatPot = out%EqGWSoilMatPot + REAL(ssnow%GWzq/1000.0, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%EqGWSoilMatPot = out%EqGWSoilMatPot / REAL(output%interval, 4)
@@ -1908,8 +1918,9 @@ CONTAINS
     END IF     
     ! soil matric potential
     IF(output%soil .OR. output%SoilMatPot) THEN
+       !write(*,*) 'smp'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       out%SoilMatPot = out%SoilMatPot + REAL(ssnow%smp, 4)
+       out%SoilMatPot = out%SoilMatPot + REAL(ssnow%smp/1000.0, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%SoilMatPot = out%SoilMatPot / REAL(output%interval, 4)
@@ -1922,8 +1933,9 @@ CONTAINS
     END IF     
     ! equilibrium soil matric potential
     IF(output%soil .OR. output%EqSoilMatPot) THEN
+       !write(*,*) 'EQ smp'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       out%EqSoilMatPot = out%EqSoilMatPot + REAL(ssnow%zq, 4)
+       out%EqSoilMatPot = out%EqSoilMatPot + REAL(ssnow%zq/1000.0, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%EqSoilMatPot = out%EqSoilMatPot / REAL(output%interval, 4)
@@ -1936,6 +1948,7 @@ CONTAINS
     END IF  
     ! equilibrium soil water content
     IF(output%soil .OR. output%EqSoilMoist) THEN
+       !write(*,*) 'EQ soilmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqSoilMoist = out%EqSoilMoist + REAL(ssnow%wbeq, 4)
        IF(writenow) THEN
@@ -1950,6 +1963,7 @@ CONTAINS
     END IF      
     ! infiltration rate
     IF(output%soil .OR. output%Qinfl) THEN
+       !write(*,*) 'Qinfl'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%Qinfl = out%Qinfl + REAL(ssnow%fwtop/dels, 4)
        IF(writenow) THEN
@@ -1962,7 +1976,9 @@ CONTAINS
           out%Qinfl = 0.0
        END IF
     END IF      
-    
+   
+    !write(*,*) ' at end of write_output '    !MDeck
+ 
   END SUBROUTINE write_output
   !=============================================================================
   SUBROUTINE close_output_file(bal, air, bgc, canopy, met,                     &

@@ -110,15 +110,7 @@ CONTAINS
       call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
 
-   !MDeck
-   write(*,*) 'just defined air'
-
-
    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
-
-   !MDeck
-   write(*,*) 'just init rad'
-
 
    IF( cable_runtime%um ) THEN
       
@@ -130,16 +122,8 @@ CONTAINS
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
    ENDIf
 
-   !MDeck
-   write(*,*) 'just called srf albedo'   
-   write(*,*) maxval(ssnow%wb)
-   write(*,*) minval(ssnow%wb)
- 
    ! Calculate canopy variables:
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
-
-   !MDeck
-   write(*,*) 'just called define canopy'
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss
@@ -160,6 +144,7 @@ CONTAINS
          CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
       END IF
    ENDIF
+   !write(*,*) 'out of soil_snow_gw '    !MDeck
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations
