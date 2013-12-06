@@ -1190,7 +1190,7 @@ SUBROUTINE soilfreezemass(dels, soil, ssnow)
    REAL(r_2), DIMENSION(mp,ms)        :: massliq,massice,masstot,&
                                          mass_avliq,vol_avliq
    REAL, DIMENSION(mp)           :: xx
-   INTEGER k
+   INTEGER k,im
 
    massice    = ssnow%wbice*spread(soil%zse,1,mp)*denice
    massliq    = ssnow%wbliq*spread(soil%zse,1,mp)*denliq
@@ -1201,56 +1201,55 @@ SUBROUTINE soilfreezemass(dels, soil, ssnow)
 
    xx = 0.
    DO k = 1, ms
+    do im=1,mp
+      if (ssnow%tgg(im,k) < C%TFRZ &
+           .AND. vol_avliq(im,k) .gt. .01) then
+         sicefreeze(im) = MIN( mass_avliq(im,k),             &
+                      ( C%TFRZ - ssnow%tgg(im,k) ) * ssnow%gammzz(im,k) / C%HLF )
+         massice(im,k) = massice(im,k) + sicefreeze(im) 
+         massliq(im,k) = massliq(im,k) - sicefreeze(im)
+         ssnow%wbice(im,k) = massice(im,k) / (soil%zse(k)*denice) 
+         xx(im) = soil%css(im) * soil%rhosoil(im) * soil%zse(k)
+         ssnow%gammzz(im,k) = MAX(                                              &
+             REAL((1.0 - soil%watsat(im,k)) * soil%css(im) * soil%rhosoil(im) ,r_2)*soil%zse(k)&
+             + massliq(im,k) * REAL(cswat,r_2)   &
+             + massice(im,k) * REAL(csice,r_2),              &
+             REAL(xx(im),r_2))
 
-      WHERE (ssnow%tgg(:,k) < C%TFRZ &
-          & .AND. vol_avliq(:,k) > .001)
+         if (k == 1 .AND. ssnow%isflag(im) == 0) then
+            ssnow%gammzz(im,k) = ssnow%gammzz(im,k) + cgsnow * ssnow%snowd(im)
+         end if
+         ssnow%tgg(im,k) = ssnow%tgg(im,k) + (sicefreeze(im)                    &
+                          * C%HLF / ssnow%gammzz(im,k) )
 
-         sicefreeze = MIN( mass_avliq(:,k),             &
-                      ( C%TFRZ - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
-         massice(:,k) = massice(:,k) + sicefreeze 
-         ssnow%wbice(:,k) = massice(:,k) / (soil%zse(k)*denice) 
-         xx = soil%css * soil%rhosoil * soil%zse(k)
-         ssnow%gammzz(:,k) = MAX(                                              &
-             REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)*soil%zse(k)&
-             + ((masstot(:,k)-massice(:,k))) * REAL(cswat,r_2)   &
-             + massice(:,k) * REAL(csice,r_2),              &
-             REAL(xx,r_2))
+      elseif( ssnow%tgg(im,k) > C%TFRZ .AND. massice(im,k) .gt. 0. ) then
 
-         WHERE (k == 1 .AND. ssnow%isflag == 0)
-            ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
-         END WHERE
-         ssnow%tgg(:,k) = ssnow%tgg(:,k) + REAL(sicefreeze)                    &
-                          * C%HLF / REAL(ssnow%gammzz(:,k) )
+         sicemelt(im) = MIN( massice(im,k),              &
+                    ( ssnow%tgg(im,k) - C%TFRZ ) * ssnow%gammzz(im,k) / C%HLF )
 
-         massliq(:,k) = masstot(:,k) - massice(:,k)
+         massice(im,k) = max(0._r_2,massice(im,k) - sicemelt(im))
+         massliq(im,k) = masstot(im,k) - massice(im,k)
+         xx(im) = soil%css(im) * soil%rhosoil(im)*soil%zse(k)
+         ssnow%gammzz(im,k) = MAX(                                             &
+              REAL((1.0-soil%watsat(im,k)) * soil%css(im) * soil%rhosoil(im),r_2)*soil%zse(k) &
+              + massliq(im,k) * REAL(cswat,r_2)   &
+              + massice(im,k) * REAL(csice,r_2),            &
+              REAL(xx(im),r_2) )
+         if (k == 1 .AND. ssnow%isflag(im) == 0) then
+            ssnow%gammzz(im,k) = ssnow%gammzz(im,k) + cgsnow * ssnow%snowd(im)
+         end if
+         ssnow%tgg(im,k) = ssnow%tgg(im,k) -(sicemelt(im)                     &
+                          * C%HLF / ssnow%gammzz(im,k))
 
-      ELSEWHERE( ssnow%tgg(:,k) > C%TFRZ .AND. massice(:,k) > 0. )
+      end if
 
-         sicemelt = MIN( massice(:,k),              &
-                    ( ssnow%tgg(:,k) - C%TFRZ ) * ssnow%gammzz(:,k) / C%HLF )
+      ssnow%wbice(im,k) = massice(im,k) / (soil%zse(k)*denice)
+      ssnow%wbliq(im,k) = massliq(im,k) / (soil%zse(k)*denliq)
+      ssnow%wb(im,k) = ssnow%wbice(im,k) + ssnow%wbliq(im,k)
 
-         massice(:,k) = max(0._r_2,massice(:,k) - sicemelt)
-         xx = soil%css * soil%rhosoil*soil%zse(k)
-         ssnow%gammzz(:,k) = MAX(                                             &
-              REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)*soil%zse(k) &
-              + (masstot(:,k) - massice(:,k)) * REAL(cswat,r_2)   &
-              + massice(:,k) * REAL(csice,r_2),            &
-              REAL(xx,r_2) )
-         WHERE (k == 1 .AND. ssnow%isflag == 0)
-            ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
-         END WHERE
-         ssnow%tgg(:,k) = ssnow%tgg(:,k) - REAL(sicemelt)                     &
-                          * C%HLF / REAL(ssnow%gammzz(:,k))
+     END DO
 
-         massliq(:,k) = masstot(:,k) - massice(:,k)
-
-      END WHERE
-
-      ssnow%wbice(:,k) = massice(:,k) / (soil%zse(k)*denice)
-      ssnow%wbliq(:,k) = massliq(:,k) / (soil%zse(k)*denliq)
-      ssnow%wb(:,k) = ssnow%wbice(:,k) + ssnow%wbliq(:,k)
-
-   END DO
+   end do
 
 END SUBROUTINE soilfreezemass
 
@@ -1699,7 +1698,7 @@ USE cable_common_module
 
  
   !Local vars 
-  REAL(r_2), DIMENSION(mp,ms)   :: dzmm
+  REAL(r_2), DIMENSION(mp,ms)   :: dzmm,tmp_def
   REAL(r_2), DIMENSION(ms+1)          :: zimm
   REAL(r_2), DIMENSION(ms)            :: zmm
   REAL(r_2), DIMENSION(mp)      :: GWzimm,temp
@@ -1725,7 +1724,12 @@ USE cable_common_module
 
   
   where (defc(:) .le. 0.0) defc(:) = 0.1
-  def(:) = sum((soil%watsat(:,:)-ssnow%wb(:,:))*dzmm(:,:),2)
+  where (soil%watsat .gt. ssnow%wb)
+    tmp_def = (soil%watsat(:,:)-ssnow%wb(:,:))
+  elsewhere
+    tmp_def = 0._r_2
+  end where
+  def(:) = sum(tmp_def*dzmm,2)
 
 
   if (empwtd) then
@@ -2361,14 +2365,14 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%smelt = ssnow%smelt + snowmlt
 
    if (md_prin) write(*,*) 'soil freeze'  !MDeck
-   !CALL  soilfreeze(dels, soil, ssnow)
-   CALL soilfreezemass(dels,soil,ssnow)
+   CALL  soilfreeze(dels, soil, ssnow)
+   !CALL soilfreezemass(dels,soil,ssnow)
 
    ssnow%fwtop = canopy%precis + ssnow%smelt                !water for infiltration   
    
    !update the liquid water content that may have changed due to freezing  done
    !in soilfreezemass
-   !ssnow%wbliq = ssnow%wb - ssnow%wbice                !liquid water content (volumetric)
+   ssnow%wbliq = ssnow%wb - ssnow%wbice                !liquid water content (volumetric)
 
    if (md_prin) write(*,*) 'calc wtd'  !MDeck
 
