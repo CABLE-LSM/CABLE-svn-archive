@@ -255,7 +255,10 @@ MODULE cable_def_types_mod
          smp,     &    ! soil matric potential for soil layers        
          dhkdw,   &    ! d(hydraulic conductivity ) d(water) for soil layers
          dsmpdw,  &    ! d(smp)/ d(water) for soil layers
-         wbliq         ! volumetric liquid water content
+         wbliq,   &    ! volumetric liquid water content
+         wmliq,   &    !water mass (mm) liq
+         wmice,   &    !water mass (mm) ice
+         wmtot         !water mass (mm) liq+ice
          
          
    END TYPE soil_snow_type
@@ -758,7 +761,9 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%dhkdw(mp,ms) )
    ALLOCATE( var%dsmpdw(mp,ms) )
    ALLOCATE( var%wbliq(mp,ms) )
-
+   ALLOCATE( var%wmliq(mp,ms) )
+   ALLOCATE( var%wmice(mp,ms) )
+   ALLOCATE( var%wmtot(mp,ms) )
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -1199,6 +1204,9 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%dhkdw )
    DEALLOCATE( var%dsmpdw )   
    DEALLOCATE( var%wbliq )
+   DEALLOCATE( var%wmliq )
+   DEALLOCATE( var%wmice )
+   DEALLOCATE( var%wmtot )
    
 END SUBROUTINE dealloc_soil_snow_type
    

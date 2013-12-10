@@ -832,9 +832,16 @@ CONTAINS
                          'WatSat', '-', 'Max water content in soil layer', &
                  patchout%WatSat, soilID, 'soil', xID, yID, zID, landID, patchID)
                  
-    IF(output%params .OR. output%GWWatSat) CALL define_ovar(ncid_out, opid%GWWatSat, &
-                         'GWWatSat', '-', 'Max water content in aquifer', &
-                 patchout%GWWatSat, 'real', xID, yID, zID, landID, patchID)      
+    !IF(output%params .OR. output%GWWatSat) CALL define_ovar(ncid_out, opid%GWWatSat, &
+    !                     'GWWatSat', '-', 'Max water content in aquifer', &
+    !             patchout%GWWatSat, 'real', xID, yID, zID, landID, patchID)    
+
+    IF(output%params .OR. output%GWWatSat) &
+              CALL define_ovar(ncid_out, opid%GWWatSat, 'GWWatSat', 'mm3mm-3', &
+                   'Aquifer Maximum porosity',                                 &
+                   patchout%GWWatSat, 'real', xID, yID, zID, landID, patchID)
+
+  
                  
     IF(output%params .OR. output%Watr) CALL define_ovar(ncid_out, opid%Watr, &
                          'Watr', '-', 'residual water content in soil layer', &
@@ -1060,14 +1067,21 @@ CONTAINS
               'WatSat', REAL(soil%watsat, 4), ranges%WatSat, patchout%WatSat, 'soil')
     IF(output%params .OR. output%Watr) CALL write_ovar (ncid_out, opid%Watr, &
               'Watr', REAL(soil%watr, 4), ranges%Watr, patchout%Watr, 'soil')
+
     IF(output%params .OR. output%GWWatSat) CALL write_ovar (ncid_out, opid%GWWatSat, &
-              'GWWatSat', REAL(soil%GWwatsat, 4), ranges%GWWatSat, patchout%GWWatSat, 'real')
+              'GWWatSat', REAL(soil%GWwatsat, 4), ranges%GWWatSat,                   &
+                                                            patchout%GWWatSat, 'real')
+
     IF(output%params .OR. output%GWWatr) CALL write_ovar (ncid_out, opid%GWWatr, &
               'GWWatr', REAL(soil%GWwatr, 4), ranges%GWWatr, patchout%GWWatr, 'real')     
     IF(output%params .OR. output%SoilMatPotSat) CALL write_ovar (ncid_out, opid%SoilMatPotSat, &
               'SoilMatPotSat', REAL(soil%smpsat, 4), ranges%SoilMatPotSat, patchout%SoilMatPotSat, 'soil')   
-    IF(output%params .OR. output%GWSoilMatPotSat) CALL write_ovar (ncid_out, opid%GWSoilMatPotSat, &
-              'GWSoilMatPotSat', REAL(soil%GWsmpsat, 4), ranges%GWSoilMatPotSat, patchout%GWSoilMatPotSat, 'real')     
+
+    IF(output%params .OR. output%GWSoilMatPotSat) &
+               CALL write_ovar (ncid_out, opid%GWSoilMatPotSat, &
+              'GWSoilMatPotSat', REAL(soil%GWsmpsat, 4), ranges%GWSoilMatPotSat, &
+              patchout%GWSoilMatPotSat, 'real')    
+ 
     IF(output%params .OR. output%HkSat) CALL write_ovar (ncid_out, opid%HkSat, &
               'HkSat', REAL(soil%hksat, 4), ranges%HkSat, patchout%HkSat, 'soil')       
     IF(output%params .OR. output%GWHkSat) CALL write_ovar (ncid_out, opid%GWHkSat, &
@@ -2388,9 +2402,15 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%WatSat, &
                      'WatSat', '-', 'Max water content in soil layer', &
                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)       
-    CALL define_ovar(ncid_restart, rpid%GWWatSat, &
-                     'GWWatSat', '-', 'Max water content in aquifer', &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)        
+    !CALL define_ovar(ncid_restart, rpid%GWWatSat, &
+    !                 'GWWatSat', '-', 'Max water content in aquifer', &
+    !                 .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)      
+
+    CALL define_ovar(ncid_restart, rpid%GWWatSat, 'GWWatSat', 'mm3mm-3', &
+                     'Aquifer Maximum porosity', .TRUE.,                 &
+                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+
     CALL define_ovar(ncid_restart, rpid%Watr, &
                      'Watr', '-', 'residual water content in soil layer', &
                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -2575,11 +2595,11 @@ CONTAINS
     CALL write_ovar (ncid_restart, rpid%FrcClay, 'FrcClay', REAL(soil%Fclay, 4),    &
                      ranges%FrcClay, .TRUE., 'soil', .TRUE.)                 
     !GW MD
-    CALL write_ovar (ncid_restart, rpid%GWWatSat, 'GWWatSat', REAL(soil%watsat, 4),    &
+    CALL write_ovar (ncid_restart, rpid%GWWatSat, 'GWWatSat', REAL(soil%GWwatsat, 4),    &
                      ranges%GWWatSat, .TRUE., 'real', .TRUE.)   
-    CALL write_ovar (ncid_restart, rpid%GWSoilMatPotSat, 'GWSoilMatPotSat', REAL(soil%smpsat, 4),    &
+    CALL write_ovar (ncid_restart, rpid%GWSoilMatPotSat, 'GWSoilMatPotSat', REAL(soil%GWsmpsat, 4),    &
                      ranges%GWSoilMatPotSat, .TRUE., 'real', .TRUE.)                
-    CALL write_ovar (ncid_restart, rpid%GWHkSat, 'GWHkSat', REAL(soil%hksat, 4),    &
+    CALL write_ovar (ncid_restart, rpid%GWHkSat, 'GWHkSat', REAL(soil%GWhksat, 4),    &
                      ranges%GWHkSat, .TRUE., 'real', .TRUE.)       
                      
     ! Snow dimensioned variables/parameters:

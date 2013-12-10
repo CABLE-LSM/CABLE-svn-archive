@@ -2225,7 +2225,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    LOGICAL :: prin,md_prin
    
    prin = .FALSE.
-   md_prin = .true.
+   md_prin = .false.
   
    if (md_prin) write(*,*) 'in soil snow gw'  !MDeck
  
