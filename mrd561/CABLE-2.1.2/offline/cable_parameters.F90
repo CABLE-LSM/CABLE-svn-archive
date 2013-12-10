@@ -74,7 +74,6 @@ MODULE cable_param_module
          write_cnp_params
   INTEGER :: patches_in_parfile=4 ! # patches in default global parameter
                                        ! file
-
   CHARACTER(LEN=4)  :: classification
 
   ! Variables below are temporary - for file read-in: 
@@ -1364,10 +1363,10 @@ CONTAINS
     bal%ebal_tot_cncheck = 0.0
     bal%drybal = 0.0
     bal%wetbal = 0.0
-    bal%wbtot0 = 0.0 
+    bal%wbtot0 = 0.0
     DO j=1, ms
-       bal%wbtot0 = bal%wbtot0 + REAL(ssnow%wb(:, j)) * soil%zse(j)       &
-                    * 1000.0
+       bal%wbtot0 = bal%wbtot0 + REAL((ssnow%wb(:, j)-ssnow%wbice(:,j)) * soil%zse(j)       &
+                    * 1000.0) + REAL(ssnow%wbice(:,j) * soil%zse(j)* 917.0)
     END DO
     bal%osnowd0 = ssnow%osnowd
 
