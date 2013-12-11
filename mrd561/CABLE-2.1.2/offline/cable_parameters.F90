@@ -1442,7 +1442,10 @@ CONTAINS
              WRITE(*,*) 'SUM:',soil%sand(landpt(i)%cstart + j - 1)             &
                                + soil%silt(landpt(i)%cstart + j - 1)           &
                                + soil%clay(landpt(i)%cstart + j - 1)
-             CALL abort ('clay+sand+silt fraction does not sum to 1!')
+             WRITE(*,*) 'silt not used in soilsnow_GW.  Setting silt to ensure sum=1'
+             soil%silt(landpt(i)%cstart + j - 1) = 1.0 - soil%sand(landpt(i)%cstart + j - 1)&
+                                                       - soil%clay(landpt(i)%cstart + j - 1)
+             !CALL abort ('clay+sand+silt fraction does not sum to 1!')
           END IF
        END DO
     END DO
