@@ -40,7 +40,7 @@ MODULE cable_def_types_mod
    !---at least 10-digit precision
    
    INTEGER :: mp,    & ! # total no of patches/tiles 
-              mvtype,& ! total # vegetation types,   from input
+              mvtype=17,& ! total # vegetation types,   from input
               mstype,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
