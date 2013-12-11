@@ -1348,7 +1348,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    IF(cable_user%GS_MODEL == 'leuning') THEN
        gswmin = max(1.e-6,lower_limit2)
    ELSEIF(cable_user%GS_MODEL == 'medlyn') THEN
-       gswmin = veg%g0(1)
+       gswmin = veg%g0(1) * 1E6 ! convert from mol to umol
    ENDIF
    
    
@@ -1509,16 +1509,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 IF (dsx(i) < 50.0) THEN
                     vpd  = 0.05 ! kPa
                 ELSE
-                    vpd = dsx(i) * 1E-04 ! Pa -> kPa  
-                    
+                    vpd = dsx(i) * 1E-03 ! Pa -> kPa  
+                 
                 gs_coeff(i,1) = (1.0 + (veg%g1(i) * fwsoil(i)) / & 
-                                 SQRT(vpd)) * 1.0 / (csx(i,1)*1E6) ! convert CO2 
-                                                                   ! bar to 
-                                                                   ! umol/mol
+                                 SQRT(vpd)) / (csx(i,1)*1E6) ! convert CO2 bar 
+                                                             ! to umol/mol
+                                                             
                 gs_coeff(i,2) = (1.0 + (veg%g1(i) * fwsoil(i)) / &
-                                 SQRT(vpd)) * 1.0 / (csx(i,2)*1E6) ! convert CO2 
-                                                                   ! bar to 
-                                                                   ! umol/mol
+                                 SQRT(vpd)) / (csx(i,2)*1E6) ! convert CO2 bar 
+                                                             ! to umol/mol
                 ! Convert gs from mol to umol
                 gs_coeff(i,1) = gs_coeff(i,1) * 1E6 
                 gs_coeff(i,2) = gs_coeff(i,2) * 1E6
