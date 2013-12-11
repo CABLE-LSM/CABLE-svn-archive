@@ -2319,18 +2319,17 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ENDIF  ! if(.NOT.cable_runtime_coupled)
 
    !Start with wb and wbice.  Need wbliq, wmliq,wmice,wmtot
-
    !find the mass of ice and liq from the prognostic volumetric values
-   ssnow%wbliq = ssnow%wb - ssnow%wbice
-   ssnow%wmice = ssnow%wbice*denice*spread(soil%zse,1,mp)
-   ssnow%wmliq = ssnow%wbliq*denliq*spread(soil%zse,1,mp)
-   ssnow%wmtot = ssnow%wmice + ssnow%wmliq
+   ssnow%wbliq = ssnow%wb - ssnow%wbice                   !liquid volume
+   ssnow%wmice = ssnow%wbice*denice*spread(soil%zse,1,mp) !ice mass
+   ssnow%wmliq = ssnow%wbliq*denliq*spread(soil%zse,1,mp) !liquid mass
+   ssnow%wmtot = ssnow%wmice + ssnow%wmliq                !liq+ice mass
 
 
    xx=soil%css * soil%rhosoil
    IF (ktau <= 1)                                                              &
      ssnow%gammzz(:,1) = MAX( (1.0 - soil%watsat(:,1)) * soil%css * soil%rhosoil      &
-            & + (ssnow%wbliq(:,1) ) * cswat * denliq           &
+            & + ssnow%wbliq(:,1) * cswat * denliq           &
             & + ssnow%wbice(:,1) * csice * denice, xx ) * soil%zse(1) +   &
             & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
 
