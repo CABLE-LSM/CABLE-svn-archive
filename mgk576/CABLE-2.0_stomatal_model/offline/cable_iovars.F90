@@ -310,8 +310,11 @@ MODULE cable_IO_vars_module
          isoil  = .FALSE.,    & ! soil type from global index
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
          za  = .FALSE.,       & ! something to do with roughness ????
-         g0 = .FALSE.,        & ! Belinda's gs model intercept, MDK 23rd Nov 2013
-         g1 = .FALSE.           ! Belinda's gs model slope, MDK 23rd Nov 2013
+         g0c3 = .FALSE.,      & ! Belinda's gs model intercept, MDK 23rd Nov 2013
+         g0c4 = .FALSE.,      & ! Belinda's gs model intercept, MDK 23rd Nov 2013
+         g1c3 = .FALSE.,      & ! Belinda's gs model slope, MDK 23rd Nov 2013
+         g1c4 = .FALSE.         ! Belinda's gs model slope, MDK 23rd Nov 2013
+         
                   
    END TYPE output_inclusion_type
 

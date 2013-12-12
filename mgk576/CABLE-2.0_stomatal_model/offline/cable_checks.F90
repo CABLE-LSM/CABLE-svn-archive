@@ -166,8 +166,10 @@ MODULE cable_checks_module
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
            soil_class = (/1.0,20.0/),          & 
-           g0 = (/-0.5,0.5/),                  & ! MDK, Nov 23 2013 
-           g1 = (/0.0,20.0/)                     ! MDK, Nov 23 2013 
+           g0c3 = (/-0.5,0.5/),                & ! MDK, Nov 23 2013 
+           g0c4 = (/-0.5,0.5/),                & ! MDK, Nov 23 2013 
+           g1c3 = (/0.0,15.0/),                & ! MDK, Nov 23 2013 
+           g1c4 = (/0.0,15.0/)                   ! MDK, Nov 23 2013 
            
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
