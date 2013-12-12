@@ -147,8 +147,11 @@ MODULE cable_common_module
          tminvj,     & !
          tmaxvj,     & !
          vbeta,      & !
-         g0,         & !  MDK, Nov 23 2013 
-         g1            !  MDK, Nov 23 2013 
+         g0c3,       & !  MDK, Nov 23 2013
+         g0c4,       & !  MDK, Nov 23 2013 
+         g1c3,       & !  MDK, Nov 23 2013 
+         g1c4          !  MDK, Nov 23 2013  
+         
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -247,7 +250,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
-         veg_desc( mvtype ), vegin%g0( mvtype ), vegin%g1( mvtype ) )
+         veg_desc( mvtype ), vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),       &
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) )  ! MDK, 12 dec, 2013
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -278,7 +282,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
-            READ(40,*) vegin%g0(jveg), vegin%g1(jveg)
+            READ(40,*) vegin%g0c3(jveg), vegin%g0c4(jveg),                     &         
+                       vegin%g1c3(jveg),vegin%g1c4(jveg) ! MDK, 12 dec, 2013
          END DO
 
       ELSE
@@ -331,8 +336,10 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl(1,:) = 0.07
          vegin%refl(2,:) = 0.425
          vegin%refl(3,:) = 0.0
-         READ(40,*) vegin%g0
-         READ(40,*) vegin%g1
+         READ(40,*) vegin%g0c3 ! MDK, 12 Dec 2013
+         READ(40,*) vegin%g0c4
+         READ(40,*) vegin%g1c3
+         READ(40,*) vegin%g1c4
       ENDIF
 
       WRITE(6,*)'CABLE_log:Closing veg params file: ',trim(filename%veg)
