@@ -40,6 +40,10 @@ MODULE cable_checks_module
    USE cable_radiation_module, ONLY: sinbet
    USE cable_def_types_mod
 
+   USE cable_common_module                                 !needed to get GW flag
+   USE cable_data_module, ONLY : issnow_type, point2constants !density constants instead of hard coded
+   
+
    IMPLICIT NONE
 
    PRIVATE
@@ -54,6 +58,8 @@ MODULE cable_checks_module
       CHARACTER(LEN=1) :: Wind ! 'm'(m/s)
    END TYPE units_type
    TYPE(units_type) :: units
+
+   TYPE ( issnow_type ) :: C                           !get denice and denliq constants
 
    TYPE ranges_type 
       REAL, DIMENSION(2) ::                                               &
@@ -211,7 +217,6 @@ CONTAINS
 
 SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                            &
                         air,bal)
-
    ! Input arguments
    REAL,INTENT(IN)                           :: dels        ! time step size
    INTEGER, INTENT(IN)                       :: ktau        ! timestep number  
@@ -222,32 +227,77 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    TYPE (air_type),INTENT(IN)                :: air
 
    ! Local variables
-   REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwb         ! volumetric soil moisture
+   REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwbi,bwbl,bwb  ! volumetric soil moisture (liq-bwbl ice-bwbi)
    REAL(r_2), DIMENSION(mp)                  :: delwb       ! change in soilmoisture
                                                             ! b/w tsteps
    REAL, DIMENSION(mp)                  :: canopy_wbal !canopy water balance
    TYPE (balances_type),INTENT(INOUT)        :: bal 
    INTEGER                              :: j, k        ! do loop counter
-    
-   IF(ktau==1) THEN
-      ALLOCATE( bwb(mp,ms,2) )
-      ! initial vlaue of soil moisture
-      bwb(:,:,1)=ssnow%wb
-   ELSE
-      ! Calculate change in soil moisture b/w timesteps:
-      IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
-         bwb(:,:,1)=ssnow%wb
-         DO k=1,mp           ! current smoist - prev tstep smoist
-            delwb(k) = SUM((bwb(k,:,1)                                         &
-                  - (bwb(k,:,2)))*soil%zse)*1000.0
-         END DO
-      ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
-         bwb(:,:,2)=ssnow%wb
-         DO k=1,mp           !  current smoist - prev tstep smoist
-            delwb(k) = SUM((bwb(k,:,2)                                         &
-                 - (bwb(k,:,1)))*soil%zse)*1000.0
-         END DO
+
+
+   CALL point2constants( C )       !get density of ice and liq
+
+   IF (cable_runtime%run_gw_model) then
+      IF(ktau==1) THEN
+         ALLOCATE( bwbi(mp,ms+1,2) )
+         ALLOCATE( bwbl(mp,ms+1,2) )
+         ! initial vlaue of soil moisture
+         bwbl(:,:,1)= ssnow%wbliq
+         bwbi(:,:,1)= ssnow%wbice
+      ELSE
+         ! Calculate change in soil moisture b/w timesteps:
+         IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
+            bwbl(:,1:ms,1)=ssnow%wbliq
+            bwbi(:,1:ms,1)=ssnow%wbice
+
+            bwbl(:,ms+1,1)=ssnow%GWwb
+            bwbi(:,ms+1,1)=0._r_2
+
+            DO k=1,mp           ! current smoist - prev tstep smoist
+               delwb(k) = SUM((bwbl(k,1:ms,1)                                         &
+                     - (bwbl(k,1:ms,2)))*soil%zse)*C%denliq + &
+                      SUM((bwbi(k,1:ms,1)                                         &
+                     - (bwbi(k,1:ms,2)))*soil%zse)*C%denice + &
+                      (bwbl(k,ms+1,1)-bwbl(k,ms+1,2))*soil%GWdz(k)*C%denliq
+                      
+            END DO
+         ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
+            bwbl(:,1:ms,2)=ssnow%wbliq
+            bwbi(:,1:ms,2)=ssnow%wbice
+
+            bwbl(:,ms+1,2)=ssnow%GWwb
+            bwbi(:,ms+1,2)=0._r_2
+            DO k=1,mp           !  current smoist - prev tstep smoist
+               delwb(k) = SUM((bwbl(k,1:ms,2)                                         &
+                     - (bwbl(k,1:ms,1)))*soil%zse)*C%denliq + &
+                      SUM((bwbi(k,1:ms,2)                                         &
+                     - (bwbi(k,1:ms,1)))*soil%zse)*C%denice + &
+                      (bwbl(k,ms+1,2)-bwbl(k,ms+1,1))*soil%GWdz(k)*C%denliq
+            END DO
+         END IF
       END IF
+   ELSE   !GW module not used
+      IF(ktau==1) THEN
+         ALLOCATE( bwb(mp,ms,2) )
+         ! initial vlaue of soil moisture
+         bwb(:,:,1) = ssnow%wb
+      ELSE
+         ! Calculate change in soil moisture b/w timesteps:
+         IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
+            bwb(:,:,1)=ssnow%wb
+            DO k=1,mp           ! current smoist - prev tstep smoist
+               delwb(k) = SUM((bwb(k,:,1)                                         &
+                     - (bwb(k,:,2)))*soil%zse)*1000.0
+            END DO
+         ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
+            bwb(:,:,2)=ssnow%wb
+            DO k=1,mp           !  current smoist - prev tstep smoist
+               delwb(k) = SUM((bwb(k,:,2)                                         &
+                    - (bwb(k,:,1)))*soil%zse)*1000.0
+            END DO
+         END IF
+      END IF
+
    END IF
 
    ! IF(ktau==kend) DEALLOCATE(bwb)
