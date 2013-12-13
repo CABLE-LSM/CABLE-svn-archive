@@ -764,6 +764,9 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmliq(mp,ms) )
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
+   !Initialze groundwater to 0.0 to ensure that if it is
+   !not utilized then it won't harm water balance calculations
+   var%GWwb = 0._r_2
 
 END SUBROUTINE alloc_soil_snow_type
 

@@ -83,7 +83,9 @@ module cable_data_module
       zetneg = -15.0, & ! negative limit on za/L when niter>=3
       zetpos = 1.0,  & ! positive limit on za/L when niter>=3
       zdlin  = 1.0,  & ! height frac of d below which TL linear
-      umin   = 0.01
+      umin   = 0.01, &
+      denliq = 1000.0,  &  !density of liquid water
+      denice = 917.0       !denisty of ice
        
    END TYPE physical_constants
 
