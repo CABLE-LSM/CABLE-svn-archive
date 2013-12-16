@@ -2276,6 +2276,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                                                   ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
+         if (md_prin) write(*,*) 'loop wb'
          DO k = 1, ms
             ssnow%wb(:,k)  = MIN( soil%watsat(:,k),MAX ( ssnow%wb(:,k), soil%swilt(:) ))            
          END DO
@@ -2285,7 +2286,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
          ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-1),           &
                              0.8 * soil%sfc ) )
          ssnow%wb(:,ms)    = MIN( soil%ssat, MAX ( ssnow%wb(:,ms), soil%sfc) )
-         
+         if (md_prin) write(*,*) 'loop tgg '
          DO k = 1, ms
             
             WHERE( ssnow%tgg(:,k) <= C%TFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
@@ -2295,27 +2296,27 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                ssnow%wbice(:,k) = frozen_limit * ssnow%wb(:,k)
             
          END DO
-   
+         if (md_prin) write(*,*) ' isoilm==9 '
          WHERE (soil%isoilm == 9) 
             ! permanent ice: fix hard-wired number in next version
             ssnow%snowd = max_glacier_snowd
             ssnow%osnowd = max_glacier_snowd
             ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
          END WHERE
-
+         if (md_prin) write(*,*) ' spread(isoilm) '
          WHERE (spread(soil%isoilm,2,ms) == 9)
               ssnow%wb    = 0.95 * soil%watsat
               ssnow%wbice = 0.90 * ssnow%wb
          END WHERE
          
          xx=soil%css * soil%rhosoil
-         
-         ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
+         if (md_prin) write(*,*) 'gammzz '
+         ssnow%gammzz(:,1) = MAX( (1.0 - soil%watsat(:,1)) * soil%css * soil%rhosoil &
               & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * C%denliq &
               & + ssnow%wbice(:,1) * csice * C%denice, xx ) * soil%zse(1)
       END IF
    ENDIF  ! if(.NOT.cable_runtime_coupled)
-
+   if (md_prin) write(*,*) ' wb and wm '
    !Start with wb and wbice.  Need wbliq, wmliq,wmice,wmtot
    !find the mass of ice and liq from the prognostic volumetric values
    ssnow%wbliq = ssnow%wb - ssnow%wbice                   !liquid volume
@@ -2323,7 +2324,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%wmliq = ssnow%wbliq*C%denliq*spread(soil%zse,1,mp) !liquid mass
    ssnow%wmtot = ssnow%wmice + ssnow%wmliq                !liq+ice mass
 
-
+   if (md_prin) write(*,*) ' new gammzz '
    xx=soil%css * soil%rhosoil
    IF (ktau <= 1)                                                              &
      ssnow%gammzz(:,1) = MAX( (1.0 - soil%watsat(:,1)) * soil%css * soil%rhosoil      &

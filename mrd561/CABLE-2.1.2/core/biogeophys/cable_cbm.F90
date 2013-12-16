@@ -144,7 +144,6 @@ CONTAINS
          CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
       END IF
    ENDIF
-   !write(*,*) 'out of soil_snow_gw '    !MDeck
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations

@@ -231,7 +231,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    REAL(r_2), DIMENSION(mp)                  :: delwb       ! change in soilmoisture
                                                             ! b/w tsteps
    REAL, DIMENSION(mp)                  :: canopy_wbal !canopy water balance
-   TYPE (balances_type),INTENT(INOUT)        :: bal 
+   TYPE (balances_type),INTENT(INOUT)   :: bal 
    INTEGER                              :: j, k        ! do loop counter
 
 
@@ -254,9 +254,9 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
             bwbi(:,ms+1,1)=0._r_2
 
             DO k=1,mp           ! current smoist - prev tstep smoist
-               delwb(k) = SUM((bwbl(k,1:ms,1)                                         &
+               delwb(k) = SUM((bwbl(k,1:ms,1)                                   &
                      - (bwbl(k,1:ms,2)))*soil%zse)*C%denliq + &
-                      SUM((bwbi(k,1:ms,1)                                         &
+                      SUM((bwbi(k,1:ms,1)                                       &
                      - (bwbi(k,1:ms,2)))*soil%zse)*C%denice + &
                       (bwbl(k,ms+1,1)-bwbl(k,ms+1,2))*soil%GWdz(k)*C%denliq
                       
@@ -268,9 +268,9 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
             bwbl(:,ms+1,2)=ssnow%GWwb
             bwbi(:,ms+1,2)=0._r_2
             DO k=1,mp           !  current smoist - prev tstep smoist
-               delwb(k) = SUM((bwbl(k,1:ms,2)                                         &
+               delwb(k) = SUM((bwbl(k,1:ms,2)                                   &
                      - (bwbl(k,1:ms,1)))*soil%zse)*C%denliq + &
-                      SUM((bwbi(k,1:ms,2)                                         &
+                      SUM((bwbi(k,1:ms,2)                                       &
                      - (bwbi(k,1:ms,1)))*soil%zse)*C%denice + &
                       (bwbl(k,ms+1,2)-bwbl(k,ms+1,1))*soil%GWdz(k)*C%denliq
             END DO

@@ -243,7 +243,7 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF, DENICE, DENLIQ
+         CAPP, TFRZ, HL, HLF, denliq, denice
    END TYPE issnow_type
 
 
@@ -434,6 +434,8 @@ SUBROUTINE ssnow_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
+   C%denice=> PHYS%denice
+   C%denliq=> PHYS%denliq
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr 
 
