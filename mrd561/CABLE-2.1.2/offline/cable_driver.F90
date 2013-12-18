@@ -265,8 +265,8 @@ PROGRAM cable_offline_driver
       
       ! time step loop over ktau
       DO ktau=kstart, kend 
-
-         write(*,*) ' timestep number ',ktau
+         !MDeck
+         !write(*,*) ' timestep number ',ktau
 
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1

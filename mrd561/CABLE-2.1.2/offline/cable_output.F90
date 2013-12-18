@@ -1873,6 +1873,11 @@ CONTAINS
        !write(*,*) 'GWmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
+       !write(*,*) 'max GWmoist is ',maxval(out%GWMoist)
+       !write(*,*) 'min GWmoist is ',minval(out%GWMoist)
+       !write(*,*) 'max GWwb is ',maxval(ssnow%GWwb)
+       !write(*,*) 'min GWwb is ',minval(ssnow%GWwb)
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GWMoist = out%GWMoist / REAL(output%interval, 4)
@@ -2225,6 +2230,13 @@ CONTAINS
                  'Surface runoff', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, rnof2ID, 'rnof2', 'mm/timestep',            &
               'Subsurface runoff', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+
+    CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content',&
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+
+
     !---------------define snow states------------------------------------------
     CALL define_ovar(ncid_restart, tggsnID, 'tggsn', 'K',                      &
                      'Average layer snow temperature',                         &
@@ -2476,10 +2488,6 @@ CONTAINS
                      'Reference height (lowest atm. model layer) for scalars', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
                      
-    CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3',                          &
-                     'Aquifer water content',                         &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)                     
-
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
     todaydate = todaydate(1:4)//'/'//todaydate(5:6)//'/'//todaydate(7:8)
@@ -2622,6 +2630,11 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing zse parameter to '   &
                    //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
     ! Single dim:
+
+    !MD
+    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
+                     ranges%GWwb, .TRUE., 'real', .TRUE.)
+
     CALL write_ovar (ncid_restart, rpid%albsoil, 'albsoil',                    &
                      REAL(soil%albsoil, 4), ranges%albsoil, .TRUE.,            &
                      'radiation', .TRUE.)
@@ -2721,9 +2734,9 @@ CONTAINS
                      ranges%Albedo, .TRUE., 'radiation', .TRUE.)
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
                      REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
-    !MD
-    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),           &
-                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)                     
+!    !MD
+!    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
+!                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)                     
 
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)

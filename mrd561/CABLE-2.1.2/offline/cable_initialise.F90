@@ -449,6 +449,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    IF(ok == NF90_NOERR) THEN 
      CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)   
+   else
+     ssnow%GWwb = soil%GWWatSat
    END IF
    
    ! Get model parameters =============================================
@@ -729,7 +731,7 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    LOGICAL                                   ::                                &
         from_restart = .TRUE.,    & ! insist variables/params load
         dummy = .TRUE.              ! To replace completeSet in parameter read; unused
-   INTEGER                              :: napID
+   INTEGER                              :: napID,parID
    
    PRINT *, '***** NOTE: now in extraRestart. *****'
    ALLOCATE(nap(mland))
@@ -855,6 +857,18 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    
    ! assume all soil and veg parameters are done in default_parameters
    ! therefore, no need to do it here again
+
+   !MD
+   ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
+   IF(ok == NF90_NOERR) THEN
+     CALL readpar(ncid_rin,'GWwb',dummy,var_rd,filename%restart_in,&
+                max_vegpatches,'def',from_restart,INpatch)
+   else
+     var_rd(:) = 0.3
+   END IF
+   CALL redistr_rd(INpatch,nap,var_rd,ssnow%GWwb,'GWwb')
+
+
    
    veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
    

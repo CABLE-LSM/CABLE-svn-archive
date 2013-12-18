@@ -509,50 +509,56 @@ CONTAINS
     !MD try to read aquifer properties from the file
     ! if they don't exist set aquifer properties to the same as the soil
     ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
+    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
       inGWssat(:,:) = inssat(:,:)
     END IF
     
     ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
+    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
       inGWWatr(:,:) = 0.01
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
+    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
       inGWsucs(:,:) = insucs(:,:)
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWbch', fieldID)
+    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWbch)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
       inGWbch(:,:) = inbch(:,:)
     END IF    
         
     ok = NF90_INQ_VARID(ncid, 'GWhyds', fieldID)
+    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWhyds)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
       inGWhyds(:,:) = inhyds(:,:)
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWrhosoil', fieldID)
+    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWrhosoil)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
       inGWrhosoil(:,:) = inrhosoil(:,:)
     END IF    
     
@@ -905,6 +911,8 @@ CONTAINS
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
 
+    ssnow%qhz     = 0.0
+
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
@@ -970,6 +978,7 @@ CONTAINS
         ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
                                  inWB(landpt(e)%ilon, landpt(e)%ilat, is, month)
       END DO
+      !groundwater initialized after GWWatsat is set
 
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
@@ -1053,6 +1062,9 @@ CONTAINS
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.03  !constant for now
+
+      ssnow%GWwb(landpt(e)%cstart:landpt(e)%cend) =&
+            0.95*soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend)
 
       ENDIF
 

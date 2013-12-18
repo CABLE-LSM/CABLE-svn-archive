@@ -1208,7 +1208,7 @@ SUBROUTINE soilfreezemass(dels, soil, ssnow)
          ssnow%wb(:,k)    = ssnow%wbliq(:,k) + ssnow%wbice(:,k)   !volume
          xx = soil%css * soil%rhosoil
          ssnow%gammzz(:,k) = MAX(                                              &
-             REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
+             REAL((1.0 - soil%watsat(:,k)) * soil%css * soil%rhosoil ,r_2)            &
              + (ssnow%wbliq(:,k)) * REAL(cswat * C%denliq,r_2)   &
              + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),              &
              REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
@@ -2118,12 +2118,14 @@ USE cable_common_module
     msice(:,:)   = (ssnow%wbice)*dri * spread(dzmm,1,mp)                  !mass of ice.  not updated as no ice flow
     eff_por(:,:) = soil%watsat - ssnow%wbice                              !effective porosity (saturated minus vol of ice)
     mss_por(:,:) = eff_por/spread(dzmm,1,mp)                              !mass of liquid the effective porosity can hole
-    GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
+    !GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
+    ssnow%GWwb   = ssnow%GWwb+del_wb(:,ms+1)
+    GWmsliq(:)   = ssnow%GWwb(:)*GWdzmm 
 
    if (md_prin) write(*,*) ' updated soil liq mass '
           
     xsi(:)       = GWmsliq(:) - soil%GWwatsat(:)*GWdzmm                   !if > 0 it is oversaturation in aquifer
-    where (xsi(:) .lt. 0.0_r_2) xsi(:) = 0.0_r_2
+    where (xsi(:) .le. 0.0_r_2) xsi(:) = 0.0_r_2
     where (xsi(:) .gt. 0.0_r_2) GWmsliq(:) = soil%GWwatsat(:)*GWdzmm(:)   !set aquifer to saturated  
     msliq(:,ms) = msliq(:,ms) + xsi(:)
 
@@ -2161,6 +2163,7 @@ USE cable_common_module
           msliq(:,k+1) = msliq(:,k+1) - xs(:)
        else
           GWmsliq(:) = GWmsliq(:) - xs(:)
+          !ssnow%qhz  = ssnow%qhz - xs(:)/dels
        endif
     end do
 
@@ -2266,6 +2269,10 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
   
 
    if (md_prin) write(*,*) 'set up ktau <=1'  !MDeck
+
+   !if (ktau <=1) then
+   !  ssnow%GWwb = soil%GWWatSat
+   !end if
 
  
    IF( .NOT.cable_user%cable_runtime_coupled ) THEN
