@@ -258,7 +258,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
-      idoy = mod(ktau_gl/ktauday,365)
+      idoy = iday 
       IF(idoy==0) idoy =365
   
 ! Lestevens Sept2012 - Call CASA-CNP
