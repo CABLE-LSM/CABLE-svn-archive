@@ -8,6 +8,7 @@ module load nco
 set i=1
 set a=a
 set rid=$RUNID
+set usr=$USERID
 
 #set mext=$Pmonth #pa # monthly files    e.g. pm
 #set dext=$Pdaily #pe # daily files      e.g. pa
@@ -40,8 +41,8 @@ set pjlist=`ls $rid$a.pj?????` # pj (monthly values)
 foreach afile ( $palist )
   if (! -e $afile.nc) then
 #  if (! -e $newlist[$i].nc) then
-     ~ste69f/umutils/conv2nc.tcl -i $afile -o $afile.nc
-#     ~ste69f/umutils/conv2nc.tcl -i $afile -o $newlist[$i].nc
+     ~$usr/umutils/conv2nc.tcl -i $afile -o $afile.nc
+#     ~$usr/umutils/conv2nc.tcl -i $afile -o $newlist[$i].nc
   endif
   # rename .pa to .pm
   set newname=`echo $afile.nc | sed -e 's/\.pa/\.pm/'`
@@ -73,7 +74,7 @@ set newlist=`echo $newlist | sed -e 's/dec/120/g'`
 
 foreach bfile ( $pblist )
   if (! -e $newlist[$i].nc) then
-     ~ste69f/umutils/conv2nc.tcl -i $bfile -o $newlist[$i].nc
+     ~$usr/umutils/conv2nc.tcl -i $bfile -o $newlist[$i].nc
   endif
   # rename .pc to .pb  
   set newname=`echo $newlist[$i].nc | sed -e 's/\.pc/\.pb/'`
@@ -103,7 +104,7 @@ set i=1
 
 foreach efile ( $pelist )
   if (! -e $newlist[$i].nc) then
-     ~ste69f/umutils/conv2nc.tcl -i $efile -o $newlist[$i].nc
+     ~$usr/umutils/conv2nc.tcl -i $efile -o $newlist[$i].nc
   endif
   # rename .pe to .pa
   set newname=`echo $newlist[$i].nc | sed -e 's/\.pe/\.pa/'`
@@ -129,7 +130,7 @@ set i=1
 
 foreach ffile ( $pflist )
   if (! -e $newlist[$i].nc) then
-     ~ste69f/umutils/conv2nc.tcl -i $ffile -o $newlist[$i].nc
+     ~$usr/umutils/conv2nc.tcl -i $ffile -o $newlist[$i].nc
      #python ~dix043/src/python/um/um_timeseries.py -i $ffile -o $newlist[$i].nc
   endif
   # rename .pf to .pe
@@ -156,7 +157,7 @@ set i=1
 
 foreach gfile ( $pglist )
   if (! -e $newlist[$i].nc) then
-     ~ste69f/umutils/conv2nc.tcl -i $gfile -o $newlist[$i].nc
+     ~$usr/umutils/conv2nc.tcl -i $gfile -o $newlist[$i].nc
      #python ~dix043/src/python/um/um_timeseries.py -i $gfile -o $newlist[$i].nc
   endif
   @ i++
@@ -180,7 +181,7 @@ set i=1
 
 foreach jfile ( $pjlist )
   if (! -e $newlist[$i].nc) then
-     ~ste69f/umutils/conv2nc.tcl -i $jfile -o $newlist[$i].nc
+     ~$usr/umutils/conv2nc.tcl -i $jfile -o $newlist[$i].nc
   endif
   @ i++
 end

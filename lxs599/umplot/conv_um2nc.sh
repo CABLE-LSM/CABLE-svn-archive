@@ -2,9 +2,17 @@
 
 ######################################################################
 
-set CONV2NC = ~ste69f/umutils/conv2nc.tcl
-set CONV2NCTS = ~dix043/src/python/um/um_timeseries.py
-set FLDSUBSET = ~dix043/src/python/um/um_fields_subset.py
+# Cherax - ste69f, NCI - lxs599 ----------------------
+# Cherax - dix043, NCI - mrd599 ----------------------
+if ( $HOSTNAME == cherax ) then
+ set CONV2NC   = ~ste69f/umutils/conv2nc.tcl
+ set CONV2NCTS = ~dix043/src/python/um/um_timeseries.py
+ set FLDSUBSET = ~dix043/src/python/um/um_fields_subset.py
+else
+ set CONV2NC   = ~lxs599/umutils/conv2nc.tcl
+ set CONV2NCTS = ~mrd599/src/python/um/um_timeseries.py
+ set FLDSUBSET = ~mrd599/src/python/um/um_fields_subset.py
+endif
 set a = a
 
 ######################################################################
@@ -13,9 +21,19 @@ set a = a
     set extlist = 'pm pa pe pb pc pi pj pd pf pg ph ps py px'
     foreach ext ( $extlist )
          
-        set i = 1
-        set fillist = `ls $RUNID$a.$ext?????`
-        #set fillist = `ls $DIR/$RUNID$a.$ext?????`
+      if ( $CPL == y ) then
+       set fillist = `ls $RUNID.$ext-??????????`
+       foreach file ( $fillist )
+        if (! -e $file.nc) then
+         $CONV2NC -i $file -o $file.nc
+        else
+         echo "File" $file "Already Exists!"
+        endif
+       end # fe file
+      else # CPL
+       set i = 1
+       set fillist = `ls $RUNID$a.$ext?????`
+       #set fillist = `ls $DIR/$RUNID$a.$ext?????`
 
         # change months to numbers in .p
         set newlist=`echo $fillist | sed -e 's/jan/001/g'`
@@ -51,7 +69,9 @@ set a = a
           echo "File" $newlist[$i] "Already Exists!"
          endif
          @ i++
-        end
+        end # fe file
+
+      endif # CPL
 
     end # foreach
 #    cd $DIRW

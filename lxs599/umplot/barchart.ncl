@@ -7,7 +7,8 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/home/cmar/ste69f/umplot/plot_bar.ncl"
+usr    = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/plot_bar.ncl")
 
 ; Set-Up ----------------------------------------------------------
 
@@ -15,6 +16,7 @@ load "/home/cmar/ste69f/umplot/plot_bar.ncl"
 
 begin
 
+;usr    = systemfunc("echo $USERID")
 ;filDir = systemfunc("echo $DIR")
 numYr  = systemfunc("echo $YR")
 resol  = systemfunc("echo $RES")
@@ -32,8 +34,8 @@ tname =  systemfunc("echo $tname")
 ; cable = False
 ;end if
 
-ObsDir = "/home/cmar/ste69f/umplot/obs/"
-LsmDir = "/home/cmar/ste69f/umplot/data/"
+ObsDir = "~"+usr+"/umplot/obs/"
+LsmDir = "~"+usr+"/umplot/data/"
 
 moses_file = addfile(mosDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable_file = addfile(cabDir+"/seasonal_means_"+numYr+"yrs.nc","r")
@@ -368,6 +370,7 @@ m = m+3
 end do
 
 print("Plotting Seasonal BarCharts")
+print("")
 
 PlotBar("Global Seasonal Screen Temperature Means"   ,sdata             ,"bar_tscrn_gsea_"+numYr+"yrs"       ,"ps",True)
 PlotBar("Global Seasonal Screen Temperature Biases"  ,bias_sea          ,"bar_tscrn_gseabias_"+numYr+"yrs"   ,"ps",True)

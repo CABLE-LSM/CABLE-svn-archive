@@ -2,8 +2,13 @@
 
 ######################################################################
 
-set CONV2NC = ~ste69f/umutils/conv2nc.tcl
-set CONV2NCTS = ~dix043/src/python/um/um_timeseries.py
+if ( $HOSTNAME == cherax ) then
+ set CONV2NC = ~ste69f/umutils/conv2nc.tcl
+ set CONV2NCTS = ~dix043/src/python/um/um_timeseries.py
+else
+ set CONV2NC = ~lxs599/umutils/conv2nc.tcl
+ set CONV2NCTS = ~mrd599/src/python/um/um_timeseries.py
+endif
 set a = a
 
 ######################################################################

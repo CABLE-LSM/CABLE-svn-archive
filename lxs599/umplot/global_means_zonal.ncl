@@ -18,15 +18,15 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/home/cmar/ste69f/umplot/regrid.ncl"
-load "/home/cmar/ste69f/umplot/tables.ncl"
-;load "/home/599/lxs599/umplot/regrid.ncl"
-;load "/home/599/lxs599/umplot/tables.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript("~"+usr+"/umplot/tables.ncl")
 
 ;procedure GMcTables()
 
 begin
 
+;usr = systemfunc("echo $USERID")
 numYr  = systemfunc("echo $YR")
 filDir = systemfunc("echo $DIR")
 ModDir = systemfunc("echo $PWD")
@@ -37,14 +37,16 @@ vMask  = systemfunc("echo $MASK")
 ;cabdir = systemfunc("echo $CABLE")
 ;mosdir = systemfunc("echo $MOSES")
 tname =  systemfunc("echo $tname")
+txname =  systemfunc("echo $txname")
+tiname =  systemfunc("echo $tiname")
 
 ; FILES --------------------------------------------------------------
 
 ;moses_file = addfile(mosdir+"/seasonal_means_"+numYr+"yrs.nc","r") 
 ;cable_file = addfile(cabdir+"/seasonal_means_"+numYr+"yrs.nc","r")
 
-ObsDir = "/home/cmar/ste69f/umplot/obs/"
-PltDir = "/home/cmar/ste69f/umplot/data/"
+ObsDir = "~"+usr+"/umplot/obs/"
+PltDir = "~"+usr+"/umplot/data/"
 
 sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 tsea_file = addfile(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
@@ -74,8 +76,8 @@ if (isfilevar(tsea_file,"tmax")) then
  tmax   = tsea_file ->tmax
  tmin   = tsea_file ->tmin
 else
- tmax   = tsea_file ->temp     ;tasmax
- tmin   = tsea_file ->temp_1   ;tasmin
+ tmax   = tsea_file ->$txname$ ;temp     ;tasmax
+ tmin   = tsea_file ->$tiname$ ;temp_1   ;tasmin
 end if
 sh     = sea_file ->sh        ;hfss
 ;rnet1  = sea_file ->field3333 ;field202_1

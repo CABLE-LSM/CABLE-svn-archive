@@ -26,14 +26,13 @@ c = MV2.zeros((int(year),12,tstep,tas.shape[1]))
 d = MV2.zeros((int(year),12,tstep,tas.shape[1]))
 i = MV2.zeros((int(year),12,tstep,tas.shape[1]))
 l = [31,28,31,30,31,30,31,31,30,31,30,31] 
-#L = [31,29,31,30,31,30,31,31,30,31,30,31]
+L = [31,29,31,30,31,30,31,31,30,31,30,31]
 y = 0
 
-if ystrt==yend:
-    yend=yend+1
+#if ystrt==yend:
+#    yend=yend+1
 
-
-for yr in range(ystrt,yend):
+for yr in range(ystrt,yend+1):
  
     for mnth in range(1,13):
 
@@ -43,39 +42,40 @@ for yr in range(ystrt,yend):
         #    m = 0
         #    year = yr+1
 
-#        if calendar.isleap(yr):
-#
- #           t = MV2.average(tas(time=(cdtime.comptime(yr,mnth,1,0,30,0),cdtime.comptime(yr,m+1,1,0,0,0))).reshape(L[mnth-1],48,1),0) 
-  #          a[y, mnth-1,:,:] = t[:,:] 
-#
- #           q = MV2.average(qh(time=(cdtime.comptime(yr,mnth,1,0,30,0),cdtime.comptime(yr,m+1,1,0,0,0))).reshape(L[mnth-1],48,1),0)
-  #          b[y, mnth-1,:,:] = q[:,:] 
-#
- #           s = MV2.average(qle(time=(cdtime.comptime(yr,mnth,1,0,30,0),cdtime.comptime(yr,m+1,1,0,0,0))).reshape(L[mnth-1],48,1),0)
-  #          c[y, mnth-1,:,:] = s[:,:] 
-#
- #           h = MV2.average(apr(time=(cdtime.comptime(yr,mnth,1,0,30,0),cdtime.comptime(yr,m+1,1,0,0,0))).reshape(L[mnth-1],48,1),0)
-  #          d[y, mnth-1,:,:] = h[:,:]
-#
- #            j = MV2.average(rnt(time=(cdtime.comptime(yr,mnth,1,0,30,0),cdtime.comptime(yr,m+1,1,0,0,0))).reshape(L[mnth-1],48,1),0)
-  #           i[y, mnth-1,:,:] = j[:,:]
-#
- #       else:
-  #          
-        t = MV2.average(tas(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,30,0))).reshape(l[mnth-1],48,tas.shape[1]),0)
-        a[y, mnth-1,:,:] = t[:,:]
+        if calendar.isleap(yr):
 
-        q = MV2.average(qh(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,30,0))).reshape(l[mnth-1],48,tas.shape[1]),0)
-        b[y, mnth-1,:,:] = q[:,:]
+            #t = MV2.average(tas(time=(cdtime.comptime(yr,mnth,1,0,30,0),cdtime.comptime(yr,m+1,1,0,0,0))).reshape(L[mnth-1],48,1),0) 
+            t = MV2.average(tas(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,L[mnth-1],23,59,59))).reshape(L[mnth-1],48,tas.shape[1]),0) 
+            a[y, mnth-1,:,:] = t[:,:] 
+
+            q = MV2.average(qh(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,L[mnth-1],23,59,59))).reshape(L[mnth-1],48,tas.shape[1]),0)
+            b[y, mnth-1,:,:] = q[:,:] 
+
+            s = MV2.average(qle(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,L[mnth-1],23,59,59))).reshape(L[mnth-1],48,tas.shape[1]),0)
+            c[y, mnth-1,:,:] = s[:,:] 
+
+            h = MV2.average(apr(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,L[mnth-1],23,59,59))).reshape(L[mnth-1],48,tas.shape[1]),0)
+            d[y, mnth-1,:,:] = h[:,:]
+
+            j = MV2.average(rnt(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,L[mnth-1],23,59,59))).reshape(L[mnth-1],48,tas.shape[1]),0)
+            i[y, mnth-1,:,:] = j[:,:]
+
+        else:
             
-        s = MV2.average(qle(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,30,0))).reshape(l[mnth-1],48,tas.shape[1]),0)
-        c[y, mnth-1,:,:] = s[:,:]
+            t = MV2.average(tas(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,59,59))).reshape(l[mnth-1],48,tas.shape[1]),0)
+            a[y, mnth-1,:,:] = t[:,:]
 
-        h = MV2.average(apr(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,30,0))).reshape(l[mnth-1],48,tas.shape[1]),0)
-        d[y, mnth-1,:,:] = h[:,:]
+            q = MV2.average(qh(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,59,59))).reshape(l[mnth-1],48,tas.shape[1]),0)
+            b[y, mnth-1,:,:] = q[:,:]
+            
+            s = MV2.average(qle(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,59,59))).reshape(l[mnth-1],48,tas.shape[1]),0)
+            c[y, mnth-1,:,:] = s[:,:]
 
-        j = MV2.average(rnt(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,30,0))).reshape(l[mnth-1],48,tas.shape[1]),0)
-        i[y, mnth-1,:,:] = j[:,:]
+            h = MV2.average(apr(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,59,59))).reshape(l[mnth-1],48,tas.shape[1]),0)
+            d[y, mnth-1,:,:] = h[:,:]
+
+            j = MV2.average(rnt(time=(cdtime.comptime(yr,mnth,1,0,0,0),cdtime.comptime(yr,mnth,l[mnth-1],23,59,59))).reshape(l[mnth-1],48,tas.shape[1]),0)
+            i[y, mnth-1,:,:] = j[:,:]
 
     y = y + 1
 

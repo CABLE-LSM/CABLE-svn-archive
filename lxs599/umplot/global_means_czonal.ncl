@@ -18,14 +18,16 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/home/cmar/ste69f/umplot/regrid.ncl"
-load "/home/cmar/ste69f/umplot/tables.ncl"
-load "/home/cmar/ste69f/umplot/wgt_func.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript("~"+usr+"/umplot/tables.ncl")
+loadscript("~"+usr+"/umplot/wgt_func.ncl")
 
 ;procedure GMcTables()
 
 begin
 
+;usr = systemfunc("echo $USERID")
 numYr  = systemfunc("echo $YR")
 ;filDir = systemfunc("echo $DIR")
 ;ModDir = systemfunc("echo $DIRW")
@@ -35,6 +37,8 @@ vMask  = systemfunc("echo $MASK")
 cabdir = systemfunc("echo $CABLE")
 mosdir = systemfunc("echo $MOSES")
 tname =  systemfunc("echo $tname")
+txname =  systemfunc("echo $txname")
+tiname =  systemfunc("echo $tiname")
 
 ; FILES --------------------------------------------------------------
 
@@ -46,8 +50,8 @@ end if
 cable_file = addfile(cabdir+"/seasonal_means_"+numYr+"yrs.nc","r")
 table_file = addfile(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 
-ObsDir = "/home/cmar/ste69f/umplot/obs/"
-PltDir = "/home/cmar/ste69f/umplot/data/"
+ObsDir = "~"+usr+"/umplot/obs/"
+PltDir = "~"+usr+"/umplot/data/"
 
 erai_file = addfile(ObsDir+"ERAi_tp2m.nc","r")
 erat_file = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
@@ -81,8 +85,8 @@ if (isfilevar(table_file,"tmax")) then
  tmax   = table_file ->tmax      ;tasmax
  tmin   = table_file ->tmin      ;tasmin
 else
- tmax   = table_file ->temp      ;tasmax
- tmin   = table_file ->temp_1    ;tasmin
+ tmax   = table_file ->$txname$ ;temp      ;tasmax
+ tmin   = table_file ->$tiname$ ;temp_1    ;tasmin
 end if
 etmp = erai_file->a
 emax = erat_file->mx2t
@@ -137,7 +141,7 @@ else
  if (isfilevar(toses_file,"tmax")) then
   tmax_m   = toses_file ->tmax
  else
-  tmax_m   = toses_file ->temp
+  tmax_m   = toses_file ->$txname$ ;temp
  end if
 end if
 if (isfilevar(moses_file,"tasmin")) then
@@ -146,7 +150,7 @@ else
  if (isfilevar(toses_file,"tmin")) then
   tmin_m   = toses_file ->tmin
  else
-  tmin_m   = toses_file ->temp_1
+  tmin_m   = toses_file ->$tiname$ ;temp_1
  end if
 end if
 if (isfilevar(moses_file,"hfss")) then

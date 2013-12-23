@@ -4,11 +4,13 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/home/cmar/ste69f/umplot/taylor_diagram.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/taylor_diagram.ncl")
 ;================================================================
 
 begin
 
+;usr = systemfunc("echo $USERID")
 fileDir =systemfunc("echo $DIR")
 ;Runid=systemfunc("echo $RUNID")
 numYr=systemfunc("echo $YR")
@@ -19,6 +21,8 @@ cabsea=systemfunc("echo $cabsea")
 mostem=systemfunc("echo $mostem")
 cabtem=systemfunc("echo $cabtem")
 tname =  systemfunc("echo $tname")
+txname =  systemfunc("echo $txname")
+tiname =  systemfunc("echo $tiname")
 
 ;FILES-----------------------------------------------------------------------------------------------------
 
@@ -27,13 +31,13 @@ moses_file = addfile(mossea,"r")
 cable_tmp  = addfile(cabtem,"r")
 moses_tmp  = addfile(mostem,"r")
 
-era_tp = addfile("/home/cmar/ste69f/umplot/obs/ERAi_tp2m.nc","r")         
-era_pr = addfile("/home/cmar/ste69f/umplot/obs/ERAi_precip.nc","r")
-era_tx = addfile("/home/cmar/ste69f/umplot/obs/ERAi_tmax_tmin.nc","r")
-era_sw = addfile("/home/cmar/ste69f/umplot/obs/ERA_INT_rss_ann.nc","r")    ; sw era int obs
-era_lw = addfile("/home/cmar/ste69f/umplot/obs/ERA_INT_rls_ann.nc","r")    ; lw era int obs
-era_lh = addfile("/home/cmar/ste69f/umplot/obs/ERA_INT_hfls_ann.nc","r") ; lh era int obs
-era_sh = addfile("/home/cmar/ste69f/umplot/obs/ERA_INT_hfss_ann.nc","r") ; sh era int obs
+era_tp = addfile("~"+usr+"/umplot/obs/ERAi_tp2m.nc","r")         
+era_pr = addfile("~"+usr+"/umplot/obs/ERAi_precip.nc","r")
+era_tx = addfile("~"+usr+"/umplot/obs/ERAi_tmax_tmin.nc","r")
+era_sw = addfile("~"+usr+"/umplot/obs/ERA_INT_rss_ann.nc","r")    ; sw era int obs
+era_lw = addfile("~"+usr+"/umplot/obs/ERA_INT_rls_ann.nc","r")    ; lw era int obs
+era_lh = addfile("~"+usr+"/umplot/obs/ERA_INT_hfls_ann.nc","r") ; lh era int obs
+era_sh = addfile("~"+usr+"/umplot/obs/ERA_INT_hfss_ann.nc","r") ; sh era int obs
 
 ;----------------------------------------------------------------------------------------------------------
 
@@ -46,8 +50,8 @@ if (isfilevar(cable_tmp,"tmax")) then
  ctmax = cable_tmp  ->tmax
  ctmin = cable_tmp  ->tmin
 else
- ctmax = cable_tmp  ->temp
- ctmin = cable_tmp  ->temp_1
+ ctmax = cable_tmp  ->$txname$ ;temp
+ ctmin = cable_tmp  ->$tiname$ ;temp_1
 end if
 cprec = cable_file ->precip
 clh   = cable_file ->lh
@@ -64,8 +68,8 @@ if (isfilevar(moses_tmp,"tmax")) then
  mtmax = moses_tmp  ->tmax
  mtmin = moses_tmp  ->tmin
 else
- mtmax = moses_tmp  ->temp
- mtmin = moses_tmp  ->temp_1
+ mtmax = moses_tmp  ->$txname$ ;temp
+ mtmin = moses_tmp  ->$tiname$ ;temp_1
 end if
 mprec = moses_file ->precip
 mlh   = moses_file ->lh

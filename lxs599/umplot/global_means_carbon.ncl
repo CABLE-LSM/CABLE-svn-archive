@@ -4,6 +4,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+usr = systemfunc("echo $USERID")
 numYr = systemfunc("echo $YR")
 resol = systemfunc("echo $RES")
 vMask = systemfunc("echo $MASK")
@@ -43,8 +44,8 @@ delete(lin)
 
 ; load area for each grid cell
 
-   Dir = "/home/cmar/ste69f/umplot/"
-   ain = addfile(Dir+"data/areacella_fx_ACCESS1-0_historical_r0i0p0.nc","r")
+   Dir = "~"+usr+"/umplot/"
+   ain = addfile(Dir+"data/areacella.nc","r")
    grid_area = ain->areacella
    ;ain = addfile("grid_area.nc","r")
    ;grid_area = ain->grid_area
@@ -57,6 +58,7 @@ delete(ain)
    frac1 = Sfrac->field1893 ;(0,0:12,:,:)
    dim   = dimsizes(frac1)
    frac  = frac1(0,0:dim(1)-5,:,:)
+   delete(frac1)
   else
    frac  = Sfrac->field1893(0,0:4,:,:)
   end if
@@ -69,45 +71,48 @@ delete(Sfrac)
 ;   lfrac = lfin->lsm
 
    if (resol.eq.48) then
-   fland   = addfile(Dir+"data/landfrac_n48.nc","r")
+    fland   = addfile(Dir+"data/landfrac_n48.nc","r")
    else ; n96
-   if (vMask.eq.2) then
-   fland   = addfile(Dir+"data/landfrac_v2.nc","r")
-   else ; v1 mask
-   fland   = addfile(Dir+"data/landfrac_ACCESS_N96.nc","r")
-   end if
+    if (vMask.eq.2) then
+     fland   = addfile(Dir+"data/landfrac_v2.nc","r")
+    else ; v1 mask
+     fland   = addfile(Dir+"data/landfrac_ACCESS_N96.nc","r")
+    end if
    end if
    lfrac = fland->lsm
    land_frac = where(lfrac.eq.0,lfrac@_FillValue,lfrac)
    land_frac@_FillValue = lfrac@_FillValue
 ;printVarSummary(land_frac)
 delete(fland)
+delete(resol)
+delete(vMask)
+delete(lfrac)
 
 ; need to convert from double to float
    npp   = dble2flt(npp_d)
    soil  = dble2flt(soil_d)
    gpp   = dble2flt(gpp_d)
    presp = dble2flt(presp_d)
-   prsp  = dble2flt(presp_d)
-   gpplf = dble2flt(gpp_d)
-;printVarSummary(lresp_d)
+   ;prsp  = dble2flt(presp_d)
+   ;gpplf = dble2flt(gpp_d)
 delete(npp_d)
 delete(soil_d)
 delete(gpp_d)
 delete(presp_d)
-;print(systemfunc("ps u"))
    ;if (isvar("lresp_d")) then
-   lrsp  = dble2flt(lresp_d)
+   ;lrsp  = dble2flt(lresp_d)
+   lrsp  = new(dimsizes(lresp_d),float)
    ;end if
-delete(lresp_d)
-
+;delete(lresp_d)
    do ts=0,t-1,1
    ;if (isvar("lrsp")) then
-    lrsp(ts,:,:,:)  = lrsp(ts,:,:,:)*frac(:,:,:)
+    lrsp(ts,:,:,:)  = dble2flt(lresp_d(ts,:,:,:))*frac(:,:,:)
+    ;lrsp(ts,:,:,:)  = lrsp(ts,:,:,:)*frac(:,:,:)
    ;end if
-    prsp(ts,:,:,:)  = presp(ts,:,:,:)/land_frac(0,:,:,:)
-    gpplf(ts,:,:,:) = gpp(ts,:,:,:)/land_frac(0,:,:,:)
+    ;prsp(ts,:,:,:)  = presp(ts,:,:,:)/land_frac(0,:,:,:)
+    ;gpplf(ts,:,:,:) = gpp(ts,:,:,:)/land_frac(0,:,:,:)
    end do
+delete(lresp_d)
 
 ;if (isvar("lrsp")) then
    lresp = dim_sum_n_Wrap(lrsp,1)

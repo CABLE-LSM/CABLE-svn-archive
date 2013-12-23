@@ -15,6 +15,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+usr = systemfunc("echo $USERID")
 cabDir = systemfunc("echo $CABLE")
 mosDir = systemfunc("echo $MOSES")
 numYr  = systemfunc("echo $YR")
@@ -41,10 +42,12 @@ end if
 ; cable = False
 ;end if
 
-ObsDir = "/home/cmar/ste69f/umplot/obs/"
-LsmDir = "/home/cmar/ste69f/umplot/data/"
+ObsDir = "~"+usr+"/umplot/obs/"
+LsmDir = "~"+usr+"/umplot/data/"
 
+system("dmget "+mosDir+"/Mmonthly_means_"+numYr+"yrs.nc")
 moses_file = addfile(mosDir+"/Mmonthly_means_"+numYr+"yrs.nc","r")
+system("dmget "+cabDir+"/Mmonthly_means_"+numYr+"yrs.nc")
 cable_file = addfile(cabDir+"/Mmonthly_means_"+numYr+"yrs.nc","r")
 tscrn_obs  = addfile(ObsDir+"ERAi_monavg_t2m.nc","r")
 pr_obs     = addfile(ObsDir+"ERA_INT_pr_8908.nc","r")

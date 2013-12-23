@@ -5,7 +5,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
-load "/home/cmar/ste69f/umplot/plot_mmdc.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure hay_ts()
@@ -14,6 +15,7 @@ begin
 
 FlxName  = "hay"
 LongName = "hay"
+;usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $moshay")
 cabsf    = systemfunc("echo $cabhay")
@@ -24,8 +26,8 @@ else
 jpeg = False
 end if
 
-tsDir  = "/home/cmar/ste69f/umplot/obs/"
-home   = "/home/cmar/ste69f/"
+tsDir  = "~"+usr+"/umplot/obs/"
+home   = "~"+usr+"/"
 
 system("dmget " + tsDir + "hayobsjuly.nc")
 flux1  = addfile(tsDir + "hayobsjuly.nc" ,"r")

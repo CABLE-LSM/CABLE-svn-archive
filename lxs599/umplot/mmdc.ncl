@@ -10,6 +10,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
@@ -20,7 +21,7 @@ else
 jpeg = False
 end if
 
-home     = "/home/cmar/ste69f/"
+home     = "~"+usr+"/"
 
 system("dmget " + filDir + "/mmdc_*_roll_"+numYr+"yrs.nc" )
 

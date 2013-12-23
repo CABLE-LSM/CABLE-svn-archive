@@ -16,6 +16,7 @@ var_field = (/"field1388","field1389","field1390","field1523"/)
 ; co2ppm has 38 levels
 ; co2atmos has missing values ?
 
+usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
@@ -28,7 +29,7 @@ else
 jpeg = False
 end if
 
-Dir  = "/home/cmar/ste69f/umplot/"
+Dir  = "~"+usr+"/umplot/"
 
 print("Calculating Zonal Means for Carbon Fields")
 print("")

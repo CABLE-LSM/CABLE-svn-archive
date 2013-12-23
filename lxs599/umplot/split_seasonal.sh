@@ -42,9 +42,11 @@ if (! -d $DIRW/block${BLOCK}_5yrs) then
 if ($REINIT == 1) then
  set pelist=`ls $DIR/$RUNID$a.$Ptimes?????.nc | head -${nom}`
  set pblist=`ls $DIR/$RUNID$a.$Ptemps?????.nc | head -${nom}`
+ set pmlist=`ls $DIR/$RUNID$a.$Pmonth?????.nc | head -${nom}`
 else
  set pelist=`ls $DIR/$RUNID$a.$Ptimes?????.nc | head -${noy}`
  set pblist=`ls $DIR/$RUNID$a.$Ptemps?????.nc | head -${noy}`
+ set pmlist=`ls $DIR/$RUNID$a.$Pmonth?????.nc | head -${noy}`
 endif
  if ($count_all == $Numyr) then
   echo "(1)     Warning: Number of Years = YR+1. Please Check."
@@ -68,9 +70,11 @@ if ($BLOCK == 1) then
 if ($REINIT == 1) then
  set pels=`ls $pelist | head -60`
  set pbls=`ls $pblist | head -60`
+ set pmls=`ls $pmlist | head -60`
 else
  set pels=`ls $pelist | head -20`
  set pbls=`ls $pblist | head -20`
+ set pmls=`ls $pmlist | head -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -96,9 +100,11 @@ else if ($BLOCK == 2) then
 if ($REINIT == 1) then
  set pels=`ls $pelist | head -120 | tail -60` #tail +21 | head -20
  set pbls=`ls $pblist | head -120 | tail -60`
+ set pmls=`ls $pmlist | head -120 | tail -60`
 else
  set pels=`ls $pelist | head -40 | tail -20` #tail +21 | head -20
  set pbls=`ls $pblist | head -40 | tail -20`
+ set pmls=`ls $pmlist | head -40 | tail -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -124,9 +130,11 @@ else if ($BLOCK == 3) then
 if ($REINIT == 1) then
  set pels=`ls $pelist | head -180 | tail -60` # tail +41 | head -20
  set pbls=`ls $pblist | head -180 | tail -60`
+ set pmls=`ls $pmlist | head -180 | tail -60`
 else
  set pels=`ls $pelist | head -60 | tail -20` # tail +41 | head -20
  set pbls=`ls $pblist | head -60 | tail -20`
+ set pmls=`ls $pmlist | head -60 | tail -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -152,9 +160,11 @@ else if ($BLOCK == 4) then
 if ($REINIT == 1) then
  set pels=`ls $pelist | tail -60`
  set pbls=`ls $pblist | tail -60`
+ set pmls=`ls $pmlist | tail -60`
 else
  set pels=`ls $pelist | tail -20`
  set pbls=`ls $pblist | tail -20`
+ set pmls=`ls $pmlist | tail -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -191,11 +201,12 @@ cdo mergetime $pbls Tempseries_5yrs.nc
 #cdo copy $pels Timeseries_5yrs.nc
 #cdo copy $pbls Tempseries_5yrs.nc
 
+#cdo mergetime $pmls Mmonthly_means_5yrs.nc
 cdo copy $cdo_blk Mmonthly_means_5yrs.nc
-cdo yearavg Mmonthly_means_5yrs.nc yearly_means_5yrs.nc
+cdo yearmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc
 
- cdo yseasavg Tempseries_5yrs.nc Tseasonal_means_5yrs.nc
- cdo ymonavg Tempseries_5yrs.nc Tmonthly_means_5yrs.nc
+ cdo yseasmean Tempseries_5yrs.nc Tseasonal_means_5yrs.nc
+ cdo ymonmean Tempseries_5yrs.nc Tmonthly_means_5yrs.nc
 
  mv seasonal_5yrs.nc seasonal_means_5yrs.nc
  mv monthly_5yrs.nc monthly_means_5yrs.nc

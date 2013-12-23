@@ -18,13 +18,15 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/home/cmar/ste69f/umplot/regrid.ncl"
-load "/home/cmar/ste69f/umplot/tables.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript("~"+usr+"/umplot/tables.ncl")
 
 ;procedure GMTables()
 
 begin
 
+;usr = systemfunc("echo $USERID")
 numYr  = systemfunc("echo $YR")
 filDir = systemfunc("echo $DIR")
 ModDir = systemfunc("echo $PWD")
@@ -35,17 +37,21 @@ vMask  = systemfunc("echo $MASK")
 ;cabdir = systemfunc("echo $CABLE")
 ;mosdir = systemfunc("echo $MOSES")
 tname =  systemfunc("echo $tname")
+txname =  systemfunc("echo $txname")
+tiname =  systemfunc("echo $tiname")
 
 ; FILES --------------------------------------------------------------
 
 ;moses_file = addfile(mosdir+"/seasonal_means_"+numYr+"yrs.nc","r") 
 ;cable_file = addfile(cabdir+"/seasonal_means_"+numYr+"yrs.nc","r")
 
-ObsDir = "/home/cmar/ste69f/umplot/obs/"
-PltDir = "/home/cmar/ste69f/umplot/data/"
+ObsDir = "~"+usr+"/umplot/obs/"
+PltDir = "~"+usr+"/umplot/data/"
 
 sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
-tsea_file = addfile(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
+if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+ tsea_file = addfile(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
+end if
 if (resol.eq.48) then 
  lsm_file = addfile(PltDir+"LSM_UMn"+resol+".nc","r")
  frac_file = addfile(PltDir+"landfrac_n48.nc","r")
@@ -69,12 +75,14 @@ if (isfilevar(sea_file,"tscrn")) then
 else
  tscrn  = sea_file ->$tname$     ;tas
 end if
+if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 if (isfilevar(tsea_file,"tmax")) then
  tmax   = tsea_file ->tmax
  tmin   = tsea_file ->tmin
 else
- tmax   = tsea_file ->temp     ;tasmax
- tmin   = tsea_file ->temp_1   ;tasmin
+ tmax   = tsea_file ->$txname$ ;temp     ;tasmax
+ tmin   = tsea_file ->$tiname$ ;temp_1   ;tasmin
+end if
 end if
 sh     = sea_file ->sh        ;hfss
 ;rnet1  = sea_file ->field3333 ;field202_1
@@ -233,8 +241,10 @@ radnet       = dim_avg_n_Wrap(rnet,0)
 sensh        = dim_avg_n_Wrap(sh,0)
 lathf        = dim_avg_n_Wrap(lhf,0)
 tscr         = dim_avg_n_Wrap(tscrn,0)
+if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 tmx          = dim_avg_n_Wrap(tmax,0)
 tmn          = dim_avg_n_Wrap(tmin,0)
+end if
 evp          = dim_avg_n_Wrap(evap,0)
 srf          = dim_avg_n_Wrap(srunoff,0)
 dr           = dim_avg_n_Wrap(drunoff,0)
@@ -323,10 +333,12 @@ su_l           = wgt_areaave2(rsu  ,wgtl,0)
 
 ts_l           = wgt_areaave2(tscr  ,wgtl,0)
 ts_l           = ts_l-273.16
+if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 tx_l           = wgt_areaave2(tmx   ,wgtl,0)
 tx_l           = tx_l-273.16
 tn_l           = wgt_areaave2(tmn   ,wgtl,0)
 tn_l           = tn_l-273.16
+end if
 ;ts_l_m         = wgt_areaave2(tscr_m,wgtl,0)
 ;ts_l_m         = ts_l_m-273.16
 ;tx_l_m         = wgt_areaave2(tmx_m ,wgtl,0)
@@ -390,10 +402,12 @@ su_o           = wgt_areaave2(rsu  ,wgto,0)
 
 ts_o           = wgt_areaave2(tscr  ,wgto,0)
 ts_o           = ts_o-273.16
+if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 tx_o           = wgt_areaave2(tmx   ,wgto,0)
 tx_o           = tx_o-273.16
 tn_o           = wgt_areaave2(tmn   ,wgto,0)
 tn_o           = tn_o-273.16
+end if
 ;ts_o_m         = wgt_areaave2(tscr_m,wgto,0)
 ;ts_o_m         = ts_o_m-273.16
 ;tx_o_m         = wgt_areaave2(tmx_m ,wgto,0)
@@ -457,10 +471,12 @@ su_g   = wgt_areaave2(rsu  ,wgt,0)
 
 ts_g   = wgt_areaave2(tscr  ,wgt,0)
 ts_g   = ts_g-273.16
+if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 tx_g   = wgt_areaave2(tmx   ,wgt,0)
 tx_g   = tx_g-273.16
 tn_g   = wgt_areaave2(tmn   ,wgt,0)
 tn_g   = tn_g-273.16
+end if
 ;ts_g_m = wgt_areaave2(tscr_m,wgt,0)
 ;ts_g_m = ts_g_m-273.16
 ;tx_g_m = wgt_areaave2(tmx_m ,wgt,0)
@@ -617,6 +633,7 @@ delete(global_vals)
 ;delete(global_vals)
 
 ;=========================
+if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 ; Obs. Estimates from NOAA (Smith et. al. 2008 ,no)
 ;not_l = 8.5
 ;not_o = 16.1
@@ -647,6 +664,7 @@ delete(global_vals)
 ;delete(land_vals)
 ;delete(ocean_vals)
 ;delete(global_vals)
+end if
 
 ;=========================
 ; Obs. Estimates from Stephens et. al. (s)

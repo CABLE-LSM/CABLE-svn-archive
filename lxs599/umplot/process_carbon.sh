@@ -52,10 +52,10 @@ cdo mulc,659090.91 mm.co2_${YR}yrs.nc mm.co2ppm_${YR}yrs.nc
 #cdo mulc,31536000000 mm.sresp.nc mm.sresp_gcpy.nc
 
 ## Multiply(mul)/Divide(div) by land fraction
-#cdo div /home/cmar/ste69f/umplot/landfrac_ACCESS_N96.nc mm.gpp_gpy.nc mm.gpp_lfr.nc
-#cdo div /home/cmar/ste69f/umplot/landfrac_ACCESS_N96.nc mm.npp_gpy.nc mm.npp_lfr.nc
-#cdo div /home/cmar/ste69f/umplot/landfrac_ACCESS_N96.nc mm.presp_gpy.nc mm.presp_lfr.nc
-#cdo div /home/cmar/ste69f/umplot/landfrac_ACCESS_N96.nc mm.sresp_gpy.nc mm.sresp_lfr.nc
+#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.gpp_gpy.nc mm.gpp_lfr.nc
+#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.npp_gpy.nc mm.npp_lfr.nc
+#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.presp_gpy.nc mm.presp_lfr.nc
+#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.sresp_gpy.nc mm.sresp_lfr.nc
 
 # =======================================================================
 

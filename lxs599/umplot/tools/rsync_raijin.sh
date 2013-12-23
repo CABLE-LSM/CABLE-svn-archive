@@ -19,7 +19,7 @@ set a = @
 set A = a
 set t = "~"
 set date = `date`
-@ nom = ${YR} * 12
+@ nom = ${FullYrs} * 12
 
 set pext = (pa pb pc pd pe pf pg ph pi pj pm pt)
 #set pext2 = (ps px py) # 4seas, decadal, yearly
@@ -35,7 +35,7 @@ if ( $png != "" ) then
 
   foreach topdir ($topdirlist)
 
-    echo "$date - rsync $saveid$a$SAVEHOST$c$SAVEBASE/$topdir"
+    echo "(0)     $date - rsync $saveid$a$SAVEHOST$c$SAVEBASE/$topdir"
     if (! -e $LOCALSAVE) mkdir $LOCALSAVE
     #cd $LOCALSAVE
     #if (! -e $topdir) mkdir $topdir
@@ -43,7 +43,7 @@ if ( $png != "" ) then
 
     ##rsync -avu -e ssh $saveid$a$SAVEHOST$c"$SAVEBASE/$topdir/$topdir$A.p[acef]h8*" $topdir/
     #if (-e $DIR) then
-    # echo "NOTE: newer files might replace older files in" $DIR
+    # echo "(0)     NOTE: newer files might replace older files in" $DIR
     # rsync -avu -e ssh $saveid$a$SAVEHOST$c"$SAVEBASE/$topdir/$topdir$A.p*" $DIR/
     #else
      if (! -e $LOCALSAVE/$topdir) then
@@ -65,7 +65,7 @@ if ( $png != "" ) then
   end # foreach topdir
 
 else  # png
-  echo "$date - $SAVEHOST is not responding"
+  echo "(1)     $date - $SAVEHOST is not responding"
   exit(1)
 endif # png
 

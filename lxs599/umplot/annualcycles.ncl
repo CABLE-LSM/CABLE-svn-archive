@@ -5,7 +5,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
-;load "/home/cmar/ste69f/umplot/plot_mmdc.ncl"
+;usr      = systemfunc("echo $USERID")
+;loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure mmdc_flux(LongName:string,mosDir:string,cabDir:string)
@@ -13,6 +14,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 begin
 
 ;LongName = "hyytiala"
+usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
@@ -23,8 +25,8 @@ else
 jpeg = False
 end if
 
-tsDir    = "/home/cmar/ste69f/umplot/obs/"
-home     = "/home/cmar/ste69f/"
+tsDir    = "~"+usr+"/umplot/obs/"
+home     = "~"+usr+"/"
 
 ;system("dmget " + tsDir + LongName +"/mmdc*_roll.nc" )
 
@@ -343,8 +345,8 @@ print("Plotting MM-AnnualC Biases for All Sites")
 ;ts_rad(LongName,data5,data4,data8,data7)
 ;ts_prec(LongName,data6,data9)
 
-pltName = "annualc_"+numYr+"yrs"
-wks  = gsn_open_wks("ps","annualc_"+numYr+"yrs")
+pltName = "annualcycle_"+numYr+"yrs"
+wks  = gsn_open_wks("ps","annualcycle_"+numYr+"yrs")
 res = True
 res@gsnFrame = False
 res@gsnDraw  = False

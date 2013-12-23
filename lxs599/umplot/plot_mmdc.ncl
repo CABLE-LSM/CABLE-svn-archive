@@ -77,8 +77,8 @@ pres@gsnPanelYWhiteSpacePercent = 5
 gsn_panel(wks,plot,(/2,2/),pres)
 
  if (jpeg) then
- system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
- ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ system("convert -density 500 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ ;system("convert -density 500 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  end if
 
 
@@ -153,10 +153,88 @@ pres@gsnPanelYWhiteSpacePercent = 5
 gsn_panel(wks2,radplt,(/2,2/),pres)
 
  if (jpeg) then
- system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
- ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ system("convert -density 500 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ ;system("convert -density 500 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  end if
 
+
+end
+
+;===============================================================================
+
+procedure ts_prec4(FlxName:string,PrJan,ClJan,PrJul,ClJul,jpeg) ; :numeric
+
+begin
+
+numYr  = systemfunc("echo $YR")
+y = fspan(0,23.5,48)
+
+;-----------------------------------------------------------------------------
+
+pltName                    = "mmdc_"+FlxName+"_prec_"+numYr+"yrs"
+wks3                       = gsn_open_wks("ps","mmdc_"+FlxName+"_prec_"+numYr+"yrs")
+
+res                        = True
+res@gsnDraw                = False
+res@gsnFrame               = False
+res@xyLineColors           = (/"blue","red","black"/)
+;res@xyLineColors           = (/"green","blue","red","black"/)
+res@xyLineThicknesses      = (/2,2,2/)
+;res@xyLineThicknesses      = (/2,2,2,2/)
+res@xyDashPattern          = 0.
+res@tiYAxisString          = "Precipitation (mm/day)"
+res@tiXAxisString          = "Hours"
+res@gsnRightString         = "January"
+res@gsnLeftString          = ""+FlxName+""
+;res@tiMainString           = "January"
+res@pmLegendDisplayMode    = "Always"            ; turn on legend
+res@pmLegendSide           = "Top"               ; Change location of
+res@pmLegendParallelPosF   = .15                 ; move units right
+res@pmLegendOrthogonalPosF = -0.3                ; move units down
+res@pmLegendWidthF         = 0.09                ; Change width and
+res@pmLegendHeightF        = 0.11                ; height of legend.
+res@lgPerimOn              = False               ; turn off box around
+res@lgLabelFontHeightF     = .018                ; label font height
+res@xyExplicitLegendLabels = (/"A1.0","A1.1","fluxnet"/)         ; create explicit labels
+;res@xyExplicitLegendLabels = (/"igbp","A1.0","A1.1","fluxnet"/)         ; create explicit labels
+
+;------------------------------------------------------------------------------
+
+prplot                     = new(4,graphic)
+prplot(0)                  = gsn_csm_xy(wks3,y,PrJan,res) ; data6
+;res@tiYAxisString          = ""
+res@tiYAxisOn              = False
+res@gsnRightString           = "July"
+res@gsnLeftString          = ""
+;res@tiMainString           = "July"
+prplot(1)                  = gsn_csm_xy(wks3,y,PrJul,res) ; data9
+;res@tiYAxisString          = ""
+res@tiYAxisOn              = True
+res@tiYAxisString          = "Total Cloud Fraction"
+res@gsnRightString           = "January"
+res@gsnLeftString            = ""
+prplot(2)                  = gsn_csm_xy(wks3,y,ClJan,res) ; data6
+;res@tiYAxisString          = ""
+res@tiYAxisOn              = False
+res@gsnRightString           = "July"
+res@gsnLeftString            = ""
+prplot(3)                  = gsn_csm_xy(wks3,y,ClJul,res) ; data9
+
+; -----------------------------------------------------------------------------
+
+pres                       = True
+;pres@gsnMaximize           = True
+;pres@gsnOrientation        = "landscape"
+;pres@PanelRowSpec          = True
+pres@gsnPanelYWhiteSpacePercent = 5
+gsn_panel(wks3,prplot,(/2,2/),pres)
+
+ if (jpeg) then
+ system("ps2epsi "+pltName+".ps "+pltName+".eps")
+ system("convert -density 500 -rotate 270 "+pltName+".eps "+pltName+".jpg")
+ ;system("convert -density 500 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ ;system("convert -density 500 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ end if
 
 end
 
@@ -223,6 +301,83 @@ gsn_panel(wks3,prplot,(/1,2/),pres)
  system("convert -density 500 -rotate 270 "+pltName+".eps "+pltName+".jpg")
  ;system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+ end if
+
+end
+
+;===============================================================================
+
+procedure ts_swlw(FlxName:string,SwJan,LwJan,SwJul,LwJul,jpeg) ; :numeric
+
+begin
+
+numYr  = systemfunc("echo $YR")
+y = fspan(0,23.5,48)
+
+;-----------------------------------------------------------------------------
+
+pltName                    = "mmdc_"+FlxName+"_swlw_"+numYr+"yrs"
+wks3                       = gsn_open_wks("ps","mmdc_"+FlxName+"_swlw_"+numYr+"yrs")
+
+res                        = True
+res@gsnDraw                = False
+res@gsnFrame               = False
+res@xyLineColors           = (/"blue","red","black"/)
+;res@xyLineColors           = (/"green","blue","red","black"/)
+res@xyLineThicknesses      = (/2,2,2/)
+;res@xyLineThicknesses      = (/2,2,2,2/)
+res@xyDashPattern          = 0.
+res@tiYAxisString          = "Incoming SW Rad (Wm~S~-2~N~)"
+res@tiXAxisString          = "Hours"
+res@gsnRightString         = "January"
+res@gsnLeftString          = ""+FlxName+""
+;res@tiMainString           = "January"
+res@pmLegendDisplayMode    = "Always"            ; turn on legend
+res@pmLegendSide           = "Top"               ; Change location of
+res@pmLegendParallelPosF   = .15                 ; move units right
+res@pmLegendOrthogonalPosF = -0.3                ; move units down
+res@pmLegendWidthF         = 0.09                ; Change width and
+res@pmLegendHeightF        = 0.11                ; height of legend.
+res@lgPerimOn              = False               ; turn off box around
+res@lgLabelFontHeightF     = .018                ; label font height
+res@xyExplicitLegendLabels = (/"A1.0","A1.1","fluxnet"/)         ; create explicit labels
+;res@xyExplicitLegendLabels = (/"igbp","A1.0","A1.1","fluxnet"/)         ; create explicit labels
+
+;------------------------------------------------------------------------------
+
+prplot                     = new(4,graphic)
+prplot(0)                  = gsn_csm_xy(wks3,y,SwJan,res) ; data6
+;res@tiYAxisString          = ""
+res@tiYAxisOn              = False
+res@gsnRightString           = "July"
+res@gsnLeftString          = ""
+;res@tiMainString           = "July"
+prplot(1)                  = gsn_csm_xy(wks3,y,SwJul,res) ; data9
+;res@tiYAxisString          = ""
+res@tiYAxisOn              = True
+res@tiYAxisString          = "Incoming LW Rad (Wm~S~-2~N~)"
+res@gsnRightString           = "January"
+res@gsnLeftString          = ""
+prplot(2)                  = gsn_csm_xy(wks3,y,LwJan,res) ; data6
+;res@tiYAxisString          = ""
+res@tiYAxisOn              = False
+res@gsnRightString           = "July"
+res@gsnLeftString          = ""
+prplot(3)                  = gsn_csm_xy(wks3,y,LwJul,res) ; data9
+
+; -----------------------------------------------------------------------------
+
+pres                       = True
+;pres@gsnMaximize           = True
+;pres@gsnOrientation        = "landscape"
+;pres@PanelRowSpec          = True
+pres@gsnPanelYWhiteSpacePercent = 5
+gsn_panel(wks3,prplot,(/2,2/),pres)
+
+ if (jpeg) then
+ system("ps2epsi "+pltName+".ps "+pltName+".eps")
+ system("convert -density 500 -rotate 270 "+pltName+".eps "+pltName+".jpg")
+ ;system("convert -density 500 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
  end if
 
 end

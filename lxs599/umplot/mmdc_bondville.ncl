@@ -5,7 +5,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
-load "/home/cmar/ste69f/umplot/plot_mmdc.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure bondv_ts()
@@ -14,6 +15,7 @@ begin
 
 FlxName  = "bondv"
 LongName = "bondville"
+;usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $mosbon")
 cabsf    = systemfunc("echo $cabbon")
@@ -24,14 +26,14 @@ else
 jpeg = False
 end if
 
-tsDir  = "/home/cmar/ste69f/umplot/obs/"
-home   = "/home/cmar/ste69f/"
+tsDir  = "~"+usr+"/umplot/obs/"
+home   = "~"+usr+"/"
 
 system("dmget " + tsDir + "mmdc_*_roll.nc")
 
-flux1  = addfile(tsDir + "mmdc_bv97_roll.nc"  ,"r")
-flux2  = addfile(tsDir + "mmdc_bv98n_roll.nc" ,"r")
-flux3  = addfile(tsDir + "mmdc_bv99_roll.nc"  ,"r")
+;flux1  = addfile(tsDir + "mmdc_bv97_roll.nc"  ,"r")
+;flux2  = addfile(tsDir + "mmdc_bv98n_roll.nc" ,"r")
+;flux3  = addfile(tsDir + "mmdc_bv99_roll.nc"  ,"r")
 flux   = addfile(home  + "obsdata/fluxnet/PALS/flxnt_mon/mmdc_ts_Bondv.nc","r")
 mosfil = addfile(mossf,"r")
 cabfil = addfile(cabsf,"r")
@@ -78,29 +80,29 @@ precip1 = flux->Rainf
 ;mpr     = mosfil ->field5226
 
 if (isfilevar(cabfil,"hfss")) then
-csh     = cabfil ->hfss
+ csh     = cabfil ->hfss
 else
-csh     = cabfil ->sh
+ csh     = cabfil ->sh
 end if
 if (isfilevar(mosfil,"hfss")) then
-msh     = mosfil ->hfss
+ msh     = mosfil ->hfss
 else
-msh     = mosfil ->sh
+ msh     = mosfil ->sh
 end if
 if (isfilevar(cabfil,"hfls")) then
-clh     = cabfil ->hfls
+ clh     = cabfil ->hfls
 else
-clh     = cabfil ->lh
+ clh     = cabfil ->lh
 end if
 if (isfilevar(mosfil,"hfls")) then
-mlh     = mosfil ->hfls
+ mlh     = mosfil ->hfls
 else
-mlh     = mosfil ->lh
+ mlh     = mosfil ->lh
 end if
 if (isfilevar(cabfil,"field3333")) then
-crad    = cabfil ->field3333
+ crad    = cabfil ->field3333
 else
-crad    = cabfil ->field202
+ crad    = cabfil ->field202
 ;end if
 
  cswr    = cabfil ->solar
@@ -120,8 +122,14 @@ crad    = cabfil ->field202
  crnt(:,0:41) = crn2(:,6:47)
 end if
 if (isfilevar(mosfil,"field3333")) then
-mrad    = mosfil ->field3333
+ mrad    = mosfil ->field3333
+ radsum  = sum(mrad)
 else
+;end if
+;if (isvar("mrad") .and. radsum.le.0 .or. .not.isvar("mrad")) then
+; if (isvar("mrad")) then
+;   delete(mrad)
+; end if
  mrad    = mosfil ->field202
  mswr    = mosfil ->solar
  mlwr    = mosfil ->longwave
@@ -143,24 +151,34 @@ else
  mrnt!1    = "timestep"
 end if
 if (isfilevar(cabfil,"tas")) then
-cta     = cabfil ->tas
+ cta     = cabfil ->tas
 else
-cta     = cabfil ->temp
+ cta     = cabfil ->temp
 end if
 if (isfilevar(mosfil,"tas")) then
-mta     = mosfil ->tas
+ mta     = mosfil ->tas
 else
-mta     = mosfil ->temp
+ mta     = mosfil ->temp
 end if
 if (isfilevar(cabfil,"field5226")) then
-cpr     = cabfil ->field5226
+ cpr     = cabfil ->field5226
 else
-cpr     = cabfil ->tot_precip
+ cpr     = cabfil ->tot_precip
 end if
 if (isfilevar(mosfil,"field5226")) then
-mpr     = mosfil ->field5226
+ mpr     = mosfil ->field5226
 else
-mpr     = mosfil ->tot_precip
+ mpr     = mosfil ->tot_precip
+end if
+if (isfilevar(cabfil,"field30")) then
+ ctc     = cabfil ->field30
+;else
+; ctc     = cabfil ->
+end if
+if (isfilevar(mosfil,"field30")) then
+ mtc     = mosfil ->field30
+;else
+; mtc     = mosfil ->
 end if
 
 ;==============================================================================
@@ -310,11 +328,11 @@ data7(2,:) = temp(6,:)             ; fluxnet
 
 data8      = new((/3,timestep/),double)
 ;data8(0,:) = -9999 ;rad_ta(6,:)           ; igbp
-;if (sum(mrad(6,:)).ne.0) then
-;data8(0,:) = mrad(6,:)             ; moses
-;else
+if (sum(mrad(6,:)).ne.0) then
+data8(0,:) = mrad(6,:)             ; moses
+else
 data8(0,:) = mrnt(6,:)             ; moses
-;end if
+end if
 data8(1,:) = crad(6,:)             ; cable
 ;data8(1,:) = crnt(6,:)             ; cable
 data8(2,:) = rnet(6,:)             ; fluxnet
@@ -325,7 +343,16 @@ data9(0,:) = mpr(6,:)              ; moses
 data9(1,:) = cpr(6,:)              ; cable
 data9(2,:) = prec(6,:)             ; fluxnet
 
-; Jan
+if (isvar("ctc").and.isvar("mtc")) then
+data14            = new((/3,timestep/),double)
+;data14            = -9999
+;data14@_FillValue = -9999
+data14(0,:)       = mtc(6,:)
+data14(1,:)       = ctc(6,:)
+;data14(2,:)       = -9999
+end if
+
+; Jan -----
 data2      = new((/3,timestep/),double)
 ;data2(0,:) = qh_ta(0,:)            ; igbp
 data2(0,:) = msh(0,:)              ; moses
@@ -346,11 +373,11 @@ data4(2,:) = temp(0,:)             ; fluxnet
 
 data5      = new((/3,timestep/),double)
 ;data5(0,:) = -9999 ;rad_ta(0,:)           ; igbp
-;if (sum(mrad(0,:)).ne.0) then
-;data5(0,:) = mrad(0,:)             ; moses
-;else
+if (sum(mrad(0,:)).ne.0) then
+data5(0,:) = mrad(0,:)             ; moses
+else
 data5(0,:) = mrnt(0,:)             ; moses
-;end if
+end if
 data5(1,:) = crad(0,:)             ; cable
 ;data5(1,:) = crnt(0,:)             ; cable
 data5(2,:) = rnet(0,:)            ; fluxnet
@@ -361,6 +388,15 @@ data6(0,:) = mpr(0,:)              ; moses
 data6(1,:) = cpr(0,:)              ; cable
 data6(2,:) = prec(0,:)            ; fluxnet
 
+if (isvar("ctc").and.isvar("mtc")) then
+data12            = new((/3,timestep/),double)
+;data12            = -9999
+;data12@_FillValue = -9999
+data12(0,:)       = mtc(0,:)
+data12(1,:)       = ctc(0,:)
+;data12(2,:)       = -9999
+end if
+
 ;Plot-------------------------------------------------------------------------
 
 print("Plotting Bondville MMDC with Fluxnet")
@@ -368,7 +404,11 @@ print("")
 
 ts_flux(LongName,data2,data3,data,data1,jpeg)
 ts_rad(LongName,data5,data4,data8,data7,jpeg)
-ts_prec(LongName,data6,data9,jpeg)
+if (isvar("mtc") .and. isvar("ctc")) then
+ ts_prec4(LongName,data6,data12,data9,data14,jpeg)
+else
+ ts_prec(LongName,data6,data9,jpeg)
+end if
 
 end
 

@@ -1,11 +1,26 @@
 #!/bin/csh
-# UMPLOT v2.0
-# Created by Lauren Stevens, email: lauren.stevens@csiro.au
+#---------------------------------------------------------------------------
+# UMPLOT v2.1.2
+# Created by Lauren Stevens, email: Lauren.Stevens@csiro.au
 # 2008-2013
+#---------------------------------------------------------------------------
+
+#*******Edit********
+setenv USERID ste69f  # Cherax/Burnet
+#setenv USERID lxs599 # NCI- Raijin/Access*
+#*******************
+
+echo ""
+echo "==========================================================="
+echo "                       UMPLOT v2.1.2                       "
+echo "                Developed by Lauren Stevens                "
+echo "               Email: Lauren.Stevens@csiro.au              "
+echo "==========================================================="
+echo ""
 
 # SET UP - see Chapter 2 in Documentation.
 # You must have certain modules loaded before running UMPLOT. E.g.
-#module load ncl
+#module load ncl #/6.1.0-beta or later
 #module load nco
 #module load cdo
 #module load python
@@ -31,12 +46,20 @@ if (! -d $HOME/umplot) then
 endif
 if (! -d $HOME/umplot/nml) then
  mkdir $HOME/umplot/nml
- cp ~ste69f/umplot/nml/example_*.nml $HOME/umplot/nml
+ if ($HOSTNAME == cherax) then
+  cp ~ste69f/umplot/nml/example_*.nml $HOME/umplot/nml
+ else
+  cp ~lxs599/umplot/nml/example_*.nml $HOME/umplot/nml
+ endif
  echo " "
  echo "(0)     Making Directory $HOME/umplot/nml"
+ echo "(0)     Copying Example NML to $HOME/umplot/nml"
+ echo "(0)     Please Copy an Example NML to $HOME/umplot/nml/umplot.nml and Modify"
 endif
 
+#=================
 setenv DIRW $PWD
+#=================
 
 if ( -e $HOME/umplot/nml/umplot.nml ) then
   source $HOME/umplot/nml/umplot.nml
@@ -44,13 +67,11 @@ else
  echo " "
  echo "(1)     Namelist File Does Not Exist"
  echo "(1)     Please Create Namelist File in $HOME/umplot/nml"
- echo "(1)     Example Namelist File: ~ste69f/umplot/nml/umplot.nml"
+ echo "(1)     Example Namelist File: cherax:~ste69f/umplot/nml/umplot.nml"
  echo "(1)     and/or Email Lauren.Stevens@csiro.au"
  echo " "
  exit (1)
 endif
-
-setenv FullYrs $YR
 
 set rfile=`ls $DIR/ave*a.p* | wc -l`
 if ($rfile > 0) then
@@ -63,21 +84,40 @@ if ($rfile > 0) then
 endif
 echo " "
 
-if ($YR == 20 || $YR == 15 || $YR == 10) then
-# lxs 4oct13: use mod func ?
+#=================
+setenv FullYrs $YR
+#=================
+
+ncl ~$USERID/umplot/mod_func.ncl 
+# WARNING: Can't put anything between this line and status
+if ( $status == 38 ) then
+ @ noblks = ${FullYrs} / 5
+else
+ @ noblks = 1
+endif
+echo ""
+if ( $noblks > 1 ) then
  if ($SPLIT == y) then
-  if ($YR == 20) then
-   setenv block '1 2 3 4'
-  else if ($YR == 15) then
-   setenv block '1 2 3'
-  else if ($YR == 10) then
-   setenv block '1 2'
-  endif
   setenv YR 5
  endif
 else
  setenv SPLIT n
 endif
+
+#if ($YR == 20 || $YR == 15 || $YR == 10) then
+# if ($SPLIT == y) then
+#  if ($YR == 20) then
+#   setenv block '1 2 3 4'
+#  else if ($YR == 15) then
+#   setenv block '1 2 3'
+#  else if ($YR == 10) then
+#   setenv block '1 2'
+#  endif
+#  setenv YR 5
+# endif
+#else
+# setenv SPLIT n
+#endif
 
 if ($MODEL == c && $RES == 96) then
  setenv TILE 17
@@ -87,18 +127,21 @@ else
  setenv SOIL 4
 endif
 
+# NCI Transfer =============================================
 #set date=`date`
-if (${?NCI_CP} == 1) then
+#if (${?NCI_CP} == 1) then
 if ($NCI_CP == y) then
- ~ste69f/umplot/tools/rsync_raijin.sh
+ echo "(0)     Transferring Fields Files to Cherax"
+ echo ""
+ ~$USERID/umplot/tools/rsync_raijin.sh
 else
  echo "(0)     No Fields Files Transferred from Raijin"
  echo ""
 endif
-else
- echo "(1)     NCI_CP not set. Please update umplot.nml"
- echo "(1)     Contact Lauren.Stevens@csiro.au"
-endif
+#else
+# echo "(1)     NCI_CP not set. Please update umplot.nml"
+# echo "(1)     Contact Lauren.Stevens@csiro.au"
+#endif
 #set date=`date`
 
 # if ~/access doesn't exist ?
@@ -106,19 +149,33 @@ if ($DIRW == ~/access) then
  setenv DIRW ~/access/$RUNID
  cd $DIRW
 endif
+# NCI Transfer =============================================
 
+# Nc Convert And Check =====================================
 set a=a
-set pnc=`ls $DIR/$RUNID$a.p??????.nc | wc -l`
+if (${?CPL} == 0) then
+ setenv CPL n
+else
+ echo "(1)     NOTE: CPL is Set and Set to" $CPL
+endif
+if ($CPL == n) then
+ set pnc=`ls $DIR/$RUNID$a.p??????.nc | wc -l`
+else
+ set pnc=`ls $DIR/$RUNID.p?-??????????.nc | wc -l`
+endif
 
 if ($CNV2NC == y) then
 
   #set date=`date`
+   echo ""
+   echo "(0)     Converting Fields Files to NetCDF"
+   echo ""
    cd $DIR
-   ~ste69f/umplot/conv_um2nc.sh
+   ~$USERID/umplot/conv_um2nc.sh
   #set date=`date`
    echo " "
    echo "(0)     Extracting Tmax and Tmin to" $Ptemps "File"
-   ~ste69f/umplot/tools/extract_pb.sh
+   ~$USERID/umplot/tools/extract_pb.sh
    cd $DIRW
 
   echo " "
@@ -126,7 +183,8 @@ if ($CNV2NC == y) then
 
 else #CNV2NC == n
 
- if ( $pnc == 0 ) then
+ if ( $pnc == 0 && ! -e $DIRW/seasonal_means_${YR}yrs.nc ) then
+ #if ( || $SPLIT == y && ! -e $DIRW/block1_5yrs/seasonal_means_${YR}yrs.nc ) then
   echo " "
   echo "(1)     Fields Files Not Converted to NetCDF"
   echo "(1)     Cannot Run UMPLOT until NetCDFs are Present"
@@ -140,8 +198,14 @@ else #CNV2NC == n
 
 endif #CNV2NC
 
-set pnc2=`ls $DIR/$RUNID$a.p??????.nc | wc -l`
-set chk=`ls -s $DIR/$RUNID$a.p??????.nc`
+if ($CPL == n) then
+ set pnc2=`ls $DIR/$RUNID$a.p??????.nc | wc -l`
+ set chk=`ls -s $DIR/$RUNID$a.p??????.nc`
+else
+ set pnc2=`ls $DIR/$RUNID.p?-??????????.nc | wc -l`
+ set chk=`ls -s $DIR/$RUNID.p?-??????????.nc`
+endif
+#set cnt=`find -size 4 | wc -l`
 set i = 0
  while ($i < $pnc2)
   @ k = 2 * $i + 1
@@ -150,7 +214,7 @@ set i = 0
     echo " "
     echo "(1)     Not all NetCDF Have Been Converted Properly"
     echo " "
-    echo "(1)     See File" $chk[$m]
+    echo "(1)     E.g. See File" $chk[$m]
     echo " "
     echo "(1)     If You See Netcdf (i.e. $RUNID$a.p*.nc) with SIZE 32"
     echo "(1)     You'll Need to Delete the UM File(s) and the Netcdf(s)"
@@ -160,12 +224,13 @@ set i = 0
    endif
   @ i ++
  end
+# Nc Convert And Check =====================================
 
 # Lest 12.11.13 will move to umplot.nml
 if (${?UMPLT} == 0) then
-setenv UMPLT y
+ setenv UMPLT y
 else
-echo "(1)     NOTE: UMPLT is Set and set to" $UMPLT
+ echo "(1)     NOTE: UMPLT is Set and Set to" $UMPLT
 endif
 
 if ($UMPLT == y) then
@@ -185,7 +250,7 @@ echo " "
 set date=`date`
 echo "Start Time:" $date
 echo " "
-echo "====================================================================="
+echo "=================================================================="
 echo " "
 
 if ($DIRW == $DIR) then
@@ -195,9 +260,12 @@ else
 
  # in $DIRW
  set rid=`ls ?????a.p?????? | head -1 | head -c5`
+ #set rid2=`ls $DIR/?????a.p?????? | head -1 | head -c5`
  setenv RID $rid
+ #setenv RID2 $rid2
 
  if ( ${#rid} > 0 ) then
+  #if ( $RID != $RUNID || $RID2 != $RUNID ) then
   if ( $RID != $RUNID ) then
    echo " "
    echo "(1)     WARNING: Different RUNIDs Present"
@@ -209,13 +277,19 @@ else
 
 endif
 
-set pmnc=`ls $DIR/$RUNID$a.$Pmonth?????.nc | wc -l`
- if ( $pmnc == 0 ) then
+# Nc Check =================================================
+if ($CPL == n) then
+ set pmnc=`ls $DIR/$RUNID$a.$Pmonth?????.nc | wc -l`
+else
+ set pmnc=`ls $DIR/$RUNID.$Pmonth-??????????.nc | wc -l`
+endif
+ if ( $pmnc == 0 && ! -e $DIRW/seasonal_means_${YR}yrs.nc ) then
     echo " "
     echo "(1)     If you get a message like: 'please enter files interactively'"
     echo "(1)     Make Sure Monthly Netcdf Files are in Directory"
     echo "(1)     i.e. $RUNID$a.$Pmonth?????.nc"
  endif
+# Nc Check =================================================
 
 echo " "
 
@@ -225,37 +299,52 @@ if ($SPLIT == y) then
 
 if ( -d $DIRW/block1_5yrs ) then
  echo "(1)     $date - Block Directory Already Exists"
- echo "(1)     Please Delete Directory and Run Again"
+ echo "(1)     Please Move or Delete Directory and Run Again"
  exit (1)
 endif
 
-/home/cmar/ste69f/umplot/cdo_merge.sh
+# Processing ===============================================
+if ($CPL == n) then
+~$USERID/umplot/cdo_merge.sh
+#else
+#~$USERID/umplot/cdo_merge_cpl.sh
+endif
 
-foreach blk ( $block )
-setenv BLOCK $blk
+#foreach blk ( $block )
+#setenv BLOCK $blk
 
-source ~ste69f/umplot/nml/envars.sh
+@ j = 1
+while ( $j <= $noblks )
+setenv BLOCK ${j}
+
+source ~$USERID/umplot/nml/envars.sh
 echo " "
 echo "(0)     Post-Processing NetCDF Files"
 
-/home/cmar/ste69f/umplot/split_seasonal.sh
+if ($CPL == y) then
+ ~$USERID/umplot/split_seas_cpl.sh
+else
+ ~$USERID/umplot/split_seasonal.sh
+endif
 
 cd $DIRW/block${BLOCK}_5yrs
 
 set flen=`cdo ntime $DIRW/block${BLOCK}_5yrs/Mmonthly_means_${YR}yrs.nc`
 @ nom = ($YR * 12)
-if ($flen != $nom) then
+@ nof = ($FullYrs * 12)
+if ($flen != $nom || $pmnc < $nof) then
 echo " "
 echo "(1)     Number of Months is Incorrect"
 echo "(1)     Please Check Length of Mmonthly_means_${YR}yrs.nc"
-echo "(1)     It May Be That Not All .p Files are NetCDF"
-echo "(1)     "
-echo "(1)     If This is the (Only) Issue, 'setenv RUNID' in $DIR"
-echo "(1)     and"
-echo "(1)     If REINIT=1, Run ~/umplot/umtonc_ss_reinit.sh on Command Line"
-echo "(1)     or"
-echo "(1)     If REINIT=3, Run ~/umplot/runallv.sh on Command Line"
-echo "(1)     Then Run umplot Again"
+echo "(1)     It May Be That Not All .p Files were converted to NetCDF"
+echo "(1)     Or not all Fields Files were Transferred"
+#echo "(1)     "
+#echo "(1)     If This is the (Only) Issue, 'setenv RUNID' in $DIR"
+#echo "(1)     and"
+#echo "(1)     If REINIT=1, Run ~/umplot/umtonc_ss_reinit.sh on Command Line"
+#echo "(1)     or"
+#echo "(1)     If REINIT=3, Run ~/umplot/runallv.sh on Command Line"
+#echo "(1)     Then Run umplot Again"
 exit (1)
 endif
 
@@ -264,91 +353,109 @@ ncrename -v $tname,tscrn monthly_means_${YR}yrs.nc
 #ncrename -v $tname,tscrn Mmonthly_means_${YR}yrs.nc
 ncrename -v $tname,tscrn yearly_means_${YR}yrs.nc
 
-/home/cmar/ste69f/umplot/process_carbon.sh
+~$USERID/umplot/process_carbon.sh
+# Processing ===============================================
 
 echo " "
-ncl /home/cmar/ste69f/umplot/run.ncl
-ncl /home/cmar/ste69f/umplot/global_means_wbal.ncl
-ncl /home/cmar/ste69f/umplot/global_means_tables.ncl
+ncl ~$USERID/umplot/run.ncl
+ncl ~$USERID/umplot/global_means_wbal.ncl
+ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
-ncl /home/cmar/ste69f/umplot/global_means_ctables.ncl
+ ncl ~$USERID/umplot/global_means_ctables.ncl
 endif
-ncl /home/cmar/ste69f/umplot/carbon_zonal_means.ncl
-ncl /home/cmar/ste69f/umplot/global_means_carbon.ncl
-#ncl /home/cmar/ste69f/umplot/daily_mean_timeseries.ncl
+ncl ~$USERID/umplot/carbon_zonal_means.ncl
+ncl ~$USERID/umplot/global_means_carbon.ncl
+#ncl ~$USERID/umplot/daily_mean_timeseries.ncl
 
+# Timeseries ===============================================
 if( -e $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc ) then
+ if ($CAL == 360 ) then
+  python ~$USERID/umplot/MMDC.py $YR
+ else
+  set years=`cdo showyear $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc`
+  python ~$USERID/umplot/MMDC_365cal.py $YR $years[1] $years[$YR] #[$#years]
+ endif
+ # non-Jan start: python $PLOT/MMDC_roll.py $YR
+ mv MMDC_${YR}yrs.nc MeanMnthDailyCycles_${YR}yrs.nc
+ python ~$USERID/umplot/mmdc_roll.py $YR
 
-if ($CAL == 360 ) then
- python /home/cmar/ste69f/umplot/MMDC.py $YR
-else
- set years=`cdo showyear $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc`
- python /home/cmar/ste69f/umplot/MMDC_365cal.py $YR $years[1] $years[$YR] #[$#years]
+ if ($CAL == 360) then
+  python ~$USERID/umplot/AnnualCycle.py $YR
+ else
+  set years=`cdo showyear $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc`
+  python ~$USERID/umplot/AnnualCycle_365cal.py $YR $years[1] $years[$YR] #[$#years]
+ #cdo ymonmean Timeseries_${YR}yrs.nc AnnCycle_${YR}yrs.nc
+ endif
+ # non-Jan start: python $PLOT/AnnCycle_roll.py $YR
+ mv AnnCycle_${YR}yrs.nc AnnualCycle_${YR}yrs.nc
+ 
+ ncl ~$USERID/umplot/mmdc.ncl
+ # Jaeger figure 6 with 6/9 plots - find way to join
+ ncl ~$USERID/umplot/mmdc_jan.ncl
+ ncl ~$USERID/umplot/mmdc_jul.ncl
+ ncl ~$USERID/umplot/annualcycles.ncl
 endif
-# non-Jan start: python $PLOT/MMDC_roll.py $YR
-mv MMDC_${YR}yrs.nc MeanMnthDailyCycles_${YR}yrs.nc
-python /home/cmar/ste69f/umplot/mmdc_roll.py $YR
+# Timeseries ===============================================
 
-ncl /home/cmar/ste69f/umplot/mmdc.ncl
-
-# Figure 6 Jaeger ===================================================
-
-if ($CAL == 360) then
- python /home/cmar/ste69f/umplot/AnnualCycle.py $YR
-else
- set years=`cdo showyear $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc`
- python /home/cmar/ste69f/umplot/AnnualCycle_365cal.py $YR $years[1] $years[$YR] #[$#years]
-#cdo ymonavg Timeseries_${YR}yrs.nc AnnCycle_${YR}yrs.nc
-endif
-# non-Jan start: python $PLOT/AnnCycle_roll.py $YR
-mv AnnCycle_${YR}yrs.nc AnnualCycle_${YR}yrs.nc
-
-# figure 6 with 6/9 plots - find way to join
-ncl /home/cmar/ste69f/umplot/mmdc_jul.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_jan.ncl
-ncl /home/cmar/ste69f/umplot/annualcycles.ncl
-
-endif
-
+# Benchmarking =============================================
 if ($BMRK == y) then
-if ( -e ${CABLE}/seasonal_means_${YR}yrs.nc && -e ${MOSES}/seasonal_means_${YR}yrs.nc) then
-ncl /home/cmar/ste69f/umplot/Taylor_diagram.ncl
-if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
-ncl /home/cmar/ste69f/umplot/mmdc_hyytiala.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_bondville.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_hay.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_walker_branch.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_tharandt.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_tumbarumba.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_little_washita.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_vielsalm.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_nsaboreas.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_harvard.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_loobos.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_manaus.ncl
+ if ( -e ${CABLE}/seasonal_means_${YR}yrs.nc && -e ${MOSES}/seasonal_means_${YR}yrs.nc) then
+  ncl ~$USERID/umplot/Taylor_diagram.ncl
+  ncl ~$USERID/umplot/Mon_IntAnnVar.ncl
+  ncl ~$USERID/umplot/Mon_IntAnnVar_Aust.ncl
+  if ($YR > 1) then
+   ncl ~$USERID/umplot/Yr_IntAnnVar.ncl
+   ncl ~$USERID/umplot/Yr_IntAnnVar_Aust.ncl
+  endif
+  ncl ~$USERID/umplot/bias_3panel.ncl
+  ncl ~$USERID/umplot/amoj_scripts/zonal_pr.ncl
+  ncl ~$USERID/umplot/amoj_scripts/zonal_clt.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_precip.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tscrn.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmin.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmax.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_clouds.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_diff6p_surfalb.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj4p_trunoff.ncl
+  ncl ~$USERID/umplot/barchart.ncl
+  #ncl chv=0 ~$USERID/umplot/barchart_amp.ncl
+  #ncl chv=1 ~$USERID/umplot/barchart_amp.ncl
+  #ncl ~$USERID/umplot/barchart_clt.ncl
+ else
+  echo "(1)     Cannot plot Taylor Diagram and Panel Plots - Necessary Files Don't Exist"
+  echo "(1)     e.g. seasonal_means_${YR}yrs.nc"
+ endif
+ if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
+  ncl ~$USERID/umplot/mmdc_hyytiala.ncl
+  ncl ~$USERID/umplot/mmdc_bondville.ncl
+  ncl ~$USERID/umplot/mmdc_hay.ncl
+  ncl ~$USERID/umplot/mmdc_walker_branch.ncl
+  ncl ~$USERID/umplot/mmdc_tharandt.ncl
+  ncl ~$USERID/umplot/mmdc_tumbarumba.ncl
+  ncl ~$USERID/umplot/mmdc_little_washita.ncl
+  ncl ~$USERID/umplot/mmdc_vielsalm.ncl
+  ncl ~$USERID/umplot/mmdc_nsaboreas.ncl
+  ncl ~$USERID/umplot/mmdc_harvard.ncl
+  ncl ~$USERID/umplot/mmdc_loobos.ncl
+  ncl ~$USERID/umplot/mmdc_manaus.ncl
+ else
+  echo "(1)     Cannot plot Fluxnet with Timeseries - Necessary Files Don't Exist"
+  echo "(1)     e.g. Timeseries_${YR}yrs.nc"
+ endif
 endif
-ncl /home/cmar/ste69f/umplot/Mon_IntAnnVar.ncl
-ncl /home/cmar/ste69f/umplot/Mon_IntAnnVar_Aust.ncl
-if ($YR > 1) then
-ncl /home/cmar/ste69f/umplot/Yr_IntAnnVar.ncl
-ncl /home/cmar/ste69f/umplot/Yr_IntAnnVar_Aust.ncl
-endif
-ncl /home/cmar/ste69f/umplot/bias_3panel.ncl
-ncl /home/cmar/ste69f/umplot/barchart.ncl
-#ncl chv=0 /home/cmar/ste69f/umplot/barchart_amp.ncl
-#ncl chv=1 /home/cmar/ste69f/umplot/barchart_amp.ncl
-#ncl /home/cmar/ste69f/umplot/barchart_clt.ncl
-else
-echo "(1)     Cannot plot Fluxnet with Timeseries - Necessary Files Don't Exist"
-endif
-endif
+# Benchmarking =============================================
 
 #rm Timeseries_$YR\yrs.nc Tempseries_$YR\yrs.nc
 cd $DIRW 
 
+ @ j++
 end
 
+if ($CPL == n) then
 rm h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc
+#else
+#rm y????.nc
+endif
 
 # ==================================================================================
 
@@ -357,14 +464,20 @@ else if ($SPLIT == n) then
 #mkdir netcdf
 #mkdir dumps
 
-source ~ste69f/umplot/nml/envars.sh
+source ~$USERID/umplot/nml/envars.sh
 
+# Processing ===============================================
 if (! -e $DIRW/seasonal_means_${YR}yrs.nc ) then
 echo "(0)     Post-Processing NetCDF Files"
 echo " "
 
-/home/cmar/ste69f/umplot/seasonal.sh
-/home/cmar/ste69f/umplot/cdo_merge.sh
+if ($CPL == y) then
+ ~$USERID/umplot/seas_cpl.sh
+ ~$USERID/umplot/cdo_merge_cpl.sh
+else
+ ~$USERID/umplot/seasonal.sh
+ ~$USERID/umplot/cdo_merge.sh
+endif
 
 set flen=`cdo ntime $DIRW/Mmonthly_means_${YR}yrs.nc`
 @ nom = ($YR * 12)
@@ -372,14 +485,15 @@ if ($flen != $nom) then
 echo " "
 echo "(1)     Number of Months is Incorrect"
 echo "(1)     Please Check Length of Mmonthly_means_${YR}yrs.nc"
-echo "(1)     It May Be That Not All .p Files are in NetCDF"
-echo "(1)     "
-echo "(1)     If This is the (Only) Issue, 'setenv RUNID' in $DIR"
-echo "(1)     and"
-echo "(1)     If REINIT=1, Run ~/umplot/umtonc_ss_reinit.sh on Command Line"
-echo "(1)     or"
-echo "(1)     If REINIT=3, Run ~/umplot/runallv.sh on Command Line"
-echo "(1)     Then Run umplot Again"
+echo "(1)     It May Be That Not All .p Files were converted to NetCDF"
+echo "(1)     Or not all Fields Files were Transferred"
+#echo "(1)     "
+#echo "(1)     If This is the (Only) Issue, 'setenv RUNID' in $DIR"
+#echo "(1)     and"
+#echo "(1)     If REINIT=1, Run ~/umplot/umtonc_ss_reinit.sh on Command Line"
+#echo "(1)     or"
+#echo "(1)     If REINIT=3, Run ~/umplot/runallv.sh on Command Line"
+#echo "(1)     Then Run umplot Again"
 exit (1)
 endif
 
@@ -388,7 +502,7 @@ ncrename -v $tname,tscrn monthly_means_${YR}yrs.nc
 #ncrename -v $tname,tscrn Mmonthly_means_${YR}yrs.nc
 ncrename -v $tname,tscrn yearly_means_${YR}yrs.nc
 
-/home/cmar/ste69f/umplot/process_carbon.sh
+~$USERID/umplot/process_carbon.sh
 
 else
 echo " "
@@ -396,95 +510,108 @@ echo "(0)     NetCDF Files Already Exist. Will Use These Files to Plot."
 echo "(1)     Suggestion: Remove Created _${YR}yrs.nc Files if You Want to Start Again."
 
 endif # if ( ! -e $DIRW/season_${YR}yrs.nc )
+# Processing ===============================================
 
 echo " "
 # Interface bw Shell and NCL - runs major plotting routines
-ncl /home/cmar/ste69f/umplot/run.ncl
-ncl /home/cmar/ste69f/umplot/global_means_wbal.ncl
-ncl /home/cmar/ste69f/umplot/global_means_tables.ncl
+ncl ~$USERID/umplot/run.ncl
+ncl ~$USERID/umplot/global_means_wbal.ncl
+ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
-ncl /home/cmar/ste69f/umplot/global_means_ctables.ncl
+ ncl ~$USERID/umplot/global_means_ctables.ncl
 endif
-ncl /home/cmar/ste69f/umplot/carbon_zonal_means.ncl
-ncl /home/cmar/ste69f/umplot/global_means_carbon.ncl
-#ncl /home/cmar/ste69f/umplot/daily_mean_timeseries.ncl
+ncl ~$USERID/umplot/carbon_zonal_means.ncl
+ncl ~$USERID/umplot/global_means_carbon.ncl
+#ncl ~$USERID/umplot/daily_mean_timeseries.ncl
 
+# Timeseries ===============================================
 if ( -e $DIRW/Timeseries_${YR}yrs.nc ) then
+ if ($CAL == 360) then
+  python ~$USERID/umplot/MMDC.py $YR
+ else
+  set years=`cdo showyear $DIRW/Timeseries_${YR}yrs.nc`
+  python ~$USERID/umplot/MMDC_365cal.py $YR $years[1] $years[$YR] #[$#years]
+ endif
+ # non-Jan start: python $PLOT/MMDC_roll.py $YR
+ mv MMDC_${YR}yrs.nc MeanMnthDailyCycles_${YR}yrs.nc
+ python ~$USERID/umplot/mmdc_roll.py $YR
 
-if ($CAL == 360) then
- python /home/cmar/ste69f/umplot/MMDC.py $YR
-else
- set years=`cdo showyear $DIRW/Timeseries_${YR}yrs.nc`
- python /home/cmar/ste69f/umplot/MMDC_365cal.py $YR $years[1] $years[$YR] #[$#years]
-endif
-# non-Jan start: python $PLOT/MMDC_roll.py $YR
-mv MMDC_${YR}yrs.nc MeanMnthDailyCycles_${YR}yrs.nc
-python /home/cmar/ste69f/umplot/mmdc_roll.py $YR
+ if ($CAL == 360) then
+  python ~$USERID/umplot/AnnualCycle.py $YR
+ else
+  set years=`cdo showyear $DIRW/Timeseries_${YR}yrs.nc`
+  python ~$USERID/umplot/AnnualCycle_365cal.py $YR $years[1] $years[$YR] #[$#years]
+ #cdo ymonmean Timeseries_${YR}yrs.nc AnnCycle_${YR}yrs.nc
+ endif
+ #non-Jan start: python $PLOT/AnnCycle_roll.py $YR
+ mv AnnCycle_${YR}yrs.nc AnnualCycle_${YR}yrs.nc
 
-ncl /home/cmar/ste69f/umplot/mmdc.ncl
-
-# Figure 6 Jaeger ===================================================
-
-if ($CAL == 360) then
- python /home/cmar/ste69f/umplot/AnnualCycle.py $YR
-else
- set years=`cdo showyear $DIRW/Timeseries_${YR}yrs.nc`
- python /home/cmar/ste69f/umplot/AnnualCycle_365cal.py $YR $years[1] $years[$YR] #[$#years]
-#cdo ymonavg Timeseries_${YR}yrs.nc AnnCycle_${YR}yrs.nc
-endif
-#non-Jan start: python $PLOT/AnnCycle_roll.py $YR
-mv AnnCycle_${YR}yrs.nc AnnualCycle_${YR}yrs.nc
-
-# figure 6 with 6/9 plots - find way to join
-ncl /home/cmar/ste69f/umplot/mmdc_jul.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_jan.ncl
-ncl /home/cmar/ste69f/umplot/annualcycles.ncl
-
+ ncl ~$USERID/umplot/mmdc.ncl
+ # Jaeger figure 6 with 6/9 plots - find way to join
+ ncl ~$USERID/umplot/mmdc_jan.ncl
+ ncl ~$USERID/umplot/mmdc_jul.ncl
+ ncl ~$USERID/umplot/annualcycles.ncl
 endif # if Timeseries
+# Timeseries ===============================================
 
+# Benchmarking =============================================
 if ($BMRK == y) then
-if ( -e ${CABLE}/seasonal_means_${YR}yrs.nc && -e ${MOSES}/seasonal_means_${YR}yrs.nc) then
-ncl /home/cmar/ste69f/umplot/Taylor_diagram.ncl
-if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
-ncl /home/cmar/ste69f/umplot/mmdc_hyytiala.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_bondville.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_hay.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_walker_branch.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_tharandt.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_tumbarumba.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_little_washita.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_vielsalm.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_nsaboreas.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_harvard.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_loobos.ncl
-ncl /home/cmar/ste69f/umplot/mmdc_manaus.ncl
+ if ( -e ${CABLE}/seasonal_means_${YR}yrs.nc && -e ${MOSES}/seasonal_means_${YR}yrs.nc) then
+  ncl ~$USERID/umplot/Taylor_diagram.ncl
+  ncl ~$USERID/umplot/Mon_IntAnnVar.ncl
+  ncl ~$USERID/umplot/Mon_IntAnnVar_Aust.ncl
+  if ($YR > 1) then
+   ncl ~$USERID/umplot/Yr_IntAnnVar.ncl
+   ncl ~$USERID/umplot/Yr_IntAnnVar_Aust.ncl
+  endif
+  ncl ~$USERID/umplot/bias_3panel.ncl
+  ncl ~$USERID/umplot/amoj_scripts/zonal_pr.ncl
+  ncl ~$USERID/umplot/amoj_scripts/zonal_clt.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_precip.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tscrn.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmin.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmax.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_clouds.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_diff6p_surfalb.ncl
+  ncl ~$USERID/umplot/amoj_scripts/plot_amoj4p_trunoff.ncl
+  ncl ~$USERID/umplot/barchart.ncl
+  #ncl chv=0 ~$USERID/umplot/barchart_amp.ncl
+  #ncl chv=1 ~$USERID/umplot/barchart_amp.ncl
+  #ncl ~$USERID/umplot/barchart_clt.ncl
+ else
+  echo "(1)     Cannot plot Taylor Diagram and Panel Plots - Necessary Files Don't Exist"
+  echo "(1)     e.g. seasonal_means_${YR}yrs.nc"
+ endif
+ if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
+  ncl ~$USERID/umplot/mmdc_hyytiala.ncl
+  ncl ~$USERID/umplot/mmdc_bondville.ncl
+  ncl ~$USERID/umplot/mmdc_hay.ncl
+  ncl ~$USERID/umplot/mmdc_walker_branch.ncl
+  ncl ~$USERID/umplot/mmdc_tharandt.ncl
+  ncl ~$USERID/umplot/mmdc_tumbarumba.ncl
+  ncl ~$USERID/umplot/mmdc_little_washita.ncl
+  ncl ~$USERID/umplot/mmdc_vielsalm.ncl
+  ncl ~$USERID/umplot/mmdc_nsaboreas.ncl
+  ncl ~$USERID/umplot/mmdc_harvard.ncl
+  ncl ~$USERID/umplot/mmdc_loobos.ncl
+  ncl ~$USERID/umplot/mmdc_manaus.ncl
+ else
+  echo "(1)     Cannot plot Fluxnet with Timeseries - Necessary Files Don't Exist"
+  echo "(1)     e.g. Timeseries_${YR}yrs.nc"
+ endif
 endif
-ncl /home/cmar/ste69f/umplot/Mon_IntAnnVar.ncl
-ncl /home/cmar/ste69f/umplot/Mon_IntAnnVar_Aust.ncl
-if ($YR > 1) then
-ncl /home/cmar/ste69f/umplot/Yr_IntAnnVar.ncl
-ncl /home/cmar/ste69f/umplot/Yr_IntAnnVar_Aust.ncl
-endif
-ncl /home/cmar/ste69f/umplot/bias_3panel.ncl
-ncl /home/cmar/ste69f/umplot/barchart.ncl
-#ncl chv=0 /home/cmar/ste69f/umplot/barchart_amp.ncl
-#ncl chv=1 /home/cmar/ste69f/umplot/barchart_amp.ncl
-#ncl /home/cmar/ste69f/umplot/barchart_clt.ncl
-else
-echo "(1)     Cannot plot Fluxnet with Timeseries - Necessary Files Don't Exist"
-endif
-endif
+# Benchmarking =============================================
 
 #rm Timeseries_$YR\yrs.nc Tempseries_$YR\yrs.nc
 
 mv *.ps plots/
 mv *.eps plots/
 if ($CHFMT == y) then
-mv *.jpg plots_jpg/
-#mv *.$FMT plots_$FMT/
+ mv *.jpg plots_jpg/
+ #mv *.$FMT plots_$FMT/
 endif
 #if ($EPS == y) then
-#mv *.eps plots_eps/
+ #mv *.eps plots_eps/
 #endif
 
 # Need to first create dirs
@@ -492,7 +619,7 @@ endif
 #mv $RUNID$a.p*.nc netcdf/
 #mv $RUNID$a.da* dumps/
 
-endif
+endif # split
 
 #---------------------------------------------------------------------------
 

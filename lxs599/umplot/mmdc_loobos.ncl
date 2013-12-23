@@ -5,7 +5,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
-load "/home/cmar/ste69f/umplot/plot_mmdc.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure mmdc_flux(LongName:string,FlxName:string,mosDir:string,cabDir:string)
@@ -14,6 +15,7 @@ begin
 
 FlxName  = "loobos"
 LongName = "loobos"
+;usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 mossf    = systemfunc("echo $moslob") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf    = systemfunc("echo $cablob") ; cabsf = systemfunc("echo $"+cabDir+"")
@@ -24,8 +26,8 @@ else
 jpeg = False
 end if
 
-tsDir = "/home/cmar/ste69f/umplot/obs/" ;+LongName+"/"
-home  = "/home/cmar/ste69f/"
+tsDir = "~"+usr+"/umplot/obs/" ;+LongName+"/"
+home  = "~"+usr+"/"
 
 system("dmget " + tsDir + "mmdc_*_roll.nc" )
 ;flux = addfiles()
@@ -119,6 +121,8 @@ crad    = cabfil ->field202
  crnt    = new((/dims(0),dims(1)/),typeof(cswr))
  crnt(:,0:4) = crn2(:,43:47)
  crnt(:,5:47) = crn2(:,0:42)
+ crnt!0 = "month"
+ crnt!1 = "timestep"
 end if
 if (isfilevar(mosfil,"field3333")) then
 mrad    = mosfil ->field3333
@@ -163,7 +167,16 @@ mpr     = mosfil ->field5226
 else
 mpr     = mosfil ->tot_precip
 end if
-
+if (isfilevar(cabfil,"field30")) then
+ctc     = cabfil ->field30
+;else
+;ctc     = cabfil ->
+end if
+if (isfilevar(mosfil,"field30")) then
+mtc     = mosfil ->field30
+;else
+;mtc     = mosfil ->
+end if
 ;==============================================================================
 
 dNam     = getvardims(msh)
@@ -330,6 +343,15 @@ data9(0,:) = mpr(6,:)              ; moses
 data9(1,:) = cpr(6,:)              ; cable
 data9(2,:) = prec(6,:)             ; fluxnet
 
+if (isvar("mtc").and.isvar("ctc")) then
+data14      = new((/3,timestep/),double)
+;data14      = -9999                 ; igbp
+;data14@_FillValue = -9999           ;
+data14(0,:) = mtc(6,:)              ; moses
+data14(1,:) = ctc(6,:)              ; cable
+;data14(2,:) = -9999                 ; fluxnet
+end if
+
 ; Jan
 data2      = new((/3,timestep/),double)
 ;data2(0,:) = -9999 ;qh_ta(0,:)            ; igbp
@@ -366,6 +388,15 @@ data6(0,:) = mpr(0,:)              ; moses
 data6(1,:) = cpr(0,:)              ; cable
 data6(2,:) = prec2(0,:)            ; fluxnet
 
+if (isvar("mtc").and.isvar("ctc")) then
+data12      = new((/3,timestep/),double)
+;data12      = -9999                 ; igbp
+;data12@_FillValue = -9999           ;
+data12(0,:) = mtc(0,:)              ; moses
+data12(1,:) = ctc(0,:)              ; cable
+;data12(2,:) = -9999                 ; fluxnet
+end if
+
 ;Plot-------------------------------------------------------------------------
 
 print("Plotting Loobos MMDC with Fluxnet")
@@ -373,7 +404,11 @@ print("")
 
 ts_flux(LongName,data2,data3,data,data1,jpeg)
 ts_rad(LongName,data5,data4,data8,data7,jpeg)
+if (isvar("mtc").and.isvar("ctc")) then
+ts_prec4(LongName,data6,data12,data9,data14,jpeg)
+else
 ts_prec(LongName,data6,data9,jpeg)
+end if
 
 end
 

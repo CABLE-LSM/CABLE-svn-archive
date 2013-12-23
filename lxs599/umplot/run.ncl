@@ -2,7 +2,8 @@
 ; Lauren Stevens 21 April 2011
 ; ==========================================================================
 
-load "/home/cmar/ste69f/umplot/variables.ncl"
+usr  = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/variables.ncl")
 
 begin
 
@@ -27,6 +28,7 @@ begin
   ;Mos9tn96   = "/home/cmar/ste69f/access/xagpb_n96_m_20yrs"    ; N96
   ;Mos9tn96v2 = "/home/cmar/ste69f/access/xaiyd_n96_m_20yrs"    ; N96 v2 mask
 
+  ;usr  = systemfunc("echo $USERID")
   dir  = systemfunc("echo $DIR")
   rid  = systemfunc("echo $RUNID")
   year = systemfunc("echo $YR")  
@@ -49,7 +51,7 @@ begin
   end if
 
   if(.not.split)then
-  system("/home/cmar/ste69f/umplot/dir.sh")
+  system("~"+usr+"/umplot/dir.sh")
   end if
 
   lmod  = systemfunc("echo $MODEL")

@@ -19,6 +19,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+usr = systemfunc("echo $USERID")
 numYr  = systemfunc("echo $YR")
 filDir = systemfunc("echo $DIR")
 ModDir = systemfunc("echo $PWD")
@@ -33,8 +34,8 @@ vMask  = systemfunc("echo $MASK")
 ;moses_file = addfile(moses+"/season_`YR`yrs.nc","r") 
 ;cable_file = addfile(cable+"/season_`YR`yrs.nc","r")
 
-ObsDir = "/home/cmar/ste69f/umplot/obs/"
-DatDir = "/home/cmar/ste69f/umplot/data/"
+ObsDir = "~"+usr+"/umplot/obs/"
+DatDir = "~"+usr+"/umplot/data/"
 
 sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 if (isfilepresent(ModDir+"/Rseasonal_means_"+numYr+"yrs.nc")) then

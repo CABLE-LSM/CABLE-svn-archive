@@ -14,6 +14,8 @@ procedure Panel_Plot(Dir:string,varName:string,Yr:string,pltType:string,pltColor
 
 begin
 
+usr = systemfunc("echo $USERID")
+
   pltName = Dir + "/" + varName + "_" + Yr + "yrs"
 
   wks = gsn_open_wks(pltType,pltName)
@@ -34,7 +36,7 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
           (/1.0,.30,0.0/), \
           (/.73,0.0,.21/) /)
 
-cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap_bT = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
   ;gsn_define_colormap(wks,cmap)
 if (varName.eq."bias_tscrn".or.varName.eq."bias_totcl".or. \

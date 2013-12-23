@@ -3,12 +3,13 @@
 ; during the NCL course at BMTC. 
 ; ==================================================================
 
-load "/home/cmar/ste69f/umplot/plot.ncl"
-load "/home/cmar/ste69f/umplot/plot_mmn.ncl"
-load "/home/cmar/ste69f/umplot/plot_mp.ncl"
-load "/home/cmar/ste69f/umplot/plot_ann.ncl"
-load "/home/cmar/ste69f/umplot/plot_ind.ncl"
-load "/home/cmar/ste69f/umplot/regrid.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/plot.ncl")
+loadscript("~"+usr+"/umplot/plot_mmn.ncl")
+loadscript("~"+usr+"/umplot/plot_mp.ncl")
+loadscript("~"+usr+"/umplot/plot_ann.ncl")
+loadscript("~"+usr+"/umplot/plot_ind.ncl")
+loadscript("~"+usr+"/umplot/regrid.ncl")
 
 procedure run_ncl(fileDir:string,Runid:string,numYr:string,Tiles:string,\
               sLevs:string,Res:string,Split:logical,Taylor:logical,    \
@@ -62,22 +63,29 @@ begin
 
 ; Directories ------------------------------------------------------
 
-  ObsDir = "/home/cmar/ste69f/umplot/obs/"
+  ;usr = systemfunc("echo $USERID")
+  ObsDir = "~"+usr+"/umplot/obs/"
   ;ModDir = fileDir
   ModDir = systemfunc("echo $PWD")
   ;ModDir = systemfunc("echo $DIRW")
   tname =  systemfunc("echo $tname")
+  txname =  systemfunc("echo $txname")
+  tiname =  systemfunc("echo $tiname")
 
 ; Obs & Model netCDF ----------------------------------------------- 
 
   print("Dmget Files")
   system("dmget " + ModDir + "/seasonal_means_"  +numYr+"yrs.nc" \
-            + " " + ModDir + "/monthly_means_"   +numYr+"yrs.nc" \
-            + " " + ModDir + "/Tseasonal_means_" +numYr+"yrs.nc" \
-            + " " + ModDir + "/Tmonthly_means_"  +numYr+"yrs.nc" \
-  ;         + " " + ModDir + "/Rseasonal_means_" +numYr+"yrs.nc" \
-  ;         + " " + ModDir + "/Rmonthly_means_"  +numYr+"yrs.nc" \
-            + " " + ObsDir + "ERAi_precip.nc" \
+            + " " + ModDir + "/monthly_means_"   +numYr+"yrs.nc" )
+if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+  system("dmget " + ModDir + "/Tseasonal_means_" +numYr+"yrs.nc" \
+            + " " + ModDir + "/Tmonthly_means_"  +numYr+"yrs.nc" )
+;if(isfilepresent(ModDir+"/Rseasonal_means_"+numYr+"yrs.nc")) then
+  ;system("dmget " + ModDir + "/Rseasonal_means_" +numYr+"yrs.nc" \
+  ;         + " " + ModDir + "/Rmonthly_means_"  +numYr+"yrs.nc" )
+;end if
+end if
+  system("dmget " + ObsDir + "ERAi_precip.nc" \
             + " " + ObsDir + "ERAi_tp2m.nc" \
             + " " + ObsDir + "ERAi_evap_cdo.nc" \
             + " " + ObsDir + "ERAi_tmax_tmin.nc" \
@@ -117,22 +125,55 @@ end if
 if (isfilevar(sea_file,"tscrn")) then
   tscrn    = sea_file    ->tscrn       ;Screen Temperature degK (T at 1.5m)
 else
-  tscrn    = sea_file    ->$tname$     ;Screen Temperature degK (T at 1.5m)
+  if (isfilevar(sea_file,"tas")) then
+   tscrn    = sea_file    ->tas         ;Screen Temperature degK (T at 1.5m)
+  else
+   tscrn    = sea_file    ->$tname$     ;Screen Temperature degK (T at 1.5m)
+  end if
 end if
+if (isfilevar(sea_file,"precip")) then
   precip   = sea_file    ->precip      ;field77     ; Total Precip Accum kg/m2
+else
+ if (isfilevar(sea_file,"pr")) then
+  precip   = sea_file    ->pr          ;field77     ; Total Precip Accum kg/m2
+ else
+  precip   = sea_file    ->tot_precip  ;field77 field5226    ; Total Precip Accum kg/m2
+ end if
+end if
 if(isfilevar(sea_file,"temp")) then
   tsurf    = sea_file    ->temp        ; Surface Temperature (deg K)
 end if
+if(isfilevar(sea_file,"sh")) then
   sh       = sea_file    ->sh          ; Sensible Heat
+else
+  sh       = sea_file    ->hfss          ; Sensible Heat
+end if
+if(isfilevar(sea_file,"lh")) then
   lh       = sea_file    ->lh          ; Latent Heat
+else
+  lh       = sea_file    ->hfls          ; Latent Heat
+end if
+if(isfilevar(sea_file,"solar")) then
   solar    = sea_file    ->solar       ; Net short wave radiation flux
+end if
+if(isfilevar(sea_file,"longwave")) then
   longwave = sea_file    ->longwave    ; Net long wave radiation flux
+end if
+if(isfilevar(sea_file,"ilr")) then
   lw       = sea_file    ->ilr         ;
+end if
+if(isfilevar(sea_file,"field203")) then
   sw       = sea_file    ->field203    ; Total downward surface solar fl
+end if
+if(isfilevar(sea_file,"field208")) then
   csky     = sea_file    ->field208    ; Clear-sky flux (type II) solar
+end if
 if(isfilevar(sea_file,"field1526")) then
   evap1    = sea_file    ->field1526   ; Evaporation from soil or canopy
   evap2    = sea_file    ->field1527   ; Evaporation from soil or canopy
+else
+  evap1    = sea_file    ->evspsblsoi
+  evap2    = sea_file    ->evspsblveg
 end if
 if(isfilevar(sea_file,"field1528")) then
   evap3    = sea_file    ->field1528   ; Evaporation from soil or canopy
@@ -226,16 +267,28 @@ if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
   tmax     = tsea_file   ->tmax        ; Maximum Screen Temp degK
   tmin     = tsea_file   ->tmin        ; Minimum Screen temp degK
  else
-  tmax     = tsea_file   ->temp        ; Maximum Screen Temp degK
-  tmin     = tsea_file   ->temp_1      ; Minimum Screen temp degK
+  tmax     = tsea_file   ->$txname$    ; Maximum Screen Temp degK
+  tmin     = tsea_file   ->$tiname$    ; Minimum Screen temp degK
  end if
 end if
 ;mon_file-----------------------------------------------------------
+if (isfilevar(mon_file,"precip")) then
   prmn     = mon_file    ->precip      ;field77
+else
+ if (isfilevar(mon_file,"pr")) then
+  prmn     = mon_file    ->pr      ;field77
+ else
+  prmn     = mon_file    ->tot_precip      ;field77 field5226
+ end if
+end if
 if (isfilevar(mon_file,"tscrn")) then
   t2mn     = mon_file    ->tscrn       ;temp_3
 else
+ if (isfilevar(mon_file,"tas")) then
+  t2mn     = mon_file    ->tas       ;temp_3
+ else
   t2mn     = mon_file    ->$tname$     ;temp_3
+ end if
 end if
 if(isfilevar(sea_file,"field1894")) then
   laimn    = mon_file    ->field1894   ;
@@ -266,8 +319,8 @@ if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
   txmn     = tmon_file    ->tmax        ;
   tnmn     = tmon_file    ->tmin        ;
  else
-  txmn     = tmon_file    ->temp        ;
-  tnmn     = tmon_file    ->temp_1      ;
+  txmn     = tmon_file    ->$txname$    ;
+  tnmn     = tmon_file    ->$tiname$    ;
  end if
 end if
 ;obs----------------------------------------------------------------
@@ -341,6 +394,7 @@ if(isvar("laimn")) then
   laimn@units     = "LAI"
 end if
 
+if (isvar("solar")) then
   csky  = where(csky.ne.0,csky,-9999) ;csky@_FillValue)
   sw    = where(sw.le.0,sw@_FillValue,sw)     ;sw@_FillValue)
   ;sw    = where(sw.ne.0,sw,-9999)     ;sw@_FillValue)
@@ -369,6 +423,7 @@ end if
   copy_VarMeta(solar,seb)
   seb@long_name = "Surface Energy Balance"
   seb@units     = "W/m2"
+end if ; csky
 
 if(isvar("srnf")) then
   srnf                = srnf *24 *60 *60
@@ -552,19 +607,29 @@ end if
 ; biases -----------------------------------------------------------
 
   print("Calculating Biases")
+dims   = dimsizes(dimsizes(tscrn))
+dNames = getvardims(tscrn)
+if (dims.gt.3) then
   bias_tscrn            = tscrn(:,0,:,:)-era_t_rg(:,:,:)
+else
+  bias_tscrn            = tscrn(:,:,:)-era_t_rg(:,:,:)
+end if
   copy_VarMeta(era_t_rg(:,:,:),bias_tscrn)
   bias_tscrn@long_name  = "Screen Temperature Bias: UM-ERAi"
   bias_tscrn@units      = "deg K"
   bias_tscrn!0          = "t"
-  bias_tscrn&t          = tscrn&t
+  bias_tscrn&t          = tscrn&$dNames(0)$
 
+if (dims.gt.3) then
   bias_precip           = precip(:,0,:,:)-era_p_rg(:,:,:)
+else
+  bias_precip           = precip(:,:,:)-era_p_rg(:,:,:)
+end if
   copy_VarMeta(era_p_rg(:,:,:),bias_precip)
   bias_precip@long_name = "Precipitation Bias: UM-ERAi"
   bias_precip@units     = "mm/day"
   bias_precip!0         = "t"
-  bias_precip&t         = precip&t
+  bias_precip&t         = precip&$dNames(0)$
 
 if(isvar("tmax")) then
   bias_tmax             = tmax(:,0,:,:)-era_x_rg
@@ -581,13 +646,22 @@ if(isvar("tmax")) then
 end if
 
 if(isvar("evap")) then
+ if (dims.gt.3) then
   bias_evap             = evap(:,0,:,:)-era_e_rg
   copy_VarMeta(evap(:,0,:,:),bias_evap)
+ else
+  bias_evap             = evap(:,:,:)-era_e_rg
+  copy_VarMeta(evap(:,:,:),bias_evap)
+ end if
   bias_evap@long_name   = "Evaporation Bias: UM-ERAi"
   ;print("Calculating Biases Done")
 end if
 
+if (dims.gt.3) then
   bias_bmpr             = precip(:,0,:,:) - bom_p_rg
+else
+  bias_bmpr             = precip(:,:,:) - bom_p_rg
+end if
   copy_VarMeta(bom_p_rg(:,:,:),bias_bmpr)
   bias_bmpr@long_name   = "Precipitation Bias: UM-BoM"
   bias_bmpr@units       = "mm/day"
@@ -636,10 +710,17 @@ levmlt = (/0.5,1,2,4,6,8,12,16,24/)
 
 ;BlAqGrYeOrReVi200
 ;perc2_9lev
+if (dims.gt.3) then
 Panel_Plot(pltDir,"seas_tscrn" ,numYr,type,"BlAqGrYeOrReVi200",tscrn(:,0,:,:) ,False,True,levtp,False,jpeg)
 AnnPlot(pltDir,"ann_tscrn"     ,numYr,type,"BlAqGrYeOrReVi200",tscrn(:,0,:,:) ,False,True,levtp,False,jpeg)
 Panel_Plot(pltDir,"seas_precip",numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,False,jpeg)
 AnnPlot(pltDir,"ann_precip"    ,numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,False,jpeg)
+else
+Panel_Plot(pltDir,"seas_tscrn" ,numYr,type,"BlAqGrYeOrReVi200",tscrn(:,:,:) ,False,True,levtp,False,jpeg)
+AnnPlot(pltDir,"ann_tscrn"     ,numYr,type,"BlAqGrYeOrReVi200",tscrn(:,:,:) ,False,True,levtp,False,jpeg)
+Panel_Plot(pltDir,"seas_precip",numYr,type,cmapr,precip(:,:,:),False,True,levpr,False,jpeg)
+AnnPlot(pltDir,"ann_precip"    ,numYr,type,cmapr,precip(:,:,:),False,True,levpr,False,jpeg)
+end if
 if(isvar("tmax")) then
 Panel_Plot(pltDir,"seas_tmax"  ,numYr,type,"BlAqGrYeOrReVi200",tmax(:,0,:,:)  ,False,True,levtp,True,jpeg) 
 Panel_Plot(pltDir,"seas_tmin"  ,numYr,type,"BlAqGrYeOrReVi200",tmin(:,0,:,:)  ,False,True,levtp,True,jpeg)
@@ -692,18 +773,28 @@ if(isvar("nsradf")) then
 Panel_Plot(pltDir,"seas_nsradf",numYr,type,"BlAqGrYeOrReVi200",nsradf(:,0,:,:),False,True,levrad,True,jpeg)
 end if
 if(isvar("evap")) then
+if(dims.gt.3) then
 Panel_Plot(pltDir,"seas_evap"  ,numYr,type,cmapsn,evap(:,0,:,:)  ,False,True,levevp,True,jpeg)
+else
+Panel_Plot(pltDir,"seas_evap"  ,numYr,type,cmapsn,evap(:,:,:)  ,False,True,levevp,True,jpeg)
+end if
 end if
 if(isvar("tsurf")) then
 Panel_Plot(pltDir,"seas_tsurf" ,numYr,type,"BlAqGrYeOrReVi200",tsurf(:,0,:,:) ,False,True,levtp,True,jpeg)
 end if
+if (isvar("solar")) then
 Panel_Plot(pltDir,"seas_solar",numYr,type,"BlAqGrYeOrReVi200",solar(:,0,:,:),False,True,levsw1,False,jpeg)
 Panel_Plot(pltDir,"seas_swdown",numYr,type,"BlAqGrYeOrReVi200",sw(:,0,:,:),False,True,levsw1,False,jpeg)
 Panel_Plot(pltDir,"seas_longwave",numYr,type,"BlAqGrYeOrReVi200",longwave(:,0,:,:),False,True,levlw2,False,jpeg)
 Panel_Plot(pltDir,"seas_lwdown",numYr,type,"BlAqGrYeOrReVi200",lw(:,0,:,:),False,True,levlw1,False,jpeg)
-
+end if
+if (dims.gt.3) then
 Panel_Plot(pltDir,"seas_sh"      ,numYr,type,"BlAqGrYeOrReVi200",sh(:,0,:,:) ,False,True,levsh,True,jpeg)
 Panel_Plot(pltDir,"seas_lh"      ,numYr,type,"BlAqGrYeOrReVi200",lh(:,0,:,:) ,False,True,levlh,True,jpeg)
+else
+Panel_Plot(pltDir,"seas_sh"      ,numYr,type,"BlAqGrYeOrReVi200",sh(:,:,:) ,False,True,levsh,True,jpeg)
+Panel_Plot(pltDir,"seas_lh"      ,numYr,type,"BlAqGrYeOrReVi200",lh(:,:,:) ,False,True,levlh,True,jpeg)
+end if
 if(isvar("snmelt")) then
 Panel_Plot(pltDir,"seas_snmlt" ,numYr,type,"BlAqGrYeOrReVi200",snmelt(:,0,:,:) ,False,True,levmlt,True,jpeg)
 end if
@@ -744,12 +835,14 @@ Panel_Plot(pltDir,"seas_frp" ,numYr,type,"BlAqGrYeOrReVi200",frp(:,0,:,:) ,False
 Panel_Plot(pltDir,"seas_frs" ,numYr,type,"BlAqGrYeOrReVi200",frs(:,0,:,:) ,False,True,levs,True,False)
 end if
 
+if (isvar("solar")) then
 Panel_Plot(pltDir,"seas_cloudalb",numYr,type,"BlAqGrYeOrReVi200",calb(:,0,:,:),False,True,levsfr,False,jpeg)
 Panel_Plot(pltDir,"seas_surfalb" ,numYr,type,"BlAqGrYeOrReVi200",surfalb(:,0,:,:),False,True,levsal,False,jpeg)
 Panel_Plot(pltDir,"seas_swnet"   ,numYr,type,"BlAqGrYeOrReVi200",swnet(:,0,:,:),False,True,levsw,False,jpeg)
 Panel_Plot(pltDir,"seas_seb" ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,True,levseb,True,jpeg)
 ; annual SEB ----------
 AnnPlot(pltDir,"ann_seb"      ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,True,levseb,True,jpeg)
+end if
 
 ; soil temp -----------
 if (isvar("deepST")) then
@@ -776,7 +869,7 @@ lev_bT   = ispan(-9,9,1)
 lev_bP   = (/-8,-4,-2,-1,-0.5,0,0.5,1,2,4,8/)
 lev_bE   = (/-1500,-1000,-500,-400,-300,-200,-100,-50,0,50,100,200,300,400,500,1000,1500/)
 
-;cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+;cmap_bT = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
 Panel_Plot(pltDir,"bias_tscrn" ,numYr,type,"BlueDarkRed18",bias_tscrn ,False,True,lev_bT,False,jpeg)
 ;Panel_Plot(pltDir,"bias_tscrn" ,numYr,type,"BlueDarkRed18",bias_tscrn ,False,True,lev_bT,False,jpeg)
@@ -790,6 +883,7 @@ Panel_Plot(pltDir,"bias_tamp"  ,numYr,type,"BlueDarkRed18",bias_tamp  ,False,Tru
 end if
 if(isvar("evap")) then
 Panel_Plot(pltDir,"bias_evap"  ,numYr,type,"BlueDarkRed18",bias_evap  ,False,True,lev_bE,True,jpeg)
+AnnPlot(pltDir,"annbias_evap"  ,numYr,type,"BlueDarkRed18",bias_evap  ,False,True,lev_bE,True,jpeg)
 end if
 
 ; Australian Region ===============================================

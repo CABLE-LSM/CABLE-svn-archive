@@ -7,8 +7,9 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "/home/cmar/ste69f/umplot/plot_3p.ncl"
-load "/home/cmar/ste69f/umplot/regrid.ncl"
+usr = systemfunc("echo $USERID")
+loadscript("~"+usr+"/umplot/plot_3p.ncl")
+loadscript("~"+usr+"/umplot/regrid.ncl")
 
 ; Set-Up ----------------------------------------------------------------------
 
@@ -16,6 +17,7 @@ load "/home/cmar/ste69f/umplot/regrid.ncl"
 
 begin
 
+usr = systemfunc("echo $USERID")
 cabDir = systemfunc("echo $CABLE")
 mosDir = systemfunc("echo $MOSES")
 ;cabsea = systemfunc("echo $cabsea")
@@ -30,9 +32,11 @@ else
 jpeg = False
 end if
 tname =  systemfunc("echo $tname")
+txname =  systemfunc("echo $txname")
+tiname =  systemfunc("echo $tiname")
 
-ObsDir = "/home/cmar/ste69f/umplot/obs/"
-LsmDir = "/home/cmar/ste69f/umplot/data/"
+ObsDir = "~"+usr+"/umplot/obs/"
+LsmDir = "~"+usr+"/umplot/data/"
 
 tscrn_obs  = addfile(ObsDir+"ERAi_tp2m.nc","r")
 tmxx_obs   = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
@@ -73,16 +77,16 @@ if (isfilevar(tmoses,"tmax")) then
  tmaxM1          = tmoses     ->tmax
  tminM1          = tmoses     ->tmin
 else
- tmaxM1          = tmoses     ->temp
- tminM1          = tmoses     ->temp_1
+ tmaxM1          = tmoses     ->$txname$ ; temp
+ tminM1          = tmoses     ->$tiname$ ; temp_1
 end if
 end if
 if (isfilevar(tcable,"tmax")) then
  tmaxC1          = tcable     ->tmax
  tminC1          = tcable     ->tmin
 else
- tmaxC1          = tcable     ->temp
- tminC1          = tcable     ->temp_1
+ tmaxC1          = tcable     ->$txname$ ; temp
+ tminC1          = tcable     ->$tiname$ ; temp_1
 end if
 era_tmax1       = tmxx_obs   ->mx2t
 era_tmin1       = tmxx_obs   ->mn2t

@@ -2,12 +2,12 @@
 ; Lauren Stevens 17 Jan 2013
 ;==================================================================
 
-;ste69f/umplot> grep -il gsn_table *
+;~/umplot> grep -il gsn_table *
 ;global_means_carbon.ncl
 ;global_means_wbal.ncl
 ;wbal.ncl
 
-;ste69f/umplot> grep -il gsn_table */*
+;~/umplot> grep -il gsn_table */*
 ;dcc_all_scripts/amoj_ebal_b.ncl
 ;dcc_all_scripts/amoj_ebal.ncl
 ;dcc_all_scripts/amoj_ecomponents_b.ncl

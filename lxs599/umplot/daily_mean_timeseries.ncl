@@ -2,11 +2,13 @@
  load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
  load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
  load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-; load "/datastore/cmar/ste69f/umplot/plot_ind.ncl"
+;usr   = systemfunc("echo $USERID")
+; loadscript("~"+usr+"/umplot/plot_ind.ncl")
 ; ============================================================
 
 begin
 
+ usr   = systemfunc("echo $USERID")
  rid   = systemfunc("echo $RUNID")
  dir   = systemfunc("echo $DIR")
  numyr = systemfunc("echo $YR")
@@ -18,7 +20,7 @@ begin
  nfil = stringtoint(numyr)*4
  ;print(nfil)
 
- DatDir = "/home/cmar/ste69f/umplot/data/"
+ DatDir = "~"+usr+"/umplot/data/"
 
  ; read in files----------
 

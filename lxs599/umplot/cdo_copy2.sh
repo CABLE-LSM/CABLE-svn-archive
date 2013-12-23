@@ -92,13 +92,13 @@ if ($SPLIT == n) then
 
   set short = `ls h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc | head -${numyr}`
   cdo copy $short Mmonthly_means_${YR}yrs.nc
-  cdo yearavg Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
+  cdo yearmean Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
 
  else
 
   set short = `ls h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc | head -${YR}`  
   cdo copy $short Mmonthly_means_${YR}yrs.nc  
-  cdo yearavg Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
+  cdo yearmean Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
 
  endif
 

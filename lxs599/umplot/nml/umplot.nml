@@ -38,6 +38,7 @@ setenv tiname temp_1                    # temp_`number` - variable name for tmin
 
 #=============Model Setup================
 
+setenv CPL n                            # y/n - coupled or amip
 setenv MODEL c                          # c/m - cable or moses
 setenv RES 96                           # 48/96 - n48 or n96 resolution
 setenv MASK 2                           # 1/2 - Which land-sea mask
@@ -47,11 +48,11 @@ setenv CASA n                           # y/n - CASA-CNP and carbon
 #=============UMPLOT Setup===============
 
 setenv UMPLT y                          # n/y - do you want to run umplot ?
-setenv SPLIT n                          # y/n - 5yr blocks, ONLY if YR is a multiple of 5 and  >= 10
+setenv SPLIT y                          # y/n - 5yr blocks, ONLY if YR is a multiple of 5 and  >= 10
 setenv BMRK y                           # y/n - benchmark: compare two directories
-setenv BDIR /home/cmar/ste69f/access/xakfz_wblake_test1
 #setenv BDIR /home/cmar/ste69f/access/xakfz_wblake_test1
-#setenv BDIR /home/cmar/ste69f/access/xakfy_wblake_test3
+#setenv BDIR /home/cmar/ste69f/access/xakfz_wblake_test1
+setenv BDIR /home/cmar/ste69f/access/xakfy_wblake_test10
 #setenv BDIR /home/cmar/ste69f/access/xakfb_c96v2_24y_newparam
 #setenv BDIR ~zie022/access/results/testruns/uahhk                      
 #setenv BDIR /home/cmar/kow014/access/uabab_run21/block1_5yrs

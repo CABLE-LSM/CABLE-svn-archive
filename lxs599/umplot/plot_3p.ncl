@@ -7,12 +7,14 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-;load "/home/cmar/ste69f/umplot/bias_3panel.ncl"
+;usr = systemfunc("echo $USERID")
+;loadscript("~"+usr+"/umplot/bias_3panel.ncl")
 
 procedure Panel3Plot(pltName:string,top:numeric,middle:numeric,bottom:numeric,jpeg:logical)
 
 begin
 
+usr = systemfunc("echo $USERID")
 numYr = systemfunc("echo $YR")
 ;jpg = systemfunc("echo $CHFMT")
 ;if(jpg.eq."y")then
@@ -23,7 +25,7 @@ numYr = systemfunc("echo $YR")
 
 PltNam            = pltName+"_"+numYr+"yrs"
 wks               = gsn_open_wks("ps",pltName+"_"+numYr+"yrs")
-cmap = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 gsn_define_colormap(wks,cmap)
 ;gsn_define_colormap(wks,"BlueDarkRed18");pltColor)
 
