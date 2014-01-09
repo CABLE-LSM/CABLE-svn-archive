@@ -13,6 +13,9 @@ host_jigg()
    export NCMOD='/usr/local/include'
    export FC=gfortran
    export CFLAGS='-O2 -x f95-cpp-input'
+   if [[ $1 = 'debug' ]]; then      
+      export CFLAGS='-O0 -g' 
+   fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/usr/local/lib -O2'
    build_build
@@ -28,6 +31,9 @@ host_shin()
    export NCMOD='/usr/local/intel/include'
    export FC=ifort
    export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
+   if [[ $1 = 'debug' ]]; then      
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+   fi
    export LD='-lnetcdf'
    export LDFLAGS='-L/usr/local/intel/lib -O2'
    build_build
