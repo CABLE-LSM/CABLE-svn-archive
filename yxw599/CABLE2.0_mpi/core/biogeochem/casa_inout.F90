@@ -1144,11 +1144,15 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casapool,casabal)
 
-  npt=10546
+  ! for spinning up only
+  ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+  ! casapool%Psoillab = max(casapool%Psoillab,0.1)
 
-!  write(77,*)   idoy,phen%doyphase(npt,:), phen%phase(npt)
+!  npt=9116
+
 !  write(77,701) ktau/24,casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:), &
 !                     casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%crmplant(npt,:),casaflux%Nminuptake(npt),real(phen%phase(npt)),casaflux%fracCalloc(npt,:)
+
 701 format('pool: ',i6,100(f12.5,2x))
 END SUBROUTINE biogeochem
 

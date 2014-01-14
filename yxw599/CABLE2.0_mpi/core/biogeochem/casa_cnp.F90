@@ -908,7 +908,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 ! adding N uptake
        casapool%dNplantdt(npt,:) = casapool%dNplantdt(npt,:) &
                                  + casaflux%Nminuptake(npt)*casaflux%fracNalloc(npt,:) 
-       casapool%Nsoilmin(npt)    = casapool%Nsoilmin(npt) - casaflux%Nminuptake(npt) *deltpool
+!       casapool%Nsoilmin(npt)    = casapool%Nsoilmin(npt) - casaflux%Nminuptake(npt) *deltpool
     ENDIF !end "icycle >1"
 
 !    PRINT *, 'second icycle > 2'
@@ -1182,10 +1182,9 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  - casaflux%ksoil(nland,:) * casapool%Nsoil(nland,:)
       casapool%dNsoilmindt(nland)= casaflux%Nsnet(nland)&
                                  + casaflux%Nmindep(nland) + casaflux%Nminfix(nland)   &
-                                 - casaflux%Nminloss(nland)   &
-                                 - casaflux%Nminleach(nland)   
-!&
-!                                 - casaflux%Nupland(nland)  
+                                 - casaflux%Nminloss(nland)    &
+                                 - casaflux%Nminleach(nland)   &
+                                 - casaflux%Nupland(nland)  
                             
    ENDIF
 
@@ -1240,6 +1239,13 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 ENDIF
 ENDDO
 
+  nland=4104
+
+!  write(76,701) nland, casapool%Nsoilmin(nland),casaflux%Nlittermin(nland),casaflux%nsmin(nland),casaflux%nsimm(nland),casaflux%Nmindep(nland), &
+!                casaflux%Nminfix(nland),casaflux%Nminloss(nland),casaflux%Nminleach(nland),casaflux%Nupland(nland),casaflux%Cnpp(nland), &
+!                casapool%ratioNCsoilmin(nland,:),casapool%ratioNCsoilmax(nland,:),casapool%ratioNCsoilnew(nland,:)
+
+701 format(i6,100(f10.5,2x))
 END SUBROUTINE casa_delsoil
 
 SUBROUTINE avgsoil(veg,soil,casamet)
@@ -1311,12 +1317,12 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 
     ! calculate C:N ratio of newly formed SOM as function of soil mineral N pool
     IF (casapool%Nsoilmin(nland) < 2.0) THEN
-      casapool%rationcsoilnew(nland,:) = casapool%rationcsoilmin(nland,:)  &
-                                       + (casapool%rationcsoilmax(nland,:) &
-                                         -casapool%rationcsoilmin(nland,:)) &
+      casapool%ratioNCsoilnew(nland,:) = casapool%ratioNCsoilmin(nland,:)  &
+                                       + (casapool%ratioNCsoilmax(nland,:) &
+                                         -casapool%ratioNCsoilmin(nland,:)) &
                                        * max(0.0,casapool%Nsoilmin(nland)) / 2.0
     ELSE
-      casapool%rationcsoilnew(nland,:) = casapool%rationcsoilmax(nland,:)
+      casapool%ratioNCsoilnew(nland,:) = casapool%ratioNCsoilmax(nland,:)
     ENDIF
 
     DO j=1,mlitter
@@ -1456,6 +1462,7 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
 
   ! local variable
   INTEGER :: np
+  REAL(r_2), DIMENSION(mp,mplant)     :: ncplantmax
 
   Nreqmin(:,:)    = 0.0
   Nreqmax(:,:)    = 0.0
@@ -1463,12 +1470,35 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
   
   DO np=1,mp
   IF(casamet%iveg2(np)/=icewater) THEN
-    Nreqmax(np,leaf) = xnCnpp(np)* casaflux%fracCalloc(np,leaf) &
-                    * casabiome%ratioNCplantmax(veg%iveg(np),leaf)
-    Nreqmax(np,wood) = xnCnpp(np)* casaflux%fracCalloc(np,wood) &
-                    * casabiome%ratioNCplantmax(veg%iveg(np),wood)
-    Nreqmax(np,froot) = xnCnpp(np)* casaflux%fracCalloc(np,froot) &
-                    * casabiome%ratioNCplantmax(veg%iveg(np),froot)
+    if(casapool%Nsoilmin(np)<2.0) then
+     !  ncplantmax(np,leaf) =casabiome%ratioNCplantmin(veg%iveg(np),leaf)  &
+     !                      +(casabiome%ratioNCplantmax(veg%iveg(np),leaf)-casabiome%ratioNCplantmin(veg%iveg(np),leaf)) &
+     !                        * min(1.0,max(0.0,casapool%Nsoilmin(np)*0.5)) 
+     !  ncplantmax(np,wood) =casabiome%ratioNCplantmin(veg%iveg(np),wood)  &
+     !                      +(casabiome%ratioNCplantmax(veg%iveg(np),wood)-casabiome%ratioNCplantmin(veg%iveg(np),wood)) &
+     !                        * min(1.0,max(0.0,casapool%Nsoilmin(np)*0.5)) 
+     !  ncplantmax(np,froot) =casabiome%ratioNCplantmin(veg%iveg(np),froot)  &
+     !                      +(casabiome%ratioNCplantmax(veg%iveg(np),froot)-casabiome%ratioNCplantmin(veg%iveg(np),froot)) &
+     !                        * min(1.0,max(0.0,casapool%Nsoilmin(np)*0.5)) 
+
+       ncplantmax(np,leaf) =casabiome%ratioNCplantmin(veg%iveg(np),leaf)  &
+                           +(casabiome%ratioNCplantmax(veg%iveg(np),leaf)-casabiome%ratioNCplantmin(veg%iveg(np),leaf)) &
+                             * min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0)) 
+       ncplantmax(np,wood) =casabiome%ratioNCplantmin(veg%iveg(np),wood)  &
+                           +(casabiome%ratioNCplantmax(veg%iveg(np),wood)-casabiome%ratioNCplantmin(veg%iveg(np),wood)) &
+                             * min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0)) 
+       ncplantmax(np,froot) =casabiome%ratioNCplantmin(veg%iveg(np),froot)  &
+                           +(casabiome%ratioNCplantmax(veg%iveg(np),froot)-casabiome%ratioNCplantmin(veg%iveg(np),froot)) &
+                             * min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0)) 
+    else
+      ncplantmax(np,leaf)  = casabiome%ratioNCplantmax(veg%iveg(np),leaf) 
+      ncplantmax(np,wood)  = casabiome%ratioNCplantmax(veg%iveg(np),wood) 
+      ncplantmax(np,froot) = casabiome%ratioNCplantmax(veg%iveg(np),froot) 
+    endif
+
+    Nreqmax(np,leaf)  = xnCnpp(np)* casaflux%fracCalloc(np,leaf) *ncplantmax(np,leaf)
+    Nreqmax(np,wood)  = xnCnpp(np)* casaflux%fracCalloc(np,wood) *ncplantmax(np,wood)
+    Nreqmax(np,froot) = xnCnpp(np)* casaflux%fracCalloc(np,froot)*ncplantmax(np,froot)
 
     Nreqmin(np,leaf) =  xnCnpp(np)* casaflux%fracCalloc(np,leaf) &
                        * casabiome%ratioNCplantmin(veg%iveg(np),leaf)
@@ -1507,6 +1537,11 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
   ENDIF
   ENDDO
 
+  np=4104  
+!  write(77,701) np,1.0/casabiome%rationcplantmin(veg%iveg(np),:),1.0/casabiome%rationcplantmax(veg%iveg(np),:),casapool%Nsoilmin(np), &
+!                   1.0/ncplantmax(np,:),Nreqmin(np,:),Nreqmax(np,:),casapool%cplant(np,:)/casapool%nplant(np,:),  &
+!                       casapool%cplant(np,:),casapool%nplant(np,:), xnCnpp(np),casaflux%fracCalloc(np,:), min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0))
+701 format(i6,100(f12.5,2x))
 END SUBROUTINE casa_Nrequire
 
 SUBROUTINE casa_puptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
