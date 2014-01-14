@@ -338,7 +338,10 @@ SUBROUTINE read_dat_file( iDiag, filename, fdata, dimx, dimz, timestep, kend)
      
          ENDIF
 
-!    CLOSE(iDiag)
+      IF (timestep == kend) THEN
+      	 REWIND(iDiag) 
+      	 CLOSE(iDiag)
+      END IF
 
 END SUBROUTINE read_dat_file 
 
