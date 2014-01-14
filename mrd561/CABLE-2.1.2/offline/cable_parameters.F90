@@ -74,6 +74,7 @@ MODULE cable_param_module
          write_cnp_params
   INTEGER :: patches_in_parfile=4 ! # patches in default global parameter
                                        ! file
+
   CHARACTER(LEN=4)  :: classification
 
   ! Variables below are temporary - for file read-in: 
@@ -509,56 +510,50 @@ CONTAINS
     !MD try to read aquifer properties from the file
     ! if they don't exist set aquifer properties to the same as the soil
     ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
-    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWssat(:,:) = inssat(:,:)
     END IF
     
     ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
-    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWWatr(:,:) = 0.01
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
-    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWsucs(:,:) = insucs(:,:)
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWbch', fieldID)
-    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWbch)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWbch(:,:) = inbch(:,:)
     END IF    
         
     ok = NF90_INQ_VARID(ncid, 'GWhyds', fieldID)
-    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWhyds)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWhyds(:,:) = inhyds(:,:)
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWrhosoil', fieldID)
-    ok2 = NF90_NOERR
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWrhosoil)
     end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok2 .ne. NF90_NOERR)) then
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWrhosoil(:,:) = inrhosoil(:,:)
     END IF    
     
@@ -911,8 +906,6 @@ CONTAINS
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
 
-    ssnow%qhz     = 0.0
-
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
@@ -978,7 +971,6 @@ CONTAINS
         ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
                                  inWB(landpt(e)%ilon, landpt(e)%ilat, is, month)
       END DO
-      !groundwater initialized after GWWatsat is set
 
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
@@ -1047,7 +1039,7 @@ CONTAINS
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
-          abs(insucs(landpt(e)%ilon, landpt(e)%ilat))/1000.0  !convert to mm
+             insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
                                          
       soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
             inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
@@ -1062,9 +1054,6 @@ CONTAINS
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.03  !constant for now
-
-      ssnow%GWwb(landpt(e)%cstart:landpt(e)%cend) =&
-            0.95*soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend)
 
       ENDIF
 
@@ -1375,10 +1364,10 @@ CONTAINS
     bal%ebal_tot_cncheck = 0.0
     bal%drybal = 0.0
     bal%wetbal = 0.0
-    bal%wbtot0 = 0.0
+    bal%wbtot0 = 0.0 
     DO j=1, ms
-       bal%wbtot0 = bal%wbtot0 + REAL((ssnow%wb(:, j)-ssnow%wbice(:,j)) * soil%zse(j)       &
-                    * 1000.0) + REAL(ssnow%wbice(:,j) * soil%zse(j)* 917.0)
+       bal%wbtot0 = bal%wbtot0 + REAL(ssnow%wb(:, j)) * soil%zse(j)       &
+                    * 1000.0
     END DO
     bal%osnowd0 = ssnow%osnowd
 
@@ -1454,10 +1443,7 @@ CONTAINS
              WRITE(*,*) 'SUM:',soil%sand(landpt(i)%cstart + j - 1)             &
                                + soil%silt(landpt(i)%cstart + j - 1)           &
                                + soil%clay(landpt(i)%cstart + j - 1)
-             WRITE(*,*) 'silt not used in soilsnow_GW.  Setting silt to ensure sum=1'
-             soil%silt(landpt(i)%cstart + j - 1) = 1.0 - soil%sand(landpt(i)%cstart + j - 1)&
-                                                       - soil%clay(landpt(i)%cstart + j - 1)
-             !CALL abort ('clay+sand+silt fraction does not sum to 1!')
+             CALL abort ('clay+sand+silt fraction does not sum to 1!')
           END IF
        END DO
     END DO
