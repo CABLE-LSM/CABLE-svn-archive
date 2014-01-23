@@ -335,7 +335,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         temparray2                ! temp read in variable
    REAL(4),POINTER,DIMENSION(:,:,:) :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
-        all_met     ! ALL required met in met file (no synthesis)?
+        all_met,LAT1D,LON1D     ! ALL required met in met file (no synthesis)?
 
     ! Initialise parameter loading switch - will be set to TRUE when 
     ! parameters are loaded:
@@ -343,6 +343,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Initialise initialisation loading switch - will be set to TRUE when 
     ! initialisation data are loaded:
     exists%initial = .FALSE. ! initialise
+    
+    LAT1D = .false.
+    LON1D = .false.
 
     ! Write filename to log file:
     WRITE(logn,*) '============================================================'
@@ -365,6 +368,19 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
     ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
     ncid_met = ncid_rain
+  !MDeck switch to read old school CLM style forcing
+  ELSE if (ncciy == -1) then
+    write(logn,*) 'Opening CLM style met data file: ', trim(gswpfile%rainf)
+    ok = NF90_OPEN(gswpfile%rainf,0,ncid_met)
+    !set all ncid values to rain to read data from same file
+    ncid_rain = ncid_met
+    ncid_snow = ncid_rain
+    ncid_lw = ncid_rain
+    ncid_sw = ncid_rain
+    ncid_ps = ncid_rain
+    ncid_qa = ncid_rain
+    ncid_ta = ncid_rain
+    ncid_wd = ncid_rain
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
     ok = NF90_OPEN(filename%met,0,ncid_met) ! open met data file
@@ -410,15 +426,30 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ok = NF90_INQ_VARID(ncid_met, 'latitude', latitudeID)
     IF(ok /= NF90_NOERR) THEN
        ok = NF90_INQ_VARID(ncid_met, 'nav_lat', latitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+       IF(ok /= NF90_NOERR) then
+          !MDeck allow for 1d lat called 'lat'
+          ok = NF90_INQ_VARID(ncid_met, 'lat', latitudeID)
+          LAT1D = .true.
+          if (ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding latitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
     END IF
     ! Allocate space for lat_all variable and its temp counterpart:
     ALLOCATE(lat_all(xdimsize,ydimsize))
     ALLOCATE(temparray2(xdimsize,ydimsize))
+    !MDeck allow for 1d lat called 'lat'
+    IF (LAT1D) THEN
+       ALLOCATE(temparray1(ydimsize))
+    END IF
     ! Get latitude values for entire region:
-    ok= NF90_GET_VAR(ncid_met,latitudeID,temparray2)
+    IF (.not.LAT1D) THEN
+       ok= NF90_GET_VAR(ncid_met,latitudeID,temparray2)
+    ELSE
+       ok= NF90_GET_VAR(ncid_met,latitudeID,temparray1)
+       temparray2 = spread(temparray1,1,xdimsize)
+       DEALLOCATE(temparray1)
+    END IF
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error reading latitude variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -428,14 +459,29 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ok = NF90_INQ_VARID(ncid_met, 'longitude', longitudeID)
     IF(ok /= NF90_NOERR) THEN
        ok = NF90_INQ_VARID(ncid_met, 'nav_lon', longitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+       IF(ok /= NF90_NOERR) THEN
+          !MDeck allow for 1d lon called 'lon'
+          ok = NF90_INQ_VARID(ncid_met, 'lon', longitudeID)
+          LON1D = .true.
+          IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding longitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
     END IF
     ! Allocate space for lon_all variable:
     ALLOCATE(lon_all(xdimsize,ydimsize))
+    IF (LON1D) THEN
+       ALLOCATE(temparray1(xdimsize))
+    END IF
     ! Get longitude values for entire region:
-    ok= NF90_GET_VAR(ncid_met,longitudeID,temparray2)
+    !MDeck allow for 1d lon
+    IF (.not.LON1D) then
+       ok= NF90_GET_VAR(ncid_met,longitudeID,temparray2)
+    ELSE
+       ok= NF90_GET_VAR(ncid_met,longitudeID,temparray1)
+       temparray2 = spread(temparray1,2,ydimsize)
+       DEALLOCATE(temparray1)
+    END IF
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error reading longitude variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -623,6 +669,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          (ok,'Error reading time variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Set time step size:
+    !MDeck
+    IF (ncciy .eq. -1) THEN
+       timevar = timevar*24.0*3600.0  !convert from days to seconds
+    END IF
     dels = REAL(timevar(2) - timevar(1))
     WRITE(logn,'(1X,A29,I8,A3,F10.3,A5)') 'Number of time steps in run: ',&
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
@@ -689,10 +739,18 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Use internal files to convert "time" variable units (giving the run's 
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
-    READ(timeunits(15:18),*) syear
-    READ(timeunits(20:21),*) smoy ! integer month
-    READ(timeunits(23:24),*) sdoytmp ! integer day of that month
-    READ(timeunits(26:27),*) shod  ! starting hour of day 
+    !MDeck
+    IF (ncciy .ne. -1) THEN
+       READ(timeunits(15:18),*) syear
+       READ(timeunits(20:21),*) smoy ! integer month
+       READ(timeunits(23:24),*) sdoytmp ! integer day of that month
+       READ(timeunits(26:27),*) shod  ! starting hour of day 
+    ELSE
+       READ(timeunits(12:15),*) syear
+       READ(timeunits(17:18),*) smoy ! integer month
+       READ(timeunits(20:21),*) sdoytmp ! integer day of that month
+       READ(timeunits(26:27),*) shod  ! starting hour of day 
+    END IF
     ! Decide day-of-year for non-leap year:
     SELECT CASE(smoy)
     CASE(1) ! Jan
