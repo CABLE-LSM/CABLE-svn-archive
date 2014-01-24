@@ -81,6 +81,7 @@ MODULE cable_common_module
          CABLE_RUNTIME_COUPLED  = .FALSE.!
      !MD
       LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: alt_forcing = .FALSE.
 
    END TYPE kbl_user_switches
 

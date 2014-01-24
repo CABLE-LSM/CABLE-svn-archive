@@ -195,8 +195,7 @@ PROGRAM cable_offline_driver
 
     
    cable_runtime%offline  = .TRUE.
-   cable_runtime%run_gw_model = cable_user%GW_MODEL
-   
+   cable_runtime%run_gw_model = cable_user%GW_MODEL   
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
@@ -212,17 +211,17 @@ PROGRAM cable_offline_driver
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
-   ! Check for gswp run
+   ! Check for gswp (or alt forcing) run
    IF (ncciy /= 0) THEN
       
       PRINT *, 'Looking for global offline run info.'
       
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+      IF (ncciy < 0) THEN
          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
          STOP 'Please check input in namelist file.'
       ELSE
          
-         CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing) CALL prepareFiles(ncciy)
       
       ENDIF
    
@@ -233,7 +232,7 @@ PROGRAM cable_offline_driver
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kend, spinup, C%TFRZ )
- 
+   write(*,*) 'opened the met file' 
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
    ! load from there, with the met file taking precedence. Otherwise, they'll
@@ -245,7 +244,7 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
-   
+   write(*,*) 'loaded params' 
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
@@ -427,7 +426,8 @@ SUBROUTINE prepareFiles(ncciy)
   USE cable_IO_vars_module, ONLY: logn,gswpfile
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: ncciy
-
+  integer :: pos1,pos2,pos3
+  
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
@@ -444,6 +444,7 @@ END SUBROUTINE prepareFiles
 
 
 SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
+  USE cable_common_module, ONLY: cable_user
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: logn
   INTEGER, INTENT(IN) :: nn

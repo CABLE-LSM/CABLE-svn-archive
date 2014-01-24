@@ -284,7 +284,7 @@ SUBROUTINE mpidrv_master (comm)
     
     
    cable_runtime%offline = .TRUE.
-   
+   cable_runtime%run_gw_model = cable_user%GW_MODEL 
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
@@ -302,7 +302,7 @@ SUBROUTINE mpidrv_master (comm)
       
       PRINT *, 'Looking for global offline run info.'
       
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+      IF (ncciy < 0) THEN
          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
          PRINT *, 'Please check input in namelist file.'
 

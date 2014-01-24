@@ -57,7 +57,7 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename,cable_user
 
    IMPLICIT NONE
    
@@ -358,29 +358,31 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     ! Open netcdf file:
   IF (ncciy > 0) THEN
-    WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
-    ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
-    ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
-    ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
-    ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
-    ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
-    ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
-    ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
-    ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
-    ncid_met = ncid_rain
-  !MDeck switch to read old school CLM style forcing
-  ELSE if (ncciy == -1) then
-    write(logn,*) 'Opening CLM style met data file: ', trim(gswpfile%rainf)
-    ok = NF90_OPEN(gswpfile%rainf,0,ncid_met)
-    !set all ncid values to rain to read data from same file
-    ncid_rain = ncid_met
-    ncid_snow = ncid_rain
-    ncid_lw = ncid_rain
-    ncid_sw = ncid_rain
-    ncid_ps = ncid_rain
-    ncid_qa = ncid_rain
-    ncid_ta = ncid_rain
-    ncid_wd = ncid_rain
+    IF (.not.cable_user%alt_forcing) THEN
+       WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
+       ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+       ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
+       ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
+       ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
+       ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
+       ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
+       ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
+       ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+       ncid_met = ncid_rain
+    ELSE
+       !MDeck switch to read old school CLM style forcing
+       write(logn,*) 'Opening CLM style met data file: ', trim(gswpfile%rainf)
+       ok = NF90_OPEN(gswpfile%rainf,0,ncid_met)
+       !set all ncid values to rain to read data from same file
+       ncid_rain = ncid_met
+       ncid_snow = ncid_rain
+       ncid_lw = ncid_rain
+       ncid_sw = ncid_rain
+       ncid_ps = ncid_rain
+       ncid_qa = ncid_rain
+       ncid_ta = ncid_rain
+       ncid_wd = ncid_rain
+    END IF
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
     ok = NF90_OPEN(filename%met,0,ncid_met) ! open met data file
@@ -565,7 +567,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ALLOCATE(mask(xdimsize,ydimsize))
        metGrid='mask' ! Use mask system
        ! Get mask values from file:
+       !MDeck
+       write(*,*) 'about to read mask var'
        ok= NF90_GET_VAR(ncid_met,maskID,mask)
+       !MDeck
+       write(*,*) 'read mask'
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error reading "mask" variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -670,7 +676,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Set time step size:
     !MDeck
-    IF (ncciy .eq. -1) THEN
+    IF (cable_user%alt_forcing) THEN
        timevar = timevar*24.0*3600.0  !convert from days to seconds
     END IF
     dels = REAL(timevar(2) - timevar(1))
@@ -678,7 +684,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
 
     !********* gswp input file has bug in timevar **************
-    IF (ncciy > 0) THEN
+    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) THEN
       PRINT *, 'original timevar(kend) = ', timevar(kend)
       DO i = 1, kend - 1
         timevar(i+1) = timevar(i) + dels
@@ -701,7 +707,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          (ok,'Error finding time variable units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
 
+    !MDeck
+    write(*,*) timeunits
+
+
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
+    if (.not.cable_user%alt_forcing) then
     IF (timevar(1) == 0.0) THEN
       READ(timeunits(29:30),*) tsmin
       IF (tsmin*60.0 >= dels) THEN
@@ -710,10 +721,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         WRITE(timeunits(29:30),'(i2.2)') tsmin
       ENDIF
     ENDIF
+    end if
     !****** done bug fixing for timevar in PALS met file **********************
 
     !********* gswp input file has bug in timeunits ************
-    IF (ncciy > 0) WRITE(timeunits(26:27),'(i2.2)') 0
+    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) WRITE(timeunits(26:27),'(i2.2)') 0
     !********* done bug fixing for timeunits in gwsp file ******
     WRITE(logn,*) 'Time variable units: ', timeunits
     ! Get coordinate field:
@@ -740,11 +752,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
     !MDeck
-    IF (ncciy .ne. -1) THEN
-       READ(timeunits(15:18),*) syear
-       READ(timeunits(20:21),*) smoy ! integer month
-       READ(timeunits(23:24),*) sdoytmp ! integer day of that month
-       READ(timeunits(26:27),*) shod  ! starting hour of day 
+    IF (cable_user%alt_forcing) THEN
+       write(*,*) 'reading time units'
+       READ(timeunits(12:15),*) syear
+       write(*,*) 'read year'
+       READ(timeunits(17:18),*) smoy ! integer month
+       write(*,*) 'read month'
+       READ(timeunits(20:21),*) sdoytmp ! integer day of that month
+       write(*,*) 'read day'
+       READ(timeunits(23:24),*) shod  ! starting hour of day 
+       write(*,*) 'read hour'
     ELSE
        READ(timeunits(12:15),*) syear
        READ(timeunits(17:18),*) smoy ! integer month
