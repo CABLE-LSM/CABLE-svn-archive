@@ -244,6 +244,11 @@ CONTAINS
     
    cable_runtime%offline = .TRUE.
    cable_runtime%run_gw_model = cable_user%GW_MODEL
+
+
+   write(*,*) ' cable alt forcing flag is  ',cable_user%alt_forcing
+
+
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     

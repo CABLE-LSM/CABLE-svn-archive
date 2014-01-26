@@ -45,7 +45,12 @@ MODULE cable_mpicommon
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
-  INTEGER, PARAMETER :: nparam = 283
+  !INTEGER, PARAMETER :: nparam = 283
+
+  !MDeck
+  !added parameters:watsat, smpsat, hksat,
+  !clappB,GWwatsat,GWsmpsat,GWhksat,GWclappb,GWwb,wtd
+  INTEGER, PARAMETER :: nparam = 293
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1

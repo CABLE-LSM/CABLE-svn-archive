@@ -2227,7 +2227,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    LOGICAL :: prin,md_prin
    
    prin = .FALSE.
-   md_prin = .false.
+   md_prin = .true.
   
    if (md_prin) write(*,*) 'in soil snow gw'  !MDeck
  
@@ -2333,14 +2333,22 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    if (md_prin) write(*,*) ' new gammzz '
    xx=soil%css * soil%rhosoil
+   if (md_prin) write(*,*) 'found xx'
    IF (ktau <= 1)                                                              &
      ssnow%gammzz(:,1) = MAX( (1.0 - soil%watsat(:,1)) * soil%css * soil%rhosoil      &
             & + ssnow%wbliq(:,1) * cswat * C%denliq           &
             & + ssnow%wbice(:,1) * csice * C%denice, xx ) * soil%zse(1) +   &
             & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
 
+   if (md_prin) write(*,*) 'found gammzz abbout to calc wblf'
+   if (md_prin) write(*,*) 'test wbliq -- ',any(ssnow%wbliq .le. 0.0 .or. ssnow%wbliq .ge. 1.0)
+   if (md_prin) write(*,*) 'test watsat -- ',any(soil%watsat .le. 0.0 .or. soil%watsat .ge. 1.0)
+   if (md_prin) write(*,*) ssnow%wbliq
+   if (md_prin) write(*,*) soil%watsat
    ssnow%wblf   = max(0.01_r_2,ssnow%wbliq/soil%watsat)
+   if (md_prin) write(*,*) 'found wblf using wbliq and watsat'
    ssnow%wbfice = max(0.01_r_2,ssnow%wbice/soil%watsat)   
+   if (md_prin) write(*,*) 'found wbfice using wbice and watsat'
 
 
    if (md_prin) write(*,*) 'call snowcheck'  !MDeck
