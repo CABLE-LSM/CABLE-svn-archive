@@ -312,7 +312,7 @@ SUBROUTINE mpidrv_master (comm)
          STOP
       ELSE
          
-         CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing) CALL prepareFiles(ncciy)
       
       ENDIF
    

@@ -299,7 +299,7 @@ PROGRAM cable_offline_driver
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
-   
+
          ssnow%smelt = ssnow%smelt*dels
          ssnow%rnof1 = ssnow%rnof1*dels
          ssnow%rnof2 = ssnow%rnof2*dels
