@@ -57,7 +57,7 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 1e-5,         & ! max horizontal drainage [mm/s]
+                      qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
@@ -1580,7 +1580,7 @@ USE cable_common_module
    if (md_prin) write(*,*) 'inside ovrlndflux '   !MDeck
 
     !For now assume there is no puddle?
-    ssnow%pudsto = 0._r_2
+    ssnow%pudsto = 0.1_r_2
     
     icemass  = ssnow%wbice(:,:) * C%denice * spread(soil%zse,1,mp)
     liqmass  = (ssnow%wb-ssnow%wbice) * C%denliq * spread(soil%zse,1,mp)
@@ -2227,7 +2227,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    LOGICAL :: prin,md_prin
    
    prin = .FALSE.
-   md_prin = .true.
+   md_prin = .false.
   
    if (md_prin) write(*,*) 'in soil snow gw'  !MDeck
  
@@ -2343,8 +2343,6 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    if (md_prin) write(*,*) 'found gammzz abbout to calc wblf'
    if (md_prin) write(*,*) 'test wbliq -- ',any(ssnow%wbliq .le. 0.0 .or. ssnow%wbliq .ge. 1.0)
    if (md_prin) write(*,*) 'test watsat -- ',any(soil%watsat .le. 0.0 .or. soil%watsat .ge. 1.0)
-   if (md_prin) write(*,*) ssnow%wbliq
-   if (md_prin) write(*,*) soil%watsat
    ssnow%wblf   = max(0.01_r_2,ssnow%wbliq/soil%watsat)
    if (md_prin) write(*,*) 'found wblf using wbliq and watsat'
    ssnow%wbfice = max(0.01_r_2,ssnow%wbice/soil%watsat)   
@@ -2439,6 +2437,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%wbtot = sum(ssnow%wbliq(:,:)*C%denliq*spread(soil%zse,1,mp),2) + &
                  sum(ssnow%wbice(:,:)*C%denice*spread(soil%zse,1,mp),2)
 
+
+   if (md_prin) write(*,*) 'done with ss_GW'
 
 END SUBROUTINE soil_snow_gw
 

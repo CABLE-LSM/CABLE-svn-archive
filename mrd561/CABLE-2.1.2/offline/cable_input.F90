@@ -372,16 +372,20 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ELSE
        !MDeck switch to read old school CLM style forcing
        write(logn,*) 'Opening CLM style met data file: ', trim(gswpfile%rainf)
-       ok = NF90_OPEN(gswpfile%rainf,0,ncid_met)
-       !set all ncid values to rain to read data from same file
-       ncid_rain = ncid_met
-       ncid_snow = ncid_rain
-       ncid_lw = ncid_rain
-       ncid_sw = ncid_rain
-       ncid_ps = ncid_rain
-       ncid_qa = ncid_rain
-       ncid_ta = ncid_rain
-       ncid_wd = ncid_rain
+       ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+       if (gswpfile%rainf .eq. gswpfile%PSurf) then
+          !set all ncid values to rain to read data from same file
+          ncid_met = ncid_rain
+       else
+          ok = NF90_OPEN(gswpfile%PSurf,0,ncid_met)
+       end if
+       ncid_snow = ncid_met
+       ncid_lw = ncid_met
+       ncid_sw = ncid_met
+       ncid_ps = ncid_met
+       ncid_qa = ncid_met
+       ncid_ta = ncid_met
+       ncid_wd = ncid_met
     END IF
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
@@ -568,10 +572,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        metGrid='mask' ! Use mask system
        ! Get mask values from file:
        !MDeck
-       write(*,*) 'about to read mask var'
+       !write(*,*) 'about to read mask var'
        ok= NF90_GET_VAR(ncid_met,maskID,mask)
        !MDeck
-       write(*,*) 'read mask'
+       !write(*,*) 'read mask'
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error reading "mask" variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -708,7 +712,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
 
     !MDeck
-    write(*,*) timeunits
+    !write(*,*) timeunits
 
 
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
@@ -753,15 +757,15 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! day-of-year, year:
     !MDeck
     IF (cable_user%alt_forcing) THEN
-       write(*,*) 'reading time units'
+       !write(*,*) 'reading time units'
        READ(timeunits(12:15),*) syear
-       write(*,*) 'read year'
+       !write(*,*) 'read year'
        READ(timeunits(17:18),*) smoy ! integer month
-       write(*,*) 'read month'
+       !write(*,*) 'read month'
        READ(timeunits(20:21),*) sdoytmp ! integer day of that month
-       write(*,*) 'read day'
+       !write(*,*) 'read day'
        READ(timeunits(23:24),*) shod  ! starting hour of day 
-       write(*,*) 'read hour'
+       !write(*,*) 'read hour'
     ELSE
        READ(timeunits(12:15),*) syear
        READ(timeunits(17:18),*) smoy ! integer month
@@ -1387,7 +1391,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        END IF
     END IF  ! if a spinup is to be performed
 
-    write(*,*) 'after spinup'
+    !write(*,*) 'after spinup'
 
     ! Look for veg type - - - - - - - - - - - - - - - - -:
     ok = NF90_INQ_VARID(ncid_met,'iveg',id%iveg)
@@ -2029,7 +2033,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
-      write(*,*) 'line 1957'
+      !write(*,*) 'line 1957'
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
     ELSE IF(metGrid=='land') THEN

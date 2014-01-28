@@ -50,7 +50,7 @@ MODULE cable_mpicommon
   !MDeck
   !added parameters:watsat, smpsat, hksat,
   !clappB,GWwatsat,GWsmpsat,GWhksat,GWclappb,GWwb,wtd
-  INTEGER, PARAMETER :: nparam = 293
+  INTEGER, PARAMETER :: nparam = 283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1

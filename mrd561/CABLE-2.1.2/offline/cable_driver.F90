@@ -232,7 +232,7 @@ PROGRAM cable_offline_driver
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kend, spinup, C%TFRZ )
-   write(*,*) 'opened the met file' 
+   !write(*,*) 'opened the met file' 
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
    ! load from there, with the met file taking precedence. Otherwise, they'll
@@ -244,7 +244,7 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
-   write(*,*) 'loaded params' 
+   !write(*,*) 'loaded params' 
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
@@ -265,7 +265,7 @@ PROGRAM cable_offline_driver
       ! time step loop over ktau
       DO ktau=kstart, kend 
          !MDeck
-         !write(*,*) ' timestep number ',ktau
+         write(*,*) ' timestep number ',ktau
 
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1
@@ -274,6 +274,8 @@ PROGRAM cable_offline_driver
          ktau_gl = ktau_tot
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
+         !write(*,*) 'dels is ',dels
+
          ktauday=int(24.0*3600.0/dels)
          idoy = mod(ktau/ktauday,365)
          IF(idoy==0) idoy=365
@@ -316,11 +318,14 @@ PROGRAM cable_offline_driver
                             .FALSE., .FALSE. )
          ENDIF 
    
+         !write(*,*) 'start sumcflux'
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
          CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
+
+        ! write(*,*) 'done with sumcflux'
    
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:

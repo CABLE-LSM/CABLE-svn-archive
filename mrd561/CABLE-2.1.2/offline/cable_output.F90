@@ -1888,8 +1888,9 @@ CONTAINS
           out%GWMoist = 0.0
        END IF
     END IF      
+
     !aquifer equilibrium water content
-    IF(output%soil .OR. output%EqGWMoist) THEN
+    IF(output%soil .or. output%EqGWMoist) THEN
        !write(*,*) 'EQ-GWmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqGWMoist = out%EqGWMoist + REAL(ssnow%GWwbeq, 4)
@@ -1904,7 +1905,7 @@ CONTAINS
        END IF
     END IF        
     !aquifer soil matric potential
-    IF(output%soil .OR. output%GWSoilMatPot) THEN
+    IF(output%soil .or. output%GWSoilMatPot) THEN
        !write(*,*) 'GW smp'  !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%GWSoilMatPot = out%GWSoilMatPot + REAL(ssnow%GWsmp/1000.0, 4)
@@ -1921,7 +1922,7 @@ CONTAINS
        END IF
     END IF         
     !equilibrium aquifer soil matric potential
-    IF(output%soil .OR. output%EqGWSoilMatPot) THEN
+    IF(output%soil .or. output%EqGWSoilMatPot) THEN
 !       write(*,*) 'EQ-GW smp'   !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqGWSoilMatPot = out%EqGWSoilMatPot + REAL(ssnow%GWzq/1000.0, 4)
@@ -1951,7 +1952,7 @@ CONTAINS
        END IF
     END IF     
     ! equilibrium soil matric potential
-    IF(output%soil .OR. output%EqSoilMatPot) THEN
+    IF(output%soil .or. output%EqSoilMatPot) THEN
        !write(*,*) 'EQ smp'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqSoilMatPot = out%EqSoilMatPot + REAL(ssnow%zq/1000.0, 4)
@@ -1966,7 +1967,7 @@ CONTAINS
        END IF
     END IF  
     ! equilibrium soil water content
-    IF(output%soil .OR. output%EqSoilMoist) THEN
+    IF(output%soil .or. output%EqSoilMoist) THEN
        !write(*,*) 'EQ soilmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqSoilMoist = out%EqSoilMoist + REAL(ssnow%wbeq, 4)
@@ -2734,9 +2735,6 @@ CONTAINS
                      ranges%Albedo, .TRUE., 'radiation', .TRUE.)
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
                      REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
-!    !MD
-!    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
-!                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)                     
 
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)
