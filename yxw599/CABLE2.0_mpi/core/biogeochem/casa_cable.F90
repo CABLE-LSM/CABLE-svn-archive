@@ -474,17 +474,20 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
       IF (ivt/=2) THEN
         veg%vcmax(np) = ( casabiome%nintercept(ivt) &
                         + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) &
-                        *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
+                        * 1.0e-6
+!                        *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
       ELSE
         IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
           veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
                           + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
                           * ncleafx(np)/casabiome%sla(ivt) )            &
-                         *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
+                         * 1.0e-6
+!                         *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
         ELSE
           veg%vcmax(np) = ( casabiome%nintercept(ivt) &
                           + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) &
-                         *max(0.6,exp(-0.025*casapool%clabile(np)))*1.0e-6
+                         *1.0e-6
+!                         *max(0.6,exp(-0.025*casapool%clabile(np)))*1.0e-6
         ENDIF
       ENDIF
     ENDIF

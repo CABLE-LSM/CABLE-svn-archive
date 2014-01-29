@@ -1090,7 +1090,8 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
-
+!  npt = 290 
+!  write(57,*) '1',npt,casaflux%cgpp(npt),casaflux%cnpp(npt),casapool%cplant(npt,:),casapool%nplant(npt,:)
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
   call avgsoil(veg,soil,casamet)
@@ -1100,6 +1101,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                        casamet,phen)
+
   call casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                        casaflux,casamet)
 
@@ -1123,12 +1125,14 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                                      casapool,casaflux,casamet)
   ENDIF 
 
+!  write(57,*) '2',npt,casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%fracCalloc(npt,:),casapool%cplant(npt,:),casapool%nplant(npt,:)
   ! changed by ypwang following Chris Lu on 5/nov/2012
   call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
                          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
+!  write(57,*) '3',npt,casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%fracCalloc(npt,:),casapool%cplant(npt,:),casapool%nplant(npt,:)
   !  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
   call casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
@@ -1141,9 +1145,11 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
       IF (icycle<2) call casa_ndummy(casapool)
   ENDIF
 
+!  write(57,*) '4',npt,casaflux%cgpp(npt),casaflux%cnpp(npt),casapool%cplant(npt,:),casapool%nplant(npt,:)
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casapool,casabal)
 
+!  write(57,*) '5',npt,casaflux%cgpp(npt),casaflux%cnpp(npt),casapool%cplant(npt,:),casapool%nplant(npt,:)
   ! for spinning up only
   ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
   ! casapool%Psoillab = max(casapool%Psoillab,0.1)
