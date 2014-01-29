@@ -310,12 +310,12 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
         casaflux%fracCalloc(:,froot) = 1.0-casaflux%fracCalloc(:,leaf)
       ENDWHERE
     ENDWHERE
-    ! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
-    WHERE(casaflux%Cnpp<0.0)
-       casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
-       casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
-       casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
-    ENDWHERE
+    !! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
+    !WHERE(casaflux%Cnpp<0.0)
+    !   casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
+    !   casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
+    !   casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
+    !ENDWHERE
 
 
   ENDWHERE
