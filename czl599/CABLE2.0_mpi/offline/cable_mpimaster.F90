@@ -305,6 +305,8 @@ SUBROUTINE mpidrv_master (comm)
    ! modified by ypw wang 30/oct/2012 following Chris Lu
     PRINT *, 'Looking for global offline run info.'
     IF (gswpfile%l_gpcc)THEN
+       gswpfile%l_ncar  = .FALSE.
+       gswpfile%l_gswp  = .FALSE.
        IF (ncciy < 1948 .OR. ncciy > 2008) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
@@ -312,7 +314,19 @@ SUBROUTINE mpidrv_master (comm)
        ELSE
           CALL prepareFiles(ncciy)
        ENDIF
-    ELSE
+    ELSE IF(gswpfile%l_ncar) THEN
+       PRINT *, 'Using NCAR met forcing.'
+       gswpfile%l_gswp = .FALSE.
+       gswpfile%l_gpcc = .FALSE.
+       IF (ncciy < 1900 .OR. ncciy > 2100) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       END IF
+    ELSE IF(gswpfile%l_gswp) THEN
+       PRINT *, 'Using gswp forcing.'
+       gswpfile%l_ncar = .FALSE.
+       gswpfile%l_gpcc = .FALSE.
        IF (ncciy < 1986 .OR. ncciy > 1995) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'

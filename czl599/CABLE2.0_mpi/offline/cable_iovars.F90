@@ -113,6 +113,8 @@ MODULE cable_IO_vars_module
          wind
 
        LOGICAL         :: l_gpcc    ! added by ypwang following Chris Lu on 30/oct/2012
+       LOGICAL         :: l_gswp    ! added by ypwang following Chris Lu on 30/oct/2012
+       LOGICAL         :: l_ncar    ! added by ypwang following Chris Lu on 30/oct/2012
    END TYPE gswp_type
    
    TYPE(gswp_type)      :: gswpfile

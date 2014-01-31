@@ -71,7 +71,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 
    !    phen%phase = 2
-
+   !print*,'ktau,ktauday,dels',ktau,ktauday,dels,canopy%frday,canopy%fpn
    IF ( .NOT. dump_read ) then
       if(ktau == kstart) then
          casamet%tairk  = 0.0
@@ -473,24 +473,22 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
     IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
       IF (ivt/=2) THEN
         veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) &
-                        * 1.0e-6
+                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6! &
 !                        *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
       ELSE
         IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
           veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
                           + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
-                          * ncleafx(np)/casabiome%sla(ivt) )            &
-                         * 1.0e-6
+                          * ncleafx(np)/casabiome%sla(ivt) ) *1.e-6          ! &
 !                         *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
         ELSE
           veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) &
-                         *1.0e-6
+                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6! &
 !                         *max(0.6,exp(-0.025*casapool%clabile(np)))*1.0e-6
         ENDIF
       ENDIF
     ENDIF
+    !print*,'glai,vcmax,nslope,ncleafx,sla',np,casamet%glai(np),veg%vcmax(np),casabiome%nslope(ivt),ncleafx(np),npleafx(np)
 
 !    veg%vcmax(np) = ( nintercept(ivt)  &
 !                  + nslope(ivt)*(0.4+8.5/npleafx(np)) &

@@ -94,6 +94,21 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inNfix
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inPwea
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inPdust
+  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inClab  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inCplant  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inClitter  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inCsoil  
+  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inNinorg  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNplant  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNlitter  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNsoil  
+  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPlab  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPplant  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPlitter  
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPsoil  
+  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPsorb  
+  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPocc  
+
 
   ! Temporary values for reading IGBP soil map Q.Zhang @ 12/20/2010
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inswilt
@@ -140,7 +155,7 @@ CONTAINS
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
       WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
-      CALL spatialSoil(nlon, nlat, logn)
+      CALL spatialSoil(nlon, nlat, npatch, logn)
     ENDIF
 
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
@@ -154,6 +169,7 @@ CONTAINS
   !
   ! Input variables:
   !   filename%type  - via cable_IO_vars_module
+  !   nmetpatches    - via cable_IO_vars_module
   !   classification - via cable_param_module
   ! Output variables:
   !   nlon           - # longitudes in input data set
@@ -182,17 +198,25 @@ CONTAINS
     INTEGER, INTENT(OUT) :: npatch
 
     ! local variables
-    INTEGER :: ncid, ok
-    INTEGER :: xID, yID, pID, sID, tID, bID
+    INTEGER :: ncid, ncndepid, ok
+    INTEGER :: xID, yID, pID, sID, tID, bID, ppID, plID, psID
     INTEGER :: varID
-    INTEGER :: nslayer, ntime, nband
+    INTEGER :: nslayer, ntime, nband, ppool, lpool, spool
     INTEGER :: ii, jj, kk
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
     REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
+    LOGICAL :: ACCESS_format
 
     ok = NF90_OPEN(filename%type, 0, ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.' &
+                                            //trim(filename%type))
+    IF(casafile%l_ndep) then
+      ok = NF90_OPEN(casafile%ndep, 0, ncndepid)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.' &
+                                           //casafile%ndep)
+    ENDIF
+
 
     ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
     IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
@@ -214,9 +238,32 @@ CONTAINS
     ok = NF90_INQ_DIMID(ncid, 'time', tID)
     ok = NF90_INQUIRE_DIMENSION(ncid, tID, LEN=ntime)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting time dimension.')
-    ok = NF90_INQ_DIMID(ncid, 'rad', bID)
-    ok = NF90_INQUIRE_DIMENSION(ncid, bID, LEN=nband)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting rad dimension.')
+    ok = NF90_INQ_DIMID(ncid, 'pools_plant', ppID)  
+    
+    IF (ok /= NF90_NOERR) THEN  
+      ACCESS_format = .FALSE.  
+    ELSE  
+      ACCESS_format = .TRUE.  
+      IF (.NOT. soilparmnew) STOP 'ACCESS_run must use soilparmnew'  
+      ok = NF90_INQUIRE_DIMENSION(ncid, ppID, LEN=ppool)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting ppool dimension.')  
+      ok = NF90_INQ_DIMID(ncid, 'pools_litter', plID)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring lpool dimension.')  
+      ok = NF90_INQUIRE_DIMENSION(ncid, plID, LEN=lpool)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting lpool dimension.')  
+      ok = NF90_INQ_DIMID(ncid, 'pools_soil', psID)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring spool dimension.')  
+      ok = NF90_INQUIRE_DIMENSION(ncid, psID, LEN=spool)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting spool dimension.')  
+    END IF  
+    IF (.NOT. ACCESS_format) THEN  
+      ok = NF90_INQ_DIMID(ncid, 'rad', bID)  
+      ok = NF90_INQUIRE_DIMENSION(ncid, bID, LEN=nband)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting rad dimension.')  
+    ELSE  
+      nband = 3  
+    END IF  
+
 
     ! check dimensions of soil-layers and time
     IF (nslayer /= ms .OR. ntime /= 12) THEN
@@ -230,14 +277,16 @@ CONTAINS
     ALLOCATE( inVeg(nlon, nlat, npatch) )
     ALLOCATE( inPFrac(nlon, nlat, npatch) )
     ALLOCATE( inSoil(nlon, nlat) )
-    ALLOCATE( idummy(nlon, nlat) )
-    ALLOCATE( rdummy(nlon, nlat) )
-    ALLOCATE(  inWB(nlon, nlat, nslayer,ntime) )
+    ALLOCATE( inWB(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inTGG(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inALB(nlon, nlat, npatch,nband) )
     ALLOCATE( inSND(nlon, nlat, npatch,ntime) )
     ALLOCATE( inLAI(nlon, nlat, ntime) )
-    ALLOCATE( r3dum(nlon, nlat, nband) )
+    IF (.NOT. ACCESS_format) THEN
+      ALLOCATE( idummy(nlon, nlat) )
+      ALLOCATE( rdummy(nlon, nlat) )
+      ALLOCATE( r3dum(nlon, nlat, nband) )
+    END IF
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
 
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
@@ -247,29 +296,82 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable longitude.')
 
+    ! CABLE uses longitudes range [-180,180]:  
+    WHERE( inLon > 180.0 )  
+       inLon = inLon -360.0  
+    END WHERE  
+
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    ok = NF90_INQ_VARID(ncid, 'iveg', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-    ok = NF90_GET_VAR(ncid, varID, idummy)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
-
-    ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+    IF (ACCESS_format) THEN  
+     
+      ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &  
+                                        'Error finding variable patchfrac.')  
+      ok = NF90_GET_VAR(ncid, varID, inPFrac)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &  
+                                        'Error reading variable patchfrac.')  
+          !print*,'inPFrac',inPFrac(1,13,:)
+      DO kk = 1, npatch  
+        inVeg(:, :, kk) = kk  
+      END DO  
+  
+      ! Note that offline runs do not deal with the water bodies  
+      ! when land_fraction  < 1.0, variables reporting for the whole grid  
+      ! may need to be scaled back at the output stage when needed.  
+      !ok = NF90_INQ_VARID(ncid, 'land_fraction', varID)  
+      !IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &  
+      !                                  'Error finding variable land_fraction.')  
+      !ok = NF90_GET_VAR(ncid, varID, landFrac)  
+      !IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &  
+      !                                  'Error reading variable land_fraction.')  
+      !DO ii = 1, nlon  
+      !DO jj = 1, nlat  
+      !  IF (landFrac(ii,jj,1,1) < 1.0) THEN  
+      !    DO kk = 1, npatch  
+      !      inPFrac(ii,jj,kk) = r4dum(ii,jj,kk, 1) * landFrac(ii,jj,1,1)  
+      !    END DO  
+      !    inPFrac(ii,jj,16) = 1.0 - landFrac(ii,jj,1,1)  ! water bodies  
+      !  ELSE  
+      !    inPFrac(:, :, :) = r4dum(:, :, :, 1)  
+      !  END IF  
+      !END DO  
+      !END DO  
+      !DEALLOCATE( r4dum, landFrac )  
+  
+      WHERE(inPFrac(:,:,17) > 0.0)   
+        inSoil(:,:) = 9  
+      ELSEWHERE  
+        inSoil(:,:) = 2  
+      END WHERE  
+  
+    ELSE  
+  
+      ok = NF90_INQ_VARID(ncid, 'iveg', varID)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')  
+      ok = NF90_GET_VAR(ncid, varID, idummy)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')  
+      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input  
+      DEALLOCATE(idummy)  
+  
+      ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &  
                                         'Error finding variable patchfrac.')
-    ok = NF90_GET_VAR(ncid, varID, inPFrac)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+      ok = NF90_GET_VAR(ncid, varID, rdummy)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable patchfrac.')
-    inPFrac(:, :, 1) = rdummy(:, :)
+      inPFrac(:, :, 1) = rdummy(:,:)
+      DEALLOCATE( rdummy )
 
-    ok = NF90_INQ_VARID(ncid, 'isoil', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
-    ok = NF90_GET_VAR(ncid, varID, inSoil)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable isoil.')
+      ok = NF90_INQ_VARID(ncid, 'isoil', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
+      ok = NF90_GET_VAR(ncid, varID, inSoil)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable isoil.')
+
+    END IF
 
     ok = NF90_INQ_VARID(ncid, 'SoilMoist', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -283,13 +385,20 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inTGG)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable SoilTemp.')
 
-    ok = NF90_INQ_VARID(ncid, 'Albedo', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
-    ok = NF90_GET_VAR(ncid, varID, r3dum)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable Albedo.')
-    DO kk = 1, nband
-      inALB(:,:,1,kk) = r3dum(:,:,kk)
-    ENDDO
+
+
+    IF (.NOT. ACCESS_format) THEN
+      ok = NF90_INQ_VARID(ncid, 'Albedo', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
+      ok = NF90_GET_VAR(ncid, varID, r3dum)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable Albedo.')
+      DO ii = 1, npatch
+        DO kk = 1, nband
+          inALB(:,:,ii,kk) = r3dum(:,:,kk)
+        ENDDO
+      ENDDO
+      DEALLOCATE( r3dum )
+    END IF
 
     ok = NF90_INQ_VARID(ncid, 'SnowDepth', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -297,9 +406,12 @@ CONTAINS
     ok = NF90_GET_VAR(ncid,varID,r3dum2)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable SnowDepth.')
-    DO kk = 1, ntime
-      inSND(:, :, 1, kk) = r3dum2(:, :, kk)
-    ENDDO
+    DO ii = 1, npatch
+       DO kk = 1, ntime
+          inSND(:, :, ii, kk) = r3dum2(:, :, kk)
+       ENDDO
+    END DO
+    DEALLOCATE( r3dum2 )
 
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
@@ -314,6 +426,7 @@ CONTAINS
       ALLOCATE( inNfix(nlon, nlat) )
       ALLOCATE( inPwea(nlon, nlat) )
       ALLOCATE( inPdust(nlon, nlat) )
+      IF (ACCESS_format) ALLOCATE( rdummy(nlon, nlat) )
 
       ok = NF90_INQ_VARID(ncid, 'area', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding area.')
@@ -322,13 +435,28 @@ CONTAINS
 
       ok = NF90_INQ_VARID(ncid, 'SoilOrder', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding SoilOrder.')
-      ok = NF90_GET_VAR(ncid, varID, inSorder)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading SoilOrder.')
+      IF (.NOT. ACCESS_format) THEN
+        ok = NF90_GET_VAR(ncid, varID, inSorder)
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading INT SoilOrder.')
+      ELSE
+        ok = NF90_GET_VAR(ncid, varID, rdummy)  
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading real SoilOrder.')  
+        inSorder = INT(rdummy)  
+        DEALLOCATE( rdummy )  
+      END IF  
 
       ok = NF90_INQ_VARID(ncid, 'Ndep', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Ndep.')
       ok = NF90_GET_VAR(ncid, varID, inNdep)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Ndep.')
+
+      IF (casafile%l_ndep)THEN
+        ok = NF90_INQ_VARID(ncndepid, 'N_total_deposition', varID)
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Ndep. in Ndep file')
+        ok = NF90_GET_VAR(ncndepid, varID, inNdep)
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Ndep. in Ndep file')
+      END IF
+
 
       ok = NF90_INQ_VARID(ncid, 'Nfix', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Nfix.')
@@ -351,14 +479,107 @@ CONTAINS
       inPwea  = inPwea  / 365.0
       inPdust = inPdust / 365.0
 
+      ! casaCNP pool sizes  
+      ALLOCATE( inClab     (nlon, nlat, npatch) )  
+      ALLOCATE( inCplant   (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inClitter  (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inCsoil    (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inNinorg   (nlon, nlat, npatch) )  
+      ALLOCATE( inNplant   (nlon, nlat, npatch, 3) )  
+     ALLOCATE( inNlitter  (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inNsoil    (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inPlab     (nlon, nlat, npatch) )  
+      ALLOCATE( inPplant   (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inPlitter  (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inPsoil    (nlon, nlat, npatch, 3) )  
+      ALLOCATE( inPsorb    (nlon, nlat, npatch) )  
+      ALLOCATE( inPocc     (nlon, nlat, npatch) )  
+  
+
+      IF (ACCESS_format) THEN
+         ok = NF90_INQ_VARID(ncid, 'Clabile', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_labile.')  
+         ok = NF90_GET_VAR(ncid, varID, inClab)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_labile.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'CASA_Cplant', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_plant.')  
+         ok = NF90_GET_VAR(ncid, varID, inCplant)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_plant.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Clitter', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_litter_metabolic.')  
+         ok = NF90_GET_VAR(ncid, varID, inClitter)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_litter_metabolic.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'CASA_Csoil', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_soil_microbial.')  
+         ok = NF90_GET_VAR(ncid, varID, inCsoil)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_soil_microbial.')  
+     
+         ok = NF90_INQ_VARID(ncid, 'Nsoilmin', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_inorganic.')  
+         ok = NF90_GET_VAR(ncid, varID, inNinorg)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_inorganic.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Nplant', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_plant_leaf.')  
+         ok = NF90_GET_VAR(ncid, varID, inNplant)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_plant_leaf.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Nlitter', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_litter_metabolic.')  
+         ok = NF90_GET_VAR(ncid, varID, inNlitter)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_litter_metabolic.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Nsoil', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_soil_microbial.')  
+         ok = NF90_GET_VAR(ncid, varID, inNsoil)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_soil_microbial.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Psoillab', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_labile.')  
+         ok = NF90_GET_VAR(ncid, varID, inPlab)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_labile.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Pplant', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_plant_leaf.')  
+         ok = NF90_GET_VAR(ncid, varID, inPplant)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_plant_leaf.')  
+   
+         ok = NF90_INQ_VARID(ncid, 'Plitter', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_litter_metabolic.')  
+         ok = NF90_GET_VAR(ncid, varID, inPlitter)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_litter_metabolic.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Psoil', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_soil_microbial.')  
+         ok = NF90_GET_VAR(ncid, varID, inPsoil)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_soil_microbial.')  
+  
+         ok = NF90_INQ_VARID(ncid, 'Psoilsorb', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_sorbed.')  
+         ok = NF90_GET_VAR(ncid, varID, inPsorb)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_sorbed.')  
+    
+         ok = NF90_INQ_VARID(ncid, 'Psoilocc', varID)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_strongly_sorbed.')  
+         ok = NF90_GET_VAR(ncid, varID, inPocc)  
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_strongly_sorbed.')  
+      END IF
     ENDIF
 
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
 
+    IF(casafile%l_ndep) THEN
+      ok = NF90_CLOSE(ncndepid)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing N deposition file.')
+    ENDIF
+
   END SUBROUTINE read_gridinfo
   !============================================================================
-  SUBROUTINE spatialSoil(nlon, nlat, logn)
+  SUBROUTINE spatialSoil(nlon, nlat, npatch, logn)
   ! Read in spatially-specific soil properties including snow-free albedo
   ! plus soil texture; all these from UM ancilliary file
   !
@@ -386,10 +607,11 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
     INTEGER, INTENT(IN) :: nlat
+    INTEGER, INTENT(IN) :: npatch
     INTEGER, INTENT(IN) :: logn ! log file unit number
 
     ! local variables
-    INTEGER :: ncid, ok, ii, jj
+    INTEGER :: ncid, ok, ii, jj, kk
     INTEGER :: xID, yID, fieldID
     INTEGER :: xlon, xlat
     REAL, DIMENSION(:,:,:,:), ALLOCATABLE :: indummy
@@ -591,8 +813,10 @@ CONTAINS
       in2alb = -1.0
     END WHERE
     dummy2(:, :) = 2.0 * in2alb(:, :) / (1.0 + sfact(:, :))
-    inALB(:, :, 1, 2) = dummy2(:, :)
-    inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
+    do kk=1,npatch
+       inALB(:, :, kk, 2) = dummy2(:, :)
+       inALB(:, :, kk, 1) = sfact(:, :) * dummy2(:, :)
+    end do
 
     DEALLOCATE(in2alb, sfact, dummy2)
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
@@ -641,22 +865,24 @@ CONTAINS
     INTEGER, INTENT(IN) :: nlon, nlat, npatch
 
     ! local variables
-    REAL :: lon2, distance, newLength
-    INTEGER :: ii, jj, kk, tt, ncount
+    REAL :: lon2, distance, newLength, rdum
+    INTEGER :: ii, jj, kk, tt, ncount, idum
 
     ! range of longitudes from input file (inLon) should be -180 to 180,
     ! and longitude(:) has already been converted to -180 to 180 for CABLE.
     landpt(:)%ilon = -999
     landpt(:)%ilat = -999
     ncount = 0
+!    print*,'inLon,inLat,inVeg',inLon(1),inLat(13),inVeg(1,13,:)
     DO kk = 1, mland
       distance = 3.0 ! initialise, units are degrees
       DO jj = 1, nlat
       DO ii = 1, nlon
-        IF (inVeg(ii,jj, 1) > 0) THEN
+        IF (ANY(inVeg(ii,jj, :) > 0)) THEN
           newLength = SQRT((inLon(ii) - longitude(kk))**2                      &
                            + (inLat(jj) -  latitude(kk))**2)
           IF (newLength < distance) THEN
+            !print*,'ii,jj,longitude(kk),latitude(kk)',ii,jj,longitude(kk),latitude(kk)
             distance = newLength
             landpt(kk)%ilon = ii
             landpt(kk)%ilat = jj
@@ -676,24 +902,61 @@ CONTAINS
       landpt(kk)%cstart = ncount + 1
       IF (ASSOCIATED(vegtype_metfile)) THEN
         DO tt = 1, nmetpatches
-          IF (vegtype_metfile(kk,tt) > 0) ncount = ncount + 1
-          landpt(kk)%nap = landpt(kk)%nap + 1
+          IF (vegtype_metfile(kk,tt) > 0) THEN
+             ncount = ncount + 1
+             landpt(kk)%nap = landpt(kk)%nap + 1
+          END IF
         END DO
         landpt(kk)%cend = ncount
         IF (landpt(kk)%cend < landpt(kk)%cstart) THEN
           PRINT *, 'Land point ', kk, ' does not have veg type!'
-          PRINT *, 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend
+          PRINT *, 'landpt%cstart, cend = ', landpt(kk)%cstart, ncount
           PRINT *, 'vegtype_metfile = ', vegtype_metfile(kk,:)
-          STOP
+          PRINT *, 'assume to be barren instead.'
+          ncount = ncount + 1
+          landpt(kk)%nap = 1
+          inVeg(landpt(kk)%ilon,landpt(kk)%ilat,1)     = 14
+          inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,1)   = 1.0
+          PRINT *, 'New inPFrac = ',inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,:)
         END IF
+        landpt(kk)%cend = ncount
       ELSE
         ! assume nmetpatches to be 1
         IF (nmetpatches == 1) THEN
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
+        ELSE IF (nmetpatches == 17) THEN
+          if(landpt(kk)%ilon .eq. 1 .and. landpt(kk)%ilat .eq. 13)then
+          !print*,'inPFrac,nap',inPFrac(1,13,:),landpt(kk)%nap
+          end if
+          DO tt = 1, nmetpatches
+             IF (inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,tt) > 0.0) THEN
+                ncount = ncount + 1
+                landpt(kk)%nap = landpt(kk)%nap + 1
+              ! move veg type and patch fraction data to the front
+                idum = inVeg(landpt(kk)%ilon,landpt(kk)%ilat,tt)
+                rdum = inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,tt)
+                inVeg(landpt(kk)%ilon,landpt(kk)%ilat,tt)   = 0
+                inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,tt) = 0
+                inVeg(landpt(kk)%ilon,landpt(kk)%ilat,landpt(kk)%nap)   = idum
+                inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,landpt(kk)%nap) = rdum
+             ELSE
+                inVeg(landpt(kk)%ilon,landpt(kk)%ilat,tt)   = 0
+             END IF
+          END DO
+          if(landpt(kk)%ilon .eq. 1 .and. landpt(kk)%ilat .eq. 13)then
+          !print*,'inPFrac,nap',inPFrac(1,13,:),landpt(kk)%nap
+          end if
+          landpt(kk)%cend = ncount
+          IF (landpt(kk)%cend < landpt(kk)%cstart) THEN  
+            PRINT *, 'Land point ', kk, ' does not have veg type!'  
+            PRINT *, 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend  
+            PRINT *, 'inPFrac = ', inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,:)  
+            STOP  
+          END IF 
         ELSE
-          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1.'
+          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1 or 17.'
           PRINT *, 'If soil patches exist, add new code.'
           STOP
         END IF
@@ -704,14 +967,18 @@ CONTAINS
       PRINT *, 'mland, nmetpatches = ', mland, nmetpatches
       STOP
     END IF
+    IF (ncount /= SUM(landpt(:)%nap)) THEN  
+      PRINT *, ncount, ' should not be different to SUM(landpt(:)%nap): ', &  
+               SUM(landpt(:)%nap)  
+      STOP  
+    END IF  
     DEALLOCATE(inLon, inLat)
 
     ! Set the maximum number of active patches to that read from met file:
     max_vegpatches = MAXVAL(landpt(:)%nap)
     IF (max_vegpatches /= nmetpatches) THEN
-      PRINT *, 'Error! Met file claiming to have more active patches than'
+      PRINT *, 'Warning! Met file claiming to have more active patches than'
       PRINT *, 'it really has. Check met file.'
-      STOP
     END IF
     IF (npatch < nmetpatches) THEN
       PRINT *, 'Warning! Met file data have more patches than the global file.'
@@ -779,6 +1046,7 @@ CONTAINS
 !    2.608,2.614,2.614,2.614,0.978,0.978,0.978/
 !    (BP may2010)
 
+    PRINT *, 'Initializing CABLE variables with default parameter values'
     ! *******************************************************************
     ! Site independent initialisations (all gridcells):
     canopy%cansto  = 0.0 ! canopy water storage (mm or kg/m2)
@@ -829,6 +1097,8 @@ CONTAINS
     
       ! Write to CABLE variables from temp variables saved in
       ! get_default_params
+      !print*,inPFrac(landpt(e)%ilon, landpt(e)%ilat,1:landpt(e)%nap),landpt(e)%ilon, landpt(e)%ilat, landpt(e)%nap
+    IF(.NOT. ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
       veg%iveg(landpt(e)%cstart:landpt(e)%cend) =                              &
                           inVeg(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
       patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
@@ -854,6 +1124,7 @@ CONTAINS
                                          - tmp
         END IF
       END IF
+    END IF
 
       patch(landpt(e)%cstart:landpt(e)%cend)%longitude = longitude(e)
       patch(landpt(e)%cstart:landpt(e)%cend)%latitude  = latitude(e)
@@ -870,12 +1141,22 @@ CONTAINS
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
         DO ir = 1, nrb                                  ! each band
-          ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                       &
+          IF(SIZE(inALB(landpt(e)%ilon, landpt(e)%ilat,:,ir)) .EQ. 1)THEN
+             ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                       &
+              = inALB(landpt(e)%ilon, landpt(e)%ilat, 1, ir) ! various rad band
+          ELSE
+             ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                       &
               = inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir) ! various rad band
+          END IF
         END DO
         ! total depth, change from m to mm
-        ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
+        IF(SIZE(inSND(landpt(e)%ilon, landpt(e)%ilat, :, month)) .EQ. 1)THEN
+           ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
+                     = inSND(landpt(e)%ilon, landpt(e)%ilat, 1, month) * 1000.0
+        ELSE
+           ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
                      = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 1000.0
+        END IF
       END DO
 
       ! Set default LAI values
@@ -998,8 +1279,11 @@ CONTAINS
     soil%albsoil = ssnow%albsoilsn
 
     ! check tgg and alb
-    IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
-           CALL abort('Soil temps nuts')
+    IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0)) THEN
+       PRINT *, 'tgg max, min = ', MAXVAL(ssnow%tgg), MINVAL(ssnow%tgg)
+       PRINT *, 'at locations = ', MAXLOC(ssnow%tgg), MINLOC(ssnow%tgg)
+       CALL abort('Soil temps nuts')
+    ENDIF
     IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
            CALL abort('Albedo nuts')
 
@@ -1098,29 +1382,41 @@ CONTAINS
       casamet%isorder(landpt(ee)%cstart:landpt(ee)%cend) =                     &
                                        inSorder(landpt(ee)%ilon,landpt(ee)%ilat)
       DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
+        !print*,inArea(landpt(ee)%ilon, landpt(ee)%ilat),landpt(ee)%ilon,landpt(ee)%ilat,patch(hh)%frac
+        
         casamet%lon(hh) = patch(hh)%longitude
         casamet%lat(hh) = patch(hh)%latitude
-        casamet%areacell(hh) = patch(hh)%frac                                  &
-                               * inArea(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Nmindep(hh) = patch(hh)%frac                                  &
-                               * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Nminfix(hh) = patch(hh)%frac                                  &
-                               * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Pdep(hh)    = patch(hh)%frac                                  &
-                               * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Pwea(hh)    = patch(hh)%frac                                  &
-                               * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
-        ! fertilizer addition is included here
-        IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
+        IF(.NOT. ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
+           casamet%areacell(hh) = patch(hh)%frac                                  &
+                                 * inArea(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Nmindep(hh) = patch(hh)%frac                                  &
+                                 * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Nminfix(hh) = patch(hh)%frac                                  &
+                                 * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Pdep(hh)    = patch(hh)%frac                                  &
+                                 * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Pwea(hh)    = patch(hh)%frac                                  &
+                                 * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
+          ! fertilizer addition is included here
+           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
           ! P fertilizer =13 Mt P globally in 1994
-          casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
+           casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
                                  + patch(hh)%frac * 0.7 / 365.0
-          casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
+           casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
                                  + patch(hh)%frac * 4.0 / 365.0
-        ENDIF
+           ENDIF
+        ELSE
+           casamet%areacell(hh) = inArea(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Nmindep(hh) = inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Nminfix(hh) = inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
+           casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat) 
+      !if iveg found in met file, patchfrac will be updated in get_parameter_met.
+      !Just temporarily store inArea, inNdep, inNfix, inPdust, inPwea in casaflux and casamet.by Chris on 31/Jan/2014
+        END IF
       ENDDO
     ENDDO
-    DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust)
+        !print*,casamet%areacell
 
   END SUBROUTINE write_cnp_params
   !============================================================================
@@ -1225,6 +1521,9 @@ CONTAINS
           + landpt(i)%nap - 1)) > mstype)) THEN
           WRITE(*,*) 'SUBROUTINE load_parameters:'
           WRITE(*,*) 'Land point number:',i
+          WRITE(*,*) 'lon, lat index = ', landpt(i)%ilon, landpt(i)%ilat  
+          WRITE(*,*) 'soil types = ',  &  
+            soil%isoilm(landpt(i)%cstart:(landpt(i)%cstart + landpt(i)%nap- 1))  
           CALL abort('Unknown soil type! Aborting.') 
        END IF
        ! Check patch fractions sum to 1 in each grid cell:
