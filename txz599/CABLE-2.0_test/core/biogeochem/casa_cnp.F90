@@ -311,11 +311,11 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
       ENDWHERE
     ENDWHERE
     !! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
-    !WHERE(casaflux%Cnpp<0.0)
-    !   casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
-    !   casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
-    !   casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
-    !ENDWHERE
+    WHERE(casaflux%Cnpp<0.0)
+       casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
+       casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
+       casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
+    ENDWHERE
 
 
   ENDWHERE
@@ -357,18 +357,20 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
   casaflux%crgplant = 0.0
   casaflux%clabloss = 0.0
 
-  WHERE(casamet%iveg2/=icewater) 
-    WHERE(casamet%tairk >250.0) 
+  WHERE(casamet%iveg2/=icewater)
+    WHERE(casamet%tairk >250.0)
+      WHERE(casapool%cplant(:,wood)>1.0e-6)
       casaflux%crmplant(:,wood)  = casabiome%rmplant(veg%iveg(:),wood) &
                                  * casapool%nplant(:,wood)             &
                                  * exp(308.56*(1.0/56.02-1.0           &
                                  / (casamet%tairk(:)+46.02-tkzeroc)))
+      ENDWHERE
       casaflux%clabloss(:)  =  casabiome%kclabrate(veg%iveg(:)) &
                             * max(0.0,casapool%Clabile(:))      &
                             * exp(308.56*(1.0/56.02-1.0         &
                             / (casamet%tairk(:)+46.02-tkzeroc)))
     ENDWHERE
-    WHERE(casamet%tsoilavg >250.0) 
+    WHERE(casamet%tsoilavg >250.0.and.casapool%cplant(:,froot)>1.0e-6)
       casaflux%crmplant(:,froot) = casabiome%rmplant(veg%iveg(:),froot) &
                                  * casapool%nplant(:,froot)             &
                                  * exp(308.56*(1.0/56.02-1.0            &
