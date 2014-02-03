@@ -1580,7 +1580,7 @@ USE cable_common_module
    if (md_prin) write(*,*) 'inside ovrlndflux '   !MDeck
 
     !For now assume there is no puddle?
-    ssnow%pudsto = 0.1_r_2
+    !ssnow%pudsto = 0.0_r_2
     
     icemass  = ssnow%wbice(:,:) * C%denice * spread(soil%zse,1,mp)
     liqmass  = (ssnow%wb-ssnow%wbice) * C%denliq * spread(soil%zse,1,mp)

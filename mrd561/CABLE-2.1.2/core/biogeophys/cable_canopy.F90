@@ -125,7 +125,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    INTEGER, SAVE :: call_number =0
    
    ! END header
-   
+  
+   write(*,*) 'in canopy'
+ 
    call_number = call_number + 1
            
    ! assign local ptrs to constants defined in cable_data_module
@@ -585,6 +587,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    bal%wetbal = canopy%fevw + canopy%fhvw - SUM(rad%rniso,2) * canopy%fwet      &
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
+
+   write(*,*) 'end of canopy'
 
    DEALLOCATE(cansat,gbhu)
    DEALLOCATE(dsx, fwsoil, tlfx, tlfy)

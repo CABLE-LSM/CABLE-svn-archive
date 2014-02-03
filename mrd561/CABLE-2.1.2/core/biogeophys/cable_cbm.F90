@@ -100,7 +100,6 @@ CONTAINS
       cable_runtime%um_radiation = .FALSE.
       
       IF( cable_runtime%um_explicit ) THEN
-          !write(*,*) 'ruff_resist'
          CALL ruff_resist(veg, rough, ssnow, canopy)
          met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
       ENDIF
@@ -110,13 +109,11 @@ CONTAINS
    ELSE
       call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
-   !write(*,*) 'init rad'
    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
    IF( cable_runtime%um ) THEN
       
       IF( cable_runtime%um_explicit ) THEN
-         !write(*,*) 'surface_albedo'
          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
       ENDIF
    
@@ -126,7 +123,6 @@ CONTAINS
 
    ! Calculate canopy variables:
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
-   !write(*,*) 'def can'
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss
@@ -147,8 +143,6 @@ CONTAINS
          CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
       END IF
    ENDIF
-
-   !write(*,*) 'done gw'
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations
@@ -201,7 +195,6 @@ CONTAINS
       canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
 
    ENDIF
-   !write(*,*) 'cbm done'
   
 END SUBROUTINE cbm
 
