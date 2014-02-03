@@ -126,7 +126,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    ! END header
   
-   write(*,*) 'in canopy'
  
    call_number = call_number + 1
            
@@ -588,7 +587,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
 
-   write(*,*) 'end of canopy'
 
    DEALLOCATE(cansat,gbhu)
    DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
@@ -862,6 +860,9 @@ SUBROUTINE update_zetar()
       
       ! zetar too -
       canopy%zetar(:,iterplus) = MAX(C%ZETNEG,canopy%zetar(:,iterplus))        
+      !mrd found instances where zetar=0.0
+      where (abs(canopy%zetar(:,iterplus)) .lt. 1e-4) &
+         canopy%zetar(:,iterplus) = sign(1e-4,canopy%zetar(:,iter))
     
    END IF ! (iter < NITER)
       

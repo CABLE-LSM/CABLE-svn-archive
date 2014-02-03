@@ -57,7 +57,7 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 1e-6,         & ! max horizontal drainage [mm/s]
+                      qhmax   = 1e-5,         & ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
@@ -66,7 +66,7 @@ MODULE cable_soil_snow_gw_module
                       maxSatFrac = 0.3,       &
                       dri = 0.917               !ratio of density of ice to density of liquid [unitless]
                       
-   INTEGER, PARAMETER :: wtd_iter_mx = 50 ! maximum number of iterations to find the water table depth                    
+   INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
   
    
    REAL :: cp    ! specific heat capacity for air
@@ -2094,9 +2094,9 @@ USE cable_common_module
        qin    = -ssnow%hk(:,k-1)*num/den
        dqidw0 = -(-ssnow%hk(:,k-1)*ssnow%dsmpdw(:,k-1) + num*ssnow%dhkdw(:,k-1))/den
        dqidw1 = -( ssnow%hk(:,k-1)*ssnow%GWdsmpdw(:)   + num*ssnow%dhkdw(:,k-1))/den
-       den    = zaq(:) - zmm(k-1)!dzmm(ms)
-       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
-       num    =  (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
+       !den    = zaq(:) - zmm(k-1)!dzmm(ms)
+       !dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
+       !num    =  (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
        qout   = 0.0_r_2
        dqodw1 = 0.0_r_2
        dqodw2 = 0.0_r_2
@@ -2121,8 +2121,8 @@ USE cable_common_module
     !GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
     ssnow%GWwb   = ssnow%GWwb+del_wb(:,ms+1)
     GWmsliq(:)   = ssnow%GWwb(:)*GWdzmm 
-
-   if (md_prin) write(*,*) ' updated soil liq mass '
+    write(*,*) maxval(ssnow%GWwb),minval(ssnow%GWwb),'  before 1'
+    if (md_prin) write(*,*) ' updated soil liq mass '
           
     xsi(:)       = GWmsliq(:) - soil%GWwatsat(:)*GWdzmm                   !if > 0 it is oversaturation in aquifer
     where (xsi(:) .le. 0.0_r_2) xsi(:) = 0.0_r_2
@@ -2184,10 +2184,11 @@ USE cable_common_module
     ssnow%GWwb(:)    = GWmsliq(:) / GWdzmm(:)  
     ssnow%wb         = ssnow%wbliq(:,:) + ssnow%wbice(:,:)
     ssnow%wmtot      = ssnow%wmliq(:,:) + ssnow%wmice(:,:)
-    ssnow%rnof2(:) = ssnow%qhz(:)   
-       
+    ssnow%rnof2(:)   = ssnow%qhz(:)   
+      
+    if (md_prin)   write(*,*) maxval(ssnow%GWwb),minval(ssnow%GWwb),'  after' 
           
-   if (md_prin) write(*,*) 'end of smoistgw '            !MDeck
+    if (md_prin) write(*,*) 'end of smoistgw '            !MDeck
 
 
  END SUBROUTINE smoistgw
@@ -2274,6 +2275,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    !  ssnow%GWwb = soil%GWWatSat
    !end if
 
+   if (md_prin) write(*,*) maxval(ssnow%GWwb),minval(ssnow%GWwb),' before 0'
  
    IF( .NOT.cable_user%cable_runtime_coupled ) THEN
    

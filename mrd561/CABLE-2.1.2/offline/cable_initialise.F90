@@ -147,6 +147,7 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fev     = 0.0   ! latent heat flux from vegetation (W/m2)
    canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
+   ssnow%GWwb     = 0.3   ! arbitrary groundwater storage amount  mrd
 
 END SUBROUTINE get_default_inits
 
@@ -449,8 +450,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    IF(ok == NF90_NOERR) THEN 
      CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)   
-   else
-     ssnow%GWwb = soil%GWWatSat
+   ELSE
+      ssnow%GWwb = 0.3
    END IF
    
    ! Get model parameters =============================================
@@ -858,18 +859,6 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    ! assume all soil and veg parameters are done in default_parameters
    ! therefore, no need to do it here again
 
-   !MD
-   ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
-   IF(ok == NF90_NOERR) THEN
-     CALL readpar(ncid_rin,'GWwb',dummy,var_rd,filename%restart_in,&
-                max_vegpatches,'def',from_restart,INpatch)
-   else
-     var_rd(:) = 0.3
-   END IF
-   CALL redistr_rd(INpatch,nap,var_rd,ssnow%GWwb,'GWwb')
-
-
-   
    veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
    
    PRINT *, 'Finished extraRestart'
