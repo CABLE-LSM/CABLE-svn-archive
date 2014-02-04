@@ -1624,16 +1624,13 @@ USE cable_common_module
    if (md_prin) write(*,*) 'calc surface runoff '   !MDeck
      ! Surface runoff
     where (ssnow%fwtop(:) .gt. qinmax)
-       ssnow%rnof1(:) =  (satfrac(:) * ssnow%fwtop(:)/dels + &
+       ssnow%rnof1(:) =  (satfrac(:) * ssnow%fwtop(:) + &
                        (1.0-satfrac(:)) * ssnow%fwtop(:)-qinmax)  !in mm/s
     elsewhere
        ssnow%rnof1(:) = satfrac(:) * ssnow%fwtop(:)  !in mm/s
     end where
 
    ssnow%fwtop(:) = ssnow%fwtop(:) - ssnow%rnof1(:)
-           
-    !in soil_snow_gw subroutine of this module
-    !ssnow%runoff = ssnow%rnof1! + ssnow%rnof2    
 
    !---  glacier formation
    rnof5= 0.
@@ -2121,7 +2118,6 @@ USE cable_common_module
     !GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
     ssnow%GWwb   = ssnow%GWwb+del_wb(:,ms+1)
     GWmsliq(:)   = ssnow%GWwb(:)*GWdzmm 
-    write(*,*) maxval(ssnow%GWwb),minval(ssnow%GWwb),'  before 1'
     if (md_prin) write(*,*) ' updated soil liq mass '
           
     xsi(:)       = GWmsliq(:) - soil%GWwatsat(:)*GWdzmm                   !if > 0 it is oversaturation in aquifer
@@ -2131,33 +2127,25 @@ USE cable_common_module
 
    if (md_prin) write(*,*) 'before xs loop '  !MDeck
      
-    do k = ms,2,-1  !loop from bottom to top adding extra water to each layer
-       where ((xsi(:) .lt. (msliq(:,k)-mss_por(:,k))) .and. (xsi(:) .gt. 0.0_r_2))
+    do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
+       where ((xsi(:) .le. (msliq(:,k)-mss_por(:,k))) .and. (xsi(:) .gt. 0.0_r_2))
           msliq(:,k) = msliq(:,k) + xsi(:)
+          xsi(:)     = 0.0_r_2
        end where
-       where (xsi(:) .gt. 0.0_r_2 .and. xsi(:) .lt. (msliq(:,k)-mss_por(:,k)))
+       where (xsi(:) .gt. 0.0_r_2 .and. xsi(:) .gt. (msliq(:,k)-mss_por(:,k)))
           xsi(:)     = xsi(:) - (mss_por(:,k)-msliq(:,k))
           msliq(:,k) = mss_por(:,k)
        end where
     end do
-    xs1(:) = msliq(:,1)-mss_por(:,1)
-    where(xs1(:) .lt. 0.0_r_2) xs1(:) = 0.0_r_2
-   
-   if (md_prin) write(*,*) '1st layer xs calc '  !MDeck
- 
-    where(xs1(:) .gt. 0.0_r_2)                                             !if soil column is saturated add extra to runoff
-       msliq(:,1)   = mss_por(:,1)
-       ssnow%qhz(:) = ssnow%qhz(:) + xs1(:) / dels
-       xs1(:) = 0.0_r_2
-   end where
+    !if column is saturated then add any extra to the horizontal runoff
+    ssnow%qhz(:) = ssnow%qhz(:) + xsi(:)/dels
+
    if (md_prin) write(*,*) 'about to ensure liq > liq min '   !MDeck
     do k = 1,ms                                                        !ensure liq < liq_minimum (using mm)
        xs(:) = 0.0_r_2
-       where (msliq(:,k) .lt. masswatmin(:,k))
-          xs(:) = masswatmin(:,k) - msliq(:,k)
-       elsewhere
-          xs(:) = 0._r_2
-       end where
+       where (msliq(:,k) .lt. masswatmin(:,k))  &
+                 xs(:) = masswatmin(:,k) - msliq(:,k)
+
        msliq(:,k) = msliq(:,k  ) + xs(:)
        if (k .lt. ms) then
           msliq(:,k+1) = msliq(:,k+1) - xs(:)
@@ -2390,7 +2378,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    CALL  soilfreeze(dels, soil, ssnow)
    !CALL  soilfreezemass(dels, soil, ssnow)
 
-   ssnow%fwtop = canopy%precis + ssnow%smelt                !water for infiltration   
+   ssnow%fwtop = (canopy%precis + ssnow%smelt)/dels                !water for infiltration   [mm/s]
 
 
    if (md_prin) write(*,*) 'calc wtd'  !MDeck
@@ -2401,7 +2389,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
    !ssnow%fwtop = ssnow%fwtop - canopy%segg
-   ssnow%sinfil = ssnow%fwtop  - canopy%segg
+   ssnow%sinfil = ssnow%fwtop  - canopy%segg/dels                   ![mm/s]
 
 
    if (md_prin) write(*,*) 'soil moist gw'  !MDeck
