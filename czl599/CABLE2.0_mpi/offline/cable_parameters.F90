@@ -1299,7 +1299,7 @@ CONTAINS
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
                        insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010
-    DEALLOCATE(inVeg, inPFrac, inSoil, inLand, inWB, inTGG)
+    DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
