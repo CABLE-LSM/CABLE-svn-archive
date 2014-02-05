@@ -2139,19 +2139,43 @@ USE cable_common_module
      where (xsi(:) .gt. 0.0_r_2) 
         GWmsliq(:)  = soil%GWwatsat(:)*GWdzmm(:)   !set aquifer to saturated  
         msliq(:,ms) = msliq(:,ms) + xsi(:)
+        xsi(:)      = 0._r_2
      end where
 ! 
 !    if (md_prin) write(*,*) 'before xs loop '  !MDeck
 !      
-     do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
-        where ((xsi(:) .le. (msliq(:,k)-mss_por(:,k))) .and. (xsi(:) .gt. 0.0_r_2))
-           msliq(:,k) = msliq(:,k) + xsi(:)
-           xsi(:)     = 0.0_r_2
-        elsewhere (xsi(:) .gt. 0.0_r_2 .and. xsi(:) .gt. (msliq(:,k)-mss_por(:,k)))
-           xsi(:)     = xsi(:) - (mss_por(:,k)-msliq(:,k))
-           msliq(:,k) = mss_por(:,k)
-        end where
+     xsi(:) = 0._r_2
+     do k=1,ms
+       where(msliq(:,k) .gt. mss_por(:,k))
+          xsi(:)     = xsi(:) + (msliq(:,k) - mss_por(:,k))
+          msliq(:,k) =  mss_por(:,k)
+       end where
      end do
+
+     do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
+       do i=1,mp
+         if (xsi(i) .gt. 0._r_2) then
+            if (msliq(i,k) .le. mss_por(i,k)) then
+               if (xsi(i) .lt. (mss_por(i,k)-msliq(i,k))) then
+                  msliq(i,k) = msliq(i,k) + xsi(i)
+                  xsi(i) = 0._r_2
+               else
+                  xsi(i) = xsi(i) - (mss_por(i,k)-msliq(i,k))
+                  msliq(i,k) = mss_por(i,k)
+               end if
+             end if
+           end if
+         end do
+     end do
+!    do k = ms,1,-1  !loop from bottom to top adding extra water to each layer        
+!         where ((xsi(:) .le. (mss_por(:,k)-msliq(:,k))) .and. (xsi(:) .gt. 0.0_r_2))
+!            msliq(:,k) = msliq(:,k) + xsi(:)
+!            xsi(:)     = 0.0_r_2
+!         elsewhere (xsi(:) .gt. 0.0_r_2 .and. xsi(:) .gt. (mss_por(:,k)-msliq(:,k)))
+!            xsi(:)     = xsi(:) - (msliq(:,k) - mss_por(:,k))
+!            msliq(:,k) = mss_por(:,k)
+!         end where
+!     end do
 !     !if column is saturated then add any extra to the horizontal runoff
 !     ssnow%qhz(:) = ssnow%qhz(:) + xsi(:)/dels
 ! 
