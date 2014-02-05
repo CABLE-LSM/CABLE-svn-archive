@@ -85,7 +85,7 @@ module cable_data_module
       zdlin  = 1.0,  & ! height frac of d below which TL linear
       umin   = 0.01, &
       denliq = 1000.0,  &  !density of liquid water
-      denice = 917.0       !denisty of ice
+      denice = 1000.0       !denisty of ice
        
    END TYPE physical_constants
 

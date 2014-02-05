@@ -548,7 +548,7 @@ CONTAINS
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
     end if
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-      inGWWatr(:,:) = 0.01
+      inGWWatr(:,:) = 0.1
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
@@ -1061,7 +1061,7 @@ CONTAINS
         soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.03!constant for now
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.1!constant for now
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
@@ -1079,7 +1079,7 @@ CONTAINS
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.03  !constant for now
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.1  !constant for now
 
       ENDIF
 
@@ -1401,7 +1401,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)
     ! Checks for basic inconsistencies in parameter values
-    TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameter data
+    TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameter data
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg   ! vegetation parameter
                                                        ! data
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow
@@ -1469,8 +1469,9 @@ CONTAINS
              WRITE(*,*) 'SUM:',soil%sand(landpt(i)%cstart + j - 1)             &
                                + soil%silt(landpt(i)%cstart + j - 1)           &
                                + soil%clay(landpt(i)%cstart + j - 1)
-             soil%silt(landpt(i)%cstart + j - 1) = 1.0 - soil%clay(landpt(i)%cstart + j - 1) - &
-                                               soil%sand(landpt(i)%cstart + j - 1)    
+             soil%silt(landpt(i)%cstart + j - 1) = 1.0 -                       &
+                                         soil%clay(landpt(i)%cstart + j - 1) - &
+                                         soil%sand(landpt(i)%cstart + j - 1)    
              !CALL abort ('clay+sand+silt fraction does not sum to 1!')
           END IF
        END DO
