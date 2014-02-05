@@ -81,6 +81,7 @@ MODULE cable_param_module
   INTEGER, DIMENSION(:, :, :),    ALLOCATABLE :: inVeg
   REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPFrac
   INTEGER, DIMENSION(:, :),       ALLOCATABLE :: inSoil
+  REAL,    DIMENSION(:, :),       ALLOCATABLE :: inLand
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inWB
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inTGG
   REAL,    DIMENSION(:),          ALLOCATABLE :: inLon
@@ -277,6 +278,7 @@ CONTAINS
     ALLOCATE( inVeg(nlon, nlat, npatch) )
     ALLOCATE( inPFrac(nlon, nlat, npatch) )
     ALLOCATE( inSoil(nlon, nlat) )
+    ALLOCATE( inLand(nlon, nlat) )
     ALLOCATE( inWB(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inTGG(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inALB(nlon, nlat, npatch,nband) )
@@ -348,6 +350,11 @@ CONTAINS
         inSoil(:,:) = 2  
       END WHERE  
   
+      ok = NF90_INQ_VARID(ncid, 'land_fraction', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
+      ok = NF90_GET_VAR(ncid, varID, inLand)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable isoil.')
+
     ELSE  
   
       ok = NF90_INQ_VARID(ncid, 'iveg', varID)  
@@ -1292,7 +1299,7 @@ CONTAINS
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
                        insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010
-    DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
+    DEALLOCATE(inVeg, inPFrac, inSoil, inLand, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
@@ -1388,32 +1395,25 @@ CONTAINS
         casamet%lat(hh) = patch(hh)%latitude
         IF(.NOT. ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
            casamet%areacell(hh) = patch(hh)%frac                                  &
-                                 * inArea(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nmindep(hh) = patch(hh)%frac                                  &
-                                 * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nminfix(hh) = patch(hh)%frac                                  &
-                                 * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pdep(hh)    = patch(hh)%frac                                  &
-                                 * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pwea(hh)    = patch(hh)%frac                                  &
-                                 * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
-          ! fertilizer addition is included here
-           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
-          ! P fertilizer =13 Mt P globally in 1994
-           casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                                 + patch(hh)%frac * 0.7 / 365.0
-           casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                                 + patch(hh)%frac * 4.0 / 365.0
-           ENDIF
+                                 * inArea(landpt(ee)%ilon, landpt(ee)%ilat) * inLand(landpt(ee)%ilon, landpt(ee)%ilat)
         ELSE
-           casamet%areacell(hh) = inArea(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nmindep(hh) = inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nminfix(hh) = inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat) 
-      !if iveg found in met file, patchfrac will be updated in get_parameter_met.
-      !Just temporarily store inArea, inNdep, inNfix, inPdust, inPwea in casaflux and casamet.by Chris on 31/Jan/2014
+           casamet%areacell(hh) = inArea(landpt(ee)%ilon, landpt(ee)%ilat) * inLand(landpt(ee)%ilon, landpt(ee)%ilat)
         END IF
+      !Just temporarily store inArea in casamet%areacell by Chris on 31/Jan/2014
+      !since areacell will be updated due to patchfrac will be updated 
+      !in get_parameter_met, if patchfrac is found in met file (only applied for single run).
+        casaflux%Nmindep(hh) = inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Nminfix(hh) = inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
+       ! fertilizer addition is included here
+        IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
+       ! P fertilizer =13 Mt P globally in 1994
+        casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
+                              + 0.7 / 365.0
+        casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
+                              + 4.0 / 365.0
+        ENDIF
       ENDDO
     ENDDO
         !print*,casamet%areacell

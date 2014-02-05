@@ -2767,18 +2767,6 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet,casaflux)
       DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
         IF(ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
            casamet%areacell(hh) = patch(hh)%frac * casamet%areacell(hh)
-           casaflux%Nmindep(hh) = patch(hh)%frac * casaflux%Nmindep(hh)
-           casaflux%Nminfix(hh) = patch(hh)%frac * casaflux%Nminfix(hh) 
-           casaflux%Pdep(hh)    = patch(hh)%frac * casaflux%Pdep(hh)
-           casaflux%Pwea(hh)    = patch(hh)%frac * casaflux%Pwea(hh)
-          ! fertilizer addition is included here
-           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
-          ! P fertilizer =13 Mt P globally in 1994
-           casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                                 + patch(hh)%frac * 0.7 / 365.0
-           casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                                 + patch(hh)%frac * 4.0 / 365.0
-           ENDIF
         ENDIF
       END DO
    END DO 
