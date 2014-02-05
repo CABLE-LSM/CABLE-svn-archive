@@ -1828,7 +1828,7 @@ USE cable_common_module
     REAL(r_2), DIMENSION(mp,ms+1)       :: rt
 
 	
-    INTEGER                             :: k,kk,i
+    INTEGER                             :: k,kk,i,j,ii
     REAL(r_2), DIMENSION(mp,ms)         :: eff_por,old_wb,mss_por  !effective porosity (mm3/mm3),wb(mm3/mm3),mass (mm) of eff_por
     REAL(r_2), DIMENSION(mp,ms)         :: msliq,msice             !mass of the soil liquid and ice water    
     REAL(r_2), DIMENSION(mp)            :: den
@@ -1849,6 +1849,7 @@ USE cable_common_module
     REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
     INTEGER, DIMENSION(mp)              :: idlev
     REAL(r_2),DIMENSION(mp,ms+1)           :: masswatmin
+    REAL(r_2)                           :: av_msliq
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
    
@@ -2132,41 +2133,96 @@ USE cable_common_module
      !GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
      ssnow%GWwb   = ssnow%GWwb+del_wb(:,ms+1)
      GWmsliq(:)   = ssnow%GWwb(:)*GWdzmm 
+
+
+    do j = ms,2,-1
+       do i = 1, mp
+          xsi(i)       = max(msliq(i,j)-mss_por(i,j),0._r_2)
+          msliq(i,j)   = min(mss_por(i,j), msliq(i,j))
+          msliq(i,j-1) = msliq(i,j-1) + xsi(i)
+       end do
+    end do
+
+    do i = 1, mp
+       xs1(i)       = max(max(msliq(i,1),0._r_2)-max(0._r_2,(soil%watsat(i,1)*dzmm(1)-msice(i,1))),0._r_2)
+       msliq(i,1)   = min(max(0._r_2,soil%watsat(i,1)*dzmm(1)-msice(i,1)), msliq(i,1))
+       ssnow%qhz(i) = ssnow%qhz(i) + xs1(i) / dels
+    end do
+
+    do j = 1, ms-1
+       do i = 1, mp
+          if (msliq(i,j) < masswatmin(i,j)) then
+             xs(i) = masswatmin(i,j) - msliq(i,j)
+          else
+             xs(i) = 0._r_2
+          end if
+          msliq(i,j  ) = msliq(i,j  ) + xs(i)
+          msliq(i,j+1) = msliq(i,j+1) - xs(i)
+       end do
+    end do
+    j = ms
+    do i = 1, mp
+       if (msliq(i,j) < masswatmin(i,j)) then
+          xs(i) = masswatmin(i,j)-msliq(i,j)
+          searchforwater: do ii = ms-1, 1, -1
+             av_msliq = max(msliq(i,ii)-masswatmin(i,ii)-xs(i),0._r_2)
+             if (av_msliq .ge. xs(i)) then
+               msliq(i,j) = msliq(i,j) + xs(i)
+               msliq(i,ii) = msliq(i,ii) - xs(i)
+               xs(i) = 0._r_2
+               exit searchforwater
+             else
+               msliq(i,j) = msliq(i,j) + av_msliq
+               msliq(i,ii) = msliq(i,ii) - av_msliq
+               xs(i) = xs(i) - av_msliq
+             end if
+          end do searchforwater
+       else
+          xs(i) = 0._r_2
+       end if
+       msliq(i,j) = msliq(i,j) + xs(i)
+       GWmsliq(i) = GWmsliq(i) - xs(i)
+       ssnow%qhz(i) = ssnow%qhz(i) - xs(i)/dels
+    end do
+
+
 !     if (md_prin) write(*,*) ' updated soil liq mass '
 !           
-     xsi(:)       = GWmsliq(:) - soil%GWwatsat(:)*GWdzmm                   !if > 0 it is oversaturation in aquifer
-     where (xsi(:) .le. 0.0_r_2) xsi(:) = 0.0_r_2
-     where (xsi(:) .gt. 0.0_r_2) 
-        GWmsliq(:)  = soil%GWwatsat(:)*GWdzmm(:)   !set aquifer to saturated  
-        msliq(:,ms) = msliq(:,ms) + xsi(:)
-        xsi(:)      = 0._r_2
-     end where
+!     xsi(:)       = GWmsliq(:) - soil%GWwatsat(:)*GWdzmm                   !if > 0 it is oversaturation in aquifer
+!     where (xsi(:) .le. 0.0_r_2) xsi(:) = 0.0_r_2
+!     where (xsi(:) .gt. 0.0_r_2) 
+!        GWmsliq(:)  = soil%GWwatsat(:)*GWdzmm(:)   !set aquifer to saturated  
+!        msliq(:,ms) = msliq(:,ms) + xsi(:)
+!        xsi(:)      = 0._r_2
+!     end where
 ! 
 !    if (md_prin) write(*,*) 'before xs loop '  !MDeck
 !      
-     xsi(:) = 0._r_2
-     do k=1,ms
-       where(msliq(:,k) .gt. mss_por(:,k))
-          xsi(:)     = xsi(:) + (msliq(:,k) - mss_por(:,k))
-          msliq(:,k) =  mss_por(:,k)
-       end where
-     end do
+!     xsi(:) = 0._r_2
+!     do k=1,ms
+!       where(msliq(:,k) .gt. mss_por(:,k))
+!          xsi(:)     = xsi(:) + (msliq(:,k) - mss_por(:,k))
+!          msliq(:,k) =  mss_por(:,k)
+!       end where
+!     end do
+!
+!     do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
+!       do i=1,mp
+!         if (xsi(i) .gt. 0._r_2) then
+!            if (msliq(i,k) .le. mss_por(i,k)) then
+!               if (xsi(i) .lt. (mss_por(i,k)-msliq(i,k))) then
+!                  msliq(i,k) = msliq(i,k) + xsi(i)
+!                  xsi(i) = 0._r_2
+!               else
+!                  xsi(i) = xsi(i) - (mss_por(i,k)-msliq(i,k))
+!                  msliq(i,k) = mss_por(i,k)
+!               end if
+!             end if
+!           end if
+!         end do
+!     end do
 
-     do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
-       do i=1,mp
-         if (xsi(i) .gt. 0._r_2) then
-            if (msliq(i,k) .le. mss_por(i,k)) then
-               if (xsi(i) .lt. (mss_por(i,k)-msliq(i,k))) then
-                  msliq(i,k) = msliq(i,k) + xsi(i)
-                  xsi(i) = 0._r_2
-               else
-                  xsi(i) = xsi(i) - (mss_por(i,k)-msliq(i,k))
-                  msliq(i,k) = mss_por(i,k)
-               end if
-             end if
-           end if
-         end do
-     end do
+!super old below
 !    do k = ms,1,-1  !loop from bottom to top adding extra water to each layer        
 !         where ((xsi(:) .le. (mss_por(:,k)-msliq(:,k))) .and. (xsi(:) .gt. 0.0_r_2))
 !            msliq(:,k) = msliq(:,k) + xsi(:)
@@ -2180,26 +2236,29 @@ USE cable_common_module
 !     ssnow%qhz(:) = ssnow%qhz(:) + xsi(:)/dels
 ! 
 !    if (md_prin) write(*,*) 'about to ensure liq > liq min '   !MDeck
-     do k = 1,ms                                                        !ensure liq < liq_minimum (using mm)
-        xs(:) = 0.0_r_2
-        where (msliq(:,k) .lt. masswatmin(:,k))  &
-                  xs(:) = masswatmin(:,k) - msliq(:,k)
- 
-        msliq(:,k) = msliq(:,k  ) + xs(:)
-        if (k .lt. ms) then
-           msliq(:,k+1) = msliq(:,k+1) - xs(:)
-        else
-           GWmsliq(:) = GWmsliq(:) - xs(:)
-           !ssnow%qhz  = ssnow%qhz - xs(:)/dels
-        endif
-     end do
+!end super old
+
+
+!     do k = 1,ms                                                        !ensure liq < liq_minimum (using mm)
+!        xs(:) = 0.0_r_2
+!        where (msliq(:,k) .lt. masswatmin(:,k))  &
+!                  xs(:) = masswatmin(:,k) - msliq(:,k)
 ! 
-     xs(:) = 0._r_2
-     where (GWmsliq(:) .lt. masswatmin(:,ms+1))
-        xs(:)      = masswatmin(:,ms+1) - GWmsliq(:)
-        GWmsliq(:) = masswatmin(:,ms+1)
-        ssnow%qhz  = ssnow%qhz - xs(:)/dels
-     end where
+!        msliq(:,k) = msliq(:,k  ) + xs(:)
+!        if (k .lt. ms) then
+!           msliq(:,k+1) = msliq(:,k+1) - xs(:)
+!        else
+!           GWmsliq(:) = GWmsliq(:) - xs(:)
+!           !ssnow%qhz  = ssnow%qhz - xs(:)/dels
+!        endif
+!     end do
+!! 
+!     xs(:) = 0._r_2
+!     where (GWmsliq(:) .lt. masswatmin(:,ms+1))
+!        xs(:)      = masswatmin(:,ms+1) - GWmsliq(:)
+!        GWmsliq(:) = masswatmin(:,ms+1)
+!        ssnow%qhz  = ssnow%qhz - xs(:)/dels
+!     end where
 ! 
 !     if (md_prin) write(*,*) 'done with liq < liq min '  !MDeck
 ! 
