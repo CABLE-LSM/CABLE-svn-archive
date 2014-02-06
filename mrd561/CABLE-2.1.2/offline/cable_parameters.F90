@@ -1061,7 +1061,7 @@ CONTAINS
         soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.1!constant for now
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.0!constant for now
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
@@ -1079,7 +1079,7 @@ CONTAINS
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.1  !constant for now
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.0  !constant for now
 
       ENDIF
 
@@ -1168,7 +1168,7 @@ CONTAINS
               soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
               soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
               soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
-              soil%watr(h,klev)    = 0.03!soilin%hyds(soil%isoilm(h))
+              soil%watr(h,klev)    = 0.0!soilin%hyds(soil%isoilm(h))
             end do
 
             soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))/1000.0
@@ -1176,7 +1176,7 @@ CONTAINS
             soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
-            soil%GWwatr(h)    = 0.03!soilin%hyds(soil%isoilm(h))
+            soil%GWwatr(h)    = 0.0!soilin%hyds(soil%isoilm(h))
 
           END IF
           rad%latitude(h) = latitude(e)

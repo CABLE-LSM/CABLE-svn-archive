@@ -240,43 +240,31 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
 
    IF (cable_runtime%run_gw_model) then
       IF(ktau==1) THEN
-         ALLOCATE( bwbi(mp,ms+1,2) )
-         ALLOCATE( bwbl(mp,ms+1,2) )
+         ALLOCATE( bwb(mp,ms+1,2) )
          ! initial vlaue of soil moisture
-         bwbl(:,:,1)= ssnow%wbliq
-         bwbi(:,:,1)= ssnow%wbice
+         bwb(:,1:ms,1) = ssnow%wb
+         bwb(:,ms+1,1) = ssnow%GWwb
       ELSE
          ! Calculate change in soil moisture b/w timesteps:
          IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
-            bwbl(:,1:ms,1)=ssnow%wbliq
-            bwbi(:,1:ms,1)=ssnow%wbice
-
-            bwbl(:,ms+1,1)=ssnow%GWwb
-            bwbi(:,ms+1,1)=0._r_2
-
+            bwb(:,:,1)=ssnow%wb
             DO k=1,mp           ! current smoist - prev tstep smoist
-               delwb(k) = SUM((bwbl(k,1:ms,1)                                   &
-                     - (bwbl(k,1:ms,2)))*soil%zse)*C%denliq + &
-                      SUM((bwbi(k,1:ms,1)                                       &
-                     - (bwbi(k,1:ms,2)))*soil%zse)*C%denice + &
-                      (bwbl(k,ms+1,1)-bwbl(k,ms+1,2))*soil%GWdz(k)*C%denliq
-                      
+               delwb(k) = (SUM((bwb(k,:,1)                                         &
+                     - (bwb(k,:,2)))*soil%zse)+&
+                     (bwb(k,ms+1,1)-bwb(k,ms+1,1))*soil%GWdz(k))*1000.0
+                   
             END DO
          ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
-            bwbl(:,1:ms,2)=ssnow%wbliq
-            bwbi(:,1:ms,2)=ssnow%wbice
-
-            bwbl(:,ms+1,2)=ssnow%GWwb
-            bwbi(:,ms+1,2)=0._r_2
+            bwb(:,1:ms,2)=ssnow%wb
+            bwb(:,ms+1,2)=ssnow%GWwb
             DO k=1,mp           !  current smoist - prev tstep smoist
-               delwb(k) = SUM((bwbl(k,1:ms,2)                                   &
-                     - (bwbl(k,1:ms,1)))*soil%zse)*C%denliq + &
-                      SUM((bwbi(k,1:ms,2)                                       &
-                     - (bwbi(k,1:ms,1)))*soil%zse)*C%denice + &
-                      (bwbl(k,ms+1,2)-bwbl(k,ms+1,1))*soil%GWdz(k)*C%denliq
+               delwb(k) = (SUM((bwb(k,:,2)                                         &
+                    - (bwb(k,:,1)))*soil%zse)+&
+                      (bwb(k,ms+1,2)-bwb(k,ms+1,1))*soil%GWdz(k))*1000.0
             END DO
          END IF
       END IF
+
    ELSE   !GW module not used
       IF(ktau==1) THEN
          ALLOCATE( bwb(mp,ms,2) )
@@ -309,9 +297,13 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    !      it's included in change in canopy storage calculation))
    ! rml 28/2/11 ! BP changed rnof1+rnof2 to ssnow%runoff which also included rnof5
    ! which is used when nglacier=2 in soilsnow routines (BP feb2011)
-   bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
+   if (cable_runtime%run_gw_model .and. ktau > 1) then
+      bal%wbal = REAL(ssnow%wbtot)  !soil water balance found in soilsnow_GW
+   else
+      bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
         + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
+   end if
 !   bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        & 
 !        - ssnow%rnof1-ssnow%rnof2-(canopy%fevw+canopy%fevc                     &
 !        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)

@@ -1867,7 +1867,7 @@ USE cable_common_module
     end do 
     GWdzmm(:) = real(1000.0*soil%GWdz(:),r_2)   
     GWzimm(:) = zimm(ms)+GWdzmm(:)
-    zaq(:)    = real(1000.0*soil%GWz(:),r_2)
+    zaq(:)    = zimm(ms) + 0.5*GWdzmm(:)
     
     
     masswatmin(:,1:ms) = volwatmin * C%denliq * spread(soil%zse(:),1,mp) !soil must retain this much liquid (mm)
@@ -2024,13 +2024,13 @@ USE cable_common_module
     qhlev(:,:)   = 0.0  !set to zero except for layer that contains the wtd
     idlev(:)     = ms+1
     do k=ms,1,-1
-       WHERE (ssnow%wtd(:) <= zimm(k))
+       WHERE (ssnow%wtd(:) <= zimm(k) .and. ssnow%wtd(:) > zimm(k-1))
          idlev(:) = k
+         qhlev(:,k) = ssnow%qhz(:)
+       ELSEWHERE
+         qhlev(:,k) = 0._r_2
        END WHERE
     end do  
-    do i=1,mp
-      qhlev(i,idlev(i)) = ssnow%qhz(i)
-    end do
 
     !where (qhlev*dels .gt. 0.1*ssnow%wbliq*spread(dzmm,1,mp)) qhlev = 0._r_2
 
@@ -2045,7 +2045,7 @@ USE cable_common_module
        qout   = -ssnow%hk(:,k)*num/den
        dqodw1 = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2 = -( ssnow%hk(:,k)*ssnow%dsmpdw(:,k+1) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout  - qhlev(:,k)! - ssnow%rex(:,k)
+       rt(:,k) =  qin - qout!  - qhlev(:,k)! - ssnow%rex(:,k)
        at(:,k) =  0.0_r_2
        bt(:,k) =  dzmm(k)/dels + dqodw1
        ct(:,k) =  dqodw2      
@@ -2063,13 +2063,13 @@ USE cable_common_module
        qout   = -ssnow%hk(:,k)*num/den
        dqodw1 = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2 = -( ssnow%hk(:,k)*ssnow%dsmpdw(:,k+1) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout  - qhlev(:,k)! - ssnow%rex(:,k)
+       rt(:,k) =  qin - qout!  - qhlev(:,k)! - ssnow%rex(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
        ct(:,k) =  dqodw2
     end do
        
-    k = ms
+    k = ms   !Aquifer defines the bottom boundary condition
        den    = (zmm(k) - zmm(k-1))
        dne    = (ssnow%zq(:,k)-ssnow%zq(:,k-1))
        num    = (ssnow%smp(:,k)-ssnow%smp(:,k-1)) - dne
@@ -2082,31 +2082,31 @@ USE cable_common_module
        qout   = -ssnow%hk(:,k)*num/den
        dqodw1 = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2 = -( ssnow%hk(:,k)*ssnow%GWdsmpdw(:) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout  - qhlev(:,k) !- ssnow%rex(:,k)
+       rt(:,k) =  qin - qout ! - qhlev(:,k) !- ssnow%rex(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
-       ct(:,k) =  dqodw2
+       ct(:,k) =  0.0_r_2!dqodw2
           
-    k = ms+1
-       den    = (zaq(:) - zmm(k-1))
-       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
-       num    = (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
-       qin    = -ssnow%hk(:,k-1)*num/den
-       dqidw0 = -(-ssnow%hk(:,k-1)*ssnow%dsmpdw(:,k-1) + num*ssnow%dhkdw(:,k-1))/den
-       dqidw1 = -( ssnow%hk(:,k-1)*ssnow%GWdsmpdw(:)   + num*ssnow%dhkdw(:,k-1))/den
-       den    = zaq(:) - zmm(k-1)!dzmm(ms)
-       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
-       num    =  (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
-       qout   = 0.0_r_2
-       dqodw1 = 0.0_r_2
-       dqodw2 = 0.0_r_2
-       rt(:,k) =  qin - qout  - qhlev(:,k)
-       at(:,k) = -dqidw0
-       bt(:,k) =  GWdzmm(:)/dels - dqidw1
-       ct(:,k) =  0.0_r_2
+!    k = ms+1
+!       den    = (zaq(:) - zmm(k-1))
+!       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
+!       num    = (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
+!       qin    = -ssnow%hk(:,k-1)*num/den
+!       dqidw0 = -(-ssnow%hk(:,k-1)*ssnow%dsmpdw(:,k-1) + num*ssnow%dhkdw(:,k-1))/den
+!       dqidw1 = -( ssnow%hk(:,k-1)*ssnow%GWdsmpdw(:)   + num*ssnow%dhkdw(:,k-1))/den
+!       den    = zaq(:) - zmm(k-1)!dzmm(ms)
+!       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
+!       num    =  (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
+!       qout   = 0.0_r_2
+!       dqodw1 = 0.0_r_2
+!       dqodw2 = 0.0_r_2
+!       rt(:,k) =  qin - qout  - qhlev(:,k)
+!       at(:,k) = -dqidw0
+!       bt(:,k) =  GWdzmm(:)/dels - dqidw1
+!       ct(:,k) =  0.0_r_2
 
    if (md_prin) write(*,*) 'calced qin qout etc '            !MDeck
-    CALL solve_tridiag(at, bt, ct, rt, del_wb,ms+1)                      !solve system of eqns
+    CALL solve_tridiag(at, bt, ct, rt, del_wb,ms)                      !solve system of eqns
 
    if (md_prin) write(*,*) 'found del wb '  !MDeck
     !alternate method that solves only using the ms layers
@@ -2114,12 +2114,14 @@ USE cable_common_module
 
     !deal with extra/to little liquid in terms of mass not volume
 
-    msliq(:,:)   = (ssnow%wbliq+del_wb(:,1:ms))*spread(dzmm,1,mp)         !mass of liquid water including (updated)
+    ssnow%wbliq  = ssnow%wbliq + del_wb(:,1:ms) - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)
+    msliq        = ssnow%wbliq * spread(dzmm,1,mp) 
+    !msliq(:,:)   = (ssnow%wbliq+del_wb(:,1:ms))*spread(dzmm,1,mp)         !mass of liquid water including (updated)
     msice(:,:)   = (ssnow%wbice)*dri * spread(dzmm,1,mp)                  !mass of ice.  not updated as no ice flow
     eff_por(:,:) = soil%watsat - ssnow%wbice                              !effective porosity (saturated minus vol of ice)
-    mss_por(:,:) = eff_por/spread(dzmm,1,mp)                              !mass of liquid the effective porosity can hole
+    mss_por(:,:) = eff_por*spread(dzmm,1,mp)                              !mass of liquid the effective porosity can hole
     !GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
-    ssnow%GWwb   = ssnow%GWwb+del_wb(:,ms+1)
+    ssnow%GWwb   = ssnow%GWwb+(del_wb(:,ms)*dqodw1+qout)*dels/GWdzmm - qhlev(:,ms+1)*dels/GWdzmm
     GWmsliq(:)   = ssnow%GWwb(:)*GWdzmm 
 
    if (md_prin) write(*,*) ' updated soil liq mass '
@@ -2175,7 +2177,7 @@ USE cable_common_module
        endif
     end do
     end do
-! 
+ 
      xs(:) = 0._r_2
      do i=1,mp
      if (GWmsliq(i) .lt. masswatmin(i,ms+1)) then
@@ -2195,7 +2197,7 @@ USE cable_common_module
     ssnow%GWwb(:)    = GWmsliq(:) / GWdzmm(:)  
     ssnow%wb         = ssnow%wbliq(:,:) + ssnow%wbice(:,:)
     ssnow%wmtot      = ssnow%wmliq(:,:) + ssnow%wmice(:,:)
-    ssnow%rnof2(:) = ssnow%qhz(:)   
+    ssnow%rnof2(:)   = ssnow%qhz(:)   
        
           
    if (md_prin) write(*,*) 'end of smoistgw '            !MDeck
@@ -2227,10 +2229,11 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE(met_type), INTENT(INOUT)            :: met ! all met forcing
    TYPE (balances_type), INTENT(INOUT)      :: bal
+
    INTEGER             :: k,i
    REAL, DIMENSION(mp) :: snowmlt
    REAL, DIMENSION(mp) :: totwet
-   REAL, DIMENSION(mp) :: weting,GWwb_ic
+   REAL, DIMENSION(mp) :: weting,GWwb_ic,wberr
    REAL, DIMENSION(mp) :: xxx, tgg_old, tggsn_old,wbtot_ic,del_wbtot
    REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3 
    REAL                :: zsetot
@@ -2410,12 +2413,11 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    if (md_prin) write(*,*) 'ovrland flux'  !MDeck
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
-   ssnow%sinfil = ssnow%fwtop - canopy%fes/C%HL
-   !ssnow%sinfil = ssnow%fwtop  - canopy%segg
+   !ssnow%sinfil = ssnow%fwtop - canopy%fes/C%HL
+   ssnow%sinfil = ssnow%fwtop  - canopy%segg/dels
 
 
    if (md_prin) write(*,*) 'soil moist gw'  !MDeck
-
 
    CALL smoistgw (dels,ktau,ssnow,soil,md_prin)               !vertical soil moisture movement. 
    !canopy%fesp/C%HL*dels is the puddle evaporation
@@ -2482,10 +2484,15 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                  
    !for debug water balance.  del_wbtot = fluxes = infiltration [though-evap] - trans - qhorz drainage
    del_wbtot   = dels * (ssnow%sinfil - canopy%fevc/C%HL - ssnow%rnof2/dels)
+
+   ssnow%wbtot = ssnow%wbtot-(wbtot_ic + del_wbtot)
+
 !    if (ktau .gt. 10) then
 !    do i=1,mp
-!       write(*,*) (ssnow%wbtot(i) - wbtot_ic(i)),(ssnow%GWwb(i)-GWwb_ic(i))*soil%GWdz(i)*1000.0
+!       write(*,*) (ssnow%wbtot(i) - wbtot_ic(i)),del_wbtot(i)
 !    end do
+!     write(*,*) maxval(ssnow%wbtot-wbtot_ic - del_wbtot),&
+!                minval(ssnow%wbtot-wbtot_ic - del_wbtot)
 !    end if
 
 
