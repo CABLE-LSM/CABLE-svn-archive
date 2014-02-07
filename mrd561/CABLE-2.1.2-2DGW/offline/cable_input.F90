@@ -75,6 +75,7 @@ MODULE cable_input_module
         ncid_qa,         &
         ncid_ta,         &
         ncid_wd,         &    
+        ncid_elv,        &
         ok                 ! netcdf error status
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
@@ -313,7 +314,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         isoil_dims,             & ! number of dims of isoil var if in met file
         tsmin,tsdoy,tsyear,     & ! temporary variables
         x,y,i,j,                & ! do loop counters
-        tempmonth
+        tempmonth,              &
+        elevID                     !elevation variable ID
    INTEGER,DIMENSION(1)        ::                                         &
         timedimID,              & ! time dimension ID number
         data1i                    ! temp variable for netcdf reading
@@ -394,6 +396,14 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          (ok,'Error opening netcdf met forcing file '//TRIM(filename%met)// &
          ' (SUBROUTINE open_met_file)') 
   ENDIF
+
+  IF (cable_user%TwoD_GW) THEN
+     ok = NF90_OPEN(gswpfile%elevation,0,ncid_elv)
+     IF (ok /= NF90_NOERR) CALL nc_abort &
+         (ok,'Error opening netcdf elevation forcing file '//TRIM(filename%met)// &
+         ' (SUBROUTINE open_met_file)')
+  END IF     
+ 
 
     !!=====================VV Determine spatial details VV=================
     ! Determine number of sites/gridcells.
@@ -613,10 +623,42 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        DEALLOCATE(lat_temp,lon_temp,land_xtmp,land_ytmp)
     END IF ! "mask" variable or no "mask" variable
 
+
+    !mrd check if there is an elevation file with elevation variable
+    IF (cable_user%TwoD_GW) THEN
+      ok = NF90_INQ_VARID(ncid_elv, 'elevation', elevID) ! check for elevation
+      IF(ok .eq. NF90_NOERR) THEN
+        ! Allocate "mask" variable:
+        ALLOCATE(elev2D(xdimsize,ydimsize))
+        ALLOCATE(elev(1:mland_fromfile))
+        elev2D(:,:) = 0.0
+        elev(:)     = 0.0
+
+        ok= NF90_GET_VAR(ncid_elv,elevID,elev2D)
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error reading elevation variable in ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+        !done with th elevation file so close if
+        ok=NF90_CLOSE(ncid_met)
+        IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
+
+        do i=1,mland_fromfile
+           elev(i) = elev2D(land_x(i),land_y(i))
+        end do
+ 
+      END IF
+   END IF  !user TwoD_GW switch
+
+
+
     ! Set global mland value (number of land points), used to allocate
     ! all of CABLE's arrays:
     mland = mland_fromfile
     write(*,*) 'the total number of land points is ', mland
+
+    mlon = xdimsize   !store number of lat lon grid for use with 2D_GW
+    mlat = ydimsize
 
 
     ! Write number of land points to log file:

@@ -82,6 +82,7 @@ MODULE cable_common_module
      !MD
       LOGICAL :: GW_MODEL = .FALSE.
       LOGICAL :: alt_forcing = .FALSE.
+      LOGICAL :: TwoD_GW = .FALSE.
 
    END TYPE kbl_user_switches
 

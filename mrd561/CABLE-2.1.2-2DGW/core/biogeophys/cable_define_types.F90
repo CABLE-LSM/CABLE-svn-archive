@@ -42,7 +42,9 @@ MODULE cable_def_types_mod
    INTEGER :: mp,    & ! # total no of patches/tiles 
               mvtype=17,& ! total # vegetation types,   from input
               mstype,& ! total # soil types,         from input
-              mland                           ! # land grid cells
+              mland,&                       ! # land grid cells
+              mlat,mlon
+
    
    INTEGER, PARAMETER ::                                                        &
       r_2  = SELECTED_REAL_KIND(12, 50), &
@@ -156,6 +158,8 @@ MODULE cable_def_types_mod
 
    ! Soil and snow variables:
    TYPE soil_snow_type 
+
+     REAL :: delx,dely
      
      INTEGER, DIMENSION(:), POINTER :: isflag ! 0 => no snow 1 => snow
     
@@ -259,6 +263,11 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass (mm) liq
          wmice,   &    !water mass (mm) ice
          wmtot         !water mass (mm) liq+ice
+
+      REAL(r_2), DIMENSION(:), POINTER ::                                   &
+         elevation,    &
+         GWconvergence,   &
+         bottom
          
          
    END TYPE soil_snow_type
@@ -764,6 +773,9 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmliq(mp,ms) )
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
+   ALLOCATE( var%GWconvergence(mp) )
+   ALLOCATE( var%elevation(mp) )
+   ALLOCATE( var%bottom(mp) )
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
    var%GWwb = 0.3_r_2
@@ -1210,6 +1222,10 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
+
+   DEALLOCATE( var%elevation )
+   DEALLOCATE( var%GWconvergence )
+   DEALLOCATE( var%bottom )
    
 END SUBROUTINE dealloc_soil_snow_type
    

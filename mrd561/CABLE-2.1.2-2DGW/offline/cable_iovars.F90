@@ -61,6 +61,8 @@ MODULE cable_IO_vars_module
    CHARACTER(LEN=4) :: metGrid ! Either 'land' or 'mask'
    
    INTEGER,POINTER,DIMENSION(:,:) :: mask ! land/sea mask from met file
+   REAL(4),POINTER,DIMENSION(:,:) :: elev2D
+   REAL(r_2),POINTER,DIMENSION(:) :: elev
    
    INTEGER,POINTER,DIMENSION(:) :: land_x,land_y ! indicies of land in mask
    
@@ -110,7 +112,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind, &
+         elevation    !mrd561 
 
    END TYPE gswp_type
    

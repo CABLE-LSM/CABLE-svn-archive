@@ -78,7 +78,7 @@ MODULE cable_soil_snow_gw_module
    PUBLIC soil_snow_gw ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv
-   PRIVATE soilfreeze, remove_trans, soilfreezemass
+   PRIVATE soilfreeze, remove_trans
    PRIVATE smoistgw, ovrlndflx, solve_tridiag
 
 CONTAINS
@@ -2018,7 +2018,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    !wbice adjusted in soilfreeze but the rest are not
    ssnow%wmice = ssnow%wbice*dri*1000._r_2*spread(soil%zse,1,mp) !ice mass
-   ssnow%wmliq = ssnow%wmtot - ssnow%msice                       !liq mass
+   ssnow%wmliq = ssnow%wmtot - ssnow%wmice                       !liq mass
    ssnow%wbliq = ssnow%wmliq / (1000._r_2*spread(soil%zse,1,mp)) !liq vol
    ssnow%wb    = ssnow%wbliq + ssnow%wbice                       !total vol
 
