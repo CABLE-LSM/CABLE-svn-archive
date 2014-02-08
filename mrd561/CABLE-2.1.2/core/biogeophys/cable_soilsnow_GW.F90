@@ -57,13 +57,13 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 5.5e-4,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
-                      hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
+                      qhmax   = 5.5e-7,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
+                      hkrz    = 2.5,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.3,       &
+                      maxSatFrac = 0.1,       &
                       dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
@@ -78,7 +78,7 @@ MODULE cable_soil_snow_gw_module
    PUBLIC soil_snow_gw ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv
-   PRIVATE soilfreeze, remove_trans, soilfreezemass
+   PRIVATE soilfreeze, remove_trans
    PRIVATE smoistgw, ovrlndflx, solve_tridiag
 
 CONTAINS
@@ -2018,7 +2018,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    !wbice adjusted in soilfreeze but the rest are not
    ssnow%wmice = ssnow%wbice*dri*1000._r_2*spread(soil%zse,1,mp) !ice mass
-   ssnow%wmliq = ssnow%wmtot - ssnow%msice                       !liq mass
+   ssnow%wmliq = ssnow%wmtot - ssnow%wmice                       !liq mass
    ssnow%wbliq = ssnow%wmliq / (1000._r_2*spread(soil%zse,1,mp)) !liq vol
    ssnow%wb    = ssnow%wbliq + ssnow%wbice                       !total vol
 
