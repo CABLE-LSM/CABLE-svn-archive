@@ -57,13 +57,13 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 5.5e-4,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
-                      hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
+                      qhmax   = 5.5e-7,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
+                      hkrz    = 2.5,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.3,       &
+                      maxSatFrac = 0.1,       &
                       dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
