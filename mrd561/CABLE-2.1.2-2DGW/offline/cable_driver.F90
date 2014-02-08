@@ -70,7 +70,7 @@ PROGRAM cable_offline_driver
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   patch_type,soilparmnew,elev
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, myhome,            & 
                                    redistrb, wiltParam, satuParam
@@ -154,6 +154,11 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
+
+   REAL, ALLOCATABLE, DIMENSION(:) :: elevIN
+
+!   INTEGER :: GWinterval,iGW
+   REAL    :: GWdels
    
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -233,7 +238,9 @@ PROGRAM cable_offline_driver
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, C%TFRZ )
+
+   CALL open_met_file( dels, kend, spinup, C%TFRZ)
+
    !write(*,*) 'opened the met file' 
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -246,6 +253,7 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
+
    !write(*,*) 'loaded params' 
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
@@ -255,9 +263,18 @@ PROGRAM cable_offline_driver
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+
+   soil%elevation(:) = elev(:)
+   write(*,*) maxval(soil%elevation)
+   write(*,*) minval(soil%elevation)
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
+
+!   !mrd to be moved to cable_user and namelist
+!   GWinterval = 6
+   GWdels = dels
+
+
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
@@ -292,7 +309,8 @@ PROGRAM cable_offline_driver
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          CALL get_met_data( spinup, spinConv, met, soil,                    &
                             rad, veg, kend, dels, C%TFRZ, ktau ) 
-   
+         write(*,*) 'got met'
+
          ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
          IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
                                                 casapool, casamet )
@@ -304,14 +322,17 @@ PROGRAM cable_offline_driver
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
 
+         write(*,*) 'done with cbm'
+
          ssnow%smelt = ssnow%smelt*dels
          ssnow%rnof1 = ssnow%rnof1*dels
          ssnow%rnof2 = ssnow%rnof2*dels
          ssnow%runoff = ssnow%runoff*dels
 
          if (cable_user%TwoD_GW) then
-           call gwstep(dels,ssnow,soil)
-           call update_gw(dels,ssnow,soil)
+            write(*,*) 'about to call gwstep'
+              call gwstep(GWdels,ssnow,soil)
+              call update_gw(GWdels,ssnow,soil)
          end if
    
    

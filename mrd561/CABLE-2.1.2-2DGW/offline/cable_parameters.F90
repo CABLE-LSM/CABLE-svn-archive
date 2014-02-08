@@ -207,8 +207,6 @@ CONTAINS
     REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
 
     ok = NF90_OPEN(filename%type, 0, ncid)
-    !MDeck
-    write(*,*) 'line 211'
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
 
     ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
@@ -243,8 +241,6 @@ CONTAINS
       CALL abort('Variable dimensions do not match (read_gridinfo)')
     END IF
 
-    !MDeck
-    write(*,*) 'line 247'
     ALLOCATE( inLon(nlon), inLat(nlat) )
     ALLOCATE( inVeg(nlon, nlat, npatch) )
     ALLOCATE( inPFrac(nlon, nlat, npatch) )
@@ -258,8 +254,7 @@ CONTAINS
     ALLOCATE( inLAI(nlon, nlat, ntime) )
     ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
-    !MDeck
-    write(*,*) 'line 262'
+
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable longitude.')
@@ -272,15 +267,11 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    write(*,*) 'line 275'
-
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
     ok = NF90_GET_VAR(ncid, varID, idummy)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
     inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
-
-    write(*,*) 'line 283'
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -938,6 +929,8 @@ CONTAINS
     !MD aquifer layers
     soil%GWdz = 30.0                          !30 m thick aquifer
 
+    soil%delx         = 0.25*3.14159*6370000.0/180.0
+    soil%dely         = 0.25*3.14159*6370000.0/180.0
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
     rough%za_tq = 40.0
@@ -1320,7 +1313,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
+    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux

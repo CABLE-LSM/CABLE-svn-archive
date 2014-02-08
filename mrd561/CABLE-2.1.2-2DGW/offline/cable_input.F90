@@ -289,7 +289,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
    REAL, INTENT(OUT) :: dels   ! time step size
    REAL, INTENT(IN) :: TFRZ 
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
-   LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
+   LOGICAL, INTENT(IN)         :: spinup ! will a model spinup be performed?
    
    ! Local variables
    INTEGER                     ::                                         &
@@ -400,7 +400,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
   IF (cable_user%TwoD_GW) THEN
      ok = NF90_OPEN(gswpfile%elevation,0,ncid_elv)
      IF (ok /= NF90_NOERR) CALL nc_abort &
-         (ok,'Error opening netcdf elevation forcing file '//TRIM(filename%met)// &
+         (ok,'Error opening netcdf elevation forcing file '//TRIM(gswpfile%elevation)// &
          ' (SUBROUTINE open_met_file)')
   END IF     
  
@@ -630,24 +630,31 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
       IF(ok .eq. NF90_NOERR) THEN
         ! Allocate "mask" variable:
         ALLOCATE(elev2D(xdimsize,ydimsize))
-        ALLOCATE(elev(1:mland_fromfile))
         elev2D(:,:) = 0.0
-        elev(:)     = 0.0
 
         ok= NF90_GET_VAR(ncid_elv,elevID,elev2D)
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-            (ok,'Error reading elevation variable in ' &
-            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-        !done with th elevation file so close if
-        ok=NF90_CLOSE(ncid_met)
-        IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
-            //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
 
+        write(*,*) maxval(elev2D),' 2d'
+
+        allocate(elev(1:mland_fromfile))
+        elev(:) = 0.0
+
+        where(mask .eq. 0) elev2D = 0.0
         do i=1,mland_fromfile
            elev(i) = elev2D(land_x(i),land_y(i))
         end do
- 
+        write(*,*) maxval(elev), 'elev'
+
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error reading elevation variable in ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
       END IF
+     !done with th elevation file so close if
+     ok=NF90_CLOSE(ncid_elv)
+     IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
+         //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
+
    END IF  !user TwoD_GW switch
 
 
