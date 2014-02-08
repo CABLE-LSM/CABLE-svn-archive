@@ -57,7 +57,7 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 0.0,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
+                      qhmax   = 5.5e-4,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
                       hkrz    = 2.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
@@ -2027,7 +2027,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    if (md_prin) write(*,*) 'calc wtd'  !MDeck
 
-   CALL calcwtd (ssnow, soil, ktau, md_prin)                  !update the wtd
+   if (ktau_gl <=1 ) &
+      CALL calcwtd (ssnow, soil, ktau, md_prin)                  !update the wtd
 
    if (md_prin) write(*,*) 'ovrland flux'  !MDeck
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
@@ -2076,7 +2077,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 !   ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
 
 
-   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff (inmm)
+   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)          !total runoff (inmm)
 
 
    if (md_prin) write(*,*) 'remove transp'      !MDeck

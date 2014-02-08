@@ -1012,9 +1012,9 @@ CONTAINS
       IF (soilparmnew) THEN
   
       soil%swilt(landpt(e)%cstart:landpt(e)%cend) =                            &
-                                         inswilt(landpt(e)%ilon, landpt(e)%ilat)
+                                         0.5* inswilt(landpt(e)%ilon, landpt(e)%ilat)
       soil%sfc(landpt(e)%cstart:landpt(e)%cend) =                              &
-                                           insfc(landpt(e)%ilon, landpt(e)%ilat)
+                                           0.5* insfc(landpt(e)%ilon, landpt(e)%ilat)
       soil%ssat(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           inssat(landpt(e)%ilon, landpt(e)%ilat)
       soil%bch(landpt(e)%cstart:landpt(e)%cend) =                              &
@@ -1145,8 +1145,8 @@ CONTAINS
           end do
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
-            soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
-            soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
+            soil%swilt(h)   =  0.5*soilin%swilt(soil%isoilm(h))
+            soil%sfc(h)     =  0.5*soilin%sfc(soil%isoilm(h))
             soil%ssat(h)    =  soilin%ssat(soil%isoilm(h))
             soil%bch(h)     =  soilin%bch(soil%isoilm(h))
             soil%hyds(h)    =  soilin%hyds(soil%isoilm(h))

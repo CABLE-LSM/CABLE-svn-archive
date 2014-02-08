@@ -24,7 +24,7 @@ module cable_TwoDim_GW
    
    
   subroutine gwstep(dels,ssnow,soil)! dx,              &
-            !ltype, elev, bot,        &
+            !ltype, evl, bot,        &
             !hycond, poros, compres,  &
             !ho, h, convgw,           &
             ! ebot, eocn,              &
@@ -41,16 +41,16 @@ module cable_TwoDim_GW
   ! Uses an iterative time-implicit ADI method.
 
   ! use module_hms_constants
+    implicit none
 
-
-    real, intent(in)                      :: dels
-    type(soil_snow_type), intent(inout)   :: ssnow
-    type(soil_parameter_type), intent(in) :: soil
+    real, intent(in)                         :: dels
+    type(soil_snow_type), intent(inout)      :: ssnow
+    type(soil_parameter_type), intent(inout) :: soil
     !LOCAL variables to map ssnow to previous code
     !note assume continantal??
-    real(r_2), dimension(mlon,mlat) ::  &
-        elev,           &  ! elev/bathymetry of sfc rel to sl (m) (supp)
-        bot,            &  ! elev. aquifer bottom rel to sl (m)   (supp)
+    real(r_2),  dimension(mlon,mlat) ::  &
+        evl,           &  ! evl/bathymetry of sfc rel to sl (m) (supp)
+        bot,            &  ! evl. aquifer bottom rel to sl (m)   (supp)
         hycond,         &  ! hydraulic conductivity (m/s per m/m) (supp)
         poros,          &  ! porosity (m3/m3)                     (supp)
         compres,        &  ! compressibility (1/Pa)               (supp)
@@ -62,27 +62,27 @@ module cable_TwoDim_GW
 
     real(r_2)  :: ebot, eocn
     integer ::  istep,i
-!       eocn  = mean spurious sink for h_ocn = sealev fix (m/s)(ret)
+!       eocn  = mean spurious sink for h_ocn = sealev fmlon (m/s)(ret)
 !               This equals the total ground-water flow across 
 !               land->ocean boundaries.
-!       ebot  = mean spurious source for "bot" fix (m/s) (returned)
+!       ebot  = mean spurious source for "bot" fmlon (m/s) (returned)
 !       time  = elapsed time from start of run (sec)
 !       dels = timestep length (sec)
 !       istep = timestep counter
 
 ! Local arrays:
-    real(r_2), dimension(mlon,mlat)   :: sf2    ! storage coefficient (m3 of h2o / bulk m3)
-    real(r_2), dimension(mlon,mlat,2) ::   t    ! transmissivity (m2/s)..1 for N-S,..2 for E-W
-    real(r_2), dimension(0:mlon+mlat) :: b,g    ! work arrays
+    real(r_2),  dimension(mlon,mlat)   :: sf2    ! storage coefficient (m3 of h2o / bulk m3)
+    real(r_2),  dimension(mlon,mlat,2) ::   t    ! transmissivity (m2/s)..1 for N-S,..2 for E-W
+    real(r_2),  dimension(0:mlon+mlat) :: b,g    ! work arrays
 
 
-    real(r_2), parameter    :: botinc = 0.01  ! re-wetting increment to fix h < bot
-!   parameter (botinc = 0.  )  ! re-wetting increment to fix h < bot
+    real(r_2), parameter    :: botinc = 0.01  ! re-wetting increment to fmlon h < bot
+!   parameter (botinc = 0.  )  ! re-wetting increment to fmlon h < bot
                                  ! (m); else no flow into dry cells
     real(r_2), parameter    :: delskip = 0.005 ! av.|dhead| value for iter.skip out(m)
     integer, parameter :: itermax = 10    ! maximum number of iterations
     integer, parameter :: itermin = 3     ! minimum number of iterations
-    real(r_2), parameter    :: sealev = -1.     ! sea-level elevation (m)
+    real(r_2), parameter    :: sealev = -1.     ! sea-level evlation (m)
       
     logical  :: ContinueLoop
 
@@ -116,9 +116,25 @@ module cable_TwoDim_GW
         darea,                  &
         tareal,                 &
         zz
+
+   LOGICAL :: debug
+      
+   debug = .false.  
+
+   !allocate(evl(mlon,mlat))
+   !allocate(bot(mlon,mlat))
+   !allocate(hycond(mlon,mlat))
+   !allocate(poros(mlon,mlat))
+   !allocate(compres(mlon,mlat))
+   !allocate(ho(mlon,mlat))
+   !allocate(h(mlon,mlat))
+   !allocate(convgw(mlon,mlat))
+   !allocate(sf2(mlon,mlat))
+   !allocate(t(mlon,mlat,2))
+   !allocate(b(0:mlon+mlat))
+   !allocate(g(0:mlon+mlat))
         
-        
-    !map the 1D vector of ssnow to the 2D matrix that is longitude x latitude
+    !map the 1D vector of ssnow to the 2D matrmlon that is longitude x latitude
     !hold ocean points to h=0
       
       !procedure
@@ -128,31 +144,57 @@ module cable_TwoDim_GW
             !otmp3xyt(land_x(i), land_y(i), 1) 
             
             !land_x(i),land_y(i) does the mapping.  make sure these are available.  use io_vars
-    elev(:,:)   = 0._r_2
-    poros(:,:)  = 0._r_2
+
+    if (debug) write(*,*) 'about to initialize'
+    if (debug) write(*,*) mlon,mlat
+    evl(:,:)     = 0._r_2
+    poros(:,:)  = 1._r_2
     ho(:,:)     = 0._r_2
     hycond(:,:) = 0._r_2
-    do i=1,mp
-      elev(land_x(i),land_y(j)) = ssnow%elevation(i)
-      poros(land_x(i),land_y(j)) = soil%GWwatsat(i)
-      ho(land_x(i),land_y(j))    = ssnow%elevation(i) - ssnow%wtd(i)/1000._r_2
-      hycond(land_x(i),land_y(j)) = ssnow%hk(i,ms)
-    end do
-    compres = 0.0_r_2
-    h       = ho  !initial set it
-    convgw  = 0._r_2
-    bot     = elev - 100.0
+    if (debug) write(*,*) 'init loop through mp'
 
-    dx = ssnow%delx                           !assumed constant
-    dy = ssnow%dely                           !need to add dx to global params
+    do i=1,mp
+      evl(land_x(i),land_y(i))    = soil%elevation(i)
+      poros(land_x(i),land_y(i))  = soil%GWwatsat(i)
+      ho(land_x(i),land_y(i))     = soil%elevation(i) - ssnow%wtd(i)/1000._r_2
+      hycond(land_x(i),land_y(i)) = soil%GWhksat(i)/100._r_2   !m/s
+    end do
+    if (debug) write(*,*) 'done with mp init'
+    compres = 0.0_r_2
+    convgw  = 0._r_2
+    bot     = evl - 10.0
+
+    where(bot .lt. 0.0) bot  = 0.0
+    where(evl .le. 0.1) evl = 10.0
+
+    where (poros .lt. 0.0) poros = 0.01
+    where (poros .ge. 1.0) poros = 0.9
+    where (ho .lt. evl) ho = 0.99*evl
+    where(hycond .lt. 0.0) hycond = 0._r_2
+
+    h = ho
+
+    if (debug) write(*,*) 'ELEVATION MAX IS ',maxval(soil%elevation)
+
+    if (debug) write(*,*) 'ELEVATION MAX IS ',maxval(evl)
+    if (debug) write(*,*) 'ELEVATION MIN IS ',minval(evl)
+    if (debug) write(*,*) 'ELEVATION AVG IS ',sum(evl)/real(xdimsize*ydimsize)
+    if (debug) write(*,*) 'hycond max ', maxval(hycond)
+   if (debug) write(*,*) 'hycond min ', minval(hycond)
+
+
+    dx = soil%delx                           !assumed constant
+    dy = soil%dely                           !need to add dx to global params
     darea = dx*dy
 !       Top of iterative loop for ADI solution
     ContinueLoop = .true.
     iter = 0
 
 
-    do while(ContinueLoop)
-
+      iter = 0
+!~~~~~~~~~~~~~
+   80 continue
+!~~~~~~~~~~~~~
       iter = iter+1
 
 
@@ -168,16 +210,16 @@ module cable_TwoDim_GW
           su = poros(i,j)                    ! new (volug)
           sc = 1._r_2
  
-          if      (ho(i,j).le.elev(i,j) .and. h(i,j).le.elev(i,j)) then
+          if      (ho(i,j).le.evl(i,j) .and. h(i,j).le.evl(i,j)) then
             sf2(i,j) = su
-          else if (ho(i,j).ge.elev(i,j) .and. h(i,j).ge.elev(i,j)) then
+          else if (ho(i,j).ge.evl(i,j) .and. h(i,j).ge.evl(i,j)) then
             sf2(i,j) = sc
-          else if (ho(i,j).le.elev(i,j) .and. h(i,j).ge.elev(i,j)) then
+          else if (ho(i,j).le.evl(i,j) .and. h(i,j).ge.evl(i,j)) then
             shp = sf2(i,j) * (h(i,j) - ho(i,j))
-            sf2(i,j) = shp * sc / (shp - (su-sc)*(elev(i,j)-ho(i,j)))
-          else if (ho(i,j).ge.elev(i,j) .and. h(i,j).le.elev(i,j)) then
+            sf2(i,j) = shp * sc / (shp - (su-sc)*(evl(i,j)-ho(i,j)))
+          else if (ho(i,j).ge.evl(i,j) .and. h(i,j).le.evl(i,j)) then
             shp = sf2(i,j) * (ho(i,j) - h(i,j))
-            sf2(i,j) = shp * su / (shp + (su-sc)*(ho(i,j)-elev(i,j)))
+            sf2(i,j) = shp * su / (shp + (su-sc)*(ho(i,j)-evl(i,j)))
           endif
 
         enddo
@@ -198,15 +240,15 @@ module cable_TwoDim_GW
           ip = min (i+1,mlon)
 
           t(i,j,2) = sqrt( abs(                                           &
-                        hycond(i, j)*(min(h(i ,j),elev(i ,j))-bot(i ,j))  &
-                       *hycond(ip,j)*(min(h(ip,j),elev(ip,j))-bot(ip,j))  &
+                        hycond(i, j)*(min(h(i ,j),evl(i ,j))-bot(i ,j))  &
+                       *hycond(ip,j)*(min(h(ip,j),evl(ip,j))-bot(ip,j))  &
                          )    )                                           &
                    * (0.5*(dy+dy)) & ! in WRF the dx and dy are usually equal
                    / (0.5*(dx+dx))
 
           t(i,j,1) = sqrt( abs(                                           &
-                        hycond(i,j )*(min(h(i,j ),elev(i,j ))-bot(i,j ))  &
-                       *hycond(i,jp)*(min(h(i,jp),elev(i,jp))-bot(i,jp))  &
+                        hycond(i,j )*(min(h(i,j ),evl(i,j ))-bot(i,j ))  &
+                       *hycond(i,jp)*(min(h(i,jp),evl(i,jp))-bot(i,jp))  &
                          )    )                                           &
                    * (0.5*(dx+dx))  &
                    / (0.5*(dy+dy))
@@ -217,80 +259,84 @@ module cable_TwoDim_GW
       b = 0.
       g = 0.
 
-      do ii=1,mlon
-      
+!-------------------
+      do 190 ii=1,mlon
+!-------------------
         i=ii
         if (mod(istep+iter,2).eq.1) i=mlon-i+1
 
 !          calculate b and g arrays
-        do j=1,mlat
-       
+
+!>>>>>>>>>>>>>>>>>>>>
+        do 170 j=1,mlat
+!>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
-          dd = ( ho(i,j)*sf2(i,j)/dels) * darea
+          dd = ( ho(i,j)*sf2(i,j)/dels ) * darea
           aa = 0.0
           cc = 0.0
-          
-          if (j .gt. 1) then
-            aa = -t(i,j-1,1)
-            bb = bb + t(i,j-1,1)
-          end if
 
-          if (j .lt. mlat) then
-            cc = -t(i,j,1)
-            bb = bb + t(i,j,1)
-          end if
+          if (j-1) 90,100,90 
+   90     aa = -t(i,j-1,1)
+          bb = bb + t(i,j-1,1)
 
-          if (i .gt. 1) then
-            bb = bb + t(i-1,j,2)
-            dd = dd + h(i-1,j)*t(i-1,j,2)
-          end if
+  100     if (j-mlat) 110,120,110
+  110     cc = -t(i,j,1)
+          bb = bb + t(i,j,1)
 
-          if (i .lt. mlon) then
-            bb = bb + t(i,j,2)
-            dd = dd + h(i+1,j)*t(i,j,2)
-          end if
+  120     if (i-1) 130,140,130
+  130     bb = bb + t(i-1,j,2)
+          dd = dd + h(i-1,j)*t(i-1,j,2)
 
-          w = bb - aa*b(j-1)
-          b(j) = cc / w
-          g(j) = (dd - aa*(g(j-1)))/w
+  140     if (i-mlon) 150,160,150
+  150     bb = bb + t(i,j,2)
+          dd = dd + h(i+1,j)*t(i,j,2)
 
-        end do  !inner loop
+  160     w = bb - aa*b(j-1)
+          b(j) = cc/w
+          g(j) = (dd-aa*g(j-1))/w
+!>>>>>>>>>>>>>>>
+  170   continue
+!>>>>>>>>>>>>>>>
 
 !          re-estimate heads
+
         e = e + abs(h(i,mlat)-g(mlat))
         h(i,mlat) = g(mlat)
         n = mlat-1
-        
-        do while (n .ne. 0)
-          ha = g(n) - b(n)*h(i,n+1)
-          e  = e + abs(ha-h(i,n))
-          h(i,n) = ha
-          n = n - 1
-        end do
+  180   if (n.eq.0) goto 185
+        ha = g(n) - b(n)*h(i,n+1)
+        e = e + abs(ha-h(i,n))
+        h(i,n) = ha
+        n = n-1
+        goto 180
+  185   continue
 
-      end do  !outer loop
-
+!-------------
+  190 continue
+!-------------
 !=======================
 !       Row calculations
 !=======================
+
+!       set transmissivities (same as above)
 
       do j=1,mlat
         jp = min (j+1,mlat)
         do i=1,mlon
           ip = min (i+1,mlon)
-          t(i,j,2) = sqrt( abs(                                         &
-                   hycond(i, j)*(min(h(i ,j),elev(i ,j))-bot(i ,j))    &
-                  *hycond(ip,j)*(min(h(ip,j),elev(ip,j))-bot(ip,j))    &
-                    )    )                                             &
-!                    * (0.5*(dy(i,j)+dy(ip,j)))                  &
+          t(i,j,2) = sqrt( abs(                                             &
+                        hycond(i, j)*(min(h(i ,j),evl(i ,j))-bot(i ,j))    &
+                       *hycond(ip,j)*(min(h(ip,j),evl(ip,j))-bot(ip,j))    &
+                         )    )                                             &
+!                    * (0.5*(dy(i,j)+dy(ip,j)))                               &
 !                    / (0.5*(dx(i,j)+dx(ip,j)))
                    * (0.5*(dy+dy))                               &
                    / (0.5*(dx+dx))
 
-          t(i,j,1) = sqrt( abs(                                          &
-                    hycond(i,j )*(min(h(i,j ),elev(i,j ))-bot(i,j ))    &
-                   *hycond(i,jp)*(min(h(i,jp),elev(i,jp))-bot(i,jp))    &
-                         )    )                                         &
+          t(i,j,1) = sqrt( abs(                                             &
+                        hycond(i,j )*(min(h(i,j ),evl(i,j ))-bot(i,j ))    &
+                       *hycond(i,jp)*(min(h(i,jp),evl(i,jp))-bot(i,jp))    &
+                         )    )                                             &
                    * (0.5*(dx+dx))                               &
                    / (0.5*(dy+dy))
         enddo
@@ -299,59 +345,57 @@ module cable_TwoDim_GW
       b = 0.
       g = 0.
 
-      do jj=1,mlat
-
+!-------------------
+      do 300 jj=1,mlat
+!-------------------
         j=jj
         if (mod(istep+iter,2).eq.1) j = mlat-j+1
-!          calculate b and g arrays
-        do i=1,mlon
-       
+!         calculate b and g arrays
+!>>>>>>>>>>>>>>>>>>>>
+        do 280 i=1,mlon
+!>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
-          dd = ( ho(i,j)*sf2(i,j)/dels) * darea
+          dd = ( ho(i,j)*sf2(i,j)/dels ) * darea
           aa = 0.0
           cc = 0.0
 
-          if (j .gt. 1) then
-            bb = bb + t(i,j-1,1)
-            dd = dd + h(i,j-1)*t(i,j-1,1)
-          end if
+          if (j-1) 200,210,200
+  200     bb = bb + t(i,j-1,1)
+          dd = dd + h(i,j-1)*t(i,j-1,1)
 
-          if (j .lt. mlat) then
-            dd = dd + h(i,j+1)*t(i,j,1)
-            bb = bb + t(i,j,1)
-          end if
+  210     if (j-mlat) 220,230,220
+  220     dd = dd + h(i,j+1)*t(i,j,1)
+          bb = bb + t(i,j,1)
 
-          if (i .gt. 1) then
-            bb = bb + t(i-1,j,2)
-            aa = -t(i-1,j,2)
-          end if
-          
-          if (i .lt. mlon) then
-            bb = bb + t(i,j,2)
-            cc = -t(i,j,2)
-          end if
+  230     if (i-1) 240,250,240
+  240     bb = bb + t(i-1,j,2)
+          aa = -t(i-1,j,2)
 
-          w = bb - aa*b(i-1)
+  250     if (i-mlon) 260,270,260
+  260     bb = bb + t(i,j,2)
+          cc = -t(i,j,2)
+
+  270     w = bb - aa*b(i-1)
           b(i) = cc/w
           g(i) = (dd-aa*g(i-1))/w
-          
-        end do   !inner loop
-
+!>>>>>>>>>>>>>>>
+  280   continue
+!>>>>>>>>>>>>>>>
 !          re-estimate heads
         e = e + abs(h(mlon,j)-g(mlon))
         h(mlon,j) = g(mlon)
         n = mlon-1
-        
-        do while (n .ne. 0)
-          ha = g(n)-b(n)*h(n+1,j)
-          e = e + abs(h(n,j)-ha)
-          h(n,j) = ha
-          n = n-1
-        end do
+  290   if (n.eq.0) goto 295
+        ha = g(n)-b(n)*h(n+1,j)
+        e = e + abs(h(n,j)-ha)
+        h(n,j) = ha
+        n = n-1
+        goto 290
+  295   continue
 
-      end do     !outer loop
-
-
+!-------------
+  300 continue
+!-------------
       do j=1,mlat
         do i=1,mlon
           if (h(i,j).le.bot(i,j)+botinc) then
@@ -377,12 +421,12 @@ module cable_TwoDim_GW
 
       if ( (delcur.gt.delskip*dels .and. iter.lt.itermax)      &
            .or. iter.lt.itermin ) then
-         ContinueLoop = .true.
+        goto 80
       else
-         ContinueLoop = .false.  
       endif
-          
-    end do   !main iteration loop. leaves when iter >= itermax or delcur is small enough
+
+
+      if (debug) write(*,*) 'done with iterations'
 
 !        Compute convergence rate due to ground water flow (returned)
 
@@ -392,30 +436,45 @@ module cable_TwoDim_GW
       enddo
     enddo
 
+      if (debug) write(*,*) 'map to vectors'
       !map the 2D convergence of water to the 1D cable array
     do i=1,mp
       ssnow%GWconvergence(i) = convgw(land_x(i),land_y(i)) / 1000._r_2 * darea * dels         ![mm]
-      ssnow%wtd(i)           = (elev(land_x(i),land_y(i)) - h(land_x(i),land_y(i)))* 1000.0  ![mm]
+      ssnow%wtd(i)           = max((evl(land_x(i),land_y(i)) - h(land_x(i),land_y(i)))* 1000.0,0.01)  ![mm]
     end do
 
 !        Diagnostic water conservation check for this timestep
-    dtot = 0.     ! total change in water storage (m3)
-    dtoa = 0.
+!    dtot = 0.     ! total change in water storage (m3)
+!    dtoa = 0.
 
-    do j=1,mlat
-      do i=1,mlon
-         dtot = dtot + sf2(i,j) *(h(i,j)-ho(i,j)) * darea
-         dtoa = dtoa + sf2(i,j) * abs(h(i,j)-ho(i,j)) * darea
-      enddo
-    enddo
+!    do j=1,mlat
+!      do i=1,mlon
+!         dtot = dtot + sf2(i,j) *(h(i,j)-ho(i,j)) * darea
+!         dtoa = dtoa + sf2(i,j) * abs(h(i,j)-ho(i,j)) * darea
+!      enddo
+!    enddo
 
-    dtot = (dtot/tareal)/dels   ! convert to m/s, rel to land area
-    dtoa = (dtoa/tareal)/dels
-    eocn = (eocn/tareal)/dels
-    ebot = (ebot/tareal)/dels
+!    dtot = (dtot/tareal)/dels   ! convert to m/s, rel to land area
+!    dtoa = (dtoa/tareal)/dels
+!!    eocn = (eocn/tareal)/dels
+!    ebot = (ebot/tareal)/dels
+
+
+   !deallocate(evl)
+   !deallocate(bot)
+   !deallocate(hycond)
+   !deallocate(poros)
+   !deallocate(compres)
+   !deallocate(ho)
+   !deallocate(h)
+   !deallocate(convgw)
+   !deallocate(sf2)
+   !deallocate(t)
+   !deallocate(b)
+   !deallocate(g)
+
 
       
-    return
   end subroutine gwstep
 
 

@@ -100,6 +100,8 @@ MODULE cable_def_types_mod
 
    ! Soil parameters:
    TYPE soil_parameter_type 
+
+     REAL :: delx,dely
    
       INTEGER, DIMENSION(:), POINTER ::                                        &
          isoilm     ! integer soil type
@@ -152,6 +154,11 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
 
+      REAL, DIMENSION(:), POINTER ::                                           &
+        elevation,   &
+        bottom
+  
+
   END TYPE soil_parameter_type
 
 ! .............................................................................
@@ -159,8 +166,6 @@ MODULE cable_def_types_mod
    ! Soil and snow variables:
    TYPE soil_snow_type 
 
-     REAL :: delx,dely
-     
      INTEGER, DIMENSION(:), POINTER :: isflag ! 0 => no snow 1 => snow
     
       REAL, DIMENSION(:), POINTER ::                                           &
@@ -265,9 +270,7 @@ MODULE cable_def_types_mod
          wmtot         !water mass (mm) liq+ice
 
       REAL(r_2), DIMENSION(:), POINTER ::                                   &
-         elevation,    &
-         GWconvergence,   &
-         bottom
+         GWconvergence
          
          
    END TYPE soil_snow_type
@@ -673,6 +676,9 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%Fclay(mp,ms) )
    allocate( var%densoil(mp,ms) )
 
+   allocate( var%elevation(mp) )
+   allocate( var%bottom(mp) )
+
 END SUBROUTINE alloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -774,8 +780,6 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
    ALLOCATE( var%GWconvergence(mp) )
-   ALLOCATE( var%elevation(mp) )
-   ALLOCATE( var%bottom(mp) )
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
    var%GWwb = 0.3_r_2
@@ -1122,6 +1126,10 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
    DEALLOCATE( var%densoil )   
+
+   DEALLOCATE( var%elevation )
+   DEALLOCATE( var%bottom )
+
    
 END SUBROUTINE dealloc_soil_parameter_type
  
@@ -1223,9 +1231,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
 
-   DEALLOCATE( var%elevation )
    DEALLOCATE( var%GWconvergence )
-   DEALLOCATE( var%bottom )
    
 END SUBROUTINE dealloc_soil_snow_type
    
