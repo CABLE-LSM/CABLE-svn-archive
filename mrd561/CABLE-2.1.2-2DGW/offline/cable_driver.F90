@@ -309,7 +309,7 @@ PROGRAM cable_offline_driver
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          CALL get_met_data( spinup, spinConv, met, soil,                    &
                             rad, veg, kend, dels, C%TFRZ, ktau ) 
-         write(*,*) 'got met'
+         !write(*,*) 'got met'
 
          ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
          IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
@@ -322,7 +322,7 @@ PROGRAM cable_offline_driver
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
 
-         write(*,*) 'done with cbm'
+         !write(*,*) 'done with cbm'
 
          ssnow%smelt = ssnow%smelt*dels
          ssnow%rnof1 = ssnow%rnof1*dels
@@ -330,7 +330,7 @@ PROGRAM cable_offline_driver
          ssnow%runoff = ssnow%runoff*dels
 
          if (cable_user%TwoD_GW) then
-            write(*,*) 'about to call gwstep'
+            !write(*,*) 'about to call gwstep'
               call gwstep(GWdels,ssnow,soil)
               call update_gw(GWdels,ssnow,soil)
          end if

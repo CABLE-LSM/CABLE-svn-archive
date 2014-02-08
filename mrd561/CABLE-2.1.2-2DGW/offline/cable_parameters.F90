@@ -1313,7 +1313,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
+    TYPE (soil_snow_type),      INTENT(IN) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux

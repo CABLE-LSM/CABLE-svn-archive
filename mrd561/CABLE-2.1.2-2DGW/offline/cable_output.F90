@@ -2083,7 +2083,7 @@ CONTAINS
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                    csoilID, tradID, albedoID, gwID
+                    csoilID, tradID, albedoID, gwID,wtdID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     dummy = 0 ! initialise
 
@@ -2235,6 +2235,10 @@ CONTAINS
 
     CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content',&
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+    CALL define_ovar(ncid_restart, wtdID, 'wtd', 'm','Water Table Depth',&
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
 
 
 
@@ -2635,6 +2639,9 @@ CONTAINS
     !MD
     CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
                      ranges%GWwb, .TRUE., 'real', .TRUE.)
+
+    CALL write_ovar (ncid_restart, wtdID, 'wtd', REAL(ssnow%wtd, 4),       &
+                     (/0.0,1000.0/), .TRUE., 'real', .TRUE.)
 
     CALL write_ovar (ncid_restart, rpid%albsoil, 'albsoil',                    &
                      REAL(soil%albsoil, 4), ranges%albsoil, .TRUE.,            &
