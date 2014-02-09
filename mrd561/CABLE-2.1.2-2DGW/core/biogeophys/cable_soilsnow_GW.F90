@@ -1244,6 +1244,15 @@ USE cable_common_module
     end where
 
    ssnow%fwtop(:) = ssnow%fwtop(:) - ssnow%rnof1(:)
+
+   ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
+   ssnow%rnof1(:) = 0._r_2
+
+
+   where (ssnow%pudsto(:) .gt. satfrac(:)*ssnow%pudsmx)
+     ssnow%rnof1 = (ssnow%pudsto(:) - satfrac(:)*ssnow%pudsmx)/dels
+     ssnow%pudsto(:)  =  satfrac(:)*ssnow%pudsmx
+   end where
            
     !in soil_snow_gw subroutine of this module
     !ssnow%runoff = ssnow%rnof1! + ssnow%rnof2    
@@ -2041,6 +2050,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL smoistgw (dels,ktau,ssnow,soil,md_prin)               !vertical soil moisture movement. 
    !canopy%fesp/C%HL*dels is the puddle evaporation
+   ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)
+
   
    ! lakes: replace hard-wired vegetation number in next version
    WHERE( veg%iveg == 16 )
