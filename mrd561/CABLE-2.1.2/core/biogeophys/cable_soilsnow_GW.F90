@@ -63,7 +63,7 @@ MODULE cable_soil_snow_gw_module
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.1,       &
+                      maxSatFrac = 0.3,       &
                       dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
@@ -1244,6 +1244,15 @@ USE cable_common_module
     end where
 
    ssnow%fwtop(:) = ssnow%fwtop(:) - ssnow%rnof1(:)
+
+   ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
+   ssnow%rnof1(:) = 0._r_2
+
+
+   where (ssnow%pudsto(:) .gt. satfrac(:)*ssnow%pudsmx)
+     ssnow%rnof1 = (ssnow%pudsto(:) - satfrac(:)*ssnow%pudsmx)/dels
+     ssnow%pudsto(:)  =  satfrac(:)*ssnow%pudsmx
+   end where
            
     !in soil_snow_gw subroutine of this module
     !ssnow%runoff = ssnow%rnof1! + ssnow%rnof2    
@@ -2029,12 +2038,13 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL calcwtd (ssnow, soil, ktau, md_prin)                  !update the wtd
 
+
    if (md_prin) write(*,*) 'ovrland flux'  !MDeck
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
    !ssnow%sinfil = ssnow%fwtop - canopy%fes/C%HL
    ssnow%sinfil = ssnow%fwtop  - canopy%segg/dels
-
+   ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)
 
    if (md_prin) write(*,*) 'soil moist gw'  !MDeck
 

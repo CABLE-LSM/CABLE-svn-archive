@@ -1320,7 +1320,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
+    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
@@ -1369,7 +1369,7 @@ CONTAINS
 !                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
     END WHERE
     ssnow%pudsto = 0.0
-    ssnow%pudsmx = 0.0
+    ssnow%pudsmx = 10.0
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
