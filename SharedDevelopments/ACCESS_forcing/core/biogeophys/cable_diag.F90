@@ -84,15 +84,15 @@ SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
          call cable_diag_desc1( iDiag, trim(filename), dimx, dimy, vname1 )
          
       if( present(once) ) then
-			! write data only on first timestep
-	      if (timestep == 1) & 
-      	call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
-		                          var1 )
-		else
-			! write data every timestep
-      	call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
-		                          var1 )
-		end		
+         if (timestep == 1) & 
+         ! write data only on first timestep
+         call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
+                                var1 )
+      else
+         ! write data every timestep
+         call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
+                                var1 )
+      endif
 
 END SUBROUTINE cable_diag1
 
