@@ -2,8 +2,33 @@
 
 known_hosts()
 {
-   set -A kh raij
+   set -A kh raij jigg
 }
+
+
+## jiggle
+host_jigg()
+{
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
+   export FC=gfortran
+   export CFLAGS='-O2 -x f95-cpp-input'
+   if [[ $1 = 'cdbg' ]]; then   
+      rm -fr .tmp/         
+      export CFLAGS='-O0 -g' 
+   fi
+   if [[ $1 = 'dbg' ]]; then   
+      export CFLAGS='-O0 -g' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/local/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+
 ## raijin.nci.org.au
 host_raij()
 {
