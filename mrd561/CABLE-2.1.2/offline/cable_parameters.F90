@@ -1041,10 +1041,10 @@ CONTAINS
       !possibly heterogeneous soil properties
       DO klev=1,ms
         soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-         abs(insucs(landpt(e)%ilon, landpt(e)%ilat))/1000.0 !convert to mm
+         abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
                                          
         soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-             inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+             inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
                                          
         soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
               inbch(landpt(e)%ilon, landpt(e)%ilat)                       
@@ -1065,10 +1065,10 @@ CONTAINS
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
-             insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
+             insucs(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm
                                          
       soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
-            inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+            inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
                                          
       soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
               inbch(landpt(e)%ilon, landpt(e)%ilat)                       
@@ -1163,16 +1163,16 @@ CONTAINS
 
             !MD
             do klev=1,ms
-              soil%smpsat(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))/1000.0
-              soil%hksat(h,klev)   = soilin%hyds(soil%isoilm(h))/1000.0
+              soil%smpsat(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+              soil%hksat(h,klev)   = soilin%hyds(soil%isoilm(h))*1000.0
               soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
               soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
               soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
               soil%watr(h,klev)    = 0.05!soilin%hyds(soil%isoilm(h))
             end do
 
-            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))/1000.0
-            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))/1000.0
+            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))*1000.0
             soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
@@ -1369,7 +1369,7 @@ CONTAINS
 !                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
     END WHERE
     ssnow%pudsto = 0.0
-    ssnow%pudsmx = 10.0
+    ssnow%pudsmx = 0.0
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
