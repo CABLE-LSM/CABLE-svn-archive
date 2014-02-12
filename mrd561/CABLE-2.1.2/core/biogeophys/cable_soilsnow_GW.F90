@@ -1987,6 +1987,9 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                
    GWwb_ic = ssnow%GWwb
 
+
+   stempv(dels, canopy, ssnow, soil)
+
    if (md_prin) write(*,*) 'call snowcheck'  !MDeck
  
    CALL snowcheck (dels, ssnow, soil, met )
