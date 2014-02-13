@@ -353,19 +353,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    canopy%oldcansto=canopy%cansto
 
-   ! read/write ACCESS forcing data
-   !call cable_diag( iDiag1, "lat1_", mp, kend_gl, ktau_gl,knode_gl,                &
-   !                    "lat1", latitude, 'first time step only' )
-   
-   call cable_diag( iDiag2, "metfsd1_", mp, kend_gl, ktau_gl,knode_gl,                &
-                       "metfsd1", met%fsd(:,1) )
-   
-
-   
-
-
-
-
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
