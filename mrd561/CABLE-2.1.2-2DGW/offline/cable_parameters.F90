@@ -207,6 +207,8 @@ CONTAINS
     REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
 
     ok = NF90_OPEN(filename%type, 0, ncid)
+    !MDeck
+    write(*,*) 'line 211'
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
 
     ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
@@ -241,6 +243,8 @@ CONTAINS
       CALL abort('Variable dimensions do not match (read_gridinfo)')
     END IF
 
+    !MDeck
+    write(*,*) 'line 247'
     ALLOCATE( inLon(nlon), inLat(nlat) )
     ALLOCATE( inVeg(nlon, nlat, npatch) )
     ALLOCATE( inPFrac(nlon, nlat, npatch) )
@@ -254,7 +258,8 @@ CONTAINS
     ALLOCATE( inLAI(nlon, nlat, ntime) )
     ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
-
+    !MDeck
+    write(*,*) 'line 262'
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable longitude.')
@@ -267,11 +272,15 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
+    write(*,*) 'line 275'
+
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
     ok = NF90_GET_VAR(ncid, varID, idummy)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
     inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+
+    write(*,*) 'line 283'
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -539,7 +548,7 @@ CONTAINS
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
     end if
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-      inGWWatr(:,:) = 0.1
+      inGWWatr(:,:) = 0.05
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
@@ -929,8 +938,6 @@ CONTAINS
     !MD aquifer layers
     soil%GWdz = 30.0                          !30 m thick aquifer
 
-    soil%delx         = 0.25*3.14159*6370000.0/180.0
-    soil%dely         = 0.25*3.14159*6370000.0/180.0
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
     rough%za_tq = 40.0
@@ -1012,9 +1019,9 @@ CONTAINS
       IF (soilparmnew) THEN
   
       soil%swilt(landpt(e)%cstart:landpt(e)%cend) =                            &
-                                         0.5* inswilt(landpt(e)%ilon, landpt(e)%ilat)
+                                         inswilt(landpt(e)%ilon, landpt(e)%ilat)
       soil%sfc(landpt(e)%cstart:landpt(e)%cend) =                              &
-                                           0.5* insfc(landpt(e)%ilon, landpt(e)%ilat)
+                                           insfc(landpt(e)%ilon, landpt(e)%ilat)
       soil%ssat(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           inssat(landpt(e)%ilon, landpt(e)%ilat)
       soil%bch(landpt(e)%cstart:landpt(e)%cend) =                              &
@@ -1034,10 +1041,10 @@ CONTAINS
       !possibly heterogeneous soil properties
       DO klev=1,ms
         soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-         abs(insucs(landpt(e)%ilon, landpt(e)%ilat))/1000.0 !convert to mm
+         abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
                                          
         soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-             inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+             inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
                                          
         soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
               inbch(landpt(e)%ilon, landpt(e)%ilat)                       
@@ -1054,14 +1061,14 @@ CONTAINS
         soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.0!constant for now
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.05!constant for now
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
-             insucs(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm
+             insucs(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm
                                          
       soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
-            inhyds(landpt(e)%ilon, landpt(e)%ilat)/1000.0  !convert to mm                         
+            inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
                                          
       soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
               inbch(landpt(e)%ilon, landpt(e)%ilat)                       
@@ -1072,7 +1079,7 @@ CONTAINS
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.0  !constant for now
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =  0.05  !constant for now
 
       ENDIF
 
@@ -1145,8 +1152,8 @@ CONTAINS
           end do
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
-            soil%swilt(h)   =  0.5*soilin%swilt(soil%isoilm(h))
-            soil%sfc(h)     =  0.5*soilin%sfc(soil%isoilm(h))
+            soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
+            soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
             soil%ssat(h)    =  soilin%ssat(soil%isoilm(h))
             soil%bch(h)     =  soilin%bch(soil%isoilm(h))
             soil%hyds(h)    =  soilin%hyds(soil%isoilm(h))
@@ -1161,15 +1168,15 @@ CONTAINS
               soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
               soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
               soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
-              soil%watr(h,klev)    = 0.0!soilin%hyds(soil%isoilm(h))
+              soil%watr(h,klev)    = 0.05!soilin%hyds(soil%isoilm(h))
             end do
 
-            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))/1000.0
-            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))/1000.0
+            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))!*1000.0
+            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))!*1000.0
             soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
-            soil%GWwatr(h)    = 0.0!soilin%hyds(soil%isoilm(h))
+            soil%GWwatr(h)    = 0.05!soilin%hyds(soil%isoilm(h))
 
           END IF
           rad%latitude(h) = latitude(e)
@@ -1362,7 +1369,7 @@ CONTAINS
 !                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
     END WHERE
     ssnow%pudsto = 0.0
-    ssnow%pudsmx = 10.0
+    ssnow%pudsmx = 0.0
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0

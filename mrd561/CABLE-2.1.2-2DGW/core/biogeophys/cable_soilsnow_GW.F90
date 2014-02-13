@@ -57,13 +57,13 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 5.5e-7,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
-                      hkrz    = 2.5,          & ! GW_hksat e-folding depth [mm**-1]
+                      qhmax   = 5e-3,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
+                      hkrz    = 0.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.1,       &
+                      maxSatFrac = 0.6,       &
                       dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
@@ -1245,9 +1245,8 @@ USE cable_common_module
 
    ssnow%fwtop(:) = ssnow%fwtop(:) - ssnow%rnof1(:)
 
-   ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
-   ssnow%rnof1(:) = 0._r_2
-
+!   ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
+!   ssnow%rnof1(:) = 0._r_2
 
    where (ssnow%pudsto(:) .gt. satfrac(:)*ssnow%pudsmx)
      ssnow%rnof1 = (ssnow%pudsto(:) - satfrac(:)*ssnow%pudsmx)/dels
@@ -1334,19 +1333,19 @@ USE cable_common_module
   dzmm(:,:)  = spread((soil%zse(:)) * 1000.0,1,mp)    !layer thickness mm
   zimm(0)    = 0.0_r_2                                      !depth of layer interfaces mm
   zimm(1:ms) = zimm(0:ms-1) + real(dzmm(1,1:ms),r_2)
-  
+
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1.0-invB(:))* &
     (1.0-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1.0-invB(:))))             !def if wtd=zimm(ms)
 
   
   where (defc(:) .le. 0.0) defc(:) = 0.1
-  where (soil%watsat .gt. ssnow%wb)
+  where (soil%watsat .ge. ssnow%wb)
     tmp_def = (soil%watsat(:,:)-(ssnow%wbliq+dri*ssnow%wbice))  !prevent freezing from changing wtd
   elsewhere
     tmp_def = 0._r_2
   end where
+ 
   def(:) = sum(tmp_def*dzmm,2)
-
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
@@ -1602,7 +1601,7 @@ USE cable_common_module
           where (s1 .gt. 1._r_2)   s1 = 1._r_2
           where (s1 .lt. 0.01_r_2) s1 = 0.01_r_2
           s2 = soil%hksat(:,k)*s1**(2.0*soil%clappB(:,k)+2.0)
-          ssnow%hk(:,k)    = s1*s2*(1.0-ssnow%fracice(:,k))* exp (-hkrz*zimm(ms)/1000.0_r_2)
+          ssnow%hk(:,k)    = s1*s2*(1.0-ssnow%fracice(:,k)) * exp(-hkrz*zimm(ms)/1000.0_r_2)
           ssnow%dhkdw(:,k) = (1.0-ssnow%fracice(:,k))* (2.0*soil%clappB(:,k)+3.0)*&
                          s2*0.5/(soil%watsat(:,k)-soil%watr(:,k)*exp (hkrz*zimm(ms)/1000.0_r_2))
        end if
@@ -1641,19 +1640,22 @@ USE cable_common_module
     !too be replaced with explivit treatment of subgrid scale, topographically
     !based subsurface flux convergence flowing to river channels 
        
-    ssnow%qhz(:)  = qhmax *exp(-8.0_r_2*ssnow%wtd(:)/1000.0)*((1.0_r_2 - fice_avg(:))**3.0)
+    ssnow%qhz(:)  = qhmax *exp(-2.0_r_2*ssnow%wtd(:)/1000.0)*((1.0_r_2 - fice_avg(:))**3.0)
     !find index of soil layer with the water table
     qhlev(:,:)   = 0.0  !set to zero except for layer that contains the wtd
-    idlev(:)     = ms+1
+    idlev(:)     = ms!+1
     do k=ms,1,-1
        WHERE (ssnow%wtd(:) <= zimm(k) .and. ssnow%wtd(:) > zimm(k-1))
          idlev(:) = k
-         qhlev(:,k) = ssnow%qhz(:)
-       ELSEWHERE
-         qhlev(:,k) = 0._r_2
+!         qhlev(:,k) = ssnow%qhz(:)
+!       ELSEWHERE
+!         qhlev(:,k) = 0._r_2
        END WHERE
     end do  
 
+    do k=1,mp
+       qhlev(k,idlev(k)) = ssnow%qhz(k)
+    end do
     !where (qhlev*dels .gt. 0.1*ssnow%wbliq*spread(dzmm,1,mp)) qhlev = 0._r_2
 
     rt(:,:) = 0.0_r_2; at(:,:) = 0.0_r_2     !ensure input to tridiag is valid
@@ -1987,6 +1989,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                
    GWwb_ic = ssnow%GWwb
 
+   CALL stempv(dels, canopy, ssnow, soil)
+
    if (md_prin) write(*,*) 'call snowcheck'  !MDeck
  
    CALL snowcheck (dels, ssnow, soil, met )
@@ -2036,22 +2040,20 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    if (md_prin) write(*,*) 'calc wtd'  !MDeck
 
-   if (ktau_gl <=1 ) &
-      CALL calcwtd (ssnow, soil, ktau, md_prin)                  !update the wtd
+   CALL calcwtd (ssnow, soil, ktau, md_prin)                  !update the wtd
+
 
    if (md_prin) write(*,*) 'ovrland flux'  !MDeck
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
    !ssnow%sinfil = ssnow%fwtop - canopy%fes/C%HL
    ssnow%sinfil = ssnow%fwtop  - canopy%segg/dels
-
+   ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)
 
    if (md_prin) write(*,*) 'soil moist gw'  !MDeck
 
    CALL smoistgw (dels,ktau,ssnow,soil,md_prin)               !vertical soil moisture movement. 
    !canopy%fesp/C%HL*dels is the puddle evaporation
-   ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)
-
   
    ! lakes: replace hard-wired vegetation number in next version
    WHERE( veg%iveg == 16 )
@@ -2088,7 +2090,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 !   ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
 
 
-   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)          !total runoff (inmm)
+   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)!*dels          !total runoff (inmm)
 
 
    if (md_prin) write(*,*) 'remove transp'      !MDeck

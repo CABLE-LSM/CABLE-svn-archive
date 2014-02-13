@@ -265,6 +265,8 @@ PROGRAM cable_offline_driver
    met%ofsd = 0.1
 
    soil%elevation(:) = elev(:)
+   soil%delx = 0.25*3.14159*6370000.0/180.0
+   soil%dely = soil%delx
    write(*,*) maxval(soil%elevation)
    write(*,*) minval(soil%elevation)
    ! outer loop - spinup loop no. ktau_tot :
