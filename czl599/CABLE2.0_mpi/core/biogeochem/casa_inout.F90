@@ -711,6 +711,14 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
   ENDIF 
 92  format(5(i6,3x),5(f18.6,3x),i6,3x,100(f18.6,3x))
 
+  if(initcasa==0) then
+     nyearz = 1
+     do npt=1,mp
+        casamet%lon(npt) = patch(npt)%longitude
+        casamet%lat(npt) = patch(npt)%latitude
+     enddo
+  endif
+
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
 !  casapool%clabile    = 0.0    
   ! check pool sizes

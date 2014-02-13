@@ -159,7 +159,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
         casaflux%fracClabile(np) =min(1.0,max(0.0,(1.0- xNPuptake(np)))) * max(0.0,casaflux%cnpp(np))/(casaflux%cgpp(np) +1.0e-10)
         casaflux%cnpp(np)    = casaflux%cnpp(np) - casaflux%fracClabile(np) * casaflux%cgpp(np)
      endif
-   enddo
+  enddo
 
 !  casaflux%cnpp(:) = xNPuptake(:) * xnplimit(:) * casaflux%cnpp(:)
 
@@ -245,6 +245,8 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
     casaflux%fracCalloc(:,:) = casabiome%fracnpptop(veg%iveg(:),:)      
   END SELECT
 
+
+!  write(57,*) 'allocation 1', phen%phase(243),casamet%iveg2(243),casaflux%fracCalloc(243,:)
   ! during leaf growth phase 0 or 3, no carbon is allocated to leaf, 
   ! during maximal leaf growth phase, all C is allocated to leaf
   ! during steady growth period, C allocation is estimated in such 
@@ -315,6 +317,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
   casaflux%fracCalloc(:,froot) = casaflux%fracCalloc(:,froot)/totfracCalloc(:)
 
 
+!  write(57,*) 'allocation 3', phen%phase(243),casamet%iveg2(243),casaflux%fracCalloc(243,:), casaflux%crmplant(243,:)
 END SUBROUTINE casa_allocation  
 
 SUBROUTINE casa_wolf(veg,casabiome,casaflux,casapool,casamet)
@@ -445,6 +448,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
     ! changes made by yp wang 5 april 2013
     casaflux%Cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:) 
   ENDWHERE
+
+!  write(57,*) 'rplant', casaflux%cgpp(243),casaflux%crmplant(243,:),casamet%tsoilavg(243),casamet%tairk(243)
 !$$$$$$$$$$$$$$$$$$$$$$
 !    WHERE(casaflux%Cnpp < 0.0)
 !        delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood)/ (1.0e-10+ casaflux%crmplant(:,wood) + casaflux%crmplant(:,froot))
@@ -1884,8 +1889,8 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 !                       - sum(casabal%cplantlast,2)-casabal%clabilelast-sum(casabal%clitterlast,2)-sum(casabal%csoillast,2) &
 !                       - (casaflux%cnpp(:)+casapool%dClabiledt(:)-casaflux%crsoil(:))*deltpool
 
-!   npt=2590
-!
+!   npt=243   
+
 !   write(77,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
 !               casapool%cplant(npt,:),casabal%cplantlast(npt,:),casapool%dcplantdt(npt,:), &
 !               casaflux%kplant(npt,:)*casabal%cplantlast(npt,:),                            &
@@ -1950,9 +1955,8 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
       casabal%psoilocclast = casapool%psoilocc
       casabal%sumpbal  = casabal%sumpbal + casabal%pbalance
    ENDIF
-   !write(*,991) npt, pbalplant(npt), pbalsoil(npt),casabal%pbalance(npt)
+                 
 91 format('balance= ',100(f12.5,2x))
-991 format('P balance at',i6,2x,10(f14.8,2x))
 
 END SUBROUTINE casa_cnpbal
 
