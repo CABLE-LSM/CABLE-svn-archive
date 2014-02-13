@@ -1196,8 +1196,8 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
    ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
                   ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
-                  / ( soil%sfc - soil%swilt/2.0 ) ) )
-  
+                  / 2.0*( soil%sfc - soil%swilt/2.0 ) ) )
+ 
    DO j=1,mp
    
       IF( ssnow%wbice(j,1) > 0. )                                              &

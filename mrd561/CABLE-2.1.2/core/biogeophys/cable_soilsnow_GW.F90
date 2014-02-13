@@ -57,13 +57,13 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 5.5e-7,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
-                      hkrz    = 2.5,          & ! GW_hksat e-folding depth [mm**-1]
+                      qhmax   = 5e-4,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
+                      hkrz    = 0.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.3,       &
+                      maxSatFrac = 0.6,       &
                       dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
@@ -1641,17 +1641,19 @@ USE cable_common_module
     !too be replaced with explivit treatment of subgrid scale, topographically
     !based subsurface flux convergence flowing to river channels 
        
-    ssnow%qhz(:)  = qhmax *exp(-8.0_r_2*ssnow%wtd(:)/1000.0)*((1.0_r_2 - fice_avg(:))**3.0)
+    ssnow%qhz(:)  = qhmax *exp(-2.0_r_2*ssnow%wtd(:)/1000.0)*((1.0_r_2 - fice_avg(:))**3.0)
     !find index of soil layer with the water table
     qhlev(:,:)   = 0.0  !set to zero except for layer that contains the wtd
-    idlev(:)     = ms+1
+    idlev(:)     = ms
     do k=ms,1,-1
        WHERE (ssnow%wtd(:) <= zimm(k) .and. ssnow%wtd(:) > zimm(k-1))
          idlev(:) = k
          qhlev(:,k) = ssnow%qhz(:)
-       ELSEWHERE
-         qhlev(:,k) = 0._r_2
-       END WHERE
+       endwhere
+    end do
+
+    do i=1,mp
+         qhlev(i,idlev(i)) = ssnow%qhz(i)
     end do  
 
     !where (qhlev*dels .gt. 0.1*ssnow%wbliq*spread(dzmm,1,mp)) qhlev = 0._r_2
@@ -1988,7 +1990,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    GWwb_ic = ssnow%GWwb
 
 
-   stempv(dels, canopy, ssnow, soil)
+   CALL stempv(dels, canopy, ssnow, soil)
 
    if (md_prin) write(*,*) 'call snowcheck'  !MDeck
  
