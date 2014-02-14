@@ -72,7 +72,7 @@
 #set -A basename std FLUXES	
 set -A basename std metfsd1_ 
 
-CABLE_tools='/data/flush/srb001/ACCESS_offline/ACCESS_forcing/processDumpedForcing/work/zero_diffEXPORT/execs'
+CABLE_tools='/data/flush/srb001/ACCESS_offline/ACCESS_forcing/processDumpedForcing/work/Exported_zero_diff/execs'
 spec_tools=''
 
 if [[ $1 == '-r' ]]; then
