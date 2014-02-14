@@ -72,6 +72,8 @@
 #set -A basename std FLUXES	
 set -A basename std metfsd1_ 
 
+# in first instance CLI call is ./zero_diff.ksh -d -n 128
+
 CABLE_tools='/data/flush/srb001/ACCESS_offline/ACCESS_forcing/processDumpedForcing/work/Exported_zero_diff/execs'
 spec_tools=''
 
