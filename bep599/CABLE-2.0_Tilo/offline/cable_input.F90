@@ -62,7 +62,8 @@ MODULE cable_input_module
    IMPLICIT NONE
    
    PRIVATE
-   PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,      &
+!   PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,     &
+   PUBLIC open_met_file, close_met_file,load_parameters,                  &
         allocate_cable_vars, get_met_data
 
    INTEGER                      ::                                        & 
@@ -132,124 +133,124 @@ MODULE cable_input_module
 
 CONTAINS
 
-!==============================================================================
+!!==============================================================================
+!!
+!! Name: get_default_lai
+!!
+!! Purpose: Reads all monthly LAI from default gridded netcdf file
+!!
+!! CALLed from: load_parameters
+!!
+!! CALLs: nc_abort
+!!        abort
+!!
+!! Input file: [LAI].nc
+!!
+!!==============================================================================
 !
-! Name: get_default_lai
+!SUBROUTINE get_default_lai
 !
-! Purpose: Reads all monthly LAI from default gridded netcdf file
+!   ! Input variables:
+!   !   filename%LAI      - via cable_IO_vars_module
+!   !   landpt            - via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
+!   !   exists%laiPatch   - via cable_IO_vars_module
+!   ! Output variables:
+!   !   defaultLAI(mp,12) - via cable_IO_vars_module
 !
-! CALLed from: load_parameters
+!   ! Local variables
+!   INTEGER                              ::                                &
+!        ncid,                                   &
+!        xID,                                    &
+!        yID,                                    &
+!        pID,                                    &
+!        tID,                                    &
+!        laiID,                                  &
+!        nlon,                                   &
+!        nlat,                                   &
+!        nLaiPatches,                            &
+!        ntime,                                  &
+!        e, tt                                     ! do loop counter
+!   REAL, DIMENSION(:,:,:),  ALLOCATABLE :: inLai3D
+!   REAL, DIMENSION(:,:,:,:),ALLOCATABLE :: inLai4D
 !
-! CALLs: nc_abort
-!        abort
+!   ! Allocate default LAI variable: changed mland to mp (BP apr2010)
+!   ALLOCATE(defaultLAI(mp,12))   ! mp = mp_global
 !
-! Input file: [LAI].nc
+!   WRITE(logn,*) ' Loading LAI from default file ', TRIM(filename%LAI)
+!   ! Open netcdf file
+!   ok = NF90_OPEN(filename%LAI,0,ncid) 
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening default LAI file.')
 !
-!==============================================================================
-
-SUBROUTINE get_default_lai
-
-   ! Input variables:
-   !   filename%LAI      - via cable_IO_vars_module
-   !   landpt            - via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
-   !   exists%laiPatch   - via cable_IO_vars_module
-   ! Output variables:
-   !   defaultLAI(mp,12) - via cable_IO_vars_module
-
-   ! Local variables
-   INTEGER                              ::                                &
-        ncid,                                   &
-        xID,                                    &
-        yID,                                    &
-        pID,                                    &
-        tID,                                    &
-        laiID,                                  &
-        nlon,                                   &
-        nlat,                                   &
-        nLaiPatches,                            &
-        ntime,                                  &
-        e, tt                                     ! do loop counter
-   REAL, DIMENSION(:,:,:),  ALLOCATABLE :: inLai3D
-   REAL, DIMENSION(:,:,:,:),ALLOCATABLE :: inLai4D
-
-   ! Allocate default LAI variable: changed mland to mp (BP apr2010)
-   ALLOCATE(defaultLAI(mp,12))   ! mp = mp_global
-
-   WRITE(logn,*) ' Loading LAI from default file ', TRIM(filename%LAI)
-   ! Open netcdf file
-   ok = NF90_OPEN(filename%LAI,0,ncid) 
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening default LAI file.')
-
-   ok = NF90_INQ_DIMID(ncid,'x',xID)
-   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
-      ok = NF90_INQ_DIMID(ncid,'longitude',xID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring x dimension.')
-   END IF
-   
-   ok = NF90_INQUIRE_DIMENSION(ncid,xID,LEN=nlon)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting x dimension.')
-   ok = NF90_INQ_DIMID(ncid,'y',yID)
-   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
-      ok = NF90_INQ_DIMID(ncid,'latitude',yID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring y dimension.')
-   END IF
-   ok = NF90_INQUIRE_DIMENSION(ncid,yID,LEN=nlat)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting y dimension.')
-   ok = NF90_INQ_DIMID(ncid,'patch',pID)
-   IF(ok/=NF90_NOERR) THEN ! if failed
-      exists%laiPatch = .FALSE.
-      WRITE(logn,*) ' **ALL patches will be given the same LAI**'
-   ELSE
-      exists%laiPatch = .TRUE.
-      ok = NF90_INQUIRE_DIMENSION(ncid,pID,len=nLaiPatches)
-      IF(ANY(landpt(:)%nap>nLaiPatches)) THEN
-         WRITE(logn,*) ' **Some patches will be given the same LAI**'
-      END IF
-      IF(nLaiPatches>max_vegpatches) THEN ! input file can have more info
-         WRITE(*,*) ' Note that LAI input file has ', nLaiPatches, ' patches.'
-         WRITE(*,*) ' while the model has max at ', max_vegpatches, ' patches.'
-      END IF
-   END IF
-   ok = NF90_INQ_DIMID(ncid,'time',tID)
-   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
-      ok = NF90_INQ_DIMID(ncid,'month',tID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring t dimension.')
-   END IF
-   ok = NF90_INQUIRE_DIMENSION(ncid,tID,LEN=ntime)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting time dimension.')
-   IF (ntime /= 12) CALL abort('Time dimension not 12 months.')
-
-   ok = NF90_INQ_VARID(ncid,'LAI',laiID)
-   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding LAI variable.')
-
-   ! Read LAI values:
-   IF (exists%laiPatch) THEN
-      ALLOCATE(inLai4D(nlon,nlat,nLaiPatches,ntime))
-      ok = NF90_GET_VAR(ncid,laiID,inLai4D)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 4D LAI variable.')
-      DO e = 1, mland  ! over all land grid points
-         DO tt = 1, ntime
-            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
-                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
-         END DO
-      END DO
-   ELSE
-      ALLOCATE(inLai3D(nlon,nlat,ntime))
-      ok = NF90_GET_VAR(ncid,laiID,inLai3D)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 3D LAI variable.')
-      DO e = 1, mland
-         DO tt = 1, ntime
-            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
-                inLai3D(landpt(e)%ilon,landpt(e)%ilat,tt)
-         END DO
-      END DO
-   END IF
-
-   ! Close netcdf file
-   ok = NF90_CLOSE(ncid)
-
-   
-END SUBROUTINE get_default_lai
+!   ok = NF90_INQ_DIMID(ncid,'x',xID)
+!   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
+!      ok = NF90_INQ_DIMID(ncid,'longitude',xID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring x dimension.')
+!   END IF
+!   
+!   ok = NF90_INQUIRE_DIMENSION(ncid,xID,LEN=nlon)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting x dimension.')
+!   ok = NF90_INQ_DIMID(ncid,'y',yID)
+!   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
+!      ok = NF90_INQ_DIMID(ncid,'latitude',yID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring y dimension.')
+!   END IF
+!   ok = NF90_INQUIRE_DIMENSION(ncid,yID,LEN=nlat)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting y dimension.')
+!   ok = NF90_INQ_DIMID(ncid,'patch',pID)
+!   IF(ok/=NF90_NOERR) THEN ! if failed
+!      exists%laiPatch = .FALSE.
+!      WRITE(logn,*) ' **ALL patches will be given the same LAI**'
+!   ELSE
+!      exists%laiPatch = .TRUE.
+!      ok = NF90_INQUIRE_DIMENSION(ncid,pID,len=nLaiPatches)
+!      IF(ANY(landpt(:)%nap>nLaiPatches)) THEN
+!         WRITE(logn,*) ' **Some patches will be given the same LAI**'
+!      END IF
+!      IF(nLaiPatches>max_vegpatches) THEN ! input file can have more info
+!         WRITE(*,*) ' Note that LAI input file has ', nLaiPatches, ' patches.'
+!         WRITE(*,*) ' while the model has max at ', max_vegpatches, ' patches.'
+!      END IF
+!   END IF
+!   ok = NF90_INQ_DIMID(ncid,'time',tID)
+!   IF (ok /= NF90_NOERR) THEN   ! added to read some input files (BP mar2011)
+!      ok = NF90_INQ_DIMID(ncid,'month',tID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring t dimension.')
+!   END IF
+!   ok = NF90_INQUIRE_DIMENSION(ncid,tID,LEN=ntime)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting time dimension.')
+!   IF (ntime /= 12) CALL abort('Time dimension not 12 months.')
+!
+!   ok = NF90_INQ_VARID(ncid,'LAI',laiID)
+!   IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding LAI variable.')
+!
+!   ! Read LAI values:
+!   IF (exists%laiPatch) THEN
+!      ALLOCATE(inLai4D(nlon,nlat,nLaiPatches,ntime))
+!      ok = NF90_GET_VAR(ncid,laiID,inLai4D)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 4D LAI variable.')
+!      DO e = 1, mland  ! over all land grid points
+!         DO tt = 1, ntime
+!            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
+!                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
+!         END DO
+!      END DO
+!   ELSE
+!      ALLOCATE(inLai3D(nlon,nlat,ntime))
+!      ok = NF90_GET_VAR(ncid,laiID,inLai3D)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 3D LAI variable.')
+!      DO e = 1, mland
+!         DO tt = 1, ntime
+!            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
+!                inLai3D(landpt(e)%ilon,landpt(e)%ilat,tt)
+!         END DO
+!      END DO
+!   END IF
+!
+!   ! Close netcdf file
+!   ok = NF90_CLOSE(ncid)
+!
+!   
+!END SUBROUTINE get_default_lai
 !==============================================================================
 !
 ! Name: open_met_file
@@ -355,16 +356,26 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     ! Open netcdf file:
   IF (ncciy > 0) THEN
-    WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
-    ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
-    ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
-    ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
-    ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
-    ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
-    ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
-    ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
-    ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+    WRITE(logn,*) 'Opening met data file: ', TRIM(globalMetfile%rainf), &
+                  ' and 7 more'
+    ok = NF90_OPEN(globalMetfile%rainf,0,ncid_rain)
+    IF (ok /= NF90_NOERR) CALL nc_abort &
+         (ok,'Error opening netcdf met forcing file '// &
+         TRIM(globalMetfile%rainf)//' (SUBROUTINE open_met_file)')
+    IF (globalMetfile%l_gswp) THEN
+      ok = NF90_OPEN(globalMetfile%snowf,0,ncid_snow)
+      IF (ok /= NF90_NOERR) CALL nc_abort &
+         (ok,'Error opening netcdf met forcing file '// &
+         TRIM(globalMetfile%snowf)//' (SUBROUTINE open_met_file)')
+    ENDIF
+    ok = NF90_OPEN(globalMetfile%LWdown,0,ncid_lw)
+    ok = NF90_OPEN(globalMetfile%SWdown,0,ncid_sw)
+    ok = NF90_OPEN(globalMetfile%PSurf,0,ncid_ps)
+    ok = NF90_OPEN(globalMetfile%Qair,0,ncid_qa)
+    ok = NF90_OPEN(globalMetfile%Tair,0,ncid_ta)
+    ok = NF90_OPEN(globalMetfile%wind,0,ncid_wd)
     ncid_met = ncid_rain
+    filename%met = globalMetfile%rainf
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
     ok = NF90_OPEN(filename%met,0,ncid_met) ! open met data file
@@ -377,6 +388,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Determine number of sites/gridcells.
     ! Find size of 'x' or 'lon' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'x', xdimID)
+
     IF(ok/=NF90_NOERR) THEN ! if failed
        ! Try 'lon' instead of x
        ok = NF90_INQ_DIMID(ncid_met,'lon', xdimID)
@@ -397,6 +409,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             (ok,'Error finding y dimension in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     END IF
+
     ok = NF90_INQUIRE_DIMENSION(ncid_met,ydimID,len=ydimsize)
     IF(ok/=NF90_NOERR) CALL nc_abort &
          (ok,'Error determining size of y dimension in ' &
@@ -575,6 +588,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        exists%patch = .TRUE.
        ok = NF90_INQUIRE_DIMENSION(ncid_met,patchdimID,len=nmetpatches)
     END IF
+    ! ACCESS has all patches in each grid
+    IF(globalMetfile%l_access) THEN
+       nmetpatches = 17
+    END IF
 
     ! Check if monthly dimension exists for LAI info
     ok = NF90_INQ_DIMID(ncid_met,'monthly', monthlydimID)
@@ -626,7 +643,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
 
     !********* gswp input file has bug in timevar **************
-    IF (ncciy > 0) THEN
+    IF (ncciy > 0 .AND. globalMetfile%l_gswp) THEN
       PRINT *, 'original timevar(kend) = ', timevar(kend)
       DO i = 1, kend - 1
         timevar(i+1) = timevar(i) + dels
@@ -661,7 +678,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     !****** done bug fixing for timevar in PALS met file **********************
 
     !********* gswp input file has bug in timeunits ************
-    IF (ncciy > 0) WRITE(timeunits(26:27),'(i2.2)') 0
+    IF (ncciy > 0 .AND. globalMetfile%l_gswp) WRITE(timeunits(26:27),'(i2.2)') 0
     !********* done bug fixing for timeunits in gwsp file ******
     WRITE(logn,*) 'Time variable units: ', timeunits
     ! Get coordinate field:
@@ -896,7 +913,17 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     all_met = .TRUE. ! initialise
     ! Look for SWdown (essential):- - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_sw
-    ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
+
+   ! option was added by Chris Lu to allow for different variable names between GPCC and GSWP forcings
+   ! added by ypwang 30/oct/2012 
+    IF(globalMetfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'dswrf',id%SWdown)
+    ELSE IF(globalMetfile%l_access)THEN
+       ok = NF90_INQ_VARID(ncid_met,'rsds',id%SWdown)
+    ELSE    ! for gswp and single site
+       ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -907,14 +934,23 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     IF(metunits%SWdown(1:4)/='W/m2'.AND.metunits%SWdown(1:5) &
          /='W/m^2'.AND.metunits%SWdown(1:5)/='Wm^-2' &
-         .AND.metunits%SWdown(1:4)/='Wm-2') THEN
+         .AND.metunits%SWdown(1:4)/='Wm-2' .AND. &
+         metunits%SWdown(1:5)/='W m-2') THEN
        WRITE(*,*) metunits%SWdown
        CALL abort('Unknown units for SWdown'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
     ! Look for Tair (essential):- - - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_ta
-    ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair)
+
+    IF(globalMetfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'tas',id%Tair)
+    ELSE IF(globalMetfile%l_access)THEN
+       ok = NF90_INQ_VARID(ncid_met,'tas',id%Tair)
+    ELSE    ! for gswp and single site
+       ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Tair in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -937,7 +973,14 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
     ! Look for Qair (essential):- - - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_qa
-    ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
+    IF(globalMetfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'shum',id%Qair)
+    ELSE IF(globalMetfile%l_access)THEN
+       ok = NF90_INQ_VARID(ncid_met,'huss',id%Qair)
+    ELSE    ! for gswp and single site
+       ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Qair in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -951,7 +994,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        convert%Qair = -999.0
        WRITE(logn,*) 'Humidity will be converted from relative to specific'
     ELSE IF(metunits%Qair(1:3)=='g/g'.OR.metunits%Qair(1:5)=='kg/kg' &
-         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG') THEN
+         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG'&
+         .OR.metunits%Qair(1:1)=='1') THEN
        ! Units are correct
        convert%Qair=1.0
     ELSE
@@ -961,7 +1005,15 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_rain
-    ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
+
+    IF(globalMetfile%l_gpcc)THEN                !Chris 6/Sep/2012
+       ok = NF90_INQ_VARID(ncid_met,'prcp',id%Rainf)
+    ELSE IF(globalMetfile%l_access)THEN
+       ok = NF90_INQ_VARID(ncid_met,'pr',id%Rainf)
+    ELSE    ! for gswp and single site
+       ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
+    END IF
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -973,7 +1025,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF(metunits%Rainf(1:8)=='kg/m^2/s'.OR.metunits%Rainf(1:10)== &
          'kgm^-2s^-1'.OR.metunits%Rainf(1:4)=='mm/s'.OR. &
          metunits%Rainf(1:6)=='mms^-1'.OR. &
-         metunits%Rainf(1:7)=='kg/m^2s') THEN
+         metunits%Rainf(1:7)=='kg/m^2s'.OR. &
+         metunits%Rainf(1:10)=='kg m-2 s-1') THEN
        ! Change from mm/s to mm/time step:
        convert%Rainf = dels
     ELSE IF(metunits%Rainf(1:4)=='mm/h'.OR.metunits%Rainf(1:6)== &
@@ -989,7 +1042,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
-    ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
+    IF(globalMetfile%l_gpcc .OR. globalMetfile%l_access)THEN
+       ok = NF90_INQ_VARID(ncid_met,'wind',id%Wind)
+    ELSE    ! for gswp and single site
+       ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
+    END IF
+
     IF(ok /= NF90_NOERR) THEN
        ! Look for vector wind:
        ok = NF90_INQ_VARID(ncid_met,'Wind_N',id%Wind)
@@ -1017,7 +1075,14 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Now "optional" variables:
     ! Look for LWdown (can be synthesised):- - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_lw
-    ok = NF90_INQ_VARID(ncid_met,'LWdown',id%LWdown)
+    IF(globalMetfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'dlwrf',id%LWdown)
+    ELSE IF(globalMetfile%l_access)THEN
+       ok = NF90_INQ_VARID(ncid_met,'rlds',id%LWdown)
+    ELSE    ! for gswp and single site
+       ok = NF90_INQ_VARID(ncid_met,'LWdown',id%LWdown)
+    END IF
+
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LWdown = .TRUE. ! LWdown is present in met file
        ! Get LWdown units and check okay:
@@ -1027,7 +1092,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
        IF(metunits%LWdown(1:4)/='W/m2'.AND.metunits%LWdown(1:5) &
             /='W/m^2'.AND.metunits%LWdown(1:5)/='Wm^-2' &
-            .AND.metunits%LWdown(1:4)/='Wm-2') THEN
+            .AND.metunits%LWdown(1:4)/='Wm-2' &
+            .AND.metunits%LWdown(1:5)/='W m-2') THEN
           WRITE(*,*) metunits%LWdown
           CALL abort('Unknown units for LWdown'// &
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1041,7 +1107,14 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
     ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - - 
     IF (ncciy > 0) ncid_met = ncid_ps
-    ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
+    IF(globalMetfile%l_gpcc)THEN
+       ok = NF90_INQ_VARID(ncid_met,'pres',id%PSurf)
+    ELSE IF(globalMetfile%l_access)THEN
+       ok = NF90_INQ_VARID(ncid_met,'ps',id%PSurf)
+    ELSE    ! for gswp and single site
+       ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
+    END IF
+
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%PSurf = .TRUE. ! PSurf is present in met file
        ! Get PSurf units and check:
@@ -1142,7 +1215,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
     ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - - 
-    IF (ncciy > 0) ncid_met = ncid_snow
+    IF (ncciy > 0 .AND. globalMetfile%l_gswp)Then
+       ncid_met = ncid_snow
+    END IF
+
     ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%Snowf = .TRUE. ! Snowf is present in met file
@@ -1379,8 +1455,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
              END DO
           END IF
-       END IF
-    END IF
+       END IF    ! IF(metGrid=='land') or 'mask'
+    END IF       ! IF iveg exists
 
     ! Look for soil type:
     ok = NF90_INQ_VARID(ncid_met,'isoil',id%isoil)
@@ -1989,7 +2065,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Get PSurf data for land-only grid:- -- - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_ps
       IF(exists%PSurf) THEN ! IF PSurf is in met file:
-        IF ((ncciy == 1986) .AND. (ktau == 2184)) THEN
+        IF (globalMetfile%l_gswp .AND. (ncciy == 1986) .AND. (ktau == 2184)) THEN
           !hzz to fix the problem of ps data on time step 2184
           ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat2, &
                start=(/1,2176/),count=(/mland,1/)) ! fixing bug in GSWP ps data
@@ -2392,7 +2468,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL write_cnp_params(veg,casaflux,casamet)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
-      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+!      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+      IF (globalMetfile%l_access) CALL init_cnp_pools(veg, casapool, casabal)
     ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done
@@ -2411,12 +2488,17 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       WRITE(logn,*) ' Pre-loaded default initialisations are used.'
       WRITE(*,*)    ' Could not find restart file ', TRIM(filename%restart_in)
       WRITE(*,*)    ' Pre-loaded default initialisations are used.'
-
+      ! This is added here as some versions still have not put pool sizes
+      ! in the gridinfo input file. Remove when that is done. (BP July 2013)
+      IF (icycle > 0 .AND. (.NOT. globalMetfile%l_access)) THEN
+        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
+        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+      ENDIF
     ELSE
       ! Restart file exists, parameters and init will be loaded from it.
       WRITE(logn,*) ' Overwriting initialisations with values in ', &
                     'restart file: ', TRIM(filename%restart_in)
-      WRITE(*,*)    ' Overwriting initialisations with values in ', &
+      WRITE(*,*)    'Overwriting initialisations with values in ', &
                     'restart file: ', TRIM(filename%restart_in)
      
       ! Check total number of patches in restart file:
@@ -2442,7 +2524,12 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       ! Load initialisations and parameters from restart file:
       CALL get_restart_data(logn,ssnow,canopy,rough,bgc,bal,veg, &
                             soil,rad,vegparmnew, EMSOIL )
-
+      IF (icycle > 0) THEN
+!        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
+!        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+        WRITE(logn,*) ' Initialize pool sizes with values in restart file.'
+        CALL get_casa_restart(casamet,casapool,casabal,phen)
+      ENDIF
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:

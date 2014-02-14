@@ -52,103 +52,104 @@ MODULE cable_init_module
    IMPLICIT NONE
    
    PRIVATE
-   PUBLIC get_default_inits, get_restart_data
+!   PUBLIC get_default_inits, get_restart_data
+   PUBLIC get_restart_data
 
    INTEGER :: ok ! netcdf status
    
 CONTAINS
-!==============================================================================
+!!==============================================================================
+!!
+!! Name: get_default_inits
+!!
+!! Purpose: Loads initialisations based on Mk3L 50 year monthly
+!!          climatology file
+!!
+!! CALLed from: load_parameters
+!!
+!! CALLs: abort
+!!
+!!==============================================================================
 !
-! Name: get_default_inits
 !
-! Purpose: Loads initialisations based on Mk3L 50 year monthly
-!          climatology file
+!!==============================================================================
+!! changes since version release on 
+!! changes made by who on date
+!!
+!!==============================================================================
 !
-! CALLed from: load_parameters
+!SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
 !
-! CALLs: abort
+!   IMPLICIT NONE
 !
-!==============================================================================
-
-
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
+!   ! Input arguments
+!   TYPE (met_type), INTENT(IN)            :: met
+!   TYPE (soil_parameter_type), INTENT(IN) :: soil
+!   TYPE (soil_snow_type), INTENT(INOUT)   :: ssnow
+!   TYPE (canopy_type), INTENT(OUT)        :: canopy
+!   INTEGER,INTENT(IN)                :: logn     ! log file unit number
+!   REAL, INTENT(IN) :: EMSOIL
+!   ! Local variables
+!   INTEGER :: e,i,j  ! do loop counter
 !
-!==============================================================================
-
-SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
-
-   IMPLICIT NONE
-
-   ! Input arguments
-   TYPE (met_type), INTENT(IN)            :: met
-   TYPE (soil_parameter_type), INTENT(IN) :: soil
-   TYPE (soil_snow_type), INTENT(INOUT)   :: ssnow
-   TYPE (canopy_type), INTENT(OUT)        :: canopy
-   INTEGER,INTENT(IN)                :: logn     ! log file unit number
-   REAL, INTENT(IN) :: EMSOIL
-   ! Local variables
-   INTEGER :: e,i,j  ! do loop counter
-
-   WRITE(logn,*) ' Initializing variables.'
-
-   DO e=1,mp ! over all patches
-
-! The following write statements are redundant in online runs
-!       ! Write to log file:
-!       WRITE(logn,'(A21,I8,2(A15,1X,F9.4,1X))') '     Land grid point:',e, &
-!            '      Latitude ',latitude(e),'Longitude',longitude(e)
-!       WRITE(logn,'(A46,2(1X,F8.3,1X,A3))') &
-!            '        is closest to default gridcell centred', &
-!            REAL(lat_inits(final_y)),'lat', REAL(lon_inits(final_x)),'lon'
-      ! Only the following snow inits are necessary,
-      ! soilsnow will update other variables.
-      IF(ssnow%snowd(e)>0.0) THEN  ! in cm
-         ssnow%ssdnn(e)  = 120.0   ! overall snow density (kg/m3)
-         ssnow%ssdn(e,:)   = 120.0 ! snow density per layer (kg/m3)
-         ssnow%snage(e)  = 0.0     ! snow age (fresh)
-         ssnow%isflag(e) = 0
-      ELSE
-         ssnow%ssdnn(e)  = 140.0   ! overall snow density (kg/m3)
-         ssnow%osnowd(e) = 0.0     ! snow depth prev timestep (mm or kg/m2)
-         ssnow%snage(e)  = 0.0     ! snow age
-         ssnow%isflag(e) = 0       ! snow layer scheme flag
-         ! (0 = no/little snow, 1=snow)
-         ssnow%tggsn(e,:)  = 273.1 ! snow temperature per layer (K)
-         ssnow%ssdn(e,:)   = 140.0 ! snow density per layer (kg/m3)
-         ssnow%smass(e,:)  = 0.0   ! snow mass per layer (kg/m^2)
-      END IF
-      ! Soil ice:
-      WHERE(ssnow%tgg(e,:)<273.15)
-         ssnow%wbice(e,:)  = ssnow%wb(e,:)*0.8
-      ELSEWHERE
-         ssnow%wbice(e,:) = 0.0
-      END WHERE
-      
-   END DO
-
-   IF(ANY(ssnow%tgg>350.0).OR.ANY(ssnow%tgg<180.0)) CALL abort('Soil temps nuts')
-   IF(ANY(ssnow%albsoilsn>1.0).OR.ANY(ssnow%albsoilsn<0.0)) CALL abort('Albedo nuts')
-
-   ! Site independent initialisations (all gridcells):
-   ! soil+snow albedo for infrared (other values read in below):
-   ssnow%albsoilsn(:,3) = 1.0 - emsoil  
-!   ssnow%albsoilsn(:,3) = 0.05  ! YP Nov2009 (fix cold bias)
-   canopy%cansto  = 0.0   ! canopy water storage (mm or kg/m2)
-   canopy%sghflux = 0.0
-   canopy%ghflux  = 0.0
-   ssnow%runoff   = 0.0   ! runoff total = subsurface + surface runoff
-   ssnow%rnof1    = 0.0   ! surface runoff (mm/timestepsize)
-   ssnow%rnof2    = 0.0   ! deep drainage (mm/timestepsize)
-   ssnow%rtsoil   = 100.0 ! turbulent resistance for soil
-   canopy%ga      = 0.0   ! ground heat flux (W/m2)
-   canopy%dgdtg   = 0.0   ! derivative of ground heat flux wrt soil temp
-   canopy%fev     = 0.0   ! latent heat flux from vegetation (W/m2)
-   canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
-   canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
-
-END SUBROUTINE get_default_inits
+!   WRITE(logn,*) ' Initializing variables.'
+!
+!   DO e=1,mp ! over all patches
+!
+!! The following write statements are redundant in online runs
+!!       ! Write to log file:
+!!       WRITE(logn,'(A21,I8,2(A15,1X,F9.4,1X))') '     Land grid point:',e, &
+!!            '      Latitude ',latitude(e),'Longitude',longitude(e)
+!!       WRITE(logn,'(A46,2(1X,F8.3,1X,A3))') &
+!!            '        is closest to default gridcell centred', &
+!!            REAL(lat_inits(final_y)),'lat', REAL(lon_inits(final_x)),'lon'
+!      ! Only the following snow inits are necessary,
+!      ! soilsnow will update other variables.
+!      IF(ssnow%snowd(e)>0.0) THEN  ! in cm
+!         ssnow%ssdnn(e)  = 120.0   ! overall snow density (kg/m3)
+!         ssnow%ssdn(e,:)   = 120.0 ! snow density per layer (kg/m3)
+!         ssnow%snage(e)  = 0.0     ! snow age (fresh)
+!         ssnow%isflag(e) = 0
+!      ELSE
+!         ssnow%ssdnn(e)  = 140.0   ! overall snow density (kg/m3)
+!         ssnow%osnowd(e) = 0.0     ! snow depth prev timestep (mm or kg/m2)
+!         ssnow%snage(e)  = 0.0     ! snow age
+!         ssnow%isflag(e) = 0       ! snow layer scheme flag
+!         ! (0 = no/little snow, 1=snow)
+!         ssnow%tggsn(e,:)  = 273.1 ! snow temperature per layer (K)
+!         ssnow%ssdn(e,:)   = 140.0 ! snow density per layer (kg/m3)
+!         ssnow%smass(e,:)  = 0.0   ! snow mass per layer (kg/m^2)
+!      END IF
+!      ! Soil ice:
+!      WHERE(ssnow%tgg(e,:)<273.15)
+!         ssnow%wbice(e,:)  = ssnow%wb(e,:)*0.8
+!      ELSEWHERE
+!         ssnow%wbice(e,:) = 0.0
+!      END WHERE
+!      
+!   END DO
+!
+!   IF(ANY(ssnow%tgg>350.0).OR.ANY(ssnow%tgg<180.0)) CALL abort('Soil temps nuts')
+!   IF(ANY(ssnow%albsoilsn>1.0).OR.ANY(ssnow%albsoilsn<0.0)) CALL abort('Albedo nuts')
+!
+!   ! Site independent initialisations (all gridcells):
+!   ! soil+snow albedo for infrared (other values read in below):
+!   ssnow%albsoilsn(:,3) = 1.0 - emsoil  
+!!   ssnow%albsoilsn(:,3) = 0.05  ! YP Nov2009 (fix cold bias)
+!   canopy%cansto  = 0.0   ! canopy water storage (mm or kg/m2)
+!   canopy%sghflux = 0.0
+!   canopy%ghflux  = 0.0
+!   ssnow%runoff   = 0.0   ! runoff total = subsurface + surface runoff
+!   ssnow%rnof1    = 0.0   ! surface runoff (mm/timestepsize)
+!   ssnow%rnof2    = 0.0   ! deep drainage (mm/timestepsize)
+!   ssnow%rtsoil   = 100.0 ! turbulent resistance for soil
+!   canopy%ga      = 0.0   ! ground heat flux (W/m2)
+!   canopy%dgdtg   = 0.0   ! derivative of ground heat flux wrt soil temp
+!   canopy%fev     = 0.0   ! latent heat flux from vegetation (W/m2)
+!   canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
+!   canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
+!
+!END SUBROUTINE get_default_inits
 
 !==============================================================================
 !

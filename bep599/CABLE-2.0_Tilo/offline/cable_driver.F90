@@ -68,7 +68,7 @@
 
 PROGRAM cable_offline_driver
    USE cable_def_types_mod
-   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+   USE cable_IO_vars_module, ONLY: logn,globalMetfile,ncciy,leaps,             &
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
@@ -86,7 +86,7 @@ PROGRAM cable_offline_driver
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
+                                  casa_met, casa_balance, mdyear
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
@@ -155,7 +155,11 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-   
+
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -172,13 +176,14 @@ PROGRAM cable_offline_driver
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  mloop,            &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
                   icycle,           &
                   casafile,         &
                   ncciy,            &
-                  gswpfile,         &
+                  globalMetfile,    &
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
@@ -216,19 +221,42 @@ PROGRAM cable_offline_driver
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
-   ! Check for gswp run
+   IF( .NOT. spinup )  spinConv = .TRUE.
+
+   ! Check for global run
    IF (ncciy /= 0) THEN
       
-      PRINT *, 'Looking for global offline run info.'
-      
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-         STOP 'Please check input in namelist file.'
-      ELSE
-         
-         CALL prepareFiles(ncciy)
-      
-      ENDIF
+     ! modified by ypw wang 30/oct/2012 following Chris Lu
+     PRINT *, 'Looking for global offline run info.'
+     IF (globalMetfile%l_gpcc)THEN
+       globalMetfile%l_gswp   = .FALSE.
+       globalMetfile%l_access = .FALSE.
+       PRINT *, 'Using GPCC met forcing.'
+       IF (ncciy < 1948 .OR. ncciy > 2008) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       ENDIF
+     ELSEIF (globalMetfile%l_gswp) THEN
+       globalMetfile%l_access = .FALSE.
+       PRINT *, 'Using GSWP met forcing.'
+       IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       END IF
+     ELSEIF (globalMetfile%l_access) THEN
+       PRINT *, 'Using ACCESS met forcing.'
+       IF (ncciy < 370 .OR. ncciy > 2005) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       END IF
+     ELSE
+       PRINT *, 'Switches l_gpcc, l_gswp and l_access are false!'
+       PRINT *, 'Please check input in namelist file.'
+       STOP
+     END IF
    
    ENDIF
    
@@ -258,7 +286,16 @@ PROGRAM cable_offline_driver
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+
+   ! added by ypwang following Chris Lu   
+   if(icycle>0) then
+     if (spincasa) then
+       print *, 'spincasacnp enabled with mloop= ', mloop
+       call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
+                        casabiome,casapool,casaflux,casamet,casabal,phen)
+     endif
+   endif
+
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -328,18 +365,20 @@ PROGRAM cable_offline_driver
    
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                            &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
             CALL write_output( dels, ktau, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
+!            IF (icycle > 0) CALL casa_fluxout( dels, ktau, casabal, casamet)
+         END IF
    
-         ! dump bitwise reproducible testing data
-         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
-            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
-                                knode_gl, "FLUXES",                            &
-                          canopy%fe + canopy%fh )
-         ENDIF
+!         ! dump bitwise reproducible testing data
+!         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+!            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+!               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+!                                knode_gl, "FLUXES",                            &
+!                          canopy%fe + canopy%fh )
+!         ENDIF
                 
       END DO ! END Do loop over timestep ktau
 
@@ -365,6 +404,10 @@ PROGRAM cable_offline_driver
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
+!               PRINT *, 'ssnow%wb : ', ssnow%wb
+!               PRINT *, 'soilMtemp: ', soilMtemp
+!               PRINT *, 'ssnow%tgg: ', ssnow%tgg
+!               PRINT *, 'soilTtemp: ', soilTtemp
                maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
                PRINT *, 'Example location of moisture non-convergence: ', &
                         maxdiff
@@ -412,18 +455,31 @@ PROGRAM cable_offline_driver
 
    IF (icycle > 0) THEN
       
-      CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-                         casapool, casaflux, casamet, casabal, phen )
+!      CALL casa_poolout( ktau, veg, soil, casabiome,                         &
+!                         casapool, casaflux, casamet, casabal, phen )
+!
+!      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
-      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-  
+      print *, 'before ncdf_dump', spinConv, spincasainput
+      if ( spinConv .AND. spincasainput ) then
+           call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+      endif
+
    END IF
 
    ! Write restart file if requested:
-   IF(output%restart)                                                          &
+   IF(output%restart) THEN
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
-      
+      IF (icycle > 0) THEN
+         WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
+         CALL casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
+                           casabal,phen)
+         WRITE(logn, '(A36)') '   Restart file complete and closed.'
+      END IF
+
+   END IF
+
    ! Close met data input file:
    CALL close_met_file
  
@@ -438,48 +494,6 @@ PROGRAM cable_offline_driver
    CLOSE(logn)
 
 END PROGRAM cable_offline_driver
-
-
-SUBROUTINE prepareFiles(ncciy)
-  USE cable_IO_vars_module, ONLY: logn,gswpfile
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: ncciy
-
-  WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
-  PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
-
-  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
-  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
-
-END SUBROUTINE prepareFiles
-
-
-SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: logn
-  INTEGER, INTENT(IN) :: nn
-  INTEGER, INTENT(IN) :: ncciy
-  CHARACTER(LEN=99), INTENT(INOUT) :: inFile
-  CHARACTER(LEN=*),  INTENT(IN)    :: inName
-  INTEGER :: idummy
-
-  READ(inFile(nn:nn+3),'(i4)') idummy
-  IF (idummy < 1983 .OR. idummy > 1995) THEN
-    PRINT *, 'Check position of the year number in input gswp file', inFile
-    STOP
-  ELSE
-    WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
-    WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
-  ENDIF
-
-END SUBROUTINE renameFiles
-
 
 
 

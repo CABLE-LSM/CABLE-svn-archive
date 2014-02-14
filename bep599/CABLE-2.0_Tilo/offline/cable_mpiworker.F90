@@ -106,7 +106,7 @@ CONTAINS
    USE mpi
 
    USE cable_def_types_mod
-   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+   USE cable_IO_vars_module, ONLY: logn,globalMetfile,ncciy,leaps,             &
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
@@ -201,6 +201,10 @@ CONTAINS
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -217,13 +221,14 @@ CONTAINS
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  mloop,            &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
                   icycle,           &
                   casafile,         &
                   ncciy,            &
-                  gswpfile,         &
+                  globalMetfile,    &
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
@@ -255,6 +260,8 @@ CONTAINS
       STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
+
+   IF( .NOT. spinup )  spinConv = .TRUE.
 
    ! Open log file:
    ! MPI: worker logs go to the black hole
@@ -1799,7 +1806,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r1len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbtot1, displs(bidx), ierr)
+  CALL MPI_Get_address (ssnow%wbtot2, displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1

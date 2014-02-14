@@ -165,7 +165,30 @@ MODULE cable_checks_module
            tmaxvj = (/-15.0,30.0/),            &
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
-           soil_class = (/1.0,20.0/)  
+           soil_class = (/1.0,20.0/),          &
+           ! CASA-CNP variables
+           SoilOrder = (/1.0,20.0/),           &
+           area  = (/1.3E9,1.3E10/),           & ! 1x1 degree
+           sla   = (/0.0,0.04/),               &
+           phase = (/0.0,3.0/),                &
+           Clab  = (/0.0,350.0/),              &
+           Cplant= (/0.0,60000.0/),            &
+           Clitter = (/0.0,15000.0/),          &
+           Csoil = (/0.0,200000.0/),           &
+           Nplant= (/0.0,350.0/),              &
+           Nlitter = (/0.0,70.0/),             &
+           Nsoil = (/0.0,11000.0/),            &
+           Nsmin = (/0.0,300.0/),              &
+           Pplant= (/0.0,20.0/),               &
+           Plitter = (/0.0,4.5/),              &
+           Psoil = (/0.0,600.0/),              &
+           Pslab = (/0.0,50.0/),               &
+           Pssorb= (/0.0,450.0/),              &
+           Psocc = (/0.0,400.0/),              &
+           Cbal  = (/-999999.0,999999.0/),     &
+           Nbal  = (/-999999.0,999999.0/),     &
+           Pbal  = (/-999999.0,999999.0/)
+
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 

@@ -43,11 +43,9 @@ book_keeping()
    
       if [[ ! -e cable.nml ]]; then
          ln -s $CABLE_AUX/CABLE-AUX/offline/cable.nml .
-         #cp $CABLE_AUX/CABLE-AUX/offline/cable.nml .
       fi
       if [[ ! -e sites.txt ]]; then
          ln -s $CABLE_AUX/CABLE-AUX/offline/sites.txt .
-         #cp $CABLE_AUX/CABLE-AUX/offline/sites.txt .
       fi
       
    fi
