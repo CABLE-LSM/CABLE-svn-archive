@@ -69,7 +69,7 @@ MODULE cable_write_module
          otmp4xyst, otmp4xysnt, otmp4xyrt, otmp4xypct, otmp4xysct, otmp4lpst,  &
          otmp4lpsnt, otmp4lprt, otmp4lpsct, otmp4lppct, otmp4xyps,             &
          otmp4xyppc, otmp4xypsc, otmp5xypst, otmp5xypsnt, otmp5xyprt,          &
-         otmp5xyppct, otmp5xypsct
+         otmp5xyppct, otmp5xypsct, otmp2lcnp
   INTERFACE define_ovar
     ! Defines an output variable in the output netcdf file. Units, long name,
     ! variable, dimensions etc are created.
@@ -99,7 +99,7 @@ MODULE cable_write_module
   REAL, POINTER, DIMENSION(:) :: otmp1, otmp1l
   REAL, POINTER, DIMENSION(:, :) :: otmp2lt, otmp2xy, otmp2lp, otmp2ls,   &
                                          otmp2lpc, otmp2lsc, otmp2lsf,         &
-                                         otmp2lr, otmp2lsn
+                                         otmp2lr, otmp2lsn, otmp2lcnp
   REAL, POINTER, DIMENSION(:, :, :) :: otmp3xyt, otmp3lpt, otmp3lst,      &
                                             otmp3lsnt, otmp3lrt, otmp3lpct,    &
                                             otmp3lsct, otmp3xyp, otmp3xys,     &
@@ -721,6 +721,8 @@ CONTAINS
              IF(.NOT.ASSOCIATED(otmp2lsn)) ALLOCATE(otmp2lsn(mland,msn))
           ELSE IF(dimswitch=='surftype') THEN
              IF(.NOT.ASSOCIATED(otmp2lsf)) ALLOCATE(otmp2lsf(mland,4))
+          ELSE IF(dimswitch=='cnp') THEN
+             IF(.NOT.ASSOCIATED(otmp2lcnp)) ALLOCATE(otmp2lcnp(mland,3))
           END IF
        END IF
     ELSE
@@ -2276,6 +2278,23 @@ CONTAINS
           END DO
           ok = NF90_PUT_VAR(ncid, parID, REAL(otmp2lsf, 4),                    &
                     start = (/1, 1/), count = (/mland, 4/)) ! write data to file
+        ELSE IF(dimswitch == 'cnp') THEN
+          DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (use dominant patch info only!):
+            otmp2lcnp(i, :) = par_r2(i, :)
+            IF(check%ranges) THEN  ! Check ranges:
+              IF(ANY(otmp2lcnp(i, :) < prange(1)) .OR.                          &
+                 ANY(otmp2lcnp(i, :) > prange(2))) THEN
+                WRITE(*, *) 'Parameter '//pname//                              &
+                            ' is set at a value out of specified ranges!'
+                WRITE(*, *) 'Land point # ', i
+                WRITE(*, *) 'Values: ', otmp2lcnp(i, :)
+                CALL abort('Aborting.')
+              END IF
+            END IF
+          END DO
+          ok = NF90_PUT_VAR(ncid, parID, REAL(otmp2lcnp, 4),                    &
+                    start = (/1, 1/), count = (/mland, 3/)) ! write data to file
         ELSE
           CALL abort('Parameter '//pname//                                     &
                      ' defined with unknown dimension switch - '//dimswitch//  &
@@ -2342,6 +2361,15 @@ CONTAINS
                             start = (/1, 1, 1/),                               &
                      count = (/mland, max_vegpatches, ms/)) ! write data to file
           DEALLOCATE(tmpout)
+       END IF
+    ELSE IF(dimswitch == 'cnp') THEN
+       IF(PRESENT(restart)) THEN
+          ! Write data to restart file
+          ok = NF90_PUT_VAR(ncid, parID, par_r2d,                              &
+                            start = (/1, 1/), count = (/mp, 3/))
+       ELSE
+          WRITE(*, *) 'Add new codes to this part in write_output_parameter_r2d'
+          CALL abort('Aborting.')
        END IF
     ELSE
        CALL abort('Parameter '//pname//                                        &

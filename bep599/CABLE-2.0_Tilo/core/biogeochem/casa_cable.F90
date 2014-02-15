@@ -355,7 +355,8 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
    subroutine read_casa_dump(ncfile, casamet, casaflux, ktau, kend)
       use netcdf
-      use cable_def_types_mod,   only : r_2,ms
+      use cable_def_types_mod,   only : r_2,ms,mland
+      USE cable_IO_vars_module,  only : landpt
       use casadimension,         only : mplant,mdyear
       USE casa_cnp_module
       use casa_dump_module,     only : get_var_nc, stderr_nc
@@ -366,68 +367,289 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
       !netcdf IDs/ names
       character(len=*)  ncfile
-      integer, parameter :: num_vars=5
-      integer, parameter :: num_dims=4
+!      integer, parameter :: num_vars=5
+!      integer, parameter :: num_dims=4
       integer:: ncid       ! netcdf file ID
 
       !vars
-      character(len=*), dimension(num_vars), parameter :: &
-            var_name =  (/  "casamet_tairk", &
-                            "tsoil        ", &
-                            "moist        ", &
-                            "cgpp         ", &
-                            "crmplant     " /)
+!      character(len=*), dimension(num_vars), parameter :: &
+!            var_name =  (/  "casamet_tairk", &
+!                            "tsoil        ", &
+!                            "moist        ", &
+!                            "cgpp         ", &
+!                            "crmplant     " /)
 
-      integer, dimension(num_vars) :: varID ! (1) tvair, (2) pmb
+      integer  :: varId, ee, pp, ncount, totcount
+      real, dimension(192,145,17,365) :: temp, tmp2, tmp3
 
-      real(r_2), dimension(mp) :: &
-         tairk,  &
-         cgpp
-
-      real(r_2), dimension(mp,ms) :: &
-         tsoil, &
-         moist
-
-      real(r_2), dimension(mp,mplant) :: &
-         crmplant
+!      real(r_2), dimension(mp) :: &
+!         tairk,  &
+!         cgpp
+!
+!      real(r_2), dimension(mp,ms) :: &
+!         tsoil, &
+!         moist
+!
+!      real(r_2), dimension(mp,mplant) :: &
+!         crmplant
 
 !      write(89,*)'opening file'
       ncok = NF90_OPEN(ncfile, nf90_nowrite, ncid)
          if (ncok /= nf90_noerr ) call stderr_nc('re-opening ', ncfile)
 
-      do idoy=1,mdyear
 
-!         write(89,*)'get tairk'
-         call get_var_nc(ncid, var_name(1), tairk   , idoy, kend )
-!         write(89,*)'get tsoil'
-         call get_var_nc(ncid, var_name(2), tsoil   , idoy, kend ,ms)
-!         write(89,*)'get moist'
-         call get_var_nc(ncid, var_name(3), moist   , idoy, kend ,ms)
-!         write(89,*)'get cgpp'
-         call get_var_nc(ncid, var_name(4), cgpp    , idoy, kend )
-!         write(89,*)'get crmplant'
-         call get_var_nc(ncid, var_name(5), crmplant, idoy, kend ,mplant)
+! Hacked codes to read ACCESS daily met in (lon,lat,tile,time) grid
+      ncok = NF90_INQ_VARID(ncid, 'field1519', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'field1519')    
+      ncok = NF90_GET_VAR(ncid, varId, tmp2)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'field1519')
+      ncok = NF90_INQ_VARID(ncid, 'temp', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'tair')
+      ncok = NF90_GET_VAR(ncid, varId, temp)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'tair')
+      ncok = NF90_INQ_VARID(ncid, 'field1499', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'field1499')
+      ncok = NF90_GET_VAR(ncid, varId, tmp3)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'field1499')
+
+      totcount = 0
+      DO ee = 1, mland
+        ncount = 0
+        DO pp = 1, 17
+          IF (temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) > 0.0 .AND.  &
+              temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) < 1.0e20 ) THEN
+            ncount = ncount + 1
+            IF (ncount > landpt(ee)%nap) THEN
+              PRINT *, 'ncount > nap in read_casa_dump'
+              PRINT *, 'lon, lat indices: ', landpt(ee)%ilon,landpt(ee)%ilat
+              STOP
+            ENDIF
+            DO idoy = 1, 365
+              casamet%cgppspin(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp2(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%Tairkspin(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%crmplantspin_1(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp3(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+            ENDDO
+          ENDIF
+        ENDDO
+        totcount = totcount + ncount
+      ENDDO
+      casamet%crmplantspin_2 = casamet%crmplantspin_1
+      casamet%crmplantspin_3 = casamet%crmplantspin_1
+
+      IF (totcount /= mp ) THEN
+        PRINT *, 'totcount /= mp : ', totcount, mp
+        STOP
+      ENDIF
+
+      ncok = NF90_INQ_VARID(ncid, 'temp_1', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_1')
+      ncok = NF90_GET_VAR(ncid, varId, temp)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_1')
+      ncok = NF90_INQ_VARID(ncid, 'temp_2', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_2')
+      ncok = NF90_GET_VAR(ncid, varId, tmp2)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_2')
+      ncok = NF90_INQ_VARID(ncid, 'temp_3', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_3')
+      ncok = NF90_GET_VAR(ncid, varId, tmp3)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_3')
+
+      totcount = 0
+      DO ee = 1, mland
+        ncount = 0
+        DO pp = 1, 17
+          IF (temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) > 0.0 .AND.  &
+              temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) < 1.0e20 ) THEN
+            ncount = ncount + 1
+            IF (ncount > landpt(ee)%nap) THEN
+              PRINT *, 'second ncount > nap in read_casa_dump'
+              PRINT *, 'lon, lat indices: ', landpt(ee)%ilon,landpt(ee)%ilat
+              STOP
+            ENDIF
+            DO idoy = 1, 365
+              casamet%Tsoilspin_1(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%Tsoilspin_2(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp2(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%Tsoilspin_3(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp3(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+            ENDDO
+          ENDIF
+        ENDDO
+        totcount = totcount + ncount
+      ENDDO
+
+      IF (totcount /= mp ) THEN
+        PRINT *, 'second totcount /= mp : ', totcount, mp
+        STOP
+      ENDIF
+
+      ncok = NF90_INQ_VARID(ncid, 'temp_4', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_4')
+      ncok = NF90_GET_VAR(ncid, varId, temp)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_4')
+      ncok = NF90_INQ_VARID(ncid, 'temp_5', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_5')
+      ncok = NF90_GET_VAR(ncid, varId, tmp2)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_5')
+      ncok = NF90_INQ_VARID(ncid, 'temp_6', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_6')
+      ncok = NF90_GET_VAR(ncid, varId, tmp3)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_6')
+
+      totcount = 0
+      DO ee = 1, mland
+        ncount = 0
+        DO pp = 1, 17
+          IF (temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) > 0.0 .AND.  &
+              temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) < 1.0e20 ) THEN
+            ncount = ncount + 1
+            IF (ncount > landpt(ee)%nap) THEN
+              PRINT *, 'third ncount > nap in read_casa_dump'
+              PRINT *, 'lon, lat indices: ', landpt(ee)%ilon,landpt(ee)%ilat
+              STOP
+            ENDIF
+            DO idoy = 1, 365
+              casamet%Tsoilspin_4(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%Tsoilspin_5(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp2(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%Tsoilspin_6(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp3(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+            ENDDO
+          ENDIF
+        ENDDO
+        totcount = totcount + ncount
+      ENDDO
+
+      IF (totcount /= mp ) THEN
+        PRINT *, 'third totcount /= mp : ', totcount, mp
+        STOP
+      ENDIF
+
+      ncok = NF90_INQ_VARID(ncid, 'temp_7', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_7')
+      ncok = NF90_GET_VAR(ncid, varId, temp)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_7')
+      ncok = NF90_INQ_VARID(ncid, 'temp_8', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_8')
+      ncok = NF90_GET_VAR(ncid, varId, tmp2)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_8')
+      ncok = NF90_INQ_VARID(ncid, 'temp_9', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_9')
+      ncok = NF90_GET_VAR(ncid, varId, tmp3)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_9')
+
+      totcount = 0
+      DO ee = 1, mland
+        ncount = 0
+        DO pp = 1, 17
+          IF (temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) > 0.0 .AND.  &
+              temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) < 1.0e20 ) THEN
+            ncount = ncount + 1
+            IF (ncount > landpt(ee)%nap) THEN
+              PRINT *, 'fourth ncount > nap in read_casa_dump'
+              PRINT *, 'lon, lat indices: ', landpt(ee)%ilon,landpt(ee)%ilat
+              STOP
+            ENDIF
+            DO idoy = 1, 365
+              casamet%moistspin_1(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%moistspin_2(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp2(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%moistspin_3(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp3(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+            ENDDO
+          ENDIF
+        ENDDO
+        totcount = totcount + ncount
+      ENDDO
+
+      IF (totcount /= mp ) THEN
+        PRINT *, 'fourth totcount /= mp : ', totcount, mp
+        STOP 
+      ENDIF
+
+      ncok = NF90_INQ_VARID(ncid, 'temp_10', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_10')
+      ncok = NF90_GET_VAR(ncid, varId, temp)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_10')
+      ncok = NF90_INQ_VARID(ncid, 'temp_11', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_11')
+      ncok = NF90_GET_VAR(ncid, varId, tmp2)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_11')
+      ncok = NF90_INQ_VARID(ncid, 'temp_12', varId )
+      if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'temp_12')
+      ncok = NF90_GET_VAR(ncid, varId, tmp3)
+      if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'temp_12')
+
+      totcount = 0
+      DO ee = 1, mland
+        ncount = 0
+        DO pp = 1, 17
+          IF (temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) > 0.0 .AND.  &
+              temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,1) < 1.0e20 ) THEN
+            ncount = ncount + 1
+            IF (ncount > landpt(ee)%nap) THEN
+              PRINT *, 'fifth ncount > nap in read_casa_dump'
+              PRINT *, 'lon, lat indices: ', landpt(ee)%ilon,landpt(ee)%ilat
+              STOP
+            ENDIF
+            DO idoy = 1, 365
+              casamet%moistspin_4(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = temp(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%moistspin_5(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp2(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+              casamet%moistspin_6(landpt(ee)%cstart+ncount-1,idoy)     &
+                   = tmp3(landpt(ee)%ilon,landpt(ee)%ilat,pp,idoy)
+            ENDDO
+          ENDIF
+        ENDDO
+        totcount = totcount + ncount
+      ENDDO
+
+      IF (totcount /= mp ) THEN
+        PRINT *, 'fifth totcount /= mp : ', totcount, mp
+        STOP
+      ENDIF
 
 
-         casamet%Tairkspin(:,idoy) = tairk
-         casamet%cgppspin (:,idoy) = cgpp
-         casamet%crmplantspin_1(:,idoy) = crmplant(:,1)
-         casamet%crmplantspin_2(:,idoy) = crmplant(:,2)
-         casamet%crmplantspin_3(:,idoy) = crmplant(:,3)
-         casamet%Tsoilspin_1(:,idoy)    = tsoil(:,1)
-         casamet%Tsoilspin_2(:,idoy)    = tsoil(:,2)
-         casamet%Tsoilspin_3(:,idoy)    = tsoil(:,3)
-         casamet%Tsoilspin_4(:,idoy)    = tsoil(:,4)
-         casamet%Tsoilspin_5(:,idoy)    = tsoil(:,5)
-         casamet%Tsoilspin_6(:,idoy)    = tsoil(:,6)
-         casamet%moistspin_1(:,idoy)    = moist(:,1)
-         casamet%moistspin_2(:,idoy)    = moist(:,2)
-         casamet%moistspin_3(:,idoy)    = moist(:,3)
-         casamet%moistspin_4(:,idoy)    = moist(:,4)
-         casamet%moistspin_5(:,idoy)    = moist(:,5)
-         casamet%moistspin_6(:,idoy)    = moist(:,6)
-
-      end do
+!      do idoy=1,mdyear
+!
+!!         write(89,*)'get tairk'
+!         call get_var_nc(ncid, var_name(1), tairk   , idoy, kend )
+!!         write(89,*)'get tsoil'
+!         call get_var_nc(ncid, var_name(2), tsoil   , idoy, kend ,ms)
+!!         write(89,*)'get moist'
+!         call get_var_nc(ncid, var_name(3), moist   , idoy, kend ,ms)
+!!         write(89,*)'get cgpp'
+!         call get_var_nc(ncid, var_name(4), cgpp    , idoy, kend )
+!!         write(89,*)'get crmplant'
+!         call get_var_nc(ncid, var_name(5), crmplant, idoy, kend ,mplant)
+!
+!
+!         casamet%Tairkspin(:,idoy) = tairk
+!         casamet%cgppspin (:,idoy) = cgpp
+!         casamet%crmplantspin_1(:,idoy) = crmplant(:,1)
+!         casamet%crmplantspin_2(:,idoy) = crmplant(:,2)
+!         casamet%crmplantspin_3(:,idoy) = crmplant(:,3)
+!         casamet%Tsoilspin_1(:,idoy)    = tsoil(:,1)
+!         casamet%Tsoilspin_2(:,idoy)    = tsoil(:,2)
+!         casamet%Tsoilspin_3(:,idoy)    = tsoil(:,3)
+!         casamet%Tsoilspin_4(:,idoy)    = tsoil(:,4)
+!         casamet%Tsoilspin_5(:,idoy)    = tsoil(:,5)
+!         casamet%Tsoilspin_6(:,idoy)    = tsoil(:,6)
+!         casamet%moistspin_1(:,idoy)    = moist(:,1)
+!         casamet%moistspin_2(:,idoy)    = moist(:,2)
+!         casamet%moistspin_3(:,idoy)    = moist(:,3)
+!         casamet%moistspin_4(:,idoy)    = moist(:,4)
+!         casamet%moistspin_5(:,idoy)    = moist(:,5)
+!         casamet%moistspin_6(:,idoy)    = moist(:,6)
+!
+!      end do
 
       ncok = NF90_CLOSE(ncid)
          if (ncok /= nf90_noerr ) call stderr_nc('closing ', ncfile)

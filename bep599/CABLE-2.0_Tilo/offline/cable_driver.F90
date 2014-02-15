@@ -138,6 +138,7 @@ PROGRAM cable_offline_driver
       vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
       spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
       spinConv = .FALSE.,         & ! has spinup converged?
+      onlyCASAspin = .FALSE.,     & ! skip running CABLE?
       spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
@@ -174,6 +175,7 @@ PROGRAM cable_offline_driver
                   leaps,            &
                   logn,             &
                   fixedCO2,         &
+                  onlyCASAspin,     &
                   spincasainput,    &
                   spincasa,         &
                   mloop,            &
@@ -222,6 +224,11 @@ PROGRAM cable_offline_driver
       STOP 'casaCNP must use new soil parameters'
 
    IF( .NOT. spinup )  spinConv = .TRUE.
+ 
+   IF( onlyCASAspin ) THEN
+     IF( .NOT. l_casacnp ) STOP 'casaCNP required for CASA spinup.'
+     IF( .NOT. spincasa  ) STOP 'switch on spincasa for CASA spinup!'
+   ENDIF
 
    ! Check for global run
    IF (ncciy /= 0) THEN
@@ -295,6 +302,8 @@ PROGRAM cable_offline_driver
                         casabiome,casapool,casaflux,casamet,casabal,phen)
      endif
    endif
+ 
+ IF( .NOT. onlyCASAspin ) THEN
 
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
@@ -466,6 +475,8 @@ PROGRAM cable_offline_driver
       endif
 
    END IF
+ 
+ END IF   ! onlyCASAspin
 
    ! Write restart file if requested:
    IF(output%restart) THEN

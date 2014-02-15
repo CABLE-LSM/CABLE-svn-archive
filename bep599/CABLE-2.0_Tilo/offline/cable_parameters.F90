@@ -196,7 +196,7 @@ CONTAINS
     INTEGER, INTENT(OUT) :: npatch
 
     ! local variables
-    INTEGER :: ncid, ok
+    INTEGER :: ncid, ok, ncid2
     INTEGER :: xID, yID, pID, sID, tID, bID, ppID, plID, psID
     INTEGER :: varID
     INTEGER :: nslayer, ntime, nband, ppool, lpool, spool
@@ -205,7 +205,11 @@ CONTAINS
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
     REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
 !    REAL,    DIMENSION(:,:,:,:),  ALLOCATABLE :: r4dum, landFrac
+    REAL,    DIMENSION(:,:,:,:),  ALLOCATABLE :: tmp
     LOGICAL :: ACCESS_run
+
+    ok = NF90_OPEN('./out_access/access.nc', 0, ncid2)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening access.nc')
 
     ok = NF90_OPEN(filename%type, 0, ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file ' &
@@ -302,15 +306,28 @@ CONTAINS
 
     IF (ACCESS_run) THEN
 
-      ok = NF90_INQ_VARID(ncid, 'veg_fraction', varID)
+      ALLOCATE( tmp(nlon, nlat, npatch, 1) )
+      ok = NF90_INQ_VARID(ncid2, 'field1391', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
                                         'Error finding variable veg_fraction.')
-      ok = NF90_GET_VAR(ncid, varID, inPFrac)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
                                         'Error reading variable veg_fraction.')
+      inPFrac = tmp(:,:,:,1)
+      DEALLOCATE( tmp )
       DO kk = 1, npatch
         inVeg(:, :, kk) = kk
       END DO
+
+!      ok = NF90_INQ_VARID(ncid, 'veg_fraction', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
+!                                        'Error finding variable veg_fraction.')
+!      ok = NF90_GET_VAR(ncid, varID, inPFrac)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
+!                                        'Error reading variable veg_fraction.')
+!      DO kk = 1, npatch
+!        inVeg(:, :, kk) = kk
+!      END DO
 
       ! Note that offline runs do not deal with the water bodies
       ! when land_fraction  < 1.0, variables reporting for the whole grid
@@ -378,6 +395,22 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inTGG)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable SoilTemp.')
 
+    ALLOCATE( tmp(nlon, nlat, ms, 1) )
+    ok = NF90_INQ_VARID(ncid2, 'sm', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error finding variable SoilMoist.')
+    ok = NF90_GET_VAR(ncid2, varID, tmp)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error reading variable SoilMoist.')
+    inWB(:,:,:,1) = tmp(:,:,:,1)
+
+    ok = NF90_INQ_VARID(ncid2, 'soiltemp', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable SoilTemp.')
+    ok = NF90_GET_VAR(ncid2, varID, tmp)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable SoilTemp.')
+    inTGG(:,:,:,1) = tmp(:,:,:,1)
+    DEALLOCATE( tmp )
+
     IF (.NOT. ACCESS_run) THEN
       ok = NF90_INQ_VARID(ncid, 'Albedo', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
@@ -403,6 +436,17 @@ CONTAINS
       ENDDO
     ENDDO
     DEALLOCATE( r3dum2 )
+    ALLOCATE( tmp(nlon, nlat, 1, 1) )
+    ok = NF90_INQ_VARID(ncid2, 'snowdepth', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error finding variable SnowDepth.')
+    ok = NF90_GET_VAR(ncid2,varID,tmp)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error reading variable SnowDepth.')
+    DO jj = 1, npatch
+      inSND(:, :, jj, 1) = tmp(:, :, 1, 1)
+    ENDDO
+    DEALLOCATE( tmp )
 
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
@@ -478,82 +522,277 @@ CONTAINS
       ALLOCATE( inPsoil    (nlon, nlat, npatch, 3) )
       ALLOCATE( inPsorb    (nlon, nlat, npatch) )
       ALLOCATE( inPocc     (nlon, nlat, npatch) )
+      ALLOCATE( tmp        (nlon, nlat, npatch, 1) )
 
-      ok = NF90_INQ_VARID(ncid, 'Clabile', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_38', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_labile.')
-      ok = NF90_GET_VAR(ncid, varID, inClab)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_labile.')
+      inClab = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'CASA_Cplant', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_39', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_plant.')
-      ok = NF90_GET_VAR(ncid, varID, inCplant)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_plant.')
+      inCplant(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Clitter', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_40', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_plant.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_plant.')
+      inCplant(:,:,:,2) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_41', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_plant.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_plant.')
+      inCplant(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_42', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_litter_metabolic.')
-      ok = NF90_GET_VAR(ncid, varID, inClitter)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_litter_metabolic.')
+      inClitter(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'CASA_Csoil', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_43', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_litter_metabolic.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_litter_metabolic.')
+      inClitter(:,:,:,2) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_44', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_litter_metabolic.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_litter_metabolic.')
+      inClitter(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_45', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_soil_microbial.')
-      ok = NF90_GET_VAR(ncid, varID, inCsoil)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_soil_microbial.')
+      inCsoil(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Nsoilmin', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_inorganic.')
-      ok = NF90_GET_VAR(ncid, varID, inNinorg)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_inorganic.')
+      ok = NF90_INQ_VARID(ncid2, 'temp_46', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_soil_microbial.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_soil_microbial.')
+      inCsoil(:,:,:,2) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Nplant', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_47', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_soil_microbial.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_soil_microbial.')
+      inCsoil(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_48', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_plant_leaf.')
-      ok = NF90_GET_VAR(ncid, varID, inNplant)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_plant_leaf.')
+      inNplant(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Nlitter', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_49', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_plant_leaf.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_plant_leaf.')
+      inNplant(:,:,:,2) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_50', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_plant_leaf.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_plant_leaf.')
+      inNplant(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_51', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_litter_metabolic.')
-      ok = NF90_GET_VAR(ncid, varID, inNlitter)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_litter_metabolic.')
+      inNlitter(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Nsoil', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_52', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_litter_metabolic.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_litter_metabolic.')
+      inNlitter(:,:,:,2) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_53', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_litter_metabolic.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_litter_metabolic.')
+      inNlitter(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_54', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_soil_microbial.')
-      ok = NF90_GET_VAR(ncid, varID, inNsoil)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_soil_microbial.')
+      inNsoil(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Psoillab', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_labile.')
-      ok = NF90_GET_VAR(ncid, varID, inPlab)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_labile.')
+      ok = NF90_INQ_VARID(ncid2, 'temp_55', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_soil_microbial.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_soil_microbial.')
+      inNsoil(:,:,:,2) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Pplant', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_56', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_soil_microbial.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_soil_microbial.')
+      inNsoil(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_57', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_inorganic.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_inorganic.')
+      inNinorg = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_58', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_plant_leaf.')
-      ok = NF90_GET_VAR(ncid, varID, inPplant)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_plant_leaf.')
+      inPplant(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Plitter', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_59', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_plant_leaf.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_plant_leaf.')
+      inPplant(:,:,:,2) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_60', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_plant_leaf.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_plant_leaf.')
+      inPplant(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_61', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_litter_metabolic.')
-      ok = NF90_GET_VAR(ncid, varID, inPlitter)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_litter_metabolic.')
+      inPlitter(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Psoil', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_62', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_litter_metabolic.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_litter_metabolic.')
+      inPlitter(:,:,:,2) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_63', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_litter_metabolic.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_litter_metabolic.')
+      inPlitter(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_64', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_soil_microbial.')
-      ok = NF90_GET_VAR(ncid, varID, inPsoil)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_soil_microbial.')
+      inPsoil(:,:,:,1) = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Psoilsorb', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_65', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_soil_microbial.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_soil_microbial.')
+      inPsoil(:,:,:,2) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_66', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_soil_microbial.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_soil_microbial.')
+      inPsoil(:,:,:,3) = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_67', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_labile.')
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_labile.')
+      inPlab = tmp(:,:,:,1)
+
+      ok = NF90_INQ_VARID(ncid2, 'temp_68', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_sorbed.')
-      ok = NF90_GET_VAR(ncid, varID, inPsorb)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_sorbed.')
+      inPsorb = tmp(:,:,:,1)
 
-      ok = NF90_INQ_VARID(ncid, 'Psoilocc', varID)
+      ok = NF90_INQ_VARID(ncid2, 'temp_69', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_strongly_sorbed.')
-      ok = NF90_GET_VAR(ncid, varID, inPocc)
+      ok = NF90_GET_VAR(ncid2, varID, tmp)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_strongly_sorbed.')
+      inPocc = tmp(:,:,:,1)
+
+!      ok = NF90_INQ_VARID(ncid, 'Clabile', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_labile.')
+!      ok = NF90_GET_VAR(ncid, varID, inClab)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_labile.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'CASA_Cplant', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_plant.')
+!      ok = NF90_GET_VAR(ncid, varID, inCplant)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_plant.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Clitter', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_litter_metabolic.')
+!      ok = NF90_GET_VAR(ncid, varID, inClitter)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_litter_metabolic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'CASA_Csoil', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_soil_microbial.')
+!      ok = NF90_GET_VAR(ncid, varID, inCsoil)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_soil_microbial.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nsoilmin', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_inorganic.')
+!      ok = NF90_GET_VAR(ncid, varID, inNinorg)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_inorganic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nplant', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_plant_leaf.')
+!      ok = NF90_GET_VAR(ncid, varID, inNplant)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_plant_leaf.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nlitter', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_litter_metabolic.')
+!      ok = NF90_GET_VAR(ncid, varID, inNlitter)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_litter_metabolic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nsoil', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_soil_microbial.')
+!      ok = NF90_GET_VAR(ncid, varID, inNsoil)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_soil_microbial.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoillab', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_labile.')
+!      ok = NF90_GET_VAR(ncid, varID, inPlab)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_labile.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Pplant', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_plant_leaf.')
+!      ok = NF90_GET_VAR(ncid, varID, inPplant)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_plant_leaf.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Plitter', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_litter_metabolic.')
+!      ok = NF90_GET_VAR(ncid, varID, inPlitter)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_litter_metabolic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoil', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_soil_microbial.')
+!      ok = NF90_GET_VAR(ncid, varID, inPsoil)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_soil_microbial.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoilsorb', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_sorbed.')
+!      ok = NF90_GET_VAR(ncid, varID, inPsorb)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_sorbed.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoilocc', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_strongly_sorbed.')
+!      ok = NF90_GET_VAR(ncid, varID, inPocc)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_strongly_sorbed.')
     ENDIF
 
     ENDIF
 
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
+    ok = NF90_CLOSE(ncid2)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing access.nc')
 
   END SUBROUTINE read_gridinfo
   !============================================================================
