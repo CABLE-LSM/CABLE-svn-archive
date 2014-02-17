@@ -3,6 +3,7 @@
 module debug_read_mod
    implicit none
    
+   ! interfaced subrs to read eithr 1 or 2 dimensional vars 
    interface read_dat_file
       module procedure read_dat_file1, read_dat_file2
    end interface 

@@ -14,7 +14,7 @@
 ### the first arg on the command line is the basename of the desired data to process
 ### i.e. basename.dat, basename.bin
 $basename = $ARGV[0];	
-
+$newfile = 'test.nc';
 #### check if stuff already exists - overwrite if it does
 #if(-d "scratch" ) { print(" there is already a scratch directory. existing files will be overwritten."); }
 #else { system("mkdir scratch"); }
@@ -32,9 +32,10 @@ $basename = $ARGV[0];
 #   if($ARGV[$argnum] eq '-t' )   { $time_window       = $ARGV[$argnum+1]; next; };
 #}
 
-#### write a little file for consumption by f90 code, interpreting command line args
+### write a little file for consumption by f90 code, interpreting command line args
 open(FILEPTR,">input.dat");
   print(FILEPTR"$basename\n");
+  print(FILEPTR"$newfile\n");
 #  print(FILEPTR"$write_flag\n");
 #  print(FILEPTR"$plot_flag\n");
 #  print(FILEPTR"$time_window\n");
@@ -85,39 +86,4 @@ system("./ncdf_main");
 #   chdir("$basename");
 #   system("mv ../scratch .") 
 #}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

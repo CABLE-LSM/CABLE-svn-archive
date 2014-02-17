@@ -41,7 +41,7 @@ program debug
 
    implicit none
 
-   character(len=30) :: file_var, varname
+   character(len=30) :: file_var, varname, newfile
 
    real*8, dimension(:,:), allocatable ::var 
    real*8, dimension(:), allocatable :: lat, lon
@@ -62,7 +62,7 @@ program debug
    integer :: i,j,k,l,m
    integer, dimension(:), allocatable :: lon_k, lat_j
 
-real :: lon_dx
+   real :: lon_dx
 
 
 
@@ -71,33 +71,38 @@ real :: lon_dx
       !--- which determine behaviour of program. which file to process,   ===!
       !=== plot/write text file, how to smooth the data                   ===! 
       !======================================================================!
-      call read_args(file_var)
+      call read_args(file_var, newfile)
 
       !======================================================================!
       !=== read info about the spec. binary data which was created by the ===!
       !--- host so we know how many vars are contained within, how many   ===!
       !=== points there are at each timestep, how many timesteps.         ===! 
       !======================================================================!
+         ! latitude
          call read_file( trim(LATITUDE), varname, dimx, dimy)
          allocate( lat(dimx) )
          call read_dat_file( trim(LATITUDE), lat, dimx, dimy)
          nlat = dimx
             
+         ! longitude
          call read_file( trim(LONGITUDE), varname, dimx, dimy)
          allocate( lon(dimx) )
          call read_dat_file( trim(LONGITUDE), lon, dimx, dimy)
          nlon = dimx
 
+         ! latitude index
          call read_file( trim(LAT_INDEX), varname, dimx, dimy)
          allocate( lat_index(dimx) )
          call read_dat_file( trim(LAT_INDEX), lat_index, dimx, dimy)
          nmp = dimx
          allocate( lon_k(nmp), lat_j(nmp) )
             
+         ! longitude index
          call read_file( trim(LON_INDEX), varname, dimx, dimy)
          allocate( lon_index(dimx) )
          call read_dat_file( trim(LON_INDEX), lon_index, dimx, dimy)
 
+         ! tile index
          call read_file( trim(TILE_INDEX), varname, dimx, dimy)
          allocate( tile_index(dimx) )
          call read_dat_file( trim(TILE_INDEX), tile_index, dimx, dimy)
@@ -105,6 +110,7 @@ real :: lon_dx
          allocate( tile(ntile) )
          tile = TILE_DEF
          
+         ! variable
          call read_file( trim(file_var), varname, dimx, dimy)
          allocate( var(dimy,dimx) )
          call read_dat_file( trim(file_var), var, dimx, dimy)
@@ -114,14 +120,17 @@ real :: lon_dx
          do i=1,ntime
             timestep(i) = i
          enddo        
-
+         
+         ! allocate mem for variable to netcdf
          allocate ( newvar(nlon, nlat, ntile, ntime) ) 
          
+         ! initialize, also serves as flag value 
          newvar = -2000. 
-
          lat_j = 0
          lon_k = 0
-
+        
+         ! index mp patches with corresponding lat/long
+         ! lat_index is mp long gives index  into lat array
          do i=1,nmp
             do j=1,nlat 
                if(lat_index(i) == lat(j)) then
@@ -142,18 +151,19 @@ real :: lon_dx
          do i=1,nmp
             newvar( lon_k(i), lat_j(i), int( tile_index(i) ), : )  = real( var(:,i) )         
          enddo
- 
+
+         ! as recorded longitude goes from 0 to 180 and back to zero 
          lon_dx = 360./(nlon)
-!print *,nlon, lon_dx
+         !print *,nlon, lon_dx
          lon(1) = 0.
          do i=2,nlon
             lon(i) = lon(i-1) + lon_dx
          enddo
-!print *,lon
-!stop
+         !print *,lon
        
-         call write_ncdf_template( "nc.nc", nlat, nlon, ntile, ntime, nvar, real(lat), &
-                real(lon), tile, timestep, newvar )
+         call write_ncdf_template( newfile, nlat, nlon, ntile, ntime, nvar,    &
+                                   real(lat),                                  & 
+                                   real(lon), tile, timestep, newvar )
           
    stop
 end program debug 
@@ -170,15 +180,16 @@ end program debug
 !=== see top description of program for further explanation                ===! 
 !=============================================================================!
    
-subroutine read_args(file_var)
+subroutine read_args(file_var, newfile)
    implicit none
-   character(len=30), intent(out) :: file_var
+   character(len=30), intent(out) :: file_var, newfile
    integer, parameter :: gok=0
    integer :: gopenstatus
    
    open(unit=1,file='input.dat', status="unknown",action="read", iostat=gopenstatus )
       if(gopenstatus==gok) then
          read(1,*), file_var
+         read(1,*), newfile
       else
          stop 'input.dat NOT found to read'
       endif
