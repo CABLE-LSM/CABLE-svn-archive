@@ -358,39 +358,39 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !call cable_diag( iDiag1, "lat1_", mp, kend_gl, ktau_gl,knode_gl,                &
    !                    "lat1", latitude, 'first time step only' )
-   
-   call cable_diag( iDiag1, "metfsd1_", mp, kend_gl, ktau_gl,knode_gl,         &
-                       "metfsd1", met%fsd(:,1) )
-   
-   call cable_diag( iDiag2, "metfsd2_", mp, kend_gl, ktau_gl,knode_gl,         &
-                       "metfsd2", met%fsd(:,2) )
-
-   call cable_diag( iDiag3, "metfld_", mp, kend_gl, ktau_gl,knode_gl,          &
-                       "metfld", met%fld )
-
-   call cable_diag( iDiag4, "mettk_", mp, kend_gl, ktau_gl,knode_gl,           &
-                       "mettk", met%tk )
-
-   call cable_diag( iDiag5, "metpmb_", mp, kend_gl, ktau_gl,knode_gl,          &
-        	     "metpmb", met%pmb )
-
-   call cable_diag( iDiag6, "metqv_", mp, kend_gl, ktau_gl,knode_gl,           &
-                     "metqv", met%qv )
-
-   call cable_diag( iDiag7, "metua_", mp, kend_gl, ktau_gl,knode_gl,           &
-                     "metua", met%ua )
-
-   call cable_diag( iDiag8, "metprecip_", mp, kend_gl, ktau_gl,knode_gl,       &
-        	           "metprecip", met%precip )
-
-   call cable_diag( iDiag9, "metprecip_sn_", mp, kend_gl, ktau_gl,knode_gl,    &
-        	           "metprecip_sn", met%precip_sn )
-
-   call cable_diag( iDiag10, "metca_", mp, kend_gl, ktau_gl,knode_gl,          &
-                           "metca", met%ca )
-
-   call cable_diag( iDiag11, "metcoszen_", mp, kend_gl, ktau_gl,knode_gl,      &
-                           "metcoszen", met%coszen )
+!   
+!   call cable_diag( iDiag1, "metfsd1_", mp, kend_gl, ktau_gl,knode_gl,         &
+!                       "metfsd1", met%fsd(:,1) )
+!   
+!   call cable_diag( iDiag2, "metfsd2_", mp, kend_gl, ktau_gl,knode_gl,         &
+!                       "metfsd2", met%fsd(:,2) )
+!
+!   call cable_diag( iDiag3, "metfld_", mp, kend_gl, ktau_gl,knode_gl,          &
+!                       "metfld", met%fld )
+!
+!   call cable_diag( iDiag4, "mettk_", mp, kend_gl, ktau_gl,knode_gl,           &
+!                       "mettk", met%tk )
+!
+!   call cable_diag( iDiag5, "metpmb_", mp, kend_gl, ktau_gl,knode_gl,          &
+!        	     "metpmb", met%pmb )
+!
+!   call cable_diag( iDiag6, "metqv_", mp, kend_gl, ktau_gl,knode_gl,           &
+!                     "metqv", met%qv )
+!
+!   call cable_diag( iDiag7, "metua_", mp, kend_gl, ktau_gl,knode_gl,           &
+!                     "metua", met%ua )
+!
+!   call cable_diag( iDiag8, "metprecip_", mp, kend_gl, ktau_gl,knode_gl,       &
+!        	           "metprecip", met%precip )
+!
+!   call cable_diag( iDiag9, "metprecip_sn_", mp, kend_gl, ktau_gl,knode_gl,    &
+!        	           "metprecip_sn", met%precip_sn )
+!
+!   call cable_diag( iDiag10, "metca_", mp, kend_gl, ktau_gl,knode_gl,          &
+!                           "metca", met%ca )
+!
+!   call cable_diag( iDiag11, "metcoszen_", mp, kend_gl, ktau_gl,knode_gl,      &
+!                           "metcoszen", met%coszen )
 
 
 
