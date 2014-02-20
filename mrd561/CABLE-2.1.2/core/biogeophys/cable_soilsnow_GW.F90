@@ -75,7 +75,7 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow_gw ! must be available outside this module
+   PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv
    PRIVATE soilfreeze, remove_trans
@@ -1199,10 +1199,13 @@ USE cable_common_module
     liqmass  = (ssnow%wb-ssnow%wbice) * C%denliq * spread(soil%zse,1,mp)
     totmass  = icemass + liqmass
     where (totmass .lt. 1e-2) totmass = 1e-2 
-   if (md_prin) write(*,*) ' max icemass,liqmass,totmass ',maxval(icemass),maxval(liqmass),maxval(totmass) !MDeck
-   if (md_prin) write(*,*) ' min icemass,liqmass,totmass ',minval(icemass),minval(liqmass),minval(totmass)  !MDeck
+
+    if (md_prin) write(*,*) ' max icemass,liqmass,totmass ',maxval(icemass),maxval(liqmass),maxval(totmass) !MDeck
+    if (md_prin) write(*,*) ' min icemass,liqmass,totmass ',minval(icemass),minval(liqmass),minval(totmass)  !MDeck
+
     efpor(:) = soil%watsat(:,1) - ssnow%wbice(:,1)!-soil%watr(:,1)
     where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
+
     !srf frozen fraction.  should be based on topography
     icef(:) = icemass(:,1) / totmass(:,1)
     fice(:) = (exp(-3.0*(1.0-icef(:)))- exp(-3.0))!/(1.0-exp(-3.0))
@@ -1211,12 +1214,15 @@ USE cable_common_module
 
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000.0_r_2
-   if (md_prin) write(*,*) ' max, min wtd  ',maxval(wtd_meters),minval(wtd_meters) !MDeck
+
+    if (md_prin) write(*,*) ' max, min wtd  ',maxval(wtd_meters),minval(wtd_meters) !MDeck
+
     satfrac(:) = (1.0-fice(:))*maxSatFrac*exp(-0.5_r_2*wtd_meters)+fice(:)
-   if (md_prin) write(*,*) 'satfrac mx - ',maxval(satfrac)   !MDeck
-   if (md_prin) write(*,*) 'satfrac min - ',minval(satfrac)   !MDeck
-   if (md_prin) write(*,*) 'fice mx - ',maxval(fice)   !MDeck
-   if (md_prin) write(*,*) 'fice min - ',minval(fice)   !MDeck
+
+    if (md_prin) write(*,*) 'satfrac mx - ',maxval(satfrac)   !MDeck
+    if (md_prin) write(*,*) 'satfrac min - ',minval(satfrac)   !MDeck
+    if (md_prin) write(*,*) 'fice mx - ',maxval(fice)   !MDeck
+    if (md_prin) write(*,*) 'fice min - ',minval(fice)   !MDeck
 
     ! Maximum infiltration capacity
    if (md_prin) write(*,*) 'calc max infiltration '   !MDeck
@@ -2136,6 +2142,41 @@ END SUBROUTINE soil_snow_gw
 
 
 
+SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
+
+  IMPLICIT NONE
+    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
+    TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+
+    !local variables
+    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor
+    REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters
+    REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
+
+    icemass  = ssnow%wbice(:,:) * 1000.0 * spread(soil%zse,1,mp)
+    liqmass  = (ssnow%wb-ssnow%wbice) * 1000.0 * spread(soil%zse,1,mp)
+    totmass  = icemass + liqmass
+
+    where (totmass .lt. 1e-2) totmass = 1e-2
+
+    efpor(:) = soil%watsat(:,1) - ssnow%wbice(:,1)!-soil%watr(:,1)
+    where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
+
+    !srf frozen fraction.  should be based on topography
+    icef(:) = icemass(:,1) / totmass(:,1)
+    fice(:) = (exp(-3.0*(1.0-icef(:)))- exp(-3.0))!/(1.0-exp(-3.0))
+    where (fice(:) .lt. 0.0_r_2) fice(:) = 0.0_r_2
+    where (fice(:) .gt. 1.0_r_2) fice(:) = 1.0_r_2
+
+    ! Saturated fraction
+    wtd_meters = ssnow%wtd / 1000.0_r_2
+
+    satfrac(:) = (1.0-fice(:))*maxSatFrac*exp(-0.5_r_2*wtd_meters)+fice(:)
+    ssnow%wetfac(:) = satfrac(:)
+
+
+
+END SUBROUTINE calc_srf_wet_fraction
 
 
 
