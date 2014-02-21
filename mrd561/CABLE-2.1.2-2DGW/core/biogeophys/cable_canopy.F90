@@ -34,7 +34,8 @@
 
 MODULE cable_canopy_module
    
-   USE cable_data_module, ONLY : icanopy_type, point2constants 
+   USE cable_data_module,         ONLY : icanopy_type, point2constants 
+   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
    
    IMPLICIT NONE
    
@@ -1194,10 +1195,24 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
                    MAX( cansat, 0.01 ) ) )
 
-   ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
+
+   !use top-model based wet fraction at the surface
+   IF (cable_runtime%run_gw_model) then
+
+      call calc_srf_wet_fraction(ssnow,soil)
+
+      ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
+                  ( REAL (ssnow%wetfac))))
+
+
+   else
+
+      ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
                   ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
-                  / 2.0*( soil%sfc - soil%swilt/2.0 ) ) )
-  
+                  / ( soil%sfc - soil%swilt/2.0 ) ) )
+   END IF
+
+
    DO j=1,mp
    
       IF( ssnow%wbice(j,1) > 0. )                                              &

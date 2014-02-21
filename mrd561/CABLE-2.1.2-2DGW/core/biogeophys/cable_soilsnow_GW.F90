@@ -57,13 +57,13 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 5e-3,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
+                      qhmax   = 5e-4,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
                       hkrz    = 0.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.6,       &
+                      maxSatFrac = 0.2,       &
                       dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
@@ -75,7 +75,7 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow_gw ! must be available outside this module
+   PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv
    PRIVATE soilfreeze, remove_trans
@@ -1199,10 +1199,13 @@ USE cable_common_module
     liqmass  = (ssnow%wb-ssnow%wbice) * C%denliq * spread(soil%zse,1,mp)
     totmass  = icemass + liqmass
     where (totmass .lt. 1e-2) totmass = 1e-2 
-   if (md_prin) write(*,*) ' max icemass,liqmass,totmass ',maxval(icemass),maxval(liqmass),maxval(totmass) !MDeck
-   if (md_prin) write(*,*) ' min icemass,liqmass,totmass ',minval(icemass),minval(liqmass),minval(totmass)  !MDeck
+
+    if (md_prin) write(*,*) ' max icemass,liqmass,totmass ',maxval(icemass),maxval(liqmass),maxval(totmass) !MDeck
+    if (md_prin) write(*,*) ' min icemass,liqmass,totmass ',minval(icemass),minval(liqmass),minval(totmass)  !MDeck
+
     efpor(:) = soil%watsat(:,1) - ssnow%wbice(:,1)!-soil%watr(:,1)
     where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
+
     !srf frozen fraction.  should be based on topography
     icef(:) = icemass(:,1) / totmass(:,1)
     fice(:) = (exp(-3.0*(1.0-icef(:)))- exp(-3.0))!/(1.0-exp(-3.0))
@@ -1211,12 +1214,15 @@ USE cable_common_module
 
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000.0_r_2
-   if (md_prin) write(*,*) ' max, min wtd  ',maxval(wtd_meters),minval(wtd_meters) !MDeck
+
+    if (md_prin) write(*,*) ' max, min wtd  ',maxval(wtd_meters),minval(wtd_meters) !MDeck
+
     satfrac(:) = (1.0-fice(:))*maxSatFrac*exp(-0.5_r_2*wtd_meters)+fice(:)
-   if (md_prin) write(*,*) 'satfrac mx - ',maxval(satfrac)   !MDeck
-   if (md_prin) write(*,*) 'satfrac min - ',minval(satfrac)   !MDeck
-   if (md_prin) write(*,*) 'fice mx - ',maxval(fice)   !MDeck
-   if (md_prin) write(*,*) 'fice min - ',minval(fice)   !MDeck
+
+    if (md_prin) write(*,*) 'satfrac mx - ',maxval(satfrac)   !MDeck
+    if (md_prin) write(*,*) 'satfrac min - ',minval(satfrac)   !MDeck
+    if (md_prin) write(*,*) 'fice mx - ',maxval(fice)   !MDeck
+    if (md_prin) write(*,*) 'fice min - ',minval(fice)   !MDeck
 
     ! Maximum infiltration capacity
    if (md_prin) write(*,*) 'calc max infiltration '   !MDeck
@@ -1245,8 +1251,9 @@ USE cable_common_module
 
    ssnow%fwtop(:) = ssnow%fwtop(:) - ssnow%rnof1(:)
 
-!   ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
-!   ssnow%rnof1(:) = 0._r_2
+   ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
+   ssnow%rnof1(:) = 0._r_2
+
 
    where (ssnow%pudsto(:) .gt. satfrac(:)*ssnow%pudsmx)
      ssnow%rnof1 = (ssnow%pudsto(:) - satfrac(:)*ssnow%pudsmx)/dels
@@ -1333,19 +1340,19 @@ USE cable_common_module
   dzmm(:,:)  = spread((soil%zse(:)) * 1000.0,1,mp)    !layer thickness mm
   zimm(0)    = 0.0_r_2                                      !depth of layer interfaces mm
   zimm(1:ms) = zimm(0:ms-1) + real(dzmm(1,1:ms),r_2)
-
+  
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1.0-invB(:))* &
     (1.0-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1.0-invB(:))))             !def if wtd=zimm(ms)
 
   
   where (defc(:) .le. 0.0) defc(:) = 0.1
-  where (soil%watsat .ge. ssnow%wb)
+  where (soil%watsat .gt. ssnow%wb)
     tmp_def = (soil%watsat(:,:)-(ssnow%wbliq+dri*ssnow%wbice))  !prevent freezing from changing wtd
   elsewhere
     tmp_def = 0._r_2
   end where
- 
   def(:) = sum(tmp_def*dzmm,2)
+
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
@@ -1601,7 +1608,7 @@ USE cable_common_module
           where (s1 .gt. 1._r_2)   s1 = 1._r_2
           where (s1 .lt. 0.01_r_2) s1 = 0.01_r_2
           s2 = soil%hksat(:,k)*s1**(2.0*soil%clappB(:,k)+2.0)
-          ssnow%hk(:,k)    = s1*s2*(1.0-ssnow%fracice(:,k)) * exp(-hkrz*zimm(ms)/1000.0_r_2)
+          ssnow%hk(:,k)    = s1*s2*(1.0-ssnow%fracice(:,k))* exp (-hkrz*zimm(ms)/1000.0_r_2)
           ssnow%dhkdw(:,k) = (1.0-ssnow%fracice(:,k))* (2.0*soil%clappB(:,k)+3.0)*&
                          s2*0.5/(soil%watsat(:,k)-soil%watr(:,k)*exp (hkrz*zimm(ms)/1000.0_r_2))
        end if
@@ -1643,19 +1650,18 @@ USE cable_common_module
     ssnow%qhz(:)  = qhmax *exp(-2.0_r_2*ssnow%wtd(:)/1000.0)*((1.0_r_2 - fice_avg(:))**3.0)
     !find index of soil layer with the water table
     qhlev(:,:)   = 0.0  !set to zero except for layer that contains the wtd
-    idlev(:)     = ms!+1
+    idlev(:)     = ms
     do k=ms,1,-1
        WHERE (ssnow%wtd(:) <= zimm(k) .and. ssnow%wtd(:) > zimm(k-1))
          idlev(:) = k
-!         qhlev(:,k) = ssnow%qhz(:)
-!       ELSEWHERE
-!         qhlev(:,k) = 0._r_2
-       END WHERE
+         qhlev(:,k) = ssnow%qhz(:)
+       endwhere
+    end do
+
+    do i=1,mp
+         qhlev(i,idlev(i)) = ssnow%qhz(i)
     end do  
 
-    do k=1,mp
-       qhlev(k,idlev(k)) = ssnow%qhz(k)
-    end do
     !where (qhlev*dels .gt. 0.1*ssnow%wbliq*spread(dzmm,1,mp)) qhlev = 0._r_2
 
     rt(:,:) = 0.0_r_2; at(:,:) = 0.0_r_2     !ensure input to tridiag is valid
@@ -1989,6 +1995,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                
    GWwb_ic = ssnow%GWwb
 
+
    CALL stempv(dels, canopy, ssnow, soil)
 
    if (md_prin) write(*,*) 'call snowcheck'  !MDeck
@@ -2090,7 +2097,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 !   ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
 
 
-   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)!*dels          !total runoff (inmm)
+   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff (inmm)
 
 
    if (md_prin) write(*,*) 'remove transp'      !MDeck
@@ -2135,6 +2142,41 @@ END SUBROUTINE soil_snow_gw
 
 
 
+SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
+
+  IMPLICIT NONE
+    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
+    TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+
+    !local variables
+    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor
+    REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters
+    REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
+
+    icemass  = ssnow%wbice(:,:) * 1000.0 * spread(soil%zse,1,mp)
+    liqmass  = (ssnow%wb-ssnow%wbice) * 1000.0 * spread(soil%zse,1,mp)
+    totmass  = icemass + liqmass
+
+    where (totmass .lt. 1e-2) totmass = 1e-2
+
+    efpor(:) = soil%watsat(:,1) - ssnow%wbice(:,1)!-soil%watr(:,1)
+    where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
+
+    !srf frozen fraction.  should be based on topography
+    icef(:) = icemass(:,1) / totmass(:,1)
+    fice(:) = (exp(-3.0*(1.0-icef(:)))- exp(-3.0))!/(1.0-exp(-3.0))
+    where (fice(:) .lt. 0.0_r_2) fice(:) = 0.0_r_2
+    where (fice(:) .gt. 1.0_r_2) fice(:) = 1.0_r_2
+
+    ! Saturated fraction
+    wtd_meters = ssnow%wtd / 1000.0_r_2
+
+    satfrac(:) = (1.0-fice(:))*maxSatFrac*exp(-2.0_r_2*wtd_meters)+fice(:)
+    ssnow%wetfac(:) = satfrac(:)
+
+
+
+END SUBROUTINE calc_srf_wet_fraction
 
 
 
