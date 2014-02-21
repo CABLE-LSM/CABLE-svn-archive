@@ -63,7 +63,7 @@ MODULE cable_soil_snow_gw_module
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.6,       &
+                      maxSatFrac = 0.2,       &
                       dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
@@ -2171,7 +2171,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000.0_r_2
 
-    satfrac(:) = (1.0-fice(:))*maxSatFrac*exp(-0.5_r_2*wtd_meters)+fice(:)
+    satfrac(:) = (1.0-fice(:))*maxSatFrac*exp(-2.0_r_2*wtd_meters)+fice(:)
     ssnow%wetfac(:) = satfrac(:)
 
 
