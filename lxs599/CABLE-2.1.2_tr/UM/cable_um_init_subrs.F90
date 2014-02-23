@@ -769,9 +769,10 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
 
       ENDIF ! END: if (first_call)       
 
-     DO J=1, msn
+!     DO J=1, msn
+      DO J=1, 1
 
-         WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) ! lakes: remove hard-wired number in future version
+        WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) ! lakes: remove hard-wired number in future version
             ssnow%wbtot1 = ssnow%wbtot1 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
                            soil%zse(J)
             ssnow%wb(:,J) = soil%sfc
