@@ -146,7 +146,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    cansat = veg%canst1 * canopy%vlaiw
 
    !---compute surface wetness factor, update cansto, through
-   CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
+   CALL Surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
 
    canopy%fevw_pot = 0.0
    canopy%gswx = 1e-3     ! default stomatal conuctance 
@@ -558,7 +558,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%precis = max(0.,canopy%through)
 
    ! this change of units does not affect next timestep as canopy%through is
-   ! re-calc in surf_wetness_fact routine
+   ! re-calc in Surf_wetness_fact routine
    canopy%through = canopy%through / dels   ! change units for stash output
    
    ! Update canopy storage term:
