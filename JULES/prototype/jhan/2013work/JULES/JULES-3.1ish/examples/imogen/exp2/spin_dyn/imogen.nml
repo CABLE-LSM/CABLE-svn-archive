@@ -1,0 +1,36 @@
+# We use the final dump from the spin_eq run to initialise IMOGEN variables
+# for this run
+&IMOGEN_RUN_LIST
+  CO2_INIT_PPMV     = 286.085,
+  FILE_SCEN_EMITS   = '../../data/imogen/emiss_co2.dat',
+  FILE_NON_CO2_VALS = '../../data/imogen/RF_NONCO2_GHG_IS92A.dat',
+  NYR_EMISS         = 241,
+  C_EMISSIONS       = .TRUE.,
+  INCLUDE_CO2       = .TRUE.,
+  INCLUDE_NON_CO2   = .FALSE.,
+  LAND_FEED         = .TRUE.,
+  OCEAN_FEED        = .TRUE.,
+  WGEN              = .FALSE.,
+  ANLG              = .TRUE.,
+  ANOM              = .FALSE.,
+  
+  FILE_POINTS_ORDER = '../../data/jules/imogen_order.dat',
+  
+  initialise_from_dump = T,
+  dump_file = '../spin_eq/output/spin_eq.dump.18701230.82800.nc'
+/
+
+
+&IMOGEN_ANLG_VALS_LIST
+  T_OCEAN_INIT = 289.28,
+  DIR_PATT     = '../../data/imogen/afsyb_patt_0_360',
+  DIR_CLIM     = '../../data/imogen/afsyb_control_0_360',
+  KAPPA_O      = 405.0,
+  F_OCEAN      = 0.711,
+  LAMBDA_L     = 0.62,
+  LAMBDA_O     = 1.30,
+  MU           = 1.84,
+  Q2CO2        = 3.74,
+  FILE_NON_CO2 = .TRUE.,
+  NYR_NON_CO2  = 241
+/

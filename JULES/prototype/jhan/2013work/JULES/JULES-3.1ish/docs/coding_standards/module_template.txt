@@ -1,0 +1,42 @@
+< Appropriate copyright notice >
+
+! < One line description of this module >
+
+  MODULE < name >
+
+< Module imports >
+
+  IMPLICIT NONE
+
+!
+! Description:
+!   < Say what this module contains >
+!
+! Current Code Owner: < Name of person responsible for this code >
+!
+! Code Description:
+!   Language: Fortran 90.
+!   This code is written to JULES coding standards v1.
+!
+
+! Module constants
+< Public module variables declared as parameters >
+
+< Private module variables declared as parameters >
+
+! Public module variables
+< Public scalar module variables >
+
+< Public array module variables >
+
+! Private module variables
+< Private scalar module variables >
+
+< Private array module variables >
+
+  CONTAINS
+  
+< Any subroutines or functions, each following the appropriate
+  template (minus copyright notice) >
+
+  END MODULE <name>
