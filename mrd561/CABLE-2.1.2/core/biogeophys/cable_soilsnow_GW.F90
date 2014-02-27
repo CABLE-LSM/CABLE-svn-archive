@@ -65,7 +65,7 @@ MODULE cable_soil_snow_gw_module
                       wtd_min = 10.0,         & ! minimum wtd [mm]
                       maxSatFrac = 0.3,       &
                       dri = 1.0,              & !ratio of density of ice to density of liquid [unitless]
-                      efoldSatFrac = 0.5        !efolding depth for sat frac (1/m) 
+                      efoldSatFrac = 1.5        !efolding depth for sat frac (1/m) 
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
   
