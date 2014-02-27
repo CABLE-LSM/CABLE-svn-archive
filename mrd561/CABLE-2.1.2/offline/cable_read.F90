@@ -90,8 +90,8 @@ CONTAINS
     INTEGER :: i ! do loop counter
     INTEGER, DIMENSION(1) :: data1i ! temporary for ncdf read in
     INTEGER, DIMENSION(1, 1) :: data2i ! temporary for ncdf read in
-    INTEGER, DIMENSION(:, :), POINTER :: tmp2i ! temporary for ncdf read in
-    INTEGER, DIMENSION(:, :, :), POINTER :: tmp3i ! temporary for ncdf read
+    INTEGER, DIMENSION(:, :), ALLOCATABLE :: tmp2i ! temporary for ncdf read in
+    INTEGER, DIMENSION(:, :, :), ALLOCATABLE :: tmp3i ! temporary for ncdf read
                                                        ! in
 
     ! Check if parameter exists:
@@ -200,8 +200,8 @@ CONTAINS
     INTEGER :: i ! do loop counter
     REAL(KIND=4), DIMENSION(1) :: data1r ! temporary for ncdf read in
     REAL(KIND=4), DIMENSION(1, 1) :: data2r ! temporary for ncdf read in
-    REAL(KIND=4), DIMENSION(:, :), POINTER :: tmp2r ! temporary for ncdf read in
-    REAL(KIND=4), DIMENSION(:, :, :), POINTER :: tmp3r ! temporary for ncdf read
+    REAL(KIND=4), DIMENSION(:, :), ALLOCATABLE :: tmp2r ! temporary for ncdf read in
+    REAL(KIND=4), DIMENSION(:, :, :), ALLOCATABLE :: tmp3r ! temporary for ncdf read
                                                        ! in
 
     ! Check if parameter exists:
@@ -340,9 +340,9 @@ CONTAINS
     INTEGER :: i ! do loop counter
     REAL(4), DIMENSION(1) :: data1r ! temporary for ncdf read in
     REAL(4), DIMENSION(1, 1) :: data2r ! temporary for ncdf read in
-    REAL(4), DIMENSION(:), POINTER :: tmp1r ! temporary for ncdf read in
-    REAL(4), DIMENSION(:, :), POINTER :: tmp2r ! temporary for ncdf read in
-    REAL(4), DIMENSION(:, :, :), POINTER :: tmp3r ! temporary for ncdf read in
+    REAL(4), DIMENSION(:), ALLOCATABLE :: tmp1r ! temporary for ncdf read in
+    REAL(4), DIMENSION(:, :), ALLOCATABLE :: tmp2r ! temporary for ncdf read in
+    REAL(4), DIMENSION(:, :, :), ALLOCATABLE :: tmp3r ! temporary for ncdf read in
    
     ! Check if parameter exists:
     ok = NF90_INQ_VARID(ncid, parname, parID)
@@ -511,11 +511,11 @@ CONTAINS
     INTEGER :: pardims ! # dimensions of parameter
     INTEGER :: dimctr ! size of non-spatial (2nd) dimension of parameter
     INTEGER :: i, j ! do loop counter
-    REAL(KIND=4), DIMENSION(:, :), POINTER       :: tmp2r ! temporary for ncdf
+    REAL(KIND=4), DIMENSION(:, :), ALLOCATABLE       :: tmp2r ! temporary for ncdf
                                                           ! read in
-    REAL(KIND=4), DIMENSION(:, :, :), POINTER    :: tmp3r ! temporary for ncdf
+    REAL(KIND=4), DIMENSION(:, :, :), ALLOCATABLE    :: tmp3r ! temporary for ncdf
                                                           ! read in
-    REAL(KIND=4), DIMENSION(:, :, :, :), POINTER :: tmp4r ! temporary for ncdf
+    REAL(KIND=4), DIMENSION(:, :, :, :), ALLOCATABLE :: tmp4r ! temporary for ncdf
                                                           ! read in
     REAL :: tmpjh
     
@@ -679,13 +679,13 @@ CONTAINS
     INTEGER :: pardims ! # dimensions of parameter
     INTEGER :: dimctr ! size of non-spatial (2nd) dimension of parameter
     INTEGER :: i,j ! do loop counter
-    REAL(8), DIMENSION(:, :), POINTER       :: tmp2rd ! temporary for ncdf
+    REAL(8), DIMENSION(:, :), ALLOCATABLE       :: tmp2rd ! temporary for ncdf
                                                       ! read in
-    REAL(4), DIMENSION(:, :), POINTER       :: tmp2r  ! temporary for ncdf
+    REAL(4), DIMENSION(:, :), ALLOCATABLE       :: tmp2r  ! temporary for ncdf
                                                       ! read in
-    REAL(4), DIMENSION(:, :, :), POINTER    :: tmp3r  ! temporary for ncdf
+    REAL(4), DIMENSION(:, :, :), ALLOCATABLE    :: tmp3r  ! temporary for ncdf
                                                       ! read in
-    REAL(4), DIMENSION(:, :, :, :), POINTER :: tmp4r  ! temporary for ncdf
+    REAL(4), DIMENSION(:, :, :, :), ALLOCATABLE :: tmp4r  ! temporary for ncdf
                                                       ! read in
 
     ! Check if parameter exists:

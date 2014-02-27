@@ -98,7 +98,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ftemp,z_eff,psim_arg, psim_1, psim_2, rlower_limit,                      &
       term1, term2, term3, term5 
 
-   REAL, DIMENSION(:), POINTER ::                                              & 
+   REAL, DIMENSION(:), ALLOCATABLE ::                                              & 
       cansat,        & ! max canopy intercept. (mm)
       dsx,           & ! leaf surface vpd
       fwsoil,        & ! soil water modifier of stom. cond
@@ -108,13 +108,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    REAL(r_2), DIMENSION(mp) ::                                                 &
      gbvtop                   ! bnd layer cond. top leaf
 
-   REAL(r_2), DIMENSION(:), POINTER ::                                         &
+   REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                         &
       ecy,           & ! lat heat fl dry big leaf
       hcy,           & ! veg. sens heat
       rny,           & ! net rad
       ghwet             ! cond for heat for a wet canopy
    
-   REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
+   REAL(r_2), DIMENSION(:,:), ALLOCATABLE ::                                       &
       gbhu,          & ! forcedConvectionBndryLayerCond
       gbhf,          & ! freeConvectionBndryLayerCond
       csx              ! leaf surface CO2 concentration
@@ -1337,7 +1337,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       frac42,     & ! 2D frac4
       temp2
 
-   REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
+   REAL, DIMENSION(:,:), ALLOCATABLE :: gswmin ! min stomatal conductance
    
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
