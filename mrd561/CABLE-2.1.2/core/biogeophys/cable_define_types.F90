@@ -63,7 +63,7 @@ MODULE cable_def_types_mod
    ! Energy and water balance variables:
    TYPE balances_type 
 
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          drybal,           & ! energy balance for dry canopy
          ebal,             & ! energy balance per time step (W/m^2)
          ebal_tot,         & ! cumulative energy balance (W/m^2)
@@ -99,10 +99,10 @@ MODULE cable_def_types_mod
    ! Soil parameters:
    TYPE soil_parameter_type 
    
-      INTEGER, DIMENSION(:), ALLOCATABLE ::                                        &
+      INTEGER, DIMENSION(:), POINTER ::                                        &
          isoilm     ! integer soil type
 
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          bch,     & ! parameter b in Campbell equation
          c3,      & ! c3 drainage coeff (fraction)
          clay,    & ! fraction of soil which is clay
@@ -122,12 +122,12 @@ MODULE cable_def_types_mod
          zshh,    & ! distance between consecutive layer midpoints (m)
          albsoilf   ! soil reflectance
      
-      REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                      &
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
          cnsd,    & ! thermal conductivity of dry soil [W/m/K]
          pwb_min    ! working variable (swilt/ssat)**ibp2
          
       !MD parameters for GW module that vary with soil layer
-      REAL(r_2), DIMENSION(:,:), ALLOCATABLE ::                                    &
+      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
          smpsat, & !psi at saturation in mm
          hksat,  & !saturated hydraulic conductivity  [mm/s]
          clappB, & !C and H B
@@ -137,7 +137,7 @@ MODULE cable_def_types_mod
          watsat, & !volumetric water content at saturation
          watr 
       !MD parameters for GW module for the aquifer
-      REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                       &
+      REAL(r_2), DIMENSION(:), POINTER ::                                       &
          GWsmpsat,  &  !head in the aquifer
          GWhksat,   &  !saturated hydraulic conductivity of the aquifer
          GWclappB,  & !clapp and horn b of the aquifer
@@ -147,7 +147,7 @@ MODULE cable_def_types_mod
          GWdz,      & !thickness of the aquifer
          GWdensoil    !density of the aquifer substrate
      
-      REAL, DIMENSION(:,:), ALLOCATABLE ::                                         &
+      REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
 
   END TYPE soil_parameter_type
@@ -157,10 +157,10 @@ MODULE cable_def_types_mod
    ! Soil and snow variables:
    TYPE soil_snow_type 
      
-     INTEGER, DIMENSION(:), ALLOCATABLE :: isflag ! 0 => no snow 1 => snow
+     INTEGER, DIMENSION(:), POINTER :: isflag ! 0 => no snow 1 => snow
     
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
-         iantrct, & ! ALLOCATABLE to Antarctic land points
+      REAL, DIMENSION(:), POINTER ::                                           &
+         iantrct, & ! pointer to Antarctic land points
          pudsto,  & ! puddle storage
          pudsmx,  & ! puddle storage
          cls,     & ! factor for latent heat
@@ -210,7 +210,7 @@ MODULE cable_def_types_mod
          deltss,  & ! surface temperature (weighted soil, snow)
          owb1       ! surface temperature (weighted soil, snow)
  
-      REAL, DIMENSION(:,:), ALLOCATABLE ::                                         &
+      REAL, DIMENSION(:,:), POINTER ::                                         &
          sconds,     & !
          sdepth,     & ! snow depth
          smass,      & ! snow mass
@@ -223,10 +223,10 @@ MODULE cable_def_types_mod
          tilefrac      ! factor for latent heat
      
     
-      REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                      &
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
          wbtot   ! total soil water (mm)
      
-      REAL(r_2), DIMENSION(:,:), ALLOCATABLE ::                                    &
+      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
          gammzz,  & ! heat capacity for each soil layer
          wb,      & ! volumetric soil moisture (solid+liq)
          wbice,   & ! soil ice
@@ -234,7 +234,7 @@ MODULE cable_def_types_mod
          wbfice     !
 
       !MD variables for the revised soil moisture + GW scheme
-      REAL(r_2), DIMENSION(:), ALLOCATABLE   ::                                     &
+      REAL(r_2), DIMENSION(:), POINTER   ::                                     &
          GWwb,    &  ! water content in aquifer
          GWhk,    &  ! aquifer hydraulic conductivity
          GWdhkdw, &  ! aquifer d(hk) over d(water content)
@@ -246,7 +246,7 @@ MODULE cable_def_types_mod
          qhz         ! horizontal hydraulic conductivity in 1D gw model for soil layers      
      
      
-      REAL(r_2), DIMENSION(:,:), ALLOCATABLE  ::                                     &
+      REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content
          zq,      &    ! equilibrium smp      
          icefrac, &    ! ice fraction
@@ -268,10 +268,10 @@ MODULE cable_def_types_mod
    ! Vegetation parameters:
    TYPE veg_parameter_type
      
-      INTEGER, DIMENSION(:), ALLOCATABLE ::                                        &
+      INTEGER, DIMENSION(:), POINTER ::                                        &
          iveg       ! vegetation type
 
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          canst1,  & ! max intercepted water by canopy (mm/LAI)
          dleaf,   & ! chararacteristc legnth of leaf (m)
          ejmax,   & ! max pot. electron transp rate top leaf(mol/m2/s)
@@ -294,10 +294,10 @@ MODULE cable_def_types_mod
          vlaimax, & ! extinction coef for vertical
          wai        ! wood area index (stem+branches+twigs)
 
-      LOGICAL, DIMENSION(:), ALLOCATABLE ::                                        &
+      LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
 
-      REAL, DIMENSION(:,:), ALLOCATABLE ::                                         &
+      REAL, DIMENSION(:,:), POINTER ::                                         &
          refl,    &
          taul,    & 
          froot      ! fraction of root in each soil layer
@@ -310,7 +310,7 @@ MODULE cable_def_types_mod
    TYPE canopy_type
       
 
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          cansto,  & ! canopy water storage (mm)
          cduv,    & ! drag coefficient for momentum
          delwc,   & ! change in canopy water store (mm/dels)
@@ -357,12 +357,12 @@ MODULE cable_def_types_mod
          rghlai,  & ! lai adj for snow depth for calc of resistances
          fwet       ! fraction of canopy wet
 
-      REAL, DIMENSION(:,:), ALLOCATABLE ::                                         &
+      REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
          gswx,    & ! stom cond for water
          zetar      ! stability correction
 
-      REAL(r_2), DIMENSION(:), ALLOCATABLE ::                                      &
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
          fess,    & ! latent heatfl from soil (W/m2)
          fesp,    & ! latent heatfl from soil (W/m2)
          dgdtg,   & ! derivative of gflux wrt soil temp
@@ -377,7 +377,7 @@ MODULE cable_def_types_mod
    ! Radiation variables:
    TYPE radiation_type
    
-      REAL, DIMENSION(:), ALLOCATABLE   ::                                         &
+      REAL, DIMENSION(:), POINTER   ::                                         &
          transb,  & ! fraction SW beam tranmitted through canopy
          albedo_T,& ! canopy+soil albedo for VIS+NIR
          longitude,&! longitude
@@ -394,7 +394,7 @@ MODULE cable_def_types_mod
          transd,  & ! frac SW diffuse transmitted through canopy
          trad       !  radiative temperature (soil and veg)
      
-      REAL, DIMENSION(:,:), ALLOCATABLE  ::                                        &
+      REAL, DIMENSION(:,:), POINTER  ::                                        &
          fvlai,   & ! leaf area index of big leaf
          rhocdf,  & ! canopy diffuse reflectance (-)
          rniso,   & ! sum(rad%qcan, 3) total abs by canopy (W/m2)
@@ -410,7 +410,7 @@ MODULE cable_def_types_mod
          rhocbm,  & ! modified canopy beam reflectance(6.21)
          gradis     ! radiative conductance
      
-      REAL, DIMENSION(:,:,:), ALLOCATABLE ::                                       &
+      REAL, DIMENSION(:,:,:), POINTER ::                                       &
          qcan ! absorbed radiation for canopy (W/m^2)
     
     
@@ -421,7 +421,7 @@ MODULE cable_def_types_mod
    ! Roughness variables:
    TYPE roughness_type
       
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          disp,    & ! zero-plane displacement
          hruff,   & ! canopy height above snow level
          hruff_grmx,&! max ht of canopy from tiles on same grid 
@@ -441,14 +441,14 @@ MODULE cable_def_types_mod
       ! "coexp": coefficient in exponential in-canopy wind profile
       ! U(z) = U(h)*exp(coexp*(z/h-1)), found by gradient-matching
       ! canopy and roughness-sublayer U(z) at z=h
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          coexp ! Extinction coef for wind profile in canopy
      
       ! "usuh": us/uh (us=friction velocity, uh = mean velocity at z=h)
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          usuh ! Friction velocity/windspeed at canopy height
    
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          term2, term3, term5, term6 ! for aerodyn resist. calc.
    
    END TYPE roughness_type
@@ -458,7 +458,7 @@ MODULE cable_def_types_mod
    ! Air variables:
    TYPE air_type
       
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          rho,     & ! dry air density (kg m-3)
          volm,    & ! molar volume (m3 mol-1)
          rlam,    & ! latent heat for water (j/kg)
@@ -476,11 +476,11 @@ MODULE cable_def_types_mod
    ! Meterological data:
    TYPE met_type
      
-      INTEGER, DIMENSION(:), ALLOCATABLE ::                                        &
+      INTEGER, DIMENSION(:), POINTER ::                                        &
          year,    & ! local time year AD 
          moy        ! local time month of year 
      
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          ca,      & ! CO2 concentration (mol/mol)
          doy,     & ! local time day of year = days since 0 hr 1st Jan 
          hod,     & ! local hour of day
@@ -499,7 +499,7 @@ MODULE cable_def_types_mod
          dva,     & ! in canopy water vap pressure deficit (Pa)
          coszen     ! cos(zenith angle of sun)
      
-      REAL, DIMENSION(:,:), ALLOCATABLE ::                                         &
+      REAL, DIMENSION(:,:), POINTER ::                                         &
          fsd  ! downward short-wave radiation (W/m2)
      
    END TYPE met_type
@@ -509,7 +509,7 @@ MODULE cable_def_types_mod
    ! Cumulative flux variables:
    TYPE sum_flux_type
      
-      REAL, DIMENSION(:), ALLOCATABLE ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          sumpn,   & ! sum of canopy photosynthesis (g C m-2)
          sumrp,   & ! sum of plant respiration (g C m-2)
          sumrpw,  & ! sum of plant respiration (g C m-2)
@@ -529,7 +529,7 @@ MODULE cable_def_types_mod
 
    TYPE bgc_pool_type
       
-      REAL, DIMENSION(:,:), ALLOCATABLE ::                                         &
+      REAL, DIMENSION(:,:), POINTER ::                                         &
          cplant,  & ! plant carbon (g C/m2))
          csoil      ! soil carbon (g C/m2)
      

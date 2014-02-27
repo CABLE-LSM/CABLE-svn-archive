@@ -96,17 +96,17 @@ MODULE cable_write_module
   ! e.g. 'o'utput 'tmp'orary with '2' dimensions: 'l'and and 't'ime -> otmp2lt
   ! Other dimension abbrevs: 'x','y','z','p'atch,'s'oil,'sn'ow,
   ! 'r'adiation,'p'lant 'c'arbon,'s'oil 'c'arbon,'s'urface 'f'raction
-  REAL, ALLOCATABLE, DIMENSION(:) :: otmp1, otmp1l
-  REAL, ALLOCATABLE, DIMENSION(:, :) :: otmp2lt, otmp2xy, otmp2lp, otmp2ls,   &
+  REAL, POINTER, DIMENSION(:) :: otmp1, otmp1l
+  REAL, POINTER, DIMENSION(:, :) :: otmp2lt, otmp2xy, otmp2lp, otmp2ls,   &
                                          otmp2lpc, otmp2lsc, otmp2lsf,         &
                                          otmp2lr, otmp2lsn
-  REAL, ALLOCATABLE, DIMENSION(:, :, :) :: otmp3xyt, otmp3lpt, otmp3lst,      &
+  REAL, POINTER, DIMENSION(:, :, :) :: otmp3xyt, otmp3lpt, otmp3lst,      &
                                             otmp3lsnt, otmp3lrt, otmp3lpct,    &
                                             otmp3lsct, otmp3xyp, otmp3xys,     &
                                             otmp3xypc, otmp3xysc, otmp3lps,    &
                                             otmp3lppc, otmp3lpsc, otmp3xysf,   &
                                             otmp3lpr, otmp3lpsn, otmp3xyr
-  REAL, ALLOCATABLE, DIMENSION(:, :, :, :) :: otmp4xypt, otmp4xyzt,           &
+  REAL, POINTER, DIMENSION(:, :, :, :) :: otmp4xypt, otmp4xyzt,           &
                                                otmp4xyst, otmp4xysnt,          &
                                                otmp4xyrt, otmp4xypct,          &
                                                otmp4xysct, otmp4lpst,          &
@@ -114,7 +114,7 @@ MODULE cable_write_module
                                                otmp4lpsct, otmp4lppct,         &
                                                otmp4xyps, otmp4xyppc,          &
                                                otmp4xypsc, otmp4xypr
-  REAL, ALLOCATABLE, DIMENSION(:, :, :, :, :) :: otmp5xypst, otmp5xypsnt,     &
+  REAL, POINTER, DIMENSION(:, :, :, :, :) :: otmp5xypst, otmp5xypsnt,     &
                                                   otmp5xyprt, otmp5xyppct,     &
                                                   otmp5xypsct
   REAL :: ncmissingr = -1.0e+33
@@ -154,7 +154,7 @@ CONTAINS
                                                       '(INTERFACE define_ovar)')
         ! If not already allocated, allocate a temporary storage variable
         ! of this dim:
-        IF(.NOT.ALLOCATED(otmp4xypt))                                         &
+        IF(.NOT.ASSOCIATED(otmp4xypt))                                         &
              ALLOCATE(otmp4xypt(xdimsize, ydimsize, max_vegpatches, 1))
       ELSE ! only grid point values, no patch-specific info
         ! If this is an ALMA 4D surface variable
@@ -165,14 +165,14 @@ CONTAINS
                             varID)
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF(.NOT.ALLOCATED(otmp4xyzt))                                       &
+          IF(.NOT.ASSOCIATED(otmp4xyzt))                                       &
              ALLOCATE(otmp4xyzt(xdimsize, ydimsize, 1, 1))
         ELSE ! normal x-y-t mask grid
           WRITE(logn, *) 'Writing '//vname//' to output file using mask grid'
           ok = NF90_DEF_VAR(ncid, vname, NF90_FLOAT, (/xID, yID, tID/), varID)
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF(.NOT.ALLOCATED(otmp3xyt))ALLOCATE(otmp3xyt(xdimsize, ydimsize, 1))
+          IF(.NOT.ASSOCIATED(otmp3xyt))ALLOCATE(otmp3xyt(xdimsize, ydimsize, 1))
         END IF
         IF (ok /= NF90_NOERR) CALL nc_abort                                    &
                  (ok, 'Error defining '//vname//' variable in output file. '// &
@@ -191,7 +191,7 @@ CONTAINS
                                                       '(INTERFACE define_ovar)')
         ! If not already allocated, allocate a temporary storage variable
         ! of this dim:
-        IF( .NOT. ALLOCATED(otmp3lpt)) ALLOCATE(otmp3lpt(mland,               &
+        IF( .NOT. ASSOCIATED(otmp3lpt)) ALLOCATE(otmp3lpt(mland,               &
                                                  max_vegpatches, 1))
       ELSE ! only grid point values, no patch-specific info
         WRITE(logn, *) 'Writing '//vname//' to output file using land grid'
@@ -201,7 +201,7 @@ CONTAINS
                                                       '(INTERFACE define_ovar)')
         ! If not already allocated, allocate a temporary storage variable
         ! of this dim:
-        IF( .NOT. ALLOCATED(otmp2lt)) ALLOCATE(otmp2lt(mland, 1))
+        IF( .NOT. ASSOCIATED(otmp2lt)) ALLOCATE(otmp2lt(mland, 1))
       END IF
     ELSE
       CALL abort('Unknown grid specification (INTERFACE define_ovar)')
@@ -263,28 +263,28 @@ CONTAINS
         IF(dimswitch == 'soil') THEN ! other dim is soil
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp5xypst))                                    &
+          IF( .NOT. ASSOCIATED(otmp5xypst))                                    &
                  ALLOCATE(otmp5xypst(xdimsize, ydimsize, max_vegpatches, ms, 1))
         ELSE IF(dimswitch == 'snow') THEN ! other dim is snow
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp5xypsnt))                                   &
+          IF( .NOT. ASSOCIATED(otmp5xypsnt))                                   &
                ALLOCATE(otmp5xypsnt(xdimsize, ydimsize, max_vegpatches, msn, 1))
         ELSE IF(dimswitch == 'radiation') THEN ! other dim is radiation bands
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp5xyprt))                                    &
+          IF( .NOT. ASSOCIATED(otmp5xyprt))                                    &
                 ALLOCATE(otmp5xyprt(xdimsize, ydimsize, max_vegpatches, nrb, 1))
         ELSE IF(dimswitch == 'plantcarbon') THEN ! other dim is plant carbon
                                                  ! pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp5xyppct))                                   &
+          IF( .NOT. ASSOCIATED(otmp5xyppct))                                   &
                ALLOCATE(otmp5xyppct(xdimsize, ydimsize, max_vegpatches, ncp, 1))
         ELSE IF(dimswitch == 'soilcarbon') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp5xypsct))                                   &
+          IF( .NOT. ASSOCIATED(otmp5xypsct))                                   &
                ALLOCATE(otmp5xypsct(xdimsize, ydimsize, max_vegpatches, ncs, 1))
         ELSE
           CALL abort('Variable '//vname//                                      &
@@ -301,28 +301,28 @@ CONTAINS
         IF(dimswitch == 'soil') THEN ! other dim is soil
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xyst))                                     &
+          IF( .NOT. ASSOCIATED(otmp4xyst))                                     &
                                   ALLOCATE(otmp4xyst(xdimsize, ydimsize, ms, 1))
         ELSE IF(dimswitch == 'snow') THEN ! other dim is snow
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xysnt))                                    &
+          IF( .NOT. ASSOCIATED(otmp4xysnt))                                    &
                                 ALLOCATE(otmp4xysnt(xdimsize, ydimsize, msn, 1))
         ELSE IF(dimswitch == 'radiation') THEN ! other dim is radiation bands
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xyrt))                                     &
+          IF( .NOT. ASSOCIATED(otmp4xyrt))                                     &
                                  ALLOCATE(otmp4xyrt(xdimsize, ydimsize, nrb, 1))
         ELSE IF(dimswitch == 'plantcarbon') THEN ! other dim is plant carbon
                                                  ! pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xypct))                                    &
+          IF( .NOT. ASSOCIATED(otmp4xypct))                                    &
                                 ALLOCATE(otmp4xypct(xdimsize, ydimsize, ncp, 1))
         ELSE IF(dimswitch == 'soilcarbon') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xysct))                                    &
+          IF( .NOT. ASSOCIATED(otmp4xysct))                                    &
                                 ALLOCATE(otmp4xysct(xdimsize, ydimsize, ncs, 1))
         ELSE
           CALL abort('Variable '//vname//                                      &
@@ -347,28 +347,28 @@ CONTAINS
         IF(dimswitch == 'soil') THEN ! other dim is soil
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4lpst))                                     &
+          IF( .NOT. ASSOCIATED(otmp4lpst))                                     &
                                ALLOCATE(otmp4lpst(mland, max_vegpatches, ms, 1))
         ELSE IF(dimswitch == 'snow') THEN ! other dim is snow
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xysnt))                                    &
+          IF( .NOT. ASSOCIATED(otmp4xysnt))                                    &
                              ALLOCATE(otmp4xysnt(mland, max_vegpatches, msn, 1))
         ELSE IF(dimswitch == 'radiation') THEN ! other dim is radiation bands
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xyrt))                                     &
+          IF( .NOT. ASSOCIATED(otmp4xyrt))                                     &
                               ALLOCATE(otmp4xyrt(mland, max_vegpatches, nrb, 1))
         ELSE IF(dimswitch == 'plantcarbon') THEN ! other dim is plant carbon
                                                  ! pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xypct))                                    &
+          IF( .NOT. ASSOCIATED(otmp4xypct))                                    &
                              ALLOCATE(otmp4xypct(mland, max_vegpatches, ncp, 1))
         ELSE IF(dimswitch == 'soilcarbon') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp4xysct))                                    &
+          IF( .NOT. ASSOCIATED(otmp4xysct))                                    &
                              ALLOCATE(otmp4xysct(mland, max_vegpatches, ncs, 1))
         ELSE
           CALL abort('Variable '//vname//                                      &
@@ -385,24 +385,24 @@ CONTAINS
         IF(dimswitch == 'soil') THEN ! other dim is soil
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp3lst)) ALLOCATE(otmp3lst(mland, ms, 1))
+          IF( .NOT. ASSOCIATED(otmp3lst)) ALLOCATE(otmp3lst(mland, ms, 1))
         ELSE IF(dimswitch == 'snow') THEN ! other dim is snow
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp3lsnt)) ALLOCATE(otmp3lsnt(mland, msn, 1))
+          IF( .NOT. ASSOCIATED(otmp3lsnt)) ALLOCATE(otmp3lsnt(mland, msn, 1))
         ELSE IF(dimswitch == 'radiation') THEN ! other dim is radiation bands
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp3lrt)) ALLOCATE(otmp3lrt(mland, nrb, 1))
+          IF( .NOT. ASSOCIATED(otmp3lrt)) ALLOCATE(otmp3lrt(mland, nrb, 1))
         ELSE IF(dimswitch == 'plantcarbon') THEN ! other dim is plant carbon
                                                  ! pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF(.NOT.ALLOCATED(otmp3lpct)) ALLOCATE(otmp3lpct(mland, ncp, 1))
+          IF(.NOT.ASSOCIATED(otmp3lpct)) ALLOCATE(otmp3lpct(mland, ncp, 1))
         ELSE IF(dimswitch == 'soilcarbon') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ALLOCATED(otmp3lsct)) ALLOCATE(otmp3lsct(mland, ncs, 1))
+          IF( .NOT. ASSOCIATED(otmp3lsct)) ALLOCATE(otmp3lsct(mland, ncs, 1))
         ELSE
           CALL abort('Variable '//vname//                                      &
                       ' defined with unknown dimension switch - '//dimswitch// &
@@ -474,7 +474,7 @@ CONTAINS
                                       '(SUBROUTINE define_output_parameter_r1)')
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF(.NOT. ALLOCATED(otmp3xyp))                                       &
+          IF(.NOT. ASSOCIATED(otmp3xyp))                                       &
                           ALLOCATE(otmp3xyp(xdimsize, ydimsize, max_vegpatches))
        ELSE ! only grid point values, no patch-specific info 
           WRITE(logn, *) 'Writing '//pname//' to output file using mask grid'
@@ -485,7 +485,7 @@ CONTAINS
           END IF
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF(.NOT. ALLOCATED(otmp2xy)) ALLOCATE(otmp2xy(xdimsize, ydimsize))
+          IF(.NOT. ASSOCIATED(otmp2xy)) ALLOCATE(otmp2xy(xdimsize, ydimsize))
           IF (ok /= NF90_NOERR) CALL nc_abort                                  &
                  (ok, 'Error defining '//pname//' variable in output file. '// &
                                       '(SUBROUTINE define_output_parameter_r1)')
@@ -514,7 +514,7 @@ CONTAINS
                                       '(SUBROUTINE define_output_parameter_r1)')
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF(.NOT. ALLOCATED(otmp2lp)) ALLOCATE(otmp2lp(mland, max_vegpatches))
+          IF(.NOT. ASSOCIATED(otmp2lp)) ALLOCATE(otmp2lp(mland, max_vegpatches))
        ELSE ! only grid point values without patch-specific info UNLESS a 
           ! restart variable
           ! Restart file definitions will be directed to this part of interface.
@@ -533,7 +533,7 @@ CONTAINS
                         'restart file. (SUBROUTINE define_output_parameter_r1)')
           ! If not already allocated, allocate a temporary storage variable
           ! of this dimension structure:
-          IF(.NOT. ALLOCATED(otmp1l)) ALLOCATE(otmp1l(mland))
+          IF(.NOT. ASSOCIATED(otmp1l)) ALLOCATE(otmp1l(mland))
        END IF
     ELSE
        CALL abort('Unknown grid specification '//                              &
@@ -616,16 +616,16 @@ CONTAINS
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
           IF(dimswitch == 'soil' .OR. dimswitch == 'r2soil') THEN
-             IF(.NOT. ALLOCATED(otmp4xyps))                                   &
+             IF(.NOT. ASSOCIATED(otmp4xyps))                                   &
                      ALLOCATE(otmp4xyps(xdimsize, ydimsize, max_vegpatches, ms))
           ELSE IF(dimswitch == 'plantcarbon') THEN
-             IF(.NOT. ALLOCATED(otmp4xyppc))                                  &
+             IF(.NOT. ASSOCIATED(otmp4xyppc))                                  &
                    ALLOCATE(otmp4xyppc(xdimsize, ydimsize, max_vegpatches, ncp))
           ELSE IF(dimswitch == 'soilcarbon') THEN
-             IF(.NOT. ALLOCATED(otmp4xypsc))                                  &
+             IF(.NOT. ASSOCIATED(otmp4xypsc))                                  &
                    ALLOCATE(otmp4xypsc(xdimsize, ydimsize, max_vegpatches, ncs))
           ELSE IF(dimswitch == 'radiation') THEN
-             IF(.NOT. ALLOCATED(otmp4xypr))                                   &
+             IF(.NOT. ASSOCIATED(otmp4xypr))                                   &
                     ALLOCATE(otmp4xypr(xdimsize, ydimsize, max_vegpatches, nrb))
           END IF
        ELSE ! only grid point values, no patch-specific info 
@@ -635,19 +635,19 @@ CONTAINS
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
           IF(dimswitch == 'soil' .OR. dimswitch == 'r2soil') THEN
-             IF(.NOT. ALLOCATED(otmp3xys)) ALLOCATE(otmp3xys(xdimsize,        &
+             IF(.NOT. ASSOCIATED(otmp3xys)) ALLOCATE(otmp3xys(xdimsize,        &
                                                               ydimsize, ms))
           ELSE IF(dimswitch == 'plantcarbon') THEN
-             IF(.NOT. ALLOCATED(otmp3xypc))                                   &
+             IF(.NOT. ASSOCIATED(otmp3xypc))                                   &
                                     ALLOCATE(otmp3xypc(xdimsize, ydimsize, ncp))
           ELSE IF(dimswitch == 'soilcarbon') THEN
-             IF(.NOT. ALLOCATED(otmp3xysc))                                   &
+             IF(.NOT. ASSOCIATED(otmp3xysc))                                   &
                                     ALLOCATE(otmp3xysc(xdimsize, ydimsize, ncs))
           ELSE IF(dimswitch == 'radiation') THEN
-             IF(.NOT. ALLOCATED(otmp3xyr))                                    &
+             IF(.NOT. ASSOCIATED(otmp3xyr))                                    &
                                      ALLOCATE(otmp3xyr(xdimsize, ydimsize, nrb))
           ELSE IF(dimswitch == 'surftype') THEN
-             IF(.NOT. ALLOCATED(otmp3xysf)) ALLOCATE(otmp3xysf(xdimsize,      &
+             IF(.NOT. ASSOCIATED(otmp3xysf)) ALLOCATE(otmp3xysf(xdimsize,      &
                                                       ydimsize, 4))
           END IF
           IF (ok /= NF90_NOERR) CALL nc_abort                                  &
@@ -678,19 +678,19 @@ CONTAINS
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
           IF(dimswitch == 'soil' .OR. dimswitch == 'r2soil') THEN
-             IF(.NOT. ALLOCATED(otmp3lps)) ALLOCATE(otmp3lps(mland,           &
+             IF(.NOT. ASSOCIATED(otmp3lps)) ALLOCATE(otmp3lps(mland,           &
                                                      max_vegpatches, ms))
           ELSE IF(dimswitch == 'plantcarbon') THEN
-             IF(.NOT. ALLOCATED(otmp3lppc))                                   &
+             IF(.NOT. ASSOCIATED(otmp3lppc))                                   &
                                  ALLOCATE(otmp3lppc(mland, max_vegpatches, ncp))
           ELSE IF(dimswitch == 'soilcarbon') THEN
-             IF(.NOT. ALLOCATED(otmp3lpsc))                                   &
+             IF(.NOT. ASSOCIATED(otmp3lpsc))                                   &
                                  ALLOCATE(otmp3lpsc(mland, max_vegpatches, ncs))
           ELSE IF(dimswitch == 'radiation') THEN
-             IF(.NOT. ALLOCATED(otmp3lpr))                                    &
+             IF(.NOT. ASSOCIATED(otmp3lpr))                                    &
                                   ALLOCATE(otmp3lpr(mland, max_vegpatches, nrb))
           ELSE IF(dimswitch == 'snow') THEN
-             IF(.NOT. ALLOCATED(otmp3lpsn))                                   &
+             IF(.NOT. ASSOCIATED(otmp3lpsn))                                   &
                                  ALLOCATE(otmp3lpsn(mland, max_vegpatches, msn))
           END IF
        ELSE ! variable has no explicit patch dimension (incl. restart file)
@@ -710,17 +710,17 @@ CONTAINS
           ! If not already allocated, allocate a temporary storage variable
           ! of this dimension structure:
           IF(dimswitch=='soil'.OR.dimswitch=='r2soil') THEN
-             IF(.NOT.ALLOCATED(otmp2ls)) ALLOCATE(otmp2ls(mland,ms))
+             IF(.NOT.ASSOCIATED(otmp2ls)) ALLOCATE(otmp2ls(mland,ms))
           ELSE IF(dimswitch=='plantcarbon') THEN
-             IF(.NOT.ALLOCATED(otmp2lpc)) ALLOCATE(otmp2lpc(mland,ncp))
+             IF(.NOT.ASSOCIATED(otmp2lpc)) ALLOCATE(otmp2lpc(mland,ncp))
           ELSE IF(dimswitch=='soilcarbon') THEN
-             IF(.NOT.ALLOCATED(otmp2lsc)) ALLOCATE(otmp2lsc(mland,ncs))
+             IF(.NOT.ASSOCIATED(otmp2lsc)) ALLOCATE(otmp2lsc(mland,ncs))
           ELSE IF(dimswitch=='radiation') THEN 
-             IF(.NOT.ALLOCATED(otmp2lr)) ALLOCATE(otmp2lr(mland,nrb))
+             IF(.NOT.ASSOCIATED(otmp2lr)) ALLOCATE(otmp2lr(mland,nrb))
           ELSE IF(dimswitch=='snow') THEN 
-             IF(.NOT.ALLOCATED(otmp2lsn)) ALLOCATE(otmp2lsn(mland,msn))
+             IF(.NOT.ASSOCIATED(otmp2lsn)) ALLOCATE(otmp2lsn(mland,msn))
           ELSE IF(dimswitch=='surftype') THEN
-             IF(.NOT.ALLOCATED(otmp2lsf)) ALLOCATE(otmp2lsf(mland,4))
+             IF(.NOT.ASSOCIATED(otmp2lsf)) ALLOCATE(otmp2lsf(mland,4))
           END IF
        END IF
     ELSE
@@ -1688,7 +1688,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
 
     INTEGER :: i, j ! do loop counter
-    REAL(r_2), ALLOCATABLE, DIMENSION(:, :) :: tmpout
+    REAL(r_2), POINTER, DIMENSION(:, :) :: tmpout
     
     IF(PRESENT(restart)) THEN ! If writing to a a restart file
        ! Write parameter data:
@@ -2307,7 +2307,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
 
     INTEGER :: i,j ! do loop counter
-    REAL(r_2),ALLOCATABLE,DIMENSION(:,:,:) :: tmpout
+    REAL(r_2),POINTER,DIMENSION(:,:,:) :: tmpout
 
     ! Check the nature of the parameter's second dimension:
     IF(dimswitch == 'soil') THEN ! i.e. spatial and soil
