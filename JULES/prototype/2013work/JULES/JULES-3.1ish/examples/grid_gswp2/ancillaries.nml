@@ -1,0 +1,32 @@
+&JULES_FRAC
+  file      = "/path/to/gswp2/ancil/qrparm_frac_vector.nc",
+  frac_name = 'field1391'
+/
+
+&JULES_SOIL_PARAM
+  zsmc    = 1.0,
+  zst     = 1.0,
+  confrac = 0.3,
+  
+  dzsoil_io = 0.1  0.25  0.65  2.0
+/
+
+&JULES_SOIL_PROPS
+  const_z = T,
+
+  file = "/path/to/gswp2/ancil/qrparm_soil_vector.nc",
+
+  nvars = 9,
+  var      =         'b'    'sathh'   'satcon'   'sm_sat'  'sm_crit'  'sm_wilt'     'hcap'     'hcon'   'albsoil',
+  var_name = 'field1381' 'field342' 'field333' 'field332' 'field330' 'field329' 'field335' 'field336' 'field1395'
+/
+
+# LSH namelists are not needed
+&JULES_PDM /
+&JULES_TOP /
+
+# No agricultural fraction
+&JULES_AGRIC
+  zero_agric = T
+/
+

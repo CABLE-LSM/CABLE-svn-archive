@@ -1,0 +1,13 @@
+&JULES_TIME
+  timestep_len = 3600,
+  
+  main_run_start = '1860-01-01 00:00:00',
+  main_run_end   = '1871-01-01 00:00:00',
+
+  phenol_period  = 10,
+  triffid_period = 360
+/
+
+&JULES_SPINUP
+  max_spinup_cycles = 0
+/

@@ -1,0 +1,32 @@
+# Our ancillary files use all the default names for dimensions
+&JULES_INPUT_GRID
+  nx = 96,
+  ny = 56
+/
+
+&JULES_LATLON
+  file = "../../data/jules/grid_info.nc",
+
+  lat_name = "latitude",
+  lon_name = "longitude"
+/
+
+&JULES_LAND_FRAC
+  file = "../../data/jules/grid_info.nc",
+  
+  land_frac_name = "land_fraction"
+/
+
+# We select 5 points to run
+&JULES_MODEL_GRID
+  use_subgrid = T,
+  
+  latlon_region = F,
+  
+  npoints = 5,
+  points_file = "../points.dat"
+/
+
+&JULES_SURF_HGT
+  zero_height = T
+/
