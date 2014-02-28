@@ -9,8 +9,8 @@ cd ../CABLE-JULES/JULES/
 ./build.ksh
 
 cd .tmp/
-/bin/cp *.o ../../../JULES-CABLE/
-/bin/cp *.mod ../../../JULES-CABLE/mods
+/bin/cp *.o ../../../../JULES/JULES-CABLE/
+/bin/cp *.mod ../../../../JULES/JULES-CABLE/mods
 
 cd $cwd
 
