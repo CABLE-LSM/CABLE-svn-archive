@@ -95,7 +95,7 @@ USE c_0_dg_c
 USE surf_param, ONLY : ls, ip_scrndecpl2
 USE switches  , ONLY : l_aggregate                                &
                       ,l_flake_model, l_tstar_sice_new            &
-                      ,l_cable
+                      ,L_cable
 USE nstypes   , ONLY : lake
 USE lake_mod  , ONLY : surf_ht_flux_lake                          &
                       ,lake_h_ice
@@ -870,9 +870,9 @@ IF ( .NOT. l_correct ) THEN
       ftl_tile(l,n) = cp*ftl_tile(l,n)
     END DO
   END DO
-iF( l_cable ) &
+
 CALL cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       &
-                                  DTL_1,DQW_1, T_SOIL, TSOIL_TILE, SMCL,       &
+                                  DTL_1,DQW_1, T_SOIL, TSOIL_TILE, SMCL,        &
                                   SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
                                   ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
@@ -915,7 +915,6 @@ CALL cable_implicit_driver( LS_RAIN, CONV_RAIN, LS_SNOW, CONV_SNOW,       &
     DO k=1,tile_pts(n)
       l = tile_index(k,n)
       tstar_tile_old(l,n) = tstar_tile(l,n)
-IF( .NOT. l_cable ) &
       tstar_tile(l,n) = tstar_tile_old(l,n) + dtstar_tile(l,n)
     END DO
   END DO
@@ -925,7 +924,6 @@ IF( .NOT. l_cable ) &
 !! 7.  Surface evaporation components and updating of surface
 !!     temperature (P245, routine SF_EVAP).
 !-----------------------------------------------------------------------
-IF( .NOT. l_cable ) &
 ! DEPENDS ON: sf_evap
   CALL sf_evap (                                                  &
     land_pts,ntiles,                                              &
