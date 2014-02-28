@@ -242,6 +242,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 !       
       cable_runtime%um_implicit = .FALSE.
   
+print *, "jhan: end cable_IMplicit"
+
 END SUBROUTINE cable_implicit_driver
 
 

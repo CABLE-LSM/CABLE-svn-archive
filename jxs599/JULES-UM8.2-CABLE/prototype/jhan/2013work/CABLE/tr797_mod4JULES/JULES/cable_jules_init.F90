@@ -263,7 +263,6 @@ SUBROUTINE explicit_call_initialization(                                       &
       
          L_TILE_PTS = .FALSE.
          mp = SUM(TILE_PTS)
-print *, "jhan: mp", mp
          
          CALL alloc_cable_types()
          

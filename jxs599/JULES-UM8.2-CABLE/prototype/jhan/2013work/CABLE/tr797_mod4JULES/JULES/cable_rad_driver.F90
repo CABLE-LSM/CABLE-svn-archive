@@ -165,6 +165,7 @@ SUBROUTINE cable_rad_driver(                                                   &
 
       cable_runtime%um_radiation= .FALSE.
 
+print *, "jhan: end cable_rad "      
 END SUBROUTINE cable_rad_driver
 
      

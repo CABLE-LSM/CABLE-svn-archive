@@ -390,7 +390,7 @@
    !--- first time step of each run. these variables are read at 
    !--- runtime and for the most part do not require a model rebuild.
    
-   !cable_runtime%um = .TRUE. 
+   cable_runtime%um = .TRUE. 
    cable_runtime%um_explicit = .TRUE. 
    
    IF(first_call) THEN
@@ -469,6 +469,18 @@
             tsoil_tile     & ! -> ssnow%tgg
    )                         
 
+
+   canopy%oldcansto=canopy%cansto
+
+   !---------------------------------------------------------------------!
+   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
+   !--- req'd by Mk3L  --------------------------------------------------!
+   !---------------------------------------------------------------------!
+   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg )
+
+
+
   CALL cable_expl_unpack( FTL_TILE, FQW_TILE,       &
                            TSTAR_TILE, &
                            U_S, U_S_STD_TILE, &
@@ -481,6 +493,7 @@
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
 
+print *, "jhan: end cable_explicit"
 
 END SUBROUTINE cable_explicit
 
