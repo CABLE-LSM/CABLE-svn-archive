@@ -1,0 +1,9 @@
+# Initial conditions must be in the same order they are defined here in the file
+&JULES_INITIAL
+  file = "data/initial_conditions.dat",
+  
+  nvars = 11,
+  var       = 'canopy'  'tstar_tile'  'gs'  'rgrain'  'sthuf'  't_soil'  'snow_tile'  'cs'  'frac'  'canht'  'lai',
+  use_file  =       F             F     F         F        T         T            T     T       T        T      T,
+  const_val =     0.0        276.78   0.0      50.0
+/

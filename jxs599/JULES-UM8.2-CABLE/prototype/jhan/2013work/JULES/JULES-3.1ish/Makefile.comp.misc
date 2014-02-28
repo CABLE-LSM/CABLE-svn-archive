@@ -1,0 +1,39 @@
+#########################################################################
+## Compiler specific variables for a miscellaneous compiler.           ##
+##                                                                     ##
+## FC       = Fortran compiler command                                 ##
+## CC       = C compiler command                                       ##
+## CPP      = C++ compiler command                                     ##
+## FPP      = Flag for enabling pre-processor                          ##
+## FPP_FDEF = Flag for defining pre-processor variables                ##
+## FPP_INC  = Flag for adding pre-processor include search paths       ##
+## FF_RUN   = Compiler flags for normal operation.                     ##
+## FF_DBG   = Compiler flags for debugging.                            ##
+## FF_FAST  = Compiler flags for optimised performance.                ##
+## FF_CON   = Compiler flags for Condor.                               ##
+## LIB_INC  = Flag for adding library search paths.                    ##
+## LIB_PRE  = Flag for linking a specific library.                     ##
+## LIB_FPRE = Prefix common to all library archive filenames.          ##
+## LIB_FSUF = Suffix/extension common to all library archive filenames.##
+## LINKER   = Fortran compiler command for the linking (loader) stage  ##
+## MOD_INC  = Flag for adding Fortran 90 module search paths.          ##
+## MOD_FSUF = Suffix/extension common to all Fortran 90 modules        ##
+#########################################################################
+FC=@@
+CC=@@
+CPP=@@
+FPP=@@
+FPP_FDEF=@@
+FPP_INC=@@
+FF_RUN=@@
+FF_DBG=@@
+FF_FAST=@@
+FF_CON=@@
+LIB_INC=@@
+LIB_PRE=@@
+LIB_FPRE=@@
+LIB_FSUF=@@
+LINKER=@@
+MOD_PUT=@@
+MOD_INC=@@
+MOD_FSUF=@@

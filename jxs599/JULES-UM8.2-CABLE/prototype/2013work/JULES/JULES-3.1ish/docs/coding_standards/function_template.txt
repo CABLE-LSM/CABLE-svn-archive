@@ -1,0 +1,47 @@
+< Appropriate copyright notice >
+
+! < One line description of this function >
+
+  < Function return type > FUNCTION < name(InputArguments) >
+
+< Module imports >
+
+  IMPLICIT NONE
+
+!
+! Description:
+!   < Say what this function does >
+!
+! Method:
+!   < Say how it does it: include references to external documentation >
+!   < If this function is very complex, then include a "pseudo code"
+!     description of it to make its structure and method clear >
+!
+! Current Code Owner: < Name of person responsible for this code >
+!
+! Code Description:
+!   Language: Fortran 90.
+!   This code is written to JULES coding standards v1.
+!
+
+! Function arguments
+< Scalar arguments with INTENT(IN) >
+
+< Array arguments with INTENT(IN) >
+
+! Local constants
+< Local parameters >
+
+! Local variables
+< Scalar local variables >
+
+< Array local variables >
+
+! External declarations
+< Declare external procedures and functions using EXTERNAL >
+
+! End of header
+
+< Executable code >
+
+  END FUNCTION <name>

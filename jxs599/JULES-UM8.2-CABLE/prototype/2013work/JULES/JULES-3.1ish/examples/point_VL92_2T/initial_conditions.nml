@@ -1,0 +1,8 @@
+# All variables are set to constant values for all levels
+&JULES_INITIAL
+  use_file = F F F F F F F F,
+  
+  nvars = 8,
+  var       = 'canopy'  'tstar_tile'   'cs'  'gs'  'rgrain'  'sthuf'  't_soil'  'snow_tile',
+  const_val =     0.0         300.0   12.1   0.0      50.0      0.3     300.0          0.0
+/

@@ -1,0 +1,55 @@
+< Appropriate copyright notice >
+
+! < One line description of this subroutine >
+
+  SUBROUTINE < name(InputArguments, InOutArguments, OutputArguments) >
+
+< Module imports >
+
+  IMPLICIT NONE
+
+!
+! Description:
+!   < Say what this routine does >
+!
+! Method:
+!   < Say how it does it: include references to external documentation >
+!   < If this routine is very complex, then include a "pseudo code"
+!     description of it to make its structure and method clear >
+!
+! Current Code Owner: < Name of person responsible for this code >
+!
+! Code Description:
+!   Language: Fortran 90.
+!   This code is written to JULES coding standards v1.
+!
+
+! Subroutine arguments
+< Scalar arguments with INTENT(IN) >
+
+< Array arguments with INTENT(IN) >
+
+< Scalar arguments with INTENT(INOUT) >
+
+< Array arguments with INTENT(INOUT) >
+
+< Scalar arguments with INTENT(OUT)>
+
+< Array arguments with INTENT(OUT)>
+
+! Local constants
+< Local parameters >
+
+! Local variables
+< Scalar local variables >
+
+< Array local variables >
+
+! External declarations
+< Declare external procedures and functions using EXTERNAL >
+
+! End of header
+
+< Executable code >
+
+  END SUBROUTINE <name>

@@ -1,0 +1,32 @@
+# Our input data is on a 1d grid
+# Our ancillaries and initial conditions use the default names for
+# vertical dimensions (type, pft, etc.)
+&JULES_INPUT_GRID
+  grid_is_1d = T,
+  
+  grid_dim_name = 'land',
+  npoints = 15238,
+  
+  time_dim_name = 'tstep'
+/
+
+&JULES_LATLON
+  file = '/path/to/gswp2/ancil/lsmask_vector.nc',
+  
+  lat_name = 'Latitude',
+  lon_name = 'Longitude'
+/
+
+&JULES_LAND_FRAC
+  file = '/path/to/gswp2/ancil/lsmask_vector.nc',
+  
+  land_frac_name = 'lsmask'
+/
+
+# We do not want to specify a subgrid of the input grid to run on, so nothing to do
+&JULES_MODEL_GRID /
+
+&JULES_SURF_HGT
+  zero_height = T
+/
+

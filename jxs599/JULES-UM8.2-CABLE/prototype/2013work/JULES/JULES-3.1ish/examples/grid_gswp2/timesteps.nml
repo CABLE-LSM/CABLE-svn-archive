@@ -1,0 +1,15 @@
+&JULES_TIME
+  timestep_len = 3600,
+  
+  main_run_start = '1982-07-01 03:00:00',
+  main_run_end   = '1982-07-07 03:00:00',
+
+  phenol_period  = 1,
+  triffid_period = 1
+/
+
+# No spinup
+&JULES_SPINUP
+  max_spinup_cycles = 0
+/
+

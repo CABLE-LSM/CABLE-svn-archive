@@ -1,0 +1,24 @@
+&URBAN_SWITCHES
+  l_moruses = F,
+
+  l_moruses_albedo       = T,
+  l_moruses_emissivity   = T,
+  l_moruses_rough        = T,
+  l_moruses_storage      = T,
+  l_moruses_storage_thin = T,
+  l_moruses_macdonald    = T,
+  l_urban_empirical      = F
+/
+
+# The only member of urban2t_param is anthrop_heat_scale, which we are not
+# changing from the default
+&URBAN2T_PARAM /
+
+# For Urban 2T (rather than MORUSES), only wrr is required
+&URBAN_PROPERTIES
+  nvars = 1,
+  
+  var       = 'wrr',
+  use_file  = F,
+  const_val = 0.4631579
+/

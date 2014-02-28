@@ -1,0 +1,7 @@
+# We are prescribing monthly varying lai as a climatology (the same data every year)
+
+&JULES_PRESCRIBED
+  n_datasets = 0
+/
+
+

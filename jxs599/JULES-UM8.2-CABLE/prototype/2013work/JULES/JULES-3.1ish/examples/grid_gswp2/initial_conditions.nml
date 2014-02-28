@@ -1,0 +1,9 @@
+# All variables are being initialised to constant values
+&JULES_INITIAL
+  use_file = F F F F F F F F,
+  
+  nvars = 8,
+  var       = 'canopy'  'tstar_tile'   'cs'  'gs'  'rgrain'  'snow_tile'  'sthuf'  't_soil',
+  const_val =     0.0         275.0   10.0   0.0      50.0         0.75     0.75     278.0
+/
+

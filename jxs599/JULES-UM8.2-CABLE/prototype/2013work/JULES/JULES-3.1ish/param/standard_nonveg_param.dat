@@ -1,0 +1,15 @@
+ 'urban',  'lake', 'soil',  'ice'  !  nvgName
+    0.40,    0.80,   0.80,   0.80  !  albsnc_nvg
+    0.18,    0.06,  -1.00,   0.75  !  albsnf_nvg
+    0.50,    0.00,   0.00,   0.00  !  catch_nvg
+    0.00,    0.00,   1E-2,    1E6  !  gs_nvg
+    0.10,    0.00,   0.50,   0.00  !  infil_nvg
+    1.00,    3E-4,   3E-4,   1E-4  !  z0_nvg
+     0.1,     0.1,    0.1,    0.1  !  z0h_z0m
+  0.28E6, 2.11e7,   0.00,  0.00    !  ch_nvg
+   1.00,    1.00,   0.00,  0.00    !  vf_nvg
+   1.00,    1.00,   1.00,  1.00    !  emis_nvg
+
+
+# This file contains "standard" values of parameters for 4 non-vegetation surface types,
+# and can be read by the JULES model.
