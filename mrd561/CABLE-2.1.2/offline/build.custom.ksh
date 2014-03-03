@@ -11,7 +11,7 @@ host_ccrc()
    export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
    export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fp-model precise'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
    fi
