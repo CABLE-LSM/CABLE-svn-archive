@@ -1322,7 +1322,7 @@ USE cable_common_module
  
   !Local vars 
   REAL(r_2), DIMENSION(mp,ms)   :: dzmm,tmp_def
-  REAL(r_2), DIMENSION(ms+1)          :: zimm
+  REAL(r_2), DIMENSION(0:ms)          :: zimm
   REAL(r_2), DIMENSION(ms)            :: zmm
   REAL(r_2), DIMENSION(mp)      :: GWzimm,temp
   REAL(r_2), DIMENSION(mp)      :: def,defc     
@@ -1340,7 +1340,9 @@ USE cable_common_module
   Nsmpsat(:) = soil%smpsat(:,ms)                            !psi_saturated mm
   dzmm(:,:)  = spread((soil%zse(:)) * 1000.0,1,mp)    !layer thickness mm
   zimm(0)    = 0.0_r_2                                      !depth of layer interfaces mm
-  zimm(1:ms) = zimm(0:ms-1) + real(dzmm(1,1:ms),r_2)
+  do k=1,ms
+    zimm(k) = zimm(k-1) + soil%zse(k)*1000.0
+  end do
   
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1.0-invB(:))* &
     (1.0-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1.0-invB(:))))             !def if wtd=zimm(ms)
