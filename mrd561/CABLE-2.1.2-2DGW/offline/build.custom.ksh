@@ -13,7 +13,7 @@ host_ccrc()
    export FC=ifort
    export CFLAGS='-O3 -fp-model precise -ftz -fpe0 -xavx -parallel  -par-report1  -lpthread -heap-arrays'
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib  -O2 -openmp'
+   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib  -O3 -openmp'
    build_build
    cd ../
    build_status
