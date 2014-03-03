@@ -11,7 +11,7 @@ host_ccrc()
    export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
    export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O3 -fp-model precise -ftz -fpe0 -xavx -parallel  -par-report1  -lpthread -heap-arrays'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fp-model precise'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib  -O3 -openmp'
    build_build
@@ -25,7 +25,7 @@ host_squa()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fpmodel precise'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
@@ -38,7 +38,7 @@ host_bliz()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fpmodel precise'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
@@ -51,7 +51,7 @@ host_mael()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -parallel  -par-report1'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fpmodel precise'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2 -openmp'
    build_build
@@ -65,7 +65,7 @@ host_mons()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fpmodel precise'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
