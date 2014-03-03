@@ -237,7 +237,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
 
 
    CALL point2constants( C )       !get density of ice and liq
-
+   !note the code currently assumes that denliq = denice = 1000.0
    IF (cable_runtime%run_gw_model) then
       IF(ktau==1) THEN
          ALLOCATE( bwb(mp,ms+1,2) )
@@ -298,7 +298,11 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    ! rml 28/2/11 ! BP changed rnof1+rnof2 to ssnow%runoff which also included rnof5
    ! which is used when nglacier=2 in soilsnow routines (BP feb2011)
    if (cable_runtime%run_gw_model .and. ktau > 1) then
-      bal%wbal = REAL(ssnow%wbtot)  !soil water balance found in soilsnow_GW
+      !below calcs the water balance using input/output of cable_soilsnow_GW only.  not entire model water balance
+      !bal%wbal = REAL(ssnow%wbtot)  !soil water balance found in soilsnow_GW
+      bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
+        - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
+        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
    else
       bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &

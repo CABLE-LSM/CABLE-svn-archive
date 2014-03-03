@@ -1989,27 +1989,23 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    ssnow%wblf   = max(0.01_r_2,ssnow%wbliq/soil%watsat)
    ssnow%wbfice = max(0.01_r_2,ssnow%wbice/soil%watsat)   
-
+   !initial water in the soil column
    wbtot_ic  = sum(ssnow%wbliq(:,:)*C%denliq*spread(soil%zse,1,mp),2) + &
                sum(ssnow%wbice(:,:)*C%denice*spread(soil%zse,1,mp),2) + &
                ssnow%GWwb(:)*soil%GWdz*C%denliq
                
    GWwb_ic = ssnow%GWwb
 
-
+   if (md_prin) write(*,*) 'call stepmv'
    CALL stempv(dels, canopy, ssnow, soil)
 
    if (md_prin) write(*,*) 'call snowcheck'  !MDeck
- 
    CALL snowcheck (dels, ssnow, soil, met )
 
-
    if (md_prin) write(*,*) 'snow density'  !MDeck
-
    CALL snowdensity (dels, ssnow, soil)
 
    if (md_prin) write(*,*) 'snow accum'  !MDeck
-
    CALL snow_accum (dels, canopy, met, ssnow, soil )
 
    if (md_prin) write(*,*) 'snow melt'  !MDeck
@@ -2045,11 +2041,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    ssnow%fwtop = (canopy%precis + ssnow%smelt)/dels   !water from canopy and snowmelt [mm/s]   
 
-
    if (md_prin) write(*,*) 'calc wtd'  !MDeck
-
    CALL calcwtd (ssnow, soil, ktau, md_prin)                  !update the wtd
-
 
    if (md_prin) write(*,*) 'ovrland flux'  !MDeck
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
@@ -2072,38 +2065,10 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       ssnow%rnof2 = MAX( 0.0, ssnow%rnof2 - ssnow%wb_lake )
    ENDWHERE    
 
-!   ssnow%sinfil = 0.0
-!   WHERE( veg%iveg == 16 )
-!   WHERE( veg%water_mask )
-!      ssnow%sinfil  = MIN( ssnow%rnof1, ssnow%wb_lake ) ! water that can beextracted friom the rnof1
-!      ssnow%rnof1   = MAX( 0.0, ssnow%rnof1 - ssnow%sinfil )
-!      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
-!      ssnow%sinfil  = MIN( ssnow%rnof2, ssnow%wb_lake ) ! water that can beextracted friom the rnof2
-!      ssnow%rnof2   = MAX( 0.0, ssnow%rnof2 - ssnow%sinfil )
-!      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
-!      xxx = MAX(0.0, (ssnow%wb(:,ms) - soil%sfc(:))*soil%zse(ms)*1000.0)
-!      ssnow%sinfil  = MIN( xxx, ssnow%wb_lake )
-!      ssnow%wb(:,ms) = ssnow%wb(:,ms) - ssnow%sinfil / (soil%zse(ms)*1000.0)
-!      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
-!      xxx = MAX(0.0, (ssnow%wb(:,ms) - .5*(soil%sfc +soil%swilt))*soil%zse(ms)*1000.0)
-!      ssnow%sinfil  = MIN( xxx, ssnow%wb_lake )
-!      ssnow%wb(:,ms) = ssnow%wb(:,ms) - ssnow%sinfil / (soil%zse(ms)*1000.0)
-!      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
-!   ENDWHERE
-
-!   wb_lake_T = sum( ssnow%wb_lake )
-!   rnof2_T = sum( ssnow%rnof2 )
-!   ratio = min( 1., wb_lake_T/max(rnof2_T,1.))
-!   ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
-!   ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
-
-
-   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff (inmm)
-
+   !ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff (inmm)
 
    if (md_prin) write(*,*) 'remove transp'      !MDeck
    CALL remove_trans(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer
-
 
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um) THEN
@@ -2114,28 +2079,21 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       canopy%fes = canopy%fes+canopy%fes_cor
    ENDIF
 
-   ssnow%smelt = ssnow%smelt/dels
+   ssnow%smelt = ssnow%smelt/dels    !change units to mm/s.  cable_driver then reverts back to mm
+   !ssnow%runoff = ssnow%runoff/dels  !change units to mm/s.  cable_driver then reverts back to mm
+                                     !rnof1 and rnof2 are already in mm/s
 
    ! Set weighted soil/snow surface temperature
    ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
-
+   !total water mass at the end of the soilsnow_GW routine
    ssnow%wbtot = sum(ssnow%wbliq(:,:)*C%denliq*spread(soil%zse,1,mp),2) + &
                  sum(ssnow%wbice(:,:)*C%denice*spread(soil%zse,1,mp),2) + &
                  ssnow%GWwb(:)*soil%GWdz*C%denliq
                  
    !for debug water balance.  del_wbtot = fluxes = infiltration [though-evap] - trans - qhorz drainage
-   del_wbtot   = dels * (ssnow%sinfil - canopy%fevc/C%HL - ssnow%rnof2/dels)
-
-   ssnow%wbtot = ssnow%wbtot-(wbtot_ic + del_wbtot)
-
-!    if (ktau .gt. 10) then
-!    do i=1,mp
-!       write(*,*) (ssnow%wbtot(i) - wbtot_ic(i)),del_wbtot(i)
-!    end do
-!     write(*,*) maxval(ssnow%wbtot-wbtot_ic - del_wbtot),&
-!                minval(ssnow%wbtot-wbtot_ic - del_wbtot)
-!    end if
-
+   del_wbtot   = dels * (ssnow%sinfil - canopy%fevc/C%HL - ssnow%rnof2)
+   !set below to keep track of water imbalance within the GW module explicitly.  also must change cable_checks
+   !ssnow%wbtot = ssnow%wbtot-(wbtot_ic + del_wbtot)
 
    if (md_prin) write(*,*) 'done with ss_GW'
 
