@@ -56,7 +56,8 @@ module cable_data_mod
          timestep_number,    & !
          mype
 
-      REAL, POINTER ::                                                      &
+      !REAL, POINTER ::                                                      &
+      integer, POINTER ::                                                      &
          timestep_width
       
       REAL, POINTER ::                                           &
@@ -137,8 +138,8 @@ module cable_data_mod
 
       INTEGER, DIMENSION(:,:), POINTER ::                                      &
          tile_index
-      
-      REAL, DIMENSION(:), POINTER :: &
+ 
+      REAL, DIMENSION(:,:), POINTER :: &
          bexp, & !
          hcon, & !
          satcon, & !
@@ -146,8 +147,19 @@ module cable_data_mod
          smvcst, & !
          smvcwt, & !
          smvccl, & !
+         !albsoil, &
+         CANOPY_GB
+      
+      REAL, DIMENSION(:), POINTER :: &
+!         bexp, & !
+!         hcon, & !
+!         satcon, & !
+!         sathh, & !
+!         smvcst, & !
+!         smvcwt, & !
+!         smvccl, & !
          albsoil, &
-         CANOPY_GB, &
+!         CANOPY_GB, &
          GS
       
       REAL, POINTER ::                                              &
@@ -159,6 +171,9 @@ module cable_data_mod
          sthf, &
          tot_alb
 
+      REAL, DIMENSION(:,:,:), POINTER :: &
+         land_alb
+      
       REAL, DIMENSION(:,:), POINTER :: &
          snow_tile, &
          vshr_land, &
@@ -166,12 +181,15 @@ module cable_data_mod
          pstar, &
          canht_ft, & !
          lai_ft,   & !
-         land_alb,   & !
+         !land_alb,   & !
          canopy
+
+      REAL, DIMENSION(:), POINTER :: &
+        cos_zenith_angle
 
       REAL, DIMENSION(:,:), POINTER :: &
         lw_down, &
-        cos_zenith_angle, &
+        !cos_zenith_angle, &
         ls_rain, &
         ls_snow 
 
@@ -341,8 +359,7 @@ SUBROUTINE cable_control( L_cable, a_step, &!mype,                 &
              timestep_len, row_length,       &
              rows, land_pts, ntiles, sm_levels,           &
              dim_cs1, dim_cs2, &
-             !sin_theta_latitude, &
-             !cos_theta_longitude, &
+             latitude, longitude, &
              land_index, b, hcon, satcon, & 
              SATHH, smvcst, smvcwt, smvccl, &
              albsoil, lw_down, cosz, & 
@@ -404,10 +421,8 @@ SUBROUTINE cable_control( L_cable, a_step, &!mype,                 &
      smcl, &
      sthf
                            
-   !REAL, DIMENSION(:,:), TARGET :: &
-   !   sin_theta_latitude
-   !REAL, DIMENSION(:,:) :: &
-   !   cos_theta_longitude
+   REAL, DIMENSION(:,:), TARGET :: &
+      latitude, longitude
 
    !---------------------------------------------------------------------------
    !local vars
@@ -416,163 +431,139 @@ SUBROUTINE cable_control( L_cable, a_step, &!mype,                 &
    
    integer :: i,j, k,n
    
-   REAL, DIMENSION(:,:), ALLOCATABLE, TARGET, SAVE :: &
-      latitude,  &        
-      longitude
-
    !---------------------------------------------------------------------------
 
-!   if( a_step == 1) first_atmstep_call == .TRUE. 
-!   
-!   if( first_atmstep_call ) then 
-!      allocate( latitude(row_length,rows) )
-!      allocate( longitude(row_length,rows) )
-!      allocate( cable% cable% SNOW_COND(land_pts,NTILES,3))
-!      allocate( cable% cable% STHU_TILE(land_pts,NTILES,sm_levels))
-!      allocate( cable% tmp% L_TILE_PTS(land_pts,NTILES))
-!      !this can be deleted once rm from cable_explicit_driver (call/recieve )
-!      allocate( cable% um% SW_DOWN(row_length,rows)           )
-!      allocate( cable% forcing% ShortWave(row_length,rows,4)    )
-!      allocate( cable% um% TILE_INDEX(land_pts,NTiles) ) 
-!      allocate( cable% um% TILE_PTS(NTiles) )  
-!      allocate( cable% um% TOT_ALB(land_pts,ntiles)        )
-!   endif
-!
-!   call cable_parse_isnow( land_pts, ntiles, snow_flg3l,                       &
-!           tsoil_tile, smcl_tile, sthf_tile,                                   &
-!           snow_depth3l, snow_mass3l, snow_tmp3l,                              & 
-!           snow_rho3l, snow_rho1l, snow_age ) 
-!  
-!      cable% um% L_cable            => L_cable
-!      cable% mp% mype               => mype
-!      cable% mp% timestep_number    => timestep_number
-!      cable% mp% timestep_width     => timestep_width
-!      cable% mp% row_length         => row_length 
-!      cable% mp% rows               => rows        
-!      cable% mp% land_pts           => land_pts
-!      cable% mp% ntiles             => ntiles
-!      cable% mp% sm_levels          => sm_levels
-!      
-!      cable% um% dim_cs1           => dim_cs1
-!      cable% um% dim_cs2           => dim_cs2
-!
-!      latitude  = asin( sin_theta_latitude )
-!      longitude = acos( cos_theta_longitude )
-!      cable% mp% latitude           => latitude
-!      cable% mp% longitude          => longitude
-!      cable% um% sin_theta_latitude => sin_theta_latitude
-!
-!      cable% um% land_index         => land_index 
-!
-!      cable% um% sthu             => sthu        
-!      
-!      cable% um% sthf             => sthf        
-!      cable% um% smcl             => smcl        
-!      
-!      cable% um% land_alb         => land_albedo   
-!          
-!
-!      cable% um% bexp     => b 
-!      cable% um% hcon     => hcon
-!      cable% um% satcon   => satcon
-!      cable% um% sathh    => sathh
-!      cable% um% smvcst   => smvcst  
-!      cable% um% smvcwt   => smvcwt  
-!      cable% um% smvccl   => smvccl  
-!      cable% um% albsoil  => albsoil 
-!      
-!      cable% um% pstar => pstar 
-!
-!      cable% um% lw_down   => lw_down
-!      cable% um% cos_zenith_angle   => cosz
-!      cable% um% ls_rain     => ls_rain 
-!      cable% um% ls_snow      => ls_snow
-!      cable% um% co2_mmr      => co2_mmr
-!
-!      cable% um% gs => gs
-!      cable% um% canopy_gb => canopy
-!
-!      cable% cable% snow_cond = -huge(1.)
-!      cable% cable% sthu_tile = -huge(1.)
-!      cable% tmp% l_tile_pts = .false.
+   if( a_step == 1) first_atmstep_call = .TRUE. 
+   
+   if( first_atmstep_call ) then 
+      !allocate( latitude(row_length,rows) )
+      !allocate( longitude(row_length,rows) )
+      allocate( cable% cable% SNOW_COND(land_pts,NTILES,3))
+      allocate( cable% cable% STHU_TILE(land_pts,NTILES,sm_levels))
+      allocate( cable% tmp% L_TILE_PTS(land_pts,NTILES))
+      !this can be deleted once rm from cable_explicit_driver (call/recieve )
+      allocate( cable% um% SW_DOWN(row_length,rows)           )
+      allocate( cable% forcing% ShortWave(row_length,rows,4)    )
+      allocate( cable% um% TILE_INDEX(land_pts,NTiles) ) 
+      allocate( cable% um% TILE_PTS(NTiles) )  
+      allocate( cable% um% TOT_ALB(land_pts,ntiles)        )
+   endif
+
+   !call cable_parse_isnow( land_pts, ntiles, snow_flg3l,                       &
+   !        tsoil_tile, smcl_tile, sthf_tile,                                   &
+   !        snow_depth3l, snow_mass3l, snow_tmp3l,                              & 
+   !        snow_rho3l, snow_rho1l, snow_age ) 
+  
+      cable% um% L_cable            => L_cable
+      !cable% mp% mype               => mype
+      cable% mp% timestep_number    => a_step
+      cable% mp% timestep_width     => timestep_len
+      cable% mp% row_length         => row_length 
+      cable% mp% rows               => rows        
+      cable% mp% land_pts           => land_pts
+      cable% mp% ntiles             => ntiles
+      cable% mp% sm_levels          => sm_levels
+      
+      cable% um% dim_cs1           => dim_cs1
+      cable% um% dim_cs2           => dim_cs2
+
+      !jhan: re-implement sin_theta_lat by computing here      
+      !latitude  = asin( sin_theta_latitude )
+      !longitude = acos( cos_theta_longitude )
+      cable% mp% latitude           => latitude
+      cable% mp% longitude          => longitude
+      !cable% um% sin_theta_latitude => sin_theta_latitude
+
+      cable% um% land_index         => land_index 
+
+      cable% um% sthu             => sthu        
+      
+      cable% um% sthf             => sthf        
+      cable% um% smcl             => smcl        
+      
+      cable% um% land_alb         => land_albedo   
+          
+
+      cable% um% bexp     => b 
+      cable% um% hcon     => hcon
+      cable% um% satcon   => satcon
+      cable% um% sathh    => sathh
+      cable% um% smvcst   => smvcst  
+      cable% um% smvcwt   => smvcwt  
+      cable% um% smvccl   => smvccl  
+      cable% um% albsoil  => albsoil 
+      
+      cable% um% pstar => pstar 
+
+      cable% um% lw_down   => lw_down
+      cable% um% cos_zenith_angle   => cosz
+      cable% um% ls_rain     => ls_rain 
+      cable% um% ls_snow      => ls_snow
+      cable% um% co2_mmr      => co2_mmr
+
+      cable% um% gs => gs
+      cable% um% canopy_gb => canopy
+
+      cable% cable% snow_cond = -huge(1.)
+      cable% cable% sthu_tile = -huge(1.)
+      cable% tmp% l_tile_pts = .false.
 
 END SUBROUTINE cable_control
  
-!!===============================================================================
-! 
-!SUBROUTINE cable_atmos_physics2(                                         &
-!                  npft,       &
-!                  tile_frac,  &
-!                  snow_tile,   &
-!                  vshr_land,   &
-!                  canopy, &
-!                  canht_ft, &
-!                  lai_ft, &
-!                  conv_rain, &
-!                  conv_snow, &
-!                  NPP,&
-!                  NPP_FT, &
-!                  GPP,&
-!                  GPP_FT,&
-!                  RESP_S,&
-!                  RESP_S_TOT,&
-!                  RESP_S_TILE,     &
-!                  RESP_P,&
-!                  RESP_P_FT, &
-!                  G_LEAF, &
-!                  Radnet_TILE,     &
-!                  Lying_snow,       &
-!                  surf_roff, &
-!                  sub_surf_roff, &
-!                  tot_tfall &
-!                 ) 
-!
-!   INTEGER, target ::                                              &
-!      npft 
-!
-!   REAL, DIMENSION(:,:), TARGET:: &
-!      tile_frac, &
-!      snow_tile, &
-!      vshr_land
-! 
-!   REAL, DIMENSION(:,:), TARGET ::                                         &
-!     canopy, &
-!     canht_ft, &
-!     lai_ft 
-! 
-!   REAL, DIMENSION(:,:), TARGET ::                                         &
-!     !(row_length, rows)                                     &
-!     conv_rain, &
-!     conv_snow
-!   
-!   real, dimension(:), target :: & 
-!      GPP, & ! Gross primary productivity (kg C/m2/s).
-!      NPP, & ! Net primary productivity
-!      RESP_P ! Plant respiration (kg C/m2/s).
-!   
-!   real, dimension(:,:), target :: & 
-!      GPP_FT, & !     on PFTs (kg C/m2/s).
-!      NPP_FT, & ! Net primary productivity (kg C/m2/s).
-!      G_LEAF, & ! Leaf turnover rate (/360days).
-!      RESP_P_FT, & !  Plant respiration on PFTs (kg C/m2/s).
-!      RESP_S_TILE  ! Soil respiration on tiles (kg C/m2/s).
-!              
-!   real, dimension(:,:), target :: & 
-!      RESP_S ! Soil respiration (kg C/m2/s).
-!   
-!   real, dimension(:), target :: & 
-!      RESP_S_TOT ! OUT total RESP_S over pools
-!
-!   real, dimension(:,:), target :: & 
-!      RADNET_TILE
-! 
-!   real, dimension(:), target :: &                                                               &
-!      sub_surf_roff, &
-!      surf_roff, &
-!      tot_tfall, &
-!      LYING_SNOW
-!
-!   
+!===============================================================================
+ 
+SUBROUTINE cable_control2( npft, tile_frac, snow_tile, vshr_land, canopy,      &
+              canht_ft, lai_ft, conv_rain, conv_snow, NPP,NPP_FT,              &
+              GPP, GPP_FT, RESP_S, rESP_S_TOT, RESP_S_TILE, RESP_P,            &
+              RESP_P_FT, G_LEAF, Radnet_TILE, Lying_snow, surf_roff,           &
+              sub_surf_roff, tot_tfall )
+
+   INTEGER, target ::                                              &
+      npft 
+
+   REAL, DIMENSION(:,:), TARGET:: &
+      tile_frac, &
+      snow_tile, &
+      vshr_land
+ 
+   REAL, DIMENSION(:,:), TARGET ::                                         &
+     canopy, &
+     canht_ft, &
+     lai_ft 
+ 
+   REAL, DIMENSION(:,:), TARGET ::                                         &
+     !(row_length, rows)                                     &
+     conv_rain, &
+     conv_snow
+   
+   real, dimension(:), target :: & 
+      GPP, & ! Gross primary productivity (kg C/m2/s).
+      NPP, & ! Net primary productivity
+      RESP_P ! Plant respiration (kg C/m2/s).
+   
+   real, dimension(:,:), target :: & 
+      GPP_FT, & !     on PFTs (kg C/m2/s).
+      NPP_FT, & ! Net primary productivity (kg C/m2/s).
+      G_LEAF, & ! Leaf turnover rate (/360days).
+      RESP_P_FT, & !  Plant respiration on PFTs (kg C/m2/s).
+      RESP_S_TILE  ! Soil respiration on tiles (kg C/m2/s).
+              
+   real, dimension(:,:), target :: & 
+      RESP_S ! Soil respiration (kg C/m2/s).
+   
+   real, dimension(:), target :: & 
+      RESP_S_TOT ! OUT total RESP_S over pools
+
+   real, dimension(:,:), target :: & 
+      RADNET_TILE
+ 
+   real, dimension(:), target :: &                                                               &
+      sub_surf_roff, &
+      surf_roff, &
+      tot_tfall, &
+      LYING_SNOW
+
+   
 !      cable% mp% npft            => npft
 !      cable% ppar% tile_frac     => tile_frac
 !      cable% um% snow_tile       => snow_tile
@@ -598,7 +589,7 @@ END SUBROUTINE cable_control
 !      cable% hyd% tot_tfall      => tot_tfall
 !      cable% hyd% LYING_SNOW     => LYING_SNOW
 !
-!END SUBROUTINE cable_atmos_physics2
+END SUBROUTINE cable_control2
 !
 !
 !!===============================================================================

@@ -26,7 +26,7 @@
              ,npft_trif,ntiles,off_x,off_y,row_length,rows                   &
              ,sm_levels,soil_index,soil_pts,tile_index,tile_pts              &
              ,z1_tq,z1_uv,nsmax,dim_cs1,dim_cs2,nice_use,sice_pts_ncat       &
-             ,sice_index_ncat,ssi_index
+             ,sice_index_ncat,ssi_index 
 
   USE nstypes, ONLY : ntype
 
@@ -118,13 +118,17 @@
     ,L_spec_z0,L_SICE_HEATFLUX,L_INLAND                 &
     ,l_sice_multilayers, i_sea_alb_method               &
     ,L_SOIL_SAT_DOWN,l_anthrop_heat_src,buddy_sea       &
+!CABLE{
     ,L_cable 
   
-  USE cable_data_mod, ONLY : cable_control
+  USE cable_data_mod, ONLY : cable_control, cable_control2
 
-  ! cable need this - also l_cable and access to calls
   USE soil_param, ONLY : dzsoil 
   
+  USE nstypes, ONLY : npft 
+
+  USE model_grid_mod, ONLY : latitude, longitude 
+!CABLE}
   USE top_pdm, ONLY :  &
 !  imported arrays with intent(in)
      a_fsat,a_fwet,c_fsat,c_fwet,fexp,gamtot,ti_mean,ti_sig  &
@@ -541,7 +545,9 @@ REAL :: ws10m(t_i_length,t_j_length) ! 10m wind speed (m s-1)
 REAL :: chloro(t_i_length,t_j_length) ! ocean nr surface chlorophyll (kg m-3)
 INTEGER, PARAMETER :: n_swbands = 1  !  Nnumber of SW bands
 REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
-
+!CABLE: Soil respiration on tiles (kg C/m2/s). kdcorbin, 10/10
+real :: resp_s_tile(land_pts,ntiles)
+           
 !-----------------------------------------------------------------------
 ! Initialise these to zero as they are never used
 !-----------------------------------------------------------------------
@@ -564,11 +570,10 @@ REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
 ! Initialise the olr diagnostic
   olr(:,:) = 0.0
 
-
   call cable_control( L_cable, a_step, &!mype, 
          timestep_len, row_length,                                             &
          rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,                  & 
-         !sin_theta_latitude, cos_theta_longitude,                              &
+         latitude, longitude,                                                  &
          land_index, b, hcon, satcon, SATHH, smvcst, smvcwt,                   &
          smvccl, albsoil, lw_down, cosz, ls_rain, ls_snow, pstar,              &
          CO2_MMR, sthu, smcl, sthf, GS, canopy, land_albedo )
@@ -581,32 +586,32 @@ REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
          RESP_P, RESP_P_FT, G_LEAF, Radnet_TILE, Lying_snow,                   &  
          surf_roff, sub_surf_roff, tot_tfall ) 
 
-  !CABLE receives tl_1, qw_1 which are first level but passed as tl,qw
-  !tl_1, qw_1 are available in JULES forcing module
-  !call cable_control3( TL, qw )  
-  call cable_control3( tl_1, qw_1 )  
-
-  !this will be tricky as there is no surf_down_Sw in JULES
-  !it seems in 8.2 that thisdec locally in glue)rad for the 8A bdylayer scheme
-  ! and maybe set in r2_swrad 
-  call cable_control4( surf_down_sw )        
-
-  call cable_control5( alb_tile, land_albedo,         &
-                  TILE_PTS, TILE_INDEX, surf_down_sw )        
-
-  call cable_control6( z1_tq, z1_uv, Fland, dzsoil,                            &  
-         LAND_MASK, FTL_TILE, FQW_TILE, TSTAR_TILE,                            &
-         U_S, U_S_STD_TILE, 
-         CD_TILE, & ! local dec in sf_exch
-         CH_TILE, & ! local dec in sf_exch
-         FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE, &
-         RECIP_L_MO_TILE, & ! local dec in sf_exch
-         EPOT_TILE  )
-
-
-call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
-       SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,                      &
-       T1P5M_TILE, Q1P5M_TILE, MELT_TILE )
+!  !CABLE receives tl_1, qw_1 which are first level but passed as tl,qw
+!  !tl_1, qw_1 are available in JULES forcing module
+!  !call cable_control3( TL, qw )  
+!  call cable_control3( tl_1, qw_1 )  
+!
+!  !this will be tricky as there is no surf_down_Sw in JULES
+!  !it seems in 8.2 that thisdec locally in glue)rad for the 8A bdylayer scheme
+!  ! and maybe set in r2_swrad 
+!  call cable_control4( surf_down_sw )        
+!
+!  call cable_control5( alb_tile, land_albedo,         &
+!                  TILE_PTS, TILE_INDEX, surf_down_sw )        
+!
+!  call cable_control6( z1_tq, z1_uv, Fland, dzsoil,                            &  
+!         LAND_MASK, FTL_TILE, FQW_TILE, TSTAR_TILE,                            &
+!         U_S, U_S_STD_TILE, 
+!         CD_TILE, & ! local dec in sf_exch
+!         CH_TILE, & ! local dec in sf_exch
+!         FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE, &
+!         RECIP_L_MO_TILE, & ! local dec in sf_exch
+!         EPOT_TILE  )
+!
+!
+!call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
+!       SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,                      &
+!       T1P5M_TILE, Q1P5M_TILE, MELT_TILE )
   
 
 
