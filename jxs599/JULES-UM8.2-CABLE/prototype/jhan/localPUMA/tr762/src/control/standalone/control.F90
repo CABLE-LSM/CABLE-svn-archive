@@ -117,7 +117,10 @@
     ,ilayers,L_Q10,lq_mix_bl,L_CTILE                    &
     ,L_spec_z0,L_SICE_HEATFLUX,L_INLAND                 &
     ,l_sice_multilayers, i_sea_alb_method               &
-    ,L_SOIL_SAT_DOWN,l_anthrop_heat_src,buddy_sea
+    ,L_SOIL_SAT_DOWN,l_anthrop_heat_src,buddy_sea       &
+    ,L_cable 
+  
+  USE cable_data_mod, ONLY : cable_control
 
   USE top_pdm, ONLY :  &
 !  imported arrays with intent(in)

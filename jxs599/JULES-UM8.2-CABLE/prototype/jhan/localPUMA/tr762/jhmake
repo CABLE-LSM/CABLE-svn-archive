@@ -37,9 +37,10 @@ else
 #   ar r libjules.a *.o
 #   rm -f cable*
    #make COMPILER=intel BUILD=run CDF_LIB_PATH=/usr/local/lib CDF_MOD_PATH=/usr/local/include
-   make COMPILER=intel BUILD=run CDF_LIB_PATH=$NCDF_LIB CDF_MOD_PATH=$NCDF_INCLUDE
+   #make #COMPILER=intel BUILD=run CDF_LIB_PATH=$NCDF_LIB CDF_MOD_PATH=$NCDF_INCLUDE JULESDIR=$cwd
+   fcm make --config-file etc/fcm-make/make-local.cfg
    #make BUILD=run
-   /bin/cp jules.exe examples/point*CABLE/
+#   /bin/cp jules.exe examples/point*CABLE/
 fi
    
 
