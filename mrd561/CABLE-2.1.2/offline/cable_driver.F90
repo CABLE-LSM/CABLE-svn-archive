@@ -302,10 +302,6 @@ PROGRAM cable_offline_driver
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
 
-         write(*,*) maxval(canopy%fess),maxval(ssnow%wb(:,1))
-         write(*,*) sum(canopy%fess)/real(size(canopy%fess)),&
-                    sum(ssnow%wb(:,1))/real(size(ssnow%wb(:,1)))
-
          ssnow%smelt = ssnow%smelt*dels
          ssnow%rnof1 = ssnow%rnof1*dels
          ssnow%rnof2 = ssnow%rnof2*dels

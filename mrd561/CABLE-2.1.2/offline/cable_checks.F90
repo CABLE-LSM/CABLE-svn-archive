@@ -239,32 +239,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    CALL point2constants( C )       !get density of ice and liq
    !note the code currently assumes that denliq = denice = 1000.0
    IF (cable_runtime%run_gw_model) then
-      IF(ktau==1) THEN
-         ALLOCATE( bwb(mp,ms+1,2) )
-         ! initial vlaue of soil moisture
-         bwb(:,1:ms,1) = ssnow%wb
-         bwb(:,ms+1,1) = ssnow%GWwb
-      ELSE
-         ! Calculate change in soil moisture b/w timesteps:
-         IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
-            bwb(:,:,1)=ssnow%wb
-            DO k=1,mp           ! current smoist - prev tstep smoist
-               delwb(k) = (SUM((bwb(k,:,1)                                         &
-                     - (bwb(k,:,2)))*soil%zse)+&
-                     (bwb(k,ms+1,1)-bwb(k,ms+1,1))*soil%GWdz(k))*1000.0
-                   
-            END DO
-         ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
-            bwb(:,1:ms,2)=ssnow%wb
-            bwb(:,ms+1,2)=ssnow%GWwb
-            DO k=1,mp           !  current smoist - prev tstep smoist
-               delwb(k) = (SUM((bwb(k,:,2)                                         &
-                    - (bwb(k,:,1)))*soil%zse)+&
-                      (bwb(k,ms+1,2)-bwb(k,ms+1,1))*soil%GWdz(k))*1000.0
-            END DO
-         END IF
-      END IF
-
+      delwb(:) = ssnow%wbtot(:)   !change in column soil moisture stored here
    ELSE   !GW module not used
       IF(ktau==1) THEN
          ALLOCATE( bwb(mp,ms,2) )

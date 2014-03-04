@@ -57,7 +57,7 @@ MODULE cable_soil_snow_gw_module
    !MD GW params
    !Should read some in from namelist?
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 5e-4,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
+                      qhmax   = 5e-5,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
                       hkrz    = 0.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
@@ -65,7 +65,7 @@ MODULE cable_soil_snow_gw_module
                       wtd_min = 10.0,         & ! minimum wtd [mm]
                       maxSatFrac = 0.3,       &
                       dri = 1.0,              & !ratio of density of ice to density of liquid [unitless]
-                      efoldSatFrac = 2.5        !efolding depth for sat frac (1/m) 
+                      efoldSatFrac = 2.0        !efolding depth for sat frac (1/m) 
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
   
@@ -1343,6 +1343,7 @@ USE cable_common_module
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000.0
   end do
+  zimm(ms) = zimm(ms) + soil%GWdz(1)
   
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1.0-invB(:))* &
     (1.0-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1.0-invB(:))))             !def if wtd=zimm(ms)
@@ -1355,6 +1356,7 @@ USE cable_common_module
     tmp_def = 0._r_2
   end where
   def(:) = sum(tmp_def*dzmm,2)
+  def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0.0)*soil%GWdz*1000.0
 
 
   if (empwtd) then
@@ -1363,7 +1365,7 @@ USE cable_common_module
 
    if (md_prin) write(*,*) 'start wtd iterations'
 
-  if (ktau .le. 1)  ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
+  ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
      
   do i=1,mp
     if (defc(i) > def(i)) then                 !iterate tfor wtd
@@ -2095,7 +2097,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    !for debug water balance.  del_wbtot = fluxes = infiltration [though-evap] - trans - qhorz drainage
    del_wbtot   = dels * (ssnow%sinfil - canopy%fevc/C%HL - ssnow%rnof2)
    !set below to keep track of water imbalance within the GW module explicitly.  also must change cable_checks
-   !ssnow%wbtot = ssnow%wbtot-(wbtot_ic + del_wbtot)
+   ssnow%wbtot = ssnow%wbtot-wbtot_ic
 
    if (md_prin) write(*,*) 'done with ss_GW'
 
