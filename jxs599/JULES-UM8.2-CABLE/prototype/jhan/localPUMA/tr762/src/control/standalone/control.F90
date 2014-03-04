@@ -558,6 +558,17 @@ REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
 ! Initialise the olr diagnostic
   olr(:,:) = 0.0
 
+
+  call cable_control( L_cable, a_step, &!mype, 
+         timestep_len, row_length,                                             &
+         rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,                  & 
+         !sin_theta_latitude, cos_theta_longitude,                              &
+         land_index, b, hcon, satcon, SATHH, smvcst, smvcwt,                   &
+         smvccl, albsoil, lw_down, cosz, ls_rain, ls_snow, pstar,              &
+         CO2_MMR, sthu, smcl, sthf, GS, canopy, land_albedo )
+
+
+
 !------------------------------------------------------------------------------
 ! If we're only doing river routing, most routines need not be called.
 !------------------------------------------------------------------------------
