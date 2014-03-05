@@ -146,9 +146,9 @@ module cable_data_mod
          sathh, & !
          smvcst, & !
          smvcwt, & !
-         smvccl, & !
+         smvccl!, & !
          !albsoil, &
-         CANOPY_GB
+         !CANOPY_GB
       
       REAL, DIMENSION(:), POINTER :: &
 !         bexp, & !
@@ -159,7 +159,7 @@ module cable_data_mod
 !         smvcwt, & !
 !         smvccl, & !
          albsoil, &
-!         CANOPY_GB, &
+         CANOPY_GB, &
          GS
       
       REAL, POINTER ::                                              &
@@ -393,7 +393,8 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
  
    REAL, DIMENSION(:), TARGET :: &
      albsoil, &
-     cosz, &
+     cosz,    &
+     canopy,  &
      GS 
 
    !REAL, DIMENSION(:), TARGET :: &
@@ -405,8 +406,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       sathh, &
       smvcst, &
       smvcwt, &
-      smvccl, &
-      canopy
+      smvccl
  
    REAL, DIMENSION(:,:), TARGET:: &
      lw_down, &
@@ -606,49 +606,50 @@ END SUBROUTINE cable_control3
 !===============================================================================
 
 
-!SUBROUTINE cable_glue_rad( alb_tile, land_albedo,         &
-!                  TILE_PTS, TILE_INDEX, surf_down_sw )        
-!
-!   INTEGER, DIMENSION(:) ::                                        &
-!      tile_pts
-!
-!   INTEGER, DIMENSION(:,:) ::                                      &
-!      tile_index
-!
-!   Real, dimension(:,:,:), target ::                       &
-!      alb_tile
-!   
-!   Real, dimension(:,:,:) ::                       &
-!      surf_down_sw
-!
-!
-!   Real, dimension(cable% mp% rows, cable% mp% row_length,4), target ::                       &
-!      land_albedo
-!
-!
-!   cable% um% alb_tile => alb_tile
-!   cable% um% land_albedo => land_albedo
-!   cable% um% TILE_PTS = TILE_PTS
-!   cable% um% TILE_INDEX = TILE_INDEX
-!   cable% forcing% ShortWave    = surf_down_sw
-!
-!END SUBROUTINE cable_glue_rad
-!
-!
-!!===============================================================================
-!
-!
-!SUBROUTINE cable_glue_rad_init( surf_down_sw )
-!   
-!   Real, dimension(:,:,:) :: surf_down_sw
-!
-!     surf_down_sw = cable% forcing% ShortWave
-!
-!END SUBROUTINE cable_glue_rad_init
-!
-!
-!
-!!===============================================================================
+SUBROUTINE cable_control5( alb_tile, land_albedo,         &
+                  TILE_PTS, TILE_INDEX )        
+
+   INTEGER, DIMENSION(:) ::                                        &
+      tile_pts
+
+   INTEGER, DIMENSION(:,:) ::                                      &
+      tile_index
+
+   Real, dimension(:,:,:), target ::                       &
+      alb_tile
+   
+   Real, dimension(cable% mp% rows, cable% mp% row_length,4), target ::                       &
+      land_albedo
+
+
+   cable% um% alb_tile => alb_tile
+   cable% um% land_albedo => land_albedo
+   cable% um% TILE_PTS = TILE_PTS
+   cable% um% TILE_INDEX = TILE_INDEX
+
+END SUBROUTINE cable_control5 
+
+
+!===============================================================================
+
+
+SUBROUTINE cable_control4( sw_down )
+   
+   Real, dimension(:,:) :: sw_down
+   !Real, dimension( cable% mp% row_length, cable% mp% rows, 4) :: surf_down_sw
+
+     !reminder that offline receives total SW and splits (CABLE uses subr spitter)
+     cable% forcing% ShortWave(:,:,1)    = sw_down(:,:) / 4
+     cable% forcing% ShortWave(:,:,2)    = sw_down(:,:) / 4
+     cable% forcing% ShortWave(:,:,3)    = sw_down(:,:) / 4
+     cable% forcing% ShortWave(:,:,4)    = sw_down(:,:) / 4
+     
+
+END SUBROUTINE cable_control4
+
+
+
+!===============================================================================
 !
 !SUBROUTINE cable_sf_exch(                                        &
 !            z1_tq, &
