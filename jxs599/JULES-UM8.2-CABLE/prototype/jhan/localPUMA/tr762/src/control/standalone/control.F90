@@ -123,9 +123,8 @@
     ,L_cable 
   
   USE cable_data_mod, ONLY : cable_control, cable_control2, &
-                        cable_control3
-
-
+                        cable_control3, cable_control4, cable_control5, &
+                        cable_control6, cable_control7
 !#ifdef CABLE-UM  
 !  USE UM_ParCore, ONLY : mype
 !#else
@@ -552,8 +551,16 @@ REAL :: ws10m(t_i_length,t_j_length) ! 10m wind speed (m s-1)
 REAL :: chloro(t_i_length,t_j_length) ! ocean nr surface chlorophyll (kg m-3)
 INTEGER, PARAMETER :: n_swbands = 1  !  Nnumber of SW bands
 REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
-!CABLE: Soil respiration on tiles (kg C/m2/s). kdcorbin, 10/10
+!CABLE{
+! Soil respiration on tiles (kg C/m2/s). kdcorbin, 10/10
 real :: resp_s_tile(land_pts,ntiles)
+
+! local dec in sf_exch
+real, dimension(land_pts,ntiles) ::                                 &
+  cd_tile(land_pts,ntiles),                                         &
+  ch_tile(land_pts,ntiles),                                         &
+  recip_l_mo_tile(land_pts,ntiles)  
+!CABLE}
            
 !-----------------------------------------------------------------------
 ! Initialise these to zero as they are never used
@@ -577,22 +584,31 @@ real :: resp_s_tile(land_pts,ntiles)
 ! Initialise the olr diagnostic
   olr(:,:) = 0.0
 
+!CABLE{
+  cd_tile = 0.0
+  ch_tile = 0.0
+  recip_l_mo_tile = 0.0
   call cable_control( L_cable, a_step, timestep_len, row_length,         &
          rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,                  & 
          latitude, longitude,                                                  &
-         land_index, b, hcon, satcon, SATHH, smvcst, smvcwt,                   &
+         land_index, b, hcon, satcon, sathh, smvcst, smvcwt,                   &
          smvccl, albsoil, lw_down, cosz, ls_rain, ls_snow, pstar,              &
-         CO2_MMR, sthu, smcl, sthf, GS, canopy )!, land_albedo )
+         co2_mmr, sthu, smcl, sthf, gs, canopy_gb )!, land_alb )
          !here we need to send land_alb to be consistent with ACCESS-1.3
          !land_alb maybe was  available in call from glue_rad , 
-         !but definitely not in tile_albedo 
- !canopy here corresponds to canopy_gb, called canopy_water in atm_Step with dim (land_field) 
+         !but definitely not in tile_albedo. in cable_rad_driver there are four albedos passed
+         !albsoil - PACKS cable var and is used
+         !alb_tile - unpacked from rad%reffXX
+         !land_albedo_cable - fn(alb_tile) 
+         !land_alb_cable    - fn(land_albedo_cable) 
+         !so in the first instance we dont need this for offline?
+         !online we will need to pass it back though?
+         ! 
+         !canopy here corresponds to canopy_gb, called canopy_water in atm_Step with dim (land_field) 
 
- !canopy here corresponds to canopy_tile, called canopy in atmos_physics2 (land_pts, ntiles) [snow free only?]
+  !canopy here corresponds to canopy_tile, called canopy in atmos_physics2 (land_pts, ntiles) [snow free only?]
   call cable_control2( npft, tile_frac, snow_tile, vshr_land,                  &
-         canopy,        & ! cable_control sets to canopy_tile?
-         canht_ft, lai,        & !there is an LAI? in prognostics
-         con_rain, con_snow, NPP, NPP_FT,                                      &  
+         canopy, canht_ft, lai, con_rain, con_snow, NPP, NPP_FT,               &  
          GPP, GPP_FT, RESP_S, RESP_S_TOT, RESP_S_TILE,                         &  
          RESP_P, RESP_P_FT, G_LEAF, Radnet_TILE, Lying_snow,                   &  
          surf_roff, sub_surf_roff, tot_tfall ) 
@@ -608,27 +624,32 @@ real :: resp_s_tile(land_pts,ntiles)
 !
 !  !this will be tricky as there is no surf_down_Sw in JULES
 !  !it seems in 8.2 that thisdec locally in glue)rad for the 8A bdylayer scheme
-!  ! and maybe set in r2_swrad 
-!  call cable_control4( surf_down_sw )        
-!
-!  call cable_control5( alb_tile, land_albedo,         &
-!                  TILE_PTS, TILE_INDEX, surf_down_sw )        
-!
-!  call cable_control6( z1_tq, z1_uv, Fland, dzsoil,                            &  
-!         LAND_MASK, FTL_TILE, FQW_TILE, TSTAR_TILE,                            &
-!         U_S, U_S_STD_TILE, 
-!         CD_TILE, & ! local dec in sf_exch
-!         CH_TILE, & ! local dec in sf_exch
-!         FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE, &
-!         RECIP_L_MO_TILE, & ! local dec in sf_exch
-!         EPOT_TILE  )
-!
-!
-!call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
-!       SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,                      &
-!       T1P5M_TILE, Q1P5M_TILE, MELT_TILE )
-  
+!  ! and maybe set in r2_swrad
+! in the UM this has to be passed from glue_rad
+! CABLE needs this diffue direct vis NIR breakdown
+! spitter routine in cable_radiation doess this, but simplistically
 
+  !call cable_control4( surf_down_sw )        
+  call cable_control4( sw_down )        
+
+  call cable_control5( alb_tile, land_albedo,         &
+                  TILE_PTS, TILE_INDEX  )        
+
+
+  call cable_control6( z1_tq, z1_uv, Fland, dzsoil,                            &  
+         LAND_MASK, FTL_TILE, FQW_TILE, TSTAR_TILE,                            &
+         U_S, U_S_STD_TILE,                                                    & 
+         CD_TILE, CH_TILE, & ! local dec in sf_exch
+         FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,                              &
+         RECIP_L_MO_TILE, & ! local dec in sf_exch
+         EPOT_TILE )
+
+
+call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
+       SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,                      &
+       T1P5M_TILE, Q1P5M_TILE, MELT_TILE )
+
+!CABLE}
 
 !------------------------------------------------------------------------------
 ! If we're only doing river routing, most routines need not be called.

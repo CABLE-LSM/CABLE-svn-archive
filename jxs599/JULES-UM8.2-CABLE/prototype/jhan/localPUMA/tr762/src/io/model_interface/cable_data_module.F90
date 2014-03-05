@@ -60,7 +60,7 @@ module cable_data_mod
       integer, POINTER ::                                                      &
          timestep_width
       
-      REAL, POINTER ::                                           &
+      REAL, DIMENSION(:), POINTER ::                                           &
          dzsoil
       
       REAL, DIMENSION(:,:), POINTER ::                                         &
@@ -360,7 +360,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
              latitude, longitude,                                              &
              land_index, b, hcon, satcon, sathh, smvcst, smvcwt, smvccl,       &
              albsoil, lw_down, cosz, ls_rain, ls_snow, pstar, CO2_MMR,         &
-             sthu, smcl, sthf, GS, canopy )!, land_albedo )
+             sthu, smcl, sthf, GS, canopy_gb )!, land_albedo )
 
    LOGICAL, target :: L_CABLE
    
@@ -394,7 +394,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
    REAL, DIMENSION(:), TARGET :: &
      albsoil, &
      cosz,    &
-     canopy,  &
+     canopy_gb, &
      GS 
 
    !REAL, DIMENSION(:), TARGET :: &
@@ -406,7 +406,8 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       sathh, &
       smvcst, &
       smvcwt, &
-      smvccl
+      smvccl!, &
+      !canopy_gb
  
    REAL, DIMENSION(:,:), TARGET:: &
      lw_down, &
@@ -498,7 +499,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       cable% um% co2_mmr      => co2_mmr
 
       cable% um% gs => gs
-      cable% um% canopy_gb => canopy
+      cable% um% canopy_gb => canopy_gb
 
       cable% cable% snow_cond = -huge(1.)
       cable% cable% sthu_tile = -huge(1.)
@@ -650,152 +651,132 @@ END SUBROUTINE cable_control4
 
 
 !===============================================================================
-!
-!SUBROUTINE cable_sf_exch(                                        &
-!            z1_tq, &
-!            z1_uv, &
-!            rho_water, &
-!            Fland,          &
-!            dzsoil, &
-!            LAND_MASK, &
-!            FTL_TILE, &
-!            FQW_TILE, &
-!            TSTAR_TILE,              &
-!            U_S, &
-!            U_S_STD_TILE, &
-!            CD_TILE, &
-!            CH_TILE, &
-!            FRACA, &
-!            rESFS, &
-!            RESFT, &
-!            Z0H_TILE, &
-!            Z0M_TILE, &
-!            RECIP_L_MO_TILE, &
-!            EPOT_TILE  &
-!        & )
-!
-!
-!   real, dimension(:,:), target :: & 
-!      Z1_TQ, &
-!      Z1_UV, &
-!      U_S 
-!     
-!   real, dimension(:,:), target :: & 
-!      !FTL_TILE(land_pts,NTILES)                                        &
-!      FTL_TILE, &
-!      fqw_tile, &
-!      tstar_tile, &
-!      U_S_STD_TILE, &
-!      CD_TILE, &
-!      CH_TILE, &
-!      FRACA, &
-!      rESFS, &
-!      RESFT, &
-!      Z0H_TILE, &
-!      Z0M_TILE, &
-!      RECIP_L_MO_TILE, &
-!      EPOT_TILE  
-!
-!   real, target :: & 
-!      rho_water
-!
-!   real, dimension(:), target :: & 
-!      !FLAND(land_pts)
-!      FLAND(:)
-!
-!   logical, dimension(:,:), target :: & 
-!      LAND_MASK
-!
-!   !real, dimension(6), target :: dzsoil
-!   real, target :: dzsoil
-! 
-!      cable% um% Z1_TQ => Z1_TQ
-!      cable% um% Z1_UV => Z1_UV
-!      cable% um% U_S => U_S 
-!      
-!     
-!      cable% um% FTL_TILE => FTL_TILE
-!      cable% um% fqw_tile => fqw_tile
-!      cable% um% tstar_tile => tstar_tile
-!      cable% um% U_S_STD_TILE => U_S_STD_TILE
-!      cable% um% CD_TILE => CD_TILE
-!      cable% um% CH_TILE => CH_TILE
-!      cable% um% FRACA => FRACA
-!      cable% um% rESFS => rESFS
-!      cable% um% RESFT => RESFT
-!      cable% um% Z0H_TILE => Z0H_TILE
-!      cable% um% Z0M_TILE => Z0M_TILE
-!      cable% um% RECIP_L_MO_TILE => RECIP_L_MO_TILE
-!      cable% um% EPOT_TILE => EPOT_TILE  
-!      
-!      cable% tmp% rho_water => rho_water
-!      
-!      cable% um% FLAND => FLAND
-!     
-!      cable% um% LAND_MASK => LAND_MASK
-!     
-!      cable% mp% dzsoil => dzsoil
-!       
-!
-!END SUBROUTINE cable_sf_exch
-!
-!
-!!===============================================================================
-!
-!
-!SUBROUTINE cable_sf_implicit(                      &
-!                     dtl_1, &
-!                     dqw_1, &
-!                     T_SOIL, &
-!                      FTL_1,&
-!                      FQW_1,  &
-!                     SURF_HT_FLUX_LAND, &
-!                     ECAN_TILE,&
-!                     ESOIL_TILE,&
-!                     EI_TILE,&
-!                     T1P5M_TILE, &
-!                     Q1P5M_TILE, &
-!                     MELT_TILE &
-!                  )
-!   
-!   real, dimension(:,:), target :: & 
-!      !(ROW_LENGTH,ROWS),                                         &  
-!      dtl_1, &
-!      dqw_1, &
-!      FTL_1,&
-!      FQW_1,  &
-!      SURF_HT_FLUX_LAND
-!      
-!   real, dimension(:,:), target :: & 
-!      !(LAND_PTS,SM_LEVELS)                                       &
-!      T_SOIL
-!      
-!   real, dimension(:,:), target :: & 
-!      !(LAND_PTS,NTILES)                                       &
-!      ECAN_TILE,&
-!      ESOIL_TILE,&
-!      EI_TILE,&
-!      T1P5M_TILE, &
-!      Q1P5M_TILE, &
-!      MELT_TILE
-!      
-!      cable% im% dtl_1 => dtl_1
-!      cable% im% dqw_1 => dqw_1
-!      cable% im% T_SOIL => T_SOIL
-!      cable% im% FTL_1 => FTL_1
-!      cable% im% FQW_1 => FQW_1
-!      cable% im% SURF_HT_FLUX_LAND => SURF_HT_FLUX_LAND
-!      cable% im% ECAN_TILE => ECAN_TILE
-!      cable% im% ESOIL_TILE => ESOIL_TILE
-!      cable% im% EI_TILE => EI_TILE
-!      cable% im% T1P5M_TILE => T1P5M_TILE
-!      cable% im% Q1P5M_TILE => Q1P5M_TILE
-!      cable% im% MELT_TILE => MELT_TILE
-! 
-!
-!END SUBROUTINE cable_sf_implicit
-!
-!!===============================================================================
+
+SUBROUTINE cable_control6( z1_tq, z1_uv, Fland, dzsoil, LAND_MASK, FTL_TILE, &
+             FQW_TILE, TSTAR_TILE, U_S, U_S_STD_TILE, CD_TILE, CH_TILE, FRACA, &
+             rESFS, RESFT, Z0H_TILE, Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE )
+
+   real, dimension(:,:), target :: & 
+      Z1_TQ, &
+      Z1_UV, &
+      U_S 
+     
+   real, dimension(:,:), target :: & 
+      !FTL_TILE(land_pts,NTILES)                                        &
+      FTL_TILE, &
+      fqw_tile, &
+      tstar_tile, &
+      U_S_STD_TILE, &
+      CD_TILE, &
+      CH_TILE, &
+      FRACA, &
+      rESFS, &
+      RESFT, &
+      Z0H_TILE, &
+      Z0M_TILE, &
+      RECIP_L_MO_TILE, &
+      EPOT_TILE  
+
+   real, target :: & 
+      rho_water
+
+   real, dimension(:), target :: & 
+      !FLAND(land_pts)
+      FLAND(:)
+
+   logical, dimension(:,:), target :: & 
+      LAND_MASK
+
+   real, dimension(ms), target :: dzsoil
+   !real, target :: dzsoil
+ 
+      cable% um% Z1_TQ => Z1_TQ
+      cable% um% Z1_UV => Z1_UV
+      cable% um% U_S => U_S 
+      
+     
+      cable% um% FTL_TILE => FTL_TILE
+      cable% um% fqw_tile => fqw_tile
+      cable% um% tstar_tile => tstar_tile
+      cable% um% U_S_STD_TILE => U_S_STD_TILE
+      cable% um% CD_TILE => CD_TILE
+      cable% um% CH_TILE => CH_TILE
+      cable% um% FRACA => FRACA
+      cable% um% rESFS => rESFS
+      cable% um% RESFT => RESFT
+      cable% um% Z0H_TILE => Z0H_TILE
+      cable% um% Z0M_TILE => Z0M_TILE
+      cable% um% RECIP_L_MO_TILE => RECIP_L_MO_TILE
+      cable% um% EPOT_TILE => EPOT_TILE  
+      
+      cable% tmp% rho_water => rho_water
+      
+      cable% um% FLAND => FLAND
+     
+      cable% um% LAND_MASK => LAND_MASK
+     
+      cable% mp% dzsoil => dzsoil
+       
+
+END SUBROUTINE cable_control6
+
+
+!===============================================================================
+
+
+SUBROUTINE cable_control7(                      &
+                     dtl_1, &
+                     dqw_1, &
+                     T_SOIL, &
+                      FTL_1,&
+                      FQW_1,  &
+                     SURF_HT_FLUX_LAND, &
+                     ECAN_TILE,&
+                     ESOIL_TILE,&
+                     EI_TILE,&
+                     T1P5M_TILE, &
+                     Q1P5M_TILE, &
+                     MELT_TILE &
+                  )
+   
+   real, dimension(:,:), target :: & 
+      !(ROW_LENGTH,ROWS),                                         &  
+      dtl_1, &
+      dqw_1, &
+      FTL_1,&
+      FQW_1,  &
+      SURF_HT_FLUX_LAND
+      
+   real, dimension(:,:), target :: & 
+      !(LAND_PTS,SM_LEVELS)                                       &
+      T_SOIL
+      
+   real, dimension(:,:), target :: & 
+      !(LAND_PTS,NTILES)                                       &
+      ECAN_TILE,&
+      ESOIL_TILE,&
+      EI_TILE,&
+      T1P5M_TILE, &
+      Q1P5M_TILE, &
+      MELT_TILE
+      
+      cable% im% dtl_1 => dtl_1
+      cable% im% dqw_1 => dqw_1
+      cable% im% T_SOIL => T_SOIL
+      cable% im% FTL_1 => FTL_1
+      cable% im% FQW_1 => FQW_1
+      cable% im% SURF_HT_FLUX_LAND => SURF_HT_FLUX_LAND
+      cable% im% ECAN_TILE => ECAN_TILE
+      cable% im% ESOIL_TILE => ESOIL_TILE
+      cable% im% EI_TILE => EI_TILE
+      cable% im% T1P5M_TILE => T1P5M_TILE
+      cable% im% Q1P5M_TILE => Q1P5M_TILE
+      cable% im% MELT_TILE => MELT_TILE
+ 
+
+END SUBROUTINE cable_control7
+
+!===============================================================================
 !
 !   subroutine cable_point_isnow(isnow_flg3l, &
 !                          ftsoil_tile, fsmcl_tile, fsthf_tile,     & !
