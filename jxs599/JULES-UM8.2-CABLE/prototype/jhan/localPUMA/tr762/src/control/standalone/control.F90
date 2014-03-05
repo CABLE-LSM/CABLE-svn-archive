@@ -118,17 +118,24 @@
     ,L_spec_z0,L_SICE_HEATFLUX,L_INLAND                 &
     ,l_sice_multilayers, i_sea_alb_method               &
     ,L_SOIL_SAT_DOWN,l_anthrop_heat_src,buddy_sea       &
+!
 !CABLE{
     ,L_cable 
   
-  USE cable_data_mod, ONLY : cable_control, cable_control2
+  USE cable_data_mod, ONLY : cable_control, cable_control2, &
+                        cable_control3
 
+
+!#ifdef CABLE-UM  
+!  USE UM_ParCore, ONLY : mype
+!#else
+!  USE parallel_mod, ONLY : mype => task_id
   USE soil_param, ONLY : dzsoil 
-  
   USE nstypes, ONLY : npft 
-
   USE model_grid_mod, ONLY : latitude, longitude 
+!#endif  
 !CABLE}
+  
   USE top_pdm, ONLY :  &
 !  imported arrays with intent(in)
      a_fsat,a_fwet,c_fsat,c_fwet,fexp,gamtot,ti_mean,ti_sig  &
@@ -570,26 +577,34 @@ real :: resp_s_tile(land_pts,ntiles)
 ! Initialise the olr diagnostic
   olr(:,:) = 0.0
 
-  call cable_control( L_cable, a_step, &!mype, 
-         timestep_len, row_length,                                             &
+  call cable_control( L_cable, a_step, timestep_len, row_length,         &
          rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,                  & 
          latitude, longitude,                                                  &
          land_index, b, hcon, satcon, SATHH, smvcst, smvcwt,                   &
          smvccl, albsoil, lw_down, cosz, ls_rain, ls_snow, pstar,              &
-         CO2_MMR, sthu, smcl, sthf, GS, canopy, land_albedo )
- 
+         CO2_MMR, sthu, smcl, sthf, GS, canopy )!, land_albedo )
+         !here we need to send land_alb to be consistent with ACCESS-1.3
+         !land_alb maybe was  available in call from glue_rad , 
+         !but definitely not in tile_albedo 
+ !canopy here corresponds to canopy_gb, called canopy_water in atm_Step with dim (land_field) 
+
+ !canopy here corresponds to canopy_tile, called canopy in atmos_physics2 (land_pts, ntiles) [snow free only?]
   call cable_control2( npft, tile_frac, snow_tile, vshr_land,                  &
-         canopy,        & ! cable_control sets to canopy_gb?
+         canopy,        & ! cable_control sets to canopy_tile?
          canht_ft, lai,        & !there is an LAI? in prognostics
          con_rain, con_snow, NPP, NPP_FT,                                      &  
          GPP, GPP_FT, RESP_S, RESP_S_TOT, RESP_S_TILE,                         &  
          RESP_P, RESP_P_FT, G_LEAF, Radnet_TILE, Lying_snow,                   &  
          surf_roff, sub_surf_roff, tot_tfall ) 
+! in ACCESS we passcanopy and canopy_gb in implicit call
+! recieved in cable as canoyp_tile and canopy_gb
+! which are unpacked from cansto and ( cansto* SUM over tiles )
+! canopy tile is packed into cansto on explicit call
 
 !  !CABLE receives tl_1, qw_1 which are first level but passed as tl,qw
 !  !tl_1, qw_1 are available in JULES forcing module
 !  !call cable_control3( TL, qw )  
-!  call cable_control3( tl_1, qw_1 )  
+  call cable_control3( tl_1, qw_1 )  
 !
 !  !this will be tricky as there is no surf_down_Sw in JULES
 !  !it seems in 8.2 that thisdec locally in glue)rad for the 8A bdylayer scheme

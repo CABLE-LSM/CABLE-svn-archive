@@ -47,14 +47,14 @@ module cable_data_mod
    type model_params
 
       INTEGER, POINTER ::                                                      &
-         endstep,            & !       
+         !endstep,            & !       
          row_length, rows,  & !
          sm_levels,          & !
          land_pts,          & !
          ntiles,          & !
          npft,          & !
-         timestep_number,    & !
-         mype
+         timestep_number!,    & !
+         !mype
 
       !REAL, POINTER ::                                                      &
       integer, POINTER ::                                                      &
@@ -193,7 +193,7 @@ module cable_data_mod
         ls_rain, &
         ls_snow 
 
-      REAL, DIMENSION(:,:,:), POINTER :: &
+      REAL, DIMENSION(:,:), POINTER :: &
          tl_1, &
          qw_1
 
@@ -337,12 +337,12 @@ contains
 
 !===============================================================================
 
-subroutine set_endstep_umodel(fendstep)
-   integer, target :: fendstep
-
-      cable% mp% endstep            => fendstep
-
-end subroutine set_endstep_umodel
+!subroutine set_endstep_umodel(fendstep)
+!   integer, target :: fendstep
+!
+!      cable% mp% endstep            => fendstep
+!
+!end subroutine set_endstep_umodel
 
 !===============================================================================
 
@@ -355,23 +355,19 @@ end subroutine set_endstep_umodel
  !        CO2_MMR, sthu, smcl, sthf, GS, canopy, land_albedo )
 
 
-SUBROUTINE cable_control( L_cable, a_step, &!mype,                 &
-             timestep_len, row_length,       &
-             rows, land_pts, ntiles, sm_levels,           &
-             dim_cs1, dim_cs2, &
-             latitude, longitude, &
-             land_index, b, hcon, satcon, & 
-             SATHH, smvcst, smvcwt, smvccl, &
-             albsoil, lw_down, cosz, & 
-             ls_rain, ls_snow, pstar, CO2_MMR, sthu, smcl, sthf, &
-             GS, canopy, land_albedo )
+SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
+             rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,              &
+             latitude, longitude,                                              &
+             land_index, b, hcon, satcon, sathh, smvcst, smvcwt, smvccl,       &
+             albsoil, lw_down, cosz, ls_rain, ls_snow, pstar, CO2_MMR,         &
+             sthu, smcl, sthf, GS, canopy )!, land_albedo )
 
    LOGICAL, target :: L_CABLE
    
    INTEGER, target ::                                              &
-      mype,             & !
+      !mype,             & !
       a_step,  & !
-      endstep,          & !
+      !endstep,          & !
       row_length, rows, &
       land_pts,      &
       ntiles,        &
@@ -392,8 +388,8 @@ SUBROUTINE cable_control( L_cable, a_step, &!mype,                 &
       pstar
       !land_albedo 
  
-   REAL, DIMENSION(:,:,:), target ::                                         &
-      land_albedo 
+   !REAL, DIMENSION(:,:,:), target ::                                         &
+   !   land_albedo 
  
    REAL, DIMENSION(:), TARGET :: &
      albsoil, &
@@ -481,7 +477,7 @@ SUBROUTINE cable_control( L_cable, a_step, &!mype,                 &
       cable% um% sthf             => sthf        
       cable% um% smcl             => smcl        
       
-      cable% um% land_alb         => land_albedo   
+      !cable% um% land_alb         => land_albedo   
           
 
       cable% um% bexp     => b 
@@ -562,54 +558,54 @@ SUBROUTINE cable_control2( npft, tile_frac, snow_tile, vshr_land, canopy,      &
       surf_roff, &
       tot_tfall, &
       LYING_SNOW
-
    
-!      cable% mp% npft            => npft
-!      cable% ppar% tile_frac     => tile_frac
-!      cable% um% snow_tile       => snow_tile
-!      cable% um% canopy => canopy
-!      cable% um% canht_ft  => canht_ft
-!      cable% um% lai_ft  => lai_ft
-!      cable% um% vshr_land       => vshr_land 
-!      cable% um% conv_rain       => conv_rain
-!      cable% um% conv_snow       => conv_snow
-!      cable% um% NPP => NPP
-!      cable% um% NPP_FT => NPP_FT
-!      cable% um% GPP => GPP
-!      cable% um% GPP_FT => GPP_FT
-!      cable% um% RESP_S => RESP_S
-!      cable% um% RESP_S_TOT => RESP_S_TOT
-!      cable% um% RESP_S_TILE => RESP_S_TILE
-!      cable% um% RESP_P => RESP_P
-!      cable% um% RESP_P_FT => RESP_P_FT
-!      cable% um% G_LEAF => G_LEAF
-!      cable% um% RADNET_TILE => RADNET_TILE
-!      cable% hyd% sub_surf_roff  => sub_surf_roff
-!      cable% hyd% surf_roff      => surf_roff
-!      cable% hyd% tot_tfall      => tot_tfall
-!      cable% hyd% LYING_SNOW     => LYING_SNOW
-!
+      cable% mp% npft            => npft
+      cable% ppar% tile_frac     => tile_frac
+      cable% um% snow_tile       => snow_tile
+      cable% um% canopy => canopy
+      cable% um% canht_ft  => canht_ft
+      cable% um% lai_ft  => lai_ft
+      cable% um% vshr_land       => vshr_land 
+      cable% um% conv_rain       => conv_rain
+      cable% um% conv_snow       => conv_snow
+      cable% um% NPP => NPP
+      cable% um% NPP_FT => NPP_FT
+      cable% um% GPP => GPP
+      cable% um% GPP_FT => GPP_FT
+      cable% um% RESP_S => RESP_S
+      cable% um% RESP_S_TOT => RESP_S_TOT
+      cable% um% RESP_S_TILE => RESP_S_TILE
+      cable% um% RESP_P => RESP_P
+      cable% um% RESP_P_FT => RESP_P_FT
+      cable% um% G_LEAF => G_LEAF
+      cable% um% RADNET_TILE => RADNET_TILE
+      cable% hyd% sub_surf_roff  => sub_surf_roff
+      cable% hyd% surf_roff      => surf_roff
+      cable% hyd% tot_tfall      => tot_tfall
+      cable% hyd% LYING_SNOW     => LYING_SNOW
+
 END SUBROUTINE cable_control2
-!
-!
-!!===============================================================================
-!
-!
+
+
+!===============================================================================
+
+
 !SUBROUTINE cable_bdy_layr( TL, qw )  
-!
-!      REAL, DIMENSION(:,:,:), TARGET:: &
-!         tl, &
-!         qw
-!
-!      cable% um% tl_1 => tl 
-!      cable% um% qw_1 => qw 
-!
-!END SUBROUTINE cable_bdy_layr
-!
-!
-!!===============================================================================
-!
-!
+SUBROUTINE cable_control3( TL, qw )  
+
+      REAL, DIMENSION(:,:), TARGET:: &
+         tl, &
+         qw
+
+      cable% um% tl_1 => tl 
+      cable% um% qw_1 => qw 
+
+END SUBROUTINE cable_control3
+
+
+!===============================================================================
+
+
 !SUBROUTINE cable_glue_rad( alb_tile, land_albedo,         &
 !                  TILE_PTS, TILE_INDEX, surf_down_sw )        
 !
