@@ -652,7 +652,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
-                         ( soil%sfc - soil%swilt) ) )
+                         ( max(0.083, (soil%sfc - soil%swilt) ) )              &
+                         ) )
 
          ! Temporay fix for accounting for reduction of soil evaporation 
          ! due to freezing

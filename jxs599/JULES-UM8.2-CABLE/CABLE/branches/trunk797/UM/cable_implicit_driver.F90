@@ -47,7 +47,9 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
-                                  G_LEAF )   
+                                  G_LEAF, & 
+                                  LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
+                                  TOT_TFALL )
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
@@ -169,11 +171,17 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    REAL, DIMENSION(mp) ::                                                      & 
       dtlc, & 
       dqwc
+   
+   REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) ::                               &
+      LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
+      SUB_SURF_ROFF, & !
+      SURF_ROFF,     & !
+      TOT_TFALL        !
 
    REAL, POINTER :: TFRZ
    
       TFRZ => PHYS%TFRZ
-   
+  print *, "jhan: cable_implicit 1" 
       ! FLAGS def. specific call to CABLE from UM
       cable_runtime%um_explicit = .FALSE.
       cable_runtime%um_implicit = .TRUE.
@@ -225,8 +233,14 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
        
+
+      call cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
+                             TOT_TFALL )
+
+
       cable_runtime%um_implicit = .FALSE.
   
+  print *, "jhan: cable_implicit 2" 
 END SUBROUTINE cable_implicit_driver
 
 

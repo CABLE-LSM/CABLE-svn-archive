@@ -29,6 +29,47 @@
 !
 !
 ! ==============================================================================
+!CALL cable_explicit_driver(                                           &
+!             cable% mp% row_length, cable% mp% rows,                &
+!             cable% mp% land_points, cable% mp% ntiles,             &
+!             cable% mp% npft, cable% mp% sm_levels,                 &
+!             cable% mp% timestep_width, cable% mp% latitude,        &
+!             cable% mp% longitude, cable% um% land_index,           &
+!             cable% ppar% tile_frac, cable% um% tile_pts,           &
+!             cable% um% tile_index, cable% um% bexp,                &
+!             cable% um% hcon, cable% um% satcon,                    &
+!             cable% um% sathh, cable% um% smvcst,                   &
+!             cable% um% smvcwt, cable% um% smvccl,                  &
+!             cable% um% albsoil, cable% um% snow_tile,              &
+!             cable% cable% snow_rho1l, cable% cable% snow_age,      &
+!             cable% cable% snow_flg3l, cable% cable% snow_rho3l,    &
+!             cable% cable% snow_cond,  cable% cable% snow_depth3l,  &
+!             cable% cable% snow_tmp3l, cable% cable% snow_mass3l,   &
+!             cable% um% sw_down, cable% um% lw_down,                &
+!             cable% um% cos_zenith_angle, cable% forcing% ShortWave,&
+!             cable% um% ls_rain, cable% um% ls_snow,                &
+!             cable% um% tl_1, & !not declared/defined unti bdy_layr
+!             cable% um% qw_1, & !not declared/defined unti bdy_layr
+!             cable% um% vshr_land, cable% um% pstar,                &
+!             cable% um% z1_tq, cable% um% z1_uv,                    &
+!             cable% tmp% rho_water, &!rm this later
+!             cable% tmp% L_tile_pts, cable% um% canopy,             &
+!             cable% um% Fland, cable% um% CO2_MMR,                  &
+!             cable% cable% sthu_tile, cable% cable% smcl_tile,      &
+!             cable% cable% sthf_tile, cable% um% sthu,              &
+!             cable% cable% tsoil_tile, cable% um% canht_ft,         &
+!             cable% um% lai_ft, cable% um% sin_theta_latitude,      &
+!             cable% mp% dzsoil, cable% um% LAND_MASK,               &
+!             cable% um% FTL_TILE, cable% um% FQW_TILE,              &
+!             cable% um% TSTAR_TILE, cable% um% U_S,                 &
+!             cable% um% U_S_STD_TILE, cable% um% CD_TILE,           &
+!             cable% um% CH_TILE, cable% um% RADNET_TILE,            &
+!             cable% um% FRACA, cable% um% rESFS,                    &
+!             cable% um% RESFT, cable% um% Z0H_TILE,                 &
+!             cable% um% Z0M_TILE, cable% um% RECIP_L_MO_TILE,       &
+!             cable% um% EPOT_TILE, cable% mp% endstep,              &
+!             cable% mp% timestep_number, cable% mp% mype )
+
 
 
 SUBROUTINE cable_explicit_driver( &
@@ -85,7 +126,7 @@ SUBROUTINE cable_explicit_driver( &
    !-------------------------------------------------------------------------- 
    
    !___IN: UM dimensions, array indexes, flags
-   INTEGER, INTENT(IN) ::                                                      & 
+   INTEGER ::                                                      & 
       row_length, rows, & ! UM grid resolution
       land_pts,         & ! # of land points being processed
       ntiles,           & ! # of tiles 
@@ -93,12 +134,12 @@ SUBROUTINE cable_explicit_driver( &
       sm_levels           ! # of soil layers 
 
    ! index of land points being processed
-   INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
+   INTEGER, DIMENSION(land_pts) :: land_index 
 
    ! # of land points on each tile
-   INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
+   INTEGER,  DIMENSION(ntiles) :: tile_pts 
    
-   INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
+   INTEGER,  DIMENSION(land_pts, ntiles) ::                         & 
       tile_index ,& ! index of tile points being processed
       isnow_flg3l   ! 3 layer snow flag
 
@@ -107,11 +148,11 @@ SUBROUTINE cable_explicit_driver( &
    LOGICAL,DIMENSION(row_length,rows) :: land_mask   
 
    !___UM parameters: water density, soil layer thicknesses 
-   REAL, INTENT(IN) :: rho_water 
-   REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
+   REAL :: rho_water 
+   REAL,  DIMENSION(sm_levels) :: dzsoil
 
    !___UM soil/snow/radiation/met vars
-   REAL, INTENT(IN), DIMENSION(land_pts) :: & 
+   REAL,  DIMENSION(land_pts) :: & 
       bexp,    & ! => parameter b in Campbell equation 
       hcon,    & ! Soil thermal conductivity (W/m/K).
       satcon,  & ! hydraulic conductivity @ saturation [mm/s]
@@ -122,11 +163,11 @@ SUBROUTINE cable_explicit_driver( &
       albsoil, &
       fland 
    
-   REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
+   REAL,  DIMENSION(row_length,rows) :: &
       sw_down,          & 
       cos_zenith_angle
    
-   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
+   REAL,  DIMENSION(row_length,rows) ::                             &
       latitude,   &
       longitude,  &
       lw_down,    &
@@ -139,77 +180,77 @@ SUBROUTINE cable_explicit_driver( &
       z1_tq,      &
       z1_uv
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   REAL,  DIMENSION(land_pts, ntiles) ::                         &
       snow_tile
 
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                            &
+   REAL, DIMENSION(land_pts, ntiles) ::                            &
       tile_frac,  &    
       snow_rho1l, &
       snage_tile
    
-   REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
+   REAL, DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+   REAL, DIMENSION(land_pts, npft) ::                              &
       canht_ft, lai_ft 
    
-   REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
+   REAL, DIMENSION(land_pts, ntiles) ::                             &
       canopy_tile
    
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+   REAL,  DIMENSION(land_pts, ntiles,3) ::                       &
       snow_cond
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
+   REAL, DIMENSION(land_pts, ntiles,3) ::                          &
       snow_rho3l,    &
       snow_depth3l,  &
       snow_mass3l,   &
       snow_tmp3l
    
-   REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
+   REAL, DIMENSION(land_pts, sm_levels) ::                         &
       sthu 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) :: & 
+   REAL, DIMENSION(land_pts, ntiles, sm_levels) :: & 
       sthu_tile, &
       sthf_tile, &
       smcl_tile, &
       tsoil_tile
    
-   REAL, INTENT(IN) :: co2_mmr
+   REAL :: co2_mmr
 
    !___true IF vegetation (tile) fraction is greater than 0
-   LOGICAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) :: L_tile_pts
+   LOGICAL, DIMENSION(land_pts, ntiles) :: L_tile_pts
   
    REAL :: sin_theta_latitude(row_length,rows) 
      
    !___return fluxes
 
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       FTL_TILE,   &  ! Surface FTL for land tiles     
       FQW_TILE       ! Surface FQW for land tiles     
 
    !___return temp and roughness
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       TSTAR_TILE,       & 
       Z0H_TILE,         &
       Z0M_TILE
 
    !___return friction velocities/drags/ etc
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       CD_TILE,    &     ! Drag coefficient
       CH_TILE,    &     ! Transfer coefficient for heat & moisture
       U_S_STD_TILE      ! Surface friction velocity
 
-   REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
+   REAL, DIMENSION(row_length,rows)  :: &
       U_S               ! Surface friction velocity (m/s)
 
    ! end step of experiment, this step, step width, processor num
-   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
-   REAL, INTENT(IN) ::  timestep     
+   INTEGER :: endstep, timestep_number, mype
+   REAL ::  timestep     
    
    INTEGER:: itimestep
     
    !___return miscelaneous 
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL,  DIMENSION(land_pts,ntiles) :: &
       RADNET_TILE,   & ! Surface net radiation
       RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
                        ! factor for fraction (1-FRACA) of snow-free land tiles
@@ -238,9 +279,154 @@ SUBROUTINE cable_explicit_driver( &
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
    INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
-
+!umoutput print_args.1
+!print *, "row_length ", row_length 
+!print *, "rows " , rows 
+!print *, "land_pts " , land_pts 
+!print *, "ntiles,npft " , ntiles,npft
+!print *, "sm_levels " , sm_levels
 
 !print *, "jhan:_explicit: args read"
+!umoutput print_args.2
+!print *, ""
+!print *,"timestep ", timestep
+!print *, ""
+!print *,"latitude ",  latitude 
+!print *, ""
+!print *,"longitude ", longitude
+!print *, ""
+!print *,"land_index ", land_index
+!print *, ""
+!print *,"tile_frac ",tile_frac
+!print *, ""
+!print *,"tile_pts ", tile_pts
+!print *, ""
+!print *,"tile_index ", tile_index
+!print *, ""
+!print *,"bexp ", bexp
+!print *, ""
+!print *,"hcon ", hcon
+!print *, ""
+!print *,"satcon ",satcon
+!print *, ""
+!print *,"sathh ", sathh
+!print *, ""
+!print *,"smvcst ", smvcst
+!stop
+!print *, ""
+!print *,"smvcwt ", smvcwt
+!print *, ""
+!print *,"smvccl ", smvccl
+!print *, ""
+!print *,"albsoil ", albsoil
+!print *, ""
+!print *,"snow_tile ", snow_tile
+!print *, ""
+!print *,"snow_rho1l ", snow_rho1l
+!print *, ""
+!print *,"snage_tile ", snage_tile
+!print *, ""
+!print *,"isnow_flg3l ", isnow_flg3l
+!print *, ""
+!print *,"snow_rho3l ", snow_rho3l
+!print *, ""
+!print *,"snow_cond ", snow_cond
+!print *, ""
+!print *,"snow_depth3l ", snow_depth3l
+!print *, ""
+!print *,"snow_tmp3l ", snow_tmp3l
+!print *, ""
+!print *,"snow_mass3l ", snow_mass3l
+!print *, ""
+!print *,"sw_down ", sw_down
+!print *, ""
+!print *,"lw_down ", lw_down
+!print *, ""
+!print *,"cos_zenith_angle ", cos_zenith_angle
+!print *, ""
+!print *,"surf_down_sw ", surf_down_sw
+!print *, ""
+!print *,"ls_rain ", ls_rain
+!print *, ""
+!print *,"ls_snow ", ls_snow
+!print *, ""
+!print *,"tl_1 ", tl_1
+!print *, ""
+!print *,"qw_1 ", qw_1
+!print *, ""
+!print *,"vshr_land ", vshr_land
+!print *, ""
+!print *,"pstar ", pstar
+!print *, ""
+!print *,"z1_tq ", z1_tq
+!print *, ""
+!print *,"z1_uv ", z1_uv
+!print *, ""
+!print *,"rho_water ", rho_water
+!print *, ""
+!print *,"L_tile_pts ", L_tile_pts
+!print *, ""
+!print *,"canopy_tile ", canopy_tile
+!print *, ""
+!print *,"Fland ", Fland
+!print *, ""
+!print *,"CO2_MMR ", CO2_MMR
+!print *, ""
+!print *,"sthu_tile ", sthu_tile
+!print *, ""
+!print *,"smcl_tile ", smcl_tile
+!print *, ""
+!print *,"sthf_tile ", sthf_tile
+!print *, ""
+!print *,"sthu ", sthu
+!print *, ""
+!print *,"tsoil_tile ", tsoil_tile
+!print *, ""
+!print *,"canht_ft ", canht_ft
+!print *, ""
+!print *,"lai_ft ", lai_ft
+!print *, ""
+!print *,"sin_theta_latitude ", sin_theta_latitude
+!print *, ""
+!print *,"dzsoil ", dzsoil
+!print *, ""
+!print *,"LAND_MASK ", LAND_MASK
+!print *, ""
+!print *,"FTL_TILE ", FTL_TILE
+!print *, ""
+!print *,"FQW_TILE ", FQW_TILE
+!print *, ""
+!print *,"TSTAR_TILE ", TSTAR_TILE
+!print *, ""
+!print *,"U_S ", U_S
+!print *, ""
+!print *,"U_S_STD_TILE ", U_S_STD_TILE
+!print *, ""
+!print *,"CD_TILE ", CD_TILE
+!print *, ""
+!print *,"CH_TILE ", CH_TILE
+!print *, ""
+!print *,"RADNET_TILE ", RADNET_TILE
+!print *, ""
+!print *,"FRACA ", FRACA
+!print *, ""
+!print *,"rESFS ", rESFS
+!print *, ""
+!print *,"RESFT ", RESFT
+!print *, ""
+!print *,"Z0H_TILE ", Z0H_TILE
+!print *, ""
+!print *,"Z0M_TILE ", Z0M_TILE
+!print *, ""
+!print *,"RECIP_L_MO_TILE ", RECIP_L_MO_TILE
+!print *, ""
+!print *,"EPOT_TILE ", EPOT_TILE
+!print *, ""
+!print *,"endstep ", endstep
+!print *, ""
+!print *,"timestep_number ", timestep_number
+!print *, ""
+!print *,"mype ", mype
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -263,6 +449,12 @@ SUBROUTINE cable_explicit_driver( &
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
 
+         write (6,*) 'CABLE about to write file'
+   IF(first_cable_call) & 
+open(unit=7777771,file="/home/599/jxs599/cable.txt",status="unknown", &
+  action="write",  form="formatted", &
+  position='append' )
+         write (7777771,*) ktau_gl 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
    !--- runtime and for the most part do not require a model rebuild.
@@ -271,7 +463,7 @@ SUBROUTINE cable_explicit_driver( &
       first_cable_call = .FALSE.
    ENDIF      
 
-
+      
 
 !print *, "jhan:_explicit: pre interface", mype, shape(tile_frac)
 
@@ -360,7 +552,8 @@ SUBROUTINE cable_expl_unpack( FTL_TILE, FQW_TILE,       &
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_runtime, cable_user, &
-                                   ktau_gl, knode_gl 
+                                   ktau_gl, knode_gl, kend_gl 
+   USE cable_diag_module
    IMPLICIT NONE         
 
 
@@ -469,6 +662,8 @@ SUBROUTINE cable_expl_unpack( FTL_TILE, FQW_TILE,       &
    LOGICAL, SAVE :: first_cable_call = .true.
    REAL, POINTER :: CAPP 
    
+   INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
+   
       CAPP => PHYS%CAPP
       
       !___return fluxes
@@ -519,7 +714,28 @@ SUBROUTINE cable_expl_unpack( FTL_TILE, FQW_TILE,       &
       RECIPLMOTILE =  canopy_zetar(:,niter) / rough_zref_tq
       RECIP_L_MO_TILE = UNPACK( RECIPLMOTILE, um1%l_tile_pts, miss )
       EPOT_TILE = UNPACK( canopy_epot, um1%l_tile_pts, miss )
-      
+
+!cable_diag all of these and plot -actually do the cable (mp) version
+       
+      call cable_diag( iDiag0, "FTL_tile", mp, kend_gl, ktau_gl, knode_gl,            &
+                          "FTL_tile", canopy_fh/capp )
+                
+!print *, "FTL_TILE ", FTL_TILE
+
+!print *, "FTL_TILE ", FTL_TILE
+!print *, "FQW_TILE ", FQW_TILE
+!print *, "TSTAR_TILE ", TSTAR_TILE
+!print *, "Z0M_TILE ", Z0M_TILE
+!print *, "U_S_TILE ", U_S_TILE
+!print *, "CD_TILE  ", CD_TILE 
+!print *, "CH_TILE ", CH_TILE
+!print *, "FRACA ", FRACA
+!print *, "RESFT ", RESFT
+!print *, "RESFS ", RESFS
+!print *, "RADNET_TILE ", RADNET_TILE
+!print *, "RECIP_L_MO_TILE ", RECIP_L_MO_TILE
+!print *, "EPOT_TILE ", EPOT_TILE
+!stop
 
       IF(first_cable_call) THEN 
          l_tile_pts = um1%l_tile_pts
