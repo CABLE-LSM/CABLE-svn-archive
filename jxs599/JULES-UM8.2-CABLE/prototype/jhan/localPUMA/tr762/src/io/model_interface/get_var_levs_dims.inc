@@ -93,6 +93,26 @@ SUBROUTINE get_var_levs_dims(var_id, ndims, dim_names_in, dim_names_out, dim_siz
       IF ( PRESENT(dim_sizes) )                                               &
         dim_sizes(1:2) = (/ tile_dim_size, snow_dim_size /)
 
+    CASE ( VAR_TYPE_CABLE_SOIL )
+! CABLE soil variables have 2 levels dimensions
+      IF ( PRESENT(ndims) ) ndims = 2
+      IF ( PRESENT(dim_names_in) )                                            &
+        dim_names_in(1:2) = (/ tile_dim_name, soil_dim_name /)
+      IF ( PRESENT(dim_names_out) )                                           &
+        dim_names_out(1:2) = (/ TILE_DIM_NAME_OUT, SOIL_DIM_NAME_OUT /)
+      IF ( PRESENT(dim_sizes) )                                               &
+        dim_sizes(1:2) = (/ tile_dim_size, soil_dim_size /)
+
+    CASE ( VAR_TYPE_CABLE_SNOW )
+! CABLE snow variables have 2 levels dimensions
+      IF ( PRESENT(ndims) ) ndims = 2
+      IF ( PRESENT(dim_names_in) )                                            &
+        dim_names_in(1:2) = (/ tile_dim_name, snow_dim_name /)
+      IF ( PRESENT(dim_names_out) )                                           &
+        dim_names_out(1:2) = (/ TILE_DIM_NAME_OUT, SNOW_DIM_NAME_OUT /)
+      IF ( PRESENT(dim_sizes) )                                               &
+        dim_sizes(1:2) = (/ tile_dim_size, snow_dim_size /)
+
     CASE DEFAULT
 ! Unrecognised variable type
       CALL log_fatal("get_var_levs_dims",                                     &

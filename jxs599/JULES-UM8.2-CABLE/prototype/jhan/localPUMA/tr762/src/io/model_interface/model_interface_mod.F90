@@ -79,7 +79,9 @@ MODULE model_interface_mod
     VAR_TYPE_TILE    = 4,                                                     &
     VAR_TYPE_SNOW    = 5,                                                     &
     VAR_TYPE_SOIL    = 6,                                                     &
-    VAR_TYPE_SCPOOL  = 7
+    VAR_TYPE_SCPOOL  = 7,                                                     &         
+    VAR_TYPE_CABLE_SOIL    = 8,                                               &
+    VAR_TYPE_CABLE_SNOW    = 9
 
 ! Derived type to contain metadata about model variables
   TYPE var_metadata
@@ -98,7 +100,8 @@ MODULE model_interface_mod
 
 ! Array holding the metadata for all model variables that we can use for input
 ! or output
-  INTEGER, PARAMETER :: N_VARS = 213
+  !INTEGER, PARAMETER :: N_VARS = 213
+  INTEGER, PARAMETER :: N_VARS = 215
   TYPE(var_metadata) :: metadata(N_VARS)
 
 ! Include the metadata DATA statement

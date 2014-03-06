@@ -2701,6 +2701,32 @@ DATA metadata/                                                                &
     "PFT acetone emission flux",                                              &
 ! Units
     "kg m-2 s-1"                                                              &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for soil_temp_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'soil_temp',                                                              &
+! Variable type
+    VAR_TYPE_CABLE_SOIL,                                                      &
+! Long name
+    "PFT soil temperature in layers",                                         &
+! Units
+    "K"                                                                       &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for snow_depth_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'snow_depth',                                                             &
+! Variable type
+    VAR_TYPE_CABLE_SNOW,                                                      &
+! Long name
+    "PFT snow depth in layers",                                               &
+! Units
+    "m"                                                                       &
   )                                                                           &
 /
 #endif
