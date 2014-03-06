@@ -39,6 +39,8 @@ SUBROUTINE populate_var(var_id, cube, const_val)
                       ls_snow, con_rain, con_snow, u_1, v_1
 
   USE ozone_vars, ONLY : o3
+  
+  USE cable_data_mod, ONLY : soil_temp_CABLE, snow_depth_CABLE
 
   IMPLICIT NONE
 
@@ -742,6 +744,22 @@ SUBROUTINE populate_var(var_id, cube, const_val)
         CALL cube_get_data(cube_land, albobs_nir)
       ELSE
         albobs_nir(:) = const_val
+      END IF
+
+    CASE ( 'soil_temp_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, soil_temp_CABLE )
+      ELSE
+        soil_temp_CABLE(:,:,:) = const_val
+      END IF
+
+    CASE ( 'snow_depth_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, snow_depth_CABLE )
+      ELSE
+        snow_depth_CABLE(:,:,:) = const_val
       END IF
 
     CASE DEFAULT

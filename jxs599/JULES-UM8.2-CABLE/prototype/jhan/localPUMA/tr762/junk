@@ -1,66 +1,18 @@
-cable_data_module_txt1.f90:         land_alb,   & !
-cable_data_module_txt1.f90:         land_albedo
-cable_data_module_txt1.f90:!land_alb - land_albedo in control via fluxes (check this is what we want)
-cable_data_module_txt1.f90:                           land_albedo )
-cable_data_module_txt1.f90:      land_albedo 
-cable_data_module_txt1.f90:      cable% um% land_alb         => land_albedo   
-cable_data_module_txt1.f90:SUBROUTINE cable_glue_rad( alb_tile, land_albedo,         &
-cable_data_module_txt1.f90:      land_albedo
-cable_data_module_txt1.f90:   cable% um% land_albedo => land_albedo
-cable_data_module_txt2.f90:         land_alb,   & !
-cable_data_module_txt2.f90:         land_albedo
-cable_data_module_txt2.f90:             GS, canopy, land_albedo )
-cable_data_module_txt2.f90:!cant send land_alb from here as not available
-cable_data_module_txt2.f90:      land_albedo 
-cable_data_module_txt2.f90:!      cable% um% land_alb         => land_albedo   
-cable_data_module_txt2.f90:!land_albedo, alread passed        &
-cable_data_module_txt2.f90:SUBROUTINE cable_glue_rad( alb_tile, land_albedo,         &
-cable_data_module_txt2.f90:      land_albedo
-cable_data_module_txt2.f90:   cable% um% land_albedo => land_albedo
-Binary file libjules.a matches
-Binary file mods/fluxes.mod matches
-src/control/shared/fluxes.F90:    LAND_ALBEDO(:,:,:),                                                       &
-src/control/standalone/control.F90:    ,HF_SNOW_MELT,LAND_ALBEDO,LATENT_HEAT,LE_TILE,MELT_TILE     &
-src/control/standalone/control.F90:         CO2_MMR, sthu, smcl, sthf, GS, canopy, land_albedo )
-src/control/standalone/control.F90:!land_alb - atm_step - ? (row_length,rows) in atm_step ~f(land_albedo)
-src/control/standalone/control.F90:!land_albedo - glue_rad (row_length, rows, 4, n_swcall) 
-src/control/standalone/control.F90:! send land_alb from here as well
-src/control/standalone/control.F90:!  call cable_control5( alb_tile, land_albedo,         &
-src/control/standalone/control.F90:          ,alb_tile,land_albedo,albobs_sc,can_rad_mod )
-src/control/standalone/control.F90:                                ( land_albedo(i,j,2) + land_albedo(i,j,4) ) )
-src/control/standalone/control.F90:                                ( land_albedo(i,j,2) + land_albedo(i,j,4) ) )
-src/initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( LAND_ALBEDO(t_i_length,t_j_length,4) )
-src/io/model_interface/cable_data_module.F90:         land_alb
-src/io/model_interface/cable_data_module.F90:         !land_alb,   & !
-src/io/model_interface/cable_data_module.F90:         land_albedo
-src/io/model_interface/cable_data_module.F90: !        CO2_MMR, sthu, smcl, sthf, GS, canopy, land_albedo )
-src/io/model_interface/cable_data_module.F90:             GS, canopy, land_albedo )
-src/io/model_interface/cable_data_module.F90:      !land_albedo 
-src/io/model_interface/cable_data_module.F90:      land_albedo 
-src/io/model_interface/cable_data_module.F90:      cable% um% land_alb         => land_albedo   
-src/io/model_interface/cable_data_module.F90:!SUBROUTINE cable_glue_rad( alb_tile, land_albedo,         &
-src/io/model_interface/cable_data_module.F90:!      land_albedo
-src/io/model_interface/cable_data_module.F90:!   cable% um% land_albedo => land_albedo
-src/io/model_interface/extract_var.inc:                     ei, esoil, fqw_1, ftl_1, land_albedo, latent_heat,       &
-src/io/model_interface/extract_var.inc:                             0.5 * (land_albedo(i,j,2) + land_albedo(i,j,4))) &
-src/io/model_interface/extract_var.inc:    CASE ( 'land_albedo_1' )
-src/io/model_interface/extract_var.inc:      cube = cube_from_array(land_albedo(:,:,1))
-src/io/model_interface/extract_var.inc:    CASE ( 'land_albedo_2' )
-src/io/model_interface/extract_var.inc:      cube = cube_from_array(land_albedo(:,:,2))
-src/io/model_interface/extract_var.inc:    CASE ( 'land_albedo_3' )
-src/io/model_interface/extract_var.inc:      cube = cube_from_array(land_albedo(:,:,3))
-src/io/model_interface/extract_var.inc:    CASE ( 'land_albedo_4' )
-src/io/model_interface/extract_var.inc:      cube = cube_from_array(land_albedo(:,:,4))
-src/io/model_interface/variable_metadata.inc:! Metadata for land_albedo_1
-src/io/model_interface/variable_metadata.inc:    'land_albedo_1',                                                          &
-src/io/model_interface/variable_metadata.inc:! Metadata for land_albedo_2
-src/io/model_interface/variable_metadata.inc:    'land_albedo_2',                                                          &
-src/io/model_interface/variable_metadata.inc:! Metadata for land_albedo_3
-src/io/model_interface/variable_metadata.inc:    'land_albedo_3',                                                          &
-src/io/model_interface/variable_metadata.inc:! Metadata for land_albedo_4
-src/io/model_interface/variable_metadata.inc:    'land_albedo_4',                                                          &
-src/science/radiation/tile_albedo_jls.F90: z0_tile,alb_tile,land_albedo,albobs_sc,can_rad_mod               &
-src/science/radiation/tile_albedo_jls.F90:,land_albedo(p_field,4)                                            &
-src/science/radiation/tile_albedo_jls.F90:    land_albedo(i,band) = 0.
-src/science/radiation/tile_albedo_jls.F90:      land_albedo(i,band) = land_albedo(i,band) +                 &
-src/science/radiation/tile_albedo_jls.F90:      alb_tile(l,1,band) = land_albedo(i,band)
+src/junk:science/params/pftparm_io.F90:    albsnf_maxl_io(npft_max),                                         &
+Binary file build/bin/jules.exe matches
+Binary file build/include/pftparm_io.mod matches
+Binary file build/o/init_params_mod.o matches
+Binary file build/o/pftparm_io.o matches
+preprocess/include/init_pftparm.inc:  albsnf_maxl_io(:)           = RMDI
+preprocess/include/init_pftparm.inc:  albsnf_maxl(:)  = albsnf_maxl_io(1:npft)
+extract/jules/src/junk:science/params/pftparm_io.F90:    albsnf_maxl_io(npft_max),                                         &
+src/science/params/pftparm_io.F90:    albsnf_maxl_io(npft_max),                                         &
+src/science/params/pftparm_io.F90:                           albsnf_max_io,albsnf_maxl_io,                & 
+src/initialisation/standalone/params/init_pftparm.inc:  albsnf_maxl_io(:)           = RMDI
+src/initialisation/standalone/params/init_pftparm.inc:  albsnf_maxl(:)  = albsnf_maxl_io(1:npft)
+extract/jules/src/science/params/pftparm_io.F90:    albsnf_maxl_io(npft_max),                                         &
+extract/jules/src/science/params/pftparm_io.F90:                           albsnf_max_io,albsnf_maxl_io,                & 
+extract/jules/src/initialisation/standalone/params/init_pftparm.inc:  albsnf_maxl_io(:)           = RMDI
+extract/jules/src/initialisation/standalone/params/init_pftparm.inc:  albsnf_maxl(:)  = albsnf_maxl_io(1:npft)
+preprocess/src/jules/src/science/params/pftparm_io.F90:    albsnf_maxl_io(npft_max),                                         &
+preprocess/src/jules/src/science/params/pftparm_io.F90:                           albsnf_max_io,albsnf_maxl_io,                & 

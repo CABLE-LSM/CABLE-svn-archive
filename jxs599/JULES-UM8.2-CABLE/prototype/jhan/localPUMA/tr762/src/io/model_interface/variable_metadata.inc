@@ -2707,7 +2707,7 @@ DATA metadata/                                                                &
 !-----------------------------------------------------------------------------
   var_metadata(                                                               &
 ! String identifier
-    'soil_temp',                                                              &
+    'soil_temp_CABLE',                                                              &
 ! Variable type
     VAR_TYPE_CABLE_SOIL,                                                      &
 ! Long name
@@ -2720,7 +2720,7 @@ DATA metadata/                                                                &
 !-----------------------------------------------------------------------------
   var_metadata(                                                               &
 ! String identifier
-    'snow_depth',                                                             &
+    'snow_depth_CABLE',                                                             &
 ! Variable type
     VAR_TYPE_CABLE_SNOW,                                                      &
 ! Long name

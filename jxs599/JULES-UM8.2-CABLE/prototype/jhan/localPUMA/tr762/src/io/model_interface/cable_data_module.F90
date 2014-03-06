@@ -41,10 +41,10 @@ module cable_data_mod
    !   SNOW_FLG3L       !
    ! introduced tiled prognostics that have to go through JULES's I/O 
    real, dimension(:,:,:), pointer, save ::           &
-      TSOIL_TILE,    & !
+      SOIL_Temp_CABLE, & !
       !SMCL_TILE,     & !
       !STHF_TILE,     & !
-      SNOW_DEPTH3L!,  & !
+      SNOW_DEPTH_CABLE!,  & !
       !SNOW_MASS3L,   & !
       !SNOW_TMP3L,    & !
       !SNOW_RHO3L,    & !

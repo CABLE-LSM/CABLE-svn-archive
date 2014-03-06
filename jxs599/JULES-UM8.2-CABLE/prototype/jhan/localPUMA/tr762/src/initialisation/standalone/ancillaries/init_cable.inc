@@ -31,7 +31,7 @@ SUBROUTINE init_cable()
 !  USE soil_param, ONLY : jules_soil_param, dzsoil, dzsoil_io, zsmc, zst
 !  USE p_s_parms, ONLY : sathh, satcon, hcon, smvcst
 
-  USE cable_vars_mod
+  !USE cable_data_mod
 
   IMPLICIT NONE
 
@@ -118,6 +118,13 @@ SUBROUTINE init_cable()
 
 ! First, we read the soil_param namelist
   READ(NAMELIST_UNIT, nml=cable_vars, IOSTAT=error)
+
+print *, "file ", file
+print *, "nvars ",nvars
+print *, "var ",var
+print *, "use file ",use_file
+print *, "var name ",var_name
+
  IF ( error /= 0 )                                                           &
     CALL log_fatal("init_cable",                                               &
                    "Error reading namelist CABLE" //              &
@@ -139,7 +146,7 @@ SUBROUTINE init_cable()
 !                        'snow_mass1',   &
 !                        'snow_mass2',   &
 !                        'snow_mass3',   &
-                        'snow_depth1',   &
+                        'snow_depth_CABLE',   &
 !                        'snow_depth2',   &
 !                        'snow_depth3',   &
 !                        'snow_tmp1',   &
@@ -169,7 +176,7 @@ SUBROUTINE init_cable()
 !                        'tsoil_tile4',    &
 !                        'tsoil_tile5',    &
 !                        'tsoil_tile6'    &
-                        'tsoil_tile1'    &
+                        'soil_temp_CABLE'    &
                      /)
 
 !-----------------------------------------------------------------------------
