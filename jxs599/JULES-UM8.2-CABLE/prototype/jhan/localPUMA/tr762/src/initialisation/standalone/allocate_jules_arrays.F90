@@ -65,6 +65,10 @@ SUBROUTINE allocate_jules_arrays()
 
   USE logging_mod, ONLY : log_info, log_debug, log_warn, log_error, log_fatal
 
+!CABLE
+  USE cable_vars_mod
+                    
+
   IMPLICIT NONE
 
 !-----------------------------------------------------------------------------
@@ -492,6 +496,9 @@ SUBROUTINE allocate_jules_arrays()
   error_sum = error_sum + error
   ALLOCATE( TSNOW(land_pts,ntiles,nsmax), STAT=error )
   error_sum = error_sum + error
+
+!CABLE
+#include "allocate_cable_arrays.inc"
 
 ! (Forcing) fluxes
   ALLOCATE( ALB_TILE(land_pts,ntiles,4) )
