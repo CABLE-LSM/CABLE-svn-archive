@@ -66,7 +66,7 @@ SUBROUTINE allocate_jules_arrays()
   USE logging_mod, ONLY : log_info, log_debug, log_warn, log_error, log_fatal
 
 !CABLE
-  USE cable_vars_mod
+  USE cable_data_mod
                     
 
   IMPLICIT NONE

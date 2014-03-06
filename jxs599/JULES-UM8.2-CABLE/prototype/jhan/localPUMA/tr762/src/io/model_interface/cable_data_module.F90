@@ -17,7 +17,6 @@
 module cable_data_mod 
    !use define_dimensions, only : nrb 
    implicit none
-   
   
    ! public variables. ALL vars above "contains" are deliberately public
     
@@ -28,18 +27,30 @@ module cable_data_mod
    integer, parameter :: ms= 6, & ! soil levels must be same as UM
                          msn = 3   
 
-   ! introduced tiled prognostics that have to go through UM's I/O 
-   real, dimension(:), pointer, save ::           &
+   !! introduced tiled prognostics that have to go through UM's I/O 
+   !real, dimension(:), pointer, save ::           &
+   !   TSOIL_TILE,    & !
+   !   SMCL_TILE,     & !
+   !   STHF_TILE,     & !
+   !   SNOW_DEPTH3L,  & !
+   !   SNOW_MASS3L,   & !
+   !   SNOW_TMP3L,    & !
+   !   SNOW_RHO3L,    & !
+   !   SNOW_RHO1L,    & !
+   !   SNOW_AGE,      & !
+   !   SNOW_FLG3L       !
+   ! introduced tiled prognostics that have to go through JULES's I/O 
+   real, dimension(:,:,:), pointer, save ::           &
       TSOIL_TILE,    & !
-      SMCL_TILE,     & !
-      STHF_TILE,     & !
-      SNOW_DEPTH3L,  & !
-      SNOW_MASS3L,   & !
-      SNOW_TMP3L,    & !
-      SNOW_RHO3L,    & !
-      SNOW_RHO1L,    & !
-      SNOW_AGE,      & !
-      SNOW_FLG3L       !
+      !SMCL_TILE,     & !
+      !STHF_TILE,     & !
+      SNOW_DEPTH3L!,  & !
+      !SNOW_MASS3L,   & !
+      !SNOW_TMP3L,    & !
+      !SNOW_RHO3L,    & !
+      !SNOW_RHO1L,    & !
+      !SNOW_AGE,      & !
+      !SNOW_FLG3L       !
 
 
 !------------------------------------------------------------------------------
