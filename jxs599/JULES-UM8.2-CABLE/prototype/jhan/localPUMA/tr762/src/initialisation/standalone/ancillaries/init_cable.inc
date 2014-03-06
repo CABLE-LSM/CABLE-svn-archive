@@ -46,7 +46,7 @@ SUBROUTINE init_cable()
 !   This code is written to JULES coding standards v1.
 !-----------------------------------------------------------------------------
 ! Work variables
-  INTEGER, PARAMETER :: nCABLE_VARS  = 39 
+  INTEGER, PARAMETER :: nCABLE_VARS  = 2 
 
   INTEGER :: nvars_required      ! The number of soil variables that are
                                  ! required in this configuration
@@ -130,45 +130,46 @@ SUBROUTINE init_cable()
 ! All the CABLE variables are always required for CABLE runs
   nvars_required = nCABLE_VARS
   required_vars(:) = (/ &
-                        'isnow_flg3l', &
-                        'snow_rho1l',  &
-                        'snage_tile',   &
-                        'snow_rho1',   &
-                        'snow_rho2',   &
-                        'snow_rho3',   &
-                        'snow_mass1',   &
-                        'snow_mass2',   &
-                        'snow_mass3',   &
+!                        'isnow_flg3l', &
+!                        'snow_rho1l',  &
+!                        'snage_tile',   &
+!                        'snow_rho1',   &
+!                        'snow_rho2',   &
+!                        'snow_rho3',   &
+!                        'snow_mass1',   &
+!                        'snow_mass2',   &
+!                        'snow_mass3',   &
                         'snow_depth1',   &
-                        'snow_depth2',   &
-                        'snow_depth3',   &
-                        'snow_tmp1',   &
-                        'snow_tmp2',   &
-                        'snow_tmp3',    &
-                        'sthu_tile1',    &
-                        'sthu_tile2',    &
-                        'sthu_tile3',    &
-                        'sthu_tile4',    &
-                        'sthu_tile5',    &
-                        'sthu_tile6',    &
-                        'sthf_tile1',    &
-                        'sthf_tile2',    &
-                        'sthf_tile3',    &
-                        'sthf_tile4',    &
-                        'sthf_tile5',    &
-                        'sthf_tile6',    &
-                        'smcl_tile1',    &
-                        'smcl_tile2',    &
-                        'smcl_tile3',    &
-                        'smcl_tile4',    &
-                        'smcl_tile5',    &
-                        'smcl_tile6',    &
-                        'tsoil_tile1',    &
-                        'tsoil_tile2',    &
-                        'tsoil_tile3',    &
-                        'tsoil_tile4',    &
-                        'tsoil_tile5',    &
-                        'tsoil_tile6'    &
+!                        'snow_depth2',   &
+!                        'snow_depth3',   &
+!                        'snow_tmp1',   &
+!                        'snow_tmp2',   &
+!                        'snow_tmp3',    &
+!                        'sthu_tile1',    &
+!                        'sthu_tile2',    &
+!                        'sthu_tile3',    &
+!                        'sthu_tile4',    &
+!                        'sthu_tile5',    &
+!                        'sthu_tile6',    &
+!                        'sthf_tile1',    &
+!                        'sthf_tile2',    &
+!                        'sthf_tile3',    &
+!                        'sthf_tile4',    &
+!                        'sthf_tile5',    &
+!                        'sthf_tile6',    &
+!                        'smcl_tile1',    &
+!                        'smcl_tile2',    &
+!                        'smcl_tile3',    &
+!                        'smcl_tile4',    &
+!                        'smcl_tile5',    &
+!                        'smcl_tile6',    &
+!                        'tsoil_tile1',    &
+!                        'tsoil_tile2',    &
+!                        'tsoil_tile3',    &
+!                        'tsoil_tile4',    &
+!                        'tsoil_tile5',    &
+!                        'tsoil_tile6'    &
+                        'tsoil_tile1'    &
                      /)
 
 !-----------------------------------------------------------------------------

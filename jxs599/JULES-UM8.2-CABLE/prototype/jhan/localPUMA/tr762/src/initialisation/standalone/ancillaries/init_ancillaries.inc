@@ -1,4 +1,5 @@
 #if !defined(UM_JULES)
+#define CABLE_init T
 ! *****************************COPYRIGHT**************************************
 ! (C) Crown copyright Met Office. All rights reserved.
 ! For further details please refer to the file COPYRIGHT.txt
@@ -56,6 +57,11 @@ SUBROUTINE init_ancillaries(nml_dir)
 ! Defer to specialist routines to process each namelist
   CALL init_frac()
   CALL init_soil()
+
+! CABLE
+#ifdef CABLE_init
+  CALL init_cable()
+#endif
 
 ! The pdm namelist is easy - just 2 properties - and we only need to read it
 ! if pdm is on
