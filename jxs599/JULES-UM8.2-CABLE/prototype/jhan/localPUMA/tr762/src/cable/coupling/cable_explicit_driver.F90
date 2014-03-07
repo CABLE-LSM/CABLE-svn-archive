@@ -35,7 +35,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   land_index, tile_frac,  tile_pts, tile_index,&
                                   bexp, hcon, satcon, sathh, smvcst,           &
                                   smvcwt,  smvccl, albsoil, snow_tile,         &
-                                  snow_rho1l, snage_tile, isnow_flg3l,         &
+                                  snow_rho1l, snage_tile, snow_flg3l,         &
                                   snow_rho3l, snow_cond, snow_depth3l,         &
                                   snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
                                   cos_zenith_angle, surf_down_sw, ls_rain,     &
@@ -96,6 +96,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    ! # of land points on each tile
    INTEGER,  DIMENSION(ntiles) :: tile_pts 
    
+   real,  DIMENSION(land_pts, ntiles) ::                         & 
+      snow_flg3l      ! 3 layer snow flag
+
    INTEGER,  DIMENSION(land_pts, ntiles) ::                         & 
       tile_index ,& ! index of tile points being processed
       isnow_flg3l   ! 3 layer snow flag
@@ -241,6 +244,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 !umoutput print_args.1
 integer :: itest =1
 
+      isnow_flg3l = floor( snow_flg3l )
 if( timestep_number == itest) then
 print *, "CABLE:row_length ", row_length 
 print *, "rows " , rows 

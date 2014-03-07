@@ -40,7 +40,10 @@ SUBROUTINE populate_var(var_id, cube, const_val)
 
   USE ozone_vars, ONLY : o3
   
-  USE cable_data_mod, ONLY : soil_temp_CABLE, snow_depth_CABLE
+  USE cable_data_mod, ONLY : soil_temp_CABLE, snow_depth_CABLE,   sthf_CABLE,  &
+                             smcl_CABLE, snow_depth_CABLE, snow_mass_CABLE,    &
+                             snow_rho_CABLE, snow_temp_CABLE, snow_age_CABLE,  &
+                             snow_rho1l_CABLE, snow_flg3l_CABLE 
 
   IMPLICIT NONE
 
@@ -783,7 +786,7 @@ SUBROUTINE populate_var(var_id, cube, const_val)
         cube_land = map_to_land(cube)
         CALL cube_get_data(cube_land, snow_age_CABLE )
       ELSE
-        snow_age_CABLE(:,:,:) = const_val
+        snow_age_CABLE(:,:) = const_val
       END IF
     
     CASE ( 'snow_mass_CABLE' )
@@ -799,7 +802,7 @@ SUBROUTINE populate_var(var_id, cube, const_val)
         cube_land = map_to_land(cube)
         CALL cube_get_data(cube_land, snow_flg3l_CABLE )
       ELSE
-        snow_flg3l_CABLE(:,:,:) = const_val
+        snow_flg3l_CABLE(:,:) = const_val
       END IF
     
     CASE ( 'snow_temp_CABLE' )
@@ -823,7 +826,7 @@ SUBROUTINE populate_var(var_id, cube, const_val)
         cube_land = map_to_land(cube)
         CALL cube_get_data(cube_land, snow_rho1l_CABLE )
       ELSE
-        snow_rho1l_CABLE(:,:,:) = const_val
+        snow_rho1l_CABLE(:,:) = const_val
       END IF
     
     CASE DEFAULT

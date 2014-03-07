@@ -46,16 +46,16 @@ module cable_data_mod
       STHF_CABLE        !
 
    real, dimension(:,:,:), pointer, save ::           &
-      SNOW_DEPTH_CABLE!,  & !
+      SNOW_DEPTH_CABLE,  & !
       SNOW_MASS_CABLE,   & !
       SNOW_TEMP_CABLE,    & !
       SNOW_RHO_CABLE       !
 
-   real, dimension(:,:pointer, save ::           &
+   real, dimension(:,:), pointer, save ::           &
       SNOW_RHO1L_CABLE,    & !
       SNOW_AGE_CABLE         !
 
-   integer, dimension(:,:), pointer, save ::           &
+   real, dimension(:,:), pointer, save ::           &
       SNOW_FLG3L_CABLE       !
 
 !------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ module cable_data_mod
    ! cable prognostic_vars
    type cable_vars
 
-      INTEGER, DIMENSION(:,:), POINTER :: &
+      real, DIMENSION(:,:), POINTER :: &
          snow_flg3l
       
       REAL, DIMENSION(:,:), POINTER :: &
@@ -489,8 +489,9 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       cable% cable% sthf_tile        => sthf_CABLE
       cable% cable% snow_depth3l     => snow_depth_CABLE
       cable% cable% snow_mass3l      => snow_mass_CABLE
-      cable% cable% snow_tmp3l       => snow_tmp_CABLE
+      cable% cable% snow_tmp3l       => snow_temp_CABLE
       cable% cable% snow_rho3l       => snow_rho_CABLE
+      cable% cable% snow_flg3l       => snow_flg3l_CABLE
       cable% cable% snow_rho1l       => snow_rho1l_CABLE
       cable% cable% snow_age         => snow_age_CABLE
 

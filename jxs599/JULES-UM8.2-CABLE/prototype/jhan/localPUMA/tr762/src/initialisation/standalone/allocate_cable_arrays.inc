@@ -16,13 +16,13 @@
   ALLOCATE( SNOW_MASS_CABLE(land_pts, ntiles, nsmax), STAT=error )
   error_sum = error_sum + error
 
-  ALLOCATE( SNOW_TMP_CABLE(land_pts, ntiles, nsmax), STAT=error )
+  ALLOCATE( snow_temp_CABLE(land_pts, ntiles, nsmax), STAT=error )
   error_sum = error_sum + error
 
   ALLOCATE( SNOW_RHO_CABLE(land_pts, ntiles, nsmax), STAT=error )
   error_sum = error_sum + error
 
-  ALLOCATE( SNOW_FLG3L_CABLE(land_pts, ntiles, nsmax), STAT=error )
+  ALLOCATE( SNOW_FLG3L_CABLE(land_pts, ntiles), STAT=error )
   error_sum = error_sum + error
 
   ALLOCATE( SNOW_RHO1L_CABLE(land_pts, ntiles), STAT=error )

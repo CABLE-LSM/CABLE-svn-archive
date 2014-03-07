@@ -2801,7 +2801,7 @@ DATA metadata/                                                                &
 ! String identifier
     'snow_flg3l_CABLE',                                                       &
 ! Variable type
-    VAR_TYPE_CABLE_SNOW,                                                      &
+    VAR_TYPE_CABLE1l_SNOW,                                                      &
 ! Long name
     "3 layer snow flag for tile",                                             &
 ! Units
@@ -2814,7 +2814,7 @@ DATA metadata/                                                                &
 ! String identifier
     'snow_age_CABLE',                                                         &
 ! Variable type
-    VAR_TYPE_CABLE_SNOW,                                                      &
+    VAR_TYPE_CABLE1l_SNOW,                                                      &
 ! Long name
     "snow age for tile",                                                      &
 ! Units
@@ -2827,7 +2827,7 @@ DATA metadata/                                                                &
 ! String identifier
     'snow_rho1l_CABLE',                                                       &
 ! Variable type
-    VAR_TYPE_CABLE_SNOW,                                                      &
+    VAR_TYPE_CABLE1l_SNOW,                                                      &
 ! Long name
     "PFT snow density in aggregate 1 layer",                                  &
 ! Units

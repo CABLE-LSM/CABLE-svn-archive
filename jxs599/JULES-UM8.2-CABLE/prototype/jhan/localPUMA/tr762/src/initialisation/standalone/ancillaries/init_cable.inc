@@ -46,7 +46,7 @@ SUBROUTINE init_cable()
 !   This code is written to JULES coding standards v1.
 !-----------------------------------------------------------------------------
 ! Work variables
-  INTEGER, PARAMETER :: nCABLE_VARS  = 2 
+  INTEGER, PARAMETER :: nCABLE_VARS  = 10
 
   INTEGER :: nvars_required      ! The number of soil variables that are
                                  ! required in this configuration
@@ -143,7 +143,7 @@ print *, "var name ",var_name
                         'snow_rho_CABLE',   &
                         'snow_mass_CABLE',   &
                         'snow_depth_CABLE',   &
-                        'snow_tmp_CABLE',   &
+                        'snow_temp_CABLE',   &
                         'sthf_CABLE',    &
                         'smcl_CABLE',    &
                         'soil_temp_CABLE'    &

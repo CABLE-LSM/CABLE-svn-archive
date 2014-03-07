@@ -113,6 +113,16 @@ SUBROUTINE get_var_levs_dims(var_id, ndims, dim_names_in, dim_names_out, dim_siz
       IF ( PRESENT(dim_sizes) )                                               &
         dim_sizes(1:2) = (/ tile_dim_size, snow_dim_size /)
 
+    CASE ( VAR_TYPE_CABLE1l_SNOW )
+! CABLE snow variables per tile only have 1 level dimensions
+      IF ( PRESENT(ndims) ) ndims = 1
+      IF ( PRESENT(dim_names_in) )                                            &
+        dim_names_in = tile_dim_name
+      IF ( PRESENT(dim_names_out) )                                           &
+        dim_names_out = TILE_DIM_NAME_OUT
+      IF ( PRESENT(dim_sizes) )                                               &
+        dim_sizes = tile_dim_size
+
     CASE DEFAULT
 ! Unrecognised variable type
       CALL log_fatal("get_var_levs_dims",                                     &
