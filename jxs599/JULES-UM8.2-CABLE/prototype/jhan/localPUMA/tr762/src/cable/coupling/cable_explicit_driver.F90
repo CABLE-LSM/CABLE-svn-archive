@@ -30,29 +30,28 @@
 !
 ! ==============================================================================
 
-SUBROUTINE cable_explicit_driver( )!&
-!   row_length, rows, land_pts, ntiles,npft,     &
-!                                  sm_levels, timestep, latitude, longitude,    &
-!                                  land_index, tile_frac,  tile_pts, tile_index,&
-!                                  bexp, hcon, satcon, sathh, smvcst,           &
-!                                  smvcwt,  smvccl, albsoil, snow_tile,         &
-!                                  snow_rho1l, snage_tile, isnow_flg3l,         &
-!                                  snow_rho3l, snow_cond, snow_depth3l,         &
-!                                  snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
-!                                  cos_zenith_angle, surf_down_sw, ls_rain,     &
-!                                  ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
-!                                  z1_uv, rho_water, L_tile_pts, canopy_tile,   &
-!                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
-!                                  sthf_tile, sthu, tsoil_tile, canht_ft,       &
-!                                  lai_ft, sin_theta_latitude, dzsoil,          &
-!                                  LAND_MASK, FTL_TILE,  &
-!                                  FQW_TILE, TSTAR_TILE,   &
-!                                  U_S, U_S_STD_TILE,&
-!                                  CD_TILE, CH_TILE,   &
-!                                  RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
-!                                  Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
-!                                  endstep, timestep_number, mype & 
-!)    
+SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
+                                  sm_levels, timestep, latitude, longitude,    &
+                                  land_index, tile_frac,  tile_pts, tile_index,&
+                                  bexp, hcon, satcon, sathh, smvcst,           &
+                                  smvcwt,  smvccl, albsoil, snow_tile,         &
+                                  snow_rho1l, snage_tile, isnow_flg3l,         &
+                                  snow_rho3l, snow_cond, snow_depth3l,         &
+                                  snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
+                                  cos_zenith_angle, surf_down_sw, ls_rain,     &
+                                  ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
+                                  z1_uv, rho_water, L_tile_pts, canopy_tile,   &
+                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
+                                  sthf_tile, sthu, tsoil_tile, canht_ft,       &
+                                  lai_ft, sin_theta_latitude, dzsoil,          &
+                                  LAND_MASK, FTL_TILE,  &
+                                  FQW_TILE, TSTAR_TILE,   &
+                                  U_S, U_S_STD_TILE,&
+                                  CD_TILE, CH_TILE,   &
+                                  RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
+                                  Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
+                                  endstep, timestep_number, mype & 
+)    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -203,7 +202,9 @@ SUBROUTINE cable_explicit_driver( )!&
 
    ! end step of experiment, this step, step width, processor num
    INTEGER :: endstep, timestep_number, mype
-   REAL ::  timestep     
+   !JULES already passing as integer
+   !REAL ::  timestep     
+   INTEGER :: timestep
    
    INTEGER:: itimestep
     
@@ -238,50 +239,48 @@ SUBROUTINE cable_explicit_driver( )!&
  
    INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
 !umoutput print_args.1
+integer :: itest =1
 
-!if( timestep == 17520) then
+if( timestep_number == itest) then
 print *, "CABLE:row_length ", row_length 
-!endif
-STOP
-!print *, "rows " , rows 
-!print *, "land_pts " , land_pts 
-!print *, "ntiles,npft " , ntiles,npft
-!print *, "sm_levels " , sm_levels
+print *, "rows " , rows 
+print *, "land_pts " , land_pts 
+print *, "ntiles,npft " , ntiles,npft
+print *, "sm_levels " , sm_levels
 
-!print *, "jhan:_explicit: args read"
-!umoutput print_args.2
-!print *, ""
-!print *,"timestep ", timestep
-!print *, ""
-!print *,"latitude ",  latitude 
-!print *, ""
-!print *,"longitude ", longitude
-!print *, ""
-!print *,"land_index ", land_index
-!print *, ""
-!print *,"tile_frac ",tile_frac
-!print *, ""
-!print *,"tile_pts ", tile_pts
-!print *, ""
-!print *,"tile_index ", tile_index
-!print *, ""
-!print *,"bexp ", bexp
-!print *, ""
-!print *,"hcon ", hcon
-!print *, ""
-!print *,"satcon ",satcon
-!print *, ""
-!print *,"sathh ", sathh
-!print *, ""
-!print *,"smvcst ", smvcst
-!stop
-!print *, ""
-!print *,"smvcwt ", smvcwt
-!print *, ""
-!print *,"smvccl ", smvccl
-!print *, ""
-!print *,"albsoil ", albsoil
-!print *, ""
+print *, "jhan:_explicit: args read"
+!!umoutput print_args.2
+print *, ""
+print *,"timestep ", timestep
+print *, ""
+print *,"latitude ",  latitude 
+print *, ""
+print *,"longitude ", longitude
+print *, ""
+print *,"land_index ", land_index
+print *, ""
+print *,"tile_frac ",tile_frac
+print *, ""
+print *,"tile_pts ", tile_pts
+print *, ""
+print *,"tile_index ", tile_index
+print *, ""
+print *,"bexp ", bexp
+print *, ""
+print *,"hcon ", hcon
+print *, ""
+print *,"satcon ",satcon
+print *, ""
+print *,"sathh ", sathh
+print *, ""
+print *,"smvcst ", smvcst
+print *, ""
+print *,"smvcwt ", smvcwt
+print *, ""
+print *,"smvccl ", smvccl
+print *, ""
+print *,"albsoil ", albsoil
+print *, ""
 !print *,"snow_tile ", snow_tile
 !print *, ""
 !print *,"snow_rho1l ", snow_rho1l
@@ -295,10 +294,10 @@ STOP
 !print *,"snow_cond ", snow_cond
 !print *, ""
 !print *,"snow_depth3l ", snow_depth3l
-!print *, ""
-!print *,"snow_tmp3l ", snow_tmp3l
-!print *, ""
-!print *,"snow_mass3l ", snow_mass3l
+!!print *, ""
+!!print *,"snow_tmp3l ", snow_tmp3l
+!!print *, ""
+!!print *,"snow_mass3l ", snow_mass3l
 !print *, ""
 !print *,"sw_down ", sw_down
 !print *, ""
@@ -383,111 +382,116 @@ STOP
 !print *,"RECIP_L_MO_TILE ", RECIP_L_MO_TILE
 !print *, ""
 !print *,"EPOT_TILE ", EPOT_TILE
-!print *, ""
-!print *,"endstep ", endstep
-!print *, ""
-!print *,"timestep_number ", timestep_number
-!print *, ""
-!print *,"mype ", mype
-
-   !--- initialize cable_runtime% switches 
-   IF(first_cable_call) THEN
-      cable_runtime%um = .TRUE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout(6)
-   ENDIF
-      
-   !--- basic info from global model passed to cable_common_module 
-   !--- vars so don't need to be passed around, just USE _module
-   ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
-                                 !the same as timestep of particular RUN
-   knode_gl = mype               !which processor am i on?
-   itimestep = INT(timestep)    !realize for 'call cbm' pass
-   kwidth_gl = itimestep          !width of timestep (secs)
-   kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
-
-   !--- internal FLAGS def. specific call of CABLE from UM
-   !--- from cable_common_module
-   cable_runtime%um_explicit = .TRUE.
-
-         write (6,*) 'CABLE about to write file'
-   IF(first_cable_call) & 
-open(unit=7777771,file="/home/599/jxs599/cable.txt",status="unknown", &
-  action="write",  form="formatted", &
-  position='append' )
-         write (7777771,*) ktau_gl 
-   !--- user FLAGS, variables etc def. in cable.nml is read on 
-   !--- first time step of each run. these variables are read at 
-   !--- runtime and for the most part do not require a model rebuild.
-   IF(first_cable_call) THEN
-      CALL cable_um_runtime_vars(runtime_vars_file) 
-      first_cable_call = .FALSE.
-   ENDIF      
-
-      
-
-!print *, "jhan:_explicit: pre interface", mype, shape(tile_frac)
-
-   !---------------------------------------------------------------------!
-   !--- initialize CABLE using UM forcings etc. these args are passed ---!
-   !--- down from UM.                                                 ---! 
-   !---------------------------------------------------------------------!
-   CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,           & 
-                           sm_levels, itimestep, latitude, longitude,          &
-                           land_index, tile_frac, tile_pts, tile_index,        &
-                           bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
-                           smvccl, albsoil, snow_tile, snow_rho1l,             &
-                           snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
-                           snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
-                           lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
-                           ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
-                           z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
-                           CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
-                           sthu, tsoil_tile, canht_ft, lai_ft,                 &
-                           sin_theta_latitude, dzsoil )                         
-
-   canopy%oldcansto=canopy%cansto
-
-!print *, "jhan:_explicit: pre cbm", mype
-
-   !---------------------------------------------------------------------!
-   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
-   !--- req'd by Mk3L  --------------------------------------------------!
-   !---------------------------------------------------------------------!
-   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg )
-
-
-!print *, "jhan:_explicit: pre unpack"
-
-
-   !---------------------------------------------------------------------!
-   !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
-   !--- back to UM.                                                   ---!
-   !---------------------------------------------------------------------!
-   call cable_expl_unpack( FTL_TILE, FQW_TILE,          &
-                           TSTAR_TILE, &
-                           U_S, U_S_STD_TILE, &
-                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
-                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
-                           RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
-                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
-                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
-                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
-                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
-                           rad%transd, rough%z0m, rough%zref_tq )
-
-
-   ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( iDiag0, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
-                
-
-   cable_runtime%um_explicit = .FALSE.
-
-!print *, "jhan:_explicit: end _explicit"
+print *, ""
+print *,"endstep ", endstep
+print *, ""
+print *,"timestep_number ", timestep_number
+print *, ""
+print *,"mype ", mype
+print *, ""
+print *, ""
+print *, "CABLE END  "
+STOP
+endif
+!
+!   !--- initialize cable_runtime% switches 
+!   IF(first_cable_call) THEN
+!      cable_runtime%um = .TRUE.
+!      write(6,*) ""
+!      write(6,*) "CABLE_log"
+!      CALL report_version_no(6) ! wriite revision number to stdout(6)
+!   ENDIF
+!      
+!   !--- basic info from global model passed to cable_common_module 
+!   !--- vars so don't need to be passed around, just USE _module
+!   ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
+!                                 !the same as timestep of particular RUN
+!   knode_gl = mype               !which processor am i on?
+!   itimestep = INT(timestep)    !realize for 'call cbm' pass
+!   kwidth_gl = itimestep          !width of timestep (secs)
+!   kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
+!
+!   !--- internal FLAGS def. specific call of CABLE from UM
+!   !--- from cable_common_module
+!   cable_runtime%um_explicit = .TRUE.
+!
+!         write (6,*) 'CABLE about to write file'
+!   IF(first_cable_call) & 
+!open(unit=7777771,file="/home/599/jxs599/cable.txt",status="unknown", &
+!  action="write",  form="formatted", &
+!  position='append' )
+!         write (7777771,*) ktau_gl 
+!   !--- user FLAGS, variables etc def. in cable.nml is read on 
+!   !--- first time step of each run. these variables are read at 
+!   !--- runtime and for the most part do not require a model rebuild.
+!   IF(first_cable_call) THEN
+!      CALL cable_um_runtime_vars(runtime_vars_file) 
+!      first_cable_call = .FALSE.
+!   ENDIF      
+!
+!      
+!
+!!print *, "jhan:_explicit: pre interface", mype, shape(tile_frac)
+!
+!   !---------------------------------------------------------------------!
+!   !--- initialize CABLE using UM forcings etc. these args are passed ---!
+!   !--- down from UM.                                                 ---! 
+!   !---------------------------------------------------------------------!
+!   CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,           & 
+!                           sm_levels, itimestep, latitude, longitude,          &
+!                           land_index, tile_frac, tile_pts, tile_index,        &
+!                           bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
+!                           smvccl, albsoil, snow_tile, snow_rho1l,             &
+!                           snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
+!                           snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
+!                           lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
+!                           ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
+!                           z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
+!                           CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
+!                           sthu, tsoil_tile, canht_ft, lai_ft,                 &
+!                           sin_theta_latitude, dzsoil )                         
+!
+!   canopy%oldcansto=canopy%cansto
+!
+!!print *, "jhan:_explicit: pre cbm", mype
+!
+!   !---------------------------------------------------------------------!
+!   !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
+!   !--- req'd by Mk3L  --------------------------------------------------!
+!   !---------------------------------------------------------------------!
+!   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+!             rad, rough, soil, ssnow, sum_flux, veg )
+!
+!
+!!print *, "jhan:_explicit: pre unpack"
+!
+!
+!   !---------------------------------------------------------------------!
+!   !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
+!   !--- back to UM.                                                   ---!
+!   !---------------------------------------------------------------------!
+!   call cable_expl_unpack( FTL_TILE, FQW_TILE,          &
+!                           TSTAR_TILE, &
+!                           U_S, U_S_STD_TILE, &
+!                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
+!                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
+!                           RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
+!                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
+!                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
+!                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
+!                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
+!                           rad%transd, rough%z0m, rough%zref_tq )
+!
+!
+!   ! dump bitwise reproducible testing data
+!   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
+!      call cable_diag( iDiag0, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+!                          "FLUXES", canopy%fe + canopy%fh )
+!                
+!
+!   cable_runtime%um_explicit = .FALSE.
+!
+!!print *, "jhan:_explicit: end _explicit"
 
 END SUBROUTINE cable_explicit_driver
 
