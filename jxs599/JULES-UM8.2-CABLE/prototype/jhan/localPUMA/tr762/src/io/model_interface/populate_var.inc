@@ -754,6 +754,22 @@ SUBROUTINE populate_var(var_id, cube, const_val)
         soil_temp_CABLE(:,:,:) = const_val
       END IF
 
+    CASE ( 'sthf_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, sthf_CABLE )
+      ELSE
+        sthf_CABLE(:,:,:) = const_val
+      END IF
+
+    CASE ( 'smcl_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, smcl_CABLE )
+      ELSE
+        smcl_CABLE(:,:,:) = const_val
+      END IF
+
     CASE ( 'snow_depth_CABLE' )
       IF ( PRESENT(cube) ) THEN
         cube_land = map_to_land(cube)
@@ -762,6 +778,54 @@ SUBROUTINE populate_var(var_id, cube, const_val)
         snow_depth_CABLE(:,:,:) = const_val
       END IF
 
+    CASE ( 'snow_age_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, snow_age_CABLE )
+      ELSE
+        snow_age_CABLE(:,:,:) = const_val
+      END IF
+    
+    CASE ( 'snow_mass_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, snow_mass_CABLE )
+      ELSE
+        snow_mass_CABLE(:,:,:) = const_val
+      END IF
+    
+    CASE ( 'snow_flg3l_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, snow_flg3l_CABLE )
+      ELSE
+        snow_flg3l_CABLE(:,:,:) = const_val
+      END IF
+    
+    CASE ( 'snow_temp_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, snow_temp_CABLE )
+      ELSE
+        snow_temp_CABLE(:,:,:) = const_val
+      END IF
+    
+    CASE ( 'snow_rho_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, snow_rho_CABLE )
+      ELSE
+        snow_rho_CABLE(:,:,:) = const_val
+      END IF
+    
+    CASE ( 'snow_rho1l_CABLE' )
+      IF ( PRESENT(cube) ) THEN
+        cube_land = map_to_land(cube)
+        CALL cube_get_data(cube_land, snow_rho1l_CABLE )
+      ELSE
+        snow_rho1l_CABLE(:,:,:) = const_val
+      END IF
+    
     CASE DEFAULT
       CALL log_fatal("populate_var",                                          &
                      "Unrecognised variable for input - '" //                 &

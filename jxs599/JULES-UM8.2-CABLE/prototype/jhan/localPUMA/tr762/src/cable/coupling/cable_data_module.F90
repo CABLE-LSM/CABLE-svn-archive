@@ -42,16 +42,21 @@ module cable_data_mod
    ! introduced tiled prognostics that have to go through JULES's I/O 
    real, dimension(:,:,:), pointer, save ::           &
       SOIL_Temp_CABLE, & !
-      !SMCL_TILE,     & !
-      !STHF_TILE,     & !
-      SNOW_DEPTH_CABLE!,  & !
-      !SNOW_MASS3L,   & !
-      !SNOW_TMP3L,    & !
-      !SNOW_RHO3L,    & !
-      !SNOW_RHO1L,    & !
-      !SNOW_AGE,      & !
-      !SNOW_FLG3L       !
+      SMCL_CABLE,     & !
+      STHF_CABLE        !
 
+   real, dimension(:,:,:), pointer, save ::           &
+      SNOW_DEPTH_CABLE!,  & !
+      SNOW_MASS_CABLE,   & !
+      SNOW_TEMP_CABLE,    & !
+      SNOW_RHO_CABLE       !
+
+   real, dimension(:,:pointer, save ::           &
+      SNOW_RHO1L_CABLE,    & !
+      SNOW_AGE_CABLE         !
+
+   integer, dimension(:,:), pointer, save ::           &
+      SNOW_FLG3L_CABLE       !
 
 !------------------------------------------------------------------------------
 
@@ -110,7 +115,7 @@ module cable_data_mod
          snow_mass3l, &
          snow_tmp3l, &
          snow_rho3l, &  
-         sthu_tile
+         sthu_tile !jhan: c nwe kill this
 
       REAL, DIMENSION(:,:,:), POINTER :: &
          snow_cond ! no init from file
@@ -480,14 +485,14 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       cable% um% dim_cs2           => dim_cs2
 
       cable% cable% tsoil_tile       => soil_temp_CABLE
-      !cable% cable% smcl_tile        => fsmcl_tile
-      !cable% cable% sthf_tile        => fsthf_tile
+      cable% cable% smcl_tile        => smcl_CABLE
+      cable% cable% sthf_tile        => sthf_CABLE
       cable% cable% snow_depth3l     => snow_depth_CABLE
-      !cable% cable% snow_mass3l      => fsnow_mass3l
-      !cable% cable% snow_tmp3l       => fsnow_tmp3l
-      !cable% cable% snow_rho3l       => fsnow_rho3l
-      !cable% cable% snow_rho1l       => fsnow_rho1l
-      !cable% cable% snow_age         => fsnow_age
+      cable% cable% snow_mass3l      => snow_mass_CABLE
+      cable% cable% snow_tmp3l       => snow_tmp_CABLE
+      cable% cable% snow_rho3l       => snow_rho_CABLE
+      cable% cable% snow_rho1l       => snow_rho1l_CABLE
+      cable% cable% snow_age         => snow_age_CABLE
 
       !jhan: re-implement sin_theta_lat by computing here      
       !latitude  = asin( sin_theta_latitude )

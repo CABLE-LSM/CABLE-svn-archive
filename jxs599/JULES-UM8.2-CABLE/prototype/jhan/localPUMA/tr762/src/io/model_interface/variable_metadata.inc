@@ -2702,6 +2702,7 @@ DATA metadata/                                                                &
 ! Units
     "kg m-2 s-1"                                                              &
   ),                                                                          &
+!jhan: revise units here
 !-----------------------------------------------------------------------------
 ! Metadata for soil_temp_CABLE 
 !-----------------------------------------------------------------------------
@@ -2716,6 +2717,32 @@ DATA metadata/                                                                &
     "K"                                                                       &
   ),                                                                          &
 !-----------------------------------------------------------------------------
+! Metadata for sthf_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'sthf_CABLE',                                                              &
+! Variable type
+    VAR_TYPE_CABLE_SOIL,                                                      &
+! Long name
+    "PFT frozen soil in layers",                                         &
+! Units
+    "fraction"                                                                       &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for smcl_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'smcl_CABLE',                                                              &
+! Variable type
+    VAR_TYPE_CABLE_SOIL,                                                      &
+! Long name
+    "PFT soil moisture in layers",                                         &
+! Units
+    ""                                                                       &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
 ! Metadata for snow_depth_CABLE 
 !-----------------------------------------------------------------------------
   var_metadata(                                                               &
@@ -2726,7 +2753,85 @@ DATA metadata/                                                                &
 ! Long name
     "PFT snow depth in layers",                                               &
 ! Units
+    ""                                                                       &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for snow_mass_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'snow_mass_CABLE',                                                         &
+! Variable type
+    VAR_TYPE_CABLE_SNOW,                                                      &
+! Long name
+    "PFT snow mass in layers",                                      &
+! Units
+    ""                                                                       &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for snow_rho_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'snow_rho_CABLE',                                                         &
+! Variable type
+    VAR_TYPE_CABLE_SNOW,                                                      &
+! Long name
+    "PFT snow density in layers",                                             &
+! Units
+    ""                                                                        &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for snow_temp_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'snow_temp_CABLE',                                                        &
+! Variable type
+    VAR_TYPE_CABLE_SNOW,                                                      &
+! Long name
+    "PFT snow temperature in layers",                                         &
+! Units
     "m"                                                                       &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for snow_flg3l_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'snow_flg3l_CABLE',                                                       &
+! Variable type
+    VAR_TYPE_CABLE_SNOW,                                                      &
+! Long name
+    "3 layer snow flag for tile",                                             &
+! Units
+    "m"                                                                       &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for snow_age_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'snow_age_CABLE',                                                         &
+! Variable type
+    VAR_TYPE_CABLE_SNOW,                                                      &
+! Long name
+    "snow age for tile",                                                      &
+! Units
+    ""                                                                        &
+  ),                                                                          &
+!-----------------------------------------------------------------------------
+! Metadata for snow_rho1l_CABLE 
+!-----------------------------------------------------------------------------
+  var_metadata(                                                               &
+! String identifier
+    'snow_rho1l_CABLE',                                                       &
+! Variable type
+    VAR_TYPE_CABLE_SNOW,                                                      &
+! Long name
+    "PFT snow density in aggregate 1 layer",                                  &
+! Units
+    ""                                                                        &
   )                                                                           &
 /
 #endif
