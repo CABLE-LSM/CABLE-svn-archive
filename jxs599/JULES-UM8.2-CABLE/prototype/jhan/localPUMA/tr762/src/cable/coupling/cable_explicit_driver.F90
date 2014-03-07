@@ -293,8 +293,8 @@ print *, ""
 !print *, ""
 !print *,"snow_cond ", snow_cond
 !print *, ""
-!print *,"snow_depth3l ", snow_depth3l
-!!print *, ""
+print *,"snow_depth3l ", snow_depth3l
+!print *, ""
 !!print *,"snow_tmp3l ", snow_tmp3l
 !!print *, ""
 !!print *,"snow_mass3l ", snow_mass3l
@@ -341,8 +341,8 @@ print *, ""
 !print *, ""
 !print *,"sthu ", sthu
 !print *, ""
-!print *,"tsoil_tile ", tsoil_tile
-!print *, ""
+print *,"tsoil_tile ", tsoil_tile
+print *, ""
 !print *,"canht_ft ", canht_ft
 !print *, ""
 !print *,"lai_ft ", lai_ft

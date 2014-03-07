@@ -479,6 +479,16 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       cable% um% dim_cs1           => dim_cs1
       cable% um% dim_cs2           => dim_cs2
 
+      cable% cable% tsoil_tile       => soil_temp_CABLE
+      !cable% cable% smcl_tile        => fsmcl_tile
+      !cable% cable% sthf_tile        => fsthf_tile
+      cable% cable% snow_depth3l     => snow_depth_CABLE
+      !cable% cable% snow_mass3l      => fsnow_mass3l
+      !cable% cable% snow_tmp3l       => fsnow_tmp3l
+      !cable% cable% snow_rho3l       => fsnow_rho3l
+      !cable% cable% snow_rho1l       => fsnow_rho1l
+      !cable% cable% snow_age         => fsnow_age
+
       !jhan: re-implement sin_theta_lat by computing here      
       !latitude  = asin( sin_theta_latitude )
       !longitude = acos( cos_theta_longitude )
