@@ -58,7 +58,7 @@ module cable_data_mod
    type model_params
 
       INTEGER, POINTER ::                                                      &
-         !endstep,            & !       
+         endstep,            & !       
          row_length, rows,  & !
          sm_levels,          & !
          land_pts,          & !
@@ -375,6 +375,9 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
 
    LOGICAL, target :: L_CABLE
    
+   !fudged at present as NA in JULES
+   INTEGER, target :: endstep
+                                                &
    INTEGER, target ::                                              &
       !mype,             & !
       a_step,  & !
@@ -464,6 +467,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
   
       cable% um% L_cable            => L_cable
       !cable% mp% mype               => mype
+      cable% mp% endstep            => endstep     
       cable% mp% timestep_number    => a_step
       cable% mp% timestep_width     => timestep_len
       cable% mp% row_length         => row_length 

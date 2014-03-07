@@ -115,7 +115,7 @@ USE lake_mod, ONLY : lake_t_ice                                   &
                     ,g_dt
 USE soil_param, ONLY : hcice                                      &
                       ,hcwat
-
+use cable_data_mod, only : cable
 USE parkind1, ONLY: jprb, jpim
 USE yomhook, ONLY: lhook, dr_hook
 IMPLICIT NONE
@@ -1100,9 +1100,9 @@ END IF
 ! Call CABLE Land Surface Scheme, consistently with explicit nature  
 ! of call 
 !-----------------------------------------------------------------------
-CALL cable_explicit_driver(                                           &
+CALL cable_explicit_driver(                                         &
              cable% mp% row_length, cable% mp% rows,                &
-             cable% mp% land_points, cable% mp% ntiles,             &
+             cable% mp% land_pts, cable% mp% ntiles,                &
              cable% mp% npft, cable% mp% sm_levels,                 &
              cable% mp% timestep_width, cable% mp% latitude,        &
              cable% mp% longitude, cable% um% land_index,           &
@@ -1138,7 +1138,7 @@ CALL cable_explicit_driver(                                           &
              cable% um% FRACA, cable% um% rESFS,                    &
              cable% um% RESFT, cable% um% Z0H_TILE,                 &
              cable% um% Z0M_TILE, cable% um% RECIP_L_MO_TILE,       &
-             cable% um% EPOT_TILE, cable% mp% endstep,              &
+             cable% um% EPOT_TILE, 1,                               &
              cable% mp% timestep_number, 1 )
 
 

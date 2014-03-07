@@ -863,7 +863,7 @@ call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
 !-----------------------------------------------------------------------
 !   Explicit calculations.
 !-----------------------------------------------------------------------
-    CALL sf_expl_l (                                                  &
+    CALL sf_expl_l_cable (                                                  &
 !     IN values defining field dimensions and subset to be processed :
         land_pts,nice_use                                             &
 !     IN  parameters for iterative SISL scheme
