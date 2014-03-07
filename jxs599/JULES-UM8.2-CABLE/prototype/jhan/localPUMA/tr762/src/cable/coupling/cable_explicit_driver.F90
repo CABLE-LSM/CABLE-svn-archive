@@ -30,29 +30,29 @@
 !
 ! ==============================================================================
 
-SUBROUTINE cable_explicit_driver( &
-   row_length, rows, land_pts, ntiles,npft,     &
-                                  sm_levels, timestep, latitude, longitude,    &
-                                  land_index, tile_frac,  tile_pts, tile_index,&
-                                  bexp, hcon, satcon, sathh, smvcst,           &
-                                  smvcwt,  smvccl, albsoil, snow_tile,         &
-                                  snow_rho1l, snage_tile, isnow_flg3l,         &
-                                  snow_rho3l, snow_cond, snow_depth3l,         &
-                                  snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
-                                  cos_zenith_angle, surf_down_sw, ls_rain,     &
-                                  ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
-                                  z1_uv, rho_water, L_tile_pts, canopy_tile,   &
-                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
-                                  sthf_tile, sthu, tsoil_tile, canht_ft,       &
-                                  lai_ft, sin_theta_latitude, dzsoil,          &
-                                  LAND_MASK, FTL_TILE,  &
-                                  FQW_TILE, TSTAR_TILE,   &
-                                  U_S, U_S_STD_TILE,&
-                                  CD_TILE, CH_TILE,   &
-                                  RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
-                                  Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
-                                  endstep, timestep_number, mype & 
-)    
+SUBROUTINE cable_explicit_driver( )!&
+!   row_length, rows, land_pts, ntiles,npft,     &
+!                                  sm_levels, timestep, latitude, longitude,    &
+!                                  land_index, tile_frac,  tile_pts, tile_index,&
+!                                  bexp, hcon, satcon, sathh, smvcst,           &
+!                                  smvcwt,  smvccl, albsoil, snow_tile,         &
+!                                  snow_rho1l, snage_tile, isnow_flg3l,         &
+!                                  snow_rho3l, snow_cond, snow_depth3l,         &
+!                                  snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
+!                                  cos_zenith_angle, surf_down_sw, ls_rain,     &
+!                                  ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
+!                                  z1_uv, rho_water, L_tile_pts, canopy_tile,   &
+!                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
+!                                  sthf_tile, sthu, tsoil_tile, canht_ft,       &
+!                                  lai_ft, sin_theta_latitude, dzsoil,          &
+!                                  LAND_MASK, FTL_TILE,  &
+!                                  FQW_TILE, TSTAR_TILE,   &
+!                                  U_S, U_S_STD_TILE,&
+!                                  CD_TILE, CH_TILE,   &
+!                                  RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
+!                                  Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
+!                                  endstep, timestep_number, mype & 
+!)    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -238,7 +238,10 @@ SUBROUTINE cable_explicit_driver( &
  
    INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
 !umoutput print_args.1
-!print *, "row_length ", row_length 
+
+if( timestep == 17520) then
+print *, "CABLE:row_length ", row_length 
+endif
 !print *, "rows " , rows 
 !print *, "land_pts " , land_pts 
 !print *, "ntiles,npft " , ntiles,npft

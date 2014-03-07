@@ -1100,46 +1100,46 @@ END IF
 ! Call CABLE Land Surface Scheme, consistently with explicit nature  
 ! of call 
 !-----------------------------------------------------------------------
-CALL cable_explicit_driver(                                         &
-             cable% mp% row_length, cable% mp% rows,                &
-             cable% mp% land_pts, cable% mp% ntiles,                &
-             cable% mp% npft, cable% mp% sm_levels,                 &
-             cable% mp% timestep_width, cable% mp% latitude,        &
-             cable% mp% longitude, cable% um% land_index,           &
-             cable% ppar% tile_frac, cable% um% tile_pts,           &
-             cable% um% tile_index, cable% um% bexp,                &
-             cable% um% hcon, cable% um% satcon,                    &
-             cable% um% sathh, cable% um% smvcst,                   &
-             cable% um% smvcwt, cable% um% smvccl,                  &
-             cable% um% albsoil, cable% um% snow_tile,              &
-             cable% cable% snow_rho1l, cable% cable% snow_age,      &
-             cable% cable% snow_flg3l, cable% cable% snow_rho3l,    &
-             cable% cable% snow_cond,  cable% cable% snow_depth3l,  &
-             cable% cable% snow_tmp3l, cable% cable% snow_mass3l,   &
-             cable% um% sw_down, cable% um% lw_down,                &
-             cable% um% cos_zenith_angle, cable% forcing% ShortWave,&
-             cable% um% ls_rain, cable% um% ls_snow,                &
-             cable% um% tl_1, & !not declared/defined unti bdy_layr
-             cable% um% qw_1, & !not declared/defined unti bdy_layr
-             cable% um% vshr_land, cable% um% pstar,                &
-             cable% um% z1_tq, cable% um% z1_uv,                    &
-             1000.00, &!rm this later
-             cable% tmp% L_tile_pts, cable% um% canopy,             &
-             cable% um% Fland, cable% um% CO2_MMR,                  &
-             cable% cable% sthu_tile, cable% cable% smcl_tile,      &
-             cable% cable% sthf_tile, cable% um% sthu,              &
-             cable% cable% tsoil_tile, cable% um% canht_ft,         &
-             cable% um% lai_ft, cable% um% sin_theta_latitude,      &
-             cable% mp% dzsoil, cable% um% LAND_MASK,               &
-             cable% um% FTL_TILE, cable% um% FQW_TILE,              &
-             cable% um% TSTAR_TILE, cable% um% U_S,                 &
-             cable% um% U_S_STD_TILE, cable% um% CD_TILE,           &
-             cable% um% CH_TILE, cable% um% RADNET_TILE,            &
-             cable% um% FRACA, cable% um% rESFS,                    &
-             cable% um% RESFT, cable% um% Z0H_TILE,                 &
-             cable% um% Z0M_TILE, cable% um% RECIP_L_MO_TILE,       &
-             cable% um% EPOT_TILE, 1,                               &
-             cable% mp% timestep_number, 1 )
+CALL cable_explicit_driver()!                                         &
+!             cable% mp% row_length, cable% mp% rows,                &
+!             cable% mp% land_pts, cable% mp% ntiles,                &
+!             cable% mp% npft, cable% mp% sm_levels,                 &
+!             cable% mp% timestep_width, cable% mp% latitude,        &
+!             cable% mp% longitude, cable% um% land_index,           &
+!             cable% ppar% tile_frac, cable% um% tile_pts,           &
+!             cable% um% tile_index, cable% um% bexp,                &
+!             cable% um% hcon, cable% um% satcon,                    &
+!             cable% um% sathh, cable% um% smvcst,                   &
+!             cable% um% smvcwt, cable% um% smvccl,                  &
+!             cable% um% albsoil, cable% um% snow_tile,              &
+!             cable% cable% snow_rho1l, cable% cable% snow_age,      &
+!             cable% cable% snow_flg3l, cable% cable% snow_rho3l,    &
+!             cable% cable% snow_cond,  cable% cable% snow_depth3l,  &
+!             cable% cable% snow_tmp3l, cable% cable% snow_mass3l,   &
+!             cable% um% sw_down, cable% um% lw_down,                &
+!             cable% um% cos_zenith_angle, cable% forcing% ShortWave,&
+!             cable% um% ls_rain, cable% um% ls_snow,                &
+!             cable% um% tl_1, & !not declared/defined unti bdy_layr
+!             cable% um% qw_1, & !not declared/defined unti bdy_layr
+!             cable% um% vshr_land, cable% um% pstar,                &
+!             cable% um% z1_tq, cable% um% z1_uv,                    &
+!             1000.00, &!rm this later
+!             cable% tmp% L_tile_pts, cable% um% canopy,             &
+!             cable% um% Fland, cable% um% CO2_MMR,                  &
+!             cable% cable% sthu_tile, cable% cable% smcl_tile,      &
+!             cable% cable% sthf_tile, cable% um% sthu,              &
+!             cable% cable% tsoil_tile, cable% um% canht_ft,         &
+!             cable% um% lai_ft, cable% um% sin_theta_latitude,      &
+!             cable% mp% dzsoil, cable% um% LAND_MASK,               &
+!             cable% um% FTL_TILE, cable% um% FQW_TILE,              &
+!             cable% um% TSTAR_TILE, cable% um% U_S,                 &
+!             cable% um% U_S_STD_TILE, cable% um% CD_TILE,           &
+!             cable% um% CH_TILE, cable% um% RADNET_TILE,            &
+!             cable% um% FRACA, cable% um% rESFS,                    &
+!             cable% um% RESFT, cable% um% Z0H_TILE,                 &
+!             cable% um% Z0M_TILE, cable% um% RECIP_L_MO_TILE,       &
+!             cable% um% EPOT_TILE, 1,                               &
+!             cable% mp% timestep_number, 1 )
 
 
 

@@ -992,7 +992,7 @@ END DO
 !-----------------------------------------------------------------------
 
 ! DEPENDS ON: sf_exch
-CALL sf_exch (                                                    &
+CALL sf_exch_cable (                                                    &
  land_pts,ntiles,land_index,                                      &
  tile_index,tile_pts,fland,                                       &
  flandg(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),     &
