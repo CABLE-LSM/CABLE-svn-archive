@@ -1100,7 +1100,7 @@ END IF
 ! Call CABLE Land Surface Scheme, consistently with explicit nature  
 ! of call 
 !-----------------------------------------------------------------------
-CALL cable_explicit_driver()!                                         &
+  CALL cable_explicit_driver()!                                         &
 !             cable% mp% row_length, cable% mp% rows,                &
 !             cable% mp% land_pts, cable% mp% ntiles,                &
 !             cable% mp% npft, cable% mp% sm_levels,                 &
