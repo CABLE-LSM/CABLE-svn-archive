@@ -16,7 +16,7 @@
 !
 !---------------------------------------------------------------------
 !    Arguments :-
-SUBROUTINE sf_expl_l (                                            &
+SUBROUTINE sf_expl_l_cable (                                            &
 ! IN values defining field dimensions and subset to be processed :
  land_pts, nice_use,                                              &
 ! IN  parameters for iterative SISL scheme
@@ -1031,4 +1031,4 @@ CALL sf_exch (                                                    &
 IF (lhook) CALL dr_hook('SF_EXPL_L',zhook_out,zhook_handle)
 
 RETURN
-END SUBROUTINE sf_expl_l
+END SUBROUTINE sf_expl_l_cable
