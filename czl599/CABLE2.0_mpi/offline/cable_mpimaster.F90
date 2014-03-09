@@ -307,12 +307,12 @@ SUBROUTINE mpidrv_master (comm)
     IF (gswpfile%l_gpcc)THEN
        gswpfile%l_ncar  = .FALSE.
        gswpfile%l_gswp  = .FALSE.
-       IF (ncciy < 1948 .OR. ncciy > 2008) THEN
+       IF (ncciy < 1901 .OR. ncciy > 2010) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
        ELSE
-          CALL prepareFiles(ncciy)
+!          CALL prepareFiles(ncciy)
        ENDIF
     ELSE IF(gswpfile%l_ncar) THEN
        PRINT *, 'Using NCAR met forcing.'
@@ -354,6 +354,21 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
+
+
+   spinConv = .FALSE. ! initialise spinup convergence variable
+   if(.not.spinup)  spinConv=.true.
+   
+   if(icycle>0) then
+    !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
+     if (spincasa) then
+      mloop = 5
+      print *, 'spincasacnp enabled with mloop= ', mloop
+      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
+      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                       casaflux,casamet,casabal,phen)
+     endif
+   endif
 
 
 !$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
@@ -469,19 +484,6 @@ SUBROUTINE mpidrv_master (comm)
    ! need to check with BP for the order of calling for MPI
    !kstart = 1
 
-   spinConv = .FALSE. ! initialise spinup convergence variable
-   if(.not.spinup)  spinConv=.true.
-   
-   if(icycle>0) then
-    !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
-     if (spincasa) then
-      mloop = 5
-      print *, 'spincasacnp enabled with mloop= ', mloop
-      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
-      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
-     endif
-   endif
 
 ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
