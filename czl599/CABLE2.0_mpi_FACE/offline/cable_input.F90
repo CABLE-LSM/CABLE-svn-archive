@@ -93,6 +93,7 @@ MODULE cable_input_module
            Rainf,        &
            Snowf,        &
            CO2air,       &
+           Ndep,         &
            Elev,         &
            LAI,          &
            avPrecip,     &
@@ -113,6 +114,7 @@ MODULE cable_input_module
            Rainf,        &
            Snowf,        &
            CO2air,       &
+           Ndep,         &
            Elev,         &
            avPrecip
    END TYPE met_units_type
@@ -1299,6 +1301,29 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        WRITE(logn,'(A33,A24,I4,A5)') ' CO2air not present in met file; ', &
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
+
+    ok = NF90_INQ_VARID(ncid_met,'Ndep',id%Ndep)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%Ndep = .TRUE. ! Ndep is present in met file
+       !print*,'exists%Ndep',exists%Ndep
+       ! Get Ndep units:
+       ok = NF90_GET_ATT(ncid_met,id%Ndep,'units',metunits%Ndep)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding Ndep units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%Ndep(1:9)/='gN/m2/day') THEN
+          WRITE(*,*) metunits%Ndep
+          CALL abort('Unknown units for Ndep'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! CO2 not present
+       exists%Ndep = .FALSE. ! Ndep is not present in met file
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       WRITE(logn,'(A33,A24,I4,A5)') ' Ndep not present in met file; ', &
+            'values will be fixed at ',INT(fixedCO2),' ppmv'
+    END IF
+
     ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - - 
     IF (ncciy > 0 .AND. .not. gswpfile%l_gpcc .OR. gswpfile%l_ncar)Then
        IF (ncciy > 0) ncid_met = ncid_snow
@@ -1877,7 +1902,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
 
       ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
-    IF(gswpfile%l_ncar) THEN
+    IF(gswpfile%l_ncar .or. gswpfile%l_gpcc) THEN
       ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat3, &
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))  
       IF(ok /= NF90_NOERR) CALL nc_abort &  
@@ -1887,6 +1912,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       DO i=1,mland ! over all land points/grid cells  
         met%tk(landpt(i)%cstart:landpt(i)%cend) = &  
              REAL(tmpDat3(land_x(i),land_y(i),1)) + convert%Tair  
+       !print*,'cable_input,met%tk',met%tk(landpt(i)%cstart:landpt(i)%cend),ktau
       ENDDO  
     ELSE  
       ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat4, &
@@ -1903,7 +1929,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get PSurf data for mask grid:- - - - - - - - - - - - - - - - - -
       IF(exists%PSurf) THEN ! IF PSurf is in met file:
-       IF(gswpfile%l_ncar) THEN  
+       IF(gswpfile%l_ncar .or. gswpfile%l_gpcc) THEN  
         ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat3, &  
              start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))  
         IF(ok /= NF90_NOERR) CALL nc_abort &  
@@ -1933,7 +1959,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
-    IF(gswpfile%l_ncar) THEN
+    IF(gswpfile%l_ncar .or. gswpfile%l_gpcc) THEN
       ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat3, &
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
     ELSE
@@ -1953,7 +1979,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%qv(landpt(i)%cstart:landpt(i)%cend) = met%qv(landpt(i)%cstart)
         ENDDO
       ELSE
-       IF(gswpfile%l_ncar) THEN
+       IF(gswpfile%l_ncar .or. gswpfile%l_gpcc) THEN
         DO i=1,mland ! over all land points/grid cells
           met%qv(landpt(i)%cstart:landpt(i)%cend) = &
                REAL(tmpDat3(land_x(i),land_y(i),1))
@@ -1968,7 +1994,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get Wind data for mask grid: - - - - - - - - - - - - - - - - - -
       IF(exists%Wind) THEN ! Scalar Wind
-       IF(gswpfile%l_ncar) THEN  
+       IF(gswpfile%l_ncar .or. gswpfile%l_gpcc) THEN  
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat3, &  
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))  
         IF(ok /= NF90_NOERR) CALL nc_abort &  
@@ -2076,19 +2102,58 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get CO2air data for mask grid:- - - - - - - - - - - - - - - - - -
       IF(exists%CO2air) THEN ! If CO2air exists in met file
-        ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat4, &
-             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading CO2air in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        DO i=1,mland ! over all land points/grid cells
-          met%ca(landpt(i)%cstart:landpt(i)%cend) = &
-                  REAL(tmpDat4(land_x(i),land_y(i),1,1))/1000000.0
-        ENDDO
+        IF(gswpfile%l_ncar .or. gswpfile%l_gpcc) THEN
+          ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat3, &
+               start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+          IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading CO2air in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+          DO i=1,mland ! over all land points/grid cells
+            met%ca(landpt(i)%cstart:landpt(i)%cend) = &
+                    REAL(tmpDat3(land_x(i),land_y(i),1))/1000000.0
+          ENDDO
+        ELSE
+          ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat4, &
+               start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+          IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading CO2air in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+          DO i=1,mland ! over all land points/grid cells
+            met%ca(landpt(i)%cstart:landpt(i)%cend) = &
+                    REAL(tmpDat4(land_x(i),land_y(i),1,1))/1000000.0
+          ENDDO
+        END IF
       ELSE 
         ! Fix CO2 air concentration:
         met%ca(:) = fixedCO2 /1000000.0
       END IF
+
+      ! Get Ndep data for mask grid:- - - - - - - - - - - - - - - - - -
+      !print*,'exists%Ndep',exists%Ndep
+      IF(exists%Ndep) THEN ! If Ndep exists in met file
+        IF(gswpfile%l_ncar .or. gswpfile%l_gpcc) THEN
+          ok= NF90_GET_VAR(ncid_met,id%Ndep,tmpDat3, &
+               start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+          IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading Ndep in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+          DO i=1,mland ! over all land points/grid cells
+            met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+                    REAL(tmpDat3(land_x(i),land_y(i),1))
+          ENDDO
+        ELSE
+          ok= NF90_GET_VAR(ncid_met,id%Ndep,tmpDat4, &
+               start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+          IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading Ndep in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+          DO i=1,mland ! over all land points/grid cells
+            met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+                    REAL(tmpDat4(land_x(i),land_y(i),1,1))
+          ENDDO
+        ENDIF
+      END IF
+
 
       ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -
       IF(exists%LAI) THEN ! If LAI exists in met file
@@ -2362,6 +2427,20 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         met%ca(:) = fixedCO2 /1000000.0
       END IF
 
+      ! Get Ndep data for land-only grid:- - - - - - - - - - - - - -
+      IF(exists%Ndep) THEN ! If Ndep exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%Ndep,tmpDat2, &
+             start=(/1,ktau/),count=(/mland,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Ndep in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat2(i,1)) 
+        ENDDO
+      END IF
+
+
       ! Get LAI data, if it exists, for land-only grid:- - - - - - - - -
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
@@ -2612,7 +2691,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
             rad,logn,vegparmnew,smoy, TFRZ)
     IF (icycle > 0) THEN
-      CALL write_cnp_params(veg,casaflux,casamet)
+      CALL write_cnp_params(veg,casaflux,casamet, met)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
       CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
@@ -2767,18 +2846,6 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet,casaflux)
       DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
         IF(ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
            casamet%areacell(hh) = patch(hh)%frac * casamet%areacell(hh)
-           casaflux%Nmindep(hh) = patch(hh)%frac * casaflux%Nmindep(hh)
-           casaflux%Nminfix(hh) = patch(hh)%frac * casaflux%Nminfix(hh) 
-           casaflux%Pdep(hh)    = patch(hh)%frac * casaflux%Pdep(hh)
-           casaflux%Pwea(hh)    = patch(hh)%frac * casaflux%Pwea(hh)
-          ! fertilizer addition is included here
-           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
-          ! P fertilizer =13 Mt P globally in 1994
-           casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                                 + patch(hh)%frac * 0.7 / 365.0
-           casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                                 + patch(hh)%frac * 4.0 / 365.0
-           ENDIF
         ENDIF
       END DO
    END DO 
@@ -2804,6 +2871,10 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet,casaflux)
                 nmetpatches,'def')
    CALL readpar(ncid_met,'css',completeSet,soil%css,filename%met,              &
                 nmetpatches,'def')
+   !print*,'before cnsd',soil%cnsd
+   CALL readpar(ncid_met,'cnsd',completeSet,soil%cnsd,filename%met,              &
+                nmetpatches,'def')
+   !~print*,'after cnsd',soil%cnsd
    CALL readpar(ncid_met,'rhosoil',completeSet,soil%rhosoil,filename%met,      &
                 nmetpatches,'def')
    CALL readpar(ncid_met,'rs20',completeSet,veg%rs20,filename%met,             &
@@ -2848,6 +2919,8 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet,casaflux)
                 nmetpatches,'def')
    CALL readpar(ncid_met,'meth',completeSet,veg%meth,filename%met,             &
                 nmetpatches,'def')
+
+
    ok = NF90_INQ_VARID(ncid_met,'za',parID)
    IF(ok == NF90_NOERR) THEN ! if it does exist
       CALL readpar(ncid_met,'za',completeSet,rough%za_uv,filename%met,         &
@@ -2866,6 +2939,7 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet,casaflux)
                 nmetpatches,'ncp')
    CALL readpar(ncid_met,'ratecs',completeSet,bgc%ratecs,filename%met,         &
                 nmetpatches,'ncs')
+
    
 END SUBROUTINE get_parameters_met
 

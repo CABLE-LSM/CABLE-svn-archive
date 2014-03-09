@@ -1358,7 +1358,7 @@ CONTAINS
 
   END SUBROUTINE write_default_params
   !=============================================================================
-  SUBROUTINE write_cnp_params(veg, casaflux, casamet)
+  SUBROUTINE write_cnp_params(veg, casaflux, casamet, met)
   ! Input variables:
   !   landpt(mp)%type- via cable_IO_vars_module (%cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac)
@@ -1372,6 +1372,7 @@ CONTAINS
     USE casaparm, ONLY: cropland, croplnd2
     IMPLICIT NONE
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
+    TYPE (met_type),            INTENT(INOUT) :: met
     TYPE (casa_flux),           INTENT(INOUT) :: casaflux
     TYPE (casa_met),            INTENT(INOUT) :: casamet
 
@@ -1389,33 +1390,30 @@ CONTAINS
         IF(.NOT. ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
            casamet%areacell(hh) = patch(hh)%frac                                  &
                                  * inArea(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nmindep(hh) = patch(hh)%frac                                  &
-                                 * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nminfix(hh) = patch(hh)%frac                                  &
-                                 * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pdep(hh)    = patch(hh)%frac                                  &
-                                 * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pwea(hh)    = patch(hh)%frac                                  &
-                                 * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
-          ! fertilizer addition is included here
-           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
-          ! P fertilizer =13 Mt P globally in 1994
-           casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                                 + patch(hh)%frac * 0.7 / 365.0
-           casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                                 + patch(hh)%frac * 4.0 / 365.0
-           ENDIF
         ELSE
            casamet%areacell(hh) = inArea(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nmindep(hh) = inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Nminfix(hh) = inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-           casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat) 
-      !if iveg found in met file, patchfrac will be updated in get_parameter_met.
-      !Just temporarily store inArea, inNdep, inNfix, inPdust, inPwea in casaflux and casamet.by Chris on 31/Jan/2014
+        END IF
+      !Just temporarily store inArea in casamet%areacell by Chris on 31/Jan/2014
+      !since areacell will be updated due to patchfrac will be updated
+      !in get_parameter_met, if patchfrac is found in met file (only applied for single run).
+        casaflux%Nmindep(hh) = inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Nminfix(hh) = inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
+       ! fertilizer addition is included here
+        IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
+       ! P fertilizer =13 Mt P globally in 1994
+        casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
+                              + 0.7 / 365.0
+        casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
+                              + 4.0 / 365.0
+        ENDIF
+        IF(.not.exists%Ndep)THEN
+          met%ndep(hh) = casaflux%Nmindep(hh)
         END IF
       ENDDO
     ENDDO
+    print*,'inNfix',inNfix(landpt(1)%ilon,landpt(1)%ilat),casaflux%Nminfix(1)
         !print*,casamet%areacell
 
   END SUBROUTINE write_cnp_params

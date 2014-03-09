@@ -51,6 +51,7 @@ MODULE cable_checks_module
       CHARACTER(LEN=1) :: Tair  ! 'C' or 'K'
       CHARACTER(LEN=1) :: Qair  ! '%' or 'g' (spec hum)
       CHARACTER(LEN=1) :: CO2air ! 'p' (ppmv)
+      CHARACTER(LEN=1) :: Ndep ! 'gN/m2/day
       CHARACTER(LEN=1) :: Wind ! 'm'(m/s)
    END TYPE units_type
    TYPE(units_type) :: units
@@ -70,6 +71,7 @@ MODULE cable_checks_module
            Tair = (/200.0,333.0/),             & ! K
            Qair = (/0.0,0.04/),                & ! g/g
            CO2air = (/160.0,2000.0/),          & ! ppmv   
+           Ndep = (/0.0,0.5/),            & ! gN/m2/day
            Wind = (/0.0,75.0/),                & ! m/s
            Wind_N = (/-75.0,75.0/),            & ! m/s
            Wind_E = (/-75.0,75.0/),            & ! m/s
@@ -116,6 +118,30 @@ MODULE cable_checks_module
            SnowDepth = (/0.0,50.0/),           & ! EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
+           Cplant  = (/-10,100000/),           &
+           Csoil   = (/-10,100000/),           &
+           Clitter = (/-10,100000/),           &
+           fracCalloc = (/0,1/),               &
+           crmplant = (/0,10000/),             &
+           crgplant = (/0,10000/),             &
+           kplant = (/0,200/),                 &
+           Nplant = (/-10,1000/),              &
+           Nlitter = (/-10,1000/),             &
+           Nsoil = (/-10,1000/),               &
+           Nsoilmin = (/-10,10000/),           &
+           fracNalloc = (/0,1/),               &
+           Nsmin = (/-10,10000/),              &
+           Nsnet = (/-100,1000/),              &
+           Nminuptake = (/-10,1000/),          &
+           Nminleach = (/-10,1000/),           &
+           Nminloss = (/-10,1000/),            &
+           xktemp = (/0,1/),                   &
+           xkwater = (/0,1/),                  &
+           fwsoil = (/0,1/),                   &
+           fromStoCO2 = (/0,1/),               &
+           fromLtoCO2 = (/0,1/),               &
+           ksoil = (/0,1000/),                 &
+           klitter = (/0,1000/),               &
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &

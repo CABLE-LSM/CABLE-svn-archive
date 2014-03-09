@@ -244,7 +244,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 
   DO nv=1,mvtype
 !    casabiome%sla(nv)             = 0.025 * (leafage(nv)**(-0.5)) ! see eqn A1 of Arora and Boer, GCB, 2005
-    casabiome%sla(nv)             = slax(nv) 
+    casabiome%sla(nv)             = slax(nv) * 2
 !    casabiome%sla(nv)             = 2.0E-4 * exp(6.15)/((12*leafage(nv))**0.46) ! see eqn 6 of Sitch, GCB, 2003
 !    casabiome%fherbivore(nv)     = deltcasa*xfherbivore(nv)
     casabiome%fraclabile(nv,leaf) = deltcasa*0.6    !1/day
@@ -709,7 +709,7 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
     ENDDO
     CLOSE(99)
   ENDIF 
-92  format(5(i6,3x),5(f18.6,3x),i6,3x,100(f18.6,3x))
+92  format(5(i10,3x),5(f18.6,3x),i6,3x,100(f18.6,3x))
 
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
 !  casapool%clabile    = 0.0    
@@ -902,7 +902,7 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
 
   CLOSE(nout)
 
-92    format(5(i6,',',2x),5(f18.6,',',2x),i6,',',2x,100(f18.6,',',2x))
+92    format(5(i10,',',2x),5(f18.6,',',2x),i6,',',2x,100(f18.6,',',2x))
 END SUBROUTINE casa_poolout
 
 ! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
@@ -954,7 +954,7 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 !  clitterinput = clitterinput * xyear
 !  csoilinput   = csoilinput   * xyear
 
-  print *, 'writing CNP fluxes out to file ', casafile%cnpflux
+  !print *, 'writing CNP fluxes out to file ', casafile%cnpflux
   OPEN(nout,file=casafile%cnpflux)
     DO npt =1,mp
       SELECT CASE(icycle)
@@ -1061,7 +1061,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                       casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,l_PHAC_grazing)
   USE cable_def_types_mod
   USE casadimension
   USE casa_cnp_module
@@ -1077,6 +1077,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
+  LOGICAL,      INTENT(IN) :: l_PHAC_grazing
 
   ! local variables added by ypwang following Chris Lu 5/nov/2012
 
@@ -1110,7 +1111,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 !            casaflux%cgpp(2058)-casaflux%cnpp(2058)-casaflux%fracClabile(2058)*casaflux%cgpp(2058)-sum(casaflux%crmplant(2058,:))-casaflux%crgplant(2058)
 !991  format('point 2058',20(f10.4,2x))
 
-  call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
+  call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome,casaflux)
   call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
   IF (icycle>1) THEN
@@ -1124,14 +1125,14 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   ENDIF 
 
   ! changed by ypwang following Chris Lu on 5/nov/2012
-  call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
+  call casa_delplant(idoy,l_PHAC_grazing,veg,casabiome,casapool,casaflux,casamet,                &
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
                          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
   !  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
-  call casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
+  call casa_delsoil(idoy,l_PHAC_grazing,veg,casapool,casaflux,casamet,casabiome)
 
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
   ! modified by ypwang following Chris Lu on 5/nov/2012
@@ -1141,12 +1142,12 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
       IF (icycle<2) call casa_ndummy(casapool)
   ENDIF
 
-  call casa_cnpbal(casapool,casaflux,casabal)
+  call casa_cnpbal(idoy,l_PHAC_grazing,casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casapool,casabal)
 
   ! for spinning up only
-  ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-  ! casapool%Psoillab = max(casapool%Psoillab,0.1)
+!   casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+!   casapool%Psoillab = max(casapool%Psoillab,0.1)
 
 !  npt=10546
 

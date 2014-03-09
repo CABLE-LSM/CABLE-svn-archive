@@ -152,6 +152,7 @@ MODULE cable_IO_vars_module
          Wind,    & ! T => 'Wind' is present; F => use vector component wind
          LWdown,  & ! T=> downward longwave is present in met file
          CO2air,  & ! T=> air CO2 concentration is present in met file
+         Ndep,    & ! T=> N deposition is present in met file
          PSurf,   & ! T=> surface air pressure is present in met file
          Snowf,   & ! T=> snowfall variable is present in met file
          avPrecip,& ! T=> ave rainfall present in met file (use for spinup)
@@ -184,6 +185,8 @@ MODULE cable_IO_vars_module
          veg = .FALSE.,       & ! vegetation states
          params = .FALSE.,    & ! input parameters used to produce run
          balances = .FALSE.,  & ! energy and water balances
+         casacnp = .FALSE.,   & ! output casa pool
+         casaflux = .FALSE.,  & ! output casa flux
          restart = .FALSE.,   & ! create restart file?
          ensemble = .FALSE.,  & ! are we creating an ensemble run?
          patch = .FALSE.        ! should patch-specific info be written 
@@ -207,6 +210,7 @@ MODULE cable_IO_vars_module
          Tair = .FALSE.,      & ! 11 surface air temperature [K]
          Qair = .FALSE.,      & ! 12 specific humidity [kg/kg]
          CO2air = .FALSE.,    & ! 13 CO2 concentration [ppmv]
+         Ndep = .FALSE.,      & !    N deposition (gN/m2/day)
          Wind = .FALSE.,      & ! 14 windspeed [m/s]
          Wind_N = .FALSE.,    & ! 15 surface wind speed, N component [m/s]
          Wind_E = .FALSE.,    & ! 16 surface wind speed, E component [m/s]
@@ -251,6 +255,30 @@ MODULE cable_IO_vars_module
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
          
+         Cplant  = .FALSE.,   & ! plant carbon pool
+         Csoil   = .FALSE.,   & ! soil carbon pool
+         Clitter = .FALSE.,   & ! litter carbon pool
+         fracCalloc = .FALSE.,& ! C allocation fraction to plant
+         crmplant = .FALSE.,  & ! mantainance respiration
+         crgplant = .FALSE.,  & ! growth respiration
+         kplant = .FALSE.,    & ! plant turnover rate
+         Nplant = .FALSE.,    & ! plant nitrogen pool
+         Nlitter = .FALSE.,   & ! litter nitrogen pool
+         Nsoil = .FALSE.,     & ! soil organic nitrogen pool
+         Nsoilmin = .FALSE.,  & ! soil mineral nitrogen pool
+         fracNalloc = .FALSE.,& ! N allocation fraction to plant
+         Nsmin = .FALSE.,     & ! soil gross mineralization
+         Nsnet = .FALSE.,     & ! soil net mineralization
+         Nminuptake = .FALSE.,& ! soil N uptake
+         Nminleach = .FALSE., & ! N leaching
+         Nminloss = .FALSE.,  & ! N loss
+         xktemp = .FALSE.,    & ! Temperature limitation on soil/litter decomposition rate
+         xkwater = .FALSE.,   & ! Water limitation on soil/litter decomposition rate
+         fwsoil = .FALSE.,    & ! Soil moisture stress
+         fromStoCO2 = .FALSE.,& ! Fraction of C released to air from soil decomposition
+         fromLtoCO2 = .FALSE.,& ! Fraction of C released to air from litter decomposition
+         ksoil = .FALSE.,     & ! soil turnover rate
+         klitter = .FALSE.,   & ! litter turnover rate
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]

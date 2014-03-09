@@ -318,6 +318,7 @@ MODULE cable_def_types_mod
          uscrn,   & ! wind speed at screen height (m/s)
          vlaiw,   & ! lai adj for snow depth for calc of resistances
          rghlai,  & ! lai adj for snow depth for calc of resistances
+         fwsoil,  & ! soil moisture stress (0~1)
          fwet       ! fraction of canopy wet
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
@@ -445,6 +446,7 @@ MODULE cable_def_types_mod
      
       REAL, DIMENSION(:), POINTER ::                                           &
          ca,      & ! CO2 concentration (mol/mol)
+         ndep,    & ! N decomposition (gN/m2/m2)
          doy,     & ! local time day of year = days since 0 hr 1st Jan 
          hod,     & ! local hour of day
          ofsd,    & ! downward short-wave radiation (W/m2)
@@ -779,6 +781,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% rghlai(mp) ) 
    ALLOCATE( var% vlaiw(mp) ) 
    ALLOCATE( var% fwet(mp) )   
+   ALLOCATE( var% fwsoil(mp) )   
    ALLOCATE ( var % evapfbl(mp,ms) )
    ALLOCATE( var% epot(mp) )   
    ALLOCATE( var% fnpp(mp) )   
@@ -894,6 +897,7 @@ SUBROUTINE alloc_met_type(var, mp)
    INTEGER, INTENT(in) :: mp
  
    ALLOCATE ( var % ca(mp) )
+   ALLOCATE ( var % ndep(mp) )
    ALLOCATE ( var % year(mp) )
    ALLOCATE ( var % moy(mp) )
    ALLOCATE ( var % doy(mp) )
@@ -1184,6 +1188,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% uscrn )   
    DEALLOCATE( var% rghlai ) 
    DEALLOCATE( var% vlaiw ) 
+   DEALLOCATE( var% fwsoil )   
    DEALLOCATE( var% fwet )   
    DEALLOCATE ( var % evapfbl )
    DEALLOCATE( var% epot )   
@@ -1296,6 +1301,7 @@ SUBROUTINE dealloc_met_type(var)
    TYPE(met_type), INTENT(inout) :: var
    
    DEALLOCATE ( var % ca )
+   DEALLOCATE ( var % ndep )
    DEALLOCATE ( var % year )
    DEALLOCATE ( var % moy )
    DEALLOCATE ( var % doy )

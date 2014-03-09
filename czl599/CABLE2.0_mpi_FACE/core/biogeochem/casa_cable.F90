@@ -32,13 +32,14 @@
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     spinConv, spinup, ktauday, idoy, dump_read, dump_write )
+                     spinConv, spinup, ktauday, idoy, dump_read, dump_write ,l_PHAC_grazing)
 
    USE cable_def_types_mod
    USE casadimension
    USE casaparm
    USE casavariable
    USE phenvariable
+   USE cable_IO_vars_module, ONLY : exists
    IMPLICIT NONE
  
    INTEGER,      INTENT(IN) :: ktau ! integration step number
@@ -49,6 +50,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER,      INTENT(IN)                  :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
    logical,      INTENT(IN) :: dump_read, dump_write 
+   LOGICAL,      INTENT(IN) :: l_PHAC_grazing
         
    REAL,         INTENT(IN) :: dels ! time setp size (s)
    TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
@@ -68,12 +70,17 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    real,      dimension(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
    real,      dimension(mp)  :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
    real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
+   INTEGER iyear
+   SAVE iyear
 
 
    !    phen%phase = 2
    !print*,'ktau,ktauday,dels',ktau,ktauday,dels,canopy%frday,canopy%fpn
-   IF ( .NOT. dump_read ) then
-      if(ktau == kstart) then
+   IF ( .NOT. dump_read ) THEN
+      IF(ktau == kstart) THEN
+!         if(exists%Ndep) THEN
+         casaflux%Nmindep = 0.0
+!         end if
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
@@ -85,14 +92,41 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casaflux%clabloss = 0.0
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
+         iyear = 0
+         casamet%Tairkspin     (:,:) = 0
+         casamet%cgppspin      (:,:) = 0
+         casamet%crmplantspin_1(:,:) = 0
+         casamet%crmplantspin_2(:,:) = 0
+         casamet%crmplantspin_3(:,:) = 0
+         casamet%Tsoilspin_1   (:,:) = 0
+         casamet%Tsoilspin_2   (:,:) = 0
+         casamet%Tsoilspin_3   (:,:) = 0
+         casamet%Tsoilspin_4   (:,:) = 0
+         casamet%Tsoilspin_5   (:,:) = 0
+         casamet%Tsoilspin_6   (:,:) = 0
+         casamet%moistspin_1   (:,:) = 0
+         casamet%moistspin_2   (:,:) = 0
+         casamet%moistspin_3   (:,:) = 0
+         casamet%moistspin_4   (:,:) = 0
+         casamet%moistspin_5   (:,:) = 0
+         casamet%moistspin_6   (:,:) = 0
+
       ENDIF
       IF(mod(ktau,ktauday)==1) THEN
+!         if(exists%Ndep) THEN
+         casaflux%Nmindep = met%Ndep
+!         end if
+!         print*,'Nmindep',casaflux%Nmindep,exists%Ndep
          casamet%tairk = met%tk
          casamet%tsoil = ssnow%tgg
          casamet%moist = ssnow%wb
          casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = canopy%frday*dels
       ELSE
+!         if(exists%Ndep) THEN
+         casaflux%Nmindep = casaflux%Nmindep + met%Ndep
+!         end if
+!         print*,'met%tk',met%tk
          Casamet%tairk  =casamet%tairk + met%tk
          casamet%tsoil = casamet%tsoil + ssnow%tgg
          casamet%moist = casamet%moist + ssnow%wb
@@ -102,37 +136,46 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       ENDIF
 
       IF(mod((ktau-kstart+1),ktauday)==0) THEN
-
+         IF(idoy .eq. 1)THEN
+            iyear = iyear + 1
+         END IF
          casamet%tairk  =casamet%tairk/FLOAT(ktauday)
          casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
          casamet%moist=casamet%moist/FLOAT(ktauday)
+         casaflux%Nmindep = casaflux%Nmindep/FLOAT(ktauday)
    
         ! added ypwang 5/nov/2012                      
-       if(ktau/ktauday .le. 365)then
-          casamet%Tairkspin     (:,idoy) = casamet%tairk(:)
-          casamet%cgppspin      (:,idoy) = casaflux%cgpp(:)
-          casamet%crmplantspin_1(:,idoy) = casaflux%crmplant(:,1)
-          casamet%crmplantspin_2(:,idoy) = casaflux%crmplant(:,2)
-          casamet%crmplantspin_3(:,idoy) = casaflux%crmplant(:,3)
-          casamet%Tsoilspin_1   (:,idoy) = casamet%tsoil(:,1)
-          casamet%Tsoilspin_2   (:,idoy) = casamet%tsoil(:,2)
-          casamet%Tsoilspin_3   (:,idoy) = casamet%tsoil(:,3)
-          casamet%Tsoilspin_4   (:,idoy) = casamet%tsoil(:,4)
-          casamet%Tsoilspin_5   (:,idoy) = casamet%tsoil(:,5)
-          casamet%Tsoilspin_6   (:,idoy) = casamet%tsoil(:,6)
-          casamet%moistspin_1   (:,idoy) = casamet%moist(:,1)
-          casamet%moistspin_2   (:,idoy) = casamet%moist(:,2)
-          casamet%moistspin_3   (:,idoy) = casamet%moist(:,3)
-          casamet%moistspin_4   (:,idoy) = casamet%moist(:,4)
-          casamet%moistspin_5   (:,idoy) = casamet%moist(:,5)
-          casamet%moistspin_6   (:,idoy) = casamet%moist(:,6)
+       if(idoy .le. 365)then
+          casamet%Tairkspin     (:,idoy) = (casamet%Tairkspin     (:,idoy)*(iyear-1)+casamet%tairk(:))/iyear
+          casamet%cgppspin      (:,idoy) = (casamet%cgppspin      (:,idoy)*(iyear-1)+casaflux%cgpp(:))/iyear
+          casamet%crmplantspin_1(:,idoy) = (casamet%crmplantspin_1(:,idoy)*(iyear-1)+casaflux%crmplant(:,1))/iyear
+          casamet%crmplantspin_2(:,idoy) = (casamet%crmplantspin_2(:,idoy)*(iyear-1)+casaflux%crmplant(:,2))/iyear
+          casamet%crmplantspin_3(:,idoy) = (casamet%crmplantspin_3(:,idoy)*(iyear-1)+casaflux%crmplant(:,3))/iyear
+          casamet%Tsoilspin_1   (:,idoy) = (casamet%Tsoilspin_1   (:,idoy)*(iyear-1)+casamet%tsoil(:,1))/iyear
+          casamet%Tsoilspin_2   (:,idoy) = (casamet%Tsoilspin_2   (:,idoy)*(iyear-1)+casamet%tsoil(:,2))/iyear
+          casamet%Tsoilspin_3   (:,idoy) = (casamet%Tsoilspin_3   (:,idoy)*(iyear-1)+casamet%tsoil(:,3))/iyear
+          casamet%Tsoilspin_4   (:,idoy) = (casamet%Tsoilspin_4   (:,idoy)*(iyear-1)+casamet%tsoil(:,4))/iyear
+          casamet%Tsoilspin_5   (:,idoy) = (casamet%Tsoilspin_5   (:,idoy)*(iyear-1)+casamet%tsoil(:,5))/iyear
+          casamet%Tsoilspin_6   (:,idoy) = (casamet%Tsoilspin_6   (:,idoy)*(iyear-1)+casamet%tsoil(:,6))/iyear
+          casamet%moistspin_1   (:,idoy) = (casamet%moistspin_1   (:,idoy)*(iyear-1)+casamet%moist(:,1))/iyear
+          casamet%moistspin_2   (:,idoy) = (casamet%moistspin_2   (:,idoy)*(iyear-1)+casamet%moist(:,2))/iyear
+          casamet%moistspin_3   (:,idoy) = (casamet%moistspin_3   (:,idoy)*(iyear-1)+casamet%moist(:,3))/iyear
+          casamet%moistspin_4   (:,idoy) = (casamet%moistspin_4   (:,idoy)*(iyear-1)+casamet%moist(:,4))/iyear
+          casamet%moistspin_5   (:,idoy) = (casamet%moistspin_5   (:,idoy)*(iyear-1)+casamet%moist(:,5))/iyear
+          casamet%moistspin_6   (:,idoy) = (casamet%moistspin_6   (:,idoy)*(iyear-1)+casamet%moist(:,6))/iyear
        end if
+
+!      print*,'iday',(ktau-kstart+1)/ktauday
+!      print*,'crmplant'
+!      print*,casaflux%crmplant(1,:)
+      !print*,'cgpp'
+      !print*,casaflux%cgpp(1),casaflux%cnpp(1),casamet%glai,casapool%cplant(1,:)
 
        CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,l_PHAC_grazing)
 
        ! modified ypwang 5/nov/2012 
        !  CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
@@ -153,12 +196,11 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
       IF( mod((ktau-kstart+1),ktauday) == 0 )  then
       ! modified yp wang 5/nov/2012
-
        CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,l_PHAC_grazing)
 
       !CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
       !                casamet,casabal,phen)
@@ -278,37 +320,37 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
       if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', ncfile)
 !      if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', 'dump_casamet.nc')
 
-      print *, 'here 1' ,ncid
+      !print *, 'here 1' ,ncid
 
       ! define dimensions: from name and length
 !      write(89,*) 'defining dims'
       call def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
-      print *, 'here 2',varID,num_dims
+      !print *, 'here 2',varID,num_dims
       ! define variables: from name, type, dims
 !      write(89,*) 'defining vars'
       call def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
 
-      print *, 'here 3',varID,num_vars
+      !print *, 'here 3',varID,num_vars
       ! define variable attributes
 !      write(89,*) 'defining attribution'
       call def_var_atts(ncfile, ncid, varID )
 !      call def_var_atts('dump_casamet.nc', ncid, varID )
 
-      print *, 'here 4', varID
+      !print *, 'here 4', varID
       ncok = nf90_enddef(ncid)
 
-      print *, 'here 5', var_name(1), size(patch(:)%latitude)
+      !print *, 'here 5', var_name(1), size(patch(:)%latitude)
 !      write(89,*) 'writing latitude'
       call put_var_nc(ncid, var_name(1), patch(:)%latitude )
 
-      print *, 'here 6',var_name(2) , size(patch(:)%longitude)
+      !print *, 'here 6',var_name(2) , size(patch(:)%longitude)
 !      write(89,*) 'writing longitude'
       call put_var_nc(ncid, var_name(2), patch(:)%longitude )
 
       write(*,901)  mdyear 
 901   format(' yp wang at ncdf_dump', I6)
-      write(*,*) casamet%cgppspin(10,:)
+      write(*,*) casamet%cgppspin(1,:)
 
       do i=1,mdyear
          tairk(:)      = casamet%Tairkspin(:,i)
@@ -611,7 +653,7 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
 END SUBROUTINE sumcflux
 
 SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
+                       casaflux,casamet,casabal,phen,l_PHAC_grazing)
   USE cable_def_types_mod
   USE cable_carbon_module
   USE casadimension
@@ -632,6 +674,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
+   LOGICAL,      INTENT(IN) :: l_PHAC_grazing
 
   ! local variables
   real,      dimension(:), allocatable, save  :: avg_cleaf2met, avg_cleaf2str, avg_croot2met, avg_croot2str, avg_cwood2cwd
@@ -713,7 +756,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
                     casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                     cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                     nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                    pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                    pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,l_PHAC_grazing)
 
         WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
            xkNlimiting = 0.001
@@ -759,6 +802,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
     enddo
     enddo
 
+
     CLOSE(91)
 
     avg_cleaf2met = avg_cleaf2met/real(nday*myearspin)
@@ -798,6 +842,8 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
     avg_rationcsoilslow = avg_rationcsoilslow /real(nday*myearspin)
     avg_rationcsoilpass = avg_rationcsoilpass /real(nday*myearspin)
 
+    !print*,'before analy avg_cnpp',avg_cnpp(1),casapool%cplant(1,:),casapool%csoil(1,:),casapool%clitter(1,:)
+
     call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
                           casaflux,casamet,casabal,phen,                                         &
                           avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
@@ -811,6 +857,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   call totcnppools(1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
                    bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
 
+    !print*,'after analy avg_cnpp',avg_cnpp(1),casapool%cplant(1,:),casapool%csoil(1,:),casapool%clitter(1,:)
   nloop1= max(1,mloop-3)
 
   DO nloop=1,mloop
@@ -841,11 +888,13 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
        casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
        casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
        casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
+       
        call biogeochem(ktauy,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                       casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,l_PHAC_grazing)
+    !print*,'after analy avg_cnpp',casaflux%cnpp(1),casapool%cplant(1,:),casapool%csoil(1,:),casapool%clitter(1,:)
     ENDDO   ! end of idoy
   ENDDO   ! end of nyear
   close(91)

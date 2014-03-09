@@ -139,7 +139,7 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   patch_type,soilparmnew,exists
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, myhome,            &
                                    redistrb, wiltParam, satuParam
@@ -214,7 +214,8 @@ SUBROUTINE mpidrv_master (comm)
                                     ! FALSE: no spin up
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
+      l_vcmaxFeedbk = .FALSE.,    &  ! using prognostic Vcmax
+      l_PHAC_grazing
    
    
    REAL              :: &  
@@ -261,6 +262,7 @@ SUBROUTINE mpidrv_master (comm)
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
+                  l_PHAC_grazing,   &
                   icycle,           &
                   casafile,         &
                   ncciy,            &
@@ -354,6 +356,23 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
+
+
+   spinConv = .FALSE. ! initialise spinup convergence variable
+   if(.not.spinup)  spinConv=.true.
+   
+   if(icycle>0) then
+    !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
+     if (spincasa) then
+      mloop = 5
+      print *, 'spincasacnp enabled with mloop= ', mloop
+      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
+      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                       casaflux,casamet,casabal,phen,l_PHAC_grazing)
+!     print*,'after spincasa',casapool%cplant(1,:),casapool%csoil(1,:),casapool%clitter(1,:)
+     endif
+   endif
+
 !$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
    ! reading the values of parameters for optimization
 !   open(91,file='cableparm.txt')
@@ -456,7 +475,7 @@ SUBROUTINE mpidrv_master (comm)
    ! MPI: mostly original serial code follows...
 
    ! Open output file:
-   CALL open_output_file( dels, soil, veg, bgc, rough )
+   CALL open_output_file( dels, soil, veg, casapool, casaflux, bgc, rough )
  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
@@ -467,19 +486,6 @@ SUBROUTINE mpidrv_master (comm)
    ! need to check with BP for the order of calling for MPI
    !kstart = 1
 
-   spinConv = .FALSE. ! initialise spinup convergence variable
-   if(.not.spinup)  spinConv=.true.
-   
-   if(icycle>0) then
-    !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
-     if (spincasa) then
-      mloop = 5
-      print *, 'spincasacnp enabled with mloop= ', mloop
-      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
-      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
-     endif
-   endif
 
 ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
@@ -547,9 +553,15 @@ SUBROUTINE mpidrv_master (comm)
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau, recv_ts)
+         ktau_gl = oktau
+         IF(.not. spincasa .and. mod((ktau-kstart+1),ktauday)==0)THEN
+            CALL master_receive (comm, ktau_gl, casa_ts)
+         END IF
 
+!         print*,'before master send met%tk',imet%tk,iktau
          ! MPI: scatter input data to the workers
          CALL master_send_input (icomm, inp_ts, iktau)
+!         print*,'after master send met%tk',imet%tk
 
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
          CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
@@ -561,10 +573,9 @@ SUBROUTINE mpidrv_master (comm)
          ! or we're spinning up and the spinup has converged:
          ! MPI: TODO: pull mass and energy balance calculation from write_output
          ! and refactor into worker code
-         ktau_gl = oktau
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
+                               rad, casapool, casaflux, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
        END DO ! END Do loop over timestep ktau
@@ -577,13 +588,17 @@ SUBROUTINE mpidrv_master (comm)
     ktau_tot= ktau_tot + 1
     ktau_gl = oktau
     CALL master_receive (ocomm, oktau, recv_ts)
+    IF(.not. spincasa .and. mod((ktau-kstart+1),ktauday)==0)THEN
+        CALL master_receive (comm, ktau_gl, casa_ts)
+     END IF
     CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
     met%ofsd = met%fsd(:,1) + met%fsd(:,2)
     canopy%oldcansto=canopy%cansto
+    
 
     IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,         &
-                               rad, bal, air, soil, veg, C%SBOLTZ,     &
+                               rad, casapool, casaflux, bal, air, soil, veg, C%SBOLTZ,     &
                                C%EMLEAF, C%EMSOIL )
 
    
@@ -667,8 +682,11 @@ SUBROUTINE mpidrv_master (comm)
 
    IF (icycle > 0) THEN
       ! MPI: gather casa results from all the workers
-      CALL master_receive (comm, ktau_gl, casa_ts)
-      CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+      IF(spincasa)THEN               !when spincasa, casapool won't be sent to master daily
+         CALL master_receive (comm, ktau_gl, casa_ts)
+       !  CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+      END IF
+       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
       print *, 'output BGC pools'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
@@ -692,11 +710,15 @@ SUBROUTINE mpidrv_master (comm)
       !       &              canopy,rough,rad,bgc,bal)
       ! gol124: how about call master_receive (comm, ktau, restart_ts)
       ! instead of a separate receive_restart sub?
+      !print*,'before send restart'
       CALL master_receive (comm, ktau_gl, restart_ts)
+      !print*,'after send restart'
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+      !print*,'after waitall'
 
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
+      !print*,'after create restart'
    END IF
 
    ! MPI: cleanup
@@ -707,7 +729,7 @@ SUBROUTINE mpidrv_master (comm)
  
    ! Close output file and deallocate main variables:
    CALL close_output_file( bal, air, bgc, canopy, met,                         &
-                           rad, rough, soil, ssnow,                            &
+                           rad, casapool, casaflux, rough, soil, ssnow,                  &
                            sum_flux, veg )
 
    WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
@@ -1011,6 +1033,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (met%ca(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (met%ndep(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1
@@ -1740,6 +1766,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (canopy%fwet(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1
@@ -3062,6 +3092,14 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xktemp(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkwater(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casaflux%kmlabP(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -3617,6 +3655,10 @@ SUBROUTINE master_intypes (comm,met,veg)
      blocks(bidx) = r1len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (met%ndep(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (met%coszen(off), displs(bidx), ierr)
      blocks(bidx) = r1len
 
@@ -3652,6 +3694,11 @@ SUBROUTINE master_intypes (comm,met,veg)
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
         WRITE (*,*) 'master: invalid intype nmat, nvec or n3d constant, fix it!'
+        WRITE (*,*) 'nmat=',nmat
+        WRITE (*,*) 'nvec=',nvec
+        WRITE (*,*) 'n3d=',n3d
+        WRITE (*,*) 'bidx=',bidx
+        WRITE (*,*) 'ntyp=',ntyp
         CALL MPI_Abort (comm, 1, ierr)
      END IF
 
@@ -4075,6 +4122,11 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (met%ca(off), vaddr(vidx), ierr) ! 1
      blen(vidx) = cnt * extr1
 
+     vidx = vidx + 1
+     ! REAL(r_1)
+     CALL MPI_Get_address (met%ndep(off), vaddr(vidx), ierr) ! 1
+     blen(vidx) = cnt * extr1
+
      ! gol124: not output, removed
      !vidx = vidx + 1
      ! INTEGER(i_d)
@@ -4274,6 +4326,10 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      vidx = vidx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (canopy%fwet(off), vaddr(vidx), ierr) ! 44
+     blen(vidx) = cnt * extr1
+     vidx = vidx + 1
+     ! REAL(r_1)
+     CALL MPI_Get_address (canopy%fwsoil(off), vaddr(vidx), ierr) ! 44
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
      ! REAL(r_1)
@@ -5212,6 +5268,54 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      &                             types(bidx), ierr)
      blocks(bidx) = 1
 
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fracCalloc(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%kplant(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fracNalloc(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fromStoCO2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fromLtoCO2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%ksoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%klitter(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%crmplant(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
      last2d = bidx
 
      ! ------------- 1D vectors -------------
@@ -5342,6 +5446,38 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nsmin(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nsnet(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminleach(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminloss(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%xktemp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%xkwater(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%crgplant(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      types(last2d+1:bidx) = MPI_BYTE

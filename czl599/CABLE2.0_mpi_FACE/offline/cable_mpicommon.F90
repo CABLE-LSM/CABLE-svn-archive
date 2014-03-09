@@ -46,7 +46,9 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 293    ! add 10 vairable to veg%
+  ! INTEGER, PARAMETER :: nparam = 293    ! add 10 vairable to veg%
+  ! INTEGER, PARAMETER :: nparam = 294    ! add ndep varirable to met%
+  INTEGER, PARAMETER :: nparam = 295    ! add fwsoil varirable to met%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -58,7 +60,8 @@ MODULE cable_mpicommon
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
 !  INTEGER, PARAMETER :: ncasaparam = 179
 !  INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
-  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
+!  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
+  INTEGER, PARAMETER :: ncasaparam = 198      ! casaflux%xktemp and casaflux%xkwater addeded by Chris%
 
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
@@ -75,7 +78,9 @@ MODULE cable_mpicommon
   ! timestep
   !INTEGER, PARAMETER :: ninput = 11
   ! added 4 time fields in met: year, moy, doy, hod
-  INTEGER, PARAMETER :: ninput = 15
+!  INTEGER, PARAMETER :: ninput = 15
+  ! added 1 fields in met:ndep
+  INTEGER, PARAMETER :: ninput = 16
 
   ! MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1
@@ -101,14 +106,20 @@ MODULE cable_mpicommon
   ! ported to CABLE_r491
   !INTEGER, PARAMETER :: nvec = 137
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  INTEGER, PARAMETER :: nvec = 161
+  !INTEGER, PARAMETER :: nvec = 161
+  ! add ndep to met%
+  !INTEGER, PARAMETER :: nvec = 162
+  ! add fwsoil to canopy%
+  INTEGER, PARAMETER :: nvec = 163
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
 !  INTEGER, PARAMETER :: ncasa_mat = 15
-  INTEGER, PARAMETER :: ncasa_mat = 32    ! changed  ypw 27-bov-2012 17 new variables added for casa spinup
+!  INTEGER, PARAMETER :: ncasa_mat = 32    ! changed  ypw 27-bov-2012 17 new variables added for casa spinup
+  INTEGER, PARAMETER :: ncasa_mat = 40    ! changed  chris lu 22-Nov-2014 8 new variables added for casa spinup
 !  INTEGER, PARAMETER :: ncasa_vec = 27
-  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+!  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+  INTEGER, PARAMETER :: ncasa_vec = 40    ! changed  chris lu 22-Nov-2014 for adding four 8 variable to the output
 
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run

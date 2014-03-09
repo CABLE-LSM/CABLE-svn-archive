@@ -182,7 +182,8 @@ CONTAINS
                                     ! FALSE: no spin up
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
+      l_vcmaxFeedbk = .FALSE.,    & ! using prognostic Vcmax
+      l_PHAC_grazing
    
    
    REAL              :: &  
@@ -220,6 +221,7 @@ CONTAINS
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
+                  l_PHAC_grazing,   &
                   icycle,           &
                   casafile,         &
                   ncciy,            &
@@ -430,11 +432,12 @@ CONTAINS
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
          IF(icycle >0) THEN
+!            print*,'met%tk before bgcdriver',met%tk
             call bgcdriver( ktau, kstart, kend, dels, met,                  &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
-                            .FALSE., .FALSE. )
+                            .FALSE., .FALSE. ,l_PHAC_grazing)
          ENDIF 
    
          ! sumcflux is pulled out of subroutine cbm
@@ -444,7 +447,13 @@ CONTAINS
                         met, casaflux, l_vcmaxFeedbk )
 
          ! MPI: send the results back to the master
+         !print*,'before send biophysics in worker'
          CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
+         !print*,'before send biogeochem in worker'
+         IF(.not. spincasa .and. mod((ktau-kstart+1),ktauday)==0)THEN
+            CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+         END IF
+         !print*,'after send biogeochem in worker'
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
@@ -516,7 +525,9 @@ CONTAINS
       !END IF
 
       ! MPI: learn from the master whether it's time to quit
+      !print*,'before bcast in worker'
       CALL MPI_Bcast (loop_exit, 1, MPI_LOGICAL, 0, comm, ierr)
+      !print*,'after bcast in worker'
 
       IF (loop_exit) THEN
             EXIT
@@ -527,7 +538,9 @@ CONTAINS
    IF (icycle > 0) THEN
 
       ! MPI: send casa results back to the master
-      CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+      IF(spincasa)THEN
+         CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+      END IF
       ! MPI: output file written by master only
       !CALL casa_poolout( ktau, veg, soil, casabiome,                           &
       !                   casapool, casaflux, casamet, casabal, phen )
@@ -539,10 +552,12 @@ CONTAINS
    ! Write restart file if requested:
    IF(output%restart) THEN
       ! MPI: send variables that are required by create_restart
+!      print*,'before send restart in worker'
       CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
       ! MPI: output file written by master only
       !CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
       !                     canopy, rough, rad, bgc, bal )
+!      print*,'after send restart in worker'
    END IF
 
    ! MPI: cleanup
@@ -692,6 +707,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (met%ca, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (met%ndep, displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1
@@ -1358,6 +1377,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (canopy%fwet, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil, displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1
@@ -2503,6 +2526,14 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xktemp, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkwater, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casaflux%kmlabP, displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -2939,6 +2970,10 @@ SUBROUTINE worker_intype (comm,met,veg)
 
   bidx = bidx + 1
   CALL MPI_Get_address (met%ca, displs(bidx), ierr)
+  blocks(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (met%ndep, displs(bidx), ierr)
   blocks(bidx) = r1len
 
   bidx = bidx + 1
@@ -3437,6 +3472,10 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Get_address (met%ca(off), displs(bidx), ierr)
   blocks(bidx) = r1len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (met%ndep(off), displs(bidx), ierr)
+  blocks(bidx) = r1len
+
   !vidx = vidx + 1
   ! INTEGER(i_d)
   !CALL MPI_Get_address (met%year(off), vaddr(vidx), ierr) ! 2
@@ -3819,6 +3858,10 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   !blen(vidx) = cnt * extr1
   bidx = bidx + 1
   CALL MPI_Get_address (canopy%fwet(off), displs(bidx), ierr)
+  blocks(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
   blocks(bidx) = r1len
 
   bidx = bidx + 1
@@ -5283,6 +5326,38 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * mdyear
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracCalloc(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%kplant(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracNalloc(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromStoCO2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromLtoCO2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mlitter
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%ksoil(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%klitter(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mlitter
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%crmplant(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
   ! ------------- 1D vectors -------------
 
   bidx = bidx + 1
@@ -5413,6 +5488,38 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
 
   bidx = bidx + 1
   CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nsmin(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nsnet(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminleach(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xktemp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkwater(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%crgplant(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
   ! MPI: sanity check

@@ -178,6 +178,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%fevw_pot = 0.
 
    CALL radiation( ssnow, veg, air, met, rad, canopy )
+   !print*,'scalex',rad%scalex(1,:),rad%fvlai(1,:)
 
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 
@@ -1323,6 +1324,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
+!         print*,'fwsoil',fwsoil
+!         print*,'lai',canopy%vlaiw
       ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
@@ -1331,6 +1334,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ELSE
          STOP 'fwsoil_switch failed.'
       ENDIF
+      canopy%fwsoil = fwsoil
 
    ENDIF
 
@@ -1386,6 +1390,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    deltlfy = abs_deltlf
    k = 0
 
+   !print*,'before loop',C%MAXITER
    !kdcorbin, 08/10 - doing all points all the time
    DO WHILE (k < C%MAXITER)
       k = k + 1
@@ -1482,6 +1487,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          
       ENDDO !i=1,mp
    
+      !print*,'before photosynthesis',csx
       CALL photosynthesis( csx(:,:),                                           &
                            SPREAD( cx1(:), 2, mf ),                            &
                            SPREAD( cx2(:), 2, mf ),                            &
@@ -1490,6 +1496,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            xleuning(:,:), rad%fvlai(:,:),                      &
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:) )
+
+      !print*,'after photosynthesis',met%ca,anx
 
       DO i=1,mp
          
@@ -1675,6 +1683,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
    
+   !print*,'fpn,frday/365',canopy%fpn(1),canopy%frday(1)
    DEALLOCATE( gswmin )
 
 END SUBROUTINE dryLeaf

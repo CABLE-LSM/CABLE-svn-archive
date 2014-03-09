@@ -239,6 +239,8 @@ MODULE casavariable
                                        kplab,       &
                                        kpsorb,      &
                                        kpocc,       &
+                                       xktemp,      &
+                                       xkwater,     &
                                        kmlabp,      &
                                        Psorbmax
     REAL(r_2), DIMENSION(:,:),POINTER    :: klitter
@@ -477,6 +479,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casaflux%kpsorb(arraysize),                   &
            casaflux%kpocc(arraysize),                    &
            casaflux%kmlabP(arraysize),                   &
+           casaflux%xktemp(arraysize),                   &
+           casaflux%xkwater(arraysize),                  &
            casaflux%Psorbmax(arraysize),                 &
            casaflux%klitter(arraysize,mlitter),          &
            casaflux%ksoil(arraysize,msoil),              &
