@@ -1720,28 +1720,28 @@ USE cable_common_module
        rt(:,k) =  qin - qout ! - qhlev(:,k) !- ssnow%rex(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
-       ct(:,k) =  0.0_r_2!dqodw2
+       ct(:,k) =  dqodw2 !0._r_2
           
-!    k = ms+1
-!       den    = (zaq(:) - zmm(k-1))
-!       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
-!       num    = (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
-!       qin    = -ssnow%hk(:,k-1)*num/den
-!       dqidw0 = -(-ssnow%hk(:,k-1)*ssnow%dsmpdw(:,k-1) + num*ssnow%dhkdw(:,k-1))/den
-!       dqidw1 = -( ssnow%hk(:,k-1)*ssnow%GWdsmpdw(:)   + num*ssnow%dhkdw(:,k-1))/den
-!       den    = zaq(:) - zmm(k-1)!dzmm(ms)
-!       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
-!       num    =  (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
-!       qout   = 0.0_r_2
-!       dqodw1 = 0.0_r_2
-!       dqodw2 = 0.0_r_2
-!       rt(:,k) =  qin - qout  - qhlev(:,k)
-!       at(:,k) = -dqidw0
-!       bt(:,k) =  GWdzmm(:)/dels - dqidw1
-!       ct(:,k) =  0.0_r_2
+    k = ms+1
+       den    = (zaq(:) - zmm(k-1))
+       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
+       num    = (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
+       qin    = -ssnow%hk(:,k-1)*num/den
+       dqidw0 = -(-ssnow%hk(:,k-1)*ssnow%dsmpdw(:,k-1) + num*ssnow%dhkdw(:,k-1))/den
+       dqidw1 = -( ssnow%hk(:,k-1)*ssnow%GWdsmpdw(:)   + num*ssnow%dhkdw(:,k-1))/den
+       den    = zaq(:) - zmm(k-1)!dzmm(ms)
+       dne    = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
+       num    =  (ssnow%GWsmp(:)-ssnow%smp(:,k-1)) - dne
+       qout   = 0.0_r_2
+       dqodw1 = 0.0_r_2
+       dqodw2 = 0.0_r_2
+       rt(:,k) =  qin - qout  - qhlev(:,k)
+       at(:,k) = -dqidw0
+       bt(:,k) =  GWdzmm(:)/dels - dqidw1
+       ct(:,k) =  0.0_r_2
 
    if (md_prin) write(*,*) 'calced qin qout etc '            !MDeck
-    CALL solve_tridiag(at, bt, ct, rt, del_wb,ms)                      !solve system of eqns
+    CALL solve_tridiag(at, bt, ct, rt, del_wb,ms+1)                      !solve system of eqns
 
    if (md_prin) write(*,*) 'found del wb '  !MDeck
     !alternate method that solves only using the ms layers
@@ -1755,8 +1755,8 @@ USE cable_common_module
     msice(:,:)   = (ssnow%wbice)*dri * spread(dzmm,1,mp)                  !mass of ice.  not updated as no ice flow
     eff_por(:,:) = soil%watsat - ssnow%wbice                              !effective porosity (saturated minus vol of ice)
     mss_por(:,:) = eff_por*spread(dzmm,1,mp)                              !mass of liquid the effective porosity can hole
-    !GWmsliq(:)   = (ssnow%GWwb(:)+del_wb(:,ms+1))*GWdzmm                  !updated mass aquifer liq 
-    ssnow%GWwb   = ssnow%GWwb+(del_wb(:,ms)*dqodw1+qout)*dels/GWdzmm - qhlev(:,ms+1)*dels/GWdzmm
+    !ssnow%GWwb   = ssnow%GWwb+(del_wb(:,ms)*dqodw1+qout)*dels/GWdzmm - qhlev(:,ms+1)*dels/GWdzmm
+    ssnow%GWwb   = ssnow%GWwb+del_wb(:,ms+1) - qhlev(:,ms+1)*dels/GWdzmm
     GWmsliq(:)   = ssnow%GWwb(:)*GWdzmm 
 
    if (md_prin) write(*,*) ' updated soil liq mass '
