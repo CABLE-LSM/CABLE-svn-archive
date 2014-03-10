@@ -587,6 +587,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
                                 sin_theta_latitude ) 
+                                
+   !mrd561 --> need to add GWwb to the UM model for input/output and then used
+   !to init here.
 
    USE cable_def_types_mod,  ONLY : mp, msn
    USE cable_data_module,   ONLY : PHYS
