@@ -582,7 +582,7 @@ END SUBROUTINE initialize_canopy
 !========================================================================
 !========================================================================
  
-SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
+SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_tile, &
                                 snow_tile, snow_rho1l, snage_tile, isnow_flg3l,&
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
@@ -597,6 +597,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    USE cable_common_module, ONLY : cable_runtime, cable_user
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
+
+   !mrd561
+   REAL, INTENT(IN), DIMENSION(um1%land_pts,um1%tiles) :: smgw_tile
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) ::    &
       sthf_tile, &   !
@@ -730,6 +733,10 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ENDDO
          
          DEALLOCATE( fwork )
+
+
+         !mrd561
+         ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
          
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &

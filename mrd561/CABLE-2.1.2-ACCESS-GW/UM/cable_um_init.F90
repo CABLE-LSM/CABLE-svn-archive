@@ -48,7 +48,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,&
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                              sthu_tile, smcl_tile, sthf_tile, sthu,           &
+                              sthu_tile, smcl_tile, smgw_tile, sthf_tile, sthu,&
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
                               dzsoil, CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,      &
                               SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
@@ -159,6 +159,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
    REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
       sthu  !
+
+   !mrd561
+   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+      smgw_tile  !
 
    REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) ::                 &
       sthu_tile, &   !
@@ -290,7 +294,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
        
       !--- initialize soilsnow
       CALL initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,   &
-                                snow_tile, snow_rho1l, snage_tile,          &
+                                smgw_tile,snow_tile, snow_rho1l, snage_tile,&
                                 isnow_flg3l, snow_rho3l, snow_cond,         &
                                 snow_depth3l, snow_mass3l, snow_tmp3l,      &
                                 fland, sin_theta_latitude ) 
