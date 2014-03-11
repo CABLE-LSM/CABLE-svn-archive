@@ -132,16 +132,36 @@ CONTAINS
    IF( cable_runtime%um ) THEN
       
      IF( cable_runtime%um_implicit ) THEN
-         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+        !switch to use soil_snow or soil_snow_gw goes here
+        !here only cable_user%gw_model is set
+        !cable_runtime%run_gw_model is not 
+        IF (cable_user%gw_model) then
+
+           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+
+        ELSE
+
+           CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+        END IF
+
      ENDIF
 
    ELSE
+
       !switch to use soil_snow or soil_snow_gw goes here
-      IF (cable_runtime%run_gw_model) then
+      !here both cable_user%gw_model and cable_runtime%run_gw_model will work
+      IF (cable_user%gw_model) then
+
          CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+
       ELSE
+
          CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
       END IF
+
    ENDIF
 
    ssnow%deltss = ssnow%tss-ssnow%otss

@@ -75,7 +75,7 @@ MODULE cable_um_tech_mod
    END TYPE derived_veg_pars
 
    INTERFACE check_nmlvar 
-      MODULE PROCEDURE check_chvar, check_intvar
+      MODULE PROCEDURE check_chvar, check_intvar, check_logicalvar
    END INTERFACE check_nmlvar 
  
       TYPE(derived_rad_bands), SAVE :: kblum_rad    
@@ -144,6 +144,10 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
       CALL check_nmlvar('cable_user%FWSOIL_SWITCH', cable_user%FWSOIL_SWITCH)
       CALL check_nmlvar('cable_user%RUN_DIAG_LEVEL', cable_user%RUN_DIAG_LEVEL)
 
+      !mrd561
+      CALL check_nmlvar('cable_user%GW_MODEL', cable_user%GW_MODEL)
+
+
 END SUBROUTINE cable_um_runtime_vars
 
 !jhan: also add real, logical, int interfaces
@@ -168,6 +172,24 @@ SUBROUTINE check_intvar(this_var, val_var)
 
    CHARACTER(LEN=*), INTENT(IN) :: this_var
    INTEGER, INTENT(IN) :: val_var 
+
+      IF (knode_gl==0) THEN
+         PRINT *, '  '; PRINT *, 'CABLE_log:' 
+         PRINT *, '   run time variable - '
+         PRINT *, '  ', trim(this_var) 
+         PRINT *, '   defined as - '
+         PRINT *, '  ', val_var
+         PRINT *, 'End CABLE_log:'; PRINT *, '  '
+      ENDIF
+
+END SUBROUTINE check_intvar
+
+!mrd561
+SUBROUTINE check_logicalvar(this_var, val_var)
+   USE cable_common_module, ONLY : knode_gl
+
+   CHARACTER(LEN=*), INTENT(IN) :: this_var
+   LOGICAL, INTENT(IN) :: val_var 
 
       IF (knode_gl==0) THEN
          PRINT *, '  '; PRINT *, 'CABLE_log:' 

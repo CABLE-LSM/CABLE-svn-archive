@@ -189,6 +189,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(ms+1)=0.5*soil%zse(ms)
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
+         !mrd561
+         soil%GWdz = 30.0                          !30 m thick aquifer
+
 
 
          !-------------------------------------------------------------------
@@ -252,6 +255,29 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%clay = soilin%clay(soil%isoilm)
          soil%silt = soilin%silt(soil%isoilm)
          soil%sand = soilin%sand(soil%isoilm)
+
+         !mrd561 set the gw hydro parameters directly from the cable values
+         !future revisions will have soil type and properties be a functio
+         !of layer depth
+         do k=1,um1%sm_levels
+            soil%smpsat(:,k)  = abs(soilin%sucs(:))*1000.0  !convert units [m/s] to [mm/s]
+            soil%hksat(:,k)   = soilin%hyds(:)*1000.0       !convert units
+            soil%clappB(:,k)  = soilin%bch(:)
+            soil%densoil(:,k) = soilin%rhosoil(:)
+            soil%watsat(:,k)  = soilin%ssat(:)
+            soil%watr(:,k)    = 0.05
+
+            soil%Fclay(:,k)   = soil%clay(:)
+            soil%Fsand(:,k)   = soil%sand(:)
+         end do
+
+         soil%GWsmpsat(:)  = abs(soil%sucs(:))*1000.0
+         soil%GWhksat(:)   = soil%hyds(:)*1000.0
+         soil%GWclappB(:)  = soil%bch(:)
+         soil%GWdensoil(:) = soil%rhosoil(:)
+         soil%GWwatsat(:)  = soil%ssat(:)
+         soil%GWwatr(:)    = 0.05  !const for simplicity for now
+
          
             
          first_call= .FALSE.
