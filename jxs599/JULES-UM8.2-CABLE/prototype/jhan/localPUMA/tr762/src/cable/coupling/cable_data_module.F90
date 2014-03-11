@@ -453,6 +453,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
    
    if( first_atmstep_call ) then 
       !allocate( latitude(row_length,rows) )
+      allocate( cable% um% sin_theta_latitude(row_length,rows) )
       !allocate( longitude(row_length,rows) )
       allocate( cable% cable% SNOW_COND(land_pts,NTILES,3))
       allocate( cable% cable% STHU_TILE(land_pts,NTILES,sm_levels))
@@ -500,7 +501,9 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       !longitude = acos( cos_theta_longitude )
       cable% mp% latitude           => latitude
       cable% mp% longitude          => longitude
-      !cable% um% sin_theta_latitude => sin_theta_latitude
+
+
+      cable% um% sin_theta_latitude = sin( cable% mp% latitude )
 
       cable% um% land_index         => land_index 
 
@@ -664,17 +667,18 @@ END SUBROUTINE cable_control5
 
 !===============================================================================
 
-
+!jhan: this is a very temp HACK - for offline SW is split in cable radiation
+!module by spitter. online it recieves th SW calculated by the UM rad scheme 
 SUBROUTINE cable_control4( sw_down )
    
    Real, dimension(:,:) :: sw_down
    !Real, dimension( cable% mp% row_length, cable% mp% rows, 4) :: surf_down_sw
 
      !reminder that offline receives total SW and splits (CABLE uses subr spitter)
-     cable% forcing% ShortWave(:,:,1)    = sw_down(:,:) / 4
-     cable% forcing% ShortWave(:,:,2)    = sw_down(:,:) / 4
-     cable% forcing% ShortWave(:,:,3)    = sw_down(:,:) / 4
-     cable% forcing% ShortWave(:,:,4)    = sw_down(:,:) / 4
+     cable% forcing% ShortWave(:,:,1)    = sw_down(:,:) / 4.
+     cable% forcing% ShortWave(:,:,2)    = sw_down(:,:) / 4.
+     cable% forcing% ShortWave(:,:,3)    = sw_down(:,:) / 4.
+     cable% forcing% ShortWave(:,:,4)    = sw_down(:,:) / 4.
      
 
 END SUBROUTINE cable_control4

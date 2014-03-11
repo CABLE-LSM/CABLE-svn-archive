@@ -53,6 +53,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
+USE cable_data_mod,   ONLY : cable 
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep, &
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
                                   ssnow, sum_flux, veg
@@ -179,9 +180,80 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       TOT_TFALL        !
 
    REAL, POINTER :: TFRZ
-   
+
+   integer :: itest =2
+   integer :: iunit=77772
+   character(len=44) :: testfname = "/home/599/jxs599/cable_implicit.txt"
+    
       TFRZ => PHYS%TFRZ
-  print *, "jhan: cable_implicit 1" 
+  !print *, "jhan: cable_implicit 1" 
+
+if( cable% mp% timestep_number == itest) then
+         write (6,*) 'CABLE implicit about to write file'
+open(unit=iunit,file=trim(testfname),status="unknown", &
+  action="write",  form="formatted", &
+  position='append' )
+print *,""
+write(iunit,*)"LS_RAIN  ",LS_RAIN 
+write(iunit,*)"CON_RAIN ",CON_RAIN
+write(iunit,*)"LS_SNOW ", LS_SNOW
+write(iunit,*)"CONV_SNOW ",CONV_SNOW
+write(iunit,*)"DTL_1 ", DTL_1
+write(iunit,*)"DQW_1 ", DQW_1
+write(iunit,*)"TSOIL ", TSOIL
+write(iunit,*)"TSOIL_TILE ", TSOIL_TILE
+write(iunit,*)"SMCL ", SMCL
+write(iunit,*)"SMCL_TILE ", SMCL_TILE
+write(iunit,*)"timestep ", timestep
+write(iunit,*)"SMVCST ", SMVCST
+write(iunit,*)"STHF ", STHF
+write(iunit,*)"STHF_TILE ", STHF_TILE
+write(iunit,*)"STHU ", STHU
+write(iunit,*)"STHU_TILE ", STHU_TILE
+write(iunit,*)"snow_tile ", snow_tile
+write(iunit,*)"SNOW_RHO1L ",SNOW_RHO1L
+write(iunit,*)"ISNOW_FLG3L ",ISNOW_FLG3L
+write(iunit,*)"SNOW_DEPTH3L ",SNOW_DEPTH3L
+write(iunit,*)"SNOW_MASS3L ", SNOW_MASS3L
+write(iunit,*)"SNOW_RHO3L ", SNOW_RHO3L
+write(iunit,*)"SNOW_TMP3L ", SNOW_TMP3L
+write(iunit,*)"SNOW_COND ", SNOW_COND
+write(iunit,*)"FTL_1 ", FTL_1
+write(iunit,*)"FTL_TILE ", FTL_TILE
+write(iunit,*)"FQW_1 ", FQW_1
+write(iunit,*)"FQW_TILE ", FQW_TILE
+write(iunit,*)"TSTAR_TILE ",TSTAR_TILE
+write(iunit,*)"SURF_HT_FLUX_LAND ", SURF_HT_FLUX_LAND
+write(iunit,*)"ECAN_TILE ", ECAN_TILE
+write(iunit,*)"ESOIL_TILE ",ESOIL_TILE
+write(iunit,*)"EI_TILE ", EI_TILE
+write(iunit,*)"RADNET_TILE ", RADNET_TILE
+write(iunit,*)"TOT_ALB ", TOT_ALB
+write(iunit,*)"SNAGE_TILE ", SNAGE_TILE
+write(iunit,*)"CANOPY_TILE ",CANOPY_TILE
+write(iunit,*)"GS ", GS
+write(iunit,*)"T1P5M_TILE ", T1P5M_TILE
+write(iunit,*)"Q1P5M_TILE ", Q1P5M_TILE
+write(iunit,*)"CANOPY_GB ", CANOPY_GB
+write(iunit,*)"FLAND ", FLAND
+write(iunit,*)"MELT_TILE ", MELT_TILE
+write(iunit,*)"DIM_CS1 ", DIM_CS1
+write(iunit,*)"DIM_CS2 ", DIM_CS2
+write(iunit,*)"NPP ", NPP
+write(iunit,*)"NPP_FT ", NPP_FT
+write(iunit,*)"GPP ", GPP
+write(iunit,*)"GPP_FT ", GPP_FT
+write(iunit,*)"RESP_S ", RESP_S
+write(iunit,*)"RESP_S_TOT ", RESP_S_TOT
+write(iunit,*)"RESP_S_TILE ",RESP_S_TILE
+write(iunit,*)"RESP_P ", RESP_P
+write(iunit,*)"RESP_P_FT ", RESP_P_FT
+write(iunit,*)"G_LEAF ", G_LEAF
+write(iunit,*)"LYING_SNOW ", LYING_SNOW
+write(iunit,*)"SURF_ROFF ", SURF_ROFF
+write(iunit,*)"SUB_SURF_ROFF ", SUB_SURF_ROFF
+write(iunit,*)"TOT_TFALL ", TOT_TFALL
+endif
       ! FLAGS def. specific call to CABLE from UM
       cable_runtime%um_explicit = .FALSE.
       cable_runtime%um_implicit = .TRUE.

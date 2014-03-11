@@ -1030,7 +1030,7 @@ call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
     gamma2(:,:) = 0.0
 
 ! Call sf_impl2 with l_correct = .FALSE.
-    CALL sf_impl2 (                                                     &
+    CALL sf_impl2_cable (                                                     &
 !     IN values defining field dimensions and subset to be processed :
          land_pts,land_index,nice,nice_use,ntiles,tile_index,tile_pts,  &
          sm_levels,canhc_tile,canopy,flake,smc,tile_frac,wt_ext_tile,   &
@@ -1074,7 +1074,7 @@ call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
     gamma2(:,:) = 1.0
 
 ! Call sf_impl2 again with l_correct = .TRUE.
-    CALL sf_impl2 (                                                     &
+    CALL sf_impl2_cable (                                                     &
 !     IN values defining field dimensions and subset to be processed :
          land_pts,land_index,nice,nice_use,ntiles,tile_index,tile_pts,  &
          sm_levels,canhc_tile,canopy,flake,smc,tile_frac,wt_ext_tile,   &

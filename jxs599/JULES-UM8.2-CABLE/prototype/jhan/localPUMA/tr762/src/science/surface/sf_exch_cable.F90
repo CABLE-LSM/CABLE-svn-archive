@@ -1116,7 +1116,9 @@ END IF
              cable% cable% snow_flg3l, cable% cable% snow_rho3l,    &
              cable% cable% snow_cond,  cable% cable% snow_depth3l,  &
              cable% cable% snow_tmp3l, cable% cable% snow_mass3l,   &
-             cable% um% sw_down, cable% um% lw_down,                &
+             ! jhan: what do we need this for if use ShortWave
+             cable% um% sw_down,                                    & 
+             cable% um% lw_down,                                    &
              cable% um% cos_zenith_angle, cable% forcing% ShortWave,&
              cable% um% ls_rain, cable% um% ls_snow,                &
              cable% um% tl_1, & !not declared/defined unti bdy_layr
