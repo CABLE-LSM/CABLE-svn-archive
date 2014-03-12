@@ -381,6 +381,8 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
       integer  :: varId, ee, pp, ncount, totcount
       real, dimension(192,145,17,365) :: temp, tmp2, tmp3
+      real     :: conversionFactor
+      CHARACTER(LEN=20) fluxunits
 
 !      real(r_2), dimension(mp) :: &
 !         tairk,  &
@@ -403,6 +405,21 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
       if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'field1519')    
       ncok = NF90_GET_VAR(ncid, varId, tmp2)
       if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'field1519')
+      ! Get GPP units:
+      ncok = NF90_GET_ATT(ncid,varId,'units',fluxunits)
+      IF(ncok /= NF90_NOERR) CALL stderr_nc('getting units of ', 'field1519')
+      IF(fluxunits(1:12)=='kg C m-2 s-1') THEN
+         ! Change to gC/m2/day from ACCESS output
+         conversionFactor = 1000.0 * 24.0 * 3600.0
+      ELSE IF(fluxunits(1:13)=='g C m-2 day-1'.OR. &
+              fluxunits(1:9)=='gC/m2/day') THEN
+         ! no change needed
+         conversionFactor = 1.0
+      ELSE
+         WRITE(*,*) fluxunits
+         CALL stderr_nc('Unknown units for ', 'field1519')
+      END IF
+      tmp2 = tmp2 * conversionFactor
       ncok = NF90_INQ_VARID(ncid, 'temp', varId )
       if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'tair')
       ncok = NF90_GET_VAR(ncid, varId, temp)
@@ -411,6 +428,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
       if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', 'field1499')
       ncok = NF90_GET_VAR(ncid, varId, tmp3)
       if (ncok /= nf90_noerr ) call stderr_nc('getting var ', 'field1499')
+      tmp3 = tmp3 * conversionFactor
 
       totcount = 0
       DO ee = 1, mland

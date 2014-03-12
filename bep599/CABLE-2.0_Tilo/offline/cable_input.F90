@@ -2535,6 +2535,31 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     ! Overwrite default values by those available in met file:
     CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
 
+! Hacking to use same parameter values as in ACCESS
+    ! permanent ice points have special soil properties
+    WHERE (veg%iveg == 17)
+      soil%isoilm = 9
+      soil%swilt  = 0.216
+      soil%sfc    = 0.301
+      soil%ssat   = 0.479
+      soil%hyds   = 0.001
+      soil%cnsd   = 0.272
+      soil%sucs   = 0.153
+      soil%bch    = 7.1
+      soil%rhosoil= 1455.0
+      soil%css    = 2100.0
+    ELSEWHERE
+      soil%isoilm = 2
+    ENDWHERE
+    ! ACCESS uses fixed froot values as follows:
+    veg%froot(:,1) = 0.05
+    veg%froot(:,2) = 0.20
+    veg%froot(:,3) = 0.20
+    veg%froot(:,4) = 0.20
+    veg%froot(:,5) = 0.20
+    veg%froot(:,6) = 0.15
+! end Hacking 
+
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
     IF(exists%parameters.AND.completeSet) THEN
