@@ -6,7 +6,6 @@
   ilayers            = 10,
   l_cosz             = T,
   l_spec_albedo      = T,
-  l_spec_alb_bs      = F,
   l_phenol           = F,
   l_triffid          = F,
   l_veg_compete      = F,
@@ -27,5 +26,6 @@
   l_vg_soil          = F,
   soilhc_method      = 1,
   
-  l_point_data       = T
+  l_point_data       = T,
+  l_cable            = T
 /

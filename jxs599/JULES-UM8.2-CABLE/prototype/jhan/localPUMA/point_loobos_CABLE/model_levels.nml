@@ -1,12 +1,12 @@
 &JULES_MODEL_LEVELS
-  npft = 5,
+  npft = 13,
   nnvg = 4,
 
-  urban = 6,
-  lake  = 7,
-  soil  = 8,
-  ice   = 9,
+  soil  = 14,
+  urban = 15,
+  lake  = 16,
+  ice   = 17,
   
-  sm_levels = 4,
-  nsmax     = 0
+  sm_levels = 6,
+  nsmax     = 3
 /

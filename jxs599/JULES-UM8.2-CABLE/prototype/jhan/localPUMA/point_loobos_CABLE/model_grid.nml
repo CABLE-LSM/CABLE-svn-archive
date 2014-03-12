@@ -1,6 +1,11 @@
 &JULES_INPUT_GRID
+  x_dim_name = "x",
+  y_dim_name = "y",
   nx = 1,
-  ny = 1
+  ny = 1,
+  tile_dim_name = "tile",
+  soil_dim_name = "soil",
+  snow_dim_name = "snow"
 /
 
 &JULES_LATLON
