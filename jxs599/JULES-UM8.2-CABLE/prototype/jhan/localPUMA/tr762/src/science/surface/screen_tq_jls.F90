@@ -257,7 +257,7 @@ row_len = tdims%i_end - tdims%i_start + 1
 nrows   = tdims%j_end - tdims%j_start + 1
 
 IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
-print *,"jhan: screen_tq 1 "
+
 ! DEPENDS ON: qsat_mix
   CALL qsat_mix(qs,tstar_ssi,pstar,t_i_length*t_j_length,lq_mix_bl)
   DO j=tdims%j_start,tdims%j_end
@@ -285,13 +285,6 @@ print *,"jhan: screen_tq 1 "
     DO l=1,land_pts
       q1p5m_tile(l,n) = 0.
     END DO
-
-print *,"n ",  n 
-print *,"qs_tile ",   qs_tile
-print *,"tstar_tile(:,n) ", tstar_tile(:,n)
-print *,"pstar_land ", pstar_land
-print *,"land_pts  ", land_pts 
-print *,"lq_mix_bl ", lq_mix_bl
 
 ! DEPENDS ON: qsat_mix
     CALL qsat_mix(qs_tile,tstar_tile(:,n),pstar_land,land_pts     &
