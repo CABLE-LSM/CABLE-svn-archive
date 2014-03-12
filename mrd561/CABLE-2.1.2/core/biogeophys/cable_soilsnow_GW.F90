@@ -54,8 +54,8 @@ MODULE cable_soil_snow_gw_module
       max_sconds = 2.51,   & !
       frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95) 
       
-   !MD GW params
-   !Should read some in from namelist?
+   !mrd561 GW params
+   !Should read some in from namelist
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
                       qhmax   = 5e-5,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
                       hkrz    = 0.0,          & ! GW_hksat e-folding depth [mm**-1]
