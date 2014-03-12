@@ -45,7 +45,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Fland,                                       &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                                  sthu_tile, smcl_tile,smgw_tile               &
+                                  sthu_tile, smcl_tile,smgw_tile,              &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
                                   LAND_MASK, FTL_TILE_CAB, FTL_CAB, FTL_TILE,  &
@@ -182,7 +182,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       tsoil_tile
    
    !mrd561
-   REAL, INTENT(IN). DIMENSION(land_pts, ntiles) ::                         &
+   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         &
       smgw_tile
 
    REAL, INTENT(IN) :: co2_mmr

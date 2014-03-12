@@ -393,7 +393,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
    !mrd561
    REAL, DIMENSION(um1%land_pts) ::                                            &
       SMGW
-   REAL, DIMENSION(um1%land_pts,um1%tiles) ::                                  &
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                  &
       SMGW_TILE
 
 
