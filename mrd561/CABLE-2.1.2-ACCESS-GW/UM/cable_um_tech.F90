@@ -200,7 +200,7 @@ SUBROUTINE check_logicalvar(this_var, val_var)
          PRINT *, 'End CABLE_log:'; PRINT *, '  '
       ENDIF
 
-END SUBROUTINE check_intvar
+END SUBROUTINE check_logicalvar
     
 !========================================================================= 
 !=========================================================================
