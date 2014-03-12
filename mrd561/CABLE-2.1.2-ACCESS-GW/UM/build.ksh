@@ -177,10 +177,7 @@ build_build()
    fi
 
    if [[ ! -d $libroot ]]; then
-      print '\n\tCABLE Library path '$libroot' does not exist. I could fix this' 
-      print '\tfor you but it suggests to me that you are not as ready as you'
-      print '\tthought. Aborting now.\n' 
-      exit
+      mkdir -p $libroot
    fi
    
    if [[ -f $libpath ]]; then
