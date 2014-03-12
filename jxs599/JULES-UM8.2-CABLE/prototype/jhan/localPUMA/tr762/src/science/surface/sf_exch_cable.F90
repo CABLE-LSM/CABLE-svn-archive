@@ -1095,7 +1095,6 @@ IF(formdrag ==  effective_z0) THEN
      )
   END DO
 END IF
-
 !-----------------------------------------------------------------------
 ! Call CABLE Land Surface Scheme, consistently with explicit nature  
 ! of call 

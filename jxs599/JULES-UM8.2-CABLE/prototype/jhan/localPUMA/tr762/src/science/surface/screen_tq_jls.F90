@@ -257,19 +257,21 @@ row_len = tdims%i_end - tdims%i_start + 1
 nrows   = tdims%j_end - tdims%j_start + 1
 
 IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
-
+print *,"jhan: screen_tq 1 "
 ! DEPENDS ON: qsat_mix
   CALL qsat_mix(qs,tstar_ssi,pstar,t_i_length*t_j_length,lq_mix_bl)
   DO j=tdims%j_start,tdims%j_end
     DO i=tdims%i_start,tdims%i_end
-      q1p5m(i,j) = 0.
+      !CABLE
+      !q1p5m(i,j) = 0.
       q1p5m_ssi(i,j) = 0.
       IF (flandg(i,j) <  1.0 ) THEN
         cer1p5m = chr1p5m_sice(i,j) - 1.
         q1p5m_ssi(i,j) =                                            &
           (qw_1(i,j) + cer1p5m*( qw_1(i,j) - qs(i,j) ))
-        q1p5m(i,j) = (1.-flandg(i,j))*q1p5m_ssi(i,j)
-      END IF
+        !CABLE
+        !q1p5m(i,j) = (1.-flandg(i,j))*q1p5m_ssi(i,j)
+      END IF  
     END DO
   END DO
 
@@ -283,6 +285,14 @@ IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
     DO l=1,land_pts
       q1p5m_tile(l,n) = 0.
     END DO
+
+print *,"n ",  n 
+print *,"qs_tile ",   qs_tile
+print *,"tstar_tile(:,n) ", tstar_tile(:,n)
+print *,"pstar_land ", pstar_land
+print *,"land_pts  ", land_pts 
+print *,"lq_mix_bl ", lq_mix_bl
+
 ! DEPENDS ON: qsat_mix
     CALL qsat_mix(qs_tile,tstar_tile(:,n),pstar_land,land_pts     &
     ,lq_mix_bl)
@@ -314,7 +324,8 @@ END IF
 
     DO j = tdims%j_start, tdims%j_end
       DO i = tdims%i_start, tdims%i_end
-        t1p5m_ssi(i,j) = 0.
+      !CABLE
+        !t1p5m_ssi(i,j) = 0.
         t1p5m(i,j) = 0.
 
         IF (flandg(i,j) <  1.0 ) THEN
@@ -322,7 +333,8 @@ END IF
           t1p5m_ssi(i,j) = tstar_ssi(i,j) - grcp*z1p5m +                &
             chr1p5m_sice(i,j) * (tl_1(i,j) - tstar_ssi(i,j) +           &
             grcp*(z1(i,j)+z0mssi(i,j)-z0hssi(i,j)))
-          t1p5m(i,j) = (1.-flandg(i,j)) * t1p5m_ssi(i,j)
+      !CABLE
+          !t1p5m(i,j) = (1.-flandg(i,j)) * t1p5m_ssi(i,j)
         END IF
 
       END DO
@@ -537,6 +549,7 @@ END IF
 !         Repeat for land points.
       DO n = 1, ntiles
 
+print *,"jhan: screen_tq 3 "
 ! DEPENDS ON: qsat_mix
         CALL qsat_mix(qs_tile,tstar_tile(1,n),pstar_land,land_pts,      &
            lq_mix_bl)
