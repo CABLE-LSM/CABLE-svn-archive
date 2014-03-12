@@ -625,7 +625,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
    !mrd561
-   REAL, INTENT(IN), DIMENSION(um1%land_pts,um1%tiles) :: smgw_tile
+   REAL, INTENT(IN), DIMENSION(um1%land_pts,um1%ntiles) :: smgw_tile
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) ::    &
       sthf_tile, &   !

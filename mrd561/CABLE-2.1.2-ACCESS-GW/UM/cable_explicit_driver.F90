@@ -182,7 +182,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       tsoil_tile
    
    !mrd561
-   REAL, INTENT(INOUT). DIMENSION(land_pts,ntiles) ::                             &
+   REAL, INTENT(IN). DIMENSION(land_pts, ntiles) ::                         &
       smgw_tile
 
    REAL, INTENT(IN) :: co2_mmr

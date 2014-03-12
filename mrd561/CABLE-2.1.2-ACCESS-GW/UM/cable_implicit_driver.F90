@@ -482,6 +482,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
       !--- set UM vars to zero
       TSOIL_CAB = 0.; SMCL_CAB = 0.; TSOIL_TILE = 0.; 
       SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
+      SMGW_TILE = 0.; SMGW = 0.;
 
       DO j = 1,um1%SM_LEVELS
          TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), um1%L_TILE_PTS, miss)
@@ -511,7 +512,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
       ENDDO
 
       !mrd561 groudnwater variables
-      SMGW_TILE = UNPACK(ssbow%GWwb(:),um1%L_TILE_PTS,miss)
+      SMGW_TILE = UNPACK(REAL(ssnow%GWwb(:)),um1%L_TILE_PTS,miss)
       SMGW      = SUM(um1%TILE_FRAC * SMGW_TILE,2)
 
       !--- unpack snow vars 

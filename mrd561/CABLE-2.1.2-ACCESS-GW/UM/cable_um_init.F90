@@ -161,7 +161,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       sthu  !
 
    !mrd561
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         &
       smgw_tile  !
 
    REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) ::                 &
