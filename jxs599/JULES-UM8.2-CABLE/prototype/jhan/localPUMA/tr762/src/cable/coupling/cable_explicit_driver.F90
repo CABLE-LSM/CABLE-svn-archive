@@ -243,8 +243,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
  
    INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
 !umoutput write(iunit,*)_args.1
-   integer :: itest =2
-   integer :: iunit=77772
+   integer :: itest =1
+   integer :: iunit=77771
    character(len=44) :: testfname = "/home/599/jxs599/cable_explicit.txt"
     
       isnow_flg3l = floor( snow_flg3l )
@@ -428,12 +428,6 @@ endif
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
 
-   IF(first_cable_call) & 
-         write (6,*) 'CABLE about to write file'
-open(unit=iunit,file="/home/599/jxs599/cable.txt",status="unknown", &
-  action="write",  form="formatted", &
-  position='append' )
-         write (iunit,*) ktau_gl 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
    !--- runtime and for the most part do not require a model rebuild.
