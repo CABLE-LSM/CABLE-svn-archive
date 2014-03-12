@@ -71,7 +71,7 @@ USE cable_data_mod,   ONLY : cable
       DTL_1,    & ! IN Level 1 increment to T field 
       DQW_1       ! IN Level 1 increment to q field 
 
-   REAL :: timestep
+   integer :: timestep
 
    INTEGER ::                                                                  &
       DIM_CS1, DIM_CS2 
@@ -186,7 +186,6 @@ USE cable_data_mod,   ONLY : cable
    character(len=44) :: testfname = "/home/599/jxs599/cable_implicit.txt"
     
       TFRZ => PHYS%TFRZ
-  !print *, "jhan: cable_implicit 1" 
 
 if( cable% mp% timestep_number == itest) then
          write (6,*) 'CABLE implicit about to write file'
@@ -289,7 +288,7 @@ endif
  
       canopy%cansto = canopy%oldcansto
 
-      CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
+      CALL cbm(real(TIMESTEP), air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)
   
         
