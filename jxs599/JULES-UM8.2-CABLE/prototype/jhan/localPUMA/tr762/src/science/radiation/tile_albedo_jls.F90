@@ -56,6 +56,7 @@ USE prognostics, ONLY : snowdepth
 USE parkind1, ONLY: jprb, jpim
 USE yomhook, ONLY: lhook, dr_hook
 USE c_mdi, ONLY : rmdi
+USE cable_data_mod, only : cable   
 IMPLICIT NONE
 
 ! Subroutine arguments
@@ -941,6 +942,25 @@ ELSE
 ! no obs scaling used, so the scaling is 1.0
   albobs_sc(:,:,:)=1.0
 END IF
+
+IF ( cable% um% l_cable ) then
+  if(cable% mp% timestep_number .gt. 1) then
+! DEPENDS ON: cable_rad_driver.o
+   CALL cable_rad_driver(                &
+          ! IN atmospheric forcing
+          cable% forcing% ShortWave, cable% um% cos_zenith_angle,                       &
+          ! IN soil/vegetation/land surface data :
+          cable% um% SNOW_TILE, cable% cable% SNOW_TMP3L, &
+          cable% cable% SNOW_RHO1L, cable% cable% TSOIL_TILE,            &
+          cable% cable% SNOW_FLG3L,                                           &
+          ! IN  Time stepping infomation:
+          cable% um% albsoil,                            &
+          ! the next 2 same vars are available here anyway
+          cable% um% LAND_ALBEDO, cable% um% ALB_TILE, &
+          cable% um% LAND_ALB                          &
+   )
+   endif  
+endif
 
 IF (lhook) CALL dr_hook('TILE_ALBEDO',zhook_out,zhook_handle)
 RETURN
