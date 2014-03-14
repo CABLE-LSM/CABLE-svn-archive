@@ -37,6 +37,20 @@ MODULE cable_common_module
    !---total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
    
+	! user switches turned on/off by the user thru namelists
+
+   ! trunk modifications protected by these switches 
+	TYPE hide_switches
+      LOGICAL :: 																					 & 
+		! L.Stevens - Test Switches 
+ 		L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! 
+ 		L_NEW_RUNOFF_SPEED    = .FALSE., & ! 
+ 		L_NEW_REDUCE_SOILEVP  = .FALSE.! 
+   END TYPE hide_switches 
+
+   ! instantiate internal switches 
+	TYPE (hide_switches), SAVE	:: hide
+   
    ! set from environment variable $HOME
    CHARACTER(LEN=200) ::                                                       & 
       myhome
@@ -45,16 +59,22 @@ MODULE cable_common_module
    !---CASACNP switches and cycle index
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
    
-   !---CABLE runtime switches def in this type
+   !--- CABLE runtime switches declared in types,  
+   !--- and default initializations
+   
+   ! internal switches turned on/off by the code
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    END TYPE kbl_internal_switches 
 
+   ! instantiate internal switches 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
-   !---CABLE runtime switches def in this type
+   ! user switches turned on/off by the user thru namelists
+   ! CABLE-2.0 user switches all in single namelist file cable.nml
+   ! clean these up for new namelist(s) format	
    TYPE kbl_user_switches
       !jhan: this is redundant now we all use filename%veg?
       CHARACTER(LEN=200) ::                                                    &
@@ -78,9 +98,9 @@ MODULE cable_common_module
          CASA_DUMP_WRITE = .FALSE.,    & !
          CABLE_RUNTIME_COUPLED  = .FALSE.!
 
-
    END TYPE kbl_user_switches
 
+   ! instantiate internal switches 
    TYPE(kbl_user_switches), SAVE :: cable_user
 
    ! external files read/written by CABLE
@@ -132,7 +152,7 @@ MODULE cable_common_module
    END TYPE soilin_type
  
 
-   TYPE vegin_type
+	TYPE vegin_type
 
       REAL, DIMENSION(:),ALLOCATABLE ::                                        &
          canst1,     & !
