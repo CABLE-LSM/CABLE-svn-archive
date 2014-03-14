@@ -287,7 +287,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    LOGICAL, SAVE :: first_cable_call = .TRUE.
 
    !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
-  INTEGER, SAVE :: iDiag_Zero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
+   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -382,7 +382,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    ! dump bitwise reproducible testing data
    IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( iDiag_zero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+      call cable_diag( iDiagZero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
                           "FLUXES", canopy%fe + canopy%fh )
                 
 
