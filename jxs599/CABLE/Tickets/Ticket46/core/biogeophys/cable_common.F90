@@ -40,13 +40,14 @@ MODULE cable_common_module
 	! user switches turned on/off by the user thru namelists
 
    ! trunk modifications protected by these switches 
-	TYPE hide_switches
+   TYPE hide_switches
       LOGICAL :: 																					 & 
-		! L.Stevens - Test Switches 
- 		L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! 
- 		L_NEW_RUNOFF_SPEED    = .FALSE., & ! 
- 		L_NEW_REDUCE_SOILEVP  = .FALSE.! 
-   END TYPE hide_switches 
+        ! L.Stevens - Test Switches 
+        L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket? 
+ 	L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
+ 	L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
+	Ticket46 = .FALSE.
+      END TYPE hide_switches 
 
    ! instantiate internal switches 
 	TYPE (hide_switches), SAVE	:: hide
