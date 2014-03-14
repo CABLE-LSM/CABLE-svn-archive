@@ -43,6 +43,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &
 !                          casabiome,casapool,casaflux,casamet,phen)
   USE cable_def_types_mod
+  USE cable_common_module, ONLY : hide
   USE casadimension
   USE casaparm
   USE casavariable
@@ -330,7 +331,12 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%psoilocc(npt)    = xpocc(iv1)
     casaflux%kmlabp(npt)      = xkmlabp(iso)
     casaflux%psorbmax(npt)    = xpsorbmax(iso)
-    casaflux%fpleach(npt)     = xfPleach(iso)
+    IF(hide%Ticket46) then
+       casaflux%fpleach(npt)     = xfPleach(iso)/(365.0)
+    ELSE
+       
+       casaflux%fpleach(npt)     = xfPleach(iso)
+    ENDIF   
 !   we used the spatially explicit estimate N fixation by Wang and Houlton (GRL)
 !    casaflux%Nminfix(npt)     = xnfixrate(iv1)/365.0  
 
@@ -989,6 +995,7 @@ END SUBROUTINE casa_cnpflux
 SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen)
   USE cable_def_types_mod
+  USE cable_common_module, ONLY : hide
   USE casadimension
   USE casa_cnp_module
   IMPLICIT NONE
@@ -1043,10 +1050,23 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
 
-  IF (icycle==1) call casa_ndummy(casapool)
+  IF(hide%Ticket46) then
+     IF (icycle<3) then
+        call casa_pdummy(casapool)
+        IF (icycle<2) call casa_ndummy(casapool)
+    ENDIF
+ ELSE
+    IF (icycle==1) call casa_ndummy(casapool)
+ ENDIF
 
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casabal)
+
+  IF(hide%Ticket46) then
+     ! for spinning up only
+     casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+     casapool%Psoillab = max(casapool%Psoillab,0.1)
+   ENDIF
 
 
 END SUBROUTINE biogeochem
