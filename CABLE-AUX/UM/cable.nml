@@ -46,6 +46,11 @@
                                  ! Choices are:
                                  ! 'P-M' Penman_Monteith, otherwise defaults to 
                                  ! humidity deficit method
+!!--------------Test Switches--------------
+  cable_user%l_new_roughness_soil  = .FALSE.   ! for new soil roughness, E.Kowalczyk Mar14
+  cable_user%l_new_runoff_speed    = .FALSE.   ! for new increase in runoff speed, E.Kowalczyk Mar14
+  cable_user%l_new_reduce_soilevp  = .FALSE.   ! to reduce soil evaporation, E.Kowalczyk Mar14
+!!-----------------------------------------
 !
   redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
   wiltParam = 0.5     ! only used if hydraulic redistribution .true.
