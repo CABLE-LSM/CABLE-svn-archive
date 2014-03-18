@@ -1,0 +1,39 @@
+#########################################################################
+## Compiler specific variables for the Intel Fortran compiler.         ##
+##                                                                     ##
+## FC       = Fortran compiler command                                 ##
+## CC       = C compiler command                                       ##
+## CPP      = C++ compiler command                                     ##
+## FPP      = Flag for enabling pre-processor                          ##
+## FPP_FDEF = Flag for defining pre-processor variables                ##
+## FPP_INC  = Flag for adding pre-processor include search paths       ##
+## FF_RUN   = Compiler flags for normal operation.                     ##
+## FF_DBG   = Compiler flags for debugging.                            ##
+## FF_FAST  = Compiler flags for optimised performance.                ##
+## FF_CON   = Compiler flags for Condor.                               ##
+## LIB_INC  = Flag for adding library search paths.                    ##
+## LIB_PRE  = Flag for linking a specific library.                     ##
+## LIB_FPRE = Prefix common to all library archive filenames.          ##
+## LIB_FSUF = Suffix/extension common to all library archive filenames.##
+## LINKER   = Fortran compiler command for the linking (loader) stage  ##
+## MOD_INC  = Flag for adding Fortran 90 module search paths.          ##
+## MOD_FSUF = Suffix/extension common to all Fortran 90 modules        ##
+#########################################################################
+FC=ifort
+CC=cl
+CPP=
+FPP=-fpp
+FPP_FDEF=-D
+FPP_INC=-I
+FF_RUN=
+FF_DBG=-g -C -CB -traceback
+FF_FAST=-O3 -static
+FF_CON=-O3 -static
+LIB_INC=-L
+LIB_PRE=-l
+LIB_FPRE=lib
+LIB_FSUF=.a
+LINKER=$(FC)
+MOD_PUT=-module 
+MOD_INC=-I
+MOD_FSUF=.mod
