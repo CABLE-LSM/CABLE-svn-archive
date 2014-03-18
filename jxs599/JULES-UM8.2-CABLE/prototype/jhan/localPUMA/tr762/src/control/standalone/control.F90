@@ -560,6 +560,9 @@ real, dimension(land_pts,ntiles) ::                                 &
   cd_tile(land_pts,ntiles),                                         &
   ch_tile(land_pts,ntiles),                                         &
   recip_l_mo_tile(land_pts,ntiles)  
+!recieved in cable and passed back to where available in glue_rad
+!we need this passed to tile_albedo online and declared offline
+REAL :: land_alb(t_i_length,t_j_length) 
 !CABLE}
            
 !-----------------------------------------------------------------------
@@ -593,7 +596,7 @@ real, dimension(land_pts,ntiles) ::                                 &
          latitude, longitude,                                                  &
          land_index, b, hcon, satcon, sathh, smvcst, smvcwt,                   &
          smvccl, albsoil, lw_down, cosz, ls_rain, ls_snow, pstar,              &
-         co2_mmr, sthu, smcl, sthf, gs, canopy_gb )!, land_alb )
+         co2_mmr, sthu, smcl, sthf, gs, canopy_gb, land_alb )
          !here we need to send land_alb to be consistent with ACCESS-1.3
          !land_alb maybe was  available in call from glue_rad , 
          !but definitely not in tile_albedo. in cable_rad_driver there are four albedos passed
