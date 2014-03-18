@@ -1,0 +1,25 @@
+&URBAN_SWITCHES
+  l_moruses = T,
+
+  l_moruses_albedo       = T,
+  l_moruses_emissivity   = T,
+  l_moruses_rough        = T,
+  l_moruses_storage      = T,
+  l_moruses_storage_thin = T,
+  l_moruses_macdonald    = T,
+  l_urban_empirical      = F
+/
+
+# The only member of urban2t_param is anthrop_heat_scale, which we are not
+# changing from the default
+&URBAN2T_PARAM /
+
+# For MORUSES, all variables are required
+# We set them all to constant values in the namelist
+&URBAN_PROPERTIES
+  nvars = 9,
+  
+  var       = 'wrr'  'hwr'  'hgt'  'ztm'  'disp'  'albwl'  'albrd'  'emisw'  'emisr',
+  use_file  =    F      F      F      F       F        F        F        F        F ,
+  const_val =  0.5    1.0   10.0    1.0     5.0    0.375     0.08    0.875     0.95
+/
