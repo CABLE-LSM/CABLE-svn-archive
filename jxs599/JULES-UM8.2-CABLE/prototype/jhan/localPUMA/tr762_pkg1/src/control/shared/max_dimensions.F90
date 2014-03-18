@@ -18,7 +18,7 @@ MODULE max_dimensions
 
   INTEGER, PARAMETER ::                                               &
     ntype_max       = 20,                                             &
-    npft_max        = 10,                                             &
+    npft_max        = 20,                                             &
     nnvg_max        = 10,                                             &
     ntiles_max      = 20,                                             &
     sm_levels_max   = 10,                                             &
