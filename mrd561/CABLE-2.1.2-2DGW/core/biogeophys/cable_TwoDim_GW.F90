@@ -263,7 +263,7 @@ module cable_TwoDim_GW
 
 !-------------------
       !do 190 ii=1,mlon
-      LonLoop: do ii=1,mlon
+      LonLoopOne: do ii=1,mlon
 !-------------------
         i=ii
         if (mod(istep+iter,2).eq.1) i=mlon-i+1
@@ -272,7 +272,7 @@ module cable_TwoDim_GW
 
 !>>>>>>>>>>>>>>>>>>>>
  !       do 170 j=1,mlat
-        LatLoop: do j=1,mlat
+        LatLoopOne: do j=1,mlat
 !>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
           dd = ( ho(i,j)*sf2(i,j)/dels ) * darea
@@ -324,7 +324,7 @@ module cable_TwoDim_GW
           g(j) = (dd -aa*g(j-1))/w
 !>>>>>>>>>>>>>>>
 !  170   continue
-        end do LatLoop
+        end do LatLoopOne
 !>>>>>>>>>>>>>>>
 
 !          re-estimate heads
@@ -352,7 +352,7 @@ module cable_TwoDim_GW
 
 !-------------
 !!  190 continue
-   end do LonLoop
+   end do LonLoopOne
 !-------------
 !=======================
 !       Row calculations
@@ -387,14 +387,14 @@ module cable_TwoDim_GW
 
 !-------------------
 !!      do 300 jj=1,mlat
-      LatLoop: do jj=1,mlat
+      LatLoopTwo: do jj=1,mlat
 !-------------------
         j=jj
         if (mod(istep+iter,2).eq.1) j = mlat-j+1
 !         calculate b and g arrays
 !>>>>>>>>>>>>>>>>>>>>
 !        do 280 i=1,mlon
-        LonLoop: do i=1,mlon
+        LonLoopTwo: do i=1,mlon
 !>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
           dd = ( ho(i,j)*sf2(i,j)/dels ) * darea
@@ -441,13 +441,13 @@ module cable_TwoDim_GW
 !          b(i) = cc/w
 !          g(i) = (dd-aa*g(i-1))/w
 
-          w = bb = aa*b(i-1)
+          w = bb - aa*b(i-1)
           b(i) = cc / w
           g(i) = (dd - aa * g(i-1))/w
 
 !>>>>>>>>>>>>>>>
   !280   continue
-        end do LonLoop
+        end do LonLoopTwo
 !>>>>>>>>>>>>>>>
 !          re-estimate heads
         e = e + abs(h(mlon,j)-g(mlon))
@@ -471,7 +471,7 @@ module cable_TwoDim_GW
 
 !-------------
 !  !300 continue
-      end do LatLoop
+      end do LatLoopTwo
 !-------------
       do j=1,mlat
         do i=1,mlon
