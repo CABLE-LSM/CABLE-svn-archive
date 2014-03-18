@@ -80,7 +80,6 @@ SUBROUTINE cable_rad_driver(                                                   &
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
-  print *, "jhan: cable_rad 1" 
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
@@ -89,7 +88,7 @@ SUBROUTINE cable_rad_driver(                                                   &
       !--- CABLE from subr cable_um_expl_update() 
       CALL update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
    
-      !--- set met. and rad. forcings to CABLE. also called in explicit call to 
+      !--- set met. and rad.forcings to CABLE. also called in explicit call to 
       !--- CABLE from subr update_explicit_vars() 
       !--- subr.  um2cable_met_rad_alb() USES CABLE types met%, rad%, soil%
       !--- and kblum%rad. calculated in  update_kblum_radiation() above 
@@ -131,8 +130,20 @@ SUBROUTINE cable_rad_driver(                                                   &
       rad_albedo_tot = met_fsd_tot_rel  * rad_vis                              &
                        + ( 1.- met_fsd_tot_rel ) * rad_nir
 
+!  print *, "jhan: shape(LAND_ALB_CABLE_TILE ", shape(LAND_ALB_CABLE_TILE)
+!   print *,' test00'
       LAND_ALBEDO_CABLE =0.
+!   print *,' test0'
+!   print *,' shape(rad_albedo_tot ', shape(rad_albedo_tot)
+!   print *,' rad_albedo_tot ', (rad_albedo_tot)
+!   print *,' test1'
       LAND_ALB_CABLE =0.
+!   print *,' miss 1', miss 
+!   print *,' test2'
+!   print *,' test3'
+!   print *,' miss 2', miss 
+!   print *,' test4'
+!   print *,' l_ile_pts', um1%L_TILE_PTS
       LAND_ALB_CABLE_TILE = UNPACK( rad_albedo_tot, um1%L_TILE_PTS, miss )
 
       DO N=1,um1%NTILES
@@ -162,7 +173,8 @@ SUBROUTINE cable_rad_driver(                                                   &
       ENDDO
 
       cable_runtime%um_radiation= .FALSE.
-  print *, "jhan: cable_rad 2" 
+      
+      !print *, "jhan: cable_rad 8" 
 
 END SUBROUTINE cable_rad_driver
 

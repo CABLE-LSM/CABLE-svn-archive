@@ -53,13 +53,15 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
-USE cable_data_mod,   ONLY : cable 
+   USE cable_data_mod,   ONLY : cable 
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep, &
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
                                   ssnow, sum_flux, veg
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl
    USE cable_um_init_subrs_mod, ONLY : um2cable_rr
    USE cable_cbm_module,    ONLY : cbm
+   !USE cable_output_module,  ONLY: create_restart,open_output_file,            &
+   !                                write_output,close_output_file
 
    IMPLICIT NONE
         
@@ -180,12 +182,19 @@ USE cable_data_mod,   ONLY : cable
       TOT_TFALL        !
 
    REAL, POINTER :: TFRZ
+   !REAL, POINTER :: SBOLTZ, EMLEAF, EMSOIL 
+
+   !___ 1st call in RUN (!=ktau_gl -see below) 
+   LOGICAL, SAVE :: first_cable_call = .TRUE.
 
    integer :: itest =2
    integer :: iunit=77772
    character(len=44) :: testfname = "/home/599/jxs599/cable_implicit.txt"
     
       TFRZ => PHYS%TFRZ
+      !SBOLTZ => PHYS% SBOLTZ
+      !EMLEAF => PHYS% EMLEAF
+      !EMSOIL => PHYS%  EMSOIL
 
 if( cable% mp% timestep_number == itest) then
          write (6,*) 'CABLE implicit about to write file'
@@ -253,6 +262,13 @@ write(iunit,*)"SURF_ROFF ", SURF_ROFF
 write(iunit,*)"SUB_SURF_ROFF ", SUB_SURF_ROFF
 write(iunit,*)"TOT_TFALL ", TOT_TFALL
 endif
+
+      !! Open output file:
+      !if(first_cable_call) THEN                                                       
+      !   CALL open_output_file( REAL(cable% mp% timestep_width), soil, veg, bgc, rough )
+      !   first_cable_call = .FALSE.
+      !endif
+
       ! FLAGS def. specific call to CABLE from UM
       cable_runtime%um_explicit = .FALSE.
       cable_runtime%um_implicit = .TRUE.
@@ -311,6 +327,12 @@ endif
 
       cable_runtime%um_implicit = .FALSE.
   
+      !! Write time step's output to file if either: we're not spinning up 
+      !! or we're spinning up and the spinup has converged:
+      !CALL write_output( REAL(cable% mp% timestep_width), ktau_gl, met, canopy, ssnow,    &
+      !                   rad, bal, air, soil, veg, SBOLTZ,                     &
+      !                   EMLEAF, EMSOIL )
+   
   print *, "jhan: cable_implicit 2" 
 END SUBROUTINE cable_implicit_driver
 
