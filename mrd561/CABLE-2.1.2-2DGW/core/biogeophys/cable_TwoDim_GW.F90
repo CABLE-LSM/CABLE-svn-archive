@@ -117,7 +117,7 @@ module cable_TwoDim_GW
         tareal,                 &
         zz
 
-   LOGICAL :: debug
+   LOGICAL :: debug,KeepLooping
       
    debug = .false.  
 
@@ -192,15 +192,17 @@ module cable_TwoDim_GW
 
 
       iter = 0
+      KeepLooping = .True.
 !~~~~~~~~~~~~~
-   80 continue
+!   80 continue
+    MainLoop: do while (KeepLooping)  
 !~~~~~~~~~~~~~
       iter = iter+1
 
 
-      e    = 0.       ! absolute changes in head (for iteration control)
+      e  = 0.0       ! absolute changes in head (for iteration control)
 !       Set storage coefficient (sf2)
-       tareal = 0.
+      tareal = 0.
 
 
 !#OMP PARALLEL DO PRIVATE(j,i,su,sc,shp)
@@ -256,11 +258,12 @@ module cable_TwoDim_GW
       enddo
 !#OMP END PARALLEL DO
 
-      b = 0.
-      g = 0.
+      b(:) = 0.0
+      g(:) = 0.0
 
 !-------------------
-      do 190 ii=1,mlon
+      !do 190 ii=1,mlon
+      LonLoop: do ii=1,mlon
 !-------------------
         i=ii
         if (mod(istep+iter,2).eq.1) i=mlon-i+1
@@ -268,51 +271,88 @@ module cable_TwoDim_GW
 !          calculate b and g arrays
 
 !>>>>>>>>>>>>>>>>>>>>
-        do 170 j=1,mlat
+ !       do 170 j=1,mlat
+        LatLoop: do j=1,mlat
 !>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
           dd = ( ho(i,j)*sf2(i,j)/dels ) * darea
           aa = 0.0
           cc = 0.0
 
-          if (j-1) 90,100,90 
-   90     aa = -t(i,j-1,1)
-          bb = bb + t(i,j-1,1)
+!          if (j-1) 90,100,90 
+!   90     aa = -t(i,j-1,1)
+!          bb = bb + t(i,j-1,1)
 
-  100     if (j-mlat) 110,120,110
-  110     cc = -t(i,j,1)
-          bb = bb + t(i,j,1)
+          if (j .gt. 1) then
+             aa = -t(i,j-1,1)
+             bb = bb + t(i,j-1,1)
+          end if
 
-  120     if (i-1) 130,140,130
-  130     bb = bb + t(i-1,j,2)
-          dd = dd + h(i-1,j)*t(i-1,j,2)
+!  100     if (j-mlat) 110,120,110
+!  110     cc = -t(i,j,1)
+!          bb = bb + t(i,j,1)
 
-  140     if (i-mlon) 150,160,150
-  150     bb = bb + t(i,j,2)
-          dd = dd + h(i+1,j)*t(i,j,2)
+          if (j .lt. mlat) then
+             cc = -t(i,j,1)
+             bb = bb + t(i,j,1)
+          end if
 
-  160     w = bb - aa*b(j-1)
-          b(j) = cc/w
-          g(j) = (dd-aa*g(j-1))/w
+!  120     if (i-1) 130,140,130
+!  130     bb = bb + t(i-1,j,2)
+!          dd = dd + h(i-1,j)*t(i-1,j,2)
+
+          if (i .gt. 1) then
+             bb = bb + t(i-1,j,2)
+             dd = dd + h(i-1,j)*t(i-1,j,2)
+          end if
+
+ ! 140     if (i-mlon) 150,160,150
+ ! 150     bb = bb + t(i,j,2)
+ !         dd = dd + h(i+1,j)*t(i,j,2)
+
+          if (i .lt. mlon) then
+            bb = bb + t(i,j,2)
+            dd = dd + h(i+1,j)*t(i,j,2)
+          end if
+
+!  160     w = bb - aa*b(j-1)
+!          b(j) = cc/w
+!          g(j) = (dd-aa*g(j-1))/w
+
+          w    = bb - aa*b(j-1)
+          b(j) = cc / w
+          g(j) = (dd -aa*g(j-1))/w
 !>>>>>>>>>>>>>>>
-  170   continue
+!  170   continue
+        end do LatLoop
 !>>>>>>>>>>>>>>>
 
 !          re-estimate heads
 
+  !      e = e + abs(h(i,mlat)-g(mlat))
+  !      h(i,mlat) = g(mlat)
+  !      n = mlat-1
+  !180   if (n.eq.0) goto 185
+  !      ha = g(n) - b(n)*h(i,n+1)
+  !      e = e + abs(ha-h(i,n))
+  !      h(i,n) = ha
+  !      n = n-1
+  !      goto 180
+  !185   continue
+
         e = e + abs(h(i,mlat)-g(mlat))
         h(i,mlat) = g(mlat)
-        n = mlat-1
-  180   if (n.eq.0) goto 185
-        ha = g(n) - b(n)*h(i,n+1)
-        e = e + abs(ha-h(i,n))
-        h(i,n) = ha
-        n = n-1
-        goto 180
-  185   continue
+
+        do n=mlat-1,1,-1
+          ha = g(n) - b(n)*h(i,n+1)
+          e = e + abs(ha - h(i,n))
+          h(i,n) = ha
+        end do
+
 
 !-------------
-  190 continue
+!!  190 continue
+   end do LonLoop
 !-------------
 !=======================
 !       Row calculations
@@ -342,59 +382,96 @@ module cable_TwoDim_GW
         enddo
       enddo
 
-      b = 0.
-      g = 0.
+      b(:) = 0.0
+      g(:) = 0.0
 
 !-------------------
-      do 300 jj=1,mlat
+!!      do 300 jj=1,mlat
+      LatLoop: do jj=1,mlat
 !-------------------
         j=jj
         if (mod(istep+iter,2).eq.1) j = mlat-j+1
 !         calculate b and g arrays
 !>>>>>>>>>>>>>>>>>>>>
-        do 280 i=1,mlon
+!        do 280 i=1,mlon
+        LonLoop: do i=1,mlon
 !>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
           dd = ( ho(i,j)*sf2(i,j)/dels ) * darea
           aa = 0.0
           cc = 0.0
 
-          if (j-1) 200,210,200
-  200     bb = bb + t(i,j-1,1)
-          dd = dd + h(i,j-1)*t(i,j-1,1)
+!          if (j-1) 200,210,200
+!  200     bb = bb + t(i,j-1,1)
+!          dd = dd + h(i,j-1)*t(i,j-1,1)
 
-  210     if (j-mlat) 220,230,220
-  220     dd = dd + h(i,j+1)*t(i,j,1)
-          bb = bb + t(i,j,1)
+          if (j .gt. 1) then
+            bb = bb + t(i,j-1,1)
+            dd = dd + h(i,j-1)*t(i,j-1,1)
+          end if
 
-  230     if (i-1) 240,250,240
-  240     bb = bb + t(i-1,j,2)
-          aa = -t(i-1,j,2)
+!  210     if (j-mlat) 220,230,220
+!  220     dd = dd + h(i,j+1)*t(i,j,1)
+!          bb = bb + t(i,j,1)
 
-  250     if (i-mlon) 260,270,260
-  260     bb = bb + t(i,j,2)
-          cc = -t(i,j,2)
+          if (j .lt. mlat) then
+            dd = dd + h(i,j+1)*t(i,j,1)
+            bb = bb + t(i,j,1)
+          end if
 
-  270     w = bb - aa*b(i-1)
-          b(i) = cc/w
-          g(i) = (dd-aa*g(i-1))/w
+!  230     if (i-1) 240,250,240
+!  240     bb = bb + t(i-1,j,2)
+!          aa = -t(i-1,j,2)
+
+          if (i .gt. 1) then
+            bb = bb + t(i-1,j,2)
+            aa = -t(i-1,j,2)
+          end if
+
+!  250     if (i-mlon) 260,270,260
+!  260     bb = bb + t(i,j,2)
+!          cc = -t(i,j,2)
+
+          if (i .lt. mlon) then
+            bb = bb + t(i,j,2)
+            cc = -t(i,j,2)
+          end if
+
+!  270     w = bb - aa*b(i-1)
+!          b(i) = cc/w
+!          g(i) = (dd-aa*g(i-1))/w
+
+          w = bb = aa*b(i-1)
+          b(i) = cc / w
+          g(i) = (dd - aa * g(i-1))/w
+
 !>>>>>>>>>>>>>>>
-  280   continue
+  !280   continue
+        end do LonLoop
 !>>>>>>>>>>>>>>>
 !          re-estimate heads
         e = e + abs(h(mlon,j)-g(mlon))
         h(mlon,j) = g(mlon)
         n = mlon-1
-  290   if (n.eq.0) goto 295
-        ha = g(n)-b(n)*h(n+1,j)
-        e = e + abs(h(n,j)-ha)
-        h(n,j) = ha
-        n = n-1
-        goto 290
-  295   continue
+!  290   if (n.eq.0) goto 295
+!        ha = g(n)-b(n)*h(n+1,j)
+!        e = e + abs(h(n,j)-ha)
+!        h(n,j) = ha
+!        n = n-1
+!        goto 290
+!  295   continue
+
+        e = e + abs(h(mlon,j)-g(mlon))
+        h(mlon,j) = g(mlon)
+        do n=mlon-1,1,-1
+          ha = g(n) - b(n)*h(n+1,j)
+          e = e + abs(h(n,j)-ha)
+          h(n,j) = ha
+        end do
 
 !-------------
-  300 continue
+!  !300 continue
+      end do LatLoop
 !-------------
       do j=1,mlat
         do i=1,mlon
@@ -419,11 +496,17 @@ module cable_TwoDim_GW
       delcur = e/(mlon*mlat)
 
 
-      if ( (delcur.gt.delskip*dels .and. iter.lt.itermax)      &
-           .or. iter.lt.itermin ) then
-        goto 80
-      else
-      endif
+!      if ( (delcur.gt.delskip*dels .and. iter.lt.itermax)      &
+!           .or. iter.lt.itermin ) then
+!        goto 80
+!      else
+!      endif
+
+      if (delcur .le. delskip*dels .or. iter .gt. itermax) then
+          KeepLooping = .False.
+      end if
+      
+  end do MainLoop
 
 
       if (debug) write(*,*) 'done with iterations'
