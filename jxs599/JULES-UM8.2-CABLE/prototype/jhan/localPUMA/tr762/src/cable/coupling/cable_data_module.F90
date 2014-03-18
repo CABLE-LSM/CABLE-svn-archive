@@ -187,8 +187,8 @@ module cable_data_mod
          sthf, &
          tot_alb
 
-      REAL, DIMENSION(:,:,:), POINTER :: &
-         land_alb
+      !REAL, DIMENSION(:,:,:), POINTER :: &
+      !   land_alb
       
       REAL, DIMENSION(:,:), POINTER :: &
          snow_tile, &
@@ -197,7 +197,7 @@ module cable_data_mod
          pstar, &
          canht_ft, & !
          lai_ft,   & !
-         !land_alb,   & !
+         land_alb,   & !
          canopy
 
       REAL, DIMENSION(:), POINTER :: &
@@ -376,7 +376,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
              latitude, longitude,                                              &
              land_index, b, hcon, satcon, sathh, smvcst, smvcwt, smvccl,       &
              albsoil, lw_down, cosz, ls_rain, ls_snow, pstar, CO2_MMR,         &
-             sthu, smcl, sthf, GS, canopy_gb )!, land_albedo )
+             sthu, smcl, sthf, GS, canopy_gb , land_albedo )
 
    LOGICAL, target :: L_CABLE
    
@@ -404,8 +404,8 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       land_index
    
    REAL, DIMENSION(:,:), target ::                                         &
-      pstar
-      !land_albedo 
+      pstar, &
+      land_albedo 
  
    !REAL, DIMENSION(:,:,:), target ::                                         &
    !   land_albedo 
@@ -512,7 +512,7 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       cable% um% sthf             => sthf        
       cable% um% smcl             => smcl        
       
-      !cable% um% land_alb         => land_albedo   
+      cable% um% land_alb         => land_albedo   
           
 
       cable% um% bexp     => b 
