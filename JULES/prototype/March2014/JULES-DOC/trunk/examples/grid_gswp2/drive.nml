@@ -1,0 +1,22 @@
+# We are using a list of driving files
+
+&JULES_DRIVE
+  z1_uv_in = 10.0,
+  z1_tq_in = 2.0,
+  
+  data_start  = '1982-07-01 03:00:00',
+  data_end    = '1996-01-01 00:00:00',
+  data_period = 10800,
+
+  read_list = T,
+  nfiles    = 162,
+
+  file = "./drive_file.txt"
+
+  nvars = 8,
+  var      =    'sw_down'     'lw_down'  'tot_rain'  'tot_snow'         't'       'wind'       'pstar'         'q',
+  var_name =     'SWdown'      'LWdown'     'Rainf'     'Snowf'      'Tair'       'Wind'       'PSurf'      'Qair',
+  tpl_name = 'SWdown_srb'  'LWdown_srb'  'Rainf_P3'  'Snowf_P3'  'Tair_cru'  'Wind_ncep'  'PSurf_ecor'  'Qair_cru',
+  interp   =         'nb'          'nb'        'nb'        'nb'         'i'          'i'           'i'         'i'
+/
+

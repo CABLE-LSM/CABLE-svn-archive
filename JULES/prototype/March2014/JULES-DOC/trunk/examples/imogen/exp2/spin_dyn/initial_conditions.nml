@@ -1,0 +1,8 @@
+# Initilise all the model variables from the final dump produced by the spin_eq run
+&JULES_INITIAL
+
+  dump_file  = T,
+  total_snow = F,
+  file       = "../spin_eq/output/spin_eq.dump.18701230.82800.nc"
+
+/
