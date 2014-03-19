@@ -1,0 +1,16 @@
+# We only specify dataset specific options. Everything else is left as default or not required
+
+&JULES_DRIVE
+  z1_uv_in = 12.0,
+  z1_tq_in = 12.0,
+
+  data_start  = '1992-08-11 10:00:00',
+  data_end    = '1992-08-26 06:00:00'
+  data_period = 3600,
+
+  file = "VL92.dat"
+
+  nvars = 8,
+  var    = 'sw_down'  'lw_down'  'tot_rain'  'tot_snow'   't'  'wind'  'pstar'   'q',
+  interp =      'nf'       'nf'        'nf'        'nf'  'nf'    'nf'     'nf'  'nf'
+/

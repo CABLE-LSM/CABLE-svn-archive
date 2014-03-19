@@ -1,0 +1,35 @@
+March2014 branch looks like the root of the JULES repo on PUMA. 
+this branch should be copied to your user branch and checked out from there for development and testing. 
+updates will be commited/merged back to March2014 and should be consequently pulled from here as well. 
+at junctures this will be exported back over the top of my user branch on the PUMA repo. for Matt to revise. 
+
+JULES
+-----
+the initial ci in this branch is exported from https://puma.nerc.ac.uk/svn/JULES_svn/ corresponding to ^/JULES/trunk@762. 
+JULES-DOC
+---------
+the initial ci in this branch is exported from https://puma.nerc.ac.uk/svn/JULES_svn/ corresponding to ^/JULES-DOC@774. 
+
+the CABLE code is included in the src/cable directory but comes from the branch:
+
+https://trac.nci.org.au/svn/cable/branches/Users/jxs599/JULES-UM8.2-CABLE/CABLE/branches/trunk797
+
+this branched from the trunk@797 and has recieved the following modifications.
+
+https://trac.nci.org.au/trac/cable/log/branches/Users/jxs599/JULES-UM8.2-CABLE/CABLE/branches/trunk797?action=stop_on_copy&rev=1375&stop_rev=&mode=follow_copy
+
+this code has then recieved the following, summarized modifications. 
+
+These files are only in the JULES version
+------------------------------------------
+cable_data_module.F90
+cable_explicit_unpack.F90
+
+These files are differ in the JULES version
+------------------------------------------
+cable_explicit_driver.F90 
+cable_hyd_driver.F90
+cable_implicit_driver.F90
+cable_rad_driver.F90
+
+

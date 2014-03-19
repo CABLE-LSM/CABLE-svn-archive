@@ -1,0 +1,20 @@
+&JULES_OUTPUT
+  run_id = 'spin_dyn',
+  
+  output_dir = './output',
+  
+  nprofiles = 1
+/
+
+# We just output annual means
+&JULES_OUTPUT_PROFILE
+  profile_name = "year",
+  
+  output_main_run = T,
+  
+  output_period = -2,
+  
+  nvars = 17,
+  var         = 'precip' 'tl1' 'pstar' 'lw_down' 'sw_down' 'qw1' 'u1' 'gpp_gb' 'npp_gb' 'resp_p_gb' 'resp_s_gb' 'gpp' 'npp' 'lai' 'cs_gb' 'cv' 'frac',
+  output_type =      'M'   'M'     'M'       'M'       'M'   'M'  'M'      'M'      'M'         'M'         'M'   'M'   'M'   'M'     'M'  'M'    'M'
+/

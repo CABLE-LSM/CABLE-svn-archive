@@ -1,0 +1,28 @@
+&JULES_OUTPUT
+  run_id = 'VL92_1T',
+  
+  output_dir = './output',
+  
+  nprofiles = 2
+/
+
+&JULES_OUTPUT_PROFILE
+  profile_name = 'p1',
+  
+  output_main_run = T,
+
+  nvars = 11,
+  var         = 'sw_down' 'lw_down' 'lw_up' 'rad_net' 'ftl_gb' 'latent_heat' 'taux1' 'tauy1' 'sw_net' 'fqw_gb' 'surf_ht_flux_gb',
+  output_type =       'S'       'S'     'S'       'S'      'S'           'S'     'S'     'S'      'S'      'S'               'S'
+/
+
+
+&JULES_OUTPUT_PROFILE
+  profile_name = 'p2',
+  
+  output_main_run = T,
+  
+  nvars   = 5,
+  var         = 'smcl' 'sthf' 'sthu' 't_soil' 'hcon',
+  output_type =    'S'    'S'    'S'      'S'    'S'
+/
