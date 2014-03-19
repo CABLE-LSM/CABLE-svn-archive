@@ -12,7 +12,7 @@ SUBROUTINE init_ancillaries(nml_dir)
 
   USE string_utils_mod, ONLY : to_string
 
-  USE switches, ONLY : l_pdm, b_pdm, dz_pdm
+  USE switches, ONLY : l_pdm, b_pdm, dz_pdm, L_cable
 
   USE ancil_info, ONLY : frac
 
@@ -56,6 +56,9 @@ SUBROUTINE init_ancillaries(nml_dir)
 ! Defer to specialist routines to process each namelist
   CALL init_frac()
   CALL init_soil()
+
+  if( L_cable ) 															  &	
+    CALL init_cable()
 
 ! The pdm namelist is easy - just 2 properties - and we only need to read it
 ! if pdm is on
