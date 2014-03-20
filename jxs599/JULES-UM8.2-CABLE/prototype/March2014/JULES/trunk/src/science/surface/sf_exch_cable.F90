@@ -1162,14 +1162,18 @@ DO n=1,ntiles
       wind_profile_factor(l,n)
     dq(l) = qw_1(i,j) - qstar_tile(l,n)
     epdt(l) = 0.0
+    !CABLE
+    RESFT(L,N) =  min(1.,FLAKE(L,N) + (1. - FLAKE(L,N)) *        &
+                    ( FRACA(L,N) + (1. - FRACA(L,N))*RESFS(L,N) )) 
   END DO
 
+!CABLE
 ! DEPENDS ON: sf_resist
-  CALL sf_resist (                                                &
-   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
-   canopy(:,n),catch(:,n),chn(:,n),dq,epdt,flake(:,n),gc(:,n),    &
-   snowdep_surf(:,n),vshr_land,fraca(:,n),resfs(:,n),resft(:,n)   &
-   )
+!  CALL sf_resist (                                                &
+!   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
+!   canopy(:,n),catch(:,n),chn(:,n),dq,epdt,flake(:,n),gc(:,n),    &
+!   snowdep_surf(:,n),vshr_land,fraca(:,n),resfs(:,n),resft(:,n)   &
+!   )
 END DO
 
 ! RESFT < 1 for snow on canopy if canopy snow model used
