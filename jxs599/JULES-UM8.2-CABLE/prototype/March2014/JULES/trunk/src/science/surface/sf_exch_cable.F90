@@ -1624,7 +1624,45 @@ DO n=1,ntiles
     END IF
   END DO
 
-!
+!CABLE{
+   DO K=1,TILE_PTS(N)
+     L = TILE_INDEX(K,N)
+     J=(LAND_INDEX(L)-1)/t_i_length+ 1
+     I = LAND_INDEX(L) - (J-1)*t_i_length
+     cable% tmp% D_T = TSTAR_TILE(L,N) - TL_1(I,J)
+     IF (cable% tmp% D_T  >   0.05 .OR. cable% tmp% D_T  <   -0.05) THEN
+       ALPHA1(L,N) = (QSTAR_TILE(L,N) - QS1(I,J)) / cable% tmp% D_T
+     ELSEIF (TL_1(I,J)  >   TM) THEN
+       ALPHA1(L,N) = cable% tmp% EPSILON*LC*QS1(I,J)*                              &
+         (1. + cable% tmp% C_VIRTUAL*QS1(I,J)) / ( R*TL_1(I,J)*TL_1(I,J))
+     ELSE
+       ALPHA1(L,N) = cable% tmp% EPSILON*LS*QS1(I,J)*                              &
+         (1. + cable% tmp% C_VIRTUAL*QS1(I,J)) / ( R*TL_1(I,J)*TL_1(I,J))
+     ENDIF
+    ! This needs to be look at:
+     ASHTF_prime_TILE(L,N) = 2.0 * HCONS(L) / DZSOIL
+     IF (SNOW_TILE(L,N) >  0.0 .AND. SMVCST(L) /= 0.) THEN
+       cable% tmp% DS_RATIO = 2.0 * SNOW_TILE(L,N) / (RHO_SNOW_const * DZSOIL)
+       IF (cable% tmp% DS_RATIO <= 1.0) THEN
+         ASHTF_prime_TILE(L,N) =  ASHTF_prime_TILE(L,N) /                         &
+                     (1. + cable% tmp% DS_RATIO*(HCONS(L)/SNOW_HCON - 1.))
+       ELSE
+         ASHTF_prime_TILE(L,N) =  ASHTF_prime_TILE(L,N)*SNOW_HCON / HCONS(L)
+       ENDIF
+     ENDIF
+     cable% tmp% LH = LC
+     IF (SNOW_TILE(L,N)  >   0.) cable% tmp% LH = LS
+     RHOKPM(L,N) = RHOKH_1(L,N) / ( ASHTF_prime_TILE(L,N)  +                &
+                   RHOKH_1(L,N)*(cable% tmp% LH*ALPHA1(L,N)*RESFT(L,N) + CP))
+     ! this doesnt exist anymore and does not appear necessary 
+     !RHOKPM_POT(L,N)=RHOKH_1(L,N) / ( ASHTF_prime_TILE(L,N)  +              &
+     !                 RHOKH_1(L,N)*(cable% tmp% LH*ALPHA1(L,N) + CP) )
+     FTL_1(I,J) = FTL_1(I,J)+FLAND(L)*TILE_FRAC(L,N)*FTL_TILE(L,N)
+     FQW_1(I,J) = FQW_1(I,J)+FLAND(L)*TILE_FRAC(L,N)*FQW_TILE(L,N)
+  
+   ENDDO
+!CABLE}
+
 ! DEPENDS ON: sf_flux
   CALL sf_flux (                                                  &
    land_pts,tile_pts(n),flandg,                                   &
