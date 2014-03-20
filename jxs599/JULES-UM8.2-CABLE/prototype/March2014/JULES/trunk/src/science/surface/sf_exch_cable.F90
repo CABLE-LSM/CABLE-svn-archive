@@ -1251,23 +1251,23 @@ END IF
 !   )
 !END DO
 !
-IF ( cor_mo_iter >= use_correct_ustar ) THEN
-!       Use correct "standard" ustar
-  DO n=1,ntiles
-    DO k=1,tile_pts(n)
-      l = tile_index(k,n)
-      u_s_std_tile(l,n) = v_s_std(l,n)
-    END DO
-  END DO
-ELSE
-  !       Use ustar from mid-iteration
-  DO n=1,ntiles
-    DO k=1,tile_pts(n)
-      l = tile_index(k,n)
-      u_s_std_tile(l,n) = u_s_iter_tile(l,n)
-    END DO
-  END DO
-END IF
+!IF ( cor_mo_iter >= use_correct_ustar ) THEN
+!!       Use correct "standard" ustar
+!  DO n=1,ntiles
+!    DO k=1,tile_pts(n)
+!      l = tile_index(k,n)
+!      u_s_std_tile(l,n) = v_s_std(l,n)
+!    END DO
+!  END DO
+!ELSE
+!  !       Use ustar from mid-iteration
+!  DO n=1,ntiles
+!    DO k=1,tile_pts(n)
+!      l = tile_index(k,n)
+!      u_s_std_tile(l,n) = u_s_iter_tile(l,n)
+!    END DO
+!  END DO
+!END IF
 
 !jhan:review
 !-----------------------------------------------------------------------
@@ -1365,31 +1365,31 @@ DO n=1,ntiles
       *dq(l)*timestep
   END DO
 !CABLE
-! DEPENDS ON: sf_resist
-  CALL sf_resist (                                                &
-   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
-   canopy(:,n),catch(:,n),ch_tile(:,n),dq,epdt,flake(:,n),        &
-   gc(:,n),snowdep_surf(:,n),vshr_land,fraca(:,n),                &
-   resfs(:,n),resft(:,n))
+!! DEPENDS ON: sf_resist
+!  CALL sf_resist (                                                &
+!   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
+!   canopy(:,n),catch(:,n),ch_tile(:,n),dq,epdt,flake(:,n),        &
+!   gc(:,n),snowdep_surf(:,n),vshr_land,fraca(:,n),                &
+!   resfs(:,n),resft(:,n))
 END DO
 
-IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
-  DO n=1,npft
-    IF ( cansnowtile(n) ) THEN
-      DO k=1,tile_pts(n)
-        l = tile_index(k,n)
-        j=(land_index(l)-1)/t_i_length + 1
-        i = land_index(l) - (j-1)*t_i_length
-        IF (snow_tile(l,n) .gt. 0.) THEN
-          fraca(l,n) = 0.
-          resfs(l,n) = gc(l,n) /                                  &
-                  (gc(l,n) + ch_tile(l,n)*vshr_land(i,j))
-          resft(l,n) = resfs(l,n)
-        END IF
-      END DO
-    END IF
-  END DO
-END IF
+!IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
+!  DO n=1,npft
+!    IF ( cansnowtile(n) ) THEN
+!      DO k=1,tile_pts(n)
+!        l = tile_index(k,n)
+!        j=(land_index(l)-1)/t_i_length + 1
+!        i = land_index(l) - (j-1)*t_i_length
+!        IF (snow_tile(l,n) .gt. 0.) THEN
+!          fraca(l,n) = 0.
+!          resfs(l,n) = gc(l,n) /                                  &
+!                  (gc(l,n) + ch_tile(l,n)*vshr_land(i,j))
+!          resft(l,n) = resfs(l,n)
+!        END IF
+!      END DO
+!    END IF
+!  END DO
+!END IF
 
 !-----------------------------------------------------------------------
 ! Calculate gridbox-means of transfer coefficients.

@@ -1,0 +1,460 @@
+control/standalone/control.F90:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+control/standalone/control.F90:  REAL :: albobs_sc(t_i_length*t_j_length,ntype,2)
+control/standalone/control.F90:  REAL :: SEA_ICE_ALBEDO(t_i_length,t_j_length,4)  ! Sea ice albedo
+control/standalone/control.F90:  REAL :: OPEN_SEA_ALBEDO(t_i_length,t_j_length,2) ! Open ocean albedo
+control/standalone/control.F90:REAL :: ws10m(t_i_length,t_j_length) ! 10m wind speed (m s-1)
+control/standalone/control.F90:REAL :: chloro(t_i_length,t_j_length) ! ocean nr surface chlorophyll (kg m-3)
+control/standalone/control.F90:REAL :: land_alb(t_i_length,t_j_length) 
+control/standalone/control.F90:      CALL zenith( t_i_length*t_j_length,cosz )
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:           t_i_length*t_j_length,land_pts,land_index,ntiles,tile_pts         &
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:          j = ( land_index(l)-1 ) / t_i_length + 1
+control/standalone/control.F90:          i = land_index(l) - ( j-1 ) * t_i_length
+control/standalone/control.F90:        DO i = 1,t_i_length
+control/standalone/control.F90:        j = ( ssi_index(l) - 1 ) / t_i_length + 1
+control/standalone/control.F90:        i =  ssi_index(l) - (j - 1) * t_i_length
+control/standalone/control.F90:        j = ( land_index(l)-1 ) / t_i_length + 1
+control/standalone/control.F90:        i = land_index(l) - (j-1)*t_i_length
+control/standalone/control.F90:      DO i=1,t_i_length
+control/standalone/control.F90:      DO i=1,t_i_length
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:        DO i=1,t_i_length
+control/standalone/control.F90:      j = ( land_index(l) - 1 ) / t_i_length + 1
+control/standalone/control.F90:      i = land_index(l) - (j - 1) * t_i_length
+control/standalone/control.F90:      j = ( land_index(l)-1 ) / t_i_length + 1
+control/standalone/control.F90:      i = land_index(l) - (j-1) * t_i_length
+control/standalone/control.F90:      j = ( land_index(l)-1 ) / t_i_length + 1
+control/standalone/control.F90:      i = land_index(l) - (j-1) * t_i_length
+control/standalone/control.F90:      DO i=1,t_i_length
+control/standalone/zenith_mod.F90:    USE theta_field_sizes, ONLY : t_i_length
+control/standalone/zenith_mod.F90:      J = (L - 1) / t_i_length + 1
+control/standalone/zenith_mod.F90:      I = L - (J - 1) * t_i_length
+initialisation/standalone/allocate_jules_arrays.F90:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( ICE_FRACT(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( ICE_FRACT_NCAT(t_i_length,t_j_length,nice), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( Z1_UV(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( Z1_TQ(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SSI_INDEX(t_i_length*t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SEA_INDEX(t_i_length*t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SICE_INDEX(t_i_length*t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( FSSI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( Q1P5M(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( T1P5M(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( U10M(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( V10M(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( COSZ(t_i_length*t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( DIFF_FRAC(t_i_length*t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SOIL_CLAY(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( Z_LAND(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( QW_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TL_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( U_0(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( V_0(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( U_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( V_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( PSTAR(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( LS_RAIN(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( CON_RAIN(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( LS_SNOW(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( CON_SNOW(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SW_DOWN(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( LW_DOWN(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( diff_rad(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SOOT(t_i_length*t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( Z0MSEA(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( DI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( DI_NCAT(t_i_length,t_j_length,nice), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( K_SICE(t_i_length,t_j_length,nice), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SNOW_MASS(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SNOW_MASS_SEA_NCAT(t_i_length,t_j_length,nice_use), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TSTAR(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( E_SEA(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( FQW_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( FTL_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( H_SEA(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TAUX_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TAUY_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( FQW_ICE(t_i_length,t_j_length,nice_use), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( FTL_ICE(t_i_length,t_j_length,nice_use), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( ECAN(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SEA_ICE_HTF(t_i_length,t_j_length,nice), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SURF_HT_FLUX(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SICE_MLT_HTF(t_i_length,t_j_length,nice), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SNOMLT_SURF_HTF(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( LAND_ALBEDO(t_i_length,t_j_length,4) )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( LATENT_HEAT(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( EI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( ESOIL(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SNOWMELT(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( ALB_SICE(t_i_length*t_j_length,nice_use,4), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( CO2_3D(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( RHO_CD_MODV1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( RHO_ARESIST(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( ARESIST(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( RESIST_B(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( R_B_DUST(t_i_length,t_j_length,NDIV), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( CD_STD_DUST(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( H_BLEND_OROG(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( Z0M_EFF(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( U_0_P(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( V_0_P(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( U_1_P(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( V_1_P(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( DTRDZ_CHARNEY_GRID_1(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TSTAR_LAND(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TSTAR_SEA(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TSTAR_SICE(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TSTAR_SICE_NCAT(t_i_length,t_j_length,nice_use), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TSTAR_SSI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TAUX_LAND(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TAUX_SSI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TAUY_LAND(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( TAUY_SSI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( VSHR_LAND(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( VSHR_SSI(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SURF_HT_FLUX_LAND(t_i_length,t_j_length), STAT=error )
+initialisation/standalone/allocate_jules_arrays.F90:  ALLOCATE( SURF_HT_FLUX_SICE(t_i_length,t_j_length,nice), STAT=error )
+initialisation/standalone/init_output.F90:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+initialisation/standalone/init_parms.F90:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+initialisation/standalone/init_parms.F90:    DO i = 1,t_i_length
+initialisation/standalone/init_parms.F90:        SSI_INDEX(SSI_PTS) = (j - 1) * t_i_length + i
+initialisation/standalone/init_parms.F90:    DO i = 1,t_i_length
+initialisation/standalone/init_parms.F90:    J = (SSI_INDEX(L) - 1) / t_i_length + 1
+initialisation/standalone/init_parms.F90:    I = SSI_INDEX(L) - (J - 1) * t_i_length
+initialisation/standalone/init_parms.F90:      J = (SSI_INDEX(L) - 1) / t_i_length + 1
+initialisation/standalone/init_parms.F90:      I = SSI_INDEX(L) - (J - 1) * t_i_length
+initialisation/standalone/init_parms.F90:    J = (LAND_INDEX(L) - 1) / t_i_length + 1
+initialisation/standalone/init_parms.F90:    I = LAND_INDEX(L) - (J - 1) * t_i_length
+initialisation/um/allocate_jules_arrays.F90:USE theta_field_sizes, ONLY : t_i_length, t_j_length
+initialisation/um/allocate_jules_arrays.F90:t_i_length = tdims%i_end - tdims%i_start + 1
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( diff_frac(t_i_length * t_j_length), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sea_frac(t_i_length * t_j_length), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sice_frac(t_i_length * t_j_length), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sice_frac_ncat(t_i_length * t_j_length,nice), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( ssi_index(t_i_length * t_j_length), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( fssi(t_i_length,t_j_length), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sea_index(t_i_length * t_j_length), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sice_index(t_i_length * t_j_length), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sice_index_ncat(t_i_length * t_j_length,nice), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( alb_sice(t_i_length * t_j_length, nice_use, 4), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sw_sice_rts(t_i_length * t_j_length, nice_use), stat = check_stat )
+initialisation/um/allocate_jules_arrays.F90:ALLOCATE( sw_sice(t_i_length * t_j_length, nice_use), stat = check_stat )
+initialisation/um/flake_init.F90:  USE theta_field_sizes, ONLY : t_i_length
+initialisation/um/flake_init.F90:        j=(land_index(l)-1)/t_i_length + 1
+initialisation/um/flake_init.F90:        i = land_index(l) - (j-1)*t_i_length
+initialisation/um/jules_init.F90:  USE theta_field_sizes, ONLY : t_i_length
+initialisation/um/jules_init.F90:        j=(land_index(l)-1)/t_i_length + 1
+initialisation/um/jules_init.F90:        i = land_index(l) - (j-1)*t_i_length
+io/model_interface/extract_var.inc:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+io/model_interface/extract_var.inc:        j = (land_index(l) - 1) / t_i_length + 1
+io/model_interface/extract_var.inc:        i = land_index(l) - (j - 1) * t_i_length
+io/model_interface/extract_var.inc:      cube = cube_from_array(RESHAPE(cosz, (/ t_i_length, t_j_length /)))
+io/model_interface/extract_var.inc:      cube = cube_from_array(RESHAPE(diff_frac, (/ t_i_length, t_j_length /)))
+io/model_interface/map_from_land.inc:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+io/model_interface/map_from_land.inc:  ALLOCATE(data_grid(t_i_length, t_j_length, nlevs))
+io/model_interface/map_from_land.inc:    j = (land_index(l) - 1) / t_i_length + 1
+io/model_interface/map_from_land.inc:    i = land_index(l) - (j - 1) * t_i_length
+io/model_interface/map_from_land.inc:  cube_grid = cube_create((/ t_i_length, t_j_length, cube_land%shape(2:) /))
+io/model_interface/map_to_land.inc:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+io/model_interface/map_to_land.inc:  IF ( cube_grid%shape(1) /= t_i_length .OR. cube_grid%shape(2) /= t_j_length ) &
+io/model_interface/map_to_land.inc:  ALLOCATE(data_grid(t_i_length, t_j_length, nlevs))
+io/model_interface/map_to_land.inc:    j = (land_index(l) - 1) / t_i_length + 1
+io/model_interface/map_to_land.inc:    i = land_index(l) - (j - 1) * t_i_length
+science/params/theta_field_sizes.F90:  t_i_length,                                                         &
+science/surface/elevate.F90:USE theta_field_sizes, ONLY : t_i_length, t_j_length
+science/surface/elevate.F90:CALL dewpnt(qw_1,pstar,tl_1,t_i_length*t_j_length,tdew)
+science/surface/elevate.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/elevate.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/fcdch.F90:    j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:    i = pts_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:      j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:      i = pts_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:      j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:      i = pts_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:    j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:    i = pts_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:    j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:    i = pts_index(l) - (j-1)*t_i_length
+science/surface/fcdch.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/fcdch.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/im_sf_pt2_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/im_sf_pt2_jls.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/im_sf_pt2_jls.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/im_sf_pt2_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/im_sf_pt2_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/im_sf_pt2_jls.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/im_sf_pt2_jls.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/phi_m_h.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/phi_m_h.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/phi_m_h.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/phi_m_h_vol.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/phi_m_h_vol.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/phi_m_h_vol.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/physiol_jls.F90:USE theta_field_sizes, ONLY : t_i_length, t_j_length
+science/surface/physiol_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/physiol_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/physiol_jls.F90:  CALL albpft     (t_i_length * t_j_length,land_pts,land_index,   &
+science/surface/raero_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/raero_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/raero_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/raero_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/raero_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/raero_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/raero_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/screen_tq_jls.F90:USE theta_field_sizes, ONLY : t_i_length,t_j_length
+science/surface/screen_tq_jls.F90:  CALL qsat_mix(qs,tstar_ssi,pstar,t_i_length*t_j_length,lq_mix_bl)
+science/surface/screen_tq_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/screen_tq_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/screen_tq_jls.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/screen_tq_jls.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_aero.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_aero.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_aero.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_aero.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_aero.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_aero.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_aero.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_evap_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_evap_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_evap_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_evap_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_evap_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_evap_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_evap_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_evap_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_evap_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:USE theta_field_sizes, ONLY : t_i_length,t_j_length
+science/surface/sf_exch_cable.F90:,alpha1_sea(t_i_length*t_j_length)                                &
+science/surface/sf_exch_cable.F90:,ashtf_prime_sea(t_i_length*t_j_length)                           &
+science/surface/sf_exch_cable.F90:,hcons_sea(t_i_length*t_j_length)                                 &
+science/surface/sf_exch_cable.F90:,u_s_std_sea(t_i_length*t_j_length)                               &
+science/surface/sf_exch_cable.F90:,v_s_std_sea(t_i_length*t_j_length)                               &
+science/surface/sf_exch_cable.F90:,cd_std_sea(t_i_length*t_j_length) ! Local drag coefficient for calc
+science/surface/sf_exch_cable.F90:,u_s_std_ice(t_i_length*t_j_length)                               &
+science/surface/sf_exch_cable.F90:,u_s_std_miz(t_i_length*t_j_length)                               &
+science/surface/sf_exch_cable.F90:,v_s_std_ice(t_i_length*t_j_length)                               &
+science/surface/sf_exch_cable.F90:,v_s_std_miz(t_i_length*t_j_length)                               &
+science/surface/sf_exch_cable.F90:,cd_std_ice(t_i_length*t_j_length)                                &
+science/surface/sf_exch_cable.F90:,cd_std_miz(t_i_length*t_j_length)                                &
+science/surface/sf_exch_cable.F90:,epot_sea(t_i_length*t_j_length)                                  &
+science/surface/sf_exch_cable.F90:,epot_ice(t_i_length*t_j_length)                                  &
+science/surface/sf_exch_cable.F90:,dzssi(t_i_length*t_j_length)                                     &
+science/surface/sf_exch_cable.F90:,dzdummy(t_i_length*t_j_length)                                   &
+science/surface/sf_exch_cable.F90: array_zero(t_i_length*t_j_length)                                &
+science/surface/sf_exch_cable.F90:,array_one(t_i_length*t_j_length)                                 &
+science/surface/sf_exch_cable.F90:,array_negone(t_i_length*t_j_length)  ! Array of minus ones
+science/surface/sf_exch_cable.F90: array_zero_int(t_i_length*t_j_length)    ! Array of zeros
+science/surface/sf_exch_cable.F90:CALL qsat_mix(qs1,tl_1,pstar,t_i_length*t_j_length,lq_mix_bl)
+science/surface/sf_exch_cable.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:      j = ( land_index(l) - 1 ) / t_i_length + 1
+science/surface/sf_exch_cable.F90:      i = land_index(l) - ( j - 1 ) * t_i_length
+science/surface/sf_exch_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:!        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:!        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:!        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:!        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:  ALLOCATE(z1_tq_top_sea(t_i_length,t_j_length))
+science/surface/sf_exch_cable.F90:CALL qsat_mix(qstar_sea,tstar_sea,pstar,t_i_length*t_j_length     &
+science/surface/sf_exch_cable.F90:CALL qsat_mix(qstar_ice,tstar_sice,pstar,t_i_length*t_j_length    &
+science/surface/sf_exch_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:USE theta_field_sizes, ONLY : t_i_length,t_j_length
+science/surface/sf_exch_jls.F90:,alpha1_sea(t_i_length*t_j_length)                                &
+science/surface/sf_exch_jls.F90:,ashtf_prime_sea(t_i_length*t_j_length)                           &
+science/surface/sf_exch_jls.F90:,hcons_sea(t_i_length*t_j_length)                                 &
+science/surface/sf_exch_jls.F90:,u_s_std_sea(t_i_length*t_j_length)                               &
+science/surface/sf_exch_jls.F90:,v_s_std_sea(t_i_length*t_j_length)                               &
+science/surface/sf_exch_jls.F90:,cd_std_sea(t_i_length*t_j_length) ! Local drag coefficient for calc
+science/surface/sf_exch_jls.F90:,u_s_std_ice(t_i_length*t_j_length)                               &
+science/surface/sf_exch_jls.F90:,u_s_std_miz(t_i_length*t_j_length)                               &
+science/surface/sf_exch_jls.F90:,v_s_std_ice(t_i_length*t_j_length)                               &
+science/surface/sf_exch_jls.F90:,v_s_std_miz(t_i_length*t_j_length)                               &
+science/surface/sf_exch_jls.F90:,cd_std_ice(t_i_length*t_j_length)                                &
+science/surface/sf_exch_jls.F90:,cd_std_miz(t_i_length*t_j_length)                                &
+science/surface/sf_exch_jls.F90:,epot_sea(t_i_length*t_j_length)                                  &
+science/surface/sf_exch_jls.F90:,epot_ice(t_i_length*t_j_length)                                  &
+science/surface/sf_exch_jls.F90:,dzssi(t_i_length*t_j_length)                                     &
+science/surface/sf_exch_jls.F90:,dzdummy(t_i_length*t_j_length)                                   &
+science/surface/sf_exch_jls.F90: array_zero(t_i_length*t_j_length)                                &
+science/surface/sf_exch_jls.F90:,array_one(t_i_length*t_j_length)                                 &
+science/surface/sf_exch_jls.F90:,array_negone(t_i_length*t_j_length)  ! Array of minus ones
+science/surface/sf_exch_jls.F90: array_zero_int(t_i_length*t_j_length)    ! Array of zeros
+science/surface/sf_exch_jls.F90:CALL qsat_mix(qs1,tl_1,pstar,t_i_length*t_j_length,lq_mix_bl)
+science/surface/sf_exch_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:      j = ( land_index(l) - 1 ) / t_i_length + 1
+science/surface/sf_exch_jls.F90:      i = land_index(l) - ( j - 1 ) * t_i_length
+science/surface/sf_exch_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:  ALLOCATE(z1_tq_top_sea(t_i_length,t_j_length))
+science/surface/sf_exch_jls.F90:CALL qsat_mix(qstar_sea,tstar_sea,pstar,t_i_length*t_j_length     &
+science/surface/sf_exch_jls.F90:CALL qsat_mix(qstar_ice,tstar_sice,pstar,t_i_length*t_j_length    &
+science/surface/sf_exch_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_exch_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_exch_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_expl_cable.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_expl_cable.F90:     j = (land_index(l)-1)/t_i_length + 1
+science/surface/sf_expl_cable.F90:     i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_expl_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_expl_jls.F90:     j = (land_index(l)-1)/t_i_length + 1
+science/surface/sf_expl_jls.F90:     i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_flux.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_flux.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sf_flux.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_cable.F90:USE theta_field_sizes, ONLY : t_i_length, t_j_length
+science/surface/sf_impl2_cable.F90: array_one(t_i_length*t_j_length)                                 &
+science/surface/sf_impl2_cable.F90:,array_one_e_six(t_i_length*t_j_length)
+science/surface/sf_impl2_cable.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_cable.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_cable.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_cable.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_cable.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_cable.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_cable.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_cable.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_cable.F90:        j=(ssi_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_cable.F90:        i = ssi_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_cable.F90:        j=(ssi_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_cable.F90:        i = ssi_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_cable.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_cable.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_jls.F90:USE theta_field_sizes, ONLY : t_i_length, t_j_length
+science/surface/sf_impl2_jls.F90: array_one(t_i_length*t_j_length)                                 &
+science/surface/sf_impl2_jls.F90:,array_one_e_six(t_i_length*t_j_length)
+science/surface/sf_impl2_jls.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_jls.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_jls.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_jls.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_jls.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_jls.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_jls.F90:        j=(ssi_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_jls.F90:        i = ssi_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_jls.F90:        j=(ssi_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_jls.F90:        i = ssi_index(l) - (j-1)*t_i_length
+science/surface/sf_impl2_jls.F90:      j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_impl2_jls.F90:      i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_melt_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_melt_jls.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sf_melt_jls.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/sf_orog_gb_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_orog_gb_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_orog_gb_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_orog_gb_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_orog_gb_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_orog_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_orog_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_orog_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_resist_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_resist_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_resist_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_rib.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_rib.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sf_rib.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/sf_rib.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sf_rib.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/surface/sf_stom_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sf_stom_jls.F90:    j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_stom_jls.F90:    i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_stom_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_stom_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_stom_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_stom_jls.F90:  i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_stom_jls.F90:        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_stom_jls.F90:        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_stom_jls.F90:        j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_stom_jls.F90:        i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_stom_jls.F90:          j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_stom_jls.F90:          i = land_index(l) - (j-1)*t_i_length
+science/surface/sf_stom_jls.F90:          j=(land_index(l)-1)/t_i_length + 1
+science/surface/sf_stom_jls.F90:          i = land_index(l) - (j-1)*t_i_length
+science/surface/sfl_int.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/sfl_int.F90:    j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sfl_int.F90:    i = pts_index(l) - (j-1)*t_i_length
+science/surface/sfl_int.F90:      j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sfl_int.F90:      i = pts_index(l) - (j-1)*t_i_length
+science/surface/sfl_int.F90:      j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sfl_int.F90:      i = pts_index(l) - (j-1)*t_i_length
+science/surface/sfl_int.F90:    j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sfl_int.F90:    i = pts_index(l) - (j-1)*t_i_length
+science/surface/sfl_int.F90:    j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sfl_int.F90:    i = pts_index(l) - (j-1)*t_i_length
+science/surface/sfl_int.F90:    j=(pts_index(l)-1)/t_i_length + 1
+science/surface/sfl_int.F90:    i = pts_index(l) - (j-1)*t_i_length
+science/surface/stdev1.F90:USE theta_field_sizes, ONLY : t_i_length
+science/surface/stdev1.F90:  j=(pts_index(l)-1)/t_i_length + 1
+science/surface/stdev1.F90:  i = pts_index(l) - (j-1)*t_i_length
+science/vegetation/veg-veg2a_jls.F90:USE theta_field_sizes, ONLY : t_i_length
+science/vegetation/veg-veg2a_jls.F90:  j=(land_index(l)-1)/t_i_length + 1
+science/vegetation/veg-veg2a_jls.F90:  i=land_index(l) - (j-1)*t_i_length
+control/imogen/var/imogen_map.F90:      USE theta_field_sizes, ONLY : t_i_length
+control/imogen/var/imogen_map.F90:        j = (land_index(l) - 1) / t_i_length + 1
+control/imogen/var/imogen_map.F90:        i = land_index(l) - (j-1) * t_i_length
+control/standalone/parallel/gather_land_field.inc:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+control/standalone/parallel/gather_land_field.inc:  REAL :: field_local_2d(t_i_length,t_j_length)
+control/standalone/parallel/gather_land_field.inc:    j = (land_index(l) - 1) / t_i_length + 1
+control/standalone/parallel/gather_land_field.inc:    i = land_index(l) - (j - 1) * t_i_length
+control/standalone/parallel/gather_land_field.inc:  CALL MPI_GATHERV(field_local_2d,  t_i_length,      mpi_type_local_col,      &
+control/standalone/parallel/scatter_land_field.inc:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+control/standalone/parallel/scatter_land_field.inc:  REAL :: field_local_2d(t_i_length,t_j_length)
+control/standalone/parallel/scatter_land_field.inc:                    field_local_2d,  t_i_length,      mpi_type_local_col,     &
+control/standalone/parallel/scatter_land_field.inc:    j = (land_index(l) - 1) / t_i_length + 1
+control/standalone/parallel/scatter_land_field.inc:    i = land_index(l) - (j - 1) * t_i_length
+control/standalone/update/update_derived_variables.inc:  USE theta_field_sizes, ONLY : t_i_length
+control/standalone/update/update_derived_variables.inc:      j = (land_index(l) - 1) / t_i_length + 1
+control/standalone/update/update_derived_variables.inc:      i = land_index(l) - (j - 1) * t_i_length
+initialisation/standalone/grid/init_model_grid.inc:  USE theta_field_sizes, ONLY : t_i_length, t_j_length
+initialisation/standalone/grid/init_model_grid.inc:  t_i_length = task_subgrid%nx
+initialisation/standalone/grid/init_model_grid.inc:  CALL atm_fields_bounds_init(0, 0, 0, 0, t_i_length, t_j_length, t_j_length, 1)
+initialisation/standalone/grid/init_model_grid.inc:  row_length = t_i_length
+initialisation/standalone/grid/init_model_grid.inc:                "Size of model grid - " // TRIM(to_string(t_i_length)) //     &
+initialisation/standalone/grid/init_model_grid.inc:    co2_dim_len = t_i_length
+initialisation/standalone/grid/init_model_grid.inc:  IF ( l_point_data .AND. t_i_length * t_j_length > 1 )                       &
+initialisation/standalone/grid/init_model_grid.inc:  ALLOCATE(land_mask(t_i_length,t_j_length), STAT=error)
+initialisation/standalone/grid/init_model_grid.inc:    DO i = 1,t_i_length
+initialisation/standalone/grid/init_model_grid.inc:        land_index(l) = (j - 1) * t_i_length + i
