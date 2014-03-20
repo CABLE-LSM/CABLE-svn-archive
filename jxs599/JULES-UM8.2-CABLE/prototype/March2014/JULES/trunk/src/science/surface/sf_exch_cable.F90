@@ -1162,40 +1162,44 @@ DO n=1,ntiles
       wind_profile_factor(l,n)
     dq(l) = qw_1(i,j) - qstar_tile(l,n)
     epdt(l) = 0.0
+    !CABLE
+    RESFT(L,N) =  min(1.,FLAKE(L,N) + (1. - FLAKE(L,N)) *        &
+                    ( FRACA(L,N) + (1. - FRACA(L,N))*RESFS(L,N) )) 
   END DO
 
+!CABLE
 ! DEPENDS ON: sf_resist
-  CALL sf_resist (                                                &
-   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
-   canopy(:,n),catch(:,n),chn(:,n),dq,epdt,flake(:,n),gc(:,n),    &
-   snowdep_surf(:,n),vshr_land,fraca(:,n),resfs(:,n),resft(:,n)   &
-   )
+!  CALL sf_resist (                                                &
+!   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
+!   canopy(:,n),catch(:,n),chn(:,n),dq,epdt,flake(:,n),gc(:,n),    &
+!   snowdep_surf(:,n),vshr_land,fraca(:,n),resfs(:,n),resft(:,n)   &
+!   )
 END DO
 
-! RESFT < 1 for snow on canopy if canopy snow model used
-! N.B. chn is calculated in the preceding loop over tiles and
-! used in the next loop over npft. This works only if the
-! first npft tiles are the vegetated ones.
-IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
-  DO n=1,npft
-    IF ( cansnowtile(n) ) THEN
-      DO k=1,tile_pts(n)
-        l = tile_index(k,n)
-        j=(land_index(l)-1)/t_i_length + 1
-        i = land_index(l) - (j-1)*t_i_length
-        IF (snow_tile(l,n) .gt. 0.) THEN
-          gc(l,n) = 0.06*snow_tile(l,n)**0.6*catch_snow(l,n)**0.4 &
-                       * 2.06e-5*(tm/tstar_tile(l,n))**1.75       &
-                       * (1.79 + 3*SQRT(vshr_land(i,j)))          &
-                       / (2*rho_ice*5e-4**2)
-          fraca(l,n) = 0.
-          resfs(l,n) = gc(l,n)/(gc(l,n) + chn(l,n)*vshr_land(i,j))
-          resft(l,n) = resfs(l,n)
-        END IF
-      END DO
-    END IF
-  END DO
-END IF
+!! RESFT < 1 for snow on canopy if canopy snow model used
+!! N.B. chn is calculated in the preceding loop over tiles and
+!! used in the next loop over npft. This works only if the
+!! first npft tiles are the vegetated ones.
+!IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
+!  DO n=1,npft
+!    IF ( cansnowtile(n) ) THEN
+!      DO k=1,tile_pts(n)
+!        l = tile_index(k,n)
+!        j=(land_index(l)-1)/t_i_length + 1
+!        i = land_index(l) - (j-1)*t_i_length
+!        IF (snow_tile(l,n) .gt. 0.) THEN
+!          gc(l,n) = 0.06*snow_tile(l,n)**0.6*catch_snow(l,n)**0.4 &
+!                       * 2.06e-5*(tm/tstar_tile(l,n))**1.75       &
+!                       * (1.79 + 3*SQRT(vshr_land(i,j)))          &
+!                       / (2*rho_ice*5e-4**2)
+!          fraca(l,n) = 0.
+!          resfs(l,n) = gc(l,n)/(gc(l,n) + chn(l,n)*vshr_land(i,j))
+!          resft(l,n) = resfs(l,n)
+!        END IF
+!      END DO
+!    END IF
+!  END DO
+!END IF
 
 !-----------------------------------------------------------------------
 !  3.2 Calculate bulk Richardson number for the lowest model level.
@@ -1233,41 +1237,42 @@ END IF
 !-----------------------------------------------------------------------
 !!  3.4 Calculate CD, CH via routine FCDCH.
 !-----------------------------------------------------------------------
-
+!CABLE    
 ! Land tiles
-DO n=1,ntiles
-! DEPENDS ON: fcdch
-  CALL fcdch (                                                    &
-   cor_mo_iter,land_pts,tile_pts(n),                              &
-   tile_index(:,n),land_index,                                    &
-   db_tile(:,n),vshr_land,                                        &
-   z0m_eff_tile(:,n),z0h_tile(:,n),zh,                            &
-   z1_uv,z1_uv_top,z1_tq,z1_tq_top,wind_profile_factor(:,n),      &
-   ddmfx,                                                         &
-   cd_tile(:,n),ch_tile(:,n),cd_std(:,n),                         &
-   v_s_tile(:,n),v_s_std(:,n),recip_l_mo_tile(:,n),               &
-   u_s_iter_tile(:,n)                                             &
-   )
-END DO
+!DO n=1,ntiles
+!! DEPENDS ON: fcdch
+!  CALL fcdch (                                                    &
+!   cor_mo_iter,land_pts,tile_pts(n),                              &
+!   tile_index(:,n),land_index,                                    &
+!   db_tile(:,n),vshr_land,                                        &
+!   z0m_eff_tile(:,n),z0h_tile(:,n),zh,                            &
+!   z1_uv,z1_uv_top,z1_tq,z1_tq_top,wind_profile_factor(:,n),      &
+!   ddmfx,                                                         &
+!   cd_tile(:,n),ch_tile(:,n),cd_std(:,n),                         &
+!   v_s_tile(:,n),v_s_std(:,n),recip_l_mo_tile(:,n),               &
+!   u_s_iter_tile(:,n)                                             &
+!   )
+!END DO
+!
+!IF ( cor_mo_iter >= use_correct_ustar ) THEN
+!!       Use correct "standard" ustar
+!  DO n=1,ntiles
+!    DO k=1,tile_pts(n)
+!      l = tile_index(k,n)
+!      u_s_std_tile(l,n) = v_s_std(l,n)
+!    END DO
+!  END DO
+!ELSE
+!  !       Use ustar from mid-iteration
+!  DO n=1,ntiles
+!    DO k=1,tile_pts(n)
+!      l = tile_index(k,n)
+!      u_s_std_tile(l,n) = u_s_iter_tile(l,n)
+!    END DO
+!  END DO
+!END IF
 
-IF ( cor_mo_iter >= use_correct_ustar ) THEN
-!       Use correct "standard" ustar
-  DO n=1,ntiles
-    DO k=1,tile_pts(n)
-      l = tile_index(k,n)
-      u_s_std_tile(l,n) = v_s_std(l,n)
-    END DO
-  END DO
-ELSE
-  !       Use ustar from mid-iteration
-  DO n=1,ntiles
-    DO k=1,tile_pts(n)
-      l = tile_index(k,n)
-      u_s_std_tile(l,n) = u_s_iter_tile(l,n)
-    END DO
-  END DO
-END IF
-
+!jhan:review
 !-----------------------------------------------------------------------
 !!  3.5 Recalculate friction velocity for the dust scheme using the
 !!      bare soil roughness length if using only 1 aggregated tile
@@ -1362,31 +1367,32 @@ DO n=1,ntiles
     epdt(l) = - rhostar(i,j)*ch_tile(l,n)*vshr_land(i,j)          &
       *dq(l)*timestep
   END DO
-! DEPENDS ON: sf_resist
-  CALL sf_resist (                                                &
-   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
-   canopy(:,n),catch(:,n),ch_tile(:,n),dq,epdt,flake(:,n),        &
-   gc(:,n),snowdep_surf(:,n),vshr_land,fraca(:,n),                &
-   resfs(:,n),resft(:,n))
+!CABLE
+!! DEPENDS ON: sf_resist
+!  CALL sf_resist (                                                &
+!   land_pts,tile_pts(n),land_index,tile_index(:,n),               &
+!   canopy(:,n),catch(:,n),ch_tile(:,n),dq,epdt,flake(:,n),        &
+!   gc(:,n),snowdep_surf(:,n),vshr_land,fraca(:,n),                &
+!   resfs(:,n),resft(:,n))
 END DO
 
-IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
-  DO n=1,npft
-    IF ( cansnowtile(n) ) THEN
-      DO k=1,tile_pts(n)
-        l = tile_index(k,n)
-        j=(land_index(l)-1)/t_i_length + 1
-        i = land_index(l) - (j-1)*t_i_length
-        IF (snow_tile(l,n) .gt. 0.) THEN
-          fraca(l,n) = 0.
-          resfs(l,n) = gc(l,n) /                                  &
-                  (gc(l,n) + ch_tile(l,n)*vshr_land(i,j))
-          resft(l,n) = resfs(l,n)
-        END IF
-      END DO
-    END IF
-  END DO
-END IF
+!IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
+!  DO n=1,npft
+!    IF ( cansnowtile(n) ) THEN
+!      DO k=1,tile_pts(n)
+!        l = tile_index(k,n)
+!        j=(land_index(l)-1)/t_i_length + 1
+!        i = land_index(l) - (j-1)*t_i_length
+!        IF (snow_tile(l,n) .gt. 0.) THEN
+!          fraca(l,n) = 0.
+!          resfs(l,n) = gc(l,n) /                                  &
+!                  (gc(l,n) + ch_tile(l,n)*vshr_land(i,j))
+!          resft(l,n) = resfs(l,n)
+!        END IF
+!      END DO
+!    END IF
+!  END DO
+!END IF
 
 !-----------------------------------------------------------------------
 ! Calculate gridbox-means of transfer coefficients.
@@ -1620,23 +1626,63 @@ DO n=1,ntiles
       hcons_surf(l) = hcon_lake(l)
     END IF
   END DO
-!
-! DEPENDS ON: sf_flux
-  CALL sf_flux (                                                  &
-   land_pts,tile_pts(n),flandg,                                   &
-   land_index,tile_index(:,n),                                    &
-   nsnow(:,n),n,canhc_tile(:,n),dzsurf,hcons_surf,                &
-   qs1_elev(:,n),qstar_tile(:,n),q_elev(:,n),                     &
-   radnet_tile(:,n),resft(:,n),rhokh_1(:,n),smvcst,               &
-   snowdepth(:,n),tile_frac(:,n),timestep,t_elev(:,n),tsurf,      &
-   tstar_tile(:,n),vfrac_tile(:,n),rhokh_can(:,n),z0h_tile(:,n),  &
-   z0m_eff_tile(:,n),z1_tq,lh0,emis_tile(:,n),emis_soil,          &
-   1.0,anthrop_heat(:,n),scaling_urban(:,n),                      &
-   fqw_1,ftl_1,                                                   &
-   alpha1(:,n),ashtf_prime_tile(:,n),fqw_tile(:,n),               &
-   epot_tile(:,n),ftl_tile(:,n),                                  &
-   dtstar_tile(:,n),0.0                                           &
- )
+
+!CABLE{
+  DO N=1,NTILES
+   DO K=1,TILE_PTS(N)
+     L = TILE_INDEX(K,N)
+     J=(LAND_INDEX(L)-1)/ROW_LENGTH + 1
+     I = LAND_INDEX(L) - (J-1)*ROW_LENGTH
+     D_T = TSTAR_TILE(L,N) - TL_1(I,J)
+     IF (D_T  >   0.05 .OR. D_T  <   -0.05) THEN
+       ALPHA1(L,N) = (QSTAR_TILE(L,N) - QS1(I,J)) / D_T
+     ELSEIF (TL_1(I,J)  >   TM) THEN
+       ALPHA1(L,N) = EPSILON*LC*QS1(I,J)*                              &
+         (1. + C_VIRTUAL*QS1(I,J)) / ( R*TL_1(I,J)*TL_1(I,J))
+     ELSE
+       ALPHA1(L,N) = EPSILON*LS*QS1(I,J)*                              &
+         (1. + C_VIRTUAL*QS1(I,J)) / ( R*TL_1(I,J)*TL_1(I,J))
+     ENDIF
+    ! This needs to be look at:
+     ASHTF_TILE(L,N) = 2.0 * HCONS(L) / DZSOIL
+     IF (SNOW_TILE(L,N) >  0.0 .AND. SMVCST(L) /= 0.) THEN
+       DS_RATIO = 2.0 * SNOW_TILE(L,N) / (RHO_SNOW * DZSOIL)
+       IF (DS_RATIO <= 1.0) THEN
+         ASHTF_TILE(L,N) =  ASHTF_TILE(L,N) /                         &
+                     (1. + DS_RATIO*(HCONS(L)/SNOW_HCON - 1.))
+       ELSE
+         ASHTF_TILE(L,N) =  ASHTF_TILE(L,N)*SNOW_HCON / HCONS(L)
+       ENDIF
+     ENDIF
+     LH = LC
+     IF (SNOW_TILE(L,N)  >   0.) LH = LS
+     RHOKPM(L,N) = RHOKH_1(L,N) / ( ASHTF_TILE(L,N)  +                &
+                   RHOKH_1(L,N)*(LH*ALPHA1(L,N)*RESFT(L,N) + CP))
+     RHOKPM_POT(L,N)=RHOKH_1(L,N) / ( ASHTF_TILE(L,N)  +              &
+                      RHOKH_1(L,N)*(LH*ALPHA1(L,N) + CP) )
+     FTL_1(I,J) = FTL_1(I,J)+FLAND(L)*TILE_FRAC(L,N)*FTL_TILE(L,N)
+     FQW_1(I,J) = FQW_1(I,J)+FLAND(L)*TILE_FRAC(L,N)*FQW_TILE(L,N)
+  
+   ENDDO
+  ENDDO
+!CABLE}
+
+!! DEPENDS ON: sf_flux
+!  CALL sf_flux (                                                  &
+!   land_pts,tile_pts(n),flandg,                                   &
+!   land_index,tile_index(:,n),                                    &
+!   nsnow(:,n),n,canhc_tile(:,n),dzsurf,hcons_surf,                &
+!   qs1_elev(:,n),qstar_tile(:,n),q_elev(:,n),                     &
+!   radnet_tile(:,n),resft(:,n),rhokh_1(:,n),smvcst,               &
+!   snowdepth(:,n),tile_frac(:,n),timestep,t_elev(:,n),tsurf,      &
+!   tstar_tile(:,n),vfrac_tile(:,n),rhokh_can(:,n),z0h_tile(:,n),  &
+!   z0m_eff_tile(:,n),z1_tq,lh0,emis_tile(:,n),emis_soil,          &
+!   1.0,anthrop_heat(:,n),scaling_urban(:,n),                      &
+!   fqw_1,ftl_1,                                                   &
+!   alpha1(:,n),ashtf_prime_tile(:,n),fqw_tile(:,n),               &
+!   epot_tile(:,n),ftl_tile(:,n),                                  &
+!   dtstar_tile(:,n),0.0                                           &
+! )
 END DO
 
 
