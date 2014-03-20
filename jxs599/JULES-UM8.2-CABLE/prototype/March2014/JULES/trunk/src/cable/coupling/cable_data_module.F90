@@ -682,7 +682,7 @@ SUBROUTINE cable_control4( sw_down )
    Real, dimension(:,:) :: sw_down
    !Real, dimension( cable% mp% row_length, cable% mp% rows, 4) :: surf_down_sw
 
-     !reminder that offline receives total SW and splits (CABLE uses subr spitter)
+     !jhan: offline receives total SW and splits (CABLE uses subr spitter)
      cable% forcing% ShortWave(:,:,1)    = sw_down(:,:) 
      cable% forcing% ShortWave(:,:,2)    = 0. 
      cable% forcing% ShortWave(:,:,3)    = 0. 
