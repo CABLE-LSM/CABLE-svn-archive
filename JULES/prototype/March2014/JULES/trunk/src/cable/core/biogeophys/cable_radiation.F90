@@ -122,8 +122,9 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
                           + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
 
    ENDDO
-   
-   IF( .NOT. cable_runtime%um) THEN
+   !jhan: for the sake of getting this running in JULES ....
+   !revise and make switchable
+   !IF( .NOT. cable_runtime%um) THEN
    
       ! Define beam fraction, fbeam:
       rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
@@ -135,7 +136,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
          rad%fbeam(:,2) = 0.0
       END WHERE
    
-   ENDIF
+   !ENDIF
    
    ! In gridcells where vegetation exists....
    WHERE (canopy%vlaiw > C%LAI_THRESH)    

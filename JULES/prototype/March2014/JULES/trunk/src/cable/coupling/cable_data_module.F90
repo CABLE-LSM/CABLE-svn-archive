@@ -313,12 +313,18 @@ module cable_data_mod
 
    type tmp_pvars
    
-      LOGICAL, DIMENSION(:,:), POINTER ::                                       &
+      LOGICAL, DIMENSION(:,:), POINTER ::                                      &
          L_tile_pts
-   
 
-   real, POINTER :: & 
-      rho_water
+      Real ::                                                                  &
+         Epsilon,                                                              &
+         c_virtual,                                                            &
+         D_T,                                                                  &
+         DS_RATIO,                                                             & 
+         LH 
+       
+      real, POINTER :: & 
+         rho_water
 
    end type tmp_pvars
 
@@ -538,6 +544,8 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
       cable% cable% snow_cond = -huge(1.)
       cable% cable% sthu_tile = -huge(1.)
       cable% tmp% l_tile_pts = .false.
+      cable% tmp% Epsilon = 0.62198 
+      cable% tmp% c_virtual =  1. / cable% tmp% Epsilon - 1. 
 
 END SUBROUTINE cable_control
  
@@ -674,11 +682,15 @@ SUBROUTINE cable_control4( sw_down )
    Real, dimension(:,:) :: sw_down
    !Real, dimension( cable% mp% row_length, cable% mp% rows, 4) :: surf_down_sw
 
-     !reminder that offline receives total SW and splits (CABLE uses subr spitter)
-     cable% forcing% ShortWave(:,:,1)    = sw_down(:,:) / 4.
-     cable% forcing% ShortWave(:,:,2)    = sw_down(:,:) / 4.
-     cable% forcing% ShortWave(:,:,3)    = sw_down(:,:) / 4.
-     cable% forcing% ShortWave(:,:,4)    = sw_down(:,:) / 4.
+     !jhan: offline receives total SW and splits (CABLE uses subr spitter)
+     cable% forcing% ShortWave(:,:,1)    = sw_down(:,:) 
+     cable% forcing% ShortWave(:,:,2)    = 0. 
+     cable% forcing% ShortWave(:,:,3)    = 0. 
+     cable% forcing% ShortWave(:,:,4)    = 0. 
+     !cable% forcing% ShortWave(:,:,1)    = sw_down(:,:) / 4.
+     !cable% forcing% ShortWave(:,:,2)    = sw_down(:,:) / 4.
+     !cable% forcing% ShortWave(:,:,3)    = sw_down(:,:) / 4.
+     !cable% forcing% ShortWave(:,:,4)    = sw_down(:,:) / 4.
      
 
 END SUBROUTINE cable_control4
