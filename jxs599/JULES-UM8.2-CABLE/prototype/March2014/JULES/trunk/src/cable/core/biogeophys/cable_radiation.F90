@@ -127,11 +127,8 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    !IF( .NOT. cable_runtime%um) THEN
    
       ! Define beam fraction, fbeam:
-print *, ""
-print *, "jhan:fbeam START"
       rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
       rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
-print *, "jhan:fbeam END"
       ! coszen is set during met data read in.
    
       WHERE (met%coszen <1.0e-2)
