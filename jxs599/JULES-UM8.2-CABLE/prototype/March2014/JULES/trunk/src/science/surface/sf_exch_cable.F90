@@ -1663,22 +1663,22 @@ DO n=1,ntiles
    ENDDO
 !CABLE}
 
-! DEPENDS ON: sf_flux
-  CALL sf_flux (                                                  &
-   land_pts,tile_pts(n),flandg,                                   &
-   land_index,tile_index(:,n),                                    &
-   nsnow(:,n),n,canhc_tile(:,n),dzsurf,hcons_surf,                &
-   qs1_elev(:,n),qstar_tile(:,n),q_elev(:,n),                     &
-   radnet_tile(:,n),resft(:,n),rhokh_1(:,n),smvcst,               &
-   snowdepth(:,n),tile_frac(:,n),timestep,t_elev(:,n),tsurf,      &
-   tstar_tile(:,n),vfrac_tile(:,n),rhokh_can(:,n),z0h_tile(:,n),  &
-   z0m_eff_tile(:,n),z1_tq,lh0,emis_tile(:,n),emis_soil,          &
-   1.0,anthrop_heat(:,n),scaling_urban(:,n),                      &
-   fqw_1,ftl_1,                                                   &
-   alpha1(:,n),ashtf_prime_tile(:,n),fqw_tile(:,n),               &
-   epot_tile(:,n),ftl_tile(:,n),                                  &
-   dtstar_tile(:,n),0.0                                           &
- )
+!! DEPENDS ON: sf_flux
+!  CALL sf_flux (                                                  &
+!   land_pts,tile_pts(n),flandg,                                   &
+!   land_index,tile_index(:,n),                                    &
+!   nsnow(:,n),n,canhc_tile(:,n),dzsurf,hcons_surf,                &
+!   qs1_elev(:,n),qstar_tile(:,n),q_elev(:,n),                     &
+!   radnet_tile(:,n),resft(:,n),rhokh_1(:,n),smvcst,               &
+!   snowdepth(:,n),tile_frac(:,n),timestep,t_elev(:,n),tsurf,      &
+!   tstar_tile(:,n),vfrac_tile(:,n),rhokh_can(:,n),z0h_tile(:,n),  &
+!   z0m_eff_tile(:,n),z1_tq,lh0,emis_tile(:,n),emis_soil,          &
+!   1.0,anthrop_heat(:,n),scaling_urban(:,n),                      &
+!   fqw_1,ftl_1,                                                   &
+!   alpha1(:,n),ashtf_prime_tile(:,n),fqw_tile(:,n),               &
+!   epot_tile(:,n),ftl_tile(:,n),                                  &
+!   dtstar_tile(:,n),0.0                                           &
+! )
 END DO
 
 
