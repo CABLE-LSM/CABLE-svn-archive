@@ -31,6 +31,8 @@ CONTAINS
 
 #include "calc_fit_fsat.inc"
 
+#include "init_cable.inc"
+
 END MODULE init_ancillaries_mod
 
 #endif

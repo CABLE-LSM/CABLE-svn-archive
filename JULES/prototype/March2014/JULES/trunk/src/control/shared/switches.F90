@@ -294,6 +294,8 @@ IMPLICIT NONE
 !-----------------------------------------------------------------------
 #endif
 
+  LOGICAL :: l_cable = .FALSE.  ! runtime switch to call CABLE and switch
+                                ! components of JULES on/off  
 !-----------------------------------------------------------------------
 ! Set up a namelist to allow switches to be set
 ! UM and standalone JULES currently have different requirements since
@@ -328,7 +330,7 @@ IMPLICIT NONE
                             l_spec_sea_alb, l_sea_alb_var_chl,    &
                             formdrag, orog_drag_param,            &
                             fd_stab_dep, ISrfExCnvGust,           &
-                            l_hydrology
+                            l_hydrology, l_cable
 #else
   NAMELIST /jules_switches/ l_aggregate,i_aggregate_opt,          & 
                             can_model,can_rad_mod,                & 
@@ -345,7 +347,8 @@ IMPLICIT NONE
                             l_dpsids_dsdz, l_albedo_obs,          &
                             l_dolr_land_black, l_bvoc_emis,       &
                             l_spec_alb_bs, i_sea_alb_method,      &
-                            l_spec_sea_alb, l_sea_alb_var_chl
+                            l_spec_sea_alb, l_sea_alb_var_chl,    &
+                            l_cable
 #endif
 
 CONTAINS
@@ -421,6 +424,8 @@ CONTAINS
     CALL jules_print('switches',lineBuffer)
     WRITE(lineBuffer,*)' l_hydrology = ',l_hydrology
     CALL jules_print('switches',lineBuffer)
+    WRITE(lineBuffer,*)' l_cable = ',l_cable
+    CALL jules_print('switches',lineBuffer)
 #else
     WRITE(lineBuffer,*)' l_aggregate = ',l_aggregate
     CALL jules_print('switches',lineBuffer)
@@ -479,6 +484,8 @@ CONTAINS
     WRITE(lineBuffer,*)'l_spec_sea_alb  = ',l_spec_sea_alb
     CALL jules_print('switches',lineBuffer)
     WRITE(lineBuffer,*)' l_sea_alb_var_chl = ',l_sea_alb_var_chl
+    CALL jules_print('switches',lineBuffer)
+    WRITE(lineBuffer,*)' l_cable = ',l_cable
     CALL jules_print('switches',lineBuffer)
 #endif
     CALL jules_print('switches', &

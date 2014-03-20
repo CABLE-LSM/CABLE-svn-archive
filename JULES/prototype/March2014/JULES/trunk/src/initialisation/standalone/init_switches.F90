@@ -168,6 +168,9 @@ SUBROUTINE init_switches(nml_dir)
                   "RothC equations will be used for soil respiration")
   ENDIF
 
+  IF ( l_cable )                                                               &
+    CALL log_info("init_switches", "CABLE is switched on as the LSM")
+
   RETURN
 
 END SUBROUTINE init_switches

@@ -117,8 +117,28 @@
     ,ilayers,L_Q10,lq_mix_bl,L_CTILE                    &
     ,L_spec_z0,L_SICE_HEATFLUX,L_INLAND                 &
     ,l_sice_multilayers, i_sea_alb_method               &
-    ,L_SOIL_SAT_DOWN,l_anthrop_heat_src,buddy_sea
+    ,L_SOIL_SAT_DOWN,l_anthrop_heat_src,buddy_sea       &
+!CABLE{
+	! set .TRUE. to use CABLE LSM and switch corresponding
+	! JULES components on/off [default=.FALSE.]
+    ,L_cable 
 
+  !jhan: revise HACKs here
+  USE cable_data_mod, ONLY : cable_control, cable_control2, &
+                        cable_control3, cable_control4, cable_control5, &
+                        cable_control6, cable_control7
+!jhan: check this mype is even what we want here
+!AND if we can get it another way. ATM disabled
+!#ifdef CABLE-UM  
+!  USE UM_ParCore, ONLY : mype
+!#else
+!  USE parallel_mod, ONLY : mype => task_id
+  USE soil_param, ONLY : dzsoil 
+  USE nstypes, ONLY : npft 
+  USE model_grid_mod, ONLY : latitude, longitude 
+!#endif  
+!CABLE}
+  
   USE top_pdm, ONLY :  &
 !  imported arrays with intent(in)
      a_fsat,a_fwet,c_fsat,c_fwet,fexp,gamtot,ti_mean,ti_sig  &
@@ -536,6 +556,24 @@ REAL :: chloro(t_i_length,t_j_length) ! ocean nr surface chlorophyll (kg m-3)
 INTEGER, PARAMETER :: n_swbands = 1  !  Nnumber of SW bands
 REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
 
+!CABLE{
+!jhan: declaring vars which are otherwise NA 
+
+! Soil respiration on tiles (kg C/m2/s). kdcorbin, 10/10
+real :: resp_s_tile(land_pts,ntiles)
+
+! local dec in sf_exch - but we need here if filling cable%
+real, dimension(land_pts,ntiles) ::                                 &
+  cd_tile,                                         &
+  ch_tile,                                         &
+  recip_l_mo_tile
+  
+! In UM 7.3 this is recieved in cable and passed back to where
+! available in glue_rad. NA in JULES. we need this passed to
+! tile_albedo online and declared offline
+REAL :: land_alb(t_i_length,t_j_length) 
+!CABLE}
+           
 !-----------------------------------------------------------------------
 ! Initialise these to zero as they are never used
 !-----------------------------------------------------------------------
@@ -557,6 +595,72 @@ REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
 
 ! Initialise the olr diagnostic
   olr(:,:) = 0.0
+
+!CABLE{
+  cd_tile = 0.0
+  ch_tile = 0.0
+  recip_l_mo_tile = 0.0
+
+  ! there are four albedos passed to cable_rad_driver: 
+  ! 	  albsoil - PACKS cable var and is used
+  !    alb_tile - unpacked from CABLE's rad%reffXX
+  !    land_albedo_cable - fn(alb_tile) 
+  !    land_alb_cable    - fn(land_albedo_cable) 
+  ! so in the first instance we dont need this for offline?
+  ! online we will need to pass it back though?
+  ! Here canopy_gb == canopy_water in atm_Step(7.3) 
+  call cable_control( L_cable, a_step, timestep_len, row_length,         &
+         rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,                  & 
+         latitude, longitude,                                                  &
+         land_index, b, hcon, satcon, sathh, smvcst, smvcwt,                   &
+         smvccl, albsoil, lw_down, cosz, ls_rain, ls_snow, pstar,              &
+         co2_mmr, sthu, smcl, sthf, gs, canopy_gb, land_alb )
+
+  ! canopy here == canopy_tile, called canopy in atmos_physics2
+  ! comment implies snow free only?
+  call cable_control2( npft, tile_frac, snow_tile, vshr_land,                  &
+         canopy, canht_ft, lai, con_rain, con_snow, NPP, NPP_FT,               &  
+         GPP, GPP_FT, RESP_S, RESP_S_TOT, RESP_S_TILE,                         &  
+         RESP_P, RESP_P_FT, G_LEAF, Radnet_TILE, Lying_snow,                   &  
+         surf_roff, sub_surf_roff, tot_tfall ) 
+
+! in ACCESS tl,qw are passed and recieved as 1st layer tl_1, qw_1
+! tl_1, qw_1 are available in JULES forcing module
+  call cable_control3( tl_1, qw_1 )  
+
+!  !this will be tricky as there is no surf_down_Sw in JULES
+!  !it seems in 8.2 that thisdec locally in glue)rad for the 8A bdylayer scheme
+!  ! and maybe set in r2_swrad
+! in the UM this has to be passed from glue_rad
+
+! spitter routine in cable_radiation doess this, but simplistically
+
+! CABLE needs diffue, direct, vis, NIR, breakdown of SW radiation
+! offline CABLE uses simple spitter FUNCTION. online uses UM's rad
+! scheme to compute surf_down_sw. CABLE pulls this upto a higher level
+! and then passes down to CABLE
+! jhan: HACK. just divide sw_down for now
+  !call cable_control4( surf_down_sw )        
+  call cable_control4( sw_down )        
+
+  call cable_control5( alb_tile, land_albedo,         &
+                  TILE_PTS, TILE_INDEX  )        
+
+
+  call cable_control6( z1_tq, z1_uv, Fland, dzsoil,                            &  
+         LAND_MASK, FTL_TILE, FQW_TILE, TSTAR_TILE,                            &
+         U_S, U_S_STD_TILE,                                                    & 
+         CD_TILE, CH_TILE, & ! local dec in sf_exch
+         FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,                              &
+         RECIP_L_MO_TILE, & ! local dec in sf_exch
+         EPOT_TILE )
+
+
+call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
+       SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,                      &
+       T1P5M_TILE, Q1P5M_TILE, MELT_TILE )
+
+!CABLE}
 
 !------------------------------------------------------------------------------
 ! If we're only doing river routing, most routines need not be called.
@@ -770,7 +874,7 @@ REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
 !-----------------------------------------------------------------------
 !   Explicit calculations.
 !-----------------------------------------------------------------------
-    CALL sf_expl_l (                                                  &
+    CALL sf_expl_l_cable (                                                  &
 !     IN values defining field dimensions and subset to be processed :
         land_pts,nice_use                                             &
 !     IN  parameters for iterative SISL scheme
@@ -937,7 +1041,7 @@ REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
     gamma2(:,:) = 0.0
 
 ! Call sf_impl2 with l_correct = .FALSE.
-    CALL sf_impl2 (                                                     &
+    CALL sf_impl2_cable (                                                     &
 !     IN values defining field dimensions and subset to be processed :
          land_pts,land_index,nice,nice_use,ntiles,tile_index,tile_pts,  &
          sm_levels,canhc_tile,canopy,flake,smc,tile_frac,wt_ext_tile,   &
@@ -981,7 +1085,7 @@ REAL, PARAMETER :: spec_band_bb(1) = -1.0 ! spectral band boundary (bb=-1)
     gamma2(:,:) = 1.0
 
 ! Call sf_impl2 again with l_correct = .TRUE.
-    CALL sf_impl2 (                                                     &
+    CALL sf_impl2_cable (                                                     &
 !     IN values defining field dimensions and subset to be processed :
          land_pts,land_index,nice,nice_use,ntiles,tile_index,tile_pts,  &
          sm_levels,canhc_tile,canopy,flake,smc,tile_frac,wt_ext_tile,   &

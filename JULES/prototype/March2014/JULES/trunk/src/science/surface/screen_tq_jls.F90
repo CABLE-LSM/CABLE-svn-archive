@@ -258,18 +258,21 @@ nrows   = tdims%j_end - tdims%j_start + 1
 
 IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
 
+!jhan: make these switchable
 ! DEPENDS ON: qsat_mix
   CALL qsat_mix(qs,tstar_ssi,pstar,t_i_length*t_j_length,lq_mix_bl)
   DO j=tdims%j_start,tdims%j_end
     DO i=tdims%i_start,tdims%i_end
-      q1p5m(i,j) = 0.
+      ! CABLE: already calculated in CABLE
+      !q1p5m(i,j) = 0.
       q1p5m_ssi(i,j) = 0.
       IF (flandg(i,j) <  1.0 ) THEN
         cer1p5m = chr1p5m_sice(i,j) - 1.
         q1p5m_ssi(i,j) =                                            &
           (qw_1(i,j) + cer1p5m*( qw_1(i,j) - qs(i,j) ))
-        q1p5m(i,j) = (1.-flandg(i,j))*q1p5m_ssi(i,j)
-      END IF
+        !CABLE: already calculated in CABLE
+        !q1p5m(i,j) = (1.-flandg(i,j))*q1p5m_ssi(i,j)
+      END IF  
     END DO
   END DO
 
@@ -314,7 +317,8 @@ END IF
 
     DO j = tdims%j_start, tdims%j_end
       DO i = tdims%i_start, tdims%i_end
-        t1p5m_ssi(i,j) = 0.
+        !CABLE: already calculated in CABLE
+        !t1p5m_ssi(i,j) = 0.
         t1p5m(i,j) = 0.
 
         IF (flandg(i,j) <  1.0 ) THEN
@@ -322,7 +326,8 @@ END IF
           t1p5m_ssi(i,j) = tstar_ssi(i,j) - grcp*z1p5m +                &
             chr1p5m_sice(i,j) * (tl_1(i,j) - tstar_ssi(i,j) +           &
             grcp*(z1(i,j)+z0mssi(i,j)-z0hssi(i,j)))
-          t1p5m(i,j) = (1.-flandg(i,j)) * t1p5m_ssi(i,j)
+          !CABLE: already calculated in CABLE
+          !t1p5m(i,j) = (1.-flandg(i,j)) * t1p5m_ssi(i,j)
         END IF
 
       END DO
