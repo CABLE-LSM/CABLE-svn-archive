@@ -1143,9 +1143,6 @@ END IF
              cable% mp% timestep_number, 1 )
 
 
-
-
-
 !-----------------------------------------------------------------------
 ! Calculate RESFT with neutral CH and EPDT=0 for use in calculation
 ! of Richardson number. RESFT=1 for snow and land-ice.
@@ -1176,30 +1173,30 @@ DO n=1,ntiles
 !   )
 END DO
 
-! RESFT < 1 for snow on canopy if canopy snow model used
-! N.B. chn is calculated in the preceding loop over tiles and
-! used in the next loop over npft. This works only if the
-! first npft tiles are the vegetated ones.
-IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
-  DO n=1,npft
-    IF ( cansnowtile(n) ) THEN
-      DO k=1,tile_pts(n)
-        l = tile_index(k,n)
-        j=(land_index(l)-1)/t_i_length + 1
-        i = land_index(l) - (j-1)*t_i_length
-        IF (snow_tile(l,n) .gt. 0.) THEN
-          gc(l,n) = 0.06*snow_tile(l,n)**0.6*catch_snow(l,n)**0.4 &
-                       * 2.06e-5*(tm/tstar_tile(l,n))**1.75       &
-                       * (1.79 + 3*SQRT(vshr_land(i,j)))          &
-                       / (2*rho_ice*5e-4**2)
-          fraca(l,n) = 0.
-          resfs(l,n) = gc(l,n)/(gc(l,n) + chn(l,n)*vshr_land(i,j))
-          resft(l,n) = resfs(l,n)
-        END IF
-      END DO
-    END IF
-  END DO
-END IF
+!! RESFT < 1 for snow on canopy if canopy snow model used
+!! N.B. chn is calculated in the preceding loop over tiles and
+!! used in the next loop over npft. This works only if the
+!! first npft tiles are the vegetated ones.
+!IF (.NOT. l_aggregate .AND. can_model.eq.4) THEN
+!  DO n=1,npft
+!    IF ( cansnowtile(n) ) THEN
+!      DO k=1,tile_pts(n)
+!        l = tile_index(k,n)
+!        j=(land_index(l)-1)/t_i_length + 1
+!        i = land_index(l) - (j-1)*t_i_length
+!        IF (snow_tile(l,n) .gt. 0.) THEN
+!          gc(l,n) = 0.06*snow_tile(l,n)**0.6*catch_snow(l,n)**0.4 &
+!                       * 2.06e-5*(tm/tstar_tile(l,n))**1.75       &
+!                       * (1.79 + 3*SQRT(vshr_land(i,j)))          &
+!                       / (2*rho_ice*5e-4**2)
+!          fraca(l,n) = 0.
+!          resfs(l,n) = gc(l,n)/(gc(l,n) + chn(l,n)*vshr_land(i,j))
+!          resft(l,n) = resfs(l,n)
+!        END IF
+!      END DO
+!    END IF
+!  END DO
+!END IF
 
 !-----------------------------------------------------------------------
 !  3.2 Calculate bulk Richardson number for the lowest model level.
