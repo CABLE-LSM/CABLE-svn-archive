@@ -756,14 +756,17 @@ SUBROUTINE update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
                         + surf_down_sw(:,:,3)                                  &
                         + surf_down_sw(:,:,4) )                                &
                         * cos_zenith_angle(:,:)
+print *, ""
+print *, "jhan:kblum START"
+      ! jhan: JULES standalone hack: we are going to use spitter so we want 
+      ! same %fsd as seen offline
+      !kblum_rad%SW_DOWN_DIR = ( surf_down_sw(:,:,1)                            &
+      !                  + surf_down_sw(:,:,3) )                                &
+      !                  * cos_zenith_angle(:,:)
 
-      kblum_rad%SW_DOWN_DIR = ( surf_down_sw(:,:,1)                            &
-                        + surf_down_sw(:,:,3) )                                &
-                        * cos_zenith_angle(:,:)
-
-      kblum_rad%SW_DOWN_DIF = ( surf_down_sw(:,:,2)                            & 
-                              + surf_down_sw(:,:,4) )                          &
-                              *cos_zenith_angle(:,:)
+      !kblum_rad%SW_DOWN_DIF = ( surf_down_sw(:,:,2)                            & 
+      !                        + surf_down_sw(:,:,4) )                          &
+      !                        *cos_zenith_angle(:,:)
       ! jhan: JULES standalone hack: we are going to use spitter so we want 
       ! same %fsd as seen offline
       kblum_rad%SW_DOWN_VIS = 0.5 * surf_down_sw(:,:,1) 
@@ -789,6 +792,7 @@ SUBROUTINE update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
       !!---fbeam for all solar 
       !kblum_rad%FBEAM(:,:,3) = kblum_rad%SW_DOWN_DIR /                         &
       !                        MAX( 0.1, SW_DOWN )
+print *, "jhan:kblum END"
        
 END SUBROUTINE Update_kblum_radiation
 
@@ -804,6 +808,7 @@ SUBROUTINE  um2cable_met_rad( cos_zenith_angle)
 
       !--- CABLE met type forcings
       CALL um2cable_rr( cos_zenith_angle, met%coszen)
+print *, "jhan:met_rad START"
       CALL um2cable_rr( kblum_rad%SW_DOWN_VIS, met%fsd(:,1))
       CALL um2cable_rr( kblum_rad%SW_DOWN_NIR, met%fsd(:,2))
       
@@ -814,6 +819,7 @@ SUBROUTINE  um2cable_met_rad( cos_zenith_angle)
       !CALL um2cable_rr( kblum_rad%FBEAM(:,:,1), rad%fbeam(:,1))
       !CALL um2cable_rr( kblum_rad%FBEAM(:,:,2), rad%fbeam(:,2))
       !CALL um2cable_rr( kblum_rad%FBEAM(:,:,3), rad%fbeam(:,3))
+print *, "jhan:met_rad END "
 
 END SUBROUTINE  um2cable_met_rad
 
