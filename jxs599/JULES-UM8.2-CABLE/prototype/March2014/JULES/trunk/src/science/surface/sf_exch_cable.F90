@@ -1234,23 +1234,23 @@ END IF
 !-----------------------------------------------------------------------
 !!  3.4 Calculate CD, CH via routine FCDCH.
 !-----------------------------------------------------------------------
-
+!CABLE    
 ! Land tiles
-DO n=1,ntiles
-! DEPENDS ON: fcdch
-  CALL fcdch (                                                    &
-   cor_mo_iter,land_pts,tile_pts(n),                              &
-   tile_index(:,n),land_index,                                    &
-   db_tile(:,n),vshr_land,                                        &
-   z0m_eff_tile(:,n),z0h_tile(:,n),zh,                            &
-   z1_uv,z1_uv_top,z1_tq,z1_tq_top,wind_profile_factor(:,n),      &
-   ddmfx,                                                         &
-   cd_tile(:,n),ch_tile(:,n),cd_std(:,n),                         &
-   v_s_tile(:,n),v_s_std(:,n),recip_l_mo_tile(:,n),               &
-   u_s_iter_tile(:,n)                                             &
-   )
-END DO
-
+!DO n=1,ntiles
+!! DEPENDS ON: fcdch
+!  CALL fcdch (                                                    &
+!   cor_mo_iter,land_pts,tile_pts(n),                              &
+!   tile_index(:,n),land_index,                                    &
+!   db_tile(:,n),vshr_land,                                        &
+!   z0m_eff_tile(:,n),z0h_tile(:,n),zh,                            &
+!   z1_uv,z1_uv_top,z1_tq,z1_tq_top,wind_profile_factor(:,n),      &
+!   ddmfx,                                                         &
+!   cd_tile(:,n),ch_tile(:,n),cd_std(:,n),                         &
+!   v_s_tile(:,n),v_s_std(:,n),recip_l_mo_tile(:,n),               &
+!   u_s_iter_tile(:,n)                                             &
+!   )
+!END DO
+!
 IF ( cor_mo_iter >= use_correct_ustar ) THEN
 !       Use correct "standard" ustar
   DO n=1,ntiles
@@ -1269,6 +1269,7 @@ ELSE
   END DO
 END IF
 
+!jhan:review
 !-----------------------------------------------------------------------
 !!  3.5 Recalculate friction velocity for the dust scheme using the
 !!      bare soil roughness length if using only 1 aggregated tile
@@ -1363,6 +1364,7 @@ DO n=1,ntiles
     epdt(l) = - rhostar(i,j)*ch_tile(l,n)*vshr_land(i,j)          &
       *dq(l)*timestep
   END DO
+!CABLE
 ! DEPENDS ON: sf_resist
   CALL sf_resist (                                                &
    land_pts,tile_pts(n),land_index,tile_index(:,n),               &
@@ -1621,6 +1623,7 @@ DO n=1,ntiles
       hcons_surf(l) = hcon_lake(l)
     END IF
   END DO
+
 !
 ! DEPENDS ON: sf_flux
   CALL sf_flux (                                                  &
