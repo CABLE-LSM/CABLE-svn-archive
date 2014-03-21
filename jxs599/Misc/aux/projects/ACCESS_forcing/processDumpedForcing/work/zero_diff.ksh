@@ -70,27 +70,31 @@
 
 # these are the teo data files to compare
 #set -A basename std FLUXES	
-set -A basename std metfsd1_ 
+set -A basename std latitude 
 
 # in first instance CLI call is ./zero_diff.ksh -d -n 128
 
-CABLE_tools='/data/flush/srb001/ACCESS_offline/ACCESS_forcing/processDumpedForcing/work/Exported_zero_diff/execs'
+#cherax
+#CABLE_tools='/data/flush/srb001/ACCESS_offline/ACCESS_forcing/processDumpedForcing/work/Exported_zero_diff/execs'
+#jiggle
+CABLE_tools='/Users/srb001/trac.nci.CABLE/branches/Users/jxs599/Misc/aux/projects/ACCESS_forcing/processDumpedForcing/work/src/cat_nodes'
 spec_tools=''
 
-if [[ $1 == '-r' ]]; then
-
-   # if a run across multiple processors was conducted, this call 
-   # concatenates all those files 
-   if [[ $2 == '-n' ]]; then
-      $CABLE_tools/$spec_tools/diag_cat_nodes_r4 ${basename[1]} $3 
-   else
-      basename[1]="FLUXES000"	
-   fi  
-   
-   ### execute f90 program to do all the work desired
-   $CABLE_tools/$spec_tools/diff_main_r4 ${basename[0]} ${basename[1]}
-
-elif [[ $1 == '-d' ]]; then
+#if [[ $1 == '-r' ]]; then
+#
+#   # if a run across multiple processors was conducted, this call 
+#   # concatenates all those files 
+#   if [[ $2 == '-n' ]]; then
+#      $CABLE_tools/$spec_tools/diag_cat_nodes_r4 ${basename[1]} $3 
+#   else
+#      basename[1]="FLUXES000"	
+#   fi  
+#   
+#   ### execute f90 program to do all the work desired
+#   $CABLE_tools/$spec_tools/diff_main_r4 ${basename[0]} ${basename[1]}
+#
+#elif [[ $1 == '-d' ]]; then
+if [[ $1 == '-d' ]]; then
 
    if [[ $2 == '-n' ]]; then
       $CABLE_tools/$spec_tools/diag_cat_nodes_r8 ${basename[1]} $3 
