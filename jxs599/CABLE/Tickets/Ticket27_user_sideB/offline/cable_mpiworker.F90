@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -110,7 +110,7 @@ CONTAINS
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew,calcsoilalbedo
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            & 
+                                   cable_runtime, filename,                    & 
                                    redistrb, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &

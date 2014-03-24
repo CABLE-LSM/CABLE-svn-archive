@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -940,10 +940,8 @@ CONTAINS
           veg%frac4(h)    = vegin%frac4(veg%iveg(h))
           veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
           veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
-          veg%taul(h,3)    = vegin%taul(3,veg%iveg(h))
           veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
           veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
-          veg%refl(h,3)    = vegin%refl(3,veg%iveg(h))
           veg%canst1(h)   = vegin%canst1(veg%iveg(h))
           veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
           veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))

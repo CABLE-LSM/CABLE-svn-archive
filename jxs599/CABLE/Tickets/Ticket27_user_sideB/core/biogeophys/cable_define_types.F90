@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -289,7 +289,7 @@ MODULE cable_def_types_mod
          dewmm,   & ! dewfall (mm)
          fe,      & ! total latent heat (W/m2)
          fh,      & ! total sensible heat (W/m2)
-         fpn,     & ! plant photosynthesis (g C s-1)
+         fpn,     & ! plant photosynthesis (g C m-2 s-1)
          frp,     & ! plant respiration (g C m-2 s-1)
          frpw,    & ! plant respiration (g C m-2 s-1)???
          frpr,    & ! plant respiration (g C m-2 s-1)???
@@ -302,7 +302,6 @@ MODULE cable_def_types_mod
          fnpp,    & ! npp flux
          fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
-         gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
          wetfac_cs,&! 
          fevw,    & ! lat heat fl wet canopy (W/m2)
@@ -726,6 +725,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
+   !was nrb(=3), but never uses (:,3) in model   
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) ) 

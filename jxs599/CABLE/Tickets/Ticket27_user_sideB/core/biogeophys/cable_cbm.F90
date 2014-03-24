@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -33,7 +33,7 @@
 !
 ! ==============================================================================
 
-#define NO_CASA_YET 1
+!#define NO_CASA_YET 1
 
 MODULE cable_cbm_module
    
@@ -147,11 +147,12 @@ CONTAINS
       
       canopy%fh = canopy%fhv + canopy%fhs
 
-      canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                     &
-                   ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-      
-      canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *             &
-                       ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+   canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                        &
+                ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+                !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+   
+   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
+                    ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
 
    ENDIF
 
