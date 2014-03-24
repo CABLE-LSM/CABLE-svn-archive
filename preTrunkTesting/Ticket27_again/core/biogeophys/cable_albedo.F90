@@ -31,6 +31,7 @@
 MODULE cable_albedo_module
 
    USE cable_data_module, ONLY : ialbedo_type, point2constants 
+   USE cable_soil_snow_module, ONLY : soil_albedo
    
    IMPLICIT NONE
    
@@ -192,6 +193,11 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
    ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
   
+   ! Added by Kai and Jatin
+   IF (calcsoilalbedo) THEN
+     CALL soil_albedo(ssnow, soil)
+   END IF
+
    snrat=0.
    alir =0.
    alv  =0.

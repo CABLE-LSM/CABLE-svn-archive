@@ -41,6 +41,8 @@ MODULE cable_common_module
    CHARACTER(LEN=200) ::                                                       & 
       myhome
 
+   LOGICAL :: calcsoilalbedo = .FALSE. ! Added by Kai and Jatin
+
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
@@ -100,6 +102,7 @@ MODULE cable_common_module
       type,       & ! file for default veg/soil type
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
+      soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
       inits,      & ! name of file for initialisations
       soilIGBP      ! name of file for IGBP soil map
 

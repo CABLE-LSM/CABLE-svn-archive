@@ -222,6 +222,8 @@ MODULE cable_IO_vars_module
          ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
          SoilWet = .FALSE.,   & ! 29 total soil wetness [-] 
          Albedo = .FALSE.,    & ! 30 albedo [-] 
+         visAlbedo = .FALSE., & ! Added by Kai and Jatin 
+         nirAlbedo = .FALSE., & ! Added by Kai and Jatin
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
