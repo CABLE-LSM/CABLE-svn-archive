@@ -1056,6 +1056,7 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
 END SUBROUTINE surfbv
 ! -----------------------------------------------------------------------------
+! subroutine to support Ticket #27
 SUBROUTINE soil_albedo(ssnow, soil)
 
    ! Arguments

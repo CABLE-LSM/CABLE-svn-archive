@@ -2481,6 +2481,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 
   
 END SUBROUTINE load_parameters
+
+! subroutine to calc albedo due to soil colour (see Ticket #27)
 !=============================================================================
 SUBROUTINE read_soilcolor(soil, logn)
   ! Read soil color
@@ -2497,7 +2499,6 @@ SUBROUTINE read_soilcolor(soil, logn)
     ! USE cable_IO_vars_module, ONLY : soilcol
 
     IMPLICIT NONE
-    ! INTEGER, DIMENSION(:), INTENT(INOUT) :: soilcol
     TYPE (soil_parameter_type), INTENT(OUT) :: soil
     INTEGER, INTENT(IN) ::  logn ! log file unit number
 
@@ -2530,7 +2531,6 @@ SUBROUTINE read_soilcolor(soil, logn)
 
     ALLOCATE( inLon(nlon), inLat(nlat) )
     ALLOCATE( inSoilColor(nlon, nlat) )
-    ! ALLOCATE( soilcol(mp) )
 
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
