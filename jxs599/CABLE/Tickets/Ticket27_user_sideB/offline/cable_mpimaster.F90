@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -141,8 +141,8 @@ SUBROUTINE mpidrv_master (comm)
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew,calcsoilalbedo
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            &
-                                   redistrb, wiltParam, satuParam
+                                   cable_runtime, filename, redistrb,          & 
+                                   report_version_no, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file,read_soilcolor
@@ -273,11 +273,16 @@ SUBROUTINE mpidrv_master (comm)
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   CALL report_version_no( logn )
+    
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
    ENDIF
-
+    
     
    cable_runtime%offline = .TRUE.
    
@@ -293,9 +298,6 @@ SUBROUTINE mpidrv_master (comm)
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
-   ! Open log file:
-   OPEN(logn,FILE=filename%log)
- 
    ! Check for gswp run
    IF (ncciy /= 0) THEN
       
@@ -364,6 +366,11 @@ SUBROUTINE mpidrv_master (comm)
    ! workers
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
+
+   ! MPI: mvtype and mstype send out here instead of inside master_casa_params
+   !      so that old CABLE carbon module can use them. (BP May 2013)
+   CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
    ! MPI: casa parameters scattered only if cnp module is active
    IF (icycle>0) THEN
@@ -2286,8 +2293,9 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: rank, off, cnt
 
-  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
-  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+!  moved to calling before this subroutine (BP May 2013)
+!  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+!  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   ntyp = ncasaparam
 
