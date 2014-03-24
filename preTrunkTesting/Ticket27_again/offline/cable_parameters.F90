@@ -109,14 +109,14 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
 
-  ! Added by Kai and Jatin
+  ! see Ticket #27 
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
 
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
     use cable_common_module, only : get_type_parameters, filename,             &
-                                                                  calcsoilalbedo
+                                    calcsoilalbedo
   ! Load parameters for each veg type and each soil type. (get_type_parameters)
   ! Also read in initial information for each grid point. (read_gridinfo)
   ! Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
@@ -147,6 +147,7 @@ CONTAINS
       CALL spatialSoil(nlon, nlat, logn)
     ENDIF
 
+    ! see Ticket #27 
     IF (calcsoilalbedo) THEN
        CALL read_soilcolor(logn)
     END IF
@@ -607,6 +608,7 @@ CONTAINS
 
   END SUBROUTINE spatialSoil
   !=============================================================================
+  ! subr to read prescribed soil colour affecting albedo calc - see Ticket #27 
   SUBROUTINE read_soilcolor(logn)
   ! Read soil color
   !
@@ -998,6 +1000,7 @@ CONTAINS
 
       ENDIF
 
+      ! see Ticket #27 
       IF (calcsoilalbedo) THEN
         soil%soilcol(landpt(e)%cstart:landpt(e)%cend) =                        &
                                      inSoilColor(landpt(e)%ilon, landpt(e)%ilat)
@@ -1089,7 +1092,8 @@ CONTAINS
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
                        insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010
-    IF (calcsoilalbedo) DEALLOCATE(inSoilColor) ! Added by Kai and Jatin
+    ! see Ticket #27 
+    IF (calcsoilalbedo) DEALLOCATE(inSoilColor) 
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
