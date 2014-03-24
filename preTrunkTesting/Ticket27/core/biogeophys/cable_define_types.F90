@@ -56,10 +56,8 @@ MODULE cable_def_types_mod
       niter = 4,     & ! number of iterations for za/L
       ms = 6           ! # soil layers
 
-   ! color map variable
-   ! INTEGER, DIMENSION(:), ALLOCATABLE   :: soilcol
-
-   ! Look-up tables for soil albedo
+   ! Look-up tables for soil albedo - see Ticket #27. autthor thereof justifies
+   ! hard-wiring these parameters as they are "constant"
    ! saturated soil albedos for 20 color classes and 2 wavebands (1=vis, 2=nir)
    REAL(r_2), PARAMETER, DIMENSION(20,nrb) ::                                   &
       albsat = (/ (/ 0.25,0.23,0.21,0.20,0.19,0.18,0.17,0.16,0.15,0.14,0.13,    &
@@ -76,8 +74,6 @@ MODULE cable_def_types_mod
                   (/ 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,                    &
                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0. /) /)
 
-!   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
-  
 ! .............................................................................
 
    ! Energy and water balance variables:

@@ -175,7 +175,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    
    INTEGER :: k,i,j,l,l1,l2
 
-   ! This IF block was Added for Jatin
+   ! IF block added in support of Ticket #27
    IF (calcsoilalbedo) THEN
      CALL soil_albedo(ssnow, soil)
    ELSE
