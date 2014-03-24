@@ -29,11 +29,11 @@ MODULE sli_roots
   !            An exponential root-water-uptake model with water stress compensation. J. Hydrol. 252:189-204.
   ! getrex   - subroutine to get rate of water extraction from layers.
 
-  !**********************************************************************************************************************
+  !*********************************************************************************************************************
 
 CONTAINS
 
-  !**********************************************************************************************************************
+  !*********************************************************************************************************************
 
   SUBROUTINE setroots_1d(x, F10, Zr, Fs)
 
@@ -87,50 +87,20 @@ CONTAINS
     REAL(r_2), DIMENSION(:),   INTENT(IN)  :: F10
     REAL(r_2), DIMENSION(:),   INTENT(IN)  :: Zr
     REAL(r_2), DIMENSION(:,:), INTENT(OUT) :: Fs
-    ! Sets current weighted root length density distribn (Fs).
-    !      Li et al. (J Hydrolo, 2001)
-    ! Definitions of arguments:
-    ! x(:) - depths to bottom of layers (cm).
-    ! F10  - fraction of root length density in top 10% of the root zone
-    ! Zr   - rooting depth (cm).
-    INTEGER(i_d)                                  :: mp, ms
-    REAL(r_2), DIMENSION(1:size(x,1))             :: b, extr
-    REAL(r_2), DIMENSION(1:size(x,1),1:size(x,2)) :: ext0, ext1, xend, Fi
-    REAL(r_2), DIMENSION(1:size(x,1),1:size(x,2)) :: tmp2d
 
-    mp = size(x,1) ! landpoints
-    ms = size(x,2) ! soil layers
+    INTEGER(i_d)                      :: i
+    REAL(r_2), DIMENSION(1:size(x,2)) :: out
 
-    xend(1:mp,1)    = zero
-    xend(1:mp,2:ms) = x(1:mp,1:ms-1)
-    b(1:mp)         = b1 * F10(1:mp)**b2 / Zr(1:mp) ! root distrib param
-    extr(1:mp)      = exp(-b(1:mp)*Zr(1:mp))
-    tmp2d(:,:)      = spread(b(1:mp),2,ms)
-    ext1(:,:)       = exp(-tmp2d(:,:)*x(:,:))
-    ext0(1:mp,1)    = one
-    ext0(1:mp,2:ms) = ext1(1:mp,1:ms-1)
-    ! get fraction of root length density in layer i
-    tmp2d(:,:)      = spread(extr(1:mp),2,ms)
-    Fi(:,:)         = (log((one+ext0(:,:))/(one+ext1(:,:))) + half*(ext0(:,:)-ext1(:,:))) / &
-         (log(two/(one+tmp2d(:,:))) + half*(one-tmp2d(:,:)))
-    Fs(:,:)         = exp(lambda*log(Fi(:,:))) ! weighted Fi
-    tmp2d(:,:)      = spread(Zr(1:mp),2,ms)
-    where (xend(:,:) >= tmp2d(:,:)) Fs(:,:) = zero
-
-    ! ensure Fs sums to one
-    tmp2d(:,:) = spread(sum(Fs(1:mp,1:ms),2),2,ms)
-    where (tmp2d(:,:) > zero)
-       Fs(:,:) = Fs(:,:)/tmp2d(:,:)
-    elsewhere
-       Fs(:,:) = zero
-    endwhere
+    do i=1, size(x,1) ! landpoints
+       call setroots_1d(x(i,:), F10(i), Zr(i), out)
+       Fs(i,:) = out
+    end do
 
   END SUBROUTINE setroots_2d
 
-  !**********************************************************************************************************************
+  !*********************************************************************************************************************
 
-  SUBROUTINE getrex_1d(S, rex, fws, Fs, thetaS, thetaw, Etrans, gamma)
-
+  SUBROUTINE getrex_1d(S, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt)
 
     ! Lai and Katul formulation for root efficiency function vh 17/07/09
     ! changed to MCs maximum formulation
@@ -145,6 +115,8 @@ CONTAINS
     REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaw ! soil moisture at wiliting point
     REAL(r_2),               INTENT(IN)    :: Etrans ! total transpiration
     REAL(r_2),               INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: dx     ! layer thicknesses (m)
+    REAL(r_2),               INTENT(IN)    :: dt
 
     ! Gets rate of water extraction compatible with CABLE stomatal conductance model
     ! theta(:) - soil moisture(m3 m-3)
@@ -177,14 +149,42 @@ CONTAINS
     endif
     rex(:) = Etrans*rex(:)
 
-    fws    = maxval(alpha_root(:)*delta_root(:))
+    ! reduce extraction efficiency where total extraction depletes soil moisture below wilting point
+    !where ((rex*dt) > (theta(:)-0.01_r_2)*dx(:))
+    where (((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))
+       alpha_root = alpha_root*(theta(:)-thetaw(:))*dx(:)/(rex*dt)
+    endwhere
+    rex(:) = alpha_root(:)*Fs(:)
+
+    trex = sum(rex(:))
+    if (trex > zero) then
+       rex(:) = rex(:)/trex
+    else
+       rex(:) = zero
+    endif
+    rex(:) = Etrans*rex(:)
+
+    ! check that the water available in each layer exceeds the extraction
+    !if (any((rex*dt) > (theta(:)-0.01_r_2)*dx(:))) then
+    if (any(((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))) then
+       fws = zero
+       ! distribute extraction according to available water
+       !rex(:) = (theta(:)-0.01_r_2)*dx(:)
+       rex(:) = (theta(:)-thetaw(:))*dx(:)
+       trex = sum(rex(:))
+       if (trex > zero) then
+          rex(:) = rex(:)/trex
+       else
+          rex(:) = zero
+       endif
+       rex(:) = Etrans*rex(:)
+    else
+       fws    = maxval(alpha_root(2:)*delta_root(2:))
+    endif
 
   END SUBROUTINE getrex_1d
 
-  SUBROUTINE getrex_2d(S, rex, fws, Fs, thetaS, thetaw, Etrans, gamma)
-
-    ! Lai and Katul formulation for root efficiency function vh 17/07/09
-    ! changed to MCs maximum formulation
+  SUBROUTINE getrex_2d(S, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt)
 
     IMPLICIT NONE
 
@@ -196,50 +196,22 @@ CONTAINS
     REAL(r_2), DIMENSION(:,:), INTENT(IN)    :: thetaw ! soil moisture at wiliting point
     REAL(r_2), DIMENSION(:),   INTENT(IN)    :: Etrans ! total transpiration
     REAL(r_2), DIMENSION(:),   INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
+    REAL(r_2), DIMENSION(:,:), INTENT(IN)    :: dx     ! layer thicknesses (m)
+    REAL(r_2),                 INTENT(IN)    :: dt
 
-    ! Gets rate of water extraction compatible with CABLE stomatal conductance model
-    ! theta(:) - soil moisture(m3 m-3)
-    ! rex(:)   - rate of water extraction by roots from layers (cm/h).
-    INTEGER(i_d)                                  :: mp, ms
-    REAL(r_2), DIMENSION(1:size(S,1),1:size(S,2)) :: theta, lthetar, alpha_root, delta_root
-    REAL(r_2), DIMENSION(1:size(S,1))             :: trex
-    REAL(r_2), DIMENSION(1:size(S,1),1:size(S,2)) :: tmp2d
+    INTEGER(i_d)                      :: i
+    REAL(r_2), DIMENSION(1:size(S,2)) :: rout
+    REAL(r_2)                         :: fout
 
-    mp = size(S,1) ! landpoints
-    ms = size(S,2) ! soil layers
-
-    theta(:,:)   = S(:,:)*thetaS(:,:)
-    lthetar(:,:) = log(max(theta(:,:)-thetaw(:,:),e3)/thetaS(:,:))
-
-    tmp2d = spread(gamma(1:mp),2,ms)
-    where ((theta(:,:)-thetaw(:,:)) > e3)
-       alpha_root(:,:) = exp( tmp2d(:,:)/max(theta(:,:)-thetaw(:,:), e3) * lthetar(:,:) )
-    elsewhere
-       alpha_root(:,:) = zero
-    endwhere
-
-    where (Fs(:,:) > zero)
-       delta_root(:,:) = one
-    elsewhere
-       delta_root(:,:) = zero
-    endwhere
-
-    rex(:,:) = alpha_root(:,:)*Fs(:,:)
-
-    trex  = sum(rex(:,:),2)
-    tmp2d = spread(trex(1:mp),2,ms)
-    where (tmp2d(:,:) > zero)
-       rex(:,:) = rex(:,:)/tmp2d(:,:)
-    elsewhere
-       rex(:,:) = zero
-    endwhere
-    tmp2d    = spread(Etrans(1:mp),2,ms)
-    rex(:,:) = tmp2d(:,:)*rex(:,:)
-
-    fws(:)   = maxval(alpha_root(:,:)*delta_root(:,:),dim=2)
+    do i=1, size(S,1) ! landpoints
+       fout = fws(i)
+       call getrex_1d(S(i,:), rout, fout, Fs(i,:), thetaS(i,:), thetaw(i,:), Etrans(i), gamma(i), dx(i,:), dt)
+       rex(i,:) = rout
+       fws(i)   = fout
+    end do
 
   END SUBROUTINE getrex_2d
 
-  !**********************************************************************************************************************
+  !*********************************************************************************************************************
 
 END MODULE sli_roots

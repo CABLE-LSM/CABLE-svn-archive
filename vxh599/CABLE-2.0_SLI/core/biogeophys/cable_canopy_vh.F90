@@ -49,7 +49,7 @@ MODULE canopy_vh_module
   USE cable_air_module,               ONLY: define_air
   USE cable_def_types_mod,             ONLY: air_type, balances_type, bgc_pool_type, canopy_type, &
        met_type, radiation_type, roughness_type, ms, mp, mf, &
-       soil_parameter_type, soil_snow_type, veg_parameter_type, i_d, r_1, r_2
+       soil_parameter_type, soil_snow_type, veg_parameter_type, i_d, r_2
   USE cable_common_module,  ONLY: cable_user
 
 
@@ -61,74 +61,54 @@ MODULE canopy_vh_module
 
   INTERFACE qsatf
      MODULE PROCEDURE qsatf_r_1
-#ifndef DPREC
      MODULE PROCEDURE qsatf_r_2
-#endif
   END INTERFACE qsatf
   INTERFACE ej3x
      MODULE PROCEDURE ej3x_r_1
-#ifndef DPREC
      MODULE PROCEDURE ej3x_r_2
-#endif
   END INTERFACE ej3x
   INTERFACE ej4x
      MODULE PROCEDURE ej4x_r_1
-#ifndef DPREC
      MODULE PROCEDURE ej4x_r_2
-#endif
   END INTERFACE ej4x
   INTERFACE xvcmxt4
      MODULE PROCEDURE xvcmxt4_r_1
-#ifndef DPREC
      MODULE PROCEDURE xvcmxt4_r_2
-#endif
   END INTERFACE xvcmxt4
   INTERFACE xvcmxt3
      MODULE PROCEDURE xvcmxt3_r_1
-#ifndef DPREC
      MODULE PROCEDURE xvcmxt3_r_2
-#endif
   END INTERFACE xvcmxt3
   INTERFACE xejmxt3
      MODULE PROCEDURE xejmxt3_r_1
-#ifndef DPREC
      MODULE PROCEDURE xejmxt3_r_2
-#endif
   END INTERFACE xejmxt3
   INTERFACE psim
      MODULE PROCEDURE psim_r_1
-#ifndef DPREC
      MODULE PROCEDURE psim_r_2
-#endif
   END INTERFACE psim
   INTERFACE psis
      MODULE PROCEDURE psis_r_1
-#ifndef DPREC
      MODULE PROCEDURE psis_r_2
-#endif
   END INTERFACE psis
   INTERFACE rplant
      MODULE PROCEDURE rplant_r_1
-#ifndef DPREC
      MODULE PROCEDURE rplant_r_2
-#endif
   END INTERFACE rplant
   INTERFACE rsoil
      MODULE PROCEDURE rsoil_r_1
-#ifndef DPREC
      MODULE PROCEDURE rsoil_r_2
-#endif
   END INTERFACE rsoil
 
-  REAL(r_1), PARAMETER :: xvccoef      = 1.17461 !derived parameter
-  REAL(r_1), PARAMETER :: EHaVc        = 73637.0  !J/mol (Leuning 2002)
-  REAL(r_1), PARAMETER :: EHdVc        = 149252.0 !J/mol (Leuning 2002)
-  REAL(r_1), PARAMETER :: EntropVc     = 486.0  !J/mol/K (Leuning 2002)
+  REAL, PARAMETER :: xvccoef      = 1.17461 !derived parameter
+  REAL, PARAMETER :: EHaVc        = 73637.0  !J/mol (Leuning 2002)
+  REAL, PARAMETER :: EHdVc        = 149252.0 !J/mol (Leuning 2002)
+  REAL, PARAMETER :: EntropVc     = 486.0  !J/mol/K (Leuning 2002)
   !   xvccoef=1.0+exp(EHdjx)/(Rconst*TrefK))
-  REAL(r_1), PARAMETER :: EHaJx        = 50300.0  !J/mol (Leuning 2002)
-  REAL(r_1), PARAMETER :: EHdJx        = 152044.0    !J/mol (Leuning 2002)
-  REAL(r_1), PARAMETER :: EntropJx     = 495.0     !J/mol/K (Leuning 2002)
-  REAL(r_1), PARAMETER :: xjxcoef      = 1.16715    !derived parameter
+  REAL, PARAMETER :: EHaJx        = 50300.0  !J/mol (Leuning 2002)
+  REAL, PARAMETER :: EHdJx        = 152044.0    !J/mol (Leuning 2002)
+  REAL, PARAMETER :: EntropJx     = 495.0     !J/mol/K (Leuning 2002)
+  REAL, PARAMETER :: xjxcoef      = 1.16715    !derived parameter
   REAL(r_2), PARAMETER :: tfrz_r_2     = real(tfrz,r_2)
   REAL(r_2), PARAMETER :: trefk_r_2    = real(trefk,r_2)
   REAL(r_2), PARAMETER :: rmh2o_r_2    = real(rmh2o,r_2)
@@ -149,20 +129,20 @@ MODULE canopy_vh_module
   REAL(r_2), PARAMETER :: ehajx_r_2    = real(ehajx,r_2)
   REAL(r_2), PARAMETER :: entropjx_r_2 = real(entropjx,r_2)
   REAL(r_2), PARAMETER :: ehdjx_r_2    = real(ehdjx,r_2)
-  
+
 CONTAINS
 
   !--------------------------------------------------------------------------
   SUBROUTINE define_canopy_vh(ktau,bal,rad,rough,air,met,dels,ssoil,soil, &
        veg,canopy)
-	    
+
 
     TYPE (balances_type),        INTENT(INOUT) :: bal
     TYPE (radiation_type),       INTENT(INOUT) :: rad
     TYPE (roughness_type),       INTENT(INOUT) :: rough
     TYPE (air_type),             INTENT(INOUT) :: air
     TYPE (met_type),             INTENT(INOUT) :: met
-    REAL(r_1),                   INTENT(IN)    :: dels ! integration time setp (s)
+    REAL,                   INTENT(IN)    :: dels ! integration time setp (s)
     TYPE (soil_snow_type),       INTENT(INOUT) :: ssoil
     TYPE (soil_parameter_type),  INTENT(INOUT) :: soil
     TYPE (veg_parameter_type),   INTENT(INOUT) :: veg
@@ -177,8 +157,8 @@ CONTAINS
     REAL(r_2), DIMENSION(mp,mf,3) :: ancj ! soln to quad eqn
     REAL(r_2), DIMENSION(mp,mf)   :: anx ! net photos. prev iteration
     REAL(r_2), DIMENSION(mp,mf)   :: an_y ! net photosynthesis soln
-    !  REAL(r_1), DIMENSION(mp)     :: avgtrs !root weighted mean soil temperature
-    !  REAL(r_1), DIMENSION(mp)     :: avgwrs !root weighted mean soil moisture
+    !  REAL, DIMENSION(mp)     :: avgtrs !root weighted mean soil temperature
+    !  REAL, DIMENSION(mp)     :: avgwrs !root weighted mean soil moisture
     REAL(r_2), DIMENSION(mp,mf)   :: ca2   ! 2D CO2 concentration
     REAL(r_2), DIMENSION(mp)      :: cansat ! max canopy intercept. (mm)
     REAL(r_2), DIMENSION(mp,mf,3) :: ci ! intercellular CO2 conc.
@@ -195,14 +175,14 @@ CONTAINS
     REAL(r_2), DIMENSION(mp,mf,3) :: delcx ! discriminant  in quadratic in eq. E7 Wang and Leuning, 1998
     REAL(r_2), DIMENSION(mp,mf)   :: deltlf ! deltlfy of prev iter.
     REAL(r_2), DIMENSION(mp,mf)   :: deltlfy ! del temp successive iteration
-    REAL(r_1), DIMENSION(mp)      :: deltvair ! deltvair
-    REAL(r_1), DIMENSION(mp)      :: delqvair ! delqvair
-    REAL(r_1), DIMENSION(mp)      :: tvair_old ! tvair of prev iter.
-    REAL(r_1), DIMENSION(mp)      :: qvair_old ! qvair of prev iteration
+    REAL, DIMENSION(mp)      :: deltvair ! deltvair
+    REAL, DIMENSION(mp)      :: delqvair ! delqvair
+    REAL, DIMENSION(mp)      :: tvair_old ! tvair of prev iter.
+    REAL, DIMENSION(mp)      :: qvair_old ! qvair of prev iteration
 
     !! variables for method alternative to P-M formula
-    !    REAL(r_1), DIMENSION(mp)         :: dq ! sat spec hum diff.
-    !    REAL(r_1), DIMENSION(mp)            :: qstss ! sat spec hunidity at soil/snow temperature
+    !    REAL, DIMENSION(mp)         :: dq ! sat spec hum diff.
+    !    REAL, DIMENSION(mp)            :: qstss ! sat spec hunidity at soil/snow temperature
     !! end variables for alternative method
 
     REAL(r_2), DIMENSION(mp,mf)    :: dsatdk2      ! 2D dsatdk
@@ -258,52 +238,52 @@ CONTAINS
     ! Bonan,LSM version 1.0, p106)
     REAL(r_2), DIMENSION(mp)       :: oldcansto ! prev t step canopy storage
     REAL(r_2), DIMENSION(mp)       :: cc ! limitation term for canopy interception per timestep
-    REAL(r_1), DIMENSION(mp,niter) :: zetar ! stability correction
+    REAL, DIMENSION(mp,niter) :: zetar ! stability correction
     REAL(r_2), PARAMETER                 :: jtomol = 4.6e-6 ! Conversion from Joule to Mol for light
     REAL(r_2), PARAMETER                 :: effc4 = 4000.0  !Vc=effc4*Ci*Vcmax (see
-    REAL(r_1), DIMENSION(mp)       :: fwsoil ! soil water modifier of stom. cond.
-    REAL(r_1), DIMENSION(mp)       :: rt0 ! turbulent resistance
-    REAL(r_1), DIMENSION(mp)       :: rt1usc ! eq. 3.53, SCAM manual, 1997
-    REAL(r_1), DIMENSION(mp)       :: denom ! denominator in calculating screen temperature, humidity etc
-    REAL(r_1), DIMENSION(mp)       :: tstar !
-    REAL(r_1), DIMENSION(mp)       :: zscrn !
-    REAL(r_1), DIMENSION(mp)       :: qstar !
-    REAL(r_1), DIMENSION(mp)       :: rsts  !
-    REAL(r_1), DIMENSION(mp)       :: qsurf !
-    REAL(r_1), DIMENSION(mp)       :: qtgnet !
-    REAL(r_1), DIMENSION(mp,ms)    :: tmp2d1, tmp2d2
-    REAL(r_1), DIMENSION(mp)       :: phenps ! Leaf phenology influence on vcmax and jmax
-    REAL(r_1), DIMENSION(mp)       :: poolcoef1 ! leaf carbon turnover rate * leaf pool size
-    REAL(r_1), DIMENSION(mp)       :: poolcoef1w ! wood carbon turnover rate * wood pool size
-    REAL(r_1), DIMENSION(mp)       :: poolcoef1r ! root carbon turnover rate * root pool size
-    REAL(r_1), DIMENSION(mp)		:: rbw ! leaf boundary layer resistance for water
-    REAL(r_1), DIMENSION(mp)            :: rrbw ! recipr. leaf boundary layer resistance for water
-    REAL(r_1), DIMENSION(mp)		:: rsw ! stomatal resistance for water
-    REAL(r_1), DIMENSION(mp)            :: rrsw ! recipr. stomatal resistance for water
-    REAL(r_1), DIMENSION(mp)		:: dmah ! A_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
-    REAL(r_1), DIMENSION(mp)		:: dmbh ! B_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
-    REAL(r_1), DIMENSION(mp)		:: dmch ! C_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
-    REAL(r_1), DIMENSION(mp)		:: dmae ! A_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
-    REAL(r_1), DIMENSION(mp)		:: dmbe ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
-    REAL(r_1), DIMENSION(mp)		:: dmce ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
-    REAL(r_1), DIMENSION(mp)       :: tss4 ! soil/snow temperature**4
-    REAL(r_1), DIMENSION(mp)       :: sss ! variable for Penman-Monteith evap for soil
-    REAL(r_1), DIMENSION(mp)       :: cc1 ! variable for Penman-Monteith evap for soil
-    REAL(r_1), DIMENSION(mp)       :: cc2 ! variable for Penman-Monteith evap for soil
-    REAL(r_1), DIMENSION(mp)       :: qstvair ! sat spec hunidity at leaf temperature
-    REAL(r_1), DIMENSION(mp)       :: xx ! delta-type function for sparse canopy limit, p20 SCAM manual
+    REAL, DIMENSION(mp)       :: fwsoil ! soil water modifier of stom. cond.
+    REAL, DIMENSION(mp)       :: rt0 ! turbulent resistance
+    REAL, DIMENSION(mp)       :: rt1usc ! eq. 3.53, SCAM manual, 1997
+    REAL, DIMENSION(mp)       :: denom ! denominator in calculating screen temperature, humidity etc
+    REAL, DIMENSION(mp)       :: tstar !
+    REAL, DIMENSION(mp)       :: zscrn !
+    REAL, DIMENSION(mp)       :: qstar !
+    REAL, DIMENSION(mp)       :: rsts  !
+    REAL, DIMENSION(mp)       :: qsurf !
+    REAL, DIMENSION(mp)       :: qtgnet !
+    REAL, DIMENSION(mp,ms)    :: tmp2d1, tmp2d2
+    REAL, DIMENSION(mp)       :: phenps ! Leaf phenology influence on vcmax and jmax
+    REAL, DIMENSION(mp)       :: poolcoef1 ! leaf carbon turnover rate * leaf pool size
+    REAL, DIMENSION(mp)       :: poolcoef1w ! wood carbon turnover rate * wood pool size
+    REAL, DIMENSION(mp)       :: poolcoef1r ! root carbon turnover rate * root pool size
+    REAL, DIMENSION(mp)            :: rbw ! leaf boundary layer resistance for water
+    REAL, DIMENSION(mp)            :: rrbw ! recipr. leaf boundary layer resistance for water
+    REAL, DIMENSION(mp)            :: rsw ! stomatal resistance for water
+    REAL, DIMENSION(mp)            :: rrsw ! recipr. stomatal resistance for water
+    REAL, DIMENSION(mp)            :: dmah ! A_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+    REAL, DIMENSION(mp)            :: dmbh ! B_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+    REAL, DIMENSION(mp)            :: dmch ! C_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+    REAL, DIMENSION(mp)            :: dmae ! A_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+    REAL, DIMENSION(mp)            :: dmbe ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+    REAL, DIMENSION(mp)            :: dmce ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+    REAL, DIMENSION(mp)       :: tss4 ! soil/snow temperature**4
+    REAL, DIMENSION(mp)       :: sss ! variable for Penman-Monteith evap for soil
+    REAL, DIMENSION(mp)       :: cc1 ! variable for Penman-Monteith evap for soil
+    REAL, DIMENSION(mp)       :: cc2 ! variable for Penman-Monteith evap for soil
+    REAL, DIMENSION(mp)       :: qstvair ! sat spec hunidity at leaf temperature
+    REAL, DIMENSION(mp)       :: xx ! delta-type function for sparse canopy limit, p20 SCAM manual
     !%% changes by Ashok Luhar (low wind speed)
-    REAL(r_1), PARAMETER                 :: alpha1 = 4.0
-    REAL(r_1), PARAMETER                 :: beta1  = 0.5
-    REAL(r_1), PARAMETER                 :: gamma1 = 0.3
-    REAL(r_1), DIMENSION(mp)       :: zeta1
-    REAL(r_1), DIMENSION(mp)       :: zeta2
+    REAL, PARAMETER                 :: alpha1 = 4.0
+    REAL, PARAMETER                 :: beta1  = 0.5
+    REAL, PARAMETER                 :: gamma1 = 0.3
+    REAL, DIMENSION(mp)       :: zeta1
+    REAL, DIMENSION(mp)       :: zeta2
     !**************************************************************************************** ! vh 17/07/09
-    REAL(r_1), DIMENSION(mp,ms)    :: alpha2a_root, alpha2_root, delta_root
+    REAL, DIMENSION(mp,ms)    :: alpha2a_root, alpha2_root, delta_root
     !**************************************************************************************** ! vh 17/07/09
     LOGICAL, DIMENSION(mp,mf)      :: Flag_fwet
     LOGICAL, DIMENSION(mp)         :: mdb_mask ! Needs to be set
-    REAL(r_1), DIMENSION(mp)       :: tmp1d
+    REAL, DIMENSION(mp)       :: tmp1d
 
     a1c3         = 0.0_r_2
     a1c4         = 0.0_r_2
@@ -326,10 +306,10 @@ CONTAINS
     delcx        = 0.0_r_2
     deltlf       = 0.0_r_2
     deltlfy      = 0.0_r_2
-    deltvair     = 0.0_r_1
-    delqvair     = 0.0_r_1
-    tvair_old    = 0.0_r_1
-    qvair_old    = 0.0_r_1
+    deltvair     = 0.0
+    delqvair     = 0.0
+    tvair_old    = 0.0
+    qvair_old    = 0.0
     dsatdk2      = 0.0_r_2
     dsx          = 0.0_r_2
     ecx          = 0.0_r_2
@@ -382,55 +362,57 @@ CONTAINS
     Ecansto      = 0.0_r_2
     oldcansto    = 0.0_r_2
     cc           = 0.0_r_2
-    zetar        = 0.0_r_1
-    fwsoil       = 0.0_r_1
-    rt0          = 0.0_r_1
-    rt1usc       = 0.0_r_1
-    denom        = 0.0_r_1
-    tstar        = 0.0_r_1
-    zscrn        = 0.0_r_1
-    qstar        = 0.0_r_1
-    rsts         = 0.0_r_1
-    qsurf        = 0.0_r_1
-    qtgnet       = 0.0_r_1
-    tmp2d2       = 0.0_r_1
-    tmp2d1       = 0.0_r_1
-    phenps       = 0.0_r_1
-    poolcoef1    = 0.0_r_1
-    poolcoef1w   = 0.0_r_1
-    poolcoef1r   = 0.0_r_1
-    tss4         = 0.0_r_1
-    sss          = 0.0_r_1
-    cc1          = 0.0_r_1
-    cc2          = 0.0_r_1
-    qstvair      = 0.0_r_1
-    xx           = 0.0_r_1
-    zeta1        = 0.0_r_1
-    zeta2        = 0.0_r_1
-    alpha2a_root = 0.0_r_1
-    alpha2_root  = 0.0_r_1
-    delta_root   = 0.0_r_1
+    zetar        = 0.0
+    fwsoil       = 0.0
+    rt0          = 0.0
+    rt1usc       = 0.0
+    denom        = 0.0
+    tstar        = 0.0
+    zscrn        = 0.0
+    qstar        = 0.0
+    rsts         = 0.0
+    qsurf        = 0.0
+    qtgnet       = 0.0
+    tmp2d2       = 0.0
+    tmp2d1       = 0.0
+    phenps       = 0.0
+    poolcoef1    = 0.0
+    poolcoef1w   = 0.0
+    poolcoef1r   = 0.0
+    tss4         = 0.0
+    sss          = 0.0
+    cc1          = 0.0
+    cc2          = 0.0
+    qstvair      = 0.0
+    xx           = 0.0
+    zeta1        = 0.0
+    zeta2        = 0.0
+    alpha2a_root = 0.0
+    alpha2_root  = 0.0
+    delta_root   = 0.0
     Flag_fwet    = .false.
     mdb_mask     = .false.
-    tmp1d        = 0.0_r_1
+    tmp1d        = 0.0
 
     a1c3 = a1c3_default ! MC-Guess: could be undefined otherwise
     a1c4 = a1c3_default
     d0c3 = d0c3_default
     d0c4 = d0c4_default
 
-       ! a1c3(:,1) = a1c3_default ! set in photosynthetic constants
-       a1c3(:,1) = veg%a1c3
-       a1c3(:,2) = a1c3(:,1)
-       a1c4(:,1) = a1c4_default ! set in photosynthetic constants
-       ! a1c4(:,1) = veg%a1c4
-       a1c4(:,2) = a1c4(:,1)
-       ! d0c3(:,1) = d0c3_default ! set in photosynthetic constants
-       d0c3(:,1) = veg%d0c3
-       d0c3(:,2) = d0c3(:,1)
-       ! d0c4(:,1) = d0c4_default ! set in photosynthetic constants
-       d0c4(:,1) = veg%d0c3
-       d0c4(:,2) = d0c4(:,1)
+    ! a1c3(:,1) = a1c3_default ! set in photosynthetic constants
+    a1c3(:,1) = veg%a1c3
+    a1c3(:,2) = a1c3(:,1)
+    a1c4(:,1) = a1c4_default ! set in photosynthetic constants
+    ! a1c4(:,1) = veg%a1c4
+    a1c4(:,2) = a1c4(:,1)
+    ! d0c3(:,1) = d0c3_default ! set in photosynthetic constants
+    d0c3(:,1) = veg%d0c3
+    d0c3(:,2) = d0c3(:,1)
+    ! d0c4(:,1) = d0c4_default ! set in photosynthetic constants
+    d0c4(:,1) = veg%d0c3
+    d0c4(:,2) = d0c4(:,1)
+    canopy%fevw = 0.0
+    canopy%delwc = 0.0
 
 
     !
@@ -443,24 +425,28 @@ CONTAINS
     met%da = (qsatf(met%tk-tfrz,met%pmb) - met%qv )*rmair/rmh2o*met%pmb*100.0
 
     ! test Lai and Katul formulation for root efficiency function  vh 17/07/09
-    alpha2a_root = real(max(ssoil%wb-soil%swilt_vec, 0.001_r_2)/(soil%ssat_vec), r_1)
-    !alpha2_root = EXP( (SPREAD(veg%gamma,2,ms)/real(max(ssoil%wb-soil%swilt_vec, 1.0e-10_r_2), r_1)) * log(alpha2a_root) )
-    tmp2d1 = REAL(ssoil%wb -soil%swilt_vec,r_1)
+    alpha2a_root = real(max(ssoil%wb-soil%swilt_vec, 0.001_r_2)/(soil%ssat_vec))
+    !alpha2_root = EXP( (SPREAD(veg%gamma,2,ms)/real(max(ssoil%wb-soil%swilt_vec, 1.0e-10_r_2))) * log(alpha2a_root) )
+    tmp2d1 = REAL(ssoil%wb -soil%swilt_vec)
     tmp2d2 = SPREAD(veg%gamma,2,ms)/tmp2d1*log(alpha2a_root)
-    WHERE ((tmp2d1>0.001_r_1) .and. (tmp2d2 > -10.0_r_1))
+    WHERE ((tmp2d1>1.e-8) .and. (tmp2d2 > -10.0))
        alpha2_root = exp(tmp2d2)
     ELSEWHERE
-       alpha2_root = 0.0_r_1
+       alpha2_root = 0.0
     ENDWHERE
 
-    WHERE (veg%froot>0.0_r_1)
-       delta_root = 1.0_r_1
+    WHERE (veg%froot>0.0)
+       delta_root = 1.0
     ELSEWHERE
-       delta_root = 0.0_r_1
+       delta_root = 0.0
     ENDWHERE
 
-    fwsoil  = maxval(alpha2_root*delta_root, 2)
-    fwsoil  = max(0.0_r_1, fwsoil)
+    !fwsoil  = maxval(alpha2_root*delta_root, 2)
+    !fwsoil  = max(0.0, fwsoil)
+    fwsoil = canopy%fwsoil
+
+
+
     fwsoil2 = real(SPREAD(fwsoil,2,mf),r_2)
 
     ! BATS-type canopy saturation proportional to LAI:
@@ -468,7 +454,7 @@ CONTAINS
     ! Leaf phenology influence on vcmax and jmax
     ! rml 22/10/07 only apply to deciduous types
     WHERE (veg%deciduous)
-       phenps = max(1.0e-4, MIN(1.,1. - ( (veg%tmaxvj - real(ssoil%tgg(:,4),r_1)+tfrz)/ &
+       phenps = max(1.0e-4, MIN(1.,1. - ( (veg%tmaxvj - real(ssoil%tgg(:,4))+tfrz)/ &
             (veg%tmaxvj - veg%tminvj) )**2 ) )
        WHERE ( ssoil%tgg(:,4) < real(veg%tminvj + tfrz,r_2) ) phenps = 0.0
        WHERE ( ssoil%tgg(:,4) > real(veg%tmaxvj + tfrz,r_2) ) phenps = 1.0
@@ -486,12 +472,12 @@ CONTAINS
     ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
     canopy%wcint = MERGE(MIN(MAX(cansat - canopy%cansto,0.0_r_2),cc), 0.0_r_2, cc>0.0_r_2)  ! EK nov2007, snow scheme
     !         cc > 0.0  .AND. met%tk > tfrz)
-    
+
     ! Delete line below in case it affects snow sites (precip_s) (EK Jul08)
     !    canopy%through = MIN(met%precip,MAX(0.0, met%precip - canopy%wcint))
-   
+
     ssoil%wetfac = MAX(0.0, MIN(1.0, &
-         (REAL(ssoil%wb(:,1),r_1) - soil%swilt) / (soil%sfc - soil%swilt)))
+         (REAL(ssoil%wb(:,1)) - soil%swilt) / (soil%sfc - soil%swilt)))
     ! owetfac introduced to reduce sharp changes in dry regions,
     ! especially in offline runs where there may be discrepancies between
     ! timing of precip and temperature change (EAK apr2009)
@@ -500,12 +486,11 @@ CONTAINS
     WHERE ( ssoil%wbice(:,1) > 0.0_r_2 ) ! Prevents divide by zero at glaciated
        ! points where wb and wbice=0.
        ssoil%wetfac = ssoil%wetfac &
-            * (1.0 - REAL(ssoil%wbice(:,1)/ssoil%wb(:,1),r_1))**2
+            * (1.0 - REAL(ssoil%wbice(:,1)/ssoil%wb(:,1)))**2
     END WHERE
     zetar(:,1) = zeta0 ! stability correction terms
     zetar(:,2) = zetpos + 1
     xdleaf2 = real(SPREAD(veg%dleaf,2,mf),r_2) ! characteristic leaf length
-    dsatdk2 = real(SPREAD(air%dsatdk,2,mf),r_2)! deriv of sat vap pressure wrt temp
     ca2 = real(SPREAD(met%ca,2,mf),r_2)        ! CO2 concentration
     csx = ca2                     ! initialise leaf surface CO2 concentration
     da2 = real(SPREAD(met%da,2,mf),r_2) ! water vapour pressure deficit
@@ -536,20 +521,21 @@ CONTAINS
     met%tvrad = met%tk
     met%qvair = met%qv
     ortsoil   = ssoil%rtsoil
-	!ssoil%tss =  real((1-ssoil%isflag))*ssoil%tgg(:,1) + real(ssoil%isflag)*ssoil%tggsn(:,1)
-	ssoil%tss =  ssoil%Tsurface + tfrz
+    !ssoil%tss =  real((1-ssoil%isflag))*ssoil%tgg(:,1) + real(ssoil%isflag)*ssoil%tggsn(:,1)
+    ssoil%tss =  ssoil%Tsurface + tfrz
     tss4      = ssoil%tss**4
     deltvair  = 999.0
     delqvair  = 999.0
     tvair_old = met%tvair
     qvair_old = met%qvair
     ! Calculate fraction of canopy which is wet:
-    canopy%fwet = MAX(0.0,MIN(1.0,real(0.8_r_2*canopy%cansto/MAX(cansat,0.01_r_2),r_1)))
+    canopy%fwet = MAX(0.0,MIN(1.0,real(0.8_r_2*canopy%cansto/MAX(cansat,0.01_r_2))))
     fwet = real(SPREAD(canopy%fwet,2,mf),r_2)
     iter = 0
 
 
     CALL define_air(met, air)
+    dsatdk2 = real(SPREAD(air%dsatdk,2,mf),r_2)! deriv of sat vap pressure wrt temp
     CALL radiation(ssoil, veg, air, met, rad, canopy)
     where (rad%fvlai > 1.e-5)
        ! supply limited evap from wet leaves
@@ -568,14 +554,14 @@ CONTAINS
 
     DO WHILE ((ANY(ABS(deltvair)>0.1) .OR. ANY(ABS(delqvair)>0.005)) .AND. iter<1) ! iterate over in-canopy T and q
        iter = iter+1
-        canopy%cansto = oldcansto
-	    ! Add canopy interception to canopy storage term:
-        canopy%cansto = canopy%cansto + canopy%wcint
-		! Define canopy throughfall (100% of precip if temp < 0C, see above):
-         canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn , &
-         MAX(0.0, met%precip - met%precip_sn - real(canopy%wcint,r_1)) )  ! EK nov2007
-	   
-	   ssoil%otss(:) = ssoil%tss(:)
+       canopy%cansto = oldcansto
+       ! Add canopy interception to canopy storage term:
+       canopy%cansto = canopy%cansto + canopy%wcint
+       ! Define canopy throughfall (100% of precip if temp < 0C, see above):
+       canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn , &
+            MAX(0.0, met%precip - met%precip_sn - real(canopy%wcint)) )  ! EK nov2007
+
+       ssoil%otss(:) = ssoil%tss(:)
        tss4 = ssoil%tss**4
        CALL define_air(met, air)
        dsatdk2 = SPREAD(air%dsatdk, 2, mf)
@@ -609,14 +595,14 @@ CONTAINS
        ! Turbulent aerodynamic resistance from roughness sublayer depth to reference height,
        ! x=1 if zref+disp>zruffs, 0 otherwise: thus rt1usc = 0 if zref+disp<zruffs
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.53:
-       xx = 0.5_r_1 + sign(0.5_r_1,rough%zref_tq+rough%disp-rough%zruffs)
+       xx = 0.5 + sign(0.5,rough%zref_tq+rough%disp-rough%zruffs)
        !              correction  by Ian Harman to the 2nd psis term
        rt1usc = xx * (LOG(rough%zref_tq/MAX(rough%zruffs-rough%disp, rough%z0soilsn)) &
             - psis( zetar(:,iter) ) &
             + psis( zetar(:,iter)*(MAX(rough%zruffs-rough%disp,rough%z0soilsn))/rough%zref_tq ) &
             )/vonk
 
-		!	rt1usc = rt1usc/2. ! test vh
+       !       rt1usc = rt1usc/2. ! test vh
 
        ! rt0 = turbulent resistance from soil to canopy:
        rt0 = rough%rt0us / canopy%us
@@ -628,11 +614,11 @@ CONTAINS
        END WHERE
        ! change canopy%vlaiw requirement to 0.01 for conformity (BP may 2009)
        WHERE (canopy%vlaiw > 0.01)
-          ssoil%rtsoil = rt0 
+          ssoil%rtsoil = rt0
        ELSEWHERE
           ssoil%rtsoil = rt0 + rough%rt1
        END WHERE
-       ssoil%rtsoil = max(25._r_2,ssoil%rtsoil)
+       ssoil%rtsoil = max(25.,ssoil%rtsoil)
        WHERE (ssoil%rtsoil>2.0_r_2*ortsoil .OR. ssoil%rtsoil<0.5_r_2*ortsoil)
           ssoil%rtsoil = MAX(25._r_2, 0.5_r_2*(ssoil%rtsoil + ortsoil))
        END WHERE
@@ -640,18 +626,21 @@ CONTAINS
        ! Vegetation boundary-layer conductance (mol/m2/s)
        ! prandt = kinematic viscosity/molecular diffusivity
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.12. Top leaf:
-       gbvtop = real(air%cmolar*apol * air%visc / prandt / veg%dleaf *       &
-            sqrt(canopy%us / MIN(rough%usuh, 0.2) * veg%dleaf / air%visc) * prandt**(0.3333333) / veg%shelrb, r_2)
-       ! Forced convection boundary layer conductance (see Wang & Leuning 1998, AFM):
-       !                                gbhu corrected by F.Cruz & A.Pitman on 13/03/07
-       tmp1d = 0.5*rough%coexp+rad%extkb
-       where (tmp1d < 40.0_r_1) ! MC: avoid floating underflow
-          gbhu(:,1) = gbvtop*(1.0_r_2-EXP(real(-canopy%vlaiw*tmp1d,r_2))) / real(tmp1d,r_2)
-       elsewhere
-          gbhu(:,1) = gbvtop* 1.0_r_2 / real(tmp1d,r_2)
-       endwhere
-       gbhu(:,2) = (2.0_r_2/real(rough%coexp,r_2))*gbvtop* &
-            (1.0_r_2-EXP(real(-0.5*rough%coexp*canopy%vlaiw,r_2)))-gbhu(:,1)
+       WHERE (canopy%vlaiw > 0.01)
+          gbvtop = real(air%cmolar*apol * air%visc / prandt / veg%dleaf *       &
+               sqrt(canopy%us / MIN(rough%usuh, 0.2) * veg%dleaf / air%visc) * prandt**(0.3333333) / veg%shelrb, r_2)
+          ! Forced convection boundary layer conductance (see Wang & Leuning 1998, AFM):
+          !                                gbhu corrected by F.Cruz & A.Pitman on 13/03/07
+          tmp1d = 0.5*rough%coexp+rad%extkb
+          where (tmp1d < 40.0) ! MC: avoid floating underflow
+             gbhu(:,1) = gbvtop*(1.0_r_2-EXP(real(-canopy%vlaiw*tmp1d,r_2))) / real(tmp1d,r_2)
+          elsewhere
+             gbhu(:,1) = gbvtop* 1.0_r_2 / real(tmp1d,r_2)
+          endwhere
+          ! MC include max because can go <0 in some weird cirumstances
+          gbhu(:,2) = max(0.0_r_2, (2.0_r_2/real(rough%coexp,r_2))*gbvtop* &
+               (1.0_r_2-EXP(real(-0.5*rough%coexp*canopy%vlaiw,r_2)))-gbhu(:,1) )
+       ENDWHERE
 
        ! special for BIOS2, where input Ta is screen temperature
        !********************************************************************************************
@@ -681,26 +670,27 @@ CONTAINS
           !      use the dispersion matrix (DM) to find the air temperature and specific humidity
           !      (Raupach, Finkele and Zhang 1997, pp 17)
           ! leaf boundary layer resistance for water
-           rbw = air%cmolar/sum(gbhu+gbhf,2)    ! gbhf initially set to 1e-3
-           rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT
+          rbw = air%cmolar/sum(gbhu+gbhf,2)    ! gbhf initially set to 1e-3
+          rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT
           ! leaf stomatal resistance for water
-           rsw = air%cmolar/sum(gswx,2)
-           rrsw = sum(gswx,2)/air%cmolar ! MJT
-           ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-           dmah = (rt0+rough%rt1)*((1.+air%epsi)*rrsw +rrbw) &
-                + air%epsi * (rt0*rough%rt1)*(rrbw*rrsw)
-           ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-           dmbh = (-air%rlam/capp)*(rt0*rough%rt1)*(rrbw*rrsw)
-           ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-           dmch = ((1.+air%epsi)*rrsw +rrbw)*rt0*rough%rt1* &
-                (canopy%fhv + canopy%fhs)/(air%rho*capp)
-           ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-           dmae = (-air%epsi*capp/air%rlam)*(rt0*rough%rt1)*(rrbw*rrsw)
-           ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-           dmbe = (rt0+ssoil%wetfac*rough%rt1)*((1.+air%epsi)*rrsw +rrbw)+(rt0*rough%rt1)*(rrbw*rrsw)
-           ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-           dmce = ((1.+air%epsi)*rrsw +rrbw)*rt0*rough%rt1*(canopy%fev + canopy%fes)/ &
-                (air%rho*air%rlam)
+          rsw = air%cmolar/sum(gswx,2)
+          rrsw = sum(gswx,2)/air%cmolar ! MJT
+          ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+          dmah = (rt0+rough%rt1)*((1.+air%epsi)*rrsw +rrbw) &
+               + air%epsi * (rt0*rough%rt1)*(rrbw*rrsw)
+          ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+          dmbh = (-air%rlam/capp)*(rt0*rough%rt1)*(rrbw*rrsw)
+          ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+
+          dmch = ((1.+air%epsi)*rrsw +rrbw)*rt0*rough%rt1* &
+               (canopy%fhv + canopy%fhs)/(air%rho*capp)
+          ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+          dmae = (-air%epsi*capp/air%rlam)*(rt0*rough%rt1)*(rrbw*rrsw)
+          ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+          dmbe = (rt0+ssoil%wetfac*rough%rt1)*((1.+air%epsi)*rrsw +rrbw)+(rt0*rough%rt1)*(rrbw*rrsw)
+          ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+          dmce = ((1.+air%epsi)*rrsw +rrbw)*rt0*rough%rt1*(canopy%fev + canopy%fes)/ &
+               (air%rho*air%rlam)
 
           tvair_old = met%tvair
           qvair_old = met%qvair
@@ -708,7 +698,7 @@ CONTAINS
           ! Within canopy air temperature:
           where (veg%vlai>0.1)
              met%tvair = met%tk  +( (dmbe*dmch-dmbh*dmce)/(dmah*dmbe-dmae*dmbh+1.0e-12) + &
-			                       (tvair_old - met%tk_old))/2.
+                  (tvair_old - met%tk_old))/2.
           elsewhere
              met%tvair = met%tk
           endwhere
@@ -720,7 +710,7 @@ CONTAINS
           ! Within canopy specific humidity:
           where (veg%vlai>0.1)
              met%qvair = met%qv   + ((dmah*dmce-dmae*dmch)/(dmah*dmbe-dmae*dmbh+1.0e-12) + &
-			                          (qvair_old - met%qv_old))/2.
+                  (qvair_old - met%qv_old))/2.
           elsewhere
              met%qvair = met%qv
           endwhere
@@ -890,15 +880,15 @@ CONTAINS
              ! Still need to reduce carbon conducatnce by factor of (1-fwet)
              gw = (1.0_r_2-fwet)*gw + fwet*gbw
              ! Modified psychrometric constant (Monteith and Unsworth, 1990)
-			 where (gw.gt.1e-15_r_2)
-			    psycst = real(SPREAD(air%psyc,2,mf),r_2) * ghr/gw
-			    ! Update canopy latent heat flux:
+             where (gw.gt.1e-15_r_2)
+                psycst = real(SPREAD(air%psyc,2,mf),r_2) * ghr/gw
+                ! Update canopy latent heat flux:
                 ecx = (dsatdk2*real(rad%rniso,r_2)+real(capp*rmair,r_2)*da2*ghr) /(dsatdk2+psycst)
-			 elsewhere
-			    psycst = 0.0_r_2
-			    ecx = 0.0_r_2
-			 endwhere
-				
+             elsewhere
+                psycst = 0.0_r_2
+                ecx = 0.0_r_2
+             endwhere
+
              ! Store leaf temperature:
              tlfxx = tlfx
              ! Update canopy sensible heat flux:
@@ -914,6 +904,9 @@ CONTAINS
              deltlf = tlfxx-tlfx
              abs_deltlf = ABS(deltlf)
           END WHERE
+
+
+
           ! Where leaf temp change b/w iterations is significant, and difference is
           ! smaller than the previous iteration, store results:
           !MC-Guess: update y-values after END DO, i.e. move 30 lines down
@@ -926,6 +919,7 @@ CONTAINS
              rdy     = rdx
              an_y    = anx
           END WHERE
+
           rk = real(k,r_2)
           WHERE (abs_deltlf > 0.1_r_2)
              !        after four iteration, take the mean value of current and previous estimates
@@ -945,16 +939,16 @@ CONTAINS
              an_y = anx
           END IF
        END DO  ! DO WHILE (ANY(abs_deltlf > 0.1)        .AND.  k < maxiter)
-             tlfy    = tlfx
-             rny     = rnx
-             hcy     = hcx
-             ecy     = ecx
-             rdy     = rdx
-             an_y    = anx
+
+       tlfy    = tlfx
+       rny     = rnx
+       hcy     = hcx
+       ecy     = ecx
+       rdy     = rdx
+       an_y    = anx
        canopy%fev = sum(ecy,2)
        canopy%fhv = sum(hcy,2)
-       canopy%fnv = real(sum(rny,2),r_1)
-
+       canopy%fnv = real(sum(rny,2))
 
        an_y = (an_y+rdy)*(1.0_r_2-fwet) - rdy    ! only allow gross photosynthesis on dry part of leaf
 
@@ -969,22 +963,23 @@ CONTAINS
                sboltz*met%tvair**4 - emsoil*sboltz* tss4
 
           ssoil%potev = real(cc1 * (canopy%fns - canopy%ga) + cc2 * air%rho  &
-               * real(air%rlam,r_1) * (qsatf((met%tk-tfrz),met%pmb) - met%qv), r_2) / ssoil%rtsoil
+               * real(air%rlam) * (qsatf((met%tk-tfrz),met%pmb) - met%qv), r_2) / ssoil%rtsoil
 
           ! Soil latent heat:
           canopy%fes= real(ssoil%wetfac,r_2) * ssoil%potev
           WHERE (ssoil%snowd < 0.1_r_2 .AND. canopy%fes > 0.0)
              ! Reduce for wilting point limitation:
-             canopy%fes= MIN( canopy%fes, MAX(0.0, &
-                  (REAL(ssoil%wb(:,1),r_1)-soil%swilt)) *soil%zse(1)*1000.0*real(air%rlam,r_1)/dels)
+             canopy%fes= MIN( canopy%fes, &
+                  MAX(0.0_r_2, (ssoil%wb(:,1)-real(soil%swilt,r_2))) * &
+                  soil%zse(1)*1000.0*real(air%rlam)/dels)
              ! Reduce for soil ice limitation:
-             canopy%fes = MIN(canopy%fes, REAL(ssoil%wb(:,1)-ssoil%wbice(:,1),r_1) &
-                  * soil%zse(1) * 1000. * real(air%rlam,r_1) / dels)
+             canopy%fes = MIN(canopy%fes, (ssoil%wb(:,1)-ssoil%wbice(:,1)) &
+                  * soil%zse(1) * 1000. * real(air%rlam) / dels)
           END WHERE
           ssoil%cls=1.
           WHERE (ssoil%snowd >= 0.1_r_2)
              ssoil%cls = 1.1335_r_2
-             canopy%fes= MIN(ssoil%wetfac * real(ssoil%potev,r_1),real(ssoil%snowd*air%rlam*ssoil%cls,r_1)/dels)
+             canopy%fes= MIN(ssoil%wetfac * real(ssoil%potev),real(ssoil%snowd*air%rlam*ssoil%cls)/dels)
           END WHERE
 
           ! Calculate soil sensible heat:
@@ -994,9 +989,11 @@ CONTAINS
        END IF
 
        ! Calculate total latent heat:
-       canopy%fe = real(canopy%fev,r_1) + canopy%fes
+       canopy%fe = real(canopy%fev) + canopy%fes
        ! Calculate total sensible heat:
-       canopy%fh = real(canopy%fhv,r_1) + canopy%fhs
+       canopy%fh = real(canopy%fhv) + canopy%fhs
+
+                 !write(*,*) 'canopy_vh chk2'
 
        where ((fwet*ecy) > Ecansto)  ! move this inside Tleaf loop?
           fwet = Ecansto/ecy
@@ -1009,11 +1006,11 @@ CONTAINS
        endwhere
 
        where (sum(ecy,2) > 0.0_r_2)  ! evaporation
-          canopy%fevw = min(sum(ecy*fwet*gbw/max(gw,1.e-12_r_2),2), &
+          canopy%fevw = min(sum(ecy*fwet*gbw/max(gw,1.e-6_r_2),2), &
                max(0.0_r_2,canopy%cansto)*air%rlam/real(dels,r_2))
-          canopy%fwet = REAL(canopy%fevw/sum(ecy,2),r_1)
+          canopy%fwet = REAL(canopy%fevw/sum(ecy,2))
        elsewhere ! condensation
-          canopy%fevw = sum(ecy*fwet*gbw/max(gw,1.e-12_r_2),2)
+          canopy%fevw = sum(ecy*fwet*gbw/max(gw,1.e-6_r_2),2)
           canopy%fwet = 1.0
        endwhere
        !MC-Guess: try 1e-15 again
@@ -1083,25 +1080,25 @@ CONTAINS
           canopy%qscrn = qsurf + qstar * denom
           canopy%uscrn = max(0.0, max(met%ua,umin) - canopy%us * denom )    ! at present incorrect
        endif              ! comment out calc of variables at screen height vh 15/07/09
-       
-       canopy%frday = 12.0 * real(sum(rdy, 2),r_1)
-       canopy%fpn   = -12.0 * real(sum(an_y, 2),r_1)
+
+       canopy%frday = 12.0 * real(sum(rdy, 2))
+       canopy%fpn   = -12.0 * real(sum(an_y, 2))
        ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
-       canopy%dewmm = - REAL((min(0.0_r_2,canopy%fevw) + min(0.0_r_2,canopy%fevc))/air%rlam,r_1) * &
+       canopy%dewmm = - REAL((min(0.0_r_2,canopy%fevw) + min(0.0_r_2,canopy%fevc))/air%rlam) * &
             dels * 1.0e3 / rhow
        ! Add dewfall to canopy water storage:
        canopy%cansto = canopy%cansto + real(canopy%dewmm,r_2)
-	   ! Modify canopy water storage for evaporation:
+       ! Modify canopy water storage for evaporation:
        canopy%cansto = max(canopy%cansto-max(0.0_r_2,canopy%fevw)/air%rlam*1.0e3_r_2*real(dels/rhow,r_2), 0.0_r_2)
        ! Calculate canopy water storage excess:
-       canopy%spill= real(max(0.0_r_2,min(0.2_r_2*canopy%cansto,max(0.0_r_2,canopy%cansto-cansat))), r_1)
+       canopy%spill= real(max(0.0_r_2,min(0.2_r_2*canopy%cansto,max(0.0_r_2,canopy%cansto-cansat))))
        ! Move excess canopy water to throughfall:
        canopy%through = canopy%through + canopy%spill
        ! Initialise 'throughfall to soil' as 'throughfall from canopy'; snow may absorb
        canopy%precis = real(canopy%through,r_2)
        ! Update canopy storage term:
        canopy%cansto = canopy%cansto - real(canopy%spill,r_2)
-       
+
        ! Calculate the total change in canopy water store (mm/dels):
        !canopy%delwc = canopy%cansto-oldcansto
        ! calculate dgdtg, derivative of ga
@@ -1121,14 +1118,14 @@ CONTAINS
        ! because the UM driver will call define_canopy twice
        ssoil%owetfac = ssoil%wetfac
 
-       CALL sli_main(ktau,dels,veg,soil,ssoil,met,canopy,air)
+       CALL sli_main(ktau,dels,veg,soil,ssoil,met,canopy,air,rad)
        tss4 = ssoil%tss**4
     END DO      ! do iter = 1, niter
 
-     
-       
-       ! Calculate the total change in canopy water store (mm/dels):
-       canopy%delwc = canopy%cansto-oldcansto
+
+
+    ! Calculate the total change in canopy water store (mm/dels):
+    canopy%delwc = canopy%cansto-oldcansto
     !******************************************************************************************
     canopy%gw     = gw   ! edit vh 6/7/09
     canopy%ancj   = ancj*(-12.0) ! edit vh 7/7/09
@@ -1137,20 +1134,19 @@ CONTAINS
     canopy%ecy    = ecy ! edit vh 7/7/09
     canopy%ecx    = ecx ! edit vh 7/7/09
     canopy%ci     = ci ! edit vh 7/7/09
-    canopy%fwsoil = fwsoil ! edit vh 7/7/09
+    !canopy%fwsoil = fwsoil ! edit vh 7/7/09
     !******************************************************************************************
 
   END SUBROUTINE define_canopy_vh
-
 
   !--------------------------------------------------------------------------
   ELEMENTAL FUNCTION qsatf_r_1(tair,pmb)
     ! MRR, 1987
     ! AT TEMP tair (DEG C) AND PRESSURE pmb (MB), GET SATURATION SPECIFIC
     ! HUMIDITY (KG/KG) FROM TETEN FORMULA
-    REAL(r_1), INTENT(IN) :: tair ! air temperature (C)
-    REAL(r_1), INTENT(IN) :: pmb  ! pressure PMB (mb)
-    REAL(r_1)           :: qsatf_r_1    ! result; sat sp humidity
+    REAL, INTENT(IN) :: tair ! air temperature (C)
+    REAL, INTENT(IN) :: pmb  ! pressure PMB (mb)
+    REAL           :: qsatf_r_1    ! result; sat sp humidity
 
     qsatf_r_1 = (rmh2o/rmair) * (tetena*EXP(tetenb*tair/(tetenc+tair))) / pmb
 
@@ -1171,9 +1167,9 @@ CONTAINS
   !---------------------------------------------------------
   ELEMENTAL FUNCTION ej3x_r_1(parx,x)
 
-    REAL(r_1), INTENT(IN)     :: parx
-    REAL(r_1), INTENT(IN)     :: x
-    REAL(r_1)                 :: ej3x_r_1
+    REAL, INTENT(IN)     :: parx
+    REAL, INTENT(IN)     :: x
+    REAL                 :: ej3x_r_1
 
     ej3x_r_1 = max(0.0, &
          0.25*((alpha3*parx+x-sqrt((alpha3*parx+x)**2 - &
@@ -1196,9 +1192,9 @@ CONTAINS
   !---------------------------------------------------------
   ELEMENTAL FUNCTION ej4x_r_1(parx,x)
 
-    REAL(r_1), INTENT(IN)     :: parx
-    REAL(r_1), INTENT(IN)     :: x
-    REAL(r_1)                 :: ej4x_r_1
+    REAL, INTENT(IN)     :: parx
+    REAL, INTENT(IN)     :: x
+    REAL                 :: ej4x_r_1
 
     ej4x_r_1 = max(0.0, &
          (alpha4*parx+x-sqrt((alpha4*parx+x)**2 - &
@@ -1222,9 +1218,9 @@ CONTAINS
   ! Explicit array dimensions as temporary work around for NEC inlining problem
   FUNCTION xvcmxt4_r_1(x)
 
-    REAL(r_1), PARAMETER      :: q10c4 = 2.0
-    REAL(r_1), DIMENSION(mp,mf), INTENT(IN)     :: x
-    REAL(r_1), DIMENSION(mp,mf)                 :: xvcmxt4_r_1
+    REAL, PARAMETER      :: q10c4 = 2.0
+    REAL, DIMENSION(mp,mf), INTENT(IN)     :: x
+    REAL, DIMENSION(mp,mf)                 :: xvcmxt4_r_1
 
     xvcmxt4_r_1 = q10c4 ** (0.1 * x - 2.5) / &
          ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
@@ -1246,10 +1242,10 @@ CONTAINS
   FUNCTION xvcmxt3_r_1(x)
     !  leuning 2002 (p c & e) equation for temperature response
     !  used for vcmax for c3 plants
-    REAL(r_1), DIMENSION(mp,mf), INTENT(IN)     :: x
-    REAL(r_1), DIMENSION(mp,mf)         :: xvcnum
-    REAL(r_1), DIMENSION(mp,mf)         :: xvcden
-    REAL(r_1), DIMENSION(mp,mf)         :: xvcmxt3_r_1
+    REAL, DIMENSION(mp,mf), INTENT(IN)     :: x
+    REAL, DIMENSION(mp,mf)         :: xvcnum
+    REAL, DIMENSION(mp,mf)         :: xvcden
+    REAL, DIMENSION(mp,mf)         :: xvcmxt3_r_1
 
     xvcnum  = xvccoef*exp((ehavc/(rgas*trefk))*(1.-trefk/x))
     xvcden  = 1.0+exp((entropvc*x-ehdvc)/(rgas*x))
@@ -1275,10 +1271,10 @@ CONTAINS
   FUNCTION xejmxt3_r_1(x)
     !  leuning 2002 (p c & e) equation for temperature response
     !  used for jmax for c3 plants
-    REAL(r_1), DIMENSION(mp,mf), INTENT(IN)     :: x
-    REAL(r_1), DIMENSION(mp,mf)         :: xjxnum
-    REAL(r_1), DIMENSION(mp,mf)         :: xjxden
-    REAL(r_1), DIMENSION(mp,mf)         :: xejmxt3_r_1
+    REAL, DIMENSION(mp,mf), INTENT(IN)     :: x
+    REAL, DIMENSION(mp,mf)         :: xjxnum
+    REAL, DIMENSION(mp,mf)         :: xjxden
+    REAL, DIMENSION(mp,mf)         :: xejmxt3_r_1
 
     xjxnum  = xjxcoef*exp((ehajx/(rgas*trefk))*(1.-trefk/x))
     xjxden  = 1.0+exp((entropjx*x-ehdjx)/(rgas*x))
@@ -1308,23 +1304,23 @@ CONTAINS
     ! and the webb form for stable cases. see paulson (1970).
     USE math_constants
 
-    REAL(r_1), INTENT(IN)     :: zeta
-    REAL(r_1)                 :: x
-    REAL(r_1), PARAMETER      :: gu = 16.0
-    REAL(r_1), PARAMETER      :: gs = 5.0
-    REAL(r_1)                 :: z
-    REAL(r_1)                 :: stable
-    REAL(r_1)                 :: unstable
-    REAL(r_1)                 :: psim_r_1
+    REAL, INTENT(IN)     :: zeta
+    REAL                 :: x
+    REAL, PARAMETER      :: gu = 16.0
+    REAL, PARAMETER      :: gs = 5.0
+    REAL                 :: z
+    REAL                 :: stable
+    REAL                 :: unstable
+    REAL                 :: psim_r_1
 
     !      x = (1.0 + gu*abs(zeta))**0.25
     !      r = merge(log((1.0+x*x)*(1.0+x)**2/8.0) - 2.0*atan(x) &
     !           + pi*0.5, -gs*zeta, zeta < 0.0)
-    z        = 0.5_r_1 + sign(0.5_r_1,zeta)    ! z=1 in stable, 0 in unstable
+    z        = 0.5 + sign(0.5,zeta)    ! z=1 in stable, 0 in unstable
     stable   = -gs*zeta
-    x        = (1.0_r_1 + gu*abs(zeta))**0.25_r_1
-    unstable = log((1.0_r_1+x*x)*(1.0_r_1+x)**2/8.0_r_1) - 2.0_r_1*atan(x) + pi*0.5_r_1
-    psim_r_1 = z*stable + (1.0_r_1-z)*unstable
+    x        = (1.0 + gu*abs(zeta))**0.25
+    unstable = log((1.0+x*x)*(1.0+x)**2/8.0) - 2.0*atan(x) + pi*0.5
+    psim_r_1 = z*stable + (1.0-z)*unstable
 
   END FUNCTION psim_r_1
 
@@ -1361,22 +1357,22 @@ CONTAINS
     ! computes integrated stability function psis(z/l) (z/l=zeta)
     ! for scalars, using the businger-dyer form for unstable cases
     ! and the webb form for stable cases. see paulson (1970).
-    REAL(r_1), INTENT(IN)     :: zeta
-    REAL(r_1), PARAMETER      :: gu = 16.0
-    REAL(r_1), PARAMETER      :: gs = 5.0
-    REAL(r_1)                 :: z
-    REAL(r_1)                 :: y
-    REAL(r_1)                 :: stable
-    REAL(r_1)                 :: unstable
-    REAL(r_1)                 :: psis_r_1
+    REAL, INTENT(IN)     :: zeta
+    REAL, PARAMETER      :: gu = 16.0
+    REAL, PARAMETER      :: gs = 5.0
+    REAL                 :: z
+    REAL                 :: y
+    REAL                 :: stable
+    REAL                 :: unstable
+    REAL                 :: psis_r_1
 
     !      r = merge(2.0 * log((1.0 + sqrt(1.0 + gu * abs(zeta))) * 0.5), &
     !           - gs * zeta, zeta < 0.0)
-    z        = 0.5_r_1 + sign(0.5_r_1,zeta)    ! z=1 in stable, 0 in unstable
+    z        = 0.5 + sign(0.5,zeta)    ! z=1 in stable, 0 in unstable
     stable   = -gs*zeta
-    y        = (1.0_r_1 + gu*abs(zeta))**0.5_r_1
-    unstable = 2.0_r_1 * log((1.0_r_1+y)*0.5_r_1)
-    psis_r_1 = z*stable + (1.0_r_1-z)*unstable
+    y        = (1.0 + gu*abs(zeta))**0.5
+    unstable = 2.0 * log((1.0+y)*0.5)
+    psis_r_1 = z*stable + (1.0-z)*unstable
 
   END FUNCTION psis_r_1
 
@@ -1407,10 +1403,10 @@ CONTAINS
   !---------------------------------------------------------
   ELEMENTAL FUNCTION rplant_r_1(rpconst, rpcoef, tair)
 
-    REAL(r_1), INTENT(IN)     :: rpconst
-    REAL(r_1), INTENT(IN)     :: rpcoef
-    REAL(r_1), INTENT(IN)     :: tair
-    REAL(r_1)                 :: rplant_r_1
+    REAL, INTENT(IN)     :: rpconst
+    REAL, INTENT(IN)     :: rpcoef
+    REAL, INTENT(IN)     :: tair
+    REAL                 :: rplant_r_1
 
     rplant_r_1 = rpconst * exp(rpcoef * tair)
 
@@ -1430,15 +1426,15 @@ CONTAINS
   !---------------------------------------------------------
   ELEMENTAL FUNCTION rsoil_r_1(rsconst, avgwrs, avgtrs)
 
-    REAL(r_1), INTENT(IN)     :: rsconst
-    REAL(r_1), INTENT(IN)     :: avgwrs
-    REAL(r_1), INTENT(IN)     :: avgtrs
-    REAL(r_1)                 :: rsoil_r_1
+    REAL, INTENT(IN)     :: rsconst
+    REAL, INTENT(IN)     :: avgwrs
+    REAL, INTENT(IN)     :: avgtrs
+    REAL                 :: rsoil_r_1
 
-    rsoil_r_1 = rsconst * min(1.0_r_1, max(0.0_r_1, min( &
-         -0.0178_r_1+0.2883_r_1*avgwrs+5.0176_r_1*avgwrs*avgwrs-4.5128_r_1*avgwrs*avgwrs*avgwrs, &
-         0.3320_r_1+22.6726_r_1*exp(-5.8184_r_1*avgwrs)))) &
-         * min(1.0_r_1, max(0.0_r_1, min( 0.0104_r_1*(avgtrs**1.3053_r_1), 5.5956_r_1-0.1189_r_1*avgtrs)))
+    rsoil_r_1 = rsconst * min(1.0, max(0.0, min( &
+         -0.0178+0.2883*avgwrs+5.0176*avgwrs*avgwrs-4.5128*avgwrs*avgwrs*avgwrs, &
+         0.3320+22.6726*exp(-5.8184*avgwrs)))) &
+         * min(1.0, max(0.0, min( 0.0104*(avgtrs**1.3053), 5.5956-0.1189*avgtrs)))
 
   END FUNCTION rsoil_r_1
 

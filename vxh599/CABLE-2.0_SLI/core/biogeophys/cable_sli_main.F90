@@ -1,4 +1,4 @@
-SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
+SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air, rad)
 
   ! Main subroutine for Soil-litter-iso soil model
   ! Vanessa Haverd, CSIRO Marine and Atmospheric Research
@@ -6,32 +6,31 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   ! Modified to operate for multiple veg tiles but a single soil column, March 2011
   ! Rewritten for same number of soil columns as veg tiles May 2012
   USE cable_def_types_mod,       ONLY: veg_parameter_type, soil_parameter_type, soil_snow_type, met_type, &
-       canopy_type, air_type, radiation_type, ms, mp, r_1, r_2, i_d 
+       canopy_type, air_type, radiation_type, ms, mp, r_2, i_d
   !USE physical_constants, ONLY: tfrz
   USE sli_numbers,        ONLY:  zero, half, one, four, thousand, & ! numbers
        Tzero, &                                       ! variables
        vars_met, vars, params, vars_snow, &                                  ! types
-       count_sparse, count_hyofS, &
-	   MW, snmin, Rgas, Lambdas, lambdaf, csice, cswat, rhow, nsnow_max, e5
+       MW, snmin, Rgas, Lambdas, lambdaf, csice, cswat, rhow, nsnow_max, e5
   USE sli_utils,          ONLY: x, dx, par, setpar, setx, plit, dxL, setlitterpar, esat, &
-                                esat_ice, slope_esat_ice, thetalmax, Tfrz
+       esat_ice, slope_esat_ice, thetalmax, Tfrz
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
   USE cable_soil_snow_module, ONLY: snowdensity
 
-  
+
 
   IMPLICIT NONE
 
   INTEGER(i_d),              INTENT(IN)    :: irec
-  REAL(r_1),                 INTENT(IN)    :: dt
+  REAL,                      INTENT(IN)    :: dt
   TYPE(veg_parameter_type),  INTENT(INOUT) :: veg     ! all r_1
   TYPE(soil_parameter_type), INTENT(INOUT) :: soil    ! all r_1
   TYPE(soil_snow_type),      INTENT(INOUT) :: ssoil   ! r_1, r_2 desaster
   TYPE(met_type),            INTENT(INOUT) :: met     ! all r_1
   TYPE(canopy_type),         INTENT(INOUT) :: canopy  ! all r_1
   TYPE(air_type),            INTENT(INOUT) :: air     ! all r_1
-  !TYPE (radiation_type),       INTENT(IN) :: rad
+  TYPE (radiation_type),       INTENT(IN) :: rad
 
   REAL(r_2),    PARAMETER :: emsoil=0.97
   REAL(r_2),    PARAMETER :: rhocp=1.1822e3
@@ -56,7 +55,7 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   REAL(r_2),      DIMENSION(1:mp)      :: Etrans
   REAL(r_2),      DIMENSION(1:mp)      :: gamma
   REAL(r_2),      DIMENSION(1:mp)      :: G0, H, lE
-  REAL(r_2),      DIMENSION(1:mp,0:ms) :: qh, qvsig, qlsig, qvTsig, qvh
+  REAL(r_2),      DIMENSION(1:mp,-nsnow_max:ms) :: qh, qvsig, qlsig, qvTsig, qvh
   REAL(r_2),      DIMENSION(1:mp)      :: deltaTa, lE_old !, SA, SB, wpAi, wpBi, wpA, wpB
   REAL(r_2),      DIMENSION(1:mp)      :: evap_pot, deltaice_cum_T, deltaice_cum_S, zdelta
   REAL(r_2),      DIMENSION(1:mp)      ::fws
@@ -90,39 +89,39 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   ! 3: condition first lines then columns
   INTEGER, PARAMETER :: dosnow       = 1 ! implement snow model
   LOGICAL, SAVE :: first = .true.
-  INTEGER(i_d), SAVE , ALLOCATABLE    :: nsteps_acc(:)
+  INTEGER(i_d), SAVE  :: counter
 
-    ! initialise cumulative variables
-    Jcol_sensible(:) = zero
-    Jcol_latent_S(:) = zero
-    Jcol_latent_T(:) = zero
-    deltaice_cum_T(:) = zero
-    deltaice_cum_S(:) = zero
-    Jsensible(:,:) = zero
-    drn(:)  = zero
-    discharge(:) = zero
-    infil(:)     = zero
-    evap(:)      = zero
-    evap_pot(:)  = zero
-    runoff(:)    = zero
-    qh = zero
-    H(:)      = zero
-    G0(:)      = zero
-    lE(:)     = zero
-    csoil = zero
-	kth = zero
-    Qadvcum(:)  = zero
-    wex(:,:)          = zero
-    qlsig(:,:)        = zero
-    qvsig(:,:)        = zero
-    qvh(:,:)        = zero
-    qvtsig(:,:)        = zero
-    thetal_max   = zero
-    Sliq         = zero
-    Ksat         = zero
-    phie         = zero
-    phi          = zero
-    hice         = zero
+  ! initialise cumulative variables
+  Jcol_sensible(:) = zero
+  Jcol_latent_S(:) = zero
+  Jcol_latent_T(:) = zero
+  deltaice_cum_T(:) = zero
+  deltaice_cum_S(:) = zero
+  Jsensible(:,:) = zero
+  drn(:)  = zero
+  discharge(:) = zero
+  infil(:)     = zero
+  evap(:)      = zero
+  evap_pot(:)  = zero
+  runoff(:)    = zero
+  qh = zero
+  H(:)      = zero
+  G0(:)      = zero
+  lE(:)     = zero
+  csoil = zero
+  kth = zero
+  Qadvcum(:)  = zero
+  wex(:,:)          = zero
+  qlsig(:,:)        = zero
+  qvsig(:,:)        = zero
+  qvh(:,:)        = zero
+  qvtsig(:,:)        = zero
+  thetal_max   = zero
+  Sliq         = zero
+  Ksat         = zero
+  phie         = zero
+  phi          = zero
+  hice         = zero
 
   ! output files for testing purposes
   if (first) then
@@ -131,20 +130,19 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
      open (unit=336,file="Tsoil.out",status="replace",position="rewind")
      open (unit=335,file="SEB.out",status="replace",position="rewind")
      !   !open(unit=37, file = "c:\soil_model\cable_met_test.inp",status="replace",position="rewind")
-     !   !open (unit=337,file="soil_log.out",status="replace",position="rewind")
+     open (unit=337,file="soil_log.out",status="replace",position="rewind")
      open(unit=338, file="thetai.out", status="replace", position="rewind")
-     !open(unit=339, file="nsteps.out",status="replace", position="rewind")
-	 !write(339,"(20000f8.2)") rad%latitude
-	 !write(339,"(20000f8.2)") rad%longitude
-	 open(unit=340, file="snow.out", status="replace", position="rewind")
-	open(unit=345, file="diags.out",status="replace", position="rewind")
-	 first = .false.
-	 allocate(nsteps_acc(1:mp))
-	 nsteps_acc = 0
+     open(unit=339, file="latlong.out",status="replace", position="rewind")
+     write(339,"(20000f8.2)") rad%latitude
+     write(339,"(20000f8.2)") rad%longitude
+     open(unit=340, file="snow.out", status="replace", position="rewind")
+     open(unit=345, file="diags.out",status="replace", position="rewind")
+	 counter = 0
   endif
 
   fsat = 0.0
   zdelta = 0.0
+  counter = counter + 1
 
   ! Save soil / snow surface temperature from last time step:
   ssoil%otss(:) = ssoil%tss(:)
@@ -162,14 +160,8 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
 
   ! set required soil hydraulic params
   if (.not. allocated(par)) then
-    index=(/(i,i=1,mp,1)/)
+     index=(/(i,i=1,mp,1)/)
      call setpar(mp, ms, x(:,:)-half*dx(:,:), soil,index)
-     soil%swilt_vec(:,:) = merge(spread(real(soil%swiltB(:),r_2),2,ms), &
-          soil%swilt_vec(:,:), par(:,:)%ishorizon==one)
-     soil%ssat_vec(:,:) = merge(spread(real(soil%ssatB(:),r_2),2,ms) &
-          ,soil%ssat_vec(:,:), par(:,:)%ishorizon==one)
-     soil%sfc_vec(:,:) = merge(spread(real(soil%sfcB(:),r_2),2,ms) &
-          ,soil%sfc_vec(:,:), par(:,:)%ishorizon==one)
   endif
 
   ! If we want solutes:
@@ -177,7 +169,7 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
 
   ! Litter parameters:
   if (.not. allocated(plit)) then
-	 index=(/(i,i=1,mp,1)/)
+     index=(/(i,i=1,mp,1)/)
      call setlitterpar(mp, soil,index)
   endif
 
@@ -194,7 +186,7 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   h0(:) = ssoil%h0
 
   ! Initialisations:
-  if (irec == 1) then
+  if (first) then
      rh0(:)         = vmet(:)%rha
      rhsurface(:)   = rh0(:) ! initialise rel. humidity at surface
      Tsurface(:)    = vmet(:)%Ta
@@ -204,23 +196,22 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
      ssoil%h0(:)    = zero
      ssoil%thetai(:,:) = zero
      met%tk_old(:)     = met%tk(:)
-	 met%qv_old(:)     = met%qv(:)
+     met%qv_old(:)     = met%qv(:)
      ! do not seem to be initialised elsewhere
-     ssoil%snowd(:) = 0.0_r_1
-	 ssoil%smass(:,:) = 0.0_r_1
+     ssoil%snowd(:) = 0.0
+     ssoil%smass(:,:) = 0.0
      zdelta(:)      = x(:,ms)
      ssoil%gammzz = zero
      !ssoil%tgg(:,6)=5.0+Tfrz
-     count_sparse = 0
-     count_hyofS = 0
 
      ssoil%ssdn(:,:) = 120_r_2 ! snow density kg m-3
      ssoil%sconds(:,:) = 0.06_r_2    ! snow thermal cond (W m-2 K-1)
-	 ssoil%S  = min(one,ssoil%S)
-
+     ssoil%S  = min(one,ssoil%S)
+     !h0 = zero
      do kk=1, mp
         vsnow(kk)%hsnow(:) = zero
         vsnow(kk)%depth(:) = zero
+		vsnow(kk)%totdepth = zero
         vsnow(kk)%wcol     = zero
         vsnow(kk)%dens(:)  = 120._r_2 ! snow density kg m-3
         vsnow(kk)%tsn(:)   = zero
@@ -233,9 +224,10 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
         vsnow(kk)%hliq(:)  = zero
         vsnow(kk)%melt(:)  = zero
         vsnow(kk)%nsnow    = 0
-        ssoil%cls = 1
+        vsnow(kk)%nsnow_last    = 0
+        ssoil%cls(kk) = one
      enddo
-
+     first = .false.
   else
      rhsurface(:)   = ssoil%rhsurface
      Tsurface(:)    = ssoil%Tsurface
@@ -246,99 +238,100 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
      zdelta(:)      = ssoil%zdelta
   endif
 
-  SL(:)       = zero   ! degree of litter saturation
-  TL(:)       = zero  ! litter T
-  Tsoil(:,:)  = real(ssoil%tgg-273.16,r_2)
-  S(:,:)         = ssoil%S                ! degree of soil saturation
+  SL(:)      = 0.5   ! degree of litter saturation
+  Tsoil(:,:) = real(ssoil%tgg-273.16,r_2)
+  TL(:)      = Tsoil(:,1) ! litter T
+
   thetai = ssoil%thetai
   ssoil%smelt = zero
+  ssoil%cls = 1.0
+  S(:,:)         = ssoil%S                ! degree of soil saturation
 
-     ! ----------------------------------------------------------------
-    ! Iinitialise phi where it is (frozen and saturated) and where (pond >zero)
 
-    where (Tsoil<Tfrz(S,par%he,one/par%lam))
-       thetal_max    = thetalmax(Tsoil,S,par%he,one/par%lam,par%thre,par%the)
-       Sliq          = (thetal_max - (par%the-par%thre))/par%thre
-       Ksat          = par%Ke*exp(par%eta*log(Sliq))
-    elsewhere
-       Sliq          = S
-       Ksat          = par%Ke
-    endwhere
+  ! ----------------------------------------------------------------
+  ! Iinitialise phi where it is (frozen and saturated) and where (pond >zero)
 
-    where ((Tsoil<Tfrz(S,par%he,one/par%lam)) .and. (S>=1))
-       phi  = par%phie*exp(-log(Sliq)/par%lam)*exp(par%eta*log(Sliq))
-    endwhere
+  where (Tsoil<Tfrz(S,par%he,one/par%lam))
+     thetal_max    = thetalmax(Tsoil,S,par%he,one/par%lam,par%thre,par%the)
+     Sliq          = (thetal_max - (par%the-par%thre))/par%thre
+     Ksat          = par%Ke*exp(par%eta*log(Sliq))
+  elsewhere
+     Sliq          = S
+     Ksat          = par%Ke
+  endwhere
 
-    where (h0(:)>zero)
-       hice(:)  = h0(:)*(S(:,1)-Sliq(:,1))
-       phie(:)  = par(:,1)%phie*exp(-log(Sliq(:,1))/par(:,1)%lam)*exp(par(:,1)%eta*log(Sliq(:,1)))
-       phi(:,1) = max((phie -par(:,1)%he*Ksat(:,1)), (one+e5)*phie)+(h0(:)-hice(:))*Ksat(:,1)
-    endwhere
+  where ((Tsoil<Tfrz(S,par%he,one/par%lam)) .and. (S>=1))
+     phi  = par%phie*exp(-log(Sliq)/par%lam)*exp(par%eta*log(Sliq))
+  endwhere
 
-    ! ----------------------------------------------------------------
+  where (h0(:)>zero)
+     hice(:)  = h0(:)*(S(:,1)-Sliq(:,1))
+     phie(:)  = par(:,1)%phie*exp(-log(Sliq(:,1))/par(:,1)%lam)*exp(par(:,1)%eta*log(Sliq(:,1)))
+     !phi(:,1) = max((phie -par(:,1)%he*Ksat(:,1)), (one+e5)*phie)+(h0(:)-hice(:))*Ksat(:,1)
+     phi(:,1) = (one+e5)*phie + (h0(:)-hice(:))*Ksat(:,1)
+  endwhere
 
+  ! ----------------------------------------------------------------
   do kk=1, mp
+     vsnow(kk)%nsnow = ssoil%nsnow(kk)
      if (ssoil%sdepth(kk,1).gt.zero)  then ! snow
         ! define variables associated with snow
-	    ssoil%isflag(kk) = 1
-		vsnow(kk)%hsnow(:) = ssoil%smass(kk,:)/thousand 
-		vsnow(kk)%depth(:) = ssoil%sdepth(kk,:)  ! depth of snow pack (m)
-	    vsnow(kk)%dens(:) = 120_r_2 ! snow density kg m-3
-		vsnow(kk)%dens(:) =ssoil%ssdn(kk,:)
-        vsnow(kk)%wcol= ssoil%snowd(kk)/thousand 
-
-	    vsnow(kk)%tsn(:) = ssoil%tggsn(kk,:) - Tzero
-	    !vsnow(kk.:)%kH = 0.06_r_2    ! snow thermal cond (W m-2 K-1)
-		vsnow(kk)%kH(:) =  ssoil%sconds(kk,:) 
-	    vsnow(kk)%Dv(:) = Dva*(ssoil%tggsn(kk,:)/Tzero)**1.88_r_2 ! m2 s-1
-	    vsnow(kk)%sl(:) = slope_esat_ice(vsnow(kk)%tsn(:)) * Mw/thousand/Rgas/(vsnow(kk)%tsn(:)+Tzero)
-	    vsnow(kk)%kE(:)     = vsnow(kk)%Dv(:)*vsnow(kk)%sl(:)*thousand*lambdaf
-	    vsnow(kk)%kth(:) = vsnow(kk)%kE(:) + vsnow(kk)%kH(:)
-        vsnow(kk)%cv(:) = esat_ice(vsnow(kk)%tsn(:))*Mw/thousand/Rgas/(vsnow(kk)%tsn(:)+Tzero) ! m3 m-3
-        vsnow(kk)%hliq(:) = ssoil%snowliq(kk,:)/thousand ! amount of liq snow water
-        vsnow(kk)%melt(:) = zero ! amount of melted snow leaving bottom of snow pack (mm/dt)
-		! heat stored in snowpack
-	    where (vsnow(kk)%hsnow(:).gt.zero)  
-	       vsnow(kk)%Jsensible(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*csice*(vsnow(kk)%Tsn(:)) + &
-	            vsnow(kk)%hliq(:)*rhow*cswat*(vsnow(kk)%Tsn(:))
-
-	       vsnow(kk)%Jlatent(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*(-lambdaf)
-	    elsewhere
-		   vsnow(kk)%Jsensible(:) = zero
-		   vsnow(kk)%Jlatent(:) = zero
+        ssoil%isflag(kk) = 1
+        vsnow(kk)%hsnow(:) = ssoil%smass(kk,1:nsnow_max)/thousand
+        vsnow(kk)%depth(:) = ssoil%sdepth(kk,1:nsnow_max)  ! depth of snow pack (m)
+        vsnow(kk)%dens(:) =ssoil%ssdn(kk,1:nsnow_max)
+		where (vsnow(kk)%dens(:).le.200.)
+		vsnow(kk)%fsnowliq_max(:) = 0.03
+		elsewhere
+        vsnow(kk)%fsnowliq_max(:) = 0.03 + (0.1 - 0.03)*(vsnow(kk)%dens(:)-200.)/vsnow(kk)%dens(:)
 		endwhere
+        vsnow(kk)%wcol= ssoil%snowd(kk)/thousand
+
+        vsnow(kk)%tsn(:) = ssoil%tggsn(kk,1:nsnow_max) - Tzero
+        !vsnow(kk.:)%kH = 0.06_r_2    ! snow thermal cond (W m-2 K-1)
+        vsnow(kk)%kH(:) =  ssoil%sconds(kk,1:nsnow_max)
+        vsnow(kk)%Dv(:) = Dva*(ssoil%tggsn(kk,1:nsnow_max)/Tzero)**1.88_r_2 ! m2 s-1
+        vsnow(kk)%sl(:) = slope_esat_ice(vsnow(kk)%tsn(:)) * Mw/thousand/Rgas/(vsnow(kk)%tsn(:)+Tzero)
+        vsnow(kk)%kE(:)     = vsnow(kk)%Dv(:)*vsnow(kk)%sl(:)*thousand*lambdaf
+        vsnow(kk)%kth(:) = vsnow(kk)%kE(:) + vsnow(kk)%kH(:)
+        vsnow(kk)%cv(:) = esat_ice(vsnow(kk)%tsn(:))*Mw/thousand/Rgas/(vsnow(kk)%tsn(:)+Tzero) ! m3 m-3
+        vsnow(kk)%hliq(:) = ssoil%snowliq(kk,1:nsnow_max)/thousand ! amount of liq snow water
+        vsnow(kk)%melt(:) = zero ! amount of melted snow leaving each snowlayer (mm/dt)
+
+        ! heat stored in snowpack
+!        where (vsnow(kk)%hsnow(:).gt.zero)
+!           vsnow(kk)%Jsensible(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*csice*(vsnow(kk)%Tsn(:)) + &
+!                vsnow(kk)%hliq(:)*rhow*cswat*(vsnow(kk)%Tsn(:))
+!           vsnow(kk)%Jlatent(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*(-lambdaf)
+!        elsewhere
+!           vsnow(kk)%Jsensible(:) = zero
+!           vsnow(kk)%Jlatent(:) = zero
+!        endwhere
+!		   vsnow(kk)%J = sum(vsnow(kk)%Jsensible(1:vsnow(kk)%nsnow)) + sum(vsnow(kk)%Jlatent(1:vsnow(kk)%nsnow) )
 
 
-	   if (vsnow(kk)%hsnow(1).gt.zero) then
-		  vsnow(kk)%nsnow = 1
-		else
-		  vsnow(kk)%nsnow = 0
-		endif
-		   
- 
      else
         ssoil%isflag(kk) = 0
-		vsnow(kk)%hsnow(:) = zero
+        vsnow(kk)%hsnow(:) = zero
         vsnow(kk)%depth(:) = zero
-	    vsnow(kk)%wcol = zero
-	    vsnow(kk)%dens(:) = 120_r_2 ! snow density kg m-3
-	    vsnow(kk)%tsn(:) = zero
-	    vsnow(kk)%kH(:) = 0.16_r_2    ! snow thermal cond (W m-2 K-1)
+        vsnow(kk)%wcol = zero
+        vsnow(kk)%dens(:) = 120_r_2 ! snow density kg m-3
+        vsnow(kk)%tsn(:) = zero
+        vsnow(kk)%kH(:) = 0.16_r_2    ! snow thermal cond (W m-2 K-1)
         vsnow(kk)%Dv(:) = Dva*(Tzero/Tzero)**1.88_r_2 ! m2 s-1
-	    vsnow(kk)%sl(:) = zero
-	    vsnow(kk)%kE(:)     = zero
-	    vsnow(kk)%kth(:) = vsnow(kk)%kH
-	    vsnow(kk)%cv(:) = zero
-	    vsnow(kk)%hliq(:) = zero
-	    vsnow(kk)%melt(:) = zero
-	    vsnow(kk)%Jlatent(:) = zero
-	    vsnow(kk)%Jsensible(:) = zero
-
-
-		
-      endif
-	 ssoil%osnowd = ssoil%snowd(kk)
-   enddo  
+        vsnow(kk)%sl(:) = zero
+        vsnow(kk)%kE(:)     = zero
+        vsnow(kk)%kth(:) = vsnow(kk)%kH
+        vsnow(kk)%cv(:) = zero
+        vsnow(kk)%hliq(:) = zero
+        vsnow(kk)%melt(:) = zero
+        vsnow(kk)%Jlatent(:) = zero
+        vsnow(kk)%Jsensible(:) = zero
+		vsnow(kk)%J = zero
+		vsnow(kk)%nsnow = 0
+     endif
+     ssoil%osnowd(kk) = ssoil%snowd(kk)
+  enddo
 
   deltaTa(:)  = zero
   lE_old(:)   = ssoil%lE
@@ -348,21 +341,20 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   grc(:)      = one/vmet(:)%rbh + gr(:)/rhocp
   vmet(:)%rrc = one/grc(:)                            ! resistance to radiative and convective heat transfer
   qprec(:)    = (canopy%through-met%precip_sn)/thousand/dt              ! liq precip rate (m s-1)
-  qPrec_snow(:) = (met%precip_sn)/thousand/dt 
-  
- where (vmet%Ta<zero)
-
-!qPrec_snow(:) = merge(one/thousand/dt,zero,irec<100) 
-!qPrec_snow(:) = zero
-!qPrec_snow(:) =qprec_snow(:)*10.
+  qPrec_snow(:) = (met%precip_sn)/thousand/dt
 
 
-  endwhere
   h0old(:)    = ssoil%h0 ! pond height
-  do kk=1, mp
-     !hsnowold(kk) = sum(ssoil%smass(kk,:)/thousand) ! water in decicated snow layer(s)
-     hsnowold(kk) = ssoil%smass(kk,1)/thousand
-  enddo
+
+      do kk=1, mp
+         !hsnowold(kk) = sum(ssoil%smass(kk,1:vsnow(kk)%nsnow)/thousand) ! water in decicated snow layer(s)
+       !if (vsnow(kk)%nsnow.ge.1) then
+         hsnowold(kk) = sum(vsnow(kk)%hsnow(1:nsnow_max))
+       !else
+        ! hsnowold(kk) = zero
+       !endif
+      enddo
+
 
   ! Heat balance variables
 
@@ -392,7 +384,7 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
 
   do kk=1, mp
      call getrex(ssoil%S(kk,:), ssoil%rex(kk,:), fws(kk), FS(kk,:), soil%ssat_vec(kk,:), &
-          soil%swilt_vec(kk,:), real(canopy%fevc(kk)/air%rlam(kk),r_2)/thousand , gamma(kk))
+          soil%swilt_vec(kk,:), real(canopy%fevc(kk)/air%rlam(kk),r_2)/thousand , gamma(kk), dx(kk,:), real(dt,r_2))
   enddo
 
   do k=1,ms
@@ -403,10 +395,12 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   !qb = alpha * par(:,ms)%Ke*exp(-(par(:,ms)%zeta*zdelta))
   qex(:,ms) =  qex(:,ms) !+qb
 
-  if (irec.eq.1) then ! for debugging
-   ! write (*,*) irec, vsnow(1)%hsnow(:), vsnow(1)%wcol, vsnow(1)%depth
-   ! write(*,*) vsnow
-   endif
+  if (counter.eq.9910) then ! for debugging
+    !   write(*,*) fws, canopy%fwsoil
+    !   write (*,*) irec, vsnow(1)%hsnow(:), vsnow(1)%wcol, vsnow(1)%depth
+    !  write(*,*) vsnow, dt
+  endif
+
 
   call solve(ti, tf, irec, mp, qprec(:),qprec_snow(:), ms,  dx(:,:), &
        h0(:), S(:,:), thetai(:,:), Jsensible(:,:), Tsoil(:,:), evap(:), &
@@ -422,10 +416,6 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
        doadvection=advection)
 
 
-  if (count_sparse.lt.count_hyofS) then
-     write(*,*) 'count_sparse.lt.count_hyofS: ', irec, count_sparse, count_hyofS
-  endif
-
   H(:)      = H(:)/(tf-ti)
   lE(:)     = lE(:)/(tf-ti)
   G0(:)     = G0(:)/(tf-ti)
@@ -433,37 +423,37 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
   Jcol_latent_T(:) = Jcol_latent_T(:)/(tf-ti)
   Jcol_sensible(:) = Jcol_sensible(:)/(tf-ti)
   Qadvcum(:) = Qadvcum(:)/(tf-ti)
-  nsteps_acc = nsteps_acc + nsteps
 
   do kk=1, mp
-   tmp1d1(kk) = (sum(vsnow(kk)%Jsensible(:)) + sum(vsnow(kk)%Jlatent(:)))
-  ! heat stored in snowpack
-   where (vsnow(kk)%hsnow(:).gt.zero)  
-	  vsnow(kk)%Jsensible(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*csice*(vsnow(kk)%Tsn(:)) + &
-	  vsnow(kk)%hliq(:)*rhow*cswat*(vsnow(kk)%Tsn(:))
+     tmp1d1(kk) = (sum(vsnow(kk)%Jsensible(:)) + sum(vsnow(kk)%Jlatent(:)))
+     ! heat stored in snowpack
+     where (vsnow(kk)%hsnow(:).gt.zero)
+        vsnow(kk)%Jsensible(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*csice*(vsnow(kk)%Tsn(:)) + &
+             vsnow(kk)%hliq(:)*rhow*cswat*(vsnow(kk)%Tsn(:))
 
-	  vsnow(kk)%Jlatent(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*(-lambdaf)
-   elsewhere
-	 vsnow(kk)%Jsensible(:) = zero
-	 vsnow(kk)%Jlatent(:) = zero
-   endwhere
+        vsnow(kk)%Jlatent(:) = (vsnow(kk)%hsnow(:)-vsnow(kk)%hliq(:))*rhow*(-lambdaf)
+     elsewhere
+        vsnow(kk)%Jsensible(:) = zero
+        vsnow(kk)%Jlatent(:) = zero
+     endwhere
      deltaEsnow(kk) = sum(vsnow(kk)%Jsensible(:)) + sum(vsnow(kk)%Jlatent(:)) - &
-	                  tmp1d1(kk)
+          tmp1d1(kk)
 
 
-  
-     deltah0(kk) = h0(kk)-h0old(kk)+sum(vsnow(kk)%hsnow(:))-hsnowold(kk)
+
+     deltah0(kk) = h0(kk)-h0old(kk)+sum(vsnow(kk)%hsnow(1:vsnow(kk)%nsnow))-hsnowold(kk)
   enddo
   ssoil%thetai = thetai(:,:)
   ip(:)  = sum(ssoil%thetai*dx(:,:),2)   + h0(:)*ssoil%thetai(:,1)/par(:,1)%thre   ! ice in profile at tf
   ! water at tf
-  wp(:)  = sum((par(:,:)%thr + (par(:,:)%the-par(:,:)%thr)*S(:,:))*dx(:,:),2) + plit(:)%thre*SL(:)*dxL(:) 
+  wp(:)  = sum((par(:,:)%thr + (par(:,:)%the-par(:,:)%thr)*S(:,:))*dx(:,:),2) + plit(:)%thre*SL(:)*dxL(:)
   win(:) = win(:) + (qprec(:)+qprec_snow(:))*(tf-ti)
 
 
 
   if (1 == 1) then
-     k=1
+     k=71
+
      write(332,"(i8,i8,16e16.6)") irec,nsteps(k),wp(k)-wpi(k),infil(k)-drn(k),runoff(k),&
           win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt,wp(k),evap(k),evap_pot(k),infil(k),&
           drn(k),h0(k),Etrans(k)*dt,discharge(k), fws(k), (ip(k)-ipi(k)), fsat(k)
@@ -475,61 +465,61 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
           deltaice_cum_S(k), rhsurface(k), Tsurface(k), vmet(k)%rha, &
           csoil(k,:)*dx(k,:), Qadvcum(k), sum((Jsensible(k,:)-ssoil%gammzz(k,:)),1)
      write(338,"(100f18.6)") thetai(k,:)
-!     if (modulo(irec,30).eq.0) then
-!         write(339,"(20000i8)") nsteps_acc
-!         nsteps_acc = 0
-!	 endif
+
   endif
 
   tmp1d1 = sum((Jsensible(1,:)-ssoil%gammzz(1,:)),1)-Jcol_sensible(1)*3600
 
   ! Update variables for output:
-  ssoil%tss       = real(Tsurface(:),r_1) + 273.16
-  ssoil%tgg     = real(Tsoil(:,:),r_1) + 273.16
-  ssoil%wb      = real(S(:,:)*(par(:,:)%thr+(par(:,:)%the-par(:,:)%thr)))
+  ssoil%tss       = real(Tsurface(:)) + 273.16
+  ssoil%tgg       = real(Tsoil(:,:)) + 273.16
+  ssoil%wb        = real(S(:,:)*(par(:,:)%thr+(par(:,:)%the-par(:,:)%thr)))
+  ssoil%wbice     = thetai
   ssoil%wbtot     = real(wp(:)*thousand)
   canopy%ga       = real(G0(:))
   canopy%fhs      = real(H(:))
   canopy%fes      = real(lE(:))
-  ssoil%hflux   = qh(:,:)
+  ssoil%hflux     = qh(:,:)
   ssoil%rnof1     = real(runoff(:)*thousand) + runoff_sat
   ssoil%rnof2     = real(discharge(:)*thousand) !+ qb
-  ssoil%zdelta   = zdelta(:)
-  ssoil%S       = S(:,:)
+  ssoil%zdelta    = zdelta(:)
+  ssoil%S         = S(:,:)
   ssoil%SL        = SL(:)
   ssoil%TL        = TL(:)
-  ssoil%delwcol   = (wp(:)-wpi(:)+deltah0(:))*thousand 
+  ssoil%delwcol   = (wp(:)-wpi(:)+deltah0(:))*thousand
   ssoil%Tsurface  = Tsurface(:)
-  ssoil%rh0      = rh0(:)
+  ssoil%rh0       = rh0(:)
   ssoil%rhsurface = rhsurface(:)
-  ssoil%lE       = lE(:)
+  ssoil%lE        = lE(:)
   ssoil%evap      = evap(:)*thousand
   ssoil%rex       = wex(:,:)*thousand
-  ssoil%kth = kth(:,:)
+  ssoil%kth       = kth(:,:)
   ssoil%nsteps = real(nsteps)
+  canopy%fwsoil = real(fws(:))
+
   if (litter==0) then
      ssoil%rlitt  = zero
   else
      ssoil%rlitt  = dxL(:)/vlit(:)%Dv
   endif
-
-  ssoil%gammzz = Jsensible(:,:)
-  ssoil%h0 = h0(:)
+  ssoil%gammzz    = Jsensible(:,:)
+  ssoil%h0        = h0(:)
 
   ! update CABLE snow variables
   do kk=1, mp
-  ssoil%snowd(kk) = vsnow(kk)%wcol*thousand ! amount of snow  (mm liq water eq)
-  ssoil%smass(kk,1:nsnow_max) = vsnow(kk)%hsnow(:)*thousand ! amount of snow in dedicated snow pack (mm liq water eq)
+     ssoil%snowd(kk) = vsnow(kk)%wcol*thousand ! amount of snow  (mm liq water eq)
+     ssoil%smass(kk,1:nsnow_max) = vsnow(kk)%hsnow(:)*thousand ! amount of snow in dedicated snow pack (mm liq water eq)
 
-  ssoil%sdepth(kk,1:nsnow_max) = vsnow(kk)%depth(:) ! depth of snow pack (m)
-  ssoil%ssdn(kk,1:nsnow_max) = vsnow(kk)%dens(:) ! density of snow (kg m-3)
-  ssoil%tggsn(kk,1:nsnow_max) = vsnow(kk)%tsn(:) + Tzero  ! abs T of snowpack
-  ssoil%sconds(kk,1:nsnow_max) = vsnow(kk)%kH(:) ! thermal conductivty of snowpack
-  ssoil%snowliq(kk,1:nsnow_max) = vsnow(kk)%hliq(:)*thousand ! amount of liq snow water
-  
-  ssoil%smelt(kk) = sum(vsnow(kk)%melt(:)*thousand) ! amount of melted snow leaving bottom of snow pack (mm/dt)
+     ssoil%sdepth(kk,1:nsnow_max) = vsnow(kk)%depth(:) ! depth of snow pack (m)
+     ssoil%ssdn(kk,1:nsnow_max) = vsnow(kk)%dens(:) ! density of snow (kg m-3)
+     ssoil%tggsn(kk,1:nsnow_max) = vsnow(kk)%tsn(:) + Tzero  ! abs T of snowpack
+     ssoil%sconds(kk,1:nsnow_max) = vsnow(kk)%kH(:) ! thermal conductivty of snowpack
+     ssoil%snowliq(kk,1:nsnow_max) = vsnow(kk)%hliq(:)*thousand ! amount of liq snow water
+
+     ssoil%smelt(kk) = vsnow(kk)%Qmelt*thousand ! amount of melted snow leaving bottom of snow pack (mm/dt)
+     ssoil%nsnow(kk) = vsnow(kk)%nsnow
   enddo
-  !where (ssoil%sdepth(:,1).gt.zero)  
+  !where (ssoil%sdepth(:,1).gt.zero)
   !   ssoil%isflag = 1
   !elsewhere
   !   ssoil%isflag = 0
@@ -537,24 +527,25 @@ SUBROUTINE sli_main(irec, dt, veg, soil, ssoil, met, canopy, air)
 
   ssoil%isflag = 0
   !CALL snow_albedo(dt, irec, met, ssoil, soil )
-  CALL snowdensity (dt, ssoil, soil)
+  !CALL snowdensity(dt, ssoil, soil)
 
   !ssoil%sconds = 0.07 ! test vh
 
   ! snow output
   if (1 == 1) then
-    k = 1
-    write(340,"(100e16.6)") vsnow(k)%wcol, vsnow(k)%tsn(1), vsnow(k)%hliq(1), qprec_snow(k)*dt, vsnow(k)%melt(1), qprec(k)*dt, &
-	 ssoil%albsoilsn(k,1), ssoil%albsoilsn(k,2), ssoil%sconds(k,1), ssoil%ssdnn(k),vsnow(k)%Qadv_vap(1), vsnow(k)%Qadv_rain, &
-	 vsnow(k)%Qadv_snow, vsnow(k)%Qcond_net(1),vsnow(k)%deltaJlatent(1),vsnow(k)%deltaJsensible(1),vsnow(k)%Qadv_melt(1), &
-	 vsnow(k)%Qadv_transfer(1),vsnow(k)%FluxDivergence(1),vsnow(k)%Jlatent(1), vsnow(k)%Jsensible(1)
+     k = 71
+     write(340,"(100e16.6)") sum(vsnow(k)%hsnow(1:vsnow(k)%nsnow)), vsnow(k)%tsn(1),sum(vsnow(k)%hliq(1:vsnow(k)%nsnow)), &
+	      qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &
+          vsnow(k)%Qevap,vsnow(k)%Qvap,ssoil%albsoilsn(k,1), ssoil%albsoilsn(k,2), ssoil%sconds(k,1), &
+		  vsnow(k)%dens(1),vsnow(k)%totdepth, vsnow(k)%J, &
+		  vsnow(k)%MoistureFluxDivergence, vsnow(k)%FluxDivergence, vsnow(k)%dens(2), vsnow(k)%tsn(2)
   endif
 
   canopy%ofes(:) = canopy%fes(:)
   ! Update total latent heat to reflect updated soil component:
-  canopy%fe(:) = real(canopy%fev(:),r_1) + canopy%fes(:)
+  canopy%fe(:) = real(canopy%fev(:)) + canopy%fes(:)
   ! Update total sensible heat to reflect updated soil component:
-  canopy%fh(:) = real(canopy%fhv(:),r_1) + canopy%fhs(:)
+  canopy%fh(:) = real(canopy%fhv(:)) + canopy%fhs(:)
 
   ! store air temperature
   met%tk_old(:)  = met%tk(:)

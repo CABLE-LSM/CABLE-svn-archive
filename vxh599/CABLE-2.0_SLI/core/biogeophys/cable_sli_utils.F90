@@ -1,16 +1,16 @@
 MODULE sli_utils
 
-  USE cable_def_types_mod, ONLY: r_2, i_d, r_1
-  USE cable_def_types_mod,      ONLY: soil_parameter_type
-  USE sli_numbers,       ONLY: &
+  USE cable_def_types_mod, ONLY: r_2, i_d
+  USE cable_def_types_mod, ONLY: soil_parameter_type
+  USE sli_numbers,         ONLY: &
        experiment, &
        zero, half, one, two, four, e3, &
        Tzero, gravity, Rgas, thousand, Mw, rlambda, Dva, &
        params, vars_aquifer, vars, rapointer, &
-       rhow, lambdaf, lambdas, csice, cswat,cpa,&
+       rhow, lambdaf, lambdas, csice, cswat, cpa,&
        dpmaxr, solve_type, &
        gf, hmin, csol, rhmin, dsmmax
-  USE physical_constants, ONLY: rmair,rmh2o
+  USE physical_constants,  ONLY: rmair,rmh2o
 
   IMPLICIT NONE
 
@@ -23,6 +23,7 @@ MODULE sli_utils
   PUBLIC :: csat, csoil, dthetalmaxdT, dthetalmaxdTh, esat, esat_ice, gammln, igamma, phi, rh0_sol, rtbis_rh0 ! functions
   PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, zerovars, Tthetalmax, Tfrozen
   PUBLIC :: rtbis_Tfrozen, GTfrozen, JSoilLayer
+  PUBLIC :: spline_b, mean, nse
 
   REAL(r_2),        DIMENSION(:,:),   ALLOCATABLE :: dx
   REAL(r_2),        DIMENSION(:),     ALLOCATABLE :: dxL
@@ -70,33 +71,13 @@ MODULE sli_utils
 
   ! Function interfaces
 
-  INTERFACE gammln
-     MODULE PROCEDURE sgammln
-#ifndef DPREC
-     MODULE PROCEDURE dgammln
-#endif
-  END INTERFACE gammln
+  INTERFACE mean
+     MODULE PROCEDURE mean_1d, mean_2d
+  END INTERFACE mean
 
-  INTERFACE gcf
-     MODULE PROCEDURE sgcf
-#ifndef DPREC
-     MODULE PROCEDURE dgcf
-#endif
-  END INTERFACE gcf
-
-  INTERFACE gser
-     MODULE PROCEDURE sgser
-#ifndef DPREC
-     MODULE PROCEDURE dgser
-#endif
-  END INTERFACE gser
-
-  INTERFACE igamma
-     MODULE PROCEDURE sigamma
-#ifndef DPREC
-     MODULE PROCEDURE digamma
-#endif
-  END INTERFACE igamma
+  INTERFACE nse
+     MODULE PROCEDURE nse_1d, nse_2d
+  END INTERFACE nse
 
   !P.J. Ross 2005-2007:
   ! This module implements Brooks-Corey (BC) soil water retention and conductivity
@@ -405,6 +386,8 @@ CONTAINS
     REAL(r_2), DIMENSION(1:n-1) :: dz
 
     dz(:) = half*(dx(1:n-1)+dx(2:n))
+    vi1 = zerovars()
+    vi2 = zerovars()
 
     if ((iflux==1) .or. (var(1)%isat /= 0)) then ! get top flux if required
        if (getq0) then
@@ -442,7 +425,7 @@ CONTAINS
           else ! interface
              l  = l+1
              if (init) then ! initialise
-                call hyofh(hmin, parin(i), vi1%K, Khi1, phimin(l)) ! get phi at hmin
+                call hyofh(hmin, parin(i)%lam, parin(i)%eta, parin(i)%Ke, parin(i)%he, vi1%K, Khi1, phimin(l)) ! get phi at hmin
                 h1 = var(i)%h
                 h2 = var(i+1)%h
                 y1 = var(i)%K*dx(i+1)
@@ -467,7 +450,7 @@ CONTAINS
 
                 if (hi<parin(i)%he) then
                    vi1%isat = 0
-                   call hyofh(hi, parin(i), vi1%K, Khi1, phii1)
+                   call hyofh(hi, parin(i)%lam, parin(i)%eta, parin(i)%Ke, parin(i)%he, vi1%K, Khi1, phii1)
                    vi1%KS = Khi1/vi1%K ! use dK/dphi, not dK/dS
                 else
                    vi1%isat = 1
@@ -479,17 +462,16 @@ CONTAINS
                 vi1%h    = hi
                 vi1%phi  = phii1
                 vi1%phiS = one ! use dphi/dphi not dphi/dS
-                !MC define phiT=0, KT=0 to be consistent with undefined version
+                ! define phiT=0, KT=0 to be consistent with undefined version
                 vi1%phiT = zero
                 vi1%KT   = zero
-                !MC-Guess: macropore_factor was not defined but is used in flux()
-                !          set to factor of upper layer
+                ! macropore_factor was not defined but is used in flux(), set to factor of upper layer
                 vi1%macropore_factor = var(i)%macropore_factor
                 call flux(parin(i), var(i), vi1, half*dx(i), q(i), qya(i), qyb(i), qTa(i), qTb(i))
 
                 if (hi<parin(i+1)%he) then
                    vi2%isat = 0
-                   call hyofh(hi, parin(i+1), vi2%K, Khi2, vi2%phi)
+                   call hyofh(hi, parin(i+1)%lam, parin(i+1)%eta, parin(i+1)%Ke, parin(i+1)%he, vi2%K, Khi2, vi2%phi)
                    vi2%KS = Khi2/vi2%K ! dK/dphi
                 else
                    vi2%isat = 1
@@ -499,11 +481,10 @@ CONTAINS
 
                 vi2%h    = hi
                 vi2%phiS = one ! dphi/dphi
-                !MC define phiT=0, KT=0 to be consitent with undefined version
+                ! define phiT=0, KT=0 to be consitent with undefined version
                 vi2%phiT = zero
                 vi2%KT   = zero
-                !MC-Guess: macropore_factor was not defined but is used in flux()
-                !          set to factor of lower layer
+                ! macropore_factor was not defined but is used in flux(), set to factor of lower layer
                 vi2%macropore_factor = var(i+1)%macropore_factor
                 call flux(parin(i+1), vi2, var(i+1), half*dx(i+1), q2, qya2, qyb2, qTa2, qTb2)
                 qya2   = qya2*vi2%K/vi1%K ! partial deriv wrt phii1
@@ -762,7 +743,7 @@ CONTAINS
        l2(:) = l1(:) .and. (parin(:,i)%ishorizon /= parin(:,i+1)%ishorizon) ! interface
        htmp(:) = hmin
        if (any(l2(:) .and. init(:))) &
-            call hyofh(htmp(:), parin(:,i), ztmp1(:), ztmp2(:), ztmp3(:))
+            call hyofh(htmp(:), parin(:,i)%lam, parin(:,i)%eta, parin(:,i)%Ke, parin(:,i)%he, ztmp1(:), ztmp2(:), ztmp3(:))
        where (l2(:) .and. init(:)) ! interface & get phi at hmin
           vi1(:)%K    = ztmp1(:)
           Khi1(:)     = ztmp2(:)
@@ -784,7 +765,7 @@ CONTAINS
           limit(:) = .false.
           do itmp=1, 100
              if (any(l3(:) .and. (hi(:)<parin(:,i)%he))) &
-                  call hyofh(hi(:), parin(:,i), ztmp1(:), ztmp2(:), ztmp3(:))
+                  call hyofh(hi(:), parin(:,i)%lam, parin(:,i)%eta, parin(:,i)%Ke, parin(:,i)%he, ztmp1(:), ztmp2(:), ztmp3(:))
              where (l3(:) .and. (hi(:)<parin(:,i)%he))
                 vi1(:)%isat = 0
                 vi1(:)%K    = ztmp1(:)
@@ -803,11 +784,10 @@ CONTAINS
                 vi1(:)%h    = hi(:)
                 vi1(:)%phi  = phii1(:)
                 vi1(:)%phiS = one ! use dphi/dphi not dphi/dS
-                !MC define phiT=0, KT=0 to be consitent with undefined version
+                !define phiT=0, KT=0 to be consitent with undefined version
                 vi1(:)%phiT = zero
                 vi1(:)%KT   = zero
-                !MC-Guess: macropore_factor was not defined but is used in flux()
-                !          set to factor of upper layer
+                ! macropore_factor was not defined but is used in flux(), set to factor of upper layer
                 vi1(:)%macropore_factor = var(:,i)%macropore_factor
              endwhere
 
@@ -822,7 +802,8 @@ CONTAINS
              endwhere
 
              if (any(l3(:) .and. (hi(:)<parin(:,i+1)%he))) &
-                  call hyofh(hi(:), parin(:,i+1), ztmp1(:), ztmp2(:), ztmp3(:))
+                  call hyofh(hi(:), parin(:,i+1)%lam, parin(:,i+1)%eta, parin(:,i+1)%Ke, parin(:,i+1)%he, &
+                  ztmp1(:), ztmp2(:), ztmp3(:))
              where (l3(:) .and. (hi(:)<parin(:,i+1)%he))
                 vi2(:)%K    = ztmp1(:)
                 Khi2(:)     = ztmp2(:)
@@ -839,11 +820,10 @@ CONTAINS
              where (l3(:))
                 vi2(:)%h    = hi(:)
                 vi2(:)%phiS = one ! dphi/dphi
-                !MC define phiT=0, KT=0 to be consitent with undefined version
+                ! define phiT=0, KT=0 to be consitent with undefined version
                 vi2(:)%phiT = zero
                 vi2(:)%KT   = zero
-                !MC-Guess: macropore_factor was not defined but is used in flux()
-                !          set to factor of lower layer
+                ! macropore_factor was not defined but is used in flux(), set to factor of lower layer
                 vi2(:)%macropore_factor = var(:,i+1)%macropore_factor
              endwhere
              if (any(l3(:))) &
@@ -1056,7 +1036,6 @@ CONTAINS
        qhTa(i) = keff
        qhTb(i) = -keff
 
-
        ! add advective terms
        if (advection==1) then
           !          if (q(i) > zero) then
@@ -1069,12 +1048,11 @@ CONTAINS
           !          qadvyb(i) =  rhow*cswat*qyb(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
           !          qadvTa(i) =  rhow*cswat*q(i)*w
           !          qadvTb(i) =  rhow*cswat*q(i)*(one-w)
-
-
           Tqw  = merge(T(i), T(i+1), q(i)>zero) +zero
-          dTqwdTa = merge(one, zero, q(i)>zero)
-          dTqwdTb = merge(zero,one, q(i)>zero)
 
+          dTqwdTa = merge(one, zero, (q(i)>zero))
+
+          dTqwdTb = merge(zero,one, q(i)>zero)
           qadv(i) = rhow*cswat*q(i)*Tqw
           qadvya(i) =  rhow*cswat*qya(i)*Tqw
           qadvyb(i) =  rhow*cswat*qyb(i)*Tqw
@@ -1245,12 +1223,15 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  ELEMENTAL PURE SUBROUTINE hyofh(h, parin, K, Kh, phi)
+  ELEMENTAL PURE SUBROUTINE hyofh(h, lam, eta, Ke, he, K, Kh, phi)
 
     IMPLICIT NONE
 
     REAL(r_2),    INTENT(IN)  :: h
-    TYPE(params), INTENT(IN)  :: parin
+    REAL(r_2),    INTENT(IN)  :: lam
+    REAL(r_2),    INTENT(IN)  :: eta
+    REAL(r_2),    INTENT(IN)  :: Ke
+    REAL(r_2),    INTENT(IN)  :: he
     REAL(r_2),    INTENT(OUT) :: K
     REAL(r_2),    INTENT(OUT) :: Kh
     REAL(r_2),    INTENT(OUT) :: phi
@@ -1262,10 +1243,10 @@ CONTAINS
     ! phi - matric flux potential (MFP).
     REAL(r_2) :: a
 
-    a    =  -parin%lam * parin%eta
-    K    =  parin%Ke * exp(a*log(h/parin%he))
-    Kh   =  a * K / h
-    phi  =  K * h / (one+a)
+    a   =  -lam * eta
+    K   =  Ke * exp(a*log(h/he))
+    Kh  =  a * K / h
+    phi =  K * h / (one+a)
 
   END SUBROUTINE hyofh
 
@@ -1273,7 +1254,7 @@ CONTAINS
 
   ! For debug: remove elemental pure
   ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
-    ! SUBROUTINE hyofS(S, Tsoil, parin, var)
+    !SUBROUTINE hyofS(S, Tsoil, parin, var)
 
     IMPLICIT NONE
 
@@ -1303,13 +1284,13 @@ CONTAINS
 
     if (Tsoil < var%Tfrz) then ! ice
        thetal_max    = thetalmax(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
-       var%dthetaldT = dthetalmaxdT(Tsoil,S,parin%he,1/parin%lam,parin%thre,parin%the)
+       var%dthetaldT = dthetalmaxdT(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
        var%iice   = 1
        var%thetai = (theta - thetal_max) ! volumetric ice content (m3(liq H2O)/m3 soil)
        var%thetal = thetal_max
        ! liquid water content, relative to saturation
-       Sliq      = (var%thetal - (parin%the-parin%thre))/parin%thre
-       !Sliq      = min((var%thetal - (parin%the-parin%thre))/(parin%thre-var%thetai),one)
+       ! Sliq      = (var%thetal - (parin%the-parin%thre))/parin%thre
+       Sliq      = min((var%thetal-(parin%the-parin%thre))/(parin%thre-var%thetai), one)
        ! saturated liquid water content (< 1 for frozen soil)
        ! air entry potential, flux matric potential and hydraulic conductivity for saturated frozen soil
        var%he    = parin%he
@@ -1318,20 +1299,19 @@ CONTAINS
        v4         = exp(parin%eta*lnS)
        var%phie  = parin%phie*v3*v4
        var%Ksat  = parin%Ke*v4
-       ! !MC-Impedance - K
-       ! var%Ksat = var%Ksat * 10._r_2**(-7._r_2*var%thetai/parin%thre)
 
        var%h  = parin%he*v3  ! matric potential
        dhdS   = zero
        var%K  = var%Ksat
        var%KS = zero
-       var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
-       ! !MC-Impedance - K
-       ! var%KT = var%KT * 10._r_2**(-7._r_2*var%thetai/parin%thre)
+       ! var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
+       var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/(parin%thre-var%thetai)
        if (var%isat==0) var%phi = var%phie
        var%phiS = zero
+       ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
+       !      (parin%eta-one/parin%lam)/(parin%thre)
        var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
-            (parin%eta-one/parin%lam)/(parin%thre)
+            (parin%eta-one/parin%lam)/(parin%thre-var%thetai)
        var%rh   = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
     else ! no ice
        var%he     = parin%he
@@ -1412,7 +1392,7 @@ CONTAINS
 
     select case(experiment)
     case(11) ! Hansson et al. (2004)
-       ! Hansson et al. (2004) - 13b
+       ! Hansson et al. (2004) - Eq. 13b
        ! A=C1, B=C2, C1=C3, D=C4, E=C5
        A  = 0.55_r_2
        B  = 0.8_r_2
@@ -1420,29 +1400,34 @@ CONTAINS
        D  = 0.13_r_2
        E  = four
        !var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E)
-       ! Hansson et al. (2004) - 15
+       ! Hansson et al. (2004) - Eq. 15
        F1 = 13.05_r_2
        F2 = 1.06_r_2
-       F  = one + F1*var%thetai**F2
-       var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+       if  (Tsoil < var%Tfrz) then ! ice
+        F  = one + F1*var%thetai**F2
+        !write(*,*) A, B, theta, F, var%thetai,D,C1, E
+        !!vh !! this formulation gives very large negative numbers in exponent
+        var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+       else
+        var%kH = A + B*(theta)-(A-D)*exp(-(C1*(theta))**E)
+       endif
     case default
        ! calculate v%kH as in Campbell (1985) p.32 eq. 4.20
-       A  = 0.65_r_2 - 0.78_r_2*parin%rho/thousand + 0.60_r_2*(parin%rho/thousand)**2 ! need to substitute 1600 for rhob
-       B  = 2.8_r_2 * (one-parin%thre)!*theta
-       if (parin%clay.gt.zero) then
-        C1 = one + 2.6_r_2 * one/sqrt(parin%clay)
+       A  = 0.65_r_2 - 0.78_r_2*parin%rho/thousand + 0.60_r_2*(parin%rho/thousand)**2 ! (4.27)
+       B  = 2.8_r_2 * (one-parin%thre)!*theta   ! (4.24)
+       if (parin%clay > zero) then
+          C1 = one + 2.6_r_2/sqrt(parin%clay)      ! (4.28)
        else
-        C1 = one
+          C1 = one
        endif
-       D  = 0.03_r_2 + 0.7_r_2*(one-parin%thre)**2
+       D  = 0.03_r_2 + 0.7_r_2*(one-parin%thre)**2 ! (4.22)
        E  = four
-       var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E)
-       ! Hansson et al. (2004) - 15
-       F1 = 13.05_r_2
-       F2 = 1.06_r_2
-       F  = one + F1*var%thetai**F2
-       !write(*,*) A, B, theta, F, var%thetai, D, C1, E, (C1*(theta+F*var%thetai))**E
-       var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(max(-(C1*(theta+F*var%thetai))**E,-20.))
+       var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E) ! (4.20)
+       ! ! Hansson et al. (2004) - Eq. 15
+       ! F1 = 13.05_r_2
+       ! F2 = 1.06_r_2
+       ! F  = one + F1*var%thetai**F2
+       ! var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
     end select
     var%eta_th = one
     var%kE     = var%Dv*var%rh*var%sl*thousand*var%lambdav*var%eta_th
@@ -1847,11 +1832,11 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav
+    REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz, lambdav
     REAL(r_2), INTENT(OUT) :: Ts, E, H, G, dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil
 
     REAL(r_2) :: s, ea, dEdea, dEdesat, dTsdTa, dEdDa, Da
-    REAL(r_2):: rhocp,gamma != 67.0 ! psychrometric constant
+    REAL(r_2):: rhocp, gamma != 67.0 ! psychrometric constant
 
     rhocp = rmair*101325/rgas/(Ta+Tzero)*cpa
     gamma = 101325.*cpa/lambdav/(rmh2o/rmair)
@@ -2136,7 +2121,7 @@ CONTAINS
     psi = lambdaf*T/(gravity*(T+Tzero))! total matric potential in presence of ice
     h   = psi-PI       ! moisture potential in presence of ice
 
-    thetalmax = thre*(h/he)**(-1/b) + (the-thre)
+    thetalmax = thre*(h/he)**(-one/b) + (the-thre)
     dthetaldh = -thetalmax/b/h
 
     dthetalmaxdT = dthetaldh*(lambdaf/(T+Tzero)/gravity-lambdaf*T/gravity/(T+Tzero)**2+csol*Rgas/gravity)
@@ -2181,49 +2166,7 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  REAL(r_1) ELEMENTAL PURE FUNCTION sgammln(z)
-    !  Uses Lanczos-type approximation to ln(gamma) for z > 0.
-    !  Reference:
-    !       Lanczos, C. 'A precision approximation of the gamma
-    !               function', J. SIAM Numer. Anal., B, 1, 86-96, 1964.
-    !  Accuracy: About 14 significant digits except for small regions
-    !            in the vicinity of 1 and 2.
-    !  Programmer: Alan Miller
-    !              1 Creswick Street, Brighton, Vic. 3187, Australia
-    !  e-mail: amiller @ bigpond.net.au
-    !  Latest revision - 14 October 1996
-    IMPLICIT NONE
-
-    REAL(r_1), INTENT(IN) :: z
-    ! Local variables
-    REAL(r_2), PARAMETER :: a(9) = (/ &
-         0.9999999999995183_r_2, 676.5203681218835_r_2, -1259.139216722289_r_2, &
-         771.3234287757674_r_2, -176.6150291498386_r_2, 12.50734324009056_r_2, &
-         -0.1385710331296526_r_2, 0.9934937113930748E-05_r_2, 0.1659470187408462E-06_r_2 /)
-    REAL(r_2), PARAMETER :: zero = 0.0_r_2
-    REAL(r_2), PARAMETER :: one = 1.0_r_2
-    REAL(r_2), PARAMETER :: lnsqrt2pi =  0.9189385332046727_r_2
-    REAL(r_2), PARAMETER :: half = 0.5_r_2
-    REAL(r_2), PARAMETER :: sixpt5 = 6.5_r_2
-    REAL(r_2), PARAMETER :: seven = 7.0_r_2
-    REAL(r_2)    :: tmp, tmpgammln, ztmp
-    INTEGER(i_d) :: j
-
-    ztmp = real(z,r_2)
-    tmpgammln = zero
-    tmp = ztmp + seven
-    DO j = 9, 2, -1
-       tmpgammln = tmpgammln + a(j)/tmp
-       tmp = tmp - one
-    END DO
-    tmpgammln = tmpgammln + a(1)
-    tmpgammln = LOG(tmpgammln) + lnsqrt2pi - (ztmp + sixpt5) + (ztmp - half)*LOG(ztmp + sixpt5)
-    sgammln   = real(tmpgammln,r_1)
-    RETURN
-
-  END FUNCTION sgammln
-
-  REAL(r_2) ELEMENTAL PURE FUNCTION dgammln(z)
+  REAL(r_2) ELEMENTAL PURE FUNCTION gammln(z)
     !  Uses Lanczos-type approximation to ln(gamma) for z > 0.
     !  Reference:
     !       Lanczos, C. 'A precision approximation of the gamma
@@ -2258,50 +2201,14 @@ CONTAINS
        tmp = tmp - one
     END DO
     tmpgammln = tmpgammln + a(1)
-    dgammln = LOG(tmpgammln) + lnsqrt2pi - (z + sixpt5) + (z - half)*LOG(z + sixpt5)
+    gammln = LOG(tmpgammln) + lnsqrt2pi - (z + sixpt5) + (z - half)*LOG(z + sixpt5)
     RETURN
 
-  END FUNCTION dgammln
+  END FUNCTION gammln
 
   !**********************************************************************************************************************
 
-  REAL(r_1) ELEMENTAL PURE FUNCTION sgcf(a,x)
-
-    IMPLICIT NONE
-
-    REAL(r_1), INTENT(IN) :: a,x
-    INTEGER(i_d), PARAMETER :: ITMAX=100
-    REAL(r_1),     PARAMETER :: EPS=epsilon(x)
-    REAL(r_1),     PARAMETER :: FPMIN=tiny(x)/EPS
-    INTEGER(i_d) :: i
-    REAL(r_1)     :: an, b, c, d, del, h
-
-    if (x == 0.0) then
-       sgcf=1.0
-       RETURN
-    end if
-    b = x + 1.0_r_1 - a
-    c = 1.0_r_1/FPMIN
-    d = 1.0_r_1/b
-    h = d
-    do i=1, ITMAX
-       an  = -i*(i-a)
-       b   = b + 2.0_r_1
-       d   = an*d + b
-       if (abs(d)<FPMIN) d=FPMIN
-       c   = b + an/c
-       if (abs(c)<FPMIN) c=FPMIN
-       d   = 1.0_r_1/d
-       del = d*c
-       h   = h*del
-       if (abs(del-1.0_r_1) <= EPS) exit
-    end do
-    sgcf = exp(-x + a*log(x) - gammln(a)) * h
-
-  END FUNCTION sgcf
-
-
-  REAL(r_2) ELEMENTAL PURE FUNCTION dgcf(a,x)
+  REAL(r_2) ELEMENTAL PURE FUNCTION gcf(a,x)
 
     IMPLICIT NONE
 
@@ -2313,7 +2220,7 @@ CONTAINS
     REAL(r_2)     :: an, b, c, d, del, h
 
     if (x == 0.0) then
-       dgcf=1.0
+       gcf=1.0
        RETURN
     end if
     b = x + 1.0_r_2 - a
@@ -2332,41 +2239,13 @@ CONTAINS
        h   = h*del
        if (abs(del-1.0_r_2) <= EPS) exit
     end do
-    dgcf = exp(-x + a*log(x) - gammln(a)) * h
+    gcf = exp(-x + a*log(x) - gammln(a)) * h
 
-  END FUNCTION dgcf
+  END FUNCTION gcf
 
   !**********************************************************************************************************************
 
-  REAL(r_1) ELEMENTAL PURE FUNCTION sgser(a,x)
-
-    IMPLICIT NONE
-
-    REAL(r_1), INTENT(IN) :: a, x
-    INTEGER(i_d), PARAMETER :: ITMAX=100
-    REAL(r_1),     PARAMETER :: EPS=epsilon(x)
-    INTEGER(i_d) :: n
-    REAL(r_1)     :: ap, del, summ
-
-    if (x == 0.0) then
-       sgser = 0.0
-       RETURN
-    end if
-    ap   = a
-    summ = 1.0_r_1/a
-    del  = summ
-    do n=1, ITMAX
-       ap   = ap + 1.0_r_1
-       del  = del*x/ap
-       summ = summ + del
-       if (abs(del) < abs(summ)*EPS) exit
-    end do
-    sgser=summ*exp(-x+a*log(x)-gammln(a))
-
-  END FUNCTION sgser
-
-
-  REAL(r_2) ELEMENTAL PURE FUNCTION dgser(a,x)
+  REAL(r_2) ELEMENTAL PURE FUNCTION gser(a,x)
 
     IMPLICIT NONE
 
@@ -2377,7 +2256,7 @@ CONTAINS
     REAL(r_2)     :: ap, del, summ
 
     if (x == 0.0) then
-       dgser = 0.0
+       gser = 0.0
        RETURN
     end if
     ap   = a
@@ -2389,43 +2268,26 @@ CONTAINS
        summ = summ + del
        if (abs(del) < abs(summ)*EPS) exit
     end do
-    dgser=summ*exp(-x+a*log(x)-gammln(a))
+    gser=summ*exp(-x+a*log(x)-gammln(a))
 
-  END FUNCTION dgser
+  END FUNCTION gser
 
   !**********************************************************************************************************************
 
-  REAL(r_1) ELEMENTAL PURE FUNCTION sigamma(a,x)
-
-    IMPLICIT NONE
-
-    REAL(r_1), INTENT(IN) :: a, x
-    REAL(r_1) :: gln
-    gln = gammln(a)
-    if (x < a+1.0_r_1) then
-       sigamma = 1.0_r_1 - gser(a,x)
-    else
-       sigamma = gcf(a,x)
-    end if
-    sigamma = sigamma * exp(gln)
-
-  END FUNCTION sigamma
-
-
-  REAL(r_2) ELEMENTAL PURE FUNCTION digamma(a,x)
+  REAL(r_2) ELEMENTAL PURE FUNCTION igamma(a,x)
     USE cable_def_types_mod, ONLY: r_2
     IMPLICIT NONE
     REAL(r_2), INTENT(IN) :: a, x
     REAL(r_2) :: gln
     gln = gammln(a)
     if (x < a+1.0_r_2) then
-       digamma = 1.0_r_2 - gser(a,x)
+       igamma = 1.0_r_2 - gser(a,x)
     else
-       digamma = gcf(a,x)
+       igamma = gcf(a,x)
     end if
-    digamma = digamma * exp(gln)
+    igamma = igamma * exp(gln)
 
-  END FUNCTION digamma
+  END FUNCTION igamma
 
   !**********************************************************************************************************************
   !MC this routines has to be adjusted for csol in freezing, probably.
@@ -2650,7 +2512,7 @@ CONTAINS
 
   REAL(r_2) ELEMENTAL PURE FUNCTION GTfrozen(T, J, dx, theta, csoil, rhosoil, h0, thre, the, he, b)
     ! GTfrozen = sensible heat + latent heat - total energy (should be zero)
-    USE sli_numbers, ONLY: one, csice, cswat, rhow, lambdaf
+    USE sli_numbers, ONLY: csice, cswat, rhow, lambdaf
 
     IMPLICIT NONE
 
@@ -2658,10 +2520,10 @@ CONTAINS
     real(r_2) :: thetal, S
 
     S = (theta-(the-thre))/thre
-    !thetal = thetalmax(T,min(S,one),he,b,thre,the)
 
     if (T<Tfrz(S,he,b)) then
-       thetal = thetalmax(T,min(S,one),he,b,thre,the)
+       !thetal = thetalmax(T,min(S,one),he,b,thre,the)
+       thetal = thetalmax(T,S,he,b,thre,the)
     else
        thetal = theta
     endif
@@ -2686,7 +2548,8 @@ CONTAINS
     S = (theta-(the-thre))/thre
 
     if (T<Tfrz(S,he,b)) then
-       thetal = thetalmax(T,min(S,one),he,b,thre,the)
+       !thetal = thetalmax(T,min(S,one),he,b,thre,the)
+       thetal = thetalmax(T,S,he,b,thre,the)
     else
        thetal = theta
     endif
@@ -2730,7 +2593,11 @@ CONTAINS
        xmid = rtbis_Tfrozen+dx
        fmid = GTfrozen(xmid,J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b)
        if (fmid <= zero) rtbis_Tfrozen = xmid
-       if (abs(dx) < xacc .or. fmid == zero) RETURN
+       ! if (abs(dx) < xacc .or. fmid == zero) RETURN
+       if (abs(fmid) < one) then
+          rtbis_Tfrozen = xmid
+          RETURN
+       endif
     end do
 
   END FUNCTION rtbis_Tfrozen
@@ -2743,15 +2610,16 @@ CONTAINS
 
     IMPLICIT NONE
 
-    real(r_2), intent(in) :: Tin,S,he,b,thre,the
+    real(r_2), intent(in) :: Tin, S, he, b, thre, the
     real(r_2)             :: PI, psi, h, T
 
-    T   = min(Tfrz(S,he,b),Tin)
+    T   = min(Tfrz(min(S,one),he,b),Tin)
     PI  = -csol *Rgas *(T+Tzero)/gravity ! osmotic potential (m)
     psi = lambdaf*T/(gravity*(T+Tzero))  ! matric potential in presence of ice
     h   = psi-PI                         ! moisture potential in presence of ice
 
     thetalmax = thre*(h/he)**(-1/b) + (the-thre)
+    if (S > one) thetalmax = S * thetalmax
 
   END FUNCTION thetalmax
 
@@ -2815,7 +2683,7 @@ CONTAINS
        end if
     end if
     if (.not. done) then
-       call hyofh(hz, parin, Kz, Khz, phiz) ! accurate but slower
+       call hyofh(hz, parin%lam, parin%eta, parin%Ke, parin%he, Kz, Khz, phiz) ! accurate but slower
        w = -((phiz-phi)/(gf*dz)+K)/(Kz-K)
     end if
     weight = min(max(w,zero),one)
@@ -2874,5 +2742,310 @@ CONTAINS
   END FUNCTION zerovars
 
   !**********************************************************************************************************************
+
+  subroutine bracket(x, xval, left, right)
+
+    !*****************************************************************************80
+    !
+    !! BRACKET searches a sorted vector for successive brackets of a value.
+    !
+    !  Discussion:
+    !
+    !    A vector is an array of double precision real values.
+    !    If the values in the vector are thought of as defining intervals
+    !    on the real line, then this routine searches for the interval
+    !    nearest to or containing the given value.
+    !
+    !  Licensing:
+    !
+    !    This code is distributed under the GNU LGPL license.
+    !
+    !  Modified:
+    !
+    !    06 April 1999
+    !
+    !  Author:
+    !
+    !    John Burkardt
+    !
+    !  Parameters:
+    !
+    !    Input, real(r_2) X(N), an array sorted into ascending order.
+    !
+    !    Input, real(r_2) XVAL(M), values to be bracketed.
+    !
+    !    Output, integer(i_d) LEFT(M), RIGHT(M), the results of the search.
+    !    Either:
+    !      XVAL < X(1), when LEFT = 1, RIGHT = 2;
+    !      X(N) < XVAL, when LEFT = N-1, RIGHT = N;
+    !    or
+    !      X(LEFT) <= XVAL <= X(RIGHT).
+    !
+    implicit none
+
+    real(r_2), dimension(:), intent(in) :: x
+    real(r_2), dimension(:), intent(in) :: xval
+    integer(i_d), dimension(size(xval)), intent(out) :: left
+    integer(i_d), dimension(size(xval)), intent(out) :: right
+
+    integer(i_d) :: n, m
+    integer(i_d) :: i, j
+    logical :: istheend
+
+    n = size(x)
+    m = size(xval)
+    do j=1, m
+       istheend = .true.
+       do i = 2, n - 1
+          if ( xval(j) < x(i) ) then
+             left(j)  = i - 1
+             right(j) = i
+             istheend = .false.
+             exit
+          end if
+       end do
+       if (istheend) then
+          left(j)  = n - 1
+          right(j) = n
+       endif
+    end do
+
+    return
+
+  end subroutine bracket
+
+  function spline_b(tval, tdata, ydata)
+
+    !*****************************************************************************80
+    !
+    !! SPLINE_B_VAL evaluates a cubic B spline approximant.
+    !
+    !  Discussion:
+    !
+    !    The cubic B spline will approximate the data, but is not
+    !    designed to interpolate it.
+    !
+    !    In effect, two "phantom" data values are appended to the data,
+    !    so that the spline will interpolate the first and last data values.
+    !
+    !  Licensing:
+    !
+    !    This code is distributed under the GNU LGPL license.
+    !
+    !  Modified:
+    !
+    !    11 February 2004
+    !
+    !  Author:
+    !
+    !    John Burkardt
+    !
+    !  Reference:
+    !
+    !    Carl deBoor,
+    !    A Practical Guide to Splines,
+    !    Springer, 2001,
+    !    ISBN: 0387953663.
+    !
+    !  Parameters:
+    !
+    !    Input, real(r_2) TVAL, the points at which the spline is to be evaluated.
+    !
+    !    Input, real(r_2) TDATA(NDATA), the abscissas of the data.
+    !
+    !    Input, real(r_2) YDATA(NDATA), the data values.
+    !
+    !    Output, real(r_2) SPLINE_B, the values of the function at TVAL.
+    !
+    implicit none
+
+    real(r_2), dimension(:), intent(in) :: tval
+    real(r_2), dimension(:), intent(in) :: tdata
+    real(r_2), dimension(:), intent(in) :: ydata
+    real(r_2), dimension(size(tval))    :: spline_b
+
+    integer(i_d) :: ndata
+    real(r_2),    dimension(size(tval)) :: bval
+    integer(i_d), dimension(size(tval)) :: left
+    integer(i_d), dimension(size(tval)) :: right
+    real(r_2),    dimension(size(tval)) :: u
+
+    ndata = size(tdata)
+    !
+    !  Find the nearest interval [ TDATA(LEFT), TDATA(RIGHT) ] to TVAL.
+    !
+    call bracket(tdata, tval, left, right)
+    !
+    !  Evaluate the 5 nonzero B spline basis functions in the interval,
+    !  weighted by their corresponding data values.
+    !
+    u = ( tval - tdata(left) ) / ( tdata(right) - tdata(left) )
+    spline_b = 0.0_r_2
+    !
+    !  B function associated with node LEFT - 1, (or "phantom node"),
+    !  evaluated in its 4th interval.
+    !
+    bval = ( ( (     - 1.0_r_2   &
+         * u + 3.0_r_2 ) &
+         * u - 3.0_r_2 ) &
+         * u + 1.0_r_2 ) / 6.0_r_2
+
+    where ( 0 < left-1 )
+       spline_b = spline_b + ydata(left-1) * bval
+    elsewhere
+       spline_b = spline_b + ( 2.0_r_2 * ydata(1) - ydata(2) ) * bval
+    end where
+    !
+    !  B function associated with node LEFT,
+    !  evaluated in its third interval.
+    !
+    bval = ( ( (       3.0_r_2   &
+         * u - 6.0_r_2 ) &
+         * u + 0.0_r_2 ) &
+         * u + 4.0_r_2 ) / 6.0_r_2
+
+    spline_b = spline_b + ydata(left) * bval
+    !
+    !  B function associated with node RIGHT,
+    !  evaluated in its second interval.
+    !
+    bval = ( ( (     - 3.0_r_2   &
+         * u + 3.0_r_2 ) &
+         * u + 3.0_r_2 ) &
+         * u + 1.0_r_2 ) / 6.0_r_2
+
+    spline_b = spline_b + ydata(right) * bval
+    !
+    !  B function associated with node RIGHT+1, (or "phantom node"),
+    !  evaluated in its first interval.
+    !
+    bval = u**3 / 6.0_r_2
+
+    where ( right+1 <= ndata )
+       spline_b = spline_b + ydata(right+1) * bval
+    elsewhere
+       spline_b = spline_b + ( 2.0_r_2 * ydata(ndata) - ydata(ndata-1) ) * bval
+    end where
+
+    return
+
+  end function spline_b
+
+  !**********************************************************************************************************************
+
+  FUNCTION mean_1d(dat, mask)
+
+    IMPLICIT NONE
+
+    REAL(r_2), DIMENSION(:),           INTENT(IN)  :: dat
+    LOGICAL,   DIMENSION(:), OPTIONAL, INTENT(IN)  :: mask
+    REAL(r_2)                                      :: mean_1d
+
+    REAL(r_2) :: n
+
+    LOGICAL, DIMENSION(size(dat)) :: maske
+
+    if (present(mask)) then
+       if (size(mask) /= size(dat)) stop 'Error mean_1d: size(mask) /= size(dat)'
+       maske = mask
+       n = real(count(maske),r_2)
+    else
+       maske(:) = .true.
+       n = real(size(dat),r_2)
+    endif
+    if (n <= (1.0_r_2+tiny(1.0_r_2))) stop 'mean_1d: n must be at least 2'
+
+    ! Mean
+    mean_1d  = sum(dat(:), mask=maske)/n
+
+  END FUNCTION mean_1d
+
+  FUNCTION mean_2d(dat, mask)
+
+    IMPLICIT NONE
+
+    REAL(r_2), DIMENSION(:,:),           INTENT(IN)  :: dat
+    LOGICAL,   DIMENSION(:,:), OPTIONAL, INTENT(IN)  :: mask
+    REAL(r_2)                                        :: mean_2d
+
+    REAL(r_2) :: n
+
+    LOGICAL, DIMENSION(size(dat,1),size(dat,2)) :: maske
+
+    if (present(mask)) then
+       if (size(mask) /= size(dat)) stop 'Error mean_2d: size(mask) /= size(dat)'
+       maske = mask
+       n = real(count(maske),r_2)
+    else
+       maske = .true.
+       n = real(size(dat),r_2)
+    endif
+    if (n <= (1.0_r_2+tiny(1.0_r_2))) stop 'mean_2d: n must be at least 2'
+
+    ! Mean
+    mean_2d  = sum(dat, mask=maske)/n
+
+  END FUNCTION mean_2d
+
+  !**********************************************************************************************************************
+
+  ! Nash-Sutcliffe Efficiency: 1-sum(obs-model)/sum(obs-mean(obs))
+  FUNCTION nse_1d(x, y, mask)
+
+    IMPLICIT NONE
+
+    REAL(r_2), DIMENSION(:),           INTENT(IN) :: x, y
+    LOGICAL,   DIMENSION(:), OPTIONAL, INTENT(IN) :: mask
+    REAL(r_2)                                     :: nse_1d
+
+    REAL(r_2)                                     :: xmean
+    REAL(r_2), DIMENSION(size(x))                 :: v1, v2
+    LOGICAL,   DIMENSION(size(x))                 :: maske
+
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    endif
+
+    ! mean of x
+    xmean = mean(x, mask=maske)
+    ! nse
+    v1 = merge(y - x    , 0.0_r_2, maske)
+    v2 = merge(x - xmean, 0.0_r_2, maske)
+    nse_1d = 1.0_r_2 - dot_product(v1,v1) / dot_product(v2,v2)
+
+  END FUNCTION nse_1d
+
+
+  FUNCTION nse_2d(x, y, mask)
+
+    IMPLICIT NONE
+
+    REAL(r_2), DIMENSION(:,:),           INTENT(IN) :: x, y
+    LOGICAL,   DIMENSION(:,:), OPTIONAL, INTENT(IN) :: mask
+    REAL(r_2)                                       :: nse_2d
+
+    REAL(r_2)                                       :: xmean
+    REAL(r_2), DIMENSION(size(x,1),size(x,2))       :: v1, v2
+    LOGICAL,   DIMENSION(size(x,1),size(x,2))       :: maske
+
+    INTEGER(i_d) :: i
+
+    if (present(mask)) then
+       maske = mask
+    else
+       maske = .true.
+    endif
+
+    ! nse
+    v1 = merge(y - x, 0.0_r_2, maske)
+    do i=1, size(x,1)
+       xmean   = mean(x(i,:), mask=maske(i,:))
+       v2(i,:) = merge(x(i,:) - xmean, 0.0_r_2, maske(i,:))
+    enddo
+    nse_2d = 1.0_r_2 - sum(v1*v1) / sum(v2*v2)
+
+  END FUNCTION nse_2d
 
 END MODULE sli_utils

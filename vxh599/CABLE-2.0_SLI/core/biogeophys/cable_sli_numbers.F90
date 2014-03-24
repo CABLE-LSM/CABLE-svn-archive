@@ -53,15 +53,15 @@ MODULE sli_numbers
   ! numerical limits
   REAL(r_2), PARAMETER :: dSfac     = 1.25
   REAL(r_2), PARAMETER :: dpmaxr    = 0.5
-  REAL(r_2), PARAMETER :: h0min     = -2.e-4
+  REAL(r_2), PARAMETER :: h0min     = -2.e-3
   REAL(r_2), PARAMETER :: snmin     = 0.001_r_2 ! depth of snowpack (m) without dedicated snow layer(s)
-  REAL(r_2), PARAMETER :: fsnowliq_max = 0.08  ! max fraction of snow water in liquid phase
-  INTEGER(i_d), PARAMETER :: nsnow_max = 1 ! maximum number of dedicated snow layers
+  REAL(r_2), PARAMETER :: fsnowliq_max = 0.03  ! max fraction of snow water in liquid phase
+  INTEGER(i_d), PARAMETER :: nsnow_max = 2 ! maximum number of dedicated snow layers (1 or 2)
 
   REAL(r_2), PARAMETER :: dh0max    = 0.0001
   REAL(r_2), PARAMETER :: SLmax     = 1.01
   REAL(r_2), PARAMETER :: SLmin     = 0.001
-  REAL(r_2), PARAMETER :: Smax      = 1.01
+  REAL(r_2), PARAMETER :: Smax      = 1.05
   REAL(r_2), PARAMETER :: h0max     = 0.05
   REAL(r_2), PARAMETER :: qprecmax  = 1.0e10
   REAL(r_2), PARAMETER :: dSmax     = 0.1
@@ -89,7 +89,6 @@ MODULE sli_numbers
   ! CHARACTER(LEN=20)    :: botbc = "aquifer"
   ! CHARACTER(LEN=20)    :: botbc = "constant head"
   ! CHARACTER(LEN=20)    :: botbc = "seepage"
-  INTEGER(i_d), SAVE :: count_sparse, count_hyofS
 
   ! Special setups for sli stand-alone, such as 1-8: testcases of Haverd & Cuntz (2010);
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
@@ -118,9 +117,11 @@ MODULE sli_numbers
   TYPE vars_snow
      REAL(r_2), DIMENSION(nsnow_max):: depth, hsnow, hliq, dens, tsn, kH, kE, kth, &
           Dv, cv, sl, melt, &
-          Jsensible, Jlatent,  Qadv_melt, Qadv_vap, Qcond_net, &
-          Qadv_transfer, FluxDivergence, deltaJlatent, deltaJsensible
-     REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain
+          Jsensible, Jlatent,  deltaJlatent, deltaJsensible, fsnowliq_max
+     REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain, totdepth,J, &
+	              Qadv_melt, Qadv_vap, Qcond_net, &
+                  Qadv_transfer, Qmelt, Qtransfer,FluxDivergence, deltaJ, &
+				  Qvap, MoistureFluxDivergence, Qprec, Qevap, deltawcol
      INTEGER(i_d) :: nsnow, nsnow_last
   END TYPE vars_snow
 
