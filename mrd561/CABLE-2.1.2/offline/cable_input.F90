@@ -767,12 +767,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        READ(timeunits(23:24),*) shod  ! starting hour of day 
        !write(*,*) 'read hour'
     ELSE
-       write(*,*) 'using read statements to get the time units'
        READ(timeunits(15:18),*) syear
        READ(timeunits(20:21),*) smoy ! integer month
        READ(timeunits(23:24),*) sdoytmp ! integer day of that month
        READ(timeunits(26:27),*) shod  ! starting hour of day 
-       write(*,*) 'read the time units'
     END IF
     ! Decide day-of-year for non-leap year:
     SELECT CASE(smoy)
