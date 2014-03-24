@@ -200,13 +200,12 @@ CONTAINS
    INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
-
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! jhan: use new soil param. method
-                  soilparmnew,      & ! jhan: use new soil param. method
-                  calcsoilalbedo,   & ! Added by Kai and Jatin
+                  vegparmnew,       & ! use new soil param. method
+                  soilparmnew,      & ! use new soil param. method
+                  calcsoilalbedo,   & ! Newly added  - see Ticket #27
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
@@ -673,7 +672,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ntyp = nparam
 
-  ! Added by Kai and Jatin
+  ! in support of soil colour albedo - see Ticket #27
   IF (calcsoilalbedo) THEN
     ntyp = nparam + 1
   END IF
@@ -1213,7 +1212,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (soil%zshh, displs(bidx), ierr)
   blen(bidx) = (ms + 1) * extr1
 
-  ! Added by Kai and Jatin
+  ! IF BLOCK in support of soil colour albedo - see Ticket #27
   IF (calcsoilalbedo) THEN
      bidx = bidx + 1
      CALL MPI_Get_address (soil%soilcol, displs(bidx), ierr)

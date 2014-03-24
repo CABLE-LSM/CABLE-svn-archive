@@ -241,9 +241,9 @@ SUBROUTINE mpidrv_master (comm)
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! jhan: use new soil param. method
-                  soilparmnew,      & ! jhan: use new soil param. method
-                  calcsoilalbedo,   & ! Added by Kai and Jatin
+                  vegparmnew,       & ! use new soil param. method
+                  soilparmnew,      & ! use new soil param. method
+                  calcsoilalbedo,   & ! see TIcket #27 
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
@@ -857,8 +857,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   ! MPI: TODO: free landp_t and patch_t types?
 
   ntyp = nparam
-
-  ! Added by Kai and Jatin
+  ! Newly added IF Block (see Ticket #27)
   IF (calcsoilalbedo) THEN
     ntyp = nparam + 1
   END IF
@@ -1476,8 +1475,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (soil%zshh, displs(bidx), ierr)
   blen(bidx) = (ms + 1) * extr1
-
-  ! Added by Kai and Jatin 
+  ! Newly added IF BLOCK (see Ticket #27) 
   IF (calcsoilalbedo) THEN
      bidx = bidx + 1
      CALL MPI_Get_address (soil%soilcol(off), displs(bidx), ierr)
