@@ -31,6 +31,8 @@
 MODULE cable_albedo_module
 
    USE cable_data_module, ONLY : ialbedo_type, point2constants 
+   USE cable_soil_snow_module, ONLY : soil_albedo
+   USE cable_IO_vars_module,   ONLY : calcsoilalbedo
    
    IMPLICIT NONE
    
@@ -173,24 +175,29 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    
    INTEGER :: k,i,j,l,l1,l2
 
-   soil%albsoilf = soil%albsoil(:,1)
+   ! This IF block was Added for Jatin
+   IF (calcsoilalbedo) THEN
+     CALL soil_albedo(ssnow, soil)
+   ELSE
+     soil%albsoilf = soil%albsoil(:,1)
 
    ! lakes: hard-wired number to be removed in future
-   WHERE( veg%iveg == 16 )                                                     &
-      soil%albsoilf = -0.022*( MIN( 275., MAX( 260., met%tk ) ) - 260. ) + 0.45
+     WHERE( veg%iveg == 16 )                                                   &
+       soil%albsoilf = -0.022*( MIN( 275., MAX( 260., met%tk ) ) - 260. ) + 0.45
 
-   WHERE(ssnow%snowd > 1. .and. veg%iveg == 16 ) soil%albsoilf = 0.85
+     WHERE(ssnow%snowd > 1. .and. veg%iveg == 16 ) soil%albsoilf = 0.85
 
-   sfact = 0.68
-  
-   WHERE (soil%albsoilf <= 0.14)
-      sfact = 0.5
-   ELSEWHERE (soil%albsoilf > 0.14 .and. soil%albsoilf <= 0.20)
-      sfact = 0.62
-   END WHERE
+     sfact = 0.68
 
-   ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
-   ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
+     WHERE (soil%albsoilf <= 0.14)
+        sfact = 0.5
+     ELSEWHERE (soil%albsoilf > 0.14 .and. soil%albsoilf <= 0.20)
+        sfact = 0.62
+     END WHERE
+
+     ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
+     ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
+   ENDIF
   
    snrat=0.
    alir =0.

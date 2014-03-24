@@ -60,8 +60,8 @@ MODULE cable_output_module
     INTEGER :: SWdown, LWdown, Wind, Wind_E, PSurf,                       &
                     Tair, Qair, Rainf, Snowf, CO2air,                          &
                     Qle, Qh, Qg, NEE, SWnet,                                   &
-                    LWnet, SoilMoist, SoilTemp, Albedo, Qs,                    &
-                    Qsb, Evap, BaresoilT, SWE, SnowT,                          &
+                    LWnet, SoilMoist, SoilTemp, Albedo, visAlbedo, nirAlbedo,  &
+                    Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
@@ -108,6 +108,8 @@ MODULE cable_output_module
                                                    ! [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: SoilWet ! 29 total soil wetness [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Albedo  ! 30 albedo [-]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: visAlbedo
+    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo
     REAL(KIND=4), POINTER, DIMENSION(:) :: VegT    ! 31 vegetation temperature
                                                    ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilTemp  ! 32 av.layer soil
@@ -531,6 +533,20 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Albedo(mp))
        out%Albedo = 0.0 ! initialise
+    END IF
+    IF(output%radiation .OR. output%visAlbedo) THEN
+       CALL define_ovar(ncid_out, ovid%visAlbedo, 'visAlbedo', '-',            &
+                        'Surface vis albedo', patchout%visAlbedo,              &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%visAlbedo(mp))
+       out%visAlbedo = 0.0 ! initialise
+    END IF
+    IF(output%radiation .OR. output%nirAlbedo) THEN
+       CALL define_ovar(ncid_out, ovid%nirAlbedo, 'nirAlbedo', '-',            &
+                        'Surface nir albedo', patchout%nirAlbedo,              &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%nirAlbedo(mp))
+       out%nirAlbedo = 0.0 ! initialise
     END IF
     IF(output%radiation .OR. output%RadT) THEN
        CALL define_ovar(ncid_out, ovid%RadT, 'RadT', 'K',                      &
@@ -1503,6 +1519,8 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        out%Albedo = out%Albedo + REAL((rad%albedo(:, 1) + rad%albedo(:, 2))    &
                                        * 0.5, 4)
+       out%visAlbedo = out%visAlbedo + REAL(rad%albedo(:, 1) , 4)
+       out%nirAlbedo = out%nirAlbedo + REAL(rad%albedo(:, 2) , 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Albedo = out%Albedo / REAL(output%interval, 4)
@@ -1511,6 +1529,14 @@ CONTAINS
                      out%Albedo, ranges%Albedo, patchout%Albedo, 'default', met)
           ! Reset temporary output variable:
           out%Albedo = 0.0
+          out%visAlbedo = out%visAlbedo / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%visAlbedo, 'visAlbedo', &
+            out%visAlbedo, ranges%visAlbedo, patchout%visAlbedo, 'default', met)
+          out%visAlbedo = 0.0
+          out%nirAlbedo = out%nirAlbedo / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%nirAlbedo, 'nirAlbedo', &
+            out%nirAlbedo, ranges%nirAlbedo, patchout%nirAlbedo, 'default', met)
+          out%nirAlbedo = 0.0
        END IF
     END IF
     ! RadT: Radiative surface temperature [K]

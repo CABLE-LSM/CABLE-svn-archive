@@ -63,7 +63,7 @@ MODULE cable_input_module
    
    PRIVATE
    PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,      &
-        allocate_cable_vars, get_met_data
+        allocate_cable_vars, get_met_data, read_soilcolor
 
    INTEGER                      ::                                        & 
         ncid_met,        & ! met data netcdf file ID
@@ -2481,8 +2481,84 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 
   
 END SUBROUTINE load_parameters
- 
+!=============================================================================
+SUBROUTINE read_soilcolor(soil, logn)
+  ! Read soil color
+  !
+  ! Input variables:
+  !   filename%soilcolor  - via cable_IO_vars_module
+  ! Output variables:
+  !   soilcol    - via cable_param_module
+  !
+  ! New input structure using netcdf
 
+    USE netcdf
+    USE cable_common_module, ONLY : filename
+    ! USE cable_IO_vars_module, ONLY : soilcol
+
+    IMPLICIT NONE
+    ! INTEGER, DIMENSION(:), INTENT(INOUT) :: soilcol
+    TYPE (soil_parameter_type), INTENT(OUT) :: soil
+    INTEGER, INTENT(IN) ::  logn ! log file unit number
+
+    ! local variables  
+    INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
+    INTEGER :: ncid, ok
+    INTEGER :: nlon
+    INTEGER :: nlat
+    INTEGER :: xID, yID
+    INTEGER :: varID
+    INTEGER :: e
+
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLon
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLat
+
+    ok = NF90_OPEN(filename%soilcolor, 0, ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
+
+    ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring x dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, xID, LEN=nlon)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting x dimension.')
+    ok = NF90_INQ_DIMID(ncid, 'latitude', yID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'y', yID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.') 
+
+
+    ALLOCATE( inLon(nlon), inLat(nlat) )
+    ALLOCATE( inSoilColor(nlon, nlat) )
+    ! ALLOCATE( soilcol(mp) )
+
+    ok = NF90_INQ_VARID(ncid, 'longitude', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error finding variable longitude.')
+    ok = NF90_GET_VAR(ncid, varID, inLon)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error reading variable longitude.')
+
+    ok = NF90_INQ_VARID(ncid, 'latitude', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
+    ok = NF90_GET_VAR(ncid, varID, inLat)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
+
+    ok = NF90_INQ_VARID(ncid, 'SOIL_COLOR', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable soil color.')
+    ok = NF90_GET_VAR(ncid, varID, inSoilColor)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable soil color.')
+
+    ok = NF90_CLOSE(ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
+
+    DO e = 1, mland ! over all land grid points
+       soil%soilcol(e) = inSoilColor(landpt(e)%ilon, landpt(e)%ilat)
+    END DO
+
+    DEALLOCATE(inSoilColor)
+
+END SUBROUTINE read_soilcolor
 !==============================================================================
 !
 ! Name: get_parameters_met

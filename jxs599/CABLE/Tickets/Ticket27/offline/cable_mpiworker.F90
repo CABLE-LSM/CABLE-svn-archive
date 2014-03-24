@@ -108,7 +108,7 @@ CONTAINS
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   patch_type,soilparmnew,calcsoilalbedo
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename,                    & 
                                    redistrb, wiltParam, satuParam
@@ -206,6 +206,7 @@ CONTAINS
                   filename,         & ! TYPE, containing input filenames 
                   vegparmnew,       & ! jhan: use new soil param. method
                   soilparmnew,      & ! jhan: use new soil param. method
+                  calcsoilalbedo,   & ! Newly added by Kai Requested by Jatin
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
@@ -670,6 +671,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   ! MPI: TODO: probably not a bad idea to free landp_t and patch_t types
 
   ntyp = nparam
+
+  IF (calcsoilalbedo) THEN
+     ntyp = 284
+  ENDIF
 
   ALLOCATE (blen(ntyp))
   ALLOCATE (displs(ntyp))
@@ -1205,6 +1210,13 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (soil%zshh, displs(bidx), ierr)
   blen(bidx) = (ms + 1) * extr1
+
+  ! Newly added IF BLOCK by Kai
+  IF (calcsoilalbedo) THEN
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%soilcol, displs(bidx), ierr)
+     blen(bidx) = r1len
+  END IF
 
   ! ----------- canopy --------------
 
