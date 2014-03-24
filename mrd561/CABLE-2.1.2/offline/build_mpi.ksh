@@ -2,8 +2,42 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz mael raij r90 r94
+   set -A kh vayu cher burn shin squa bliz mael r r90 r94 r377 r373
 }
+
+
+## 
+host_r373()
+{
+   export NCDIR='/'
+   export NCMOD='/'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+
+
+## 
+host_r377()
+{
+   export NCDIR='/'
+   export NCMOD='/'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## 
@@ -150,16 +184,16 @@ host_vayu()
 
 
 ## vayu.nci.org.au
-host_raij()
+host_r()
 {
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise -xavx'
+   export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise'
    fi
-   export LDFLAGS='-L'$NCDIR' -O2'
+   export LDFLAGS='-L'$NCDIR''
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
@@ -455,7 +489,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-4`
+HOST_MACH=`uname -n | cut -c 1`
 
 do_i_no_u $1
 
