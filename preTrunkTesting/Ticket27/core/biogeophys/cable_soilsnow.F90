@@ -27,6 +27,7 @@
 !               NB Currently hard-wired to veg types 2 and 7 
 !                  (usually evergreen broadleaf and c4 grass)
 !          v2.0 ssoil variable renamed ssnow
+!          soil_albedo module was added by Kai Lu as requested by Jatin Kala
 !
 ! ==============================================================================
 
@@ -34,8 +35,9 @@ MODULE cable_soil_snow_module
    
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp           
+                             balances_type, r_2, ms, mp, nrb, albsat, albdry
    USE cable_data_module, ONLY : issnow_type, point2constants
+   USE cable_IO_vars_module
 
    IMPLICIT NONE
 
@@ -59,7 +61,7 @@ MODULE cable_soil_snow_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow ! must be available outside this module
+   PUBLIC soil_snow, soil_albedo ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb, smoisturev, snow_accum, stempv
    PRIVATE soilfreeze, remove_trans
@@ -1053,7 +1055,28 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
    ssnow%runoff = ssnow%rnof1 + ssnow%rnof2 
 
 END SUBROUTINE surfbv
+! -----------------------------------------------------------------------------
+SUBROUTINE soil_albedo(ssnow, soil)
 
+   ! Arguments
+   TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow      ! soil+snow variables
+   TYPE(soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
+
+   ! Local Variables 
+   INTEGER   :: ib, ic
+   REAL(r_2), DIMENSION(mp)      :: inc
+   REAL(r_2), DIMENSION(mp, nrb) :: albsod,          & ! soil albedo (direct)
+                                    albsoi             ! soil albedo (indirect)
+
+   DO ib = 1,2 ! Number of wavebands (vis, nir)
+      inc = MAX(0.11-0.40*ssnow%wb(:,1), 0.)
+      albsod(:,ib) = MIN(albsat(soil%soilcol,ib)+inc, albdry(soil%soilcol,ib))
+      albsoi(:,ib) = albsod(:,ib)
+   END DO
+
+   ssnow%albsoilsn = 0.5*(albsod + albsoi)
+
+END SUBROUTINE soil_albedo
 ! -----------------------------------------------------------------------------
   
 ! calculates temperatures of the soil
