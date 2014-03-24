@@ -5,7 +5,7 @@
 # (the "Licence").
 # You may not use this file except in compliance with the Licence.
 # A copy of the Licence and registration form can be obtained from 
-# http://www.accessimulator.org.au/cable
+# http://www.cawcr.gov.au/projects/access/cable
 # You need to register and read the Licence agreement before use.
 # Please contact cable_help@nf.nci.org.au for any questions on 
 # registration and the Licence.
@@ -46,7 +46,7 @@ cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_air.o cable_common.o cable_data.o
+cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
 

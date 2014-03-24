@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -78,7 +78,11 @@ MODULE cable_common_module
          CONSISTENCY_CHECK = .FALSE.,  & !
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED  = .FALSE.!
+         CABLE_RUNTIME_COUPLED = .FALSE., & !
+         ! L.Stevens - Test Switches
+         L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
+         L_NEW_RUNOFF_SPEED    = .FALSE., & !
+         L_NEW_REDUCE_SOILEVP  = .FALSE.!
 
 
    END TYPE kbl_user_switches
