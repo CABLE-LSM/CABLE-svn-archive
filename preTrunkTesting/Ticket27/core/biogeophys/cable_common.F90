@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -36,6 +36,14 @@ MODULE cable_common_module
    !---allows reference to "gl"obal timestep in run (from atm_step)
    !---total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
+   
+   ! set from environment variable $HOME
+   CHARACTER(LEN=200) ::                                                       & 
+      myhome
+
+   !---Lestevens Sept2012
+   !---CASACNP switches and cycle index
+   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
@@ -68,7 +76,11 @@ MODULE cable_common_module
          CONSISTENCY_CHECK = .FALSE.,  & !
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED  = .FALSE.!
+         CABLE_RUNTIME_COUPLED = .FALSE., & !
+         ! L.Stevens - Test Switches
+         L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
+         L_NEW_RUNOFF_SPEED    = .FALSE., & !
+         L_NEW_REDUCE_SOILEVP  = .FALSE.!
 
 
    END TYPE kbl_user_switches
@@ -395,16 +407,19 @@ SUBROUTINE report_version_no( logn )
     
    CALL getenv("HOME", myhome) 
    fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
+   
    OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)
 
-      IF(ioerror/=0) then 
+      IF(ioerror==0) then 
+         ! get svn revision number (see WRITE comments)
+         READ(440,*) icable_rev
+      ELSE 
+         icable_rev=0 !default initialization
          PRINT *, "We'll keep running but the generated revision number "     
          PRINT *, " in the log & file will be meaningless."     
       ENDIF
       
-      ! get svn revision number (see WRITE comments)
-      READ(440,*) icable_rev
-       
+      
       WRITE(logn,*) ''
       WRITE(logn,*) 'Revision nuber: ', icable_rev
       WRITE(logn,*) ''
@@ -417,10 +432,16 @@ SUBROUTINE report_version_no( logn )
       ! (jhan: make this output prettier & not limitted to 200 chars) 
       WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
       WRITE(logn,*)'local changes: '
-      READ(440,'(A)',IOSTAT=ioerror) icable_status
-      WRITE(logn,*) TRIM(icable_status)
-      WRITE(logn,*) ''
-   
+      IF(ioerror==0) then 
+         READ(440,'(A)',IOSTAT=ioerror) icable_status
+         WRITE(logn,*) TRIM(icable_status)
+         WRITE(logn,*) ''
+      else   
+         WRITE(logn,*) '.cable_rev file does not exist,' 
+         WRITE(logn,*) 'suggesting you did not build libcable here' 
+         WRITE(logn,*) ''
+      endif 
+
    CLOSE(440)
 
 END SUBROUTINE report_version_no

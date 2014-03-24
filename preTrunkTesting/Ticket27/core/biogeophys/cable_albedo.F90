@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -77,12 +77,6 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
    CALL surface_albedosn(ssnow, veg, met, soil)
 
-   WHERE (soil%isoilm == 9)   ! use dry snow albedo (permanent ice)
-     ! hard-wired number to be removed in future version
-     ssnow%albsoilsn(:,2) = 0.82
-     ssnow%albsoilsn(:,1) = 0.82
-   END WHERE
-   
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
    rad%rhocbm  = 0.0
@@ -309,6 +303,11 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
                           ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
 
+   WHERE (soil%isoilm == 9)          ! use dry snow albedo
+     ssnow%albsoilsn(:,2) = 0.82
+     ssnow%albsoilsn(:,1) = 0.82
+   END WHERE
+   
 END SUBROUTINE surface_albedosn
 
 ! ------------------------------------------------------------------------------
