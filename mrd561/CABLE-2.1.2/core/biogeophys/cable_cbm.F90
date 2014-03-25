@@ -109,6 +109,7 @@ CONTAINS
    ELSE
       call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
+
    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
    IF( cable_runtime%um ) THEN
@@ -122,6 +123,7 @@ CONTAINS
    ENDIf
 
    ! Calculate canopy variables:
+
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ssnow%otss_0 = ssnow%otss

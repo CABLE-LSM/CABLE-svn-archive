@@ -1208,7 +1208,7 @@ USE cable_common_module
     where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
 
     !srf frozen fraction.  should be based on topography
-    icef(:) = icemass(:,1) / totmass(:,1)
+    icef(:) = max(0.0,min(1.0,icemass(:,1) / totmass(:,1)))
     fice(:) = (exp(-3.0*(1.0-icef(:)))- exp(-3.0))!/(1.0-exp(-3.0))
     where (fice(:) .lt. 0.0_r_2) fice(:) = 0.0_r_2
     where (fice(:) .gt. 1.0_r_2) fice(:) = 1.0_r_2
@@ -1887,8 +1887,6 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
     
    ktau = ktau +1 
 
-
-   
    !jhan - make switchable 
    ! appropriate for ACCESS1.0
    !max_glacier_snowd = 50000.0
@@ -2126,7 +2124,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
 
     !srf frozen fraction.  should be based on topography
-    icef(:) = icemass(:,1) / totmass(:,1)
+    icef(:) = max(0.0,min(1.0,icemass(:,1) / totmass(:,1)))
     fice(:) = (exp(-3.0*(1.0-icef(:)))- exp(-3.0))!/(1.0-exp(-3.0))
     where (fice(:) .lt. 0.0_r_2) fice(:) = 0.0_r_2
     where (fice(:) .gt. 1.0_r_2) fice(:) = 1.0_r_2
