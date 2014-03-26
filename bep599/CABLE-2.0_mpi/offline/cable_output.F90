@@ -1787,7 +1787,7 @@ CONTAINS
     END IF
     ! ESoilMod: modified soil evaporation [W/m^2]
     IF(output%balances .OR. output%ESoilMod) THEN
-       out%ESoilMod = out%ESoilMod + REAL( canopy%fes * ssnow%cls / air%rlam, 4)
+       out%ESoilMod = out%ESoilMod + REAL( canopy%fes * ssnow%cls, 4)
        IF(writenow) THEN
           out%ESoilMod = out%ESoilMod / REAL(output%interval, 4)
           CALL write_ovar(out_timestep, ncid_out, ovid%ESoilMod, 'ESoilMod', out%ESoilMod, &
