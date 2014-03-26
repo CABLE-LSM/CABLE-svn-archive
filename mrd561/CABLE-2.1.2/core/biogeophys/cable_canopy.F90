@@ -1199,25 +1199,25 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
 
    !use top-model based wet fraction at the surface
-!   IF (cable_runtime%run_gw_model) then
-!
-!  
-!      call calc_srf_wet_fraction(ssnow,soil)
-!
-!     ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
-!                  ( REAL (ssnow%wetfac))))
-!
-!   else
+   IF (cable_runtime%run_gw_model) then
+
+  
+      call calc_srf_wet_fraction(ssnow,soil)
+
+     ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
+                  ( REAL (ssnow%wetfac))))
+
+   else
 
       ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
                   ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
                   / ( soil%sfc - soil%swilt/2.0 ) ) )
-!   END IF
+   END IF
 
 
    DO j=1,mp
   
-      IF(ssnow%wbice(j,1) > 0. )        &
+      IF(.not.cable_runtime%run_gw_model .and. ssnow%wbice(j,1) > 0. )        &
          ssnow%wetfac(j) = ssnow%wetfac(j) * MAX( 0.5, 1. - MIN( 0.2,          &
                            ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) )
 
