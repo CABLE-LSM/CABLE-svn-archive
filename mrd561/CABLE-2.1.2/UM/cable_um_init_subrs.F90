@@ -259,12 +259,12 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          !mrd561 set the gw hydro parameters directly from the cable values
          !future revisions will have soil type and properties be a functio
          !of layer depth
-         do k=1,um1%sm_levels
-            soil%smpsat(:,k)  = abs(soilin%sucs(:))*1000.0  !convert units [m/s] to [mm/s]
-            soil%hksat(:,k)   = soilin%hyds(:)*1000.0       !convert units
-            soil%clappB(:,k)  = soilin%bch(:)
-            soil%densoil(:,k) = soilin%rhosoil(:)
-            soil%watsat(:,k)  = soilin%ssat(:)
+         do k=1,ms
+            soil%smpsat(:,k)  = abs(soil%sucs(:))*1000.0  !convert units [m/s] to [mm/s]
+            soil%hksat(:,k)   = soil%hyds(:)*1000.0       !convert units
+            soil%clappB(:,k)  = soil%bch(:)
+            soil%densoil(:,k) = soil%rhosoil(:)
+            soil%watsat(:,k)  = soil%ssat(:)
             soil%watr(:,k)    = 0.05
 
             soil%Fclay(:,k)   = soil%clay(:)
@@ -763,9 +763,16 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
 
          !mrd561
          ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
-         !ensure that we have reasonable values in case starting from a non-GW simulation
-         where (ssnow%GWwb .lt. 0.01)          ssnow%GWwb(:) = 0.01
-         where (ssnow%GWwb .gt. soil%GWwatsat) ssnow%GWwb = soil%GWwatsat
+         !ensure that we have reasonable values in case 
+         !starting from a non-GW simulation
+         where (ssnow%GWwb(:) .eq. 0.0 ) &
+                ssnow%GWwb(:) = soil%GWwatsat*0.95
+
+         where (ssnow%GWwb(:) .lt. 0.01) & 
+                ssnow%GWwb(:)  = 0.01
+
+         where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
+                ssnow%GWwb(:) = soil%GWwatsat
          
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
