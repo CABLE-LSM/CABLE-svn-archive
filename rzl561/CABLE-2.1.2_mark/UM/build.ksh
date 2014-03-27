@@ -11,7 +11,7 @@ host_raij()
    export NCDIR=$NCDF_ROOT'/lib/Intel'
    export NCMOD=$NCDF_ROOT'/include/Intel'
    export FC=ifort
-   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
+   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0 -mcmodel=medium'  
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
@@ -224,7 +224,7 @@ build_build()
       cable_roughness.o cable_carbon.o cable_canopy.o cable_cbm.o    \
       cable_um_tech.o cable_um_init_subrs.o cable_um_init.o \
       casa_variable.o casa_cable.o casa_cnp.o casa_inout.o \
-      casa_types.o casa_um_inout.o cable_iovars.o
+      casa_types.o casa_um_inout.o cable_iovars.o cable_soilsnow_GW.o
 
    if [[ -f libcable.a ]]; then
       print '\nLibrary build successful. Copying libcable.a to ' $libroot
@@ -268,7 +268,7 @@ if [[ $1 = 'clean' ]]; then
    read dummy 
 fi
    
-export libroot=$CABLE_AUX'CABLE-AUX/UM'
+export libroot=$CABLE_AUX'/CABLE-AUX/UM'
 export libpath=$libroot'/libcable.a'
 
 known_hosts
