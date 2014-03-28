@@ -123,7 +123,6 @@ CONTAINS
    ENDIf
 
    ! Calculate canopy variables:
-
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ssnow%otss_0 = ssnow%otss

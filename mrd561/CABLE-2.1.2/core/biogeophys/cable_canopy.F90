@@ -1202,9 +1202,9 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    IF (cable_runtime%run_gw_model) then
 
   
-      call calc_srf_wet_fraction(ssnow,soil)
+     call calc_srf_wet_fraction(ssnow,soil)
 
-     ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
+     ssnow%wetfac = MAX( 1.e-2, MIN( 1.0,                                     &
                   ( REAL (ssnow%wetfac))))
 
    else
