@@ -419,10 +419,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ENDDO 
       write(*,*) 'update zetar'
       CALL update_zetar()
+      write(*,*) 'updated zetar'
 
    END DO           ! do iter = 1, NITER
 
-
+   write(*,*) 'iter done'
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
    !---diagnostic purposes
@@ -431,6 +432,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    canopy%vlaiw(:))*canopy%gswx(:,2)
 
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
+    write(*,*) 'surface conduct 435'
     canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
                   rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
     where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
@@ -446,6 +448,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
    ! screen temp., windspeed and relative humidity at 2.0m
+   write(*,*) 'screen temp 451'
     tstar = - canopy%fh / ( air%rho*C%CAPP*canopy%us)
     qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us)
     zscrn = MAX(rough%z0m,2.0-rough%disp)
@@ -521,7 +524,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ENDIF  
 
    ENDDO  
-  
+  write(*,*) 'call qsat 527'
    CALL qsatfjh(rsts,canopy%tscrn,met%pmb)
      
    qtgnet = rsts * ssnow%wetfac - met%qv
@@ -544,7 +547,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ENDDO 
 
-
+   write(*,*) 'dew 550'
    ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
    canopy%dewmm = - (min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc)) * &
         dels * 1.0e3 / (C%RHOW*air%rlam)
@@ -603,6 +606,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
+
+   write(*,*) 'end of canopy'
 
 CONTAINS
 
