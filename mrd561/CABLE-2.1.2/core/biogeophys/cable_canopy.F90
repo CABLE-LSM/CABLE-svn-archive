@@ -349,6 +349,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL within_canopy( gbhu, gbhf )
 
       ! Saturation specific humidity at soil/snow surface temperature:
+      write(*,*) 'qsatfjh'
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
@@ -359,12 +360,14 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qvair
+         write(*,*) 'call hdm 363'
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
 
          
       ! Soil latent heat:
+      write(*,*) 'call lh 369'
       CALL latent_heat_flux()
 
       ! Soil sensible heat:
@@ -395,7 +398,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ENDDO 
 
-
+      write(*,*) 'line 400'
       canopy%rnet = canopy%fnv + canopy%fns  
       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
                     rad%transd*ssnow%potev) * dels/air%rlam  
@@ -414,7 +417,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                                   canopy%fes(j)/ssnow%potev(j) ) ) )
       
       ENDDO 
-
+      write(*,*) 'update zetar'
       CALL update_zetar()
 
    END DO           ! do iter = 1, NITER
