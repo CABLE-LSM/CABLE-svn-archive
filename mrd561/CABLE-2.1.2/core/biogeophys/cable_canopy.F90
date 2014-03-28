@@ -190,10 +190,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
       ! resistances rt0, rt1 (elements of dispersion matrix):
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
-      write(*,*) 'comp friction'
+
       CALL comp_friction_vel()
 
-      write(*,*) 'ruff resist'
       CALL ruff_resist(veg, rough, ssnow, canopy)
 
       
@@ -204,7 +203,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       xx = 0.5 + sign(0.5,rough%zref_tq+rough%disp-rough%zruffs)
       
       ! correction  by Ian Harman to the 2nd psis term
-      write(*,*) 'rt1usc'
+      
       rt1usc = xx * ( LOG( rough%zref_tq/MAX( rough%zruffs-rough%disp,         &
                                               rough%z0soilsn ) )               &
                - psis( canopy%zetar(:,iter) )                                  &
@@ -272,13 +271,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ecy = rny - hcy        ! init current estimate lat heat
 
       sum_rad_rniso = SUM(rad%rniso,2)
-      write(*,*) 'dry'
+      
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
                     fwsoil, tlfx, tlfy, ecy, hcy,                              &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter )
-      write(*,*) 'wet'
+      
       CALL wetLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, cansat, tlfy,                                 &
                     gbhu, gbhf, ghwet )
@@ -295,7 +294,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ! canopy rad. temperature calc from long-wave rad. balance
       sum_rad_gradis = SUM(rad%gradis,2)
-      write(*,*) 'canopy tv'
+      
 
       DO j=1,mp
          IF ( canopy%vlaiw(j) > C%LAI_THRESH .AND.                             &
@@ -304,8 +303,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
                            sum_rad_gradis(j) 
 
-            write(*,*) j,1.0-rad%transd(j)
-            
             canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
                            * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
          
@@ -328,7 +325,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
 
       ! Saturation specific humidity at soil/snow surface temperature:
-      write(*,*) 'call qsatfjh'
+      
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
@@ -344,17 +341,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ENDIF
 
       ! Soil latent heat:
-      write(*,*) 'call lh'
+      
       CALL latent_heat_flux()
 
       ! Calculate soil sensible heat:
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
 
-      write(*,*) 'call within canopy'
       CALL within_canopy( gbhu, gbhf )
 
       ! Saturation specific humidity at soil/snow surface temperature:
-      write(*,*) 'qsatfjh'
+      
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
@@ -365,14 +361,14 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qvair
-         write(*,*) 'call hdm 363'
+         
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
 
          
       ! Soil latent heat:
-      write(*,*) 'call lh 369'
+      
       CALL latent_heat_flux()
 
       ! Soil sensible heat:
@@ -403,7 +399,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ENDDO 
 
-      write(*,*) 'line 400'
+      
       canopy%rnet = canopy%fnv + canopy%fns  
       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
                     rad%transd*ssnow%potev) * dels/air%rlam  
@@ -422,13 +418,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                                   canopy%fes(j)/ssnow%potev(j) ) ) )
       
       ENDDO 
-      write(*,*) 'update zetar'
+      
       CALL update_zetar()
-      write(*,*) 'updated zetar'
+      
 
    END DO           ! do iter = 1, NITER
 
-   write(*,*) 'iter done'
+   
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
    !---diagnostic purposes
@@ -437,7 +433,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    canopy%vlaiw(:))*canopy%gswx(:,2)
 
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
-    write(*,*) 'surface conduct 435'
+    
     canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
                   rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
     where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
@@ -453,7 +449,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
    ! screen temp., windspeed and relative humidity at 2.0m
-   write(*,*) 'screen temp 451'
+  
     tstar = - canopy%fh / ( air%rho*C%CAPP*canopy%us)
     qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us)
     zscrn = MAX(rough%z0m,2.0-rough%disp)
@@ -529,7 +525,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ENDIF  
 
    ENDDO  
-  write(*,*) 'call qsat 527'
+ 
    CALL qsatfjh(rsts,canopy%tscrn,met%pmb)
      
    qtgnet = rsts * ssnow%wetfac - met%qv
@@ -552,7 +548,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ENDDO 
 
-   write(*,*) 'dew 550'
+   
    ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
    canopy%dewmm = - (min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc)) * &
         dels * 1.0e3 / (C%RHOW*air%rlam)
@@ -612,7 +608,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
 
-   write(*,*) 'end of canopy'
+  
 
 CONTAINS
 
