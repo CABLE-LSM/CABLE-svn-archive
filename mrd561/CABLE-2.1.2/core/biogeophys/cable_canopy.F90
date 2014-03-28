@@ -190,8 +190,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
       ! resistances rt0, rt1 (elements of dispersion matrix):
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
+      write(*,*) 'comp friction'
       CALL comp_friction_vel()
 
+      write(*,*) 'ruff resist'
       CALL ruff_resist(veg, rough, ssnow, canopy)
 
       
@@ -202,6 +204,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       xx = 0.5 + sign(0.5,rough%zref_tq+rough%disp-rough%zruffs)
       
       ! correction  by Ian Harman to the 2nd psis term
+      write(*,*) 'rt1usc'
       rt1usc = xx * ( LOG( rough%zref_tq/MAX( rough%zruffs-rough%disp,         &
                                               rough%z0soilsn ) )               &
                - psis( canopy%zetar(:,iter) )                                  &
@@ -269,13 +272,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ecy = rny - hcy        ! init current estimate lat heat
 
       sum_rad_rniso = SUM(rad%rniso,2)
-
+      write(*,*) 'dry'
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
                     fwsoil, tlfx, tlfy, ecy, hcy,                              &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter )
-     
+      write(*,*) 'wet'
       CALL wetLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, cansat, tlfy,                                 &
                     gbhu, gbhf, ghwet )
@@ -292,7 +295,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ! canopy rad. temperature calc from long-wave rad. balance
       sum_rad_gradis = SUM(rad%gradis,2)
-
+      write(*,*) 'canopy tv'
       DO j=1,mp
 
          IF ( canopy%vlaiw(j) > C%LAI_THRESH .AND.                             &
