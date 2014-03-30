@@ -1348,22 +1348,24 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = 1
 
  ! Jatin added g0 params here, not sure if bidx number matters...
+ ! Kai modfied below
   bidx = bidx + 1
   CALL MPI_Get_address (veg%g0c3(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+  blen(bidx) = 1
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%g0c4(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+  blen(bidx) = 1
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%g1c3(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+  blen(bidx) = 1
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%g1c4(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+  blen(bidx) = 1
  ! End Jatin modifs
+ ! Kai modified above
 
   ! ----------- bgc --------------
 
@@ -2297,6 +2299,10 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   ntyp = ncasaparam
+
+! Added by Kai
+! Better setting a swtich in cable.nml
+  ntyp = nparam + 4
 
   ALLOCATE (casa_ts(wnp))
 
