@@ -243,7 +243,11 @@ MODULE cable_def_types_mod
          xfang,   & ! leaf angle PARAMETER
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
+         wai,     &   ! wood area index (stem+branches+twigs)
+         g0c3,    & ! Belinda's stomatal model intercept, M.De Kauwe, 19/03/2014.
+         g0c4,    & ! Belinda's stomatal model intercept, M.De Kauwe, 19/03/2014.
+         g1c3,    & ! Belinda's stomatal model slope,  M.De Kauwe, 19/03/2014.   
+         g1c4       ! Belinda's stomatal model slope,  M.De Kauwe, 19/03/2014.  
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -707,7 +711,11 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    !was nrb(=3), but never uses (:,3) in model   
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
-   ALLOCATE( var%vlaimax(mp) ) 
+   ALLOCATE( var%vlaimax(mp) )
+   ALLOCATE( var% g0c3(mp) )   ! M.De Kauwe, 19/03/2014. 
+   ALLOCATE( var% g0c4(mp) )   ! M.De Kauwe, 19/03/2014.
+   ALLOCATE( var% g1c3(mp) )   ! M.De Kauwe, 19/03/2014.
+   ALLOCATE( var% g1c4(mp) )   ! M.De Kauwe, 19/03/2014.
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -1104,7 +1112,12 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
-   
+   DEALLOCATE( var%g0c3 ) !  M.De Kauwe, 19/03/2014.
+   DEALLOCATE( var%g0c4 ) !  M.De Kauwe, 19/03/2014. 
+   DEALLOCATE( var%g1c3 ) !  M.De Kauwe, 19/03/2014.
+   DEALLOCATE( var%g1c4 ) !  M.De Kauwe, 19/03/2014.
+  
+ 
 END SUBROUTINE dealloc_veg_parameter_type
    
 ! ------------------------------------------------------------------------------

@@ -143,7 +143,11 @@ MODULE cable_checks_module
            hc = (/0.0,100.0/),                 &
            lai = (/0.0,8.0/),                  &
            rp20 = (/0.0,10.0/),                &
-           vbeta =(/-999999.0,999999.0/),      &
+           vbeta =(/-999999.0,999999.0/),      & 
+           g0c3 = (/-999999.0,999999.0/),      & ! Jatin(must find better range)
+           g0c4 = (/-999999.0,999999.0/),      & ! Jatin(must find better range)
+           g1c3 = (/-999999.0,999999.0/),      & ! Jatin(must find better range)
+           g1c4 = (/-999999.0,999999.0/),      & ! Jatin(must find better range)
            xalbnir = (/0.0,1.5/),              &
            meth = (/0.0,1.0/),                 &
            za =(/0.0,150.0/),                  &

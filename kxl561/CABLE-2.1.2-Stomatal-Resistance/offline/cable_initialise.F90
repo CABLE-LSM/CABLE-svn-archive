@@ -585,7 +585,20 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'xalbnir',dummy,veg%xalbnir,filename%restart_in,      &
                 max_vegpatches,'def',from_restart,mp)
-   veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
+  
+   CALL readpar(ncid_rin,'g0c3',dummy,veg%g0c3,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! M.De Kauwe, 19/03/2014.
+   CALL readpar(ncid_rin,'g0c4',dummy,veg%g0c4,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! M.De Kauwe, 19/03/2014.
+   CALL readpar(ncid_rin,'g1c3',dummy,veg%g1c3,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! M.De Kauwe, 19/03/2014.
+   CALL readpar(ncid_rin,'g1c4',dummy,veg%g1c4,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! M.De Kauwe, 19/03/2014.
+
+
+
+
+    veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    ! special treatment of za with the introduction of za_uv and za_tq

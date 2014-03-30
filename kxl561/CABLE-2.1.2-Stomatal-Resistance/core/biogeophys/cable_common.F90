@@ -62,6 +62,10 @@ MODULE cable_common_module
       
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
+
+      ! MDK, 31 Jan, 2014.
+      CHARACTER(LEN=20) ::  & 
+         GS_SWITCH
       
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
@@ -155,7 +159,12 @@ MODULE cable_common_module
          extkn,      & ! 
          tminvj,     & !
          tmaxvj,     & !
-         vbeta         !
+         vbeta,      &         !
+         g0c3,       & !  M.De Kauwe, 19/03/2014.
+         g0c4,       & !  M.De Kauwe, 19/03/2014. 
+         g1c3,       & !  M.De Kauwe, 19/03/2014. 
+         g1c4          !  M.De Kauwe, 19/03/2014. 
+
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -254,7 +263,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
-         veg_desc( mvtype ) )
+         veg_desc( mvtype ), vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),       &
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) )  ! M.De Kauwe, 19/03/2014.
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -285,7 +295,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
-
+            READ(40,*) vegin%g0c3(jveg), vegin%g0c4(jveg),                     &
+                       vegin%g1c3(jveg),vegin%g1c4(jveg) ! M.De Kauwe, 19/03/2014.
          END DO
 
       ELSE
@@ -338,6 +349,12 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl(1,:) = 0.07
          vegin%refl(2,:) = 0.425
          vegin%refl(3,:) = 0.0
+
+         READ(40,*) vegin%g0c3 ! M.De Kauwe, 19/03/2014.
+         READ(40,*) vegin%g0c4 ! M.De Kauwe, 19/03/2014.
+         READ(40,*) vegin%g1c3 ! M.De Kauwe, 19/03/2014.
+         READ(40,*) vegin%g1c4 ! M.De Kauwe, 19/03/2014.
+
 
       ENDIF
 
@@ -410,11 +427,13 @@ SUBROUTINE report_version_no( logn )
          PRINT *, " in the log & file will be meaningless."     
       ENDIF
       
+      ! M.De Kauwe, 19/03/2014: commented out, think this is some weird svn-ness
       ! get svn revision number (see WRITE comments)
-      READ(440,*) icable_rev
+      !READ(440,*) icable_rev
        
       WRITE(logn,*) ''
-      WRITE(logn,*) 'Revision nuber: ', icable_rev
+      ! M.De Kauwe, 19/03/2014 commented out: think this is some weird svn-ness
+      !WRITE(logn,*) 'Revision nuber: ', icable_rev
       WRITE(logn,*) ''
       WRITE(logn,*)'This is the latest revision of you workin copy as sourced ' 
       WRITE(logn,*)'by the SVN INFO command at build time. Please note that the' 

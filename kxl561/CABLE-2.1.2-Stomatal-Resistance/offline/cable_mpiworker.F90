@@ -4753,6 +4753,25 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Get_address (veg%deciduous(off), displs(bidx), ierr)
   blocks(bidx) = llen
 
+  ! Jatin added g0 parameters here, again not sure if order matters ....
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c3(off), displs(bidx), ierr)
+  blocks(bidx) = llen   
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c4(off), displs(bidx), ierr)
+  blocks(bidx) = llen
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3(off), displs(bidx), ierr)
+  blocks(bidx) = llen
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c4(off), displs(bidx), ierr)
+  blocks(bidx) = llen
+  ! End Jatin comments here
+
+
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
      WRITE (*,*) 'worker ',rank,': invalid outtype nmat, nvec or n3d constant, fix it!'

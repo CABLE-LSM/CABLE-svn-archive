@@ -1347,6 +1347,24 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
+ ! Jatin added g0 params here, not sure if bidx number matters...
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c3(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c4(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c4(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+ ! End Jatin modifs
+
   ! ----------- bgc --------------
 
   bidx = bidx + 1
