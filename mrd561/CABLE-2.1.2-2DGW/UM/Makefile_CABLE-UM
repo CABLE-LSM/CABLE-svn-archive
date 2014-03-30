@@ -46,7 +46,7 @@ cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o
+cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_soilsnow_GW.o
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
 
@@ -59,6 +59,8 @@ cable_radiation.o: cable_radiation.F90 cable_define_types.o cable_common.o cable
 cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_soilsnow.o: cable_soilsnow.F90 cable_define_types.o cable_common.o cable_data.o
+
+cable_soilsnow_GW.o: cable_soilsnow_GW.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_common.o: cable_common.F90 cable_define_types.o  
 
@@ -90,7 +92,7 @@ casa_um_inout.o: casa_um_inout.F90 cable_define_types.o casa_variable.o cable_um
 
 cable_iovars.o: cable_iovars.F90 cable_define_types.o
 
-all: cable_rad_driver.o cable_hyd_driver.o cable_implicit_driver.o cable_explicit_driver.o cable_um_init_subrs.o  cable_um_init.o cable_data.o cable_define_types.o cable_common.o cable_carbon.o cable_air.o cable_albedo.o cable_canopy.o cable_cbm.o cable_roughness.o cable_soilsnow.o cable_radiation.o cable_um_tech.o casa_variable.o casa_cnp.o casa_cable.o casa_inout.o casa_types.o casa_um_inout.o cable_iovars.o
+all: cable_rad_driver.o cable_hyd_driver.o cable_implicit_driver.o cable_explicit_driver.o cable_um_init_subrs.o  cable_um_init.o cable_data.o cable_define_types.o cable_common.o cable_carbon.o cable_air.o cable_albedo.o cable_canopy.o cable_cbm.o cable_roughness.o cable_soilsnow.o cable_radiation.o cable_um_tech.o casa_variable.o casa_cnp.o casa_cable.o casa_inout.o casa_types.o casa_um_inout.o cable_iovars.o cable_soilsnow_GW.o
 clean:
 	rm -f *.o *.mod 
 

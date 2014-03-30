@@ -2,88 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz mael r r90 r94 r377 r373
-}
-
-
-## 
-host_r373()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-
-## 
-host_r377()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-
-## 
-host_r94()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-
-## 
-host_r90()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-host_mael()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
-   build_build
-   cd ../
-   build_status
+   set -A kh vayu cher burn shin squa bliz  mael mons
 }
 
 
@@ -92,7 +11,49 @@ host_bliz()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   #export CFLAGS='-O3 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+host_mons()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+
+
+host_mael()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
@@ -106,7 +67,11 @@ host_squa()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
@@ -181,24 +146,6 @@ host_vayu()
    build_status
 }
 
-
-
-## vayu.nci.org.au
-host_r()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise'
-   fi
-   export LDFLAGS='-L'$NCDIR''
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
 
 
 ## unknown machine, user entering options stdout 
@@ -304,20 +251,20 @@ clean_build()
 {
       print '\ncleaning up\n'
       rm -fr .mpitmp
-      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
-      read dummy 
+      #print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      #read dummy 
 }
 
 
 set_up_CABLE_AUX()
 {
-      print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
-      print "\tcontains configuration and data essential to using CABLE."
-      print "\tNCI account holders can have this set up for you now (anywhere)."
-      print "\tOthers will have to use the tarball available for download at ..."
-      print "\n\tDo you want to run set up this directory now? y/[n]"
+      #print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
+      #print "\tcontains configuration and data essential to using CABLE."
+      #print "\tNCI account holders can have this set up for you now (anywhere)."
+      #print "\tOthers will have to use the tarball available for download at ..."
+      #print "\n\tDo you want to run set up this directory now? y/[n]"
       
-      read setup_CABLE_AUX
+      #read setup_CABLE_AUX
       if [[ $setup_CABLE_AUX = 'y' ]]; then
          print "\n\tPlease enter your NCI user ID"
          read NCI_USERID 
@@ -489,7 +436,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1`
+HOST_MACH=`uname -n | cut -c 1-4`
 
 do_i_no_u $1
 

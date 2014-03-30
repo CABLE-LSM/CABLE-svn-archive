@@ -765,7 +765,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
 
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
-    if (.not.cable_user%alt_forcing) then
+    if (.not.cable_user%alt_forcing .and. ncciy .eq. 0) then
     IF (timevar(1) == 0.0) THEN
       READ(timeunits(29:30),*) tsmin
       IF (tsmin*60.0 >= dels) THEN
@@ -816,9 +816,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        READ(timeunits(23:24),*) shod  ! starting hour of day 
        !write(*,*) 'read hour'
     ELSE
-       READ(timeunits(12:15),*) syear
-       READ(timeunits(17:18),*) smoy ! integer month
-       READ(timeunits(20:21),*) sdoytmp ! integer day of that month
+       READ(timeunits(15:18),*) syear
+       READ(timeunits(20:21),*) smoy ! integer month
+       READ(timeunits(23:24),*) sdoytmp ! integer day of that month
        READ(timeunits(26:27),*) shod  ! starting hour of day 
     END IF
     ! Decide day-of-year for non-leap year:
@@ -968,6 +968,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        END SELECT
     END IF
     ! Now all start time variables established, report to log file:
+    write(logn,*) 'about to write ouy more time info'
     WRITE(logn,'(1X,A12,F5.2,A14,I3,A14,I4,2X,A3,1X,A4)') &
          'Run begins: ',shod,' hour-of-day, ',sdoy, ' day-of-year, ',&
          syear, time_coord, 'time'

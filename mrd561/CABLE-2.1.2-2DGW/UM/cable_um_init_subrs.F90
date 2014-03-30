@@ -189,6 +189,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(ms+1)=0.5*soil%zse(ms)
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
+         !mrd561
+         soil%GWdz = 30.0                          !30 m thick aquifer
+
 
 
          !-------------------------------------------------------------------
@@ -252,6 +255,29 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%clay = soilin%clay(soil%isoilm)
          soil%silt = soilin%silt(soil%isoilm)
          soil%sand = soilin%sand(soil%isoilm)
+
+         !mrd561 set the gw hydro parameters directly from the cable values
+         !future revisions will have soil type and properties be a functio
+         !of layer depth
+         do k=1,ms
+            soil%smpsat(:,k)  = abs(soil%sucs(:))*1000.0  !convert units [m/s] to [mm/s]
+            soil%hksat(:,k)   = soil%hyds(:)*1000.0       !convert units
+            soil%clappB(:,k)  = soil%bch(:)
+            soil%densoil(:,k) = soil%rhosoil(:)
+            soil%watsat(:,k)  = soil%ssat(:)
+            soil%watr(:,k)    = 0.05
+
+            soil%Fclay(:,k)   = soil%clay(:)
+            soil%Fsand(:,k)   = soil%sand(:)
+         end do
+
+         soil%GWsmpsat(:)  = abs(soil%sucs(:))*1000.0
+         soil%GWhksat(:)   = soil%hyds(:)*1000.0
+         soil%GWclappB(:)  = soil%bch(:)
+         soil%GWdensoil(:) = soil%rhosoil(:)
+         soil%GWwatsat(:)  = soil%ssat(:)
+         soil%GWwatr(:)    = 0.05  !const for simplicity for now
+
          
             
          first_call= .FALSE.
@@ -582,11 +608,14 @@ END SUBROUTINE initialize_canopy
 !========================================================================
 !========================================================================
  
-SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
+SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_tile, &
                                 snow_tile, snow_rho1l, snage_tile, isnow_flg3l,&
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
                                 sin_theta_latitude ) 
+                                
+   !mrd561 --> need to add GWwb to the UM model for input/output and then used
+   !to init here.
 
    USE cable_def_types_mod,  ONLY : mp, msn
    USE cable_data_module,   ONLY : PHYS
@@ -594,6 +623,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    USE cable_common_module, ONLY : cable_runtime, cable_user
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
+
+   !mrd561
+   REAL, INTENT(IN), DIMENSION(um1%land_pts,um1%ntiles) :: smgw_tile
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) ::    &
       sthf_tile, &   !
@@ -727,6 +759,20 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ENDDO
          
          DEALLOCATE( fwork )
+
+
+         !mrd561
+         ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
+         !ensure that we have reasonable values in case 
+         !starting from a non-GW simulation
+         where (ssnow%GWwb(:) .eq. 0.0 ) &
+                ssnow%GWwb(:) = soil%GWwatsat*0.95
+
+         where (ssnow%GWwb(:) .lt. 0.01) & 
+                ssnow%GWwb(:)  = 0.01
+
+         where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
+                ssnow%GWwb(:) = soil%GWwatsat
          
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &

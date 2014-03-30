@@ -1163,16 +1163,16 @@ CONTAINS
 
             !MD
             do klev=1,ms
-              soil%smpsat(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))/1000.0
-              soil%hksat(h,klev)   = soilin%hyds(soil%isoilm(h))/1000.0
+              soil%smpsat(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+              soil%hksat(h,klev)   = soilin%hyds(soil%isoilm(h))*1000.0
               soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
               soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
               soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
               soil%watr(h,klev)    = 0.05!soilin%hyds(soil%isoilm(h))
             end do
 
-            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))!*1000.0
-            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))!*1000.0
+            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))*1000.0
             soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
