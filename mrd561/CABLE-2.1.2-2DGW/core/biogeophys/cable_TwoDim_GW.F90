@@ -617,16 +617,388 @@ module cable_TwoDim_GW
 
 
 
-    where(xx(:) .gt. 1e-7)   !if column is fully saturated gets added to surface runoff
+    where(xx(:) .gt. 0._r_2)   !if column is fully saturated gets added to surface runoff
       ssnow%rnof1 = ssnow%rnof1 + xx(:) / dels
       ssnow%runoff = ssnow%rnof2 + ssnow%rnof1  !adjust the total runoff as well
     end where
+
       
 
 
   end subroutine update_GW
 
+!!======================================================================!!
+!!                   step_gw_model                                      !!
+!!======================================================================!!
+
+  subroutine mpi_step_gw_model(dels,ssnow,soil)! dx,              &
+            !ltype, evl, bot,        &
+            !hycond, poros, compres,  &
+            !ho, h, convgw,           &
+            ! ebot, eocn,              &
+            ! dt, istep)
+
+! taken from WRF-HYDRO initially
+  ! Steps ground-water hydrology (head) through one timestep.
+  ! Modified from Prickett and Lonnquist (1971), basic one-layer aquifer 
+  ! simulation program, with mods by Zhongbo Yu(1997).
+  ! Solves S.dh/dt = d/dx(T.dh/dx) + d/dy(T.dh/dy) + "external sources"
+  ! for a single layer, where h is head, S is storage coeff and T is 
+  ! transmissivity. 3-D arrays in main program (hycond,poros,h,bot)
+  ! are 2-D here, since only a single (uppermost) layer is solved.
+  ! Uses an iterative time-implicit ADI method.
+
+  ! use module_hms_constants
+    implicit none
+
+    real, intent(in)                         :: dels
+    type(soil_snow_type), intent(inout)      :: ssnow
+    type(soil_parameter_type), intent(inout) :: soil
+    !LOCAL variables to map ssnow to previous code
+    !note assume continantal??
+    real(r_2),  dimension(mlon,mlat) ::  &
+        evl,           &  ! evl/bathymetry of sfc rel to sl (m) (supp)
+        bot,            &  ! evl. aquifer bottom rel to sl (m)   (supp)
+        hycond,         &  ! hydraulic conductivity (m/s per m/m) (supp)
+        poros,          &  ! porosity (m3/m3)                     (supp)
+        compres,        &  ! compressibility (1/Pa)               (supp)
+        ho                 ! head at start of timestep (m)        (supp)
+
+    real(r_2), dimension(mlon,mlat) ::  &
+        h,              &  ! head, after ghmcompute (m)           (ret)
+        convgw             ! convergence due to gw flow (m/s)     (ret)
+
+    real(r_2)  :: ebot, eocn
+    integer ::  istep,i
+!       eocn  = mean spurious sink for h_ocn = sealev fmlon (m/s)(ret)
+!               This equals the total ground-water flow across 
+!               land->ocean boundaries.
+!       ebot  = mean spurious source for "bot" fmlon (m/s) (returned)
+!       time  = elapsed time from start of run (sec)
+!       dels = timestep length (sec)
+!       istep = timestep counter
+
+! Local arrays:
+    real(r_2),  dimension(mlon,mlat)   :: sf2    ! storage coefficient (m3 of h2o / bulk m3)
+    real(r_2),  dimension(mlon,mlat,2) ::   t    ! transmissivity (m2/s)..1 for N-S,..2 for E-W
+    real(r_2),  dimension(0:mlon+mlat) :: b,g    ! work arrays
+    real(r_2),  dimension(mlon,mlat)   :: xs_runoff  !runoff generated from water table less than zero
+
+    real(r_2), parameter    :: botinc = 0.01  ! re-wetting increment to fmlon h < bot
+!   parameter (botinc = 0.  )  ! re-wetting increment to fmlon h < bot
+                                 ! (m); else no flow into dry cells
+    real(r_2), parameter    :: delskip = 0.005 ! av.|dhead| value for iter.skip out(m)
+    integer, parameter      :: itermax = 10    ! maximum number of iterations
+    integer, parameter      :: itermin = 3     ! minimum number of iterations
+    real(r_2), parameter    :: sealev = -1.     ! sea-level evlation (m)
       
+    logical  :: ContinueLoop
+
+    integer ::                &
+        iter,                   &
+        j,                      &
+        jp,                     &
+        ip,                     &
+        ii,                     &
+        n,                      &
+        jj,                     &
+        ierr,                   &
+        ier
+        
+    real(r_2) ::                &
+        dy,                     &
+        dx,                     &
+        e,                      &
+        su,                     &
+        sc,                     &
+        shp,                    &
+        bb,                     &
+        dd,                     &
+        aa,                     &
+        cc,                     &
+        w,                      &
+        ha,                     &
+        delcur,                 &
+        dtot,                   &
+        dtoa,                   &
+        darea,                  &
+        tareal,                 &
+        zz
+
+   LOGICAL :: debug,KeepLooping
+      
+   debug = .false.  
+    !map the 1D vector of ssnow to the 2D matrmlon that is longitude x latitude
+    !hold ocean points to h=0
+      
+      !procedure
+      !DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (area weighted average across all
+            ! patches):
+            !otmp3xyt(land_x(i), land_y(i), 1) 
+            
+            !land_x(i),land_y(i) does the mapping.  make sure these are available.  use io_vars
+
+    if (debug) write(*,*) 'about to initialize'
+    if (debug) write(*,*) mlon,mlat
+    evl(:,:)     = 0._r_2
+    poros(:,:)  = 1._r_2
+    ho(:,:)     = 0._r_2
+    hycond(:,:) = 0._r_2
+    if (debug) write(*,*) 'init loop through mp'
+
+    !evl and poros should really be set outside this 
+    !routine as they are invariant
+    do i=1,mp
+      evl(land_x(i),land_y(i))    = soil%elevation(i)
+      poros(land_x(i),land_y(i))  = soil%GWwatsat(i)
+      ho(land_x(i),land_y(i))     = soil%elevation(i) - ssnow%wtd(i)/1000._r_2
+      hycond(land_x(i),land_y(i)) = soil%GWhksat(i)/1000._r_2   !m/s
+    end do
+    if (debug) write(*,*) 'done with mp init'
+    compres   = 0.0_r_2
+    convgw    = 0._r_2
+    bot       = evl - 100.0
+    xs_runoff = 0._r_2
+
+    where(bot .lt. 0.0) bot  = 0.0
+    where(evl .le. 0.1) evl = 10.0
+
+    where (poros .lt. 0.0) poros = 0.01
+    where (poros .ge. 1.0) poros = 0.9
+    where (ho .lt. evl) ho = 0.99*evl
+    where(hycond .lt. 0.0) hycond = 0._r_2
+
+    h = ho
+
+    if (debug) write(*,*) 'ELEVATION MAX IS ',maxval(soil%elevation)
+
+    if (debug) write(*,*) 'ELEVATION MAX IS ',maxval(evl)
+    if (debug) write(*,*) 'ELEVATION MIN IS ',minval(evl)
+    if (debug) write(*,*) 'ELEVATION AVG IS ',sum(evl)/real(xdimsize*ydimsize)
+    if (debug) write(*,*) 'hycond max ', maxval(hycond)
+    if (debug) write(*,*) 'hycond min ', minval(hycond)
+
+
+    dx = soil%delx                           !assumed constant
+    dy = soil%dely                           !need to add dx to global params
+    darea = dx*dy
+
+    call compute_storage(h,ho,poros,evl,sf2)
+
+    call TwoDGW_XDirCalc(LatBg,LatEd,dels,hycond,evl,dx,dy,sf2,h,hs)
+
+    call compute_storage(hs,h,poros,evl,sf2)
+
+    call TwoDGW_YDirCalc(LonBg,LonEd,dels,hycond,evl,dx,dy,sf2,h,hs,hn)
+
+  end subroutine mpi_step_gw_model
+
+
+!!======================================================================!!
+!!                     compute storage coefficient                      !!
+!!======================================================================!!
+
+subroutine compute_storage(h,ho,poros,evl,sf2) 
+   real, intent(in)     :: h(:,:),ho(:,:),evl(:,:),poros(:,:)
+   real, intent(inout)  :: sf2(:,:)
+
+    where(ho .lt. evl .and. h .lt. evl)  &
+          sf2 = poros
+
+    where(ho .ge. evl .and. h .ge. evl)  &
+          sf2 = 1._r_2
+
+    where(ho .lt. evl .and. h .ge. evl)  & 
+          sf2 = sf2*(h-ho)*1._r_2/ (sf2*(h-ho) - (poros-1._r_2)*(evl-ho))
+
+    where(ho .ge. evl .and. h .lt. evl)  &
+          sf2 = sf2*(ho-h)*poros / (sf2*(ho-h) + (poros - 1._r_2)*(ho-evl))
+
+end subroutine compute_storage    
+
+!!======================================================================!!
+!!                   column calculation subroutine                      !!
+!!======================================================================!!
+
+  subroutine TwoDGW_XDirCalc(LatBg,LatEd,dels,K,evl,dx,dy,sf2,h,hs)
+    implicit none
+
+    integer, intent(in)                    :: LatBg,LatEd
+    real,    intent(in)                    :: dels  
+    real,    intent(in),  dimension(:,:)   :: K
+    real,    intent(in),  dimension(:,:)   :: h
+    real,    intent(in),  dimension(:,:)   :: evl   
+    real,    intent(in)                    :: dx,dy
+    real,    intent(in),  dimension(:,:)   :: sf2     
+    real,    intent(out), dimension(:,:)   :: hs
+
+
+
+    !Local variables
+    integer                      :: i,im,ip
+    integer                      :: j,jm,jp
+    real, dimension(mlon)        :: at,bt,ct,rt
+
+
+    do j=LatBg,LatEd
+      jp = min(j+1,mlat)
+      jm = max(j-1,1)
+
+      do i=1,mlon
+        ip = min(i+1,mlon)
+        im = max(i-1,1)
+
+        at(i) = -trans(K(im,j),K(i,j),h(im,j),h(i,j)) !-0.5*(K(i,j)*h(i,j) + K(im,j)*h(im,j))/dx/dx
+        ct(i) = -trans(K(i,j),K(ip,j),h(i,j),h(ip,j)) !-0.5*(K(ip,j)*h(ip,j) + K(i,j)*h(i,j))/dx/dx
+        !bt(i) = 2.0*sf2(i,j)/dels - 0.5*( -(K(ip,j)*h(ip,j)+K(i,j)*h(i,j))/dx - &
+        !        (K(i,j)*h(i,j)+K(im,j)*h(im,j))/dx)
+
+        bt(i) = 2.0*sf2(i,j)/dels - (-trans(K(i,j),K(im,j),h(i,j),h(im,j))/dx - &
+                trans(K(i,j),K(ip,j),h(i,j),h(ip,j))/dx)      
+
+        !rt(i) = 0.5*( (K(i,jp)*h(i,jp)+K(i,j)*h(i,j))*(h(i,jp)-h(i,j))/dy - &
+        !             (K(i,j)*h(i,j)+K(i,jm)*h(i,jm))*(h(i,j)-h(i,jm))/dy)/dy + &
+        !            2.0*sf2(i,j)*h(i,j)/dels
+        rt(i) = 0.5*( trans(K(i,jp),K(i,j),h(i,jp),h(i,j))*(h(i,jp)-h(i,j))/dy - &
+                      trans(K(i,jm),K(i,j),h(i,jm),h(i,j))*(h(i,j)-h(i,jm))/dy)/dy + &
+                    2.0*sf2(i,j)*h(i,j)/dels
+
+      end do  !loop over the longitudes
+
+      call solve_1d_tridiag(at,bt,ct,rt,hs(:,j),mlon)
+
+    end do   !loop over a chunk of the latitudes
+
+    !bounds checking to check h < 0, h > elevation
+  
+
+
+
+  end subroutine TwoDGW_XdirCalc  
+!==================================================================!
+
+!!======================================================================!!
+!!                      row calculation subroutine                      !!
+!!======================================================================!!
+
+  subroutine TwoDGW_YDirCalc(LonBg,LonEd,dels,K,evl,dx,dy,sf2,h,hs,hn)
+    implicit none
+
+    integer, intent(in)                    :: LonBg,LonEd
+    real,    intent(in)                    :: dels  
+    real,    intent(in),  dimension(:,:)   :: K
+    real,    intent(in),  dimension(:,:)   :: h
+    real,    intent(in),  dimension(:,:)   :: evl
+    real,    intent(in)                    :: dx,dy        
+    real,    intent(in),  dimension(:,:)   :: sf2
+    real,    intent(in),  dimension(:,:)   :: hs
+    real,    intent(out), dimension(:,:)   :: hn
+
+    !Local variables
+    integer                      :: i,im,ip
+    integer                      :: j,jm,jp
+    real, dimension(mlat)        :: at,bt,ct,rt
+
+    do i=LonBg,LonEd
+      ip = min(i+1,mlon)
+      im = max(i-1,1)
+
+      do j=1,mlat
+        jp = min(j+1,mlat)
+        jm = max(j-1,1)
+
+        at(j) = -trans(K(i,j),K(i,jm),hs(i,j),hs(i,jm))/dy/dy! -0.5*(K(i,j)*hs(i,j)+K(i,jm)*hs(i,jm))/dy/dy
+        ct(j) = -trans(K(i,j),K(i,jp),hs(i,j),hs(i,jp))/dy/dy! -0.5*(K(i,jp)*hs(i,jp)+K(i,j)*hs(i,j))/dy/dy
+        !bt(j) = 2.0*sf2(i,j)/dels +  &
+        !        0.5* (K(i,jp)*hs(i,jp)+K(i,j)*hs(i,j) + &
+        !              K(i,j)*hs(i,j) + K(i,jm)*hs(i,jm))/dy/dy  
+
+        bt(j) = 2.0*sf2(i,j)/dels +  &
+                (trans(K(i,j),K(i,jp),hs(i,j),hs(i,jp)) + &
+                 trans(K(i,j),K(i,jm),hs(i,j),hs(i,jm)))/dy/dy
+
+        !rt(j) = 2.0*sf2(i,j)*hs(i,j)/dels  + 0.5/dx/dx * &
+        !        ( (K(ip,j)*h(ip,j)+K(i,j)*h(i,j))*(hs(ip,j)-hs(i,j)) - &
+        !          (K(i,j)*h(i,j) + K(im,j)*h(im,j))*(hs(i,j)-hs(im,j)))
+
+
+        rt(j) = 2.0*sf2(i,j)*hs(i,j)/dels  + &
+                ( trans(K(ip,j),K(i,j),h(ip,j),h(i,j))*(hs(ip,j)-hs(i,j)) - &
+                  trans(K(im,j),K(i,j),h(im,j),h(i,j))*(hs(i,j)-hs(im,j)))/dx/dx
+
+
+      end do  !loop over the longitudes
+
+      call solve_1d_tridiag(at,bt,ct,rt,hn(i,:),mlat)
+
+    end do   !loop over a chunk of the latitudes
+
+
+    !bounds checking to check h < 0, h > elevation
+  
+
+
+  end subroutine TwoDGW_YdirCalc  
+!=====================================================================!
+
+
+  function trans(ka,kn,ha,hb) result(tr)
+    implicit none
+
+    real(r_2), intent(in) :: ka,kb,ha,hb
+    real(r_2)             :: tr
+
+    tr = sqrt(abs(ka*ha*kb*hb))
+    !tr = 0.5_r_2 * (k(1)*h(1) + k(2)*h(2))
+
+  end function trans
+
+
+
+!=====================================================================!
+! SUBROUTINE solve_1d_tridiag
+! solves tridiagonal set of linear equations.  returns the solution
+!  
+  subroutine solve_1d_tridiag (at, bt, ct, rt, ut,n)
+
+! !ARGUMENTS:
+    implicit none
+    real(r_2), intent(in)    :: at(:)    ! 1 left of diagonal 
+    real(r_2), intent(in)    :: bt(:)    ! diagonal 
+    real(r_2), intent(in)    :: ct(:)    ! 1 right of diagonal 
+    real(r_2), intent(in)    :: rt(:)    ! right hand side
+    real(r_2), intent(inout) :: ut(:)    ! solution to the system of eqs
+    integer, intent(in)      :: n
+!   local variables
+    integer  :: k
+    REAL(r_2), DIMENSION(ms+1) ::  gam  
+    REAL(r_2)                  ::  bet 
+
+
+    ! Solve the matrix
+    bet = bt(1)
+       
+    if (bet .ne. 0.0_r_2) ut(1) = rt(1) / bet
+
+    if (bet .eq. 0.0_r_2) ut(1) = rt(1) / (bet + 0.000001_r_2)
+    do k = 1,n
+       gam(k) = ct(k-1) / bet
+       bet    = max(bt(k) - at(k) * gam(k),0.00001_r_2)
+       ut(k)  = (rt(k) - at(k)*ut(k-1)) / bet
+    end do
+
+    do k = n-1,2,-1
+       ut(k) = ut(k) - gam(k+1) * ut(k+1)
+    end do
+
+  end subroutine solve_1d_tridiag
+!=====================================================================!
+
+
+
+
+
       
       
 end module cable_TwoDim_GW
