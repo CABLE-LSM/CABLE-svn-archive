@@ -631,7 +631,7 @@ module cable_TwoDim_GW
 !!                   step_gw_model                                      !!
 !!======================================================================!!
 
-  subroutine mpi_step_gw_model(dels,ssnow,soil)! dx,              &
+  subroutine mpi_step_gw_model(dels,ssnow,soil,LonBg,LonEd,LatBg,LatEd)! dx,              &
             !ltype, evl, bot,        &
             !hycond, poros, compres,  &
             !ho, h, convgw,           &
@@ -654,6 +654,10 @@ module cable_TwoDim_GW
     real, intent(in)                         :: dels
     type(soil_snow_type), intent(inout)      :: ssnow
     type(soil_parameter_type), intent(inout) :: soil
+    integer, intent(in)                      :: LonBg,&
+                                                LonEd,&
+                                                LatBg,&
+                                                LatEd
     !LOCAL variables to map ssnow to previous code
     !note assume continantal??
     real(r_2),  dimension(mlon,mlat) ::  &
@@ -666,6 +670,8 @@ module cable_TwoDim_GW
 
     real(r_2), dimension(mlon,mlat) ::  &
         h,              &  ! head, after ghmcompute (m)           (ret)
+        hn,             &  ! head at time t+1 (m)
+        hs,             &  ! head at time t+0.5 (m)
         convgw             ! convergence due to gw flow (m/s)     (ret)
 
     real(r_2)  :: ebot, eocn
@@ -800,8 +806,8 @@ module cable_TwoDim_GW
 !!======================================================================!!
 
 subroutine compute_storage(h,ho,poros,evl,sf2) 
-   real, intent(in)     :: h(:,:),ho(:,:),evl(:,:),poros(:,:)
-   real, intent(inout)  :: sf2(:,:)
+   real(r_2), intent(in)     :: h(:,:),ho(:,:),evl(:,:),poros(:,:)
+   real(r_2), intent(inout)  :: sf2(:,:)
 
     where(ho .lt. evl .and. h .lt. evl)  &
           sf2 = poros
@@ -824,21 +830,21 @@ end subroutine compute_storage
   subroutine TwoDGW_XDirCalc(LatBg,LatEd,dels,K,evl,dx,dy,sf2,h,hs)
     implicit none
 
-    integer, intent(in)                    :: LatBg,LatEd
-    real,    intent(in)                    :: dels  
-    real,    intent(in),  dimension(:,:)   :: K
-    real,    intent(in),  dimension(:,:)   :: h
-    real,    intent(in),  dimension(:,:)   :: evl   
-    real,    intent(in)                    :: dx,dy
-    real,    intent(in),  dimension(:,:)   :: sf2     
-    real,    intent(out), dimension(:,:)   :: hs
+    integer,      intent(in)                  :: LatBg,LatEd
+    real,         intent(in)                  :: dels  
+    real(r_2),    intent(in),  dimension(:,:) :: K
+    real(r_2),    intent(in),  dimension(:,:) :: h
+    real(r_2),    intent(in),  dimension(:,:) :: evl   
+    real(r_2),    intent(in)                  :: dx,dy
+    real(r_2),    intent(in),  dimension(:,:) :: sf2     
+    real(r_2),    intent(out), dimension(:,:) :: hs
 
 
 
     !Local variables
     integer                      :: i,im,ip
     integer                      :: j,jm,jp
-    real, dimension(mlon)        :: at,bt,ct,rt
+    real(r_2), dimension(mlon)   :: at,bt,ct,rt
 
 
     do j=LatBg,LatEd
@@ -885,20 +891,20 @@ end subroutine compute_storage
   subroutine TwoDGW_YDirCalc(LonBg,LonEd,dels,K,evl,dx,dy,sf2,h,hs,hn)
     implicit none
 
-    integer, intent(in)                    :: LonBg,LonEd
-    real,    intent(in)                    :: dels  
-    real,    intent(in),  dimension(:,:)   :: K
-    real,    intent(in),  dimension(:,:)   :: h
-    real,    intent(in),  dimension(:,:)   :: evl
-    real,    intent(in)                    :: dx,dy        
-    real,    intent(in),  dimension(:,:)   :: sf2
-    real,    intent(in),  dimension(:,:)   :: hs
-    real,    intent(out), dimension(:,:)   :: hn
+    integer,      intent(in)                  :: LonBg,LonEd
+    real,         intent(in)                  :: dels  
+    real(r_2),    intent(in),  dimension(:,:) :: K
+    real(r_2),    intent(in),  dimension(:,:) :: h
+    real(r_2),    intent(in),  dimension(:,:) :: evl
+    real(r_2),    intent(in)                  :: dx,dy        
+    real(r_2),    intent(in),  dimension(:,:) :: sf2
+    real(r_2),    intent(in),  dimension(:,:) :: hs
+    real(r_2),    intent(out), dimension(:,:) :: hn
 
     !Local variables
     integer                      :: i,im,ip
     integer                      :: j,jm,jp
-    real, dimension(mlat)        :: at,bt,ct,rt
+    real(r_2), dimension(mlat)   :: at,bt,ct,rt
 
     do i=LonBg,LonEd
       ip = min(i+1,mlon)
@@ -943,7 +949,7 @@ end subroutine compute_storage
 !=====================================================================!
 
 
-  function trans(ka,kn,ha,hb) result(tr)
+  function trans(ka,kb,ha,hb) result(tr)
     implicit none
 
     real(r_2), intent(in) :: ka,kb,ha,hb

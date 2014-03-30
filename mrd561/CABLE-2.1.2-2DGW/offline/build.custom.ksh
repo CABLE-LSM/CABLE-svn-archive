@@ -25,7 +25,7 @@ host_squa()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fpmodel precise'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fp-model precise'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
@@ -38,9 +38,9 @@ host_bliz()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fpmodel precise'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -fp-model precise'
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O3'
    build_build
    cd ../
    build_status
