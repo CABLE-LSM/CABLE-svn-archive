@@ -6,6 +6,7 @@
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from
 ! http://www.accessimulator.org.au/cable
+
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on
 ! registration and the Licence.
@@ -56,8 +57,8 @@ MODULE cable_def_types_mod
        msn = 3,       & ! max # snow layers
        swb = 2,       & ! # shortwave bands
        niter = 4,     & ! number of iterations for za/L
-       ms = 12          ! # soil layers
-      ! ms = 6          ! # soil layers - standard
+      ! ms = 12          ! # soil layers
+       ms = 6          ! # soil layers - standard
 
   !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
 
@@ -93,7 +94,12 @@ MODULE cable_def_types_mod
           delwc_tot,        & ! energy balance for wet canopy
           qasrf_tot,        & ! heat advected to the snow by precip.
           qfsrf_tot,        & ! energy of snowpack phase changes
-          qssrf_tot           ! energy of snowpack phase changes
+          qssrf_tot, &        ! energy of snowpack phase changes
+
+          Radbal, &
+          EbalSoil, &
+          Ebalveg, &
+          Radbalsum
 
   END TYPE balances_type
 
@@ -248,8 +254,16 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:,:), POINTER :: thetai    ! volumetric ice content (MC)
      REAL(r_2), DIMENSION(:,:), POINTER :: snowliq   ! liquid snow content (mm H2O)
      REAL(r_2), DIMENSION(:),   POINTER :: nsteps    ! number of iterations at each timestep
+     REAL(r_2), DIMENSION(:),   POINTER :: TsurfaceFR  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
+     REAL(r_2), DIMENSION(:,:),   POINTER :: Ta_daily        ! air temp averaged over last 24h
+     INTEGER, DIMENSION(:), POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
+     REAL(r_2), DIMENSION(:),   POINTER :: Qadv_daily  ! advective heat flux into surface , daily average (W m-2)
+     REAL(r_2), DIMENSION(:),   POINTER :: G0_daily  ! conductive heat flux into surface , daily average (W m-2)
+     REAL(r_2), DIMENSION(:),   POINTER :: Qevap_daily ! evaporative flux at surface, daily average (m s-1)
+     REAL(r_2), DIMENSION(:),   POINTER :: Qprec_daily ! liquid precip, daily average (m s-1)
+     REAL(r_2), DIMENSION(:),   POINTER :: Qprec_snow_daily ! solid precip, daily average (m s-1)
 
-INTEGER, DIMENSION(:), POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
+
 
   END TYPE soil_snow_type
 
@@ -510,9 +524,7 @@ INTEGER, DIMENSION(:), POINTER :: nsnow ! number of layers in snow-pack (0-nsnow
           qvair,   & ! within canopy specific humidity (g/g)
           da,      & ! water vap pressure deficit at ref height (Pa)
           dva,     & ! in canopy water vap pressure deficit (Pa)
-          coszen,   &  ! cos(zenith angle of sun)
-          tk_old,   &
-          qv_old
+          coszen   ! cos(zenith angle of sun)
 
      REAL, DIMENSION(:,:), POINTER ::                                         &
           fsd  ! downward short-wave radiation (W/m2)
@@ -627,6 +639,11 @@ CONTAINS
     allocate( var% qasrf_tot(mp) )
     allocate( var% qfsrf_tot(mp) )
     allocate( var% qssrf_tot(mp) )
+
+     allocate( var% Radbal(mp) )
+     allocate( var% EbalSoil(mp) )
+     allocate( var% Ebalveg(mp) )
+     allocate( var% Radbalsum(mp) )
 
   END SUBROUTINE alloc_balances_type
 
@@ -776,6 +793,14 @@ CONTAINS
     ALLOCATE ( var % snowliq(mp,3) )
     ALLOCATE ( var % nsteps(mp) )
     ALLOCATE ( var % nsnow(mp) )
+    ALLOCATE ( var % TsurfaceFR(mp) )
+    ALLOCATE ( var % Ta_daily(mp,100))
+    ALLOCATE ( var % Qadv_daily(mp) )
+    ALLOCATE ( var % G0_daily(mp) )
+    ALLOCATE ( var % Qevap_daily(mp) )
+    ALLOCATE ( var % Qprec_daily(mp) )
+    ALLOCATE ( var % Qprec_snow_daily(mp) )
+
     !END IF
 
   END SUBROUTINE alloc_soil_snow_type
@@ -1024,11 +1049,7 @@ CONTAINS
     ALLOCATE ( var % dva(mp) )
     ALLOCATE ( var % coszen(mp) )
 
-    ! Deallocate variables for SLI soil model:
-    !IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
-    ALLOCATE ( var % tk_old(mp) )
-    ALLOCATE ( var % qv_old(mp) )
-    !END IF
+
 
   END SUBROUTINE alloc_met_type
 
@@ -1100,6 +1121,11 @@ CONTAINS
     DEALLOCATE( var% qasrf_tot )
     DEALLOCATE( var% qfsrf_tot )
     DEALLOCATE( var% qssrf_tot )
+
+    DEALLOCATE( var% Radbal )
+    DEALLOCATE( var% Ebalsoil )
+    DEALLOCATE( var% Ebalveg )
+    DEALLOCATE( var% Radbalsum )
 
   END SUBROUTINE dealloc_balances_type
 
@@ -1246,6 +1272,14 @@ CONTAINS
     DEALLOCATE (var % snowliq)
     DEALLOCATE (var % nsteps)
     DEALLOCATE (var % nsnow)
+    DEALLOCATE ( var % TsurfaceFR )
+    DEALLOCATE ( var % Ta_daily )
+    DEALLOCATE ( var % G0_daily )
+    DEALLOCATE ( var % Qadv_daily )
+    DEALLOCATE ( var % Qevap_daily )
+    DEALLOCATE ( var % Qprec_daily )
+    DEALLOCATE ( var % Qprec_snow_daily )
+
     ! END IF
 
   END SUBROUTINE dealloc_soil_snow_type
@@ -1476,8 +1510,7 @@ CONTAINS
     DEALLOCATE ( var % da )
     DEALLOCATE ( var % dva )
     DEALLOCATE ( var % coszen )
-    DEALLOCATE ( var % tk_old )
-    DEALLOCATE ( var % qv_old )
+
 
   END SUBROUTINE dealloc_met_type
 

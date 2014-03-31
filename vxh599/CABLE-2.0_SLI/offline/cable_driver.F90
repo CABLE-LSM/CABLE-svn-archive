@@ -436,10 +436,14 @@ PROGRAM cable_offline_driver
               CALL get_met_data( spinup, spinConv, met, soil,                    &
                    rad, veg, kend, dels, C%TFRZ, ktau+koffset,     &
                    kstart+koffset )
+
+              IF ( TRIM(cable_user%MetType) .NE. 'gswp' ) CurYear = met%year(1)
               met%ofsd = met%fsd(:,1) + met%fsd(:,2)
               ! Zero out lai where there is no vegetation acc. to veg. index
               WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
               
+
+
               IF ( .NOT. CASAONLY ) THEN
 
                  ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
@@ -453,6 +457,7 @@ PROGRAM cable_offline_driver
                  CALL cbm( ktau, dels, air, bgc, canopy, met,                             &
                       bal, rad, rough, soil, ssnow,                            &
                       sum_flux, veg )
+
 
                  ssnow%smelt = ssnow%smelt*dels
                  ssnow%rnof1 = ssnow%rnof1*dels

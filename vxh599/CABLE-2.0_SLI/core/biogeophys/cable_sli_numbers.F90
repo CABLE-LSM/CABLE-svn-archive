@@ -21,6 +21,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: e7        = 1.e-7
 
   ! define some constants
+  REAL(r_2), PARAMETER :: pi  = 3.1415927
   REAL(r_2), PARAMETER :: Tzero     = tfrz      ! Celcius -> Kelvin
   REAL(r_2), PARAMETER :: gravity   = grav      ! gravitation constant [m/s2]
   REAL(r_2), PARAMETER :: Mw        = rmh2o     ! weight of 1 mol of water [kg]
@@ -93,7 +94,7 @@ MODULE sli_numbers
   ! Special setups for sli stand-alone, such as 1-8: testcases of Haverd & Cuntz (2010);
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
   ! 0=normal run
-  INTEGER(i_d) :: experiment = 0
+  INTEGER(i_d) :: experiment = 11
 
   ! define types
   TYPE vars_met

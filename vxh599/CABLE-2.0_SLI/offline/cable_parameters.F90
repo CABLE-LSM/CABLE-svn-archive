@@ -826,6 +826,9 @@ CONTAINS
     case(12)
        soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
             0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
+
+       !soil%zse = (/.077,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
+        !   0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  0.7500, 0.7500 /)
     end select
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -1096,10 +1099,9 @@ CONTAINS
     END IF
 
     IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
-       met%tk_old = 298.
-       met%qv_old = 0.005
        veg%d0c3 = 1500.
        veg%a1c3 = 9.0
+       veg%gamma = 1.e-2
     END IF
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1239,7 +1241,8 @@ CONTAINS
             * 1000.0
     END DO
     bal%osnowd0 = ssnow%osnowd
-
+    soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+    soil%ssat_vec = SPREAD(soil%ssat,2,ms)
     IF(cable_user%SOIL_STRUC=='sli') THEN
        soil%nhorizons = 2 ! use 2 soil horizons globally
        ! For now just set B horizon parameters to be the same as A
@@ -1254,10 +1257,10 @@ CONTAINS
        ! soil%ssatB = soil%ssat
        ! soil%sucsB = soil%sucs
        ! soil%swiltB = soil%swilt
-       soil%swilt_vec = SPREAD(soil%swilt,2,ms)
-       soil%ssat_vec = SPREAD(soil%ssat,2,ms)
+
+
        soil%sfc_vec = SPREAD(soil%sfc,2,ms)
-       soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+
 
        ! Arbitrarily set A horiz depth to be first half of the layers
        soil%ishorizon(:,1:ms/2)  = 1

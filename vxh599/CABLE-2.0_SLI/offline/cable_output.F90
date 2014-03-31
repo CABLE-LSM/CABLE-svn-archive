@@ -968,7 +968,7 @@ CONTAINS
          met,air,bal)
 
     ! IF asked to check energy balance:
-    IF(check%energy_bal) CALL energy_balance(dels,met,rad,                     &
+    IF(check%energy_bal) CALL energy_balance(dels,ktau,met,rad,                     &
          canopy,bal,ssnow,                 &
          SBOLTZ, EMLEAF, EMSOIL )
 
@@ -1124,7 +1124,8 @@ CONTAINS
     ! Tair: surface air temperature [K]
     IF(output%met .OR. output%Tair) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Tair = out%Tair + REAL(met%tk, 4)
+       out%Tair = out%Tair + REAL(met%tvair, 4)
+       !out%Tair = out%Tair + REAL(met%tk, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Tair = out%Tair/REAL(output%interval, 4)

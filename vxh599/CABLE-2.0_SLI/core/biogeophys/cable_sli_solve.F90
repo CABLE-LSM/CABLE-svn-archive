@@ -56,7 +56,9 @@
 !
 ! Jan 8 2014 (V Haverd)
 ! enable 2nd snow layer so that if snowpack exceeds 3 cm , the excess goes into the layer below.
-
+!
+! March 2014 (V. Haverd)
+! Extract SEB calcs to subroutine in utils, and trial Force-Restore method
 
 MODULE sli_solve
 
@@ -79,7 +81,7 @@ MODULE sli_solve
        getfluxes_vp, getheatfluxes, flux, sol, &
        csat, slope_csat, potential_evap, tri, setsol, zerovars, &
        esat_ice, slope_esat_ice, Tfrozen, rtbis_Tfrozen, GTFrozen, &
-       JSoilLayer, esat
+       JSoilLayer, esat, forcerestore, SEB
 
   IMPLICIT NONE
 
@@ -119,7 +121,7 @@ CONTAINS
   !*********************************************************************************************************************
 
   SUBROUTINE solve(ts, tfin, irec, mp, qprec,qprec_snow, n, dx, h0, S,thetai, Jsensible, Tsoil, evap, evap_pot, runoff, &
-       infil, drainage, discharge, qh, nsteps, vmet, vlit,vsnow, csoil, kth, phi, T0, rh0, Tsurface, rhsurface, Hcum, lEcum, &
+       infil, drainage, discharge, qh, nsteps, vmet, vlit,vsnow,var, csoil, kth, phi, T0, rh0, Tsurface, rhsurface, Hcum, lEcum, &
        Gcum, Qadvcum, Jcol_sensible, Jcol_latent_S, Jcol_latent_T, deltaice_cum_T, deltaice_cum_S, dxL, zdelta, &
        SL, TL, plit, par, qex, wex, heads, FS,  &
        ciso, cisoice, cisos, ciso0, cisoL, cprec, cali, qali, qiso_in, qiso_out, qiso_evap_cum, qiso_trans_cum, qiso_liq_adv, &
@@ -140,15 +142,18 @@ CONTAINS
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(OUT)             :: thetai
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(OUT)             :: Jsensible
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(INOUT)           :: Tsoil
-    REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)           :: evap, evap_pot, runoff, infil
+    REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT)           :: evap
+    REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)           ::  evap_pot, runoff, infil
     REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)             :: drainage, discharge
     REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n),   INTENT(OUT)             :: qh
     INTEGER(i_d),   DIMENSION(1:mp),       INTENT(OUT)           :: nsteps
     TYPE(vars_met), DIMENSION(1:mp),       INTENT(INOUT)           :: vmet
     TYPE(vars),     DIMENSION(1:mp),       INTENT(INOUT)           :: vlit
     TYPE(vars_snow),     DIMENSION(1:mp),       INTENT(INOUT)           :: vsnow
+    TYPE(vars),     DIMENSION(1:mp,1:n),       INTENT(INOUT)           :: var
     REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT)           :: T0, rh0, Tsurface, rhsurface
-    REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)             :: Hcum, lEcum, Gcum,Qadvcum, deltaice_cum_T, deltaice_cum_S
+    REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)             :: Hcum, lEcum,  deltaice_cum_T, deltaice_cum_S
+    REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)             :: Gcum,Qadvcum
     REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)             :: Jcol_sensible, Jcol_latent_S, Jcol_latent_T
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(OUT)             :: csoil, kth
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(INOUT)             :: phi
@@ -178,7 +183,6 @@ CONTAINS
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: dosepts        ! 0: normal; 1: uncouple T & S
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: docondition    ! 0: no cond., 1: columns, 2: lines, 3: both
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: doadvection       ! 0: off; 1: onn
-
     ! Solves the RE and, optionally, the ADE from time ts to tfin.
     ! Definitions of arguments:
     ! Required args:
@@ -233,16 +237,12 @@ CONTAINS
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: aah, bbh, cch, ddh, eeh, ffh, ggh, de
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qadv, qadvya, qadvyb, qadvTa, qadvTb
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qcond, qcondya, qcondyb, qcondTa, qcondTb
-    REAL(r_2),    DIMENSION(1:mp,0:nsnow_max)   :: q_snow, qya_snow, qyb_snow, qTa_snow, qTb_snow, qhya_snow, qhyb_snow
-    REAL(r_2),    DIMENSION(1:mp,0:nsnow_max)   :: qh_snow, qhTa_snow, qhTb_snow
-    REAL(r_2),    DIMENSION(1:mp,0:nsnow_max)   :: qadv_snow, qadvyb_snow, qadvTb_snow
+
 
     TYPE(vars)                          :: vtmp
-    TYPE(vars),   DIMENSION(1:mp,1:n)   :: var
+    !TYPE(vars),   DIMENSION(1:mp,1:n)   :: var
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qsig, qhsig, qadvsig
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
-    REAL(r_2),    DIMENSION(1:mp,0:nsnow_max)   :: qsig_snow, qhsig_snow, qadvsig_snow
     TYPE(vars),   DIMENSION(1:mp,1:n)   :: vcall
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: deltaS, dTsoil
     REAL(r_2),    DIMENSION(1:mp,0:n)   :: tmp2d1, tmp2d2
@@ -263,7 +263,7 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp) :: qrunoff
     REAL(r_2),          DIMENSION(1:mp) :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
     REAL(r_2),          DIMENSION(1:mp) :: deltah0
-    REAL(r_2),          DIMENSION(1:mp) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil
+    REAL(r_2),          DIMENSION(1:mp) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     REAL(r_2),          DIMENSION(1:mp) :: SL0, deltaSL, cvL0, SLliq0, deltacvL, SLliq, deltaSLliq
     REAL(r_2),          DIMENSION(1:mp) :: qiso_evap, qiso_trans
     REAL(r_2),          DIMENSION(1:mp) :: lE0, G0, E_vap, E_liq, dE_vapdT1
@@ -271,7 +271,7 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp) :: dtdT
     REAL(r_2),          DIMENSION(1:mp,-nsnow_max+1:n) :: LHS, RHS,LHS_h, RHS_h
     REAL(r_2),          DIMENSION(1:mp,1:nsnow_max) :: LHS_snow, RHS_snow,LHS_h_snow, RHS_h_snow
-    INTEGER(i_d),       DIMENSION(1:mp) :: pondcase
+    INTEGER(i_d),       DIMENSION(1:mp) :: surface_case
 
     INTEGER(i_d),       DIMENSION(1:mp) :: nns, iflux
     LOGICAL      :: litter
@@ -288,9 +288,10 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp,1:n) :: iqex, thetal_max
     REAL(r_2),          DIMENSION(1:mp)     :: icali
     INTEGER(i_d),       DIMENSION(1:mp) :: nfac1, nfac2, nfac3, nfac4, nfac5, &
-         nfac6, nfac7, nfac8, nfac9, nfac10,nfac11
+         nfac6, nfac7, nfac8, nfac9, nfac10,nfac11,nfac12
     REAL(r_2),          DIMENSION(1:mp)     :: v1, v2, lnSliq, kmin, ipi
 	REAL(r_2),          DIMENSION(1:mp)     :: J0snow, wcol0snow
+	REAL(r_2),          DIMENSION(1:mp)     :: Tsurface0, d1, Tbar ! for use with force-restore
 
 
     !open (unit=7, file="Test.out", status="replace", position="rewind")
@@ -441,18 +442,6 @@ CONTAINS
     qhTb(:,:)   = zero
     qadvyb(:,:) = zero
     qadvya(:,:) = zero
-    qcondyb(:,:) = zero
-    qcondya(:,:) = zero
-    qcondTb(:,:) = zero
-    qcondTa(:,:) = zero
-    qya_snow(:,:)  = zero
-    qyb_snow(:,:)  = zero
-    qTa_snow(:,:)  = zero
-    qTb_snow(:,:)  = zero
-    qhya_snow(:,:) = zero
-    qhyb_snow(:,:) = zero
-    qhTa_snow(:,:) = zero
-    qhTb_snow(:,:) = zero
     aa(:,:)     = zero
     aah(:,:)    = zero
     bb(:,:)     = zero
@@ -497,6 +486,7 @@ CONTAINS
     dT0(:)             = zero
     thetal_max         = zero
     nsteps             = 0
+
 
     ! initialise snow Ebal diagnostics
     vsnow(:)%Qadv_rain = zero
@@ -579,6 +569,7 @@ CONTAINS
     nfac9  = 0
     nfac10 = 0
     nfac11 = 0
+    nfac12=0
     t(:)       = ts
     nsteps0(:) = nsteps
     nsat(:)    = 0
@@ -663,7 +654,9 @@ CONTAINS
                 ! this set var-structure
                 isave(kk,:) = var(kk,:)%isat
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
+
                 call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:)) ! for layers where S<1
+
                 ! do i=1, n
                 !    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
                 ! end do
@@ -692,15 +685,13 @@ CONTAINS
                 Sliq0(kk,1:n)    = Sliqice0(kk,1:n) - Sice0(kk,1:n)
                 Sice0(kk,1) = Sice0(kk,1)  + hice_0(kk)/(dx(kk,1)*par(kk,1)%thre)
                 Sliq0(kk,1) = Sliq0(kk,1) + (h0_0(kk)-hice_0(kk))/(dx(kk,1)*par(kk,1)%thre) ! add pond component to Sliq(kk,1)
-                if (irec.eq.1209.and.kk.eq.71) then
-                  write(*,*) 'chk1',t(kk), nsteps(kk), vsnow(kk)%hsnow(1),  vsnow(kk)%hliq(1)
-                endif
+
+
+
                 CALL snow_adjust(irec,mp,n,kk,ns,h0,h0_0,hice,hice_0,thetai,dx,vsnow,var,par,S,Tsoil, &
                      Jcol_latent_S, Jcol_latent_T, Jcol_sensible,deltaJ_sensible_S,qmelt,j0snow,dt)
-               if (irec.eq.1209.and.kk.eq.71) then
-                write(*,*) 'chk2',t(kk), nsteps(kk), vsnow(kk)%hsnow(1),  vsnow(kk)%hliq(1)
-               endif  
                 thetai(kk,1) = var(kk,1)%thetai  ! this is the value of thetaice prior to matrix call
+
              endif ! iflux==1
 
              ! initialise litter vars
@@ -720,6 +711,7 @@ CONTAINS
                 ns(kk)    = 1 ! start index for eqns
              else ! ponding
                 ns(kk)    = 0
+                var(kk,1)%phi = (one+e5)*var(kk,1)%phie+(h0(kk)-hice(kk))*var(kk,1)%Ksat
                 TL(kk)    = vmet(kk)%Ta ! initialise pond T
                 vtop(kk)%isat    = 1
                 vtop(kk)%h       = h0(kk)
@@ -730,10 +722,12 @@ CONTAINS
                 vtop(kk)%lambdav = rlambda
                 vtop(kk)%lambdaf = lambdaf
                 ! var(kk,1)%phi = var(kk,1)%phie
-                ! calculates phi1,eff (pond + top soil layer)
+                ! calculates phi1,eff (pond + top soil layer)   !!vh!! does this get used???
                 call flux(par(kk,1), vtop(kk), var(kk,1), half*dx(kk,1), &
                      q(kk,0), qya(kk,0), qyb(kk,0), qTa(kk,0), qTb(kk,0))
              endif
+
+
 
              if (Sl(kk) >= one) then
                 vlit(kk)%isat = 1
@@ -757,355 +751,40 @@ CONTAINS
                 endif
              end if
 
-             ! Fluxes and derivatives at the surfaces (air/litter, litter/soil, and similar)
-             ! three cases
-10           pondcase(kk) = 0
-             if (ns(kk)==1 .and. (.not. litter) ) pondcase(kk) = 1 ! no litter and no pond
-             if (ns(kk)==1 .and.        litter ) pondcase(kk) = 2 ! litter and no pond
-             if (ns(kk)==0 .and.vsnow(kk)%nsnow==0) pondcase(kk) = 3 ! pond with and without litter
-             if (vsnow(kk)%nsnow>0) pondcase(kk) = 4
-             sol(kk)%Ks = var(kk,1)%Ksat
-             select case (pondcase(kk))
-             case (1) ! no litter and no pond
-                ! structure that can be seen by rh0_sol_0d etc. which is used in rtbis (bisection)
-                ! Look in paper Appendix A.6: upper boundary condition: no ponding or litter
-                ! it just equates fluxes towards and away from the interface; 1 for water, 1 for heat
-                ! have to solve numerically because of non-linearity in phi(h)
-                sol(kk)%T1      = Tsoil(kk,1)
-                sol(kk)%Ta      = vmet(kk)%Ta
-                sol(kk)%cva     = vmet(kk)%cva*thousand
-                sol(kk)%Rnet    = vmet(kk)%Rn
-                sol(kk)%hr1     = var(kk,1)%rh
-                sol(kk)%hra     = vmet(kk)%rha
-                sol(kk)%Dv      = var(kk,1)%Dv
-                sol(kk)%gv      = one/vmet(kk)%rbw
-                sol(kk)%gh      = one/vmet(kk)%rrc * rhocp
-                sol(kk)%Dh      = var(kk,1)%kth
-                sol(kk)%dz      = half*dx(kk,1)
-                sol(kk)%phie    = var(kk,1)%phie
-                sol(kk)%he      = var(kk,1)%he
-                sol(kk)%K1      = var(kk,1)%K
-                sol(kk)%eta     = par(kk,1)%eta
-                sol(kk)%lambda  = par(kk,1)%lam
-                sol(kk)%lambdav = var(kk,1)%lambdav
+             ! Fluxes and derivatives at the air/surface interface
 
-                call potential_evap(vmet(kk)%Rn, vmet(kk)%rrc, vmet(kk)%rbw, vmet(kk)%Ta, vmet(kk)%rha, &
-                     Tsoil(kk,1), var(kk,1)%kth, half*dx(kk,1)+h0(kk), sol(kk)%lambdav, Tsurface_pot(kk), Epot(kk), Hpot(kk), &
-                     Gpot(kk), dEdrha(kk), dEdTa(kk), dEdTsoil(kk), dGdTa(kk), dGdTsoil(kk))
-                if (sol(kk)%Dv > 1.e-12_r_2) then
-                   E_vap(kk) = (sol(kk)%hr1*csat(sol(kk)%T1)-sol(kk)%cva)/(1/sol(kk)%gv + sol(kk)%dz/sol(kk)%Dv)*sol(kk)%lambdav
-                   dE_vapdT1(kk) = (sol(kk)%hr1*slope_csat(sol(kk)%T1))/(1/sol(kk)%gv + sol(kk)%dz/sol(kk)%Dv)*sol(kk)%lambdav
-                else
-                   E_vap(kk) = zero
-                   dE_vapdT1(kk) = zero
-                endif
-                call hyofh(hmin, par(kk,1)%lam, par(kk,1)%eta, par(kk,1)%Ke, par(kk,1)%he, &
-                     kmin(kk), Khmin(kk,1), phimin(kk,1)) ! get phi at hmin
-                E_liq(kk) = ((var(kk,1)%phi-phimin(kk,1))/sol(kk)%dz-sol(kk)%K1)*thousand*sol(kk)%lambdav
-                lE0(kk) = min(Epot(kk),E_vap(kk)+ E_liq(kk)) ! analytic approximation (See Haverd et al. 2012, Appxx)
-                qevap(kk) = lE0(kk)/(thousand*sol(kk)%lambdav)
-                q(kk,0)  = qprec(kk) + qprec_snow(kk) - qevap(kk)
+             surface_case(kk) = 0
+             if (vsnow(kk)%nsnow.eq.0) surface_case(kk) = 1
+                if (vsnow(kk)%nsnow>0) surface_case(kk) = 2
+             select case (surface_case(kk))
+             case (1) ! no snow
 
-                T0(kk) = (-sol(kk)%dz*lE0(kk) + sol(kk)%dz*sol(kk)%Rnet + &
-                     sol(kk)%Dh*sol(kk)%T1 + sol(kk)%dz*sol(kk)%gh*sol(kk)%Ta) &
-                     /(sol(kk)%Dh + sol(kk)%dz*sol(kk)%gh)
+             CALL SEB(par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), n, nsteps(kk), dx(kk,:), &
+                      h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), tfin-ts, Tsurface0(kk), &
+                      Tsurface(kk), G0(kk), lE0(kk),  &
+                      q(kk,0), qevap(kk), qliq(kk,0), qv(kk,0), &
+                      qyb(kk,0), qTb(kk,0), qlyb(kk,0), qvyb(kk,0), qlTb(kk,0), qvTb(kk,0), qh(kk,0), &
+                      qadv(kk,0), qhyb(kk,0), qhTb(kk,0), qadvyb(kk,0), qadvTb(kk,0),irec)
+               qya(kk,0) = zero; qTa(kk,0)= zero; qlya(kk,0)= zero; qvya(kk,0)= zero;
+               qvTa(kk,0)= zero;  qhya(kk,0)= zero;
+               qhTa(kk,0)= zero; qadvya(kk,0)= zero; qadvTa(kk,0)= zero;
 
-                G0(kk)       = sol(kk)%Dh/sol(kk)%dz*(T0(kk)-sol(kk)%T1)
-                Tsurface(kk) = T0(kk)
-                qcond(kk,0)  = G0(kk)
-                qh(kk,0)     = qcond(kk,0)
+             case (2) ! snow
 
-                ! derivatives
-                ! q refers to moisture in numerator
-                ! qh refers to heat in numerator
-                ! y refers to moisture in denominator
-                ! T refers to temperature in denominator
-                ! a refers to the layer above
-                ! b refers to the layer below
+             CALL SEB(par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), n, nsteps(kk), dx(kk,:), &
+                      h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), tfin-ts, Tsurface0(kk), &
+                      Tsurface(kk), G0(kk), lE0(kk),  &
+                      q(kk,-vsnow(kk)%nsnow), qevap(kk), qliq(kk,-vsnow(kk)%nsnow), qv(kk,-vsnow(kk)%nsnow), &
+                      qyb(kk,-vsnow(kk)%nsnow), qTb(kk,-vsnow(kk)%nsnow), qlyb(kk,-vsnow(kk)%nsnow), &
+                      qvyb(kk,-vsnow(kk)%nsnow), qlTb(kk,-vsnow(kk)%nsnow), qvTb(kk,-vsnow(kk)%nsnow), &
+                      qh(kk,-vsnow(kk)%nsnow), qadv(kk,-vsnow(kk)%nsnow), qhyb(kk,-vsnow(kk)%nsnow), &
+                      qhTb(kk,-vsnow(kk)%nsnow), qadvyb(kk,-vsnow(kk)%nsnow), qadvTb(kk,-vsnow(kk)%nsnow),irec)
 
-                ! initialise derivatives to zero
-                qya(kk,0)  = zero
-                qTa(kk,0)  = zero
-                qhya(kk,0) = zero
-                qhyb(kk,0) = zero
-                qhTa(kk,0) = zero
-
-                qybL(kk) = zero
-                qL(kk)   = zero
-                qTbL(kk) = zero
-
-                ! liquid and vapour fluxes
-
-                qlya(kk,0) = zero
-                qlyb(kk,0) = zero
-
-                qvya(kk,0) = qya(kk,0)
-                qvyb(kk,0) = qyb(kk,0)
-
-                if (Epot(kk)<=(E_vap(kk)+ E_liq(kk))) then ! potential evap independent of S(1), dependent on T1
-                   qyb(kk,0) = zero
-                   qTb(kk,0) = -dEdTsoil(kk)/(thousand*sol(kk)%lambdav)
-                else ! supply limited
-                   qTb(kk,0) = -dE_vapdT1(kk)/(thousand*sol(kk)%lambdav)
-                   qyb(kk,0) = -(var(kk,1)%phiS/sol(kk)%dz - var(kk,1)%KS)  !!vh!! include vapour component??
-                endif
-
-                if (Epot(kk)<=(E_vap(kk)+ E_liq(kk))) then ! potential evap independent of S(1), dependent on T1
-                   qliq(kk,0) = -Epot(kk)/(thousand*sol(kk)%lambdav)
-                   qv(kk,0) = zero
-                   qlyb(kk,0) = zero
-                   qvyb(kk,0) = qyb(kk,0)
-                   qlTb(kk,0) = qTb(kk,0)
-                   qvTb(kk,0) = zero
-                else ! supply limited
-                   qliq(kk,0) = -E_liq(kk)/(thousand*sol(kk)%lambdav)
-                   qv(kk,0) = -E_vap(kk)/(thousand*sol(kk)%lambdav)
-                   qlyb(kk,0) = -(var(kk,1)%phiS/sol(kk)%dz - var(kk,1)%KS)
-                   qvyb(kk,0) = zero
-                   qlTb(kk,0) = zero
-                   qvTb(kk,0) = qTb(kk,0)
-                endif
-                qvya(kk,0) = qya(kk,0)
-                qlya(kk,0) = zero
-
-                ! end of partial derivative evaluation
-
-                ! advective component of heat flux
-                qadv(kk,0) = rhow*cswat*qprec(kk)*(vmet(kk)%Ta) + rhow*csice*qprec_snow(kk)*(min(vmet(kk)%Ta,zero)) &
-                     - rhow*qprec_snow(kk)*lambdaf
-
-                Tqw  = merge(vmet(kk)%Ta, Tsoil(kk,1), (-qevap(kk))>zero)
-                dTqwdTb = merge(zero, one, (-qevap(kk))>zero)
-                qadv(kk,0) = qadv(kk,0) + rhow*cswat*Tqw*(-qevap(kk))
-                qadvTb(kk,0) = dTqwdTb + rhow*cswat*Tqw*qTb(kk,0)
-                qadvyb(kk,0) =  rhow*cswat*qyb(kk,0)*Tqw
-                qadvya(kk,0) =  zero
-                qadvTa(kk,0) =  zero
-                qh(kk,0) = qadv(kk,0) + qcond(kk,0)
-                qhyb(kk,0) = qcondyb(kk,0) +  qadvyb(kk,0)
-                qhTb(kk,0) = qcondTb(kk,0) + qadvTb(kk,0)
-
-             case (2) ! litter and no pond
-                !!vh!!
-                ! need to recode using analytic approx
-
-             case (3) ! pond with and without litter
-                deltaTa(kk) = zero
-                call potential_evap(vmet(kk)%Rn, vmet(kk)%rrc, vmet(kk)%rbw, vmet(kk)%Ta, vmet(kk)%rha, &
-                     Tsoil(kk,1), var(kk,1)%kth, half*dx(kk,1)+h0(kk),var(kk,1)%lambdav, &
-                     Tsurface_pot(kk), Epot(kk), Hpot(kk), &
-                     Gpot(kk), dEdrha(kk), dEdTa(kk), dEdTsoil(kk), dGdTa(kk), dGdTsoil(kk))
-                Tsurface(kk)  = Tsurface_pot(kk)
-                T0(kk)        = Tsurface_pot(kk)
-                rh0(kk)       = one
-                rhsurface(kk) = one
-                G0(kk)        = Gpot(kk)
-                lE0(kk)       = Epot(kk)
-                qevap(kk)     = Epot(kk)/(thousand*var(kk,1)%lambdav)
-                qpme(kk)        = qprec_snow(kk) + qprec(kk) - qevap(kk)
-                q(kk,0) = qprec_snow(kk)+ qprec(kk) - qevap(kk)
-                if (ns(kk)==0) then
-                   ! pond included in top soil layer: calculate phi1(eff)
-                   !var(kk,1)%phi = max((var(kk,1)%phie -var(kk,1)%he*var(kk,1)%Ksat), &
-                     !   (one+e5)*var(kk,1)%phie)+(h0(kk)-hice(kk))*var(kk,1)%Ksat
-                   var(kk,1)%phi = (one+e5)*var(kk,1)%phie+(h0(kk)-hice(kk))*var(kk,1)%Ksat
-                   q(kk,0) = qpme(kk)
-                   qya(kk,0) = zero
-                   qyb(kk,0) = zero
-                   qTa(kk,0) = zero
-                   qTb(kk,0) = zero
-                endif
-
-                qh(kk,0)   = G0(kk)
-                qcond(kk,0)   = G0(kk)
-                qh(kk,0)   = qcond(kk,0)
-                qhya(kk,0) = zero
-                qhyb(kk,0) = zero
-                qhTa(kk,0) = zero
-                qcondTb(kk,0)  = dGdTsoil(kk)
-                qhTb(kk,0) = qcondTb(kk,0)
-
-                qL(kk)    = zero
-                qybL(kk)  = zero
-                qTbL(kk)  = zero
-                qhL(kk)   = zero
-                qhTbL(kk) = zero
-                qhybL(kk) = zero
-
-                ql0(kk)   = -qevap(kk)
-                qv0(kk)   = zero
-                if (litter) then
-                   qL(kk)  = qpme(kk)
-                   qhL(kk) = G0(kk)
-                endif
-
-                ! liquid and vapour fluxes
-                qyb(kk,0) = zero
-                qTb(kk,0) = -dEdTsoil(kk)/(thousand*var(kk,1)%lambdav)
-                qlya(kk,0) = zero
-                qvya(kk,0) = zero
-
-                qliq(kk,0) = -Epot(kk)/(thousand*var(kk,1)%lambdav)
-                qv(kk,0) = zero
-                qlyb(kk,0) = zero
-                qvyb(kk,0) = qyb(kk,0)
-                qlTb(kk,0) = qTb(kk,0)
-                qvTb(kk,0) = zero
-
-                ! advective component of heat flux
-
-                qadv(kk,0) = rhow*cswat*qprec(kk)*(vmet(kk)%Ta) + rhow*csice*qprec_snow(kk)*(min(vmet(kk)%Ta,zero)) &
-                     - rhow*qprec_snow(kk)*lambdaf
-
-                Tqw  = merge(vmet(kk)%Ta, Tsoil(kk,1), (-qevap(kk))>zero)
-                dTqwdTb = merge(zero, one, (-qevap(kk))>zero)
-                qadv(kk,0) = qadv(kk,0) + rhow*cswat*Tqw*(-qevap(kk))
-                qadvTb(kk,0) = dTqwdTb + rhow*cswat*Tqw*qTb(kk,0)
-                qadvyb(kk,0) =  rhow*cswat*qyb(kk,0)*Tqw
-                qadvya(kk,0) =  zero
-                qadvTa(kk,0) =  zero
-                qh(kk,0) = qadv(kk,0) + qcond(kk,0)
-                qhyb(kk,0) = qcondyb(kk,0) +  qadvyb(kk,0)
-                qhTb(kk,0) = qcondTb(kk,0) + qadvTb(kk,0)
-
-             case(4) !dedicated snow layer
-
-
-                ! SEB at snow/air interface
-                if (vsnow(kk)%hliq(1)>zero) then
-                   sol(kk)%lambdav = lambdaf
-				   Tsurface(kk) = 0.0 
-				   Epot(kk) = (esat(Tsurface(kk))*0.018_r_2/thousand/8.314_r_2/(vmet(kk)%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
-                              vmet(kk)%cva)*rhow*sol(kk)%lambdav/vmet(kk)%rbw
-				   dEdTsoil(kk) = zero
-				   dGdTsoil(kk) = zero
-				   Hpot(kk) = rhocp*(Tsurface(kk) - vmet(kk)%Ta)/vmet(kk)%rbh
-				   Gpot(kk) = vmet(kk)%Rn - Hpot(kk) - Epot(kk)
-				
-				else
-                   sol(kk)%lambdav = lambdas
-                
-                   call potential_evap(vmet(kk)%Rn, vmet(kk)%rrc, vmet(kk)%rbw, vmet(kk)%Ta, vmet(kk)%rha, &
-                     vsnow(kk)%tsn(1), vsnow(kk)%kth(1), half*vsnow(kk)%depth(1), &
-                     sol(kk)%lambdav, Tsurface_pot(kk), Epot(kk), Hpot(kk), &
-                     Gpot(kk), dEdrha(kk), dEdTa(kk), dEdTsoil(kk), dGdTa(kk), dGdTsoil(kk))
-				    Tsurface(kk) = Tsurface_pot(kk)
-
-					 if (Tsurface_pot(kk)> zero) then
-					    Tsurface(kk) = 0.0 
-				        Epot(kk) = (esat(Tsurface(kk))*0.018_r_2/thousand/8.314_r_2/(vmet(kk)%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
-                              vmet(kk)%cva)*rhow*sol(kk)%lambdav/vmet(kk)%rbw
-						dEdTsoil(kk) = zero
-						dGdTsoil(kk) = zero
-						Hpot(kk) = rhocp*(Tsurface(kk) - vmet(kk)%Ta)/vmet(kk)%rbh
-						Gpot(kk) = vmet(kk)%Rn - Hpot(kk) - Epot(kk)
-					 endif
-
-
-				endif
-
-                qevap(kk) = Epot(kk)/(thousand*sol(kk)%lambdav)
- 
-
-                ! moisture flux at air/snow interface
-				q(kk,-vsnow(kk)%nsnow) = qprec_snow(kk)+qprec(kk)-qevap(kk)
-				qyb(kk,-vsnow(kk)%nsnow) = zero
-				qTb(kk,-vsnow(kk)%nsnow) = -dEdTsoil(kk)/(thousand*sol(kk)%lambdav)
-
-                ! conductive heat flux at air/snow interface
-                qh(kk,-vsnow(kk)%nsnow) = Gpot(kk)
-                qhTb(kk,-vsnow(kk)%nsnow) = dGdTsoil(kk)
-                if (vsnow(kk)%hliq(1)>zero) then
-                   qhTb(kk,-vsnow(kk)%nsnow) = zero
-                   qTb(kk,-vsnow(kk)%nsnow) = zero
-                endif
-
-                ! advective heat flux at air/snow interface
-                qadv(kk,-vsnow(kk)%nsnow) = rhow*(qprec_snow(kk))*(csice*(min(vmet(kk)%Ta,zero))-lambdaf) + &
-                     rhow*(qprec(kk))*cswat*(vmet(kk)%Ta)
-                Tqw  = merge(vmet(kk)%Ta, vsnow(kk)%tsn(vsnow(kk)%nsnow), -qevap(kk)>zero)
-                dTqwdTb = merge(zero,one, -qevap(kk)>zero)
-                if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
-                   qadv(kk,-vsnow(kk)%nsnow) = qadv(kk,-vsnow(kk)%nsnow) + rhow*(-qevap(kk))*cswat*Tqw
-                   qadvTb(kk,-vsnow(kk)%nsnow) = zero
-                else
-                   qadv(kk,-vsnow(kk)%nsnow) = qadv(kk,-vsnow(kk)%nsnow) + rhow*(-qevap(kk))*cswat*Tqw
-                   qadvTb(kk,-vsnow(kk)%nsnow) = rhow*cswat*(-qevap(kk))*dTqwdTb  +  rhow*cswat*Tqw*qTb(kk,-vsnow(kk)%nsnow)
-
-                endif
-                ! total heat flux at air/snow interface
-                qh(kk,-vsnow(kk)%nsnow) = qh(kk,-vsnow(kk)%nsnow) + qadv(kk,-vsnow(kk)%nsnow)
-                qhTb(kk,-vsnow(kk)%nsnow) = qhTb(kk,-vsnow(kk)%nsnow) + qadvTb(kk,-vsnow(kk)%nsnow)
-                qadvyb(kk,-vsnow(kk)%nsnow) = zero
-                qhyb(kk,-vsnow(kk)%nsnow) = zero
-				qadvTa(kk,-vsnow(kk)%nsnow) = zero
-				qhTa(kk,-vsnow(kk)%nsnow) = zero
-
-                ! vapour flux at soil/snow interface
-                if (var(kk,1)%isat==1) then
-                   keff = vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf)/vsnow(kk)%depth(vsnow(kk)%nsnow)/2_r_2
-                endif
-                if (var(kk,1)%isat==0) then
-                   keff = 2_r_2*((vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf))*(var(kk,1)%kE/thousand/var(kk,1)%lambdav))/ &
-                        ((vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf))*dx(kk,1)+(var(kk,1)%kE/thousand/var(kk,1)%lambdav)* &
-                        vsnow(kk)%depth(vsnow(kk)%nsnow))
-                endif
-                q(kk,0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(kk,1))
-                qTa(kk,0) = keff
-                qTb(kk,0) =-keff
-                qya(kk,0) = zero
-                qyb(kk,0) = zero
-                qv(kk,0)   = q(kk,0)
-                qvyb(kk,0) = qyb(kk,0)
-                qvTb(kk,0) = qTb(kk,0)
-                qliq(kk,0) = zero
-                qlyb(kk,0) = zero
-                qlTb(kk,0) = zero
-                if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
-                   qcondTa(kk,0) = zero
-                   qhTa(kk,0) = zero
-                   qTa(kk,0) = zero
-                endif
-
-                ! conductive heat flux at snow/soil interface  ! check this!
-                keff = 2_r_2*(vsnow(kk)%kth(vsnow(kk)%nsnow)*var(kk,1)%kth)/ &
-				       (vsnow(kk)%kth(vsnow(kk)%nsnow)*dx(kk,1)+var(kk,1)%kth*vsnow(kk)%depth(vsnow(kk)%nsnow))
-                qcond(kk,0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(kk,1))
-                if (vsnow(kk)%hliq(1)>zero) then
-                   qcondTa(kk,0) = zero
-                else
-                   qcondTa(kk,0) = keff
-                endif
-                qcondTb(kk,0) = -keff
-                qh(kk,0) = qcond(kk,0)
-                qhTa(kk,0) = qcondTa(kk,0)
-                qhTb(kk,0) = qcondTb(kk,0)
-				
-
-                ! advective heat flux at snow/soil interface
-                Tqw  = merge(vsnow(kk)%tsn(vsnow(kk)%nsnow), Tsoil(kk,1), q(kk,0)>zero)
-                dTqwdTb = merge(zero,one, q(kk,0)>zero)
-                dTqwdTa = merge(one,zero, q(kk,0)>zero)
-                if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
-                   qadv(kk,0) = rhow*q(kk,0)*cswat*Tqw
-                   qadvTa(kk,0) = zero
-                else
-                   qadv(kk,0) = rhow*q(kk,0)*cswat*Tqw
-                   qadvTa(kk,0) = rhow*cswat*q(kk,0)*dTqwdTa  +  rhow*cswat*Tqw*qTa(kk,0)
-                endif
-                qadvTb(kk,0) = rhow*cswat*q(kk,0)*dTqwdTb + rhow*cswat*Tqw*qTb(kk,0)
-
-                if (ns(kk)==0) then
-                   ! pond included in top soil layer: calculate phi1(eff)
-                   !var(kk,1)%phi = max((var(kk,1)%phie -var(kk,1)%he*var(kk,1)%Ksat), &
-                    !    (one+e5)*var(kk,1)%phie)+(h0(kk)-hice(kk))*var(kk,1)%Ksat
-                   var(kk,1)%phi = (one+e5)*var(kk,1)%phie+(h0(kk)-hice(kk))*var(kk,1)%Ksat
-                endif
 
              case default
-                write(*,*) "solve: illegal pond case."
+                write(*,*) "solve: illegal surface case."
                 stop
-             end select ! pondcase
+             end select ! surface_case
              ! finished all the surfaces
 
              ! get moisture fluxes and derivatives (at time t=0, i.e. q0 etc.)
@@ -1121,12 +800,6 @@ CONTAINS
              qvTb(kk,1:n) = qTb(kk,1:n)
              qlTb(kk,1:n) = zero
              ! get  fluxes heat and derivatives (at time t=0, i.e. q0 etc.)
-             !             call getheatfluxes(ns(kk:kk), h0(kk:kk), dx(kk:kk,1:n), dxL(kk:kk), &
-             !                  qh(kk:kk,0:n), qhya(kk:kk,0:n), qhyb(kk:kk,0:n), qhTa(kk:kk,0:n), qhTb(kk:kk,0:n), &
-             !                  var(kk:kk,1:n), vlit(kk:kk), Tsoil(kk:kk,1:n), TL(kk:kk), T0(kk:kk), litter, &
-             !                  q(kk:kk,0:n), qya(kk:kk,0:n), qyb(kk:kk,0:n), qTa(kk:kk,0:n), qTb(kk:kk,0:n), &
-             !                  qadv(kk:kk,0:n),qadvya(kk:kk,0:n), qadvyb(kk:kk,0:n), qadvTa(kk:kk,0:n), qadvTb(kk:kk,0:n), &
-             !                  advection) ! heat fluxes
              call getheatfluxes(n, ns(kk), h0(kk), dx(kk,1:n), dxL(kk), &
                   qh(kk,0:n), qhya(kk,0:n), qhyb(kk,0:n), qhTa(kk,0:n), qhTb(kk,0:n), &
                   var(kk,1:n), vlit(kk), Tsoil(kk,1:n), TL(kk), T0(kk), litter, &
@@ -1149,9 +822,9 @@ CONTAINS
                  ! conductive heat flux at interface between snow layers
                  keff = 2_r_2*(vsnow(kk)%kth(j+1)*vsnow(kk)%kth(j))/ &
                       (vsnow(kk)%kth(j+1)*vsnow(kk)%depth(j)+vsnow(kk)%kth(j)*vsnow(kk)%depth(j+1))  ! check this!
-                 qcond(kk,j-vsnow(kk)%nsnow) = keff*(vsnow(kk)%tsn(j)-vsnow(kk)%tsn(j+1))
-                 qcondTa(kk,j-vsnow(kk)%nsnow) = merge(zero,keff,vsnow(kk)%hliq(j)>zero)
-                 qcondTb(kk,j-vsnow(kk)%nsnow) = merge(zero,-keff,vsnow(kk)%hliq(j+1)>zero)
+                 qh(kk,j-vsnow(kk)%nsnow) = keff*(vsnow(kk)%tsn(j)-vsnow(kk)%tsn(j+1))
+                 qhTa(kk,j-vsnow(kk)%nsnow) = merge(zero,keff,vsnow(kk)%hliq(j)>zero)
+                 qhTb(kk,j-vsnow(kk)%nsnow) = merge(zero,-keff,vsnow(kk)%hliq(j+1)>zero)
 
 				 ! advective heat flux at interface between snow layers
 				 Tqw  = merge(vsnow(kk)%tsn(j), vsnow(kk)%tsn(j+1), q(kk,j-vsnow(kk)%nsnow)>zero)
@@ -1167,12 +840,64 @@ CONTAINS
                 endif
                 qadvTb(kk,0) = rhow*cswat*q(kk,j-vsnow(kk)%nsnow)*dTqwdTb + rhow*cswat*Tqw*qTb(kk,j-vsnow(kk)%nsnow)
 
-                 qh(kk,j-vsnow(kk)%nsnow) = qcond(kk,j-vsnow(kk)%nsnow) + qadv(kk,j-vsnow(kk)%nsnow)
-                 qhTa(kk,j-vsnow(kk)%nsnow) = qcondTa(kk,j-vsnow(kk)%nsnow) +  qadvTa(kk,j-vsnow(kk)%nsnow)
-                 qhTb(kk,j-vsnow(kk)%nsnow) = qcondTb(kk,j-vsnow(kk)%nsnow) +  qadvTb(kk,j-vsnow(kk)%nsnow)
+                 qh(kk,j-vsnow(kk)%nsnow) = qh(kk,j-vsnow(kk)%nsnow) + qadv(kk,j-vsnow(kk)%nsnow)
+                 qhTa(kk,j-vsnow(kk)%nsnow) = qhTa(kk,j-vsnow(kk)%nsnow) +  qadvTa(kk,j-vsnow(kk)%nsnow)
+                 qhTb(kk,j-vsnow(kk)%nsnow) = qhTb(kk,j-vsnow(kk)%nsnow) +  qadvTb(kk,j-vsnow(kk)%nsnow)
 			    enddo
-              endif
-			 ! end of heat and vapour fluxes and derivatives in snow-pack
+              endif ! end fluxes at snow/snow interfaces
+
+              if (vsnow(kk)%nsnow.ge.1) then
+              ! vapour flux at soil/snow interface
+                if (var(kk,1)%isat==1) then
+                   keff = vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf)/vsnow(kk)%depth(vsnow(kk)%nsnow)/2_r_2
+                endif
+                if (var(kk,1)%isat==0) then
+                   keff = 2_r_2*((vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf))*(var(kk,1)%kE/thousand/var(kk,1)%lambdav))/ &
+                        ((vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf))*dx(kk,1)+(var(kk,1)%kE/thousand/var(kk,1)%lambdav)* &
+                        vsnow(kk)%depth(vsnow(kk)%nsnow))
+                endif
+                q(kk,0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(kk,1))
+                qTa(kk,0) = keff
+                qTb(kk,0) =-keff
+                qya(kk,0) = zero
+                qyb(kk,0) = zero
+                qv(kk,0)   = q(kk,0)
+                qvyb(kk,0) = qyb(kk,0)
+                qvTb(kk,0) = qTb(kk,0)
+                qliq(kk,0) = zero
+                qlyb(kk,0) = zero
+                qlTb(kk,0) = zero
+                if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
+
+                   qhTa(kk,0) = zero
+                   qTa(kk,0) = zero
+                endif
+
+                ! conductive heat flux at snow/soil interface  ! check this!
+                keff = 2_r_2*(vsnow(kk)%kth(vsnow(kk)%nsnow)*var(kk,1)%kth)/ &
+                       (vsnow(kk)%kth(vsnow(kk)%nsnow)*dx(kk,1)+var(kk,1)%kth*vsnow(kk)%depth(vsnow(kk)%nsnow))
+                qh(kk,0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(kk,1))
+                if (vsnow(kk)%hliq(1)>zero) then
+                   qhTa(kk,0) = zero
+                else
+                   qhTa(kk,0) = keff
+                endif
+                qhTb(kk,0) = -keff
+
+
+                ! advective heat flux at snow/soil interface
+                Tqw  = merge(vsnow(kk)%tsn(vsnow(kk)%nsnow), Tsoil(kk,1), q(kk,0)>zero)
+                dTqwdTb = merge(zero,one, q(kk,0)>zero)
+                dTqwdTa = merge(one,zero, q(kk,0)>zero)
+                if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
+                   qadv(kk,0) = rhow*q(kk,0)*cswat*Tqw
+                   qadvTa(kk,0) = zero
+                else
+                   qadv(kk,0) = rhow*q(kk,0)*cswat*Tqw
+                   qadvTa(kk,0) = rhow*cswat*q(kk,0)*dTqwdTa  +  rhow*cswat*Tqw*qTa(kk,0)
+                endif
+                qadvTb(kk,0) = rhow*cswat*q(kk,0)*dTqwdTb + rhow*cswat*Tqw*qTb(kk,0)
+			  endif ! end of heat and vapour fluxes at soil/snow interface
 
              if (ns(kk)==0) then ! pond included in top soil layer
                 ! change qya(1) from dq/dphi (returned by getfluxes) to dq/dh
@@ -1282,6 +1007,7 @@ CONTAINS
                 stop
                 dmax(kk) = minval(tmp2d1(kk,:),1)
              endif
+
              tmp1d1(kk) = maxval(tmp2d2(kk,0:n),1) ! max derivative |dTsoil/dt|
              if (dmax(kk) > zero) then
                 dt(kk) = min(dSmax/dmax(kk), dTLmax/tmp1d1(kk), tmp1d3(kk)) ! constrained either by moisture or temp
@@ -1299,6 +1025,16 @@ CONTAINS
                 end if
                 dt(kk) = min(dt(kk), dTLmax/tmp1d1(kk), tmp1d3(kk)) ! constrained by  temp
              end if
+
+             ! check that time step is short enough to prevent melting a top snow layer
+             if (vsnow(kk)%nsnow.gt.0 ) then
+              tmp1d1(kk) = -rhow*(vsnow(kk)%hsnow(1)-vsnow(kk)%hliq(1))*(csice*vsnow(kk)%tsn(1) - lambdaf) ! energy required to melt ice in snow-pack
+                if (qh(kk,-vsnow(kk)%nsnow)*dt(kk).gt.tmp1d1(kk)) then
+                    dt(kk) = 0.9*tmp1d1(kk)/qh(kk,-vsnow(kk)%nsnow)
+                endif
+             endif
+
+
              if (dt(kk)>dtmax) dt(kk) = dtmax ! user's limit
 
              ! if initial step, improve phi where S>=1
@@ -1362,6 +1098,8 @@ CONTAINS
                    write(*,*) irec, kk, iqex(kk,:)
                    write(*,*) " irec, kk, h0, hsnow, hsnowliq"
                    write(*,*) irec, kk, h0(kk), vsnow(kk)%hsnow, vsnow(kk)%hliq
+                   write(*,*) nfac1(kk), nfac2(kk), nfac3(kk), nfac4(kk), nfac5(kk), &
+                   nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), nfac11(kk), nfac12(kk)
                    stop
                 end if
 
@@ -1576,10 +1314,9 @@ CONTAINS
                         +qadvTa(kk,1:n-1)*dTsoil(kk,1:n-1)+qadvTb(kk,1:n-1)*dTsoil(kk,2:n))
                    qadvsig(kk,n) = qadv(kk,n) + sig(kk)*(qadvya(kk,n)*dy(kk,n)+qadvTa(kk,n)*dTsoil(kk,n))
 
-                   LHS_h(kk,1) = (dx(kk,1)*var(kk,1)%csoileff+h0_tmp(kk)*cpeff(kk))*dTsoil(kk,1)/dt(kk)* &
-                        real(1-imelt(kk,1),r_2) - &
+                   LHS_h(kk,1) = (dx(kk,1)*var(kk,1)%csoileff+h0_tmp(kk)*cpeff(kk))*dTsoil(kk,1)/dt(kk) - &
                         dy(kk,1)*par(kk,1)%thre*dx(kk,1)*rhow*lambdaf/dt(kk)*var(kk,1)%iice* &
-                        real(1-var(kk,1)%isat,r_2)*real(1-imelt(kk,1),r_2) - &
+                        real(1-var(kk,1)%isat,r_2) - &
                         dy(kk,1)*(var(kk,1)%thetai/par(kk,1)%thre)*rhow*lambdaf/dt(kk)*real(1-ns(kk),r_2)* &
                         var(kk,1)%iice  + &
                         var(kk,1)%dthetaldT*(Tsoil(kk,1))*rhow*(cswat-csice)*dx(kk,1)*dTsoil(kk,1)/dt(kk)* &
@@ -1615,12 +1352,31 @@ CONTAINS
                    endif
 
                    tmp2d1(kk,1:n) = (LHS_h(kk,1:n)-RHS_h(kk,1:n)) !*dt(kk)
-                   if (any(abs(tmp2d1(kk,1:n))>1.e-6_r_2)) then
+                   if (any(abs(tmp2d1(kk,1:n))>1.e-6)) then
                       write(*,*) "energy imbalance after matrix solution"
                       write(*,*) "LHS: ", LHS_h(kk,1:n)
                       write(*,*) "RHS: ", RHS_h(kk,1:n)
                       write(*,*) "LHS-RHS: ", LHS_h(kk,1:n)-RHS_h(kk,1:n)
-                      !stop
+                      write(*,*) "irec, nsteps:" , irec, nsteps
+                      write(*,*) "S 1 ", S(kk,1)
+                      write(*,*) "ice 1: ", var(kk,1)%thetai, var(kk,1)%iice, var(kk,1)%isat
+                      write(*,*) "ns: ", ns
+                      write(*,*) cch(kk,1)*dy(kk,1) +ddh(kk,1)*de(kk,1) + eeh(kk,1)*dy(kk,2) + ffh(kk,1)*de(kk,2)
+                      write(*,*) ggh(kk,1), -(qh(kk,0) - qh(kk,1))/sig(kk)
+                      write(*,*) "dy, de", dy(kk,1), de(kk,1)
+                      write(*,*) qhsig(kk,1), qhsig(kk,0),qh(kk,1), qh(kk,0)
+                      write(*,*) G0(kk), qhya(kk,0), qhyb(kk,0), qhTa(kk,0), qhTb(kk,0)
+                      write(*,*) qadvsig(kk,1), qadvsig(kk,0),qadv(kk,1), qadv(kk,0)
+                      write(*,*) "qprec, qprec_snow", qprec(kk), qprec_snow(kk)
+                      write(*,*) (dx(kk,1)*var(kk,1)%csoileff)*dTsoil(kk,1)/dt(kk) - &
+                        dy(kk,1)*par(kk,1)%thre*dx(kk,1)*rhow*lambdaf/dt(kk)*var(kk,1)%iice* &
+                        real(1-var(kk,1)%isat,r_2) + &
+                        var(kk,1)%dthetaldT*(Tsoil(kk,1))*rhow*(cswat-csice)*dx(kk,1)*dTsoil(kk,1)/dt(kk)* &
+                        var(kk,1)%iice
+                      write(*,*)  real(var(kk,1:1)%iice,r_2) * real(1-var(kk,1:1)%isat,r_2) * &
+                           dx(kk,1:1) * dy(kk,1:1)/dt(kk) * par(kk,1:1)%thre * rhow * csice * (Tsoil(kk,1:1))
+                      write(*,*) "nsnow, nsnow_last", vsnow(kk)%nsnow, vsnow(kk)%nsnow_last
+                      stop
                    endif
 
                    ! check mass balance on top soil layer
@@ -1677,6 +1433,8 @@ CONTAINS
                    endif ! snow pack
 
                 endif ! septs==1
+!write(*,*) 'dodaily', nsteps, dt(kk), t(kk), dy(kk,1), dTsoil(kk,1), Tsoil(kk,1),qhsig(kk,0), qhsig(kk,1)
+!if (nsteps(kk).gt.10) stop
 
                 tmp1d1 = nless
                 ! dy contains dS or, for sat layers, dphi values
@@ -1687,7 +1445,7 @@ CONTAINS
 
                    ! check if time step ok, if not then set fac to make it less
                    iok(kk) = 1
-                   if (vsnow(kk)%nsnow>0) then
+                     if (vsnow(kk)%nsnow>0) then
                       do i=1, vsnow(kk)%nsnow
                          if ((vsnow(kk)%hsnow(i) + dy(kk,i-vsnow(kk)%nsnow))<zero) then
                             fac(kk) = 0.99*vsnow(kk)%hsnow(i)/abs(dy(kk,i-vsnow(kk)%nsnow))
@@ -1715,7 +1473,7 @@ CONTAINS
                                iok(kk) =0
                                exit
                             endif
-                         else
+                         elseif ((vsnow(kk)%tsn(i) +  de(kk,i-vsnow(kk)%nsnow)).gt.zero) then
                                 delta_snowT(kk,i) = zero - vsnow(kk)%tsn(i)
                                 delta_snowliq(kk,i) = (LHS_h(kk,i-vsnow(kk)%nsnow)*dt(kk) - &
                                  delta_snowT(kk,i)*csice*hsnow(kk,i) *rhow - &
@@ -1723,12 +1481,14 @@ CONTAINS
                                  (rhow*(zero*(cswat-csice)+lambdaf))
                                  if (delta_snowliq(kk,i).gt.(vsnow(kk)%hsnow(i) + dy(kk,i-vsnow(kk)%nsnow))) then
                                   fac(kk) = 0.9*vsnow(kk)%hsnow(i)/(delta_snowliq(kk,i)- dy(kk,i-vsnow(kk)%nsnow))
+                                  nfac12(kk) = nfac12(kk)+1
                                   iok(kk) = 0
                                  endif
                          endif
 
                        enddo
                      endif
+
                    do i=1, n
                       if (var(kk,i)%isat==0) then ! check change in S in initially unsaturated layers
                          if (abs(dy(kk,i)) > dSfac*dSmax) then
@@ -1817,6 +1577,7 @@ CONTAINS
                    enddo
 
 
+
                    if (litter .and. ns(kk)==0) then ! litter and pond
                       if (abs(de(kk,0)) > dTLmax) then ! Check absolute litter temperature change
                          fac(kk) = min(fac(kk),max(half,accel(kk)*abs(dTLmax/de(kk,0))))
@@ -1824,31 +1585,31 @@ CONTAINS
                       end if
                    endif
 
-                   if (litter .and. ns(kk)==1) then ! litter, no pond
-                      if (-dy(kk,0) > SL(kk)*dSmaxr) then ! Check relative litter moisture change
-                         fac(kk) = min(fac(kk),max(half,accel(kk)*dSmaxr*SL(kk)/(-dSfac*dy(kk,0))))
-                         iok(kk) = 0
-                      endif
-
-                      if (abs(deltaTa(kk)) > zero) then
-                         tmp1d1(kk) = de(kk,0) - deltaTa(kk)
-                         if (abs(tmp1d1(kk)) > dTLmax) then ! Check absolute litter temperature change
-                            fac(kk) = min(fac(kk),max(half,accel(kk)*dTLmax/abs(tmp1d1(kk))))
-                            iok(kk) = 0
-                            if (itmp(kk) > 10) then
-                               iok(kk) = 1
-                               t(kk)   = t(kk)-dt(kk)
-                               n_noconverge(kk) = n_noconverge(kk) + 1
-                               goto 10
-                            endif
-                         endif
-                      else
-                         if (abs(de(kk,0)) > dTLmax) then ! Check absolute litter temperature change
-                            fac(kk) = min(fac(kk),max(half,accel(kk)*abs(dTLmax/de(kk,0))))
-                            iok(kk) = 0
-                         end if
-                      endif
-                   endif ! litter, no pond
+!                   if (litter .and. ns(kk)==1) then ! litter, no pond
+!                      if (-dy(kk,0) > SL(kk)*dSmaxr) then ! Check relative litter moisture change
+!                         fac(kk) = min(fac(kk),max(half,accel(kk)*dSmaxr*SL(kk)/(-dSfac*dy(kk,0))))
+!                         iok(kk) = 0
+!                      endif
+!
+!                      if (abs(deltaTa(kk)) > zero) then
+!                         tmp1d1(kk) = de(kk,0) - deltaTa(kk)
+!                         if (abs(tmp1d1(kk)) > dTLmax) then ! Check absolute litter temperature change
+!                            fac(kk) = min(fac(kk),max(half,accel(kk)*dTLmax/abs(tmp1d1(kk))))
+!                            iok(kk) = 0
+!                            if (itmp(kk) > 10) then
+!                               iok(kk) = 1
+!                               t(kk)   = t(kk)-dt(kk)
+!                               n_noconverge(kk) = n_noconverge(kk) + 1
+!                               goto 10
+!                            endif
+!                         endif
+!                      else
+!                         if (abs(de(kk,0)) > dTLmax) then ! Check absolute litter temperature change
+!                            fac(kk) = min(fac(kk),max(half,accel(kk)*abs(dTLmax/de(kk,0))))
+!                            iok(kk) = 0
+!                         end if
+!                      endif
+!                   endif ! litter, no pond
 
                    ! pond decreasing or runoff starts
                    if (iok(kk)==1 .and. ns(kk)<1 .and. h0(kk)+dy(kk,1)<h0min) then ! pond going
@@ -1921,21 +1682,20 @@ CONTAINS
                    end if
                 end if  ! (.not. again(kk))
                 nsteps(kk)        = nsteps(kk) + 1
-                if (irec.eq.1210.and.kk.eq.71) then
-                  write(*,*) 'writing diags', again(kk)
-                   write(345,"(12i8,1500e16.6)") nsteps(kk), nfac1(kk), nfac2(kk), nfac3(kk), nfac4(kk), nfac5(kk), &
-                   nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
-                   nfac11(kk), q(kk,:), qsig(kk,:), qH(kk,:), qhsig(kk,:), &
-                   dy(kk,1:n), de(kk,1:n), dTsoil(kk,:), S(kk,1:n),thetai(kk,1:n), Tsoil(kk,1:n), real(var(kk,1)%iice), &
-                   real(var(kk,1)%isat), &
-                    h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
-                     vsnow(kk)%wcol, &
-                    qadv(kk,:), qadvsig(kk,:), qhya(kk,:), qhyb(kk,:), qhTa(kk,:), qhTb(kk,:), qya(kk,:), qyb(kk,:), qTa(kk,:), qTb(kk,:), &
-                     var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
-                    RHS_h(kk,1:n)*dt(kk), LHS_h(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
-                    real(-var(kk,1:n)%isat+1), dt(kk), real(ns(kk))
-                   if (nsteps(kk).gt.60) STOP
-                endif
+!                if (irec.eq.144) then
+!                  write(*,*) 'writing diags', again(kk)
+!                   write(345,"(13i8,1500e16.6)") nsteps, nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, nfac10, &
+!                   nfac11, nfac12, q, qsig, qH, qhsig, &
+!                   dy(kk,-1:n), de(kk,-1:n), dTsoil, S,thetai, Tsoil, real(var(kk,1)%iice), &
+!                   real(var(kk,1)%isat), &
+!                    h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
+!                     vsnow(kk)%wcol, &
+!                    qadv, qadvsig, qhya, qhyb, qhTa, qhTb, qya, qyb, qTa, qTb, &
+!                     var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
+!                    RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
+!                    real(-var(kk,1:n)%isat+1), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1)
+!                   if (nsteps(kk).gt.60) STOP
+!                endif
              end do ! while (iok==0) ----- end get and solve eqns
 
              !----- update unknowns
@@ -2018,7 +1778,7 @@ CONTAINS
                 tmp1d1(kk) = dJcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - (qhsig(kk,0)-qhsig(kk,n))*dt(kk) &
                      + qrunoff(kk)*cswat*rhow*(Tsoil(kk,1) + sig(kk)*dTsoil(kk,1))*dt(kk)
                 !       if (abs(tmp1d1(kk)).gt.10.) then
-                !               write(*,*) 'E imbalance check 1'
+                              !write(*,*) 'E balance check 1', irec, nsteps, tmp1d1(kk)
                 !       endif
 
                 if (ns(kk)<1) then ! change in pond height
@@ -2030,8 +1790,8 @@ CONTAINS
                 endif
 
                 ! cumulate evaporation from top of soil column or top of litter/pond or top of snow pack
-                select case (pondcase(kk))
-                case(1)  ! no pond or litter
+                select case (surface_case(kk))
+                case(1)  ! no snow
                    evap(kk)     = evap(kk) +qevap(kk)*dt(kk) - sig(kk)*(qyb(kk,0)*dy(kk,1)+qTb(kk,0)*DTsoil(kk,1))*dt(kk)
                    qevapsig(kk) = qevap(kk) - sig(kk)*(qyb(kk,0)*dy(kk,1)+qTb(kk,0)*DTsoil(kk,1))
                    Gcum(kk) = Gcum(kk)+(qhsig(kk,0)-qadvsig(kk,0))*dt(kk)
@@ -2040,39 +1800,33 @@ CONTAINS
                    Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,0)-qadvsig(kk,0))*dt(kk)- &
                         qevapsig(kk)*thousand*var(kk,1)%lambdav*dt(kk))
                    dwinfil(kk) = (qprec(kk)+qprec_snow(kk)-qevapsig(kk))*dt(kk)
-                case(2)  ! litter, no pond
-                   evap(kk)     = evap(kk) - (qL(kk)-qprec(kk) + sig(kk)*(qybL(kk)*dy(kk,0)+qTbL(kk)*(de(kk,0) &
-                        -deltaTa(kk))))*dt(kk)
-                   qevapsig(kk) = - (qL(kk)-qprec(kk) + sig(kk)*(qybL(kk)*dy(kk,0)+qTbL(kk)*(de(kk,0)-deltaTa(kk))))
-                   Gcum(kk)  = Gcum(kk)+qhsig(kk,0)*dt(kk)
-                   lEcum(kk) = lEcum(kk) + qevapsig(kk)*thousand*var(kk,1)%lambdav*dt(kk)
-                   Hcum(kk)  = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-qhsig(kk,0)*dt(kk) - &
-                        qevapsig(kk)*thousand*var(kk,1)%lambdav*dt(kk))
-                   dwinlit(kk)    = (qL(kk) + sig(kk)*(qybL(kk)*dy(kk,0)+qTbL(kk)*(de(kk,0)-deltaTa(kk))))*dt(kk)
-                   dwinfil(kk) = qsig(kk,0)*dt(kk)
-                case(3)! pond
-                   evap(kk)     = evap(kk) +qevap(kk)*dt(kk) - sig(kk)*(qyb(kk,0)*dy(kk,1)+qTb(kk,0)*DTsoil(kk,1))*dt(kk)
-                   qevapsig(kk) = qevap(kk) - sig(kk)*(qyb(kk,0)*dy(kk,1)+qTb(kk,0)*DTsoil(kk,1))
-                   dwinfil(kk)  = (q(kk,0)+sig(kk)*(qya(kk,0)*dy(kk,0)+qyb(kk,0)*dy(kk,1)+qTb(kk,0)*dTsoil(kk,1)))*dt(kk) - &
-                        deltah0(kk) ! pond included in top soil layer
-
-                   Gcum(kk) = Gcum(kk)+(qhsig(kk,0)-qadvsig(kk,0))*dt(kk)
-                   Qadvcum(kk) = Qadvcum(kk) + qadvsig(kk,0)*dt(kk) - qadvsig(kk,n)*dt(kk)
-                   lEcum(kk)    = lEcum(kk) + qevapsig(kk)*thousand*var(kk,1)%lambdav*dt(kk)
-                   Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,0)-qadvsig(kk,0))*dt(kk)- &
-                        qevapsig(kk)*thousand*var(kk,1)%lambdav*dt(kk))
-                case(4) ! dedicated snow layer
+                case(2) ! dedicated snow layer
                    evap(kk)     = evap(kk) +qevap(kk)*dt(kk) - sig(kk)*(qyb(kk,-vsnow(kk)%nsnow)*dy(kk,1-vsnow(kk)%nsnow)+ &
 				                  qTb(kk,-vsnow(kk)%nsnow)*de(kk,1-vsnow(kk)%nsnow))*dt(kk)
                    qevapsig(kk) = qevap(kk) - sig(kk)*(qyb(kk,-vsnow(kk)%nsnow)*dy(kk,1-vsnow(kk)%nsnow)+ &
 				                  qTb(kk,-vsnow(kk)%nsnow)*de(kk,1-vsnow(kk)%nsnow))
                    Gcum(kk) = Gcum(kk)+(qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk)
                    Qadvcum(kk) = Qadvcum(kk) + qadvsig(kk,-vsnow(kk)%nsnow)*dt(kk) - qadvsig(kk,n)*dt(kk)
-                   lEcum(kk)    = lEcum(kk) + qevapsig(kk)*thousand*sol(kk)%lambdav*dt(kk)
-                   Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk)- &
-                        qevapsig(kk)*thousand*sol(kk)%lambdav*dt(kk))
+                   if (vsnow(kk)%hliq(1).gt.zero) then
+                      lEcum(kk)    = lEcum(kk) + qevapsig(kk)*thousand*lambdaf*dt(kk)
+                      Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk)- &
+                        qevapsig(kk)*thousand*lambdaf*dt(kk))
+                   else
+                      lEcum(kk)    = lEcum(kk) + qevapsig(kk)*thousand*lambdas*dt(kk)
+                      Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk)- &
+                        qevapsig(kk)*thousand*lambdas*dt(kk))
+                   endif
                    dwinfil(kk) = (qprec(kk)+qprec_snow(kk)-qevapsig(kk))*dt(kk)
-                end select ! pondcase
+                end select ! surface_case
+!                if ((Jcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - &
+!                 (qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk) - &
+!                 (qadvsig(kk,0)*dt(kk) - qadvsig(kk,n)*dt(kk))) .gt. 1) then
+!                 write(*,*) 'E balance check 2', irec, nsteps,  &
+!                 Jcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - &
+!                 (qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk) - &
+!                 (qadvsig(kk,0)*dt(kk) - qadvsig(kk,n)*dt(kk))
+!                 stop
+!                 endif
 
                 dwdrainage(kk)     = q(kk,n)*dt(kk) +sig(kk)*dt(kk)*(qya(kk,n)*dy(kk,n)+qTa(kk,n)*dTsoil(kk,n))
                 if (botbc=="aquifer" .and. v_aquifer(kk)%isat==0) then
@@ -2082,16 +1836,26 @@ CONTAINS
                 endif
 
                 drexcol(kk) = sum(iqex(kk,:),1)*dt(kk)
-
                 ! cumulative fluxes
                 infil(kk)     = infil(kk) + dwinfil(kk)
                 inlit(kk)     = inlit(kk) + dwinlit(kk)
                 wcol(kk)      = wcol(kk) + dwcol(kk)
                 drainage(kk)  = drainage(kk) + dwdrainage(kk)
-                discharge(kk) = discharge(kk) + dwdischarge(kk)
+                discharge(kk) = discharge(kk) + qrunoff(kk)*dt(kk)
                 rexcol(kk)    = rexcol(kk) + drexcol(kk)
                 Qadvcum(kk) = Qadvcum(kk) - sum(iqex(kk,:)*(Tsoil(kk,:)),1)*dt(kk)*rhow*cswat - &
                      qrunoff(kk)*(Tsoil(kk,1))*dt(kk)*rhow*cswat
+!                if (irec.eq.109) then
+!                    !write(*,"(2i8,16e16.6)") irec, vsnow(kk)%nsnow, dwcol(kk), dwinfil(kk)-dwdrainage(kk)-drexcol(kk)-qrunoff(kk)*dt(kk), &
+!                    !LHS(kk,0)*dt(kk), RHS(kk,0)*dt(kk), (qprec(kk)-qevapsig(kk))*dt(kk)- qsig(kk,n)*dt(kk)
+!
+!                write(*,"(1i8,16e16.6)") irec, infil(kk)-(wcol(kk)+discharge(kk)+drainage(kk))-rexcol(kk), &
+!                wcol(kk), deltah0(kk), h0(kk), discharge(kk), evap(kk), &
+!                 drainage(kk), rexcol(kk)
+!
+!                write(*,"(1i8,16e16.6)") irec, dwinfil(kk)-dwcol(kk)-dwdrainage(kk)-drexcol(kk)-qrunoff(kk)*dt(kk)
+!
+!                endif
 
                 ! evaluate soil fluxes at sigma of time step for use in isotope routine
 
@@ -2169,10 +1933,6 @@ CONTAINS
 
                 ! update snow pack water content and temperature (or liquid water)
 
-                 if (vsnow(kk)%nsnow.eq.2.and.qprec_snow(kk).gt.zero) then
-				 !write(*,*)
-				 endif
-
 
                 if (vsnow(kk)%nsnow>0) then
                    vsnow(kk)%Qadv_snow = vsnow(kk)%Qadv_snow + rhow*(qprec_snow(kk))* &
@@ -2203,6 +1963,10 @@ CONTAINS
                             tmp1d2(kk) = ((tmp1d1(kk) + LHS_h(kk,i-vsnow(kk)%nsnow)*dt(kk)))/ &
                                  ((dy(kk,i-vsnow(kk)%nsnow) + vsnow(kk)%hsnow(i))*cswat*rhow)
                             vsnow(kk)%tsn(i) = tmp1d2(kk) - zero
+
+                            if (vsnow(kk)%tsn(i)>zero) then
+                                write(*,*) 'T>zero ', irec, nsteps(kk), i, vsnow(kk)%tsn(i)
+                             endif
 
                             vsnow(kk)%deltaJlatent(i) = vsnow(kk)%deltaJlatent(i) + &
                                  lambdaf*(vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow
@@ -2277,6 +2041,10 @@ CONTAINS
 
 					vsnow(kk)%deltaJ = vsnow(kk)%J - J0snow(kk)
 
+					if (vsnow(kk)%nsnow.lt.nsnow_max) then
+					  vsnow(kk)%hsnow(vsnow(kk)%nsnow+1:nsnow_max) = zero
+					endif
+
 
 				   ! update densities and depths of snow layers
 
@@ -2321,7 +2089,6 @@ CONTAINS
 					                                  - vsnow(kk)%Qmelt +  vsnow(kk)%Qtransfer
 					vsnow(kk)%FluxDivergence = vsnow(kk)%Qadv_rain + vsnow(kk)%Qadv_snow + vsnow(kk)%Qadv_vap + &
                     vsnow(kk)%Qadv_melt + vsnow(kk)%Qcond_net  +  vsnow(kk)%Qadv_transfer
-
 
 
              endif ! .not. again
@@ -2589,6 +2356,7 @@ CONTAINS
                 isave(kk,1:n) = var(kk,1:n)%iice ! save isat before updating
                 ! update variables (particularly thetaice)
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
+
                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
                 ! do i=1, n
                 !    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
@@ -2916,7 +2684,7 @@ CONTAINS
     TYPE(vars_snow),     DIMENSION(1:mp),       INTENT(INOUT)           :: vsnow
     REAL(r_2),          DIMENSION(1:mp) :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
     REAL(r_2),          DIMENSION(1:mp) :: h0_tmp, hice_tmp
-    REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil
+    REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil, theta_tmp
     INTEGER(i_d) :: i,j ! counters
 
 
@@ -3073,7 +2841,9 @@ CONTAINS
                      (rhow*(zero*cswat-zero*csice+lambdaf))
                 vsnow(kk)%tsn(1) = zero
              endif
-
+             if (irec.eq.10820) then
+              write(*,*) 'chk3', vsnow(kk)%hliq(1)
+             endif
              h0(kk) = h0(kk) - vsnow(kk)%wcol
              hice(kk) = h0(kk)*var(kk,1)%thetai/par(kk,1)%thre
 
@@ -3098,6 +2868,10 @@ CONTAINS
                 vsnow(kk)%hliq(1)=(tmp1d1(kk)-vsnow(kk)%hsnow(1)*rhow*(zero*csice-lambdaf))/ &
                      (rhow*(zero*cswat-zero*csice+lambdaf))
                 vsnow(kk)%tsn(1) = zero
+             endif
+
+             if (irec.eq.10820) then
+              write(*,*) 'chk4', vsnow(kk)%hsnow(1), vsnow(kk)%hliq(1)
              endif
 
              ! correct soil moisture
@@ -3234,6 +3008,7 @@ CONTAINS
 	   
 	   ! get snow melt from top layer
 
+
 	   if ((vsnow(kk)%hliq(1) - vsnow(kk)%hsnow(1)*vsnow(kk)%fsnowliq_max(1))>zero) then ! snow melt
            qmelt(kk,1) = max((vsnow(kk)%hliq(1) - vsnow(kk)%hsnow(1)*vsnow(kk)%fsnowliq_max(1)),zero)
            qmelt(kk,1) = min(qmelt(kk,1), max(0.9*(vsnow(kk)%hsnow(1)-snmin*(vsnow(kk)%dens(1)/rhow)),zero))
@@ -3250,75 +3025,75 @@ CONTAINS
             vsnow(kk)%Jlatent(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*(-lambdaf)
 		  enddo
 	    endif ! end snow melt from top layer
-	
 
 		! add snow melt from above to layer below 
 		   if (vsnow(kk)%nsnow>1) then
 		      
 			   ! simply add melt water from above if melt water already exists and total new amount doesn't exceed capacity
-			   if ((vsnow(kk)%hliq(2).gt.zero).and. &
-			   (vsnow(kk)%hliq(2) + qmelt(kk,1)).le.(vsnow(kk)%hsnow(2) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
+			   if ((vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.zero).and. &
+			   (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).le.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
 					
-					vsnow(kk)%hliq(2) = vsnow(kk)%hliq(2) + qmelt(kk,1)
-					vsnow(kk)%hsnow(2) = vsnow(kk)%hsnow(2) + qmelt(kk,1)
-					qmelt(kk,2) = zero
+					vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)
+					vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
+					qmelt(kk,vsnow(kk)%nsnow) = zero
 			   ! or convert excess to melt water
-			   elseif ((vsnow(kk)%hliq(2).gt.zero).and. &
-			   (vsnow(kk)%hliq(2) + qmelt(kk,1)).gt.(vsnow(kk)%hsnow(2) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
+			   elseif ((vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.zero).and. &
+			   (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).gt.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
 
-                     tmp1d1(kk) = vsnow(kk)%hliq(2)
-					 tmp1d2(kk) = vsnow(kk)%hsnow(2)
+                     tmp1d1(kk) = vsnow(kk)%hliq(vsnow(kk)%nsnow)
+					 tmp1d2(kk) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)
 
 
-			         qmelt(kk,2) =  tmp1d1(kk) + vsnow(kk)%melt(1) - &
-                                   vsnow(kk)%fsnowliq_max(2)*(tmp1d2(kk) - tmp1d1(kk))/ &
-			                                                 (1.-vsnow(kk)%fsnowliq_max(2))
+			         qmelt(kk,vsnow(kk)%nsnow) =  tmp1d1(kk) + vsnow(kk)%melt(1) - &
+                                   vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(tmp1d2(kk) - tmp1d1(kk))/ &
+			                                                 (1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 					  
-					  vsnow(kk)%hliq(2) = vsnow(kk)%fsnowliq_max(2)*(tmp1d2(kk)  - tmp1d1(kk) )/ &
-			                                                 (1.-vsnow(kk)%fsnowliq_max(2)) 
+					  vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(tmp1d2(kk)  - tmp1d1(kk) )/ &
+			                                                 (1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 
 
-                     vsnow(kk)%hsnow(2) = (tmp1d2(kk) - tmp1d1(kk)) + vsnow(kk)%hliq(2)
+                     vsnow(kk)%hsnow(vsnow(kk)%nsnow) = (tmp1d2(kk) - tmp1d1(kk)) + vsnow(kk)%hliq(vsnow(kk)%nsnow)
 
 		       ! or add melt water to completely frozen snowpack below
 			   else
-			   tmp1d1(kk) = (vsnow(kk)%hsnow(2)*(vsnow(kk)%tsn(2)*csice-lambdaf) &
-			                /(vsnow(kk)%hsnow(2) + qmelt(kk,1)) + lambdaf)/csice
+			   tmp1d1(kk) = (vsnow(kk)%hsnow(vsnow(kk)%nsnow)*(vsnow(kk)%tsn(vsnow(kk)%nsnow)*csice-lambdaf) &
+			                /(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)) + lambdaf)/csice
 
 			   if (tmp1d1(kk).lt.zero) then ! snow pack remains completely frozen
-                   vsnow(kk)%tsn(2) = tmp1d1(kk)
-				   vsnow(kk)%hliq(2) = zero
-				   vsnow(kk)%hsnow(2) = vsnow(kk)%hsnow(2) + qmelt(kk,1)
-				   qmelt(kk,2) = zero
+                   vsnow(kk)%tsn(vsnow(kk)%nsnow) = tmp1d1(kk)
+				   vsnow(kk)%hliq(vsnow(kk)%nsnow) = zero
+				   vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
+				   qmelt(kk,vsnow(kk)%nsnow) = zero
 
 			   else ! snowpack partially melted
-                   vsnow(kk)%hliq(2) = vsnow(kk)%hsnow(2)/lambdaf*(csice*vsnow(kk)%tsn(2)-lambdaf) + &
-			                        (vsnow(kk)%hsnow(2) + qmelt(kk,1))
-				   vsnow(kk)%tsn(2) = zero
-                   vsnow(kk)%hsnow(2) = vsnow(kk)%hsnow(2) + qmelt(kk,1)
-				   qmelt(kk,2) = zero
+                   vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)/lambdaf*(csice*vsnow(kk)%tsn(vsnow(kk)%nsnow)-lambdaf) + &
+			                        (vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1))
+				   vsnow(kk)%tsn(vsnow(kk)%nsnow) = zero
+                   vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
+				   qmelt(kk,vsnow(kk)%nsnow) = zero
                
 
-				   if (vsnow(kk)%hliq(2).gt.vsnow(kk)%hsnow(2)*vsnow(kk)%fsnowliq_max(2)) then
+				   if (vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.vsnow(kk)%hsnow(vsnow(kk)%nsnow)*vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)) then
 
-				      tmp1d1(kk) = vsnow(kk)%hliq(2)
-					  tmp1d2(kk) = vsnow(kk)%hsnow(2)
+				      tmp1d1(kk) = vsnow(kk)%hliq(vsnow(kk)%nsnow)
+					  tmp1d2(kk) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)
 					  
-					  qmelt(kk,2) =  vsnow(kk)%hliq(2) - &
-                                   vsnow(kk)%fsnowliq_max(2)*(vsnow(kk)%hsnow(2) - vsnow(kk)%hliq(2))/ &
-			                                                 (1.-vsnow(kk)%fsnowliq_max(2))
+					  qmelt(kk,vsnow(kk)%nsnow) =  vsnow(kk)%hliq(vsnow(kk)%nsnow) - &
+                                   vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(vsnow(kk)%hsnow(vsnow(kk)%nsnow) - vsnow(kk)%hliq(vsnow(kk)%nsnow))/ &
+			                                                 (1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 					  
-					  vsnow(kk)%hliq(2) = vsnow(kk)%fsnowliq_max(2)*(vsnow(kk)%hsnow(2) - vsnow(kk)%hliq(2))/ &
-			                                                 (1.-vsnow(kk)%fsnowliq_max(2)) 
+					  vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(vsnow(kk)%hsnow(vsnow(kk)%nsnow) &
+					                                   - vsnow(kk)%hliq(vsnow(kk)%nsnow))/ &
+			                                                 (1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 
-					  vsnow(kk)%hsnow(2) = vsnow(kk)%hsnow(2) - tmp1d1(kk) + vsnow(kk)%hliq(2) 
-					  tmp1d3(kk) = vsnow(kk)%dens(2)*(one-vsnow(kk)%hliq(2))/vsnow(kk)%hsnow(2)
+					  vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) - tmp1d1(kk) + vsnow(kk)%hliq(vsnow(kk)%nsnow)
+					  tmp1d3(kk) = vsnow(kk)%dens(vsnow(kk)%nsnow)*(one-vsnow(kk)%hliq(vsnow(kk)%nsnow))/vsnow(kk)%hsnow(vsnow(kk)%nsnow)
 
 					  
 				    endif ! (vsnow(kk)%hliq(2).gt.vsnow(kk)%hsnow(2)*vsnow(kk)%fsnowliq_max(2))
 
                 endif ! snowpack partially melted
-                vsnow(kk)%melt(2) = vsnow(kk)%melt(2) + qmelt(kk,2)
+                vsnow(kk)%melt(vsnow(kk)%nsnow) = vsnow(kk)%melt(vsnow(kk)%nsnow) + qmelt(kk,vsnow(kk)%nsnow)
                endif ! (vsnow(kk)%hliq(2).gt.zero).and. &
 			         !(vsnow(kk)%hliq(2) + qmelt(kk,1)).le.(vsnow(kk)%hsnow(2) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) 
 
@@ -3343,6 +3118,7 @@ CONTAINS
 		  
           !calculate new thetal, consistent with total energy and new pond height
           theta         = S(kk,1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
+          theta_tmp = theta
           if (h0(kk)>zero) then
              h0(kk) = h0(kk) +  qmelt(kk,vsnow(kk)%nsnow)
           elseif ((theta+qmelt(kk,vsnow(kk)%nsnow)/dx(kk,1))<par(kk,1)%the) then
@@ -3354,10 +3130,11 @@ CONTAINS
              endif
           elseif ((theta+qmelt(kk,vsnow(kk)%nsnow)/dx(kk,1))>par(kk,1)%the) then
              h0(kk) = ((theta+qmelt(kk,vsnow(kk)%nsnow)/dx(kk,1))-par(kk,1)%the)*dx(kk,1)
-             theta = par(kk,1)%the
+
              S(kk,1) = one
              var(kk,1)%isat = 1
              ns(kk) = 0
+             theta = par(kk,1)%the
           endif
           Tfreezing(kk) = Tfrz(S(kk,1),par(kk,1)%he,one/par(kk,1)%lam)
 
@@ -3451,6 +3228,8 @@ CONTAINS
 
        endif ! melt water
 
+
+
        do i=1,vsnow(kk)%nsnow
 		vsnow(kk)%dens(i) = vsnow(kk)%hsnow(i)/vsnow(kk)%depth(i)*rhow
 		if (vsnow(kk)%dens(i).lt.50) then
@@ -3467,8 +3246,6 @@ CONTAINS
 
 	   
 	   vsnow(kk)%totdepth = sum(vsnow(kk)%depth(1:vsnow(kk)%nsnow))
-
-
 
 	   ! adjust number of snow layers if required
 	    if (nsnow_max>1.and.vsnow(kk)%totdepth > 0.03) then
@@ -3538,18 +3315,20 @@ CONTAINS
 			   vsnow(kk)%hliq(1) = (vsnow(kk)%hsnow(1)+vsnow(kk)%hsnow(2)) + tmp1d1(kk)/(rhow*lambdaf)
 			endif
 
-			vsnow(kk)%tsn(2) = zero
-			vsnow(kk)%hliq(2) = zero
+			vsnow(kk)%tsn(vsnow(kk)%nsnow) = zero
+			vsnow(kk)%hliq(vsnow(kk)%nsnow) = zero
 			vsnow(kk)%hsnow(1) = vsnow(kk)%hsnow(1) + vsnow(kk)%hsnow(2)
-			vsnow(kk)%hsnow(2) = 0
+			vsnow(kk)%hsnow(vsnow(kk)%nsnow) = 0
 			vsnow(kk)%depth(1) = vsnow(kk)%depth(1) + vsnow(kk)%depth(2)
-			vsnow(kk)%depth(2) = 0
+			vsnow(kk)%depth(vsnow(kk)%nsnow) = 0
 			vsnow(kk)%dens(1) = vsnow(kk)%hsnow(1)/vsnow(kk)%depth(1)*rhow
 			vsnow(kk)%nsnow = 1
 		endif
 
-
-
+        if (vsnow(kk)%hsnow(1).lt.zero.or.vsnow(kk)%hsnow(nsnow_max).lt.zero) then
+         write(*,*) irec, vsnow(kk)%hsnow(1), vsnow(kk)%hsnow(nsnow_max)
+         stop
+         endif
 
 
        do i=1,vsnow(kk)%nsnow

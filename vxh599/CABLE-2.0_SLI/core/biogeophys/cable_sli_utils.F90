@@ -4,12 +4,12 @@ MODULE sli_utils
   USE cable_def_types_mod, ONLY: soil_parameter_type
   USE sli_numbers,         ONLY: &
        experiment, &
-       zero, half, one, two, four, e3, &
+       zero, half, one, two, four, e3, pi, &
        Tzero, gravity, Rgas, thousand, Mw, rlambda, Dva, &
        params, vars_aquifer, vars, rapointer, &
        rhow, lambdaf, lambdas, csice, cswat, cpa,&
        dpmaxr, solve_type, &
-       gf, hmin, csol, rhmin, dsmmax
+       gf, hmin, csol, rhmin, dsmmax, rhocp, vars_snow, vars_met
   USE physical_constants,  ONLY: rmair,rmh2o
 
   IMPLICIT NONE
@@ -22,7 +22,7 @@ MODULE sli_utils
   PUBLIC :: litter_props, massman_sparse, potential_evap, setlitterpar, setpar, setsol, setx, tri
   PUBLIC :: csat, csoil, dthetalmaxdT, dthetalmaxdTh, esat, esat_ice, gammln, igamma, phi, rh0_sol, rtbis_rh0 ! functions
   PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, zerovars, Tthetalmax, Tfrozen
-  PUBLIC :: rtbis_Tfrozen, GTfrozen, JSoilLayer
+  PUBLIC :: rtbis_Tfrozen, GTfrozen, JSoilLayer, forcerestore, SEB
   PUBLIC :: spline_b, mean, nse
 
   REAL(r_2),        DIMENSION(:,:),   ALLOCATABLE :: dx
@@ -193,9 +193,606 @@ CONTAINS
     end if
 
   END SUBROUTINE flux
+!*****************************************************************************************
+  SUBROUTINE forcerestore(Tg0, Rnet0, lE0, dlEdTg, Ta, Tbar, d1, rrc, lambda, &
+                          cs, dt, iice, Tg, G, H, lE)
 
+  ! method applicable to multilayer soil or soil/snow column
+  ! derived using Eq's 3-12 in Hirota et al. JGR 2002
+  IMPLICIT NONE
+  REAL(r_2), INTENT(IN)   :: Tg0 ! ground surface temp of previous time-step [deg C]
+  REAL(r_2), INTENT(IN)   :: Rnet0 ! Rnet at current time step, assuming Tg of previous time-step [W m-2]
+  REAL(r_2), INTENT(IN)   :: lE0 ! latent heat flux at current time step, assuming Tg of previous time-step  [W m-2]
+  REAL(r_2), INTENT(IN)   :: dlEdTg ! derivative of latent heat flux wrt Tg   [W m-2 K-1]
+  REAL(r_2), INTENT(IN)   :: Ta ! air temperature [deg C]
+  REAL(r_2), INTENT(IN)   :: Tbar ! temperature at diurnal damping depth
+  REAL(r_2), INTENT(IN)   :: d1 ! diurnal damping depth (m) = sqrt(2*lambda/c/omega) (Hirota et al. eq 40)
+  REAL(r_2), INTENT(IN)   :: rrc ! resistance to sensible heat and radiation transfer at ground/air interface [m-1 s]
+  REAL(r_2), INTENT(IN)   :: lambda ! thermal conductivity of soil or snow at surface [W m-1 K-1]
+  REAL(r_2), INTENT(IN)   :: cs ! heat capacity of soil or snow at surface [J m-3 K-1]
+  REAL(r_2), INTENT(IN)   :: dt ! time step [s]
+  INTEGER, INTENT(IN):: iice ! top layer frozen (1) or not (0)
+  REAL(r_2), INTENT(OUT) :: Tg, G, H, lE
+
+  ! local variables
+  REAL(r_2),    PARAMETER :: sigma = 5.67e-8  ! Stefan-Boltz. constant (W/m2/K4)
+  REAL(r_2),    PARAMETER :: tau1 = 86400 ! period of diurnal forcing (seconds)
+  REAL(r_2) :: c1, c2, omega, a, b
+
+  a = Rnet0 - rhocp/rrc*(Tg0-Ta) -lE0 ! G0 at current time step, assuming surface T of previous time step
+
+  omega = 2.*pi/tau1  ! diurnal forcing frequency (s-1)
+  c1 = omega * d1 / lambda
+  c2 = omega
+  b = -rhocp/rrc  - dlEdTg
+
+  !Tg = (Tg0 + dt*(c1*a+c2*Tbar)) / (one + c2 *dt)
+
+  Tg = (Tg0 + dt*(c1*(a-b*Tg0)+c2*Tbar)) / (one + c2 *dt - b*c1*dt)
+
+
+
+  if (iice.eq.1) then
+     Tg = min(zero, Tg)
+  endif
+
+
+  G = a + b*(Tg-Tg0)
+  H = rhocp/rrc*(Tg-Ta)
+  lE = lE0 + dlEdTg*(Tg-Tg0)
+
+
+END SUBROUTINE forcerestore
+
+!*****************************************************************************************
+  SUBROUTINE forcerestore_Deardorff(Tg0, Rnet0, lE0, dlEdTg, Ta, Tbar, d1, rrc, rhos, &
+                          cs, dt, iice, Tg, G, H, lE)
+
+
+  IMPLICIT NONE
+  REAL(r_2), INTENT(IN)   :: Tg0 ! ground surface temp of previous time-step [deg C]
+  REAL(r_2), INTENT(IN)   :: Rnet0 ! Rnet at current time step, assuming Tg of previous time-step [W m-2]
+  REAL(r_2), INTENT(IN)   :: lE0 ! latent heat flux at current time step, assuming Tg of previous time-step  [W m-2]
+  REAL(r_2), INTENT(IN)   :: dlEdTg ! derivative of latent heat flux wrt Tg   [W m-2 K-1]
+  REAL(r_2), INTENT(IN)   :: Ta ! air temperature [deg C]
+  REAL(r_2), INTENT(IN)   :: Tbar ! temperature at diurnal damping depth
+  REAL(r_2), INTENT(IN)   :: d1 ! diurnal damping depth (m)
+  REAL(r_2), INTENT(IN)   :: rrc ! resistance to sensible heat and radiation transfer at ground/air interface [m-1 s]
+  REAL(r_2), INTENT(IN)   :: rhos ! density of soil or snow at surface [kg m-3]
+  REAL(r_2), INTENT(IN)   :: cs ! heat capacity of soil or snow at surface [J kg-1 K-1]
+  REAL(r_2), INTENT(IN)   :: dt ! time step [s]
+  INTEGER, INTENT(IN):: iice ! top layer frozen (1) or not (0)
+  REAL(r_2), INTENT(OUT) :: Tg, G, H, lE
+
+  ! local variables
+  REAL(r_2),    PARAMETER :: sigma = 5.67e-8  ! Stefan-Boltz. constant (W/m2/K4)
+  REAL(r_2),    PARAMETER :: c1 = 3.72 ! Deardorff JGR (1978)
+  REAL(r_2),    PARAMETER :: c2 = 7.4 ! Deardorff JGR (1978)
+  REAL(r_2),    PARAMETER :: tau1 = 86400 ! period of diurnal forcing (seconds)
+  REAL(r_2) :: a, b
+
+  a = Rnet0 - rhocp/rrc*(Tg0-Ta) -lE0
+  b = -rhocp/rrc  - dlEdTg
+
+  Tg = Tg0 + (c1*a/(rhos*cs*d1) - c2/tau1*(Tg0-Tbar))/ &
+       (1./dt - b*c1/(rhos*cs*d1) + c2/tau1)
+
+  if (iice.eq.1) then
+     Tg = min(zero, Tg)
+  endif
+
+
+  G = a + b*(Tg-Tg0)
+  H = rhocp/rrc*(Tg-Ta)
+  lE = lE0 + dlEdTg*(Tg-Tg0)
+
+
+END SUBROUTINE forcerestore_Deardorff
   !**********************************************************************************************************************
+! Surface Energy Balance
+SUBROUTINE SEB(par, vmet, vsnow, var, qprec, qprec_snow, n, nsteps, dx, h0, hice, S, Tsoil, dt, Tsurface0, &
+Tsurface, G0, lE0, qsurface, qevap, qliq, qv, &
+qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
 
+IMPLICIT NONE
+
+TYPE(params),      DIMENSION(1:n), INTENT(IN)  :: par
+TYPE(vars_met),        INTENT(IN)           :: vmet
+TYPE(vars_snow),   INTENT(IN)           :: vsnow
+TYPE(vars),      DIMENSION(1:n),   INTENT(IN)           :: var
+REAL(r_2),   INTENT(IN)              :: qprec
+REAL(r_2),   INTENT(IN)              :: qprec_snow
+INTEGER(i_d), INTENT(IN)              :: n, nsteps, irec
+REAL(r_2),      DIMENSION(1:n),   INTENT(IN)              :: dx
+REAL(r_2),          INTENT(IN)           :: h0, hice
+REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: S
+REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: Tsoil
+REAL(r_2),   INTENT(IN)              :: dt
+REAL(r_2),  INTENT(IN)           :: Tsurface0
+
+
+REAL(r_2),  INTENT(OUT)           :: Tsurface, G0, lE0  ! SEB (subdiurnal, uses T in top layer)
+REAL(r_2),  INTENT(OUT)           :: qsurface ! water flux into surface
+REAL(r_2),  INTENT(OUT)           :: qevap ! evaporative water flux
+REAL(r_2),  INTENT(OUT)           :: qliq, qv ! liquid and vapour components of water flux from surface into soil
+REAL(r_2),  INTENT(OUT)           :: qyb, qTb, qlyb, qvyb, qlTb, qvTb ! derivatives of water fluxes wrt moisture and T
+REAL(r_2),  INTENT(OUT)           :: qh, qadv ! total and advective components of heat flux into surface
+REAL(r_2),  INTENT(OUT)           :: qhyb, qhTb, qadvyb, qadvTb ! derivatives of heat fluxes wrt moiture and T
+
+! local variables
+INTEGER(i_d) :: surface_case, j
+REAL(r_2) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
+REAL(r_2) :: E_vap, dE_vapdT1, E_liq
+REAL(r_2) :: Kmin, Khmin, phimin
+REAL(r_2) :: Tqw, dtqwdtb
+
+
+                if (vsnow%nsnow.eq.0) surface_case = 1
+                if (vsnow%nsnow>0) surface_case = 2
+                select case (surface_case)
+                case (1)
+                call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+                     Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
+                     Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
+
+                if (var(1)%iice.eq.1.and.Tsurface_pot> zero) then
+                     Tsurface_pot = 0.0
+                     Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                             vmet%cva)*rhow*var(1)%lambdav/vmet%rbw
+                     dEdTsoil = zero
+                     dGdTsoil = zero
+                     Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                     Gpot = vmet%Rn - Hpot - Epot
+                     dEdTs = zero
+                endif
+
+
+                if (var(1)%isat.eq.1) then  ! saturated surface =>. potential evporation
+                   Tsurface = Tsurface_pot
+                   lE0 = Epot
+                   G0 = Gpot
+                   E_vap = zero
+                   dE_vapdT1 = zero
+                   E_liq = lE0
+                else ! unsaturated surface: finite vapour transfer; surface flux may be supply limited
+                   if (var(1)%Dv > 1.e-12_r_2) then
+                    E_vap = (var(1)%rh*csat(Tsoil(1))-vmet%cva*thousand)/(vmet%rbw + half*dx(1)/var(1)%Dv)*var(1)%lambdav
+                    dE_vapdT1 = (var(1)%rh*slope_csat(Tsoil(1)))/(vmet%rbw + half*dx(1)/var(1)%Dv)*var(1)%lambdav
+                   else
+                    E_vap = zero
+                    dE_vapdT1 = zero
+                   endif
+                   call hyofh(hmin, par(1)%lam, par(1)%eta, par(1)%Ke, par(1)%he, &
+                     Kmin, Khmin, phimin) ! get phi at hmin
+                   E_liq = ((var(1)%phi-phimin)/(half*dx(1))-var(1)%K)*thousand*var(1)%lambdav
+                   lE0 = min(Epot,E_vap+ E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
+                   if (Epot.gt.(E_vap+ E_liq)) dEdTs = zero
+                   Tsurface = (-half*dx(1)*lE0 + half*dx(1)*vmet%Rn + &
+                     var(1)%kth*Tsoil(1) + half*dx(1)*(one/vmet%rrc*rhocp)*vmet%Ta) &
+                     /(var(1)%kth + half*dx(1)*(one/vmet%rrc*rhocp))
+                   if (var(1)%iice.eq.1.and.Tsurface> zero) Tsurface = 0.0
+                   G0       = var(1)%kth/(half*dx(1))*(Tsurface-Tsoil(1))
+                   dGdTsoil  =  -var(1)%kth/(half*dx(1))
+                endif
+               ! write(*,*) var(1)%phi, phimin
+
+                qevap = lE0/(thousand*var(1)%lambdav)
+                qsurface  = qprec + qprec_snow - qevap
+
+                ! derivatives
+                ! q refers to moisture in numerator
+                ! qh refers to heat in numerator
+                ! y refers to moisture in denominator
+                ! T refers to temperature in denominator
+                ! a refers to the layer above
+                ! b refers to the layer below
+
+                ! initialise derivatives to zero
+                qyb = zero
+                qTb = zero
+                qhyb = zero
+                qhTb = zero
+              ! liquid and vapour fluxes
+                qlyb = zero
+                qvyb = zero
+
+                if ((Epot<=(E_vap+ E_liq)).or.(var(1)%isat.eq.1.or.vsnow%nsnow.gt.0)) then ! potential evap independent of S(1), dependent on T1
+                   qyb = zero
+                   qTb = -dEdTsoil/(thousand*var(1)%lambdav)
+                   qliq = -Epot/(thousand*var(1)%lambdav)
+                   qv = zero
+                   qlyb = zero
+                   qvyb = zero
+                   qlTb = qTb
+                   qvTb = zero
+                else ! supply limited
+                   qTb = -dE_vapdT1/(thousand*var(1)%lambdav)
+                   qyb = -(var(1)%phiS/(half*dx(1)) - var(1)%KS)  !!vh!! include vapour component??
+                   qliq = -E_liq/(thousand*var(1)%lambdav)
+                   qv = -E_vap/(thousand*var(1)%lambdav)
+                   qlyb = -(var(1)%phiS/(half*dx(1)) - var(1)%KS)
+                   qvyb = zero
+                   qlTb = zero
+                   qvTb = qTb
+                endif
+                ! end of partial derivative evaluation
+
+                ! advective component of heat flux
+                qadv = rhow*cswat*qprec*(vmet%Ta) + rhow*csice*qprec_snow*(min(vmet%Ta,zero)) &
+                     - rhow*qprec_snow*lambdaf
+
+                Tqw  = merge(vmet%Ta, Tsoil(1), (-qevap)>zero)
+                dTqwdTb = merge(zero, one, (-qevap)>zero)
+                qadv = qadv + rhow*cswat*Tqw*(-qevap)
+
+                qadvTb = dTqwdTb + rhow*cswat*Tqw*qTb
+                qadvyb =  rhow*cswat*qyb*Tqw
+                qh = qadv + G0
+                qhyb = qadvyb
+                qhTb = dGdTsoil + qadvTb
+
+
+
+             case(2) !dedicated snow layer
+
+                ! SEB at snow/air interface
+                if (vsnow%hliq(1)>zero) then
+                   Tsurface = 0.0
+                   Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                              vmet%cva)*rhow*lambdaf/vmet%rbw
+                   dEdTsoil = zero
+                   dGdTsoil = zero
+                   Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                   Gpot = vmet%Rn - Hpot - Epot
+                   dEdTs = zero
+                   qevap = Epot/(thousand*lambdaf)
+                   qTb = zero
+                else
+
+                   call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+                     vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
+                     lambdas, Tsurface, Epot, Hpot, &
+                     Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
+
+                     if (Tsurface > zero) then ! temperature of frozen surface must be <= zero
+                        Tsurface = 0.0
+                        Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                              vmet%cva)*rhow*lambdas/vmet%rbw
+                        dEdTsoil = zero
+                        dGdTsoil = zero
+                        Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                        Gpot = vmet%Rn - Hpot - Epot
+                        dEdTs= zero
+                     endif
+                    qevap = Epot/(thousand*lambdas)
+                    qTb = -dEdTsoil/(thousand*lambdas)
+                endif
+                lE0 = Epot
+                ! moisture flux at air/snow interface
+                qsurface = qprec_snow+qprec-qevap
+                qyb = zero
+
+                ! conductive heat flux at air/snow interface
+                G0 = Gpot
+                qhTb = dGdTsoil
+                if (vsnow%hliq(1)>zero) then
+                   qhTb = zero
+                   qTb = zero
+                endif
+
+                ! advective heat flux at air/snow interface
+                qadv = rhow*(qprec_snow)*(csice*(min(vmet%Ta,zero))-lambdaf) + &
+                     rhow*(qprec)*cswat*(vmet%Ta)
+                Tqw  = merge(vmet%Ta, vsnow%tsn(1), -qevap>zero)
+                dTqwdTb = merge(zero,one, -qevap>zero)
+                if (vsnow%hliq(vsnow%nsnow)>zero) then
+                   qadv = qadv + rhow*(-qevap)*cswat*Tqw
+                   qadvTb = zero
+                else
+                   qadv = qadv + rhow*(-qevap)*cswat*Tqw
+                   qadvTb = rhow*cswat*(-qevap)*dTqwdTb  +  rhow*cswat*Tqw*qTb
+                endif
+                qh = qadv + G0
+                qhyb = qhyb +  qadvyb
+                qhTb = qhTb + qadvTb
+
+
+
+             end select ! surface_case
+             ! finished all the surfaces
+
+END SUBROUTINE SEB
+
+!**********************************************************************************************************************
+! Surface Energy Balance
+SUBROUTINE SEB_FR(par, vmet, vsnow, var, qprec, qprec_snow, n, nsteps, dx, h0, hice, S, Tsoil, dt, Tsurface0, &
+Tsurface, G0, lE0, TsurfaceFR, G0FR, lEFR, HFR, qsurface, qevap, qliq, qv, &
+qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
+
+IMPLICIT NONE
+
+TYPE(params),      DIMENSION(1:n), INTENT(IN)  :: par
+TYPE(vars_met),        INTENT(IN)           :: vmet
+TYPE(vars_snow),   INTENT(IN)           :: vsnow
+TYPE(vars),      DIMENSION(1:n),   INTENT(IN)           :: var
+REAL(r_2),   INTENT(IN)              :: qprec
+REAL(r_2),   INTENT(IN)              :: qprec_snow
+INTEGER(i_d), INTENT(IN)              :: n, nsteps, irec
+REAL(r_2),      DIMENSION(1:n),   INTENT(IN)              :: dx
+REAL(r_2),          INTENT(IN)           :: h0, hice
+REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: S
+REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: Tsoil
+REAL(r_2),   INTENT(IN)              :: dt
+REAL(r_2),  INTENT(IN)           :: Tsurface0
+
+
+REAL(r_2),  INTENT(OUT)           :: Tsurface, G0, lE0  ! SEB (subdiurnal, uses T in top layer)
+REAL(r_2),  INTENT(OUT)           :: TsurfaceFR, G0FR, lEFR, HFR  ! SEB (Force-Restore)
+REAL(r_2),  INTENT(OUT)           :: qsurface ! water flux into surface
+REAL(r_2),  INTENT(OUT)           :: qevap ! evaporative water flux
+REAL(r_2),  INTENT(OUT)           :: qliq, qv ! liquid and vapour components of water flux from surface into soil
+REAL(r_2),  INTENT(OUT)           :: qyb, qTb, qlyb, qvyb, qlTb, qvTb ! derivatives of water fluxes wrt moisture and T
+REAL(r_2),  INTENT(OUT)           :: qh, qadv ! total and advective components of heat flux into surface
+REAL(r_2),  INTENT(OUT)           :: qhyb, qhTb, qadvyb, qadvTb ! derivatives of heat fluxes wrt moiture and T
+
+! local variables
+INTEGER(i_d) :: surface_case, j
+REAL(r_2) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
+REAL(r_2) :: E_vap, dE_vapdT1, E_liq
+REAL(r_2) :: Kmin, Khmin, phimin
+REAL(r_2) :: Tqw, dtqwdtb, d1, tmp1d1,tmp1d2, Tbar, f, csnow
+
+
+                if (vsnow%nsnow.eq.0) surface_case = 1
+                if (vsnow%nsnow>0) surface_case = 2
+                select case (surface_case)
+                case (1)
+                call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+                     Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
+                     Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
+
+                if (var(1)%iice.eq.1.and.Tsurface_pot> zero) then
+                     Tsurface_pot = 0.0
+                     Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                             vmet%cva)*rhow*var(1)%lambdav/vmet%rbw
+                     dEdTsoil = zero
+                     dGdTsoil = zero
+                     Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                     Gpot = vmet%Rn - Hpot - Epot
+                     dEdTs = zero
+                endif
+
+
+                if (var(1)%isat.eq.1) then  ! saturated surface =>. potential evporation
+                   Tsurface = Tsurface_pot
+                   lE0 = Epot
+                   G0 = Gpot
+                   E_vap = zero
+                   dE_vapdT1 = zero
+                   E_liq = lE0
+                else ! unsaturated surface: finite vapour transfer; surface flux may be supply limited
+                   if (var(1)%Dv > 1.e-12_r_2) then
+                    E_vap = (var(1)%rh*csat(Tsoil(1))-vmet%cva*thousand)/(vmet%rbw + half*dx(1)/var(1)%Dv)*var(1)%lambdav
+                    dE_vapdT1 = (var(1)%rh*slope_csat(Tsoil(1)))/(vmet%rbw + half*dx(1)/var(1)%Dv)*var(1)%lambdav
+                   else
+                    E_vap = zero
+                    dE_vapdT1 = zero
+                   endif
+                   call hyofh(hmin, par(1)%lam, par(1)%eta, par(1)%Ke, par(1)%he, &
+                     Kmin, Khmin, phimin) ! get phi at hmin
+                   E_liq = ((var(1)%phi-phimin)/(half*dx(1))-var(1)%K)*thousand*var(1)%lambdav
+                   lE0 = min(Epot,E_vap+ E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
+                   if (Epot.gt.(E_vap+ E_liq)) dEdTs = zero
+                   Tsurface = (-half*dx(1)*lE0 + half*dx(1)*vmet%Rn + &
+                     var(1)%kth*Tsoil(1) + half*dx(1)*(one/vmet%rrc*rhocp)*vmet%Ta) &
+                     /(var(1)%kth + half*dx(1)*(one/vmet%rrc*rhocp))
+                   if (var(1)%iice.eq.1.and.Tsurface> zero) Tsurface = 0.0
+                   G0       = var(1)%kth/(half*dx(1))*(Tsurface-Tsoil(1))
+                   dGdTsoil  =  -var(1)%kth/(half*dx(1))
+                endif
+               ! write(*,*) var(1)%phi, phimin
+
+                qevap = lE0/(thousand*var(1)%lambdav)
+                qsurface  = qprec + qprec_snow - qevap
+
+                ! derivatives
+                ! q refers to moisture in numerator
+                ! qh refers to heat in numerator
+                ! y refers to moisture in denominator
+                ! T refers to temperature in denominator
+                ! a refers to the layer above
+                ! b refers to the layer below
+
+                ! initialise derivatives to zero
+                qyb = zero
+                qTb = zero
+                qhyb = zero
+                qhTb = zero
+              ! liquid and vapour fluxes
+                qlyb = zero
+                qvyb = zero
+
+                if ((Epot<=(E_vap+ E_liq)).or.(var(1)%isat.eq.1.or.vsnow%nsnow.gt.0)) then ! potential evap independent of S(1), dependent on T1
+                   qyb = zero
+                   qTb = -dEdTsoil/(thousand*var(1)%lambdav)
+                   qliq = -Epot/(thousand*var(1)%lambdav)
+                   qv = zero
+                   qlyb = zero
+                   qvyb = zero
+                   qlTb = qTb
+                   qvTb = zero
+                else ! supply limited
+                   qTb = -dE_vapdT1/(thousand*var(1)%lambdav)
+                   qyb = -(var(1)%phiS/(half*dx(1)) - var(1)%KS)  !!vh!! include vapour component??
+                   qliq = -E_liq/(thousand*var(1)%lambdav)
+                   qv = -E_vap/(thousand*var(1)%lambdav)
+                   qlyb = -(var(1)%phiS/(half*dx(1)) - var(1)%KS)
+                   qvyb = zero
+                   qlTb = zero
+                   qvTb = qTb
+                endif
+                ! end of partial derivative evaluation
+
+                ! advective component of heat flux
+                qadv = rhow*cswat*qprec*(vmet%Ta) + rhow*csice*qprec_snow*(min(vmet%Ta,zero)) &
+                     - rhow*qprec_snow*lambdaf
+
+                Tqw  = merge(vmet%Ta, Tsoil(1), (-qevap)>zero)
+                dTqwdTb = merge(zero, one, (-qevap)>zero)
+                qadv = qadv + rhow*cswat*Tqw*(-qevap)
+
+                qadvTb = dTqwdTb + rhow*cswat*Tqw*qTb
+                qadvyb =  rhow*cswat*qyb*Tqw
+                qh = qadv + G0
+                qhyb = qadvyb
+                qhTb = dGdTsoil + qadvTb
+
+
+                if (nsteps.eq.-1) then
+                 j = 1
+                 tmp1d2 = zero
+                 do while (tmp1d2.lt.one)
+                    d1 = (var(j)%kth/(var(j)%csoileff)*86400./pi)**0.5
+                    tmp1d2 = tmp1d2 + dx(j)/d1
+                    Tbar = Tsoil(j)
+                    j = j+1
+                 enddo
+                 j = j-1 ! integer corresponding to lowest layer contributing to soil col above damping depth
+                 ! damping depth = :sum(dx(k)) (k=1,j-1) +f dx(j)
+                 if (j.gt.1) then
+                    f = (one - (tmp1d2 -dx(j)/d1))*d1/dx(j)   ! fraction of lowest layer contributing to soil col above damping depth
+                    d1 = sum(dx(1:j-1)) + f*dx(j)  ! multilayer damping depth
+                 else
+                    f = d1/dx(1)
+                    d1 = f*dx(1)
+                 endif
+                 write(21,"(2i8,3e16.6, i8, 8e16.6)") irec, j, f, d1, Tbar, vsnow%nsnow,Tsurface0, vmet%Rn, lE0, dEdTs, &
+                                                     vsnow%depth(1), vsnow%depth(2)
+
+                   call forcerestore(Tsurface0, vmet%Rn, lE0, dEdTs, vmet%Ta, &
+                          Tbar, d1, vmet%rrc, var(1)%kth, &
+                          var(1)%csoileff, dt, var(1)%iice, TsurfaceFR, G0FR, HFR, lEFR)
+!                  write(37,"(16e16.6)") Tsurface0, vmet%Rn, lE0, dEdTs, vmet%Ta, &
+!                          Tbar, d1, vmet%rrc, var(1)%csoileff, dt, real(var(1)%iice), TsurfaceFR, G0FR, HFR, lEFR
+                endif
+
+             case(2) !dedicated snow layer
+
+                ! SEB at snow/air interface
+                if (vsnow%hliq(1)>zero) then
+                   Tsurface = 0.0
+                   Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                              vmet%cva)*rhow*lambdaf/vmet%rbw
+                   dEdTsoil = zero
+                   dGdTsoil = zero
+                   Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                   Gpot = vmet%Rn - Hpot - Epot
+                   dEdTs = zero
+                   qevap = Epot/(thousand*lambdaf)
+                   qTb = zero
+                else
+
+                   call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+                     vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
+                     lambdas, Tsurface, Epot, Hpot, &
+                     Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
+
+                     if (Tsurface > zero) then ! temperature of frozen surface must be <= zero
+                        Tsurface = 0.0
+                        Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                              vmet%cva)*rhow*lambdas/vmet%rbw
+                        dEdTsoil = zero
+                        dGdTsoil = zero
+                        Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                        Gpot = vmet%Rn - Hpot - Epot
+                        dEdTs= zero
+                     endif
+                    qevap = Epot/(thousand*lambdas)
+                    qTb = -dEdTsoil/(thousand*lambdas)
+                endif
+
+                ! moisture flux at air/snow interface
+                qsurface = qprec_snow+qprec-qevap
+                qyb = zero
+
+                ! conductive heat flux at air/snow interface
+                G0 = Gpot
+                qhTb = dGdTsoil
+                if (vsnow%hliq(1)>zero) then
+                   qhTb = zero
+                   qTb = zero
+                endif
+
+                ! advective heat flux at air/snow interface
+                qadv = rhow*(qprec_snow)*(csice*(min(vmet%Ta,zero))-lambdaf) + &
+                     rhow*(qprec)*cswat*(vmet%Ta)
+                Tqw  = merge(vmet%Ta, vsnow%tsn(1), -qevap>zero)
+                dTqwdTb = merge(zero,one, -qevap>zero)
+                if (vsnow%hliq(vsnow%nsnow)>zero) then
+                   qadv = qadv + rhow*(-qevap)*cswat*Tqw
+                   qadvTb = zero
+                else
+                   qadv = qadv + rhow*(-qevap)*cswat*Tqw
+                   qadvTb = rhow*cswat*(-qevap)*dTqwdTb  +  rhow*cswat*Tqw*qTb
+                endif
+                qh = qadv + G0
+                qhyb = qhyb +  qadvyb
+                qhTb = qhTb + qadvTb
+
+
+                if (nsteps.eq.-1) then
+                 j = -vsnow%nsnow + 1
+                 tmp1d2 = zero
+                 do while (tmp1d2.lt.one)
+                    if (j.lt.1) then
+                    !write(*,*) 'chk1', -j+vsnow%nsnow, j, vsnow%nsnow
+                       csnow = (csice*(vsnow%hsnow(j+vsnow%nsnow)-vsnow%hliq(j+vsnow%nsnow))+cswat*vsnow%hliq(j+vsnow%nsnow))/vsnow%depth(j+vsnow%nsnow)*rhow
+                       d1 = (vsnow%kth(j+vsnow%nsnow)/(csnow)*86400./pi)**0.5
+                       tmp1d2 = tmp1d2 + vsnow%depth(j+vsnow%nsnow)/d1  ! check snow index here!
+                       Tbar = vsnow%tsn(j+vsnow%nsnow)
+                    else
+                       d1 = (var(j)%kth/(var(j)%csoileff)*86400./pi)**0.5
+                       tmp1d2 = tmp1d2 + dx(j)/d1
+                       Tbar = Tsoil(j)
+                    endif
+
+                    j = j+1
+                 enddo
+                 j = j-1 ! integer corresponding to lowest layer contributing to soil col above damping depth
+                 ! damping depth = sum(dx(k)) (k=1,j-1) +f dx(j)
+                 if (j.gt.(-vsnow%nsnow + 1).and.j.le.0) then ! damping depth within snowpack
+                    f = (one - (tmp1d2 -vsnow%depth(j+vsnow%nsnow)/d1))*d1/vsnow%depth(j+vsnow%nsnow)   ! fraction of lowest layer contributing to soil col above damping depth
+                    d1 = sum(vsnow%depth(1:j+vsnow%nsnow-1)) + f*vsnow%depth(j+vsnow%nsnow)  ! multilayer damping depth
+                 elseif (j.gt.0) then ! damping depth within soil column
+                     f = (one - (tmp1d2 -dx(j)/d1))*d1/dx(j)   ! fraction of lowest layer contributing to soil col above damping depth
+                     if (j.gt.1) then
+                        d1 = sum(vsnow%depth(1:vsnow%nsnow))+sum(dx(1:j-1)) + f*dx(j)  ! multilayer damping depth
+                     else
+                        d1 = sum(vsnow%depth(1:vsnow%nsnow)) + f*dx(j)  ! multilayer damping depth
+                     endif
+                 elseif (j.eq.-vsnow%nsnow + 1) then ! damping depth within top layer of snowpack
+                    f = d1/vsnow%depth(j+vsnow%nsnow)
+                    d1 = f*vsnow%depth(j+vsnow%nsnow)
+                 endif
+
+                   csnow = (csice*(vsnow%hsnow(1)-vsnow%hliq(1))+cswat*vsnow%hliq(1))/vsnow%depth(1)*rhow
+                  write(21,"(2i8,3e16.6,i8,8e16.6)") irec,j, f, d1, Tbar, vsnow%nsnow, Tsurface0, vmet%Rn, lE0, dEdTs, &
+                                                    vsnow%depth(1), vsnow%depth(2)
+
+                   call forcerestore(Tsurface0, vmet%Rn, lE0, dEdTs, vmet%Ta, &
+                          Tbar, d1, vmet%rrc, vsnow%kth(1), &
+                          csnow, dt, 1, TsurfaceFR, G0FR, HFR, lEFR)
+
+
+!                  write(37,"(16e16.6)") Tsurface0, vmet%Rn, lE0, dEdTs, vmet%Ta, &
+!                          Tbar, d1, vmet%rrc, var(1)%csoileff, dt, real(var(1)%iice), TsurfaceFR, G0FR, HFR, lEFR
+                endif
+
+             end select ! surface_case
+             ! finished all the surfaces
+
+END SUBROUTINE SEB_FR
+!*******************************************************************************************************************************************************************
   SUBROUTINE generic_thomas_1d(n,A,B,C,r,u)
 
     USE sli_numbers,       ONLY: one
@@ -1306,7 +1903,7 @@ CONTAINS
        var%KS = zero
        ! var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
        var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/(parin%thre-var%thetai)
-       if (var%isat==0) var%phi = var%phie
+       if (S.lt.one) var%phi = var%phie
        var%phiS = zero
        ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
        !      (parin%eta-one/parin%lam)/(parin%thre)
@@ -1405,9 +2002,13 @@ CONTAINS
        F2 = 1.06_r_2
        if  (Tsoil < var%Tfrz) then ! ice
         F  = one + F1*var%thetai**F2
-        !write(*,*) A, B, theta, F, var%thetai,D,C1, E
-        !!vh !! this formulation gives very large negative numbers in exponent
-        var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+
+        if ((C1*(theta+F*var%thetai))**E > 100.) then
+          var%kH = A + B*(theta+F*var%thetai)
+        else
+           var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+
+        endif
        else
         var%kH = A + B*(theta)-(A-D)*exp(-(C1*(theta))**E)
        endif
@@ -1434,7 +2035,14 @@ CONTAINS
     var%kth    = var%kE + var%kH ! thermal conductivity of soil (includes contribution from vapour phase)
 
     var%csoil    = parin%css*parin%rho + rhow*cswat*var%thetal + rhow*csice*var%thetai
-    var%csoileff = var%csoil + rhow*lambdaf*var%dthetaldT ! increase effective heat capacity due to presence of ice
+    !var%csoil    = parin%css*parin%rho + rhow*cswat*0.3  ! test vh!
+    if (Tsoil < var%Tfrz) then ! ice
+       var%csoileff = var%csoil + rhow*lambdaf*var%dthetaldT ! increase effective heat capacity due to presence of ice
+    else
+       var%csoileff = var%csoil
+    endif
+    !var%kth = 0.3 !test vh!
+
 
   END SUBROUTINE hyofS
 
@@ -1826,14 +2434,14 @@ CONTAINS
 
   ELEMENTAL PURE SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
        Ts, E, H, G, &
-       dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil)
+       dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
 
     ! Pennman-Monteith equation, with additional account for heat flux into the surface
 
     IMPLICIT NONE
 
     REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz, lambdav
-    REAL(r_2), INTENT(OUT) :: Ts, E, H, G, dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil
+    REAL(r_2), INTENT(OUT) :: Ts, E, H, G, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
 
     REAL(r_2) :: s, ea, dEdea, dEdesat, dTsdTa, dEdDa, Da
     REAL(r_2):: rhocp, gamma != 67.0 ! psychrometric constant
@@ -1854,13 +2462,14 @@ CONTAINS
     dEdea    = -dEdDa
     dEdesat  = dEdea
     dEdrha   = dEdea *esat(Ta)
-    dEdTa    = (k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s) + dEdesat *s
+    !dEdTa    = (k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s) + dEdesat *s
     dEdTsoil = -((k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s))
 
     dTsdTa   = (-(dz*gamma*rbw*rhocp) - dz*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s)
 
     dGdTa    = k/dz * dTsdTa
     dGdTsoil = -k/dz
+    dEdTs = s*rhocp/gamma/rbw
 
   END SUBROUTINE potential_evap
 

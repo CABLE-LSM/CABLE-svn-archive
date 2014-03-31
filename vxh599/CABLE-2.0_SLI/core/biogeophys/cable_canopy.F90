@@ -298,6 +298,7 @@ CONTAINS
        ftemp= (1.0-canopy%fwet)*REAL(rny)+canopy%fevw+canopy%fhvw
        canopy%fnv = real(ftemp)
 
+
        ! canopy rad. temperature calc from long-wave rad. balance
        sum_rad_gradis = SUM(rad%gradis,2)
 
@@ -430,6 +431,8 @@ CONTAINS
           ! Soil sensible heat:
           canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
+
+
 
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
@@ -1462,7 +1465,8 @@ CONTAINS
              STOP 'fwsoil_switch failed.'
           ENDIF
        ELSEIF (cable_user%soil_struc=='sli') THEN
-          CALL fwsoil_calc_sli(fwsoil, soil, ssnow, veg)
+          fwsoil = canopy%fwsoil
+          !CALL fwsoil_calc_sli(fwsoil, soil, ssnow, veg)
        ENDIF
 
     ENDIF
@@ -1473,6 +1477,7 @@ CONTAINS
     gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
     lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
     gswmin = max(1.e-6,lower_limit2)
+    !gswmin = gswmin*SPREAD(fwsoil, 2, mf) !vh! ensures transpiration goes to zero when there is no available soil moisture
 
 
     gw = 1.0e-3 ! default values of conductance
@@ -1560,12 +1565,14 @@ CONTAINS
 
              ! Leuning 2002 (P C & E) equation for temperature response
              ! used for Vcmax for C3 plants:
+                         !write(*,*)  k, abs_deltlf(i), tlfx, canopy%fwet
              temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
 
              vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
              vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
 
              ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
+
              temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
              vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
              vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
@@ -1686,7 +1693,9 @@ CONTAINS
 
                 ENDDO
 
+                !write(*,*) 'before fevc update', canopy%fevc
                 canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
+                !write(*,*) 'after fevc update', canopy%fevc
 
                 ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 

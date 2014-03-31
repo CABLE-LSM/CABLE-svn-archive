@@ -15,6 +15,16 @@
 !
 ! MC 2012: make all carbon double precision and water single precision
 !          works with all double precision: included interface routines
+!
+! VH March 2014: energy closure checks using both sli and soilsnow.
+! Note small changes to cable_radiation.F90 required for energy closure.
+! If soil model is sli, set fwsoil to canopy%fwsoil, which is calculated in
+! getrex (subroutine called from cable_sli_main).
+
+! n.b. No testing for over-extraction of water by soil-snow. Suggest using getrex (in cable_sil_utils)
+! to caclulate both fwsoil and root extraction, as implemented for sli. This avoids over-extraction.
+! Currently wbal is non-zero when cable_user%soil_struc=='default'. Above suggestion should solve this.
+
 !********************************************************************************
 
 ! Science development by Ying-Ping Wang, Eva Kowalczyk, Mike Raupach,
@@ -147,7 +157,8 @@ CONTAINS
     TYPE (soil_parameter_type),  INTENT(INOUT) :: soil
     TYPE (veg_parameter_type),   INTENT(INOUT) :: veg
     TYPE (canopy_type),          INTENT(INOUT) :: canopy
-    INTEGER(i_d),                INTENT(IN)    :: ktau ! integration step number
+    INTEGER,                INTENT(IN)    :: ktau ! integration step number
+
 
     REAL(r_2), DIMENSION(mp,mf)   :: a1c3 ! Spatially varying a1c3
     REAL(r_2), DIMENSION(mp,mf)   :: a1c4 ! Spatially varying a1c3
@@ -157,8 +168,6 @@ CONTAINS
     REAL(r_2), DIMENSION(mp,mf,3) :: ancj ! soln to quad eqn
     REAL(r_2), DIMENSION(mp,mf)   :: anx ! net photos. prev iteration
     REAL(r_2), DIMENSION(mp,mf)   :: an_y ! net photosynthesis soln
-    !  REAL, DIMENSION(mp)     :: avgtrs !root weighted mean soil temperature
-    !  REAL, DIMENSION(mp)     :: avgwrs !root weighted mean soil moisture
     REAL(r_2), DIMENSION(mp,mf)   :: ca2   ! 2D CO2 concentration
     REAL(r_2), DIMENSION(mp)      :: cansat ! max canopy intercept. (mm)
     REAL(r_2), DIMENSION(mp,mf,3) :: ci ! intercellular CO2 conc.
@@ -175,15 +184,6 @@ CONTAINS
     REAL(r_2), DIMENSION(mp,mf,3) :: delcx ! discriminant  in quadratic in eq. E7 Wang and Leuning, 1998
     REAL(r_2), DIMENSION(mp,mf)   :: deltlf ! deltlfy of prev iter.
     REAL(r_2), DIMENSION(mp,mf)   :: deltlfy ! del temp successive iteration
-    REAL, DIMENSION(mp)      :: deltvair ! deltvair
-    REAL, DIMENSION(mp)      :: delqvair ! delqvair
-    REAL, DIMENSION(mp)      :: tvair_old ! tvair of prev iter.
-    REAL, DIMENSION(mp)      :: qvair_old ! qvair of prev iteration
-
-    !! variables for method alternative to P-M formula
-    !    REAL, DIMENSION(mp)         :: dq ! sat spec hum diff.
-    !    REAL, DIMENSION(mp)            :: qstss ! sat spec hunidity at soil/snow temperature
-    !! end variables for alternative method
 
     REAL(r_2), DIMENSION(mp,mf)    :: dsatdk2      ! 2D dsatdk
     REAL(r_2), DIMENSION(mp,mf)    :: dsx ! leaf surface vpd
@@ -306,10 +306,6 @@ CONTAINS
     delcx        = 0.0_r_2
     deltlf       = 0.0_r_2
     deltlfy      = 0.0_r_2
-    deltvair     = 0.0
-    delqvair     = 0.0
-    tvair_old    = 0.0
-    qvair_old    = 0.0
     dsatdk2      = 0.0_r_2
     dsx          = 0.0_r_2
     ecx          = 0.0_r_2
@@ -394,39 +390,30 @@ CONTAINS
     mdb_mask     = .false.
     tmp1d        = 0.0
 
-    a1c3 = a1c3_default ! MC-Guess: could be undefined otherwise
+    a1c3 = a1c3_default
     a1c4 = a1c3_default
     d0c3 = d0c3_default
     d0c4 = d0c4_default
 
-    ! a1c3(:,1) = a1c3_default ! set in photosynthetic constants
     a1c3(:,1) = veg%a1c3
     a1c3(:,2) = a1c3(:,1)
     a1c4(:,1) = a1c4_default ! set in photosynthetic constants
-    ! a1c4(:,1) = veg%a1c4
+
     a1c4(:,2) = a1c4(:,1)
-    ! d0c3(:,1) = d0c3_default ! set in photosynthetic constants
     d0c3(:,1) = veg%d0c3
     d0c3(:,2) = d0c3(:,1)
-    ! d0c4(:,1) = d0c4_default ! set in photosynthetic constants
     d0c4(:,1) = veg%d0c3
     d0c4(:,2) = d0c4(:,1)
     canopy%fevw = 0.0
     canopy%delwc = 0.0
 
 
-    !
-    !   xjxcoef=1.0+exp((Entropjx*TrefK-EHdjx)/(Rconst*TrefK))
-    ! 1-oct-2002 ypw: to keep the unit consistent for resistance or conductance
-    ! s/m for r; mol/m2/s for g, and always use g where appropriate
-    ! replace rh, rhr, rw  with ghdry/ghwet,ghrdry, ghrwet, gwdry, gwwet
 
     ! Set surface water vapour pressure deficit:
     met%da = (qsatf(met%tk-tfrz,met%pmb) - met%qv )*rmair/rmh2o*met%pmb*100.0
 
-    ! test Lai and Katul formulation for root efficiency function  vh 17/07/09
+    ! Lai and Katul formulation for root efficiency function  vh 17/07/09
     alpha2a_root = real(max(ssoil%wb-soil%swilt_vec, 0.001_r_2)/(soil%ssat_vec))
-    !alpha2_root = EXP( (SPREAD(veg%gamma,2,ms)/real(max(ssoil%wb-soil%swilt_vec, 1.0e-10_r_2))) * log(alpha2a_root) )
     tmp2d1 = REAL(ssoil%wb -soil%swilt_vec)
     tmp2d2 = SPREAD(veg%gamma,2,ms)/tmp2d1*log(alpha2a_root)
     WHERE ((tmp2d1>1.e-8) .and. (tmp2d2 > -10.0))
@@ -441,13 +428,12 @@ CONTAINS
        delta_root = 0.0
     ENDWHERE
 
-    !fwsoil  = maxval(alpha2_root*delta_root, 2)
-    !fwsoil  = max(0.0, fwsoil)
-    fwsoil = canopy%fwsoil
-
-
+    fwsoil  = maxval(alpha2_root*delta_root, 2)
+    fwsoil  = max(0.0, fwsoil)
+    IF (cable_user%soil_struc=='sli') fwsoil = canopy%fwsoil
 
     fwsoil2 = real(SPREAD(fwsoil,2,mf),r_2)
+
 
     ! BATS-type canopy saturation proportional to LAI:
     cansat = real(veg%canst1*canopy%vlaiw,r_2)
@@ -486,7 +472,7 @@ CONTAINS
     WHERE ( ssoil%wbice(:,1) > 0.0_r_2 ) ! Prevents divide by zero at glaciated
        ! points where wb and wbice=0.
        ssoil%wetfac = ssoil%wetfac &
-            * (1.0 - REAL(ssoil%wbice(:,1)/ssoil%wb(:,1)))**2
+            * (1.0 - REAL(ssoil%wbice(:,1)/ssoil%wb(:,1)))**2 !! only used if soilsnow
     END WHERE
     zetar(:,1) = zeta0 ! stability correction terms
     zetar(:,2) = zetpos + 1
@@ -521,13 +507,13 @@ CONTAINS
     met%tvrad = met%tk
     met%qvair = met%qv
     ortsoil   = ssoil%rtsoil
-    !ssoil%tss =  real((1-ssoil%isflag))*ssoil%tgg(:,1) + real(ssoil%isflag)*ssoil%tggsn(:,1)
-    ssoil%tss =  ssoil%Tsurface + tfrz
+    IF (cable_user%soil_struc=='default') then
+      ssoil%tss =  real((1-ssoil%isflag))*ssoil%tgg(:,1) + real(ssoil%isflag)*ssoil%tggsn(:,1)
+    elseif (cable_user%soil_struc=='sli') then
+      ssoil%tss =  ssoil%Tsurface + tfrz
+    endif
     tss4      = ssoil%tss**4
-    deltvair  = 999.0
-    delqvair  = 999.0
-    tvair_old = met%tvair
-    qvair_old = met%qvair
+
     ! Calculate fraction of canopy which is wet:
     canopy%fwet = MAX(0.0,MIN(1.0,real(0.8_r_2*canopy%cansto/MAX(cansat,0.01_r_2))))
     fwet = real(SPREAD(canopy%fwet,2,mf),r_2)
@@ -552,8 +538,6 @@ CONTAINS
     ! canopy%qscrn  = met%qv
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    DO WHILE ((ANY(ABS(deltvair)>0.1) .OR. ANY(ABS(delqvair)>0.005)) .AND. iter<1) ! iterate over in-canopy T and q
-       iter = iter+1
        canopy%cansto = oldcansto
        ! Add canopy interception to canopy storage term:
        canopy%cansto = canopy%cansto + canopy%wcint
@@ -573,7 +557,7 @@ CONTAINS
           zetar(:,iter) = -(vonk*grav*rough%zref_tq*(canopy%fh+0.07*canopy%fe))/ &
                max( (air%rho*capp*met%tk*canopy%us**3), 1.e-12)
        endif
-
+      ! write(*,*) ktau, zetar(:,iter), rough%zref_tq, canopy%fh, canopy%fe,met%tk, canopy%us
        !        constrain zeta to zetpos and zetneg (set in param0)
        zetar(:,iter) = min(zetpos,zetar(:,iter))         ! zetar too +
        zetar(:,iter) = max(zetneg,zetar(:,iter))         ! zetar too -
@@ -692,30 +676,27 @@ CONTAINS
           dmce = ((1.+air%epsi)*rrsw +rrbw)*rt0*rough%rt1*(canopy%fev + canopy%fes)/ &
                (air%rho*air%rlam)
 
-          tvair_old = met%tvair
-          qvair_old = met%qvair
 
-          ! Within canopy air temperature:
           where (veg%vlai>0.1)
-             met%tvair = met%tk  +( (dmbe*dmch-dmbh*dmce)/(dmah*dmbe-dmae*dmbh+1.0e-12) + &
-                  (tvair_old - met%tk_old))/2.
+             met%tvair = met%tk  + (dmbe*dmch-dmbh*dmce)/(dmah*dmbe-dmae*dmbh+1.0e-12)
           elsewhere
              met%tvair = met%tk
           endwhere
 
-          where (abs(met%tvair-met%tk)>5.0)
+
+          where (abs(met%tvair-met%tk)>15.0)  ! in case of crazy deviations of incaopy air T: shouldn't need this!
              met%tvair = met%tk
           endwhere
 
           ! Within canopy specific humidity:
           where (veg%vlai>0.1)
-             met%qvair = met%qv   + ((dmah*dmce-dmae*dmch)/(dmah*dmbe-dmae*dmbh+1.0e-12) + &
-                  (qvair_old - met%qv_old))/2.
+             met%qvair = met%qv   + (dmah*dmce-dmae*dmch)/(dmah*dmbe-dmae*dmbh+1.0e-12)
           elsewhere
              met%qvair = met%qv
           endwhere
           met%qvair = max(0.0,met%qvair)
        END WHERE
+
        ! Saturated specific humidity in canopy:
        qstvair = qsatf((met%tvair-tfrz),met%pmb)
        met%qvair = min(qstvair,met%qvair)          ! avoid -ve dva
@@ -731,9 +712,6 @@ CONTAINS
        ! call radiation here: longwave isothermal radiation absorption
        ! and radiation conductance depends on tvrad
        CALL radiation(ssoil, veg, air, met, rad, canopy)
-       ! Store change in canopy air temperature and humidity between successive iterations
-       deltvair = met%tvair - tvair_old
-       delqvair = met%qvair - qvair_old
 
        CALL define_air(met, air)
        dsatdk2 = SPREAD(air%dsatdk, 2, mf)
@@ -770,10 +748,7 @@ CONTAINS
        DO WHILE ((ANY(abs_deltlf > 0.1) )  .AND.  k < maxiter)
           k = k + 1
           ! Where vegetation and no convergence...
-          !REWIND(7)
-          !do jj=1,mp
-          !write(7,*) ktau, tlfx(jj,:)
-          !enddo
+
           WHERE (rad%fvlai > 1e-5 .and. abs_deltlf > 0.1 .or. Flag_fwet)
              ! Grashof number (Leuning et al, 1995) eq E4:
              gras = max(1.0e-6_r_2,1.595E8_r_2*ABS(tlfx-tair2)*(xdleaf2**3))
@@ -895,6 +870,7 @@ CONTAINS
              hcx = (real(rad%rniso,r_2)-ecx)*gh/ghr
              ! Update leaf temperature:
              tlfx=tair2+hcx/(real(capp*rmair,r_2)*gh)
+
              ! Update net radiation for canopy:
              rnx = real(rad%rniso,r_2)-real(capp*rmair*rad%gradis,r_2)*(tlfx-tair2)
              ! Update leaf surface vapour pressure deficit:
@@ -953,14 +929,28 @@ CONTAINS
        an_y = (an_y+rdy)*(1.0_r_2-fwet) - rdy    ! only allow gross photosynthesis on dry part of leaf
 
        ! evaulate canopy%fes for use in dispersion matrix calc (only if Soil-Snow is being used)
+       ! vh March 2014: shouldn't need this since in-canopy Tair and humidity are only
+       ! being updated once using fluxes from prev time-step
        IF (cable_user%soil_struc=='default') THEN
           ! Penman-Monteith formula
           sss = air%dsatdk
           cc1 = sss/(sss+air%psyc )
           cc2 = air%psyc /(sss+air%psyc )
 
+          rad%lwabv = (capp*rmair*(tlfy(:,1) - &
+            tvair2(:,1))*rad%gradis(:,1) &
+            +capp*rmair*(tlfy(:,2) - tvair2(:,2))*rad%gradis(:,2))      ! non-isothermal emitted long-wave radiation
+
+
+         WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
+          canopy%tv = (rad%lwabv / (2.0*(1.0-rad%transd)*sboltz*emleaf)+met%tvrad**4)**0.25
+         ELSEWHERE ! sparse canopy
+          canopy%tv = met%tvair
+         END WHERE
+
           canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*emleaf* &
-               sboltz*met%tvair**4 - emsoil*sboltz* tss4
+               sboltz*canopy%tv**4 - emsoil*sboltz* tss4
+
 
           ssoil%potev = real(cc1 * (canopy%fns - canopy%ga) + cc2 * air%rho  &
                * real(air%rlam) * (qsatf((met%tk-tfrz),met%pmb) - met%qv), r_2) / ssoil%rtsoil
@@ -986,6 +976,7 @@ CONTAINS
           canopy%fhs = air%rho*capp*(ssoil%tss - met%tk) /ssoil%rtsoil
           ! Calculate ground heat flux:
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssoil%cls
+
        END IF
 
        ! Calculate total latent heat:
@@ -993,7 +984,6 @@ CONTAINS
        ! Calculate total sensible heat:
        canopy%fh = real(canopy%fhv) + canopy%fhs
 
-                 !write(*,*) 'canopy_vh chk2'
 
        where ((fwet*ecy) > Ecansto)  ! move this inside Tleaf loop?
           fwet = Ecansto/ecy
@@ -1013,17 +1003,14 @@ CONTAINS
           canopy%fevw = sum(ecy*fwet*gbw/max(gw,1.e-6_r_2),2)
           canopy%fwet = 1.0
        endwhere
-       !MC-Guess: try 1e-15 again
-       !where (sum(gswx,2)>1.e-9_r_2)
+
        where (sum(gswx,2)>1e-15_r_2)
           canopy%fevc = canopy%fev - canopy%fevw
        elsewhere
           canopy%fevc = 0.0_r_2
        endwhere
-       if (any(canopy%fevc<-0.01)) then
-          write(*,*) 'negative trans ', ktau
-       endif
-       where (canopy%fevc<0.0_r_2 .and. canopy%fevc>-1.e-5_r_2)  ! negative values of fevc due to precision
+
+       where (canopy%fevc<0.0_r_2)  ! negative values of fevc due to precision
           canopy%fevc = 0.0_r_2
           canopy%fevw = canopy%fev
        endwhere
@@ -1043,11 +1030,13 @@ CONTAINS
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*emleaf* &
             sboltz*canopy%tv**4 - emsoil*sboltz* tss4
 
+
        ! Calculate radiative/skin temperature:
        rad%trad = ( (1.-rad%transd)*canopy%tv**4 &
             + rad%transd * ssoil%tss**4 )**0.25
 
-       if (1==0) then  ! comment out calc of variables at screen height vh 15/07/09
+       if (1==0) then  ! comment out calc of variables at screen height vh 15/07/09:
+                       ! this was causing model to crash. Update with CABLE 2.0 formulations?
           ! screen temp., windspeed and relative humidity at 1.8m
           tstar = - canopy%fh / ( air%rho*capp*canopy%us)
           qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us)
@@ -1107,7 +1096,6 @@ CONTAINS
        ssoil%dfe_ddq = real(ssoil%wetfac*air%rho/ssoil%rtsoil,r_2)*air%rlam  ! d(canopy%fes)/d(dq)
        ssoil%ddq_dtg = real((rmh2o/rmair)/met%pmb *tetena*tetenb*tetenc &
             /((tetenc+ssoil%tss-tfrz)**2)*exp(tetenb*(ssoil%tss-tfrz)/(tetenc+ssoil%tss-tfrz)),r_2)
-       !MC Copy cls from soil_snow part above (2 lines)
        ssoil%cls = 1.0_r_2
        WHERE (ssoil%snowd >= 0.1_r_2) ssoil%cls = 1.1335_r_2
        canopy%dgdtg = ssoil%dfn_dtg - ssoil%dfh_dtg &
@@ -1117,10 +1105,6 @@ CONTAINS
        ! owetfac will need to be outside define_canopy
        ! because the UM driver will call define_canopy twice
        ssoil%owetfac = ssoil%wetfac
-
-       CALL sli_main(ktau,dels,veg,soil,ssoil,met,canopy,air,rad)
-       tss4 = ssoil%tss**4
-    END DO      ! do iter = 1, niter
 
 
 
@@ -1134,7 +1118,6 @@ CONTAINS
     canopy%ecy    = ecy ! edit vh 7/7/09
     canopy%ecx    = ecx ! edit vh 7/7/09
     canopy%ci     = ci ! edit vh 7/7/09
-    !canopy%fwsoil = fwsoil ! edit vh 7/7/09
     !******************************************************************************************
 
   END SUBROUTINE define_canopy_vh
