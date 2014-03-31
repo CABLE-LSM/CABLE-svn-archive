@@ -850,6 +850,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ntyp = nparam
 
+  ! Added by Kai
+  ! Better setting a swtich in cable.nml
+  ntyp = nparam + 4
+
   ALLOCATE (param_ts(wnp))
 
   ALLOCATE (blen(ntyp))
@@ -2299,10 +2303,6 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   ntyp = ncasaparam
-
-! Added by Kai
-! Better setting a swtich in cable.nml
-  ntyp = nparam + 4
 
   ALLOCATE (casa_ts(wnp))
 

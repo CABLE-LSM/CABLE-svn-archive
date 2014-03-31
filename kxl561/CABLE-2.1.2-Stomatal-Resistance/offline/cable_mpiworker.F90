@@ -671,6 +671,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ntyp = nparam
 
+  ! Added by Kai
+  ! Better setting a swtich in cable.nml
+  ntyp = nparam + 4
+
   ALLOCATE (blen(ntyp))
   ALLOCATE (displs(ntyp))
   ALLOCATE (types(ntyp))
