@@ -1636,7 +1636,7 @@ USE cable_common_module
     s_mid = (ssnow%GWwb(:)-soil%GWwatr(:))/(soil%GWwatsat(:)-soil%GWwatr(:))
     s_mid = max(min(s_mid,1.0_r_2),0.01_r_2)   
     s2    = soil%GWhksat(:)*s_mid**(2.0*soil%clappB(:,ms)+2.0)
-    ssnow%GWhk(:)     = s_mid*s2*(1.0-ssnow%fracice(:,k))
+    ssnow%GWhk(:)     = s_mid*s2*(1.0-ssnow%fracice(:,ms))
 
     ssnow%GWdhkdw(:)  = (1.0-ssnow%fracice(:,ms))* (2.0*soil%clappB(:,ms)+3.0)*&
                          s2*0.5/(soil%GWwatsat(:)-soil%GWwatr(:))
@@ -1747,7 +1747,7 @@ USE cable_common_module
     !alternate method that solves only using the ms layers
     !ssnow%GWwb(:) = ssnow%GWwb(:) + (qout-dqodw1*del_wb(:,ms)-qhlev(:,ms+1))*dels      !add del-h2o to soil  
 
-    !deal with extra/to little liquid in terms of mass not volume
+    !deal with extra/too little liquid in terms of mass not volume
 
     ssnow%wbliq  = ssnow%wbliq + del_wb(:,1:ms) - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)
     msliq        = ssnow%wbliq * spread(dzmm,1,mp) 
@@ -1796,30 +1796,29 @@ USE cable_common_module
  
    if (md_prin) write(*,*) 'about to ensure liq > liq min '   !MDeck
    
-   
-    do k = 1,ms
-    do i=1,mp  !ensure liq < liq_minimum (using mm)
-       xs(i) = 0._r_2
-       if (msliq(i,k) .lt. masswatmin(i,k)) then
-          xs(i) = masswatmin(i,k) - msliq(i,k)
-       end if
-       msliq(i,k) = msliq(i,k  ) + xs(i)
-       if (k .lt. ms) then
-          msliq(i,k+1) = msliq(i,k+1) - xs(i)
-       else
-          !GWmsliq(:) = GWmsliq(:) - xs(:)
-          ssnow%qhz(i)  = ssnow%qhz(i) - xs(i)/dels
-       endif
-    end do
+  
+    do i=1,mp 
+      do k = 1,ms
+         xs(i) = 0._r_2
+         if (msliq(i,k) .lt. masswatmin(i,k)) then
+            xs(i) = masswatmin(i,k) - msliq(i,k)
+         end if
+         msliq(i,k) = msliq(i,k  ) + xs(i)
+         if (k .lt. ms) then
+            msliq(i,k+1) = msliq(i,k+1) - xs(i)
+         else
+            ssnow%qhz(i)  = ssnow%qhz(i) - xs(i)/dels
+         endif
+      end do
     end do
  
      xs(:) = 0._r_2
      do i=1,mp
-     if (GWmsliq(i) .lt. masswatmin(i,ms+1)) then
-        xs(i)      = masswatmin(i,ms+1) - GWmsliq(i)
-        GWmsliq(i) = masswatmin(i,ms+1)
-        ssnow%qhz(i)  = ssnow%qhz(i) - xs(i)/dels
-     end if
+        if (GWmsliq(i) .lt. masswatmin(i,ms+1)) then
+           xs(i)      = masswatmin(i,ms+1) - GWmsliq(i)
+           GWmsliq(i) = masswatmin(i,ms+1)
+           ssnow%qhz(i)  = ssnow%qhz(i) - xs(i)/dels
+        end if
      end do
 
     if (md_prin) write(*,*) 'done with liq < liq min '  !MDeck
