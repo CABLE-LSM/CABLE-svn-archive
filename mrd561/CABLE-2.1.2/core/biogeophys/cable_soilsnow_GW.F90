@@ -1406,7 +1406,7 @@ USE cable_common_module
           tempb    = (1+ssnow%wtd(i)/Nsmpsat(i))**(1.0-invB(i))
           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
                       Nsmpsat(i)/(1-invB(i))*(tempa-tempb))-def(i)
-          calc     = max(ssnow%wtd(i) - deffunc/derv,1.0)
+          calc     = ssnow%wtd(i) - deffunc/derv
           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
              ssnow%wtd(i) = calc
              EXIT mainloop2
