@@ -302,9 +302,9 @@ PROGRAM cable_offline_driver
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
 
-         ssnow%smelt = ssnow%smelt*dels
-         ssnow%rnof1 = ssnow%rnof1*dels
-         ssnow%rnof2 = ssnow%rnof2*dels
+         ssnow%smelt  = ssnow%smelt*dels
+         ssnow%rnof1  = ssnow%rnof1*dels
+         ssnow%rnof2  = ssnow%rnof2*dels
          ssnow%runoff = ssnow%runoff*dels
    
    

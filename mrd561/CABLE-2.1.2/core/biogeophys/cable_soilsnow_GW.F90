@@ -2067,8 +2067,6 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       ssnow%rnof2 = MAX( 0.0, ssnow%rnof2 - ssnow%wb_lake )
    ENDWHERE    
 
-   !ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)*dels          !total runoff (inmm)
-
    if (md_prin) write(*,*) 'remove transp'      !MDeck
    CALL remove_trans(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer
 
@@ -2081,9 +2079,9 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       canopy%fes = canopy%fes+canopy%fes_cor
    ENDIF
 
-   ssnow%smelt = ssnow%smelt/dels    !change units to mm/s.  cable_driver then reverts back to mm
-   !ssnow%runoff = ssnow%runoff/dels  !change units to mm/s.  cable_driver then reverts back to mm
-                                     !rnof1 and rnof2 are already in mm/s
+   ssnow%smelt  = ssnow%smelt/dels    !change units to mm/s.  cable_driver then reverts back to mm
+   ssnow%runoff = (ssnow%rnof1 + ssnow%rnof2)!*dels  !cable_driver converts from mm/s to mm
+                                                     !rnof1 and rnof2 are already in mm/s
 
    ! Set weighted soil/snow surface temperature
    ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
