@@ -1152,7 +1152,7 @@ END SUBROUTINE remove_trans
        
     where (bet(:) .ne. 0.0_r_2) ut(:,1) = rt(:,1) / bet(:)
     where (bet(:) .eq. 0.0_r_2) ut(:,1) = rt(:,1) / (bet(:) + 0.000001_r_2)
-    do k = 1,n
+    do k = 2,n
        gam(:,k) = ct(:,k-1) / bet(:)
        bet(:)   = max(bt(:,k) - at(:,k) * gam(:,k),0.00001_r_2)
        ut(:,k)   = (rt(:,k) - at(:,k)*ut(:,k-1)) / bet(:)
