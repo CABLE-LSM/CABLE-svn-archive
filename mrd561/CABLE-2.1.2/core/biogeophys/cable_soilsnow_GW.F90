@@ -1744,7 +1744,7 @@ USE cable_common_module
        ct(:,k) =  0.0_r_2
 
     if (md_prin) write(*,*) 'calced qin qout etc '            !MDeck
-    CALL solve_tridiag(at, bt, ct, rt, del_wb,ms)                      !solve system of eqns
+    CALL solve_tridiag(at, bt, ct, rt, del_wb,ms+1)                      !solve system of eqns
 
     if (md_prin) write(*,*) 'found del wb '  !MDeck
     !alternate method that solves only using the ms layers
