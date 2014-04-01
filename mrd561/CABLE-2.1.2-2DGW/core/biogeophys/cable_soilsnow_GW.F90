@@ -1343,7 +1343,7 @@ USE cable_common_module
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000.0
   end do
-  zimm(ms) = zimm(ms) + soil%GWdz(1)
+  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000.0
   
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1.0-invB(:))* &
     (1.0-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1.0-invB(:))))             !def if wtd=zimm(ms)
