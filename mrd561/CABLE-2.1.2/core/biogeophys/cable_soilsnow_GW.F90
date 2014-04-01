@@ -1152,6 +1152,7 @@ END SUBROUTINE remove_trans
        
     where (bet(:) .ne. 0.0_r_2) ut(:,1) = rt(:,1) / bet(:)
     where (bet(:) .eq. 0.0_r_2) ut(:,1) = rt(:,1) / (bet(:) + 0.000001_r_2)
+
     do k = 2,n
        gam(:,k) = ct(:,k-1) / bet(:)
        bet(:)   = max(bt(:,k) - at(:,k) * gam(:,k),0.00001_r_2)
@@ -1343,7 +1344,7 @@ USE cable_common_module
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000.0
   end do
-  zimm(ms) = zimm(ms) + soil%GWdz(1)
+  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000.0
   
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1.0-invB(:))* &
     (1.0-((Nsmpsat(:)+zimm(ms))/Nsmpsat(:))**(1.0-invB(:))))             !def if wtd=zimm(ms)
