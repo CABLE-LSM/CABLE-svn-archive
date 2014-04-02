@@ -1241,8 +1241,8 @@ USE cable_common_module
      ! Surface runoff
     where (ssnow%fwtop(:) .gt. qinmax)
 
-       ssnow%rnof1(:) =  (satfrac(:) * ssnow%fwtop(:)/dels + &
-                       (1.0-satfrac(:)) * ssnow%fwtop(:)-qinmax)  !in mm/s
+       ssnow%rnof1(:) =  satfrac(:) * ssnow%fwtop(:)  + &
+                       (1.0-satfrac(:)) * (ssnow%fwtop(:)-qinmax)  !in mm/s
 
     elsewhere
 
@@ -1263,9 +1263,6 @@ USE cable_common_module
 
    end where
            
-    !in soil_snow_gw subroutine of this module
-    !ssnow%runoff = ssnow%rnof1! + ssnow%rnof2    
-
    !---  glacier formation
    rnof5= 0.
 
@@ -1828,8 +1825,8 @@ USE cable_common_module
     !CALL solve_tridiag(at, bt, ct, rt, del_wb,ms+1)                      !solve system of eqns
     CALL trimb(at,bt,ct,rt,ms+1)                       !use the defulat cable tridiag solution
 
-    ssnow%wbliq = rt(:,1:ms) - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
-    ssnow%GWwb  = rt(:,ms+1) - qhlev(:,ms+1)*dels/GWdzmm
+    ssnow%wbliq = ssnow%wbliq + rt(:,1:ms) - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
+    ssnow%GWwb  = ssnow%GWwb  + rt(:,ms+1) - qhlev(:,ms+1)*dels/GWdzmm
 
     msliq       = ssnow%wbliq * spread(dzmm,1,mp)                     !liquid mass
     msice       = ssnow%wbice*dri * spread(dzmm,1,mp)                 !ice mass
@@ -2177,14 +2174,14 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
 
    !total water mass at the end of the soilsnow_GW routine
-   ssnow%wbtot = sum(ssnow%wbliq(:,:)*C%denliq*spread(soil%zse,1,mp),2) + &
-                 sum(ssnow%wbice(:,:)*C%denice*spread(soil%zse,1,mp),2) + &
-                 ssnow%GWwb(:)*soil%GWdz*C%denliq
+   ssnow%wbtot = sum(ssnow%wbliq(:,:)*real(C%denliq,r_2)*real(spread(soil%zse,1,mp),r_2),2) + &
+                 sum(ssnow%wbice(:,:)*real(C%denice,r_2)*real(spread(soil%zse,1,mp),r_2),2) + &
+                 ssnow%GWwb(:)*soil%GWdz*real(C%denliq,r_2)
                  
    !for debug water balance.  del_wbtot = fluxes = infiltration [though-evap] - trans - qhorz drainage
    del_wbtot   = dels * (ssnow%sinfil - canopy%fevc/C%HL - ssnow%rnof2)
    !set below to keep track of water imbalance within the GW module explicitly.  also must change cable_checks
-   ssnow%wbtot = ssnow%wbtot-wbtot_ic
+   ssnow%wbtot = ssnow%wbtot-wbtot_ic!-del_wbtot
 
 END SUBROUTINE soil_snow_gw
 
