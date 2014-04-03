@@ -192,14 +192,34 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
          xratioNPfrootmin,xratioNPfrootmax,                    &
          casabiome%ftransPPtoL(nv,leaf), casabiome%ftransPPtoL(nv,wood), &
          casabiome%ftransPPtoL(nv,froot)
-    casabiome%ratioPcplantmin(nv,leaf)  = 1.0/(xratioNPleafmax*ratioCNplant(nv,leaf))
-    casabiome%ratioPcplantmax(nv,leaf)  = 1.0/(xratioNPleafmin*ratioCNplant(nv,leaf))
-    casabiome%ratioPcplantmin(nv,wood)  = 1.0/(xratioNPwoodmax*ratioCNplant(nv,wood))
-    casabiome%ratioPcplantmax(nv,wood)  = 1.0/(xratioNPwoodmin*ratioCNplant(nv,wood))
-    casabiome%ratioPcplantmin(nv,froot) = 1.0/(xratioNPfrootmax*ratioCNplant(nv,froot))
-    casabiome%ratioPcplantmax(nv,froot) = 1.0/(xratioNPfrootmin*ratioCNplant(nv,froot))
+
+! ypw 1st april2014
+!    casabiome%ratioPcplantmin(nv,leaf)  = 1.0/(xratioNPleafmax*ratioCNplant(nv,leaf))
+!    casabiome%ratioPcplantmax(nv,leaf)  = 1.0/(xratioNPleafmin*ratioCNplant(nv,leaf))
+!    casabiome%ratioPcplantmin(nv,wood)  = 1.0/(xratioNPwoodmax*ratioCNplant(nv,wood))
+!    casabiome%ratioPcplantmax(nv,wood)  = 1.0/(xratioNPwoodmin*ratioCNplant(nv,wood))
+!    casabiome%ratioPcplantmin(nv,froot) = 1.0/(xratioNPfrootmax*ratioCNplant(nv,froot))
+!    casabiome%ratioPcplantmax(nv,froot) = 1.0/(xratioNPfrootmin*ratioCNplant(nv,froot))
+
+
+    casabiome%ratioPcplantmin(nv,leaf)  = 0.5*(casabiome%ratioNCplantmin(nv,leaf)+casabiome%ratioNCplantmax(nv,leaf)) &
+                                        /xratioNPleafmax
+    casabiome%ratioPcplantmax(nv,leaf)  = 0.5*(casabiome%ratioNCplantmin(nv,leaf)+casabiome%ratioNCplantmax(nv,leaf)) &
+                                        /xratioNPleafmin
+
+    casabiome%ratioPcplantmin(nv,wood)  = 0.5*(casabiome%ratioNCplantmin(nv,wood)+casabiome%ratioNCplantmax(nv,wood)) &
+                                        /xratioNPwoodmax
+    casabiome%ratioPcplantmax(nv,wood)  = 0.5*(casabiome%ratioNCplantmin(nv,wood)+casabiome%ratioNCplantmax(nv,wood)) &
+                                        /xratioNPwoodmin
+
+    casabiome%ratioPcplantmin(nv,froot)  = 0.5*(casabiome%ratioNCplantmin(nv,froot)+casabiome%ratioNCplantmax(nv,froot)) &
+                                        /xratioNPfrootmax
+    casabiome%ratioPcplantmax(nv,wood)  = 0.5*(casabiome%ratioNCplantmin(nv,froot)+casabiome%ratioNCplantmax(nv,froot)) &
+                                        /xratioNPfrootmin
+
 !     PRINT *, 'nv8',nv8
   ENDDO
+
 
   READ(101,*)
   READ(101,*)
@@ -1157,11 +1177,12 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
   ! casapool%Psoillab = max(casapool%Psoillab,0.1)
 
-!  npt=10546
-
-!  write(77,*)   idoy,phen%doyphase(npt,:), phen%phase(npt)
+!  npt=14687  
+!
 !  write(77,701) ktau/24,casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:), &
-!                     casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%crmplant(npt,:),casaflux%Nminuptake(npt),real(phen%phase(npt)),casaflux%fracCalloc(npt,:)
+!                     casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%crmplant(npt,:),casaflux%Nminuptake(npt), &
+!                     real(phen%phase(npt)),casaflux%fracCalloc(npt,:), casaflux%plabuptake(npt),  &
+!                     casapool%psoil(npt,:),casapool%psoillab(npt),casapool%psoilsorb(npt),casapool%psoilocc(npt)
 701 format('pool: ',i6,100(f12.5,2x))
 END SUBROUTINE biogeochem
 

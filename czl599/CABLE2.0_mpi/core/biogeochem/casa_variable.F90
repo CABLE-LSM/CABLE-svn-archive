@@ -320,7 +320,7 @@ MODULE casavariable
 
 ! Added filename type for casaCNP (BP apr2010)
   TYPE casafiles_type
-    CHARACTER(LEN=99) :: cnpbiome    ! file for biome-specific BGC parameters
+    CHARACTER(LEN=150) :: cnpbiome    ! file for biome-specific BGC parameters
     CHARACTER(LEN=99) :: cnppoint    ! file for point-specific BGC inputs
     CHARACTER(LEN=99) :: cnpepool    ! file for end-of-run pool sizes
     CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes

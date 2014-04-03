@@ -239,14 +239,27 @@ PROGRAM cable_offline_driver
        ELSE
           CALL prepareFiles(ncciy)
        ENDIF
-    ELSE
-       IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-          PRINT *, 'Please check input in namelist file.'
-          STOP
-       ELSE
+
+     ELSE IF(gswpfile%l_ncar) THEN
+         PRINT *, 'Using NCAR met forcing.'
+         gswpfile%l_gswp = .FALSE.
+         gswpfile%l_gpcc = .FALSE.
+         IF (ncciy < 1900 .OR. ncciy > 2100) THEN
+            PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+            PRINT *, 'Please check input in namelist file.'
+            STOP
+         END IF
+     ELSE IF(gswpfile%l_gswp) THEN
+         PRINT *, 'Using gswp forcing.'
+         gswpfile%l_ncar = .FALSE.
+         gswpfile%l_gpcc = .FALSE.
+         IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+            PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+            PRINT *, 'Please check input in namelist file.'
+            STOP
+     ELSE
          CALL prepareFiles(ncciy)
-       END IF
+     END IF
     END IF
 
    ENDIF

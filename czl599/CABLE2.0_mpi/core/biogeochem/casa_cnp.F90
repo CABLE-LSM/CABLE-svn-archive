@@ -154,6 +154,16 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
   xnplimit(:)  = 1.0
   xNPuptake(:)     = min(xnuptake(:), xpuptake(:))
   
+
+
+ ! ypw 01april2014
+!  write(79,*) 'in subroutine xnp'
+!  write(79,*)  casapool%cplant(10022,1),casapool%nplant(10022,1),casapool%pplant(10022,1)
+!  write(79,*)  'c uptake',  casaflux%Cnpp(10022), casaflux%fracCalloc(10022,:)
+!  write(79,*)  'n uptake',  Nreqmin(10022,:),Nreqmax(10022,:)
+!  write(79,*)  'p uptake',  Preqmin(10022,:),Preqmax(10022,:)
+ !  ypw
+
   do np =1, mp
      if(casamet%iveg2(np)/=icewater.and.casaflux%cnpp(np) > 0.0.and.xNPuptake(np) < 1.0) then
         casaflux%fracClabile(np) =min(1.0,max(0.0,(1.0- xNPuptake(np)))) * max(0.0,casaflux%cnpp(np))/(casaflux%cgpp(np) +1.0e-10)
@@ -1692,6 +1702,15 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
   endif
   ENDDO    
 
+  ! yow
+  !  ip=10022 
+  !  write(79,791) ip,veg%iveg(ip),casapool%cplant(ip,leaf),casapool%nplant(ip,leaf),casapool%pplant(ip,leaf), &
+  !              casapool%cplant(ip,leaf)/casapool%pplant(ip,leaf), casapool%nplant(ip,leaf)/casapool%pplant(ip,leaf), &
+  !              1.0/casabiome%ratioPCplantmax(veg%iveg(ip),leaf), 1.0/casabiome%ratioPCplantmin(veg%iveg(ip),leaf),   &
+  !              Preqmax(ip,leaf),Preqmin(ip,leaf), PtransPtoP(ip,leaf)
+  ! ypw
+
+791 format('P require =', 2(i6,2x),100(f10.4,2x))
 END SUBROUTINE casa_Prequire
 
 

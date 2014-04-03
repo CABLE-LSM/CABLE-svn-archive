@@ -260,10 +260,10 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
 
       print *, 'yp wang: calling ncdf_dump'
-      print *, 'latitude= ', patch(:)%latitude
-      print *, 'longitude= ', patch(:)%longitude
-      print *, 'filename= ', ncfile
-      print *, 'constants= ', mp,ms,mplant,mdyear,ncid
+!      print *, 'latitude= ', patch(:)%latitude
+!      print *, 'longitude= ', patch(:)%longitude
+!      print *, 'filename= ', ncfile
+!      print *, 'constants= ', mp,ms,mplant,mdyear,ncid
 
       dim_len(1) = mp
       dim_len(2) = ms
