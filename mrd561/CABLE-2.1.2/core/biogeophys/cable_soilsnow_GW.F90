@@ -1733,7 +1733,7 @@ USE cable_common_module
     !too be replaced with explivit treatment of subgrid scale, topographically
     !based subsurface flux convergence flowing to river channels 
        
-    ssnow%qhz(:)  = qhmax *exp(-2._r_2*ssnow%wtd(:)/1000._r_2)*((1._r_2 - fice_avg(:))**3._r_2)
+    ssnow%qhz(:)  = qhmax *exp(-2._r_2*ssnow%wtd(:)/1000._r_2)*((1._r_2 - fice_avg(:)))
     !find index of soil layer with the water table
     qhlev(:,:)   = 0._r_2  !set to zero except for layer that contains the wtd
     idlev(:)     = ms+1    !assume the water table is in the aquifer
@@ -1754,8 +1754,6 @@ USE cable_common_module
 
     end do  
 
-    !where (qhlev*dels .gt. 0.1*ssnow%wbliq*spread(dzmm,1,mp)) qhlev = 0._r_2
-
     rt(:,:) = 0._r_2; at(:,:) = 0._r_2     !ensure input to tridiag is valid
     bt(:,:) = 1._r_2; ct(:,:) = 0._r_2
 
@@ -1767,7 +1765,7 @@ USE cable_common_module
        qout    = -ssnow%hk(:,k)*num/den
        dqodw1  = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2  = -( ssnow%hk(:,k)*ssnow%dsmpdw(:,k+1) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout
+       rt(:,k) =  qin - qout - qhlev(:,k)
        at(:,k) =  0._r_2
        bt(:,k) =  dzmm(k)/dels + dqodw1
        ct(:,k) =  dqodw2      
@@ -1786,7 +1784,7 @@ USE cable_common_module
        qout    = -ssnow%hk(:,k)*num/den
        dqodw1  = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2  = -( ssnow%hk(:,k)*ssnow%dsmpdw(:,k+1) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout
+       rt(:,k) =  qin - qout- qhlev(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
        ct(:,k) =  dqodw2
@@ -1806,7 +1804,7 @@ USE cable_common_module
        qout    = -ssnow%hk(:,k)*num/den
        dqodw1  = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2  = -( ssnow%hk(:,k)*ssnow%GWdsmpdw(:) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout 
+       rt(:,k) =  qin - qout - qhlev(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
        ct(:,k) =  dqodw2 
@@ -1824,7 +1822,7 @@ USE cable_common_module
        qout    = 0._r_2
        dqodw1  = 0._r_2
        dqodw2  = 0._r_2
-       rt(:,k) =  qin - qout  
+       rt(:,k) =  qin - qout  - qhlev(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  GWdzmm(:)/dels - dqidw1
        ct(:,k) =  0._r_2
@@ -1832,8 +1830,8 @@ USE cable_common_module
     !CALL solve_tridiag(at, bt, ct, rt, del_wb,ms+1)                      !solve system of eqns
     CALL trimb(at,bt,ct,rt,ms+1)                       !use the defulat cable tridiag solution
 
-    ssnow%wbliq = ssnow%wbliq + rt(:,1:ms) - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
-    ssnow%GWwb  = ssnow%GWwb  + rt(:,ms+1) - qhlev(:,ms+1)*dels/GWdzmm
+    ssnow%wbliq = ssnow%wbliq + rt(:,1:ms)! - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
+    ssnow%GWwb  = ssnow%GWwb  + rt(:,ms+1)! - qhlev(:,ms+1)*dels/GWdzmm
 
     msliq       = ssnow%wbliq * spread(dzmm,1,mp)                     !liquid mass
     msice       = ssnow%wbice*dri * spread(dzmm,1,mp)                 !ice mass
@@ -1889,28 +1887,24 @@ USE cable_common_module
    
     do k = 1,ms
 
-       do i=1,mp  !ensure liq < liq_minimum (using mm)
+       do i=1,mp  !ensure liq > liq_minimum (using mm)
 
           xs(i) = 0._r_2             !should be a single float (array not needed)
 
           if (msliq(i,k) .lt. masswatmin(i,k)) then
 
              xs(i) = masswatmin(i,k) - msliq(i,k)
+             msliq(i,k) = masswatmin(i,k)
+
+             if (k .lt. ms) then
+                msliq(i,k+1) = msliq(i,k+1) - xs(i)
+             else
+                GWmsliq(i) = GWmsliq(i) - xs(i)
+                !ssnow%qhz(i)  = ssnow%qhz(i) - xs(i)/dels  !take from runnof may make runoff < 0
+             end if
 
           end if
 
-          msliq(i,k) = msliq(i,k) + xs(i)
-
-          if (k .lt. ms) then
-
-             msliq(i,k+1) = msliq(i,k+1) - xs(i)
-
-          else
-
-             !GWmsliq(:) = GWmsliq(:) - xs(:)
-             ssnow%qhz(i)  = ssnow%qhz(i) - xs(i)/dels  !take from runnof may make runoff < 0
-
-          endif
 
        end do
 
@@ -1921,9 +1915,9 @@ USE cable_common_module
 
         if (GWmsliq(i) .lt. masswatmin(i,ms+1)) then
 
-           xs(i)      = masswatmin(i,ms+1) - GWmsliq(i)
-           GWmsliq(i) = masswatmin(i,ms+1)
-           ssnow%qhz(i)  = ssnow%qhz(i) - xs(i)/dels
+           xs(i)        = masswatmin(i,ms+1) - GWmsliq(i)
+           GWmsliq(i)   = masswatmin(i,ms+1)
+           ssnow%qhz(i) = ssnow%qhz(i) - xs(i)/dels
 
         end if
      end do
@@ -2137,7 +2131,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
-   ssnow%sinfil = ssnow%fwtop - canopy%fes/C%HL               !remove soil evap from throughfall
+   ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
    !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always
 
    CALL smoistgw (dels,ktau,ssnow,soil,md_prin)               !vertical soil moisture movement. 
