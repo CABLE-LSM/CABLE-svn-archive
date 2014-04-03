@@ -357,8 +357,8 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
    bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))       &
         *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)        &
         -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
-        * ssnow%cls-canopy%fh                 
-   bal%ebal_tot = bal%ebal_tot + bal%ebal
+        * ssnow%cls-canopy%fh - canopy%ga
+   bal%ebal_tot = bal%ebal !bal%ebal_tot + bal%ebal
   
       
    !bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
