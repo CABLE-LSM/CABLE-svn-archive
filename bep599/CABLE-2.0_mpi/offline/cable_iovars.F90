@@ -266,13 +266,15 @@ MODULE cable_IO_vars_module
          NIRabs = .FALSE.,    & ! NIR SW absorbed [W/m2]
          LWcanopy = .FALSE.,  & ! outgoing LW from canopy [W/m2]
          LWsoil   = .FALSE.,  & ! outgoing LW from soil [W/m2]
+         oLWsoil   = .FALSE., & ! outgoing LW from soil using otss [W/m2]
          ESoilMod = .FALSE.,  & ! modified soil evaporation [W/m2]
          delwc    = .FALSE.,  & ! change rate of canopy store [kg/m2/s]
          delSWE   = .FALSE.,  & ! change rate of SWE [kg/m2/s]
          delwb    = .FALSE.,  & ! change rate of soil water [kg/m2/s]
          through  = .FALSE.,  & ! through fall rate [kg/m2/s]
          dew      = .FALSE.,  & ! dew rate [kg/m2/s]
-         CanWbal  = .FALSE.,  & ! water balance within canopy [kg/m2]
+         CanWbal  = .FALSE.,  & ! rate of water imbalance within canopy [kg/m2/s]
+         ECan2    = .FALSE.,  & ! wet canopy evaporation, not including dew [kg/m2/s]
 
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
