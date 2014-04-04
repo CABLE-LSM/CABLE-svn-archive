@@ -551,7 +551,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
 
-   canopy%through = canopy%through / dels   ! change units for stash output
+!!   canopy%through = canopy%through / dels   ! change units for stash output
    
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
