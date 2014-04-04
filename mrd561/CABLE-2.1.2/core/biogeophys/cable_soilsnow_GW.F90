@@ -38,7 +38,7 @@ MODULE cable_soil_snow_gw_module
                              balances_type, r_2, ms, mp           
    USE cable_data_module, ONLY : issnow_type, point2constants
 
-   USE cable_common_module, ONLY :: gw_params
+   USE cable_common_module, ONLY : gw_params
 
    IMPLICIT NONE
 
