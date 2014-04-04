@@ -214,12 +214,14 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 
     casabiome%ratioPcplantmin(nv,froot)  = 0.5*(casabiome%ratioNCplantmin(nv,froot)+casabiome%ratioNCplantmax(nv,froot)) &
                                         /xratioNPfrootmax
-    casabiome%ratioPcplantmax(nv,wood)  = 0.5*(casabiome%ratioNCplantmin(nv,froot)+casabiome%ratioNCplantmax(nv,froot)) &
+    casabiome%ratioPcplantmax(nv,froot)  = 0.5*(casabiome%ratioNCplantmin(nv,froot)+casabiome%ratioNCplantmax(nv,froot)) &
                                         /xratioNPfrootmin
 
-!     PRINT *, 'nv8',nv8
+     write(77,701) nv, 1.0/casabiome%ratioPcplantmin(nv,leaf), 1.0/casabiome%ratioPcplantmax(nv,leaf), &
+                       1.0/ casabiome%ratioPcplantmin(nv,wood), 1.0/casabiome%ratioPcplantmax(nv,wood), &
+                       1.0/casabiome%ratioPcplantmin(nv,froot), 1.0/casabiome%ratioPcplantmax(nv,froot)
   ENDDO
-
+701 format(i5,2x,20(f10.3,2x))
 
   READ(101,*)
   READ(101,*)
