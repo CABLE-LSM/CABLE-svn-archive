@@ -1224,7 +1224,7 @@ USE cable_common_module
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000.0_r_2
 
-    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldSatFrac)+fice(:)
+    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)+fice(:)
 
     ! Maximum infiltration capacity
     tmpa = ssnow%wbliq(:,1) / efpor(:)
@@ -2208,7 +2208,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000._r_2
 
-    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldSatFrac)+fice(:)
+    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)+fice(:)
     ssnow%wetfac(:) = satfrac(:)
 
 
