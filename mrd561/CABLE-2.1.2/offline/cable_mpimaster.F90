@@ -263,7 +263,8 @@ SUBROUTINE mpidrv_master (comm)
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
-                  cable_user           ! additional USER switches 
+                  cable_user,       &    ! additional USER switches 
+                  gw_params
 
    ! END header
 

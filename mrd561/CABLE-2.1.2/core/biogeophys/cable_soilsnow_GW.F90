@@ -38,6 +38,8 @@ MODULE cable_soil_snow_gw_module
                              balances_type, r_2, ms, mp           
    USE cable_data_module, ONLY : issnow_type, point2constants
 
+   USE cable_common_module, ONLY :: gw_params
+
    IMPLICIT NONE
 
    PRIVATE
@@ -57,15 +59,12 @@ MODULE cable_soil_snow_gw_module
    !mrd561 GW params
    !Should read some in from namelist
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      qhmax   = 5e-4,         & !1e-8-1e-4 ! max horizontal drainage [mm/s]
                       hkrz    = 0.0,          & ! GW_hksat e-folding depth [mm**-1]
                       volwatmin  = 0.05,      & !min soil water [mm]      
                       wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
                       wtd_max = 100000.0,     & ! maximum wtd [mm]
                       wtd_min = 10.0,         & ! minimum wtd [mm]
-                      maxSatFrac = 0.3,       &
-                      dri = 1.0,              & !ratio of density of ice to density of liquid [unitless]
-                      efoldSatFrac = 2.0        !efolding depth for sat frac (1/m) 
+                      dri = 1.0               !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
   
@@ -1225,7 +1224,7 @@ USE cable_common_module
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000.0_r_2
 
-    satfrac(:) = (1._r_2-fice(:))*maxSatFrac*exp(-efoldSatFrac*wtd_meters)+fice(:)
+    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldSatFrac)+fice(:)
 
     ! Maximum infiltration capacity
     tmpa = ssnow%wbliq(:,1) / efpor(:)
@@ -1733,7 +1732,8 @@ USE cable_common_module
     !too be replaced with explivit treatment of subgrid scale, topographically
     !based subsurface flux convergence flowing to river channels 
        
-    ssnow%qhz(:)  = qhmax *exp(-2._r_2*ssnow%wtd(:)/1000._r_2)*((1._r_2 - fice_avg(:)))
+    ssnow%qhz(:)  = gw_params%MaxHorzDrainRate *(1._r_2 - fice_avg(:)) * &
+                    exp(-ssnow%wtd(:)/(1000._r_2*gw_params%EfoldHorzDrainRate))
     !find index of soil layer with the water table
     qhlev(:,:)   = 0._r_2  !set to zero except for layer that contains the wtd
     idlev(:)     = ms+1    !assume the water table is in the aquifer
@@ -2208,7 +2208,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000._r_2
 
-    satfrac(:) = (1._r_2-fice(:))*maxSatFrac*exp(-efoldSatFrac*wtd_meters)+fice(:)
+    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldSatFrac)+fice(:)
     ssnow%wetfac(:) = satfrac(:)
 
 

@@ -184,6 +184,18 @@ MODULE cable_common_module
 
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
+
+   TYPE gw_parameters_type
+
+      REAL(r_2) ::                                                             &
+        MaxSatFraction=0.3_r_2,                                                &
+        MaxHorzDrainRate=0.0001_r_2,                                           &
+        EfoldHorzDrainRate=0.5_r_2,                                            &
+        EfoldMaxSatFrac=0.5_r_2
+
+   END TYPE gw_parameters_type
+
+   TYPE(gw_parameters_type), SAVE :: gw_params
       
 CONTAINS
 
