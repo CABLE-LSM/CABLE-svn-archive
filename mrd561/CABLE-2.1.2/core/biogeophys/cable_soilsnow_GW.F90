@@ -58,13 +58,13 @@ MODULE cable_soil_snow_gw_module
       
    !mrd561 GW params
    !Should read some in from namelist
-   REAL(r_2), PARAMETER :: sucmin  = -10000000.0,  & ! minimum soil pressure head [mm]
-                      hkrz    = 0.0,          & ! GW_hksat e-folding depth [mm**-1]
-                      volwatmin  = 0.05,      & !min soil water [mm]      
-                      wtd_uncert = 0.1,       &  ! uncertaintiy in wtd calcultations [mm]
-                      wtd_max = 100000.0,     & ! maximum wtd [mm]
-                      wtd_min = 10.0,         & ! minimum wtd [mm]
-                      dri = 1.0               !ratio of density of ice to density of liquid [unitless]
+   REAL(r_2), PARAMETER :: sucmin  = -10000000.0, &! minimum soil pressure head [mm]
+                      hkrz         = 0.0,         &! GW_hksat e-folding depth [mm**-1]
+                      volwatmin    = 0.05,        &!min soil water [mm]      
+                      wtd_uncert   = 0.1,         &! uncertaintiy in wtd calcultations [mm]
+                      wtd_max      = 100000.0,    &! maximum wtd [mm]
+                      wtd_min      = 10.0,        &! minimum wtd [mm]
+                      dri          = 1.0           !ratio of density of ice to density of liquid [unitless]
                       
    INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
   
@@ -1032,7 +1032,7 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
           & .AND. frozen_limit * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
          
          sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit * ssnow%wb(:,k) -      &
-                      ssnow%wbice(:,k) ) ) * soil%zse(k) * 1000.0,             &
+                      ssnow%wbice(:,k) ) ) * soil%zse(k) * C%denice,             &
                       ( C%TFRZ - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
          ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
                             * 1000.0), frozen_limit * ssnow%wb(:,k) )
@@ -1040,7 +1040,7 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
          ssnow%gammzz(:,k) = MAX(                                              &
              REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
              + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
-             + ssnow%wbice(:,k) * REAL(csice * rhowat * 0.9,r_2),              &
+             + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),              &
              REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
 
          WHERE (k == 1 .AND. ssnow%isflag == 0)
@@ -1051,16 +1051,16 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
       
       ELSEWHERE( ssnow%tgg(:,k) > C%TFRZ .AND. ssnow%wbice(:,k) > 0. )
          
-         sicemelt = MIN( ssnow%wbice(:,k) * soil%zse(k) * 1000.0,              &
+         sicemelt = MIN( ssnow%wbice(:,k) * soil%zse(k) * C%denice,              &
                     ( ssnow%tgg(:,k) - C%TFRZ ) * ssnow%gammzz(:,k) / C%HLF )
          
          ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
-                            / (soil%zse(k) * 1000.0) )
+                            / (soil%zse(k) * C%denice) )
          xx = soil%css * soil%rhosoil
          ssnow%gammzz(:,k) = MAX(                                              &
               REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat*rhowat,r_2)   &
-              + ssnow%wbice(:,k) * REAL(csice * rhowat * 0.9,r_2),            &
+              + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),            &
               REAL(xx,r_2) ) * REAL(soil%zse(k),r_2)
          WHERE (k == 1 .AND. ssnow%isflag == 0)
             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
@@ -1108,8 +1108,8 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
          ! Calculate the amount (perhaps moisture/ice limited)
          ! which can be removed:
          xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
-         diff(:,k) = MAX( 0._r_2, ssnow%wbliq(:,k) - soil%swilt) &      ! m3/m3  soil%watr?
-                     * real(soil%zse(k)*1000.0,r_2)
+         diff(:,k) = MAX( 0._r_2, ssnow%wbliq(:,k) - soil%swilt) &      ! m3/m3  
+                     * real(soil%zse(k)*C%denliq,r_2)
          xxd = xx - diff(:,k)
        
          WHERE ( xxd .GT. 0._r_2 )
@@ -1192,20 +1192,23 @@ USE cable_common_module
     REAL, DIMENSION(mp)                :: rnof5
     REAL, DIMENSION(mp)                :: sgamm
     REAL, DIMENSION(mp)                :: smasstot
-    REAL, DIMENSION(mp,0:3)            :: smelt1
-    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor
-    REAL(r_2), DIMENSION(mp)           :: tmpa,tmpb,qinmax
-    REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters
-    REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
+    REAL, DIMENSION(mp,0:3)            :: smelt1                   !snow melt
+    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor      !tmp vars, fraction of ice in gridcell
+    REAL(r_2), DIMENSION(mp)           :: tmpa,tmpb,qinmax         !tmp vars, maximum infiltration [mm/s]
+    REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters       !saturated fraction of cell, wtd in m
+    REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass  !liquid mass,ice mass, total mass [mm]
+    REAL(r_2), DIMENSION(mp,ms)        :: dzmm_mp                  !soil layer thickness [mm] spread over mp
     logical                                  :: prinall = .false.  !for debugging
     
    if (md_prin) write(*,*) 'inside ovrlndflux '   !MDeck
 
     !For now assume there is no puddle?
     !ssnow%pudsto = 0.0!1e-5
+
+    dzmm_mp  = 1000._r_2 * spread(soil%zse,1,mp)
     
-    icemass  = ssnow%wbice(:,:) * C%denice * spread(soil%zse,1,mp)
-    liqmass  = (ssnow%wb-ssnow%wbice) * C%denliq * spread(soil%zse,1,mp)
+    icemass  = ssnow%wbice(:,:) * dzmm_mp * dri   !dri = denice/denliq
+    liqmass  = (ssnow%wb-ssnow%wbice) * dzmm_mp
     totmass  = icemass + liqmass
 
     where (totmass .lt. real(1e-5,r_2)) totmass = real(1e-5,r_2) 
@@ -1241,7 +1244,7 @@ USE cable_common_module
 
     where ( tmpb .lt. 0.0_r_2) tmpb = 0.0_r_2
 
-    tmpa = -2._r_2*soil%clappB(:,1)*soil%smpsat(:,1)/(real(soil%zse(1),r_2)*1000._r_2)
+    tmpa = -2._r_2*soil%clappB(:,1)*soil%smpsat(:,1)/dzmm_mp
 
     qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*soil%hksat(:,1)
 
@@ -1328,8 +1331,8 @@ USE cable_common_module
 
  
   !Local vars 
-  REAL(r_2), DIMENSION(mp,ms)   :: dzmm,tmp_def
-  REAL(r_2), DIMENSION(0:ms)     :: zimm
+  REAL(r_2), DIMENSION(mp,ms)   :: dzmm_mp,tmp_def
+  REAL(r_2), DIMENSION(0:ms)    :: zimm
   REAL(r_2), DIMENSION(ms)      :: zmm
   REAL(r_2), DIMENSION(mp)      :: GWzimm,temp
   REAL(r_2), DIMENSION(mp)      :: def,defc     
@@ -1343,10 +1346,10 @@ USE cable_common_module
   empwtd = .false.
 
   !make code cleaner define these here 
-  invB       = soil%clappB(:,ms)                                !1 over C&H B
-  Nsmpsat(:) = soil%smpsat(:,ms)                                !psi_saturated mm
-  dzmm(:,:)  = real(spread((soil%zse(:)) * 1000.0,1,mp),r_2)    !layer thickness mm
-  zimm(0)    = 0.0_r_2                                          !depth of layer interfaces mm
+  invB     = soil%clappB(:,ms)                                !1 over C&H B
+  Nsmpsat  = soil%smpsat(:,ms)                                !psi_saturated mm
+  dzmm_mp  = real(spread((soil%zse(:)) * 1000.0,1,mp),r_2)    !layer thickness mm
+  zimm(0)  = 0.0_r_2                                          !depth of layer interfaces mm
 
   do k=1,ms
 
@@ -1373,7 +1376,7 @@ USE cable_common_module
 
   end where
 
-  def(:) = sum(tmp_def*dzmm,2)
+  def(:) = sum(tmp_def*dzmm_mp,2)
   def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
 
 
@@ -1519,6 +1522,7 @@ USE cable_common_module
     REAL(r_2), DIMENSION(mp)            :: dqodw1,dqodw2
     REAL(r_2), DIMENSION(mp)            :: s1,s2,tmpi,temp0,voleq1,tempi
     REAL(r_2), DIMENSION(ms)            :: dzmm
+    REAL(r_2), DIMENSION(ms,mp)         :: dzmm_mp
     REAL(r_2), DIMENSION(0:ms+1)        :: zimm
     REAL(r_2), DIMENSION(ms)            :: zmm
     REAL(r_2), DIMENSION(mp)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
@@ -1534,9 +1538,10 @@ USE cable_common_module
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
-    dzmm(:)    = 1000.0_r_2 * real(soil%zse(:),r_2)
-    zimm(0)    = 0._r_2
-    zmm(1)     = 0.5_r_2*dzmm(1)
+    dzmm    = 1000.0_r_2 * real(soil%zse(:),r_2)
+    dzmm_mp = spread(dzmm,1,mp)
+    zimm(0) = 0._r_2
+    zmm(1)  = 0.5_r_2*dzmm(1)
 
     do k=1,ms
 
@@ -1554,7 +1559,7 @@ USE cable_common_module
     GWzimm(:) = zimm(ms)+GWdzmm(:)
     zaq(:)    = zimm(ms) + 0.5_r_2*GWdzmm(:)
     
-    masswatmin(:,1:ms) = volwatmin * real(C%denliq,r_2) * real(spread(soil%zse(:),1,mp),r_2) !soil must retain this much liquid (mm)
+    masswatmin(:,1:ms) = volwatmin * dzmm_mp        !soil must retain this much liquid (mm)
     masswatmin(:,ms+1) = volwatmin * real(C%denliq,r_2) * soil%GWdz
 
     ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -1657,7 +1662,7 @@ USE cable_common_module
 
     end do
 
-    fice_avg(:)  = sum(ssnow%fracice(:,:)*spread(dzmm(:),1,mp),2) / sum(dzmm(:))
+    fice_avg(:)  = sum(ssnow%fracice*dzmm_mp,2) / sum(dzmm)
     fice_avg(:)  = min(max(fice_avg(:),0.0_r_2),1._r_2)  
 
     where(fice_avg(:) < ssnow%fracice(:,ms)) fice_avg(:) = ssnow%fracice(:,ms)         !frozen ms limits qh
@@ -1833,15 +1838,15 @@ USE cable_common_module
     ssnow%wbliq = ssnow%wbliq + rt(:,1:ms)! - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
     ssnow%GWwb  = ssnow%GWwb  + rt(:,ms+1)! - qhlev(:,ms+1)*dels/GWdzmm
 
-    msliq       = ssnow%wbliq * spread(dzmm,1,mp)                     !liquid mass
-    msice       = ssnow%wbice*dri * spread(dzmm,1,mp)                 !ice mass
-    GWmsliq     = ssnow%GWwb * GWdzmm
+    msliq       = ssnow%wbliq * dzmm_mp                    !liquid mass
+    msice       = ssnow%wbice * dzmm_mp * dri              !ice mass
+    GWmsliq     = ssnow%GWwb  * GWdzmm
 
     !determine the available pore space
     !volumetric
     eff_por     = soil%watsat - ssnow%wbice
     !mass of liquid that can fit in eff_por
-    mss_por     = eff_por * spread(dzmm,1,mp)
+    mss_por     = eff_por * dzmm_mp
     
     xsi(:) = 0._r_2
 
@@ -1926,8 +1931,8 @@ USE cable_common_module
     !update all variabes
     ssnow%wmliq(:,:) = msliq(:,:)
     ssnow%wmice(:,:) = msice(:,:)
-    ssnow%wbliq(:,:) = msliq(:,:) /  (spread(soil%zse,1,mp)*C%denliq)     !convert from mm to volumetric
-    ssnow%wbice(:,:) = msice(:,:) /  (spread(soil%zse,1,mp)*C%denice)     !convert from mm to volumetric
+    ssnow%wbliq(:,:) = msliq(:,:) /  (dzmm_mp)     !convert from mm to volumetric
+    ssnow%wbice(:,:) = msice(:,:) /  (dzmm_mp * dri)     !convert from mm to volumetric
     ssnow%GWwb(:)    = GWmsliq(:) / GWdzmm(:)  
     ssnow%wb         = ssnow%wbliq(:,:) + ssnow%wbice(:,:)
     ssnow%wmtot      = ssnow%wmliq(:,:) + ssnow%wmice(:,:)
@@ -2189,9 +2194,12 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor
     REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters
     REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
+    REAL(r_2), DIMENSION(mp,ms)        :: dzmm_mp
 
-    icemass  = ssnow%wbice(:,:) * 1000._r_2 * real(spread(soil%zse,1,mp),r_2)
-    liqmass  = (ssnow%wb-ssnow%wbice) * 1000._r_2 * real(spread(soil%zse,1,mp),r_2)
+    dzmm_mp  = 1000._r_2 * real(spread(soil%zse,1,mp),r_2)
+
+    icemass  = ssnow%wbice(:,:) * dzmm_mp * dri
+    liqmass  = (ssnow%wb-ssnow%wbice) * dzmm_mp
     totmass  = icemass + liqmass
 
     where (totmass .lt. real(1e-2,r_2)) totmass = real(1e-2,r_2)
