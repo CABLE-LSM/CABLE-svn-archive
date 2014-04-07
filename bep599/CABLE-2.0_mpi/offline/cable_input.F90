@@ -2762,6 +2762,13 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    !         nmetpatches,'def')
    CALL readpar(ncid_met,'patchfrac',completeSet,patch(:)%frac,filename%met,   &
                 nmetpatches,'def')
+   DO ee=1, mland ! over all land grid points 
+      DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
+        IF(ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
+           casamet%areacell(hh) = patch(hh)%frac * casamet%areacell(hh)
+        ENDIF
+      END DO
+   END DO 
 !    CALL readpar(ncid_met,'isoil',completeSet,soil%isoilm,filename%met, &
 !         nmetpatches,'def')
    CALL readpar(ncid_met,'clay',completeSet,soil%clay,filename%met,            &

@@ -81,6 +81,7 @@ MODULE cable_param_module
   INTEGER, DIMENSION(:, :, :),    ALLOCATABLE :: inVeg
   REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPFrac
   INTEGER, DIMENSION(:, :),       ALLOCATABLE :: inSoil
+  REAL,    DIMENSION(:, :),       ALLOCATABLE :: inLand
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inWB
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inTGG
   REAL,    DIMENSION(:),          ALLOCATABLE :: inLon
@@ -272,7 +273,8 @@ CONTAINS
 !      ALLOCATE( landFrac(nlon, nlat, 1, 1) )
 !    END IF
     ALLOCATE( inSoil(nlon, nlat) )
-    ALLOCATE(  inWB(nlon, nlat, nslayer,ntime) )
+    ALLOCATE( inLand(nlon, nlat) )
+    ALLOCATE( inWB(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inTGG(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inSND(nlon, nlat, npatch,ntime) )
     ALLOCATE( inLAI(nlon, nlat, ntime) )
@@ -341,17 +343,22 @@ CONTAINS
         inSoil(:,:) = 2
       END WHERE
 
-    ELSE
+      ok = NF90_INQ_VARID(ncid, 'land_fraction', varID)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
+      ok = NF90_GET_VAR(ncid, varID, inLand)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable isoil.')
 
-      ok = NF90_INQ_VARID(ncid, 'iveg', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-      ok = NF90_GET_VAR(ncid, varID, idummy)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
-      DEALLOCATE(idummy)
-
-      ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
+    ELSE  
+  
+      ok = NF90_INQ_VARID(ncid, 'iveg', varID)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')  
+      ok = NF90_GET_VAR(ncid, varID, idummy)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')  
+      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input  
+      DEALLOCATE(idummy)  
+  
+      ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)  
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &  
                                         'Error finding variable patchfrac.')
       ok = NF90_GET_VAR(ncid, varID, inPFrac)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
@@ -1343,23 +1350,26 @@ CONTAINS
       DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
         casamet%lon(hh) = patch(hh)%longitude
         casamet%lat(hh) = patch(hh)%latitude
-        casamet%areacell(hh) = patch(hh)%frac                                  &
-                               * inArea(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Nmindep(hh) = patch(hh)%frac                                  &
-                               * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Nminfix(hh) = patch(hh)%frac                                  &
-                               * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Pdep(hh)    = patch(hh)%frac                                  &
-                               * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-        casaflux%Pwea(hh)    = patch(hh)%frac                                  &
-                               * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
-        ! fertilizer addition is included here
+        IF(.NOT. ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
+           casamet%areacell(hh) = patch(hh)%frac                                  &
+                                 * inArea(landpt(ee)%ilon, landpt(ee)%ilat) * inLand(landpt(ee)%ilon, landpt(ee)%ilat)
+        ELSE
+           casamet%areacell(hh) = inArea(landpt(ee)%ilon, landpt(ee)%ilat) * inLand(landpt(ee)%ilon, landpt(ee)%ilat)
+        END IF
+      !Just temporarily store inArea in casamet%areacell by Chris on 31/Jan/2014
+      !since areacell will be updated due to patchfrac will be updated 
+      !in get_parameter_met, if patchfrac is found in met file (only applied for single run).
+        casaflux%Nmindep(hh) = inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Nminfix(hh) = inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
+        casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
+       ! fertilizer addition is included here
         IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
-          ! P fertilizer =13 Mt P globally in 1994
-          casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                                 + patch(hh)%frac * 0.7 / 365.0
-          casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                                 + patch(hh)%frac * 4.0 / 365.0
+       ! P fertilizer =13 Mt P globally in 1994
+        casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
+                              + 0.7 / 365.0
+        casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
+                              + 4.0 / 365.0
         ENDIF
       ENDDO
     ENDDO
