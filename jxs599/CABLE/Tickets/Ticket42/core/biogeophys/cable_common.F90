@@ -41,7 +41,7 @@ MODULE cable_common_module
    CHARACTER(LEN=200) ::                                                       & 
       myhome
 
-   ! switch to calc sil albedo using soil colour - Ticket #27
+   ! switch to calc soil albedo using soil colour - Ticket #27
    LOGICAL :: calcsoilalbedo = .FALSE. 
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
@@ -73,16 +73,23 @@ MODULE cable_common_module
          DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
          LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
 
+      ! intro vars for Ticket #42
+      CHARACTER(LEN=10) ::                                                     &
+         SMRF_NAME,   & ! Soil Moist Respiration Function
+         STRF_NAME      ! Soil Temp Respiration Function
+
       LOGICAL ::                                                               &
-         INITIALIZE_MAPPING = .FALSE., & ! 
-         CONSISTENCY_CHECK = .FALSE.,  & !
-         CASA_DUMP_READ = .FALSE.,     & !
-         CASA_DUMP_WRITE = .FALSE.,    & !
+         INITIALIZE_MAPPING = .FALSE.,    & ! 
+         CONSISTENCY_CHECK = .FALSE.,     & !
+         CASA_DUMP_READ = .FALSE.,        & !
+         CASA_DUMP_WRITE = .FALSE.,       & !
          CABLE_RUNTIME_COUPLED = .FALSE., & !
          ! L.Stevens - Test Switches
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
-         L_NEW_REDUCE_SOILEVP  = .FALSE.!
+         L_NEW_REDUCE_SOILEVP  = .FALSE., & !
+         SRF = .FALSE.                      ! Use customised Soil Respiration
+                                            ! Functions - see Ticket #42
 
 
    END TYPE kbl_user_switches
