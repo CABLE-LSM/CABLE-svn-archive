@@ -313,7 +313,7 @@ SUBROUTINE mpidrv_master (comm)
        globalMetfile%l_gswp   = .FALSE.
        globalMetfile%l_access = .FALSE.
        PRINT *, 'Using GPCC met forcing.'
-       IF (ncciy < 1948 .OR. ncciy > 2008) THEN
+       IF (ncciy < 1901 .OR. ncciy > 2010) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
@@ -364,6 +364,18 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
+
+   spinConv = .FALSE. ! initialise spinup convergence variable
+   if(.not.spinup)  spinConv=.true.
+   
+   if(icycle>0) then
+     if (spincasa) then
+      print *, 'spincasacnp enabled with mloop= ', mloop
+      ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
+      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,     &
+                       casabiome,casapool,casaflux,casamet,casabal,phen)
+     endif
+   endif
 
    ! MPI: above was standard serial code
    ! now it's time to initialize the workers
@@ -442,15 +454,6 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-
-   ! added by ypwang following Chris Lu   
-   if(icycle>0) then
-     if (spincasa) then
-       print *, 'spincasacnp enabled with mloop= ', mloop
-       call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
-                        casabiome,casapool,casaflux,casamet,casabal,phen)
-     endif
-   endif
 
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
