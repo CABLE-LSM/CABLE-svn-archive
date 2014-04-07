@@ -330,13 +330,19 @@ PROGRAM cable_offline_driver
          IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
                                                 casapool, casamet )
    
+         write(77,*) ktau,veg%vlai(1625)  
+
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
-   
+     
+         write(77,*) ktau,casamet%glai(1625), veg%vcmax(1625)
+
          ! CALL land surface scheme for this timestep, all grid points:
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
    
+         write(77,*) 'cable-driver: ',ktau,veg%vlai(1625),veg%vcmax(1625),canopy%fpn(1625),canopy%frday(1625)
+
          ssnow%smelt = ssnow%smelt*dels
          ssnow%rnof1 = ssnow%rnof1*dels
          ssnow%rnof2 = ssnow%rnof2*dels

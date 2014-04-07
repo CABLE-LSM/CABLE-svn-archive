@@ -1098,7 +1098,7 @@ END SUBROUTINE spincasacnp
                                   +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
                                 /casaflux%ksoil(npt,pass)
       if(icycle <=1) then
-         casapool%nlitter(npt,:)= casapool%rationclitter(npt,:) * casapool%clitter(npt,:)
+         casapool%nlitter(npt,:)= casapool%ratioNClitter(npt,:) * casapool%clitter(npt,:)
          casapool%nsoil(npt,:)  = casapool%ratioNCsoil(npt,:)   * casapool%Csoil(npt,:)
          casapool%nsoilmin(npt) = 2.0
          casabal%sumnbal(npt)   = 0.0
@@ -1132,8 +1132,8 @@ END SUBROUTINE spincasacnp
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-            casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-            casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
+            casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
+            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
@@ -1147,15 +1147,15 @@ END SUBROUTINE spincasacnp
           casapool%psoil(npt,mic)   = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb)   &
                                      +casaflux%fromLtoS(npt,mic,str) *casaflux%klitter(npt,str)*casapool%clitter(npt,str)  &
                                      +casaflux%fromLtoS(npt,mic,cwd) *casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) ) &
-                                   * casapool%ratioPCsoil(npt,mic)/casaflux%ksoil(npt,mic)
+                                   * (casapool%ratioNCsoil(npt,mic)/casapool%ratioNPsoil(npt,mic))/casaflux%ksoil(npt,mic)
           casapool%psoil(npt,slow)  = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
                                      + casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str) &
                                      + casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) &
                                      + casaflux%fromStoS(npt,slow,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)  ) &
-                                   * casapool%ratioPCsoil(npt,slow)/casaflux%ksoil(npt,slow)
+                                   * (casapool%ratioNCsoil(npt,slow)/casapool%ratioNPsoil(npt,slow))/casaflux%ksoil(npt,slow)
           casapool%psoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
                                      +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
-                                   * casapool%ratioPCsoil(npt,pass)/casaflux%ksoil(npt,pass)
+                                   *  (casapool%ratioNCsoil(npt,pass)/casapool%ratioNPsoil(npt,pass))/casaflux%ksoil(npt,pass)
           ! assign the mineral pools
           casapool%psoillab(npt)      = avgpsoillab(npt)
           casapool%psoilsorb(npt)     = avgPsoilsorb(npt)

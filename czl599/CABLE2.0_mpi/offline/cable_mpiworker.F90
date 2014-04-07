@@ -2162,11 +2162,11 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mvtype * mplant * extr2
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casabiome%ratioPCplantmin, displs(bidx), ierr)
+  CALL MPI_Get_address (casabiome%ratioNPplantmin, displs(bidx), ierr)
   blen(bidx) = mvtype * mplant * extr2
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casabiome%ratioPCplantmax, displs(bidx), ierr)
+  CALL MPI_Get_address (casabiome%ratioNPplantmax, displs(bidx), ierr)
   blen(bidx) = mvtype * mplant * extr2
 
   bidx = bidx + 1
@@ -2228,7 +2228,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mplant * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioPCplant, displs(bidx), ierr)
+  CALL MPI_Get_address (casapool%ratioNPplant, displs(bidx), ierr)
   blen(bidx) = mplant * r2len
 
   bidx = bidx + 1
@@ -2292,7 +2292,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mlitter * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioPClitter, displs(bidx), ierr)
+  CALL MPI_Get_address (casapool%ratioNPlitter, displs(bidx), ierr)
   blen(bidx) = mlitter * r2len
 
   bidx = bidx + 1
@@ -2324,7 +2324,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = msoil * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioPCsoil, displs(bidx), ierr)
+  CALL MPI_Get_address (casapool%ratioNPsoil, displs(bidx), ierr)
   blen(bidx) = msoil * r2len
 
   bidx = bidx + 1
@@ -5194,7 +5194,7 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   blocks(bidx) = r2len * mplant
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioPCplant(off,1), displs(bidx), ierr)
+  CALL MPI_Get_address (casapool%ratioNPplant(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * mplant
 
   bidx = bidx + 1
@@ -5202,7 +5202,7 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   blocks(bidx) = r2len * mlitter
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioPClitter(off,1), displs(bidx), ierr)
+  CALL MPI_Get_address (casapool%ratioNPlitter(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * mlitter
 
   bidx = bidx + 1
@@ -5210,7 +5210,7 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   blocks(bidx) = r2len * msoil
 
   bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
+  CALL MPI_Get_address (casapool%ratioNPsoil(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * msoil
 
   ! added by yp wang 27-nov-2012 for variables for spinning casa-cnp

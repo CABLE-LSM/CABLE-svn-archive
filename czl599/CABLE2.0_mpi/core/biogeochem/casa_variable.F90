@@ -94,7 +94,7 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: fixed_stem=1.0/3.0
   REAL(r_2), PARAMETER :: Q10alloc=2.0
   REAL(r_2), PARAMETER :: ratioNCstrfix = 1.0/150.0
-  REAL(r_2), PARAMETER :: ratioPCstrfix = ratioNCstrfix/25.0
+  REAL(r_2), PARAMETER :: ratioNPstrfix = 25.0                  
   REAL(r_2), PARAMETER :: fracCbiomass = 0.50
   REAL(r_2), PARAMETER :: tsoilrefc=25.0
   REAL(r_2), PARAMETER :: tkzeroc=273.15
@@ -149,8 +149,8 @@ MODULE casavariable
                                        fraclabile,      &
                                        ratioNCplantmin, &
                                        ratioNCplantmax, &
-                                       ratioPCplantmin, &
-                                       ratioPCplantmax, &
+                                       ratioNPplantmin, &
+                                       ratioNPplantmax, &
                                        fracLigninplant, &
                                        ftransNPtoL,     &
                                        ftransPPtoL,     &
@@ -168,7 +168,7 @@ MODULE casavariable
                                        dNplantdt,     &
                                        dPplantdt,     &
                                        ratioNCplant,  &
-                                       ratioPCplant
+                                       ratioNPplant
     REAL(r_2), DIMENSION(:),POINTER :: Nsoilmin,      &
                                        Psoillab,      &
                                        Psoilsorb,     &
@@ -184,7 +184,7 @@ MODULE casavariable
                                        dNlitterdt,    &
                                        dPlitterdt,    &
                                        ratioNClitter, &
-                                       ratioPClitter
+                                       ratioNPlitter
     REAL(r_2), DIMENSION(:,:),POINTER :: Csoil,       &
                                        Nsoil,         &
                                        Psoil,         &
@@ -193,7 +193,7 @@ MODULE casavariable
                                        dPsoildt,      &
                                        ratioNCsoil,   &
                                        ratioNCsoilnew,&
-                                       ratioPCsoil,   &
+                                       ratioNPsoil,   &
                                        ratioNCsoilmin,&
                                        ratioNCsoilmax
   END TYPE casa_pool
@@ -390,8 +390,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%fraclabile(mvtype,mplant),      &
            casabiome%ratioNCplantmin(mvtype,mplant), &
            casabiome%ratioNCplantmax(mvtype,mplant), &
-           casabiome%ratioPCplantmin(mvtype,mplant), &
-           casabiome%ratioPCplantmax(mvtype,mplant), &
+           casabiome%ratioNPplantmin(mvtype,mplant), &
+           casabiome%ratioNPplantmax(mvtype,mplant), &
            casabiome%fracLigninplant(mvtype,mplant), &
            casabiome%ftransNPtoL(mvtype,mplant),     &
            casabiome%ftransPPtoL(mvtype,mplant),     &
@@ -407,7 +407,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNplantdt(arraysize,mplant),      &
            casapool%dPplantdt(arraysize,mplant),      &
            casapool%ratioNCplant(arraysize,mplant),   &
-           casapool%ratioPCplant(arraysize,mplant),   &
+           casapool%ratioNPplant(arraysize,mplant),   &
            casapool%Nsoilmin(arraysize),              &
            casapool%Psoillab(arraysize),              &
            casapool%Psoilsorb(arraysize),             &
@@ -423,7 +423,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNlitterdt(arraysize,mlitter),    &
            casapool%dPlitterdt(arraysize,mlitter),    &
            casapool%ratioNClitter(arraysize,mlitter), &
-           casapool%ratioPClitter(arraysize,mlitter), &
+           casapool%ratioNPlitter(arraysize,mlitter), &
            casapool%Csoil(arraysize,msoil),           &
            casapool%Nsoil(arraysize,msoil),           &
            casapool%Psoil(arraysize,msoil),           &
@@ -431,7 +431,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNsoildt(arraysize,msoil),        &
            casapool%dPsoildt(arraysize,msoil),        &
            casapool%ratioNCsoil(arraysize,msoil),     &
-           casapool%ratioPCsoil(arraysize,msoil),     &
+           casapool%ratioNPsoil(arraysize,msoil),     &
            casapool%ratioNCsoilnew(arraysize,msoil),  &
            casapool%ratioNCsoilmin(arraysize,msoil),  &
            casapool%ratioNCsoilmax(arraysize,msoil))
