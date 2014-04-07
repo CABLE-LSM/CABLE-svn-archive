@@ -188,10 +188,10 @@ MODULE cable_common_module
    TYPE gw_parameters_type
 
       REAL ::                                                             &
-        MaxSatFraction,                                                &
-        MaxHorzDrainRate,                                           &
-        EfoldHorzDrainRate,                                            &
-        EfoldMaxSatFrac
+        MaxSatFraction=0.3,                                                &
+        MaxHorzDrainRate=0.0001,                                           &
+        EfoldHorzDrainRate=0.5,                                            &
+        EfoldMaxSatFrac=0.5
 
    END TYPE gw_parameters_type
 
