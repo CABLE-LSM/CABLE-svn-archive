@@ -2025,18 +2025,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                                                   ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
-
-         DO k = 1, ms
-
-            ssnow%wb(:,k)  = MIN( soil%watsat(:,k),MAX ( ssnow%wb(:,k), soil%swilt(:) ))   
-
-         END DO
-   
-         ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-2),           &
-                             0.5 * ( soil%sfc + soil%swilt ) ) )
-         ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-1),           &
-                             0.8 * soil%sfc ) )
-         ssnow%wb(:,ms)    = MIN( soil%ssat, MAX ( ssnow%wb(:,ms), soil%sfc) )
+         ssnow%wb(:,:)  = MIN( soil%watsat(:,:), MAX ( ssnow%wb(:,:), spread(soil%swilt(:),2,ms) ) )   
 
          DO k = 1, ms
             
