@@ -1567,7 +1567,7 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
   ENDIF
   ENDDO
 
-  np=4104  
+!  np=4104  
 !  write(77,701) np,1.0/casabiome%rationcplantmin(veg%iveg(np),:),1.0/casabiome%rationcplantmax(veg%iveg(np),:),casapool%Nsoilmin(np), &
 !                   1.0/ncplantmax(np,:),Nreqmin(np,:),Nreqmax(np,:),casapool%cplant(np,:)/casapool%nplant(np,:),  &
 !                       casapool%cplant(np,:),casapool%nplant(np,:), xnCnpp(np),casaflux%fracCalloc(np,:), min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0))
@@ -1662,7 +1662,7 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
   IF(casamet%iveg2(np)/=icewater) then
     Preqmax(np,leaf) = xpCnpp(np)* casaflux%fracCalloc(np,leaf) &
                     * (casapool%Nplant(np,leaf)/(casapool%Cplant(np,leaf)+1.0e-10))/casabiome%ratioNPplantmin(veg%iveg(np),leaf)
-    Preqmax(np,wood) = casaflux%Cnpp(np)* casaflux%fracCalloc(np,wood) &
+    Preqmax(np,wood) = xpCnpp(np)* casaflux%fracCalloc(np,wood) &
                     * (casapool%Nplant(np,wood)/(casapool%Cplant(np,wood)+1.0e-10))/casabiome%ratioNPplantmin(veg%iveg(np),wood)
     Preqmax(np,froot) = xpCnpp(np)* casaflux%fracCalloc(np,froot) &
                     * (casapool%Nplant(np,froot)/(casapool%Cplant(np,froot)+1.0e-10))/casabiome%ratioNPplantmin(veg%iveg(np),froot)

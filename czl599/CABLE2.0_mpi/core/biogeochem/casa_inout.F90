@@ -1108,24 +1108,24 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   INTEGER  npt,j
 
 
-  npt=1625   
-  write(77,702) npt, casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:)
-702 format('before pools', i6,20(f10.4,2x))
-  write(77,701)  npt, casaflux%cgpp(npt), casaflux%crmplant(npt,leaf)
+!  npt=1625   
+!  write(77,702) npt, casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:)
+!702 format('before pools', i6,20(f10.4,2x))
+!  write(77,701)  npt, casaflux%cgpp(npt), casaflux%crmplant(npt,leaf)
 
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
   call avgsoil(veg,soil,casamet)
   call casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 
-  write(77,701)  npt, casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%fracCalloc(npt,:)
+!  write(77,701)  npt, casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%fracCalloc(npt,:)
 
   call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                        casamet,phen)
 
-  write(77,701)  npt, casaflux%kplant(npt,:)
+!  write(77,701)  npt, casaflux%kplant(npt,:)
 
   call casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                        casaflux,casamet)
@@ -1156,7 +1156,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
                          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-  write(77,701)  npt, casapool%dCplantdt(npt,:)
+!  write(77,701)  npt, casapool%dCplantdt(npt,:)
 
   !  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
@@ -1178,10 +1178,10 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   ! casapool%Psoillab = max(casapool%Psoillab,0.1)
 
 
-  write(77,701) ktau/24,casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:), &
-                     casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%crmplant(npt,:),casaflux%Nminuptake(npt), &
-                     real(phen%phase(npt)),casaflux%fracCalloc(npt,:), casaflux%plabuptake(npt),  &
-                     casapool%psoil(npt,:),casapool%psoillab(npt),casapool%psoilsorb(npt),casapool%psoilocc(npt)
-701 format('pool: ',i6,100(f12.5,2x))
+!  write(77,701) ktau/24,casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:), &
+!                     casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%crmplant(npt,:),casaflux%Nminuptake(npt), &
+!                     real(phen%phase(npt)),casaflux%fracCalloc(npt,:), casaflux%plabuptake(npt),  &
+!                     casapool%psoil(npt,:),casapool%psoillab(npt),casapool%psoilsorb(npt),casapool%psoilocc(npt)
+!701 format('pool: ',i6,100(f12.5,2x))
 END SUBROUTINE biogeochem
 
