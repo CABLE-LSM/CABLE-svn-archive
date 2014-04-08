@@ -1637,7 +1637,7 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
   TYPE (casa_pool),                      INTENT(INOUT) :: casapool
   TYPE (casa_flux),                      INTENT(INOUT) :: casaflux
   TYPE (casa_met),                       INTENT(INOUT) :: casamet
-
+  
   ! local variables
   INTEGER :: nland,np,ip
 
@@ -1659,7 +1659,7 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
                     * casabiome%ratioPCplantmin(veg%iveg(np),wood)
     Preqmin(np,froot) = xpCnpp(np) * casaflux%fracCalloc(np,froot) &
                     * casabiome%ratioPCplantmin(veg%iveg(np),froot)
-
+    
     PtransPtoP(np,leaf) = casaflux%kplant(np,leaf)*casapool%Pplant(np,leaf) &
                        * (1.0-casabiome%ftransPPtoL(veg%iveg(np),leaf))
     PtransPtoP(np,wood) = casaflux%kplant(np,wood)*casapool%Pplant(np,wood) &
