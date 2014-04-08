@@ -2672,7 +2672,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
-    CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
+    CALL get_parameters_met(soil,veg,bgc,rough,completeSet,casamet)
 
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
@@ -2725,16 +2725,18 @@ END SUBROUTINE load_parameters
 !
 !==============================================================================
 
-SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
+SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet)
 
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc
    TYPE (roughness_type), INTENT(INOUT)      :: rough
+   TYPE (casa_met)    , INTENT(INOUT)        :: casamet
    LOGICAL, INTENT(OUT)                      :: completeSet ! were all pars found?
 
    ! Local variables
    INTEGER                              :: parID ! parameter's netcdf ID
+   INTEGER                              :: ee, hh
 
 ! removed the following section because already in IGBP types (BP apr08)
 !    ! First, if user defined surface type ratios are present in the 
