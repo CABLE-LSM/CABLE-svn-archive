@@ -577,7 +577,7 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet)
                xkwater(npt)=1.0
     xklitter(npt) = xkoptlitter(veg%iveg(npt)) * xktemp(npt) * xkwater(npt)
 
-  ! Implementing alternative parameterizations see Ticket #42
+  ! Implementing alternative parameterizations for soil respiration- Ticket #42
     IF(cable_user%SRF) THEN
       IF(trim(cable_user%SMRF_NAME)=='CASA-CNP') THEN
          smrf(npt)=xkwater(npt)
