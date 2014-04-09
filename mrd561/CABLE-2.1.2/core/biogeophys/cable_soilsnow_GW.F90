@@ -1522,7 +1522,7 @@ USE cable_common_module
     REAL(r_2), DIMENSION(mp)            :: dqodw1,dqodw2
     REAL(r_2), DIMENSION(mp)            :: s1,s2,tmpi,temp0,voleq1,tempi
     REAL(r_2), DIMENSION(ms)            :: dzmm
-    REAL(r_2), DIMENSION(ms,mp)         :: dzmm_mp
+    REAL(r_2), DIMENSION(mp,ms)         :: dzmm_mp
     REAL(r_2), DIMENSION(0:ms+1)        :: zimm
     REAL(r_2), DIMENSION(ms)            :: zmm
     REAL(r_2), DIMENSION(mp)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
