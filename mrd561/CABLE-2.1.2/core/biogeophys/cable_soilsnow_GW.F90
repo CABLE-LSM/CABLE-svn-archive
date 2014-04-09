@@ -1244,7 +1244,7 @@ USE cable_common_module
 
     where ( tmpb .lt. 0.0_r_2) tmpb = 0.0_r_2
 
-    tmpa = -2._r_2*soil%clappB(:,1)*soil%smpsat(:,1)/dzmm_mp
+    tmpa = -2._r_2*soil%clappB(:,1)*soil%smpsat(:,1)/dzmm_mp(:,1)
 
     qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*soil%hksat(:,1)
 
