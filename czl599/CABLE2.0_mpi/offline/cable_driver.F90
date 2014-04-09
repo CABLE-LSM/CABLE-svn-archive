@@ -153,7 +153,9 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-   
+   ! ypw 8april2014   
+   integer ipt
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -330,7 +332,6 @@ PROGRAM cable_offline_driver
          IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
                                                 casapool, casamet )
    
-  !       write(77,*) ktau,veg%vlai(1625)  
 
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
      
@@ -339,8 +340,6 @@ PROGRAM cable_offline_driver
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
-   
-         write(77,*) 'cable_driver: ',ktau,casamet%glai(1075), veg%vcmax(1075), canopy%vlaiw(1075), canopy%fpn(1075),canopy%frday(1075)
 
          ssnow%smelt = ssnow%smelt*dels
          ssnow%rnof1 = ssnow%rnof1*dels
@@ -357,7 +356,15 @@ PROGRAM cable_offline_driver
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
-   
+
+!         ipt = 1921 
+!         write(77,701) ktau,veg%iveg(ipt),casamet%glai(ipt), veg%vcmax(ipt)*(1.0e6), canopy%vlaiw(ipt), canopy%fpn(ipt)*(1.0e6), &
+!                            canopy%frday(ipt)*(1.0e06), &
+!                            casapool%cplant(ipt,:),casapool%nplant(ipt,:),casapool%pplant(ipt,:),  &
+!                            casapool%csoil(ipt,:), casapool%nsoil(ipt,:), casapool%psoil(ipt,:), casapool%psoillab(ipt)
+!   
+!701     format('cable driver: ', 2(i6,2x),100(f10.3,2x))
+
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
          CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
