@@ -68,7 +68,7 @@
 ################################################################################ 
 ################################################################################ 
 
-# these are the teo data files to compare
+# these are the teo data files to compare - basename[0] & basename[1]
 #set -A basename std FLUXES	
 set -A basename std latitude 
 
