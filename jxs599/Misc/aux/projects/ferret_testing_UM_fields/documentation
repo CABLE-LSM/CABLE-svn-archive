@@ -1,4 +1,0 @@
-ferret
-as this stands it is to automate the quick testing of code to verify whether it has changed output at all. compare.csh launches process, which requires CLI as ./compare.csh XXX, where XXX = UM defined $RUNID. NB if more than one dump exists in  $RUNID, this will crash
-
-NB.diff.jnl is set to read std.nc, therefore the desired fields to compare ned to be consistent, and also field name (e.g. TEMP, FIELD1391) is hardwired in diff.jnl

@@ -1,1 +1,0 @@
-../../zero_diff.ksh

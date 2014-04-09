@@ -1,9 +1,0 @@
- ! NOAA/PMEL TMAP
- ! FERRET v6.61  
- ! Linux(gfortran) 2.6.9-89.0.20.ELsmp - 04/28/10
- ! 23-Nov-11 17:36     
-
-use new.nc
-show data
-shade temp[k=17]
-exit

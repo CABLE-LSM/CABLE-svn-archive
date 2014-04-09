@@ -1,1 +1,0 @@
-../../../convert_ancil/data/soil_moisture/soil_snow.nc

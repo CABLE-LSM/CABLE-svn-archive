@@ -1,2 +1,0 @@
-  sitenames = c( 'WalkerBranch') 
-  obsfiles = c( 'data/sample_met/WalkerBranch_csiro.nc') 
