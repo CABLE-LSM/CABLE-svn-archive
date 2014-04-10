@@ -125,7 +125,7 @@ CONTAINS
   
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
-                            smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
+                            smvccl, albsoil, ho2r2_orog, tsoil_tile, sthu, sthu_tile,      &
                             dzsoil ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
@@ -141,6 +141,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       smvcst, &
       smvcwt, &
       smvccl, &
+      ho2r2_orog, &
       albsoil 
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%sm_levels) :: sthu
@@ -180,6 +181,10 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! (see below ~ um2cable_lp)
          CALL um2cable_lp( albsoil, albsoil, soil%albsoil(:,1),                &
                            soil%isoilm, skip )
+
+         CALL um2cable_lp( ho2r2_orog,ho2r2_orog,soil%ho2r2_orog,                &
+                           soil%isoilm, skip )
+
 
          !--- defined in soil_thick.h in UM
          soil%zse = dzsoil
@@ -234,7 +239,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! satcon in UM is in mm/s; Cable needs m/s
          soil%hyds    =  soil%hyds / 1000.
          soil%sucs    =  ABS( soil%sucs )
-         soil%sucs    =  MAX(0.106,soil%sucs)
+         soil%sucs    =  MAX(0.01,soil%sucs)
          
          !jhan:coupled runs 
          soil%hsbh    =  soil%hyds*ABS(soil%sucs)*soil%bch
@@ -627,6 +632,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL :: first_call = .TRUE.
+   REAL  :: TOTWBLAKE,TOTRNOF,TOTRNOF2
 
 !     not sure if this is in restart file hence repeated again
       ssnow%pudsto = 0.0; ssnow%pudsmx = 0.0
@@ -650,17 +656,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ssnow%tggsn(:,J) = PACK(SNOW_TMP3L(:,:,J),um1%l_tile_pts)  
          ssnow%sconds(:,J)= PACK(SNOW_COND(:,:,J),um1%l_tile_pts)  
          
-         WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) ! lakes: remove hard-wired number in future version
-            ssnow%wbtot1 = ssnow%wbtot1 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
-                           soil%zse(J)
-            ssnow%wb(:,J) = soil%sfc
-            ssnow%wbtot2 = ssnow%wbtot2 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
-                           soil%zse(J)
-         ENDWHERE
-      
       ENDDO 
-      ssnow%wb_lake = MAX( ssnow%wbtot2 - ssnow%wbtot1, 0.)
-       
+
       DO J=1,um1%sm_levels
          ssnow%tgg(:,J) = PACK(TSOIL_TILE(:,:,J),um1%l_tile_pts)
       ENDDO 
@@ -722,9 +719,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
             ssnow%wb(:,J)  = pack(fwork(:,:,J),um1%l_tile_pts)
             ssnow%wbice(:,J) = pack(fwork(:,:,J+um1%SM_LEVELS),um1%l_tile_pts)
             ssnow%wbice(:,J) = max(0.,ssnow%wbice(:,J))
-            ! lakes: removed hard-wired number in future version
-            !WHERE( veg%iveg == 16 ) ssnow%wb(:,J) = 0.95*soil%ssat
-            WHERE( veg%iveg == 16 ) ssnow%wb(:,J) = soil%sfc
          ENDDO
          
          DEALLOCATE( fwork )
@@ -766,9 +760,36 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
         
          DEALLOCATE( fwork )
 
-         first_call = .FALSE.
-
       ENDIF ! END: if (first_call)       
+
+      DO J=1, msn
+         
+         WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) ! lakes: remove hard-wired number in future version
+            ssnow%wbtot1 = ssnow%wbtot1 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
+                           soil%zse(J)
+            ssnow%wb(:,J) = soil%sfc
+            ssnow%wbtot2 = ssnow%wbtot2 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
+                           soil%zse(J)
+         ENDWHERE
+      
+      ENDDO 
+      ssnow%wb_lake = MAX( ssnow%wbtot2 - ssnow%wbtot1, 0.)
+!      TOTWBLAKE = sum(ssnow%wb_lake)
+!      TOTRNOF = sum(ssnow%rnof1 + ssnow%rnof2)
+!      TOTRNOF2 = sum(ssnow%rnof2)
+!
+!      print 102,TOTWBLAKE,TOTRNOF*1800.,TOTRNOF2*1800.,TOTWBLAKE/TOTRNOF2/1800.
+!102   FORMAT(1X,'INILAKE',6e12.3)
+!       do k =1,mp 
+!           if( ssnow%wb_lake(k) > 0. ) print 97,k,(ssnow%wb(k,J),j=1,6),soil%sfc(k), &
+!                                 ssnow%wb_lake(k),ssnow%rnof1(k),ssnow%rnof2(k)
+!97         format(1x,'ilake',i5,6f6.3,1x,f6.3,2x,2f6.3)
+!           !if( ssnow%wb_lake(k) > 0.0) print 99,k,ssnow%wb_lake(k)
+!99      format('initwblake',i5,10e10.3)
+!        enddo
+
+        first_call = .FALSE.
+
 
 END SUBROUTINE initialize_soilsnow
  

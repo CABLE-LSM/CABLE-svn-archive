@@ -273,7 +273,7 @@ END SUBROUTINE mass_balance
 !==============================================================================
 
 SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
-                             SBOLTZ,EMLEAF, EMSOIL )
+                             SBOLTZ,EMLEAF, EMSOIL, ktau )
 
    ! Input arguments
    REAL,INTENT(IN)              :: dels   ! time step size
@@ -286,22 +286,22 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
       SBOLTZ,  & !Stefan-Bolzman constant
       EMLEAF,  & !leaf emissivity
       EMSOIL     !leaf emissivity
+   Integer k,ktau
+   REAL, DIMENSION(mp) :: EB2,EB3
+   !Real tot_eb1(mp),tot_eb2(mp),tot_eb3(mp)
+   !save tot_eb1,tot_eb2,tot_eb3
 
      
  
    ! SW absorbed + LW absorbed - (LH+SH+ghflux) should = 0
    !bal%ebal = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs         &
-   bal%ebal_cncheck = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs &
-        +met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)                     &
-        -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
-        !& -rad%flws*rad%transd -canopy%fev-canopy%fes * ssnow%cls &
-        * ssnow%cls -canopy%fh -canopy%ga                ! removed bug (EK 1jul08)
+   !bal%ebal_cncheck = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs &
+   !     +met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)                     &
+   !     -sboltz*emsoil*ssnow%otss**4*rad%transd -canopy%fev-canopy%fes          &
+   !     * ssnow%cls -canopy%fh - canopy%fes_cor - canopy%fhs_cor - canopy%ga 
    ! Add to cumulative balance:
    !bal%ebal_tot = bal%ebal_tot + bal%ebal
-   bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
-
-      
-
+   !bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
 !   Atmosphere and radiation code in the global model can 'see' only fluxes, surface 
 !   temperature and albedo from CABLE. Those variables as calculated at the end of the given 
 !   time step need to be used for the evaluation of the SEB
@@ -309,15 +309,20 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
    !bal%ebal_cncheck = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))*met%fsd(:,2)  &
    bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))       &
         *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)        &
+        -sboltz*emsoil*ssnow%otss**4*rad%transd -canopy%fev-canopy%fes          &
+        * ssnow%cls-canopy%fh + canopy%fes_cor + canopy%fhs_cor - canopy%ga                
+   bal%tot_eb1 = bal%tot_eb1 + bal%ebal
+!   bal%ebal_tot = bal%ebal_tot + bal%ebal
+
+   EB2 = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))       &
+        *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)        &
         -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
-        * ssnow%cls-canopy%fh                 
-   bal%ebal_tot = bal%ebal_tot + bal%ebal
-  
-      
-   !bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
-!    print 11,bal%ebal_cncheck,bal%ebal_tot_cncheck,bal%ebal,bal%ebal_tot
-!11  format(1x,'Ebal_cncheck, Ebal',f6.1,f8.0,2x,f6.1,f8.0)
-    
+        * ssnow%cls-canopy%fh - ssnow%Tghflux  
+        !* ssnow%cls-canopy%fh + canopy%fhs_corm + canopy%fes_corm - ssnow%Tghflux          
+   bal%tot_eb2 = bal%tot_eb2 +  EB2
+
+   print 12,ktau,met%fsd(:,1)+met%fsd(:,2),bal%ebal,EB2,ssnow%Tghflux,canopy%ga,(ssnow%ghflux(:,k),k=1,6),ssnow%snowd,ssnow%otss,ssnow%tss,(ssnow%tgg(:,k),k=2,6),canopy%fhs,canopy%fes,met%fld,met%tk,canopy%tv,met%tvair,canopy%fhs_cor,canopy%fes_cor,ssnow%dtmlt(:,1),bal%tot_eb1,bal%tot_eb2,ssnow%sicefrez_T,ssnow%sicemelt_T,(ssnow%soiliceFM(1,k),k=1,6),canopy%us
+12 format('sC',i5,f5.0,2f6.1,2f6.1,6f4.0,f4.1,7f6.1,1x,f4.0,f6.0,f4.0,3f6.1,3f4.0,2e9.3,2f4.0,6f4.0,f6.2)
 END SUBROUTINE energy_balance
 
 !==============================================================================

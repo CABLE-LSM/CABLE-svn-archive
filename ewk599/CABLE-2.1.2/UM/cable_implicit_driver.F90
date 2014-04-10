@@ -609,8 +609,8 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
            FTL_1(I,J) = FTL_1(I,J)+FLAND(L)*um1%TILE_FRAC(L,N)*FTL_TILE(L,N)
            FQW_1(I,J) = FQW_1(I,J)+FLAND(L)*um1%TILE_FRAC(L,N)*FQW_TILE(L,N)
            SURF_HT_FLUX_LAND(I,J) = SURF_HT_FLUX_LAND(I,J) +                   &
-                                    FLAND(L)*um1%TILE_FRAC(L,N) *              &
-                                    SURF_HTF_T_CAB(L,N)
+                                    um1%TILE_FRAC(L,N) * SURF_HTF_T_CAB(L,N)
+                                    !FLAND(L)*um1%TILE_FRAC(L,N) *  ! done isf_impl            &
          ENDDO
       ENDDO
 

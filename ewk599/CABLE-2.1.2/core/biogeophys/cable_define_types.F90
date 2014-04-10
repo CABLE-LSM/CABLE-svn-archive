@@ -90,7 +90,8 @@ MODULE cable_def_types_mod
          delwc_tot,        & ! energy balance for wet canopy
          qasrf_tot,        & ! heat advected to the snow by precip. 
          qfsrf_tot,        & ! energy of snowpack phase changes 
-         qssrf_tot           ! energy of snowpack phase changes 
+         qssrf_tot,        &   ! energy of snowpack phase changes 
+         tot_eb1,tot_eb2,tot_eb3
 
    END TYPE balances_type
 
@@ -120,14 +121,15 @@ MODULE cable_def_types_mod
          swilt,   & ! vol H2O @ wilting
          zse,     & ! thickness of each soil layer (1=top) in m
          zshh,    & ! distance between consecutive layer midpoints (m)
-         albsoilf   ! soil reflectance
+         albsoilf, &   ! soil reflectance
+         ho2r2_orog
      
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          cnsd,    & ! thermal conductivity of dry soil [W/m/K]
          pwb_min    ! working variable (swilt/ssat)**ibp2
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
-         albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
+         albsoil     ! soil reflectance (2nd dim. BP 21Oct2009)
 
   END TYPE soil_parameter_type
 
@@ -167,7 +169,7 @@ MODULE cable_def_types_mod
          owetfac, & ! surface wetness fact. at previous time step
          t_snwlr, & ! top snow layer depth in 3 layer snowpack
          tggav,   & ! mean soil temperature in K
-         otgg,    & ! soil temperature in K
+         !otgg,    & ! soil temperature in K
          otss,    & ! surface temperature (weighted soil, snow)
          otss_0,  & ! surface temperature (weighted soil, snow)
          tprecip, &
@@ -180,13 +182,17 @@ MODULE cable_def_types_mod
          qasrf,   & ! heat advected to the snow by precip. 
          qfsrf,   & ! energy of snowpack phase changes 
          qssrf,   & ! sublimation 
+         sicefrez_T, &
+         sicemelt_T, &
          snage,   & ! snow age
          snowd,   & ! snow depth (liquid water)
          smelt,   & ! snow melt 
          ssdnn,   & ! average snow density
          tss,     & ! surface temperature (weighted soil, snow)
+        ! otgg1,   &
          tss_p,   & ! surface temperature (weighted soil, snow)
          deltss,  & ! surface temperature (weighted soil, snow)
+         Tghflux,  & ! total ground heat flux (W/m2) ???
          owb1       ! surface temperature (weighted soil, snow)
  
       REAL, DIMENSION(:,:), POINTER ::                                         &
@@ -194,6 +200,7 @@ MODULE cable_def_types_mod
          sdepth,     & ! snow depth
          smass,      & ! snow mass
          ssdn,       & ! snow densities
+         ghflux,     & ! ground heat flux (W/m2) ???
          tgg,        & ! soil temperature in K
          tggsn,      & ! snow temperature in K
          dtmlt,      & ! water flux to the soil
@@ -207,6 +214,7 @@ MODULE cable_def_types_mod
      
       REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
          gammzz,  & ! heat capacity for each soil layer
+         soiliceFM, &
          wb,      & ! volumetric soil moisture (solid+liq)
          wbice,   & ! soil ice
          wblf,    & !
@@ -290,8 +298,9 @@ MODULE cable_def_types_mod
          fns,     & ! net rad avail to soil (W/m2)
          fhs,     & ! sensible heat flux from soil
          fhs_cor, &
+         fhs_corm, &
          ga,      & ! ground heat flux (W/m2) ???
-         ghflux,  & ! ground heat flux (W/m2) ???
+         !ghflux,  & ! ground heat flux (W/m2) ???
          precis,  & ! throughfall to soil, after snow (mm)
          qscrn,   & ! specific humudity at screen height (g/g)
          rnet,    & ! net radiation absorbed by surface (W/m2)
@@ -319,6 +328,7 @@ MODULE cable_def_types_mod
          dgdtg,   & ! derivative of gflux wrt soil temp
          fes,     & ! latent heatfl from soil (W/m2)
          fes_cor, & ! latent heatfl from soil (W/m2)
+         fes_corm, & ! latent heatfl from soil (W/m2)
          fevc       ! dry canopy transpiration (W/m2)
 
    END TYPE canopy_type
@@ -562,6 +572,10 @@ SUBROUTINE alloc_balances_type(var, mp)
    allocate( var% qasrf_tot(mp) )
    allocate( var% qfsrf_tot(mp) ) 
    allocate( var% qssrf_tot(mp) ) 
+   allocate( var% tot_eb1(mp) ) 
+   allocate( var% tot_eb2(mp) ) 
+   allocate( var% tot_eb3(mp) ) 
+
 
 END SUBROUTINE alloc_balances_type
 
@@ -594,6 +608,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% albsoil(mp, nrb) )  
    allocate( var% pwb_min(mp) )  
    allocate( var% albsoilf(mp) )  
+   allocate( var% ho2r2_orog(mp) )  
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -637,10 +652,13 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% ssdnn(mp) ) 
    ALLOCATE( var% tgg(mp,ms) )   
    ALLOCATE( var% tggsn(mp,msn) ) 
+   !ALLOCATE( var% otgg1(mp) )   
    ALLOCATE( var% tss(mp) )   
    ALLOCATE( var% tss_p(mp) )   
    ALLOCATE( var% deltss(mp) )   
    ALLOCATE( var% owb1(mp) )   
+   ALLOCATE( var% ghflux(mp,ms) )    
+   ALLOCATE( var% Tghflux(mp) )    
    ALLOCATE( var% wb(mp,ms) )    
    ALLOCATE( var% wbice(mp,ms) ) 
    ALLOCATE( var% wblf(mp,ms) ) 
@@ -656,7 +674,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%t_snwlr(mp) )  
    ALLOCATE( var%wbfice(mp,ms) )  
    ALLOCATE( var%tggav(mp) )  
-   ALLOCATE( var%otgg(mp) )   
+!   ALLOCATE( var%otgg(mp) )   
    ALLOCATE( var%otss(mp) )   
    ALLOCATE( var%otss_0(mp) )   
    ALLOCATE( var%tprecip(mp) ) 
@@ -670,6 +688,9 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%qasrf(mp) )  
    ALLOCATE( var%qfsrf(mp) )  
    ALLOCATE( var%qssrf(mp) )  
+   ALLOCATE( var%soiliceFM(mp,ms) )  
+   allocate( var% sicefrez_T(mp) ) 
+   allocate( var%sicemelt_T(mp) ) 
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -740,8 +761,9 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fns(mp) )     
    ALLOCATE( var% fhs(mp) )     
    ALLOCATE( var% fhs_cor(mp) )     
+   ALLOCATE( var% fhs_corm(mp) )     
    ALLOCATE( var% ga(mp) )      
-   ALLOCATE( var% ghflux(mp) )   
+!   ALLOCATE( var% ghflux(mp) )   
    ALLOCATE( var% precis(mp) ) 
    ALLOCATE( var% qscrn(mp) )  
    ALLOCATE( var% rnet(mp) )   
@@ -768,6 +790,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fhvw(mp) )   
    ALLOCATE( var% fes(mp) )    
    ALLOCATE( var% fes_cor(mp) )    
+   ALLOCATE( var% fes_corm(mp) )    
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
@@ -962,6 +985,9 @@ SUBROUTINE dealloc_balances_type(var)
    DEALLOCATE( var% qasrf_tot )
    DEALLOCATE( var% qfsrf_tot ) 
    DEALLOCATE( var% qssrf_tot ) 
+   DEALLOCATE( var% tot_eb1 ) 
+   DEALLOCATE( var% tot_eb2 ) 
+   DEALLOCATE( var% tot_eb3 ) 
    
 END SUBROUTINE dealloc_balances_type
 
@@ -991,6 +1017,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% zshh )  
    DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% albsoil )  
+   DEALLOCATE( var% ho2r2_orog )  
    DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% pwb_min)  
    DEALLOCATE( var% albsoilf )  
@@ -1036,10 +1063,13 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% ssdnn ) 
    DEALLOCATE( var% tgg )   
    DEALLOCATE( var% tggsn ) 
+!   DEALLOCATE( var% otgg1 )   
    DEALLOCATE( var% tss )   
    DEALLOCATE( var% tss_p )   
    DEALLOCATE( var% deltss )   
    DEALLOCATE( var% owb1 )   
+   DEALLOCATE( var% ghflux )   
+   DEALLOCATE( var% Tghflux )   
    DEALLOCATE( var% wb )    
    DEALLOCATE( var% wbice ) 
    DEALLOCATE( var% wblf ) 
@@ -1055,7 +1085,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%t_snwlr )  
    DEALLOCATE( var%wbfice )  
    DEALLOCATE( var%tggav )  
-   DEALLOCATE( var%otgg )   
+!   DEALLOCATE( var%otgg )   
    DEALLOCATE( var%otss )   
    DEALLOCATE( var%otss_0 )   
    DEALLOCATE( var%tprecip ) 
@@ -1069,6 +1099,9 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%qasrf )  
    DEALLOCATE( var%qfsrf )  
    DEALLOCATE( var%qssrf )  
+   DEALLOCATE( var%soiliceFM ) 
+   DEALLOCATE( var%sicefrez_T ) 
+   DEALLOCATE( var%sicemelt_T ) 
    
 END SUBROUTINE dealloc_soil_snow_type
    
@@ -1135,8 +1168,9 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fns )     
    DEALLOCATE( var% fhs )     
    DEALLOCATE( var% fhs_cor )     
+   DEALLOCATE( var% fhs_corm )     
    DEALLOCATE( var% ga )      
-   DEALLOCATE( var% ghflux )   
+!   DEALLOCATE( var% ghflux )   
    DEALLOCATE( var% precis ) 
    DEALLOCATE( var% qscrn )  
    DEALLOCATE( var% rnet )   
@@ -1163,6 +1197,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fhvw )   
    DEALLOCATE( var% fes )    
    DEALLOCATE( var% fes_cor )    
+   DEALLOCATE( var% fes_corm )    
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  

@@ -783,7 +783,7 @@ CONTAINS
     ! Site independent initialisations (all gridcells):
     canopy%cansto  = 0.0 ! canopy water storage (mm or kg/m2)
     canopy%sghflux = 0.0
-    canopy%ghflux  = 0.0
+    ssnow%ghflux  = 0.0
     ssnow%ssdn   = 120.0 ! snow density per layer (kg/m3)
     ssnow%ssdnn  = 120.0 ! overall snow density (kg/m3)
     ssnow%tggsn  = tfrz  ! snow temperature per layer (K)
@@ -803,6 +803,7 @@ CONTAINS
     canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
+    canopy%us = 0.01
 
     ! *******************************************************************
     ! parameters that are not spatially dependent
@@ -1172,6 +1173,9 @@ CONTAINS
     bal%wbal_tot   = 0.0
     bal%ebal_tot   = 0.0
     bal%ebal_tot_cncheck = 0.0
+    bal%tot_eb1 = 0.
+    bal%tot_eb2 = 0.
+    bal%tot_eb3 = 0.
     bal%drybal = 0.0
     bal%wetbal = 0.0
     bal%wbtot0 = 0.0 

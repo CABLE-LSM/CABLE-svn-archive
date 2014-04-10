@@ -137,7 +137,7 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
 !   ssnow%albsoilsn(:,3) = 0.05  ! YP Nov2009 (fix cold bias)
    canopy%cansto  = 0.0   ! canopy water storage (mm or kg/m2)
    canopy%sghflux = 0.0
-   canopy%ghflux  = 0.0
+   ssnow%ghflux  = 0.0
    ssnow%runoff   = 0.0   ! runoff total = subsurface + surface runoff
    ssnow%rnof1    = 0.0   ! surface runoff (mm/timestepsize)
    ssnow%rnof2    = 0.0   ! deep drainage (mm/timestepsize)
@@ -417,7 +417,7 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'sghflux',dummy,canopy%sghflux,filename%restart_in,   &
                 max_vegpatches,'def',from_restart,mp)
-   CALL readpar(ncid_rin,'ghflux',dummy,canopy%ghflux,filename%restart_in,     &
+   CALL readpar(ncid_rin,'ghflux',dummy,ssnow%ghflux,filename%restart_in,     &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'ga',dummy,canopy%ga,filename%restart_in,             &
                 max_vegpatches,'def',from_restart,mp)
@@ -751,7 +751,7 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    CALL redistr_r(INpatch,nap,var_r,canopy%sghflux,'sghflux')
    CALL readpar(ncid_rin,'ghflux',dummy,var_r,filename%restart_in,             &
                 max_vegpatches,'def',from_restart,INpatch)
-   CALL redistr_r(INpatch,nap,var_r,canopy%ghflux,'ghflux')
+   CALL redistr_r(INpatch,nap,var_r,ssnow%ghflux,'ghflux')
    CALL readpar(ncid_rin,'ga',dummy,var_r,filename%restart_in,                 &
                 max_vegpatches,'def',from_restart,INpatch)
    CALL redistr_r(INpatch,nap,var_r,canopy%ga,'ga')

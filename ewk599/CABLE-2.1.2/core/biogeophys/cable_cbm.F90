@@ -139,23 +139,17 @@ CONTAINS
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations
-   IF( cable_runtime%um ) THEN
-   
-      canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+  
+   canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+   canopy%fhs_cor = ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
       
-      canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-      
-      canopy%fh = canopy%fhv + canopy%fhs
+   canopy%fh = canopy%fhv + canopy%fhs
 
    canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                        &
                 ( ssnow%dfe_ddq * ssnow%ddq_dtg )
-                !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-   
-   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
+   canopy%fes_cor = ( ssnow%tss-ssnow%otss ) *                &
                     ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-
-   ENDIF
-
+   !   
    ! need to adjust fe after soilsnow
    canopy%fev  = canopy%fevc + canopy%fevw
   
@@ -187,6 +181,11 @@ CONTAINS
       canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
 
    ENDIF
+
+    !do k=1,mp,20
+    !print 51,k,(soil%ho2r2_orog(j),j=k,k+19)
+!51  format('ho2r2_orog',i5,20f5.0)
+    !enddo
 
   
 END SUBROUTINE cbm

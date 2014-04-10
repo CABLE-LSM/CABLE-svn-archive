@@ -327,6 +327,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qv
+         dq = max( -0.1e-4, dq)
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -351,6 +352,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qvair
+         dq = max( -0.1e-4, dq)
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -691,8 +693,7 @@ SUBROUTINE Latent_heat_flux()
       
       IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
 
-         !flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
-         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
+         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
          fupper_limit(j) = MAX( 0._r_2,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow%evapfbl(j,1)*air%rlam(j)/dels)

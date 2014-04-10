@@ -960,7 +960,7 @@ CONTAINS
     ! IF asked to check energy balance:
     IF(check%energy_bal) CALL energy_balance(dels,met,rad,                     &
                                              canopy,bal,ssnow,                 &
-                                             SBOLTZ, EMLEAF, EMSOIL ) 
+                                             SBOLTZ, EMLEAF, EMSOIL, ktau ) 
 
     ! Initialise output time step counter and month counter:
     IF(ktau == 1) THEN
@@ -2300,7 +2300,7 @@ CONTAINS
     CALL write_ovar (ncid_restart, sghfluxID, 'sghflux',                       &
                      REAL(canopy%sghflux, 4), (/-99999.0, 9999999.0/),         &
                      .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, ghfluxID, 'ghflux', REAL(canopy%ghflux, 4), &
+    CALL write_ovar (ncid_restart, ghfluxID, 'ghflux', REAL(ssnow%ghflux, 4), &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, runoffID, 'runoff', REAL(ssnow%runoff, 4),  &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)

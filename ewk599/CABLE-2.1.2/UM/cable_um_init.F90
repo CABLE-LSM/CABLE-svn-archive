@@ -40,7 +40,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_pts, tile_index,     &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
-                              smvccl, albsoil, snow_tile, snow_rho1l,          &
+                              smvccl, albsoil, ho2r2_orog, snow_tile, snow_rho1l, &
                               snage_tile, isnow_flg3l, snow_rho3l, snow_cond,  &
                               snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
                               lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
@@ -112,6 +112,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       smvcwt, &   !
       smvccl, &   !
       albsoil,&   !
+      ho2r2_orog, &   !
       fland       !
        
    REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                          &
@@ -282,7 +283,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
-                            smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
+                            smvccl, albsoil, ho2r2_orog, tsoil_tile, sthu, sthu_tile, &
                             dzsoil ) 
         
       !--- initialize roughness

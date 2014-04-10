@@ -32,6 +32,7 @@
 ! ==============================================================================
 
 SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
+!                             TOT_TFALL )
                              TOT_TFALL, WB_LAKE )
 
    USE cable_data_module,   ONLY : PHYS, OTHER
@@ -40,24 +41,29 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
    IMPLICIT NONE
 
    REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS,um1%NTILES) ::                    &
-      SNOW_TILE   ! IN Lying snow on tiles (kg/m2)        
+      SNOW_TILE,   & ! IN Lying snow on tiles (kg/m2)        
+      WB_LAKE
 
    REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) ::                               &
       LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
       SUB_SURF_ROFF, & !
       SURF_ROFF,     & !
-      TOT_TFALL        !
+      TOT_TFALL    
+      !WB_LAKE
 
    REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
       SURF_CAB_ROFF,    &
-      TOT_TFALL_TILE                
+      TOT_TFALL_TILE,   &
+      CAB_WB_LAKE                
 
-   ! Lestevens 25sep13 - water balance fix for lakes
-   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
-      WB_LAKE         ! unpack CABLE wb_lake
+   !! Lestevens 25sep13 - water balance fix for lakes
+   !REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
+   !   WB_LAKE         ! unpack CABLE wb_lake
 
    REAL :: miss =0. 
    REAL, POINTER :: TFRZ
+   integer k,l
+   real TOTWBLAKE,TOTWBLAKE1,TOTRNOF,TOTRNOF2,TOTRNOF22
       
       TFRZ => PHYS%TFRZ
    
@@ -74,7 +80,16 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
       TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
 
       ! Lest 25sep13 - wb_lake fix
-      WB_LAKE        = UNPACK(ssnow%wb_lake, um1%L_TILE_PTS, miss)
+      WB_LAKE    = UNPACK(ssnow%wb_lake, um1%L_TILE_PTS, miss)
+      !CAB_WB_LAKE    = UNPACK(ssnow%wb_lake, um1%L_TILE_PTS, miss)
+      !WB_LAKE        = SUM(um1%TILE_FRAC * CAB_WB_LAKE,2)
+
+      TOTWBLAKE = sum(ssnow%wb_lake)
+      !TOTWBLAKE1 = sum(WB_LAKE )
+      !TOTRNOF = sum(SURF_ROFF + SUB_SURF_ROFF )
+      TOTRNOF2 = sum(SUB_SURF_ROFF )
+      !TOTRNOF22 = sum(ssnow%rnof2 )
+      !print *,'hydrTOTWBLAKEand1',TOTWBLAKE,TOTRNOF2*1800.
       
 END SUBROUTINE cable_hyd_driver
       
