@@ -143,7 +143,7 @@ CONTAINS
    
       canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
       
-      canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+      canopy%fhs_cor = ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
       
       canopy%fh = canopy%fhv + canopy%fhs
 
@@ -151,7 +151,7 @@ CONTAINS
                 ( ssnow%dfe_ddq * ssnow%ddq_dtg )
                 !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
    
-   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
+   canopy%fes_cor = ( ssnow%tss-ssnow%otss ) *                &
                     ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
 
    ENDIF
