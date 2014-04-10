@@ -132,24 +132,24 @@ MODULE cable_def_types_mod
          
       !MD parameters for GW module that vary with soil layer
       REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
-         smpsat, & !psi at saturation in mm
+         smpsat, & !psi at saturation in [mm]
          hksat,  & !saturated hydraulic conductivity  [mm/s]
-         clappB, & !C and H B
-         Fclay,  & !fraction of soil that is clay
-         Fsand,  & !fraction of soil that is sand
-         densoil,& !soil density
-         watsat, & !volumetric water content at saturation
-         watr 
+         clappB, & !C and H B [none]
+         Fclay,  & !fraction of soil that is clay [frac]
+         Fsand,  & !fraction of soil that is sand [frac]
+         densoil,& !soil density  [kg/m3]
+         watsat, & !volumetric water content at saturation [mm3/mm3]
+         watr      !residual water content of the soil [mm3/mm3]
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
-         GWsmpsat,  &  !head in the aquifer
-         GWhksat,   &  !saturated hydraulic conductivity of the aquifer
-         GWclappB,  & !clapp and horn b of the aquifer
-         GWwatsat,  & !saturated water content of the aquifer
-         GWwatr,    & !residual water content of the aquifer
-         GWz,       & !node depth of the aquifer
-         GWdz,      & !thickness of the aquifer
-         GWdensoil    !density of the aquifer substrate
+         GWsmpsat,  &  !head in the aquifer [mm]
+         GWhksat,   &  !saturated hydraulic conductivity of the aquifer [mm/s]
+         GWclappB,  & !clapp and horn b of the aquifer   [none]
+         GWwatsat,  & !saturated water content of the aquifer [mm3/mm3]
+         GWwatr,    & !residual water content of the aquifer [mm3/mm3]
+         GWz,       & !node depth of the aquifer    [m]
+         GWdz,      & !thickness of the aquifer   [m]
+         GWdensoil    !density of the aquifer substrate [kg/m3]
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
@@ -244,30 +244,30 @@ MODULE cable_def_types_mod
 
       !MD variables for the revised soil moisture + GW scheme
       REAL(r_2), DIMENSION(:), POINTER   ::                                     &
-         GWwb,    &  ! water content in aquifer
-         GWhk,    &  ! aquifer hydraulic conductivity
-         GWdhkdw, &  ! aquifer d(hk) over d(water content)
-         GWdsmpdw,&  ! aquifer d(smp) / dw
-         wtd,     &  ! water table depth
-         GWsmp,   &  ! aquifer soil matric potential
-         GWwbeq,  &  ! equilibrium aquifer water content 
-         GWzq,    &  ! equilibrium aquifer smp
-         qhz         ! horizontal hydraulic conductivity in 1D gw model for soil layers      
+         GWwb,    &  ! water content in aquifer [mm3/mm3]
+         GWhk,    &  ! aquifer hydraulic conductivity  [mm/s]
+         GWdhkdw, &  ! aquifer d(hk) over d(water content) [(mm/s)/(mm3/mm3)]
+         GWdsmpdw,&  ! aquifer d(smp) / dw   [(mm)/(mm3/mm3)]
+         wtd,     &  ! water table depth   [mm]
+         GWsmp,   &  ! aquifer soil matric potential [mm]
+         GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
+         GWzq,    &  ! equilibrium aquifer smp   [mm]
+         qhz         ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
      
      
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
-         wbeq,    &    ! equilibrium water content
-         zq,      &    ! equilibrium smp      
-         icefrac, &    ! ice fraction
-         fracice, &    ! alternate ice fraction
-         hk,      &    ! hydraulic conductivity for soil layers
-         smp,     &    ! soil matric potential for soil layers        
-         dhkdw,   &    ! d(hydraulic conductivity ) d(water) for soil layers
-         dsmpdw,  &    ! d(smp)/ d(water) for soil layers
-         wbliq,   &    ! volumetric liquid water content
-         wmliq,   &    !water mass (mm) liq
-         wmice,   &    !water mass (mm) ice
-         wmtot         !water mass (mm) liq+ice
+         wbeq,    &    ! equilibrium water content [mm3/mm3]
+         zq,      &    ! equilibrium smp       [mm]
+         icefrac, &    ! ice fraction  [none]  -> ice mass / total mass
+         fracice, &    ! alternate ice fraction  [none] - parameterized
+         hk,      &    ! hydraulic conductivity for soil layers [mm/s]
+         smp,     &    ! soil matric potential for soil layers         [mm]
+         dhkdw,   &    ! d(hydraulic conductivity ) d(water) for soil layers [(mm/s)/(mm3/mm3)]
+         dsmpdw,  &    ! d(smp)/ d(water) for soil layers   [(mm)/(mm3/mm3)]
+         wbliq,   &    ! volumetric liquid water content  [mm3/mm3]
+         wmliq,   &    !water mass [mm] liq
+         wmice,   &    !water mass [mm] ice
+         wmtot         !water mass [mm] liq+ice ->total
 
       REAL(r_2), DIMENSION(:), POINTER ::                                   &
          GWconvergence
