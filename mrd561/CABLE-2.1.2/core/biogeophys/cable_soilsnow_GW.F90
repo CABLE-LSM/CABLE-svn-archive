@@ -1396,7 +1396,7 @@ USE cable_common_module
 
          jlp=0
 
-         mainloop: DO
+         morethan_loop: DO while (jlp .le. wtd_iter_max)
 
            tempa   = 1.0_r_2
            tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
@@ -1415,26 +1415,22 @@ USE cable_common_module
            IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
              ssnow%wtd(i) = calc
-             EXIT mainloop
-
-           ELSEIF (jlp .ge. wtd_iter_mx) THEN
-
-              EXIT mainloop
+             jlp = wtd_iter_max + 1
 
            ELSE
 
-              jlp=jlp+1
               ssnow%wtd(i) = calc
+              jlp=jlp+1
 
            END IF
 
-         END DO mainloop
+         END DO morethan_loop
 
        elseif (defc(i) .lt. def(i)) then
 
          jlp=0
 
-         mainloop2: DO
+         lessthan_loop: DO while (jlp .le. wtd_iter_mx)
 
            tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
            tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
@@ -1451,20 +1447,16 @@ USE cable_common_module
            IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
              ssnow%wtd(i) = calc
-             EXIT mainloop2
-
-           ELSEIF (jlp==wtd_iter_mx) THEN
-
-             EXIT mainloop2
+             jlp = wtd_iter_max + 1
 
            ELSE
 
-             jlp=jlp+1
              ssnow%wtd(i) = calc
+             jlp=jlp+1
 
            END IF
 
-         END DO mainloop2
+         END DO lessthan_loop
 
        else  !water table depth is exactly on bottom boundary
 
