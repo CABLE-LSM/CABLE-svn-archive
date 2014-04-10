@@ -71,6 +71,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       iter,  & ! iteration #
       iterplus !
 
+   INTEGER, dimension(1) :: pos
+
    REAL, DIMENSION(mp) ::                                                      &
       rt0,           & ! turbulent resistance
       ortsoil,       & ! turb. resist. prev t-step
