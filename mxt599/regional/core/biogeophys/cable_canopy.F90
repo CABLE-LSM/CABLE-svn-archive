@@ -329,6 +329,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qv
+	 if (any(dq<-1.e-5)) then
+	   pos=minloc(dq)
+	   write(6,*) "WARN: 1st Change in dq ",dq," at pos ",pos
+	 end if
+	 dq = max(-0.1e-4,dq)
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -353,6 +358,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qvair
+	 if (any(dq<-1.e-5)) then
+	   pos=minloc(dq)
+	   write(6,*) "WARN: 2nd Change in dq ",dq," at pos ",pos
+	 end if
+	 dq = max(-0.1e-4,dq)
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
