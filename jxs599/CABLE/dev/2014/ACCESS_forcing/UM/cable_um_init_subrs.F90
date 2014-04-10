@@ -97,6 +97,8 @@ CONTAINS
          !--- set in namelist cable.nml
          if ( cable_user%initialize_mapping ) then
             !write indexes for tile, lat, lon
+print *, "lattiude: ", &
+                  ( asin( latitude(1,:) ) /const%math%pi180 )  
             call cable_diag( 1, 'latitude', um1%rows, 1, ktau_gl,  & 
                   knode_gl, 'latitude', ( asin( latitude(1,:) ) /const%math%pi180 ) ) 
             
