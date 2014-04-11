@@ -66,7 +66,7 @@ MODULE cable_soil_snow_gw_module
                       wtd_min      = 10.0,        &! minimum wtd [mm]
                       dri          = 1.0           !ratio of density of ice to density of liquid [unitless]
                       
-   INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
+   INTEGER, PARAMETER :: wtd_iter_max = 10 ! maximum number of iterations to find the water table depth                    
   
    
    REAL :: cp    ! specific heat capacity for air
@@ -1430,7 +1430,7 @@ USE cable_common_module
 
          jlp=0
 
-         lessthan_loop: DO while (jlp .le. wtd_iter_mx)
+         lessthan_loop: DO while (jlp .le. wtd_iter_max)
 
            tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
            tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
