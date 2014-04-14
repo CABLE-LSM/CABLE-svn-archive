@@ -1108,10 +1108,9 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   INTEGER  npt,j
 
 
-!  npt=1625   
-!  write(77,702) npt, casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:)
+!  npt=1921   
+!  write(77,702) npt, casapool%pplant(npt,:), casapool%psoil(npt,:), casapool%psoillab(npt)
 !702 format('before pools', i6,20(f10.4,2x))
-!  write(77,701)  npt, casaflux%cgpp(npt), casaflux%crmplant(npt,leaf)
 
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)

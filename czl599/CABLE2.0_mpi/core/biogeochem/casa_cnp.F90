@@ -1624,14 +1624,16 @@ SUBROUTINE casa_puptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
 
   casaflux%Pupland = casaflux%Plabuptake 
 
-!  np=1
-!  write(*,911) casapool%Psoillab(np),casaflux%Plabuptake(np), &
+!  np=1921
+!  write(77,911) casapool%Psoillab(np),casaflux%Plabuptake(np), &
 !               xpuptake(np,leaf), xpuptake(np,wood), xpuptake(np,froot), &
 !               casaflux%fracPalloc(np,leaf),casaflux%fracPalloc(np,wood), &
-!               casaflux%fracPalloc(np,froot)
+!               casaflux%fracPalloc(np,froot), casabiome%ratioNPplantmin(veg%iveg(np),wood),&
+!               xkNlimiting(np),Preqmax(np,wood),Preqmin(np,wood), &
+!               (casapool%Psoillab(np),casabiome%KuplabP(veg%iveg(np)))
 !911 format('P uptake:',100(f8.3,2x))
 
-!  ! only used in spinning up the model
+  ! only used in spinning up the model
 !  DO  np=1,mp
 !    casaflux%Plabuptake(np) = TotPreqmax(np) 
 !    casaflux%Pupland(np)    = TotPreqmax(np)
@@ -1670,7 +1672,7 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
     Preqmin(np,leaf) = xpCnpp(np) * casaflux%fracCalloc(np,leaf) &
                     * (casapool%Nplant(np,leaf)/(casapool%Cplant(np,leaf)+1.0e-10))/casabiome%ratioNPplantmax(veg%iveg(np),leaf)
     Preqmin(np,wood) = xpCnpp(np) * casaflux%fracCalloc(np,wood) &
-                    * (casapool%Nplant(np,wood)/(casapool%Cplant(np,wood+1.0e-10)))/casabiome%ratioNPplantmax(veg%iveg(np),wood)
+                    * (casapool%Nplant(np,wood)/(casapool%Cplant(np,wood)+1.0e-10))/casabiome%ratioNPplantmax(veg%iveg(np),wood)
     Preqmin(np,froot) = xpCnpp(np) * casaflux%fracCalloc(np,froot) &
                     * (casapool%Nplant(np,froot)/(casapool%Cplant(np,froot)+1.0e-10))/casabiome%ratioNPplantmax(veg%iveg(np),froot)
 
@@ -1707,14 +1709,11 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
   ENDDO    
 
   ! yow
-  !  ip=10022 
-  !  write(79,791) ip,veg%iveg(ip),casapool%cplant(ip,leaf),casapool%nplant(ip,leaf),casapool%pplant(ip,leaf), &
-  !              casapool%cplant(ip,leaf)/casapool%pplant(ip,leaf), casapool%nplant(ip,leaf)/casapool%pplant(ip,leaf), &
-  !              1.0/casabiome%ratioPCplantmax(veg%iveg(ip),leaf), 1.0/casabiome%ratioPCplantmin(veg%iveg(ip),leaf),   &
-  !              Preqmax(ip,leaf),Preqmin(ip,leaf), PtransPtoP(ip,leaf)
-  ! ypw
-
-791 format('P require =', 2(i6,2x),100(f10.4,2x))
+!    ip=1921
+!    write(77,791)  ip,veg%iveg(ip),xpCnpp(ip) , casaflux%fracCalloc(ip,wood),  &
+!                   casapool%Nplant(ip,wood), casapool%Cplant(ip,wood), casabiome%ratioNPplantmax(veg%iveg(ip),wood)
+!
+!791 format('P require =', 2(i6,2x),100(f10.4,2x))
 END SUBROUTINE casa_Prequire
 
 
