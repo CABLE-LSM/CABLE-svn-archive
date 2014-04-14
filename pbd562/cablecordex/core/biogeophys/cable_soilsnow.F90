@@ -522,13 +522,13 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
     
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
-   !INTEGER, DIMENSION(mp,3) :: ssnow_isflag_ssdn 
+   INTEGER, DIMENSION(mp,3) :: ssnow_isflag_ssdn 
    REAL, DIMENSION(mp) :: ssnow_tgg_min1
-   !REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
+   REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
      
-   !ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
+   ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
    
-   !dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
+   dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
    ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
    
    WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )
@@ -1818,13 +1818,13 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    CALL surfbv(dels, met, ssnow, soil, veg, canopy )
 
    ! correction required for energy balance in online simulations 
-!   IF( cable_runtime%um ) THEN
-!      canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
-!      canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
-!
-!      canopy%fhs = canopy%fhs+canopy%fhs_cor
-!      canopy%fes = canopy%fes+canopy%fes_cor
-!   ENDIF
+   IF( cable_runtime%um ) THEN
+      canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
+      canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+
+      canopy%fhs = canopy%fhs+canopy%fhs_cor
+      canopy%fes = canopy%fes+canopy%fes_cor
+   ENDIF
 
    ! redistrb (set in cable.nml) by default==.FALSE. 
    IF( redistrb )                                                              &
