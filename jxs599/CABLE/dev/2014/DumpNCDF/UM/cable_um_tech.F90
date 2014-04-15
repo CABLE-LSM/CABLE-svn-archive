@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
+! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -75,7 +75,7 @@ MODULE cable_um_tech_mod
    END TYPE derived_veg_pars
 
    INTERFACE check_nmlvar 
-      MODULE PROCEDURE check_chvar, check_intvar, check_lgvar
+      MODULE PROCEDURE check_chvar, check_intvar
    END INTERFACE check_nmlvar 
  
       TYPE(derived_rad_bands), SAVE :: kblum_rad    
@@ -93,18 +93,14 @@ CONTAINS
 SUBROUTINE cable_um_runtime_vars(runtime_vars_file) 
    USE cable_common_module, ONLY : cable_runtime, cable_user, filename,        &
                                    cable_user, knode_gl, redistrb, wiltParam,  &
-                                   satuParam, l_casacnp, l_laiFeedbk,          &
-                                   l_vcmaxFeedbk
-   USE casavariable, ONLY : casafile
-   USE casadimension, ONLY : icycle
+                                   satuParam
 
 
    CHARACTER(LEN=*), INTENT(IN) :: runtime_vars_file
    INTEGER :: funit=88
    
    !--- namelist for CABLE runtime vars, files, switches 
-   NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,   &
-                  casafile, cable_user, redistrb, wiltParam, satuParam
+   NAMELIST/CABLE/filename,cable_user, redistrb, wiltParam, satuParam
 
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
@@ -117,24 +113,8 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
             PRINT *, 'End CABLE_log:'; PRINT *, '  '
         ENDIF
       CLOSE(funit)
-
-      if (knode_gl==0) then
-        print *, '  '; print *, 'CASA_log:'
-        print *, '  icycle =',icycle
-        print *, '  l_casacnp =',l_casacnp
-        print *, '  l_laiFeedbk =',l_laiFeedbk
-        print *, '  l_vcmaxFeedbk =',l_vcmaxFeedbk
-        print *, 'End CASA_log:'; print *, '  '
-      endif
-      IF (l_casacnp  .AND. (icycle == 0 .OR. icycle > 3)) &
-          STOP 'CASA_log: icycle must be 1 to 3 when using casaCNP'
-      IF ((.NOT. l_casacnp)  .AND. (icycle >= 1)) &
-          STOP 'CASA_log: icycle must be <=0 when not using casaCNP'
-      IF ((l_laiFeedbk .OR. l_vcmaxFeedbk) .AND. (.NOT. l_casacnp)) &
-          STOP 'CASA_log: casaCNP required to get prognostic LAI or Vcmax'
-      IF (l_vcmaxFeedbk .AND. icycle < 2) &
-          STOP 'CASA_log: icycle must be 2 to 3 to get prognostic Vcmax'
    
+                   
       !--- check value of variable 
       CALL check_nmlvar('filename%veg', filename%veg)
       CALL check_nmlvar('filename%soil', filename%soil)
@@ -143,12 +123,6 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                         cable_user%LEAF_RESPIRATION)
       CALL check_nmlvar('cable_user%FWSOIL_SWITCH', cable_user%FWSOIL_SWITCH)
       CALL check_nmlvar('cable_user%RUN_DIAG_LEVEL', cable_user%RUN_DIAG_LEVEL)
-      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
-                         cable_user%l_new_roughness_soil)
-      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
-                         cable_user%l_new_roughness_soil)
-      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
-                         cable_user%l_new_roughness_soil)
 
 END SUBROUTINE cable_um_runtime_vars
 
@@ -185,23 +159,6 @@ SUBROUTINE check_intvar(this_var, val_var)
       ENDIF
 
 END SUBROUTINE check_intvar
-
-SUBROUTINE check_lgvar(this_var, val_var)
-   USE cable_common_module, ONLY : knode_gl
-
-   CHARACTER(LEN=*), INTENT(IN) :: this_var
-   LOGICAL, INTENT(IN) :: val_var
-
-      IF (knode_gl==0) THEN
-         PRINT *, '  '; PRINT *, 'CABLE_log:'
-         PRINT *, '   run time variable - '
-         PRINT *, '  ', trim(this_var)
-         PRINT *, '   defined as - '
-         PRINT *, '  ', (val_var)
-         PRINT *, 'End CABLE_log:'; PRINT *, '  '
-      ENDIf
-
-END SUBROUTINE check_lgvar
     
 !========================================================================= 
 !=========================================================================

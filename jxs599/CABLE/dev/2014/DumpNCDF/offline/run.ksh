@@ -39,15 +39,13 @@ book_keeping()
 
    HOST_MACH=`uname -n | cut -c 1-4`
    
-   if [[ $HOST_MACH = 'raij' ]]; then
+   if [[ $HOST_MACH = 'vayu' ]]; then
    
       if [[ ! -e cable.nml ]]; then
          ln -s $CABLE_AUX/CABLE-AUX/offline/cable.nml .
-         #cp $CABLE_AUX/CABLE-AUX/offline/cable.nml .
       fi
       if [[ ! -e sites.txt ]]; then
          ln -s $CABLE_AUX/CABLE-AUX/offline/sites.txt .
-         #cp $CABLE_AUX/CABLE-AUX/offline/sites.txt .
       fi
       
    fi

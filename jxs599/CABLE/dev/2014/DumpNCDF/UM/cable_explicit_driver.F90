@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
+! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -42,21 +42,15 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   cos_zenith_angle, surf_down_sw, ls_rain,     &
                                   ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
                                   z1_uv, rho_water, L_tile_pts, canopy_tile,   &
-                                  Fland,                                       &
-! rml 2/7/13 pass 3d co2 through to cable if required
-                   CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                                  sthu_tile, smcl_tile,                        &
+                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
                                   LAND_MASK, FTL_TILE_CAB, FTL_CAB, FTL_TILE,  &
                                   FQW_TILE, LE_TILE_CAB, LE_CAB, TSTAR_TILE,   &
                                   TSTAR_TILE_CAB, TSTAR_CAB, U_S, U_S_STD_TILE,&
                                   U_S_CAB, CH_CAB, CD_CAB, CD_TILE, CH_TILE,   &
-                                  RADNET_TILE, FRACA, RESFS, RESFT, Z0H_TILE,  &
+                                  RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
-                                  CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
-                                  SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
                                   endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
@@ -66,8 +60,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
                                    knode_gl, kwidth_gl, kend_gl,               &
-                                   report_version_no,                          & 
-                                   l_vcmaxFeedbk, l_laiFeedbk
+                                   report_version_no
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
@@ -80,8 +73,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !--- include subr called to write data for testing purposes 
    USE cable_diag_module
-   USE casavariable
-   USE casa_types_mod
 
    IMPLICIT NONE
  
@@ -182,12 +173,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       tsoil_tile
    
    REAL, INTENT(IN) :: co2_mmr
-! rml 2/7/13 Extra atmospheric co2 variables
-   LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
-   INTEGER, INTENT(IN) ::                              &
-      CO2_DIM_LEN                                      &
-     ,CO2_DIM_ROW
-   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
 
    !___true IF vegetation (tile) fraction is greater than 0
    LOGICAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) :: L_tile_pts
@@ -245,29 +230,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       FRACA,         & ! Fraction of surface moisture
       RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
       EPOT_TILE
-
-! Lestevens Sept2012 - CASA-CNP Pools
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,10) :: &
-      CPOOL_TILE,    & ! Carbon Pools
-      NPOOL_TILE       ! Nitrogen Pools
-
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,12) :: &
-      PPOOL_TILE       ! Phosphorus Pools
-
-   REAL, INTENT(INOUT), DIMENSION(land_pts) :: &
-      SOIL_ORDER,    & ! Soil Order (1 to 12)
-      NIDEP,         & ! Nitrogen Deposition
-      NIFIX,         & ! Nitrogen Fixation
-      PWEA,          & ! Phosphorus from Weathering
-      PDUST            ! Phosphorus from Dust
-
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-      GLAI, &          ! Leaf Area Index for Prognostics LAI
-      PHENPHASE        ! Phenology Phase for Casa-CNP
-                                  
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-      NPP_FT_ACC,     &
-      RESP_W_FT_ACC
      
    !-------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM sf_exch() ----------------------------------------
@@ -334,20 +296,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
                            ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
-! rml 2/7/13 pass 3d co2 through to cable if required
-                   CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                           sthu_tile, smcl_tile, sthf_tile,                    &
+                           CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
-                           sin_theta_latitude, dzsoil,                         &
-                           CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
-                           NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
-                           NPP_FT_ACC,RESP_W_FT_ACC )
-
-   !---------------------------------------------------------------------!
-   !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
-   !---------------------------------------------------------------------!
-   IF(l_vcmaxFeedbk) call casa_feedback(ktau_gl,veg,casabiome,casapool,casamet)
-   IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
+                           sin_theta_latitude, dzsoil )                         
 
    canopy%oldcansto=canopy%cansto
 
@@ -551,7 +502,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       TSTAR_CAB = SUM(um1%TILE_FRAC * TSTAR_TILE_CAB,2)
       TSTAR_TILE = UNPACK(rad_trad,  um1%l_tile_pts, miss)
       Z0M_TILE = UNPACK(rough_z0m,  um1%l_tile_pts, miss)
-      Z0H_TILE = 0.1*Z0M_TILE
+      Z0H_TILE = Z0M_TILE
       
       !___return friction velocities/drags/ etc
       U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)
@@ -574,7 +525,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
             L = um1%TILE_INDEX(K,N)
             J=(um1%LAND_INDEX(L)-1)/um1%row_length + 1
             I = um1%LAND_INDEX(L) - (J-1)*um1%row_length
-            U_S(I,J) = U_S(I,J)+um1%TILE_FRAC(L,N)*U_S_TILE(L,N)
+            U_S(I,J) = U_S(I,J)+FLAND(L)*um1%TILE_FRAC(L,N)*U_S_TILE(L,N)
          ENDDO
       ENDDO
 

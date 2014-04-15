@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
+! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -45,29 +45,20 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   SMCL_CAB, TSOIL_CAB, SURF_HTF_CAB,           &
                                   SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
                                   EI_TILE, RADNET_TILE, TOT_ALB, SNAGE_TILE,   &
-                                  CANOPY_TILE, GS, GS_TILE,T1P5M_TILE, Q1P5M_TILE,     &
+                                  CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
                                   CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
-                                  G_LEAF, TRANSP_TILE, CPOOL_TILE, NPOOL_TILE, &
-                                  PPOOL_TILE, GLAI, PHENPHASE, NPP_FT_ACC,     &
-                                  RESP_W_FT_ACC, idoy )
+                                  G_LEAF )   
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
+   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep, &
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
                                   ssnow, sum_flux, veg
-   USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
-                                   l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
+   USE cable_common_module, ONLY : cable_runtime, cable_user
    USE cable_um_init_subrs_mod, ONLY : um2cable_rr
    USE cable_cbm_module,    ONLY : cbm
-
-   USE casavariable
-   USE phenvariable
-   USE casa_types_mod
-   !USE casa_cable
-   USE casa_um_inout_mod
 
    IMPLICIT NONE
         
@@ -181,35 +172,13 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       RESP_S_TILE,   & 
       RESP_P_FT,     &
       RESP_P_FT_old, &
-      G_LEAF,        &
-      TRANSP_TILE
+      G_LEAF
 
    REAL ::                                                                     &
       RESP_S(um1%LAND_PTS,DIM_CS1),     &
       RESP_S_old(um1%LAND_PTS,DIM_CS1), &
       RESP_S_TOT(DIM_CS2)    
-
-   REAL, DIMENSION(um1%LAND_PTS,um1%NTILES,10) ::                              &
-      CPOOL_TILE, &
-      NPOOL_TILE     
-   REAL, DIMENSION(um1%LAND_PTS,um1%NTILES,12) ::                              &
-      PPOOL_TILE
-   REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
-      GLAI, &
-   !INTEGER, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                              &
-      PHENPHASE
-
-   ! Lestevens 23apr13
-   REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
-      NPP_FT_ACC, &
-      RESP_W_FT_ACC
-
-   INTEGER ::     &
-      ktauday,    &  ! day counter for CASA-CNP
-      idoy           ! day of year (1:365) counter for CASA-CNP
-   INTEGER, SAVE :: &
-      kstart = 1
-
+     
    REAL, DIMENSION(mp) ::                                                      & 
       dtlc, & 
       dqwc
@@ -255,23 +224,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
       CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)
-
-      ! Lestevens - temporary ?
-      ktauday = int(24.0*3600.0/TIMESTEP)
-      IF(idoy==0) idoy =365
   
-! Lestevens Sept2012 - Call CASA-CNP
-      if (l_casacnp) then
-      CALL bgcdriver(ktau_gl,kstart,kend_gl,TIMESTEP,met,ssnow,canopy,veg,soil, &
-                     casabiome,casapool,casaflux,casamet,casabal,phen,          &
-                     .FALSE., .FALSE., ktauday, idoy, .FALSE., .FALSE. )
-!                     spinConv, spinup, ktauday, idoy, cable_user%casa_dump_read,&
-!                     cable_user%casa_dump_write )
-      endif
-
-      CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
-                    sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
-
+        
       CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
@@ -281,27 +235,10 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
                             SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
-                            SNAGE_TILE, CANOPY_TILE, GS, GS_TILE, T1P5M_TILE,           &
+                            SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
-                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,& 
-                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC )
-
-! Lestevens Sept2012 - Call CASA-CNP
-      if (l_casacnp) then
-      !if (l_casacnp .and. ktau_gl==kend_gl ) then
-        if (knode_gl==0 .and. ktau_gl==kend_gl) then
-        !if (knode_gl==0) then
-         print *, '  '; print *, 'CASA_log:'
-         print *, '  Calling CasaCNP - Poolout '
-         print *, '  l_casacnp = ',l_casacnp
-         print *, '  ktau_gl, kend_gl = ',ktau_gl,kend_gl
-         print *, 'End CASA_log:'; print *, '  '
-        endif
-       CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
-                              CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
-                              GLAI,PHENPHASE)
-      endif
+                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
        
       cable_runtime%um_implicit = .FALSE.
   
@@ -321,11 +258,10 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
                             TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
                             SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
-                            SNAGE_TILE, CANOPY_TILE, GS, GS_TILE, T1P5M_TILE,           &
+                            SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
-                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,&
-                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC )
+                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
  
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
@@ -414,11 +350,6 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       RESP_P,     & 
       NPP,        & 
       GPP
-
-   ! Lestevens 23apr13
-   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
-      NPP_FT_ACC,    & ! sresp for CASA-CNP
-      RESP_W_FT_ACC    ! presp for CASA-CNP
    
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
       SNOW_TILE,     & !
@@ -435,8 +366,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       RESP_S_TILE,   & 
       RESP_P_FT,     &
       RESP_P_FT_old, &
-      G_LEAF,        &
-      TRANSP_TILE
+      G_LEAF
 
    REAL ::                                                                     &
       RESP_S(um1%LAND_PTS,DIM_CS1),    & !
@@ -510,8 +440,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
         SNOW_DEPTH3L(:,:,k)  = UNPACK(ssnow%sdepth(:,k),um1%L_TILE_PTS,miss)
       enddo
 
-      
-      canopy%gswx_T = canopy%gswx_T/air%cmolar
+      !---???
       GS_TILE = UNPACK(canopy%gswx_T,um1%L_TILE_PTS,miss)
       GS =  SUM(um1%TILE_FRAC * GS_TILE,2)
 
@@ -521,10 +450,11 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       FQW_TILE_CAB = UNPACK(canopy%fe,  um1%l_tile_pts, miss)
       LE_TILE_CAB = FQW_TILE_CAB 
       LE_CAB = SUM(um1%TILE_FRAC * LE_TILE_CAB,2)
-!      fe_dlh = canopy%fe/(air%rlam*ssnow%cls)
+      fe_dlh = canopy%fe/(air%rlam*ssnow%cls)
+      where ( fe_dlh .ge. 0.0 ) fe_dlh = MAX ( 1.e-6, fe_dlh )
+      where ( fe_dlh .lt. 0.0 ) fe_dlh = MIN ( -1.e-6, fe_dlh )
       fes_dlh = canopy%fes/(air%rlam*ssnow%cls)
       fev_dlh = canopy%fev/air%rlam
-      fe_dlh =  fev_dlh + fes_dlh
 
       !---preserve fluxes from the previous time step for the coastal grids
       FTL_TILE_old = FTL_TILE
@@ -551,7 +481,6 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
      ECAN_TILE = UNPACK(fev_dlh,  um1%L_TILE_PTS, miss)
      EI_TILE = 0.
      SNAGE_TILE = UNPACK(ssnow%snage, um1%L_TILE_PTS, miss) 
-     TRANSP_TILE = UNPACK(canopy%fevc, um1%L_TILE_PTS, miss) 
 
      !unpack screen level (1.5m) variables
      !Convert back to K 
@@ -634,15 +563,6 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       ENDDO
 
      RESP_S_TILE=FRS_TILE*1.e-3
-     ! Lestevens 23apr13 - possible miss match ntiles<-->npft
-     DO N=1,um1%NTILES
-        DO K=1,um1%TILE_PTS(N)
-           L = um1%TILE_INDEX(K,N)
-           !---convert units to kg C m-2 s-1
-           NPP_FT_ACC(L,N)    = FRS_TILE(L,N)*1.e-3
-           RESP_W_FT_ACC(L,N) = FRP_TILE(L,N)*1.e-3
-        ENDDO
-     ENDDO
 
       DO N=1,um1%NTILES 
          DO K=1,um1%TILE_PTS(N)

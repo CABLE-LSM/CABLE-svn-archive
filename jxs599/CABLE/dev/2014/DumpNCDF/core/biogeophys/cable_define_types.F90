@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
+! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -281,6 +281,7 @@ MODULE cable_def_types_mod
          fnpp,    & ! npp flux
          fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
+         gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
          wetfac_cs,&! 
          fevw,    & ! lat heat fl wet canopy (W/m2)
