@@ -2,12 +2,10 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh raij
 }
-
-
-## vayu.nci.org.au
-host_vayu()
+## raijin.nci.org.au
+host_raij()
 {
    NCDF_ROOT=/apps/netcdf/3.6.3
    export NCDIR=$NCDF_ROOT'/lib/Intel'
@@ -16,13 +14,12 @@ host_vayu()
    export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'  
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
    fi
    build_build
    cd ../
    build_status
 }
-
 
 
 ## unknown machine, user entering options stdout 
@@ -108,7 +105,7 @@ not_recognized()
 
    print "\n\tPlease supply a comment include the new build " \
          "script." 
-   print "\n\tGenerally the host URL e.g. vayu.nci.org.au "
+   print "\n\tGenerally the host URL e.g. raijin.nci.org.au "
    read HOST_COMM
    
    build_build
@@ -164,11 +161,17 @@ build_build()
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
+
+   if [[ $CABLE_REV == "" ]]; then
+      echo "this is not an svn checkout"
+      CABLE_REV=0
+      echo "setting CABLE revision number to " $CABLE_REV 
+   fi         
    print $CABLE_REV > ~/.cable_rev
    # get SVN status 
    CABLE_STAT=`svn status`
    print $CABLE_STAT >> ~/.cable_rev
- 
+
    if [[ ! -d .tmp ]]; then
       mkdir .tmp
    fi
@@ -191,9 +194,13 @@ build_build()
   
    CORE="../core/biogeophys"
    DRV="."
+   CASA="../core/biogeochem"
+   OFL="../offline"
    
    /bin/cp -p $CORE/*90 ./.tmp
    /bin/cp -p $DRV/*90 ./.tmp
+   /bin/cp -p $CASA/*90 ./.tmp
+   /bin/cp -p $OFL/*90 ./.tmp
    
    print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
    print "\ttechnical reasons. Implementation is not officially available with" 

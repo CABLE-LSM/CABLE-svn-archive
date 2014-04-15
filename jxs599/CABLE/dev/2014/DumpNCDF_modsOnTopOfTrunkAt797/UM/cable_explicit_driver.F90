@@ -248,7 +248,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-
+integer :: i,j,k
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -271,6 +271,19 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
 
+   IF(first_cable_call) THEN
+   !if(knode_gl == 7) then
+      do i=1, row_length      
+         do j=1, rows     
+            if( latitude(i,j) > 0. ) & 
+               print *, "jhan: expl latitude ", latitude(i,j)
+            if( sin_theta_latitude(i,j) > 0. ) & 
+               print *, "jhan: expl sin_theta_latitude ", sin_theta_latitude(i,j)
+         enddo
+      enddo
+   endif
+
+
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
    !--- runtime and for the most part do not require a model rebuild.
@@ -278,9 +291,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       CALL cable_um_runtime_vars(runtime_vars_file) 
       first_cable_call = .FALSE.
    ENDIF      
-
-
-
 
    !---------------------------------------------------------------------!
    !--- initialize CABLE using UM forcings etc. these args are passed ---!
@@ -331,9 +341,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
    ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
+!   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
+!      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+!                          "FLUXES", canopy%fe + canopy%fh )
                 
 
    cable_runtime%um_explicit = .FALSE.
