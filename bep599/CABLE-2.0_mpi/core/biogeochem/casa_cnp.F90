@@ -866,7 +866,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
                       * casapool%cplant(npt,froot)      * ratioNCstrfix
 
        nleaf2met(npt) = - casapool%dNplantdt(npt,leaf)  - nleaf2str(npt)
-       nroot2met(npt) = - casapool%dNplantdt(npt,froot) - nleaf2str(npt)
+       nroot2met(npt) = - casapool%dNplantdt(npt,froot) - nroot2str(npt)
        nwood2cwd(npt) = -casapool%dNplantdt(npt,wood)
 
     ENDIF
