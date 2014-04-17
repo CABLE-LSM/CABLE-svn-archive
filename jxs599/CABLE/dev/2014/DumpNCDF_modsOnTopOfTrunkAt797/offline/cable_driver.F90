@@ -334,12 +334,12 @@ PROGRAM cable_offline_driver
                                C%EMLEAF, C%EMSOIL )
    
          ! dump bitwise reproducible testing data
-         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
-            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
-                                knode_gl, "FLUXES",                            &
-                          canopy%fe + canopy%fh )
-         ENDIF
+         !IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+         !   IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+         !      call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+         !                       knode_gl, "FLUXES",                            &
+         !                 canopy%fe + canopy%fh )
+         !ENDIF
                 
       END DO ! END Do loop over timestep ktau
 

@@ -124,8 +124,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       sw_down,          & 
       cos_zenith_angle
    
+   REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                             &
+      latitude
+   
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
-      latitude,   &
       longitude,  &
       lw_down,    &
       ls_rain,    &
@@ -252,6 +254,8 @@ integer :: i,j,k
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
+      print *, ""
+      print *, "jhan:expl: ", mype, rows
       cable_runtime%um = .TRUE.
       write(6,*) ""
       write(6,*) "CABLE_log"
@@ -270,19 +274,9 @@ integer :: i,j,k
    !--- internal FLAGS def. specific call of CABLE from UM
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
-
-   IF(first_cable_call) THEN
-   !if(knode_gl == 7) then
-      do i=1, row_length      
-         do j=1, rows     
-            if( latitude(i,j) > 0. ) & 
-               print *, "jhan: expl latitude ", latitude(i,j)
-            if( sin_theta_latitude(i,j) > 0. ) & 
-               print *, "jhan: expl sin_theta_latitude ", sin_theta_latitude(i,j)
-         enddo
-      enddo
-   endif
-
+   
+   !--- UM7.3 latitude is not passed correctly. hack 
+   IF(first_cable_call) latitude = sin_theta_latitude
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 

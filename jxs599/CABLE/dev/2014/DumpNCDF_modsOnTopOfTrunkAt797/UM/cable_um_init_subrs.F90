@@ -49,7 +49,7 @@ CONTAINS
           
       logical, save :: first_call = .true.
       
-      INTEGER :: j
+      INTEGER :: i, j
 
       real :: dlon
       real, dimension(um1%row_length) :: tlong,acoslong
@@ -97,10 +97,17 @@ CONTAINS
          !--- set in namelist cable.nml
          !if ( cable_user%initialize_mapping ) then
             !write indexes for tile, lat, lon
-            print *, "jhan: latitude 1,: ", latitude(1,:)
-            print *, "jhan: latitude :,1 ", latitude(:,1)
-            print *, "jhan: diag:latitude ", asin( latitude(1,:) ) /cable%const%math%pi180 
-
+      !do i=1, um1%row_length      
+      !   do j=1, um1%rows     
+      !      !if( latitude(i,j) > 0. ) & 
+      !      !   print *, "jhan: _init_ sin_theta_latitude ", &
+      !      !            asin( latitude(i,j) ) /cable%const%math%pi180
+      !      if( new_longitude(i,j) > 0. ) & 
+      !         print *, "jhan: _init_ longitude ", new_longitude(i,j)
+      !   enddo
+      !enddo
+ 
+            print *, "jhan: _init_ latitude ", shape(latitude), um1%rows
             call cable_diag( iDiag0, 'latitude', um1%rows, 1, ktau_gl,  & 
                   knode_gl, 'latitude', ( asin( latitude(1,:) ) /cable%const%math%pi180 ) ) 
             
