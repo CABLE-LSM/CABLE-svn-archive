@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -75,11 +75,14 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
    canopy%rghlai = canopy%vlaiw
 
-   ! Roughness length of bare soil (m):
-   !rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
-   rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us**2/C%GRAV,1.0)
-   !rough%z0soilsn = rough%z0soil 
-   rough%z0soilsn = max(1.e-7,rough%z0soil)
+   ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
+   IF (.not.cable_user%l_new_roughness_soil) THEN
+      rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
+      rough%z0soilsn = rough%z0soil 
+   ELSE
+      rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us**2/C%GRAV,1.0)
+      rough%z0soilsn = max(1.e-7,rough%z0soil)
+   ENDIF
 
     WHERE( ssnow%snowd .GT. 0.01   )  &
      rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)

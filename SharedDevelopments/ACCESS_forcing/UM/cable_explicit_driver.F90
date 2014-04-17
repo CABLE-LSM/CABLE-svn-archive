@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -285,9 +285,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
-
-   !___ unique unit/file identifiers for cable_diag 
-  INTEGER, SAVE :: iDiag_Zero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0 
+ 
 
 
    !--- initialize cable_runtime% switches 
@@ -353,18 +351,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    canopy%oldcansto=canopy%cansto
 
-   ! read/write ACCESS forcing data
-   !call cable_diag( iDiag1, "lat1_", mp, kend_gl, ktau_gl,knode_gl,                &
-   !                    "lat1", latitude, 'first time step only' )
-   
-   call cable_diag( iDiag2, "metfsd1_", mp, kend_gl, ktau_gl,knode_gl,                &
-                       "metfsd1", met%fsd(:,1) )
-   
-
-   
-
-
-
 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
@@ -395,7 +381,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    ! dump bitwise reproducible testing data
    IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( iDiag_zero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
                           "FLUXES", canopy%fe + canopy%fh )
                 
 
