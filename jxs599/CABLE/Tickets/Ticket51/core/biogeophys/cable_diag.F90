@@ -81,7 +81,7 @@ SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
       filename=trim(trim(basename)//trim(chnode))
       
       if (timestep == 1) & 
-        call cable_diag_desc1( iDiag, trim(filename), dimx, dimy, vname1 )
+         call cable_diag_desc1( iDiag, trim(filename), dimx, dimy, vname1 )
          
       if( present(once) ) then
          if (timestep == 1) & 
