@@ -6,6 +6,23 @@ known_hosts()
 }
 
 
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR='/apps/netcdf/4.2.1.1/lib/'
+   export NCMOD='/apps/netcdf/4.2.1.1/include/'
+   export FC=mpif90
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/apps/netcdf/4.2.1.1/lib -L/apps/netcdf/4.2.1.1/lib/Intel -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+
+
 ## shine-cl.nexus.csiro.au 
 host_shin()
 {
