@@ -458,7 +458,7 @@ PROGRAM cable_offline_driver
                        + SUM(bal%ebal_tot_cncheck)
       print *, "old : ", trunk_sumbal                
       print *, "new : ",new_sumbal   
-      STOP
+  
       IF( new_sumbal == trunk_sumbal) THEN
 
          print *, ""
