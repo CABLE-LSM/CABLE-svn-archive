@@ -456,8 +456,6 @@ PROGRAM cable_offline_driver
    IF(cable_user%consistency_check) THEN 
       new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
                        + SUM(bal%ebal_tot_cncheck)
-      print *, "old : ", trunk_sumbal                
-      print *, "new : ",new_sumbal   
   
       IF( new_sumbal == trunk_sumbal) THEN
 
@@ -472,7 +470,7 @@ PROGRAM cable_offline_driver
          "Internal check shows in this version new_sumbal != trunk sumbal"
          print *, &
          "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
-      
+               
          OPEN( 12, FILE = Fnew_sumbal )
             WRITE( 12, * ) new_sumbal  ! written by previous trunk version
          CLOSE(12)
