@@ -228,7 +228,7 @@ MODULE casavariable
                                        kpocc,       &
                                        kmlabp,      &
                                        Psorbmax
-    REAL(r_2), DIMENSION(:,:),POINTER    :: klitter
+    REAL(r_2), DIMENSION(:,:),POINTER    :: klitter 
     REAL(r_2), DIMENSION(:,:),POINTER    :: ksoil
     REAL(r_2), DIMENSION(:,:,:),POINTER  :: fromLtoS
     REAL(r_2), DIMENSION(:,:,:),POINTER  :: fromStoS
@@ -259,10 +259,10 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:), POINTER   :: lat,      &
                                           lon,      &
                                           areacell
-  END TYPE casa_met
+   END TYPE casa_met
 
   TYPE casa_balance
-    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,             &
+    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,                 &
             FCrpyear, FCrsyear,FCneeyear,                                     &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear
@@ -443,20 +443,20 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
 
   ALLOCATE(casaflux%FluxCtoco2(arraysize))
 
-  ALLOCATE(casamet%glai(arraysize),                &
-           casamet%lnonwood(arraysize),            &
-           casamet%Tairk(arraysize),               &
-           casamet%precip(arraysize),              &
-           casamet%tsoilavg(arraysize),            &
-           casamet%moistavg(arraysize),            &
-           casamet%btran(arraysize),               &
-           casamet%Tsoil(arraysize,ms),            &
-           casamet%moist(arraysize,ms),            &
-           casamet%iveg2(arraysize),               &  
-           casamet%ijgcm(arraysize),               &
-           casamet%isorder(arraysize),             &
-           casamet%lat(arraysize),                 &
-           casamet%lon(arraysize),                 &
+  ALLOCATE(casamet%glai(arraysize),                 &
+           casamet%lnonwood(arraysize),             &
+           casamet%Tairk(arraysize),                &
+           casamet%precip(arraysize),               &
+           casamet%tsoilavg(arraysize),             &
+           casamet%moistavg(arraysize),             &
+           casamet%btran(arraysize),                &
+           casamet%Tsoil(arraysize,ms),             &
+           casamet%moist(arraysize,ms),             &
+           casamet%iveg2(arraysize),                &  
+           casamet%ijgcm(arraysize),                &
+           casamet%isorder(arraysize),              &
+           casamet%lat(arraysize),                  &
+           casamet%lon(arraysize),                  &
            casamet%areacell(arraysize))
 
   ALLOCATE(casabal%FCgppyear(arraysize),           &

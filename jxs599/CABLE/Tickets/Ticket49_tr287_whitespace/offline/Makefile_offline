@@ -22,7 +22,9 @@
 # Contact: Bernard.Pak@csiro.au
 #
 # History: Additions for CASA-CNP
-#
+
+# Additions for SLI (Vanessa Haverd)
+# Additions for SpinCASA (Lars Nieradzik)
 #
 # ==============================================================================
 ##########################################################################
@@ -74,7 +76,7 @@ cable_checks.o: cable_checks.F90 cable_radiation.o cable_common.o
 
 cable_driver.o: cable_driver.F90 cable_output.o cable_iovars.o cable_cbm.o  casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_common.o cable_data.o
 
-cable_define_types.o: cable_define_types.F90
+cable_define_types.o: cable_define_types.F90 
 
 cable_iovars.o: cable_iovars.F90 cable_define_types.o 
 

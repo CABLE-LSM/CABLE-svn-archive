@@ -30,8 +30,8 @@
 !
 ! ==============================================================================
 
-SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
-                     casabiome,casapool,casaflux,casamet,casabal,phen, &
+SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil,   &
+                     casabiome,casapool,casaflux,casamet,casabal,phen,  &
                      spinConv, spinup, ktauday, idoy, dump_read, dump_write )
 
    USE cable_def_types_mod
@@ -45,15 +45,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER,      INTENT(IN) :: kstart ! starting value of ktau
    INTEGER,      INTENT(IN) :: kend ! total # timesteps in run
    
-   INTEGER,      INTENT(IN)                  :: idoy ! day of year (1-365)
-   INTEGER,      INTENT(IN)                  :: ktauday
+   INTEGER,      INTENT(IN) :: idoy ! day of year (1-365)
+   INTEGER,      INTENT(IN) :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
    logical,      INTENT(IN) :: dump_read, dump_write 
         
    REAL,         INTENT(IN) :: dels ! time setp size (s)
-   TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
-   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow ! soil and snow variables
-   TYPE (canopy_type), INTENT(INOUT) :: canopy ! vegetation variables
+   TYPE (met_type),            INTENT(INOUT) :: met  ! met input variables
+   TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow variables
+   TYPE (canopy_type),         INTENT(INOUT) :: canopy ! vegetation variables
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
    TYPE (casa_biome),          INTENT(INOUT) :: casabiome
@@ -63,47 +63,47 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    TYPE (casa_balance),        INTENT(INOUT) :: casabal
    TYPE (phen_variable),       INTENT(INOUT) :: phen
 
-   !    phen%phase = 2
+  !    phen%phase = 2
 
    if ( .NOT. dump_read ) then
       if(ktau == kstart) then
-         casamet%tairk  = 0.0
-         casamet%tsoil  = 0.0
-         casamet%moist  = 0.0
-         casaflux%cgpp  = 0.0
-         ! add initializations (BP jul2010)
-         casaflux%Crsoil   = 0.0
-         casaflux%crgplant = 0.0
-         casaflux%crmplant = 0.0
-         casaflux%clabloss = 0.0
-         ! casaflux%crmplant(:,leaf) = 0.0
-         ! end changes (BP jul2010)
-      ENDIF
+        casamet%tairk  = 0.0
+        casamet%tsoil  = 0.0
+        casamet%moist  = 0.0
+        casaflux%cgpp  = 0.0
+        ! add initializations (BP jul2010)
+        casaflux%Crsoil   = 0.0
+        casaflux%crgplant = 0.0
+        casaflux%crmplant = 0.0
+        casaflux%clabloss = 0.0
+        ! casaflux%crmplant(:,leaf) = 0.0
+        ! end changes (BP jul2010)
+     ENDIF
       IF(mod(ktau,ktauday)==1) THEN
-         casamet%tairk = met%tk
-         casamet%tsoil = ssnow%tgg
-         casamet%moist = ssnow%wb
-         casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
-         casaflux%crmplant(:,leaf) = canopy%frday*dels
-      ELSE
-         Casamet%tairk  =casamet%tairk + met%tk
-         casamet%tsoil = casamet%tsoil + ssnow%tgg
-         casamet%moist = casamet%moist + ssnow%wb
-         casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
+        casamet%tairk = met%tk
+        casamet%tsoil = ssnow%tgg
+        casamet%moist = ssnow%wb
+        casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
+        casaflux%crmplant(:,leaf) = canopy%frday*dels
+     ELSE
+        Casamet%tairk  =casamet%tairk + met%tk
+        casamet%tsoil = casamet%tsoil + ssnow%tgg
+        casamet%moist = casamet%moist + ssnow%wb
+        casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + &
                                        canopy%frday*dels
-      ENDIF
+     ENDIF
 
       IF(mod((ktau-kstart+1),ktauday)==0) THEN
 
          casamet%tairk  =casamet%tairk/FLOAT(ktauday)
-         casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
-         casamet%moist=casamet%moist/FLOAT(ktauday)
-   
-         CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+        casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
+        casamet%moist=casamet%moist/FLOAT(ktauday)
+
+           CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen)
-   
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
+
+        IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
             IF ( dump_write ) &
                call ncdf_dump( casamet%tairk, casamet%tsoil, casamet%moist, &
                                casaflux%cgpp, casaflux%crmplant, idoy, &
@@ -114,19 +114,19 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
    ELSE 
 
-
-
+             
+             
       IF( mod((ktau-kstart+1),ktauday) == 0 ) & 
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen)
-
-
+             
+             
    ENDIF
-
-
-
-
-END SUBROUTINE bgcdriver
+             
+          
+       
+    
+ END SUBROUTINE bgcdriver
 
 
 
@@ -230,7 +230,7 @@ END SUBROUTINE bgcdriver
 !      
 !      if (n_call == kend ) & 
 !         ncok = nf90_close(ncid)            ! close: save new netCDF dataset
-     
+
    end subroutine ncdf_dump
 
 
@@ -277,7 +277,7 @@ END SUBROUTINE bgcdriver
 
 
 
- SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet)
+SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet)
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
@@ -311,44 +311,44 @@ END SUBROUTINE bgcdriver
   npleafx = 14.2 
 
   DO np=1,mp
-    ivt=veg%iveg(np)
-    IF (casamet%iveg2(np)/=icewater & 
-        .AND. casamet%glai(np)>casabiome%glaimin(ivt)  &
-        .AND. casapool%cplant(np,leaf)>0.0) THEN
-      ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
-                        MAX(casabiome%ratioNCplantmin(ivt,leaf), &
-                            casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
-      IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
+     ivt=veg%iveg(np)
+     IF (casamet%iveg2(np)/=icewater &
+          .AND. casamet%glai(np)>casabiome%glaimin(ivt)  &
+          .AND. casapool%cplant(np,leaf)>0.0) THEN
+        ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
+             MAX(casabiome%ratioNCplantmin(ivt,leaf), &
+             casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
+        IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
         npleafx(np) = MIN(30.0,MAX(8.0,casapool%nplant(np,leaf) &
                                       /casapool%pplant(np,leaf)))
-      ENDIF
-    ENDIF
-
-    IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
-      IF (ivt/=2) THEN
-        veg%vcmax(np) = ( nintercept(ivt) &
-                        + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-      ELSE
-        IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
-          veg%vcmax(np) = ( nintercept(ivt)  &
-                          + nslope(ivt)*(0.4+9.0/npleafx(np)) &
-                          * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-        ELSE
-          veg%vcmax(np) = ( nintercept(ivt) &
-                          + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
         ENDIF
-      ENDIF
-      veg%vcmax(np) = veg%vcmax(np) * xnslope(ivt)
-    ENDIF
+     ENDIF
 
-!    veg%vcmax(np) = ( nintercept(ivt)  &
-!                  + nslope(ivt)*(0.4+8.5/npleafx(np)) &
-!                  * ncleafx(np)/casabiome%sla(ivt))*(1.0e-6)
-!    veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+     IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
+        IF (ivt/=2) THEN
+           veg%vcmax(np) = ( nintercept(ivt) &
+                + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+        ELSE
+           IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
+              veg%vcmax(np) = ( nintercept(ivt)  &
+                   + nslope(ivt)*(0.4+9.0/npleafx(np)) &
+                   * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+           ELSE
+              veg%vcmax(np) = ( nintercept(ivt) &
+                   + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
+           ENDIF
+        ENDIF
+        veg%vcmax(np) = veg%vcmax(np) * xnslope(ivt)
+     ENDIF
 
-!write(*,991) np, ivt,veg%vlai(np),veg%vcmax(np)*1.0e6
-!write(*,891) np,ivt,casapool%cplant(np,leaf),casapool%nplant(np,leaf),casapool%pplant(np,leaf)
-!891 format(2(i6),3(f9.3,2x))
+     !    veg%vcmax(np) = ( nintercept(ivt)  &
+     !                  + nslope(ivt)*(0.4+8.5/npleafx(np)) &
+     !                  * ncleafx(np)/casabiome%sla(ivt))*(1.0e-6)
+     !    veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+
+     !write(*,991) np, ivt,veg%vlai(np),veg%vcmax(np)*1.0e6
+     !write(*,891) np,ivt,casapool%cplant(np,leaf),casapool%nplant(np,leaf),casapool%pplant(np,leaf)
+     !891 format(2(i6),3(f9.3,2x))
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
