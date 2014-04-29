@@ -2,10 +2,48 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg nXXX
 }
 
 
+## Interactive Job nXXX@burnet.hpsc.csiro.au  
+host_nXXX()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   #export FC=$F90
+   export FC=ifort
+   #vanessa's test options
+#   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+#   export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+## burnet.hpsc.csiro.au 
+host_burn()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   #export FC=$F90
+   export FC=ifort
+   #export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   #vanessa's test options
+   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+
+## qa
 ## jiggle
 host_jigg()
 {
@@ -29,24 +67,9 @@ host_shin()
    export NCDIR='/usr/local/intel/lib'
    export NCMOD='/usr/local/intel/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
+   export CFLAGS='-C -fp-model precise -ftz -fpe0'
    export LD='-lnetcdf'
    export LDFLAGS='-L/usr/local/intel/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-## burnet.hpsc.csiro.au 
-host_burn()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/'
-   export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
    build_status
@@ -107,7 +130,6 @@ host_read()
       export NCDIR=$NCDF_ROOT/$NCDF_DIR
    fi
 
-   
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF .mod file."
    print "\n\tPress enter for default [include]."
@@ -186,10 +208,10 @@ host_write()
 
 clean_build()
 {
-      print '\ncleaning up\n'
-      rm -fr .tmp
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy 
+      print '\ncleaning up\n'
+      rm -fr .tmp
 }
 
 
@@ -231,6 +253,14 @@ do_i_no_u()
    integer k=0
    typeset -f subr
    
+   ic=`echo $HOST_MACH | cut -c 1`
+   in=`echo $HOST_MACH | cut -c 2-4`
+   # for nodes on burnet
+   if [[ $ic == 'n' ]]; then
+       if [ $in -gt 0 -a $in -lt 1000 ]; then
+	   HOST_MACH=nXXX
+       fi
+   fi
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
@@ -247,13 +277,14 @@ build_status()
    if [[ -f .tmp/cable ]]; then
    	mv .tmp/cable .
    	print '\nBUILD OK\n'
+	exit 0
    else
       print '\nOooops. Something went wrong\n'        
       print '\nKnown build issues:\n'        
       print '\nSome systems require additional library. \n'        
       print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'        
+   exit 1
    fi
-   exit
 }
 
 
@@ -315,7 +346,7 @@ fi
 known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
-
+ 
 do_i_no_u $1
 
 not_recognized
