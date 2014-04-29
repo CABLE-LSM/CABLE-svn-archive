@@ -315,7 +315,7 @@ fi
 known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
-
+ 
 do_i_no_u $1
 
 not_recognized
