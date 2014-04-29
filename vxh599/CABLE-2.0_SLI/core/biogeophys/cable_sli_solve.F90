@@ -760,7 +760,7 @@ CONTAINS
              case (1) ! no snow
 
              CALL SEB(par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), n, nsteps(kk), dx(kk,:), &
-                      h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), tfin-ts, Tsurface0(kk), &
+                      h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE0(kk),  &
                       q(kk,0), qevap(kk), qliq(kk,0), qv(kk,0), &
                       qyb(kk,0), qTb(kk,0), qlyb(kk,0), qvyb(kk,0), qlTb(kk,0), qvTb(kk,0), qh(kk,0), &
@@ -772,7 +772,7 @@ CONTAINS
              case (2) ! snow
 
              CALL SEB(par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), n, nsteps(kk), dx(kk,:), &
-                      h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), tfin-ts, Tsurface0(kk), &
+                      h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE0(kk),  &
                       q(kk,-vsnow(kk)%nsnow), qevap(kk), qliq(kk,-vsnow(kk)%nsnow), qv(kk,-vsnow(kk)%nsnow), &
                       qyb(kk,-vsnow(kk)%nsnow), qTb(kk,-vsnow(kk)%nsnow), qlyb(kk,-vsnow(kk)%nsnow), &
@@ -2868,10 +2868,6 @@ CONTAINS
                 vsnow(kk)%hliq(1)=(tmp1d1(kk)-vsnow(kk)%hsnow(1)*rhow*(zero*csice-lambdaf))/ &
                      (rhow*(zero*cswat-zero*csice+lambdaf))
                 vsnow(kk)%tsn(1) = zero
-             endif
-
-             if (irec.eq.10820) then
-              write(*,*) 'chk4', vsnow(kk)%hsnow(1), vsnow(kk)%hliq(1)
              endif
 
              ! correct soil moisture

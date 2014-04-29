@@ -65,7 +65,7 @@ MODULE cable_output_module
           RadT, VegT, Ebal, Wbal, AutoResp,                          &
           LeafResp, HeteroResp, GPP, NPP, LAI,                       &
           ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-          HVeg, HSoil, Rnet, tvar
+          HVeg, HSoil, Rnet, tvar, RnetSoil, SnowMelt
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -156,6 +156,10 @@ MODULE cable_output_module
      REAL(KIND=4), POINTER, DIMENSION(:) :: HVeg  ! sensible heat from vegetation
      ! [W/m2]
      REAL(KIND=4), POINTER, DIMENSION(:) :: HSoil ! sensible heat from soil
+     ! [W/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: RnetSoil ! latent heat from soil
+      ! [kg/m2/s]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: SnowMelt ! snow melt
      ! [W/m2]
      REAL(KIND=4), POINTER, DIMENSION(:) :: Ebal  ! cumulative energy balance
      ! [W/m2]
@@ -451,6 +455,12 @@ CONTAINS
             xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%HSoil(mp))
        out%HSoil = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%RnetSoil, 'RnetSoil', 'W/m^2',                &
+            'Net radiation absorbed by ground', patchout%RnetSoil, 'dummy',    &
+            xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%RnetSoil(mp))
+       out%Rnet = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%carbon .OR. output%NEE) THEN
        CALL define_ovar(ncid_out, ovid%NEE, 'NEE', 'umol/m^2/s',               &
@@ -493,6 +503,12 @@ CONTAINS
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%SWE(mp))
        out%SWE = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%SnowMelt, 'SnowMelt', 'kg/m^2/s',                   &
+            'Snow Melt Rate', patchout%SnowMelt,                 &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SnowMelt(mp))
+       out%SnowMelt = 0.0 ! initialise
     END IF
     IF(output%snow .OR. output%SnowT) THEN
        CALL define_ovar(ncid_out, ovid%SnowT, 'SnowT', 'K',                    &
@@ -1124,7 +1140,7 @@ CONTAINS
     ! Tair: surface air temperature [K]
     IF(output%met .OR. output%Tair) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Tair = out%Tair + REAL(met%tvair, 4)
+       out%Tair = out%Tair + REAL(met%tvair, 4) !VH TEST!
        !out%Tair = out%Tair + REAL(met%tk, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -1336,7 +1352,11 @@ CONTAINS
     ! ESoil: bare soil evaporation [kg/m^2/s]
     IF(output%flux .OR. output%ESoil) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%ESoil = out%ESoil + REAL(canopy%fes / air%rlam, 4)
+       IF(cable_user%SOIL_STRUC=='sli') THEN
+          out%ESoil = out%ESoil + REAL(ssnow%evap/dels, 4) !vh!
+       ELSE
+          out%ESoil = out%ESoil + REAL(canopy%fes / air%rlam, 4)
+       ENDIF
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%ESoil = out%ESoil / REAL(output%interval, 4)
@@ -1373,6 +1393,17 @@ CONTAINS
                out%HSoil, ranges%HSoil, patchout%HSoil, 'default', met)
           ! Reset temporary output variable:
           out%HSoil = 0.0
+       END IF
+
+        out%RnetSoil = out%RnetSoil + REAL(canopy%fns, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%RnetSoil = out%RnetSoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%RnetSoil, 'RnetSoil',         &
+               out%RnetSoil, ranges%HSoil, patchout%HSoil, 'default', met)
+          ! Reset temporary output variable:
+          out%RnetSoil = 0.0
        END IF
     END IF
     ! NEE: net ecosystem exchange [umol/m^2/s]
@@ -1451,6 +1482,19 @@ CONTAINS
           ! Reset temporary output variable:
           out%SWE = 0.0
        END IF
+
+         ! Add current timestep's value to total of temporary output variable:
+       out%SnowMelt = out%SnowMelt + REAL(ssnow%smelt, 4)/dels
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%SnowMelt = out%SnowMelt / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SnowMelt, 'SnowMelt', out%SnowMelt,    &
+               ranges%Evap, patchout%SnowMelt, 'default', met)
+          ! Reset temporary output variable:
+          out%SnowMelt = 0.0
+       END IF
+
     END IF
     ! SnowT: snow surface temp [K]
     IF(output%snow .OR. output%SnowT) THEN
@@ -1547,10 +1591,14 @@ CONTAINS
     ! RadT: Radiative surface temperature [K]
     IF(output%radiation .OR. output%RadT) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%RadT = out%RadT + REAL((((1.0 - rad%transd) * emleaf * sboltz *     &
-            canopy%tv ** 4 + rad%transd * emsoil * sboltz * ((1 - ssnow%isflag) *   &
-            ssnow%tgg(:, 1) + ssnow%isflag * ssnow%tggsn(:, 1)) ** 4) / sboltz)     &
+!       out%RadT = out%RadT + REAL((((1.0 - rad%transd) * emleaf * sboltz *     &
+!            canopy%tv ** 4 + rad%transd * emsoil * sboltz * ((1 - ssnow%isflag) *   &
+!            ssnow%tgg(:, 1) + ssnow%isflag * ssnow%tggsn(:, 1)) ** 4) / sboltz)     &
+!            ** 0.25, 4)
+        out%RadT = out%RadT + REAL((((1.0 - rad%transd) * emleaf * sboltz *     &
+            canopy%tv ** 4 + rad%transd * emsoil * sboltz * (ssnow%tss) ** 4) / sboltz)     &
             ** 0.25, 4)
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%RadT = out%RadT/REAL(output%interval, 4)

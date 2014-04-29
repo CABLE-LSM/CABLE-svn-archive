@@ -290,7 +290,7 @@ END SUBROUTINE forcerestore
 END SUBROUTINE forcerestore_Deardorff
   !**********************************************************************************************************************
 ! Surface Energy Balance
-SUBROUTINE SEB(par, vmet, vsnow, var, qprec, qprec_snow, n, nsteps, dx, h0, hice, S, Tsoil, dt, Tsurface0, &
+SUBROUTINE SEB(par, vmet, vsnow, var, qprec, qprec_snow, n, nsteps, dx, h0, hice, S, Tsoil,  &
 Tsurface, G0, lE0, qsurface, qevap, qliq, qv, &
 qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
 
@@ -307,8 +307,7 @@ REAL(r_2),      DIMENSION(1:n),   INTENT(IN)              :: dx
 REAL(r_2),          INTENT(IN)           :: h0, hice
 REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: S
 REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: Tsoil
-REAL(r_2),   INTENT(IN)              :: dt
-REAL(r_2),  INTENT(IN)           :: Tsurface0
+
 
 
 REAL(r_2),  INTENT(OUT)           :: Tsurface, G0, lE0  ! SEB (subdiurnal, uses T in top layer)
@@ -337,6 +336,8 @@ REAL(r_2) :: Tqw, dtqwdtb
 
                 if (var(1)%iice.eq.1.and.Tsurface_pot> zero) then
                      Tsurface_pot = 0.0
+                     Tsurface = 0.0
+
                      Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
                              vmet%cva)*rhow*var(1)%lambdav/vmet%rbw
                      dEdTsoil = zero
@@ -439,13 +440,15 @@ REAL(r_2) :: Tqw, dtqwdtb
                 if (vsnow%hliq(1)>zero) then
                    Tsurface = 0.0
                    Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
-                              vmet%cva)*rhow*lambdaf/vmet%rbw
+                              vmet%cva)*rhow*rlambda/vmet%rbw !!vh check this !!
+                  ! write(*,*) "Epot", vmet%rha, vmet%Ta, esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)*rhow*rlambda/vmet%rbw, &
+                   !vmet%cva*rhow*rlambda/vmet%rbw, Epot
                    dEdTsoil = zero
                    dGdTsoil = zero
                    Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
                    Gpot = vmet%Rn - Hpot - Epot
                    dEdTs = zero
-                   qevap = Epot/(thousand*lambdaf)
+                   qevap = Epot/(rhow*rlambda)
                    qTb = zero
                 else
 
@@ -464,7 +467,7 @@ REAL(r_2) :: Tqw, dtqwdtb
                         Gpot = vmet%Rn - Hpot - Epot
                         dEdTs= zero
                      endif
-                    qevap = Epot/(thousand*lambdas)
+                    qevap = Epot/(rhow*lambdas)
                     qTb = -dEdTsoil/(thousand*lambdas)
                 endif
                 lE0 = Epot
