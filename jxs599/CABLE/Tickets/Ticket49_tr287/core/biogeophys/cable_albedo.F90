@@ -123,12 +123,12 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
                         * rhoch(:,b)
 
          ! Canopy beam transmittance (fraction):
-         dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
-         dummy  = EXP(dummy2)
-
-         rad%cexpkbm(:,b) = REAL(dummy)
-
-         ! Calculate effective beam reflectance (fraction):
+!jh         dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
+!jh         dummy  = EXP(dummy2)
+!jh         rad%cexpkbm(:,b) = REAL(dummy)
+         rad%cexpkbm(:,b) = real(exp(-min(rad%extkbm(:,b)*canopy%vlaiw, 20.))) !vh! to avoid floating underflow
+         !write(*,*) rad%extkbm(:,b), canopy%vlaiw, rad%cexpkbm(:,b)
+         ! Calculate effective beam reflectance (fraction):,
          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
                - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
 
