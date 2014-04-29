@@ -177,7 +177,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
    !	WOOD:
    ! fraction of photosynthate going to roots, (1-fr) to wood, eq. 9
-   fr = MIN( 1., EXP (- rw( veg%iveg ) * beta * bgc%cplant(:,3)                &
+   fr = MIN( 1., EXP (- rw( veg%iveg ) * beta *0.0001* bgc%cplant(:,3)                & !!vh!! inserted '0.0001' to avoide floating pt underflow
         / MAX( bgc%cplant(:,2), 0.01 ) ) / beta )
    
    cfwd = trnw(veg%iveg) * bgc%cplant(:,2)
@@ -223,8 +223,8 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
 
    TYPE (soil_snow_type), INTENT(IN)        :: ssnow
    TYPE (bgc_pool_type), INTENT(IN)         :: bgc
-   TYPE (met_type), INTENT(IN)              :: met 
-   TYPE (canopy_type), INTENT(OUT)          :: canopy
+   TYPE (met_type), INTENT(IN)              :: met
+   TYPE (canopy_type), INTENT(INOUT)        :: canopy
 
    TYPE (soil_parameter_type), INTENT(IN)   :: soil
    TYPE (veg_parameter_type), INTENT(IN)    :: veg
@@ -321,7 +321,7 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
    TYPE (veg_parameter_type), INTENT(IN)    :: veg
    TYPE (bgc_pool_type), INTENT(IN)         :: bgc
    TYPE (met_type), INTENT(IN)              :: met
-   TYPE (canopy_type), INTENT(OUT)          :: canopy
+   TYPE (canopy_type), INTENT(INOUT)        :: canopy
 
    REAL, DIMENSION(mp) ::                                                      &
       poolcoef1,     &! non-leaf carbon turnover rate * non-leaf pool size
