@@ -424,7 +424,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
 
      do kk=1, mp
      call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
-     CALL SEB(par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), ms, 1, dx(kk,:), &
+     CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk),  1, dx(kk,:), &
                       h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE(kk),  &
                       tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &

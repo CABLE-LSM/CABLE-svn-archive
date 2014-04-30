@@ -52,7 +52,7 @@
 ! March 30 (V. Haverd)
 ! 
 ! Jan 7 2014 (V. Haverd)
-! Adjust snow surface bcs such that snow surface temperature can't be less than 0
+! Adjust snow surface bcs such that snow surface temperature can't be more than 0
 !
 ! Jan 8 2014 (V Haverd)
 ! enable 2nd snow layer so that if snowpack exceeds 3 cm , the excess goes into the layer below.
@@ -759,7 +759,7 @@ CONTAINS
              select case (surface_case(kk))
              case (1) ! no snow
 
-             CALL SEB(par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), n, nsteps(kk), dx(kk,:), &
+             CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), nsteps(kk), dx(kk,:), &
                       h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE0(kk),  &
                       q(kk,0), qevap(kk), qliq(kk,0), qv(kk,0), &
@@ -771,7 +771,7 @@ CONTAINS
 
              case (2) ! snow
 
-             CALL SEB(par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), n, nsteps(kk), dx(kk,:), &
+             CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), nsteps(kk), dx(kk,:), &
                       h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE0(kk),  &
                       q(kk,-vsnow(kk)%nsnow), qevap(kk), qliq(kk,-vsnow(kk)%nsnow), qv(kk,-vsnow(kk)%nsnow), &
@@ -1404,11 +1404,11 @@ CONTAINS
 					   if (vsnow(kk)%nsnow>1) then
                          qsig(kk,1-vsnow(kk)%nsnow:-1) = qsig(kk,1-vsnow(kk)%nsnow:-1) + &
 						 sig(kk)*qya(kk,1-vsnow(kk)%nsnow:-1)*dy(kk,1-vsnow(kk)%nsnow:-1) + &
-                         + sig(kk)*qTa(kk,1-vsnow(kk)%nsnow:-1)*de(kk,1-vsnow(kk)%nsnow:-1)
+                         sig(kk)*qTa(kk,1-vsnow(kk)%nsnow:-1)*de(kk,1-vsnow(kk)%nsnow:-1)
 
 						 qhsig(kk,1-vsnow(kk)%nsnow:-1) = qhsig(kk,1-vsnow(kk)%nsnow:-1)  + &
                          sig(kk)*qhya(kk,1-vsnow(kk)%nsnow:-1)*dy(kk,1-vsnow(kk)%nsnow:-1) + &
-						 + sig(kk)*qhTa(kk,1-vsnow(kk)%nsnow:-1)*de(kk,1-vsnow(kk)%nsnow:-1)
+						  sig(kk)*qhTa(kk,1-vsnow(kk)%nsnow:-1)*de(kk,1-vsnow(kk)%nsnow:-1)
 
 						 qadvsig(kk,1-vsnow(kk)%nsnow:-1) = qadvsig(kk,1-vsnow(kk)%nsnow:-1) + &
 						 sig(kk)*qadvya(kk,1-vsnow(kk)%nsnow:-1)*dy(kk,1-vsnow(kk)%nsnow:-1) + &
@@ -3027,14 +3027,16 @@ CONTAINS
 		      
 			   ! simply add melt water from above if melt water already exists and total new amount doesn't exceed capacity
 			   if ((vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.zero).and. &
-			   (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).le.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
+			   (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).le.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + &
+			                                                 qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
 					
 					vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)
 					vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
 					qmelt(kk,vsnow(kk)%nsnow) = zero
 			   ! or convert excess to melt water
 			   elseif ((vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.zero).and. &
-			   (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).gt.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
+			   (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).gt.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + &
+			                                                  qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2)) then
 
                      tmp1d1(kk) = vsnow(kk)%hliq(vsnow(kk)%nsnow)
 					 tmp1d2(kk) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)
@@ -3062,28 +3064,32 @@ CONTAINS
 				   qmelt(kk,vsnow(kk)%nsnow) = zero
 
 			   else ! snowpack partially melted
-                   vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)/lambdaf*(csice*vsnow(kk)%tsn(vsnow(kk)%nsnow)-lambdaf) + &
+                   vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)/ &
+                                     lambdaf*(csice*vsnow(kk)%tsn(vsnow(kk)%nsnow)-lambdaf) + &
 			                        (vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1))
 				   vsnow(kk)%tsn(vsnow(kk)%nsnow) = zero
                    vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
 				   qmelt(kk,vsnow(kk)%nsnow) = zero
                
 
-				   if (vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.vsnow(kk)%hsnow(vsnow(kk)%nsnow)*vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)) then
+				   if (vsnow(kk)%hliq(vsnow(kk)%nsnow).gt. &
+				       vsnow(kk)%hsnow(vsnow(kk)%nsnow)*vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)) then
 
 				      tmp1d1(kk) = vsnow(kk)%hliq(vsnow(kk)%nsnow)
 					  tmp1d2(kk) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)
 					  
 					  qmelt(kk,vsnow(kk)%nsnow) =  vsnow(kk)%hliq(vsnow(kk)%nsnow) - &
-                                   vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(vsnow(kk)%hsnow(vsnow(kk)%nsnow) - vsnow(kk)%hliq(vsnow(kk)%nsnow))/ &
-			                                                 (1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
+                                   vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(vsnow(kk)%hsnow(vsnow(kk)%nsnow) - &
+                                   vsnow(kk)%hliq(vsnow(kk)%nsnow))/(1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 					  
 					  vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(vsnow(kk)%hsnow(vsnow(kk)%nsnow) &
 					                                   - vsnow(kk)%hliq(vsnow(kk)%nsnow))/ &
 			                                                 (1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 
-					  vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) - tmp1d1(kk) + vsnow(kk)%hliq(vsnow(kk)%nsnow)
-					  tmp1d3(kk) = vsnow(kk)%dens(vsnow(kk)%nsnow)*(one-vsnow(kk)%hliq(vsnow(kk)%nsnow))/vsnow(kk)%hsnow(vsnow(kk)%nsnow)
+					  vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) -  &
+					                                     tmp1d1(kk) + vsnow(kk)%hliq(vsnow(kk)%nsnow)
+					  tmp1d3(kk) = vsnow(kk)%dens(vsnow(kk)%nsnow)*(one-vsnow(kk)%hliq(vsnow(kk)%nsnow)) &
+					               /vsnow(kk)%hsnow(vsnow(kk)%nsnow)
 
 					  
 				    endif ! (vsnow(kk)%hliq(2).gt.vsnow(kk)%hsnow(2)*vsnow(kk)%fsnowliq_max(2))

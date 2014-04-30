@@ -1100,7 +1100,7 @@ CONTAINS
 
        where (sum(ecy,2) > 0.0_r_2)  ! evaporation
           canopy%fevw = min(sum(ecy*fwet*gbw/max(gw,1.e-6_r_2),2), &
-               max(0.0_r_2,canopy%cansto)*air%rlam/real(dels,r_2))
+               real(max(0.0,canopy%cansto),r_2)*air%rlam/real(dels,r_2))
           canopy%fwet = REAL(canopy%fevw/sum(ecy,2))
        elsewhere ! condensation
           canopy%fevw = sum(ecy*fwet*gbw/max(gw,1.e-6_r_2),2)
@@ -1159,12 +1159,12 @@ CONTAINS
        canopy%frday = 12.0 * real(sum(rdy, 2))
        canopy%fpn   = -12.0 * real(sum(an_y, 2))
        ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
-       canopy%dewmm = - REAL((min(0.0_r_2,canopy%fevw) + min(0.0_r_2,canopy%fevc))/air%rlam) * &
-            dels * 1.0e3 / rhow
+       canopy%dewmm = - REAL((min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc))/air%rlam) *  &
+                   dels * 1.0e3 / rhow
        ! Add dewfall to canopy water storage:
        canopy%cansto = canopy%cansto + real(canopy%dewmm,r_2)
        ! Modify canopy water storage for evaporation:
-       canopy%cansto = max(canopy%cansto-max(0.0_r_2,canopy%fevw)/air%rlam*1.0e3_r_2*real(dels/rhow,r_2), 0.0_r_2)
+       canopy%cansto =  max(canopy%cansto-max(0.0,canopy%fevw)/air%rlam*1.0e3_r_2*real(dels/rhow,r_2), 0.0_r_2)
        ! Calculate canopy water storage excess:
        canopy%spill= real(max(0.0_r_2,min(0.2_r_2*canopy%cansto,max(0.0_r_2,canopy%cansto-cansat))))
        ! Move excess canopy water to throughfall:
