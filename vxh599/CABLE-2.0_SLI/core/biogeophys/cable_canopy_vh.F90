@@ -789,10 +789,10 @@ CONTAINS
       ! write(*,*) "LNF T", ktau, iter, canopy%fh, met%tvair- met%tk
       ! write(*,*) "LNF q", ktau, iter, canopy%fe, met%qvair- met%qv
      !   write(*,*) "u*", canopy%us, rt0, rough%rt1, ssoil%rtsoil
-     if (ktau.le.3001) then
-         write(75,"(2i5, 100f16.6)") ktau, iter, met%ua, met%tvair-met%tk, canopy%us, zetar(:,iter), canopy%fh, &
-         ssoil%rtsoil, canopy%fhs, csw
-     endif
+     !if (ktau.le.3001) then
+     !    write(75,"(2i5, 100f16.6)") ktau, iter, met%ua, met%tvair-met%tk, canopy%us, zetar(:,iter), canopy%fh, &
+     !    ssoil%rtsoil, canopy%fhs, csw
+     !endif
 
 
        ! Saturated specific humidity in canopy:
