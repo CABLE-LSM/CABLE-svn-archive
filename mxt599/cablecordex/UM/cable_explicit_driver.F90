@@ -286,7 +286,15 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
+   ! MJT test for stability
+   real, dimension(:,:), allocatable, save :: vshr_store
+   real, dimension(row_length,rows) :: vshr_temp
 
+   ! MJT test for stability
+   if (.not.(allocated(vshr_store))) then
+     allocate(vshr_store(row_length,rows))
+     vshr_store=vshr_land
+   end if
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -317,7 +325,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       first_cable_call = .FALSE.
    ENDIF      
 
-
+   ! MJT test for stability
+   vshr_temp=vshr_land
+   vshr_land=0.7*vshr_land+0.3*vshr_store
+   vshr_store=vshr_temp
 
 
    !---------------------------------------------------------------------!
