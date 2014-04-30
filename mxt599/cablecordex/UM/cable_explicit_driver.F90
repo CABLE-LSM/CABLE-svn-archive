@@ -326,9 +326,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    ENDIF      
 
    ! MJT test for stability
-   vshr_temp=vshr_land
-   vshr_land=0.7*vshr_land+0.3*vshr_store
-   vshr_store=vshr_temp
+   vshr_temp=0.7*vshr_land+0.3*vshr_store
+   vshr_store=vshr_land
 
 
    !---------------------------------------------------------------------!
@@ -343,7 +342,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
                            snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
-                           ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
+                           ls_snow, tl_1, qw_1, vshr_temp, pstar, z1_tq,       &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
