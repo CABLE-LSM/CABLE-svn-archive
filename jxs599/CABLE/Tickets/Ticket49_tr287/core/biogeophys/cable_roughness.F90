@@ -82,7 +82,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       canopy%rghlai = MIN( 3., canopy%vlaiw )
 
    ! Roughness length of bare soil (m):
-   rough%z0soil = 1.e-6
+    rough%z0soil = 1.e-3
    rough%z0soilsn = MAX( rough%z0soil - 0.5e-7 * MIN( ssnow%snowd, 20. ),      &
                     0.1e-7 )
 
@@ -172,6 +172,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
     
     END WHERE
+
 
 END SUBROUTINE ruff_resist
 
