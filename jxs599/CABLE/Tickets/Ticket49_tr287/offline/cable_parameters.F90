@@ -1206,7 +1206,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
+    TYPE (soil_snow_type),      INTENT(INOUT)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
@@ -1277,6 +1277,35 @@ CONTAINS
     END DO
     bal%osnowd0 = ssnow%osnowd
 
+   IF(hide%Ticket49Bug6) THEN
+      soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+      soil%ssat_vec = SPREAD(soil%ssat,2,ms)
+      IF(cable_user%SOIL_STRUC=='sli') THEN
+         soil%nhorizons = 2 ! use 2 soil horizons globally
+         ! For now just set B horizon parameters to be the same as A
+         ! soil%bchB = soil%bch
+         ! soil%clayB = soil%clay
+         ! soil%sandB = soil%sand ! MC: used later
+         ! soil%siltB = soil%silt !
+         ! soil%cssB = soil%css
+         ! soil%hydsB = soil%hyds
+         ! soil%rhosoilB = soil%rhosoil
+         ! soil%sfcB = soil%sfc
+         ! soil%ssatB = soil%ssat
+         ! soil%sucsB = soil%sucs
+         ! soil%swiltB = soil%swilt
+
+         soil%sfc_vec = SPREAD(soil%sfc,2,ms)
+
+         ! Arbitrarily set A horiz depth to be first half of the layers
+         soil%ishorizon(:,1:ms/2)  = 1
+         soil%ishorizon(:,ms/2+1:) = 2
+         ! soil%depthA = SUM(soil%zse(1:3))
+         soil%clitt = 5.0 ! (tC / ha)
+         ! soil%depthB = SUM(soil%zse(4:))
+      END IF
+    END IF
+ 
   END SUBROUTINE derived_parameters
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)
