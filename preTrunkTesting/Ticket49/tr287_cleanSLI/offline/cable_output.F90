@@ -50,7 +50,7 @@ MODULE cable_output_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: filename
+  USE cable_common_module, ONLY: filename, cable_user, CurYear,IS_LEAPYEAR
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -60,7 +60,7 @@ MODULE cable_output_module
     INTEGER :: SWdown, LWdown, Wind, Wind_E, PSurf,                       &
                     Tair, Qair, Rainf, Snowf, CO2air,                          &
                     Qle, Qh, Qg, NEE, SWnet,                                   &
-                    LWnet, SoilMoist, SoilTemp, Albedo, Qs,                    &
+          LWnet, SoilMoist, SoilMoistIce, SoilTemp, Albedo, Qs,                    &
                     Qsb, Evap, BaresoilT, SWE, SnowT,                          &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
@@ -114,6 +114,8 @@ MODULE cable_output_module
                                                        ! temperature [K]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoist ! 33 av.layer soil
                                                        ! moisture [kg/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoistIce ! 33 av.layer soil
+     ! frozen moisture [kg/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qs  ! 34 surface runoff [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qsb ! 35 subsurface runoff [kg/m2/s]
     ! 36 change in soilmoisture (sum layers) [kg/m2]
@@ -462,8 +464,13 @@ CONTAINS
        CALL define_ovar(ncid_out, ovid%SoilMoist, 'SoilMoist', 'm^3/m^3',      &
                         'Average layer soil moisture', patchout%SoilMoist,     &
                         'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       CALL define_ovar(ncid_out, ovid%SoilMoistIce, 'SoilMoistIce', 'm^3/m^3',      &
+            'Average layer frozen soil moisture', patchout%SoilMoistIce,     &
+            'soil', xID, yID, zID, landID, patchID, soilID, tID)
        ALLOCATE(out%SoilMoist(mp,ms))
+       ALLOCATE(out%SoilMoistIce(mp,ms))
        out%SoilMoist = 0.0 ! initialise
+       out%SoilMoistIce = 0.0 ! initialise
     END IF
     IF(output%soil .OR. output%SoilTemp) THEN
        CALL define_ovar(ncid_out, ovid%SoilTemp, 'SoilTemp', 'K',              &
@@ -953,12 +960,15 @@ CONTAINS
     INTEGER, DIMENSION(mp) :: realyear ! fix problem for yr b4 leap yr
     INTEGER :: backtrack  ! modify timetemp for averaged output
 
+    INTEGER :: dday ! number of past-years days for monthly output LN
+    INTEGER :: iy   ! Counter 
+    
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
                                          met,air,bal)
 
     ! IF asked to check energy balance:
-    IF(check%energy_bal) CALL energy_balance(dels,met,rad,                     &
+    IF(check%energy_bal) CALL energy_balance(dels,ktau,met,rad,                     &
                                              canopy,bal,ssnow,                 &
                                              SBOLTZ, EMLEAF, EMSOIL ) 
 
@@ -994,13 +1004,26 @@ CONTAINS
          WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
        END IF
        
+       ! LN Inserted for multiyear output
+       dday = 0
+       IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
+          DO iy = CABLE_USER%YearStart,MAXVAL(realyear)-1
+             IF ( IS_LEAPYEAR(iy) .AND. leaps ) THEN
+                dday = dday + 366
+             ELSE
+                dday = dday + 365
+             ENDIF
+          END DO
+       ENDIF
+       ! LN Inserted for multiyear output
+
        ! Are we using leap year calendar?
        IF(leaps) THEN
           ! If currently a leap year:
           IF(((ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,100)/=0)).OR. &
                (ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,400)==0)))) THEN
              
-             IF(ANY((lastdayl * 24 * 3600 / INT(dels)) == ktau)) THEN
+             IF(ANY(((lastdayl+dday) * 24 * 3600 / INT(dels)) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
                 ! write to output file this time step 
@@ -1014,7 +1037,7 @@ CONTAINS
              END IF
           ELSE ! not currently a leap year
              ! last time step of month
-             IF(ANY((lastday * 24 * 3600 / INT(dels)) == ktau)) THEN
+             IF(ANY(((lastday+dday) * 24 * 3600 / INT(dels)) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
                 ! write to output file this time step 
@@ -1028,7 +1051,7 @@ CONTAINS
              END IF
           END IF
        ELSE ! not using leap year timing in this run
-          IF(ANY((lastday*24*3600/INT(dels))==ktau)) THEN ! last time step of
+          IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of
                                                              ! month
              ! increment output month counter
              out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
@@ -1053,8 +1076,9 @@ CONTAINS
 
     ! If this time step is an output time step:
     IF(writenow) THEN
+
        ! Write to temporary time variable:
-       timetemp(1) = DBLE(REAL(ktau-backtrack)*dels)
+       timetemp(1) = REAL(REAL(ktau-backtrack)*dels, r_2)
        ! Write time variable for this output time step:
        ok = NF90_PUT_VAR(ncid_out, ovid%tvar, timetemp,                        &
                                         start = (/out_timestep/), count = (/1/))
@@ -1085,7 +1109,8 @@ CONTAINS
     ! LWdown: downward long-wave radiation [W/m^2]
     IF(output%met .OR. output%LWdown) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%LWdown = out%LWdown + REAL(met%fld, 4)
+       ! out%LWdown = out%LWdown + REAL(met%fld, 4)
+       out%LWdown = out%LWdown + REAL(ssnow%nsteps, 4)  !!vh!! temp overwrite LWdown with nsteps
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%LWdown = out%LWdown/REAL(output%interval, 4)
@@ -1099,7 +1124,8 @@ CONTAINS
     ! Tair: surface air temperature [K]
     IF(output%met .OR. output%Tair) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Tair = out%Tair + REAL(met%tk, 4)
+       out%Tair = out%Tair + REAL(met%tvair, 4)
+       !out%Tair = out%Tair + REAL(met%tk, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Tair = out%Tair/REAL(output%interval, 4)
@@ -1368,14 +1394,19 @@ CONTAINS
     IF(output%soil .OR. output%SoilMoist) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%SoilMoist = out%SoilMoist + REAL(ssnow%wb, 4)
+       out%SoilMoistIce = out%SoilMoistIce + REAL(ssnow%wbice, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%SoilMoist = out%SoilMoist / REAL(output%interval, 4)
+          out%SoilMoistIce = out%SoilMoistIce / REAL(output%interval, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%SoilMoist, 'SoilMoist', &
                out%SoilMoist, ranges%SoilMoist, patchout%SoilMoist, 'soil', met)
+          CALL write_ovar(out_timestep, ncid_out, ovid%SoilMoistIce, 'SoilMoistIce', &
+               out%SoilMoistIce, ranges%SoilMoist, patchout%SoilMoistIce, 'soil', met)
           ! Reset temporary output variable:
           out%SoilMoist = 0.0
+          out%SoilMoistIce = 0.0
        END IF
     END IF
     ! SoilTemp: av.layer soil temperature [K]
@@ -1730,13 +1761,14 @@ CONTAINS
   END SUBROUTINE close_output_file
   !=============================================================================
   SUBROUTINE create_restart(logn, dels, ktau, soil, veg, ssnow,                      &
-                            canopy, rough, rad, bgc, bal)
+       canopy, rough, rad, bgc, bal, met)
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
     ! not be active). It uses CABLE's internal variable names.
     INTEGER, INTENT(IN) :: logn ! log file number
     REAL, INTENT(IN) :: dels ! time step size
     INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    TYPE (met_type),INTENT(IN)             :: met ! meteorological data
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
     TYPE (soil_snow_type), INTENT(IN)      :: ssnow  ! soil and snow variables
@@ -1763,14 +1795,27 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
+    CHARACTER         :: FRST_OUT*100, CYEAR*4
+
+
     dummy = 0 ! initialise
 
     WRITE(logn, '(A24)') ' Writing restart file...'
+    IF ( TRIM(filename%path) .EQ. '' ) filename%path = './'
+    frst_out = TRIM(filename%path)//'/'//TRIM(filename%restart_out)
+    ! Look for explicit restart file (netCDF). If not, asssume input is path
+    IF ( INDEX(TRIM(frst_out),'.nc',BACK=.TRUE.) .NE. LEN_TRIM(frst_out)-2 ) THEN
+       WRITE( CYEAR,FMT="(I4)" ) CurYear + 1
+       frst_out = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//&
+            '_'//CYEAR//'_cable_rst.nc'
+    ENDIF
+
     ! Create output file:
-    ok = NF90_CREATE(filename%restart_out, NF90_CLOBBER, ncid_restart)
+    ok = NF90_CREATE(frst_out, NF90_CLOBBER, ncid_restart)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error creating restart file '      &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ! Put the file in define mode:
     ok = NF90_REDEF(ncid_restart)
     ! Define dimensions:
@@ -1778,9 +1823,9 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                      (ok, 'Error defining mland dimension in restart file. '// &
                       '(SUBROUTINE create_restart)')
-    ok = NF90_DEF_DIM(ncid_restart, 'mp_patch', mp, mpID)
+    ok = NF90_DEF_DIM(ncid_restart, 'mp', mp, mpID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                  (ok, 'Error defining mp_patch dimension in restart file. '// &
+         (ok, 'Error defining mp dimension in restart file. '// &
                    '(SUBROUTINE create_restart)')
     ok = NF90_DEF_DIM(ncid_restart, 'soil', ms, soilID) ! number of soil layers
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -2106,6 +2151,44 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%za_tq, 'za_tq', 'm',                   &
                      'Reference height (lowest atm. model layer) for scalars', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    ! Soil-Litter-Iso soil model
+    IF(cable_user%SOIL_STRUC=='sli') THEN
+       ! Parameters for SLI:
+       CALL define_ovar(ncid_restart,rpid%nhorizons,'nhorizons','-', &
+            'Number of soil horizons',.TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%zeta,'zeta','[ ]', &
+            'exponent factor in Topmodel eq',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%fsatmax,'fsatmax','[ ]', &
+            'param in Topmodel eq',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%ishorizon,'ishorizon','-', &
+            'Horizon number',.TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+       CALL define_ovar(ncid_restart,rpid%clitt,'clitt','tC/ha', &
+            'Litter layer carbon content',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
+            'Parameter in root efficiency function (Lai and Katul 2000)', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%ZR,'ZR','cm', &
+            'Maximum rooting depth',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,rpid%F10,'F10','-', &
+            'Fraction of roots in top 10 cm', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       ! Variables for SLI:
+       CALL define_ovar(ncid_restart,SID,'S','-',&
+            'Fractional soil moisture content relative to saturated value', &
+            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,snowliqID,'snowliq','mm',&
+            'liquid water content of snowpack', &
+            .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,scondsID,'sconds','Wm-1K-1',&
+            'thermal cond of snowpack', &
+            .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,h0ID,'h0','m',&
+            'Pond height above soil', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,TsurfaceID,'Tsurface','degC',&
+            'soil or snow surface T', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+    END IF ! SLI soil model
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -2114,57 +2197,57 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, NF90_GLOBAL, "Production",                 &
                       TRIM(todaydate)//' at '//TRIM(nowtime))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing global detail to '   &
-                  //TRIM(filename%restart_out)// ' (SUBROUTINE create_restart)')
+         //TRIM(frst_out)// ' (SUBROUTINE create_restart)')
     ok = NF90_PUT_ATT(ncid_restart, NF90_GLOBAL, "Source",                     &
                       'CABLE LSM restart file')
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing global detail to '   &
-         //TRIM(filename%restart_out)// ' (SUBROUTINE create_restart)')
+         //TRIM(frst_out)// ' (SUBROUTINE create_restart)')
     ok = NF90_PUT_ATT(ncid_restart, NF90_GLOBAL, "CABLE_input_file",           &
                       TRIM(filename%met))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing global detail to '   &
-                  //TRIM(filename%restart_out)// ' (SUBROUTINE create_restart)')
+         //TRIM(frst_out)// ' (SUBROUTINE create_restart)')
 
     ! End netcdf define mode:
     ok = NF90_ENDDEF(ncid_restart)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error creating restart file '      &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write time variable:
-    ok = NF90_PUT_VAR(ncid_restart, tvarID, DBLE(REAL(ktau) * dels))
+    ok = NF90_PUT_VAR(ncid_restart, tvarID, REAL(REAL(ktau) * dels, r_2))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error time variable to '           &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write latitude and longitude variables:
     ok = NF90_PUT_VAR(ncid_restart, latID, latitude)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing latitude variable to '   &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ok = NF90_PUT_VAR(ncid_restart, lonID, longitude)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing longitude variable to '  &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write number of active patches for each land grid cell:
     ok = NF90_PUT_VAR(ncid_restart, napID, landpt(:)%nap)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing nap variable to '        &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write vegetated patch fractions
     ok = NF90_PUT_VAR(ncid_restart, rpid%patchfrac,                            &
                       patch(:)%frac, start = (/1/), count = (/mp/))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing patchfrac to '       &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write number of veg and soil types
     ok = NF90_PUT_VAR(ncid_restart, rpid%mvtype,mvtype)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing mvtype parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ok = NF90_PUT_VAR(ncid_restart, rpid%mstype,mstype)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing mstype parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write parameters:
     CALL write_ovar (ncid_restart, rpid%iveg, 'iveg', REAL(veg%iveg, 4),       &
@@ -2225,7 +2308,7 @@ CONTAINS
                      (/-99999.0, 9999999.0/), .TRUE., 'soilcarbon', .TRUE.)
     ok = NF90_PUT_VAR(ncid_restart, rpid%zse, REAL(soil%zse, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing zse parameter to '   &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ! Single dim:
     CALL write_ovar (ncid_restart, rpid%albsoil, 'albsoil',                    &
                      REAL(soil%albsoil, 4), ranges%albsoil, .TRUE.,            &
@@ -2270,11 +2353,11 @@ CONTAINS
     ok = NF90_PUT_VAR(ncid_restart, rpid%ratecp, REAL(bgc%ratecp, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing ratecp parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ok = NF90_PUT_VAR(ncid_restart, rpid%ratecs, REAL(bgc%ratecs, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing ratecs parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     CALL write_ovar (ncid_restart, rpid%meth, 'meth', REAL(veg%meth, 4),       &
                      ranges%meth, .TRUE., 'integer', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%za_uv, 'za_uv', REAL(rough%za_uv, 4),  &
@@ -2326,6 +2409,37 @@ CONTAINS
                      ranges%Albedo, .TRUE., 'radiation', .TRUE.)
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
                      REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
+
+    IF(cable_user%SOIL_STRUC=='sli') THEN
+       ! Write SLI parameters:
+       CALL write_ovar (ncid_restart,rpid%nhorizons,'nhorizons', &
+            REAL(soil%nhorizons,4),(/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%ishorizon,'ishorizon', &
+            REAL(soil%ishorizon,4),(/-99999.0,99999.0/),.TRUE.,'soil',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%clitt,'clitt', &
+            REAL(soil%clitt,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%gamma,'gamma', &
+            REAL(veg%gamma,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%ZR,'ZR', &
+            REAL(veg%ZR,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,rpid%F10,'F10', &
+            REAL(veg%F10,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       ! Write SLI variables:
+       CALL write_ovar (ncid_restart,SID,'S',REAL(ssnow%S,4), &
+            (/0.0,1.5/),.TRUE.,'soil',.TRUE.)
+       CALL write_ovar (ncid_restart,snowliqID,'snowliq',REAL(ssnow%snowliq,4), &
+            (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
+       CALL write_ovar (ncid_restart,scondsID,'sconds',REAL(ssnow%sconds,4), &
+            (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
+       CALL write_ovar (ncid_restart,h0ID,'h0',REAL(ssnow%h0,4), &
+            (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,TsurfaceID,'Tsurface',REAL(ssnow%Tsurface,4), &
+            (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+
+    END IF
+
+
+
 
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)
