@@ -201,14 +201,12 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
-   ! Open, read and close the namelist file.
-   if(cable_user%consistency_check) THEN 
+   ! Open, read and close the consistency check file.
+   IF(cable_user%consistency_check) THEN 
       OPEN( 11, FILE = Ftrunk_sumbal )
          READ( 11, * ) trunk_sumbal  ! written by previous trunk version
       CLOSE(11)
    ENDIF
-   print*, "jhan: trunk_sumbal", trunk_sumbal 
-!   STOP
    
    ! Open log file:
    OPEN(logn,FILE=filename%log)
@@ -453,7 +451,9 @@ PROGRAM cable_offline_driver
 
    WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
    
+   ! Check this run against standard for quasi-bitwise reproducability
    IF(cable_user%consistency_check) THEN 
+      
       new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
                        + SUM(bal%ebal_tot_cncheck)
   
