@@ -286,16 +286,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-   ! MJT test for stability
-   real, dimension(:,:), allocatable, save :: vshr_store
-   real, dimension(row_length,rows) :: vshr_temp
-
-   ! MJT test for stability
-   if (.not.(allocated(vshr_store))) then
-     allocate(vshr_store(row_length,rows))
-     vshr_store=vshr_land
-   end if
-
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
@@ -325,11 +315,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       first_cable_call = .FALSE.
    ENDIF      
 
-   ! MJT test for stability
-   vshr_temp=0.7*vshr_land+0.3*vshr_store
-   vshr_store=vshr_land
-
-
    !---------------------------------------------------------------------!
    !--- initialize CABLE using UM forcings etc. these args are passed ---!
    !--- down from UM.                                                 ---! 
@@ -342,7 +327,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
                            snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
-                           ls_snow, tl_1, qw_1, vshr_temp, pstar, z1_tq,       &
+                           ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
