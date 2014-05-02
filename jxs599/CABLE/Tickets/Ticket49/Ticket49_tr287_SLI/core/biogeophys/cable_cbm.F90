@@ -114,11 +114,11 @@ CONTAINS
     IF( cable_runtime%um ) THEN
 
        IF( cable_runtime%um_explicit ) THEN
-          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, dels)
        ENDIF
 
     ELSE
-       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, dels)
     ENDIf
 
     ! Calculate canopy variables:
@@ -151,7 +151,7 @@ CONTAINS
        IF(cable_user%SOIL_STRUC=='default') THEN
           call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
        ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
-          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad)
+          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
        ENDIF
     ENDIF
     ssnow%deltss = ssnow%tss-ssnow%otss

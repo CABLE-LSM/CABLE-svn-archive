@@ -57,8 +57,8 @@ MODULE cable_def_types_mod
        msn = 3,       & ! max # snow layers
        swb = 2,       & ! # shortwave bands
        niter = 4,     & ! number of iterations for za/L
-      ! ms = 12          ! # soil layers
-       ms = 6          ! # soil layers - standard
+       ms = 12          ! # soil layers
+      ! ms = 6          ! # soil layers - standard
 
   !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
 
@@ -476,7 +476,7 @@ MODULE cable_def_types_mod
           usuh ! Friction velocity/windspeed at canopy height
 
      REAL, DIMENSION(:), POINTER ::                                           &
-          term2, term3, term5, term6 ! for aerodyn resist. calc.
+          term2, term3, term5, term6, term6a ! for aerodyn resist. calc.
 
   END TYPE roughness_type
 
@@ -990,6 +990,7 @@ CONTAINS
     ALLOCATE ( var % term3(mp) )
     ALLOCATE ( var % term5(mp) )
     ALLOCATE ( var % term6(mp) )
+    ALLOCATE ( var % term6a(mp) )
     ALLOCATE ( var % usuh(mp) )
     ALLOCATE ( var % za_uv(mp) )
     ALLOCATE ( var % za_tq(mp) )
@@ -1454,6 +1455,7 @@ CONTAINS
     DEALLOCATE ( var % term3 )
     DEALLOCATE ( var % term5 )
     DEALLOCATE ( var % term6 )
+    DEALLOCATE ( var % term6a )
     DEALLOCATE ( var % usuh )
     DEALLOCATE ( var % za_uv )
     DEALLOCATE ( var % za_tq )
