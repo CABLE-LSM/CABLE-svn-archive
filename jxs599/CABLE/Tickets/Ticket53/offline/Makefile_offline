@@ -35,7 +35,7 @@ NCDIR=/usr/lib
 NCMOD=/usr/include
 FC=/usr/local/bin/gfortran
 #CFLAGS=-O2 -x f95-cpp-input -ffree-form -ffree-line-length-0
-CFLAGS=-O0 -x f95-cpp-input -ffree-form -ffree-line-length-0 -g #-Wall -pedantic  #-fbounds-check -ffpe-trap=invalid,overflow,zero
+CFLAGS=-O0 -x f95-cpp-input -ffree-form -ffree-line-length-0 -g -Wall -pedantic  #-fbounds-check -ffpe-trap=invalid,overflow,zero
 #CFLAGS=-O0 -x f95-cpp-input -ffree-form -ffree-line-length-0 -g -Wall -pedantic -fbounds-check -ffpe-trap=invalid,overflow,zero
 LD=-lnetcdf -lnetcdff
 #jiggle
@@ -44,7 +44,7 @@ LD=-lnetcdf -lnetcdff
 LDFLAGS=-L/usr/lib -O0
 
 # these are all the files we are compiling
-LSRC = cable_data.F90 cable_diag.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 cable_abort.F90 casa_variable.F90 cable_parameters.F90 cable_soilsnow.F90 cable_air.F90 cable_albedo.F90 cable_radiation.F90 cable_roughness.F90 cable_carbon.F90 cable_canopy.F90 cable_cbm.F90 cable_checks.F90 cable_read.F90 cable_initialise.F90 cable_input.F90 cable_write.F90 cable_output.F90 casa_cnp.F90 casa_cable.F90 casa_inout.F90 cable_driver.F90 
+LSRC = cable_data.F90 cable_diag.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 cable_abort.F90 casa_variable.F90 cable_parameters.F90 cable_soilsnow.F90 cable_air.F90 cable_albedo.F90 cable_radiation.F90 cable_roughness.F90 cable_carbon.F90 cable_canopy.F90 cable_canopy_main.F90 cable_cbm.F90 cable_checks.F90 cable_read.F90 cable_initialise.F90 cable_input.F90 cable_write.F90 cable_output.F90 casa_cnp.F90 casa_cable.F90 casa_inout.F90 cable_driver.F90 
 
 # this is the executable we are building
 PROG = cable
@@ -82,7 +82,9 @@ cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o
+cable_canopy.o: cable_canopy.F90 cable_canopy_main.o cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o
+
+cable_canopy_main.o: cable_canopy_main.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
 
