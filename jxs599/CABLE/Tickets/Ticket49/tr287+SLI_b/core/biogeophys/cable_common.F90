@@ -38,20 +38,49 @@ MODULE cable_common_module
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
   INTEGER, SAVE :: CurYear  ! current year of multiannual run
    
+   ! user switches turned on/off by the user thru namelists
+
+   ! trunk modifications protected by these switches 
+   TYPE hide_switches
+      LOGICAL ::                                                               & 
+         ! L.Stevens - Test Switches 
+         L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket? 
+         L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
+         L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
+         Ticket46 = .FALSE.,              & !
+         !jhan: default should be FALSE, bu set up nml etc
+         Ticket49Bug1 = .true.,           & ! 
+         Ticket49Bug2 = .true.,           & ! 
+         Ticket49Bug3 = .true.,           & ! 
+         Ticket49Bug4 = .true.,           & ! 
+         Ticket49Bug5 = .true.,           & ! 
+         Ticket49Bug6 = .true.              ! 
+
+      END TYPE hide_switches 
+
+   ! instantiate internal switches 
+TYPE (hide_switches), SAVE :: hide
+   
    ! set from environment variable $HOME
    CHARACTER(LEN=200) ::                                                       & 
       myhome
    
-   !---CABLE runtime switches def in this type
+   !--- CABLE runtime switches declared in types,  
+   !--- and default initializations
+   
+   ! internal switches turned on/off by the code
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    END TYPE kbl_internal_switches 
 
+   ! instantiate internal switches 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
-   !---CABLE runtime switches def in this type
+   ! user switches turned on/off by the user thru namelists
+   ! CABLE-2.0 user switches all in single namelist file cable.nml
+   ! clean these up for new namelist(s) format	
    TYPE kbl_user_switches
       
       CHARACTER(LEN=200) ::                                                    &
@@ -83,9 +112,9 @@ MODULE cable_common_module
           YEAREND             = 1960, &
           CASA_OUT_FREQ       = 365, &
           CASA_NREP           = 1
-
    END TYPE kbl_user_switches
 
+   ! instantiate internal switches 
    TYPE(kbl_user_switches), SAVE :: cable_user
 
    ! external files read/written by CABLE

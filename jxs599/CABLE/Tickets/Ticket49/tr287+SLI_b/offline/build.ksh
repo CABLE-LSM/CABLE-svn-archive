@@ -24,26 +24,6 @@ host_nXXX()
    build_status
 }
 
-## burnet.hpsc.csiro.au 
-host_burn()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/'
-   export NCMOD=$NETCDF_ROOT'/include/'
-   #export FC=$F90
-   export FC=ifort
-   #export CFLAGS='-O0 -fp-model precise -debug all -g  '
-   #vanessa's test options
-   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
-   export CFLAGS='-O2 -fp-model precise'
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
-
-## qa
 ## jiggle
 host_jigg()
 {
@@ -67,9 +47,26 @@ host_shin()
    export NCDIR='/usr/local/intel/lib'
    export NCMOD='/usr/local/intel/include'
    export FC=ifort
-   export CFLAGS='-C -fp-model precise -ftz -fpe0'
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
    export LD='-lnetcdf'
    export LDFLAGS='-L/usr/local/intel/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+## burnet.hpsc.csiro.au 
+host_burn()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
+   #vanessa's test options
+   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
    build_status
@@ -252,10 +249,10 @@ do_i_no_u()
    integer kmax=${#kh[*]}
    integer k=0
    typeset -f subr
-   
+
+   # for specific nodes on burnet
    ic=`echo $HOST_MACH | cut -c 1`
    in=`echo $HOST_MACH | cut -c 2-4`
-   # for nodes on burnet
    if [[ $ic == 'n' ]]; then
        if [ $in -gt 0 -a $in -lt 1000 ]; then
 	   HOST_MACH=nXXX
@@ -277,14 +274,13 @@ build_status()
    if [[ -f .tmp/cable ]]; then
    	mv .tmp/cable .
    	print '\nBUILD OK\n'
-	exit 0
    else
       print '\nOooops. Something went wrong\n'        
       print '\nKnown build issues:\n'        
       print '\nSome systems require additional library. \n'        
       print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'        
-   exit 1
    fi
+   exit
 }
 
 
