@@ -227,11 +227,13 @@ PROGRAM cable_offline_driver
 
    ! Vars for standard for quasi-bitwise reproducability b/n runs
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   INTEGER :: ioerror
+   
    CHARACTER(len=30), PARAMETER ::                                             &
       Ftrunk_sumbal  = ".trunk_sumbal",                                        &
       Fnew_sumbal    = ".new_sumbal"
 
-   REAL ::                                                                     &
+   DOUBLE PRECISION ::                                                                     &
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
 
@@ -271,8 +273,13 @@ PROGRAM cable_offline_driver
    ! Open, read and close the consistency check file.
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    IF(cable_user%consistency_check) THEN 
-      OPEN( 11, FILE = Ftrunk_sumbal )
-         READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
+         IF(ioerror==0) then
+            ! get svn revision number (see WRITE comments)
+            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+         ELSE
+            PRINT *, "We'll keep running but there is no .trunk_sumbal file"
+         ENDIF
       CLOSE(11)
    ENDIF
 
@@ -700,10 +707,10 @@ PROGRAM cable_offline_driver
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    IF(cable_user%consistency_check) THEN 
       
-      new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
-                       + SUM(bal%ebal_tot_cncheck)
+      new_sumbal = DBLE( SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                 &
+                       + SUM(bal%ebal_tot_cncheck) )
   
-      IF( new_sumbal == trunk_sumbal) THEN
+      IF( abs(new_sumbal - trunk_sumbal) < 1.e-15 ) THEN
 
          print *, ""
          print *, &
