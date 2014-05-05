@@ -67,6 +67,7 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
+  USE cable_common_module, ONLY: cable_user, hide
   IMPLICIT NONE
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
@@ -219,12 +220,26 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting rad dimension.')
 
     ! check dimensions of soil-layers and time
-    IF (nslayer /= ms .OR. ntime /= 12) THEN
-      PRINT *, 'Variable dimensions do not match:'
-      PRINT *, 'nslayer and ms = ', nslayer, ms
-      PRINT *, 'ntime not equal 12 months: ', ntime
-      CALL abort('Variable dimensions do not match (read_gridinfo)')
-    END IF
+   IF(hide%Ticket49Bug1) THEN
+      
+      ! tmp fix vh for more soil layers but gridinfo with less layers
+      IF ((.not. ((nslayer == 6) .or. (nslayer == ms))) .OR. ntime /= 12) THEN
+         PRINT *, 'Variable dimensions do not match:'
+         PRINT *, 'nslayer and ms = ', nslayer, ms
+         PRINT *, 'ntime not equal 12 months: ', ntime
+         CALL abort('Variable dimensions do not match (read_gridinfo)')
+      END IF
+
+   ELSE
+      
+      IF (nslayer /= ms .OR. ntime /= 12) THEN
+         PRINT *, 'Variable dimensions do not match:'
+         PRINT *, 'nslayer and ms = ', nslayer, ms
+         PRINT *, 'ntime not equal 12 months: ', ntime
+         CALL abort('Variable dimensions do not match (read_gridinfo)')
+      END IF
+
+   ENDIF
 
     ALLOCATE( inLon(nlon), inLat(nlat) )
     ALLOCATE( inVeg(nlon, nlat, npatch) )
@@ -760,11 +775,12 @@ CONTAINS
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
     TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
-    TYPE (canopy_type),         INTENT(OUT)   :: canopy
-    TYPE (roughness_type),      INTENT(OUT)   :: rough
-    TYPE (radiation_type),      INTENT(OUT)   :: rad
+    TYPE (canopy_type),         INTENT(INOUT)   :: canopy
+    TYPE (roughness_type),      INTENT(INOUT)   :: rough
+    TYPE (radiation_type),      INTENT(INOUT)   :: rad
 
-    INTEGER :: e,f,h  ! do loop counter
+    INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
+    INTEGER :: e,f,h,i  ! do loop counter
     INTEGER :: is     ! YP oct07
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
@@ -804,10 +820,38 @@ CONTAINS
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
 
-    ! *******************************************************************
-    ! parameters that are not spatially dependent
-    soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+   IF(hide%Ticket49Bug2) THEN
+      canopy%ofes    = 0.0  ! latent heat flux from soil (W/m2)
+      canopy%fevc     = 0.0 !vh!
+      canopy%fevw     = 0.0 !vh!
+      canopy%fns      = 0.0
+      canopy%fnv     = 0.0
+      canopy%fhv     = 0.0
+      canopy%fwsoil = 1.0 ! vh -should be calculated from soil moisture or 
+                          ! be in restart file
 
+      ssnow%kth = 0.3  ! vh ! should be calculated from soil moisture or be in restart file
+      ssnow%sconds(:,:) = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1), 
+                                      ! should be in restart file
+ 
+      ! parameters that are not spatially dependent
+      select case(ms)
+         
+         case(6)
+            soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+         case(12)
+            soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
+                         0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
+      
+      end select
+ 
+   ELSE
+      
+      ! parameters that are not spatially dependent
+      soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+
+   ENDIF
+    
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
     rough%za_tq = 40.0
 
@@ -860,12 +904,26 @@ CONTAINS
       soil%isoilm(landpt(e)%cstart:landpt(e)%cend) =                           &
                                           inSoil(landpt(e)%ilon, landpt(e)%ilat)
       ! Set initial soil temperature and moisture according to starting month
+    
+   IF(hide%Ticket49Bug3) THEN
+      ! Set initial soil temperature and moisture according to starting month
+      DO is = 1, ms
+         ! Work around set everything above last input layer to the last input layer
+         ssnow%tgg(landpt(e)%cstart:landpt(e)%cend, is) =                       &
+                inTGG(landpt(e)%ilon,landpt(e)%ilat, min(is,size(inTGG,3)), month)
+         ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
+                inWB(landpt(e)%ilon, landpt(e)%ilat, min(is,size(inTGG,3)), month)
+      END DO
+    
+   ELSE    
+    
       DO is = 1, ms
         ssnow%tgg(landpt(e)%cstart:landpt(e)%cend, is) =                       &
                                  inTGG(landpt(e)%ilon,landpt(e)%ilat, is, month)
         ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
                                  inWB(landpt(e)%ilon, landpt(e)%ilat, is, month)
       END DO
+   ENDIF
 
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
@@ -940,10 +998,8 @@ CONTAINS
           veg%frac4(h)    = vegin%frac4(veg%iveg(h))
           veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
           veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
-          veg%taul(h,3)    = vegin%taul(3,veg%iveg(h))
           veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
           veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
-          veg%refl(h,3)    = vegin%refl(3,veg%iveg(h))
           veg%canst1(h)   = vegin%canst1(veg%iveg(h))
           veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
           veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
@@ -980,11 +1036,17 @@ CONTAINS
             soil%css(h)     =  soilin%css(soil%isoilm(h))
           END IF
           rad%latitude(h) = latitude(e)
+            IF(hide%Ticket49Bug4) &
+               rad%longitude(h) = longitude(e)
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
-
+    
+    !jhan: this was from VH version - but 2001 not defined anywhere? 
+    !write(2001,"(1000f8.2)") MINVAL(defaultLAI(:,:),2)/MAXVAL(defaultLAI(:,:),2)
+    !write(2001,"(1000f8.2)") MAXVAL(defaultLAI(:,:),2)
+    
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
@@ -1058,6 +1120,38 @@ CONTAINS
       ssnow%wbice(:, :) = 0.0
     END WHERE
 
+   IF(hide%Ticket49Bug5) THEN
+ 
+      ! SLI specific initialisations:
+      IF(cable_user%SOIL_STRUC=='sli') THEN
+         ssnow%h0(:) = 0.0
+         ssnow%S(:,:) = ssnow%wb(:,:)/SPREAD(soil%ssat,2,ms)
+         ssnow%snowliq(:,:) = 0.0
+         ssnow%Tsurface = 25.0
+         ssnow%nsnow = 0
+      END IF
+
+      IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
+         veg%d0c3 = 1500.
+         veg%a1c3 = 9.0
+         veg%gamma = 1.e-2
+      END IF
+
+      IF(cable_user%SOIL_STRUC=='sli') THEN
+         soil%nhorizons = 2 ! use 2 soil horizons globally
+         soil%clitt = 5.0 ! (tC / ha)
+         veg%gamma = 1.e-2
+         veg%F10 = 0.85
+         veg%ZR = 5.0
+      END IF
+
+      IF(cable_user%CALL_POP) THEN
+         veg%disturbance_interval = 100
+         veg%disturbance_intensity = 0.
+      ENDIF
+   
+   ENDIF
+
   END SUBROUTINE write_default_params
   !=============================================================================
   SUBROUTINE write_cnp_params(veg, casaflux, casamet)
@@ -1112,7 +1206,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
+    TYPE (soil_snow_type),      INTENT(INOUT)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
@@ -1183,6 +1277,35 @@ CONTAINS
     END DO
     bal%osnowd0 = ssnow%osnowd
 
+   IF(hide%Ticket49Bug6) THEN
+      soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+      soil%ssat_vec = SPREAD(soil%ssat,2,ms)
+      IF(cable_user%SOIL_STRUC=='sli') THEN
+         soil%nhorizons = 2 ! use 2 soil horizons globally
+         ! For now just set B horizon parameters to be the same as A
+         ! soil%bchB = soil%bch
+         ! soil%clayB = soil%clay
+         ! soil%sandB = soil%sand ! MC: used later
+         ! soil%siltB = soil%silt !
+         ! soil%cssB = soil%css
+         ! soil%hydsB = soil%hyds
+         ! soil%rhosoilB = soil%rhosoil
+         ! soil%sfcB = soil%sfc
+         ! soil%ssatB = soil%ssat
+         ! soil%sucsB = soil%sucs
+         ! soil%swiltB = soil%swilt
+
+         soil%sfc_vec = SPREAD(soil%sfc,2,ms)
+
+         ! Arbitrarily set A horiz depth to be first half of the layers
+         soil%ishorizon(:,1:ms/2)  = 1
+         soil%ishorizon(:,ms/2+1:) = 2
+         ! soil%depthA = SUM(soil%zse(1:3))
+         soil%clitt = 5.0 ! (tC / ha)
+         ! soil%depthB = SUM(soil%zse(4:))
+      END IF
+    END IF
+ 
   END SUBROUTINE derived_parameters
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)

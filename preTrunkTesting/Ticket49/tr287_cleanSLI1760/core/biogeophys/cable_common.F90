@@ -36,21 +36,51 @@ MODULE cable_common_module
    !---allows reference to "gl"obal timestep in run (from atm_step)
    !---total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
+  INTEGER, SAVE :: CurYear  ! current year of multiannual run
+   
+   ! user switches turned on/off by the user thru namelists
+
+   ! trunk modifications protected by these switches 
+   TYPE hide_switches
+      LOGICAL ::                                                               & 
+         ! L.Stevens - Test Switches 
+         L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket? 
+         L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
+         L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
+         Ticket46 = .FALSE.,              & !
+         !jhan: default should be FALSE, bu set up nml etc
+         Ticket49Bug1 = .true.,           & ! 
+         Ticket49Bug2 = .true.,           & ! 
+         Ticket49Bug3 = .true.,           & ! 
+         Ticket49Bug4 = .true.,           & ! 
+         Ticket49Bug5 = .true.,           & ! 
+         Ticket49Bug6 = .true.              ! 
+
+      END TYPE hide_switches 
+
+   ! instantiate internal switches 
+TYPE (hide_switches), SAVE :: hide
    
    ! set from environment variable $HOME
    CHARACTER(LEN=200) ::                                                       & 
       myhome
    
-   !---CABLE runtime switches def in this type
+   !--- CABLE runtime switches declared in types,  
+   !--- and default initializations
+   
+   ! internal switches turned on/off by the code
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    END TYPE kbl_internal_switches 
 
+   ! instantiate internal switches 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
-   !---CABLE runtime switches def in this type
+   ! user switches turned on/off by the user thru namelists
+   ! CABLE-2.0 user switches all in single namelist file cable.nml
+   ! clean these up for new namelist(s) format	
    TYPE kbl_user_switches
       
       CHARACTER(LEN=200) ::                                                    &
@@ -60,28 +90,43 @@ MODULE cable_common_module
       
    CHARACTER(LEN=20) :: DIAG_SOIL_RESP !
    CHARACTER(LEN=5) :: RUN_DIAG_LEVEL  !
+     CHARACTER(LEN=10):: RunIden  !
+     CHARACTER(LEN=4) :: MetType  !
    CHARACTER(LEN=3) :: SSNOW_POTEV     !
+     CHARACTER(LEN=20) :: CANOPY_STRUC !
+     CHARACTER(LEN=20) :: SOIL_STRUC !
+     CHARACTER(LEN=3)  :: POP_out = 'rst' ! POP output type ('epi' or 'rst')
+     CHARACTER(LEN=50) :: POP_rst = ' ' !
    LOGICAL ::                                                               &
       INITIALIZE_MAPPING = .FALSE., & ! 
       CONSISTENCY_CHECK = .FALSE.,  & !
       CASA_DUMP_READ = .FALSE.,     & !
       CASA_DUMP_WRITE = .FALSE.,    & !
-      CABLE_RUNTIME_COUPLED  = .FALSE.!
-
-
+          CABLE_RUNTIME_COUPLED  = .FALSE., &   !
+          CALL_POP               = .FALSE., & !
+          POP_fromZero           = .FALSE.
+     INTEGER  :: &
+          CASA_SPIN_STARTYEAR = 1950, &
+          CASA_SPIN_ENDYEAR   = 1960, &
+          YEARSTART           = 1950, &
+          YEAREND             = 1960, &
+          CASA_OUT_FREQ       = 365, &
+          CASA_NREP           = 1
    END TYPE kbl_user_switches
 
+   ! instantiate internal switches 
    TYPE(kbl_user_switches), SAVE :: cable_user
 
    ! external files read/written by CABLE
    TYPE filenames_type
 
-   CHARACTER(LEN=99) ::                                                        &
+     CHARACTER(LEN=200) ::                                                        &
       met,        & ! name of file for CABLE input
+          path,       & ! path for output and restart files for CABLE and CASA
       out,        & ! name of file for CABLE output
+          restart_out,& ! name of restart file to  write to
       log,        & ! name of file for execution log
       restart_in, & ! name of restart file to read
-      restart_out,& ! name of restart file to read
       LAI,        & ! name of file for default LAI
       type,       & ! file for default veg/soil type
       veg,        & ! file for vegetation parameters
@@ -378,6 +423,92 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 
 END SUBROUTINE get_type_parameters
 
+  SUBROUTINE HANDLE_ERR( status )
+    use netcdf
+    INTEGER, INTENT(IN) :: status
+    IF(status /= NF90_noerr) THEN
+       PRINT*,"netCDF error:"
+       PRINT*, TRIM(NF90_strerror(status))
+       STOP "Stopped"
+    END IF
+  END SUBROUTINE HANDLE_ERR
+
+  FUNCTION IS_LEAPYEAR( YYYY )
+    IMPLICIT NONE
+    INTEGER :: YYYY
+    LOGICAL :: IS_LEAPYEAR
+
+    IS_LEAPYEAR = .FALSE.
+    IF ( ( ( MOD( YYYY,  4 ) .EQ. 0 .AND. MOD( YYYY, 100 ) .NE. 0 ) .OR. &
+         MOD( YYYY,400 ) .EQ. 0 ) ) IS_LEAPYEAR = .TRUE.
+
+  END FUNCTION IS_LEAPYEAR
+
+  SUBROUTINE YMDHMS2DOYSOD( YYYY,MM,DD,HOUR,MINUTE,SECOND,DOY,SOD )
+
+    ! Compute Day-of-year and second-of-day from given date and time or
+    ! reverse (if REV=.TRUE.)
+
+    IMPLICIT NONE
+
+    INTEGER,INTENT(IN)  :: YYYY,MM,DD,HOUR,MINUTE,SECOND
+    INTEGER,INTENT(OUT) :: DOY,SOD
+
+    !  LOGICAL :: IS_LEAPYEAR
+    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
+    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+
+    IF ( DD .GT. MONTH(MM) .OR. DD .LT. 1 .OR. &
+         MM .GT. 12 .OR. MM .LT. 1 ) THEN
+       WRITE(*,*)"Wrong date entered in YMDHMS2DOYSOD "
+       WRITE(*,*)"DATE : ",YYYY,MM,DD
+       STOP
+    ENDIF
+    DOY = DD
+    IF ( MM .GT. 1 ) DOY = DOY + SUM( MONTH( 1:MM-1 ) )
+    SOD = HOUR * 3600 + MINUTE * 60 + SECOND
+
+  END SUBROUTINE YMDHMS2DOYSOD
+
+  SUBROUTINE DOYSOD2YMDHMS( YYYY,DOY,SOD,MM,DD,HOUR,MINUTE,SECOND )
+
+    ! Compute Day-of-year and second-of-day from given date and time or
+    ! reverse (if REV=.TRUE.)
+
+    IMPLICIT NONE
+
+    INTEGER,INTENT(IN)  :: YYYY,DOY,SOD
+    INTEGER,INTENT(OUT) :: MM,DD,HOUR,MINUTE,SECOND
+
+    !  LOGICAL :: IS_LEAPYEAR
+    INTEGER :: MON, i
+    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
+    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+
+    IF ( SOD .GE. 86400 .OR. SOD .LT. 0 .OR. &
+         DOY .GT. SUM(MONTH) .OR. DOY .LT. 1 ) THEN
+       WRITE(*,*)"Wrong date entered in DOYSOD2YMDHMS "
+       WRITE(*,*)"DOYSOD : ",DOY,SOD
+       STOP
+    ENDIF
+
+    MON = 0
+    DO i = 1, 12
+       IF ( MON + MONTH(i) .LT. DOY ) THEN
+          MON = MON + MONTH(i)
+       ELSE
+          MM  = i
+          DD  = DOY - MON
+          EXIT
+       ENDIF
+    END DO
+    HOUR   = INT( REAL(SOD)/3600. )
+    MINUTE = INT( ( REAL(SOD) - REAL(HOUR)*3600.) / 60. )
+    SECOND = SOD - HOUR*3600 - MINUTE*60
+
+  END SUBROUTINE DOYSOD2YMDHMS
 
 END MODULE cable_common_module
 
