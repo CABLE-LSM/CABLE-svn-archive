@@ -2,9 +2,46 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg nXXX raij
 }
 
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC=$F90
+   export CFLAGS='-O0 -fp-model precise'
+   #export CFLAGS='-O0 -x f95-cpp-input -ffree-form -ffree-line-length-0 -g'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+
+
+## Interactive Job nXXX@burnet.hpsc.csiro.au  
+host_nXXX()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   #export FC=$F90
+   export FC=ifort
+   #vanessa's test options
+#   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+#   export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ## jiggle
 host_jigg()
@@ -45,6 +82,8 @@ host_burn()
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
+   #vanessa's test options
+   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -107,7 +146,6 @@ host_read()
       export NCDIR=$NCDF_ROOT/$NCDF_DIR
    fi
 
-   
    print "\n\tWhat is the path, relative to this root, of " \
          "your NetCDF .mod file."
    print "\n\tPress enter for default [include]."
@@ -186,10 +224,10 @@ host_write()
 
 clean_build()
 {
-      print '\ncleaning up\n'
-      rm -fr .tmp
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy 
+      print '\ncleaning up\n'
+      rm -fr .tmp
 }
 
 
@@ -230,7 +268,15 @@ do_i_no_u()
    integer kmax=${#kh[*]}
    integer k=0
    typeset -f subr
-   
+
+   # for specific nodes on burnet
+   ic=`echo $HOST_MACH | cut -c 1`
+   in=`echo $HOST_MACH | cut -c 2-4`
+   if [[ $ic == 'n' ]]; then
+       if [ $in -gt 0 -a $in -lt 1000 ]; then
+	   HOST_MACH=nXXX
+       fi
+   fi
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
