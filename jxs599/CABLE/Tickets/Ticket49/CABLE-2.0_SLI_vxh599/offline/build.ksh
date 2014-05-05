@@ -2,8 +2,31 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg nXXX
+   set -A kh vayu cher burn shin jigg nXXX raij
 }
+
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   #export NCDIR=$NETCDF_ROOT'/lib/GNU'
+   #export NCMOD=$NETCDF_ROOT'/include/GNU'
+   #export FC=gfortran
+   export FC=ifort
+   export CFLAGS='-O0 -fp-model precise'
+   #export CFLAGS='-O2 -x f95-cpp-input'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+      #export CFLAGS='-O0 -g -x f95-cpp-input  -ffree-form -ffree-line-length-0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 ## Interactive Job nXXX@burnet.hpsc.csiro.au  
