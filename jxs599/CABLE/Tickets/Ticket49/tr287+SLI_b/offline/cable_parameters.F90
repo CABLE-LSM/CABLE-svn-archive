@@ -67,7 +67,7 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
-  USE cable_common_module, ONLY: cable_user
+  USE cable_common_module, ONLY: cable_user, hide
   IMPLICIT NONE
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
