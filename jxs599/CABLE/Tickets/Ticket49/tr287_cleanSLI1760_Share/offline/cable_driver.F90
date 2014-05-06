@@ -231,7 +231,7 @@ PROGRAM cable_offline_driver
    
    CHARACTER(len=30), PARAMETER ::                                             &
       Ftrunk_sumbal  = ".trunk_sumbal",                                        &
-      Fnew_sumbal    = ".new_sumbal"
+      Fnew_sumbal    = "new_sumbal"
 
    DOUBLE PRECISION ::                                                                     &
       trunk_sumbal = 0.0, & !
