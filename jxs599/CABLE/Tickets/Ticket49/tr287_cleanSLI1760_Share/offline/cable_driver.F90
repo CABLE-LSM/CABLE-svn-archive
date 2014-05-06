@@ -71,26 +71,25 @@ PROGRAM cable_offline_driver
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-       patch_type,soilparmnew,&
-       defaultLAI
+                                   patch_type,soilparmnew,                     &
+                                   defaultLAI
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            & 
-       redistrb, wiltParam, satuParam, CurYear,    &
-       IS_LEAPYEAR
+                                   cable_runtime, filename,                    &
+                                   myhome,                                     & 
+                                   report_version_no,                          &
+                                   redistrb, wiltParam, satuParam,             &
+                                   CurYear, IS_LEAPYEAR
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
-       get_met_data,close_met_file,                &
-       ncid_rain,       &
-       ncid_snow,       &
-       ncid_lw,         &
-       ncid_sw,         &
-       ncid_ps,         &
-       ncid_qa,         &
-       ncid_ta,         &
-       ncid_wd
+                                   get_met_data,close_met_file,                &
+                                   ! Ticket 49 - decs
+                                   ncid_rain, ncid_snow, ncid_lw, ncid_sw,     &      &
+                                   ncid_ps, ncid_qa, ncid_ta, ncid_wd
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file
-  USE cable_write_module,   ONLY: nullify_write
+   ! modules related to POP - Ticket 49
+   USE cable_write_module,   ONLY: nullify_write
+
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
@@ -110,6 +109,7 @@ PROGRAM cable_offline_driver
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+   ! Ticket 49 - decs
    INTEGER, PARAMETER ::  mloop  = 100   ! CASA-CNP PreSpinup loops
    
    INTEGER        ::                                                           &
@@ -117,6 +117,7 @@ PROGRAM cable_offline_driver
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
       kend,       &  ! no. of time steps in run
                      ! CLN      kstart = 1, &  ! timestep to start at
+      ! Ticket 49 - decs
       koffset= 0, &  ! timestep to start at
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
@@ -132,7 +133,8 @@ PROGRAM cable_offline_driver
       LOY
 
    REAL :: dels                        ! time step size in seconds
-   
+
+   ! Ticket 49 - decs
    INTEGER,DIMENSION(:,:),ALLOCATABLE :: GSWP_MID
    CHARACTER     :: dum*9
 
@@ -160,9 +162,10 @@ PROGRAM cable_offline_driver
    TYPE (casa_met)       :: casamet
    TYPE (casa_balance)   :: casabal
    TYPE (phen_variable)  :: phen 
-  TYPE ( POP_TYPE )     :: POP
-  CHARACTER             :: cyear*4
-  CHARACTER             :: ncfile*99
+   ! Ticket 49 - decs
+   TYPE ( POP_TYPE )     :: POP
+   CHARACTER             :: cyear*4
+   CHARACTER             :: ncfile*99
    
    ! declare vars for switches (default .FALSE.) etc declared thru namelist
    LOGICAL, SAVE           :: &
@@ -175,10 +178,11 @@ PROGRAM cable_offline_driver
                                     ! FALSE: no spin up
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-       l_vcmaxFeedbk = .FALSE.,    & ! using prognostic Vcmax
-       CASAONLY      = .FALSE.,    & ! ONLY Run CASA-CNP
-       CALL1 = .TRUE.,             &
-       SPINon= .TRUE.
+      l_vcmaxFeedbk = .FALSE.,    & ! using prognostic Vcmax
+      ! Ticket 49 - decs
+      CASAONLY      = .FALSE.,    & ! ONLY Run CASA-CNP
+      CALL1 = .TRUE.,             &
+      SPINon= .TRUE.
    
    
    REAL              :: &  
@@ -190,10 +194,11 @@ PROGRAM cable_offline_driver
       soilMtemp,                         &   
       soilTtemp      
    
-  ! timing
-  REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
-  REAL, ALLOCATABLE, DIMENSION(:) :: cleaf_max, npp_ann, stemnpp_ann, gpp_ann, &
-       leafnpp_ann, gpp_ann_save ! variables for keeping track of maximum annual leaf carbon, annual npp, annual gpp
+   ! Ticket 49 - decs - timing
+   REAL:: etime ! user and system time, total time
+   ! variables for keeping track of maximum annual leaf carbon, annual npp & gpp  
+   REAL, ALLOCATABLE, DIMENSION(:) ::                                          &
+      cleaf_max, npp_ann, stemnpp_ann, gpp_ann, leafnpp_ann, gpp_ann_save 
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -223,10 +228,11 @@ PROGRAM cable_offline_driver
                   satuParam,        &
                   cable_user           ! additional USER switches 
 
-  REAL :: SUMME
-  INTEGER :: i,x
-  !INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
+   ! Ticket 49 - decs - timing
+   REAL :: SUMME
+   INTEGER :: i,x
 
+   ! Ticket 54 decs
    ! Vars for standard for quasi-bitwise reproducability b/n runs
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    INTEGER :: ioerror
@@ -246,8 +252,15 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
-  ! Open log file:
-  OPEN(logn,FILE=filename%log)
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   CALL report_version_no( logn )
+    
+   IF( IARGC() > 0 ) THEN
+      CALL GETARG(1, filename%met)
+      CALL GETARG(2, casafile%cnpipool)
+   ENDIF
 
 !!!! INISTUFF
 
@@ -297,15 +310,19 @@ PROGRAM cable_offline_driver
     
    IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
       STOP 'icycle must be 1 to 3 when using casaCNP'
-  !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )       &
-  !   STOP 'casaCNP required to get prognostic LAI or Vcmax'
+   !tr@468
+   IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
+      STOP 'casaCNP required to get prognostic LAI or Vcmax'
+   !Ticket 49 comments and less a condition
+   !49 IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )       &
+   !49   STOP 'casaCNP required to get prognostic LAI or Vcmax'
    IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
       STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
-  NRRRR = merge(MAX(CABLE_USER%CASA_NREP,1), 1, CASAONLY)
-  ctime = 0
+   NRRRR = merge(MAX(CABLE_USER%CASA_NREP,1), 1, CASAONLY)
+   ctime = 0
  
 !!!! INISTUFF
 
@@ -313,9 +330,7 @@ PROGRAM cable_offline_driver
   ! This retrieves time step size, number of timesteps, starting date,
   ! latitudes, longitudes, number of sites.
   IF ( TRIM(cable_user%MetType) .NE. "gswp" ) THEN
-
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
-      
   ELSE IF ( NRRRR .GT. 1 ) THEN
      ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
   ENDIF
@@ -326,7 +341,9 @@ PROGRAM cable_offline_driver
   SPINLOOP:DO WHILE ( SPINon )
 
      NREP: DO RRRR = 1, NRRRR
+
         YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
+
            CurYear = YYYY
            ! Check for gswp run
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
@@ -341,28 +358,30 @@ PROGRAM cable_offline_driver
          CALL prepareFiles(ncciy)
       
       ENDIF
-              IF ( RRRR .EQ. 1 ) THEN
-                 CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
-                 IF ( NRRRR .GT. 1 ) THEN
-                    GSWP_MID(1,YYYY) = ncid_rain
-                    GSWP_MID(2,YYYY) = ncid_snow
-                    GSWP_MID(3,YYYY) = ncid_lw
-                    GSWP_MID(4,YYYY) = ncid_sw
-                    GSWP_MID(5,YYYY) = ncid_ps
-                    GSWP_MID(6,YYYY) = ncid_qa
-                    GSWP_MID(7,YYYY) = ncid_ta
-                    GSWP_MID(8,YYYY) = ncid_wd
-                 ENDIF
-              ELSE
-                 ncid_rain = GSWP_MID(1,YYYY)
-                 ncid_snow = GSWP_MID(2,YYYY)
-                 ncid_lw   = GSWP_MID(3,YYYY)
-                 ncid_sw   = GSWP_MID(4,YYYY)
-                 ncid_ps   = GSWP_MID(5,YYYY)
-                 ncid_qa   = GSWP_MID(6,YYYY)
-                 ncid_ta   = GSWP_MID(7,YYYY)
-                 ncid_wd   = GSWP_MID(8,YYYY)
-              ENDIF
+
+      IF ( RRRR .EQ. 1 ) THEN
+         CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+         IF ( NRRRR .GT. 1 ) THEN
+            GSWP_MID(1,YYYY) = ncid_rain
+            GSWP_MID(2,YYYY) = ncid_snow
+            GSWP_MID(3,YYYY) = ncid_lw
+            GSWP_MID(4,YYYY) = ncid_sw
+            GSWP_MID(5,YYYY) = ncid_ps
+            GSWP_MID(6,YYYY) = ncid_qa
+            GSWP_MID(7,YYYY) = ncid_ta
+            GSWP_MID(8,YYYY) = ncid_wd
+         ENDIF
+      ELSE
+         ncid_rain = GSWP_MID(1,YYYY)
+         ncid_snow = GSWP_MID(2,YYYY)
+         ncid_lw   = GSWP_MID(3,YYYY)
+         ncid_sw   = GSWP_MID(4,YYYY)
+         ncid_ps   = GSWP_MID(5,YYYY)
+         ncid_qa   = GSWP_MID(6,YYYY)
+         ncid_ta   = GSWP_MID(7,YYYY)
+         ncid_wd   = GSWP_MID(8,YYYY)
+      ENDIF
+
    ENDIF
  
    ! Checks where parameters and initialisations should be loaded from.
@@ -502,7 +521,7 @@ PROGRAM cable_offline_driver
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
               IF(icycle >0 .OR.  CABLE_USER%CASA_DUMP_WRITE ) THEN
-            call bgcdriver( ktau, kstart, kend, dels, met,                  &
+            call bgcdriver( ktau, kstart, kend, dels, met,                     &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                       phen, pop, spinConv, spinup, ktauday, idoy,            &
@@ -537,42 +556,35 @@ PROGRAM cable_offline_driver
                  END IF
               ENDIF
 
-              IF ( .NOT. CASAONLY ) THEN
+         ! Ticket49 condition - make switch and uncomment OR include
+         !IF ( .NOT. CASAONLY ) THEN
    
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                         &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
    
-              ENDIF
+         !ENDIF
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-              !IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-                 IF ( .NOT. CASAONLY ) THEN
-                    !     CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                    !         rad, bal, air, soil, veg, C%SBOLTZ, &
-                    !        C%EMLEAF, C%EMSOIL )
-                    !IF ( RRRR .GT. 1 ) THEN
-                       !CLN               CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                       CALL write_output( dels, ktau_tot, met, canopy, ssnow,                    &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
-                               C%EMLEAF, C%EMSOIL )
-                    !ELSE
-                     !  CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                     !       rad, bal, air, soil, veg, C%SBOLTZ, &
-                     !       C%EMLEAF, C%EMSOIL )
-                    !ENDIF
+
+         ! Ticket49 condition - make switch and uncomment OR include
+         !IF ( .NOT. CASAONLY ) THEN
+         !Std trunk conditional
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                            &
+            CALL write_output( dels, ktau, met, canopy, ssnow,                 &
+                               rad, bal, air, soil, veg, C%SBOLTZ,             &
                  ENDIF
-              !ENDIF
        END DO ! END Do loop over timestep ktau
 
       !jhan this is insufficient testing. condition for 
       !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
       ! see if spinup (if conducting one) has converged:
-           !IF(spinup.AND..NOT.spinConv) THEN
-           IF(spinup.AND.(.NOT.spinConv).and.(.NOT.CASAONLY) ) THEN
+      IF(spinup.AND..NOT.spinConv) THEN
+      ! Ticket49 condition - make switch and uncomment OR include
+      !IF(spinup.AND.(.NOT.spinConv).and.(.NOT.CASAONLY) ) THEN
          
          ! Write to screen and log file:
          WRITE(*,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
@@ -756,14 +768,6 @@ SUBROUTINE prepareFiles(ncciy)
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
-!!$CLN   CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-!!$CLN   CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-!!$CLN   CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-!!$CLN   CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-!!$CLN   CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-!!$CLN   CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
-!!$CLN   CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-!!$CLN   CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
   CALL renameFiles(logn,gswpfile%rainf,ncciy,'rainf')
   CALL renameFiles(logn,gswpfile%snowf,ncciy,'snowf')
   CALL renameFiles(logn,gswpfile%LWdown,ncciy,'LWdown')
@@ -775,27 +779,6 @@ SUBROUTINE prepareFiles(ncciy)
 
 END SUBROUTINE prepareFiles
 
-
-!!$CLN SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
-!!$CLN   IMPLICIT NONE
-!!$CLN   INTEGER, INTENT(IN) :: logn
-!!$CLN   INTEGER, INTENT(IN) :: nn
-!!$CLN   INTEGER, INTENT(IN) :: ncciy
-!!$CLN   CHARACTER(LEN=99), INTENT(INOUT) :: inFile
-!!$CLN   CHARACTER(LEN=*),  INTENT(IN)    :: inName
-!!$CLN   INTEGER :: idummy
-!!$CLN
-!!$CLN   nn
-!!$CLN   READ(inFile(nn:nn+3),'(i4)') idummy
-!!$CLN   IF (idummy < 1983 .OR. idummy > 1995) THEN
-!!$CLN     PRINT *, 'Check position of the year number in input gswp file', inFile
-!!$CLN     STOP
-!!$CLN   ELSE
-!!$CLN     WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
-!!$CLN     WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
-!!$CLN   ENDIF
-!!$CLN
-!!$CLN END SUBROUTINE renameFiles
 SUBROUTINE renameFiles(logn,inFile,ncciy,inName)
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: logn,ncciy
