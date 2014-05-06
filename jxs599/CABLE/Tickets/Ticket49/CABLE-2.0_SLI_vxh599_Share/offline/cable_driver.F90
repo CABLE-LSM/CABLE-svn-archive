@@ -231,7 +231,7 @@ PROGRAM cable_offline_driver
    
    CHARACTER(len=30), PARAMETER ::                                             &
       Ftrunk_sumbal  = ".trunk_sumbal",                                        &
-      Fnew_sumbal    = ".new_sumbal"
+      Fnew_sumbal    = "new_sumbal"
 
    DOUBLE PRECISION ::                                                                     &
       trunk_sumbal = 0.0, & !
@@ -275,7 +275,6 @@ PROGRAM cable_offline_driver
    IF(cable_user%consistency_check) THEN 
       OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
          IF(ioerror==0) then
-            ! get svn revision number (see WRITE comments)
             READ( 11, * ) trunk_sumbal  ! written by previous trunk version
          ELSE
             PRINT *, "We'll keep running but there is no .trunk_sumbal file"
