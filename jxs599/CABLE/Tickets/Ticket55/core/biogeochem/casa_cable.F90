@@ -153,12 +153,12 @@ END SUBROUTINE bgcdriver
 !
 !      implicit none  
 !      !var (type) to write 
-!      real(r_2), dimension(mp), intent(in) :: & 
+!      real(), dimension(mp), intent(in) :: & 
 !         tairk, &
 !         cgpp, &
 !         crmplant
 !
-!      real(r_2), dimension(mp,ms), intent(in) :: & 
+!      real(), dimension(mp,ms), intent(in) :: & 
 !         tsoil, &
 !         moist
 !      
