@@ -82,7 +82,7 @@ MODULE cable_common_module
    ! CABLE-2.0 user switches all in single namelist file cable.nml
    ! clean these up for new namelist(s) format	
    TYPE kbl_user_switches
-      
+      !jhan: this is redundant now we all use filename%veg?
       CHARACTER(LEN=200) ::                                                    &
          VEG_PARS_FILE  ! 
       
