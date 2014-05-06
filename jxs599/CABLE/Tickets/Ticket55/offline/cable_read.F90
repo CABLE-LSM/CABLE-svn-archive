@@ -56,9 +56,9 @@ MODULE cable_read_module
      ! below depending on number/type/dimension of arguments
      MODULE PROCEDURE readpar_i   ! for integer parameter read
      MODULE PROCEDURE readpar_r   ! for real parameter read
-     MODULE PROCEDURE readpar_rd  ! for double precision real parameter read
+!     MODULE PROCEDURE readpar_rd  ! for double precision real parameter read
      MODULE PROCEDURE readpar_r2  ! for 2d real parameter read
-     MODULE PROCEDURE readpar_r2d ! for double precision 2d real parameter read
+!     MODULE PROCEDURE readpar_r2d ! for double precision 2d real parameter read
   END INTERFACE
   ! INTERFACE redistr
   !   MODULE PROCEDURE redistr_i

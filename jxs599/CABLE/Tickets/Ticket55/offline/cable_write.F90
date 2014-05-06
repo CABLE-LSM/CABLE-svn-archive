@@ -84,9 +84,9 @@ MODULE cable_write_module
     MODULE PROCEDURE write_output_variable_r1
     MODULE PROCEDURE write_output_variable_r2
     MODULE PROCEDURE write_output_parameter_r1
-    MODULE PROCEDURE write_output_parameter_r1d
+!    MODULE PROCEDURE write_output_parameter_r1d
     MODULE PROCEDURE write_output_parameter_r2
-    MODULE PROCEDURE write_output_parameter_r2d
+!    MODULE PROCEDURE write_output_parameter_r2d
   END INTERFACE
 
   INTEGER :: ncmissingi = -9999999
