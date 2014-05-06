@@ -3613,9 +3613,9 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 !          &                        mat_t(midx, rank), ierr)
 !     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 !     midx = midx + 1
-     ! REAL(r_2)
-     ! MPI: gol124: backport to r1134 changes r_2 to r_1
-     ! MPI: gol124: in newest CABLE-cnp it's r_2 again
+     ! REAL()
+     ! MPI: gol124: backport to r1134 changes  to r_1
+     ! MPI: gol124: in newest CABLE-cnp it's  again
      midx = midx + 1
      CALL MPI_Get_address (canopy%evapfbl(off,1), maddr(midx), ierr) ! 2
      ! MPI: gol124: changed to r1 when Bernard ported to CABLE_r491
@@ -3649,7 +3649,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (ssnow%gammzz(off,1), maddr(midx), ierr) ! 4
      CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
@@ -3698,7 +3698,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (ssnow%wb(off,1), maddr(midx), ierr) ! 12
      CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
@@ -3716,13 +3716,13 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (ssnow%wbice(off,1), maddr(midx), ierr) ! 14
      CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (ssnow%wblf(off,1), maddr(midx), ierr) ! 15
      CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
@@ -3748,7 +3748,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (rad%gradis(off,1), maddr(midx), ierr) ! 18
      CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
@@ -3972,7 +3972,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (canopy%dewmm(off), vaddr(vidx), ierr) ! 23
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (canopy%dgdtg(off), vaddr(vidx), ierr) ! 24
      blen(vidx) = cnt * extr2
      vidx = vidx + 1
@@ -4020,15 +4020,15 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (canopy%fev(off), vaddr(vidx), ierr) ! 35
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (canopy%fevc(off), vaddr(vidx), ierr) ! 36
      blen(vidx) = cnt * extr2
      vidx = vidx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (canopy%fevw(off), vaddr(vidx), ierr) ! 37
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
-!     ! REAL(r_2)
+!     ! REAL()
 !     CALL MPI_Get_address (canopy%potev_c(off), vaddr(vidx), ierr) ! 38
 !     blen(vidx) = cnt * extr2
 !     vidx = vidx + 1
@@ -4036,7 +4036,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (canopy%fhv(off), vaddr(vidx), ierr) ! 39
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (canopy%fhvw(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
@@ -4225,7 +4225,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (ssnow%potev(off), vaddr(vidx), ierr) ! 68
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (soil%pwb_min(off), vaddr(vidx), ierr) ! 69
      blen(vidx) = cnt * extr2
      vidx = vidx + 1
@@ -4285,7 +4285,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! wbice
      ! wblf
      vidx = vidx + 1
-     ! REAL(r_2)
+     ! REAL()
      CALL MPI_Get_address (ssnow%wbtot(off), vaddr(vidx), ierr) ! 90
      blen(vidx) = cnt * extr2
      vidx = vidx + 1

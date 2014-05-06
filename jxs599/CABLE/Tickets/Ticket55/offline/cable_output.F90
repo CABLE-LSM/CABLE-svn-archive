@@ -967,7 +967,7 @@ CONTAINS
     TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
     TYPE(balances_type), INTENT(INOUT) :: bal
 
-    REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
+    REAL(), DIMENSION(1) :: timetemp ! temporary variable for storing time
                                         ! value
     LOGICAL :: writenow ! write to output file during this time step?
     INTEGER, SAVE :: out_timestep ! counter for output time steps

@@ -199,8 +199,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    TYPE (air_type),INTENT(IN)                :: air
 
    ! Local variables
-   REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwb         ! volumetric soil moisture
-   REAL(r_2), DIMENSION(mp)                  :: delwb       ! change in soilmoisture
+   REAL(), DIMENSION(:,:,:),POINTER, SAVE :: bwb         ! volumetric soil moisture
+   REAL(), DIMENSION(mp)                  :: delwb       ! change in soilmoisture
                                                             ! b/w tsteps
    REAL, DIMENSION(mp)                  :: canopy_wbal !canopy water balance
    TYPE (balances_type),INTENT(INOUT)        :: bal 

@@ -27,12 +27,12 @@
 ! ==============================================================================
 MODULE cable_IO_vars_module
 
-   USE cable_def_types_mod, ONLY : r_2, mvtype, mstype
+   USE cable_def_types_mod, ONLY : , mvtype, mstype
    
    IMPLICIT NONE
    
    PUBLIC
-   PRIVATE r_2, mvtype, mstype
+   PRIVATE , mvtype, mstype
    
    ! ============ Timing variables =====================
    REAL :: shod ! start time hour-of-day
@@ -43,7 +43,7 @@ MODULE cable_IO_vars_module
    
    CHARACTER(LEN=3) :: time_coord ! GMT or LOCal time variables
    
-   REAL(r_2),POINTER,DIMENSION(:) :: timevar ! time variable from file
+   REAL(),POINTER,DIMENSION(:) :: timevar ! time variable from file
    
    INTEGER,DIMENSION(12) ::                                                    &
       daysm = (/31,28,31,30,31,30,31,31,30,31,30,31/),                         &
