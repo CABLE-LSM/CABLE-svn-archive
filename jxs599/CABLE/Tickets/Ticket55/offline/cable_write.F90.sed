@@ -1679,7 +1679,7 @@ CONTAINS
     ! Subroutine for writing a double precision 1D parameter (time invariant)
     INTEGER, INTENT(IN) :: ncid ! netcdf file ID
     INTEGER, INTENT(IN) :: parID ! variable's netcdf ID
-    REAL, DIMENSION(:), INTENT(IN) :: par_r1d ! variable values
+    REAL(r_2), DIMENSION(:), INTENT(IN) :: par_r1d ! variable values
     REAL, DIMENSION(2), INTENT(IN) :: prange ! max and min for variable
                                                   ! error checking
     LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
@@ -1688,7 +1688,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
 
     INTEGER :: i, j ! do loop counter
-    REAL, POINTER, DIMENSION(:, :) :: tmpout
+    REAL(r_2), POINTER, DIMENSION(:, :) :: tmpout
     
     IF(PRESENT(restart)) THEN ! If writing to a a restart file
        ! Write parameter data:
@@ -1705,7 +1705,7 @@ CONTAINS
           ! Then write data for inactive patches as dummy value:
           IF(landpt(i)%nap < max_vegpatches)                                   &
                tmpout(i, (landpt(i)%nap + 1):max_vegpatches) =                 &
-                                                           REAL(ncmissingr )
+                                                           REAL(ncmissingr, r_2)
           IF(check%ranges) THEN  ! Check ranges over active patches:
              DO j = 1, landpt(i)%nap
                 IF((tmpout(i, j) < prange(1)) .OR.                             &
@@ -2298,7 +2298,7 @@ CONTAINS
     ! ONLY USED FOR RESTART FILE.
     INTEGER, INTENT(IN) :: ncid ! netcdf file ID
     INTEGER, INTENT(IN) :: parID ! variable's netcdf ID
-    REAL, DIMENSION(:, :), INTENT(IN) :: par_r2d ! variable values
+    REAL(r_2), DIMENSION(:, :), INTENT(IN) :: par_r2d ! variable values
     REAL, DIMENSION(2), INTENT(IN) :: prange ! max and min for variable
                                                   ! error checking
     LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
@@ -2307,7 +2307,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
 
     INTEGER :: i,j ! do loop counter
-    REAL,POINTER,DIMENSION(:,:,:) :: tmpout
+    REAL(r_2),POINTER,DIMENSION(:,:,:) :: tmpout
 
     ! Check the nature of the parameter's second dimension:
     IF(dimswitch == 'soil') THEN ! i.e. spatial and soil
@@ -2324,7 +2324,7 @@ CONTAINS
              ! Then write data for inactive patches as dummy value:
              IF(landpt(i)%nap < max_vegpatches)                                &
                   tmpout(i, (landpt(i)%nap + 1):max_vegpatches, :) =           &
-                                                           REAL(ncmissingr)
+                                                           REAL(ncmissingr, r_2)
              IF(check%ranges) THEN  ! Check ranges over active patches:
                 DO j = 1, landpt(i)%nap
                    IF(ANY(tmpout(i, j, :) < prange(1)) .OR.                    &

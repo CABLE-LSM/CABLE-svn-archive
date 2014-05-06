@@ -59,30 +59,30 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   TYPE (phen_variable),       INTENT(INOUT) :: phen
 
   ! local variables
-  REAL, DIMENSION(mvtype)       :: slawright
-  REAL, DIMENSION(mvtype)       :: leafage,frootage,woodage
-  REAL, DIMENSION(mvtype)       :: totroot
-  REAL, DIMENSION(mvtype)       :: cwdage,metage,strage
-  REAL, DIMENSION(mvtype)       :: micage,slowage,passage,clabileage
-  REAL, DIMENSION(mvtype,mplant):: ratioCNplant
-  REAL, DIMENSION(mvtype,msoil) :: ratioCNsoil,ratioCNsoilmin,ratioCNsoilmax
-  REAL, DIMENSION(ms)           :: depthsoila,depthsoilb
-  REAL, DIMENSION(mvtype)       :: xfNminloss, xfNminleach, xnfixrate
-  REAL, DIMENSION(mvtype)       :: cleaf,cwood,cfroot,      &
+  REAL(r_2), DIMENSION(mvtype)       :: slawright
+  REAL(r_2), DIMENSION(mvtype)       :: leafage,frootage,woodage
+  REAL(r_2), DIMENSION(mvtype)       :: totroot
+  REAL(r_2), DIMENSION(mvtype)       :: cwdage,metage,strage
+  REAL(r_2), DIMENSION(mvtype)       :: micage,slowage,passage,clabileage
+  REAL(r_2), DIMENSION(mvtype,mplant):: ratioCNplant
+  REAL(r_2), DIMENSION(mvtype,msoil) :: ratioCNsoil,ratioCNsoilmin,ratioCNsoilmax
+  REAL(r_2), DIMENSION(ms)           :: depthsoila,depthsoilb
+  REAL(r_2), DIMENSION(mvtype)       :: xfNminloss, xfNminleach, xnfixrate
+  REAL(r_2), DIMENSION(mvtype)       :: cleaf,cwood,cfroot,      &
                                      cmet,cstr,ccwd,          &
                                      cmic,cslow,cpass
-  REAL, DIMENSION(mvtype)       :: nleaf,nwood,nfroot,      &
+  REAL(r_2), DIMENSION(mvtype)       :: nleaf,nwood,nfroot,      &
                                      nmet,nstr,ncwd,          &
                                      nmic,nslow,npass,xnsoilmin
-  REAL, DIMENSION(mvtype)       :: xpleaf, xpwood, xpfroot, &
+  REAL(r_2), DIMENSION(mvtype)       :: xpleaf, xpwood, xpfroot, &
                                      xpmet, xpstr, xpcwd,     &
                                      xpmic,xpslow,xppass,xplab,xpsorb,xpocc
-  REAL, DIMENSION(mso)       :: xkmlabp,xpsorbmax,xfPleach
-  REAL, DIMENSION(mso,msoil) :: ratioNPsoil
-  REAL, DIMENSION(mvtype)       :: xfherbivore,xxkleafcoldmax, xxkleafdrymax
-  REAL, DIMENSION(mvtype)       :: xkuplabp
-  REAL, DIMENSION(mvtype,ms)    :: fracroot 
-  REAL ::  xratioNPleafmin,xratioNPleafmax,         &
+  REAL(r_2), DIMENSION(mso)       :: xkmlabp,xpsorbmax,xfPleach
+  REAL(r_2), DIMENSION(mso,msoil) :: ratioNPsoil
+  REAL(r_2), DIMENSION(mvtype)       :: xfherbivore,xxkleafcoldmax, xxkleafdrymax
+  REAL(r_2), DIMENSION(mvtype)       :: xkuplabp
+  REAL(r_2), DIMENSION(mvtype,ms)    :: fracroot 
+  REAL(r_2) ::  xratioNPleafmin,xratioNPleafmax,         &
                 xratioNPwoodmin,xratioNPwoodmax,         &
                 xratioNPfrootmin,xratioNPfrootmax
   INTEGER :: i,iv1,nv,ns,npt,iv,is,iso
@@ -385,7 +385,7 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
   INTEGER, DIMENSION(271,mvtype) :: greenup, fall,  phendoy1
   INTEGER, DIMENSION(nphen)     :: greenupx,fallx,xphendoy1
   INTEGER, DIMENSION(nphen)     :: ivtx
-  REAL, DIMENSION(271)     :: xlat
+  REAL(r_2), DIMENSION(271)     :: xlat
 
   ! initilize for evergreen PFTs
   greenup(:,:) = -50
@@ -550,8 +550,8 @@ END SUBROUTINE casa_readphen
 !
 !!  ! local variables
 !!  INTEGER :: np,nland
-!!  REAL :: annNdep,annNfix,annPwea,annPdust
-!!  REAL :: annNfert,annPfert   ! not really used yet
+!!  REAL(r_2) :: annNdep,annNfix,annPwea,annPdust
+!!  REAL(r_2) :: annNfert,annPfert   ! not really used yet
 !!  INTEGER, DIMENSION(mp) :: vtypex,stypex
 !!  INTEGER :: nlandx,ivtigbp,inPatch,ilat,ilon
 !!  REAL    :: frac,ssat,swilt,sfc   ! used in offline version, Q.Zhang @ 25/02/2011
@@ -642,15 +642,15 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
 ! for first time reading file *_1220.csv  (BP may2010)
   TYPE (veg_parameter_type), INTENT(IN) :: veg
   TYPE (phen_variable),   INTENT(INOUT) :: phen
-  REAL :: clabile,cplant(3),clitter(3),csoil(3)
-  REAL :: nplant(3),nlitter(3),nsoil(3),nsoilmin,pplant(3)
-  REAL :: plitter(3),psoil(3),psoillab,psoilsorb,psoilocc
+  REAL(r_2) :: clabile,cplant(3),clitter(3),csoil(3)
+  REAL(r_2) :: nplant(3),nlitter(3),nsoil(3),nsoilmin,pplant(3)
+  REAL(r_2) :: plitter(3),psoil(3),psoillab,psoilsorb,psoilocc
 ! end addition (BP may2010)
 
   ! local variables
   INTEGER   :: np,npt,npz
   INTEGER   :: nyearz,ivtz,istz,isoz
-  REAL :: latz,lonz,areacellz,glaiz,slaz
+  REAL(r_2) :: latz,lonz,areacellz,glaiz,slaz
 
   PRINT *, 'initial pool from ',TRIM(casafile%cnpipool)
   PRINT *, 'icycle,initcasa,mp ', icycle,initcasa,mp
@@ -771,9 +771,9 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   TYPE (phen_variable),       INTENT(INOUT) :: phen
 
   ! local variables
-  REAL, DIMENSION(mso) :: Psorder,pweasoil,xpsoil50
-  REAL, DIMENSION(mso) :: fracPlab,fracPsorb,fracPocc,fracPorg
-  REAL, DIMENSION(mp)  :: totpsoil
+  REAL(r_2), DIMENSION(mso) :: Psorder,pweasoil,xpsoil50
+  REAL(r_2), DIMENSION(mso) :: fracPlab,fracPsorb,fracPocc,fracPorg
+  REAL(r_2), DIMENSION(mp)  :: totpsoil
   INTEGER  npt,nout,nso
 
   ! Soiltype     soilnumber soil P(g P/m2)
@@ -868,11 +868,11 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
   TYPE (casa_met),            INTENT(INOUT) :: casamet
   TYPE (casa_balance),        INTENT(INOUT) :: casabal
   INTEGER,               INTENT(IN)    :: myear
-!  REAL,    INTENT(IN) :: clitterinput(mp,3),csoilinput(mp,3)
+!  REAL(r_2),    INTENT(IN) :: clitterinput(mp,3),csoilinput(mp,3)
 
   ! local variables
   INTEGER  npt,nout
-  REAL xyear, totGPP, totNPP
+  REAL(r_2) xyear, totGPP, totNPP
 
   totGPP =0.0
   totNPP =0.0
@@ -950,7 +950,7 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
   IMPLICIT NONE
   TYPE (casa_flux),    INTENT(INOUT) :: casaflux
   TYPE (casa_balance), INTENT(INOUT) :: casabal
-!  REAL, INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
+!  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
   INTEGER n
 
   casabal%FCgppyear = casabal%FCgppyear + casaflux%Cgpp   * deltpool
@@ -1005,9 +1005,9 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   TYPE (phen_variable),         INTENT(INOUT) :: phen
 
   ! local variables
-  REAL,    DIMENSION(mp) :: xnplimit,xNPuptake
-  REAL,    DIMENSION(mp) :: xklitter,xksoil,xkNlimiting
-  REAL,    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
+  REAL(r_2),    DIMENSION(mp) :: xnplimit,xNPuptake
+  REAL(r_2),    DIMENSION(mp) :: xklitter,xksoil,xkNlimiting
+  REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
   xKNlimiting = 1.0

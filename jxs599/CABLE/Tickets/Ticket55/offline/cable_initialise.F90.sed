@@ -425,7 +425,7 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'fev',dummy,canopy%fev,filename%restart_in,           &
                 max_vegpatches,'def',from_restart,mp)
-!jhan:hack - elimiinate call as  now
+!jhan:hack - elimiinate call as r_2 now
 !    CALL readpar(ncid_rin,'fes',dummy,canopy%fes,filename%restart_in,          &
 !         max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'fhs',dummy,canopy%fhs,filename%restart_in,           &
@@ -657,9 +657,9 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
         nap,                                                                   &
         var_i
    REAL,    ALLOCATABLE, DIMENSION(:)   :: var_r
-   REAL,    ALLOCATABLE, DIMENSION(:)   :: var_rd
+   REAL(r_2),    ALLOCATABLE, DIMENSION(:)   :: var_rd
    REAL,    ALLOCATABLE, DIMENSION(:,:) :: var_r2
-   REAL,    ALLOCATABLE, DIMENSION(:,:) :: var_r2d
+   REAL(r_2),    ALLOCATABLE, DIMENSION(:,:) :: var_r2d
    LOGICAL                                   ::                                &
         from_restart = .TRUE.,    & ! insist variables/params load
         dummy = .TRUE.              ! To replace completeSet in parameter read; unused
@@ -761,7 +761,7 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    CALL readpar(ncid_rin,'fev',dummy,var_r,filename%restart_in,                &
                 max_vegpatches,'def',from_restart,INpatch)
    CALL redistr_r(INpatch,nap,var_r,canopy%fev,'fev')
-!jhan:hack - elimiinate call as  now
+!jhan:hack - elimiinate call as r_2 now
 !    CALL readpar(ncid_rin,'fes',dummy,var_r,filename%restart_in,               &
 !         max_vegpatches,'def',from_restart,INpatch)
 !    CALL redistr_r(INpatch,nap,var_r,canopy%fes,'fes')

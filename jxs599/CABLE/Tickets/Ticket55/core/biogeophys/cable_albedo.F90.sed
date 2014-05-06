@@ -48,7 +48,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
    USE cable_common_module   
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
                                    canopy_type, met_type, radiation_type,      &
-                                   soil_snow_type, mp, nrb 
+                                   soil_snow_type, mp, r_2, nrb 
    
    TYPE (canopy_type),INTENT(IN)       :: canopy
    TYPE (met_type),INTENT(INOUT)       :: met
@@ -58,7 +58,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
    TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
 
-   REAL, DIMENSION(mp)  ::                                                &
+   REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
       dummy
 
@@ -340,24 +340,24 @@ END SUBROUTINE calc_rhoch
 SUBROUTINE soilcol_albedo(ssnow, soil)
 
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
-                                   mp, nrb
+                                   r_2, mp, nrb
    ! Arguments
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow      ! soil+snow variables
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
 
    ! Local Variables 
    INTEGER   :: ib, ic
-   REAL, DIMENSION(mp)      :: inc
-   REAL, DIMENSION(mp, nrb) :: albsod,          & ! soil albedo (direct)
+   REAL(r_2), DIMENSION(mp)      :: inc
+   REAL(r_2), DIMENSION(mp, nrb) :: albsod,          & ! soil albedo (direct)
                                     albsoi             ! soil albedo (indirect)
 
    ! Look-up tables for soil albedo
    ! saturated soil albedos for 20 color classes and 2 wavebands (1=vis, 2=nir)
-   REAL, DIMENSION(20,nrb) ::                                  &
+   REAL(r_2), DIMENSION(20,nrb) ::                                  &
       albsat,                                                                  &  
       albdry
 
-   REAL, PARAMETER, DIMENSION(20*nrb) ::                                  &
+   REAL(r_2), PARAMETER, DIMENSION(20*nrb) ::                                  &
       albsat1D = (/ 0.25,0.23,0.21,0.20,0.19,0.18,0.17,0.16,0.15,0.14,0.13,    &
                     0.12,0.11,0.10,0.09,0.08,0.07,0.06,0.05,0.04 ,             &
                     0.50,0.46,0.42,0.40,0.38,0.36,0.34,0.32,0.30,0.28,0.26,    &
