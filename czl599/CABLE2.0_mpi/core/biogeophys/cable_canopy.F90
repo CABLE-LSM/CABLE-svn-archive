@@ -135,7 +135,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ALLOCATE( cansat(mp), fwsoil(mp))
    ALLOCATE( csx(mp,mf),dsx(mp,mf))
    ALLOCATE( ecy(mp,mf), hcy(mp,mf), rny(mp,mf))
-   ALLOCATE( ghwet(mp),gbhf(mp,mf), tlfx(mp,mf),tlfy(mp,mf))
+   ALLOCATE( ghwet(mp),gbhu(mp,mf),gbhf(mp,mf), tlfx(mp,mf),tlfy(mp,mf))
 
    ! BATS-type canopy saturation proportional to LAI:
    cansat = veg%canst1 * canopy%vlaiw
@@ -198,7 +198,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                                               rough%z0soilsn ) )               &
                - psis( canopy%zetar(:,iter) )                                  &
                + psis( canopy%zetar(:,iter) * ( MAX( rough%zruffs-rough%disp,  &
-                                                rough%z0soilsn ) )            &
+                                                rough%z0soilsn ) )             &
                        / rough%zref_tq ) ) / C%VONK
       
       rt_min = 5.      
@@ -237,21 +237,27 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       DO j=1,mp
 
          IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
-            gbvtop(j) = air%cmolar(j)*C%APOL * air%visc(j) / C%prandt /        &
-                        veg%dleaf(j) * (canopy%us(j) / MAX(rough%usuh(j),1.e-6)&
-                        * veg%dleaf(j) / air%visc(j) )**0.5                    &
+
+            gbvtop(j) = air%cmolar(j)*C%APOL * air%visc(j) / C%prandt / veg%dleaf(j) *  & 
+                       (canopy%us(j) / MAX(rough%usuh(j),1.e-6)                         &
+                        * veg%dleaf(j) / air%visc(j) )**0.5                             &
                         * C%prandt**(1.0/3.0) / veg%shelrb(j)
+  
+
             gbvtop(j) = MAX (0.05,gbvtop(j) )      ! for testing (BP aug2010)
             
             ! Forced convection boundary layer conductance                     
             ! (see Wang & Leuning 1998, AFM):
+
             gbhu(j,1) = gbvtop(j)*(1.0-EXP(-canopy%vlaiw(j)                    &
                         *(0.5*rough%coexp(j)+rad%extkb(j) ))) /                &
                         (rad%extkb(j)+0.5*rough%coexp(j))
             
-            gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
+
+            gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*                        &
                         (1.0-EXP(-0.5*rough%coexp(j)*canopy%vlaiw(j)))         &
                         - gbhu(j,1)
+
          ENDIF 
       
       ENDDO 
@@ -261,6 +267,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ecy(:,:) = rny - hcy        ! init current estimate lat heat
 
       sum_rad_rniso = SUM(rad%rniso,2)
+
 
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
@@ -286,6 +293,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       sum_rad_gradis = SUM(rad%gradis,2)
 
       DO j=1,mp
+
 
          IF ( canopy%vlaiw(j) > C%LAI_THRESH .AND.                             &
               rough%hruff(j) > rough%z0soilsn(j) ) THEN
@@ -576,7 +584,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    DEALLOCATE( cansat, fwsoil)
    DEALLOCATE( csx,dsx)
    DEALLOCATE( ecy, hcy, rny)
-   DEALLOCATE( ghwet,gbhf, tlfx,tlfy)
+   DEALLOCATE( ghwet,gbhf,gbhu,tlfx,tlfy)
 
 CONTAINS
 
@@ -1663,6 +1671,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                PRINT *, 'oldevapfbl = ', oldevapfbl(i,:)
                PRINT *, 'ssnow%evapfbl before rescaling: ',                    &
                                                            ssnow%evapfbl(i,:)
+               PRINT *, 'program stopped at cable_canopy'
                STOP
             
             ELSE
