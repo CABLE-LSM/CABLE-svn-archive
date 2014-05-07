@@ -72,6 +72,8 @@ cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 cable_data.o: cable_data.F90 
  
+cable_diag.o: cable_diag.F90 cable_common.o 
+ 
 cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
@@ -109,8 +111,6 @@ cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable
 cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
 
 casa_variable.o: casa_variable.F90 POP.o  
-
-cable_diag.o: cable_diag.F90
 
 spincasacnp.o: spincasacnp.F90  cable_define_types.o  cable_carbon.o cable_common.o casa_variable.o 
 

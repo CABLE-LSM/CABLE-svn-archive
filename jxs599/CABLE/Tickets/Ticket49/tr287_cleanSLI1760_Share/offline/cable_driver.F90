@@ -74,11 +74,9 @@ PROGRAM cable_offline_driver
                                    patch_type,soilparmnew,                     &
                                    defaultLAI
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename,                    &
-                                   myhome,                                     & 
-                                   report_version_no,                          &
-                                   redistrb, wiltParam, satuParam,             &
-                                   CurYear, IS_LEAPYEAR
+                                     cable_runtime, filename, redistrb,          & 
+                                   report_version_no, wiltParam, satuParam,    &
+                                   myhome, CurYear, IS_LEAPYEAR
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file,                &
@@ -91,6 +89,8 @@ PROGRAM cable_offline_driver
    USE cable_write_module,   ONLY: nullify_write
 
    USE cable_cbm_module
+   
+   USE cable_diag_module
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
@@ -474,18 +474,18 @@ PROGRAM cable_offline_driver
               IF ( idoy .EQ. 0 ) idoy = LOY
          
          ! needed for CASA-CNP
-              nyear     =INT((kend+koffset)/(365*ktauday))
+         nyear     =INT((kend+koffset)/(365*ktauday))
    
          canopy%oldcansto=canopy%cansto
    
          ! Get met data and LAI, set time variables.
          ! Rainfall input may be augmented for spinup purposes:
          CALL get_met_data( spinup, spinConv, met, soil,                    &
-                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,     &
-                   kstart+koffset )
+                            rad, veg, kend, dels, C%TFRZ, ktau+koffset,     &
+                            kstart+koffset )
 
               IF ( TRIM(cable_user%MetType) .NE. 'gswp' ) CurYear = met%year(1)
-              met%ofsd = met%fsd(:,1) + met%fsd(:,2)
+           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
               ! Zero out lai where there is no vegetation acc. to veg. index
               WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
               
@@ -494,15 +494,14 @@ PROGRAM cable_offline_driver
               IF ( .NOT. CASAONLY ) THEN
    
          ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
+         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,          &
                                                 casapool, casamet )
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
    
          ! CALL land surface scheme for this timestep, all grid points:
-
-                 CALL cbm( ktau, dels, air, bgc, canopy, met,                             &
-                   bal, rad, rough, soil, ssnow,                            &
+         CALL cbm( ktau, dels, air, bgc, canopy, met,                          &
+                   bal, rad, rough, soil, ssnow,                               &
                    sum_flux, veg )
    
 
@@ -524,9 +523,10 @@ PROGRAM cable_offline_driver
             call bgcdriver( ktau, kstart, kend, dels, met,                     &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
-                      phen, pop, spinConv, spinup, ktauday, idoy,            &
-                      CABLE_USER%CASA_DUMP_READ, CABLE_USER%CASA_DUMP_WRITE, &
-                      gpp_ann_save )
+                            phen, pop, spinConv, spinup, ktauday, idoy,        &
+                            CABLE_USER%CASA_DUMP_READ,                         &
+                            CABLE_USER%CASA_DUMP_WRITE,                        &
+                            gpp_ann_save ) 
 
                  IF(MOD((ktau-kstart+1),ktauday)==0) THEN
                     gpp_ann = gpp_ann + casaflux%cgpp
@@ -554,8 +554,8 @@ PROGRAM cable_offline_driver
                        !   cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
          ENDIF 
                  END IF
-              ENDIF
-
+         ENDIF
+         
          ! Ticket49 condition - make switch and uncomment OR include
          !IF ( .NOT. CASAONLY ) THEN
    
@@ -577,7 +577,15 @@ PROGRAM cable_offline_driver
             CALL write_output( dels, ktau, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                  ENDIF
-       END DO ! END Do loop over timestep ktau
+         ! dump bitwise reproducible testing data
+         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+                                knode_gl, "FLUXES",                            &
+                          canopy%fe + canopy%fh )
+         ENDIF
+                
+      END DO ! END Do loop over timestep ktau
 
       !jhan this is insufficient testing. condition for 
       !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
@@ -606,7 +614,8 @@ PROGRAM cable_offline_driver
                
                ! No complete convergence yet
                maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
-               PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+               PRINT *, 'Example location of moisture non-convergence: ',      &
+                        maxdiff
                PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
                PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
                maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
@@ -632,9 +641,9 @@ PROGRAM cable_offline_driver
 
          ELSE ! allocate variables for storage
          
-                 IF (.NOT.ALLOCATED(soilMtemp)) ALLOCATE(  soilMtemp(mp,ms) )
-                 IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
-         
+            IF (.NOT.ALLOCATED(soilMtemp))                                     &
+               ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
+          
          END IF
          
          ! store soil moisture and temperature
@@ -655,7 +664,6 @@ PROGRAM cable_offline_driver
 
            CALL1 = .FALSE.
 
-           !IF ( .NOT. spinup ) THEN
            IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
    IF (icycle > 0) THEN
       
@@ -671,7 +679,7 @@ PROGRAM cable_offline_driver
    ! Write restart file if requested:
    IF(output%restart)                                                          &
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
-                      canopy, rough, rad, bgc, bal, met )
+                           canopy, rough, rad, bgc, bal, met )
       
               ELSE
                  ! TESTART OUTPUT FOR CASA
