@@ -69,6 +69,12 @@ MODULE cable_common_module
    !--- and default initializations
    
    ! internal switches turned on/off by the code
+
+   !---Lestevens Sept2012
+   !---CASACNP switches and cycle index
+   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
+   
+   !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
