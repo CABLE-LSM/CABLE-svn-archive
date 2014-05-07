@@ -139,7 +139,7 @@ SUBROUTINE find_extents
 
   INTEGER, DIMENSION(2) :: itmp
   REAL, DIMENSION(2) :: r1tmp
-  REAL(r_2), DIMENSION(2) :: r2tmp
+  REAL(), DIMENSION(2) :: r2tmp
   LOGICAL, DIMENSION(2) :: ltmp
 
   INTEGER(KIND=MPI_ADDRESS_KIND), DIMENSION(2) :: a

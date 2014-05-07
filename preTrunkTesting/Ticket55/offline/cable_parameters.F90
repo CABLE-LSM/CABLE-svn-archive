@@ -1217,7 +1217,7 @@ CONTAINS
     TYPE (roughness_type),      INTENT(INOUT) :: rough
 
     INTEGER :: j ! do loop counter
-    REAL(r_2)    :: temp(mp)
+    REAL    :: temp(mp)
     REAL    :: tmp2(mp)
 
     ! Construct derived parameters and zero initialisations,

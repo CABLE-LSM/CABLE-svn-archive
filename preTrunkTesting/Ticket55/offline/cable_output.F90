@@ -967,7 +967,7 @@ CONTAINS
     TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
     TYPE(balances_type), INTENT(INOUT) :: bal
 
-    REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
+    REAL, DIMENSION(1) :: timetemp ! temporary variable for storing time
                                         ! value
     LOGICAL :: writenow ! write to output file during this time step?
     INTEGER, SAVE :: out_timestep ! counter for output time steps
@@ -1076,7 +1076,7 @@ CONTAINS
     ! If this time step is an output time step:
     IF(writenow) THEN
        ! Write to temporary time variable:
-       timetemp(1) = DBLE(REAL(ktau-backtrack)*dels)
+       timetemp(1) = REAL((ktau-backtrack)*dels)
        ! Write time variable for this output time step:
        ok = NF90_PUT_VAR(ncid_out, ovid%tvar, timetemp,                        &
                                         start = (/out_timestep/), count = (/1/))

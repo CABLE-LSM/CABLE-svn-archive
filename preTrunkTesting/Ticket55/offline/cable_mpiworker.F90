@@ -3034,7 +3034,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 !  blocks(bidx) = r1len * ms
 
   ! midx = midx + 1
-  ! REAL(r_2)
+  ! REAL()
   ! CALL MPI_Get_address (canopy%evapfbl(off,1), maddr(midx), ierr) ! 2
   !CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   !  &            mat_t(midx, rank), ierr)
@@ -3068,7 +3068,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Get_address (ssnow%albsoilsn(off,1), displs(bidx), ierr)
   blocks(bidx) = r1len * nrb
 
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (ssnow%gammzz(off,1), maddr(midx), ierr) ! 4
   !CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   !  &            mat_t(midx, rank), ierr)
@@ -3141,7 +3141,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r1len * msn
 
   !midx = midx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (ssnow%wb(off,1), maddr(midx), ierr) ! 12
   !CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   !  &            mat_t(midx, rank), ierr)
@@ -3163,7 +3163,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r2len * ms
 
   !midx = midx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (ssnow%wbice(off,1), maddr(midx), ierr) ! 14
   !CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   !  &            mat_t(midx, rank), ierr)
@@ -3172,7 +3172,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r2len * ms
 
   !midx = midx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (ssnow%wblf(off,1), maddr(midx), ierr) ! 15
   !CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   !  &            mat_t(midx, rank), ierr)
@@ -3205,7 +3205,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r1len * mf
 
   !midx = midx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (rad%gradis(off,1), maddr(midx), ierr) ! 18
   !CALL MPI_Type_create_hvector (mf, r2len, r2stride, MPI_BYTE, &
   !  &            mat_t(midx, rank), ierr)
@@ -3541,7 +3541,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r1len
 
   !vidx = vidx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (canopy%dgdtg(off), vaddr(vidx), ierr) ! 24
   !blen(vidx) = cnt * extr2
 
@@ -3648,7 +3648,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r1len
 
   !vidx = vidx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (canopy%fevc(off), vaddr(vidx), ierr) ! 36
   !blen(vidx) = cnt * extr2
   bidx = bidx + 1
@@ -3656,7 +3656,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r2len
 
   !vidx = vidx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (canopy%fevw(off), vaddr(vidx), ierr) ! 37
   !blen(vidx) = cnt * extr2
   bidx = bidx + 1
@@ -3664,7 +3664,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r1len
 
   !vidx = vidx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (canopy%potev_c(off), vaddr(vidx), ierr) ! 38
   !blen(vidx) = cnt * extr2
 !  bidx = bidx + 1
@@ -3680,7 +3680,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r1len
 
   !vidx = vidx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (canopy%fhvw(off), vaddr(vidx), ierr) ! 40
   !blen(vidx) = cnt * extr2
   bidx = bidx + 1
@@ -3981,7 +3981,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r1len
 
   !vidx = vidx + 1
-  ! REAL(r_2)
+  ! REAL()
   !CALL MPI_Get_address (soil%pwb_min(off), vaddr(vidx), ierr) ! 69
   !blen(vidx) = cnt * extr2
   bidx = bidx + 1

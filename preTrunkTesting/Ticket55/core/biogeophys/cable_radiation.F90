@@ -164,7 +164,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, soil_snow_type,         &
-                                   air_type, mp, mf, r_2
+                                   air_type, mp, mf 
                                        
    USE cable_common_module, only : cable_runtime, cable_user
 
@@ -185,7 +185,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
       flwv, &     ! vegetation long-wave radiation (isothermal)
       xx1,tssp    ! 
       
-   REAL(r_2), DIMENSION(mp) ::                                                 &
+   REAL, DIMENSION(mp) ::                                                 &
       dummy, dummy2
    
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
@@ -262,7 +262,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
 
    ! Convert radiative conductance from m/s to mol/m2/s:
    rad%gradis=SPREAD(air%cmolar, 2, mf)*rad%gradis
-   rad%gradis = MAX(1.0e-3_r_2,rad%gradis)
+   rad%gradis = MAX(1.0e-3,rad%gradis)
 
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and REFLection (ie. NOT black leaves):

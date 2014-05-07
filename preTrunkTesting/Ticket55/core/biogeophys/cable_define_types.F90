@@ -45,7 +45,6 @@ MODULE cable_def_types_mod
               mland                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
-      r_2  = SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
       ncs = 2,       & ! # soil carbon stores
@@ -56,7 +55,7 @@ MODULE cable_def_types_mod
       niter = 4,     & ! number of iterations for za/L
       ms = 6           ! # soil layers
 
-!   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
+!   PRIVATE :: , ms, msn, mf, nrb, ncp, ncs
   
 ! .............................................................................
 
@@ -124,7 +123,7 @@ MODULE cable_def_types_mod
          soilcol, & ! keep color for all patches/tiles
          albsoilf   ! soil reflectance
      
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+      REAL, DIMENSION(:), POINTER ::                                      &
          cnsd,    & ! thermal conductivity of dry soil [W/m/K]
          pwb_min    ! working variable (swilt/ssat)**ibp2
      
@@ -204,10 +203,10 @@ MODULE cable_def_types_mod
          tilefrac      ! factor for latent heat
      
     
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+      REAL, DIMENSION(:), POINTER ::                                      &
          wbtot   ! total soil water (mm)
      
-      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
+      REAL, DIMENSION(:,:), POINTER ::                                    &
          gammzz,  & ! heat capacity for each soil layer
          wb,      & ! volumetric soil moisture (solid+liq)
          wbice,   & ! soil ice
@@ -315,7 +314,7 @@ MODULE cable_def_types_mod
          gswx,    & ! stom cond for water
          zetar      ! stability correction
 
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+      REAL, DIMENSION(:), POINTER ::                                      &
          fess,    & ! latent heatfl from soil (W/m2)
          fesp,    & ! latent heatfl from soil (W/m2)
          dgdtg,   & ! derivative of gflux wrt soil temp

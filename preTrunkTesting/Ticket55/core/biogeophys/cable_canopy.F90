@@ -104,16 +104,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       tlfx,          & ! leaf temp prev. iter (K)
       tlfy             ! leaf temp (K)
 
-   REAL(r_2), DIMENSION(mp) ::                                                 &
+   REAL, DIMENSION(mp) ::                                                 &
      gbvtop                   ! bnd layer cond. top leaf
 
-   REAL(r_2), DIMENSION(:), POINTER ::                                         &
+   REAL, DIMENSION(:), POINTER ::                                         &
       ecy,           & ! lat heat fl dry big leaf
       hcy,           & ! veg. sens heat
       rny,           & ! net rad
       ghwet             ! cond for heat for a wet canopy
    
-   REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
+   REAL, DIMENSION(:,:), POINTER ::                                       &
       gbhu,          & ! forcedConvectionBndryLayerCond
       gbhf,          & ! freeConvectionBndryLayerCond
       csx              ! leaf surface CO2 concentration
@@ -537,7 +537,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
 
    ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
-   canopy%dewmm = - (min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc)) * &
+   canopy%dewmm = - (min(0.0,canopy%fevw) + min(0.0,canopy%fevc)) * &
         dels * 1.0e3 / (C%RHOW*air%rlam)
 
    ! Add dewfall to canopy water storage:
@@ -698,7 +698,7 @@ SUBROUTINE Latent_heat_flux()
          ! E.Kowalczyk 2014 - reduces the soil evaporation
          flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
         ENDIF
-         fupper_limit(j) = MAX( 0._r_2,                                        &
+         fupper_limit(j) = MAX( 0.,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
 
@@ -732,9 +732,9 @@ END SUBROUTINE latent_heat_flux
 
 SUBROUTINE within_canopy( gbhu, gbhf )
 
-   USE cable_def_types_mod, only : mp, r_2
+   USE cable_def_types_mod, only : mp 
 
-   REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
+   REAL, INTENT(IN), DIMENSION(:,:) ::                                    &
       gbhu,    &  ! forcedConvectionBndryLayerCond
       gbhf        ! freeConvectionBndryLayerCond
       
@@ -1069,11 +1069,11 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
                        ! wet leaf is equal that of dry leaf ="tlfy"
       cansat           ! max canopy intercept. (mm)
 
-   REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
+   REAL, INTENT(IN), DIMENSION(:,:) ::                                    &
       gbhu,          & ! forcedConvectionBndryLayerCond
       gbhf             ! freeConvectionBndryLayerCond
 
-   REAL(r_2), INTENT(OUT), DIMENSION(:) ::                                     &
+   REAL, INTENT(OUT), DIMENSION(:) ::                                     &
       ghwet            ! cond for heat for a wet canopy
 
    REAL, INTENT(IN)     :: dels ! integration time step (s)
@@ -1247,19 +1247,19 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       tlfx,       & ! leaf temp prev. iter (K)
       tlfy          ! leaf temp (K)
    
-   REAL(R_2),INTENT(INOUT), DIMENSION(:) ::                                    &
+   REAL,INTENT(INOUT), DIMENSION(:) ::                                    &
       ecy,        & ! lat heat fl dry big leaf
       hcy,        & ! veg. sens heat
       rny         !& !
 
-   REAL(R_2),INTENT(INOUT), DIMENSION(:,:) ::                                  &
+   REAL,INTENT(INOUT), DIMENSION(:,:) ::                                  &
       gbhu,       & ! forcedConvectionBndryLayerCond
       gbhf,       & ! freeConvectionBndryLayerCond
       csx           ! leaf surface CO2 concentration
 
    REAL,INTENT(IN), DIMENSION(:) :: cansat
 
-   REAL(r_2), INTENT(OUT), DIMENSION(:) ::                                     &
+   REAL, INTENT(OUT), DIMENSION(:) ::                                     &
       ghwet  ! cond for heat for a wet canopy
 
    INTEGER,INTENT(IN) :: iter
@@ -1292,7 +1292,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                        ! wet canopy evaporation rate
       temp             !
 
-   REAL(r_2), DIMENSION(mp)  ::                                                &
+   REAL, DIMENSION(mp)  ::                                                &
       ecx,        & ! lat. hflux big leaf
       ecx_t,      & ! lat. hflux big leaf
       hcx,        & ! sens heat fl big leaf prev iteration
@@ -1708,9 +1708,9 @@ END SUBROUTINE dryLeaf
 SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                            rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
                            vx4z, xleuningz, vlaiz, deltlfz, anxz, fwsoilz )
-   USE cable_def_types_mod, only : mp, mf, r_2
+   USE cable_def_types_mod, only : mp, mf 
    
-   REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
+   REAL, DIMENSION(mp,mf), INTENT(IN) :: csxz
    
    REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
       cx1z,       & !
@@ -1728,7 +1728,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
    
    ! local variables
-   REAL(r_2), DIMENSION(mp,mf) ::                                              &
+   REAL, DIMENSION(mp,mf) ::                                              &
       coef0z,coef1z,coef2z, ciz,delcxz,                                        &
       anrubiscoz,anrubpz,ansinkz
 
@@ -1783,7 +1783,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   ! same reason as above
                   ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)  
           
-                  ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )
+                  ciz(i,j) = MAX( 0.0, ciz(i,j) )
 
                   anrubiscoz(i,j) = vcmxt3z(i,j)*(ciz(i,j)-cx2z(i,j) / 2.0 ) / &
                                     ( ciz(i,j) + cx1z(i,j)) + vcmxt4z(i,j) -   &
@@ -1797,10 +1797,10 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   delcxz(i,j) = coef1z(i,j)**2 -4.0 * coef0z(i,j)              &
                                 * coef2z(i,j)
           
-                  ciz(i,j) = ( -coef1z(i,j) + SQRT( MAX( 0.0_r_2 ,             &
+                  ciz(i,j) = ( -coef1z(i,j) + SQRT( MAX( 0.0,             &
                              delcxz(i,j) ) ) ) / ( 2.0*coef2z(i,j) )
                              
-                  ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )   ! must be positive, why?
+                  ciz(i,j) = MAX( 0.0, ciz(i,j) )   ! must be positive, why?
    
                   anrubiscoz(i,j) = vcmxt3z(i,j) * ( ciz(i,j) - cx2z(i,j)      &
                                     / 2.0)  / ( ciz(i,j) + cx1z(i,j) ) +       &
@@ -1841,7 +1841,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   
                   ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)
                   
-                  ciz(i,j) = MAX(0.0_r_2,ciz(i,j))
+                  ciz(i,j) = MAX(0.0,ciz(i,j))
                   
                   anrubpz(i,j) = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /          &
                                  (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
@@ -1853,10 +1853,10 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   
                   delcxz(i,j) = coef1z(i,j)**2 -4.0*coef0z(i,j)*coef2z(i,j)
                   
-                  ciz(i,j) = (-coef1z(i,j)+SQRT(MAX(0.0_r_2,delcxz(i,j))))     &
+                  ciz(i,j) = (-coef1z(i,j)+SQRT(MAX(0.0,delcxz(i,j))))     &
                              /(2.0*coef2z(i,j))
                    
-                  ciz(i,j) = MAX(0.0_r_2,ciz(i,j)) 
+                  ciz(i,j) = MAX(0.0,ciz(i,j)) 
                   
                   anrubpz(i,j)  = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /         &
                                   (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
@@ -1898,7 +1898,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   
                   delcxz(i,j) = coef1z(i,j)**2 -4.0*coef0z(i,j)*coef2z(i,j)
                   
-                  ciz(i,j) = (-coef1z(i,j)+SQRT (MAX(0.0_r_2,delcxz(i,j)) ) )  &
+                  ciz(i,j) = (-coef1z(i,j)+SQRT (MAX(0.0,delcxz(i,j)) ) )  &
                              / ( 2.0 * coef2z(i,j) )
    
                   ansinkz(i,j) = ciz(i,j)
@@ -2013,7 +2013,7 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
    REAL, DIMENSION(mp) :: rwater ! soil water availability
 
    rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0,ssnow%wb -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
   
    fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
@@ -2033,7 +2033,7 @@ SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
    INTEGER :: j
 
    rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(0.0,MIN(1.0_r_2,ssnow%wb -                   &
+            SUM(veg%froot * MAX(0.0,MIN(1.0,ssnow%wb -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
 
    fwsoil = 1.
