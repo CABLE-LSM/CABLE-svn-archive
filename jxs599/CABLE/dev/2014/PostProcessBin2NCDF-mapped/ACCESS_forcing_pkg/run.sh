@@ -1,14 +1,14 @@
 #!/bin/csh
 
 # this script calls a legacy PERL script with 3 arguments:
-#  1 - the $basename of the variable in the file which should (legacy) also be 
-#      the same as the name of the directory
-#  2 - this is generically the same as the $basename, however for mapping files
-#      the $data_type == 'mapping'. generically defines the output directory 
-#  3 - the number of nodes
+#  arg1 - the $basename of the variable in the dumped file(s) which you want to map. 
+#  (legacy) also the same as the name of the holding directory (data/XXX)
+#  arg2 - this is generically the same as the $basename, however for mapping files
+#      we use the $data_type == 'mapping'. 
+#  arg3 - the number of nodes
 
 set nodes = 16
-# by default assumes you already have processed the mapping data and don't wish to rerun this
+# default assumes you already have processed the mapping data and don't wish to rerun this
 set data_type = 'default'
 # uncomment this if you DO wnat to process the mapping data 
 set data_type = 'mapping'
