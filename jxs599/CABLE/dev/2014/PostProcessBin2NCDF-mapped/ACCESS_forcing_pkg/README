@@ -1,0 +1,35 @@
+file: README
+
+Describes what is in this directory/ package and how to proceed 
+
+Directory / Package contents
+============================
+bin/
+src/
+data/ 
+
+
+bin/              - contains executables for concatenatng and writing netcdf files. 
+                    these are built in the src/ directory
+
+src/
+
+data/ 
+      mapping/    - sym link to your mapping data
+      catted/     - once the multiple processor files in mapping/ have been 
+                    concatenated they are put here by the script
+      tile_frac/  - an example. restriction at present is that 
+                    the field directory had the same basename as the field. 
+                    e.g. data for varaible tile_frac recoreded in tile_frac.bin
+                    field dir must also be called tile_frac
+      ncdf/       - script put output netcdf fields in here
+                    
+script
+
+
+execute run.sh
+
+
+further work - translate to single python script
+
+
