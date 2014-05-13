@@ -268,7 +268,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
          veg_desc( mvtype ),                                               &
          vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),             & ! Ticket #56
-         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) )            & ! Ticket #56
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) )             ! Ticket #56
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
