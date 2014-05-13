@@ -64,7 +64,11 @@ MODULE cable_common_module
       
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
-      
+     
+      ! Ticket #56
+      CHARACTER(LEN=20) ::                                                     & 
+         GS_SWITCH
+ 
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
       
