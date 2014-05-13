@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
+   set -A kh vayu raij cher burn shin 
 }
 
 
@@ -63,6 +63,23 @@ host_vayu()
    export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -fp-model precise' 
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+## raijin
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC='mpif90'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise'
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
