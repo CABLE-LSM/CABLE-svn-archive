@@ -162,7 +162,7 @@ MODULE cable_common_module
          extkn,      & ! 
          tminvj,     & !
          tmaxvj,     & !
-         vbeta       & !
+         vbeta,      & !
          g0c3,       & !  Ticket #56
          g0c4,       & !  Ticket #56 
          g1c3,       & !  Ticket #56 
