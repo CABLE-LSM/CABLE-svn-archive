@@ -290,7 +290,7 @@ END SUBROUTINE forcerestore
 END SUBROUTINE forcerestore_Deardorff
   !**********************************************************************************************************************
 ! Surface Energy Balance
-SUBROUTINE SEB(par, vmet, vsnow, var, qprec, qprec_snow, n, nsteps, dx, h0, hice, S, Tsoil, dt, Tsurface0, &
+SUBROUTINE SEB(n, par, vmet, vsnow, var, qprec, qprec_snow,  nsteps, dx, h0, hice, S, Tsoil,  &
 Tsurface, G0, lE0, qsurface, qevap, qliq, qv, &
 qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
 
@@ -302,13 +302,13 @@ TYPE(vars_snow),   INTENT(IN)           :: vsnow
 TYPE(vars),      DIMENSION(1:n),   INTENT(IN)           :: var
 REAL(r_2),   INTENT(IN)              :: qprec
 REAL(r_2),   INTENT(IN)              :: qprec_snow
-INTEGER(i_d), INTENT(IN)              :: n, nsteps, irec
+INTEGER(i_d), INTENT(IN)              :: n
+INTEGER(i_d), INTENT(IN)              ::  nsteps, irec
 REAL(r_2),      DIMENSION(1:n),   INTENT(IN)              :: dx
 REAL(r_2),          INTENT(IN)           :: h0, hice
 REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: S
 REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: Tsoil
-REAL(r_2),   INTENT(IN)              :: dt
-REAL(r_2),  INTENT(IN)           :: Tsurface0
+
 
 
 REAL(r_2),  INTENT(OUT)           :: Tsurface, G0, lE0  ! SEB (subdiurnal, uses T in top layer)
@@ -337,6 +337,8 @@ REAL(r_2) :: Tqw, dtqwdtb
 
                 if (var(1)%iice.eq.1.and.Tsurface_pot> zero) then
                      Tsurface_pot = 0.0
+                     Tsurface = 0.0
+
                      Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
                              vmet%cva)*rhow*var(1)%lambdav/vmet%rbw
                      dEdTsoil = zero
@@ -439,13 +441,15 @@ REAL(r_2) :: Tqw, dtqwdtb
                 if (vsnow%hliq(1)>zero) then
                    Tsurface = 0.0
                    Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
-                              vmet%cva)*rhow*lambdaf/vmet%rbw
+                              vmet%cva)*rhow*rlambda/vmet%rbw !!vh check this !!
+                  ! write(*,*) "Epot", vmet%rha, vmet%Ta, esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)*rhow*rlambda/vmet%rbw, &
+                   !vmet%cva*rhow*rlambda/vmet%rbw, Epot
                    dEdTsoil = zero
                    dGdTsoil = zero
                    Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
                    Gpot = vmet%Rn - Hpot - Epot
                    dEdTs = zero
-                   qevap = Epot/(thousand*lambdaf)
+                   qevap = Epot/(rhow*rlambda)
                    qTb = zero
                 else
 
@@ -464,7 +468,7 @@ REAL(r_2) :: Tqw, dtqwdtb
                         Gpot = vmet%Rn - Hpot - Epot
                         dEdTs= zero
                      endif
-                    qevap = Epot/(thousand*lambdas)
+                    qevap = Epot/(rhow*lambdas)
                     qTb = -dEdTsoil/(thousand*lambdas)
                 endif
                 lE0 = Epot
@@ -505,7 +509,8 @@ END SUBROUTINE SEB
 
 !**********************************************************************************************************************
 ! Surface Energy Balance
-SUBROUTINE SEB_FR(par, vmet, vsnow, var, qprec, qprec_snow, n, nsteps, dx, h0, hice, S, Tsoil, dt, Tsurface0, &
+SUBROUTINE SEB_FR(n, par, vmet, vsnow, var, qprec, qprec_snow, &
+ nsteps, dx, h0, hice, S, Tsoil, dt, Tsurface0, &
 Tsurface, G0, lE0, TsurfaceFR, G0FR, lEFR, HFR, qsurface, qevap, qliq, qv, &
 qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
 
@@ -517,7 +522,8 @@ TYPE(vars_snow),   INTENT(IN)           :: vsnow
 TYPE(vars),      DIMENSION(1:n),   INTENT(IN)           :: var
 REAL(r_2),   INTENT(IN)              :: qprec
 REAL(r_2),   INTENT(IN)              :: qprec_snow
-INTEGER(i_d), INTENT(IN)              :: n, nsteps, irec
+INTEGER(i_d), INTENT(IN)              :: n
+INTEGER(i_d), INTENT(IN)              ::  nsteps, irec
 REAL(r_2),      DIMENSION(1:n),   INTENT(IN)              :: dx
 REAL(r_2),          INTENT(IN)           :: h0, hice
 REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: S
@@ -746,7 +752,8 @@ REAL(r_2) :: Tqw, dtqwdtb, d1, tmp1d1,tmp1d2, Tbar, f, csnow
                  do while (tmp1d2.lt.one)
                     if (j.lt.1) then
                     !write(*,*) 'chk1', -j+vsnow%nsnow, j, vsnow%nsnow
-                       csnow = (csice*(vsnow%hsnow(j+vsnow%nsnow)-vsnow%hliq(j+vsnow%nsnow))+cswat*vsnow%hliq(j+vsnow%nsnow))/vsnow%depth(j+vsnow%nsnow)*rhow
+                       csnow = (csice*(vsnow%hsnow(j+vsnow%nsnow)-vsnow%hliq(j+vsnow%nsnow))+cswat*vsnow%hliq(j+vsnow%nsnow))/ &
+                                vsnow%depth(j+vsnow%nsnow)*rhow
                        d1 = (vsnow%kth(j+vsnow%nsnow)/(csnow)*86400./pi)**0.5
                        tmp1d2 = tmp1d2 + vsnow%depth(j+vsnow%nsnow)/d1  ! check snow index here!
                        Tbar = vsnow%tsn(j+vsnow%nsnow)

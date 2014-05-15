@@ -362,12 +362,10 @@ CONTAINS
              dz =  soil%zse(1)
              Tsoil = (ssnow%tgg(:,1)-C%tfrz)
           ENDWHERE
-          WHERE ((ssnow%smass(:,1).gt.0.0_r_2).and.(ssnow%tggsn(:,1).lt.c%tfrz))
-             !lambdav = C%hls
-             lambdav = 2.8350e6
+          WHERE ((ssnow%smass(:,1).gt.0.0_r_2).or.(ssnow%tggsn(:,1).lt.c%tfrz))
+             lambdav = 2.8350e6  ! sublimation
           ELSEWHERE
-             ! lambdav = C%hlf
-             lambdav = 0.335e6
+             lambdav = 2.442e6  ! evaporation
           ENDWHERE
           CALL qsatfjh(qsat,met%tvair-C%tfrz,met%pmb)
           rha = met%qvair/qsat

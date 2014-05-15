@@ -39,13 +39,15 @@ book_keeping()
 
    HOST_MACH=`uname -n | cut -c 1-4`
    
-   if [[ $HOST_MACH = 'vayu' ]]; then
+   if [[ $HOST_MACH = 'raij' ]]; then
    
-      if [[ ! -f cable.nml ]]; then
-         cp -r /projects/access/CABLE-AUX/offline/cable.nml .
+      if [[ ! -e cable.nml ]]; then
+         ln -s $CABLE_AUX/CABLE-AUX/offline/cable.nml .
+         #cp $CABLE_AUX/CABLE-AUX/offline/cable.nml .
       fi
-      if [[ ! -f sites.txt ]]; then
-         cp -r /projects/access/CABLE-AUX/offline/sites.txt .
+      if [[ ! -e sites.txt ]]; then
+         ln -s $CABLE_AUX/CABLE-AUX/offline/sites.txt .
+         #cp $CABLE_AUX/CABLE-AUX/offline/sites.txt .
       fi
       
    fi
@@ -138,6 +140,12 @@ run_run()
       if [[ -e poolcnpOut.csv ]]; then
          mv poolcnpOut.csv cnpfluxOut.csv out/${sites[$1]}
       fi 
+      if [[ -e FLUXES00.dat ]]; then
+         mv FLUXES*.bin FLUXES*.dat out/${sites[$1]}
+      fi
+      if [[ -e SEB.out ]]; then
+         mv *.out fort* out/${sites[$1]}
+      fi
    else
       print '\n*** ERROR: RUN FAILED ***\n'     
    fi  

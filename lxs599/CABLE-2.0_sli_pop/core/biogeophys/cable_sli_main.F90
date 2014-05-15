@@ -1,4 +1,4 @@
-SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
+SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
 
   ! Main subroutine for Soil-litter-iso soil model
   ! Vanessa Haverd, CSIRO Marine and Atmospheric Research
@@ -13,7 +13,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
        vars_met, vars, params, vars_snow, &                                  ! types
        MW, snmin, Rgas, Lambdas, lambdaf, csice, cswat, rhow, nsnow_max, e5
   USE sli_utils,          ONLY: x, dx, par, setpar, setx, plit, dxL, setlitterpar, esat, &
-       esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS
+       esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
   USE cable_soil_snow_module, ONLY: snowdensity
@@ -32,6 +32,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
   TYPE(air_type),            INTENT(INOUT) :: air     ! all r_1
   TYPE (radiation_type),       INTENT(IN) :: rad
   INTEGER,      INTENT(IN) :: ktau ! integration step number
+  INTEGER,      INTENT(IN) :: SEB_only ! integration step number
 
 
   REAL(r_2),    PARAMETER :: emsoil=0.97
@@ -65,6 +66,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
   REAL(r_2),      DIMENSION(1:mp)      :: Qadvcum,Jcol_sensible,Jcol_latent_S,Jcol_latent_T
   REAL(r_2),      DIMENSION(1:mp)      :: tmp1d1, deltaEsnow
   REAL(r_2),      DIMENSION(1:mp)      :: hice, phie
+  REAL(r_2)                           ::  tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
+                                           tmp1d5, tmp1d6, tmp1d7, tmp1d8, tmp1d9,tmp1d10, tmp1d11, &
+                                           tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16
 
   REAL(r_2), PARAMETER :: alpha = 0.1 ! anistropy param for lateral flow
   REAL(r_2), PARAMETER :: fsat_max = 2.0 ! exponent for vetical profile of Ksat
@@ -180,6 +184,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
   ! Met data above soil:
   vmet(:)%Ta    = real(met%Tvair-273.16,r_2)
   vmet(:)%Da    = real(met%dva,r_2)
+  write(55,*) ssoil%rtsoil
   vmet(:)%rbh   = ssoil%rtsoil
   vmet(:)%rbw   = vmet(:)%rbh
   vmet(:)%rha   = max(min((esat(vmet(:)%Ta)-vmet(:)%Da)/esat(vmet(:)%Ta),one),0.1_r_2)
@@ -292,6 +297,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
 		elsewhere
            vsnow(kk)%fsnowliq_max(:) = 0.03 + (0.1 - 0.03)*(vsnow(kk)%dens(:)-200.)/vsnow(kk)%dens(:)
 		endwhere
+        vsnow(kk)%fsnowliq_max(:) = 0.1
         vsnow(kk)%wcol= ssoil%snowd(kk)/thousand
 
         vsnow(kk)%tsn(:) = ssoil%tggsn(kk,1:nsnow_max) - Tzero
@@ -317,6 +323,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
         vsnow(kk)%sl(:) = zero
         vsnow(kk)%kE(:)     = zero
         vsnow(kk)%kth(:) = vsnow(kk)%kH
+        !vsnow(kk)%kth(:) = 0.07 ! test ! vh
         vsnow(kk)%cv(:) = zero
         vsnow(kk)%hliq(:) = zero
         vsnow(kk)%melt(:) = zero
@@ -341,19 +348,19 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
 
   ! re-calculate qprec_snow and qprec based on total precip and air T (ref Jin et al. Table II, Hyd Proc, 1999
   qprec_tot = qprec + qprec_snow
-  !where (vmet(:)%Ta.gt.2.5)
-  !   qprec_snow = zero
-  !   qprec = qprec_tot
-  !elsewhere (vmet(:)%Ta.le.2.5.and.vmet(:)%Ta.gt.2.0)
-  !   qprec_snow = 0.6*qprec_tot
-  !   qprec = qprec_tot - qprec_snow
-  !elsewhere (vmet(:)%Ta.le.2.0.and.vmet(:)%Ta.gt.0)
-  !   qprec_snow = (1. - (54.62 - 0.2 *(vmet(:)%Ta + 273.16)))*qprec_tot
-  !   qprec = qprec_tot - qprec_snow
-  !elsewhere (vmet(:)%Ta.le.0)
-  !   qprec = zero
-  !   qprec_snow = qprec_tot
-  !endwhere
+!  where (vmet(:)%Ta.gt.2.5)
+!     qprec_snow = zero
+!     qprec = qprec_tot
+!  elsewhere (vmet(:)%Ta.le.2.5.and.vmet(:)%Ta.gt.2.0)
+!     qprec_snow = 0.6*qprec_tot
+!     qprec = qprec_tot - qprec_snow
+!  elsewhere (vmet(:)%Ta.le.2.0.and.vmet(:)%Ta.gt.0)
+!     qprec_snow = (1. - (54.62 - 0.2 *(vmet(:)%Ta + 273.16)))*qprec_tot
+!     qprec = qprec_tot - qprec_snow
+!  elsewhere (vmet(:)%Ta.le.0)
+!     qprec = zero
+!     qprec_snow = qprec_tot
+!  endwhere
 
 
  ! write(*,*) ktau, vmet(:)%Ta, qprec_tot, qprec, qprec_snow
@@ -411,12 +418,25 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
   qex(:,ms) =  qex(:,ms) !+qb
 
 
-  if (counter.eq.9910) then ! for debugging
-    !   write(*,*) fws, canopy%fwsoil
-    !   write (*,*) ktau, vsnow(1)%hsnow(:), vsnow(1)%wcol, vsnow(1)%depth
-    !  write(*,*) vsnow, dt
-  endif
 
+
+  if (SEB_only.eq.1) then
+
+     do kk=1, mp
+     call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
+     CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk),  1, dx(kk,:), &
+                      h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
+                      Tsurface(kk), G0(kk), lE(kk),  &
+                      tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
+                      tmp1d5, tmp1d6, tmp1d7, tmp1d8, tmp1d9,tmp1d10, tmp1d11, &
+                      tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16,ktau)
+     enddo
+       canopy%ga       = real(G0(:))
+       canopy%fes      = real(lE(:))
+       canopy%fhs = canopy%fns - canopy%ga - canopy%fes
+       ssoil%tss       = real(Tsurface(:)) + 273.16
+       !write(*,"(a10, 100f16.6)") "sli_main SEB", canopy%fhs, canopy%fes, ssoil%rtsoil, vmet(1)%Ta
+  else
 
      call solve(ti, tf, ktau, mp, qprec(:),qprec_snow(:), ms,  dx(:,:), &
            h0(:), S(:,:), thetai(:,:), Jsensible(:,:), Tsoil(:,:), evap(:), &
@@ -430,7 +450,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
            deltaTa=deltaTa(:), lE_old=lE_old(:), &
            dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
            doadvection=advection)
-
 
 
   H(:)      = H(:)/(tf-ti)
@@ -518,6 +537,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
   ssoil%nsteps = real(nsteps)
   canopy%fwsoil = real(fws(:))
 
+ ! write(*,"(a10, 100f16.6)") "sli_main full", canopy%fhs, canopy%fes, ssoil%rtsoil, vmet(1)%Ta
+
   if (litter==0) then
      ssoil%rlitt  = zero
   else
@@ -539,6 +560,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
 
      ssoil%smelt(kk) = vsnow(kk)%Qmelt*thousand/dt ! amount of melted snow leaving bottom of snow pack (mm/dt)
      ssoil%nsnow(kk) = vsnow(kk)%nsnow
+     ssoil%ssdnn(kk) = ssoil%snowd(kk)/sum(ssoil%sdepth(kk,1:nsnow_max))
   enddo
 
 
@@ -551,7 +573,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
      write(340,"(100e16.6)") sum(vsnow(k)%hsnow(1:vsnow(k)%nsnow)), vsnow(k)%tsn(1),sum(vsnow(k)%hliq(1:vsnow(k)%nsnow)), &
 	      qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &
           vsnow(k)%Qevap,vsnow(k)%Qvap,ssoil%albsoilsn(k,1), ssoil%albsoilsn(k,2), ssoil%sconds(k,1), &
-		  vsnow(k)%dens(1),vsnow(k)%totdepth, vsnow(k)%J, &
+		  vsnow(k)%dens(1),sum(vsnow(k)%depth(1:vsnow(k)%nsnow)), vsnow(k)%J, &
 		  vsnow(k)%MoistureFluxDivergence, vsnow(k)%FluxDivergence, vsnow(k)%dens(nsnow_max), vsnow(k)%tsn(nsnow_max)
   endif
 
@@ -563,6 +585,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad)
   ! Update total sensible heat to reflect updated soil component:
   canopy%fh(:) = real(canopy%fhv(:)) + canopy%fhs(:)
 
-
+ endif ! SEB only
 
 END SUBROUTINE sli_main

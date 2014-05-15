@@ -61,6 +61,12 @@ MODULE canopy_vh_module
        met_type, radiation_type, roughness_type, ms, mp, mf, &
        soil_parameter_type, soil_snow_type, veg_parameter_type, i_d, r_2
   USE cable_common_module,  ONLY: cable_user
+  USE cable_data_module, ONLY : icanopy_type, point2constants
+
+
+
+
+
 
 
   IMPLICIT NONE
@@ -110,6 +116,7 @@ MODULE canopy_vh_module
      MODULE PROCEDURE rsoil_r_2
   END INTERFACE rsoil
 
+  TYPE( icanopy_type ) :: C
   REAL, PARAMETER :: xvccoef      = 1.17461 !derived parameter
   REAL, PARAMETER :: EHaVc        = 73637.0  !J/mol (Leuning 2002)
   REAL, PARAMETER :: EHdVc        = 149252.0 !J/mol (Leuning 2002)
@@ -238,7 +245,7 @@ CONTAINS
     ! Bonan,LSM version 1.0, p106)
     REAL(r_2), DIMENSION(mp)       :: oldcansto ! prev t step canopy storage
     REAL(r_2), DIMENSION(mp)       :: cc ! limitation term for canopy interception per timestep
-    REAL, DIMENSION(mp,niter) :: zetar ! stability correction
+    REAL, DIMENSION(mp,niter) :: zetar, zetash ! stability correction
     REAL(r_2), PARAMETER                 :: jtomol = 4.6e-6 ! Conversion from Joule to Mol for light
     REAL(r_2), PARAMETER                 :: effc4 = 4000.0  !Vc=effc4*Ci*Vcmax (see
     REAL, DIMENSION(mp)       :: fwsoil ! soil water modifier of stom. cond.
@@ -284,6 +291,11 @@ CONTAINS
     LOGICAL, DIMENSION(mp,mf)      :: Flag_fwet
     LOGICAL, DIMENSION(mp)         :: mdb_mask ! Needs to be set
     REAL, DIMENSION(mp)       :: tmp1d
+    REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
+
+
+   ! assign local ptrs to constants defined in cable_data_module
+    CALL point2constants(C)
 
     a1c3         = 0.0_r_2
     a1c4         = 0.0_r_2
@@ -329,7 +341,7 @@ CONTAINS
     gbw          = 0.0_r_2
     hcx          = 0.0_r_2
     hcy          = 0.0_r_2
-    iter         = 0.0_i_d
+    iter         = 1.0_i_d
     iterplus     = 0.0_i_d
     k            = 0.0_i_d
     kk           = 0.0_i_d
@@ -474,6 +486,7 @@ CONTAINS
        ssoil%wetfac = ssoil%wetfac &
             * (1.0 - REAL(ssoil%wbice(:,1)/ssoil%wb(:,1)))**2 !! only used if soilsnow
     END WHERE
+    !ssoil%wetfac = 1.0 ! test vh!
     zetar(:,1) = zeta0 ! stability correction terms
     zetar(:,2) = zetpos + 1
     xdleaf2 = real(SPREAD(veg%dleaf,2,mf),r_2) ! characteristic leaf length
@@ -537,7 +550,8 @@ CONTAINS
     !   canopy%tscrn=   met%tk
     ! canopy%qscrn  = met%qv
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+   DO WHILE (iter<3) ! iterate over in-canopy T and q
+       iter = iter+1
        canopy%cansto = oldcansto
        ! Add canopy interception to canopy storage term:
        canopy%cansto = canopy%cansto + canopy%wcint
@@ -551,23 +565,48 @@ CONTAINS
        dsatdk2 = SPREAD(air%dsatdk, 2, mf)
 
        ! monin-obukhov stability parameter zetar=zref/l
-       if (iter==1 .and. ktau==1) then
+
+       if (iter==1) then
           zetar(:,iter) = zeta0
-       else
+          zetash(:,iter) = zeta0
+          if (ktau.eq.1) then
+            canopy%fh = 0.0
+            canopy%fe = 0.0
+          endif
+       elseif (iter ==2) then
           zetar(:,iter) = -(vonk*grav*rough%zref_tq*(canopy%fh+0.07*canopy%fe))/ &
                max( (air%rho*capp*met%tk*canopy%us**3), 1.e-12)
+
+          zetash(:,iter) = -(vonk*grav*(0.1*rough%hruff)*(canopy%fhs+0.07*canopy%fes))/ &
+               max( (air%rho*capp*met%tk*(canopy%us*rough%term6a)**3), 1.e-12)
+       elseif (iter ==3) then
+          zetar(:,iter) = 0.4 * zetar(:,iter-1)
+          zetash(:,iter) = 0.4 * zetash(:,iter-1)
+
+!          zetar(:,iter) = -(vonk*grav*rough%zref_tq*(canopy%fh+0.07*canopy%fe))/ &
+!               max( (air%rho*capp*met%tk*canopy%us**3), 1.e-12)
+!
+!          zetash(:,iter) = -(vonk*grav*(0.1*rough%hruff)*(canopy%fhs+0.07*canopy%fes))/ &
+!               max( (air%rho*capp*met%tk*(canopy%us*rough%term6a)**3), 1.e-12)
        endif
-      ! write(*,*) ktau, zetar(:,iter), rough%zref_tq, canopy%fh, canopy%fe,met%tk, canopy%us
+      ! write(*,*) "after zetar 1",  ktau, iter, zetar(:,iter)
        !        constrain zeta to zetpos and zetneg (set in param0)
        zetar(:,iter) = min(zetpos,zetar(:,iter))         ! zetar too +
        zetar(:,iter) = max(zetneg,zetar(:,iter))         ! zetar too -
-
+     !  write(*,*) "after zetar 2",  ktau, iter, zetar(:,iter)
+       !if (ktau>100) then
+       ! stop
+     !  endif
        gswmin = real(rad%scalex*gsw03,r_2) * (1.-frac42) + real(rad%scalex*gsw04,r_2) * frac42
        ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
        ! resistances rt0, rt1 (elements of dispersion matrix):
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
        canopy%us = MAX(1.e-6, vonk * MAX(met%ua,umin) / ( LOG(rough%zref_tq / rough%z0m) - &
-            psim(zetar(:,iter)) + psim(zetar(:,iter) * rough%z0m / rough%zref_tq) ))
+           psim(zetar(:,iter)) + psim(zetar(:,iter) * rough%z0m / rough%zref_tq) ))
+      ! write(*,*) ktau, iter, zetar(:,iter), rough%zref_tq, rough%disp
+       rt0bus = (LOG(0.1*rough%hruff/rough%z0soilsn) -psis(zetash(:,iter)) + psis(zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff)))/ &
+                vonk/rough%term6a
+
        !%%change by Ashok Luhar - low wind formulation
        where (zetar(:,iter) > 0.7)
           zeta1=zetar(:,iter) * rough%z0m / rough%zref_tq
@@ -575,6 +614,7 @@ CONTAINS
                alpha1* ((zetar(:,iter)**beta1* (1.0+gamma1*zetar(:,iter)**(1.0-beta1))) &
                - (zeta1**beta1*(1.0+gamma1*zeta1**(1.0-beta1))))))
        endwhere
+       !write(*,*) "ustar", canopy%us, psis( zetar(:,iter) )
        !%%
        ! Turbulent aerodynamic resistance from roughness sublayer depth to reference height,
        ! x=1 if zref+disp>zruffs, 0 otherwise: thus rt1usc = 0 if zref+disp<zruffs
@@ -586,10 +626,58 @@ CONTAINS
             + psis( zetar(:,iter)*(MAX(rough%zruffs-rough%disp,rough%z0soilsn))/rough%zref_tq ) &
             )/vonk
 
-       !       rt1usc = rt1usc/2. ! test vh
+
+!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       ! vh 14/04/14
+       ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing C%CSW by
+       ! csw = cd/2* (U(hc)/ust)**2 according to Eqs 15 & 19 from notes by Ian Harman (9-9-2011)
+      zstar = rough%disp + 1.5*(veg%hc - rough%disp)
+      psihat = log((zstar - rough%disp)/ (veg%hc - rough%disp)) + &
+              (veg%hc - zstar)/(zstar - rough%disp)
+      rL = -(vonk*grav*(zstar - rough%disp)*(canopy%fh))/ &  ! 1/Monin-Obokov Length
+               max( (air%rho*capp*met%tk*canopy%us**3), 1.e-12)
+      phist = 1 + 5.0*(zstar - rough%disp)*rL
+
+      where ((zetar(:,iter) .gt. 1.e-6).and.(.not.( canopy%vlaiw .LT. 0.01 .OR.                                          &
+         rough%hruff .LT. rough%z0soilsn )))! stable conditions
+
+       csw = min(0.3*((log((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
+       psim(zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
+       psim(zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* c%csw
+
+       rough%term2  = EXP( 2 * CSW * canopy%rghlai *                          &
+            ( 1 - rough%disp / rough%hruff ) )
+       rough%term3  = C%A33**2 * C%CTL * 2 * CSW * canopy%rghlai
+       rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
+       rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
+
+       !! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
+        rough%rt0us  = log(rough%disp / rough%z0soilsn) * &
+                      EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+                       / rough%hruff / (c%a33 ** 2 * c%ctl)
+
+       ! vh ! Modify rt0us to be resistance between shear height = 0.1h and disp
+       ! use this form when including addtional resistance from z0soil to 0.1hc (done in cable_canopy_vh)
+       !rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
+       !               EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+        !               / rough%hruff / (c%a33 ** 2 * c%ctl)
+
+       rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
+      elsewhere
+         csw = c%csw
+      endwhere
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        ! rt0 = turbulent resistance from soil to canopy:
-       rt0 = rough%rt0us / canopy%us
+       ! use this when accounting for seprate resistance from z0soil to 0.1hc
+!       where (canopy%vlaiw > 0.01)
+!          rt0 = (rough%rt0us+rt0bus) / canopy%us
+!       elsewhere
+!          rt0 = (rough%rt0us) / canopy%us
+!       endwhere
+
+
+       rt0 = (rough%rt0us) / canopy%us
        ! Aerodynamic resistance (sum 3 height integrals)/us
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
        rough%rt1 = max(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
@@ -603,9 +691,9 @@ CONTAINS
           ssoil%rtsoil = rt0 + rough%rt1
        END WHERE
        ssoil%rtsoil = max(25.,ssoil%rtsoil)
-       WHERE (ssoil%rtsoil>2.0_r_2*ortsoil .OR. ssoil%rtsoil<0.5_r_2*ortsoil)
-          ssoil%rtsoil = MAX(25._r_2, 0.5_r_2*(ssoil%rtsoil + ortsoil))
-       END WHERE
+       !WHERE (ssoil%rtsoil>2.0_r_2*ortsoil .OR. ssoil%rtsoil<0.5_r_2*ortsoil)
+       !   ssoil%rtsoil = MAX(25._r_2, 0.5_r_2*(ssoil%rtsoil + ortsoil))
+       !END WHERE
 
        ! Vegetation boundary-layer conductance (mol/m2/s)
        ! prandt = kinematic viscosity/molecular diffusivity
@@ -649,6 +737,7 @@ CONTAINS
        !              qstar(1:mp:max_vegpatches) * denom(1:mp:max_vegpatches)
        !       ENDDO
        !**********************************************************************************************
+
 
        WHERE (veg%meth > 0 .and. canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
           !      use the dispersion matrix (DM) to find the air temperature and specific humidity
@@ -696,6 +785,15 @@ CONTAINS
           endwhere
           met%qvair = max(0.0,met%qvair)
        END WHERE
+
+      ! write(*,*) "LNF T", ktau, iter, canopy%fh, met%tvair- met%tk
+      ! write(*,*) "LNF q", ktau, iter, canopy%fe, met%qvair- met%qv
+     !   write(*,*) "u*", canopy%us, rt0, rough%rt1, ssoil%rtsoil
+     !if (ktau.le.3001) then
+     !    write(75,"(2i5, 100f16.6)") ktau, iter, met%ua, met%tvair-met%tk, canopy%us, zetar(:,iter), canopy%fh, &
+     !    ssoil%rtsoil, canopy%fhs, csw
+     !endif
+
 
        ! Saturated specific humidity in canopy:
        qstvair = qsatf((met%tvair-tfrz),met%pmb)
@@ -928,34 +1026,34 @@ CONTAINS
 
        an_y = (an_y+rdy)*(1.0_r_2-fwet) - rdy    ! only allow gross photosynthesis on dry part of leaf
 
-       ! evaulate canopy%fes for use in dispersion matrix calc (only if Soil-Snow is being used)
-       ! vh March 2014: shouldn't need this since in-canopy Tair and humidity are only
-       ! being updated once using fluxes from prev time-step
-       IF (cable_user%soil_struc=='default') THEN
-          ! Penman-Monteith formula
-          sss = air%dsatdk
-          cc1 = sss/(sss+air%psyc )
-          cc2 = air%psyc /(sss+air%psyc )
-
+       ! evaulate canopy%fes, canopy%fhs for use in dispersion matrix calc
           rad%lwabv = (capp*rmair*(tlfy(:,1) - &
             tvair2(:,1))*rad%gradis(:,1) &
             +capp*rmair*(tlfy(:,2) - tvair2(:,2))*rad%gradis(:,2))      ! non-isothermal emitted long-wave radiation
-
-
          WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
           canopy%tv = (rad%lwabv / (2.0*(1.0-rad%transd)*sboltz*emleaf)+met%tvrad**4)**0.25
          ELSEWHERE ! sparse canopy
           canopy%tv = met%tvair
          END WHERE
 
-          canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*emleaf* &
+         canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*emleaf* &
                sboltz*canopy%tv**4 - emsoil*sboltz* tss4
 
+        ! Calculate radiative/skin temperature:
+        rad%trad = ( (1.-rad%transd)*canopy%tv**4 &
+            + rad%transd * ssoil%tss**4 )**0.25
+
+
+
+       IF (cable_user%soil_struc=='default') THEN
+          ! Penman-Monteith formula
+          sss = air%dsatdk
+          cc1 = sss/(sss+air%psyc )
+          cc2 = air%psyc /(sss+air%psyc )
 
           ssoil%potev = real(cc1 * (canopy%fns - canopy%ga) + cc2 * air%rho  &
                * real(air%rlam) * (qsatf((met%tk-tfrz),met%pmb) - met%qv), r_2) / ssoil%rtsoil
-
-          ! Soil latent heat:
+         ! Soil latent heat:
           canopy%fes= real(ssoil%wetfac,r_2) * ssoil%potev
           WHERE (ssoil%snowd < 0.1_r_2 .AND. canopy%fes > 0.0)
              ! Reduce for wilting point limitation:
@@ -971,11 +1069,15 @@ CONTAINS
              ssoil%cls = 1.1335_r_2
              canopy%fes= MIN(ssoil%wetfac * real(ssoil%potev),real(ssoil%snowd*air%rlam*ssoil%cls)/dels)
           END WHERE
-
           ! Calculate soil sensible heat:
           canopy%fhs = air%rho*capp*(ssoil%tss - met%tk) /ssoil%rtsoil
           ! Calculate ground heat flux:
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssoil%cls
+
+       ELSEIF (cable_user%soil_struc=='sli') THEN
+
+          CALL sli_main(ktau,dels,veg,soil,ssoil,met,canopy,air,rad,1)
+
 
        END IF
 
@@ -983,7 +1085,8 @@ CONTAINS
        canopy%fe = real(canopy%fev) + canopy%fes
        ! Calculate total sensible heat:
        canopy%fh = real(canopy%fhv) + canopy%fhs
-
+      ! write(*,*) "end do iter" , iter, canopy%fe, canopy%fh
+      END DO      ! do iter = 1, niter
 
        where ((fwet*ecy) > Ecansto)  ! move this inside Tleaf loop?
           fwet = Ecansto/ecy
@@ -997,7 +1100,7 @@ CONTAINS
 
        where (sum(ecy,2) > 0.0_r_2)  ! evaporation
           canopy%fevw = min(sum(ecy*fwet*gbw/max(gw,1.e-6_r_2),2), &
-               max(0.0_r_2,canopy%cansto)*air%rlam/real(dels,r_2))
+               real(max(0.0,canopy%cansto),r_2)*air%rlam/real(dels,r_2))
           canopy%fwet = REAL(canopy%fevw/sum(ecy,2))
        elsewhere ! condensation
           canopy%fevw = sum(ecy*fwet*gbw/max(gw,1.e-6_r_2),2)
@@ -1016,24 +1119,7 @@ CONTAINS
        endwhere
        canopy%fhvw = canopy%fhv*real(canopy%fwet,r_2)
 
-       rad%lwabv = (capp*rmair*(tlfy(:,1) - &
-            tvair2(:,1))*rad%gradis(:,1) &
-            +capp*rmair*(tlfy(:,2) - tvair2(:,2))*rad%gradis(:,2))      ! non-isothermal emitted long-wave radiation
 
-       WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
-          canopy%tv = (rad%lwabv / (2.0*(1.0-rad%transd)*sboltz*emleaf)+met%tvrad**4)**0.25
-       ELSEWHERE ! sparse canopy
-          canopy%tv = met%tvair
-       END WHERE
-
-       ! Calculate net radiation absorbed by soil:
-       canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*emleaf* &
-            sboltz*canopy%tv**4 - emsoil*sboltz* tss4
-
-
-       ! Calculate radiative/skin temperature:
-       rad%trad = ( (1.-rad%transd)*canopy%tv**4 &
-            + rad%transd * ssoil%tss**4 )**0.25
 
        if (1==0) then  ! comment out calc of variables at screen height vh 15/07/09:
                        ! this was causing model to crash. Update with CABLE 2.0 formulations?
@@ -1073,12 +1159,12 @@ CONTAINS
        canopy%frday = 12.0 * real(sum(rdy, 2))
        canopy%fpn   = -12.0 * real(sum(an_y, 2))
        ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
-       canopy%dewmm = - REAL((min(0.0_r_2,canopy%fevw) + min(0.0_r_2,canopy%fevc))/air%rlam) * &
-            dels * 1.0e3 / rhow
+       canopy%dewmm = - REAL((min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc))/air%rlam) *  &
+                   dels * 1.0e3 / rhow
        ! Add dewfall to canopy water storage:
        canopy%cansto = canopy%cansto + real(canopy%dewmm,r_2)
        ! Modify canopy water storage for evaporation:
-       canopy%cansto = max(canopy%cansto-max(0.0_r_2,canopy%fevw)/air%rlam*1.0e3_r_2*real(dels/rhow,r_2), 0.0_r_2)
+       canopy%cansto =  max(canopy%cansto-max(0.0,canopy%fevw)/air%rlam*1.0e3_r_2*real(dels/rhow,r_2), 0.0_r_2)
        ! Calculate canopy water storage excess:
        canopy%spill= real(max(0.0_r_2,min(0.2_r_2*canopy%cansto,max(0.0_r_2,canopy%cansto-cansat))))
        ! Move excess canopy water to throughfall:

@@ -221,6 +221,16 @@ PROGRAM cable_offline_driver
        satuParam,        &
        cable_user           ! additional USER switches
 
+   ! Vars for standard for quasi-bitwise reproducability b/n runs
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   CHARACTER(len=30), PARAMETER ::                                             &
+      Ftrunk_sumbal  = ".trunk_sumbal",                                        &
+      Fnew_sumbal    = ".new_sumbal"
+
+   REAL ::                                                                     &
+      trunk_sumbal = 0.0, & !
+      new_sumbal = 0.0
+
   REAL :: SUMME
   INTEGER :: i,x
   !INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
@@ -230,6 +240,14 @@ PROGRAM cable_offline_driver
   OPEN( 10, FILE = CABLE_NAMELIST )
   READ( 10, NML=CABLE )   !where NML=CABLE defined above
   CLOSE(10)
+
+   ! Open, read and close the consistency check file.
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   IF(cable_user%consistency_check) THEN
+      OPEN( 11, FILE = Ftrunk_sumbal )
+         READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+      CLOSE(11)
+   ENDIF
 
   ! Open log file:
   OPEN(logn,FILE=filename%log)
@@ -677,6 +695,34 @@ PROGRAM cable_offline_driver
 
   WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
 
+   ! Check this run against standard for quasi-bitwise reproducability
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   IF(cable_user%consistency_check) THEN
+
+      new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
+                       + SUM(bal%ebal_tot_cncheck)
+
+      IF( new_sumbal == trunk_sumbal) THEN
+
+         print *, ""
+         print *, &
+         "Internal check shows this version reproduces the trunk sumbal"
+
+      ELSE
+
+         print *, ""
+         print *, &
+         "Internal check shows in this version new_sumbal != trunk sumbal"
+         print *, &
+         "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+
+         OPEN( 12, FILE = Fnew_sumbal )
+            WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+         CLOSE(12)
+
+      ENDIF
+
+   ENDIF
 
   ! Close log file
   CLOSE(logn)

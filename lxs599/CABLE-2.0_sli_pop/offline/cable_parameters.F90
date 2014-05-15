@@ -945,6 +945,7 @@ CONTAINS
        IF(ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file
           ! Overwrite iveg for those patches available in met file,
           ! which are currently set to def values above:
+          write(*,*) vegtype_metfile(e, :)
           veg%iveg(landpt(e)%cstart:landpt(e)%cstart + nmetpatches - 1) =      &
                vegtype_metfile(e, :)
           ! In case gridinfo file provides more patches than met file(BP may08)
