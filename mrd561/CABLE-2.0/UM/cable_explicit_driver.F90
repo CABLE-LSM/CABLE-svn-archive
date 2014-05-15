@@ -42,7 +42,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   cos_zenith_angle, surf_down_sw, ls_rain,     &
                                   ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
                                   z1_uv, rho_water, L_tile_pts, canopy_tile,   &
-                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
+                                Fland, CO2_MMR, sthu_tile, smcl_tile,smgw_tile,&
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
                                   LAND_MASK, FTL_TILE_CAB, FTL_CAB, FTL_TILE,  &
@@ -167,6 +167,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       sthf_tile, &
       smcl_tile, &
       tsoil_tile
+
+    !mrd561
+   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         &
+       smgw_tile
+
    
    REAL, INTENT(IN) :: co2_mmr
 
@@ -288,7 +293,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
                            ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
-                           CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
+                           CO2_MMR, sthu_tile, smcl_tile, smgw_tile,sthf_tile, &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil )                         
 
