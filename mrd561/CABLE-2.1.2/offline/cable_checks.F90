@@ -237,10 +237,13 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
 
 
    CALL point2constants( C )       !get density of ice and liq
-   !note the code currently assumes that denliq = denice = 1000.0
+
    IF (cable_runtime%run_gw_model) then
+
       delwb(:) = ssnow%wbtot(:)   !change in column soil moisture stored here
+
    ELSE   !GW module not used
+
       IF(ktau==1) THEN
          ALLOCATE( bwb(mp,ms,2) )
          ! initial vlaue of soil moisture
