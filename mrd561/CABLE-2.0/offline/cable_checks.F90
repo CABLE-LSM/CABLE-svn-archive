@@ -58,6 +58,8 @@ MODULE cable_checks_module
    END TYPE units_type
    TYPE(units_type) :: units
 
+   TYPE ( issnow_type ) :: C                           !get denice and denliq constants
+
    TYPE ranges_type 
       REAL, DIMENSION(2) ::                                               &
            nav_lon = (/-360.0,360.0/),         & 
