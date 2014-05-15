@@ -54,6 +54,9 @@ CONTAINS
    USE cable_common_module
    USE cable_carbon_module
    USE cable_soil_snow_module
+   !MD
+   USE cable_soil_snow_gw_module
+
    USE cable_def_types_mod
    USE cable_roughness_module
    USE cable_radiation_module
@@ -130,11 +133,36 @@ CONTAINS
    IF( cable_runtime%um ) THEN
       
      IF( cable_runtime%um_implicit ) THEN
-         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+        !switch to use soil_snow or soil_snow_gw goes here
+        !here only cable_user%gw_model is set
+        !cable_runtime%run_gw_model is not 
+        IF (cable_user%gw_model) then
+
+           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+
+        ELSE
+
+           CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+        END IF
+
       ENDIF
 
    ELSE
-      call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+      !switch to use soil_snow or soil_snow_gw goes here
+      !here both cable_user%gw_model and cable_runtime%run_gw_model will work
+      IF (cable_user%gw_model) then
+
+         CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+
+      ELSE
+
+         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+      END IF
+      
    ENDIF
 
    ssnow%deltss = ssnow%tss-ssnow%otss

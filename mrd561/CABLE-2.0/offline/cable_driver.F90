@@ -73,7 +73,7 @@ PROGRAM cable_offline_driver
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, myhome,            & 
-                                   redistrb, wiltParam, satuParam
+                                   redistrb, wiltParam, satuParam, gw_params
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -179,7 +179,8 @@ PROGRAM cable_offline_driver
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
-                  cable_user           ! additional USER switches 
+                  cable_user,       &    ! additional USER switches 
+                  gw_params              !four additional tunable paramters controlling the GW hydro
 
    ! END header
 
@@ -195,7 +196,7 @@ PROGRAM cable_offline_driver
 
     
    cable_runtime%offline = .TRUE.
-   
+   cable_runtime%run_gw_model = cable_user%GW_MODEL   
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
@@ -221,7 +222,7 @@ PROGRAM cable_offline_driver
          STOP 'Please check input in namelist file.'
       ELSE
          
-         CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing) CALL prepareFiles(ncciy)
       
       ENDIF
    

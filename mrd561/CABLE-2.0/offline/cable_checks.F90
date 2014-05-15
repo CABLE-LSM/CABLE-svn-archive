@@ -40,6 +40,9 @@ MODULE cable_checks_module
    USE cable_radiation_module, ONLY: sinbet
    USE cable_def_types_mod
 
+   USE cable_common_module                                 !needed to get GW flag
+   USE cable_data_module, ONLY : issnow_type, point2constants !density constants instead of hard coded   
+
    IMPLICIT NONE
 
    PRIVATE
@@ -165,7 +168,29 @@ MODULE cable_checks_module
            tmaxvj = (/-15.0,30.0/),            &
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
-           soil_class = (/1.0,20.0/)  
+           soil_class = (/1.0,20.0/),          &
+           WatTable = (/0.0,1.0e10/),          &  ! MD 2014
+           GWMoist = (/0.0,1.0/),              &
+           EqGWMoist = (/0.0,1.0/),            & 
+           EqGWSoilMatPot = (/-1.0e8,0.0/),    &
+           GWSoilMatPot = (/-1.0e8,0.0/),      &
+           SoilMatPot = (/-1.0e8,0.0/),        &
+           EqSoilMatPot = (/-1.0e8,0.0/),      &
+           EqSoilMoist = (/0.0,1.0/),          & 
+           WatSat = (/0.0,1.0/),               & 
+           GWWatSat = (/0.0,1.0/),             &
+           SoilMatPotSat = (/-1.0e8,0.0/),     &
+           GWSoilMatPotSat = (/-1.0e8,0.0/),   &
+           HkSat = (/0.0,1.0e10/),             &
+           GWHkSat = (/0.0,1.0e10/),           &
+           FrcSand = (/0.0,1.0e2/),            &
+           FrcClay = (/0.0,1.0e2/),            &
+           ClappB = (/0.0,1.0e2/),             &
+           Watr = (/0.0,0.5/),                 &
+           GWWatr = (/0.0,0.5/),               &
+           Qinfl = (/0.0,1e10/),               &
+           GWwb  = (/0.0,0.99/)
+
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
@@ -204,25 +229,36 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    TYPE (balances_type),INTENT(INOUT)        :: bal 
    INTEGER                              :: j, k        ! do loop counter
     
-   IF(ktau==1) THEN
-      ALLOCATE( bwb(mp,ms,2) )
-      ! initial vlaue of soil moisture
-      bwb(:,:,1)=ssnow%wb
+
+   CALL point2constants( C )       !get density of ice and liq
+   
+   IF (cable_runtime%run_gw_model) then
+    
+      delwb(:) = ssnow%wbtot(:)   !change in column soil moisture stored here  
+      
    ELSE
-      ! Calculate change in soil moisture b/w timesteps:
-      IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
+
+      IF(ktau==1) THEN
+         ALLOCATE( bwb(mp,ms,2) )
+         ! initial vlaue of soil moisture
          bwb(:,:,1)=ssnow%wb
-         DO k=1,mp           ! current smoist - prev tstep smoist
-            delwb(k) = SUM((bwb(k,:,1)                                         &
-                  - (bwb(k,:,2)))*soil%zse)*1000.0
-         END DO
-      ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
-         bwb(:,:,2)=ssnow%wb
-         DO k=1,mp           !  current smoist - prev tstep smoist
-            delwb(k) = SUM((bwb(k,:,2)                                         &
-                 - (bwb(k,:,1)))*soil%zse)*1000.0
-         END DO
+      ELSE
+         ! Calculate change in soil moisture b/w timesteps:
+         IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
+            bwb(:,:,1)=ssnow%wb
+            DO k=1,mp           ! current smoist - prev tstep smoist
+               delwb(k) = SUM((bwb(k,:,1)                                         &
+                     - (bwb(k,:,2)))*soil%zse)*1000.0
+            END DO
+         ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
+            bwb(:,:,2)=ssnow%wb
+            DO k=1,mp           !  current smoist - prev tstep smoist
+               delwb(k) = SUM((bwb(k,:,2)                                         &
+                    - (bwb(k,:,1)))*soil%zse)*1000.0
+            END DO
+         END IF
       END IF
+
    END IF
 
    ! IF(ktau==kend) DEALLOCATE(bwb)

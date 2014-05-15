@@ -57,7 +57,7 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename,cable_user
 
    IMPLICIT NONE
    
@@ -335,7 +335,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         temparray2                ! temp read in variable
    REAL(4),POINTER,DIMENSION(:,:,:) :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
-        all_met     ! ALL required met in met file (no synthesis)?
+        all_met,LAT1D,LON1D     ! ALL required met in met file (no synthesis)?
 
     ! Initialise parameter loading switch - will be set to TRUE when 
     ! parameters are loaded:
@@ -343,6 +343,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Initialise initialisation loading switch - will be set to TRUE when 
     ! initialisation data are loaded:
     exists%initial = .FALSE. ! initialise
+    
+    LAT1D = .false.
+    LON1D = .false.
 
     ! Write filename to log file:
     WRITE(logn,*) '============================================================'
@@ -355,16 +358,35 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     ! Open netcdf file:
   IF (ncciy > 0) THEN
-    WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
-    ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
-    ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
-    ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
-    ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
-    ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
-    ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
-    ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
-    ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
-    ncid_met = ncid_rain
+    IF (.not.cable_user%alt_forcing) THEN
+       WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
+       ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+       ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
+       ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
+       ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
+       ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
+       ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
+       ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
+       ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+       ncid_met = ncid_rain
+    ELSE
+       !MDeck switch to read old school CLM style forcing
+       write(logn,*) 'Opening CLM style met data file: ', trim(gswpfile%rainf)
+       ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+       if (gswpfile%rainf .eq. gswpfile%PSurf) then
+          !set all ncid values to rain to read data from same file
+          ncid_met = ncid_rain
+       else
+          ok = NF90_OPEN(gswpfile%PSurf,0,ncid_met)
+       end if
+       ncid_snow = ncid_met
+       ncid_lw = ncid_met
+       ncid_sw = ncid_met
+       ncid_ps = ncid_met
+       ncid_qa = ncid_met
+       ncid_ta = ncid_met
+       ncid_wd = ncid_met
+    END IF
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
     ok = NF90_OPEN(filename%met,0,ncid_met) ! open met data file
@@ -375,11 +397,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     !!=====================VV Determine spatial details VV=================
     ! Determine number of sites/gridcells.
-    ! Find size of 'x' or 'lat' dimension:
+    ! Find size of 'x' or 'lon' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'x', xdimID)
     IF(ok/=NF90_NOERR) THEN ! if failed
-       ! Try 'lat' instead of x
-       ok = NF90_INQ_DIMID(ncid_met,'lat', xdimID)
+       ! Try 'lon' instead of x
+       ok = NF90_INQ_DIMID(ncid_met,'lon', xdimID)
        IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding x dimension in '&
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -391,8 +413,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Find size of 'y' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'y', ydimID)
     IF(ok/=NF90_NOERR) THEN ! if failed
-       ! Try 'lon' instead of y
-       ok = NF90_INQ_DIMID(ncid_met,'lon', ydimID)
+       ! Try 'lat' instead of y
+       ok = NF90_INQ_DIMID(ncid_met,'lat', ydimID)
        IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding y dimension in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -410,15 +432,30 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ok = NF90_INQ_VARID(ncid_met, 'latitude', latitudeID)
     IF(ok /= NF90_NOERR) THEN
        ok = NF90_INQ_VARID(ncid_met, 'nav_lat', latitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+       IF(ok /= NF90_NOERR) then
+          !MDeck allow for 1d lat called 'lat'
+          ok = NF90_INQ_VARID(ncid_met, 'lat', latitudeID)
+          LAT1D = .true.
+          if (ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding latitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
     END IF
     ! Allocate space for lat_all variable and its temp counterpart:
     ALLOCATE(lat_all(xdimsize,ydimsize))
     ALLOCATE(temparray2(xdimsize,ydimsize))
+    !MDeck allow for 1d lat called 'lat'
+    IF (LAT1D) THEN
+       ALLOCATE(temparray1(ydimsize))
+    END IF
     ! Get latitude values for entire region:
-    ok= NF90_GET_VAR(ncid_met,latitudeID,temparray2)
+    IF (.not.LAT1D) THEN
+       ok= NF90_GET_VAR(ncid_met,latitudeID,temparray2)
+    ELSE
+       ok= NF90_GET_VAR(ncid_met,latitudeID,temparray1)
+       temparray2 = spread(temparray1,1,xdimsize)
+       DEALLOCATE(temparray1)
+    END IF
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error reading latitude variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -428,14 +465,29 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ok = NF90_INQ_VARID(ncid_met, 'longitude', longitudeID)
     IF(ok /= NF90_NOERR) THEN
        ok = NF90_INQ_VARID(ncid_met, 'nav_lon', longitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+       IF(ok /= NF90_NOERR) THEN
+          !MDeck allow for 1d lon called 'lon'
+          ok = NF90_INQ_VARID(ncid_met, 'lon', longitudeID)
+          LON1D = .true.
+          IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding longitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
     END IF
     ! Allocate space for lon_all variable:
     ALLOCATE(lon_all(xdimsize,ydimsize))
+    IF (LON1D) THEN
+       ALLOCATE(temparray1(xdimsize))
+    END IF
     ! Get longitude values for entire region:
-    ok= NF90_GET_VAR(ncid_met,longitudeID,temparray2)
+    !MDeck allow for 1d lon
+    IF (.not.LON1D) then
+       ok= NF90_GET_VAR(ncid_met,longitudeID,temparray2)
+    ELSE
+       ok= NF90_GET_VAR(ncid_met,longitudeID,temparray1)
+       temparray2 = spread(temparray1,2,ydimsize)
+       DEALLOCATE(temparray1)
+    END IF
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error reading longitude variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -519,7 +571,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ALLOCATE(mask(xdimsize,ydimsize))
        metGrid='mask' ! Use mask system
        ! Get mask values from file:
+       !MDeck
+       !write(*,*) 'about to read mask var'
        ok= NF90_GET_VAR(ncid_met,maskID,mask)
+       !MDeck
+       !write(*,*) 'read mask'
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error reading "mask" variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -560,6 +616,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Set global mland value (number of land points), used to allocate
     ! all of CABLE's arrays:
     mland = mland_fromfile
+    write(*,*) 'the total number of land points is ', mland
+
 
     ! Write number of land points to log file:
     WRITE(logn,'(24X,I7,A29)') mland_fromfile, ' of which are land grid cells'
@@ -621,12 +679,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          (ok,'Error reading time variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Set time step size:
+    !MDeck
+    IF (cable_user%alt_forcing) THEN
+       timevar = timevar*24.0*3600.0  !convert from days to seconds
+    END IF
     dels = REAL(timevar(2) - timevar(1))
     WRITE(logn,'(1X,A29,I8,A3,F10.3,A5)') 'Number of time steps in run: ',&
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
 
     !********* gswp input file has bug in timevar **************
-    IF (ncciy > 0) THEN
+    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) THEN
       PRINT *, 'original timevar(kend) = ', timevar(kend)
       DO i = 1, kend - 1
         timevar(i+1) = timevar(i) + dels
@@ -649,7 +711,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          (ok,'Error finding time variable units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
 
+    !MDeck
+    !write(*,*) timeunits
+
+
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
+    if (.not.cable_user%alt_forcing .and. ncciy .eq. 0) then
     IF (timevar(1) == 0.0) THEN
       READ(timeunits(29:30),*) tsmin
       IF (tsmin*60.0 >= dels) THEN
@@ -658,10 +725,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         WRITE(timeunits(29:30),'(i2.2)') tsmin
       ENDIF
     ENDIF
+    end if
     !****** done bug fixing for timevar in PALS met file **********************
 
     !********* gswp input file has bug in timeunits ************
-    IF (ncciy > 0) WRITE(timeunits(26:27),'(i2.2)') 0
+    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) WRITE(timeunits(26:27),'(i2.2)') 0
     !********* done bug fixing for timeunits in gwsp file ******
     WRITE(logn,*) 'Time variable units: ', timeunits
     ! Get coordinate field:
@@ -687,10 +755,23 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Use internal files to convert "time" variable units (giving the run's 
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
-    READ(timeunits(15:18),*) syear
-    READ(timeunits(20:21),*) smoy ! integer month
-    READ(timeunits(23:24),*) sdoytmp ! integer day of that month
-    READ(timeunits(26:27),*) shod  ! starting hour of day 
+    !MDeck
+    IF (cable_user%alt_forcing) THEN
+       !write(*,*) 'reading time units'
+       READ(timeunits(12:15),*) syear
+       !write(*,*) 'read year'
+       READ(timeunits(17:18),*) smoy ! integer month
+       !write(*,*) 'read month'
+       READ(timeunits(20:21),*) sdoytmp ! integer day of that month
+       !write(*,*) 'read day'
+       READ(timeunits(23:24),*) shod  ! starting hour of day 
+       !write(*,*) 'read hour'
+    ELSE
+       READ(timeunits(15:18),*) syear
+       READ(timeunits(20:21),*) smoy ! integer month
+       READ(timeunits(23:24),*) sdoytmp ! integer day of that month
+       READ(timeunits(26:27),*) shod  ! starting hour of day 
+    END IF
     ! Decide day-of-year for non-leap year:
     SELECT CASE(smoy)
     CASE(1) ! Jan
@@ -838,6 +919,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        END SELECT
     END IF
     ! Now all start time variables established, report to log file:
+    write(logn,*) 'about to write ouy more time info'
     WRITE(logn,'(1X,A12,F5.2,A14,I3,A14,I4,2X,A3,1X,A4)') &
          'Run begins: ',shod,' hour-of-day, ',sdoy, ' day-of-year, ',&
          syear, time_coord, 'time'
@@ -1309,6 +1391,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
           WRITE(*,*) 'Spinup will repeat entire data set until states converge:'
        END IF
     END IF  ! if a spinup is to be performed
+
+    !write(*,*) 'after spinup'
 
     ! Look for veg type - - - - - - - - - - - - - - - - -:
     ok = NF90_INQ_VARID(ncid_met,'iveg',id%iveg)
@@ -1950,6 +2034,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
+      !write(*,*) 'line 1957'
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
     ELSE IF(metGrid=='land') THEN
