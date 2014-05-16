@@ -47,7 +47,7 @@ MODULE cable_mpicommon
   ! added 23 params when trying to fix the bug in MPI
 !  INTEGER, PARAMETER :: nparam = 283
 ! Ticket #56, we've added 4 extra new params for the Medlyns Stom Cond model
-   INTEGER, PARAMETER :: napram = 287  
+   INTEGER, PARAMETER :: nparam = 287  
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
