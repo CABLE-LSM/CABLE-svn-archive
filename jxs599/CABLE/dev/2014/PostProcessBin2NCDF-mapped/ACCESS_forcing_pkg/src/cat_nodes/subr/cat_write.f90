@@ -57,7 +57,7 @@ module cat_write_mod
       allocate( Lar(dimy, Nvars*dimx_tot) ) 
 !      integer :: frecl
 !      frecl = Nvars * dimx*r_1
-!print *, "write data: ", dimx, dimy, Nvars, shape(Lar) 
+
          do i=1,dimy
             do j=1,Nvars
                Lar(i, (j-1)*dimx_tot+1 : j*dimx_tot )  = ar_data(j,i,:)
@@ -73,8 +73,6 @@ module cat_write_mod
             else
                write (*,*), Lfilename//'.bin',' NOT found for read'
             endif
-!if(Lfilename == 'tile_frac') print *, "write: ", Lfilename, Lar(1,:) 
-!print *, "write: ", Lfilename, Lar(1,1:10) 
          close(2)
       return 
    end subroutine rewrite_dat_file 

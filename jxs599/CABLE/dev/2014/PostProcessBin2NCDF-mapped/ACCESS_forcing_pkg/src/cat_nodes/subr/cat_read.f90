@@ -56,10 +56,13 @@ module cat_read_mod
             allocate( ar_Nvars( Nvars*dimx_tot ) )
             ! array to hold same data as above, per timestep
             
+!jhan: this might be an issue with 1 years worth of data over 4 runs??
             !jhan: comment out for ACCESS forcing
             ! force only 3 months worth of data
             !dimy = dimy/4
             
+            ! allocate the MAIN array holding everything to rewrite as a single
+            ! "catted" file
             allocate( ar_data(Nvars,dimy,dimx_tot) )
             !print *, " read: ", shape(ar_Nvars)
             !print *, " read: ", shape(ar_data) 

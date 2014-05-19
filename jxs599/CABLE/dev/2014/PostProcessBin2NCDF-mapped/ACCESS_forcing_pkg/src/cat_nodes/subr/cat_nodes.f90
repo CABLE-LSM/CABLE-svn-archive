@@ -40,17 +40,11 @@ module cat_nodes_mod
 
             ! read descriptive .dat node files to set per node file dimensions
             call read_txt_file( trim( nfilename) , ndimx )
-!print *, ""
-!print *, "filename ", trim( nfilename)
-!print *, "dimx ", ndimx 
 
             ! read binary (data) node files 
             call read_dat_file( trim( nfilename ), pndimx+1, pndimx+ndimx )
          end do   
          
-!print *, ""
-!print *, "filename ", trim( filename)
-!print *, "dimx ", pndimx + ndimx 
 
          call rewrite_txt_file( trim(filename), pndimx+ndimx )
          call rewrite_dat_file( trim(filename) )
