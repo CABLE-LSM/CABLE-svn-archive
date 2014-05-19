@@ -1,1 +1,5 @@
-/build/
+/build
+/extract
+/preprocess
+/jhmake
+/.fcm-make
