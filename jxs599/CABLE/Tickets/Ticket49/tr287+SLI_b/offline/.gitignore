@@ -1,1 +1,7 @@
-/.trunk_sumbal
+/*.out
+/*.nc
+/*.txt
+/*.tmp
+/cable
+/fort*
+/*sumbal

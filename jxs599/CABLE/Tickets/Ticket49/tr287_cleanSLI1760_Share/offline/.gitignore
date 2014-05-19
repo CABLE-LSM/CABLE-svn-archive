@@ -1,1 +1,9 @@
 /.trunk_sumbal
+/*sumbal
+/*.out
+/fort*
+/*.nc
+/*.txt
+/*.tmp
+/cable
+/cable.bu
