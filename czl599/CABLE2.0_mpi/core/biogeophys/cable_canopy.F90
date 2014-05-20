@@ -1601,19 +1601,32 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ! Whhere leaf temp change b/w iterations is significant, and
       ! difference is smaller than the previous iteration, store results:
 
-      WHERE( abs_deltlf < ABS( deltlfy) ) 
-
-            deltlfy = deltlf
-            tlfy = tlfx
-            rny = rnx
-            hcy = hcx
-            ecy = ecx
-            rdy = rdx
-            an_y = anx
-          
+!      WHERE( abs_deltlf < ABS( deltlfy) )  ! There could be times when sunlit/shaded leaves 
+!                                           ! behaves differently in this test and creating problems?
+!            deltlfy = deltlf
+!            tlfy = tlfx
+!            rny = rnx
+!            hcy = hcx
+!            ecy = ecx
+!            rdy = rdx
+!            an_y = anx
+!          
+!            ! save last values calculated for ssnow%evapfbl
+!    !!!!        oldevapfbl = ssnow%evapfbl     ! This has dimension (mp,ms) not (mp,mf)
+!       ENDWHERE
+       DO i = 1, mp
+         IF ( abs_deltlf(i,1) < ABS( deltlfy(i,1) ) .OR. abs_deltlf(i,2) < ABS( deltlfy(i,2) ) ) THEN
+            deltlfy(i,:) = deltlf(i,:)
+            tlfy(i,:)    = tlfx(i,:)
+            rny(i,:)     = rnx(i,:)
+            hcy(i,:)     = hcx(i,:)
+            ecy(i,:)     = ecx(i,:)
+            rdy(i,:)     = rdx(i,:)
+            an_y(i,:)    = anx(i,:)
             ! save last values calculated for ssnow%evapfbl
-            oldevapfbl = ssnow%evapfbl
-       ENDWHERE
+            oldevapfbl(i,:) = ssnow%evapfbl(i,:)   ! This has dimension (mp,ms) not (mp,mf)
+         ENDIF
+       ENDDO !i=1,mp
           
        WHERE( abs_deltlf > 0.1 )                                             
             
@@ -1659,6 +1672,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 /dels ) ) > 1.0e-4 ) THEN
                
                PRINT *, 'Error! oldevapfbl not right.', ktau_gl, i
+               PRINT *, 'abs_deltlf, deltlfy = ', abs_deltlf, deltlfy
                PRINT *, 'ecx, ecy = ', ecx(i,:), ecy(i,:)
                PRINT *, 'or in mm = ', sum(ecx(i,:)) * ( 1.0 - canopy%fwet(i) )       &
                                        / air%rlam(i) * dels,                   &
