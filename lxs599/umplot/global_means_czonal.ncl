@@ -71,6 +71,7 @@ lsm_file = addfile(PltDir+"mask_accessV1_n"+resol+".nc","r")
 frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
 end if
 end if
+area_file = addfile(PltDir+"areacella.nc","r")
 
 ;couple = "n" ;systemfunc("echo $CPL")
 
@@ -106,6 +107,7 @@ lh     = cable_file->lh         ;hfls
 elsm   = elsm_file ->lsm
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
+larea  = area_file ->areacella
 ;lsm    = frac_file ->lsm
 srunoff= cable_file->field1532  ; mrros
 drunoff= cable_file->field1533  ; mrro;mrross-is it processed?
@@ -380,8 +382,9 @@ dx   = con * dlon * clat
 dy   = con * dlat
 dydx = dy * dx
 
-wgt   = new((/nlat,mlon/),double)
-wgt   = conform(wgt,dydx,0)
+;wgt   = new((/nlat,mlon/),double)
+;wgt   = conform(wgt,dydx,0)
+wgt = larea
 wgto  = wgt*(1-lfrac(0,0,:,:))
 wgtl  = wgt*lfrac(0,0,:,:)
 wgtlm = wgt*(lsm(0,0,:,:))
@@ -434,15 +437,16 @@ wgtlo&lon = emax&longitude
 ; ANN WBAL -----------------------------------------------------------
 
 ; have a external chv ?
-mlat      = new((/2,6/),float)
+mlat      = new((/2,7/),float)
 mlat(:,0) = (/-90, 90/)    ; chv=0, Global
 mlat(:,1) = (/ 66, 90/)    ; chv=1, High Northern Latitudes (hNlat)
 mlat(:,2) = (/ 23, 66/)    ; chv=2, Mid Northern Latitudes  (mNlat)
 mlat(:,3) = (/-23, 23/)    ; chv=3, Tropics                 (Trop)
 mlat(:,4) = (/-66,-23/)    ; chv=4, Mid Southern Latitudes  (mSlat)
 mlat(:,5) = (/-90,-66/)    ; chv=5, High Southern Latitudes (hSlat)
+mlat(:,6) = (/ 30, 90/)    ; chv=6, High Northern Latitudes (Paper)
 Dlat      = dimsizes(mlat)
-wlat = (/"glob","highN","midN","trops","midS","highS"/)
+wlat = (/"glob","highN","midN","trops","midS","highS","Paper"/)
 
 ;do k = 0,Dlat-1,1
 
@@ -833,7 +837,7 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 ebal_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.5) then
+if (chv.ge.0 .and. chv.le.6) then
 system("mv ebal_ctable" + "_" + numYr + "yrs.eps ebalc_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 
@@ -863,7 +867,7 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 wbal_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.5) then
+if (chv.ge.0 .and. chv.le.6) then
 system("mv wbal_ctable" + "_" + numYr + "yrs.eps wbalc_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 
@@ -885,7 +889,7 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 temp_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.5) then
+if (chv.ge.0 .and. chv.le.6) then
 system("mv temp_ctable" + "_" + numYr + "yrs.eps tempc_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 
@@ -928,7 +932,7 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 ecomps_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.5) then
+if (chv.ge.0 .and. chv.le.6) then
 system("mv ecomps_ctable" + "_" + numYr + "yrs.eps ecomps_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 ;=========================

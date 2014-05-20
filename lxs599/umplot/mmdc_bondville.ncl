@@ -63,21 +63,6 @@ precip1 = flux->Rainf
 ;temp3   = flux3 ->Ta
 ;precip3 = flux3 ->PPT
 ;---------------------
-;qh      = igbp  ->Qh
-;qle     = igbp  ->Qle
-;tair    = igbp  ->Tair
-;rainf   = igbp  ->Rainf
-;----------------------
-;csh     = cabfil ->hfss
-;msh     = mosfil ->hfss
-;clh     = cabfil ->hfls
-;mlh     = mosfil ->hfls
-;crad    = cabfil ->field3333
-;mrad    = mosfil ->field3333
-;cta     = cabfil ->tas
-;mta     = mosfil ->tas
-;cpr     = cabfil ->field5226
-;mpr     = mosfil ->field5226
 
 if (isfilevar(cabfil,"hfss")) then
  csh     = cabfil ->hfss
@@ -101,6 +86,7 @@ else
 end if
 if (isfilevar(cabfil,"field3333")) then
  crad    = cabfil ->field3333
+ crnt    = crad
 else
  crad    = cabfil ->field202
 ;end if
@@ -115,11 +101,13 @@ else
  crn1    = cswr+clwr
  copy_VarMeta(cswr,crn1)
  crn1&$dName2(1)$ = ispan(0,47,6)
- crn2    = linint1_n_Wrap(crn1&$dName2(1)$,crn1,True,crad&$dNames(1)$,0,1)
-
+ crn2    = ftcurvp(crn1&$dName2(1)$,crn1,48,crad&$dNames(1)$)
+ 
  crnt    = new((/dims(0),dims(1)/),typeof(cswr))
  crnt(:,42:47)  = crn2(:,0:5)
  crnt(:,0:41) = crn2(:,6:47)
+
+ ;crnt = crn1 ; if already interp
 end if
 if (isfilevar(mosfil,"field3333")) then
  mrad    = mosfil ->field3333
@@ -141,7 +129,7 @@ else
  mrn1    = mswr+mlwr
  copy_VarMeta(mswr,mrn1)
  mrn1&$dName2(1)$ = ispan(0,47,6)
- mrn2    = linint1_n_Wrap(mrn1&$dName2(1)$,mrn1,True,mrad&$dNames(1)$,0,1)
+ mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,48,mrad&$dNames(1)$)
 
  ; Roll 4ts for Hyytiala
  mrnt    = new((/dims(0),dims(1)/),typeof(mswr))
@@ -180,6 +168,26 @@ if (isfilevar(mosfil,"field30")) then
 ;else
 ; mtc     = mosfil ->
 end if
+if (isfilevar(cabfil,"field203")) then
+ csw     = cabfil ->field203
+;else
+; csw     = cabfil ->sh
+end if
+if (isfilevar(mosfil,"field203")) then
+ msw     = mosfil ->field203
+;else
+; msw     = mosfil ->sh
+end if
+if (isfilevar(cabfil,"ilr")) then
+ clw     = cabfil ->ilr
+;else
+; clw     = cabfil ->sh
+end if
+if (isfilevar(mosfil,"ilr")) then
+ mlw     = mosfil ->ilr
+;else
+; mlw     = mosfil ->sh
+end if
 
 ;==============================================================================
 
@@ -188,6 +196,7 @@ tstp     = msh&$dNam(1)$
 tstep    = max(tstp)+1
 timestep = doubletoint(tstep)
 
+;----- OBS -----
 sensht1@_FillValue = -9999
 ;sensht2@_FillValue = -9999
 ;sensht3@_FillValue = -9999

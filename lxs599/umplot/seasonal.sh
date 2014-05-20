@@ -10,7 +10,11 @@ set pmlist=`ls $DIR/$RUNID$a.$Pmonth?????.nc | head -$nom`
 dmget $pmlist
 
 set pmjan=`ls $DIR/$RUNID$a.$Pmonth??001.nc | head -$YR`
+#if (${#pmjan} == 0) then
 ncra -O $pmjan avejan.nc
+#else
+#exit()
+#endif
 set pmfeb=`ls $DIR/$RUNID$a.$Pmonth??002.nc | head -$YR`
 ncra -O $pmfeb avefeb.nc
 set pmmar=`ls $DIR/$RUNID$a.$Pmonth??003.nc | head -$YR`
@@ -60,6 +64,8 @@ endif
 if ( ${#pelist} > 0 ) then
  cdo mergetime $pelist Timeseries_${YR}yrs.nc
  if ( $Ptimes == pf ) then
+  cdo mergetime $DIR/$RUNID$a.$Ptimes?????_noswlw.nc Timeseries_${YR}yrs_noswlw.nc
+  cdo mergetime $DIR/$RUNID$a.$Ptimes?????_swlw.nc Timeseries_${YR}yrs_swlw.nc
   set month=( 001 002 003 004 005 006 007 008 009 010 011 012 )
   foreach mon ( $month )
    cdo mergetime $DIR/$RUNID$a.$Ptimes??$mon\_noswlw.nc $RUNID$a.$Ptimes\_$mon\_${YR}yrs.nc

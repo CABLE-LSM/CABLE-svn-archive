@@ -4,23 +4,29 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+  numYr = systemfunc("echo $YR")
+  usr   = systemfunc("echo $USERID")
 
 ; load npp and rsoil monthly time series from CABLE
 
-   in = addfile("/home/cmar/zie022/access/analysis/rsoil_18yrs.nc","r")
+   in = addfile("/home/cmar/zie022/access/analysis/rsoil_"+numYr"yrs.nc","r")
+   ;in = addfile("/home/cmar/zie022/access/analysis/rsoil_18yrs.nc","r")
    soil_d = in->field1523
 
-   in = addfile("/home/cmar/zie022/access/analysis/npp_18yrs.nc","r")
+   in = addfile("/home/cmar/zie022/access/analysis/npp_"+numYr"yrs.nc","r")
+   ;in = addfile("/home/cmar/zie022/access/analysis/npp_18yrs.nc","r")
    npp_d = in->field1389
 
 ; load area for each grid cell
 
-   in = addfile("/home/cmar/zie022/access/analysis/grid_area.nc","r")
+   in = addfile("/umplot//grid_area.nc","r")
+   ;in = addfile("/home/cmar/zie022/access/analysis/grid_area.nc","r")
    grid_area = in->grid_area
 
 ; load land faction 
 
-   in = addfile("/home/cmar/zie022/access/analysis/land_fraction.nc","r")
+   in = addfile("/umplot//land_fraction.nc","r")
+   ;in = addfile("/home/cmar/zie022/access/analysis/land_fraction.nc","r")
    lfrac = in->lsm
 
 ; need to convert from double to float
@@ -46,7 +52,6 @@ begin
       nep_m(j)  = sum( (npp(j,0,:,:)-soil(j,0,:,:)) * grid_area * c) ; PgC per yr
    end do
 
-
 ; annual global mean 
    rso_y = new((/y/),float)
    npp_y = new((/y/),float)
@@ -55,7 +60,6 @@ begin
    rso_ym = new((/y,12/),float)
    npp_ym = new((/y,12/),float)
    nep_ym = new((/y,12/),float)
-
 
    do j = 0,y-1
       rso_y(j) = sum( rso_m(j*12:(j+1)*12-1) ) / 12
@@ -80,9 +84,7 @@ begin
   res@gsnDraw  = False                          ; Don't draw plots
   res@gsnFrame = False                          ; Don't advance frames
 
-
   res@tiXAxisString   = "Months"
-
 
 ;  generate x vector (time)
    x = ispan(1,12,1)
@@ -94,13 +96,11 @@ begin
   plots(0) = gsn_xy(wks,x,npp_ym,res)
   plots(1) = gsn_xy(wks,x,rso_ym,res)
   plots(2) = gsn_xy(wks,x,nep_ym,res)
- 
 
    pres                  = True         ; Set panel resources.
    pres@gsnMaximize      = True         ; Maximize plots in panel.
    pres@txString         = "Flux [PgC/yr] global mean"
 
    gsn_panel(wks,plots,(/2,2/),pres)
-
 
 end

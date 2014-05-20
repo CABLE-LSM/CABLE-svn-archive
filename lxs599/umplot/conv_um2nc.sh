@@ -1,4 +1,4 @@
-#!/bin/csh 
+#!/bin/csh -x
 
 ######################################################################
 
@@ -57,6 +57,9 @@ set a = a
            $CONV2NC -i $file.sub2 -o $newlist[$i]_noswlw.nc
            python $FLDSUBSET -i $file -o $file.sub3 -v 1201 -v 1235 -v 2201 -v 2207
            $CONV2NC -i $file.sub3 -o $newlist[$i]_swlw.nc
+           #set cdate=`cdo showdate $newlist[$i]_swlw.nc`
+           #set ctime=`cdo showtime $newlist[$i]_swlw.nc`
+           #cdo inttime,$cdate[1],$ctime[1],30minutes $newlist[$i]_swlw.nc $newlist[$i]_swlw_intp30min.nc
            python $FLDSUBSET -i $file -o $file.sub -v 3234 -v 3236 -v 3217 -v 5226 -v 3333
            python $CONV2NCTS -i $file.sub -o $newlist[$i].nc
            rm $file.sub

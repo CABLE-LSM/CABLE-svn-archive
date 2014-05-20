@@ -14,6 +14,13 @@ rnt = cfile['field3333']
 #swr = cfile['solar']
 #lwr = cfile['longwave']
 
+#pals_shift_hrs = [,,,,,2,,,10,1,-6 ,,,,1,-5 ,-6 ,]
+#pals_shift     = [,,,,,4,,,20,2,-12,,,,2,-10,-12,]
+
+#real_shift_hrs = [-4,10,9.5,1,5.5,2,1,1,10,1,-6,8,-6,-5,1,-5,-6,1]
+#tshift_new = [-8,20,19,2,11,4,2,2,20,2,-12,16,-12,-10,2,-10,-12,2]
+#tshift_old = [-7,20,19,2,11,4,2,2,20,2,-9,15,-10,-8,2,-7,-10,2]
+
 tshift = [-7,20,19,2,11,4,2,2,20,2,-9,15,-10,-8,2,-7,-10,2]
 sites  = ['manaus','hay','dalywate','hapexbat','india','hyytiala','africaN','africaS','tumbarum','tharandt','bondvill','dinghush','litwashi','walkerbr','loobos','harvard','nsabor','vielsalm']
 nsite  = tshift.__len__()

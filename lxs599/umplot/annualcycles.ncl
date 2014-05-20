@@ -9,49 +9,53 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 ;loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
-;procedure mmdc_flux(LongName:string,mosDir:string,cabDir:string)
-
 begin
 
-;LongName = "hyytiala"
 usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+modl     = systemfunc("echo $MODEL")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
 jpg = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
-jpeg = True
+ jpeg = True
 else
-jpeg = False
+ jpeg = False
 end if
 
 tsDir    = "~"+usr+"/umplot/obs/"
 home     = "~"+usr+"/"
+flxobs   = "/home/cmar/ste69f/obsdata/fluxnet/PALS/flxnt_mon/"
 
-;system("dmget " + tsDir + LongName +"/mmdc*_roll.nc" )
-
-;obs
-flux_ma  = addfile(tsDir + "MA96_lu_u0_mm_flx.nc"        ,"r")
-met_ma   = addfile(tsDir + "MA96_mm_met.nc"              ,"r")
-flux_tb  = addfile(tsDir + "AnnCycles_tumbarumba.nc" ,"r")
-; model
-mosfil   = addfile(filDir+"/AnnualCycle_"+numYr+"yrs.nc"        ,"r")
-;igbp     = addfile(home  + "igbp/"+ LongName +"/MMDC_"+ LongName +"_roll.nc","r")
+;obs ---
+ flux_ma  = addfile(tsDir + "MA96_lu_u0_mm_flx.nc"    ,"r")
+ met_ma   = addfile(tsDir + "MA96_mm_met.nc"          ,"r")
+ flux_tb  = addfile(tsDir + "AnnCycles_tumbarumba.nc" ,"r")
+ hyy_new  = addfile(flxobs+"mmdc_ts_Hyytiala.nc"       ,"r")
+ lo_new   = addfile(flxobs+"mmdc_ts_Loobos.nc"         ,"r")
+ nb_new   = addfile(flxobs+"mmdc_ts_Boreas.nc"         ,"r")
+ bv_new = addfile(flxobs + "mmdc_ts_Bondv.nc"         ,"r")
+ th_new = addfile(flxobs + "mmdc_ts_Tharandt.nc"      ,"r")
+ hv_new = addfile(flxobs + "mmdc_ts_Harvard.nc"       ,"r")
+; model ---
+ mosfil   = addfile(filDir+"/AnnualCycle_"+numYr+"yrs.nc"        ,"r")
 
 ;OBS===========================================================================
 
+; order: bv hv hy lo lw nb th vi wb ma tb hay
+;        0   1  2  3  4  5  6 7  8  9  10 11
 fils   = systemfunc("ls "+tsDir+"*-*_lu_u0_mm_flx.nc")
 f      = addfiles(fils,"r")
 ListSetType(f,"join")
-sens   = f[:]->H;(0:11)
-lat    = f[:]->LH;(0:11)
+sens   = f[:]->H  ;(0:11)
+lat    = f[:]->LH ;(0:11)
 
 fils2  = systemfunc("ls "+tsDir+"*-*_mm_met.nc")
 f2     = addfiles(fils2,"r")
 ListSetType(f2,"join")
-radnet = f2[:]->Rn;(0:11)
-temp2m = f2[:]->Ta;(0:11)
-preci  = f2[:]->PPT;(0:11)
+radnet = f2[:]->Rn  ;(0:11)
+temp2m = f2[:]->Ta  ;(0:11)
+preci  = f2[:]->PPT ;(0:11)
 
 sens_ma = flux_ma ->H
 lat_ma  = flux_ma ->LH
@@ -63,6 +67,36 @@ lat_tb  = flux_tb ->qle_8yr_mean   ;Qle   ;LH
 rad_tb  = flux_tb ->rnet_8yr_mean  ;Rnet  ;Rn
 temp_tb = flux_tb ->tair_8yr_mean  ;Tair  ;Ta
 prec_tb = flux_tb ->rainf_8yr_mean ;Rainf ;PPT
+sens_hy = hyy_new ->Qh
+lat_hy  = hyy_new ->Qle
+rad_hy  = hyy_new ->Rnet
+temp_hy = hyy_new ->Tair
+prec_hy = hyy_new ->Rainf
+sens_lo = lo_new  ->Qh
+lat_lo  = lo_new  ->Qle
+rad_lo  = lo_new  ->Rnet
+temp_lo = lo_new  ->Tair
+prec_lo = lo_new  ->Rainf
+sens_nb = nb_new  ->Qh
+lat_nb  = nb_new  ->Qle
+rad_nb  = nb_new  ->Rnet
+temp_nb = nb_new  ->Tair
+prec_nb = nb_new  ->Rainf
+;sens_th = th_new  ->Qh
+;lat_th  = th_new  ->Qle
+;rad_th  = th_new  ->Rnet ; missing
+;temp_th = th_new  ->Tair
+;prec_th = th_new  ->Rainf
+;sens_hv = hv_new  ->Qh
+;lat_hv  = hv_new  ->Qle
+;rad_hv  = hv_new  ->Rnet
+;temp_hv = hv_new  ->Tair
+;prec_hv = hv_new  ->Rainf
+;sens_bv = bv_new  ->Qh
+;lat_bv  = bv_new  ->Qle
+;rad_bv  = bv_new  ->Rnet
+;temp_bv = bv_new  ->Tair
+;prec_bv = bv_new  ->Rainf
 
 ;OBS===========================================================================
 
@@ -83,60 +117,119 @@ temp@_FillValue   = -9999
 precip@_FillValue = -9999
 
 do k=0,8,1
-sensht(k,:)       = sens(k,0:11)*1000000/(31*24*60*60)   ;H
-latht(k,:)        = lat(k,0:11)*1000000/(31*24*60*60)    ;LH
-rad(k,:)          = radnet(k,0:11)*1000000/(31*24*60*60) ;Rn
-temp(k,:)         = temp2m(k,0:11) ;Ta
-precip(k,:)       = preci(k,0:11)  ;PPT
+ sensht(k,:)       = sens(k,0:11)*1000000/(31*24*60*60)   ;H
+ latht(k,:)        = lat(k,0:11)*1000000/(31*24*60*60)    ;LH
+ rad(k,:)          = radnet(k,0:11)*1000000/(31*24*60*60) ;Rn
+ temp(k,:)         = temp2m(k,0:11)                       ;Ta
+ precip(k,:)       = preci(k,0:11)                        ;PPT
 end do
-sensht(9,:)       = sens_ma(0:11)*1000000/(31*24*60*60) ;H
-latht(9,:)        = lat_ma(0:11)*1000000/(31*24*60*60)  ;LH
-rad(9,:)          = rad_ma(0:11)*1000000/(31*24*60*60)  ;Rn
-temp(9,:)         = temp_ma(0:11) ;Ta
-precip(9,:)       = prec_ma(0:11) ;PPT
-sensht(10,:)      = sens_tb(0:11) ;H
-latht(10,:)       = lat_tb(0:11)  ;LH
-rad(10,:)         = rad_tb(0:11)  ;Rn
-temp(10,:)        = temp_tb(0:11) ;Ta
-precip(10,:)      = prec_tb(0:11) ;PPT
+sensht(9,:)       = sens_ma(0:11)*1000000/(31*24*60*60)   ;H
+latht(9,:)        = lat_ma(0:11)*1000000/(31*24*60*60)    ;LH
+rad(9,:)          = rad_ma(0:11)*1000000/(31*24*60*60)    ;Rn
+temp(9,:)         = temp_ma(0:11)                         ;Ta
+precip(9,:)       = prec_ma(0:11)                         ;PPT
+sensht(10,:)      = sens_tb(0:11)                         ;H
+latht(10,:)       = lat_tb(0:11)                          ;LH
+rad(10,:)         = rad_tb(0:11)                          ;Rn
+temp(10,:)        = temp_tb(0:11)                         ;Ta
+precip(10,:)      = prec_tb(0:11)                         ;PPT
+;;Lest 7/1/14 - For AMOJ papers
+;sensht(9,:)       = -9999;sens_ma(0:11)*1000000/(31*24*60*60)   ;H
+;latht(9,:)        = -9999;lat_ma(0:11)*1000000/(31*24*60*60)    ;LH
+;rad(9,:)          = -9999;rad_ma(0:11)*1000000/(31*24*60*60)    ;Rn
+;temp(9,:)         = -9999;temp_ma(0:11)                         ;Ta
+;precip(9,:)       = -9999;prec_ma(0:11)                         ;PPT
+;sensht(10,:)      = -9999;sens_tb(0:11)                         ;H
+;latht(10,:)       = -9999;lat_tb(0:11)                          ;LH
+;rad(10,:)         = -9999;rad_tb(0:11)                          ;Rn
+;temp(10,:)        = -9999;temp_tb(0:11)                         ;Ta
+;precip(10,:)      = -9999;prec_tb(0:11)                         ;PPT
+;sensht(7,:)       = -9999 ; vie
+;latht(7,:)        = -9999 ; vie
+;rad(7,:)          = -9999 ; vie
+;temp(7,:)         = -9999 ; vie
+;precip(7,:)       = -9999 ; vie
+;;Lest 7/1/14 - For AMOJ papers
 
-;---------------------
-;qh      = igbp  ->Qh
-;qle     = igbp  ->Qle
-;tair    = igbp  ->Tair
-;rainf   = igbp  ->Rainf
-;----------------------
+sensht(2,:)       = dim_avg_n_Wrap(sens_hy(:,:,0),1) ;H
+latht(2,:)        = dim_avg_n_Wrap(lat_hy(:,:,0),1)  ;LH
+rad(2,:)          = dim_avg_n_Wrap(rad_hy(:,:,0),1)  ;Rn
+temp(2,:)         = dim_avg_n_Wrap(temp_hy(:,:,0),1) ;Ta
+precip(2,:)       = dim_avg_n_Wrap(prec_hy(:,:,0),1) ;PPT
+sensht(3,:)       = dim_avg_n_Wrap(sens_lo(:,:,0),1) ;H
+latht(3,:)        = dim_avg_n_Wrap(lat_lo(:,:,0),1)  ;LH
+rad(3,:)          = dim_avg_n_Wrap(rad_lo(:,:,0),1)  ;Rn
+temp(3,:)         = dim_avg_n_Wrap(temp_lo(:,:,0),1) ;Ta
+precip(3,:)       = dim_avg_n_Wrap(prec_lo(:,:,0),1) ;PPT
+;sensht(5,:)       = dim_avg_n_Wrap(sens_nb(:,:,0),1) ;H
+;latht(5,:)        = dim_avg_n_Wrap(lat_nb(:,:,0),1)  ;LH
+;rad(5,:)          = dim_avg_n_Wrap(rad_nb(:,:,0),1)  ;Rn
+;temp(5,:)         = dim_avg_n_Wrap(temp_nb(:,:,0),1) ;Ta
+;precip(5,:)       = dim_avg_n_Wrap(prec_nb(:,:,0),1) ;PPT
 
 ;MODEL==========================================
 
-;csh     = cabfil ->hfss
-msh     = mosfil ->hfss
-;clh     = cabfil ->hfls
-mlh     = mosfil ->hfls
-;crad    = cabfil ->field3333
-mrad    = mosfil ->field3333
-;cta     = cabfil ->tas
-mta     = mosfil ->tas
-;cpr     = cabfil ->field5226
-mpr     = mosfil ->field5226
+if (isfilevar(mosfil,"hfss")) then
+ msh     = mosfil ->hfss      ; sh
+ mlh     = mosfil ->hfls      ; lh
+ mrad    = mosfil ->field3333 ; field202
+ mta     = mosfil ->tas       ; temp
+ mpr     = mosfil ->field5226 ; tot_precip
+else
+ msh     = mosfil ->sh
+ mlh     = mosfil ->lh
+ mrad    = mosfil ->field202
+ mta     = mosfil ->temp
+ mpr     = mosfil ->tot_precip
+end if
 
-dNames  = getfilevardims(mosfil,"hfss")
-dNlh    = getfilevardims(mosfil,"hfls")
+if (isfilevar(mosfil,"solar")) then
+ mrad_1 = mosfil ->solar    ;field3333
+ mrad_2 = mosfil ->longwave ;field3333
+ mrad1  = mrad_1+mrad_2
+ copy_VarMeta(mrad_1,mrad1)
+end if
+
+if (isfilevar(mosfil,"hfss")) then
+dNames  = getfilevardims(mosfil,"hfss") ;sh
+dNlh    = getfilevardims(mosfil,"hfls") ;lh
 dNrad   = getfilevardims(mosfil,"field3333")
-;print(dNames)
+else
+dNames  = getfilevardims(mosfil,"sh")
+dNlh    = getfilevardims(mosfil,"lh")
+dNrad   = getfilevardims(mosfil,"field202")
+end if
+
+; order in file: 31 sites currently
+;man,hay,dwaters,bats,india,hyy,afN,afS,tumb,thar,bond,ding,lwas,walk,loo,harv,bore,viel
+;ant1,ant2,ant3,rus1,alk,afr,grl,ant,sau1,sau2,sau3,rus2,sau4
 
 mrad_ro = new((/11,12/),double)
-mrad_ro(0,:)  = mrad($dNames(1)$|10,$dNames(0)$|:) ; bv
-mrad_ro(1,:)  = mrad($dNames(1)$|15,$dNames(0)$|:) ; hv
-mrad_ro(2,:)  = mrad($dNames(1)$|5 ,$dNames(0)$|:) ; hy
-mrad_ro(3,:)  = mrad($dNames(1)$|14,$dNames(0)$|:) ; lo
-mrad_ro(4,:)  = mrad($dNames(1)$|12,$dNames(0)$|:) ; lw
-mrad_ro(5,:)  = mrad($dNames(1)$|16,$dNames(0)$|:) ; nb
-mrad_ro(6,:)  = mrad($dNames(1)$|9 ,$dNames(0)$|:) ; th
-mrad_ro(7,:)  = mrad($dNames(1)$|17,$dNames(0)$|:) ; vi
-mrad_ro(8,:)  = mrad($dNames(1)$|13,$dNames(0)$|:) ; wb
-mrad_ro(9,:)  = mrad($dNames(1)$|0 ,$dNames(0)$|:) ; ma
-mrad_ro(10,:) = mrad($dNames(1)$|8 ,$dNames(0)$|:) ; tb
+if (isvar("mrad1") .and. sum(mrad).eq.0.) then ; if (modl.eq. "m") then
+ mrad_ro(0,:)  = mrad1($dNames(1)$|10,$dNames(0)$|:) ; bv
+ mrad_ro(1,:)  = mrad1($dNames(1)$|15,$dNames(0)$|:) ; hv
+ mrad_ro(2,:)  = mrad1($dNames(1)$|5 ,$dNames(0)$|:) ; hy
+ mrad_ro(3,:)  = mrad1($dNames(1)$|14,$dNames(0)$|:) ; lo
+ mrad_ro(4,:)  = mrad1($dNames(1)$|12,$dNames(0)$|:) ; lw
+ mrad_ro(5,:)  = mrad1($dNames(1)$|16,$dNames(0)$|:) ; nb
+ mrad_ro(6,:)  = mrad1($dNames(1)$|9 ,$dNames(0)$|:) ; th
+ mrad_ro(7,:)  = mrad1($dNames(1)$|17,$dNames(0)$|:) ; vi
+ mrad_ro(8,:)  = mrad1($dNames(1)$|13,$dNames(0)$|:) ; wb
+ mrad_ro(9,:)  = mrad1($dNames(1)$|0 ,$dNames(0)$|:) ; ma
+ mrad_ro(10,:) = mrad1($dNames(1)$|8 ,$dNames(0)$|:) ; tb
+else
+ mrad_ro(0,:)  = mrad($dNames(1)$|10,$dNames(0)$|:) ; bv
+ mrad_ro(1,:)  = mrad($dNames(1)$|15,$dNames(0)$|:) ; hv
+ mrad_ro(2,:)  = mrad($dNames(1)$|5 ,$dNames(0)$|:) ; hy
+ mrad_ro(3,:)  = mrad($dNames(1)$|14,$dNames(0)$|:) ; lo
+ mrad_ro(4,:)  = mrad($dNames(1)$|12,$dNames(0)$|:) ; lw
+ mrad_ro(5,:)  = mrad($dNames(1)$|16,$dNames(0)$|:) ; nb
+ mrad_ro(6,:)  = mrad($dNames(1)$|9 ,$dNames(0)$|:) ; th
+ mrad_ro(7,:)  = mrad($dNames(1)$|17,$dNames(0)$|:) ; vi
+ mrad_ro(8,:)  = mrad($dNames(1)$|13,$dNames(0)$|:) ; wb
+ mrad_ro(9,:)  = mrad($dNames(1)$|0 ,$dNames(0)$|:) ; ma
+ mrad_ro(10,:) = mrad($dNames(1)$|8 ,$dNames(0)$|:) ; tb
+end if
 
 msh_ro = new((/11,12/),double)
 msh_ro(0,:)  = msh($dNames(1)$|10,$dNames(0)$|:) ; bv
@@ -166,206 +259,48 @@ mlh_ro(10,:) = mlh($dNames(1)$|8 ,$dNames(0)$|:) ; tb
 
 ;==============================================================================
 
-;sens_all           = (sensht1+sensht2+sensht3)/3
-;sens_2             = (sensht2+sensht3)/2
-;copy_VarMeta(sensht1,sens_all)
-;copy_VarMeta(sensht1,sens_2)
-;lh_all             = (latht1+latht2+latht3)/3
-;lh_2               = (latht2+latht3)/2
-;copy_VarMeta(latht1,lh_all)
-;copy_VarMeta(latht1,lh_2)
-
 sh_ANN            = new((/11,12/),double)
-sh_ANN            = msh_ro ;(axis_4|0:10,axis_1|:)
-sh_ANN            = sh_ANN - sensht
+;sh_ANN            = msh_ro ;(axis_4|0:10,axis_1|:)
+sh_ANN            = msh_ro - sensht
 lh_ANN            = new((/11,12/),double)
-lh_ANN            = mlh_ro ;(axis_4|0:10,axis_1|:)
-lh_ANN            = lh_ANN - latht
+;lh_ANN            = mlh_ro ;(axis_4|0:10,axis_1|:)
+lh_ANN            = mlh_ro - latht
 rad_ANN           = new((/11,12/),double)
-rad_ANN           = mrad_ro ;(axis_4|0:10,axis_1|:)
-rad_ANN           = rad_ANN - rad 
-
-;rad_2              = rad3 ;(rad2+rad3)/2
-;copy_VarMeta(rad1,rad_all)
-;copy_VarMeta(rad1,rad_2)
-;temp_all           = (temp1+temp2+temp3)/3 +273.16
-;temp_2             = (temp2+temp3)/2 +273.16
-;copy_VarMeta(temp1,temp_all)
-;copy_VarMeta(temp1,temp_2)
-;pr_all             = (precip1+precip2+precip3)/3 *48
-;pr_2               = (precip2+precip3)/2 *48
-;copy_VarMeta(precip1,pr_all)
-;copy_VarMeta(precip1,pr_2)
-
-;qh_ta    = dim_avg_n_Wrap(qh,0)
-;sens     = dim_avg_n_Wrap(sens_all,0)
-;sens2    = dim_avg_n_Wrap(sens_2,0)
-;qh_ta!0  = "month"
-;qh_ta!1  = "timestep"
-;sens!0   = "month"
-;sens!1   = "timestep"
-;sens2!0  = "month"
-;sens2!1  = "timestep"
-;msh!0    = "month"
-;msh!1    = "timestep"
-;csh!0    = "month"
-;csh!1    = "timestep"
-
-;qle_ta   = dim_avg_n_Wrap(qle,0)
-;lats     = dim_avg_n_Wrap(lh_all,0)
-;lats2    = dim_avg_n_Wrap(lh_2,0)
-;qle_ta!0 = "month"
-;qle_ta!1 = "timestep"
-;lats!0   = "month"
-;lats!1   = "timestep"
-;lats2!0  = "month"
-;lats2!1  = "timestep"
-;mlh!0    = "month"
-;mlh!1    = "timestep"
-;clh!0    = "month"
-;clh!1    = "timestep"
-
-;tair_ta   = dim_avg_n_Wrap(tair,0)
-;temp      = dim_avg_n_Wrap(temp_all,0)
-;tem2      = dim_avg_n_Wrap(temp_2,0)
-;tair_ta!0 = "month"
-;tair_ta!1 = "timestep"
-;temp!0    = "month"
-;temp!1    = "timestep"
-;tem2!0    = "month"
-;tem2!1    = "timestep"
-;mta!0     = "month"
-;mta!1     = "timestep"
-;cta!0     = "month"
-;cta!1     = "timestep"
-
-;rainf     = rainf*24*60*60
-;mpr       = mpr *48
-;cpr       = cpr *48
-;rf_ta     = dim_avg_n_Wrap(rainf,0)
-;prec      = dim_avg_n_Wrap(pr_all,0)
-;prec2     = dim_avg_n_Wrap(pr_2,0)
-;rf_ta!0   = "month"
-;rf_ta!1   = "timestep"
-;prec!0    = "month"
-;prec!1    = "timestep"
-;prec2!0   = "month"
-;prec2!1   = "timestep"
-;mpr!0     = "month"
-;mpr!1     = "timestep"
-;cpr!0     = "month"
-;cpr!1     = "timestep"
-
-;rad_ta    = dim_avg_n_Wrap(,0)
-;rnet      = dim_avg_n_Wrap(rad_all,0)
-;rnet2     = dim_avg_n_Wrap(rad_2,0)
-;rad_ta!0  = "month"
-;rad_ta!1  = "timestep"
-;rnet!0    = "month"
-;rnet!1    = "timestep"
-;rnet2!0   = "month"
-;rnet2!1   = "timestep"
-;mrad!0    = "month"
-;mrad!1    = "timestep"
-;crad!0    = "month"
-;crad!1    = "timestep"
+;rad_ANN           = mrad_ro ;(axis_4|0:10,axis_1|:)
+rad_ANN           = mrad_ro - rad 
 
 ;----------------------------------------------------------------------------
 
 ;y = fspan(0,23.5,48)
 y = ispan(1,12,1)
 
-; July
-;data      = new((/4,48/),double)
-;data(0,:) = qh_ta(6,:)            ; igbp
-;data(1,:) = msh(6,:)              ; moses
-;data(2,:) = csh(6,:)              ; cable
-;data(3,:) = sens(6,:)             ; fluxnet
-
-;data1      = new((/4,48/),double)
-;data1(0,:) = qle_ta(6,:)           ; igbp
-;data1(1,:) = mlh(6,:)              ; moses
-;data1(2,:) = clh(6,:)              ; cable
-;data1(3,:) = lats(6,:)             ; fluxnet
-
-;data7      = new((/4,48/),double)
-;data7(0,:) = tair_ta(6,:)          ; igbp
-;data7(1,:) = mta(6,:)              ; moses
-;data7(2,:) = cta(6,:)              ; cable
-;data7(3,:) = temp(6,:)             ; fluxnet
-
-;data8      = new((/4,48/),double)
-;data8(0,:) = -9999 ;rad_ta(6,:)           ; igbp
-;data8(1,:) = mrad(6,:)             ; moses
-;data8(2,:) = crad(6,:)             ; cable
-;data8(3,:) = rnet2(6,:)             ; fluxnet
-
-;data9      = new((/4,48/),double)
-;data9(0,:) = rf_ta(6,:)            ; igbp
-;data9(1,:) = mpr(6,:)              ; moses
-;data9(2,:) = cpr(6,:)              ; cable
-;data9(3,:) = prec(6,:)             ; fluxnet
-;
-; Jan
-;data2      = new((/4,48/),double)
-;data2(0,:) = qh_ta(0,:)            ; igbp
-;data2(1,:) = msh(0,:)              ; moses
-;data2(2,:) = csh(0,:)              ; cable
-;data2(3,:) = sens2(0,:)            ; fluxnet
-;
-;data3      = new((/4,48/),double)
-;data3(0,:) = qle_ta(0,:)           ; igbp
-;data3(1,:) = mlh(0,:)              ; moses
-;data3(2,:) = clh(0,:)              ; cable
-;data3(3,:) = lats2(0,:)            ; fluxnet
-;
-;data4      = new((/4,48/),double)
-;data4(0,:) = tair_ta(0,:)          ; igbp
-;data4(1,:) = mta(0,:)              ; moses
-;data4(2,:) = cta(0,:)              ; cable
-;data4(3,:) = tem2(0,:)             ; fluxnet
-;
-;data5      = new((/4,48/),double)
-;data5(0,:) = -9999 ;rad_ta(0,:)           ; igbp
-;data5(1,:) = mrad(0,:)             ; moses
-;data5(2,:) = crad(0,:)             ; cable
-;data5(3,:) = rnet2(0,:)            ; fluxnet
-;
-;data6      = new((/4,48/),double)
-;data6(0,:) = rf_ta(0,:)            ; igbp
-;data6(1,:) = mpr(0,:)              ; moses
-;data6(2,:) = cpr(0,:)              ; cable
-;data6(3,:) = prec2(0,:)            ; fluxnet
-;
 ;Plot-------------------------------------------------------------------------
 
+print("")
 print("Plotting MM-AnnualC Biases for All Sites")
 
-;ts_flux(LongName,data2,data3,data,data1)
-;ts_rad(LongName,data5,data4,data8,data7)
-;ts_prec(LongName,data6,data9)
-
 pltName = "annualcycle_"+numYr+"yrs"
-wks  = gsn_open_wks("ps","annualcycle_"+numYr+"yrs")
-res = True
-res@gsnFrame = False
-res@gsnDraw  = False
-res@xyLineColors           = (/"black","deepskyblue1","red","green","mediumorchid1","cyan","magenta","firebrick","orange","SlateBlue","navy","SkyBlue"/)
-res@xyDashPatterns         = (/0,0,0,0,0,0,0,0,0,0,1,2/)
-res@xyLineThicknesses      = (/2,2,2,2,2,2,2,2,2,2,2,2/)
-res@gsnYRefLine            = 0.
-;res@gsnLeftString          = ""
-;res@tiYAxisString          = "W/m2"
+wks     = gsn_open_wks("ps","annualcycle_"+numYr+"yrs")
+res                    = True
+res@gsnFrame           = False
+res@gsnDraw            = False
+res@xyLineColors       = (/"black","deepskyblue1","red","green","mediumorchid1","cyan","magenta",\
+                           "firebrick","orange","SlateBlue","navy","SkyBlue"/)
+res@xyDashPatterns     = (/0,0,0,0,0,0,0,0,0,0,1,2/)
+res@xyLineThicknesses  = (/2,2,2,2,2,2,2,2,2,2,2,2/)
+res@gsnYRefLine        = 0.
+;res@gsnLeftString      = ""
+;res@tiYAxisString      = "W/m2"
 
 res@tiYAxisFontHeightF = 0.02
 res@tiYAxisOffsetXF    = 0.005
 res@tiYAxisString      = "W/m2"
 res@tiXAxisString      = "months"
-;if (rid.eq."saaca") then
-;res@gsnLeftString      = "Annual - A1.0"
-;else
-res@gsnLeftString      = "Annual" ; - A1.1"
-;end if
+if (modl.eq."m") then
+ res@gsnLeftString     = "Annual - A1.0"
+else
+ res@gsnLeftString     = "Annual - A1.1"
+end if
 res@gsnLeftStringFontHeightF    =  0.02
 res@gsnLeftStringOrthogonalPosF = -0.10
 res@gsnLeftStringParallelPosF   =  0.05
@@ -382,19 +317,8 @@ mnf    = (/0.,0.,0./)
 mnf(0) = dble2flt(min(rad_ANN))
 mnf(1) = dble2flt(min(sh_ANN))
 mnf(2) = dble2flt(min(lh_ANN))
-;print((/floor(min(mnf)),ceil(max(mxf))/))
-res@trYMinF                = floor(min(mnf));-90
-res@trYMaxF                = ceil(max(mxf)) ;120
-
-;res@pmLegendDisplayMode    = "Always"            ; turn on legend
-;res@pmLegendSide           = "Top"            ; Change location of
-;res@pmLegendParallelPosF   = .25                 ; move units right
-;res@pmLegendOrthogonalPosF = -0.2                ; move units down
-;res@pmLegendWidthF         = 0.09                ; Change width and
-;res@pmLegendHeightF        = 0.21                ; height of legend.
-;res@lgPerimOn              = False               ; turn off box around
-;res@lgLabelFontHeightF     = .008                ; label font height
-;res@xyExplicitLegendLabels = (/"bondville","harvardforest","hyytiala","littlewashita","loobos","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)         ; create explicit labels
+res@trYMinF                = floor(min(mnf))- 5 ;-90
+res@trYMaxF                = ceil(max(mxf)) + 5 ;120
 
 ;-----------------------------------------------------------------------------
 
@@ -410,14 +334,14 @@ plot(1) = gsn_csm_xy(wks,y,sh_ANN,res)
  res@pmLegendHeightF        = 0.22                ; height of legend.
  res@lgPerimOn              = False               ; turn off box around
  res@lgLabelFontHeightF     = .015                ; label font height
- res@xyExplicitLegendLabels = (/"bond","harv","hyyt","loob","lwas","nbor","thar","","wbra","","","hay"/)
+ res@xyExplicitLegendLabels = (/"bond","harv","hyyt","loob","lwas","nbor","thar","vie","wbra","man","tumb","hay"/)
 plot(2) = gsn_csm_xy(wks,y,lh_ANN,res)
 
-; bv hv hy lw lo nb th vi wb ma tb
+; bv hv hy lo lw nb th vi wb ma tb
 ; Legend ---------------------------------------------------------------------
 
 ;colors = (/"black","blue","red","green","purple","cyan","magenta","firebrick","orange","SlateBlue","navy","SkyBlue"/)
-;labels = (/"bondville","harvardforest","hyytiala","littlewashita","loobos","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)
+;labels = (/"bondville","harvardforest","hyytiala","loobos","littlewashita","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)
 
 ;lgres                    = True
 ;lgres@vpWidthF           = 0.2                         ; width of legend (NDC)
@@ -455,6 +379,8 @@ pres@gsnPanelFigureStringsBackgroundFillColor = "Transparent"
 
 gsn_panel(wks,plot,(/1,3/),pres)
 
+;-----------------------------------------------------------------------------
+
 ;legend = create "Legend" legendClass wks
 ;"vpXF"                     : 0.26
 ;"vpYF"                     : 0.37
@@ -462,7 +388,7 @@ gsn_panel(wks,plot,(/1,3/),pres)
 ;"vpHeightF"                : 0.3                     ; height
 ;"lgPerimOn"                : False                   ; no perimeter
 ;"lgItemCount"              : 11                      ; how many
-;"lgLineLabelStrings"       : (/"bondville","harvardforest","hyytiala","littlewashita","loobos","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)  ; labels
+;"lgLineLabelStrings"       : (/"bondville","harvardforest","hyytiala","loobos","littlewashita","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)  ; labels
 ;"lgLabelsOn"               : False                   ; no default labels
 ;"lgLineLabelFontHeightF"   : 0.015                   ; font height
 ;"lgDashIndexes"            : (/0,0,0,0,0,0,0,0,0,0,1,1/)            ; line paters
@@ -473,9 +399,8 @@ gsn_panel(wks,plot,(/1,3/),pres)
 ;;"lgItemPositions "         : (/0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2,0.3,0.1,0.2/)
 ;end create
 
-
 colors = (/"black","deepskyblue1","red","green","mediumorchid1","cyan","magenta","firebrick","orange","SlateBlue","navy","forestgreen"/)
-;labels = (/"bondville","harvardforest","hyytiala","littlewashita","loobos","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)
+;labels = (/"bondville","harvardforest","hyytiala","loobos","littlewashita","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)
 labels = (/"Tumbarumba","Manaus","WalkerBranch","Vielsalm","Tharandt","NsaBoreas","LittleWashita","Loobos","Hyytiala","HarvardForest","Bondville"/)
 
 lgres                    = True
@@ -513,12 +438,14 @@ frame(wks)
 
 print(" ")
 
- if (jpeg) then
+;-----------------------------------------------------------------------------
+
+if (jpeg) then
  system("ps2epsi "+pltName+".ps "+pltName+".esp")
  system("convert -density 500 "+pltName+".eps "+pltName+".jpg")
  ;system("convert -density 1000 "+pltName+".ps "+pltName+".jpg")
  ;system("convert -density 1000 -geometry 1200x1600 "+pltName+".ps "+pltName+".jpg")
- end if
+end if
 
 end
 

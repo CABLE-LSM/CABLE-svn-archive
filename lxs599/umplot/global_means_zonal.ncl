@@ -63,6 +63,7 @@ frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
 end if
 end if
 
+area_file = addfile(PltDir+"areacella.nc","r")
 ;couple = "n" ;systemfunc("echo $CPL")
 
 ; SET-UP -------------------------------------------------------------
@@ -93,6 +94,7 @@ end if
 lh     = sea_file->lh         ;hfls
 lsm    = lsm_file  ->lsm
 lfrac  = frac_file ->lsm
+larea  = area_file ->areacella
 ;lsm    = frac_file ->lsm
 srunoff= sea_file->field1532  ; mrros
 drunoff= sea_file->field1533  ; mrro;mrross-is it processed?
@@ -296,8 +298,9 @@ dx   = con * dlon * clat
 dy   = con * dlat
 dydx = dy * dx
 
-wgt   = new((/nlat,mlon/),double)
-wgt   = conform(wgt,dydx,0)
+;wgt   = new((/nlat,mlon/),double)
+;wgt   = conform(wgt,dydx,0)
+wgt = larea
 wgto  = wgt*(1-lfrac(0,0,:,:))
 wgtl  = wgt*lfrac(0,0,:,:)
 wgtlm = wgt*(lsm(0,0,:,:))

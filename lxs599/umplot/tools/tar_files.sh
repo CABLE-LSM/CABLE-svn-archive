@@ -1,13 +1,13 @@
 #!/bin/csh
-# ===================
+# ==========================
 # Lauren Stevens 15 Oct 2013
-# ===================
+# ==========================
 
 set a    = a
 set rid  = $RUNID
 set dir  = $DIR
-set xlist= ( pc pa pe pf pb )
-#set xlist=( pc $Pmonth $Pdaily $Ptemp1 $Ptemps $Ptimes $PcasaC )
+set xlist= ( pc pb pf pa pe pj pi )
+#set xlist=( pc $Pmonth $Ptemp1 $Ptemps $Ptimes $PcasaC $Pmonth $Pdaily )
 
 set yr2  = ( 01 23 45 67 89 )
 set yr5  = ( 01234 56789 )
@@ -31,7 +31,7 @@ foreach ext ( $xlist )
 
 foreach dec ( $dec1 )
 
- if ( $ext != $Pdaily ) then
+ if ( $ext != $Pdaily && $ext != pi ) then
 
   foreach yr ( $yr5 )
    set flist=`ls $rid$a.$ext${dec}[${yr}]???`
@@ -50,7 +50,7 @@ foreach dec ( $dec1 )
   end
   @ i = 1
 
- else # if == pdaily
+ else # if == pdaily,pi
 
   #echo "Daily Files"
   foreach yr ( $yr2 )

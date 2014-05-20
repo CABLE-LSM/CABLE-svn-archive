@@ -10,12 +10,12 @@
 
 procedure MmnPanel(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
                         field:numeric,region:logical,smthFlag:logical,cnLevels:numeric,\
-                        jpeg:logical)
+                        lmask:logical,jpeg:logical)
 
 begin
 
   pltName = Dir + "/" + varName + "_" + Yr + "yrs"
-  
+
   wks = gsn_open_wks(pltType,pltName)
 
 ; Color Map ===========================================================
@@ -49,8 +49,10 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
   res@cnFillMode           = "RasterFill"      ; Pixels
   res@cnLineLabelsOn       = False             ; Turn off line labels.
   res@cnInfoLabelOn        = False             ; Turn off info label.
+if (lmask) then
   res@cnFillDrawOrder      = "PreDraw"         ; Predraw cn so mask will appear
                                                ; (if land transparent ow land will also be masked)
+end if
   res@cnLinesOn            = False             ; Turn off Lines ?
    
   res@gsnSpreadColors      = True              ;
@@ -88,7 +90,7 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
   ;res@cnMinLevelValF       = mnlvl          ; contour levels.
   ;res@cnMaxLevelValF       = mxlvl
   ;res@cnLevelSpacingF      = spcng
-  
+
 ;region -----------------------------------------------------------------
 
   if (.not.region) then
@@ -119,19 +121,21 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
 
 ;mask -------------------------------------------------------------------
   
+if (lmask) then
   ;res@mpAreaMaskingOn      = True
   ;res@mpMaskAreaSpecifiers = "Water"
   ;res@mpGridMaskMode       = "MaskOcean"
   res@mpFillOn             = True
   res@mpOceanFillColor     = "white"
   res@mpLandFillColor      = "transparent"
-  
+end if
+
 ;titles -----------------------------------------------------------------  
   
   res@tiMainOn      = False
   ;res@tiXAxisString = "Longitude"
   ;res@tiYAxisString = "Latitude"
-  
+
 ; Plot ------------------------------------------------------------------
        
   plot = new(2,graphic)
@@ -160,3 +164,4 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
  end if
 
 end
+

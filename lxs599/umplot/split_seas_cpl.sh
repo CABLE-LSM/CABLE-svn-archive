@@ -20,7 +20,7 @@ set yblk= 20*${BLOCK}
 @ nom  = ($FullYrs * 12)
 @ Numyr= ($FullYrs + 1)
 
-#set count_all=`/bin/ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | wc -l`
+#set count_all=`ls $DIRW/h[0123456789].nc $DIRW/i[0123456789].nc $DIRW/j[0123456789].nc $DIRW/k[0123456789].nc | wc -l`
 #@ countm1 = $count_all - 1
 #@ countm2 = $count_all - 2
 #if ( $count_all > $FullYrs ) then # need to  limit cdo_merge
@@ -38,37 +38,45 @@ if (! -d $DIRW/block${BLOCK}_5yrs) then
  cd $DIRW/block${BLOCK}_5yrs
 
 if ($REINIT == 1) then
- set pelist=`/bin/ls $DIR/$RUNID.$Ptimes-??????????.nc | head -${nom}`
- set pblist=`/bin/ls $DIR/$RUNID.$Ptemps-??????????.nc | head -${nom}`
- set pmlist=`/bin/ls $DIR/$RUNID.$Pmonth-??????????.nc | head -${nom}`
+ set pelist=`ls $DIR/$RUNID.$Ptimes-??????????.nc | head -${nom}`
+ #set peswlw=`ls $DIR/$RUNID.$Ptimes-??????????_swlw.nc | head -${nom}`
+ #set penosw=`ls $DIR/$RUNID.$Ptimes-??????????_noswlw.nc | head -${nom}`
+ set pblist=`ls $DIR/$RUNID.$Ptemps-??????????.nc | head -${nom}`
+ set pmlist=`ls $DIR/$RUNID.$Pmonth-??????????.nc | head -${nom}`
 else
- set pelist=`/bin/ls $DIR/$RUNID.$Ptimes-??????????.nc | head -${noy}`
- set pblist=`/bin/ls $DIR/$RUNID.$Ptemps-??????????.nc | head -${noy}`
- set pmlist=`/bin/ls $DIR/$RUNID.$Pmonth-??????????.nc | head -${noy}`
+ set pelist=`ls $DIR/$RUNID.$Ptimes-??????????.nc | head -${noy}`
+ #set peswlw=`ls $DIR/$RUNID.$Ptimes-??????????_swlw.nc | head -${noy}`
+ #set penosw=`ls $DIR/$RUNID.$Ptimes-??????????_noswlw.nc | head -${noy}`
+ set pblist=`ls $DIR/$RUNID.$Ptemps-??????????.nc | head -${noy}`
+ set pmlist=`ls $DIR/$RUNID.$Pmonth-??????????.nc | head -${noy}`
 endif
 
  echo $bblk
- set pmjan=`/bin/ls $DIR/$RUNID.$Pmonth-????001???.nc | head -${bblk} | tail -5`
- set pmfeb=`/bin/ls $DIR/$RUNID.$Pmonth-????002???.nc | head -${bblk} | tail -5`
- set pmmar=`/bin/ls $DIR/$RUNID.$Pmonth-????003???.nc | head -${bblk} | tail -5`
- set pmapr=`/bin/ls $DIR/$RUNID.$Pmonth-????004???.nc | head -${bblk} | tail -5`
- set pmmay=`/bin/ls $DIR/$RUNID.$Pmonth-????005???.nc | head -${bblk} | tail -5`
- set pmjun=`/bin/ls $DIR/$RUNID.$Pmonth-????006???.nc | head -${bblk} | tail -5`
- set pmjul=`/bin/ls $DIR/$RUNID.$Pmonth-????007???.nc | head -${bblk} | tail -5`
- set pmaug=`/bin/ls $DIR/$RUNID.$Pmonth-????008???.nc | head -${bblk} | tail -5`
- set pmsep=`/bin/ls $DIR/$RUNID.$Pmonth-????009???.nc | head -${bblk} | tail -5`
- set pmoct=`/bin/ls $DIR/$RUNID.$Pmonth-????010???.nc | head -${bblk} | tail -5`
- set pmnov=`/bin/ls $DIR/$RUNID.$Pmonth-????011???.nc | head -${bblk} | tail -5`
- set pmdec=`/bin/ls $DIR/$RUNID.$Pmonth-????012???.nc | head -${bblk} | tail -5`
+ set pmjan=`ls $DIR/$RUNID.$Pmonth-????001???.nc | head -${bblk} | tail -5`
+ set pmfeb=`ls $DIR/$RUNID.$Pmonth-????002???.nc | head -${bblk} | tail -5`
+ set pmmar=`ls $DIR/$RUNID.$Pmonth-????003???.nc | head -${bblk} | tail -5`
+ set pmapr=`ls $DIR/$RUNID.$Pmonth-????004???.nc | head -${bblk} | tail -5`
+ set pmmay=`ls $DIR/$RUNID.$Pmonth-????005???.nc | head -${bblk} | tail -5`
+ set pmjun=`ls $DIR/$RUNID.$Pmonth-????006???.nc | head -${bblk} | tail -5`
+ set pmjul=`ls $DIR/$RUNID.$Pmonth-????007???.nc | head -${bblk} | tail -5`
+ set pmaug=`ls $DIR/$RUNID.$Pmonth-????008???.nc | head -${bblk} | tail -5`
+ set pmsep=`ls $DIR/$RUNID.$Pmonth-????009???.nc | head -${bblk} | tail -5`
+ set pmoct=`ls $DIR/$RUNID.$Pmonth-????010???.nc | head -${bblk} | tail -5`
+ set pmnov=`ls $DIR/$RUNID.$Pmonth-????011???.nc | head -${bblk} | tail -5`
+ set pmdec=`ls $DIR/$RUNID.$Pmonth-????012???.nc | head -${bblk} | tail -5`
 
 if ($REINIT == 1) then
- set pels=`/bin/ls $pelist | head -${mblk} | tail -60`
- set pbls=`/bin/ls $pblist | head -${mblk} | tail -60`
+ set pels=`ls $pelist | head -${mblk} | tail -60`
+ #set pesw=`ls $peswlw | head -${mblk} | tail -60`
+ #set peno=`ls $penosw | head -${mblk} | tail -60`
+ set pbls=`ls $pblist | head -${mblk} | tail -60`
 else
- set pels=`/bin/ls $pelist | head -${yblk} | tail -20`
- set pbls=`/bin/ls $pblist | head -${yblk} | tail -20`
+ set pels=`ls $pelist | head -${yblk} | tail -20`
+ #set pesw=`ls $peswlw | head -${yblk} | tail -20`
+ #set peno=`ls $penosw | head -${yblk} | tail -20`
+ set pbls=`ls $pblist | head -${yblk} | tail -20`
 endif
- set pmls=`/bin/ls $pmlist | head -${mblk} | tail -60`
+ set pmls=`ls $pmlist | head -${mblk} | tail -60`
 
  ncra -O $pmjan avejan.nc
  ncra -O $pmfeb avefeb.nc
@@ -90,6 +98,8 @@ endif
  ncrcat -O avedjf.nc avemam.nc avejja.nc aveson.nc seasonal_means_5yrs.nc
 
  cdo mergetime $pels Timeseries_5yrs.nc
+ #cdo mergetime $pesw Timeseries_5yrs_swlw.nc
+ #cdo mergetime $peno Timeseries_5yrs_noswlw.nc
  cdo mergetime $pbls Tempseries_5yrs.nc
  cdo mergetime $pmls Mmonthly_means_5yrs.nc
  cdo yearmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc

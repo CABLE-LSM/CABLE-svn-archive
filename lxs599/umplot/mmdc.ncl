@@ -10,7 +10,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-usr = systemfunc("echo $USERID")
+usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
@@ -28,6 +28,8 @@ system("dmget " + filDir + "/mmdc_*_roll_"+numYr+"yrs.nc" )
 ;==============================================================================
 
 fils2 = systemfunc("ls "+filDir+"/mmdc_*_roll_"+numYr+"yrs.nc")
+;printVarSummary(fils2)
+;print(dimsizes(fils2))
 f2    = addfiles(fils2,"r")
 ListSetType(f2,"join")
 msh   = f2[:]->hfss
@@ -41,18 +43,37 @@ mpr@units = "mm/day"
 
 ;==============================================================================
 
-; total = 18 
-stations = (/"afN","afS","bv","dw","dh","hp","hv","hay","hy","ind", \
-             "lw","lo","ma","nb","th","tb","vi","wb"/)
-stNames  = (/"Africa: North of the Equator","Africa: South of the Equator","Bondville", \
-             "Daly Waters","Dinghushan","Hapex (Bats)","Harvard Forest", "Hay",         \
-             "Hyytiala","A Gridpt in India","Little Washita","Loobos","Manaus",         \
-             "NSA Boreas","Tharandt","Tumbarumba","Vielsalm","Walker Branch"           /)
+if (dimsizes(fils2).eq.18) then
+ ; total = 18 
+ stations = (/"afN","afS","bv","dw","dh","hp","hv","hay","hy","ind", \
+              "lw","lo","ma","nb","th","tb","vi","wb"/)
+ stNames  = (/"Africa: North of the Equator","Africa: South of the Equator","Bondville", \
+              "Daly Waters","Dinghushan","Hapex (Bats)","Harvard Forest", "Hay",         \
+              "Hyytiala","A Gridpt in India","Little Washita","Loobos","Manaus",         \
+              "NSA Boreas","Tharandt","Tumbarumba","Vielsalm","Walker Branch"           /)
+else
+if (dimsizes(fils2).eq.31) then
+ ; total = 31
+ stations =(/"afN","afr","afS","alk","ant1","ant2","ant","ant3","bv","dw","dh",\
+             "grnl","hp","hv","hay","hy","ind","lw","lo","ma","nb","rus1","rus2",\
+             "sd1","sd2","sd3","sd4","th","tb","vi","wb"/)
+ stNames  = (/"Africa: North of the Equator","Africa","Africa: South of the Equator",\
+              "Alaska","Ant1","Ant2","Antarctica","Ant3","Bondville",\
+              "Daly Waters","Dinghushan","Greenland","Hapex (Bats)","Harvard Forest","Hay",\
+              "Hyytiala","A Gridpt in India","Little Washita","Loobos","Manaus",\
+              "NSA Boreas","Russia1","Rus2","Saudi1","Sd2","Sd3","Sd4",\
+              "Tharandt","Tumbarumba","Vielsalm","Walker Branch"/)
+else
+ print("Error in mmdc.ncl: Number of Sites and Files Do Not Match")
+end if
+end if
+
 month    = (/"jan","jul"/)
 mon      = (/0,6/)
 
 ;Plot==============================================================================
 
+print(" ")
 y = fspan(0,23.5,48)
 
 do j=0,1,1

@@ -1,4 +1,4 @@
-#!/bin/csh 
+#!/bin/csh
 
 unalias ls # or add /bin ?
 
@@ -11,27 +11,45 @@ set fone = $flist[1]
 @ year=`echo $fone | tail -c14 | head -c4`  # year 0001
 set fnum=`ls $dir/$rid.$ext-??????????.nc | wc -l`
 @ nof = ${fnum} / 12
+@ yr1 = $year - 1
 
 rm y????.nc
 
 dmget $DIR/$rid.$ext-??????????.nc
 
-while ( $year <= $nof )
-
-    if ( -e $dir/$rid.$ext-*0$year\001???.nc || -e $dir/$rid.$ext-*0$year\012???.nc ) then
-     set count=`ls $dir/$rid.$ext-*0$year??????.nc | wc -l`
+while ( $year <= ($nof + $yr1) )
+    if ( $year <= 999 ) then
+      if ( -e $dir/$rid.$ext-*0$year\001???.nc || -e $dir/$rid.$ext-*0$year\012???.nc ) then
+       set count=`ls $dir/$rid.$ext-*0$year??????.nc | wc -l`
+      else
+       set count=0
+      endif
     else
-     set count=0
+      if ( -e $dir/$rid.$ext-$year\001???.nc || -e $dir/$rid.$ext-$year\012???.nc ) then
+       set count=`ls $dir/$rid.$ext-$year??????.nc | wc -l`
+      else
+       set count=0
+      endif
     endif
 
     if ($count != 12 && $count != 0) then
      setenv fullstrt F
+    if ( $year <= 999 ) then
      cdo mergetime $dir/$rid.$ext-*0$year??????.nc tmp.nc
     else 
+     cdo mergetime $dir/$rid.$ext-$year??????.nc tmp.nc
+    endif
+    else 
      setenv fullstrt T
+    if ( $year <= 999 ) then
      if ( -e $dir/$rid.$ext-*0$year\001???.nc && -e $dir/$rid.$ext-*0$year\012???.nc ) then
       cdo -b 64 mergetime $dir/$rid.$ext-*0$year??????.nc tmp.nc
      endif
+    else
+     if ( -e $dir/$rid.$ext-$year\001???.nc && -e $dir/$rid.$ext-$year\012???.nc ) then
+      cdo -b 64 mergetime $dir/$rid.$ext-$year??????.nc tmp.nc
+     endif
+    endif
     endif
 
     if ( $year < 10 ) then

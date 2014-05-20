@@ -304,9 +304,9 @@ dx   = con * dlon * clat
 dy   = con * dlat
 dydx = dy * dx
 
-wgt   = new((/nlat,mlon/),double)
-wgt   = conform(wgt,dydx,0)
-;wgt = area
+;wgt   = new((/nlat,mlon/),double)
+;wgt   = conform(wgt,dydx,0)
+wgt = area
 wgto  = wgt*(1-lfrac(0,0,:,:))
 wgtl  = wgt*lfrac(0,0,:,:)
 wgtlm = wgt*(lsm(0,0,:,:))

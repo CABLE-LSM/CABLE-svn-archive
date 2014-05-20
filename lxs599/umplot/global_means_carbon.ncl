@@ -106,7 +106,7 @@ delete(presp_d)
 ;delete(lresp_d)
    do ts=0,t-1,1
    ;if (isvar("lrsp")) then
-    lrsp(ts,:,:,:)  = dble2flt(lresp_d(ts,:,:,:))*frac(:,:,:)
+    lrsp(ts,0:12,:,:)  = dble2flt(lresp_d(ts,0:12,:,:))*frac(:,:,:)
     ;lrsp(ts,:,:,:)  = lrsp(ts,:,:,:)*frac(:,:,:)
    ;end if
     ;prsp(ts,:,:,:)  = presp(ts,:,:,:)/land_frac(0,:,:,:)
@@ -136,6 +136,7 @@ delete(lresp_d)
    rpl_m  = new(t,float)
    rlf_m  = new(t,float)
   
+print("")
 print("Calculating Global Means for Carbon Fields")
 
    nep_1 = npp-soil
@@ -308,7 +309,9 @@ end if
 
 else
 
+print("")
 print("No Carbon Table Produced, as mm.var_yrs.nc Files Don't Exist")
+print("")
 
 end if
 

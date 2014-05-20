@@ -40,16 +40,21 @@ mosdir = systemfunc("echo $MOSES")
 tname =  systemfunc("echo $tname")
 txname =  systemfunc("echo $txname")
 tiname =  systemfunc("echo $tiname")
+Amask  = True ; Mask for Antarctica
 
 ; FILES --------------------------------------------------------------
 
 moses_file = addfile(mosdir+"/seasonal_means_"+numYr+"yrs.nc","r") 
-toses_file = addfile(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc","r") 
+if (isfilepresent(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+ toses_file = addfile(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc","r") 
+end if
 if (isfilepresent(mosdir+"/clt_yseasmean.nc")) then
 coses_file = addfile(mosdir+"/clt_yseasmean.nc","r") 
 end if
 cable_file = addfile(cabdir+"/seasonal_means_"+numYr+"yrs.nc","r")
-table_file = addfile(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
+if (isfilepresent(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+ table_file = addfile(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
+end if
 
 ObsDir = "~"+usr+"/umplot/obs/"
 PltDir = "~"+usr+"/umplot/data/"
@@ -66,7 +71,7 @@ else
 if (vMask.eq.2) then
  lsm_file = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")
  frac_file = addfile(PltDir+"landfrac_v2.nc","r")
- area_file = addfile(PltDir+"areacella_fx_ACCESS1-0_historical_r0i0p0.nc","r")
+ area_file = addfile(PltDir+"areacella.nc","r")
 else
 lsm_file = addfile(PltDir+"mask_accessV1_n"+resol+".nc","r")
 frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
@@ -82,12 +87,14 @@ tscrn  = cable_file ->tscrn     ;tas
 else
 tscrn  = cable_file ->$tname$   ;tas
 end if
+if (isfilepresent(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 if (isfilevar(table_file,"tmax")) then
  tmax   = table_file ->tmax      ;tasmax
  tmin   = table_file ->tmin      ;tasmin
 else
  tmax   = table_file ->$txname$ ;temp      ;tasmax
  tmin   = table_file ->$tiname$ ;temp_1    ;tasmin
+end if
 end if
 etmp = erai_file->a
 emax = erat_file->mx2t
@@ -139,20 +146,24 @@ end if
 if (isfilevar(moses_file,"tasmax")) then
 tmax_m   = moses_file ->tasmax
 else
+if (isfilepresent(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
  if (isfilevar(toses_file,"tmax")) then
   tmax_m   = toses_file ->tmax
  else
   tmax_m   = toses_file ->$txname$ ;temp
  end if
 end if
+end if
 if (isfilevar(moses_file,"tasmin")) then
 tmin_m   = moses_file ->tasmin
 else
+if (isfilepresent(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
  if (isfilevar(toses_file,"tmin")) then
   tmin_m   = toses_file ->tmin
  else
   tmin_m   = toses_file ->$tiname$ ;temp_1
  end if
+end if
 end if
 if (isfilevar(moses_file,"hfss")) then
 sh_m     = moses_file ->hfss
@@ -322,13 +333,51 @@ drunoff_m@units = "mm/day"
 trunoff_m       = trunoff_m*24*60*60
 trunoff_m@units = "mm/day"
 
+; ----------------------------------------
+if (Amask) then
+  csfr   = cable_file->field1893
+  msfr   = moses_file->field1893
+  val    = (/  0,-1/)
+  lat1   = (/-90, 0/)
+  lat2   = (/  0,90/)
+  mdice  = 8
+  cdice  = 16
+
+  csfr_1 = csfr(0,cdice,:,:)
+  msfr_1 = msfr(0,mdice,:,:)
+  csfr_2 = csfr_1
+  msfr_2 = msfr_1
+  csfr_2 = where(csfr_1.lt.1,val(1),csfr_1)
+  msfr_2 = where(msfr_1.lt.1,val(1),msfr_1)
+  csfr_3 = csfr_2
+  msfr_3 = msfr_2
+  do i = 0,1
+    csfr_3({lat1(i):lat2(i)},:) = where(csfr_2({lat1(i):lat2(i)},:).eq.1,val(i),csfr_2({lat1(i):lat2(i)},:))
+    msfr_3({lat1(i):lat2(i)},:) = where(msfr_2({lat1(i):lat2(i)},:).eq.1,val(i),msfr_2({lat1(i):lat2(i)},:))
+  end do
+  csfr_4           = (-1)*csfr_3
+  csfr_4!0         = "latitude"
+  csfr_4!1         = "longitude"
+  csfr_4&latitude  = csfr&latitude
+  csfr_4&longitude = csfr&longitude
+  msfr_4           = (-1)*msfr_3
+  msfr_4!0         = "latitude"
+  msfr_4!1         = "longitude"
+  msfr_4&latitude  = msfr&latitude
+  msfr_4&longitude = msfr&longitude
+  ;csfr_4 = where(csfr_4.eq.csfr@_FillValue,0,csfr_4)
+end if
+; ----------------------------------------
+
 prec         = dim_avg_n_Wrap(precip,0)
 radnet       = dim_avg_n_Wrap(rnet,0)
 sensh        = dim_avg_n_Wrap(sh,0)
 lathf        = dim_avg_n_Wrap(lhf,0)
 tscr         = dim_avg_n_Wrap(tscrn,0)
-tmx          = dim_avg_n_Wrap(tmax,0)
-tmn          = dim_avg_n_Wrap(tmin,0)
+if (isvar("tmax")) then
+ tmx          = dim_avg_n_Wrap(tmax,0)
+ tmn          = dim_avg_n_Wrap(tmin,0)
+end if
 etm          = dim_avg_n_Wrap(etmp,0)
 emx          = dim_avg_n_Wrap(emax,0)
 emn          = dim_avg_n_Wrap(emin,0)
@@ -349,8 +398,10 @@ radnet_m     = dim_avg_n_Wrap(rnet_m,0)
 sensh_m      = dim_avg_n_Wrap(sh_m,0)
 lathf_m      = dim_avg_n_Wrap(lhf_m,0)
 tscr_m       = dim_avg_n_Wrap(tscrn_m,0)
-tmx_m        = dim_avg_n_Wrap(tmax_m,0)
-tmn_m        = dim_avg_n_Wrap(tmin_m,0)
+if (isvar("tmax_m")) then
+ tmx_m        = dim_avg_n_Wrap(tmax_m,0)
+ tmn_m        = dim_avg_n_Wrap(tmin_m,0)
+end if
 evp_m        = dim_avg_n_Wrap(evap_m,0)
 srf_m        = dim_avg_n_Wrap(srunoff_m,0)
 dr_m         = dim_avg_n_Wrap(drunoff_m,0)
@@ -389,11 +440,15 @@ dx   = con * dlon * clat
 dy   = con * dlat
 dydx = dy * dx
 
-wgt   = new((/nlat,mlon/),double)
-wgt   = conform(wgt,dydx,0)
-;wgt = area
+;wgt   = new((/nlat,mlon/),double)
+;wgt   = conform(wgt,dydx,0)
+wgt = area
 wgto  = wgt*(1-lfrac(0,0,:,:))
-wgtl  = wgt*lfrac(0,0,:,:)
+if (Amask) then
+  wgtl  = wgt*lfrac(0,0,:,:)*csfr_4
+else
+  wgtl  = wgt*lfrac(0,0,:,:)
+end if
 wgtlm = wgt*(lsm(0,0,:,:))
 wgtom = wgt*(1-lsm(0,0,:,:))
 
@@ -427,16 +482,20 @@ cl_l_m         = wgt_areaave2(cld_m ,wgtl,0)
 
 ts_l           = wgt_areaave2(tscr  ,wgtl,0)
 ts_l           = ts_l-273.16
-tx_l           = wgt_areaave2(tmx   ,wgtl,0)
-tx_l           = tx_l-273.16
-tn_l           = wgt_areaave2(tmn   ,wgtl,0)
-tn_l           = tn_l-273.16
+if (isvar("tmx")) then
+  tx_l           = wgt_areaave2(tmx   ,wgtl,0)
+  tx_l           = tx_l-273.16
+  tn_l           = wgt_areaave2(tmn   ,wgtl,0)
+  tn_l           = tn_l-273.16
+end if
 ts_l_m         = wgt_areaave2(tscr_m,wgtl,0)
 ts_l_m         = ts_l_m-273.16
-tx_l_m         = wgt_areaave2(tmx_m ,wgtl,0)
-tx_l_m         = tx_l_m-273.16
-tn_l_m         = wgt_areaave2(tmn_m ,wgtl,0)
-tn_l_m         = tn_l_m-273.16
+if (isvar("tmx_m")) then
+  tx_l_m         = wgt_areaave2(tmx_m ,wgtl,0)
+  tx_l_m         = tx_l_m-273.16
+  tn_l_m         = wgt_areaave2(tmn_m ,wgtl,0)
+  tn_l_m         = tn_l_m-273.16
+end if
 
 et_l           = wgt_areaave2(etm   ,wgtle,0)
 ;et_l           = et_l-273.16
@@ -501,16 +560,20 @@ cl_o_m         = wgt_areaave2(cld_m,wgto,0)
 
 ts_o           = wgt_areaave2(tscr  ,wgto,0)
 ts_o           = ts_o-273.16
+if (isvar("tmx")) then
 tx_o           = wgt_areaave2(tmx   ,wgto,0)
 tx_o           = tx_o-273.16
 tn_o           = wgt_areaave2(tmn   ,wgto,0)
 tn_o           = tn_o-273.16
+end if
 ts_o_m         = wgt_areaave2(tscr_m,wgto,0)
 ts_o_m         = ts_o_m-273.16
+if (isvar("tmx_m")) then
 tx_o_m         = wgt_areaave2(tmx_m ,wgto,0)
 tx_o_m         = tx_o_m-273.16
 tn_o_m         = wgt_areaave2(tmn_m ,wgto,0)
 tn_o_m         = tn_o_m-273.16
+end if
 
 et_o           = wgt_areaave2(etm,wgtlo,0)
 ;et_o           = et_o-273.16
@@ -580,16 +643,20 @@ cl_g_m      = wgt_areaave2(cld_m,wgt,0)
 
 ts_g        = wgt_areaave2(tscr  ,wgt,0)
 ts_g        = ts_g-273.16
+if (isvar("tmx")) then
 tx_g        = wgt_areaave2(tmx   ,wgt,0)
 tx_g        = tx_g-273.16
 tn_g        = wgt_areaave2(tmn   ,wgt,0)
 tn_g        = tn_g-273.16
+end if
 ts_g_m      = wgt_areaave2(tscr_m,wgt,0)
 ts_g_m      = ts_g_m-273.16
+if (isvar("tmx_m")) then
 tx_g_m      = wgt_areaave2(tmx_m ,wgt,0)
 tx_g_m      = tx_g_m-273.16
 tn_g_m      = wgt_areaave2(tmn_m ,wgt,0)
 tn_g_m      = tn_g_m-273.16
+end if
 
 et_g        = wgt_areaave2(etm, wgte,0)
 ;et_g        = et_g-273.16
@@ -702,6 +769,7 @@ delete(ocean_vals)
 delete(global_vals)
 
 ;=========================
+if (isvar("tmax") .and. isvar("tmax_m")) then
 ; Obs. Estimates from NOAA (Smith et. al. 2008 ,no)
 ; from above
 ;not_l = 8.5
@@ -721,6 +789,7 @@ temp_compr(land_vals,ocean_vals,global_vals,numYr,"glob","1")
 delete(land_vals)
 delete(ocean_vals)
 delete(global_vals)
+end if
 
 ;=========================
 ; Obs. Estimates from Stephens et. al. (s)

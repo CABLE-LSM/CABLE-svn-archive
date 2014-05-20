@@ -101,7 +101,7 @@ else
  crn1    = cswr+clwr
  copy_VarMeta(cswr,crn1)
  crn1&$dName2(1)$ = ispan(0,47,6)
- crn2    = linint1_n_Wrap(crn1&$dName2(1)$,crn1,True,crad&$dNames(1)$,0,1)
+ crn2    = ftcurvp(crn1&$dName2(1)$,crn1,48,crad&$dNames(1)$)
 
  ; Roll 4 for Hyytiala
  crnt    = new((/dims(0),dims(1)/),typeof(cswr))
@@ -124,7 +124,7 @@ else
  mrn1    = mswr+mlwr
  copy_VarMeta(mswr,mrn1)
  mrn1&$dName2(1)$ = ispan(0,47,6)
- mrn2    = linint1_n_Wrap(mrn1&$dName2(1)$,mrn1,True,mrad&$dNames(1)$,0,1)
+ mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,48,mrad&$dNames(1)$)
 
  ; Roll 4ts for Hyytiala
  mrnt    = new((/dims(0),dims(1)/),typeof(mswr))
@@ -203,8 +203,8 @@ copy_VarMeta(temp1,temp_2)
 precip1@_FillValue = -9999
 ;precip2@_FillValue = -9999
 ;precip3@_FillValue = -9999
-pr_all             = precip1(:,:,0);(precip1+precip2+precip3)/3 *48
-pr_2               = precip1(:,:,0);(precip2+precip3)/2 *48
+pr_all             = precip1(:,:,0)*24*3600.;(precip1+precip2+precip3)/3 *48
+pr_2               = precip1(:,:,0)*24*3600.;(precip2+precip3)/2 *48
 copy_VarMeta(precip1,pr_all)
 copy_VarMeta(precip1,pr_2)
 

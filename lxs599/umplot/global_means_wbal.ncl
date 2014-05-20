@@ -19,7 +19,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-usr = systemfunc("echo $USERID")
+usr    = systemfunc("echo $USERID")
 numYr  = systemfunc("echo $YR")
 filDir = systemfunc("echo $DIR")
 ModDir = systemfunc("echo $PWD")
@@ -38,9 +38,6 @@ ObsDir = "~"+usr+"/umplot/obs/"
 DatDir = "~"+usr+"/umplot/data/"
 
 sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
-if (isfilepresent(ModDir+"/Rseasonal_means_"+numYr+"yrs.nc")) then
- rsea_file = addfile(ModDir+"/Rseasonal_means_"+numYr+"yrs.nc","r")
-end if
 ;era_file = addfile(ObsDir+"trderi5tp2mmn1.nc","r")
 if (resol.eq.48) then 
  lsm_file = addfile(DatDir+"LSM_UMn"+resol+".nc","r")
@@ -83,13 +80,8 @@ lsm     = lsm_file ->lsm
 lfrac   = frac_file->lsm
 ;lsm     = frac_file->lsm
 area    = area_file->areacella
-if(isfilepresent(ModDir+"/Rseasonal_means_"+numYr+"yrs.nc")) then
- srunoff = rsea_file ->field1532
- drunoff = rsea_file ->field1533
-else
- srunoff = sea_file ->field1532
- drunoff = sea_file ->field1533
-end if
+srunoff = sea_file ->field1532
+drunoff = sea_file ->field1533
 
 rsd = sea_file->solar
 ;rsu = sea_file->field203
@@ -168,6 +160,9 @@ sensh        = dim_avg_n_Wrap(sh,0)
 lathf        = dim_avg_n_Wrap(lhf,0)
 prec         = dim_avg_n_Wrap(precip,0)
 evp          = dim_avg_n_Wrap(evap,0)
+if (isvar("mflx")) then
+moist        = dim_avg_n_Wrap(mflx,0)
+end if
 srf          = dim_avg_n_Wrap(srunoff,0)
 dr           = dim_avg_n_Wrap(drunoff,0)
 trf          = dim_avg_n_Wrap(trunoff,0)
@@ -190,13 +185,13 @@ dx   = con * dlon * clat
 dy   = con * dlat
 dydx = dy * dx
 
-wgt  = new((/nlat,mlon/),typeof(prec))
-wgt  = conform(wgt,dydx,0)
-;wgt = area
+;wgt  = new((/nlat,mlon/),typeof(prec))
+;wgt  = conform(wgt,dydx,0)
+wgt = area
 wgto = wgt*(1-lfrac(0,0,:,:))
 wgtl = wgt*lfrac(0,0,:,:)
-;wgtom= wgt*(1-lsm(0,0,:,:))
-;wgtlm= wgt*lsm(0,0,:,:)
+wgtom= wgt*(1-lsm(0,0,:,:))
+wgtlm= wgt*lsm(0,0,:,:)
 
 ; ANN WBAL --------------------------------------------------------
 ;region -> Global (Land Only) ---------------------------
@@ -206,6 +201,9 @@ sh_l    = wgt_areaave2(sensh   ,wgtl,0)
 rn_l    = wgt_areaave2(radnet  ,wgtl,0)
 lhf_l   = wgt_areaave2(lathf   ,wgtl,0)
 ev_l    = wgt_areaave2(evp     ,wgtl,0) ;wgtlm
+if (isvar("mflx")) then
+ mf_l   = wgt_areaave2(moist   ,wgtl,0)
+end if
 lh_l    = wgt_areaave2(lath    ,wgtl,0)
 lh_l2   = wgt_areaave2(lath_snw,wgtl,0)
 rf_l    = wgt_areaave2(srf     ,wgtl,0) ;wgtlm
@@ -216,6 +214,9 @@ tot_l   = wgt_areaave2(wbal    ,wgtl,0)
 resi_l  = pr_l-ev_l-rf_l-dr_l
 resi_l2 = pr_l-lh_l-rf_l-dr_l 
 resi_l3 = pr_l-lh_l2-rf_l-dr_l
+if (isvar("mflx")) then
+resi_l4  = pr_l-mf_l-rf_l-dr_l
+end if
 
 ;region -> Global (Ocean Only) ---------------------------
 
@@ -224,6 +225,9 @@ sh_o    = wgt_areaave2(sensh   ,wgto,0)
 rn_o    = wgt_areaave2(radnet  ,wgto,0)
 lhf_o   = wgt_areaave2(lathf   ,wgto,0)
 ev_o    = wgt_areaave2(evp     ,wgto,0) ;wgtom
+if (isvar("mflx")) then
+ mf_o   = wgt_areaave2(moist   ,wgto,0) ;wgtom
+end if
 lh_o    = wgt_areaave2(lath    ,wgto,0)
 lh_o2   = wgt_areaave2(lath_snw,wgto,0)
 rf_o    = wgt_areaave2(srf     ,wgto,0) ;wgtom
@@ -234,6 +238,9 @@ tot_o   = wgt_areaave2(obal    ,wgto,0)
 resi_o  = pr_o - ev_o
 resi_o2 = pr_o - lh_o
 resi_o3 = pr_o - lh_o2
+if (isvar("mflx")) then
+ resi_o4 = pr_o - mf_o
+end if
 
 ;region -> Global ---------------------------------------
 
@@ -242,6 +249,9 @@ sh_g    = wgt_areaave2(sensh   ,wgt,0)
 rn_g    = wgt_areaave2(radnet  ,wgt,0)
 lhf_g   = wgt_areaave2(lathf   ,wgt,0)
 ev_g    = wgt_areaave2(evp     ,wgt,0)
+if (isvar("mflx")) then
+ mf_g   = wgt_areaave2(moist   ,wgt,0)
+end if
 lh_g    = wgt_areaave2(lath    ,wgt,0)
 lh_g2   = wgt_areaave2(lath_snw,wgt,0)
 rf_g    = wgt_areaave2(srf     ,wgt,0)
@@ -249,19 +259,38 @@ dr_g    = wgt_areaave2(dr      ,wgt,0)
 trf_g   = wgt_areaave2(trf     ,wgt,0)
 tot_g   = wgt_areaave2(wbal    ,wgt,0)
 
-resi_g  = pr_g-ev_g-rf_g-dr_g       ; NOTE: -rf_g-dr_g  == -rf_l-dr_l 
-resi_g2 = pr_g-lh_g-rf_g-dr_g       ; But not for coupled runs bc of ocean
-resi_g3 = pr_g-lh_g2-rf_g-dr_g
+resi_g  = pr_g-ev_g;-rf_g-dr_g       ; NOTE: -rf_g-dr_g  == -rf_l-dr_l
+;resi_g  = pr_g-ev_g-rf_g-dr_g       ; NOTE: -rf_g-dr_g  == -rf_l-dr_l 
+resi_g2 = pr_g-lh_g;-rf_g-dr_g       ; But not for coupled runs bc of ocean
+;resi_g2 = pr_g-lh_g-rf_g-dr_g       ; But not for coupled runs bc of ocean
+resi_g3 = pr_g-lh_g2;-rf_g-dr_g
+;resi_g3 = pr_g-lh_g2-rf_g-dr_g
+
 ;resi_g  = pr_g-ev_g-rf_l-dr_l       ; NOTE: -rf_g-dr_g  == -rf_l-dr_l
 ;resi_g2 = pr_g-lh_g-rf_l-dr_l
 ;resi_g3 = pr_g-lh_g2-rf_l-dr_l
 
+if (isvar("mflx")) then
+resi_g4 = pr_g-mf_g;-rf_g-dr_g
+;resi_g4 = pr_g-mf_g-rf_g-dr_g
+end if
+
 ; Table -----------------------------------------------------------------------
 
-land_vals   = (/pr_l,ev_l,rf_l,dr_l,resi_l,lh_l,resi_l2,lh_l2,resi_l3,sh_l,lhf_l,rn_l/)
-ocean_vals  = (/pr_o,ev_o,rf_o,dr_o,resi_o,lh_o,resi_o2,lh_o2,resi_o3,sh_o,lhf_o,rn_o/)
-global_vals = (/pr_g,ev_g,rf_g,dr_g,resi_g,lh_g,resi_g2,lh_g2,resi_g3,sh_g,lhf_g,rn_g/)
-;global_vals = (/pr_g,ev_o,rf_l,dr_l,resi_o,lh_g,resi_g2,lh_g2,resi_g3/)
+;land_vals   = (/pr_l,ev_l,rf_l,dr_l,resi_l,lh_l,resi_l2,lh_l2,resi_l3,sh_l,lhf_l,rn_l/)
+;ocean_vals  = (/pr_o,ev_o,rf_o,dr_o,resi_o,lh_o,resi_o2,lh_o2,resi_o3,sh_o,lhf_o,rn_o/)
+;global_vals = (/pr_g,ev_g,rf_g,dr_g,resi_g,lh_g,resi_g2,lh_g2,resi_g3,sh_g,lhf_g,rn_g/)
+;;global_vals = (/pr_g,ev_o,rf_l,dr_l,resi_o,lh_g,resi_g2,lh_g2,resi_g3/)
+
+if (isvar("mflx")) then
+ land_vals   = (/pr_l,mf_l,rf_l,dr_l,resi_l4,ev_l,resi_l,lh_l2,resi_l3,sh_l,lhf_l,rn_l/)
+ ocean_vals  = (/pr_o,mf_o,rf_o,dr_o,resi_o4,ev_o,resi_o,lh_o2,resi_o3,sh_o,lhf_o,rn_o/)
+ global_vals = (/pr_g,mf_g,rf_g,dr_g,resi_g4,ev_g,resi_g,lh_g2,resi_g3,sh_g,lhf_g,rn_g/)
+else
+ land_vals   = (/pr_l,lh_l,rf_l,dr_l,resi_l2,ev_l,resi_l,lh_l2,resi_l3,sh_l,lhf_l,rn_l/)
+ ocean_vals  = (/pr_o,lh_o,rf_o,dr_o,resi_o2,ev_o,resi_o,lh_o2,resi_o3,sh_o,lhf_o,rn_o/)
+ global_vals = (/pr_g,lh_g,rf_g,dr_g,resi_g2,ev_g,resi_g,lh_g2,resi_g3,sh_g,lhf_g,rn_g/)
+end if
 
 land  = "" + decimalPlaces(land_vals,3,True)
 ocean = "" + decimalPlaces(ocean_vals,3,True)
@@ -275,8 +304,13 @@ ncr1  = (/1,12/) ;9
 x1    = (/0.085,0.995/) ;.104
 y1    = (/0.800,0.855/)
 ;text1 = (/"Precip","Ev+Es","SurfRun","Drainage","Res 1", \
-text1 = (/"Precip","Ev+s+i","SurfRun","Drainage","Res 1", \
-          "Evp(LH)","Res 2", \
+;text1 = (/"Precip","Ev+s+i","SurfRun","Drainage","Res 1", \
+;          "Evp(LH)","Res 2", \
+;          "E(LHsnw)","Res 3",\
+;          "SH","LH","Rnet"/)
+
+text1 = (/"Precip","Evap","SurfRun","Drainage","Res 1", \
+          "Ev+s+i","Res 2", \
           "E(LHsnw)","Res 3",\
           "SH","LH","Rnet"/)
 
@@ -304,12 +338,16 @@ res2@gsFillColor   = (/"forestgreen","deepskyblue2","darkorchid2"/)
 res3               = True
 ;res3@gsnMaximize   = True
 res3@txFontHeightF = 0.012
-res3@gsFillColor   = (/ (/"white","white","white","white","white","white","white","gray","gray","white","white","white"/), \
-                        (/"white","gray","gray","gray","gray","white","white","gray","gray","white","white","white"/),     \
-                        (/"white","gray","gray","gray","gray","white","gray","gray","gray","white","white","white"/)   /)
-                        ;(/"white","gray","gray","gray","gray","white","white","white","white"/)   /)
-                        ;(/"white","gray","white","white","gray","white","white","white","white"/)   /)
+res3@gsFillColor   = (/ (/"white","white","white","white","white","gray","gray","gray","gray","white","white","white"/), \
+                        (/"white","white","gray" ,"gray" ,"white","gray","gray","gray","gray","white","white","white"/), \
+                        (/"white","white","gray" ,"gray" ,"white","gray","gray","gray","gray","white","white","white"/)  /)
+;res3@gsFillColor   = (/ (/"white","white","white","white","white","white","white","gray","gray","white","white","white"/), \
+;                        (/"white","gray","gray","gray","gray","white","white","gray","gray","white","white","white"/),     \
+;                        (/"white","gray","gray","gray","gray","white","gray","gray","gray","white","white","white"/)   /)
+;                        ;(/"white","gray","gray","gray","gray","white","white","white","white"/)   /)
+;                        ;(/"white","gray","white","white","gray","white","white","white","white"/)   /)
 
+print("")
 print("Creating Water Balance Table")
 print("")
 gsn_table(wks,ncr1,x1,y1,text1,res1)

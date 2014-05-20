@@ -81,11 +81,31 @@ mlh     = mosfil ->lh
 end if
 if (isfilevar(cabfil,"field3333")) then
 crad    = cabfil ->field3333
+crnt = crad
 else
-crad    = cabfil ->field202
+ crad    = cabfil ->field202
+ cswr    = cabfil ->solar
+ clwr    = cabfil ->longwave
+
+ dNames  = getvardims(crad)
+ dName2  = getvardims(cswr)
+ dims    = dimsizes(crad)
+
+ crn1    = cswr+clwr
+ copy_VarMeta(cswr,crn1)
+ crn1&$dName2(1)$ = ispan(0,47,6)
+ crn2    = ftcurvp(crn1&$dName2(1)$,crn1,48,crad&$dNames(1)$)
+
+ ; Roll 4ts for Hyytiala
+ crnt    = new((/dims(0),dims(1)/),typeof(cswr))
+ crnt(:,44:47)  = crn2(:,0:3)
+ crnt(:,0:43) = crn2(:,4:47)
+ crnt!0    = "month"
+ crnt!1    = "timestep"
 end if
 if (isfilevar(mosfil,"field3333")) then
 mrad    = mosfil ->field3333
+mrnt = mrad
 else
  mrad    = mosfil ->field202
  mswr    = mosfil ->solar
@@ -98,7 +118,7 @@ else
  mrn1    = mswr+mlwr
  copy_VarMeta(mswr,mrn1)
  mrn1&$dName2(1)$ = ispan(0,47,6)
- mrn2    = linint1_n_Wrap(mrn1&$dName2(1)$,mrn1,True,mrad&$dNames(1)$,0,1)
+ mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,48,mrad&$dNames(1)$)
 
  ; Roll 4ts for Hyytiala
  mrnt    = new((/dims(0),dims(1)/),typeof(mswr))
@@ -249,7 +269,7 @@ data8(0,:) = mrad(6,:)             ; moses
 else
 data8(0,:) = mrnt(6,:)             ; moses
 end if
-data8(1,:) = crad(6,:)             ; cable
+data8(1,:) = crnt(6,:);crad(6,:)             ; cable
 data8(2,:) = rnet(6,:)             ; fluxnet
 
 data9      = new((/3,timestep/),double)
@@ -293,7 +313,7 @@ data5(0,:) = mrad(0,:)             ; moses
 else
 data5(0,:) = mrnt(0,:)             ; moses
 end if
-data5(1,:) = crad(0,:)             ; cable
+data5(1,:) = crnt(0,:);crad(0,:)             ; cable
 data5(2,:) = rnet(0,:)            ; fluxnet
 
 data6      = new((/3,timestep/),double)

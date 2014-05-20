@@ -90,12 +90,12 @@ end if
   ; ;symMinMaxPlt(field,12,False,res)
   ;end if
 
-;  if(cnLevels.eq."0") then
-;    res@cnLevelSelectionMode = "AutomaticLevels"
-;  else
+  ;if(cnLevels.eq."0") then
+  ;  res@cnLevelSelectionMode = "AutomaticLevels"
+  ;else
     res@cnLevelSelectionMode = "ExplicitLevels"  ; Define your own
     res@cnLevels = cnLevels 
-;  end if
+  ;end if
 
   if (varName.eq."bias_precip".or.varName.eq."bias_evap" \
   .or.varName.eq."austbias_precip".or.varName.eq."austbias_precip_bom" \

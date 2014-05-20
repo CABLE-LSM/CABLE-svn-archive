@@ -13,27 +13,33 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
-usr = systemfunc("echo $USERID")
+usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+modl     = systemfunc("echo $MODEL")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
 jpg      = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
-jpeg = True
+ jpeg = True
 else
-jpeg = False
+ jpeg = False
 end if
 
 tsDir    = "~"+usr+"/umplot/obs/"
 home     = "~"+usr+"/"
+flxobs   = "/home/cmar/ste69f/obsdata/fluxnet/PALS/flxnt_mon/"
 
-;system("dmget " + tsDir + "mmdc*_roll.nc" )
-hayfil = addfile(tsDir + "hayobsjuly.nc"                ,"r")
-manfil = addfile(tsDir + "mmdc_ma96_roll.nc"         ,"r")
-tbfil  = addfile(tsDir + "mmdc_tumbarumba_fv.nc" ,"r")
-vi97   = addfile(tsDir + "mmdc_vi97_roll.nc"       ,"r")
-
-;igbp     = addfile(home  + "MMDC_"+ LongName +"_roll.nc","r")
+hayfil = addfile( tsDir + "hayobsjuly.nc"         ,"r")
+manfil = addfile( tsDir + "mmdc_ma96_roll.nc"     ,"r")
+tbfil  = addfile( tsDir + "mmdc_tumbarumba_fv.nc" ,"r")
+vi97   = addfile( tsDir + "mmdc_vi97_roll.nc"     ,"r")
+hy_new = addfile(flxobs + "mmdc_ts_Hyytiala.nc"   ,"r")
+lo_new = addfile(flxobs + "mmdc_ts_Loobos.nc"     ,"r")
+tb_new = addfile(flxobs + "mmdc_ts_Tumba.nc"      ,"r")
+nb_new = addfile(flxobs + "mmdc_ts_Boreas.nc"     ,"r")
+bv_new = addfile(flxobs + "mmdc_ts_Bondv.nc"      ,"r")
+th_new = addfile(flxobs + "mmdc_ts_Tharandt.nc"   ,"r")
+hv_new = addfile(flxobs + "mmdc_ts_Harvard.nc"    ,"r")
 
 ;==============================================================================
 
@@ -49,13 +55,104 @@ radnet = f[:]->Rn
 sens2   = dim_avg_n_Wrap(sens,1)
 lat2    = dim_avg_n_Wrap(lat,1)
 radnet2 = dim_avg_n_Wrap(radnet,1)
+;sens2   = sens(:,0,0,:,:)   ;dim_avg_n_Wrap(sens,1)
+;lat2    = lat(:,0,0,:,:)    ;dim_avg_n_Wrap(lat,1)
+;radnet2 = radnet(:,0,0,:,:) ;dim_avg_n_Wrap(radnet,1)
 
 fils2  = systemfunc("ls "+filDir+"/mmdc_*_roll_"+numYr+"yrs.nc")
 f2     = addfiles(fils2,"r")
 ListSetType(f2,"join")
-msh  = f2[:]->hfss
-mlh  = f2[:]->hfls
-mrad = f2[:]->field3333
+if (isfilevar(f2[0],"hfss")) then
+ msh  = f2[:]->hfss      ;sh
+ mlh  = f2[:]->hfls      ;lh
+ mrad = f2[:]->field3333 ;field202
+else
+ msh  = f2[:]->sh
+ mlh  = f2[:]->lh
+ mrad = f2[:]->field202
+end if
+
+if (isfilevar(f2[0],"solar")) then
+ mrad_1= f2[:]->solar
+ mrad_2= f2[:]->longwave
+
+ mrad_3 = mrad_1+mrad_2
+ copy_VarMeta(mrad_1,mrad_3)
+ mrad_3&axis_1 = ispan(0,47,6)
+ dName2 = getvardims(mlh)
+ mrad_4 = ftcurvp(mrad_3&axis_1,mrad_3,48,mlh&$dName2(1)$)
+ ;mrad_4 = linint1_n_Wrap(mrad_3&axis_1,mrad_3,True,mlh&$dName2(1)$,0,1)
+ mrad1 = new((/12,48,31/),double)
+ copy_VarMeta(msh,mrad1)
+
+ mrad1 = mrad_4
+
+if (dimsizes(fils2).eq.31) then
+; 31: afN afr afS alk ant1 ant2 ant ant3 bv dw dh grnl hp hv hay hy ind lw lo ma nb rus1 rus2 sd1 sd2 sd3 sd4 th tb vi wb
+ mrad1(:,42:47,8)   = mrad_4(:,0:5 ,8)   ;bv - black
+ mrad1(:,0:41 ,8)   = mrad_4(:,6:47,8)   ;bv - black
+ mrad1(:,44:47,13)  = mrad_4(:,0:3 ,13)  ;hv - blue
+ mrad1(:,0:43 ,13)  = mrad_4(:,4:47,13)  ;hv - blue
+ mrad1(:,0:6,15)    = mrad_4(:,41:47,15) ;hy - red
+ mrad1(:,7:47 ,15)  = mrad_4(:,0:40 ,15) ;hy - red
+ mrad1(:,0:4 ,18)   = mrad_4(:,43:47,18) ;lo - green
+ mrad1(:,5:47,18)   = mrad_4(:,0:42 ,18) ;lo - green
+ mrad1(:,41:47 ,17) = mrad_4(:,0:6,17)   ;lw - pale pink
+ mrad1(:,0:40,17)   = mrad_4(:,7:47,17)  ;lw - pale pink
+ mrad1(:,40:47 ,20) = mrad_4(:,0:7,20)   ;nb - light blue
+ mrad1(:,0:39,20)   = mrad_4(:,8:47 ,20) ;nb - light blue
+ mrad1(:,0:4 ,27)   = mrad_4(:,43:47,27) ;th - hot pink
+ mrad1(:,5:47,27)   = mrad_4(:,0:42 ,27) ;th - hot pink
+ ;vi 29
+ mrad1(:,43:47,30)  = mrad_4(:,0:4 ,30)  ;wb - orange
+ mrad1(:,0:42 ,30)  = mrad_4(:,5:47 ,30) ;wb - orange
+ ;ma 19
+ ;tb 28
+else
+; 18: afN afS bv dw dh hp hv hay hy in litw loob ma nb th tb vi wb
+ mrad1(:,42:47,2)   = mrad_4(:,0:5 ,2)   ;bv - black
+ mrad1(:,0:41 ,2)   = mrad_4(:,6:47,2)   ;bv - black
+ mrad1(:,44:47,6)   = mrad_4(:,0:3 ,6)   ;hv - blue
+ mrad1(:,0:43 ,6)   = mrad_4(:,4:47,6)   ;hv - blue
+ mrad1(:,0:6,8)     = mrad_4(:,41:47,8)  ;hy - red
+ mrad1(:,7:47 ,8)   = mrad_4(:,0:40 ,8)  ;hy - red
+ mrad1(:,0:4 ,11)   = mrad_4(:,43:47,11) ;lo - green
+ mrad1(:,5:47,11)   = mrad_4(:,0:42 ,11) ;lo - green
+ mrad1(:,41:47 ,10) = mrad_4(:,0:6,10)   ;lw - pale pink
+ mrad1(:,0:40,10)   = mrad_4(:,7:47,10)  ;lw - pale pink
+ mrad1(:,40:47 ,13) = mrad_4(:,0:7,13)   ;nb - light blue
+ mrad1(:,0:39,13)   = mrad_4(:,8:47 ,13) ;nb - light blue
+ mrad1(:,0:4 ,14)   = mrad_4(:,43:47,14) ;th - hot pink
+ mrad1(:,5:47,14)   = mrad_4(:,0:42 ,14) ;th - hot pink
+ ;vi 16
+ mrad1(:,43:47,17)  = mrad_4(:,0:4 ,17)  ;wb - orange
+ mrad1(:,0:42 ,17)  = mrad_4(:,5:47 ,17) ;wb - orange
+ ;ma 12
+ ;tb 15
+end if
+
+; lest 7/1/14 order due to order in stash/file setup not order of file names.
+;  mrad1(:,0:6,5)     = mrad_4(:,41:47,5)  ;hy - red
+;  mrad1(:,7:47 ,5)   = mrad_4(:,0:40 ,5)  ;hy - red
+;  mrad1(:,0:4 ,9)    = mrad_4(:,43:47,9)  ;th - hot pink
+;  mrad1(:,5:47,9)    = mrad_4(:,0:42 ,9)  ;th - hot pink
+;  mrad1(:,42:47,10)  = mrad_4(:,0:5 ,10)  ;bv - black
+;  mrad1(:,0:41 ,10)  = mrad_4(:,6:47,10)  ;bv - black
+;  mrad1(:,41:47 ,12) = mrad_4(:,0:6,12)   ;lw - pale pink
+;  mrad1(:,0:40,12)   = mrad_4(:,7:47,12)  ;lw - pale pink
+;  mrad1(:,43:47,13)  = mrad_4(:,0:4 ,13)  ;wb - orange
+;  mrad1(:,0:42 ,13)  = mrad_4(:,5:47 ,13) ;wb - orange
+;  mrad1(:,0:4 ,14)   = mrad_4(:,43:47,14) ;lo - green
+;  mrad1(:,5:47,14)   = mrad_4(:,0:42 ,14) ;lo - green
+;  mrad1(:,44:47,15)  = mrad_4(:,0:3 ,15)  ;hv - blue
+;  mrad1(:,0:43 ,15)  = mrad_4(:,4:47,15)  ;hv - blue
+;  mrad1(:,40:47 ,16) = mrad_4(:,0:7,16)   ;nb - light blue
+;  mrad1(:,0:39,16)   = mrad_4(:,8:47 ,16) ;nb - light blue
+end if
+
+if (isvar("mrad1") .and. sum(mrad).eq.0.) then ; if (modl.eq."m") then
+ mrad = mrad1
+end if
 
 sens_ma = manfil ->H
 lat_ma  = manfil ->LH
@@ -67,10 +164,57 @@ lat_tb  = tbfil  ->Qle   ;LH
 rad_tb  = tbfil  ->Rnet  ;Rn
 ;temp_tb = tbfil  ->Tair  ;Ta
 ;prec_tb = tbfil  ->Rainf ;PPT
-sens_hy = hayfil ->h
-lat_hy  = hayfil ->lh
+;sens_tb = tb_new ->Qh    ;H
+;lat_tb  = tb_new ->Qle   ;LH
+;rad_tb  = tb_new ->Rnet  ;Rn
+;;temp_tb   = tbfil  ->Tair   ;Ta
+;;prec_tb   = tbfil  ->Rainf  ;PPT
+sens_hay = hayfil ->h
+lat_hay  = hayfil ->lh
 rad_vi  = vi97   ->Rn
 sens_vi = vi97   ->H
+
+sens_hy  = hy_new->Qh
+lat_hy   = hy_new->Qle
+rad_hy   = hy_new->Rnet
+sens_hy2 = sens_hy(:,:,0)
+lat_hy2  = lat_hy(:,:,0)
+rad_hy2  = rad_hy(:,:,0)
+
+sens_lo  = lo_new->Qh
+lat_lo   = lo_new->Qle
+rad_lo   = lo_new->Rnet
+sens_lo2 = sens_lo(:,:,0)
+lat_lo2  = lat_lo(:,:,0)
+rad_lo2  = rad_lo(:,:,0)
+
+sens_nb  = nb_new->Qh
+lat_nb   = nb_new->Qle
+rad_nb   = nb_new->Rnet
+sens_nb2 = sens_nb(:,:,0)
+lat_nb2  = lat_nb(:,:,0)
+rad_nb2  = rad_nb(:,:,0)
+
+;sens_th  = th_new->Qh
+;lat_th   = th_new->Qle
+;rad_th   = th_new->Rnet
+;sens_th2 = sens_th(:,:,0)
+;lat_th2  = lat_th(:,:,0)
+;rad_th2  = rad_th(:,:,0)
+;
+;sens_hv  = hv_new->Qh
+;lat_hv   = hv_new->Qle
+;rad_hv   = hv_new->Rnet
+;sens_hv2 = sens_hv(:,:,0)
+;lat_hv2  = lat_hv(:,:,0)
+;rad_hv2  = rad_hv(:,:,0)
+;
+;sens_bv  = bv_new->Qh
+;lat_bv   = bv_new->Qle
+;rad_bv   = bv_new->Rnet
+;sens_bv2 = sens_bv(:,:,0)
+;lat_bv2  = lat_bv(:,:,0)
+;rad_bv2  = rad_bv(:,:,0)
 
 sens_tb2 = dim_avg_n_Wrap(sens_tb,0)
 lat_tb2  = dim_avg_n_Wrap(lat_tb,0)
@@ -79,32 +223,46 @@ rad_tb2  = dim_avg_n_Wrap(rad_tb,0)
 sens_ma2 = dim_avg_n_Wrap(sens_ma,0)
 lat_ma2  = dim_avg_n_Wrap(lat_ma,0)
 rad_ma2  = dim_avg_n_Wrap(rad_ma,0)
+;sens_ma2 = sens_ma(0,:,:) ;dim_avg_n_Wrap(sens_ma,0)
+;lat_ma2  = lat_ma(0,:,:)  ;dim_avg_n_Wrap(lat_ma,0)
+;rad_ma2  = rad_ma(0,:,:)  ;dim_avg_n_Wrap(rad_ma,0)
 
 sh_tb = new((/12,48/),double)
 lh_tb = new((/12,48/),double)
 rn_tb = new((/12,48/),double)
-sh_hy = new(48,double)
-lh_hy = new(48,double)
+sh_hay = new(48,double)
+lh_hay = new(48,double)
 do i = 0,23
-sh_tb(:,2*i+1)=sens_tb2(:,i)
-sh_tb(:,2*i)  =sens_tb2(:,i)
-lh_tb(:,2*i+1)=lat_tb2(:,i)
-lh_tb(:,2*i)  =lat_tb2(:,i)
-rn_tb(:,2*i+1)=rad_tb2(:,i)
-rn_tb(:,2*i)  =rad_tb2(:,i)
-sh_hy(2*i+1)  =sens_hy(i)
-sh_hy(2*i)    =sens_hy(i)
-lh_hy(2*i+1)  =lat_hy(i)
-lh_hy(2*i)    =lat_hy(i)
+ sh_tb(:,2*i+1)=sens_tb2(:,i)
+ sh_tb(:,2*i)  =sens_tb2(:,i)
+ lh_tb(:,2*i+1)=lat_tb2(:,i)
+ lh_tb(:,2*i)  =lat_tb2(:,i)
+ rn_tb(:,2*i+1)=rad_tb2(:,i)
+ rn_tb(:,2*i)  =rad_tb2(:,i)
+ sh_hay(2*i+1)  =sens_hay(i)
+ sh_hay(2*i)    =sens_hay(i)
+ lh_hay(2*i+1)  =lat_hay(i)
+ lh_hay(2*i)    =lat_hay(i)
 end do
+
+; Lest 15/1/14 - interpolate
+;printVarSummary(sens_hay)
+;sens_hay& = ispan(1,48,2) ; 0,47,2
+;lat_hay&  = ispan(1,48,2) ; 0,47,2
+;sh_hay = ftcurvp(sens_hay&,sens_hay,48,msh&timestep)
+;lh_hay = ftcurvp( lat_hay&, lat_hay,48,mlh&timestep)
+;sh_hay!0  = "timestep"
+;lh_hay!0  = "timestep"
+;sh_hay&timestep = msh&timestep
+;lh_hay&timestep = mlh&timestep
 
 ;==============================================================================
 
 sensht            = new((/12,48/),double)
 latht             = new((/12,48/),double)
 rad               = new((/11,48/),double)
-;temp              = new((/11,12/),double)
-;precip            = new((/11,12/),double)
+;temp              = new((/11,48/),double)
+;precip            = new((/11,48/),double)
 sensht            = -9999
 latht             = -9999
 rad               = -9999
@@ -117,17 +275,22 @@ rad@_FillValue    = -9999
 ;precip@_FillValue = -9999
 
 do k=0,8,1
-sensht(k,:)       = sens2(k,0,6,0:47)   ;H
-latht(k,:)        = lat2(k,0,6,0:47)    ;LH
-rad(k,:)          = radnet2(k,0,6,0:47) ;Rn
-;temp(k,:)         = temp2m(k,0,6,0:47)  ;Ta
-;precip(k,:)       = preci(k,0,6,0:47)   ;PPT
+ sensht(k,:)       = sens2(k,0,6,0:47)   ;H
+ latht(k,:)        = lat2(k,0,6,0:47)    ;LH
+ rad(k,:)          = radnet2(k,0,6,0:47) ;Rn
+ ;temp(k,:)         = temp2m(k,0,6,0:47)  ;Ta
+ ;precip(k,:)       = preci(k,0,6,0:47)   ;PPT
+; sensht(k,:)       = sens2(k,6,0:47)   ;H
+; latht(k,:)        = lat2(k,6,0:47)    ;LH
+; rad(k,:)          = radnet2(k,6,0:47) ;Rn
+; ;temp(k,:)         = temp2m(k,6,0:47)  ;Ta
+; ;precip(k,:)       = preci(k,6,0:47)   ;PPT
 end do
 sensht!0 = "axis_1"
 latht!0  = "axis_1"
 rad!0    = "axis_1"
-sh_hy!0  = "axis_2"
-lh_hy!0  = "axis_2"
+sh_hay!0  = "axis_2"
+lh_hay!0  = "axis_2"
 sensht(9,:)     = sens_ma2(6,0:47) ;H
 latht(9,:)      = lat_ma2(6,0:47)  ;LH
 rad(9,:)        = rad_ma2(6,0:47) ;Rn
@@ -138,54 +301,135 @@ latht(10,:)     = lh_tb(6,0:47)   ;LH
 rad(10,:)       = rn_tb(6,0:47)   ;Rn
 ;temp(10,:)      = temp_tb(6,0:47) ;Ta
 ;precip(10,:)    = prec_tb(6,0:47) ;PPT
-sensht(11,:)    = sh_hy(0:47)
-latht(11,:)     = lh_hy(0:47)
+sensht(11,:)    = sh_hay(0:47)
+latht(11,:)     = lh_hay(0:47)
 
 rad(2,:)    = rad(2,:)*3 +2*9999
 rad(7,:)    = rad(7,:)*3 +2*9999
 sensht(7,:) = (sensht(7,:)*3 +9999 - sens_vi(0,6,:))
 latht(7,:)  = (latht(7,:)*3 + 9999)/2
+rad(2,:)    = rad_hy2(6,:)
+sensht(2,:) = sens_hy2(6,:)
+latht(2,:)  = lat_hy2(6,:)
+rad(3,:)    = rad_lo2(6,:)
+sensht(3,:) = sens_lo2(6,:)
+latht(3,:)  = lat_lo2(6,:)
+;rad(5,:)    = rad_nb2(6,:)
+;sensht(5,:) = sens_nb2(6,:)
+;latht(5,:)  = lat_nb2(6,:)
+
+; lest 8/1/14 - AMOJ
+;sensht(9,:)     = -9999 ;sens_ma2(6,0:47) ;H
+;latht(9,:)      = -9999 ;lat_ma2(6,0:47)  ;LH
+;rad(9,:)        = -9999 ;rad_ma2(6,0:47) ;Rn
+;;temp(9,:)       = -9999 ;temp_ma(6,0:47) ;Ta
+;;precip(9,:)     = -9999 ;prec_ma(6,0:47) ;PPT
+;sensht(10,:)    = -9999 ;sh_tb(6,0:47)   ;H
+;latht(10,:)     = -9999 ;lh_tb(6,0:47)   ;LH
+;rad(10,:)       = -9999 ;rn_tb(6,0:47)   ;Rn
+;;temp(10,:)      = -9999 ;temp_tb(6,0:47) ;Ta
+;;precip(10,:)    = -9999 ;prec_tb(6,0:47) ;PPT
+;rad(7,:)    = -9999 ;rad(7,:)*3 +2*9999
+;sensht(7,:) = -9999 ;(sensht(7,:)*3 +9999 - sens_vi(0,6,:))
+;latht(7,:)  = -9999 ;(latht(7,:)*3 + 9999)/2
+; lest 8/1/14 - AMOJ
+
 
 mrad_ro = new((/11,48/),double)
-mrad_ro(0,:)  = mrad(2,6,:)  ; bv
-mrad_ro(1,:)  = mrad(6,6,:)  ; hv
-mrad_ro(2,:)  = mrad(8,6,:)  ; hy
-mrad_ro(3,:)  = mrad(11,6,:) ; lo
-mrad_ro(4,:)  = mrad(10,6,:) ; lw
-mrad_ro(5,:)  = mrad(13,6,:) ; nb
-mrad_ro(6,:)  = mrad(14,6,:) ; th
-mrad_ro(7,:)  = mrad(16,6,:) ; vi
-mrad_ro(8,:)  = mrad(17,6,:) ; wb
-mrad_ro(9,:)  = mrad(12,6,:) ; ma
-mrad_ro(10,:) = mrad(15,6,:) ; tb
+if (dimsizes(fils2) .eq. 18) then
+ mrad_ro(0,:)  = mrad(2,6,:)  ; bv
+ mrad_ro(1,:)  = mrad(6,6,:)  ; hv
+ mrad_ro(2,:)  = mrad(8,6,:)  ; hy
+ mrad_ro(3,:)  = mrad(11,6,:) ; lo
+ mrad_ro(4,:)  = mrad(10,6,:) ; lw
+ mrad_ro(5,:)  = mrad(13,6,:) ; nb
+ mrad_ro(6,:)  = mrad(14,6,:) ; th
+ mrad_ro(7,:)  = mrad(16,6,:) ; vi
+ mrad_ro(8,:)  = mrad(17,6,:) ; wb
+ mrad_ro(9,:)  = mrad(12,6,:) ; ma
+ mrad_ro(10,:) = mrad(15,6,:) ; tb
+else
+ mrad_ro(0,:)  = mrad(8,6,:)  ; bv
+ mrad_ro(1,:)  = mrad(13,6,:) ; hv
+ mrad_ro(2,:)  = mrad(15,6,:) ; hy
+ mrad_ro(3,:)  = mrad(18,6,:) ; lo
+ mrad_ro(4,:)  = mrad(17,6,:) ; lw
+ mrad_ro(5,:)  = mrad(20,6,:) ; nb
+ mrad_ro(6,:)  = mrad(27,6,:) ; th
+ mrad_ro(7,:)  = mrad(29,6,:) ; vi
+ mrad_ro(8,:)  = mrad(30,6,:) ; wb
+ mrad_ro(9,:)  = mrad(19,6,:) ; ma
+ mrad_ro(10,:) = mrad(28,6,:) ; tb
+end if
+; mrad_ro(0,:)  = mrad(10,6,:) ; bv
+; mrad_ro(1,:)  = mrad(15,6,:) ; hv
+; ;mrad_ro(1,:)  = mrad_h(6,:);mrad(15,6,:) ; hv
+; mrad_ro(2,:)  = mrad(5,6,:)  ; hy
+; mrad_ro(3,:)  = mrad(14,6,:) ; lo
+; ;mrad_ro(3,:)  = mrad_l(6,:);mrad(14,6,:) ; lo
+; mrad_ro(4,:)  = mrad(12,6,:) ; lw
+; mrad_ro(5,:)  = mrad(16,6,:) ; nb
+; mrad_ro(6,:)  = mrad(9,6,:)  ; th
+; mrad_ro(7,:)  = mrad(17,6,:) ; vi
+; mrad_ro(8,:)  = mrad(13,6,:) ; wb
+; mrad_ro(9,:)  = mrad(0,6,:)  ; ma
+; mrad_ro(10,:) = mrad(8,6,:)  ; tb
 
 msh_ro = new((/12,48/),double)
-msh_ro(0,:)  = msh(2,6,:)  ; bv
-msh_ro(1,:)  = msh(6,6,:)  ; hv
-msh_ro(2,:)  = msh(8,6,:)  ; hy
-msh_ro(3,:)  = msh(11,6,:) ; lo
-msh_ro(4,:)  = msh(10,6,:) ; lw
-msh_ro(5,:)  = msh(13,6,:) ; nb
-msh_ro(6,:)  = msh(14,6,:) ; th
-msh_ro(7,:)  = msh(16,6,:) ; vi
-msh_ro(8,:)  = msh(17,6,:) ; wb
-msh_ro(9,:)  = msh(12,6,:) ; ma
-msh_ro(10,:) = msh(15,6,:) ; tb
-msh_ro(11,:) = msh(7,6,:)  ; hay
+if (dimsizes(fils2) .eq. 18) then
+ msh_ro(0,:)  = msh(2,6,:)  ; bv
+ msh_ro(1,:)  = msh(6,6,:)  ; hv
+ msh_ro(2,:)  = msh(8,6,:)  ; hy
+ msh_ro(3,:)  = msh(11,6,:) ; lo
+ msh_ro(4,:)  = msh(10,6,:) ; lw
+ msh_ro(5,:)  = msh(13,6,:) ; nb
+ msh_ro(6,:)  = msh(14,6,:) ; th
+ msh_ro(7,:)  = msh(16,6,:) ; vi
+ msh_ro(8,:)  = msh(17,6,:) ; wb
+ msh_ro(9,:)  = msh(12,6,:) ; ma
+ msh_ro(10,:) = msh(15,6,:) ; tb
+ msh_ro(11,:) = msh(7,6,:)  ; hay
+else
+ msh_ro(0,:)  = msh(8,6,:)  ; bv
+ msh_ro(1,:)  = msh(13,6,:) ; hv
+ msh_ro(2,:)  = msh(15,6,:) ; hy
+ msh_ro(3,:)  = msh(18,6,:) ; lo
+ msh_ro(4,:)  = msh(17,6,:) ; lw
+ msh_ro(5,:)  = msh(20,6,:) ; nb
+ msh_ro(6,:)  = msh(27,6,:) ; th
+ msh_ro(7,:)  = msh(29,6,:) ; vi
+ msh_ro(8,:)  = msh(30,6,:) ; wb
+ msh_ro(9,:)  = msh(19,6,:) ; ma
+ msh_ro(10,:) = msh(28,6,:) ; tb
+end if
 
 mlh_ro = new((/12,48/),double)
-mlh_ro(0,:)  = mlh(2,6,:)  ; bv
-mlh_ro(1,:)  = mlh(6,6,:)  ; hv
-mlh_ro(2,:)  = mlh(8,6,:)  ; hy
-mlh_ro(3,:)  = mlh(11,6,:) ; lo
-mlh_ro(4,:)  = mlh(10,6,:) ; lw
-mlh_ro(5,:)  = mlh(13,6,:) ; nb
-mlh_ro(6,:)  = mlh(14,6,:) ; th
-mlh_ro(7,:)  = mlh(16,6,:) ; vi
-mlh_ro(8,:)  = mlh(17,6,:) ; wb
-mlh_ro(9,:)  = mlh(12,6,:) ; ma
-mlh_ro(10,:) = mlh(15,6,:) ; tb
-mlh_ro(11,:) = mlh(7,6,:)  ; hay
+if (dimsizes(fils2) .eq. 18) then
+ mlh_ro(0,:)  = mlh(2,6,:)  ; bv
+ mlh_ro(1,:)  = mlh(6,6,:)  ; hv
+ mlh_ro(2,:)  = mlh(8,6,:)  ; hy
+ mlh_ro(3,:)  = mlh(11,6,:) ; lo
+ mlh_ro(4,:)  = mlh(10,6,:) ; lw
+ mlh_ro(5,:)  = mlh(13,6,:) ; nb
+ mlh_ro(6,:)  = mlh(14,6,:) ; th
+ mlh_ro(7,:)  = mlh(16,6,:) ; vi
+ mlh_ro(8,:)  = mlh(17,6,:) ; wb
+ mlh_ro(9,:)  = mlh(12,6,:) ; ma
+ mlh_ro(10,:) = mlh(15,6,:) ; tb
+ mlh_ro(11,:) = mlh(7,6,:)  ; hay
+else
+ mlh_ro(0,:)  = mlh(8,6,:)  ; bv
+ mlh_ro(1,:)  = mlh(13,6,:) ; hv
+ mlh_ro(2,:)  = mlh(15,6,:) ; hy
+ mlh_ro(3,:)  = mlh(18,6,:) ; lo
+ mlh_ro(4,:)  = mlh(17,6,:) ; lw
+ mlh_ro(5,:)  = mlh(20,6,:) ; nb
+ mlh_ro(6,:)  = mlh(27,6,:) ; th
+ mlh_ro(7,:)  = mlh(29,6,:) ; vi
+ mlh_ro(8,:)  = mlh(30,6,:) ; wb
+ mlh_ro(9,:)  = mlh(19,6,:) ; ma
+ mlh_ro(10,:) = mlh(28,6,:) ; tb
+end if
 
 ;==============================================================================
 
@@ -201,14 +445,11 @@ rad_ANN           = rad_ANN - rad
 
 ;Plot-------------------------------------------------------------------------
 
+print("")
 print("Plotting Jul MMDC Biases for all Sites")
 
 y = fspan(0,23.5,48)
 ;y = ispan(1,12,1)
-
-;ts_flux(LongName,data2,data3,data,data1)
-;ts_rad(LongName,data5,data4,data8,data7)
-;ts_prec(LongName,data6,data9)
 
 pltName               = "mmdc_jul_"+numYr+"yrs"
 wks                   = gsn_open_wks("ps",pltName)
@@ -228,11 +469,11 @@ res@tiYAxisFontHeightF = 0.02
 res@tiYAxisOffsetXF    = 0.01
 res@tiYAxisString      = "W/m2"
 res@tiXAxisString      = "hours"
-;if (rid.eq."saaca") then
-;res@gsnLeftString = "July - A1.0"
-;else
-res@gsnLeftString = "July" ; - A1.1"
-;end if
+if (modl.eq."m") then
+ res@gsnLeftString = "July - A1.0"
+else
+ res@gsnLeftString = "July - A1.1"
+end if
 res@gsnLeftStringFontHeightF    =  0.02
 res@gsnLeftStringOrthogonalPosF = -0.10
 res@gsnLeftStringParallelPosF   =  0.05
@@ -250,10 +491,10 @@ mnf(0) = dble2flt(min(rad_ANN))
 mnf(1) = dble2flt(min(sh_ANN))
 mnf(2) = dble2flt(min(lh_ANN))
 ;print((/floor(min(mnf)),ceil(max(mxf))/))
-;res@trYMinF                = floor(min(mnf));-200
-;res@trYMaxF                = ceil(max(mxf)) ;200
-res@trYMinF        = -200
-res@trYMaxF        = 200
+res@trYMinF                = floor(min(mnf))-5 ;-200
+res@trYMaxF                = ceil(max(mxf)) +5 ;200
+;res@trYMinF        = -200
+;res@trYMaxF        = 200
 plot(0)            = gsn_csm_xy(wks,y,rad_ANN,res)
 ;res@tiYAxisString = ""
 plot(1)            = gsn_csm_xy(wks,y,sh_ANN,res)
@@ -268,7 +509,7 @@ plot(1)            = gsn_csm_xy(wks,y,sh_ANN,res)
  res@xyExplicitLegendLabels = (/"bond","harv","hyyt","loob","lwas","nbor","thar","vie","wbra","man","tumb","hay"/)
 plot(2)            = gsn_csm_xy(wks,y,lh_ANN,res)
 
-; bv hv hy lw lo nb th vi wb ma tb
+; bv hv hy lo lw nb th vi wb ma tb
 ; Legend ---------------------------------------------------------------------
 
 ;lgres                    = True
@@ -279,8 +520,8 @@ plot(2)            = gsn_csm_xy(wks,y,lh_ANN,res)
 ;lgres@lgPerimOn          = False                       ; turn off perimeter
 ;lgres@lgDashIndexes      = (/0,0,0,0,0,0,0,0,0,0,1,2/)  ; dash indexes
 ;lgres@lgLineLabelStrings = (/"",""/)                   ; no labels in lines
-;;lst = (/"bondville","harvardforest","hyytiala","littlewashita","loobos","nsaboreas","tharandt","vielsalm","walkerbranch","hay","manaus","tumbarumba"/)
-;lst  = (/"bv","hv","hy","lw","lo","nb","th","vi","wb","ma","tb"/)
+;;lst = (/"bondville","harvardforest","hyytiala","loobos","littlewashita","nsaboreas","tharandt","vielsalm","walkerbranch","hay","manaus","tumbarumba"/)
+;lst  = (/"bv","hv","hy","lo","lw","nb","th","vi","wb","ma","tb"/)
 ;xpos = 0.9 ;(/0,0,0,0.25,0.25,0.25,0.5,0.5,0.5,0.75,0.75/)
 ;ypos = 0.9 ;(/0,.1,.2,0,.1,.2,0,.1,.2,0,.1/)
 ;
@@ -304,7 +545,7 @@ gsn_panel(wks,plot,(/1,3/),pres)
 
 
 colors = (/"black","deepskyblue1","red","green","mediumorchid1","cyan","magenta","firebrick","orange","SlateBlue","navy","forestgreen"/)
-;labels = (/"bondville","harvardforest","hyytiala","littlewashita","loobos","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)
+;labels = (/"bondville","harvardforest","hyytiala","loobos","littlewashita","nsaboreas","tharandt","vielsalm","walkerbranch","manaus","tumbarumba"/)
 labels = (/"Hay","Tumbarumba","Manaus","WalkerBranch","Vielsalm","Tharandt","NSABoreas","LittleWashita","Loobos","Hyytiala","HarvardForest","Bondville"/)
 
 lgres                    = True

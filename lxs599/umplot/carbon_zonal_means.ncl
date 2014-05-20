@@ -31,10 +31,12 @@ end if
 
 Dir  = "~"+usr+"/umplot/"
 
-print("Calculating Zonal Means for Carbon Fields")
 print("")
+print("Calculating Zonal Means for Carbon Fields")
 
 do m=0,dimsizes(var_name)-1,1
+
+if (isfilepresent(filDir+"/mm."+var_name(m)+"_"+numYr+"yrs.nc")) then
 
 ; load soil respiration (rsoil,sresp,field1523,rh)
    filin  = addfile(filDir+"/mm."+var_name(m)+"_"+numYr+"yrs.nc","r")
@@ -239,6 +241,16 @@ end if
 
   gsn_panel(wks,plots,(/2,2/),pres)
 
-end do
+else
+
+print("")
+print("Carbon File - mm."+var_name(m)+" - Does Not Exist")
+;print("")
+
+end if ; if file present
+
+end do ; do var
+
+print("")
 
 end

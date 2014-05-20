@@ -105,8 +105,19 @@ end if
 pEyr1           = pr_obs_yr  ->pr
 lsm             = lsm_file   ->lsm
 emsk1           = era_mask   ->lsm
+if (isfilevar(cable_year,"time")) then
 Mtime           = moses_year ->time
 Ctime           = cable_year ->time
+else
+Mtime           = moses_year ->t
+Ctime           = cable_year ->t
+end if
+;Mtim1 = systemfunc("cdo showyear "+mosDir+"/yearly_means_"+numYr+"yrs.nc")
+;Ctim1 = systemfunc("cdo showyear "+cabDir+"/yearly_means_"+numYr+"yrs.nc")
+;Mtim2 = stringtoint(str_split(Mtim1," "))
+;Ctim2 = stringtoint(str_split(Ctim1," "))
+;;Mtim2@units = ""
+;;Ctim2@units = ""
 
 Myear           = stringtoint(str_get_field(str_get_field(Mtime@units,3," "),1,"-"))
 Cyear           = stringtoint(str_get_field(str_get_field(Ctime@units,3," "),1,"-"))
@@ -241,13 +252,21 @@ wgt_tscrnM      = wgt_areaave(LandTm(:,:,{latS:latN},{lonL:lonR}),cos(lat*0.0174
 ;wgt_tscrnM      = wgt_areaave(LandTm,cos(tMyr&latitude*0.0174532),1.0,0)
 wgt_tscrnM!0    = "time"
 wgt_tscrnM!1    = "ht"
+if (isfilevar(moses_year,"time")) then
 wgt_tscrnM&time = tMyr&time
+else
+wgt_tscrnM&time = tMyr&t
+end if
 wgt_tscrnM&ht   = tMyr&ht
 wgt_tscrnC      = wgt_areaave(LandTc(:,:,{latS:latN},{lonL:lonR}),cos(lat*0.0174532),1.0,0)
 ;wgt_tscrnC      = wgt_areaave(LandTc,cos(tCyr&latitude*0.0174532),1.0,0)
 wgt_tscrnC!0    = "time"
 wgt_tscrnC!1    = "ht"
+if (isfilevar(cable_year,"time")) then
 wgt_tscrnC&time = tCyr&time
+else
+wgt_tscrnC&time = tCyr&t
+end if
 wgt_tscrnC&ht   = tCyr&ht
 wgt_erat2m      = wgt_areaave(LandTe(:,{latS:latN},{lonL:lonR}),cos(late*0.0174532),1.0,0)
 ;wgt_erat2m      = wgt_areaave(LandTe,cos(tEyr&latitude*0.0174532),1.0,0)
@@ -258,13 +277,21 @@ wgt_prM         = wgt_areaave(LandPm(:,:,{latS:latN},{lonL:lonR}),cos(lat*0.0174
 ;wgt_prM         = wgt_areaave(LandPm,cos(pMyr&latitude*0.0174532),1.0,0)
 wgt_prM!0       = "time"
 wgt_prM!1       = "ht"
+if (isfilevar(moses_year,"time")) then
 wgt_prM&time    = pMyr&time
+else
+wgt_prM&time    = pMyr&t
+end if
 wgt_prM&ht      = pMyr&surface
 wgt_prC         = wgt_areaave(LandPc(:,:,{latS:latN},{lonL:lonR}),cos(lat*0.0174532),1.0,0)
 ;wgt_prC         = wgt_areaave(LandPc,cos(pCyr&latitude*0.0174532),1.0,0)
 wgt_prC!0       = "time"
 wgt_prC!1       = "ht"
+if (isfilevar(cable_year,"time")) then
 wgt_prC&time    = pCyr&time
+else
+wgt_prC&time    = pCyr&t
+end if
 wgt_prC&ht      = pCyr&surface
 wgt_prE         = wgt_areaave(LandPe(:,{latS:latN},{lonL:lonR}),cos(late*0.0174532),1.0,0)
 ;wgt_prE         = wgt_areaave(LandPe,cos(pEyr&latitude*0.0174532),1.0,0)
@@ -275,13 +302,21 @@ wgt_prE&time    = pEyr&time
 
 strtyr = 1978
 
+if (Myear .ge. strtyr) then
 Mstart = (Myear - strtyr)
+else
+Mstart = Myear
+end if
 if (Mmon.ne.1.and.split.eq."n") then
 Mend   = Mstart + nyrs
 else
 Mend   = Mstart + nyrs -1
 end if
+if (Cyear .ge. strtyr) then
 Cstart = (Cyear - strtyr)
+else
+Cstart = Cyear
+end if
 if (Cmon.ne.1.and.split.eq."n") then
 Cend   = Cstart + nyrs
 else
@@ -321,7 +356,11 @@ end if
  
 yyyymm            = yyyymm_time(1978,2010,"integer")
 yyyyfrac          = yyyymm_to_yyyyfrac(yyyymm,0)
+if (Cyear .ge. strtyr) then
 yyyy              = ispan(1978,2010,1)
+else
+yyyy              = ispan(Cyear,Cyear+32,1)
+end if
 
 wks               = gsn_open_wks("ps","aust_IntvarYear_"+numYr+"yrs")
 

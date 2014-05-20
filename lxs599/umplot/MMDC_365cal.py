@@ -51,6 +51,7 @@ rnt = tfile['field3333']
 #lw = t3file['longwave'] 
 #lwd = t3file['ilr'] 
 
+#print(tas.shape)
 tstep = 48 # hardwired, (tas.shape[0]/(12*30*int(year)))
 #tstep = (tas.shape[0]/(365*int(year)))
 #tstep = (tas.shape[0]/(365.25*int(year)))

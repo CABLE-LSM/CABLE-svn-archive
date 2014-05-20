@@ -74,6 +74,7 @@ begin
 
 ; Obs & Model netCDF ----------------------------------------------- 
 
+  print("")
   print("Dmget Files")
   system("dmget " + ModDir + "/seasonal_means_"  +numYr+"yrs.nc" \
             + " " + ModDir + "/monthly_means_"   +numYr+"yrs.nc" )
@@ -137,7 +138,9 @@ else
  if (isfilevar(sea_file,"pr")) then
   precip   = sea_file    ->pr          ;field77     ; Total Precip Accum kg/m2
  else
+ if (isfilevar(sea_file,"tot_precip")) then
   precip   = sea_file    ->tot_precip  ;field77 field5226    ; Total Precip Accum kg/m2
+ end if
  end if
 end if
 if(isfilevar(sea_file,"temp")) then
@@ -278,7 +281,9 @@ else
  if (isfilevar(mon_file,"pr")) then
   prmn     = mon_file    ->pr      ;field77
  else
+ if (isfilevar(sea_file,"tot_precip")) then
   prmn     = mon_file    ->tot_precip      ;field77 field5226
+ end if
  end if
 end if
 if (isfilevar(mon_file,"tscrn")) then
@@ -332,12 +337,16 @@ end if
   bom_pr   = bomopr      ->precip       ; Bureau Precip Obs
 ;MetaData-----------------------------------------------------------
 
+if (isvar("precip")) then
   precip              = precip*24*60*60  ;*48
   precip@long_name    = "Precipitation"
   precip@units        = "mm/day"
+end if
+if (isvar("prmn")) then
   prmn                = prmn*24*60*60    ;*48
   prmn@long_name      = "Precipitation"
   prmn@units          = "mm/day"
+end if
 
   tscrn@long_name     = "Temperature at 1.5m"
   tscrn@units         = "deg K"
@@ -1027,15 +1036,15 @@ Panel_Plot(pltDir,"austbias_precip_bom" ,numYr,type,"BlueDarkRed18",bias_bmpr ,T
 
 print("Plotting Jan/Jul Means")
 
-MmnPanel(pltDir,"mmn_precip" ,numYr,type,cmapr,prmn(:,0,:,:) ,False,True,levpr,False)
-MmnPanel(pltDir,"mmn_tscrn"  ,numYr,type,"BlAqGrYeOrReVi200",t2mn(:,0,:,:) ,False,True,levtp,False)
+MmnPanel(pltDir,"mmn_precip" ,numYr,type,cmapr,prmn(:,0,:,:) ,False,True,levpr,True,False)
+MmnPanel(pltDir,"mmn_tscrn"  ,numYr,type,"BlAqGrYeOrReVi200",t2mn(:,0,:,:) ,False,True,levtp,True,False)
 if(isvar("tmax")) then
-MmnPanel(pltDir,"mmn_tmax"   ,numYr,type,"BlAqGrYeOrReVi200",txmn(:,0,:,:) ,False,True,levtp,False)
-MmnPanel(pltDir,"mmn_tmin"   ,numYr,type,"BlAqGrYeOrReVi200",tnmn(:,0,:,:) ,False,True,levtp,False)
-MmnPanel(pltDir,"mmn_tamp"   ,numYr,type,"BlAqGrYeOrReVi200",tamn(:,0,:,:) ,False,True,levam,False)
+MmnPanel(pltDir,"mmn_tmax"   ,numYr,type,"BlAqGrYeOrReVi200",txmn(:,0,:,:) ,False,True,levtp,True,False)
+MmnPanel(pltDir,"mmn_tmin"   ,numYr,type,"BlAqGrYeOrReVi200",tnmn(:,0,:,:) ,False,True,levtp,True,False)
+MmnPanel(pltDir,"mmn_tamp"   ,numYr,type,"BlAqGrYeOrReVi200",tamn(:,0,:,:) ,False,True,levam,True,False)
 end if
 if(isvar("lalb")) then
-MmnPanel(pltDir,"mmn_lalb"   ,numYr,type,"BlAqGrYeOrReVi200",albmn(:,0,:,:),False,True,levalb,False)
+MmnPanel(pltDir,"mmn_lalb"   ,numYr,type,"BlAqGrYeOrReVi200",albmn(:,0,:,:),False,True,levalb,True,False)
 end if
 
 if(isvar("laimn")) then
@@ -1043,37 +1052,37 @@ if(isvar("laimn")) then
 do n =0,npft-1
 d = n+1
 lai@long_name   = "Leaf Area Index for PFT "+d
-MmnPanel(pltDir,"mmn_lai"+d  ,numYr,type,"BlAqGrYeOrReVi200",laimn(:,n,:,:),False,True,levlai,False)
+MmnPanel(pltDir,"mmn_lai"+d  ,numYr,type,"BlAqGrYeOrReVi200",laimn(:,n,:,:),False,True,levlai,True,False)
 end do
 
 do n =0,npft-1
 g = n+1
 chtmn@long_name = "Canopy Height for PFT "+g
-MmnPanel(pltDir,"mmn_canht"+g,numYr,type,"BlAqGrYeOrReVi200",chtmn(:,n,:,:),False,True,levdf,False)
+MmnPanel(pltDir,"mmn_canht"+g,numYr,type,"BlAqGrYeOrReVi200",chtmn(:,n,:,:),False,True,levdf,True,False)
 end do
 if(isvar("lstmn")) then
-MmnPanel(pltDir,"mmn_lsftp"  ,numYr,type,"BlAqGrYeOrReVi200",lstmn(:,0,:,:),False,True,levtp,False)
+MmnPanel(pltDir,"mmn_lsftp"  ,numYr,type,"BlAqGrYeOrReVi200",lstmn(:,0,:,:),False,True,levtp,True,False)
 end if
 end if
 
 if(isvar("sndmn")) then
-MmnPanel(pltDir,"mmn_sndep"  ,numYr,type,cmapsn,sndmn(:,0,:,:),False,True,levsnw,False)
+MmnPanel(pltDir,"mmn_sndep"  ,numYr,type,cmapsn,sndmn(:,0,:,:),False,True,levsnw,True,False)
 end if
 
 if(isvar("srmn")) then
-MmnPanel(pltDir,"mmn_srnf"   ,numYr,type,cmaprn,srmn(:,0,:,:) ,False,True,levrnf,False)
-MmnPanel(pltDir,"mmn_drnf"   ,numYr,type,cmaprn,drmn(:,0,:,:) ,False,True,levrnf,False)
+MmnPanel(pltDir,"mmn_srnf"   ,numYr,type,cmaprn,srmn(:,0,:,:) ,False,True,levrnf,True,False)
+MmnPanel(pltDir,"mmn_drnf"   ,numYr,type,cmaprn,drmn(:,0,:,:) ,False,True,levrnf,True,False)
 end if
 
 ; soil temp -----------
 ;if (isvar("deepST")) then
 ;do i = 0,nsoil-1,1
-;MmnPanel(pltDir,"mmn_tsl",numYr,type,"BlAqGrYeOrReVi200",deepST(:,n,:,:),False,True,levtp,False);,jpeg)
+;MmnPanel(pltDir,"mmn_tsl",numYr,type,"BlAqGrYeOrReVi200",deepST(:,n,:,:),False,True,levtp,True,False)
 ;end do
 ;end if
 ;if (lcable.and.t15) then
 ;do i = 0,nsoil-1,1
-;MmnPanel(pltDir,"mmn_soilTcab",numYr,type,"BlAqGrYeOrReVi200",soilTemp(:,n,:,:),False,True,levtp,False);,jpeg)
+;MmnPanel(pltDir,"mmn_soilTcab",numYr,type,"BlAqGrYeOrReVi200",soilTemp(:,n,:,:),False,True,levtp,True,False)
 ;end do
 ;end if
 

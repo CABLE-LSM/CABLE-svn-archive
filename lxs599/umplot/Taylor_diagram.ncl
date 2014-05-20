@@ -28,8 +28,12 @@ tiname =  systemfunc("echo $tiname")
 
 cable_file = addfile(cabsea,"r")
 moses_file = addfile(mossea,"r")
+if (isfilepresent(""+cabtem+"")) then
 cable_tmp  = addfile(cabtem,"r")
+end if
+if (isfilepresent(""+mostem+"")) then
 moses_tmp  = addfile(mostem,"r")
+end if
 
 era_tp = addfile("~"+usr+"/umplot/obs/ERAi_tp2m.nc","r")         
 era_pr = addfile("~"+usr+"/umplot/obs/ERAi_precip.nc","r")
@@ -46,12 +50,14 @@ ctemp = cable_file ->tscrn
 else
 ctemp = cable_file ->$tname$
 end if
+if (isvar("cable_tmp")) then
 if (isfilevar(cable_tmp,"tmax")) then
  ctmax = cable_tmp  ->tmax
  ctmin = cable_tmp  ->tmin
 else
  ctmax = cable_tmp  ->$txname$ ;temp
  ctmin = cable_tmp  ->$tiname$ ;temp_1
+end if
 end if
 cprec = cable_file ->precip
 clh   = cable_file ->lh
@@ -64,12 +70,14 @@ mtemp = moses_file ->tscrn
 else
 mtemp = moses_file ->$tname$
 end if
+if (isvar("moses_tmp")) then
 if (isfilevar(moses_tmp,"tmax")) then
  mtmax = moses_tmp  ->tmax
  mtmin = moses_tmp  ->tmin
 else
  mtmax = moses_tmp  ->$txname$ ;temp
  mtmin = moses_tmp  ->$tiname$ ;temp_1
+end if
 end if
 mprec = moses_file ->precip
 mlh   = moses_file ->lh
@@ -185,6 +193,9 @@ ratio(0,1) = cprecip(0)
 cc(0,1)    = cprecip(1)
 
 ; TMAX--------------------------------
+
+if (isvar("cable_tmp")) then
+
 ;var_o = mx2t[d=3,gx=temp[d=6],gy=temp[d=6],l=1:4@sum]/4
 ;var_m = temp[d=6,l=1:4@sum]/4
 xobs   = linint2(tmax&longitude,tmax&latitude,tmax,True,ctmax&longitude,ctmax&latitude,0)
@@ -203,6 +214,13 @@ nvar_m = dim_avg_n_Wrap(ctmin(:,0,:,:),0)
 c_tmin  = taylor_stats(wgt,nvar_o,nvar_m)
 ratio(0,3) = c_tmin(0)
 cc(0,3)    = c_tmin(1)
+
+else
+
+ratio(0,2:3) = -9999
+cc(0,2:3)    = -9999
+
+end if
 
 ; SW RAD------------------------------
   sNames = getvardims(csw)
@@ -283,6 +301,9 @@ ratio(1,1) = mprecip(0)
 cc(1,1)    = mprecip(1)
 
 ; TMAX-------------------------------
+
+if (isvar("moses_tmp")) then
+
 ;var_o = mx2t[d=3,gx=temp[d=7],gy=temp[d=7],l=1:4@sum]/4
 ;var_m = temp[d=7,l=1:4@sum]/4
 mxobs   = linint2(tmax&longitude,tmax&latitude,tmax,True,mtmax&longitude,mtmax&latitude,0)
@@ -301,6 +322,13 @@ mnvar_m = dim_avg_n_Wrap(mtmin(:,0,:,:),0)
 m_tmin = taylor_stats(wgt,mnvar_o,mnvar_m)
 ratio(1,3) = m_tmin(0)
 cc(1,3)    = m_tmin(1)
+
+else
+
+ratio(1,2:3) = -9999
+cc(1,2:3)    = -9999
+
+end if
 
 ; SW RAD-----------------------------
 ;var_o = RSS_ANN[d=8,gx=SOLAR[d=5],gy=SOLAR[d=5],l=1];:4@ave]

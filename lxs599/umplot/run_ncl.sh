@@ -2,27 +2,30 @@
 #---------------------------------------------------------------------------
 # UMPLOT v2.1.2
 # Created by Lauren Stevens, email: Lauren.Stevens@csiro.au
-# 2008-2013
+# 2008-2014
 #---------------------------------------------------------------------------
 
 #*******Edit********
-setenv USERID ste69f  # Cherax/Burnet
-#setenv USERID lxs599 # NCI- Raijin/Access*
+if ($HOSTNAME == cherax) then
+ setenv USERID ste69f  # Cherax/Burnet
+else
+ setenv USERID lxs599  # NCI- Raijin/Access*
+endif
 #*******************
 
 echo ""
-echo "==========================================================="
-echo "                       UMPLOT v2.1.2                       "
-echo "                Developed by Lauren Stevens                "
-echo "               Email: Lauren.Stevens@csiro.au              "
-echo "==========================================================="
+echo "=================================================================="
+echo "                          UMPLOT v2.1.2                           "
+echo "                   Developed by Lauren Stevens                    "
+echo "                 Email: Lauren.Stevens@csiro.au                   "
+echo "=================================================================="
 echo ""
 
 # SET UP - see Chapter 2 in Documentation.
 # You must have certain modules loaded before running UMPLOT. E.g.
 #module load ncl #/6.1.0-beta or later
 #module load nco
-#module load cdo
+module load cdo/1.6.1
 #module load python
 #module load cdat
 
@@ -134,6 +137,7 @@ if ($NCI_CP == y) then
  echo "(0)     Transferring Fields Files to Cherax"
  echo ""
  ~$USERID/umplot/tools/rsync_raijin.sh
+ echo ""
 else
  echo "(0)     No Fields Files Transferred from Raijin"
  echo ""
@@ -145,9 +149,13 @@ endif
 #set date=`date`
 
 # if ~/access doesn't exist ?
+if ($HOSTNAME == cherax) then
 if ($DIRW == ~/access) then
  setenv DIRW ~/access/$RUNID
  cd $DIRW
+endif
+#else
+#/short/p66/$NCI_ID/
 endif
 # NCI Transfer =============================================
 
@@ -157,6 +165,7 @@ if (${?CPL} == 0) then
  setenv CPL n
 else
  echo "(1)     NOTE: CPL is Set and Set to" $CPL
+ echo ""
 endif
 if ($CPL == n) then
  set pnc=`ls $DIR/$RUNID$a.p??????.nc | wc -l`
@@ -164,21 +173,31 @@ else
  set pnc=`ls $DIR/$RUNID.p?-??????????.nc | wc -l`
 endif
 
+#Do Check - so that you aren't going to edit someone else's $DIR
+#if ($CNV2NC == y && ) then
+# setenv CNV2NC n
+##or
+# echo "Check the Set DIR in umplot.nml"
+# exit(1)
+#endif
+
 if ($CNV2NC == y) then
 
   #set date=`date`
-   echo ""
+   #echo ""
    echo "(0)     Converting Fields Files to NetCDF"
    echo ""
    cd $DIR
    ~$USERID/umplot/conv_um2nc.sh
   #set date=`date`
+ if ($CPL == n) then
    echo " "
    echo "(0)     Extracting Tmax and Tmin to" $Ptemps "File"
    ~$USERID/umplot/tools/extract_pb.sh
+ endif
    cd $DIRW
 
-  echo " "
+  #echo " "
   echo "(0)     Converted Fields Files to NetCDF before Running UMPLOT"
 
 else #CNV2NC == n
@@ -230,6 +249,7 @@ set i = 0
 if (${?UMPLT} == 0) then
  setenv UMPLT y
 else
+ echo " "
  echo "(1)     NOTE: UMPLT is Set and Set to" $UMPLT
 endif
 
@@ -259,7 +279,11 @@ else
  echo "(1)     Working directory is NOT the same as Data directory"
 
  # in $DIRW
- set rid=`ls ?????a.p?????? | head -1 | head -c5`
+ if ($CPL == n) then
+  set rid=`ls ?????a.p?????? | head -1 | head -c5`
+ else
+  set rid=`ls *.p?-?????????? | head -1 | head -c5`
+ endif
  #set rid2=`ls $DIR/?????a.p?????? | head -1 | head -c5`
  setenv RID $rid
  #setenv RID2 $rid2
@@ -306,8 +330,8 @@ endif
 # Processing ===============================================
 if ($CPL == n) then
 ~$USERID/umplot/cdo_merge.sh
-#else
-#~$USERID/umplot/cdo_merge_cpl.sh
+else
+~$USERID/umplot/cdo_merge_cpl.sh
 endif
 
 #foreach blk ( $block )
@@ -321,10 +345,10 @@ source ~$USERID/umplot/nml/envars.sh
 echo " "
 echo "(0)     Post-Processing NetCDF Files"
 
-if ($CPL == y) then
- ~$USERID/umplot/split_seas_cpl.sh
-else
+if ($CPL == n) then
  ~$USERID/umplot/split_seasonal.sh
+else
+ ~$USERID/umplot/split_seas_cpl.sh
 endif
 
 cd $DIRW/block${BLOCK}_5yrs
@@ -363,7 +387,9 @@ ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
  ncl ~$USERID/umplot/global_means_ctables.ncl
 endif
-ncl ~$USERID/umplot/carbon_zonal_means.ncl
+#if ( -e mm.*.nc ) then
+ ncl ~$USERID/umplot/carbon_zonal_means.ncl
+#endif
 ncl ~$USERID/umplot/global_means_carbon.ncl
 #ncl ~$USERID/umplot/daily_mean_timeseries.ncl
 
@@ -373,6 +399,7 @@ if( -e $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc ) then
   python ~$USERID/umplot/MMDC.py $YR
  else
   set years=`cdo showyear $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc`
+  echo ""
   python ~$USERID/umplot/MMDC_365cal.py $YR $years[1] $years[$YR] #[$#years]
  endif
  # non-Jan start: python $PLOT/MMDC_roll.py $YR
@@ -383,6 +410,7 @@ if( -e $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc ) then
   python ~$USERID/umplot/AnnualCycle.py $YR
  else
   set years=`cdo showyear $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc`
+  echo ""
   python ~$USERID/umplot/AnnualCycle_365cal.py $YR $years[1] $years[$YR] #[$#years]
  #cdo ymonmean Timeseries_${YR}yrs.nc AnnCycle_${YR}yrs.nc
  endif
@@ -408,15 +436,17 @@ if ($BMRK == y) then
    ncl ~$USERID/umplot/Yr_IntAnnVar_Aust.ncl
   endif
   ncl ~$USERID/umplot/bias_3panel.ncl
-  ncl ~$USERID/umplot/amoj_scripts/zonal_pr.ncl
-  ncl ~$USERID/umplot/amoj_scripts/zonal_clt.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_precip.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tscrn.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmin.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmax.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_clouds.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_diff6p_surfalb.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj4p_trunoff.ncl
+  ncl ~$USERID/umplot/zonal_pr.ncl
+  ncl ~$USERID/umplot/zonal_clt.ncl
+  ncl ~$USERID/umplot/plot_amoj6p_precip.ncl
+  ncl ~$USERID/umplot/plot_amoj6p_tscrn.ncl
+  if ( -e ${CABLE}/Tseasonal_means_${YR}yrs.nc && -e ${MOSES}/Tseasonal_means_${YR}yrs.nc) then
+   ncl ~$USERID/umplot/plot_amoj6p_tmin.ncl
+   ncl ~$USERID/umplot/plot_amoj6p_tmax.ncl
+  endif
+  ncl ~$USERID/umplot/plot_amoj6p_clouds.ncl
+  ncl ~$USERID/umplot/plot_diff6p_surfalb.ncl
+  ncl ~$USERID/umplot/plot_amoj4p_trunoff.ncl
   ncl ~$USERID/umplot/barchart.ncl
   #ncl chv=0 ~$USERID/umplot/barchart_amp.ncl
   #ncl chv=1 ~$USERID/umplot/barchart_amp.ncl
@@ -424,6 +454,7 @@ if ($BMRK == y) then
  else
   echo "(1)     Cannot plot Taylor Diagram and Panel Plots - Necessary Files Don't Exist"
   echo "(1)     e.g. seasonal_means_${YR}yrs.nc"
+  echo ""
  endif
  if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
   ncl ~$USERID/umplot/mmdc_hyytiala.ncl
@@ -441,6 +472,7 @@ if ($BMRK == y) then
  else
   echo "(1)     Cannot plot Fluxnet with Timeseries - Necessary Files Don't Exist"
   echo "(1)     e.g. Timeseries_${YR}yrs.nc"
+  echo ""
  endif
 endif
 # Benchmarking =============================================
@@ -453,8 +485,8 @@ end
 
 if ($CPL == n) then
 rm h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc
-#else
-#rm y????.nc
+else
+rm y????.nc
 endif
 
 # ==================================================================================
@@ -471,12 +503,12 @@ if (! -e $DIRW/seasonal_means_${YR}yrs.nc ) then
 echo "(0)     Post-Processing NetCDF Files"
 echo " "
 
-if ($CPL == y) then
- ~$USERID/umplot/seas_cpl.sh
- ~$USERID/umplot/cdo_merge_cpl.sh
-else
+if ($CPL == n) then
  ~$USERID/umplot/seasonal.sh
  ~$USERID/umplot/cdo_merge.sh
+else
+ ~$USERID/umplot/seas_cpl.sh
+ ~$USERID/umplot/cdo_merge_cpl.sh
 endif
 
 set flen=`cdo ntime $DIRW/Mmonthly_means_${YR}yrs.nc`
@@ -520,7 +552,9 @@ ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
  ncl ~$USERID/umplot/global_means_ctables.ncl
 endif
-ncl ~$USERID/umplot/carbon_zonal_means.ncl
+#if ( -e mm.*.nc ) then
+ ncl ~$USERID/umplot/carbon_zonal_means.ncl
+#endif
 ncl ~$USERID/umplot/global_means_carbon.ncl
 #ncl ~$USERID/umplot/daily_mean_timeseries.ncl
 
@@ -530,6 +564,7 @@ if ( -e $DIRW/Timeseries_${YR}yrs.nc ) then
   python ~$USERID/umplot/MMDC.py $YR
  else
   set years=`cdo showyear $DIRW/Timeseries_${YR}yrs.nc`
+  echo ""
   python ~$USERID/umplot/MMDC_365cal.py $YR $years[1] $years[$YR] #[$#years]
  endif
  # non-Jan start: python $PLOT/MMDC_roll.py $YR
@@ -540,6 +575,7 @@ if ( -e $DIRW/Timeseries_${YR}yrs.nc ) then
   python ~$USERID/umplot/AnnualCycle.py $YR
  else
   set years=`cdo showyear $DIRW/Timeseries_${YR}yrs.nc`
+  echo ""
   python ~$USERID/umplot/AnnualCycle_365cal.py $YR $years[1] $years[$YR] #[$#years]
  #cdo ymonmean Timeseries_${YR}yrs.nc AnnCycle_${YR}yrs.nc
  endif
@@ -565,15 +601,17 @@ if ($BMRK == y) then
    ncl ~$USERID/umplot/Yr_IntAnnVar_Aust.ncl
   endif
   ncl ~$USERID/umplot/bias_3panel.ncl
-  ncl ~$USERID/umplot/amoj_scripts/zonal_pr.ncl
-  ncl ~$USERID/umplot/amoj_scripts/zonal_clt.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_precip.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tscrn.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmin.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_tmax.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj6p_clouds.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_diff6p_surfalb.ncl
-  ncl ~$USERID/umplot/amoj_scripts/plot_amoj4p_trunoff.ncl
+  ncl ~$USERID/umplot/zonal_pr.ncl
+  ncl ~$USERID/umplot/zonal_clt.ncl
+  ncl ~$USERID/umplot/plot_amoj6p_precip.ncl
+  ncl ~$USERID/umplot/plot_amoj6p_tscrn.ncl
+  if ( -e ${CABLE}/Tseasonal_means_${YR}yrs.nc && -e ${MOSES}/Tseasonal_means_${YR}yrs.nc) then
+   ncl ~$USERID/umplot/plot_amoj6p_tmin.ncl
+   ncl ~$USERID/umplot/plot_amoj6p_tmax.ncl
+  endif
+  ncl ~$USERID/umplot/plot_amoj6p_clouds.ncl
+  ncl ~$USERID/umplot/plot_diff6p_surfalb.ncl
+  ncl ~$USERID/umplot/plot_amoj4p_trunoff.ncl
   ncl ~$USERID/umplot/barchart.ncl
   #ncl chv=0 ~$USERID/umplot/barchart_amp.ncl
   #ncl chv=1 ~$USERID/umplot/barchart_amp.ncl
@@ -581,6 +619,7 @@ if ($BMRK == y) then
  else
   echo "(1)     Cannot plot Taylor Diagram and Panel Plots - Necessary Files Don't Exist"
   echo "(1)     e.g. seasonal_means_${YR}yrs.nc"
+  echo ""
  endif
  if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
   ncl ~$USERID/umplot/mmdc_hyytiala.ncl
@@ -598,6 +637,7 @@ if ($BMRK == y) then
  else
   echo "(1)     Cannot plot Fluxnet with Timeseries - Necessary Files Don't Exist"
   echo "(1)     e.g. Timeseries_${YR}yrs.nc"
+  echo ""
  endif
 endif
 # Benchmarking =============================================
@@ -624,7 +664,7 @@ endif # split
 #---------------------------------------------------------------------------
 
 echo " "
-echo "========================= Finished UMPLOT ==========================="
+echo "========================= Finished UMPLOT ========================="
 echo " "
 echo "You have Set the Parameters of this UMPLOT Run as:"
 echo "Jobid:" $RUNID "with files in Directory:" $DIR
@@ -634,7 +674,7 @@ echo "You are Comparing results with" $BDIR
 endif
 
 echo " "
-echo "====================================================================="
+echo "==================================================================="
 echo " "
 
 echo "Start Time:" $date

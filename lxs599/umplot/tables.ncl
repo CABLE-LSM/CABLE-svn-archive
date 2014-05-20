@@ -131,7 +131,9 @@ res3@txFontHeightF = 0.012
 ;                        (/"white","gray","gray","gray","gray","gray","gray","gray","gray","white","white","white"/),     \
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
-print("Creating Energy Components Table")
+print("")
+print("Creating Energy Balance Table")
+print("")
 gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr8,x8,y8,text8,res1)
 ;gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
@@ -215,6 +217,7 @@ res3@gsFillColor   = (/ (/"white","gray","white","white","gray","white","white"/
 ;                        ;(/"white","gray","white","white","gray","white","white","white","white"/)   /)
 
 print("Creating Water Balance Table")
+print("")
 gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr8,x8,y8,text8,res1)
 gsn_table(wks,ncr2,x2,y2,text2,res2)
@@ -496,6 +499,7 @@ res3@txFontHeightF = 0.012
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
 print("Creating Temp. cTable")
+print("")
 ;gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
 gsn_table(wks,ncr1_2,x1_2,y1_2,text12,res1)
@@ -587,7 +591,9 @@ res3@txFontHeightF = 0.010
 ;                        (/"white","gray","gray","gray","gray","gray","gray","gray","gray","white","white","white"/),     \
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
+print("")
 print("Creating Energy Balance cTable")
+print("")
 ;gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
 gsn_table(wks,ncr1_2,x1_2,y1_2,text12,res1)
@@ -691,6 +697,7 @@ res3@txFontHeightF = 0.012
 ;                        (/"white","gray","white","white","gray","white","gray","gray","gray","white","white","white"/)   /)
 
 print("Creating Water Balance cTable")
+print("")
 ;gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr1_1,x1_1,y1_1,text11,res1)
 gsn_table(wks,ncr1_2,x1_2,y1_2,text12,res1)
