@@ -36,7 +36,9 @@ def main(argv):
             # Directories: mapping data, cocatenated data, exececutables 
             self.path =     [ "data/mapping",
                               "data/catted",
-                              "bin/cat_Nnodes" ]
+                              "bin/cat_Nnodes", 
+                              "bin/ncdf_main", 
+                              "data/ncdf" ] 
 
             # Fieldnames of mapping data 
             self.mapfield = [ "latitude",
@@ -81,7 +83,7 @@ def main(argv):
     #subprocess.call(cmd)
     p = subprocess.Popen(cmd1, stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
-    p = subprocess.Popen(cmd1, stdout=subprocess.PIPE, shell=True)
+    p = subprocess.Popen(cmd2, stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
 
     # Get user input from both CLI and config file

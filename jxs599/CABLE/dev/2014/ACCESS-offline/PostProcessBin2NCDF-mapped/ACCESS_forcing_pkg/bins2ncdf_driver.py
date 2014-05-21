@@ -7,21 +7,76 @@ def driver( fields,
             flags ):
 
     dir_cwd = os.getcwd()
-    execu = dir_cwd + '/' + pars.path[2]
+    execu2 = dir_cwd + '/' + pars.path[2]
+    execu3 = dir_cwd + '/' + pars.path[3]
     dir_map = dir_cwd + '/' + pars.path[0]
+    dir_cat = dir_cwd + '/' + pars.path[1]
+    dir_ncdf = dir_cwd + '/' + pars.path[4]
     
-    if config.map[0] is True:
+    # IF mapping is to be processed
+    #if config.map[0] is True:
+    if config.map[0] is False:
 
         os.chdir(dir_map)
 
         for mm in range( len(pars.mapfield) ):
             #execute system commands
-            cmd = ( execu + " " + pars.mapfield[mm] + " " + config.nodes[0] )
-            print cmd
+            catcmd = ( execu2 + " " + pars.mapfield[mm] + " " + config.nodes[0] )
 
-    #subprocess.call(cmd)
-    #p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    #(output, err) = p.communicate()
+            print '\nExecuting...\n', catcmd
+            #subprocess.call(catcmd)
+            p2 = subprocess.Popen(catcmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p2.communicate()
+            print 'Done.'
 
-    #for ff in range( len(fields.name) ):
-    #    print fields.name[ff]
+            #subprocess.call(cpcmd)
+            cpcmd = ( "/bin/cp " + pars.mapfield[mm] + ".* " + dir_cat )
+            print '\nCopying...\n', cpcmd
+            cpcat = subprocess.Popen(cpcmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = cpcat.communicate()
+
+    # IF there are fields to be processed
+    if( len(fields.name) > 0 ):
+        
+        os.chdir(dir_map)
+
+        for ff in range( len(fields.name) ):
+        
+            funit = open("input.dat",'w')
+            funit.write(fields.name[ff]+'\n')
+            funit.write(fields.name[ff] +'.nc\n')
+            funit.close()
+
+            #execute system commands
+            catcmd = ( execu2 + " " + fields.name[ff] + " " + config.nodes[0] )
+
+            print '\nExecuting...\n', catcmd
+            #subprocess.call(catcmd)
+            p2 = subprocess.Popen(catcmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p2.communicate()
+            print 'Done.'
+  
+            #subprocess.call(cpcmd)
+            cpcmd = ( "/bin/cp " + fields.name[ff] + ".* " + dir_cat )
+            print '\nCopying...\n', cpcmd
+            cpcat = subprocess.Popen(cpcmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = cpcat.communicate()
+            
+            # call fortran executable to generate mapped netcdf file
+            #   system("$dir_exec/ncdf_main $dir_catted");
+            nccmd = ( execu3 + " " + dir_cat + "/" )
+
+            print '\nExecuting...\n', nccmd
+            #subprocess.call(nccmd)
+            p3 = subprocess.Popen(nccmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p3.communicate()
+            print 'Done.'
+            
+            #   system("mv $basename.nc $dir_ncdf" );
+            #subprocess.call(mvcmd)
+            mvcmd = ( "/bin/mv " + fields.name[ff] + ".nc " + dir_ncdf )
+            print '\nCopying...\n', mvcmd
+            cpnc = subprocess.Popen(mvcmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = cpnc.communicate()
+
+

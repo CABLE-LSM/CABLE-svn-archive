@@ -12,14 +12,14 @@
 # path <path1>
 # path <path2>
 # path <path3>
-FIeldname metfd1_ 
-FIeldname metfd2_ 
-fieldNAMe <field3>
+FIeldname tile_frac
+#FIeldname metfd2_ 
+#fieldNAMe <field3>
 #
 # Either specify a  single path or a path per field
 # IF only one path is sepcified then this will be assumed for all the fields
 # otherwise specify a path for each field
-Path data/metfsd 
+Path data/tile_frac 
 #Path <path2>
 #Path <path3>
 #
