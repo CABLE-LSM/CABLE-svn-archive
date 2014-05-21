@@ -38,9 +38,10 @@ def driver( fields,
     # IF there are fields to be processed
     if( len(fields.name) > 0 ):
         
-        os.chdir(dir_map)
-
         for ff in range( len(fields.name) ):
+        
+            dir_var = dir_cwd + '/' + fields.path[ff]
+            os.chdir(dir_var)
         
             funit = open("input.dat",'w')
             funit.write(fields.name[ff]+'\n')
@@ -63,7 +64,6 @@ def driver( fields,
             (output, err) = cpcat.communicate()
             
             # call fortran executable to generate mapped netcdf file
-            #   system("$dir_exec/ncdf_main $dir_catted");
             nccmd = ( execu3 + " " + dir_cat + "/" )
 
             print '\nExecuting...\n', nccmd
