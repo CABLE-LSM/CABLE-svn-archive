@@ -1,0 +1,32 @@
+# This is a configuration file which can be read as an alternative defining all args
+# in calling mapme.py from the CLI. This file is read by issuing 
+#      ./mapme.py -f <name of config file>
+# In this config file can be specified several vars. NB. These will be overwritten 
+# if the same arguments are explicitly specified on the CLI. The arguments that can be 
+# specified are:  NumberNodes, FieldName, PathName 
+# Number of fields: 3
+# Number of dirs: 3
+# fieldname <field1>
+# fieldname <field2>
+# fieldname <field3>
+# path <path1>
+# path <path2>
+# path <path3>
+FIeldname metfd1_ 
+FIeldname metfd2_ 
+fieldNAMe <field3>
+#
+# Either specify a  single path or a path per field
+# IF only one path is sepcified then this will be assumed for all the fields
+# otherwise specify a path for each field
+Path data/metfsd 
+#Path <path2>
+#Path <path3>
+#
+# Mapping can only be either True or False
+# True means operate on mapping data
+# False implies you have already performed this
+Mapping True
+#
+# Number of Nodes files were dumped on
+Nodes 16
