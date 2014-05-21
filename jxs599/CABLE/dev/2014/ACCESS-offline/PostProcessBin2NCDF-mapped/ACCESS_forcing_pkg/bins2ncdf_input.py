@@ -53,6 +53,7 @@ def CLI_interpreter( argv,
             config.nodes = arg
             # reset 1st element indicating CLI arg present
             flags.flag[2] = True
+
     print "CLI arguments Interpreted. May be overwritten by config file."
 
 ###############################################################################
@@ -109,6 +110,10 @@ def Configfile_interpreter( config,
 
     if npaths > 1:
         flags.flag[3] = True
+    
+    if flags.flag[2] is False:
+        print "Aborting. Nodes NOT specified."
+        sys.exit()        
 
     print "Config file Interpreted"
 

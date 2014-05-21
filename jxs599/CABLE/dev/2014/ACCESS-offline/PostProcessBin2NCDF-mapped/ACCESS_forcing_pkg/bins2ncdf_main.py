@@ -1,16 +1,17 @@
 #!/usr/bin/python
+__author__ = 'Jhan Srbinovsky'
 
-# read CLI args defining what field(s) to process, whether or not to process mapping data, 
-# where the files are, AND how many nodes they were dumped from. AND/OR read from a 
-# config file. This has to be the case if there is more than one field
+# Process binary fields dumped per node from CABLE into global netcdf files.
 
-__author__ = 'srb001'
+# usage: ./bins2ncdf_main -f <config file>
+
+# Required format for config file described in example configfile
 
 #import python modules
 import sys
 import subprocess
 
-#import local modules
+#import local, application specific modules
 from bins2ncdf_input import user_input 
 from bins2ncdf_driver import driver 
 
@@ -58,12 +59,11 @@ def main(argv):
             self.name  = []
             self.path  = []
 
-    # Can be set only via CLI 
-    # Can be set only via configfile
+    
     # Can be set either via CLI or commandline: trumped by configfile
     class Configs(object):
         def __init__(self):
-            self.file = []
+            self.file = []      # Can be set only via CLI 
             self.map  = []
             self.nodes  = []
 
