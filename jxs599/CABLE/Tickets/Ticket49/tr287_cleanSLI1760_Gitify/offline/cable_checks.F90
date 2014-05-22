@@ -239,23 +239,13 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    !      it's included in change in canopy storage calculation))
    ! rml 28/2/11 ! BP changed rnof1+rnof2 to ssnow%runoff which also included rnof5
    ! which is used when nglacier=2 in soilsnow routines (BP feb2011)
-
-    !write(*,*) ssnow%wb, bwb(:,:,1), bwb(:,:,2), delwb
-
    bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
         + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
-
-
 !   bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        & 
 !        - ssnow%rnof1-ssnow%rnof2-(canopy%fevw+canopy%fevc                     &
 !        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
-
-    !write(*,*) met%precip, canopy%delwc, canopy%through, canopy%fevw, canopy%fevc
-    !STOP
-
-
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
          - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
 
@@ -279,8 +269,6 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
            + (canopy%fev+canopy%fes/ssnow%cls) * dels/air%rlam
    END IF
 
-
-
 END SUBROUTINE mass_balance
 
 !==============================================================================
@@ -297,7 +285,7 @@ END SUBROUTINE mass_balance
 !
 !==============================================================================
 
-  SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                    &
+SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
                              SBOLTZ,EMLEAF, EMSOIL )
 
    ! Input arguments
