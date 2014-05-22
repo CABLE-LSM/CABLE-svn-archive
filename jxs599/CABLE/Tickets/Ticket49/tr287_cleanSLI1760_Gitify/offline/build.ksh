@@ -140,6 +140,7 @@ host_read()
       export NCDIR=$NCDF_ROOT/$NCDF_DIR
    fi
 
+   
    print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF .mod file."
    print "\n\tPress enter for default [include]."
@@ -218,10 +219,10 @@ host_write()
 
 clean_build()
 {
-      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
-      read dummy 
       print '\ncleaning up\n'
       rm -fr .tmp
+      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      read dummy 
 }
 
 
