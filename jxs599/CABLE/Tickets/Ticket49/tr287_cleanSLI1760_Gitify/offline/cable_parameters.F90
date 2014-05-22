@@ -1381,27 +1381,12 @@ CONTAINS
       soil%ssat_vec = SPREAD(soil%ssat,2,ms)
       IF(cable_user%SOIL_STRUC=='sli') THEN
          soil%nhorizons = 2 ! use 2 soil horizons globally
-         ! For now just set B horizon parameters to be the same as A
-         ! soil%bchB = soil%bch
-         ! soil%clayB = soil%clay
-         ! soil%sandB = soil%sand ! MC: used later
-         ! soil%siltB = soil%silt !
-         ! soil%cssB = soil%css
-         ! soil%hydsB = soil%hyds
-         ! soil%rhosoilB = soil%rhosoil
-         ! soil%sfcB = soil%sfc
-         ! soil%ssatB = soil%ssat
-         ! soil%sucsB = soil%sucs
-         ! soil%swiltB = soil%swilt
-
          soil%sfc_vec = SPREAD(soil%sfc,2,ms)
 
          ! Arbitrarily set A horiz depth to be first half of the layers
          soil%ishorizon(:,1:ms/2)  = 1
          soil%ishorizon(:,ms/2+1:) = 2
-         ! soil%depthA = SUM(soil%zse(1:3))
          soil%clitt = 5.0 ! (tC / ha)
-         ! soil%depthB = SUM(soil%zse(4:))
       END IF
     END IF
  

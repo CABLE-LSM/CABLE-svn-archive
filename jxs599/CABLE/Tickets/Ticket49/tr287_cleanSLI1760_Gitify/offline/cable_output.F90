@@ -66,7 +66,7 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-          HVeg, HSoil, Rnet, tvar, RnetSoil, SnowMelt
+                    HVeg, HSoil, Rnet, tvar, RnetSoil, SnowMelt
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -1114,9 +1114,8 @@ CONTAINS
 
     ! If this time step is an output time step:
     IF(writenow) THEN
-
        ! Write to temporary time variable:
-       timetemp(1) = REAL(REAL(ktau-backtrack)*dels, r_2)
+       timetemp(1) = DBLE(REAL(ktau-backtrack)*dels)
        ! Write time variable for this output time step:
        ok = NF90_PUT_VAR(ncid_out, ovid%tvar, timetemp,                        &
                                         start = (/out_timestep/), count = (/1/))
@@ -1631,14 +1630,9 @@ CONTAINS
     ! RadT: Radiative surface temperature [K]
     IF(output%radiation .OR. output%RadT) THEN
        ! Add current timestep's value to total of temporary output variable:
-!       out%RadT = out%RadT + REAL((((1.0 - rad%transd) * emleaf * sboltz *     &
-!            canopy%tv ** 4 + rad%transd * emsoil * sboltz * ((1 - ssnow%isflag) *   &
-!            ssnow%tgg(:, 1) + ssnow%isflag * ssnow%tggsn(:, 1)) ** 4) / sboltz)     &
-!            ** 0.25, 4)
        out%RadT = out%RadT + REAL((((1.0 - rad%transd) * emleaf * sboltz *     &
-            canopy%tv ** 4 + rad%transd * emsoil * sboltz * (ssnow%tss) ** 4) / sboltz)     &
+       canopy%tv ** 4 + rad%transd * emsoil * sboltz * (ssnow%tss) ** 4) / sboltz)     &
        ** 0.25, 4)
-
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%RadT = out%RadT/REAL(output%interval, 4)
