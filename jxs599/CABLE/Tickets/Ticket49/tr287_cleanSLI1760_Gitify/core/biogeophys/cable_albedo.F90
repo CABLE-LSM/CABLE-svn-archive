@@ -74,12 +74,6 @@ CONTAINS
 
     CALL surface_albedosn(ssnow, veg, met, soil,dels)
 
-   WHERE (soil%isoilm == 9)   ! use dry snow albedo (permanent ice)
-     ! hard-wired number to be removed in future version
-     ssnow%albsoilsn(:,2) = 0.82
-     ssnow%albsoilsn(:,1) = 0.82
-   END WHERE
-   
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
    rad%rhocbm  = 0.0
@@ -485,7 +479,11 @@ END SUBROUTINE surface_albedo
    ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
                           ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
 
-
+   WHERE (soil%isoilm == 9)          ! use dry snow albedo
+     ssnow%albsoilsn(:,2) = 0.82
+     ssnow%albsoilsn(:,1) = 0.82
+   END WHERE
+   
 END SUBROUTINE surface_albedosn
 
 ! ------------------------------------------------------------------------------
