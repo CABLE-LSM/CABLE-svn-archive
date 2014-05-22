@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -52,8 +52,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    USE cable_radiation_module
    USE cable_air_module
    USE cable_common_module   
+   USE cable_roughness_module
     USE sli_utils, ONLY : potential_evap
-
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -197,6 +197,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! resistances rt0, rt1 (elements of dispersion matrix):
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
       CALL comp_friction_vel()
+
+      ! E.Kowalczyk 2014
+      IF (cable_user%l_new_roughness_soil)                                     &
+         CALL ruff_resist(veg, rough, ssnow, canopy)
+
       
       ! Turbulent aerodynamic resistance from roughness sublayer depth 
       ! to reference height, x=1 if zref+disp>zruffs, 
@@ -671,14 +676,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%spill=max(0.0, canopy%cansto-cansat)
 
    ! Move excess canopy water to throughfall:
+   ! %through is /dels in UM app. (unpacked in hyd driver) for STASH output  
    canopy%through = canopy%through + canopy%spill
    
    ! Initialise 'throughfall to soil' as 'throughfall from canopy'; 
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
 
-   canopy%through = canopy%through / dels   ! change units for stash output
-   
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
    
@@ -815,8 +819,13 @@ SUBROUTINE Latent_heat_flux()
       
       IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
 
+        IF (.not.cable_user%l_new_reduce_soilevp) THEN
          flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
-            fupper_limit(j) = MAX( 0.,                                        &
+        ELSE
+         ! E.Kowalczyk 2014 - reduces the soil evaporation
+         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
+        ENDIF
+         fupper_limit(j) = MAX( 0._r_2,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
 

@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -234,7 +234,7 @@ module cable_data_module
       REAL, POINTER ::                                                         &
          ! physical constants
          CSD, CRD, CCD, CCW_C, USUHM, VONK,                                    &
-         A33, CTL,  ZDLIN, CSW   
+         A33, CTL,  ZDLIN, CSW, GRAV   
    END TYPE irough_type
 
 
@@ -423,6 +423,7 @@ SUBROUTINE rough_type_ptr(C)
          C%A33   => PHYS%A33                                                      
          C%CTL   => PHYS%CTL                                                    
          C%ZDLIN => PHYS%ZDLIN                                                    
+         C%GRAV  => PHYS%GRAV                                                   
 END SUBROUTINE rough_type_ptr 
 
 ! ------------------------------------------------------------------------------
