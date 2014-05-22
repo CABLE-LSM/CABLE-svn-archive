@@ -152,14 +152,10 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       rad%extkb = rad%extkd + 0.001
    END WHERE
    
-    !WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
-    !   rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
-    !END WHERE
-
-    ! vh !
-    WHERE(rad%fbeam(:,1) < 1.0e-3 )
-       rad%extkb=1.0e5         ! keep cexpkbm within real*4 range (BP jul2010)
-   END WHERE
+  ! vh !
+  WHERE(rad%fbeam(:,1) < 1.0e-3 )
+      rad%extkb=1.0e5         ! keep cexpkbm within real*4 range (BP jul2010)
+  END WHERE
    
 END SUBROUTINE init_radiation
 
@@ -219,9 +215,12 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    END WHERE
 
    ! Define fraction of SW beam tranmitted through canopy:
-    rad%transb = real(exp(-min(rad%extkb * canopy%vlaiw, 20.))) !vh! to avoid floating underflow
+   dummy2 = MIN(rad%extkb * canopy%vlaiw,30)
+   dummy = EXP(-dummy2)
+   rad%transb = REAL(dummy)
+
    ! Define longwave from vegetation:
-    flpwb = C%sboltz * (met%tvrad) ** 4
+   flpwb = C%sboltz * (met%tvrad) ** 4
    flwv = C%EMLEAF * flpwb
 
    rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
@@ -232,8 +231,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    rad%gradis = 0.0 ! initialise radiative conductance
    rad%qcan = 0.0   ! initialise radiation absorbed by canopy
    
-    ! vh ! substituted met%tk with met%tvrad below
-
+   ! vh ! substituted met%tk with met%tvrad below
    WHERE (canopy%vlaiw > C%LAI_THRESH )
 
       ! Define radiative conductance (Leuning et al, 1995), eq. D7:
@@ -255,7 +253,6 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
                         ( 1.0 - rad%transd * rad%transb )                      &
                         / ( rad%extkb + rad%extkd )
                          
-
       ! Longwave radiation absorbed by shaded canopy fraction:
       rad%qcan(:,2,3) = ( 1.0 - rad%transd ) *                                 &
                          ( rad%flws + met%fld - 2.0 * flwv ) - rad%qcan(:,1,3)
@@ -264,9 +261,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
 
    ! Convert radiative conductance from m/s to mol/m2/s:
    rad%gradis=SPREAD(air%cmolar, 2, mf)*rad%gradis
-   ! rad%gradis = MAX(1.0e-3,rad%gradis)
-   ! vh !
-    rad%gradis = MAX(1.0e-8,rad%gradis)
+   rad%gradis = MAX(1.0e-8,rad%gradis)    ! vh !
 
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and REFLection (ie. NOT black leaves):
@@ -274,7 +269,6 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    ! UM recieves met%fsd(:,b) forcing. assumed for offline that USED met%fsd(:,b) = 1/2* INPUT met%fsd
    DO b = 1, 2 ! 1 = visible, 2 = nir radiaition
       
-
       WHERE (mask) ! i.e. vegetation and sunlight are present
          
          cf1 = ( 1.0 - rad%transb * rad%cexpkdm(:,b) ) /                       &
@@ -315,12 +309,10 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
 
       ! Calculate shortwave radiation absorbed by soil:
       ! (av. of transmitted NIR and PAR through canopy)*SWdown
-       rad%qssabs = met%fsd(:,1) * (                                            &  !vh! inserted 'max' to avoid floating underflow
+      rad%qssabs = met%fsd(:,1) * (                                            &  !vh! inserted 'max' to avoid floating underflow
                    rad%fbeam(:,1) * ( 1. - rad%reffbm(:,1) ) *                 &
-!            EXP( max(-rad%extkbm(:,1) * canopy%vlaiw,1.e-12) ) +                    &
             EXP( -min(rad%extkbm(:,1) * canopy%vlaiw,20.) ) +                    &
                    ( 1. - rad%fbeam(:,1) ) * ( 1. - rad%reffdf(:,1) ) *        &
-!            EXP( max(-rad%extkdm(:,1) * canopy%vlaiw,1.e-12)) )                    &
             EXP( -min(rad%extkdm(:,1) * canopy%vlaiw,20.) ) )                    &
                    + met%fsd(:,2) * ( rad%fbeam(:,2) * ( 1. - rad%reffbm(:,2) )&
                    * rad%cexpkbm(:,2) + ( 1. - rad%fbeam(:,2) ) *              &
@@ -349,7 +341,6 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    ! Total energy absorbed by canopy:
    rad%rniso = SUM(rad%qcan, 3)
-    !write(*,*) 'rniso', rad%qcan(1,2,:)
     
 END SUBROUTINE radiation
 

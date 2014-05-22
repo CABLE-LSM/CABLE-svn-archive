@@ -43,7 +43,7 @@ MODULE cable_albedo_module
 CONTAINS
 
   
-  SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
+SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
    
    USE cable_common_module   
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
@@ -57,8 +57,11 @@ CONTAINS
 
    TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
-    REAL, INTENT(IN) :: dels
-
+   REAL(r_2), DIMENSION(mp)  ::                                                &
+      dummy2, & !
+      dummy
+   REAL, INTENT(IN) :: dels
+ 
    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE :: c1, rhoch
    
    LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
@@ -72,7 +75,7 @@ CONTAINS
    IF (.NOT. allocated(c1)) &
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-    CALL surface_albedosn(ssnow, veg, met, soil,dels)
+   CALL surface_albedosn_vh(ssnow, veg, met, soil,dels)
 
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
@@ -105,10 +108,8 @@ CONTAINS
                            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
       
       !---where vegetated and sunlit 
-
       WHERE (mask)                
       
-
          rad%extkbm(:,b) = rad%extkb * c1(:,b)
       
       ! Canopy reflection (6.21) beam:
@@ -116,12 +117,14 @@ CONTAINS
                         * rhoch(:,b)
 
          ! Canopy beam transmittance (fraction):
+         dummy2 = MIN(rad%extkbm(:,b)*canopy%vlaiw, 20.)
+         dummy  = EXP(-dummy2)
+         rad%cexpkbm(:,b) = REAL(dummy)
 
-          rad%cexpkbm(:,b) = real(exp(-min(rad%extkbm(:,b)*canopy%vlaiw, 20.))) !vh! to avoid floating underflow
-           !write(*,*) rad%extkbm(:,b), canopy%vlaiw, rad%cexpkbm(:,b)
-          ! Calculate effective beam reflectance (fraction):,
+         ! Calculate effective beam reflectance (fraction):
          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
                - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
+
       END WHERE
 
       ! Define albedo:
@@ -135,7 +138,7 @@ END SUBROUTINE surface_albedo
 
 ! ------------------------------------------------------------------------------
 
-  SUBROUTINE surface_albedosn_orig(ssnow, veg, met, soil)
+SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
                                    met_type, soil_snow_type, mp 
@@ -146,7 +149,6 @@ END SUBROUTINE surface_albedo
    
    TYPE (veg_parameter_type),INTENT(INout)  :: veg
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
-
 
    REAL, DIMENSION(mp) ::                                                      &
       alv,     &  ! Snow albedo for visible
@@ -166,8 +168,8 @@ END SUBROUTINE surface_albedo
    
    REAL, PARAMETER ::                                                          &
       alvo  = 0.95,  &  ! albedo for vis. on a new snow
-        ! aliro = 0.70      ! albedo for near-infr. on a new snow
-          aliro = 0.80 ! test vh!
+      !aliro = 0.70      ! albedo for near-infr. on a new snow
+      aliro = 0.80 ! test vh!
    INTEGER :: k,i,j,l,l1,l2
 
    soil%albsoilf = soil%albsoil(:,1)
@@ -232,87 +234,90 @@ END SUBROUTINE surface_albedo
 
       dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl 
       
+      WHERE (ssnow%snowd <= 1.0)
+         ssnow%snage = 0.
+      ELSEWHERE
+         ssnow%snage = max (0.,(ssnow%snage+dtau)*(1.-dnsnow))
+      END WHERE
+      
+      fage = 1. - 1. / (1. + ssnow%snage ) !age factor
 
-       WHERE (ssnow%snowd <= 1.0)
-          ssnow%snage = 0.
-       ELSEWHERE
-          ssnow%snage = max (0.,(ssnow%snage+dtau)*(1.-dnsnow))
-       END WHERE
+      tmp = MAX( .17365, met%coszen )
+      fzenm = MAX( 0.0, MERGE( 0.0,                                           &
+              ( 1. + 1./2. ) / ( 1. + 2.*2. * tmp ) - 1./2., tmp > 0.5 ) )
 
-       fage = 1. - 1. / (1. + ssnow%snage ) !age factor
+      tmp = alvo * (1.0 - 0.2 * fage)
+      alv = .4 * fzenm * (1. - tmp) + tmp
+      tmp = aliro * (1. - .5 * fage)
 
-       tmp = MAX( .17365, met%coszen )
-       fzenm = MAX( 0.0, MERGE( 0.0,                                           &
-            ( 1. + 1./2. ) / ( 1. + 2.*2. * tmp ) - 1./2., tmp > 0.5 ) )
-
-       tmp = alvo * (1.0 - 0.2 * fage)
-       alv = .4 * fzenm * (1. - tmp) + tmp
-       tmp = aliro * (1. - .5 * fage)
-
-       ! use dry snow albedo for pernament land ice: hard-wired no to be removed
-       WHERE (soil%isoilm == 9)
-
-          tmp = 0.95 * (1.0 - 0.2 * fage)
-          alv = .4 * fzenm * (1. - tmp) + tmp
-          tmp = 0.75 * (1. - .5 * fage)
-
-       END WHERE
-
-       alir = .4 * fzenm * (1.0 - tmp) + tmp
-       talb = .5 * (alv + alir) ! snow albedo
-
-    ENDWHERE        ! snowd > 0
-
-    ! when it is called from cable_rad_driver (UM)
-    ! no need to recalculate snage
-    WHERE (ssnow%snowd > 1 .and. cable_runtime%um_radiation )
-
-       snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
-
-       WHERE (soil%isoilm == 9)
-          ! permanent ice: hard-wired number to be removed
-          snrat = 1.
-       ELSEWHERE
-          snrat = MIN (1., snr / (snr + .1) )
-       END WHERE
-
-       fage = 1. - 1. / (1. + ssnow%snage ) !age factor
-       tmp = MAX (.17365, met%coszen )
-
-       fzenm = MAX( 0., MERGE( 0.0,                                             &
-            ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
+      ! use dry snow albedo for pernament land ice: hard-wired no to be removed
+      WHERE (soil%isoilm == 9)             
+         
+         tmp = 0.95 * (1.0 - 0.2 * fage)
+         alv = .4 * fzenm * (1. - tmp) + tmp
+         tmp = 0.75 * (1. - .5 * fage)
+      
+      END WHERE
+      
+      alir = .4 * fzenm * (1.0 - tmp) + tmp
+      talb = .5 * (alv + alir) ! snow albedo
+    
+   ENDWHERE        ! snowd > 0
+   
+   ! when it is called from cable_rad_driver (UM) 
+   ! no need to recalculate snage 
+   WHERE (ssnow%snowd > 1 .and. cable_runtime%um_radiation )
+      
+      snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
+      
+      WHERE (soil%isoilm == 9)
+         ! permanent ice: hard-wired number to be removed
+         snrat = 1.
+      ELSEWHERE
+         snrat = MIN (1., snr / (snr + .1) )
+      END WHERE
+      
+      fage = 1. - 1. / (1. + ssnow%snage ) !age factor
+      tmp = MAX (.17365, met%coszen )
+      fzenm = MAX( 0., MERGE( 0.0,                                             &
+              ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
 
        tmp = alvo * (1.0 - 0.2 * fage)
        alv = .4 * fzenm * (1. - tmp) + tmp
        tmp = aliro * (1. - .5 * fage)
+      
+      ! use dry snow albedo
+      WHERE (soil%isoilm == 9)          
+         ! permanent ice: hard-wired number to be removed
 
-       ! use dry snow albedo
-       WHERE (soil%isoilm == 9)
-          ! permanent ice: hard-wired number to be removed
+         tmp = 0.95 * (1.0 - 0.2 * fage)
+         alv = .4 * fzenm * (1. - tmp) + tmp
+         tmp = 0.75 * (1. - .5 * fage)
+      
+      END WHERE
+      
+      alir = .4 * fzenm * (1.0 - tmp) + tmp
+      talb = .5 * (alv + alir) ! snow albedo
+    
+   ENDWHERE        ! snowd > 0
+   
 
-          tmp = 0.95 * (1.0 - 0.2 * fage)
-          alv = .4 * fzenm * (1. - tmp) + tmp
-          tmp = 0.75 * (1. - .5 * fage)
+   ssnow%albsoilsn(:,2) = MIN( aliro,                                          &
+                          ( 1. - snrat ) * ssnow%albsoilsn(:,2) + snrat * alir)
+   
+   ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
+                          ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
 
-       END WHERE
+   WHERE (soil%isoilm == 9)          ! use dry snow albedo
+     ssnow%albsoilsn(:,2) = 0.82
+     ssnow%albsoilsn(:,1) = 0.82
+   END WHERE
+   
+END SUBROUTINE surface_albedosn
 
-       alir = .4 * fzenm * (1.0 - tmp) + tmp
-       talb = .5 * (alv + alir) ! snow albedo
+! ------------------------------------------------------------------------------
 
-    ENDWHERE        ! snowd > 0
-
-
-    ssnow%albsoilsn(:,2) = MIN( aliro,                                          &
-         ( 1. - snrat ) * ssnow%albsoilsn(:,2) + snrat * alir)
-
-    ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
-         ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
-
-  END SUBROUTINE surface_albedosn_orig
-
-    ! ------------------------------------------------------------------------------
-
-  SUBROUTINE surface_albedosn(ssnow, veg, met, soil,dels)
+  SUBROUTINE surface_albedosn_vh(ssnow, veg, met, soil,dels)
 
     USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
          met_type, soil_snow_type, mp
@@ -484,12 +489,9 @@ END SUBROUTINE surface_albedo
    ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
                           ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
 
-   WHERE (soil%isoilm == 9)          ! use dry snow albedo
-     ssnow%albsoilsn(:,2) = 0.82
-     ssnow%albsoilsn(:,1) = 0.82
-   END WHERE
+
    
-END SUBROUTINE surface_albedosn
+END SUBROUTINE surface_albedosn_vh
 
 ! ------------------------------------------------------------------------------
 

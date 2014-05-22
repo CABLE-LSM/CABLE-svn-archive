@@ -151,26 +151,19 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%term3  = C%A33**2 * C%CTL * 2 * C%CSW * canopy%rghlai
       rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
       rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
-        ! vh !
-       rough%term6a = EXP(rough%coexp ( 0.1 * rough%hruff / rough%hruff -1. ))
+      ! vh !
+      rough%term6a = EXP(rough%coexp ( 0.1 * rough%hruff / rough%hruff -1. ))
       
-      ! eq. 3.54, SCAM manual (CSIRO tech report 132)
-       !rough%rt0us  = rough%term5 * ( C%ZDLIN * LOG(                            &
-        !    C%ZDLIN * rough%disp / rough%z0soilsn ) +                 &
-         !   ( 1 - C%ZDLIN ) )                                         &
-          !  * ( EXP( 2 * C%CSW * canopy%rghlai )  -  rough%term2 )    &
-          !  / rough%term3
-
-       ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
-        rough%rt0us  = log(rough%disp / rough%z0soilsn) * &
+      ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
+      rough%rt0us  = log(rough%disp / rough%z0soilsn) * &
                       EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
                        / rough%hruff / (c%a33 ** 2 * c%ctl)
 
-       ! vh ! Modify rt0us to be resistance between shear height = 0.1h and disp
-       ! use this form when including addtional resistance from z0soil to 0.1hc (done in cable_canopy_vh)
-       !rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
-       !               EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
-        !               / rough%hruff / (c%a33 ** 2 * c%ctl)
+      ! vh ! Modify rt0us to be resistance between shear height = 0.1h and disp
+      ! use this form when including addtional resistance from z0soil to 0.1hc (done in cable_canopy_vh)
+      !rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
+      !               EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+      !               / rough%hruff / (c%a33 ** 2 * c%ctl)
       
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.49:
       rough%zruffs = rough%disp + rough%hruff * C%A33**2 * C%CTL / C%VONK /    &
@@ -185,7 +178,6 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
     
     END WHERE
-
 
 END SUBROUTINE ruff_resist
 

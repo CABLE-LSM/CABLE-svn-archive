@@ -36,7 +36,7 @@ MODULE cable_common_module
    !---allows reference to "gl"obal timestep in run (from atm_step)
    !---total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
-  INTEGER, SAVE :: CurYear  ! current year of multiannual run
+   INTEGER, SAVE :: CurYear  ! current year of multiannual run
    
    ! user switches turned on/off by the user thru namelists
 
@@ -59,7 +59,7 @@ MODULE cable_common_module
       END TYPE hide_switches 
 
    ! instantiate internal switches 
-TYPE (hide_switches), SAVE :: hide
+   TYPE (hide_switches), SAVE :: hide
    
    
    ! set from environment variable $HOME
@@ -140,13 +140,13 @@ TYPE (hide_switches), SAVE :: hide
    ! external files read/written by CABLE
    TYPE filenames_type
 
-     CHARACTER(LEN=200) ::                                                        &
+   CHARACTER(LEN=200) ::                                                        &
       met,        & ! name of file for CABLE input
-          path,       & ! path for output and restart files for CABLE and CASA
+      path,       & ! path for output and restart files for CABLE and CASA
       out,        & ! name of file for CABLE output
-          restart_out,& ! name of restart file to  write to
       log,        & ! name of file for execution log
       restart_in, & ! name of restart file to read
+      restart_out,& ! name of restart file to read
       LAI,        & ! name of file for default LAI
       type,       & ! file for default veg/soil type
       veg,        & ! file for vegetation parameters

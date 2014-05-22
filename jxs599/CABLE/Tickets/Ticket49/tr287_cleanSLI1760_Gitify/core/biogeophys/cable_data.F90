@@ -101,8 +101,8 @@ module cable_data_module
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
-     real:: RAD_THRESH = 1.e-2
-     real:: LAI_THRESH = 1.e-2
+      real:: RAD_THRESH = 0.01 
+      real:: LAI_THRESH = 0.01 
    end type other_constants
 
    type photosynthetic_constants
@@ -242,7 +242,7 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-          CAPP, TFRZ, HL, HLF, HLS
+         CAPP, TFRZ, HL, HLF, HLS
    END TYPE issnow_type
 
 
@@ -254,7 +254,7 @@ module cable_data_module
       MODULE PROCEDURE driver_type_ptr, cbm_type_ptr, air_type_ptr,            &
                        albedo_type_ptr, canopy_type_ptr, carbon_type_ptr,      &
                        rad_type_ptr, rough_type_ptr, ssnow_type_ptr  
-  END INTERFACE point2constants
+   END INTERFACE 
 
 CONTAINS   
    
@@ -340,8 +340,6 @@ SUBROUTINE canopy_type_ptr(C)
    C%A33   => PHYS%A33
    C%VONK  => PHYS%VONK
    C%ZETA0 => PHYS%ZETA0
-    ! C%HLF   => PHYS%HLF
-    ! C%HLS   => PHYS%HLS
       
    C%MAXITER  => PHOTO%MAXITER ! only integer here
 
@@ -435,7 +433,7 @@ SUBROUTINE ssnow_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
-    C%HLS   => PHYS%HLS
+   C%HLS   => PHYS%HLS
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr 
 

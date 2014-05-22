@@ -6,7 +6,6 @@
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
 ! http://www.cawcr.gov.au/projects/access/cable
-
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -31,7 +30,6 @@
 
 MODULE cable_def_types_mod
 
-
    ! Contains all variables which are not subroutine-internal
 
    IMPLICIT NONE
@@ -46,8 +44,7 @@ MODULE cable_def_types_mod
               mstype,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
-  INTEGER, PARAMETER :: i_d = SELECTED_INT_KIND(9) , &       ! IEEE 4 Byte Integer  &
-       !       r_1 = SELECTED_REAL_KIND(6,37) , &   ! IEEE single Precision Real  &
+   INTEGER, PARAMETER ::                                                        &
       r_2  = SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
@@ -94,12 +91,11 @@ MODULE cable_def_types_mod
          delwc_tot,        & ! energy balance for wet canopy
          qasrf_tot,        & ! heat advected to the snow by precip. 
          qfsrf_tot,        & ! energy of snowpack phase changes 
-          qssrf_tot, &        ! energy of snowpack phase changes
-
-          Radbal, &
-          EbalSoil, &
-          Ebalveg, &
-          Radbalsum
+         qssrf_tot, &        ! energy of snowpack phase changes
+         Radbal, &
+         EbalSoil, &
+         Ebalveg, &
+         Radbalsum
 
    END TYPE balances_type
 
@@ -386,8 +382,8 @@ MODULE cable_def_types_mod
          dgdtg,   & ! derivative of gflux wrt soil temp
          fes,     & ! latent heatfl from soil (W/m2)
          fes_cor, & ! latent heatfl from soil (W/m2)
-          fevc,     &  ! dry canopy transpiration (W/m2)
-          ofes     ! latent heatfl from soil (W/m2)
+         fevc,     &  ! dry canopy transpiration (W/m2)
+         ofes     ! latent heatfl from soil (W/m2)
 
      ! Additional variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
@@ -477,7 +473,7 @@ MODULE cable_def_types_mod
          usuh ! Friction velocity/windspeed at canopy height
    
       REAL, DIMENSION(:), POINTER ::                                           &
-          term2, term3, term5, term6, term6a ! for aerodyn resist. calc.
+         term2, term3, term5, term6, term6a ! for aerodyn resist. calc.
    
    END TYPE roughness_type
 
@@ -530,7 +526,6 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          fsd  ! downward short-wave radiation (W/m2)
      
-
    END TYPE met_type
 
 ! .............................................................................
@@ -589,7 +584,7 @@ MODULE cable_def_types_mod
          alloc_met_type,                                                       &
          alloc_sum_flux_type,                                                  &
          alloc_bgc_pool_type            
-  END INTERFACE alloc_cbm_var
+   END INTERFACE
 
    INTERFACE dealloc_cbm_var
       MODULE PROCEDURE dealloc_balances_type,                                  &
@@ -603,7 +598,7 @@ MODULE cable_def_types_mod
          dealloc_met_type,                                                     &
          dealloc_sum_flux_type,                                                &
          dealloc_bgc_pool_type            
-  END INTERFACE dealloc_cbm_var
+   END INTERFACE
 
 
 CONTAINS
@@ -993,7 +988,7 @@ SUBROUTINE alloc_roughness_type(var, mp)
    ALLOCATE ( var % term3(mp) )
    ALLOCATE ( var % term5(mp) )
    ALLOCATE ( var % term6(mp) )
-    ALLOCATE ( var % term6a(mp) )
+   ALLOCATE ( var % term6a(mp) )
    ALLOCATE ( var % usuh(mp) )
    ALLOCATE ( var % za_uv(mp) )
    ALLOCATE ( var % za_tq(mp) )
@@ -1052,8 +1047,6 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % da(mp) )
    ALLOCATE ( var % dva(mp) )
    ALLOCATE ( var % coszen(mp) )
-
-
 
 END SUBROUTINE alloc_met_type
    
@@ -1459,7 +1452,7 @@ SUBROUTINE dealloc_roughness_type(var)
    DEALLOCATE ( var % term3 )
    DEALLOCATE ( var % term5 )
    DEALLOCATE ( var % term6 )
-    DEALLOCATE ( var % term6a )
+   DEALLOCATE ( var % term6a )
    DEALLOCATE ( var % usuh )
    DEALLOCATE ( var % za_uv )
    DEALLOCATE ( var % za_tq )
@@ -1516,7 +1509,6 @@ SUBROUTINE dealloc_met_type(var)
    DEALLOCATE ( var % da )
    DEALLOCATE ( var % dva )
    DEALLOCATE ( var % coszen )
-
 
 END SUBROUTINE dealloc_met_type
 
