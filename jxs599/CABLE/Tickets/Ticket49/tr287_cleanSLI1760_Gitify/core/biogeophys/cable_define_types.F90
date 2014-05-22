@@ -346,7 +346,6 @@ MODULE cable_def_types_mod
          fnpp,    & ! npp flux
          fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
-         gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
          wetfac_cs,&! 
          fevw,    & ! lat heat fl wet canopy (W/m2)
@@ -919,7 +918,6 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
-   ALLOCATE( var% gs_vs(mp) )   
     ALLOCATE ( var % fwsoil(mp) )
     ALLOCATE ( var % ofes(mp) )
 
@@ -1395,7 +1393,6 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
-   DEALLOCATE( var% gs_vs )  
     DEALLOCATE ( var % fwsoil )
     DEALLOCATE ( var % ofes )
 
