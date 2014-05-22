@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -324,7 +324,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%psoilocc(npt)    = xpocc(iv1)
     casaflux%kmlabp(npt)      = xkmlabp(iso)
     casaflux%psorbmax(npt)    = xpsorbmax(iso)
-    casaflux%fpleach(npt)     = xfPleach(iso)
+    casaflux%fpleach(npt)     = xfPleach(iso)/(365.0)
 !   we used the spatially explicit estimate N fixation by Wang and Houlton (GRL)
 !    casaflux%Nminfix(npt)     = xnfixrate(iv1)/365.0  
 
@@ -1142,6 +1142,10 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
   call casa_cnpbal(casapool,casaflux,casabal)
   call casa_cnpflux(casaflux,casabal)
+
+  ! for spinning up only
+  casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+  casapool%Psoillab = max(casapool%Psoillab,0.1)
 
 END SUBROUTINE biogeochem
 
