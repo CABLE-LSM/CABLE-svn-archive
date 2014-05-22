@@ -74,9 +74,9 @@ PROGRAM cable_offline_driver
        patch_type,soilparmnew,&
        defaultLAI
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            & 
-       redistrb, wiltParam, satuParam, CurYear,    &
-       IS_LEAPYEAR
+                                   cable_runtime, filename, redistrb,          & 
+                                   report_version_no, wiltParam, satuParam,    &
+                                   CurYear,  IS_LEAPYEAR
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
        get_met_data,close_met_file,                &
@@ -92,6 +92,8 @@ PROGRAM cable_offline_driver
                                    write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
    USE cable_cbm_module
+   
+   USE cable_diag_module
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
@@ -123,13 +125,13 @@ PROGRAM cable_offline_driver
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
       nyear,      &  ! year counter for CASA-CNP
       maxdiff(2), &  ! location of maximum in convergence test
-        casa_it,    &  ! number of calls to CASA-CNP
-        YYYY,       &  !
-        RYEAR,      &  !
-        RRRR,       &  !
-        NRRRR,      &  !
-        ctime,      &  ! day count for casacnp
-        LOY
+       casa_it,    &  ! number of calls to CASA-CNP
+       YYYY,       &  !
+       RYEAR,      &  !
+       RRRR,       &  !
+       NRRRR,      &  !
+       ctime,      &  ! day count for casacnp
+       LOY
 
    REAL :: dels                        ! time step size in seconds
    
@@ -246,8 +248,15 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
-  ! Open log file:
-  OPEN(logn,FILE=filename%log)
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   CALL report_version_no( logn )
+    
+   IF( IARGC() > 0 ) THEN
+      CALL GETARG(1, filename%met)
+      CALL GETARG(2, casafile%cnpipool)
+   ENDIF
 
 !!!! INISTUFF
 
@@ -502,7 +511,7 @@ PROGRAM cable_offline_driver
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
               IF(icycle >0 .OR.  CABLE_USER%CASA_DUMP_WRITE ) THEN
-            call bgcdriver( ktau, kstart, kend, dels, met,                  &
+            call bgcdriver( ktau, kstart, kend, dels, met,                     &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                       phen, pop, spinConv, spinup, ktauday, idoy,            &
@@ -541,7 +550,7 @@ PROGRAM cable_offline_driver
    
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                         &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
    
@@ -549,24 +558,21 @@ PROGRAM cable_offline_driver
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-              !IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-                 IF ( .NOT. CASAONLY ) THEN
-                    !     CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                    !         rad, bal, air, soil, veg, C%SBOLTZ, &
-                    !        C%EMLEAF, C%EMSOIL )
-                    !IF ( RRRR .GT. 1 ) THEN
-                       !CLN               CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                       CALL write_output( dels, ktau_tot, met, canopy, ssnow,                    &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                            &
+            CALL write_output( dels, ktau, met, canopy, ssnow,                 &
+                               rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
-                    !ELSE
-                     !  CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                     !       rad, bal, air, soil, veg, C%SBOLTZ, &
-                     !       C%EMLEAF, C%EMSOIL )
-                    !ENDIF
-                 ENDIF
-              !ENDIF
-       END DO ! END Do loop over timestep ktau
+         ENDIF
+
+         ! dump bitwise reproducible testing data
+         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+                                knode_gl, "FLUXES",                            &
+                          canopy%fe + canopy%fh )
+         ENDIF
+                
+      END DO ! END Do loop over timestep ktau
 
       !jhan this is insufficient testing. condition for 
       !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
@@ -594,11 +600,12 @@ PROGRAM cable_offline_driver
                
                ! No complete convergence yet
                maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
-               PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+               PRINT *, 'Example location of moisture non-convergence: ', &
+                        maxdiff
                PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
                PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
                maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
-               PRINT *, 'Example location of temperature non-convergence: ',   &
+               PRINT *, 'Example location of temperature non-convergence: ', &
                         maxdiff
                PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
                PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
