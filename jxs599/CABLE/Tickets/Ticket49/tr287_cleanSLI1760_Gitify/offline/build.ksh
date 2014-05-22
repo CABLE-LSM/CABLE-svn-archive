@@ -122,7 +122,22 @@ host_vayu()
    build_status
 }
 
-
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ## unknown machine, user entering options stdout 
 host_read()
@@ -254,7 +269,7 @@ not_recognized()
 
    print "\n\tPlease supply a comment include the new build " \
          "script." 
-   print "\n\tGenerally the host URL e.g. vayu.nci.org.au "
+   print "\n\tGenerally the host URL e.g. raijin.nci.org.au "
    read HOST_COMM
    
    build_build
