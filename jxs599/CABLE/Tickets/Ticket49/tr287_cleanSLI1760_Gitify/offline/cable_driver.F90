@@ -121,14 +121,16 @@ PROGRAM cable_offline_driver
        koffset = 0, &  ! timestep to start at
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
-       nyear,      &  ! year counter for CASA-CNP
-       casa_it,    &  ! number of calls to CASA-CNP
-       YYYY,       &  !
-       RYEAR,      &  !
-       RRRR,       &  !
-       NRRRR,      &  !
-       ctime,      &  ! day count for casacnp
-       LOY
+      nyear,      &  ! year counter for CASA-CNP
+      maxdiff(2), &  ! location of maximum in convergence test
+        casa_it,    &  ! number of calls to CASA-CNP
+        YYYY,       &  !
+        RYEAR,      &  !
+        RRRR,       &  !
+        NRRRR,      &  !
+        ctime,      &  ! day count for casacnp
+        LOY
+
    REAL :: dels                        ! time step size in seconds
    
   INTEGER,DIMENSION(:,:),ALLOCATABLE :: GSWP_MID
@@ -429,6 +431,7 @@ PROGRAM cable_offline_driver
            ENDIF
 
       ! globally (WRT code) accessible kend through USE cable_common_module
+      ktau_gl = 0
       kend_gl = kend
       knode_gl = 0
       
@@ -441,7 +444,7 @@ PROGRAM cable_offline_driver
          ktau_tot = ktau_tot + 1
          
          ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau_tot
+         ktau_gl = ktau_gl + 1
          
               IF ( leaps .and. IS_LEAPYEAR( YYYY ) ) THEN
                  LOY = 366
@@ -590,10 +593,15 @@ PROGRAM cable_offline_driver
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
-               PRINT *, 'ssnow%wb : ', ssnow%wb
-               PRINT *, 'soilMtemp: ', soilMtemp
-               PRINT *, 'ssnow%tgg: ', ssnow%tgg
-               PRINT *, 'soilTtemp: ', soilTtemp
+               maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
+               PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+               PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
+               maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
+               PRINT *, 'Example location of temperature non-convergence: ',   &
+                        maxdiff
+               PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
             
             ELSE ! spinup has converged
                
