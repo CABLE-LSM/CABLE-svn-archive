@@ -2,9 +2,27 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg raij
+   set -A kh vayu cher burn shin jigg nXXX raij
 }
 
+
+## Interactive Job nXXX@burnet.hpsc.csiro.au  
+host_nXXX()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   #export FC=$F90
+   export FC=ifort
+   #vanessa's test options
+#   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+#   export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ## jiggle
 host_jigg()
@@ -43,6 +61,8 @@ host_burn()
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
+   #vanessa's test options
+   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -243,7 +263,15 @@ do_i_no_u()
    integer kmax=${#kh[*]}
    integer k=0
    typeset -f subr
-   
+
+   # for specific nodes on burnet
+   ic=`echo $HOST_MACH | cut -c 1`
+   in=`echo $HOST_MACH | cut -c 2-4`
+   if [[ $ic == 'n' ]]; then
+       if [ $in -gt 0 -a $in -lt 1000 ]; then
+	   HOST_MACH=nXXX
+       fi
+   fi
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized as' $HOST_MACH
@@ -308,6 +336,7 @@ build_build()
       mv cable cable.`date +%d.%m.%y`
    fi
    
+   # directories contain source code
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
