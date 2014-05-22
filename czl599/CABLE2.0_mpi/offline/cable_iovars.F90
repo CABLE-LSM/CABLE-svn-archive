@@ -230,10 +230,10 @@ MODULE cable_IO_vars_module
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
          Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
          Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
-         DelSoilMoist = .FALSE., & ! 36 change in soilmoisture 
-                                   ! (sum layers) [kg/m2]
-         DelSWE = .FALSE.,    & ! 37 change in snow water equivalent [kg/m2]
-         DelIntercept = .FALSE.,& ! 38 change in interception storage [kg/m2]
+!         DelSoilMoist = .FALSE., & ! 36 change in soilmoisture 
+!                                   ! (sum layers) [kg/m2]
+!         DelSWE = .FALSE.,    & ! 37 change in snow water equivalent [kg/m2]
+!         DelIntercept = .FALSE.,& ! 38 change in interception storage [kg/m2]
          SnowT = .FALSE.,     & ! 39 snow surface temp [K]
          BaresoilT = .FALSE., & ! 40 surface bare soil temp [K]
          AvgSurfT = .FALSE.,  & ! 41 Average surface temperature [K]
@@ -257,7 +257,22 @@ MODULE cable_IO_vars_module
          HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
-         
+         drybal = .FALSE.,    & ! balance in dry canopy [W/m2]
+         wetbal = .FALSE.,    & ! balance in wet canopy [W/m2]
+         visAbs = .FALSE.,    & ! visible SW absorbed [W/m2]
+         NIRabs = .FALSE.,    & ! NIR SW absorbed [W/m2]
+         LWcanopy = .FALSE.,  & ! outgoing LW from canopy [W/m2]
+         LWsoil   = .FALSE.,  & ! outgoing LW from soil [W/m2]
+         oLWsoil   = .FALSE., & ! outgoing LW from soil using otss [W/m2]
+         ESoilMod = .FALSE.,  & ! modified soil evaporation [W/m2]
+         delwc    = .FALSE.,  & ! change rate of canopy store [kg/m2/s]
+         delSWE   = .FALSE.,  & ! change rate of SWE [kg/m2/s]
+         delwb    = .FALSE.,  & ! change rate of soil water [kg/m2/s]
+         through  = .FALSE.,  & ! through fall rate [kg/m2/s]
+         dew      = .FALSE.,  & ! dew rate [kg/m2/s]
+         CanWbal  = .FALSE.,  & ! rate of water imbalance within canopy [kg/m2/s]
+         ECan2    = .FALSE.,  & ! wet canopy evaporation, not including dew [kg/m2/s]
+
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude

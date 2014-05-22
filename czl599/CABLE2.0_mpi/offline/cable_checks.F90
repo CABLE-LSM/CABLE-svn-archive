@@ -86,6 +86,7 @@ MODULE cable_checks_module
            ESoil = (/-0.0003,0.0003/),         &
            TVeg = (/-0.0003,0.0003/),          &
            ECanop = (/-0.0003,0.0003/),        &
+           ECan2  = (/    0.0,0.0003/),        &
            PotEvap = (/-0.0006,0.0006/),       &
            ACond = (/0.0,1.0/),                &
            SoilWet = (/-0.4,1.2/),             &
@@ -95,9 +96,9 @@ MODULE cable_checks_module
            SoilMoist = (/0.0,2000.0/),         &
            Qs = (/0.0,5.0/),                   &
            Qsb = (/0.0,5.0/),                  &
-           DelSoilMoist  = (/-2000.0,2000.0/), & 
-           DelSWE  = (/-2000.0,2000.0/),       &
-           DelIntercept = (/-100.0,100.0/),    &
+!           DelSoilMoist  = (/-2000.0,2000.0/), & 
+!           DelSWE  = (/-2000.0,2000.0/),       &
+!           DelIntercept = (/-100.0,100.0/),    &
            SnowT  = (/213.0,280.0/),           &
            BaresoilT = (/213.0,343.0/),        &
            AvgSurfT = (/213.0,333.0/),         &
@@ -116,6 +117,20 @@ MODULE cable_checks_module
            SnowDepth = (/0.0,50.0/),           & ! EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
+           drybal = (/-999999.0,999999.0/),    &
+           wetbal = (/-999999.0,999999.0/),    &
+           visAbs = (/-999999.0,999999.0/),    &
+           NIRabs = (/-999999.0,999999.0/),    &
+           LWcanopy = (/-999999.0,999999.0/),  &
+           LWsoil   = (/-999999.0,999999.0/),  &
+           oLWsoil  = (/-999999.0,999999.0/),  &
+           ESoilMod = (/-999999.0,999999.0/),  &
+           delwc    = (/-999999.0,999999.0/),  &
+           delSWE   = (/-999999.0,999999.0/),  &
+           delwb    = (/-999999.0,999999.0/),  &
+           through  = (/-999999.0,999999.0/),  &
+           dew      = (/-999999.0,     0.0/),  &
+           CanWbal  = (/-999999.0,999999.0/),  &
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &
@@ -224,6 +239,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
          END DO
       END IF
    END IF
+   ssnow%delwb = delwb  ! Added Mar 2014 for checking balances
 
    ! IF(ktau==kend) DEALLOCATE(bwb)
 
@@ -242,6 +258,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
         - (canopy%fevw+MIN(canopy%fevc,0.0))*dels/air%rlam)
+   canopy%wbal = canopy_wbal ! Added Mar 2014 for checking balances
 
    bal%wbal_tot = 0. 
    IF(ktau>10) THEN
@@ -310,7 +327,7 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
    bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))       &
         *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)        &
         -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
-        * ssnow%cls-canopy%fh                 
+        * ssnow%cls-canopy%fh -canopy%ga                
    bal%ebal_tot = bal%ebal_tot + bal%ebal
   
       
