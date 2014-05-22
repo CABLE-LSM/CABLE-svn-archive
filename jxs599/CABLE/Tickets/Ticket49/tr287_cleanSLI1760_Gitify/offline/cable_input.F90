@@ -43,16 +43,15 @@
 !==============================================================================
 
 MODULE cable_input_module   
-
-  ! that any precision changes from r_1 to REAL(4) enable running with -r8
-
+! Note that any precision changes from r_1 to REAL(4) enable running with -r8
+!
    USE cable_abort_module,      ONLY: abort, nc_abort
    USE cable_def_types_mod
    USE casadimension,     ONLY: icycle
    USE casavariable
    USE phenvariable
-  USE POP_Types,               Only: POP_TYPE
-  USE POPModule,               Only: alloc_POP
+   USE POP_Types,               Only: POP_TYPE
+   USE POPModule,               Only: alloc_POP
    USE cable_param_module
    USE cable_checks_module,     ONLY: ranges, rh_sh
    USE cable_radiation_module,  ONLY: sinbet
@@ -60,7 +59,7 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-  USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR
+   USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR
 
    IMPLICIT NONE
    
@@ -260,8 +259,8 @@ SUBROUTINE get_default_lai
    ! Close netcdf file
    ok = NF90_CLOSE(ncid)
 
+   
 END SUBROUTINE get_default_lai
-
 !==============================================================================
 !
 ! Name: open_met_file
@@ -294,15 +293,15 @@ END SUBROUTINE get_default_lai
 !
 !==============================================================================
 
-  SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
+SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
-    USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
-         HANDLE_ERR
-    IMPLICIT NONE
+   USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
+                                   HANDLE_ERR
+   IMPLICIT NONE
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
    REAL, INTENT(IN) :: TFRZ 
-    INTEGER, INTENT(INOUT)      :: koffset ! offset between met file and desired period
+   INTEGER, INTENT(INOUT)      :: koffset ! offset between met file and desired period
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
    LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
    
@@ -329,16 +328,16 @@ END SUBROUTINE get_default_lai
         isoil_dims,             & ! number of dims of isoil var if in met file
         tsmin,tsdoy,tsyear,     & ! temporary variables
         x,y,i,j,                & ! do loop counters
-         tempmonth        ,&
-         ssod, &
-         nsod, &
-         LOY, &
-         iday,&
-         imin,&
-         isec,&
-         ishod, &
-         dnsec  = 0,&
-         ntstp
+        tempmonth,				&
+        ssod, &
+        nsod, &
+        LOY, &
+        iday,&
+        imin,&
+        isec,&
+        ishod, &
+        dnsec  = 0,&
+        ntstp
    INTEGER,DIMENSION(1)        ::                                         &
         timedimID,              & ! time dimension ID number
         data1i                    ! temp variable for netcdf reading
@@ -354,13 +353,14 @@ END SUBROUTINE get_default_lai
    CHARACTER(LEN=10)                :: todaydate, nowtime ! used to timestamp log file
    REAL(4),DIMENSION(1)             :: data1 ! temp variable for netcdf reading
    REAL(4),DIMENSION(1,1)           :: data2 ! temp variable for netcdf reading
-    REAL(4), DIMENSION(:),     ALLOCATABLE :: temparray1  ! temp read in variable
-    REAL(4), DIMENSION(:,:),   ALLOCATABLE :: &
+   REAL(4), DIMENSION(:),     ALLOCATABLE :: temparray1  ! temp read in variable
+   REAL(4), DIMENSION(:,:),   ALLOCATABLE :: &
         tempPrecip2,            & ! used for spinup adj
         temparray2                ! temp read in variable
-    REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: tempPrecip3 ! used for spinup adj
+   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
         all_met     ! ALL required met in met file (no synthesis)?
+
     ! Initialise parameter loading switch - will be set to TRUE when 
     ! parameters are loaded:
     exists%parameters = .FALSE. ! initialise
@@ -755,45 +755,8 @@ END SUBROUTINE get_default_lai
     READ(timeunits(20:21),*) smoy ! integer month
     READ(timeunits(23:24),*) sdoytmp ! integer day of that month
     READ(timeunits(26:27),*) shod  ! starting hour of day 
-
     ! Decide day-of-year for non-leap year:
-                 
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
-    !!CLN    SELECT CASE(smoy)
-    !!CLN    CASE(1) ! Jan
-    !!CLN       sdoy=sdoytmp
-    !!CLN    CASE(2) ! Feb
-    !!CLN       sdoy=sdoytmp+lastday(1)
-    !!CLN    CASE(3) ! Mar
-    !!CLN       sdoy=sdoytmp+lastday(2)
-    !!CLN    CASE(4)
-    !!CLN       sdoy=sdoytmp+lastday(3)
-    !!CLN    CASE(5)
-    !!CLN       sdoy=sdoytmp+lastday(4)
-    !!CLN    CASE(6)
-    !!CLN       sdoy=sdoytmp+lastday(5)
-    !!CLN    CASE(7)
-    !!CLN       sdoy=sdoytmp+lastday(6)
-    !!CLN    CASE(8)
-    !!CLN       sdoy=sdoytmp+lastday(7)
-    !!CLN    CASE(9)
-    !!CLN       sdoy=sdoytmp+lastday(8)
-    !!CLN    CASE(10)
-    !!CLN       sdoy=sdoytmp+lastday(9)
-    !!CLN    CASE(11)
-    !!CLN       sdoy=sdoytmp+lastday(10)
-    !!CLN    CASE(12)
-    !!CLN       sdoy=sdoytmp+lastday(11)
-    !!CLN    CASE DEFAULT
-    !!CLN       CALL abort('Could not interpret month in "time" units from ' &
-    !!CLN            //TRIM(filename%met)// '(SUBROUTINE open_met_file)')
-    !!CLN    END SELECT
-    !!CLN    IF(leaps) THEN ! If we're using leap year timing:
-    !!CLN       ! If start year is a leap year and start month > Feb, add a day:
-    !!CLN       IF( ( ( MOD( syear,4 ) == 0 .AND. MOD( syear, 100 ) /=0 ) .OR.          &
-    !!CLN           ( MOD( syear, 4 ) == 0 .AND. MOD( syear, 400 ) == 0 ) )             &
-    !!CLN           .AND. smoy > 2 ) sdoy = sdoy + 1
-    !!CLN
        ! Number of days between start position and 1st timestep:
     sdoy = sdoy + INT((timevar(1)/3600.0 + shod)/24.0)
     nsod = MOD(INT((timevar(1) + shod*3600)),86400)
@@ -804,7 +767,7 @@ END SUBROUTINE get_default_lai
        IF ( sdoy .GT. LOY ) THEN
           sdoy  = sdoy - LOY
                 syear = syear + 1 
-          ELSE 
+        ELSE 
           EXIT
           END IF
        END DO
@@ -813,113 +776,6 @@ END SUBROUTINE get_default_lai
     CALL DOYSOD2YMDHMS( syear, sdoy, nsod, smoy, iday, ishod, imin, isec )
     shod = REAL(ishod) + REAL(imin)/60. + REAL(isec)/3600.
     ! Cycle through days to find leap year inclusive starting date:
-    !!CLN       DO i=1,jump_days
-    !!CLN          sdoy = sdoy + 1
-    !!CLN          IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. &
-    !!CLN               (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
-    !!CLN             ! Set month of year for leap year:
-    !!CLN             SELECT CASE(sdoy)
-    !!CLN             CASE(1) ! Jan
-    !!CLN                smoy = 1
-    !!CLN             CASE(32) ! Feb
-    !!CLN                smoy = 2
-    !!CLN             CASE(61) ! Mar
-    !!CLN                smoy = 3
-    !!CLN             CASE(92)
-    !!CLN                smoy = 4
-    !!CLN             CASE(122)
-    !!CLN                smoy = 5
-    !!CLN             CASE(153)
-    !!CLN                smoy = 6
-    !!CLN             CASE(183)
-    !!CLN                smoy = 7
-    !!CLN             CASE(214)
-    !!CLN                smoy = 8
-    !!CLN             CASE(245)
-    !!CLN                smoy = 9
-    !!CLN             CASE(275)
-    !!CLN                smoy = 10
-    !!CLN             CASE(306)
-    !!CLN                smoy = 11
-    !!CLN             CASE(336)
-    !!CLN                smoy = 12
-    !!CLN             CASE(367)! end of year; increment
-    !!CLN                syear = syear + 1
-    !!CLN                smoy = 1
-    !!CLN                sdoy = 1
-    !!CLN             END SELECT
-    !!CLN          ELSE
-    !!CLN             ! Set month of year for non-leap year:
-    !!CLN             SELECT CASE(sdoy)
-    !!CLN             CASE(1) ! Jan
-    !!CLN                smoy = 1
-    !!CLN             CASE(32) ! Feb
-    !!CLN                smoy = 2
-    !!CLN             CASE(60) ! Mar
-    !!CLN                smoy = 3
-    !!CLN             CASE(91)
-    !!CLN                smoy = 4
-    !!CLN             CASE(121)
-    !!CLN                smoy = 5
-    !!CLN             CASE(152)
-    !!CLN                smoy = 6
-    !!CLN             CASE(182)
-    !!CLN                smoy = 7
-    !!CLN             CASE(213)
-    !!CLN                smoy = 8
-    !!CLN             CASE(244)
-    !!CLN                smoy = 9
-    !!CLN             CASE(274)
-    !!CLN                smoy = 10
-    !!CLN             CASE(305)
-    !!CLN                smoy = 11
-    !!CLN             CASE(335)
-    !!CLN                smoy = 12
-    !!CLN             CASE(366) ! end of year; increment
-    !!CLN                syear = syear + 1
-    !!CLN                smoy = 1
-    !!CLN                sdoy = 1
-    !!CLN             END SELECT
-    !!CLN          END IF
-    !!CLN       END DO
-    !!CLN       ! Update starting hour-of-day for first time step's value
-    !!CLN       shod = MOD(REAL(timevar(1)/3600.0 + shod),24.0)
-    !!CLN    ELSE ! If not using leap year timing,
-    !!CLN       ! simply update starting times for first value of "time":
-    !!CLN       tshod = MOD(REAL(timevar(1)/3600.0 + shod),24.0)
-    !!CLN       tsdoy = MOD(INT((timevar(1)/3600.0 + shod)/24.0) + sdoy, 365)
-    !!CLN       tsyear = INT(REAL(INT((timevar(1)/3600.0+shod)/24.0)+sdoy)/365.0)+syear
-    !!CLN       shod=tshod  ! real valued
-    !!CLN       sdoy=tsdoy  ! integer valued
-    !!CLN       syear=tsyear ! integer valued
-    !!CLN       ! Set moy:
-    !!CLN       SELECT CASE(sdoy)
-    !!CLN       CASE(1:31) ! Jan
-    !!CLN          smoy = 1
-    !!CLN       CASE(32:59) ! Feb
-    !!CLN          smoy = 2
-    !!CLN       CASE(60:90) ! Mar
-    !!CLN          smoy = 3
-    !!CLN       CASE(91:120)
-    !!CLN          smoy = 4
-    !!CLN       CASE(121:151)
-    !!CLN          smoy = 5
-    !!CLN       CASE(152:181)
-    !!CLN          smoy = 6
-    !!CLN       CASE(182:212)
-    !!CLN          smoy = 7
-    !!CLN       CASE(213:243)
-    !!CLN          smoy = 8
-    !!CLN       CASE(244:273)
-    !!CLN          smoy = 9
-    !!CLN       CASE(274:304)
-    !!CLN          smoy = 10
-    !!CLN       CASE(305:334)
-    !!CLN          smoy = 11
-    !!CLN       CASE(335:365)
-    !!CLN          smoy = 12
-    !!CLN       END SELECT
-    !!CLN    END IF
     ! Now all start time variables established, report to log file:
     WRITE(logn,'(1X,A12,F5.2,A14,I3,A14,I4,2X,A3,1X,A4)') &
          'Run begins: ',shod,' hour-of-day, ',sdoy, ' day-of-year, ',&
@@ -941,36 +797,7 @@ END SUBROUTINE get_default_lai
           END IF
        END DO
 
-       !!CLN       ! Number of days between beginning and end of run:
-       !!CLN       jump_days = INT(((timevar(kend)-timevar(1))/3600.0 + shod)/24.0)
-       !!CLN!       jump_days = INT(((timevar(kend)-timevar(1)+dels)/3600.0 + shod)/24.0)
-       !!CLN       ! initialise:
-       !!CLN       ehod = shod
-       !!CLN       edoy = sdoy
-       !!CLN       eyear = syear
-       !!CLN       ! Cycle through days to find leap year inclusive ending date:
-       !!CLN       DO i=1,jump_days
-       !!CLN          edoy = edoy + 1
-       !!CLN          IF((MOD(eyear,4)==0.AND.MOD(eyear,100)/=0).OR. &
-       !!CLN               (MOD(eyear,4)==0.AND.MOD(eyear,400)==0)) THEN
-       !!CLN             ! Set moy for leap year:
-       !!CLN             SELECT CASE(edoy)
-       !!CLN             CASE(367)! end of year; increment
-       !!CLN                eyear = eyear + 1
-       !!CLN                edoy = 1
-       !!CLN             END SELECT
-       !!CLN          ELSE
-       !!CLN             ! Set moy for non-leap year:
-       !!CLN             SELECT CASE(edoy)
-       !!CLN             CASE(366) ! end of year; increment
-       !!CLN                eyear = eyear + 1
-       !!CLN                edoy = 1
-       !!CLN             END SELECT
-       !!CLN          END IF
-       !!CLN       END DO
-       !!CLN       ! Update starting hour-of-day fot first time step's value
-       !!CLN       ehod = MOD(REAL((timevar(kend)-timevar(1))/3600.0 + shod),24.0)
-       !!CLN!       ehod = MOD(REAL((timevar(kend)-timevar(1)+dels)/3600.0 + shod),24.0)
+
     ELSE ! if not using leap year timing
        ! Update shod, sdoy, syear for first "time" value:
        ehod = MOD(REAL((timevar(kend)-timevar(1))/3600.0 + shod),24.0)
@@ -1117,16 +944,13 @@ END SUBROUTINE get_default_lai
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
     ! Multiply acceptable Rainf ranges by time step size:
-    !write(*,*) ranges%Rainf, dels
     !ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
     ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
-
     IF(ok /= NF90_NOERR) THEN
        ! Look for vector wind:
        ok = NF90_INQ_VARID(ncid_met,'Wind_N',id%Wind)
-       !       IF ( ok /= NF90_NOERR) CALL err_hanlde
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding Wind in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -2402,7 +2226,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     END IF
   
 END SUBROUTINE get_met_data
-
 !==============================================================================
 !
 ! Name: close_met_file
@@ -2423,7 +2246,6 @@ SUBROUTINE close_met_file
   IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
        //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
   ! Clear lat_all and lon_all variables
-    !CLN  DEALLOCATE(lat_all,lon_all)
   
 END SUBROUTINE close_met_file
 
@@ -2459,7 +2281,7 @@ END SUBROUTINE close_met_file
 !
 !==============================================================================
 
-  SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
+SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
        sum_flux,bal,logn,vegparmnew,casabiome,casapool,    &
        casaflux,casamet,casabal,phen,POP,spinup,EMSOIL,TFRZ)
    ! Input variables not listed:
@@ -2471,7 +2293,7 @@ END SUBROUTINE close_met_file
    !   landpt%type    - via cable_IO_vars_module (nap,cstart,cend,ilon,ilat)
    !   max_vegpatches - via cable_IO_vars_module
 
-    USE POPmodule, ONLY: POP_INIT, alloc_POP
+   USE POPmodule, ONLY: POP_INIT, alloc_POP
 
    IMPLICIT NONE
     
@@ -2493,10 +2315,9 @@ END SUBROUTINE close_met_file
    TYPE (casa_met)    , INTENT(OUT)        :: casamet
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
-    !   TYPE(Landscape), DIMENSION(:), ALLOCATABLE, INTENT(INOUT)            :: POP_Grid
     TYPE( POP_TYPE ), INTENT(INOUT)         :: POP
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
-    LOGICAL,INTENT(IN)                      :: &
+   LOGICAL,INTENT(IN)                      :: &
          vegparmnew, &  ! are we using the new format?
          spinup         ! for POP (initialize pop)
    REAL, INTENT(IN) :: TFRZ, EMSOIL 
@@ -2550,14 +2371,14 @@ END SUBROUTINE close_met_file
       CALL write_cnp_params(veg,casaflux,casamet)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
-       CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen,met)
-       IF ( CABLE_USER%CALL_POP ) THEN
-          IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
-             CALL POP_init( POP, veg%disturbance_interval )
-          ELSE
-             CALL POP_IO( POP, casamet, cable_user%YearStart, "READ" , .TRUE.)
-          END IF
-       END IF
+      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen,met)
+      IF ( CABLE_USER%CALL_POP ) THEN
+         IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
+            CALL POP_init( POP, veg%disturbance_interval )
+         ELSE
+            CALL POP_IO( POP, casamet, cable_user%YearStart, "READ" , .TRUE.)
+         END IF
+      END IF
     ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done
@@ -2567,7 +2388,6 @@ END SUBROUTINE close_met_file
 !
 !    ! load default LAI values from global data:
 !    CALL get_default_lai
-
 
     ! Look for explicit restart file (which will have parameters):
     IF ( TRIM(filename%restart_in) .EQ. '' ) filename%restart_in = './'
@@ -2587,7 +2407,7 @@ END SUBROUTINE close_met_file
     IF ( EXRST ) THEN
        ok = NF90_OPEN(TRIM(frst_in),NF90_NOWRITE,ncid_rin) ! open restart file
        IF (ok /= NF90_NOERR) CALL HANDLE_ERR(ok)
-       ! Any restart file exists, parameters and init will be loaded from it.
+      ! Any restart file exists, parameters and init will be loaded from it.
       WRITE(logn,*) ' Overwriting initialisations with values in ', &
             'restart file: ', TRIM(frst_in)
       WRITE(*,*)    ' Overwriting initialisations with values in ', &
@@ -2629,6 +2449,7 @@ END SUBROUTINE close_met_file
 
     ! Overwrite default values by those available in met file:
     CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
+
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
     IF(exists%parameters.AND.completeSet) THEN
@@ -2663,6 +2484,7 @@ END SUBROUTINE close_met_file
   
 END SUBROUTINE load_parameters
  
+
 !==============================================================================
 !
 ! Name: get_parameters_met

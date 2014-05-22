@@ -247,7 +247,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
 !        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
-         - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
+        - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
 
    IF (cable_user%soil_struc=='sli') then  !! vh March 2014 !!
       bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &  ! delwcol includes change in soil water, pond and snowpack
