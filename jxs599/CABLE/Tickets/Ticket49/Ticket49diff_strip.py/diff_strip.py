@@ -116,10 +116,10 @@ for i in range(lrdir):
 
 import subprocess
 
+#execut system comand
 cmd = "/usr/bin/diff ../tralb/cable_canopy.F90 ../SLIalb/cable_canopy.F90 -i -w --strip-trailing-cr"
-
-
 #print cmd
+
 #subprocess.call(cmd)
 p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
 (output, err) = p.communicate()

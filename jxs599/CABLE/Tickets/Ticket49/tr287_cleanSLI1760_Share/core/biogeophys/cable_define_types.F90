@@ -6,7 +6,6 @@
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
 ! http://www.accessimulator.org.au/cable
-
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -31,7 +30,6 @@
 
 MODULE cable_def_types_mod
 
-
    ! Contains all variables which are not subroutine-internal
 
    IMPLICIT NONE
@@ -46,8 +44,7 @@ MODULE cable_def_types_mod
               mstype,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
-  INTEGER, PARAMETER :: i_d = SELECTED_INT_KIND(9) , &       ! IEEE 4 Byte Integer  &
-       !       r_1 = SELECTED_REAL_KIND(6,37) , &   ! IEEE single Precision Real  &
+   INTEGER, PARAMETER ::                                                        &
       r_2  = SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
@@ -385,8 +382,8 @@ MODULE cable_def_types_mod
          dgdtg,   & ! derivative of gflux wrt soil temp
          fes,     & ! latent heatfl from soil (W/m2)
          fes_cor, & ! latent heatfl from soil (W/m2)
-          fevc,     &  ! dry canopy transpiration (W/m2)
-          ofes     ! latent heatfl from soil (W/m2)
+         fevc,    & ! dry canopy transpiration (W/m2)
+         ofes       ! latent heatfl from soil (W/m2)
 
      ! Additional variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
@@ -529,7 +526,6 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          fsd  ! downward short-wave radiation (W/m2)
      
-
    END TYPE met_type
 
 ! .............................................................................
@@ -588,7 +584,7 @@ MODULE cable_def_types_mod
          alloc_met_type,                                                       &
          alloc_sum_flux_type,                                                  &
          alloc_bgc_pool_type            
-  END INTERFACE alloc_cbm_var
+   END INTERFACE
 
    INTERFACE dealloc_cbm_var
       MODULE PROCEDURE dealloc_balances_type,                                  &
@@ -602,7 +598,7 @@ MODULE cable_def_types_mod
          dealloc_met_type,                                                     &
          dealloc_sum_flux_type,                                                &
          dealloc_bgc_pool_type            
-  END INTERFACE dealloc_cbm_var
+   END INTERFACE
 
 
 CONTAINS
@@ -929,6 +925,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
     ALLOCATE ( var % ecx(mp,mf) )    ! sunlit and shaded leaf latent heat flux
     ALLOCATE ( var % ci(mp,mf,3) )   ! intra-cellular CO2 vh 6/7/09
     ALLOCATE ( var % fwsoil (mp) )
+   ALLOCATE( var% gs_vs(mp) )   
    
 END SUBROUTINE alloc_canopy_type
 
@@ -1050,8 +1047,6 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % da(mp) )
    ALLOCATE ( var % dva(mp) )
    ALLOCATE ( var % coszen(mp) )
-
-
 
 END SUBROUTINE alloc_met_type
    
@@ -1396,6 +1391,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% zetar )  
     DEALLOCATE ( var % fwsoil )
     DEALLOCATE ( var % ofes )
+   DEALLOCATE( var% gs_vs )  
 
 END SUBROUTINE dealloc_canopy_type
    
@@ -1513,7 +1509,6 @@ SUBROUTINE dealloc_met_type(var)
    DEALLOCATE ( var % da )
    DEALLOCATE ( var % dva )
    DEALLOCATE ( var % coszen )
-
 
 END SUBROUTINE dealloc_met_type
 
