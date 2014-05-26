@@ -130,7 +130,7 @@ CONTAINS
     INTEGER :: nlat
 
     ! Get parameter values for all default veg and soil types:
-    CALL get_type_parameters(logn, vegparmnew, classification)
+      CALL get_type_parameters(logn, vegparmnew, classification)
 
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
@@ -760,9 +760,9 @@ CONTAINS
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
     TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
-    TYPE (canopy_type),         INTENT(OUT)   :: canopy
-    TYPE (roughness_type),      INTENT(OUT)   :: rough
-    TYPE (radiation_type),      INTENT(OUT)   :: rad
+    TYPE (canopy_type),         INTENT(inOUT)   :: canopy
+    TYPE (roughness_type),      INTENT(inOUT)   :: rough
+    TYPE (radiation_type),      INTENT(inOUT)   :: rad
 
     INTEGER :: e,f,h  ! do loop counter
     INTEGER :: is     ! YP oct07
@@ -1110,8 +1110,8 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
-    TYPE (veg_parameter_type),  INTENT(IN)    :: veg
+    TYPE (soil_snow_type),      INTENT(INOUT)    :: ssnow
+    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
     TYPE (balances_type),       INTENT(INOUT) :: bal
