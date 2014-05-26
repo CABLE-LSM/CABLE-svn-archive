@@ -54,10 +54,10 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
 
-   TYPE(roughness_type), INTENT(INOUT) :: rough
-   TYPE (canopy_type),   INTENT(INOUT) :: canopy
-   TYPE(soil_snow_type), INTENT(IN)    :: ssnow
-   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
+   TYPE(roughness_type) :: rough
+   TYPE (canopy_type) :: canopy
+   TYPE(soil_snow_type)    :: ssnow
+   TYPE (veg_parameter_type) :: veg
 
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =C%CCD*LAI; working variable 

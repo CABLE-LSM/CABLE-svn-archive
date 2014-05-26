@@ -46,12 +46,12 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
                                    veg_parameter_type, nrb, mp    
    USE cable_common_module
 
-   TYPE (radiation_type), INTENT(INOUT) :: rad
-   TYPE (met_type),       INTENT(INOUT) :: met
+   TYPE (radiation_type) :: rad
+   TYPE (met_type) :: met
    
-   TYPE (canopy_type),    INTENT(IN)    :: canopy
+   TYPE (canopy_type)    :: canopy
 
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
+   TYPE (veg_parameter_type) :: veg
    
    REAL, DIMENSION(nrb) ::                                                     &
       cos3       ! cos(15 45 75 degrees)
@@ -168,13 +168,13 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
                                        
    USE cable_common_module, only : cable_runtime, cable_user
 
-   TYPE (canopy_type),   INTENT(IN) :: canopy
-   TYPE (air_type),      INTENT(IN) :: air
-   TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-   TYPE (met_type),      INTENT(INOUT) :: met
-   TYPE (radiation_type),INTENT(INOUT) :: rad
+   TYPE (canopy_type) :: canopy
+   TYPE (air_type) :: air
+   TYPE (soil_snow_type) :: ssnow
+   TYPE (met_type) :: met
+   TYPE (radiation_type) :: rad
    
-   TYPE (veg_parameter_type), INTENT(IN) :: veg
+   TYPE (veg_parameter_type) :: veg
    
    REAL, DIMENSION(mp) ::                                                      &
       cf1, &      ! (1.0 - rad%transb * cexpkdm) / (extkb + extkdm(:,b))
@@ -354,8 +354,8 @@ SUBROUTINE calc_rhoch(veg,c1,rhoch)
    USE cable_def_types_mod, ONLY : veg_parameter_type
    USE cable_common_module, only : cable_runtime   
 
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
+   TYPE (veg_parameter_type) :: veg
+   REAL, DIMENSION(:,:) :: c1, rhoch
       
    c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
    c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
@@ -374,7 +374,7 @@ ELEMENTAL FUNCTION sinbet(doy,xslat,hod) RESULT(z)
    USE cable_data_module, ONLY : MATH 
    ! calculate sin(bet), bet = elevation angle of sun
    ! calculations according to goudriaan & van laar 1994 p30
-   REAL, INTENT(IN) ::                                                         &
+   REAL, intent(in) ::                                                         &
       doy,     & ! day of year
       xslat,   & ! latitude (degrees north)
       hod        ! hour of day
@@ -399,7 +399,7 @@ FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
    
    ! Calculate beam fraction
    ! See spitters et al. 1986, agric. for meteorol., 38:217-229
-   REAL, DIMENSION(mp), INTENT(IN) ::                                          &
+   REAL, DIMENSION(mp) ::                                          &
       doy,        & ! day of year
       coszen,     & ! cos(zenith angle of sun)
       fsd           ! short wave down (positive) w/m^2

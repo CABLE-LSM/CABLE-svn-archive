@@ -66,20 +66,20 @@ CONTAINS
    !ptrs to local constants 
    TYPE( icbm_type ) :: C
    ! CABLE model variables
-   TYPE (air_type),       INTENT(INOUT) :: air
-   TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc
-   TYPE (canopy_type),    INTENT(INOUT) :: canopy
-   TYPE (met_type),       INTENT(INOUT) :: met
-   TYPE (balances_type),  INTENT(INOUT) :: bal
-   TYPE (radiation_type), INTENT(INOUT) :: rad
-   TYPE (roughness_type), INTENT(INOUT) :: rough
-   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-   TYPE (sum_flux_type),  INTENT(INOUT) :: sum_flux
+   TYPE (air_type) :: air
+   TYPE (bgc_pool_type) :: bgc
+   TYPE (canopy_type) :: canopy
+   TYPE (met_type) :: met
+   TYPE (balances_type) :: bal
+   TYPE (radiation_type) :: rad
+   TYPE (roughness_type) :: rough
+   TYPE (soil_snow_type) :: ssnow
+   TYPE (sum_flux_type) :: sum_flux
     
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
-   TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg  
+   TYPE (soil_parameter_type)   :: soil 
+   TYPE (veg_parameter_type)    :: veg  
 
-   REAL, INTENT(IN)               :: dels ! time setp size (s)
+   REAL               :: dels ! time setp size (s)
     
    INTEGER :: k,kk,j  
 

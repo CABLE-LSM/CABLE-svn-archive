@@ -50,13 +50,13 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
                                    canopy_type, met_type, radiation_type,      &
                                    soil_snow_type, mp, r_2, nrb 
    
-   TYPE (canopy_type),INTENT(IN)       :: canopy
-   TYPE (met_type),INTENT(INOUT)       :: met
-   TYPE (radiation_type),INTENT(INOUT) :: rad
-   TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
+   TYPE (canopy_type)       :: canopy
+   TYPE (met_type)       :: met
+   TYPE (radiation_type) :: rad
+   TYPE (soil_snow_type) :: ssnow
 
-   TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
+   TYPE (veg_parameter_type)  :: veg
+   TYPE(soil_parameter_type) :: soil   
 
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
@@ -145,11 +145,11 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
                                    met_type, soil_snow_type, mp 
    USE cable_common_module
    
-   TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-   TYPE (met_type),INTENT(INOUT)       :: met
+   TYPE (soil_snow_type) :: ssnow
+   TYPE (met_type)       :: met
    
-   TYPE (veg_parameter_type),INTENT(INout)  :: veg
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
+   TYPE (veg_parameter_type) :: veg
+   TYPE(soil_parameter_type) :: soil   
 
    REAL, DIMENSION(mp) ::                                                      &
       alv,     &  ! Snow albedo for visible
@@ -317,8 +317,8 @@ END SUBROUTINE surface_albedosn
 SUBROUTINE calc_rhoch(veg,c1,rhoch) 
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
+   TYPE (veg_parameter_type) :: veg
+   REAL, DIMENSION(:,:) :: c1, rhoch
 
    c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
    c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))

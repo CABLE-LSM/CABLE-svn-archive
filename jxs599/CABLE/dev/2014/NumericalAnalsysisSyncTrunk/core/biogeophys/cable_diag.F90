@@ -43,7 +43,7 @@
 
 
 MODULE cable_diag_module
-   IMPLICIT NONe
+   IMPLICIT NONE
    INTEGER, PARAMETER :: gok=0
    INTEGER :: galloctest=1
   
@@ -59,77 +59,87 @@ CONTAINS
 ! of data and format etc., and filename.bin containing the data   
 !==========================================================================!
 
-SUBROUTINE cable_diag1( Nvars, basename, dimx, dimy, timestep, node, &
+SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
                         vname1, var1 )
-   integer, intent(in) :: Nvars,dimx, dimy, timestep,node
-   real, intent(in), dimension(:) :: var1
+   integer :: iDiag 
+   integer, SAVE :: pDiag=713 
+   integer :: dimx, dimy, timestep,node
+   real, dimension(:) :: var1
+   integer :: Nvars=1 !this WAS input
    integer :: i=0
-   character(len=*), intent(in) :: basename, vname1
+   character(len=*) :: basename, vname1
    character(len=30) :: filename, chnode
-  
+ 
+      IF(iDiag==0) tHEN
+         pDiag = pDiag+2  
+         iDiag=pDiag
+      ENDIF
+         
       write(chnode,10) node
    10 format(i2.2)   
       filename=trim(trim(basename)//trim(chnode))
       
       if (timestep == 1) & 
-         call cable_diag_desc1( Nvars, trim(filename), dimx, dimy, vname1 )
+         call cable_diag_desc1( iDiag, trim(filename), dimx, dimy, vname1 )
       
-      call cable_diag_data1( Nvars, trim(filename), dimx, timestep, dimy, &
+      call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
                              var1 )
 END SUBROUTINE cable_diag1
 
 !=============================================================================!
 !=============================================================================!
 
-SUBROUTINE cable_diag_desc1( Nvars, filename, dimx, dimy, vname1 )
+SUBROUTINE cable_diag_desc1( iDiag, filename, dimx, dimy, vname1 )
 
-   integer, intent(in) :: Nvars,dimx,dimy 
-   character(len=*), intent(in) :: filename, vname1
+   integer :: iDiag,dimx,dimy 
+   integer, PARAMETER :: Nvars=1
+   character(len=*) :: filename, vname1
    integer, save :: gopenstatus = 1
 
-     open(unit=713941,file=filename//'.dat', status="replace", &
+     open(unit=iDiag,file=filename//'.dat', status="replace", &
           action="write", iostat=gopenstatus )
      
       if(gopenstatus==gok) then
-            write (713941,*) 'Number of var(s): '
-            write (713941,*) Nvars
-            write (713941,*) 'Name of var(s): '
-            write (713941,7139) vname1 
+            write (iDiag,*) 'Number of var(s): '
+            write (iDiag,*) Nvars
+            write (iDiag,*) 'Name of var(s): '
+            write (iDiag,7139) vname1 
  7139       format(a)            
-            write (713941,*) 'dimension of var(s) in x: '
-            write (713941,*) dimx 
-            write (713941,*) 'dimension of var(s) in y: '
-            write (713941,*) dimy 
+            write (iDiag,*) 'dimension of var(s) in x: '
+            write (iDiag,*) dimx 
+            write (iDiag,*) 'dimension of var(s) in y: '
+            write (iDiag,*) dimy 
       else
          write (*,*), filename//'.dat',' Error: unable to write'
       endif
       
-   close(713941)
+   close(iDiag)
   
 END SUBROUTINE cable_diag_desc1
 
 
-SUBROUTINE cable_diag_data1( Nvars, filename, dimx, timestep, kend, var1  )
+SUBROUTINE cable_diag_data1( iDiag, filename, dimx, timestep, kend, var1  )
 
-   integer, intent(in) :: Nvars, dimx, timestep, kend
-   real, intent(in), dimension(:) :: var1
-   character(len=*), intent(in) :: filename
+   integer :: iDiag, dimx, timestep, kend
+   integer, PARAMETER :: Nvars=1
+   real, dimension(:) :: var1
+   character(len=*) :: filename
    integer, save :: gopenstatus = 1
 
    if (timestep == 1)  then 
-      open(unit=713942,file=filename//'.bin',status="unknown", &
+      open(unit=iDiag+1,file=filename//'.bin',status="unknown", &
            action="write", iostat=gopenstatus, form="unformatted", &
            position='append' )
    endif   
  
    if(gopenstatus==gok) then
-         write (713942) var1
+         write (iDiag+1) var1
    else
       write (*,*) filename//'.bin',' NOT open for write. Error'
    endif
 
    if (timestep == kend) & 
-      close(713942)
+      close(iDiag+1)
 
 END SUBROUTINE cable_diag_data1
 
@@ -140,7 +150,7 @@ END SUBROUTINE cable_diag_data1
 SUBROUTINE cable_stat( routname)
    use cable_common_module, only : ktau_gl, knode_gl
 
-   character(len=*), intent(in) :: routname
+   character(len=*) :: routname
       if(knode_gl==1) & 
          write(6,*) 'CABLE@  ', routname, ktau_gl
 

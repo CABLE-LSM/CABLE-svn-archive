@@ -50,8 +50,8 @@ SUBROUTINE define_air(met,air)
    USE cable_def_types_mod,          ONLY : air_type, met_type, mp    
    USE cable_common_module,   ONLY : cable_runtime, cable_user, ktau_gl 
 
-   TYPE (air_type), INTENT(INOUT) :: air ! air_type variables
-   TYPE (met_type), INTENT(IN)    :: met ! meteorological variables
+   TYPE (air_type) :: air ! air_type variables
+   TYPE (met_type)    :: met ! meteorological variables
    
    ! local vatiables 
    REAL, DIMENSION(mp)     :: es ! sat vapour pressure (mb)   

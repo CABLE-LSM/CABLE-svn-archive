@@ -53,15 +53,15 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
                            
    USE cable_common_module, ONLY : cable_runtime, cable_user
 
-    REAL, INTENT(IN) ::                                                       &
+    REAL ::                                                       &
       dels     ! integration time step (s)
 
-    TYPE(soil_snow_type), INTENT(IN)     :: ssnow  ! soil/snow variables
-    TYPE(veg_parameter_type), INTENT(IN) :: veg    ! vegetation parameters
-    TYPE(canopy_type), INTENT(IN)        :: canopy ! canopy/veg variables
-    TYPE(bgc_pool_type), INTENT(INOUT)   :: bgc    ! biogeochemistry variables
+    TYPE(soil_snow_type)     :: ssnow  ! soil/snow variables
+    TYPE(veg_parameter_type) :: veg    ! vegetation parameters
+    TYPE(canopy_type)        :: canopy ! canopy/veg variables
+    TYPE(bgc_pool_type)   :: bgc    ! biogeochemistry variables
     
-    TYPE(soil_parameter_type), INTENT(IN):: soil   ! soil parameters
+    TYPE(soil_parameter_type):: soil   ! soil parameters
 
     REAL, PARAMETER     :: beta = 0.9
 
@@ -221,13 +221,13 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
                            
    USE cable_common_module   
 
-   TYPE (soil_snow_type), INTENT(IN)        :: ssnow
-   TYPE (bgc_pool_type), INTENT(IN)         :: bgc
-   TYPE (met_type), INTENT(IN)              :: met 
-   TYPE (canopy_type), INTENT(OUT)          :: canopy
+   TYPE (soil_snow_type)        :: ssnow
+   TYPE (bgc_pool_type)         :: bgc
+   TYPE (met_type)              :: met 
+   TYPE (canopy_type)          :: canopy
 
-   TYPE (soil_parameter_type), INTENT(IN)   :: soil
-   TYPE (veg_parameter_type), INTENT(IN)    :: veg
+   TYPE (soil_parameter_type)   :: soil
+   TYPE (veg_parameter_type)    :: veg
    
    REAL, DIMENSION(mp) ::                                                      &
       den,        & ! sib3  
@@ -318,10 +318,10 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
                                    canopy_type, bgc_pool_type, mp , mvtype
                            
   
-   TYPE (veg_parameter_type), INTENT(IN)    :: veg
-   TYPE (bgc_pool_type), INTENT(IN)         :: bgc
-   TYPE (met_type), INTENT(IN)              :: met
-   TYPE (canopy_type), INTENT(OUT)          :: canopy
+   TYPE (veg_parameter_type)    :: veg
+   TYPE (bgc_pool_type)         :: bgc
+   TYPE (met_type)              :: met
+   TYPE (canopy_type)          :: canopy
 
    REAL, DIMENSION(mp) ::                                                      &
       poolcoef1,     &! non-leaf carbon turnover rate * non-leaf pool size

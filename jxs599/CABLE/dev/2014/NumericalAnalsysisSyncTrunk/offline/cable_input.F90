@@ -1482,7 +1482,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    LOGICAL, INTENT(IN)                    ::                                   &
         spinup,         & ! are we performing a spinup?
         spinConv          ! has model spinup converged?
-   TYPE(met_type),INTENT(OUT)             :: met ! meteorological data
+   TYPE(met_type),INTENT(inout)             :: met ! meteorological data
    TYPE (soil_parameter_type),INTENT(IN)  :: soil 
    TYPE (radiation_type),INTENT(IN)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
