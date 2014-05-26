@@ -190,9 +190,9 @@ PROGRAM cable_offline_driver
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    CHARACTER(len=30), PARAMETER ::                                             &
       Ftrunk_sumbal  = ".trunk_sumbal",                                        &
-      Fnew_sumbal    = ".new_sumbal"
+      Fnew_sumbal    = "new_sumbal"
 
-   REAL ::                                                                     &
+   DOUBLE PRECISION ::                                                                     &
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
 
@@ -206,8 +206,9 @@ PROGRAM cable_offline_driver
    ! Open, read and close the consistency check file.
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    IF(cable_user%consistency_check) THEN 
-      OPEN( 11, FILE = Ftrunk_sumbal )
-         READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
+         IF(ioerror==0) then
+            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
       CLOSE(11)
    ENDIF
    
