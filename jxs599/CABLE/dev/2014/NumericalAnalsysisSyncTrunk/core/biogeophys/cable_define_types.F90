@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -123,6 +123,8 @@ MODULE cable_def_types_mod
          swilt,   & ! vol H2O @ wilting
          zse,     & ! thickness of each soil layer (1=top) in m
          zshh,    & ! distance between consecutive layer midpoints (m)
+  		 ! vars intro for Ticket #27
+         soilcol, & ! keep color for all patches/tiles
          albsoilf   ! soil reflectance
      
       REAL(r_2), DIMENSION(:), allocatable ::                                      &
@@ -574,7 +576,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    
    TYPE(soil_parameter_type) :: var
    INTEGER :: mp
-   
+
    call cable_safe_allocate( var% bch, mp, alloc )   
    call cable_safe_allocate( var% c3, mp, alloc )    
    call cable_safe_allocate( var% clay, mp, alloc )  
@@ -597,6 +599,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    call cable_safe_allocate( var% albsoil,mp, nrb, alloc)   
    call cable_safe_allocate( var% pwb_min, mp, alloc )  
    call cable_safe_allocate( var% albsoilf, mp, alloc )  
+   call cable_safe_allocate( var% soilcol, mp, alloc )  
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -996,7 +999,8 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% albsoil )  
    DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% pwb_min)  
-   DEALLOCATE( var% albsoilf )  
+   DEALLOCATE( var% albsoilf )
+   DEALLOCATE( var% soilcol )  
    
 END SUBROUTINE dealloc_soil_parameter_type
  

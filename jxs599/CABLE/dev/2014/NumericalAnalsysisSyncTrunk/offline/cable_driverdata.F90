@@ -6,7 +6,8 @@ module cable_driverData_mod
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
-                                   report_version_no, wiltParam, satuParam, &
+                                   report_version_no, wiltParam, satuParam,    &
+                                   calcsoilalbedo,                             &
                                    cable_error_log
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -70,6 +71,7 @@ module cable_driverData_mod
                   filename,         & ! TYPE, containing input filenames 
                   vegparmnew,       & ! jhan: use new soil param. method
                   soilparmnew,      & ! jhan: use new soil param. method
+                  calcsoilalbedo,   & ! albedo considers soil color Ticket #27
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
