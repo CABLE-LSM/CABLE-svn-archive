@@ -47,7 +47,7 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
    
    type (TdupVars) :: dup 
    type (TbufVars) :: buf 
-
+   
    logical, save :: first_call = .true.
    integer, save :: iDiag0 
    
@@ -60,6 +60,7 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
    DOUBLE PRECISION ::                                                                     &
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
+      integer :: ioerror
 
    ! END header
 
@@ -75,6 +76,7 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
       OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
          IF(ioerror==0) then
             READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+         ENDIF
       CLOSE(11)
    ENDIF
    
@@ -131,9 +133,10 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
-   !jhan: allocate duplicate vars as mp, kend
+!JHAN: allocate duplicate vars as mp, kend                          
    if( first_call ) then 
       call alloc_DupVars(dup, kend)
+      ! can add another copy of vars to Buf vars
       !call alloc_BufVars(buf, kend)
       first_call = .false.
    endif
@@ -151,14 +154,14 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    
-!@jhan: take out main DO loop 
+!JHAN: take out main DO loop 
 !@   DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
       ktau_gl = 0
       kend_gl = kend
       knode_gl = 0
-   
+!JHAN: original code, timestep starts here   
       ! time step loop over ktau
       DO ktau=kstart, kend 
          
@@ -190,31 +193,31 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
 
-         ! make a copy of met data per ktau as they are read in and 
-         ! store in arrays with ktau element
+#ifdef PROJECT 
+!JHAN: NEW CODE BLOCK STARTS HERE: this is where _cbm is called originally
+!JHAN: make a copy of met data per ktau as they are read in and 
+!JHAN: store in arrays with ktau element
          call set_DupVars( ktau, dup, met, bgc, soil, veg, ssnow, canopy, &
                         rad, rough, air )
 
+         !print *,"jhan:STOP"
+         !STOP
+!JHAN: below re-sets these vars to NaN. "!!" therefore suggests they cannot be reset safely
+!JHAN: and need to be recorded at ktau level
+         CALL alloc_cbm_var(air,    mp)
+         !CALL alloc_cbm_var(bgc,   mp)
+         CALL alloc_cbm_var(canopy,mp)
+         CALL alloc_cbm_var(met,   mp)
+         !CALL alloc_cbm_var(bal,   mp)
+         CALL alloc_cbm_var(rad,   mp)
+         CALL alloc_cbm_var(rough, mp)
+         !CALL alloc_cbm_var(soil,  mp)
+         !CALL alloc_cbm_var(ssnow, mp)
+         !CALL alloc_cbm_var(veg,   mp)
+         !CALL alloc_cbm_var(sum_flux, mp)
 
-
-!print *,"jhan:STOP"
-!STOP
- ! below re-sets these vars to NaN. "!!" therefore suggests they cannot be reset safely
- ! and need to be recorded at ktau level
-    CALL alloc_cbm_var(air,    mp)
- !   CALL alloc_cbm_var(bgc,   mp)
-    CALL alloc_cbm_var(canopy,mp)
-    CALL alloc_cbm_var(met,   mp)
- !   CALL alloc_cbm_var(bal,   mp)
-    CALL alloc_cbm_var(rad,   mp)
-    CALL alloc_cbm_var(rough, mp)
- !   CALL alloc_cbm_var(soil,  mp)
- !   CALL alloc_cbm_var(ssnow, mp)
- !   CALL alloc_cbm_var(veg,   mp)
- !   CALL alloc_cbm_var(sum_flux, mp)
-
-
-         ! CALL land surface scheme for this timestep, all grid points:
+!JHAN: THIS IS COMMENTED OLD CODE in attempt to do only once
+!@         ! CALL land surface scheme for this timestep, all grid points:
 !@         CALL cbm( dels, air, bgc, canopy, met,                             &
 !@                   bal, rad, rough, soil, ssnow,                            &
 !@                   sum_flux, veg )
@@ -268,19 +271,18 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
 !@                          canopy%fe + canopy%fh )
 !@         ENDIF
 !@         
+!JHAN: END 	the timestep here - shows we cantread data and then call cbm in new loop - WHY?
       END DO ! END Do loop over timestep ktau
 
 
-!@jhan: times set before DO loop over timestep
-   ktau_tot = 0 
-   ktau_gl = 0
-   kend_gl = kend
-   knode_gl = 0
+!JHAN: times set before DO loop over timestep
+      ktau_tot = 0 
+      ktau_gl = 0
+      kend_gl = kend
+      knode_gl = 0
 
 
-   
-
-!@@@@@@
+!JHAN: restart timestep loopp
 !@      ! time step loop over ktau
       DO ktau=kstart, kend 
          
@@ -300,15 +302,14 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
    
 !@         canopy%oldcansto=canopy%cansto
 
-         ! Get met data and LAI, set time variables.
-          ! resets met data per ktau from the copies made previously 
-         ! store in arrays with ktau element
+!JHAN: resets met data per ktau from the copies made previously 
+!JHAN: store in arrays with ktau element
          call reset_DupVars( ktau, dup, met, bgc, soil,veg, ssnow, canopy, & 
-                        rad, rough, air )
+                        rad, rough, air ) 
+!JHAN: this is ssecond time this is called
+          ! Get met data and LAI, set time variables.
 !         ! Rainfall input may be augmented for spinup purposes:
-
 !!@          met%ofsd = met%fsd(:,1) + met%fsd(:,2) 
-
 !!@         CALL get_met_data( spinup, spinConv, met, soil,                    &
 !!@                            rad, veg, kend, dels, C%TFRZ, ktau ) 
 !!@
@@ -317,6 +318,8 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
                                                 casapool, casamet )
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
+!JHAN: NEW CODE BLOCK ENDS HERE
+#endif 
 
          ! CALL land surface scheme for this timestep, all grid points:
          CALL cbm( dels, air, bgc, canopy, met,                             &
@@ -372,89 +375,7 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
          
       END DO ! END Do loop over timestep ktau
 
-
-
-   
-      !jhan this is insufficient testing. condition for 
-      !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
-      ! see if spinup (if conducting one) has converged:
-!@      IF(spinup.AND..NOT.spinConv) THEN
-!@         
-!@         ! Write to screen and log file:
-!@         WRITE(*,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
-!@               ' of data set complete...'
-!@         WRITE(logn,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),   &
-!@               ' of data set complete...'
-!@         
-!@         ! IF not 1st run through whole dataset:
-!@         IF( INT( ktau_tot/kend ) > 1 ) THEN 
-!@            
-!@            ! evaluate spinup
-!@            IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
-!@                ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
-!@               
-!@               ! No complete convergence yet
-!@               maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
-!@               PRINT *, 'Example location of moisture non-convergence: ', &
-!@                        maxdiff
-!@               PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
-!@               PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
-!@               maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
-!@               PRINT *, 'Example location of temperature non-convergence: ', &
-!@                        maxdiff
-!@               PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
-!@               PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
-!@            
-!@            ELSE ! spinup has converged
-!@               
-!@               spinConv = .TRUE.
-!@               ! Write to screen and log file:
-!@               WRITE(*,'(A33)') ' Spinup has converged - final run'
-!@               WRITE(logn,'(A52)')                                             &
-!@                          ' Spinup has converged - final run - writing all data'
-!@               WRITE(logn,'(A37,F8.5,A28)')                                    &
-!@                          ' Criteria: Change in soil moisture < ',             &
-!@                          delsoilM, ' in any layer over whole run'
-!@               WRITE(logn,'(A40,F8.5,A28)' )                                   &
-!@                          '           Change in soil temperature < ',          &
-!@                          delsoilT, ' in any layer over whole run'
-!@            END IF
-!@
-!@         ELSE ! allocate variables for storage
-!@         
-!@           ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
-!@         
-!@         END IF
-!@         
-!@         ! store soil moisture and temperature
-!@         soilTtemp = ssnow%tgg
-!@         soilMtemp = REAL(ssnow%wb)
-!@
-!@      ELSE
-!@!@jhan: take out main DO loop 
-!@         ! if not spinning up, or spin up has converged, exit:
-!@         print *, " if not spinning up, or spin up has converged, exit:"
-!@         !EXIT
-!@       
-!@      END IF
-
-!@jhan: take out main DO loop 
-!@   END DO
-
-!@   IF (icycle > 0) THEN
-!@      
-!@      CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-!@                         casapool, casaflux, casamet, casabal, phen )
-!@
-!@      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-!@  
-!@   END IF
-
-   ! Write restart file if requested:
-   IF(output%restart)                                                          &
-      CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
-                           canopy, rough, rad, bgc, bal )
-      
+     
    ! Close met data input file:
    CALL close_met_file
  
@@ -463,8 +384,7 @@ subroutine cable_offline_driver( met, air, canopy, rad, rough, &
                            rad, rough, soil, ssnow,                            &
                            sum_flux, veg )
 
-!@   WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
-   
+  
    ! Check this run against standard for quasi-bitwise reproducability
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    IF(cable_user%consistency_check) THEN 
@@ -540,38 +460,9 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
 
 END SUBROUTINE renameFiles
 
+
 end module cable_driver_module
 
 
 
 
-         !call set_BufVars( ktau, buf, met, bgc, soil,veg, ssnow, canopy, &
-         !               rad, rough, air )
-
-         !!!this just resets as NaN
-         !CALL alloc_cbm_var(air,    mp)
-         !CALL alloc_cbm_var(bgc,   mp)
-         !CALL alloc_cbm_var(canopy,mp)
-         !CALL alloc_cbm_var(met,   mp)
-         !CALL alloc_cbm_var(bal,   mp)
-         !CALL alloc_cbm_var(rad,   mp)
-         !CALL alloc_cbm_var(rough, mp)
-         !CALL alloc_cbm_var(soil,  mp)
-         !CALL alloc_cbm_var(ssnow, mp)
-         !CALL alloc_cbm_var(veg,   mp)
-         !CALL alloc_cbm_var(sum_flux, mp)
-
-
-!@         !re-sets these vars to NaN. "!!" therefore suggests they cannot be reset safely
-!@         !and need to be recorded at ktau level
-!@         CALL alloc_cbm_var(air,    mp)
-!@         CALL alloc_cbm_var(bgc,   mp)
-!@         CALL alloc_cbm_var(canopy,mp)
-!@         CALL alloc_cbm_var(met,   mp)
-!@         CALL alloc_cbm_var(bal,   mp)
-!@         CALL alloc_cbm_var(rad,   mp)
-!@         CALL alloc_cbm_var(rough, mp)
-!@         CALL alloc_cbm_var(soil,  mp)
-!@         CALL alloc_cbm_var(ssnow, mp)
-!@         CALL alloc_cbm_var(veg,   mp)
-!@         CALL alloc_cbm_var(sum_flux, mp)

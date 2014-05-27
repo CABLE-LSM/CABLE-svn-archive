@@ -1198,7 +1198,7 @@ subroutine reSet_DupVars( ktau, dup, met, bgc, soil,veg, ssnow, canopy, &
    call cable_resetDupVars( dup% veg% canst1,   veg% canst1,   ktau, alloc ) 
   
    !call check_dup_var( dup% veg% canst1(:,ktau),   veg% canst1,   ktau )
-   call check_dup_var( ) 
+   !call check_dup_var( ) 
    
    call cable_resetDupVars( dup% veg% dleaf,    veg% dleaf,    ktau, alloc )  
    call cable_resetDupVars( dup% veg% ejmax,    veg% ejmax,    ktau, alloc ) 
@@ -1873,10 +1873,10 @@ END SUBROUTINE reset_DupVars
       b=1.
       ktau=1 
       d = a-b
-      if (d  > 0.0 ) then
+      !if (d  > 0.0 ) then
       !if (a - b .ne. 0. ) then
-         print *, "ktau, dup% veg% ,  veg% ", ktau, a,b 
-      endif
+      !   print *, "ktau, dup% veg% ,  veg% ", ktau, a,b 
+      !endif
 
    end subroutine check_dup_var
 

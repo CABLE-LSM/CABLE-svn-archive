@@ -23,71 +23,48 @@
     </df>
     <df root="../build" name="2">
       <in>cable_abort.F90</in>
-      <in>cable_abort_module.mod</in>
       <in>cable_air.F90</in>
-      <in>cable_air_module.mod</in>
       <in>cable_albedo.F90</in>
-      <in>cable_albedo_module.mod</in>
       <in>cable_canopy.F90</in>
-      <in>cable_canopy_module.mod</in>
       <in>cable_carbon.F90</in>
-      <in>cable_carbon_module.mod</in>
       <in>cable_cbm.F90</in>
-      <in>cable_cbm_module.mod</in>
       <in>cable_checks.F90</in>
-      <in>cable_checks_module.mod</in>
       <in>cable_common.F90</in>
-      <in>cable_common_module.mod</in>
       <in>cable_data.F90</in>
-      <in>cable_data_module.mod</in>
-      <in>cable_def_types_mod.mod</in>
       <in>cable_define_types.F90</in>
       <in>cable_diag.F90</in>
-      <in>cable_diag_module.mod</in>
       <in>cable_driver.F90</in>
-      <in>cable_init_module.mod</in>
       <in>cable_initialise.F90</in>
       <in>cable_input.F90</in>
-      <in>cable_input_module.mod</in>
-      <in>cable_io_vars_module.mod</in>
       <in>cable_iovars.F90</in>
       <in>cable_mpicommon.F90</in>
       <in>cable_mpidrv.F90</in>
       <in>cable_mpimaster.F90</in>
       <in>cable_mpiworker.F90</in>
       <in>cable_output.F90</in>
-      <in>cable_output_module.mod</in>
-      <in>cable_param_module.mod</in>
       <in>cable_parameters.F90</in>
       <in>cable_radiation.F90</in>
-      <in>cable_radiation_module.mod</in>
       <in>cable_read.F90</in>
-      <in>cable_read_module.mod</in>
       <in>cable_roughness.F90</in>
-      <in>cable_roughness_module.mod</in>
-      <in>cable_soil_snow_module.mod</in>
       <in>cable_soilsnow.F90</in>
       <in>cable_write.F90</in>
-      <in>cable_write_module.mod</in>
       <in>casa_cable.F90</in>
       <in>casa_cnp.F90</in>
-      <in>casa_cnp_module.mod</in>
       <in>casa_inout.F90</in>
       <in>casa_variable.F90</in>
-      <in>casadimension.mod</in>
-      <in>casaparm.mod</in>
-      <in>casavariable.mod</in>
-      <in>phenvariable.mod</in>
     </df>
     <df root="../offline" name="3">
       <df name="script_global">
       </df>
       <in>cable_abort.F90</in>
+      <in>cable_allocate.F90</in>
       <in>cable_checks.F90</in>
       <in>cable_driver.F90</in>
+      <in>cable_driverdata.F90</in>
       <in>cable_initialise.F90</in>
       <in>cable_input.F90</in>
       <in>cable_iovars.F90</in>
+      <in>cable_main.F90</in>
       <in>cable_mpicommon.F90</in>
       <in>cable_mpidrv.F90</in>
       <in>cable_mpimaster.F90</in>
