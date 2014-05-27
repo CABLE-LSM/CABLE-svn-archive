@@ -94,7 +94,7 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: fixed_stem=1.0/3.0
   REAL(r_2), PARAMETER :: Q10alloc=2.0
   REAL(r_2), PARAMETER :: ratioNCstrfix = 1.0/150.0
-  REAL(r_2), PARAMETER :: ratioPCstrfix = ratioNCstrfix/25.0
+  REAL(r_2), PARAMETER :: ratioNPstrfix = 25.0                  
   REAL(r_2), PARAMETER :: fracCbiomass = 0.50
   REAL(r_2), PARAMETER :: tsoilrefc=25.0
   REAL(r_2), PARAMETER :: tkzeroc=273.15
@@ -102,9 +102,9 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: frootparmb =-0.0485
   REAL(r_2), PARAMETER :: frootparmc = 0.1755
   REAL(r_2), PARAMETER :: xweightalloc = 0.2
-  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
-  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
-  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
+!  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
+!  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
+!  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
 END MODULE casaparm
 
 MODULE casavariable
@@ -127,7 +127,20 @@ MODULE casavariable
                                        kuptake,        &
                                        kminN,          &
                                        kuplabP,        &
-                                       kclabrate
+                                       kclabrate,      &
+                                       xnpmax,         &
+                                       q10soil,        &
+                                       xkoptlitter,    &
+                                       xkoptsoil,      &
+                                       xkplab,         &
+                                       xkpsorb,        &
+                                       xkpocc,         &
+                                       prodptase,      &
+                                       costnpup,       &
+                                       maxfinelitter,  &
+                                       maxcwd,         &             
+                                       nintercept,     &  
+                                       nslope             
 
     REAL(r_2), DIMENSION(:,:),POINTER :: plantrate,     &
                                        rmplant,         &
@@ -136,8 +149,8 @@ MODULE casavariable
                                        fraclabile,      &
                                        ratioNCplantmin, &
                                        ratioNCplantmax, &
-                                       ratioPCplantmin, &
-                                       ratioPCplantmax, &
+                                       ratioNPplantmin, &
+                                       ratioNPplantmax, &
                                        fracLigninplant, &
                                        ftransNPtoL,     &
                                        ftransPPtoL,     &
@@ -155,7 +168,7 @@ MODULE casavariable
                                        dNplantdt,     &
                                        dPplantdt,     &
                                        ratioNCplant,  &
-                                       ratioPCplant
+                                       ratioNPplant
     REAL(r_2), DIMENSION(:),POINTER :: Nsoilmin,      &
                                        Psoillab,      &
                                        Psoilsorb,     &
@@ -171,7 +184,7 @@ MODULE casavariable
                                        dNlitterdt,    &
                                        dPlitterdt,    &
                                        ratioNClitter, &
-                                       ratioPClitter
+                                       ratioNPlitter
     REAL(r_2), DIMENSION(:,:),POINTER :: Csoil,       &
                                        Nsoil,         &
                                        Psoil,         &
@@ -180,7 +193,7 @@ MODULE casavariable
                                        dPsoildt,      &
                                        ratioNCsoil,   &
                                        ratioNCsoilnew,&
-                                       ratioPCsoil,   &
+                                       ratioNPsoil,   &
                                        ratioNCsoilmin,&
                                        ratioNCsoilmax
   END TYPE casa_pool
@@ -259,10 +272,30 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:), POINTER   :: lat,      &
                                           lon,      &
                                           areacell
+    ! added yp wang 5/nov/2012
+    REAL(r_2), DIMENSION(:,:), POINTER :: Tairkspin,&
+                                          cgppspin,&
+                                          crmplantspin_1,&
+                                          crmplantspin_2,&
+                                          crmplantspin_3,&
+                                          Tsoilspin_1,&
+                                          Tsoilspin_2,&
+                                          Tsoilspin_3,&
+                                          Tsoilspin_4,&
+                                          Tsoilspin_5,&
+                                          Tsoilspin_6,&
+                                          moistspin_1,&
+                                          moistspin_2,&
+                                          moistspin_3,&
+                                          moistspin_4,&
+                                          moistspin_5,&
+                                          moistspin_6
+
   END TYPE casa_met
 
   TYPE casa_balance
-    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,             &
+    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,                 &
+            FCrmleafyear,FCrmwoodyear,FCrmrootyear,FCrgrowyear,               &
             FCrpyear, FCrsyear,FCneeyear,                                     &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear
@@ -293,8 +326,14 @@ MODULE casavariable
     CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes
     CHARACTER(LEN=99) :: cnpmetin      ! met file for spin up 
     CHARACTER(LEN=99) :: cnpmetout     ! met file for spin up 
+    CHARACTER(LEN=99) :: ndep          ! N deposition input file   
+! added yp wang
+    CHARACTER(LEN=99) :: cnpspin       ! input file for spin up
+    CHARACTER(LEN=99) :: dump_cnpspin  ! name of dump file for spinning casa-cnp
+ 
     CHARACTER(LEN=99) :: phen        ! leaf phenology datafile
     CHARACTER(LEN=99) :: cnpflux     ! modelled mean yearly CNP fluxes
+    LOGICAL           :: l_ndep
   END TYPE casafiles_type
   TYPE(casafiles_type) :: casafile
 
@@ -331,6 +370,19 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%kminN(mvtype),                  &
            casabiome%KuplabP(mvtype),                &
            casabiome%kclabrate(mvtype),              &
+           casabiome%xnpmax(mvtype),                 &
+           casabiome%q10soil(mvtype),                &
+           casabiome%xkoptlitter(mvtype),            &
+           casabiome%xkoptsoil(mvtype),              &
+           casabiome%xkplab(mso),                    &
+           casabiome%xkpsorb(mso),                   &
+           casabiome%xkpocc(mso),                    &
+           casabiome%prodptase(mvtype),              &
+           casabiome%costnpup(mvtype),               &
+           casabiome%maxfinelitter(mvtype),          &
+           casabiome%maxcwd(mvtype),                 &
+           casabiome%nintercept(mvtype),             &
+           casabiome%nslope(mvtype),                 &
            casabiome%plantrate(mvtype,mplant),       &
            casabiome%rmplant(mvtype,mplant),         &
            casabiome%fracnpptoP(mvtype,mplant),      &
@@ -338,8 +390,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%fraclabile(mvtype,mplant),      &
            casabiome%ratioNCplantmin(mvtype,mplant), &
            casabiome%ratioNCplantmax(mvtype,mplant), &
-           casabiome%ratioPCplantmin(mvtype,mplant), &
-           casabiome%ratioPCplantmax(mvtype,mplant), &
+           casabiome%ratioNPplantmin(mvtype,mplant), &
+           casabiome%ratioNPplantmax(mvtype,mplant), &
            casabiome%fracLigninplant(mvtype,mplant), &
            casabiome%ftransNPtoL(mvtype,mplant),     &
            casabiome%ftransPPtoL(mvtype,mplant),     &
@@ -355,7 +407,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNplantdt(arraysize,mplant),      &
            casapool%dPplantdt(arraysize,mplant),      &
            casapool%ratioNCplant(arraysize,mplant),   &
-           casapool%ratioPCplant(arraysize,mplant),   &
+           casapool%ratioNPplant(arraysize,mplant),   &
            casapool%Nsoilmin(arraysize),              &
            casapool%Psoillab(arraysize),              &
            casapool%Psoilsorb(arraysize),             &
@@ -371,7 +423,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNlitterdt(arraysize,mlitter),    &
            casapool%dPlitterdt(arraysize,mlitter),    &
            casapool%ratioNClitter(arraysize,mlitter), &
-           casapool%ratioPClitter(arraysize,mlitter), &
+           casapool%ratioNPlitter(arraysize,mlitter), &
            casapool%Csoil(arraysize,msoil),           &
            casapool%Nsoil(arraysize,msoil),           &
            casapool%Psoil(arraysize,msoil),           &
@@ -379,7 +431,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNsoildt(arraysize,msoil),        &
            casapool%dPsoildt(arraysize,msoil),        &
            casapool%ratioNCsoil(arraysize,msoil),     &
-           casapool%ratioPCsoil(arraysize,msoil),     &
+           casapool%ratioNPsoil(arraysize,msoil),     &
            casapool%ratioNCsoilnew(arraysize,msoil),  &
            casapool%ratioNCsoilmin(arraysize,msoil),  &
            casapool%ratioNCsoilmax(arraysize,msoil))
@@ -457,11 +509,34 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casamet%isorder(arraysize),             &
            casamet%lat(arraysize),                 &
            casamet%lon(arraysize),                 &
-           casamet%areacell(arraysize))
+           casamet%areacell(arraysize),            &
+
+           casamet%Tairkspin(arraysize,mdyear),     &
+           casamet%cgppspin(arraysize,mdyear),      &
+           casamet%crmplantspin_1(arraysize,mdyear),&
+           casamet%crmplantspin_2(arraysize,mdyear),&
+           casamet%crmplantspin_3(arraysize,mdyear),&
+           casamet%Tsoilspin_1(arraysize,mdyear),   &
+           casamet%Tsoilspin_2(arraysize,mdyear),   &
+           casamet%Tsoilspin_3(arraysize,mdyear),   &
+           casamet%Tsoilspin_4(arraysize,mdyear),   &
+           casamet%Tsoilspin_5(arraysize,mdyear),   &
+           casamet%Tsoilspin_6(arraysize,mdyear),   &
+           casamet%moistspin_1(arraysize,mdyear),   &
+           casamet%moistspin_2(arraysize,mdyear),   &
+           casamet%moistspin_3(arraysize,mdyear),   &
+           casamet%moistspin_4(arraysize,mdyear),   &
+           casamet%moistspin_5(arraysize,mdyear),   &
+           casamet%moistspin_6(arraysize,mdyear))
+
 
   ALLOCATE(casabal%FCgppyear(arraysize),           &
            casabal%FCnppyear(arraysize),           &
            casabal%FCrpyear(arraysize),            &
+           casabal%FCrmleafyear(arraysize),        &
+           casabal%FCrmwoodyear(arraysize),        &
+           casabal%FCrmrootyear(arraysize),        &
+           casabal%FCrgrowyear(arraysize),         &
            casabal%FCrsyear(arraysize),            &
            casabal%FCneeyear(arraysize),           &
            casabal%FNdepyear(arraysize),           &

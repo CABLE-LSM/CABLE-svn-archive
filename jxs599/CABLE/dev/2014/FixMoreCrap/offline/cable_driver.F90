@@ -101,7 +101,8 @@ PROGRAM cable_offline_driver
       kend,       &  ! no. of time steps in run
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
-      nyear          ! year counter for CASA-CNP
+      nyear,      &  ! year counter for CASA-CNP
+      maxdiff(2)     ! location of maximum in convergence test
 
    REAL :: dels                        ! time step size in seconds
    
@@ -152,7 +153,9 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-   
+   ! ypw 8april2014   
+   integer ipt
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -212,20 +215,57 @@ PROGRAM cable_offline_driver
    OPEN(logn,FILE=filename%log)
  
    ! Check for gswp run
+!   IF (ncciy /= 0) THEN
+!      
+!      PRINT *, 'Looking for global offline run info.'
+!      
+!      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+!         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+!         STOP 'Please check input in namelist file.'
+!      ELSE
+!         
+!         CALL prepareFiles(ncciy)
+!      
+!      ENDIF
+!   
+!   ENDIF
+   ! Check for gswp run
    IF (ncciy /= 0) THEN
-      
-      PRINT *, 'Looking for global offline run info.'
-      
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-         PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-         STOP 'Please check input in namelist file.'
-      ELSE
-         
+   ! modified by ypw wang 30/oct/2012 following Chris Lu
+    PRINT *, 'Looking for global offline run info.'
+    IF (gswpfile%l_gpcc)THEN
+       IF (ncciy < 1948 .OR. ncciy > 2008) THEN
+          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+          PRINT *, 'Please check input in namelist file.'
+          STOP
+       ELSE
+          CALL prepareFiles(ncciy)
+       ENDIF
+
+     ELSE IF(gswpfile%l_ncar) THEN
+         PRINT *, 'Using NCAR met forcing.'
+         gswpfile%l_gswp = .FALSE.
+         gswpfile%l_gpcc = .FALSE.
+         IF (ncciy < 1900 .OR. ncciy > 2100) THEN
+            PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+            PRINT *, 'Please check input in namelist file.'
+            STOP
+         END IF
+     ELSE IF(gswpfile%l_gswp) THEN
+         PRINT *, 'Using gswp forcing.'
+         gswpfile%l_ncar = .FALSE.
+         gswpfile%l_gpcc = .FALSE.
+         IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+            PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+            PRINT *, 'Please check input in namelist file.'
+            STOP
+     ELSE
          CALL prepareFiles(ncciy)
-      
-      ENDIF
-   
+     END IF
+    END IF
+
    ENDIF
+
    
 
    ! Open met data and get site information from netcdf file.
@@ -259,6 +299,7 @@ PROGRAM cable_offline_driver
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
+      ktau_gl = 0
       kend_gl = kend
       knode_gl = 0
       
@@ -269,7 +310,7 @@ PROGRAM cable_offline_driver
          ktau_tot = ktau_tot + 1
          
          ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau_tot
+         ktau_gl = ktau_gl + 1
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          ktauday=int(24.0*3600.0/dels)
@@ -291,13 +332,15 @@ PROGRAM cable_offline_driver
          IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
                                                 casapool, casamet )
    
+
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
-   
+     
+
          ! CALL land surface scheme for this timestep, all grid points:
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
-   
+
          ssnow%smelt = ssnow%smelt*dels
          ssnow%rnof1 = ssnow%rnof1*dels
          ssnow%rnof2 = ssnow%rnof2*dels
@@ -313,7 +356,15 @@ PROGRAM cable_offline_driver
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
-   
+
+!         ipt = 1921 
+!         write(77,701) ktau,veg%iveg(ipt),casamet%glai(ipt), veg%vcmax(ipt)*(1.0e6), canopy%vlaiw(ipt), canopy%fpn(ipt)*(1.0e6), &
+!                            canopy%frday(ipt)*(1.0e06), &
+!                            casapool%cplant(ipt,:),casapool%nplant(ipt,:),casapool%pplant(ipt,:),  &
+!                            casapool%csoil(ipt,:), casapool%nsoil(ipt,:), casapool%psoil(ipt,:), casapool%psoillab(ipt)
+!   
+!701     format('cable driver: ', 2(i6,2x),100(f10.3,2x))
+
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
          CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
@@ -351,10 +402,18 @@ PROGRAM cable_offline_driver
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
-               PRINT *, 'ssnow%wb : ', ssnow%wb
-               PRINT *, 'soilMtemp: ', soilMtemp
-               PRINT *, 'ssnow%tgg: ', ssnow%tgg
-               PRINT *, 'soilTtemp: ', soilTtemp
+!               PRINT *, 'ssnow%wb : ', ssnow%wb
+!               PRINT *, 'soilMtemp: ', soilMtemp
+!               PRINT *, 'ssnow%tgg: ', ssnow%tgg
+!               PRINT *, 'soilTtemp: ', soilTtemp
+               maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
+               PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+               PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
+               maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
+               PRINT *, 'Example location of temperature non-convergence: ',maxdiff
+               PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
+               PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
             
             ELSE ! spinup has converged
                
@@ -392,6 +451,7 @@ PROGRAM cable_offline_driver
 
    IF (icycle > 0) THEN
       
+      print *, 'calling poolout'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
 
@@ -420,38 +480,80 @@ PROGRAM cable_offline_driver
 END PROGRAM cable_offline_driver
 
 
+!SUBROUTINE prepareFiles(ncciy)
+!  USE cable_IO_vars_module, ONLY: logn,gswpfile
+!  IMPLICIT NONE
+!  INTEGER, INTENT(IN) :: ncciy
+!
+!  WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
+!  PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
+!
+!  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
+!  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
+!  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
+!  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
+!  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
+!  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
+!  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
+!  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
+!
+!END SUBROUTINE prepareFiles
 SUBROUTINE prepareFiles(ncciy)
   USE cable_IO_vars_module, ONLY: logn,gswpfile
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: ncciy
-
+  ! modified by ypwang, following Chris Lu
+IF (.NOT. gswpfile%l_gpcc) THEN   !added by Chris Lu for gpcc 28/05/2012
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
-  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
-  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
+!  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
+!  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
+!  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
+!  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
+!  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
+!  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')   !Chris 6/Sep/2012
+!  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
+!  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
+
+  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf',1983,1995)
+  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf',1983,1995)
+  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown',1983,1995)
+  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown',1983,1995)
+  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf',1983,1995)
+  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair',1983,1995)
+  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair',1983,1995)
+  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind',1983,1995)
+ELSE
+  WRITE(logn,*) 'CABLE offline global run using gpcc forcing for ', ncciy
+  PRINT *,      'CABLE offline global run using gpcc forcing for ', ncciy
+
+  CALL renameFiles(logn,gswpfile%rainf,len(trim(gswpfile%rainf))-14,ncciy,'rainf',1948,2008)
+  CALL renameFiles(logn,gswpfile%LWdown,len(trim(gswpfile%LWdown))-14,ncciy,'LWdown',1948,2008)
+  CALL renameFiles(logn,gswpfile%SWdown,len(trim(gswpfile%SWdown))-14,ncciy,'SWdown',1948,2008)
+  CALL renameFiles(logn,gswpfile%PSurf,len(trim(gswpfile%PSurf))-14,ncciy,'PSurf',1948,2008)
+  CALL renameFiles(logn,gswpfile%Qair,len(trim(gswpfile%Qair))-14,ncciy,'Qair',1948,2008)
+  CALL renameFiles(logn,gswpfile%Tair,len(trim(gswpfile%Tair))-14,ncciy,'Tair',1948,2008)
+  CALL renameFiles(logn,gswpfile%wind,len(trim(gswpfile%wind))-14,ncciy,'wind',1948,2008)
+END IF
+
 
 END SUBROUTINE prepareFiles
 
 
-SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
+SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName,startyr,endyr)
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: logn
   INTEGER, INTENT(IN) :: nn
   INTEGER, INTENT(IN) :: ncciy
   CHARACTER(LEN=99), INTENT(INOUT) :: inFile
   CHARACTER(LEN=*),  INTENT(IN)    :: inName
+  INTEGER, INTENT(IN) :: startyr,endyr        ! added by Chris Lu 28/05/2012
   INTEGER :: idummy
 
   READ(inFile(nn:nn+3),'(i4)') idummy
-  IF (idummy < 1983 .OR. idummy > 1995) THEN
-    PRINT *, 'Check position of the year number in input gswp file', inFile
+  IF (idummy < startyr .OR. idummy > endyr) THEN
+    PRINT *, 'Warning!!! Check position of the year number in input gswp file', inFile
     STOP
   ELSE
     WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
@@ -459,6 +561,27 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
   ENDIF
 
 END SUBROUTINE renameFiles
+
+
+!SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
+!  IMPLICIT NONE
+!  INTEGER, INTENT(IN) :: logn
+!  INTEGER, INTENT(IN) :: nn
+!  INTEGER, INTENT(IN) :: ncciy
+!  CHARACTER(LEN=99), INTENT(INOUT) :: inFile
+!  CHARACTER(LEN=*),  INTENT(IN)    :: inName
+!  INTEGER :: idummy
+!
+!  READ(inFile(nn:nn+3),'(i4)') idummy
+!  IF (idummy < 1983 .OR. idummy > 1995) THEN
+!    PRINT *, 'Check position of the year number in input gswp file', inFile
+!    STOP
+!  ELSE
+!    WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
+!    WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
+!  ENDIF
+!
+!END SUBROUTINE renameFiles
 
 
 

@@ -203,8 +203,9 @@ MODULE cable_def_types_mod
      
     
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         wbtot   ! total soil water (mm)
-     
+         wbtot,   & ! total soil water (mm)
+         delwb      ! change in soil water (mm/dels)
+
       REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
          gammzz,  & ! heat capacity for each soil layer
          wb,      & ! volumetric soil moisture (solid+liq)
@@ -237,13 +238,24 @@ MODULE cable_def_types_mod
          shelrb,  & ! sheltering factor (dimensionless)
          vegcf,   & ! kdcorbin, 08/10
          tminvj,  & ! min temperature of the start of photosynthesis
+         toptvj,  & ! opt temperature of the start of photosynthesis
          tmaxvj,  & ! max temperature of the start of photosynthesis
          vbeta,   & ! 
          vcmax,   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
          xfang,   & ! leaf angle PARAMETER
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
+         wai,     & ! wood area index (stem+branches+twigs)
+         a1gs,    & ! a1 parameter in stomatal conductance model
+         d0gs,    & ! d0 in stomatal conductance model      
+         alpha,   & ! initial slope of J-Q response curve   
+         convex,  & ! convexity of J-Q response curve       
+         cfrd,    & ! ratio of day respiration to vcmax
+         gswmin,  & ! minimal stomatal conductance
+         conkc0,  &  ! Michaelis-menton constant for caroxylase
+         conko0,  &  ! Michaelis-menton constant for oxygenase
+         ekc,     & ! activation energy for caroxylagse
+         eko        ! acvtivation enegery for oxygenase
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -265,6 +277,7 @@ MODULE cable_def_types_mod
          cansto,  & ! canopy water storage (mm)
          cduv,    & ! drag coefficient for momentum
          delwc,   & ! change in canopy water store (mm/dels)
+         wbal,    & ! water balance within canopy (mm/dels)
          dewmm,   & ! dewfall (mm)
          fe,      & ! total latent heat (W/m2)
          fh,      & ! total sensible heat (W/m2)
@@ -645,7 +658,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% wb(mp,ms) )    
    ALLOCATE( var% wbice(mp,ms) ) 
    ALLOCATE( var% wblf(mp,ms) ) 
-   ALLOCATE( var%wbtot(mp) )    
+   ALLOCATE( var%wbtot(mp) )
+   ALLOCATE( var%delwb(mp) )
    ALLOCATE( var%wbtot1(mp) )    
    ALLOCATE( var%wbtot2(mp) )    
    ALLOCATE( var%wb_lake(mp) )    
@@ -696,6 +710,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var% shelrb(mp) ) 
    ALLOCATE( var% vegcf(mp) )  
    ALLOCATE( var% tminvj(mp) ) 
+   ALLOCATE( var% toptvj(mp) ) 
    ALLOCATE( var% tmaxvj(mp) ) 
    ALLOCATE( var% vbeta(mp) )  
    ALLOCATE( var% vcmax(mp) )  
@@ -707,6 +722,16 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) ) 
+   ALLOCATE( var%a1gs(mp) ) 
+   ALLOCATE( var%d0gs(mp) ) 
+   ALLOCATE( var%alpha(mp) ) 
+   ALLOCATE( var%convex(mp) ) 
+   ALLOCATE( var%cfrd(mp) ) 
+   ALLOCATE( var%gswmin(mp) ) 
+   ALLOCATE( var%conkc0(mp) ) 
+   ALLOCATE( var%conko0(mp) ) 
+   ALLOCATE( var%ekc(mp) ) 
+   ALLOCATE( var%eko(mp) ) 
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -771,7 +796,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
-   
+   ALLOCATE( var% wbal(mp) )
+
 END SUBROUTINE alloc_canopy_type
 
 ! ------------------------------------------------------------------------------
@@ -1043,7 +1069,8 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% wb )    
    DEALLOCATE( var% wbice ) 
    DEALLOCATE( var% wblf ) 
-   DEALLOCATE( var%wbtot )    
+   DEALLOCATE( var%wbtot )
+   DEALLOCATE( var%delwb ) 
    DEALLOCATE( var%wbtot1 )    
    DEALLOCATE( var%wbtot2 )    
    DEALLOCATE( var%wb_lake )    
@@ -1093,6 +1120,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var% shelrb ) 
    DEALLOCATE( var% vegcf )  
    DEALLOCATE( var% tminvj ) 
+   DEALLOCATE( var% toptvj ) 
    DEALLOCATE( var% tmaxvj ) 
    DEALLOCATE( var% vbeta)  
    DEALLOCATE( var% vcmax )  
@@ -1103,6 +1131,16 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
+   DEALLOCATE( var%a1gs ) 
+   DEALLOCATE( var%d0gs ) 
+   DEALLOCATE( var%alpha ) 
+   DEALLOCATE( var%convex ) 
+   DEALLOCATE( var%cfrd ) 
+   DEALLOCATE( var%gswmin ) 
+   DEALLOCATE( var%conkc0 ) 
+   DEALLOCATE( var%conko0 ) 
+   DEALLOCATE( var%ekc ) 
+   DEALLOCATE( var%eko ) 
    
 END SUBROUTINE dealloc_veg_parameter_type
    
@@ -1166,6 +1204,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
+   DEALLOCATE( var% wbal )
 
 END SUBROUTINE dealloc_canopy_type
    
