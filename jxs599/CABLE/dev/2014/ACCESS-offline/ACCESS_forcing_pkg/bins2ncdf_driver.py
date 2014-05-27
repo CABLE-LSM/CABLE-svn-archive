@@ -14,7 +14,7 @@ def driver( fields,
     dir_ncdf = dir_cwd + '/' + pars.path[4]
     
     # IF mapping is to be processed
-    if config.map[0] is True:
+    if config.map[len(config.map)-1] is True:
 
         os.chdir(dir_map)
 

@@ -85,19 +85,19 @@ def main(argv):
     (output, err) = p.communicate()
     p = subprocess.Popen(cmd2, stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()
-
+    
     # Get user input from both CLI and config file
     user_input( argv,
-                      config,
-                      pars,
-                      fields,
-                      flags )
+                config,
+                pars,
+                fields,
+                flags )
     
     # Operate on data
-    driver(        fields,
-                      pars,
-                      config,
-                      flags )
+    driver(     fields,
+                pars,
+                config,
+                flags )
 
 
 

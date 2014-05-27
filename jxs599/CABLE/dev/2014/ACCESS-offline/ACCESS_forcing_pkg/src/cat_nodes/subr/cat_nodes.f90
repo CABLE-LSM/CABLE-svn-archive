@@ -19,6 +19,7 @@ module cat_nodes_mod
          ! array  holding the "sub-mp" per node file
          allocate( dimx_i(i_nodes) )
  
+         write(logu,*) "Reading N files to allocate super-array:" 
          ! loop over descriptive text.dat node files
          do i=1, i_nodes
             
@@ -30,6 +31,7 @@ module cat_nodes_mod
             call read_txt_ifile( trim( nfilename) )
 
          end do   
+         write(logu,*) "Allocated super-array" 
 
          ! loop over node files
          do i=1, i_nodes
@@ -41,11 +43,15 @@ module cat_nodes_mod
             ! read descriptive .dat node files to set per node file dimensions
             call read_txt_file( trim( nfilename) , ndimx )
 
+            !print *, "Text file read for file: ", nfilename 
             ! read binary (data) node files 
+            !print *, "Data file: ",  nfilename
+            !print *, "x limits: ",  pndimx+1, pndimx+ndimx 
             call read_dat_file( trim( nfilename ), pndimx+1, pndimx+ndimx )
+            write(logu,*) "Data read for file: ",  nfilename
          end do   
          
-
+         write(logu,*)  "Writing to a singlefile:" 
          call rewrite_txt_file( trim(filename), pndimx+ndimx )
          call rewrite_dat_file( trim(filename) )
 

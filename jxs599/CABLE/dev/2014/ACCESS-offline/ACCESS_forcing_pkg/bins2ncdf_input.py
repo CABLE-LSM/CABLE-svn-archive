@@ -37,6 +37,7 @@ def CLI_interpreter( argv,
             flags.flag[0] = True
         
         # user specify mapping requirement (True or False)
+        # trumped by config file
         elif opt in ("-m", "--mapping" ):
             if arg == "T" or arg == "t":
                 config.map.append(True)
@@ -44,8 +45,6 @@ def CLI_interpreter( argv,
                 config.map.append(False)
             else:
                 print "Arg can only be T or F"
-            # reset 1st element indicating CLI arg present
-            flags.flag[1] = True
 
 
         # Number of nodes field / mapping corresponds to
@@ -162,9 +161,6 @@ def user_input( argv,
                                 flags,
                                 pars )
 
-        if flags.flag[1] is False:
-            config.map[0] = True
-
         if flags.flag[2] is False:
             print "We have no idea how many nodes you used. " + \
                   "Tell us via the CLI or in your config file?\n"
@@ -174,7 +170,7 @@ def user_input( argv,
               "as gathered from your CLI args and config file: \n"
         print 'Originally data was dumped from ', str(config.nodes[0]), ' nodes.'
 
-        if config.map[0] is True:
+        if config.map[len(config.map)-1] is True:
             print 'We are going to process the mapping data in path:'
             print '\t',pars.path[0]
         else:

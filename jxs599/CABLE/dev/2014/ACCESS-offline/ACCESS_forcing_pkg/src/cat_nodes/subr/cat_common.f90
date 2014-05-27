@@ -2,6 +2,7 @@
 module cat_common
    implicit none
    
+   integer :: logu ! unit number for log file
    !--- base of filename read by subr. read_args from file input.dat
    !--- which is created by script cable_diag.pl after reading files created
    !--- host program (i.e. UM, Mk3L, offline CABLE)

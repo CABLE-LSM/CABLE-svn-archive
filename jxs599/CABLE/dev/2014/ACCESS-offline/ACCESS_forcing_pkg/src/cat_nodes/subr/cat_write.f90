@@ -39,6 +39,7 @@ module cat_write_mod
             endif
          
          close(1)
+         write(logu,*) "Written single text file: ",  Lfilename
       
       return 
    end subroutine rewrite_txt_file 
@@ -54,25 +55,33 @@ module cat_write_mod
       integer :: gopenstatus
       integer :: i,j
       real, dimension(:,:), allocatable :: Lar
-      allocate( Lar(dimy, Nvars*dimx_tot) ) 
 !      integer :: frecl
 !      frecl = Nvars * dimx*r_1
+      
+      allocate( Lar(dimy, Nvars*dimx_tot) ) 
 
          do i=1,dimy
             do j=1,Nvars
                Lar(i, (j-1)*dimx_tot+1 : j*dimx_tot )  = ar_data(j,i,:)
+               !print *, "typeset field for timestep: ", i
            enddo   
          enddo   
-         open(unit=2,file=Lfilename//'.bin',status="unknown",action="write", &
+
+         write(logu,*) "Filled typesetting array to write: "
+         write(logu,*) "Writing field as netcdf: "
+
+         !open(unit=2,file=Lfilename//'.bin',status="unknown",action="write", &
+         open(unit=2,file='/home/599/jxs599/test.bin',status="unknown",action="write", &
                   iostat=gopenstatus, form="unformatted" )
 
-            if(gopenstatus==gok) then
+            !if(gopenstatus==gok) then
                do i=1,dimy
-                     write (2) Lar(i,:) 
+                  write (2) Lar(i,:) 
+                  !print *, "Written field for timestep: ", i
                enddo
-            else
-               write (*,*), Lfilename//'.bin',' NOT found for read'
-            endif
+            !else
+               write (*,*), Lfilename//'.bin',' NOT found for write'
+            !endif
          close(2)
       return 
    end subroutine rewrite_dat_file 

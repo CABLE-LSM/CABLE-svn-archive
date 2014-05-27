@@ -60,16 +60,25 @@ program debug
    !--- dimy = # timesteps
    integer :: dimx, dimy 
      
-   integer :: i,j,k,l,m
+   integer :: i,j,k,l,m, logu
    integer, dimension(:), allocatable :: lon_k, lat_j
 
    real :: lon_dx
    character(len=1) :: dummy 
+   character(len=*), parameter :: logfile = '/home/599/jxs599/ncdf.log'
 
      ! get CLI args, basename of file & how many nodes
       IF( IARGC() > 0 ) THEN
          CALL GETARG(1, dir_catted)
       ENDIF
+      
+      logu=444 
+      open(unit=logu,file=logfile, status="unknown",action="write" )
+      write(logu,*) "Fortran executable: write netcdf"
+      write(logu,*) "called with args: " 
+      write(logu,*) "diectory of mapping data: ",trim( dir_catted )
+      write(logu,*) "executing.... " 
+
 
 
       !======================================================================!
@@ -189,6 +198,9 @@ program debug
                                    real(lat),                                  & 
                                    real(lon), tile, timestep, newvar )
           
+      write(logu,*) "Fortran executable: write netcdf"
+      write(logu,*) "Finished." 
+      close(logu)
    stop
 end program debug 
       

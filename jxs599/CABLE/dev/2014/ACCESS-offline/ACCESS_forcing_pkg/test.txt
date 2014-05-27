@@ -26,7 +26,7 @@ Path data/tile_frac
 # Mapping can only be either True or False
 # True means operate on mapping data
 # False implies you have already performed this
-Mapping True
+Mapping False
 #
 # Number of Nodes files were dumped on
 Nodes 16
