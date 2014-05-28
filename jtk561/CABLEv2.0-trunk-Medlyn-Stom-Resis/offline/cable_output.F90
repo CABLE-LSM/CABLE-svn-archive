@@ -709,6 +709,21 @@ CONTAINS
     IF(output%params .OR. output%rp20) CALL define_ovar(ncid_out, opid%rp20,   &
                           'rp20', '-', 'Plant respiration coefficient at 20C', &
                           patchout%rp20, 'real', xID, yID, zID, landID, patchID)
+    ! Ticket #56
+    IF(output%params .OR. output%g0c3) CALL define_ovar(ncid_out, opid%g0c3,   &
+                          'g0c3', '-', 'g0c3 term in Medlyn Stom Cond. Param', &
+                          patchout%g0c3, 'real', xID, yID, zID, landID, patchID)
+    IF(output%params .OR. output%g0c4) CALL define_ovar(ncid_out, opid%g0c4,   &
+                          'g0c4', '-', 'g0c4 term in Medlyn Stom Cond. Param', &
+                          patchout%g0c4, 'real', xID, yID, zID, landID, patchID)
+    IF(output%params .OR. output%g1c3) CALL define_ovar(ncid_out, opid%g1c3,   &
+                          'g1c3', '-', 'g1c3 term in Medlyn Stom Cond. Param', &
+                          patchout%g1c3, 'real', xID, yID, zID, landID, patchID)
+    IF(output%params .OR. output%g1c4) CALL define_ovar(ncid_out, opid%g1c4,   &
+                          'g1c4', '-', 'g1c4 term in Medlyn Stom Cond. Param', &
+                          patchout%g1c4, 'real', xID, yID, zID, landID, patchID)
+    ! end Ticket #56 
+
     IF(output%params .OR. output%rpcoef) CALL define_ovar(ncid_out,            &
                                                  opid%rpcoef, 'rpcoef', '1/C', &
                                  'Temperature coef nonleaf plant respiration', &
@@ -901,6 +916,16 @@ CONTAINS
                           'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
     IF(output%params .OR. output%rp20) CALL write_ovar(ncid_out, opid%rp20,    &
                    'rp20', REAL(veg%rp20, 4),ranges%rp20, patchout%rp20, 'real')
+    ! Ticket #56
+    IF(output%params .OR. output%g0c3) CALL write_ovar(ncid_out, opid%g0c3,    &
+                   'g0c3', REAL(veg%g0c3, 4),ranges%g0c3, patchout%g0c3, 'real')
+    IF(output%params .OR. output%g0c4) CALL write_ovar(ncid_out, opid%g0c4,    &
+                   'g0c4', REAL(veg%g0c4, 4),ranges%g0c4, patchout%g0c4, 'real')
+    IF(output%params .OR. output%g1c3) CALL write_ovar(ncid_out, opid%g1c3,    &
+                   'g1c3', REAL(veg%g1c3, 4),ranges%g1c3, patchout%g1c3, 'real')
+    IF(output%params .OR. output%g1c4) CALL write_ovar(ncid_out, opid%g1c4,    &
+                   'g1c4', REAL(veg%g1c4, 4),ranges%g1c4, patchout%g1c4, 'real')
+    ! End Ticket #56
     IF(output%params .OR. output%rpcoef) CALL write_ovar(ncid_out,             &
                                    opid%rpcoef, 'rpcoef', REAL(veg%rpcoef, 4), &
                                          ranges%rpcoef, patchout%rpcoef, 'real')
