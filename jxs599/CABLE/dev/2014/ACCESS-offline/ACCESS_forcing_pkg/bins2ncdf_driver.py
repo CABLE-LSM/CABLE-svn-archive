@@ -41,7 +41,7 @@ def driver( fields,
         
             dir_var = dir_cwd + '/' + fields.path[ff]
             os.chdir(dir_var)
-        
+            #print '\n\npwd: \n\n ', os.getcwd()
             funit = open("input.dat",'w')
             funit.write(fields.name[ff]+'\n')
             funit.write(fields.name[ff] +'.nc\n')

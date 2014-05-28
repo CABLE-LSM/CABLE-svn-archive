@@ -183,8 +183,6 @@ def user_input( argv,
             print '\n Corresponding to paths'
             for pp in range( len(fields.path)):
                 print '\t', fields.path[pp]
-
-            print pathnames
         else:
             print "\nAll fields are in: "
             print '\t', fields.path[0]

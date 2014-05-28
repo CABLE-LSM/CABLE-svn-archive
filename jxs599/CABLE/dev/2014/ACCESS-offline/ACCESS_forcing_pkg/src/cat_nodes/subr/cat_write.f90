@@ -63,25 +63,34 @@ module cat_write_mod
          do i=1,dimy
             do j=1,Nvars
                Lar(i, (j-1)*dimx_tot+1 : j*dimx_tot )  = ar_data(j,i,:)
-               !print *, "typeset field for timestep: ", i
            enddo   
          enddo   
 
          write(logu,*) "Filled typesetting array to write: "
-         write(logu,*) "Writing field as netcdf: "
+         write(logu,*) "Writing field in single file: "
 
-         !open(unit=2,file=Lfilename//'.bin',status="unknown",action="write", &
-         open(unit=2,file='/home/599/jxs599/test.bin',status="unknown",action="write", &
+         open(unit=2,file=Lfilename//'.bin',status="unknown",action="write", &
+         !open(unit=2,file='/home/599/jxs599/test.bin',status="unknown",action="write", &
                   iostat=gopenstatus, form="unformatted" )
 
-            !if(gopenstatus==gok) then
+            if(gopenstatus==gok) then
+               write(logu,*) "Total timesteps: ", dimy
                do i=1,dimy
-                  write (2) Lar(i,:) 
                   !print *, "Written field for timestep: ", i
+                  write (2) Lar(i,:) 
+                  if(i==100 .OR. i==1000 .OR. i==2000 .OR. i==3000 .OR. i==4000 &
+                          .OR. i==5000 &
+                      .OR. i==6000 .OR. i==7000 .OR. i==8000 .OR. i==9000 .OR.    &
+                      i==10000 .OR. i==11000 .OR. i==12000 .OR. i==13000 .OR. &
+                      i==14000  &
+                      .OR. i==15000 .OR. i==16000 .OR. i==17000 ) then 
+                     write(logu,*) "Upto timestep: ", i
+                     print *, "Connditional Written field for timestep: ", i
+                  endif   
                enddo
-            !else
+            else
                write (*,*), Lfilename//'.bin',' NOT found for write'
-            !endif
+            endif
          close(2)
       return 
    end subroutine rewrite_dat_file 

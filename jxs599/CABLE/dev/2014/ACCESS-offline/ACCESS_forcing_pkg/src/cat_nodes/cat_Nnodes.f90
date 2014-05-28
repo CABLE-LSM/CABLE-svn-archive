@@ -12,7 +12,6 @@ program  catter
          CALL GETARG(1, filename)
          CALL GETARG(2, n_nodes)
       ENDIF
-
       logu=444
       open( unit=logu,file=logfile, status="unknown",action="write", &
             position='append' )

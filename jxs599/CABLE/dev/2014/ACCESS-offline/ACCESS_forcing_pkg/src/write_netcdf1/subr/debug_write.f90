@@ -5,44 +5,48 @@ module debug_write_mod
    public
 
    interface put_var
-      module procedure fput_var, iput_var, fput_var4
+      module procedure fput_var, iput_var, fput_var4, fput_var3
    end interface
 
    contains
 
-   subroutine write_ncdf_template( ncfile, nlat, nlon, ntile, ntime, nvar, lat, lon, tile, timestep, newvar )
+   subroutine write_ncdf_template( ncfile, nlat, nlon, ntile, ntime, nvar, lat, lon, tile, timestep, newvar, logu )
       use netcdf
 
       implicit none  
 
       character(len=*), intent(in) :: ncfile 
       integer, intent(in) :: nlat, nlon, ntile, ntime, nvar
-      real, dimension(:,:,:,:), intent(in) :: newvar 
+      !real, dimension(:,:,:,:), intent(in) :: newvar 
+      real, dimension(:,:,:), intent(in) :: newvar 
       real, dimension(:), intent(in) :: lat, lon
       integer, dimension(:), intent(in) ::  tile, timestep 
+      integer :: logu 
 
       integer :: ncid       ! netcdf file ID
 
       !dims
-      integer, parameter :: num_dims=4 
+      !integer, parameter :: num_dims=4 
+      integer, parameter :: num_dims=3 
       integer, dimension(num_dims)  :: dimID   
       
       character(len=*), dimension(num_dims), parameter :: &
          dim_name =  (/  "lon ", &
                          "lat ", &
-                         "tile", &
+                         !"tile", &
                          "time" /)
 
       integer, dimension(num_dims) :: dim_len 
       
       !vars 
-      integer, parameter :: num_vars=5 
+      !integer, parameter :: num_vars=5 
+      integer, parameter :: num_vars=4 
       integer, dimension(num_vars) :: varID 
       
       character(len=*), dimension(num_vars), parameter :: &
             var_name =  (/  "lon     ", &
                             "lat     ", &
-                            "tile    ", &
+                            !"tile    ", &
                             "time    ", &
                             "var     " /)
       
@@ -52,7 +56,7 @@ module debug_write_mod
 
          dim_len =  (/  nlon, &
                         nlat, &
-                        ntile, &
+                        !ntile, &
                         ntime /)
 
          ! create netCDF dataset: enter define mode
@@ -72,27 +76,44 @@ module debug_write_mod
                             dimID(2), varID(2))
                if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(2))) 
             
+            !ncok = NF90_DEF_VAR(ncid, trim(var_name(3)), nf90_int, &
+            !                dimID(3), varID(3))
+            !   if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(3))) 
+            
+            !ncok = NF90_DEF_VAR(ncid, trim(var_name(4)), nf90_int, &
+            !                dimID(4), varID(4))
+            !   if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(4))) 
+            
             ncok = NF90_DEF_VAR(ncid, trim(var_name(3)), nf90_int, &
                             dimID(3), varID(3))
                if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(3))) 
             
-            ncok = NF90_DEF_VAR(ncid, trim(var_name(4)), nf90_int, &
-                            dimID(4), varID(4))
-               if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(4))) 
+            !ncok = NF90_DEF_VAR(ncid, trim(var_name(5)), nf90_float, &
+            !                !(/dimID(1),dimID(2),dimID(4),dimID(3) /), varID(5))
+            !                dimID, varID(5))
+            !   if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(5))) 
             
-            ncok = NF90_DEF_VAR(ncid, trim(var_name(5)), nf90_float, &
-                            !(/dimID(1),dimID(2),dimID(4),dimID(3) /), varID(5))
-                            dimID, varID(5))
-               if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(5))) 
+            ncok = NF90_DEF_VAR(ncid, trim(var_name(4)), nf90_float, &
+                            dimID, varID(4))
+               if (ncok /= nf90_noerr) call stderr_nc('ncdf def var', trim(var_name(4))) 
             
          ncok = nf90_enddef(ncid)
          ncok = nf90_close(ncid)            ! close: save new netCDF dataset
 
+      write(logu,*) "Writing var: ", var_name(1) 
       call put_var(ncfile, var_name(1), lon)
+      write(logu,*) "Writing var: ", var_name(2) 
       call put_var(ncfile, var_name(2), lat)
-      call put_var(ncfile, var_name(3), tile)
-      call put_var(ncfile, var_name(4), timestep )
-      call put_var(ncfile, var_name(5), newvar)
+      !write(logu,*) "Writing var: ", var_name(3) 
+      !call put_var(ncfile, var_name(3), tile)
+      !write(logu,*) "Writing var: ", var_name(4) 
+      !call put_var(ncfile, var_name(4), timestep )
+      !write(logu,*) "Writing var: ", var_name(5) 
+      !call put_var(ncfile, var_name(5), newvar)
+      write(logu,*) "Writing var: ", var_name(3) 
+      call put_var(ncfile, var_name(3), timestep )
+      write(logu,*) "Writing var: ", var_name(4) 
+      call put_var(ncfile, var_name(4), newvar)
 
       return 
    end subroutine write_ncdf_template
@@ -158,7 +179,27 @@ module debug_write_mod
 
 
 
-   
+    
+   subroutine fput_var3(ncfile_in, var_name, var)
+      use netcdf
+      implicit none
+      character(len=*), intent(in) :: ncfile_in, var_name
+      real, dimension(:,:,:),intent(in) :: var
+      integer :: ncid, ncok, varID
+       
+      ncok = NF90_OPEN(ncfile_in, nf90_write, ncid)           
+         if (ncok /= nf90_noerr ) call stderr_nc('re-opening ', ncfile_in)      
+         ncok = NF90_INQ_VARID(ncid, var_name, varId )
+            if (ncok /= nf90_noerr ) call stderr_nc('inquire var ', var_name)      
+         ncok = NF90_PUT_VAR(ncid, varId, var )
+            if (ncok /= nf90_noerr ) call stderr_nc('putting var ', var_name)      
+      ncok = NF90_CLOSE(ncid)            
+         if (ncok /= nf90_noerr ) call stderr_nc('closing ', ncfile_in)      
+     
+      return
+   end subroutine fput_var3
+
+ 
    
    subroutine fput_var4(ncfile_in, var_name, var)
       use netcdf

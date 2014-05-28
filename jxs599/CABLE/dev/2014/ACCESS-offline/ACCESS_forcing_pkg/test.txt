@@ -12,16 +12,39 @@
 # path <path1>
 # path <path2>
 # path <path3>
-FIeldname tile_frac
-#FIeldname metfd2_ 
+#FIeldname tile_frac
+#FIeldname metfsd2_ 
 #fieldNAMe <field3>
+#
+#FieldName metca_
+FieldName metcoszen_
+#FieldName metfsd1_
+#FieldName metfsd2_
+#FieldName metpmb_
+#FieldName metfld_
+#FieldName metprecip_
+#FieldName metprecip_sn_
+#FieldName metqv_
+#FieldName mettk_
+#FieldName metua_
 #
 # Either specify a  single path or a path per field
 # IF only one path is sepcified then this will be assumed for all the fields
 # otherwise specify a path for each field
-Path data/tile_frac 
-#Path <path2>
+#Path data/tile_frac 
 #Path <path3>
+#
+#Path data/metca_short
+Path data/forcing/metcoszen
+#Path data/forcing/metfsd1
+#Path data/forcing/metfsd2
+#Path data/forcing/metpmb
+#Path data/forcing/metfld
+#Path data/forcing/metprecip
+#Path data/forcing/metprecip_sn
+#Path data/forcing/metqv
+#Path data/forcing/mettk
+#Path data/forcing/metua
 #
 # Mapping can only be either True or False
 # True means operate on mapping data

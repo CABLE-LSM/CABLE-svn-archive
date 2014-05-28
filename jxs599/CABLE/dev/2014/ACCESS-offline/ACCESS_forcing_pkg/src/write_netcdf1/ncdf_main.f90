@@ -53,6 +53,7 @@ program debug
    integer :: nlat, nlon, ntile, ntime, nvar, nmp
    
    real, dimension(:,:,:,:), allocatable ::newvar 
+   real, dimension(:,:,:), allocatable ::newvar3 
 
    !--- vars read by subr. read_args -also  from file input.dat
    !--- Nvars = # vars contained in binary file output by host program 
@@ -75,8 +76,7 @@ program debug
       logu=444 
       open(unit=logu,file=logfile, status="unknown",action="write" )
       write(logu,*) "Fortran executable: write netcdf"
-      write(logu,*) "called with args: " 
-      write(logu,*) "diectory of mapping data: ",trim( dir_catted )
+      write(logu,*) "arg:dir of mapping data: ",trim( dir_catted )
       write(logu,*) "executing.... " 
 
 
@@ -98,12 +98,14 @@ program debug
          allocate( lat(dimx) )
          call read_dat_file( trim(LATITUDE), lat, dimx, dimy)
          nlat = dimx
+         write(logu,*) "Finished read: ", trim(LATITUDE) 
          
          ! longitude
          call read_file( trim(LONGITUDE), varname, dimx, dimy)
          allocate( lon(dimx) )
          call read_dat_file( trim(LONGITUDE), lon, dimx, dimy)
          nlon = dimx
+         write(logu,*) "Finished read: ", trim(LONGITUDE) 
 
          ! latitude index
          call read_file( trim(LAT_INDEX), varname, dimx, dimy)
@@ -111,11 +113,13 @@ program debug
          call read_dat_file( trim(LAT_INDEX), lat_index, dimx, dimy)
          nmp = dimx
          allocate( lon_k(nmp), lat_j(nmp) )
+         write(logu,*) "Finished read: ", trim(LAT_INDEX) 
             
          ! longitude index
          call read_file( trim(LON_INDEX), varname, dimx, dimy)
          allocate( lon_index(dimx) )
          call read_dat_file( trim(LON_INDEX), lon_index, dimx, dimy)
+         write(logu,*) "Finished read: ", trim(LON_INDEX) 
 
          ! tile index
          call read_file( trim(TILE_INDEX), varname, dimx, dimy)
@@ -124,6 +128,7 @@ program debug
          ntile = NTILE_DEF 
          allocate( tile(ntile) )
          tile = TILE_DEF
+         write(logu,*) "Finished read: ", trim(TILE_INDEX) 
          
          ! variable
          !#@print *, ""
@@ -145,10 +150,13 @@ program debug
          enddo        
          
          ! allocate mem for variable to netcdf
-         allocate ( newvar(nlon, nlat, ntile, ntime) ) 
+         !allocate ( newvar(nlon, nlat, ntile, ntime) ) 
+         allocate ( newvar3(nlon, nlat, ntime) ) 
+         write(logu,*) "Finished read: ", trim(file_var) 
          
          ! initialize, also serves as flag value 
-         newvar = 0./0. 
+         !newvar = 0./0. 
+         newvar3 = 0./0. 
          lat_j = 0
          lon_k = 0
         
@@ -162,7 +170,6 @@ program debug
                endif           
             enddo
             do k=1,nlon 
-               !print *, "lon_index(i), lon(k)", lon_index(i), lon(k)
                if(lon_index(i) == lon(k)) then
                   lon_k(i) = k
                   exit   
@@ -171,32 +178,25 @@ program debug
             if(lat_j(i) ==0) print *, i, "lat failed to tag"
             if(lon_k(i) ==0) print *, i, "lon failed to tag"
          enddo
-!stop
-         !do i=1,nmp
-         !   print *, "i ", i
-         !   print *, "lat_j ", lat_j(i)
-         !   print *, "lon_k ", lon_k(i)
-         !   !read(*,*) dummy
-         !enddo
-   !print *, "lat_j", lat_j
-   !print *, "lon_k", lon_k
 
          do i=1,nmp
-            newvar( lon_k(i), lat_j(i), int( tile_index(i) ), : )  = real( var(:,i) )
+            !newvar( lon_k(i), lat_j(i), int( tile_index(i) ), : )  = real( var(:,i) )
+            newvar3( lon_k(i), lat_j(i), : )  = real( var(:,i) )
+            !write(logu,*) "newvar ", newvar( lon_k(i), lat_j(i),              &
+            !                int( tile_index(i) ), : )
          enddo
-   !print *, "newvar ", newvar
          ! as recorded longitude goes from 0 to 180 and back to zero 
          lon_dx = 360./(nlon)
-         !print *,nlon, lon_dx
          lon(1) = 0.
          do i=2,nlon
             lon(i) = lon(i-1) + lon_dx
          enddo
-         !print *,lon
        
+         write(logu,*) "Calling write: "
          call write_ncdf_template( newfile, nlat, nlon, ntile, ntime, nvar,    &
                                    real(lat),                                  & 
-                                   real(lon), tile, timestep, newvar )
+                                   !real(lon), tile, timestep, newvar, logu )
+                                   real(lon), tile, timestep, newvar3, logu )
           
       write(logu,*) "Fortran executable: write netcdf"
       write(logu,*) "Finished." 

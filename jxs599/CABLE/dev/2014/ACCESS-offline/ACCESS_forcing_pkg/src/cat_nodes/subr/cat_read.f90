@@ -138,6 +138,8 @@ module cat_read_mod
       integer :: gopenstatus
       integer :: i,j
       
+      !jhan: truncate arbitraariky fortesting
+      !dimy = 5000 
          open(unit=2,file=Lfilename//'.bin',status="unknown",action="read",    &
               iostat=gopenstatus, form="unformatted" )
             
