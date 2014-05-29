@@ -45,6 +45,7 @@ MODULE cable_def_types_mod
               mland                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
+      i_d  = KIND(9), &
       r_2  = SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores

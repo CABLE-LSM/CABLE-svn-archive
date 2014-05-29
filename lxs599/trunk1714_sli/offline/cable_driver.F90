@@ -564,7 +564,7 @@ PROGRAM cable_offline_driver
             CALL write_output( dels, ktau, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
-         ENDIF
+         !ENDIF
 
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
