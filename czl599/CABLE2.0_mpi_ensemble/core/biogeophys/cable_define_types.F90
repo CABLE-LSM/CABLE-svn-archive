@@ -203,8 +203,9 @@ MODULE cable_def_types_mod
      
     
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         wbtot   ! total soil water (mm)
-     
+         wbtot,   & ! total soil water (mm)
+         delwb      ! change in soil water (mm/dels)
+
       REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
          gammzz,  & ! heat capacity for each soil layer
          wb,      & ! volumetric soil moisture (solid+liq)
@@ -276,6 +277,7 @@ MODULE cable_def_types_mod
          cansto,  & ! canopy water storage (mm)
          cduv,    & ! drag coefficient for momentum
          delwc,   & ! change in canopy water store (mm/dels)
+         wbal,    & ! water balance within canopy (mm/dels)
          dewmm,   & ! dewfall (mm)
          fe,      & ! total latent heat (W/m2)
          fh,      & ! total sensible heat (W/m2)
@@ -657,7 +659,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% wb(mp,ms) )    
    ALLOCATE( var% wbice(mp,ms) ) 
    ALLOCATE( var% wblf(mp,ms) ) 
-   ALLOCATE( var%wbtot(mp) )    
+   ALLOCATE( var%wbtot(mp) )
+   ALLOCATE( var%delwb(mp) )
    ALLOCATE( var%wbtot1(mp) )    
    ALLOCATE( var%wbtot2(mp) )    
    ALLOCATE( var%wb_lake(mp) )    
@@ -795,7 +798,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
-   
+   ALLOCATE( var% wbal(mp) )
+
 END SUBROUTINE alloc_canopy_type
 
 ! ------------------------------------------------------------------------------
@@ -1067,7 +1071,8 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% wb )    
    DEALLOCATE( var% wbice ) 
    DEALLOCATE( var% wblf ) 
-   DEALLOCATE( var%wbtot )    
+   DEALLOCATE( var%wbtot )
+   DEALLOCATE( var%delwb ) 
    DEALLOCATE( var%wbtot1 )    
    DEALLOCATE( var%wbtot2 )    
    DEALLOCATE( var%wb_lake )    
@@ -1202,6 +1207,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
+   DEALLOCATE( var% wbal )
 
 END SUBROUTINE dealloc_canopy_type
    

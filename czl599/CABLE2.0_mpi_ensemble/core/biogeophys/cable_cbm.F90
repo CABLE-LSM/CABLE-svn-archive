@@ -167,6 +167,7 @@ CONTAINS
    ! Calculate radiative/skin temperature:
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25
+   rad%flws = C%sboltz * C%emsoil * ssnow%tss **4
 
    ! rml 17/1/11 move all plant resp and soil resp calculations here            
    ! from canopy. in UM only call on implicit step.

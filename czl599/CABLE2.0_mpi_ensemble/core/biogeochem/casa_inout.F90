@@ -365,7 +365,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%psoilocc(npt)    = xpocc(iv1)
     casaflux%kmlabp(npt)      = xkmlabp(iso)
     casaflux%psorbmax(npt)    = xpsorbmax(iso)
-    casaflux%fpleach(npt)     = xfPleach(iso)/(365.0)    ! convert from 1/year to 1/day
+    casaflux%fpleach(npt)     = xfPleach(iso) /(365.0)    ! convert from 1/year to 1/day
 !   we used the spatially explicit estimate N fixation by Wang and Houlton (GRL)
 !    casaflux%Nminfix(npt)     = xnfixrate(iv1)/365.0  
 
@@ -1108,7 +1108,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   INTEGER  npt,j
 
 
-!  npt=1921   
+  npt=5270   
 !  write(77,702) npt, casapool%pplant(npt,:), casapool%psoil(npt,:), casapool%psoillab(npt)
 !702 format('before pools', i6,20(f10.4,2x))
 
@@ -1179,8 +1179,9 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
 !  write(77,701) ktau/24,casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:), &
 !                     casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%crmplant(npt,:),casaflux%Nminuptake(npt), &
-!                     real(phen%phase(npt)),casaflux%fracCalloc(npt,:), casaflux%plabuptake(npt),  &
+!                     real(phen%phase(npt)),casaflux%fracCalloc(npt,:), casaflux%plabuptake(npt),casaflux%Pleach(npt),casaflux%Psnet(npt),   &
+!                     casaflux%fPleach(npt),casaflux%Ploss(npt), &
 !                     casapool%psoil(npt,:),casapool%psoillab(npt),casapool%psoilsorb(npt),casapool%psoilocc(npt)
-!701 format('pool: ',i6,100(f12.5,2x))
+701 format('pool: ',i6,100(f12.5,2x))
 END SUBROUTINE biogeochem
 

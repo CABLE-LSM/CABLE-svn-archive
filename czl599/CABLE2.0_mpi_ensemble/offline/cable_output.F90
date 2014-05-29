@@ -65,7 +65,9 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI, fwsoil,               &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar
+                    HVeg, HSoil, Rnet, tvar,                                   &
+                    drybal,wetbal,visAbs,NIRabs,LWcanopy,LWsoil,oLWsoil,       &
+                    ESoilMod,delwc,delSWE,delwb,through,dew,CanWbal,Ecan2
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -116,12 +118,12 @@ MODULE cable_output_module
                                                        ! moisture [kg/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qs  ! 34 surface runoff [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qsb ! 35 subsurface runoff [kg/m2/s]
-    ! 36 change in soilmoisture (sum layers) [kg/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: DelSoilMoist
-    ! 37 change in snow water equivalent [kg/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: DelSWE
-    ! 38 change in interception storage [kg/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: DelIntercept
+!    ! 36 change in soilmoisture (sum layers) [kg/m2]
+!    REAL(KIND=4), POINTER, DIMENSION(:) :: DelSoilMoist
+!    ! 37 change in snow water equivalent [kg/m2]
+!    REAL(KIND=4), POINTER, DIMENSION(:) :: DelSWE
+!    ! 38 change in interception storage [kg/m2]
+!    REAL(KIND=4), POINTER, DIMENSION(:) :: DelIntercept
     REAL(KIND=4), POINTER, DIMENSION(:) :: SnowT     ! 39 snow surface temp [K]
     REAL(KIND=4), POINTER, DIMENSION(:) :: BaresoilT ! 40 surface bare soil
                                                      ! temp [K]
@@ -158,7 +160,38 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ebal  ! cumulative energy balance
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
-                                                 ! [W/m2]
+                                                 ! [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: drybal   ! balance in dry canopy
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: wetbal   ! balance in wet canopy
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: visAbs   ! visible SW absorbed
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: NIRabs   ! NIR SW absorbed
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LWcanopy ! outgoing LW from canopy
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LWsoil   ! outgoing LW from soil
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: oLWsoil   ! outgoing LW from soil
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: ESoilMod ! modified soil evaporation
+                                                    ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: delwc    ! change rate of canopy store
+                                                    ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: delSWE   ! change rate of SWE
+                                                    ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: delwb    ! change rate of soil water
+                                                    ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: through  ! through fall rate
+                                                    ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: dew      ! dew rate
+                                                    ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CanWbal  ! rate of water imbalance within canopy
+                                                    ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: ECan2    ! wet canopy evaporation
+                                                    ! not including dew
+                                                    ! [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: fwsoil    ! 59 plant carbon pool
                                                      ! [gC/m2]
   END TYPE output_temporary_type
@@ -419,10 +452,17 @@ CONTAINS
     END IF
     IF(output%flux .OR. output%ECanop) THEN
        CALL define_ovar(ncid_out, ovid%Ecanop, 'ECanop', 'kg/m^2/s',           &
-                        'Wet canopy evaporation', patchout%ECanop, 'dummy',    &
+                        'Wet canopy evaporation; negative is dew', patchout%ECanop, 'dummy',    &
                         xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%ECanop(mp))
        out%ECanop = 0.0 ! initialise
+    END IF
+    IF(output%flux .OR. output%ECan2) THEN
+       CALL define_ovar(ncid_out, ovid%ECan2, 'Ecan2', 'kg/m^2/s',           &
+                        'Wet canopy evaporation without dew', patchout%ECan2, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%ECan2(mp))
+       out%ECan2 = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%TVeg) THEN
        CALL define_ovar(ncid_out, ovid%TVeg, 'TVeg', 'kg/m^2/s',               &
@@ -578,6 +618,105 @@ CONTAINS
        ALLOCATE(out%Wbal(mp))
        out%Wbal = 0.0 ! initialise
     END IF
+    IF(output%balances .OR. output%drybal) THEN
+       CALL define_ovar(ncid_out, ovid%drybal, 'drybal', 'W/m^2',      &
+                        'Energy imbalance in dry canopy', patchout%drybal, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%drybal(mp))
+       out%drybal = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%wetbal) THEN
+       CALL define_ovar(ncid_out, ovid%wetbal, 'wetbal', 'W/m^2',      &
+                        'Energy imbalance in wet canopy', patchout%wetbal, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%wetbal(mp))
+       out%wetbal = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%visAbs) THEN
+       CALL define_ovar(ncid_out, ovid%visAbs, 'visAbs', 'W/m^2',      &
+                        'visible SW absorbed', patchout%visAbs, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%visAbs(mp))
+       out%visAbs = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%NIRabs) THEN
+       CALL define_ovar(ncid_out, ovid%NIRabs, 'NIRabs', 'W/m^2',      &
+                        'NIR SW absorbed', patchout%NIRabs, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%NIRabs(mp))
+       out%NIRabs = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%LWcanopy) THEN
+       CALL define_ovar(ncid_out, ovid%LWcanopy, 'LWcanopy', 'W/m^2',      &
+                        'outgoing LW from canopy', patchout%LWcanopy, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%LWcanopy(mp))
+       out%LWcanopy = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%LWsoil) THEN
+       CALL define_ovar(ncid_out, ovid%LWsoil, 'LWsoil', 'W/m^2',      &
+                        'outgoing LW from soil', patchout%LWsoil, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%LWsoil(mp))
+       out%LWsoil = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%oLWsoil) THEN
+       CALL define_ovar(ncid_out, ovid%oLWsoil, 'oLWsoil', 'W/m^2',      &
+                        'outgoing LW from soil using otss', patchout%oLWsoil, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%oLWsoil(mp))
+       out%oLWsoil = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%ESoilMod) THEN
+       CALL define_ovar(ncid_out, ovid%ESoilMod, 'ESoilMod', 'W/m^2',      &
+                        'Modified soil evaporation rate', patchout%ESoilMod, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%ESoilMod(mp))
+       out%ESoilMod = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%delwc) THEN
+       CALL define_ovar(ncid_out, ovid%delwc, 'delwc', 'kg/m^2/s',      &
+                        'change rate of canopy store', patchout%delwc, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%delwc(mp))
+       out%delwc = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%delSWE) THEN
+       CALL define_ovar(ncid_out, ovid%delSWE, 'delSWE', 'kg/m^2/s',      &
+                        'change rate of SWE', patchout%delSWE, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%delSWE(mp))
+       out%delSWE = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%delwb) THEN
+       CALL define_ovar(ncid_out, ovid%delwb, 'delwb', 'kg/m^2/s',      &
+                        'change rate of soil water', patchout%delwb, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%delwb(mp))
+       out%delwb = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%through) THEN
+       CALL define_ovar(ncid_out, ovid%through, 'through', 'kg/m^2/s',      &
+                        'through fall rate', patchout%through, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%through(mp))
+       out%through = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%dew) THEN
+       CALL define_ovar(ncid_out, ovid%dew, 'dew', 'kg/m^2/s',      &
+                        'dew rate', patchout%dew, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%dew(mp))
+       out%dew = 0.0 ! initialise
+    END IF
+    IF(output%balances .OR. output%CanWbal) THEN
+       CALL define_ovar(ncid_out, ovid%CanWbal, 'CanWbal', 'kg/m^2/s',      &
+                        'rate of water imbalance within canopy', patchout%CanWbal, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%CanWbal(mp))
+       out%CanWbal = 0.0 ! initialise
+    END IF
+
     ! Define carbon variables in output file and allocate temp output vars:
     IF(output%carbon .OR. output%AutoResp) THEN
        CALL define_ovar(ncid_out, ovid%AutoResp, 'AutoResp', 'umol/m^2/s',     &
@@ -1303,6 +1442,20 @@ CONTAINS
           out%ECanop = 0.0
        END IF
     END IF
+    ! Ecan2: interception evaporation not including dew [kg/m^2/s]
+    IF(output%flux .OR. output%Ecan2) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Ecan2 = out%Ecan2 + REAL(MAX(canopy%fevw,0.0) / air%rlam, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Ecan2 = out%Ecan2 / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Ecan2, 'Ecan2',       &
+                     out%Ecan2, ranges%Ecan2, patchout%Ecan2, 'default', met)
+          ! Reset temporary output variable:
+          out%Ecan2 = 0.0
+       END IF
+    END IF
     ! TVeg: vegetation transpiration [kg/m^2/s]
     IF(output%flux .OR. output%TVeg) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1590,6 +1743,7 @@ CONTAINS
        out%Ebal = out%Ebal + REAL(bal%ebal_tot, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
+          ! N.B. accumulated value for the middle of averaging time period
           out%Ebal = out%Ebal / REAL(output%interval, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Ebal, 'Ebal', out%Ebal, &
@@ -1598,12 +1752,13 @@ CONTAINS
           out%Ebal = 0.0
        END IF
     END IF
-    ! Wbal: cumulative water balance  [kg/m^2/s]
+    ! Wbal: cumulative water balance  [kg/m^2]
     IF(output%balances .OR. output%Wbal) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%Wbal = out%Wbal + REAL(bal%wbal_tot, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
+          ! N.B. accumulated value for the middle of averaging time period
           out%Wbal = out%Wbal / REAL(output%interval, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Wbal, 'Wbal',           &
@@ -1612,6 +1767,147 @@ CONTAINS
           out%Wbal = 0.0
        END IF
     END IF
+    ! More outputs for checking balances (Mar 2014)
+    ! drybal: energy balance in dry canopy [W/m^2] N.B. not cumulative
+    IF(output%balances .OR. output%drybal) THEN
+       IF(writenow) THEN
+          out%drybal = out%drybal / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%drybal, 'drybal', out%drybal, &
+                          ranges%drybal, patchout%drybal, 'default', met)
+          out%drybal = 0.0
+       END IF
+    END IF
+    ! wetbal: energy balance in wet canopy [W/m^2] N.B. not cumulative
+    IF(output%balances .OR. output%wetbal) THEN
+       out%wetbal = out%wetbal + REAL(bal%wetbal, 4)
+       IF(writenow) THEN
+          out%wetbal = out%wetbal / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%wetbal, 'wetbal', out%wetbal, &
+                          ranges%wetbal, patchout%wetbal, 'default', met)
+          out%wetbal = 0.0
+       END IF
+    END IF
+    ! visAbs: visible SW absorbed [W/m^2]
+    IF(output%balances .OR. output%visAbs) THEN
+       out%visAbs = out%visAbs + REAL( (1.0-rad%albedo(:,1))*met%fsd(:,1), 4)
+       IF(writenow) THEN
+          out%visAbs = out%visAbs / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%visAbs, 'visAbs', out%visAbs, &
+                          ranges%visAbs, patchout%visAbs, 'default', met)
+          out%visAbs = 0.0
+       END IF
+    END IF
+    ! NIRabs: NIR SW absorbed [W/m^2]
+    IF(output%balances .OR. output%NIRabs) THEN
+       out%NIRabs = out%NIRabs + REAL( (1.0-rad%albedo(:,2))*met%fsd(:,2), 4)
+       IF(writenow) THEN
+          out%NIRabs = out%NIRabs / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%NIRabs, 'NIRabs', out%NIRabs, &
+                          ranges%NIRabs, patchout%NIRabs, 'default', met)
+          out%NIRabs = 0.0
+       END IF
+    END IF
+    ! LWcanopy: outgoing LW from canopy [W/m^2]
+    IF(output%balances .OR. output%LWcanopy) THEN
+       out%LWcanopy = out%LWcanopy + REAL( sboltz*emleaf*(canopy%tv**4)*(1.0-rad%transd), 4)
+       IF(writenow) THEN
+          out%LWcanopy = out%LWcanopy / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%LWcanopy, 'LWcanopy', out%LWcanopy, &
+                          ranges%LWcanopy, patchout%LWcanopy, 'default', met)
+          out%LWcanopy = 0.0
+       END IF
+    END IF
+    ! LWsoil: outgoing LW from soil [W/m^2]
+    IF(output%balances .OR. output%LWsoil) THEN
+       out%LWsoil = out%LWsoil + REAL( sboltz*emsoil*(ssnow%tss**4)*rad%transd, 4)
+       IF(writenow) THEN
+          out%LWsoil = out%LWsoil / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%LWsoil, 'LWsoil', out%LWsoil, &
+                          ranges%LWsoil, patchout%LWsoil, 'default', met)
+          out%LWsoil = 0.0
+       END IF
+    END IF
+    ! oLWsoil: outgoing LW from soil using tss at start of time step [W/m^2]
+    IF(output%balances .OR. output%oLWsoil) THEN
+       out%oLWsoil = out%oLWsoil + REAL( sboltz*emsoil*(ssnow%otss**4)*rad%transd, 4)
+       IF(writenow) THEN
+          out%oLWsoil = out%oLWsoil / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%oLWsoil, 'oLWsoil', out%oLWsoil, &
+                          ranges%oLWsoil, patchout%oLWsoil, 'default', met)
+          out%oLWsoil = 0.0
+       END IF
+    END IF
+    ! ESoilMod: modified soil evaporation [W/m^2]
+    IF(output%balances .OR. output%ESoilMod) THEN
+       out%ESoilMod = out%ESoilMod + REAL( canopy%fes * ssnow%cls, 4)
+       IF(writenow) THEN
+          out%ESoilMod = out%ESoilMod / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%ESoilMod, 'ESoilMod', out%ESoilMod, &
+                          ranges%ESoilMod, patchout%ESoilMod, 'default', met)
+          out%ESoilMod = 0.0
+       END IF
+    END IF
+    ! delwc: rate of change in canopy water storage per step [mm/s]
+    IF(output%balances .OR. output%delwc) THEN
+       out%delwc = out%delwc + REAL( canopy%delwc / dels, 4)
+       IF(writenow) THEN
+          out%delwc = out%delwc / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%delwc, 'delwc', out%delwc, &
+                          ranges%delwc, patchout%delwc, 'default', met)
+          out%delwc = 0.0
+       END IF
+    END IF
+    ! delSWE: rate of change in snow water equivalent [Kg/m^2/s] = [mm/s]
+    IF(output%balances .OR. output%delSWE) THEN
+       out%delSWE = out%delSWE + REAL( (ssnow%snowd - ssnow%osnowd) / dels, 4)
+       IF(writenow) THEN
+          out%delSWE = out%delSWE / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%delSWE, 'delSWE', out%delSWE, &
+                          ranges%delSWE, patchout%delSWE, 'default', met)
+          out%delSWE = 0.0
+       END IF
+    END IF
+    ! delwb: rate of change in soil water content per step [mm/s]
+    IF(output%balances .OR. output%delwb) THEN
+       out%delwb = out%delwb + REAL( ssnow%delwb / dels, 4)
+       IF(writenow) THEN
+          out%delwb = out%delwb / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%delwb, 'delwb', out%delwb, &
+                          ranges%delwb, patchout%delwb, 'default', met)
+          out%delwb = 0.0
+       END IF
+    END IF
+    ! through: through fall rate [Kg/m^2/s]
+    IF(output%balances .OR. output%through) THEN
+       out%through = out%through + REAL( canopy%through / dels, 4)
+       IF(writenow) THEN
+          out%through = out%through / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%through, 'through', out%through, &
+                          ranges%through, patchout%through, 'default', met)
+          out%delwb = 0.0
+       END IF
+    END IF
+    ! dew: dew rate [Kg/m^2/s]
+    IF(output%balances .OR. output%dew) THEN
+       out%dew = out%dew + REAL((MIN(canopy%fevw,0.0) + MIN(canopy%fevc,0.0)) / air%rlam, 4)
+       IF(writenow) THEN
+          out%dew = out%dew / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%dew, 'dew', out%dew, &
+                          ranges%dew, patchout%dew, 'default', met)
+          out%dew = 0.0
+       END IF
+    END IF
+    ! CanWbal: rate of water imbalance in canopy [Kg/m^2/s] N.B. not cumulative
+    IF(output%balances .OR. output%CanWbal) THEN
+       out%CanWbal = out%CanWbal + REAL( canopy%wbal / dels, 4)
+       IF(writenow) THEN
+          out%CanWbal = out%CanWbal / REAL(output%interval, 4)
+          CALL write_ovar(out_timestep, ncid_out, ovid%CanWbal, 'CanWbal', out%CanWbal, &
+                          ranges%CanWbal, patchout%CanWbal, 'default', met)
+          out%CanWbal = 0.0
+       END IF
+    END IF
+
     !------------------------WRITE CARBON DATA----------------------------------
     ! GPP: gross primary production C by veg [umol/m^2/s]
     !      added frday in the calculation of GPP (BP may08)

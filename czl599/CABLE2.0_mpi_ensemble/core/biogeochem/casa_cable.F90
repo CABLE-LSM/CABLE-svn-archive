@@ -448,7 +448,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
   ! first initialize 
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf) 
-  npleafx = 14.2 
+  npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)  
 
   DO np=1,mp
     ivt=veg%iveg(np)
@@ -459,32 +459,32 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
                        MAX(casabiome%ratioNCplantmin(ivt,leaf), &
                             casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
         ! add the following line
-         ncleafx(np) = (casapool%nplant(np,leaf)/casapool%cplant(np,leaf)) * veg%extkn(np)*casamet%glai(np) &
-                                                                            /(1.0-exp(-veg%extkn(np)*casamet%glai(np)))
+    !     ncleafx(np) = (casapool%nplant(np,leaf)/casapool%cplant(np,leaf)) * veg%extkn(np)*casamet%glai(np) &
+    !                                                                        /(1.0-exp(-veg%extkn(np)*casamet%glai(np)))
     !     write(*,991) np,casapool%nplant(np,leaf)/casapool%cplant(np,leaf),ncleafx(np),casapool%nplant(np,leaf),casapool%cplant(np,leaf), &
     !                    casamet%glai(np), veg%extkn(np), 1.0-exp(-veg%extkn(np)*casamet%glai(np))
 991 format('np nc ratios ', i5,10(f10.4,2x))
       IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
         npleafx(np) = MIN(30.0,MAX(8.0,casapool%nplant(np,leaf) &
                                       /casapool%pplant(np,leaf)))
+!      ELSE
+!        npleafx(np) = casabiome%ratioNPplantmin(ivt,leaf)
       ENDIF
+
     ENDIF
 
     IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
       IF (ivt/=2) THEN
         veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6! &
-!                        *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
+                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6
       ELSE
         IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
           veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
                           + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
-                          * ncleafx(np)/casabiome%sla(ivt) ) *1.e-6          ! &
-!                         *max(0.6,exp(-0.025*casapool%clabile(np)))* 1.0e-6
+                          * ncleafx(np)/casabiome%sla(ivt) ) *1.e-6          
         ELSE
           veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6! &
-!                         *max(0.6,exp(-0.025*casapool%clabile(np)))*1.0e-6
+                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6
         ENDIF
       ENDIF
     ENDIF

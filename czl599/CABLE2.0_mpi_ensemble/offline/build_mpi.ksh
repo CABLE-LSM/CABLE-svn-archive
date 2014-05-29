@@ -49,7 +49,7 @@ host_burn()
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O2 -fp-model precise '
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
