@@ -196,6 +196,8 @@ PROGRAM cable_offline_driver
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
 
+   INTEGER :: ioerror
+
    ! END header
 
    ! Open, read and close the namelist file.
@@ -209,6 +211,7 @@ PROGRAM cable_offline_driver
       OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
          IF(ioerror==0) then
             READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+         ENDIF
       CLOSE(11)
    ENDIF
    
