@@ -139,6 +139,7 @@ run_run()
       mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$1]}
       mv *.out fort.* out/${sites[$1]}
       cp cable.nml  out/${sites[$1]}
+      cp new_sumbal  out/${sites[$1]}
       # pools for CASA-CNP
       if [[ -e poolcnpOut.csv ]]; then
          mv poolcnpOut.csv cnpfluxOut.csv out/${sites[$1]}
