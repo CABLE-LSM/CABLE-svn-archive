@@ -1632,6 +1632,8 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
     
    ktau = ktau +1 
    
+   
+!   print*,'beginning of soil_snow parameter',sum(soil%ssat(:))/mp
    !jhan - make switchable 
    ! appropriate for ACCESS1.0
    !max_glacier_snowd = 50000.0

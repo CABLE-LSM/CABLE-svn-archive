@@ -250,6 +250,7 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
+         fwsoil = .FALSE.,    & ! Soil moisture stress
          
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]

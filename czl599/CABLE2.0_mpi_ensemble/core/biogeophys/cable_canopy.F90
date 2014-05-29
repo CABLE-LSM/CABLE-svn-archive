@@ -1331,6 +1331,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ELSE
          STOP 'fwsoil_switch failed.'
       ENDIF
+      canopy%fwsoil = fwsoil
 
    ENDIF
 

@@ -278,7 +278,8 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
     END WHERE 
 
     WHERE(phen%phase==1)          
-      casaflux%fracCalloc(:,leaf)  = 0.8
+!      casaflux%fracCalloc(:,leaf)  = 0.8
+      casaflux%fracCalloc(:,leaf)  = 0.9
       WHERE(casamet%lnonwood==0)  !woodland or forest
         casaflux%fracCalloc(:,froot) = 0.5*(1.0-casaflux%fracCalloc(:,leaf))
         casaflux%fracCalloc(:,wood)  = 0.5*(1.0-casaflux%fracCalloc(:,leaf))
@@ -424,7 +425,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
   casaflux%clabloss = 0.0
 
   WHERE(casamet%iveg2/=icewater) 
-    WHERE(casamet%tairk >250.0) 
+!    WHERE(casamet%tairk >250.0) 
+    WHERE(casamet%tairk >240.0) 
       WHERE(casapool%cplant(:,wood)>1.0e-6)
       casaflux%crmplant(:,wood)  = casabiome%rmplant(veg%iveg(:),wood) &
                                  * casapool%nplant(:,wood)             &
@@ -436,7 +438,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
                             * exp(308.56*(1.0/56.02-1.0         &
                             / (casamet%tairk(:)+46.02-tkzeroc)))
     ENDWHERE
-    WHERE(casamet%tsoilavg >250.0.and.casapool%cplant(:,froot)>1.0e-6) 
+!    WHERE(casamet%tsoilavg >250.0.and.casapool%cplant(:,froot)>1.0e-6) 
+    WHERE(casamet%tsoilavg >240.0.and.casapool%cplant(:,froot)>1.0e-6) 
       casaflux%crmplant(:,froot) = casabiome%rmplant(veg%iveg(:),froot) &
                                  * casapool%nplant(:,froot)             &
                                  * exp(308.56*(1.0/56.02-1.0            &

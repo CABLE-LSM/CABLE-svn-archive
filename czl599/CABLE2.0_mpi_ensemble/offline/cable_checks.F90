@@ -116,6 +116,7 @@ MODULE cable_checks_module
            SnowDepth = (/0.0,50.0/),           & ! EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
+           fwsoil = (/0,1/),                   &
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &

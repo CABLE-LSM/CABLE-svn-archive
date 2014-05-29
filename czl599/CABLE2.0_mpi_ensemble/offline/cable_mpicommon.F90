@@ -46,7 +46,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 293    ! add 10 vairable to veg%
+!  INTEGER, PARAMETER :: nparam = 293    ! add 10 vairable to veg%
+  INTEGER, PARAMETER :: nparam = 294    ! add fwsoil to canopy%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -101,7 +102,9 @@ MODULE cable_mpicommon
   ! ported to CABLE_r491
   !INTEGER, PARAMETER :: nvec = 137
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  INTEGER, PARAMETER :: nvec = 161
+  !INTEGER, PARAMETER :: nvec = 161
+  ! add fwsoil to canopy%
+  INTEGER, PARAMETER :: nvec = 162
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

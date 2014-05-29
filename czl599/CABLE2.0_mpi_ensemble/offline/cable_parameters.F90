@@ -1176,11 +1176,11 @@ CONTAINS
       IF (soilparmnew) THEN
   
       soil%swilt(landpt(e)%cstart:landpt(e)%cend) =                            &
-                                         inswilt(landpt(e)%ilon, landpt(e)%ilat)
+                                         inswilt(landpt(e)%ilon, landpt(e)%ilat) * vegin%swiltratio(1)
       soil%sfc(landpt(e)%cstart:landpt(e)%cend) =                              &
                                            insfc(landpt(e)%ilon, landpt(e)%ilat)
       soil%ssat(landpt(e)%cstart:landpt(e)%cend) =                             &
-                                          inssat(landpt(e)%ilon, landpt(e)%ilat)
+                                          inssat(landpt(e)%ilon, landpt(e)%ilat) * vegin%ssatratio(1)
       soil%bch(landpt(e)%cstart:landpt(e)%cend) =                              &
                                            inbch(landpt(e)%ilon, landpt(e)%ilat)
       soil%hyds(landpt(e)%cstart:landpt(e)%cend) =                             &
@@ -1285,6 +1285,7 @@ CONTAINS
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
 
+!   print*,'after reading parameter',sum(soil%ssat(:))/mland,vegin%ssatratio(1)
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0)) THEN
        PRINT *, 'tgg max, min = ', MAXVAL(ssnow%tgg), MINVAL(ssnow%tgg)

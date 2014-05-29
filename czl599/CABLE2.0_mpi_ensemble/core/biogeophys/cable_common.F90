@@ -141,6 +141,8 @@ MODULE cable_common_module
          shelrb,     & !
          vegcf,      & !  
          frac4,      & !
+         swiltratio, &
+         ssatratio,  &
          xalbnir,    & !
          extkn,      & ! 
          tminvj,     & !
@@ -254,7 +256,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
-         veg_desc( mvtype ),                                                   &
+         veg_desc( mvtype ),vegin%swiltratio(mvtype),vegin%ssatratio(mvtype),  &
          vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
@@ -278,7 +280,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             ! only refl(1:2) and taul(1:2) used
             READ(40,*) vegin%refl(1:nrb,jveg) ! rhowood not used ! BP may2011
             READ(40,*) vegin%taul(1:nrb,jveg) ! tauwood not used ! BP may2011
-            READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
+            READ(40,*) vegin%ssatratio(jveg), vegin%swiltratio(jveg), notused, vegin%xalbnir(jveg)
             READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
             READ(40,*) vegin%vcmax(jveg), vegin%rp20(jveg),                    &

@@ -63,7 +63,7 @@ MODULE cable_output_module
                     LWnet, SoilMoist, SoilTemp, Albedo, Qs,                    &
                     Qsb, Evap, BaresoilT, SWE, SnowT,                          &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
-                    LeafResp, HeteroResp, GPP, NPP, LAI,                       &
+                    LeafResp, HeteroResp, GPP, NPP, LAI, fwsoil,               &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar
   END TYPE out_varID_type
@@ -159,6 +159,8 @@ MODULE cable_output_module
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: fwsoil    ! 59 plant carbon pool
+                                                     ! [gC/m2]
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -613,6 +615,14 @@ CONTAINS
        out%NPP = 0.0 ! initialise
     END IF
 
+    IF(output%carbon .OR. output%fwsoil) THEN
+       CALL define_ovar(ncid_out, ovid%fwsoil, 'fwsoil', 'unitless',               &
+                        'soil moisture stress', patchout%fwsoil,           &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%fwsoil(mp))
+       out%fwsoil = 0.0 ! initialise
+    END IF
+    
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
                      'iveg', '-', 'Vegetation type', patchout%iveg, 'integer', &
@@ -1678,6 +1688,20 @@ CONTAINS
        END IF
     END IF
 
+    IF(output%carbon .OR. output%fwsoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fwsoil = out%fwsoil + REAL(canopy%fwsoil)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fwsoil = out%fwsoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fwsoil, 'fwsoil', out%fwsoil,    &
+                          ranges%fwsoil, patchout%fwsoil, 'default', met)
+          ! Reset temporary output variable:
+          out%fwsoil = 0.0
+       END IF
+    END IF
+
   END SUBROUTINE write_output
   !=============================================================================
   SUBROUTINE close_output_file(bal, air, bgc, canopy, met,                     &
@@ -2190,6 +2214,7 @@ CONTAINS
                      ranges%sucs, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%rs20, 'rs20', REAL(veg%rs20, 4),       &
                      ranges%rs20, .TRUE., 'real', .TRUE.)
+!    print*,'after reading parameter',sum(soil%ssat(:))/mland
     CALL write_ovar (ncid_restart, rpid%ssat, 'ssat', REAL(soil%ssat, 4),      &
                      ranges%ssat, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%sfc, 'sfc', REAL(soil%sfc, 4),         &
