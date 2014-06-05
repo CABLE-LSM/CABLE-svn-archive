@@ -67,6 +67,7 @@
 !==============================================================================
 
 PROGRAM cable_offline_driver
+   USE cable_namelists_module
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
@@ -91,9 +92,6 @@ PROGRAM cable_offline_driver
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
-   
-   ! CABLE namelist: model configuration, runtime/user switches 
-   CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
@@ -157,47 +155,23 @@ PROGRAM cable_offline_driver
       soilMtemp,                         &   
       soilTtemp      
    
-   ! switches etc defined thru namelist (by default cable.nml)
-   NAMELIST/CABLE/                  &
-                  filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! use new soil param. method
-                  soilparmnew,      & ! use new soil param. method
-                  calcsoilalbedo,   & ! albedo considers soil color Ticket #27
-                  spinup,           & ! spinup model (soil) to steady state 
-                  delsoilM,delsoilT,& ! 
-                  output,           &
-                  patchout,         &
-                  check,            &
-                  verbose,          &
-                  leaps,            &
-                  logn,             &
-                  fixedCO2,         &
-                  spincasainput,    &
-                  spincasa,         &
-                  l_casacnp,        &
-                  l_laiFeedbk,      &
-                  l_vcmaxFeedbk,    &
-                  icycle,           &
-                  casafile,         &
-                  ncciy,            &
-                  gswpfile,         &
-                  redistrb,         &
-                  wiltParam,        &
-                  satuParam,        &
-                  cable_user           ! additional USER switches 
-
    ! END header
 
-   ! Open, read and close the namelist file.
-   OPEN( 10, FILE = CABLE_NAMELIST )
-      READ( 10, NML=CABLE )   !where NML=CABLE defined above
-   CLOSE(10)
-
+   call read_namelists( filename, vegparmnew, &! !
+                        soilparmnew, calcsoilalbedo,     &
+                        spinup,delsoilM, delsoilT, output, patchout,         &
+                        check, verbose, leaps, logn, fixedCO2,                 &
+                        spincasainput, spincasa, l_casacnp, l_laiFeedbk,       &
+                        l_vcmaxFeedbk, icycle, casafile,& 
+                        ncciy, gswpfile,  &
+                        redistrb, wiltParam, satuParam, &
+                        cable_user ) 
+   
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
    CALL report_version_no( logn )
-    
+
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
@@ -480,7 +454,9 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
     WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
   ENDIF
 
+
 END SUBROUTINE renameFiles
+
 
 
 
