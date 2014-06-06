@@ -1367,11 +1367,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
        gswmin = max(1.e-6,lower_limit2)
    ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
        ! convert from mol to umol
-       !gswmin = (veg%g0c3(1) * 1E6) * (1. - frac42) + &
-       !         (veg%g0c4(1) * 1E6) * frac42
+       gswmin = (veg%g0c3(1) * 1E6) * (1. - frac42) + &
+                (veg%g0c4(1) * 1E6) * frac42
        !
        ! assuming gs0 = 0 in file anyway so hardwire it here
-       gswmin = 0.0
+       !gswmin = 0.0
    ELSE
        STOP 'GS_MODEL switch failed.'
    ENDIF
