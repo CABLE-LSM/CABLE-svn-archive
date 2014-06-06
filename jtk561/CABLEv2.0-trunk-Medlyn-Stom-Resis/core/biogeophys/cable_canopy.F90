@@ -1535,7 +1535,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 END IF   
                 
                 g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
-                     (veg%g1c4(1)  * veg%frac4(i))
+                     (veg%g1c4(i)  * veg%frac4(i))
             
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i) / SQRT(vpd))) / &
                                 (csx(i,1)*1E6) ! convert CO2 bar to umol/mol
