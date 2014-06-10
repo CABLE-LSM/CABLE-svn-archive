@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg
+   set -A kh vayu cher burn shin jigg raij
 }
 
 
@@ -78,6 +78,23 @@ host_vayu()
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf'
+   build_build
+   cd ../
+   build_status
+}
+
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
    build_status
