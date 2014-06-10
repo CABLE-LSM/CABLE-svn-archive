@@ -1793,7 +1793,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
                              (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
                              + (gswminz(i,j)/C%RGSWC)*(cx1z(i,j)-csxz(i,j))      &
-                             - xleuningz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
+                             - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
                              + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
                
                 
