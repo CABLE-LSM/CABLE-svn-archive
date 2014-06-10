@@ -961,6 +961,10 @@ CONTAINS
           veg%extkn(h)    = vegin%extkn(veg%iveg(h))
           veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
           veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
+          veg%g0c3(h)     = vegin%g0c3(veg%iveg(h)) ! Ticket #56
+          veg%g0c4(h)     = vegin%g0c4(veg%iveg(h)) ! Ticket #56
+          veg%g1c3(h)     = vegin%g1c3(veg%iveg(h)) ! Ticket #56
+          veg%g1c4(h)     = vegin%g1c4(veg%iveg(h)) ! Ticket #56
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
