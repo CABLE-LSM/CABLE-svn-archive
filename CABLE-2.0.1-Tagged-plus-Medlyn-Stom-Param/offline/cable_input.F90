@@ -2602,6 +2602,14 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'def')
    CALL readpar(ncid_met,'meth',completeSet,veg%meth,filename%met,             &
                 nmetpatches,'def')
+   CALL readpar(ncid_met,'g0c3',completeSet,veg%g0c3,filename%met,            &
+                nmetpatches,'def') ! Ticket #56
+   CALL readpar(ncid_met,'g0c4',completeSet,veg%g0c4,filename%met,             &
+                nmetpatches,'def') ! Ticket #56
+   CALL readpar(ncid_met,'g1c3',completeSet,veg%g1c3,filename%met,             &
+                nmetpatches,'def') ! Ticket #56
+   CALL readpar(ncid_met,'g1c4',completeSet,veg%g1c4,filename%met,             &
+                nmetpatches,'def') ! Ticket #56         
    ok = NF90_INQ_VARID(ncid_met,'za',parID)
    IF(ok == NF90_NOERR) THEN ! if it does exist
       CALL readpar(ncid_met,'za',completeSet,rough%za_uv,filename%met,         &
