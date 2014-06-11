@@ -104,6 +104,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       cansat,        & ! max canopy intercept. (mm)
       dsx,           & ! leaf surface vpd
       fwsoil,        & ! soil water modifier of stom. cond
+      fwsoil_ns,     & ! soil water modifier of vcmax
       tlfx,          & ! leaf temp prev. iter (K)
       tlfy             ! leaf temp (K)
 
@@ -139,7 +140,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%cansto =  canopy%oldcansto
 
    ALLOCATE( cansat(mp), gbhu(mp,mf))
-   ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
+   ALLOCATE( dsx(mp), fwsoil(mp), fwsoil_ns(mp), tlfx(mp), tlfy(mp) )
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
    ALLOCATE( ghwet(mp))
@@ -271,7 +272,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
-                    fwsoil, tlfx, tlfy, ecy, hcy,                              &
+                    fwsoil, fwsoil_ns, tlfx, tlfy, ecy, hcy,                   &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter )
      
@@ -576,7 +577,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                 canopy%fwet  ! YP nov2009
 
    DEALLOCATE(cansat,gbhu)
-   DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
+   DEALLOCATE(dsx, fwsoil, fwsoil_ns, tlfx, tlfy)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
@@ -1216,7 +1217,7 @@ END SUBROUTINE Surf_wetness_fact
 
 SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
-                    fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
+                    fwsoil, fwsoil_ns, tlfx,  tlfy,  ecy, hcy,                 &
                     rny, gbhu, gbhf, csx,                                      &
                     cansat, ghwet, iter )
 
@@ -1236,6 +1237,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
       dsx,        & ! leaf surface vpd
       fwsoil,     & ! soil water modifier of stom. cond
+      fwsoil_ns,  & ! soil water modifier for vcmax
       tlfx,       & ! leaf temp prev. iter (K)
       tlfy          ! leaf temp (K)
    
@@ -1338,12 +1340,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
       ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
          CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+      ! Martin De Kauwe - Adding Zhou et al.
+      ELSEIF(cable_user%FWSOIL_SWITCH == 'Zhou') THEN
+       CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg) 
       ELSE
          STOP 'fwsoil_switch failed.'
       ENDIF
 
    ENDIF
-
+   
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
 
@@ -1458,7 +1463,17 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
             vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
             vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
-    
+            
+            ! Martin De Kauwe - Adding Zhou et al.
+            ! Reduce Vcmax if SW availability is limiting
+            IF(cable_user%FWSOIL_SWITCH == 'Zhou') THEN
+                vcmxt3(i,1) = vcmxt3(i,1) * fwsoil_ns(i)
+                vcmxt3(i,2) = vcmxt3(i,2) * fwsoil_ns(i)
+                vcmxt4(i,1) = vcmxt4(i,1) * fwsoil_ns(i)
+                vcmxt4(i,2) = vcmxt4(i,2) * fwsoil_ns(i)
+            END IF
+
+            
             ! Leuning 2002 (P C & E) equation for temperature response
             ! used for Jmax for C3 plants:
             temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
@@ -2103,6 +2118,50 @@ SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
 
 END SUBROUTINE fwsoil_calc_non_linear 
 
+! ------------------------------------------------------------------------------
+
+
+
+SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg)
+    ! Zhou et al. 2013, AFM SW availability limitation
+    ! Martin De Kauwe, 11th June 2014
+    USE cable_def_types_mod
+    USE cable_common_module
+    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    REAL, INTENT(OUT), DIMENSION(:):: fwsoil    ! soil water modifier for g1
+    REAL, INTENT(OUT), DIMENSION(:):: fwsoil_ns ! soil water modifier for vcmax
+    REAL, DIMENSION(mp)  :: psi_sat, psi_sat_mpa, psi_swp
+    REAL :: sf, psi_f, b, available
+    
+    ! Hardwired for the moment
+    sf = 1.9
+    psi_f = -1.85
+    b = 0.84
+       
+    ! soil matric potential at saturation, taking inverse of log (base10)
+    ! units = m (0.01 converts from mm to m)
+    psi_sat = -0.01 * (10.0**(1.54 - 0.95 * soil%sand(:) + 0.63 * soil%silt(:)))
+
+    ! METER_OF_HEAD_TO_MPA = 9.81 * KPA_2_MPA (0.001)
+    psi_sat_mpa = psi_sat * 9.81 * 0.001
+
+    ! theta / theta_sat     
+    available = MAX(1.0e-9,MIN(1.0, sum( ssnow%wb / SPREAD(soil%ssat, 2, ms) ) / ms ))
+    psi_swp = psi_sat_mpa * available**(-soil%bch)
+    
+    ! SW modifier for g1
+    fwsoil = exp(b * psi_swp) 
+    
+    ! SW modifier for Vc,ax
+    fwsoil_ns = (1.0 + exp(sf * psi_f)) / (1.0 + exp(sf * (psi_f - psi_swp)))
+    
+    IF(cable_user%FWSOIL_SWITCH == 'Zhou') THEN
+        print *, "**", fwsoil, fwsoil_ns, psi_swp
+    END IF
+    
+END SUBROUTINE vcmax_non_stomatal_lim 
 ! ------------------------------------------------------------------------------
 
 ! ypw 19/may/2010 soil water uptake efficiency (see Lai and Ktaul 2000)
