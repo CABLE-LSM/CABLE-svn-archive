@@ -93,14 +93,14 @@ CONTAINS
 SUBROUTINE cable_um_runtime_vars(runtime_vars_file) 
    USE cable_common_module, ONLY : cable_runtime, cable_user, filename,        &
                                    cable_user, knode_gl, redistrb, wiltParam,  &
-                                   satuParam, myhome
+                                   satuParam, myhome, gw_params
 
 
    CHARACTER(LEN=*), INTENT(IN) :: runtime_vars_file
    INTEGER :: funit=88
    
    !--- namelist for CABLE runtime vars, files, switches 
-   NAMELIST/CABLE/filename,cable_user, redistrb, wiltParam, satuParam
+   NAMELIST/CABLE/filename,cable_user, redistrb, wiltParam, satuParam, gw_params
 
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
