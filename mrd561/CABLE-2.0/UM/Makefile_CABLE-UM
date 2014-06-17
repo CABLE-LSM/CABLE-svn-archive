@@ -58,11 +58,11 @@ cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable
 
 cable_soilsnow.o: cable_soilsnow.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_soilsnow_GW.o: cable_soilsnow_GW.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
+cable_soilsnow_GW.o: cable_soilsnow_GW.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_common.o: cable_common.F90 cable_define_types.o  
 
-cable_um_tech.o: cable_um_tech.F90
+cable_um_tech.o: cable_um_tech.F90 cable_define_types.o
 
 cable_um_init.o: cable_um_init.F90 cable_um_init_subrs.o cable_define_types.o cable_um_init_subrs.o
 
@@ -76,7 +76,7 @@ cable_hyd_driver.o: cable_hyd_driver.F90 cable_common.o cable_um_tech.o cable_de
 
 cable_rad_driver.o: cable_rad_driver.F90 cable_common.o cable_um_tech.o cable_define_types.o cable_um_init.o cable_cbm.o cable_data.o
 
-all: cable_rad_driver.o cable_hyd_driver.o cable_implicit_driver.o cable_explicit_driver.o cable_um_init_subrs.o  cable_um_init.o cable_data.o cable_define_types.o cable_common.o cable_carbon.o cable_air.o cable_albedo.o cable_canopy.o cable_cbm.o cable_roughness.o cable_soilsnow.o cable_radiation.o cable_um_tech.o 
+all: cable_rad_driver.o cable_hyd_driver.o cable_implicit_driver.o cable_explicit_driver.o cable_um_init_subrs.o  cable_um_init.o cable_data.o cable_define_types.o cable_common.o cable_carbon.o cable_air.o cable_albedo.o cable_canopy.o cable_cbm.o cable_roughness.o cable_soilsnow.o cable_radiation.o cable_um_tech.o cable_soilsnow_GW.o
 clean:
 	rm -f *.o *.mod 
 
