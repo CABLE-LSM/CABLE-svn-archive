@@ -2048,13 +2048,18 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
          END WHERE
 
-         WHERE (spread(soil%isoilm,2,ms) == 9)
 
-              ssnow%wb    = 0.95 * soil%watsat
-              ssnow%wbice = 0.90 * ssnow%wb
+         do k=1,ms
 
-         END WHERE
-         
+            WHERE (soil%isoilm == 9)
+
+               ssnow%wb(:,k) = 0.95*soil%watsat(:,k)
+               ssnow%wbice(:,k) = 0.90 * ssnow%wb(:,k)
+
+            END WHERE
+
+         end do
+
          xx=soil%css * soil%rhosoil
 
          ssnow%gammzz(:,1) = MAX( (1.0 - soil%watsat(:,1)) * soil%css * soil%rhosoil &
