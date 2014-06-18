@@ -478,7 +478,6 @@ END SUBROUTINE prepareFiles
 
 
 SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
-  USE cable_common_module, ONLY: cable_user
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: logn
   INTEGER, INTENT(IN) :: nn

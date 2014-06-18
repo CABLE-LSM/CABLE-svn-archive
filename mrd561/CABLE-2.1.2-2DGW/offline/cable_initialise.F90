@@ -741,7 +741,7 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    LOGICAL                                   ::                                &
         from_restart = .TRUE.,    & ! insist variables/params load
         dummy = .TRUE.              ! To replace completeSet in parameter read; unused
-   INTEGER                              :: napID,parID
+   INTEGER                              :: napID
    
    PRINT *, '***** NOTE: now in extraRestart. *****'
    ALLOCATE(nap(mland))
