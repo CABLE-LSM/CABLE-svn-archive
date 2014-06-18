@@ -1347,7 +1347,7 @@ USE cable_common_module
   empwtd = .false.
 
   !make code cleaner define these here 
-  invB     = soil%clappB(:,ms)                                !1 over C&H B
+  invB     = 1./soil%clappB(:,ms)                                !1 over C&H B
   Nsmpsat  = soil%smpsat(:,ms)                                !psi_saturated mm
   dzmm_mp  = real(spread((soil%zse(:)) * 1000.0,1,mp),r_2)    !layer thickness mm
   zimm(0)  = 0.0_r_2                                          !depth of layer interfaces mm
