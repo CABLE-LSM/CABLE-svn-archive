@@ -441,7 +441,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
 
       !mrd561 groudnwater variables
       SMGW_TILE = UNPACK(REAL(ssnow%GWwb(:)),um1%L_TILE_PTS,miss)
-      SMGW      = SUM(um1%TILE_FRAC * SMGW_TILE,2)
+      SMGW      = SUM(um1%TILE_FRAC * SMGW_TILE(:,:),2)
 
       !--- unpack snow vars 
       SNOW_RHO1L  = UNPACK(ssnow%ssdnn, um1%L_TILE_PTS, miss)
