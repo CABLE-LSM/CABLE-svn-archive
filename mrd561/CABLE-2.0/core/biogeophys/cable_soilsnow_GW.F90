@@ -1324,10 +1324,11 @@ USE cable_common_module
   ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
   ! water table depth
   !  
-  SUBROUTINE calcwtd (ssnow, soil, ktau, md_prin)
+  SUBROUTINE calcwtd (ssnow, soil, veg, ktau, md_prin)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
+  TYPE (veg_parameter_type), INTENT(IN)     :: veg
   INTEGER, INTENT(IN)                       :: ktau  ! integration step number
   LOGICAL, INTENT(IN)                       :: md_prin  !print info?
 
@@ -1393,6 +1394,8 @@ USE cable_common_module
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
      
      do i=1,mp
+
+      if (veg%iveg(i) .ne. 16 and. soil%isoil(i) .ne. 9) then
 
        if (defc(i) > def(i)) then                 !iterate tfor wtd
 
@@ -1473,6 +1476,13 @@ USE cable_common_module
          ssnow%wtd(i) = zimm(ms)
 
        endif
+
+      else
+
+         ssnow%wtd(i) = 0.1
+
+      end if  !check soil and veg type.  don't do over lakes and glaciers
+
 
      end do   !Loop over all mp tiles
 
@@ -2131,7 +2141,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL calcwtd (ssnow, soil, ktau, md_prin)                  !update the wtd
+   CALL calcwtd (ssnow, soil, veg,ktau, md_prin)                  !update the wtd
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
