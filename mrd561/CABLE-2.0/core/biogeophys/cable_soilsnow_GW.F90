@@ -1349,7 +1349,7 @@ USE cable_common_module
   empwtd = .false.
 
   !make code cleaner define these here 
-  invB     = soil%clappB(:,ms)                                !1 over C&H B
+  invB     = 1./soil%clappB(:,ms)                                !1 over C&H B
   Nsmpsat  = soil%smpsat(:,ms)                                !psi_saturated mm
   dzmm_mp  = real(spread((soil%zse(:)) * 1000.0,1,mp),r_2)    !layer thickness mm
   zimm(0)  = 0.0_r_2                                          !depth of layer interfaces mm
@@ -1395,93 +1395,93 @@ USE cable_common_module
      
      do i=1,mp
 
-      if (veg%iveg(i) .ne. 16 and. soil%isoil(i) .ne. 9) then
+       if (veg%iveg(i) .ne. 16 and. soil%isoil(i) .ne. 9) then
 
-       if (defc(i) > def(i)) then                 !iterate tfor wtd
+         if (defc(i) > def(i)) then                 !iterate tfor wtd
 
-         jlp=0
+           jlp=0
 
-         mainloop: DO
+           mainloop: DO
 
-           tempa   = 1.0_r_2
-           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
-           derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
+             tempa   = 1.0_r_2
+             tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
+             derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
                                           soil%watsat(i,ms)
 
-           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
+             if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-           tempa   = 1.0_r_2
-           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-           deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
+             tempa   = 1.0_r_2
+             tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
+             deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
                               Nsmpsat(i)/(1-invB(i))* &
                         (tempa-tempb)) - def(i)
-           calc    = ssnow%wtd(i) - deffunc/derv
+             calc    = ssnow%wtd(i) - deffunc/derv
 
-           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
+             IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
-             ssnow%wtd(i) = calc
-             EXIT mainloop
+               ssnow%wtd(i) = calc
+               EXIT mainloop
 
-           ELSEIF (jlp .ge. wtd_iter_mx) THEN
+             ELSEIF (jlp .ge. wtd_iter_mx) THEN
 
-              EXIT mainloop
+               EXIT mainloop
 
-           ELSE
+             ELSE
 
-              jlp=jlp+1
-              ssnow%wtd(i) = calc
+               jlp=jlp+1
+               ssnow%wtd(i) = calc
 
-           END IF
+             END IF
 
-         END DO mainloop
+           END DO mainloop
 
-       elseif (defc(i) .lt. def(i)) then
+         elseif (defc(i) .lt. def(i)) then
 
-         jlp=0
+           jlp=0
 
-         mainloop2: DO
+           mainloop2: DO
 
-           tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
-           tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
-           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
-           derv     = (soil%watsat(i,ms))*(tempa-tempb)
-           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
+             tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
+             tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
+             tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
+             derv     = (soil%watsat(i,ms))*(tempa-tempb)
+             if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-           tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))
-           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
+             tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))
+             tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
+             deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
                       Nsmpsat(i)/(1._r_2-invB(i))*(tempa-tempb))-def(i)
-           calc     = ssnow%wtd(i) - deffunc/derv
+             calc     = ssnow%wtd(i) - deffunc/derv
 
-           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
+             IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
-             ssnow%wtd(i) = calc
-             EXIT mainloop2
+               ssnow%wtd(i) = calc
+               EXIT mainloop2
 
-           ELSEIF (jlp==wtd_iter_mx) THEN
+             ELSEIF (jlp==wtd_iter_mx) THEN
 
-             EXIT mainloop2
+               EXIT mainloop2
 
-           ELSE
+             ELSE
 
-             jlp=jlp+1
-             ssnow%wtd(i) = calc
+               jlp=jlp+1
+               ssnow%wtd(i) = calc
 
-           END IF
+             END IF
 
-         END DO mainloop2
+           END DO mainloop2
 
-       else  !water table depth is exactly on bottom boundary
+         else  !water table depth is exactly on bottom boundary
 
-         ssnow%wtd(i) = zimm(ms)
+           ssnow%wtd(i) = zimm(ms)
 
-       endif
+         endif
 
-      else
+       else  !it is a lake or permenant ice point
 
          ssnow%wtd(i) = 0.1
 
-      end if  !check soil and veg type.  don't do over lakes and glaciers
+       end if  !check soil and veg type.  don't do over lakes and glaciers
 
 
      end do   !Loop over all mp tiles
