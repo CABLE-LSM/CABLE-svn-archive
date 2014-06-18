@@ -79,7 +79,7 @@ MODULE cable_soil_snow_gw_module
    PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv
-   PRIVATE soilfreeze, remove_trans
+   PRIVATE soilfreeze, remove_trans,calcwtd
    PRIVATE smoistgw, ovrlndflx, solve_tridiag
 
 CONTAINS
