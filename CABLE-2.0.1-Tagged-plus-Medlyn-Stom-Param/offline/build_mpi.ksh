@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh raij vayu cher burn shin 
+   set -A kh vayu raij cher burn shin 
 }
 
 
@@ -90,18 +90,17 @@ host_raij()
 
 
 
-
 ## unknown machine, user entering options stdout 
 host_read()
 {
-   print "\n\tWhat is the root path of your NetCDF library" \
+   print "\n\tWhat is the ROOT path of your NetCDF library" \
          "and .mod file. "
    print "\tRemember these have to be created by the same " \
          "Fortran compiler you" 
    print "\twant to use to build CABLE. e.g./usr/local/intel"
    read NCDF_ROOT
    
-   print "\n\tWhat is the path, relative to this root, of " \
+   print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF library." 
    print "\n\tPress enter for default [lib]."
    read NCDF_DIR
@@ -112,7 +111,7 @@ host_read()
    fi
 
    
-   print "\n\tWhat is the path, relative to this root, of " \
+   print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF .mod file."
    print "\n\tPress enter for default [include]."
    read NCDF_MOD
@@ -319,13 +318,27 @@ i_do_now()
 
 build_build()
 {
+
+   # write file for consumption by Fortran code
+   # get SVN revision number 
+   CABLE_REV=`svn info | grep Revis |cut -c 11-18`
+   if [[ $CABLE_REV="" ]]; then
+      echo "this is not an svn checkout"
+      CABLE_REV=0
+      echo "setting CABLE revision number to " $CABLE_REV 
+   fi         
+   print $CABLE_REV > ~/.cable_rev
+   # get SVN status 
+   CABLE_STAT=`svn status`
+   print $CABLE_STAT >> ~/.cable_rev
+ 
    if [[ ! -d .mpitmp ]]; then
       mkdir .mpitmp
    fi
    
    if [[ -f cable-mpi ]]; then
-      print '\ncable-mpi executable exists. copying to cable-mpi.bu\n' 
-      mv cable-mpi cable-mpi.bu
+      print '\ncable-mpi executable exists. copying to a dated backup file\n' 
+      mv cable-mpi cable-mpi.`date +%d.%m.%y`
    fi
    
    CORE="../core/biogeophys"
