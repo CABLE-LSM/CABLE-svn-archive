@@ -362,6 +362,10 @@ SUBROUTINE mpidrv_master (comm)
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
 
+   CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+
+
    ! MPI: casa parameters scattered only if cnp module is active
    IF (icycle>0) THEN
      ! MPI:
@@ -2293,8 +2297,8 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: rank, off, cnt
 
-  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
-  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+  !CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+  !CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   ntyp = ncasaparam
 
