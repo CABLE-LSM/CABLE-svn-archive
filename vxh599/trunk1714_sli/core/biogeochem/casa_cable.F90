@@ -32,7 +32,7 @@
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     pop, spinConv, spinup, ktauday, idoy, dump_read,   &
+                     pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &
                      dump_write, gpp_ann )
 
    USE cable_def_types_mod
@@ -52,7 +52,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER,      INTENT(IN) :: kstart ! starting value of ktau
    INTEGER,      INTENT(IN) :: kend ! total # timesteps in run
    
-   INTEGER,      INTENT(IN)                  :: idoy ! day of year (1-365)
+   INTEGER,      INTENT(IN)                  :: idoy ,LOY ! day of year (1-365) , Length oy
    INTEGER,      INTENT(IN)                  :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
    logical,      INTENT(IN) :: dump_read, dump_write 
@@ -84,11 +84,11 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    CHARACTER                                 :: ncfile*99
    ! FOR POP DIAGNOSTICS
    integer(i4b) :: out_dens, out_cmass, out_height,out_dens_patch, out_cmass_patch, out_height_patch, out_basalarea
-   integer(i4b) :: out_biomasslossstress , out_growth, k_output,LOY
+   integer(i4b) :: out_biomasslossstress , out_growth, k_output
    CHARACTER(len=1000) :: string1, string2
    CHARACTER(len=9) :: fmt
-   
-   !   * Model initialisation (first step only)
+
+  !   * Model initialisation (first step only)
    out_dens = 3330
    out_cmass = 3331
    out_height = 3332
@@ -98,130 +98,154 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    out_dens_patch = 333
    out_cmass_patch = 334
    out_height_patch = 335
-
-
+   
+  
 !!!!!!!!!!!!!!!!! temp POP diagnostics
-
-!   Es ufert aus .... Hier LOY
-
+   
    !    phen%phase = 2
-
-   if ( .NOT. dump_read ) then
-   ! Lest 13may13: will require loop when prog resp are init nonzero
-   ! need for mk3l ?
-   IF( .NOT. cable_runtime%UM ) THEN
-      if(ktau == kstart) then
+   IF ( .NOT. dump_read ) THEN
+      IF(ktau == kstart) THEN
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
          casaflux%cgpp  = 0.0
          ! add initializations (BP jul2010)
-         !! Les 10jan13 - init cnpp ?
-         !casaflux%cnpp  = 0.0
          casaflux%Crsoil   = 0.0
          casaflux%crgplant = 0.0
          casaflux%crmplant = 0.0
-         ! Lest 13may13 ---
          casaflux%clabloss = 0.0
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
+		 
       ENDIF
-   ENDIF
-      IF(mod(ktau,ktauday)==1) THEN
+
+      IF(MOD(ktau,ktauday)==1) THEN
          casamet%tairk = met%tk
          casamet%tsoil = ssnow%tgg
          casamet%moist = ssnow%wb
          casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = canopy%frday*dels
+!         StemNPP(:,1) = casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated below ground)
+
       ELSE
          Casamet%tairk  =casamet%tairk + met%tk
          casamet%tsoil = casamet%tsoil + ssnow%tgg
          casamet%moist = casamet%moist + ssnow%wb
          casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + canopy%frday*dels
+!         StemNPP(:,1) = StemNPP(:,1) + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
       ENDIF
-
-
-     ! Hier auch LOY
-     IF(MOD(ktau,ktauday*365)==1) THEN !WRONG ON LEAP_YEARS
-        StemNPP(:,1) = casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-     ELSE
-        StemNPP(:,1) = StemNPP(:,1) + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-     ENDIF
-
-     IF(MOD((ktau-kstart+1),ktauday)==0) THEN
-         casamet%tairk  =casamet%tairk/FLOAT(ktauday)
+      
+      IF(MOD(ktau,ktauday*LOY)==1) THEN
+         StemNPP(:,1) = casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+      ELSE
+         StemNPP(:,1) = StemNPP(:,1) + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+		 
+	
+      ENDIF
+      
+      IF(MOD((ktau-kstart+1),ktauday)==0) THEN
+         casamet%tairk=casamet%tairk/FLOAT(ktauday)
          casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
          casamet%moist=casamet%moist/FLOAT(ktauday)
    
-        IF ( icycle .GT. 0 ) THEN
+         IF ( icycle .GT. 0 ) THEN
+            IF (cable_user%CALL_POP)  casabiome%plantrate(2,2) = 0.0
+              
+            CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+                 casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
 
-         CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
-                cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
-                nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
+          
+      
+            IF(MOD((ktau-kstart+1),ktauday*LOY)==0) THEN
+               StemNPP(:,1) = StemNPP(:,1)/float(ktauday*LOY)
+               StemNPP(:,2) = 0.0
+              IF (cable_user%CALL_POP) THEN
+              
+               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
+                    real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
 
-
-
-           IF(MOD((ktau-kstart+1),ktauday*365)==0) THEN
-              StemNPP(:,1) = StemNPP(:,1)/float(ktauday*365)
-              StemNPP(:,2) = 0.0
-
-              !where (StemNPP(:,1)<0.0)
-              !           StemNPP(:,1) = 1.e-3
-              !endwhere
-              CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
-                   real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
-              !! need to define STEMNPP as casaflux%fcnpp * casaflux%fracCalloc(:,2), aggregated annualy
-              !! it_pop needs to be defined as a counter for calls to POP (1 per year)
-
-              !CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
-              !     real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
-           ENDIF
+               casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+               + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
 
 
-        ENDIF
-   
+               casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+               -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
+ 
+             	   
+               ENDIF
+           
+            ENDIF
+                
+               
+         ENDIF
+         
          IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
-             IF ( dump_write )  THEN
-               !CLN CHECK FOR LEAP YEAR
-               WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(365*ktauday))
+            IF ( dump_write )  THEN 
+!CLN CHECK FOR LEAP YEAR 
+              WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
                                kend/ktauday )
-             ENDIF
+            END IF
+
 
          ENDIF
 
       ENDIF
 
-   ELSE 
+   ELSE ! dump_read
 
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN 
+
+         IF (cable_user%CALL_POP)  casabiome%plantrate(2,2) = 0.0
+        
+
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
               casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
               cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
               pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
 
-          !write(*,*) ktau/ktauday,365, MOD(ktau/ktauday,365)
-          IF(MOD(ktau/ktauday,365)==1) THEN
+        
+          IF(MOD(ktau/ktauday,LOY)==1) THEN
              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
           ELSE
              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 
           ENDIF
-
-          IF(MOD((ktau-kstart+1)/ktauday,365)==0) THEN
+          
+          IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN
              StemNPP(:,1) = casaflux%stemnpp ! (assumes 70% of wood NPP is allocated above ground & static alloc)
              StemNPP(:,2) = 0.0
-            ! where (StemNPP(:,1)<0.0)
-	!		    StemNPP(:,1) = 1.e-3
-	 !    endwhere
+        
+             IF (cable_user%CALL_POP) THEN
+        
              CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
                   real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
+
+  
+               casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+               + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
+
+
+               casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+               -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
+
+write(*,*) veg%disturbance_interval(:,1)
              
-             
+
+              
              if (pop%it_pop.eq.1) then
                 
                 open (unit=out_growth,file="out_growth.out",status="replace",position="rewind")
@@ -236,9 +260,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                 open (unit=out_cmass_patch,file="cmass_patch.out",status="replace",position="rewind")
                 open (unit=out_height_patch,file="height_patch.out",status="replace",position="rewind")
                 ! output file headers
-
-
-
+                
+                
+                
                 string2 =  '% Year '//'Cohort1'//' '//'Cohort2'//' '// &
                      'Cohort3'//' '//'Cohort4'//' '// &
                      'Cohort5'//' '//'Cohort6'//' '// &
@@ -277,12 +301,13 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                         pop%pop_grid(1)%patch(k_output)%Layer(1)%density, &
                         pop%pop_grid(1)%patch(k_output)%Layer(1)%biomass
                 enddo
-   ENDIF
-
+             endif
+            endif
+             
           ENDIF
-
+          
        ENDIF
-
+       
     ENDIF
 
 END SUBROUTINE bgcdriver

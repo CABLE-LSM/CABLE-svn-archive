@@ -85,7 +85,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   do nyear=1,myearspin
      !     read(91,901) ncfile
      WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
-     ncfile = TRIM(casafile%c2cdumppath)//CYEAR//'_c2c_dump.nc'
+     ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
      call read_casa_dump( ncfile,casamet, casaflux,ktau ,kend,.TRUE. )
      !!CLN901  format(A99)
      do idoy=1,mdyear
@@ -220,7 +220,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      DO nyear=1,myearspin
         !!CLN      read(91,901) ncfile
         WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
-        ncfile = TRIM(casafile%c2cdumppath)//CYEAR//'_c2c_dump.nc'
+        ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
         call read_casa_dump( ncfile, casamet, casaflux, ktau, kend, .TRUE. )
 
         DO idoy=1,mdyear

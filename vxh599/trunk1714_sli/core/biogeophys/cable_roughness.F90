@@ -152,7 +152,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
       rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
       ! vh !
-      rough%term6a = EXP(rough%coexp ( 0.1 * rough%hruff / rough%hruff -1. ))
+      rough%term6a = EXP(rough%coexp * ( 0.1 * rough%hruff / rough%hruff -1. ))
       
       ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
       rough%rt0us  = log(rough%disp / rough%z0soilsn) * &
