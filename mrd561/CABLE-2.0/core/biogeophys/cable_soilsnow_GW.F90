@@ -1395,7 +1395,7 @@ USE cable_common_module
      
      do i=1,mp
 
-       if ((veg%iveg(i) .ne. 16) .and. (soil%isoilm(i) .ne. 9) then
+       if ((veg%iveg(i) .ne. 16) .and. (soil%isoilm(i) .ne. 9)) then
 
          if (defc(i) > def(i)) then                 !iterate tfor wtd
 

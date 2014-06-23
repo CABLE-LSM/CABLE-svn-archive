@@ -2,12 +2,12 @@
 
 known_hosts()
 {
-   set -A kh vayu 
+   set -A kh raij
 }
 
 
 ## vayu.nci.org.au
-host_vayu()
+host_raij()
 {
    NCDF_ROOT=/apps/netcdf/3.6.3
    export NCDIR=$NCDF_ROOT'/lib/Intel'
