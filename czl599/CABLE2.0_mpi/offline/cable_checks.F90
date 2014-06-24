@@ -131,6 +131,8 @@ MODULE cable_checks_module
            through  = (/-999999.0,999999.0/),  &
            dew      = (/-999999.0,     0.0/),  &
            CanWbal  = (/-999999.0,999999.0/),  &
+           CanT     = (/213.0,333.0/),         &
+
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &
