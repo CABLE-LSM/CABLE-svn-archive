@@ -1383,11 +1383,15 @@ USE cable_common_module
   !def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
 
 
+  
+
   if (empwtd) then
 
      ssnow%wtd(:) = max(zimm(ms)*def(:)/defc(:),0.1_r_2)
 
   else
+
+     ssnow%wtd(:) = max(zimm(ms)*def(:)/defc(:),0.1_r_2)
 
      if (md_prin) write(*,*) 'start wtd iterations'
 
