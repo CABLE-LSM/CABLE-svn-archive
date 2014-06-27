@@ -1399,28 +1399,28 @@ USE cable_common_module
 
        morethan_loop: DO while (jlp .le. wtd_iter_max)
 
-          !if (ssnow%wtd(i) .lt. zimm(ms)) then
+          if (ssnow%wtd(i) .lt. zimm(ms)) then
            !write(*,*) 'wtd ',ssnow%wtd(i)
 
-          ! tempa   = 1.0_r_2
-          ! tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
+           tempa   = 1.0_r_2
+           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
 
            !tempa = (Nsmpsat(i)**(-invB(i)))*(Nsmpsat(i)+ssnow%wtd(i))**(-invB(i))*soil%watsat(i,ms)
            !derv = soil%watsat(i,ms) - tempa
 
-          ! derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
-          !                                soil%watsat(i,ms)
+           derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
+                                          soil%watsat(i,ms)
 
            !write(*,*) 'derv  .lt. '
            !write(*,*) tempa,derv
 
-          ! if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
+           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-          ! tempa   = 1.0_r_2
-          ! tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-          ! deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
-          !                    Nsmpsat(i)/(1-invB(i))* &
-          !              (tempa-tempb)) - def(i)
+           tempa   = 1.0_r_2
+           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
+           deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
+                              Nsmpsat(i)/(1-invB(i))* &
+                        (tempa-tempb)) - def(i)
 
            !tempa = Nsmpsat(i)**(1._r_2-invB(i)) - (Nsmpsat(i)+ssnow%wtd(i))**(1._r_2-invB(i))
            !tempb = -soil%watsat(i,ms)*Nsmpsat(i)**(invB(i)) / (1._r_2 - invB(i))
@@ -1429,19 +1429,19 @@ USE cable_common_module
            !write(*,*) 'func .lt. '
            !write(*,*) tempa,tempb,deffunc,deffunc/derv
 
-          ! calc    = ssnow%wtd(i) - deffunc/derv
+           calc    = ssnow%wtd(i) - deffunc/derv
 
-          ! IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
+           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
-          !   ssnow%wtd(i) = calc
-          !   jlp = wtd_iter_max + 1
+             ssnow%wtd(i) = calc
+             jlp = wtd_iter_max + 1
 
-          ! ELSE
+           ELSE
 
-          !    ssnow%wtd(i) = calc
-          !    jlp=jlp+1
+              ssnow%wtd(i) = calc
+              jlp=jlp+1
 
-          ! END IF
+           END IF
 
          !END DO morethan_loop
 
@@ -1451,19 +1451,19 @@ USE cable_common_module
 
          !lessthan_loop: DO while (jlp .le. wtd_iter_max)
 
-       !elseif (ssnow%wtd(i) .gt. zimm(ms)) then
+       elseif (ssnow%wtd(i) .gt. zimm(ms)) then
 
 
-       delzb = 0._r_2
-       mx_wtd = ssnow%wtd(i)
-       if (ssnow%wtd(i) .gt. zimm(ms)) then
-          delzb = zimm(ms)
-          mx_wtd = zimm(ms)
-       end if
+       !delzb = 0._r_2
+       !mx_wtd = ssnow%wtd(i)
+       !if (ssnow%wtd(i) .gt. zimm(ms)) then
+       !   delzb = zimm(ms)
+       !   mx_wtd = zimm(ms)
+       !end if
 
            !write(*,*) 'wtd ',ssnow%wtd(i)
 
-           tmpc     = Nsmpsat(i)+ssnow%wtd(i)-delzb!zimm(ms)
+           tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
            tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
            tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
            derv     = (soil%watsat(i,ms))*(tempa-tempb)
@@ -1477,9 +1477,9 @@ USE cable_common_module
 
            if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-           tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-delzb)/Nsmpsat(i)))**(1._r_2-invB(i))    !delzb->zimm(ms)
+           tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))    !delzb->zimm(ms)
            tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-           deffunc  = (soil%watsat(i,ms))*(mx_wtd +&                                   !mx_wtd ->zimm(ms)
+           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&                                   !mx_wtd ->zimm(ms)
                       Nsmpsat(i)/(1._r_2-invB(i))*(tempa-tempb))-def(i)
 
            !tempa = Nsmpsat(i)**(1._r_2-invB(i)) - (Nsmpsat(i)+max(ssnow%wtd(i)-zimm(ms),0._r_2))**(1._r_2-invB(i))
@@ -1506,11 +1506,11 @@ USE cable_common_module
 
          !END DO lessthan_loop
 
-       !else  !water table depth is exactly on bottom boundary
+       else  !water table depth is exactly on bottom boundary
 
-       !  ssnow%wtd(i) = zimm(ms)
+         ssnow%wtd(i) = zimm(ms)
 
-       !endif
+       endif
 
        end do morethan_loop
 
