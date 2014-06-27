@@ -2078,13 +2078,13 @@ SUBROUTINE fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
    !if it is the first timestep we haven't called hydrology so wbliq isn't yet defined
    ssnow%wbliq = ssnow%wb - ssnow%wbice  !liquid volume.  not this assumes density ice = density liquid
 
-   psi_tmp = -soil%smpsat(:,:) * (max(0.01,ssnow%wbliq(:,:)/(ssnow%watsat-ssnow%wbice))**(-soil%clappB))
+   psi_tmp = -soil%smpsat(:,:) * (max(0.01,ssnow%wbliq(:,:)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
    fwsoil(:) = 1.
    do i=1,mp
       fwsoil(i) = 0.
       j = veg%iveg(i)
       do k=1,ms
-         fwsoil(i) = fwsoil(i) + veg%froot(i) * max(0.0,min(1.0,&
+         fwsoil(i) = fwsoil(i) + veg%froot(i,k) * max(0.0,min(1.0,&
                                  (psi_c(j)-psi_tmp(i,k))/(psi_c(j)-psi_o(j))*&
                                  (soil%watsat(i,k)-ssnow%wbice(i,k))/soil%watsat(i,k)))
       end do
