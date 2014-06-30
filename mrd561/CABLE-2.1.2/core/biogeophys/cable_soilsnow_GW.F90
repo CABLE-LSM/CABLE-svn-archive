@@ -1359,7 +1359,7 @@ USE cable_common_module
 
   end do
 
-  !zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
+  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1._r_2-invB(:))*            &
@@ -1378,7 +1378,7 @@ USE cable_common_module
   end where
 
   def(:) = sum(tmp_def*dzmm_mp,2)
-  !def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
+  def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
 
 
   if (empwtd) then
