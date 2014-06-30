@@ -228,6 +228,7 @@ CONTAINS
                   wiltParam,        &
                   satuParam,        &
                   cable_user,       &   ! additional USER switches 
+                  gw_params
 
    ! END header
 
