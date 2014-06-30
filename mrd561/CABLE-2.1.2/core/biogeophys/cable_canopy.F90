@@ -1392,8 +1392,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ENDIF
 
-   fwsoil(:) = 1.
-
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
 
