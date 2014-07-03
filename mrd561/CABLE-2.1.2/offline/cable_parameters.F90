@@ -147,10 +147,7 @@ CONTAINS
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*) 
-    !MDeck
-    write(*,*) 'calling read_gridinfo'
     CALL read_gridinfo(nlon,nlat,npatch)
-    write(*,*) 'done with read_gridinfo'
 
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
@@ -207,8 +204,6 @@ CONTAINS
     REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
 
     ok = NF90_OPEN(filename%type, 0, ncid)
-    !MDeck
-    write(*,*) 'line 211'
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
 
     ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
@@ -243,8 +238,6 @@ CONTAINS
       CALL abort('Variable dimensions do not match (read_gridinfo)')
     END IF
 
-    !MDeck
-    write(*,*) 'line 247'
     ALLOCATE( inLon(nlon), inLat(nlat) )
     ALLOCATE( inVeg(nlon, nlat, npatch) )
     ALLOCATE( inPFrac(nlon, nlat, npatch) )
@@ -258,8 +251,7 @@ CONTAINS
     ALLOCATE( inLAI(nlon, nlat, ntime) )
     ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
-    !MDeck
-    write(*,*) 'line 262'
+
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable longitude.')
@@ -272,15 +264,15 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    write(*,*) 'line 275'
-
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-    ok = NF90_GET_VAR(ncid, varID, idummy)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
 
-    write(*,*) 'line 283'
+    ok = NF90_GET_VAR(ncid, varID, iVeg)
+    IF (ok /= NF90_NOERR) THEN
+       ok = NF90_GET_VAR(ncid, varID, idummy)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+    END IF
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -288,33 +280,22 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inPFrac)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable patchfrac.')
-    inPFrac(:, :, 1) = rdummy(:, :)
 
-     write(*,*) 'line 291'
-
+    !inPFrac(:, :, 1) = rdummy(:, :)  !rdummy has been allocated but not set.
     ok = NF90_INQ_VARID(ncid, 'isoil', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
     ok = NF90_GET_VAR(ncid, varID, inSoil)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable isoil.')
-
-     write(*,*) 'line 298'
-
     ok = NF90_INQ_VARID(ncid, 'SoilMoist', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable SoilMoist.')
     ok = NF90_GET_VAR(ncid, varID, inWB)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable SoilMoist.')
-
-     write(*,*) 'line 307'
-
     ok = NF90_INQ_VARID(ncid, 'SoilTemp', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable SoilTemp.')
     ok = NF90_GET_VAR(ncid, varID, inTGG)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable SoilTemp.')
-
-     write(*,*) 'line 314'
-
     ok = NF90_INQ_VARID(ncid, 'Albedo', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
     ok = NF90_GET_VAR(ncid, varID, r3dum)
@@ -332,19 +313,11 @@ CONTAINS
     DO kk = 1, ntime
       inSND(:, :, 1, kk) = r3dum2(:, :, kk)
     ENDDO
-
-     write(*,*) 'line 334'
-
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
     ok = NF90_GET_VAR(ncid,varID,inLAI)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable LAI.')
-
-     write(*,*) 'line 341'
-
     IF (icycle > 0) THEN
-      !MDeck 
-      write(*,*) 'line 331'
       ! casaCNP parameters
       ALLOCATE( inArea(nlon, nlat) )
       ALLOCATE( inSorder(nlon, nlat) )
