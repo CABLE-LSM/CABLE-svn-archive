@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -142,198 +142,200 @@ MODULE cable_IO_vars_module
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
           gamma,ZR,F10
+   
+   END TYPE parID_type
+  
+   ! =============== Logical  variables ============================
+   TYPE input_details_type
 
-  END TYPE parID_type
+      LOGICAL ::                                                               &
+         Wind,    & ! T => 'Wind' is present; F => use vector component wind
+         LWdown,  & ! T=> downward longwave is present in met file
+         CO2air,  & ! T=> air CO2 concentration is present in met file
+         PSurf,   & ! T=> surface air pressure is present in met file
+         Snowf,   & ! T=> snowfall variable is present in met file
+         avPrecip,& ! T=> ave rainfall present in met file (use for spinup)
+         LAI,     & ! T=> LAI is present in the met file
+         LAI_T,   & ! T=> LAI is time dependent, for each time step
+         LAI_M,   & ! T=> LAI is time dependent, for each month
+         LAI_P,   & ! T=> LAI is patch dependent
+         parameters,&! TRUE if non-default parameters are found
+         initial, & ! switched to TRUE when initialisation data are loaded
+         patch,   & ! T=> met file have a subgrid veg/soil patch dimension
+         laiPatch   ! T=> LAI file have a subgrid veg patch dimension
+   
+   END TYPE input_details_type
+  
+   TYPE(input_details_type) :: exists
+   
+   TYPE output_inclusion_type
+      
+      ! Which variables to include in output file, values initialised here
+      ! and can be reset by namelist file read in driver:
+      ! Groups of output variables:
+    
+      LOGICAL ::                                                               &
+         met = .FALSE.,       & ! input met data
+         flux = .FALSE.,      &  ! convective, runoff, NEE
+         radiation = .FALSE., & ! net rad, albedo
+         carbon = .FALSE.,    & ! NEE, GPP, NPP, stores 
+         soil = .FALSE.,      &  ! soil states
+         snow = .FALSE.,      &  ! snow states
+         veg = .FALSE.,       & ! vegetation states
+         params = .FALSE.,    & ! input parameters used to produce run
+         balances = .FALSE.,  & ! energy and water balances
+         restart = .FALSE.,   & ! create restart file?
+         ensemble = .FALSE.,  & ! are we creating an ensemble run?
+         patch = .FALSE.        ! should patch-specific info be written 
+                                ! to output file?
 
-  ! =============== Logical  variables ============================
-  TYPE input_details_type
-
-     LOGICAL ::                                                               &
-          Wind,    & ! T => 'Wind' is present; F => use vector component wind
-          LWdown,  & ! T=> downward longwave is present in met file
-          CO2air,  & ! T=> air CO2 concentration is present in met file
-          PSurf,   & ! T=> surface air pressure is present in met file
-          Snowf,   & ! T=> snowfall variable is present in met file
-          avPrecip,& ! T=> ave rainfall present in met file (use for spinup)
-          LAI,     & ! T=> LAI is present in the met file
-          LAI_T,   & ! T=> LAI is time dependent, for each time step
-          LAI_M,   & ! T=> LAI is time dependent, for each month
-          LAI_P,   & ! T=> LAI is patch dependent
-          parameters,&! TRUE if non-default parameters are found
-          initial, & ! switched to TRUE when initialisation data are loaded
-          patch,   & ! T=> met file have a subgrid veg/soil patch dimension
-          laiPatch   ! T=> LAI file have a subgrid veg patch dimension
-
-  END TYPE input_details_type
-
-  TYPE(input_details_type) :: exists
-
-  TYPE output_inclusion_type
-
-     ! Which variables to include in output file, values initialised here
-     ! and can be reset by namelist file read in driver:
-     ! Groups of output variables:
-
-     LOGICAL ::                                                               &
-          met = .FALSE.,       & ! input met data
-          flux = .FALSE.,      &  ! convective, runoff, NEE
-          radiation = .FALSE., & ! net rad, albedo
-          carbon = .FALSE.,    & ! NEE, GPP, NPP, stores
-          soil = .FALSE.,      &  ! soil states
-          snow = .FALSE.,      &  ! snow states
-          veg = .FALSE.,       & ! vegetation states
-          params = .FALSE.,    & ! input parameters used to produce run
-          balances = .FALSE.,  & ! energy and water balances
-          restart = .FALSE.,   & ! create restart file?
-          ensemble = .FALSE.,  & ! are we creating an ensemble run?
-          patch = .FALSE.        ! should patch-specific info be written
-     ! to output file?
-
-     ! Should output grid follow met file 'default'; force with 'land' or 'mask':
-     CHARACTER(LEN=7) ::                                                      &
-          grid = 'default', &
-          averaging = 'all' ! 'all', 'daily', 'monthly', 'user6'(6hrly)
-
-     INTEGER ::                                                               &
-          interval ! in case of 'user6' above, interval will be 6
-
-     ! variables specified individually:
-     LOGICAL ::                                                               &
-          SWdown = .FALSE.,    & ! 6 downward short-wave radiation [W/m2]
-          LWdown = .FALSE.,    & ! 7 downward long-wave radiation [W/m2]
-          Rainf = .FALSE.,     & ! 8 rainfall [kg/m2/s]
-          Snowf = .FALSE.,     & ! 9 snowfall [kg/m2/s]
-          PSurf = .FALSE.,     & ! 10 surface pressure [Pa]
-          Tair = .FALSE.,      & ! 11 surface air temperature [K]
-          Qair = .FALSE.,      & ! 12 specific humidity [kg/kg]
-          CO2air = .FALSE.,    & ! 13 CO2 concentration [ppmv]
-          Wind = .FALSE.,      & ! 14 windspeed [m/s]
-          Wind_N = .FALSE.,    & ! 15 surface wind speed, N component [m/s]
-          Wind_E = .FALSE.,    & ! 16 surface wind speed, E component [m/s]
-          LAI = .FALSE.,       & !
-          Qh = .FALSE.,        & ! 17 sensible heat flux [W/m2]
-          Qle = .FALSE.,       & ! 18 latent heat flux [W/m2]
-          Qg = .FALSE.,        & ! 19 ground heat flux [W/m2]
-          SWnet = .FALSE.,     & ! 20 net shortwave [W/m2]
-          LWnet = .FALSE.,     & ! 21 net longwave [W/m2]
-          Evap = .FALSE.,      & ! 22 total evapotranspiration [kg/m2/s]
-          Ewater = .FALSE.,    & ! 23 evap. from surface water storage [kg/m2/s]
-          ESoil = .FALSE.,     & ! 24 bare soil evaporation [kg/m2/s]
-          TVeg = .FALSE.,      & ! 25 vegetation transpiration [kg/m2/s]
-          ECanop = .FALSE.,    & ! 26 interception evaporation [kg/m2/s]
-          PotEvap = .FALSE.,   & ! 27 potential evapotranspiration [kg/m2/s]
-          ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
-          SoilWet = .FALSE.,   & ! 29 total soil wetness [-]
-          Albedo = .FALSE.,    & ! 30 albedo [-]
-          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
-          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
-          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
+      ! Should output grid follow met file 'default'; force with 'land' or 'mask':
+      CHARACTER(LEN=7) ::                                                      &
+         grid = 'default', & 
+         averaging = 'all' ! 'all', 'daily', 'monthly', 'user6'(6hrly)
+    
+      INTEGER ::                                                               &
+         interval ! in case of 'user6' above, interval will be 6
+    
+      ! variables specified individually:
+      LOGICAL ::                                                               &
+         SWdown = .FALSE.,    & ! 6 downward short-wave radiation [W/m2]
+         LWdown = .FALSE.,    & ! 7 downward long-wave radiation [W/m2]
+         Rainf = .FALSE.,     & ! 8 rainfall [kg/m2/s]
+         Snowf = .FALSE.,     & ! 9 snowfall [kg/m2/s]
+         PSurf = .FALSE.,     & ! 10 surface pressure [Pa]
+         Tair = .FALSE.,      & ! 11 surface air temperature [K]
+         Qair = .FALSE.,      & ! 12 specific humidity [kg/kg]
+         CO2air = .FALSE.,    & ! 13 CO2 concentration [ppmv]
+         Wind = .FALSE.,      & ! 14 windspeed [m/s]
+         Wind_N = .FALSE.,    & ! 15 surface wind speed, N component [m/s]
+         Wind_E = .FALSE.,    & ! 16 surface wind speed, E component [m/s]
+         LAI = .FALSE.,       & !
+         Qh = .FALSE.,        & ! 17 sensible heat flux [W/m2]
+         Qle = .FALSE.,       & ! 18 latent heat flux [W/m2]
+         Qg = .FALSE.,        & ! 19 ground heat flux [W/m2]
+         SWnet = .FALSE.,     & ! 20 net shortwave [W/m2]
+         LWnet = .FALSE.,     & ! 21 net longwave [W/m2]
+         Evap = .FALSE.,      & ! 22 total evapotranspiration [kg/m2/s]
+         Ewater = .FALSE.,    & ! 23 evap. from surface water storage [kg/m2/s]
+         ESoil = .FALSE.,     & ! 24 bare soil evaporation [kg/m2/s]
+         TVeg = .FALSE.,      & ! 25 vegetation transpiration [kg/m2/s]
+         ECanop = .FALSE.,    & ! 26 interception evaporation [kg/m2/s]
+         PotEvap = .FALSE.,   & ! 27 potential evapotranspiration [kg/m2/s]
+         ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
+         SoilWet = .FALSE.,   & ! 29 total soil wetness [-] 
+         Albedo = .FALSE.,    & ! 30 albedo [-] 
+         visAlbedo = .FALSE., & ! vars intro for Ticket #27
+         nirAlbedo = .FALSE., & ! vars intro for Ticket #27 
+         VegT = .FALSE.,      & ! 31 vegetation temperature [K]
+         SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
+         SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
           SoilMoistIce = .FALSE., & ! 33 av.layer soil frozen moisture [kg/m2]
-          Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
-          Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
-          DelSoilMoist = .FALSE., & ! 36 change in soilmoisture
-                                ! (sum layers) [kg/m2]
-          DelSWE = .FALSE.,    & ! 37 change in snow water equivalent [kg/m2]
-          DelIntercept = .FALSE.,& ! 38 change in interception storage [kg/m2]
-          SnowT = .FALSE.,     & ! 39 snow surface temp [K]
-          BaresoilT = .FALSE., & ! 40 surface bare soil temp [K]
-          AvgSurfT = .FALSE.,  & ! 41 Average surface temperature [K]
-          RadT = .FALSE.,      & ! 42 Radiative surface temperature [K]
-          SWE = .FALSE.,       & ! 43 snow water equivalent [kg/m2]
+         Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
+         Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
+         DelSoilMoist = .FALSE., & ! 36 change in soilmoisture 
+                                   ! (sum layers) [kg/m2]
+         DelSWE = .FALSE.,    & ! 37 change in snow water equivalent [kg/m2]
+         DelIntercept = .FALSE.,& ! 38 change in interception storage [kg/m2]
+         SnowT = .FALSE.,     & ! 39 snow surface temp [K]
+         BaresoilT = .FALSE., & ! 40 surface bare soil temp [K]
+         AvgSurfT = .FALSE.,  & ! 41 Average surface temperature [K]
+         RadT = .FALSE.,      & ! 42 Radiative surface temperature [K]
+         SWE = .FALSE.,       & ! 43 snow water equivalent [kg/m2]
           SnowMelt = .FALSE.,       & ! 43 snow melt [kg/m2/s] !vh!
-          RootMoist = .FALSE., & ! 44 root zone soil moisture [kg/m2]
-          CanopInt = .FALSE.,  & ! 45 total canopy water storage [kg/m2]
-          NEE  = .FALSE.,      & ! 46 net ecosystem exchange [umol/m2/s]
-          NPP  = .FALSE.,      & ! 47 net primary production of C
+         RootMoist = .FALSE., & ! 44 root zone soil moisture [kg/m2]
+         CanopInt = .FALSE.,  & ! 45 total canopy water storage [kg/m2]
+         NEE  = .FALSE.,      & ! 46 net ecosystem exchange [umol/m2/s]
+         NPP  = .FALSE.,      & ! 47 net primary production of C 
                                 ! by veg [umol/m2/s]
-          GPP = .FALSE.,       & ! 48 gross primary production C
+         GPP = .FALSE.,       & ! 48 gross primary production C 
                                 ! by veg [umol/m2/s]
-          AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
-          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
-          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
-          SnowDepth = .FALSE., & ! actual depth of snow in [m]
-          
-                                !variables
-          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
-          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
-          HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
+         AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
+         LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
+         HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
+         SnowDepth = .FALSE., & ! actual depth of snow in [m]
+         
+         !variables
+         Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
+         HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
+         HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
           RnetSoil = .FALSE.,     & ! sensible heat from soil [W/m2] !vh!
-          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
-          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
-          
-                                !parameters
-          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
-          latitude = .FALSE.,  & ! site latitude
-          clay = .FALSE.,      & ! fraction of clay in soil
-          css = .FALSE.,       & ! heat capacity of soil minerals [J/kg/C]
-          rhosoil = .FALSE.,   & ! soil density [kg/m3]
-          hyds = .FALSE.,      & ! hydraulic conductivity @ saturation [m/s], Ksat
-          rs20 = .FALSE.,      & ! soil respiration at 20 C [dimensionless],
+         Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
+         Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
+         
+         !parameters
+         bch = .FALSE.,       & ! parameter b in Campbell equation 1985
+         latitude = .FALSE.,  & ! site latitude
+         clay = .FALSE.,      & ! fraction of clay in soil
+         css = .FALSE.,       & ! heat capacity of soil minerals [J/kg/C]
+         rhosoil = .FALSE.,   & ! soil density [kg/m3]
+         hyds = .FALSE.,      & ! hydraulic conductivity @ saturation [m/s], Ksat
+         rs20 = .FALSE.,      & ! soil respiration at 20 C [dimensionless], 
                                 ! (0.1 - 10), prop to om
-          sand  = .FALSE.,     & ! fraction of sand in soil
-          sfc = .FALSE.,       & ! vol H2O @ field capacity
-          silt  = .FALSE.,     & ! fraction of silt in soil
-          ssat = .FALSE.,      & ! vol H2O @ saturation
-          sucs = .FALSE.,      & ! suction at saturation [m]
-          swilt = .FALSE.,     & ! vol H2O @ wilting
-          froot = .FALSE.,     & ! fraction of roots in each soil layer
-          zse = .FALSE.,       & ! thickness of each soil layer (1=top) (m)
-          canst1 = .FALSE.,    & ! max intercepted water by canopy [mm/LAI]
+         sand  = .FALSE.,     & ! fraction of sand in soil
+         sfc = .FALSE.,       & ! vol H2O @ field capacity
+         silt  = .FALSE.,     & ! fraction of silt in soil
+         ssat = .FALSE.,      & ! vol H2O @ saturation
+         sucs = .FALSE.,      & ! suction at saturation [m]
+         swilt = .FALSE.,     & ! vol H2O @ wilting
+         froot = .FALSE.,     & ! fraction of roots in each soil layer
+         zse = .FALSE.,       & ! thickness of each soil layer (1=top) (m)
+         canst1 = .FALSE.,    & ! max intercepted water by canopy [mm/LAI] 
                                 ! (0.08 - 0.12) {avoid}
-          dleaf = .FALSE.,     & ! chararacteristic length of leaf [m],
+         dleaf = .FALSE.,     & ! chararacteristic length of leaf [m],
                                 ! (0.005 - 0.2) pine -> tropical
-          ejmax  = .FALSE.,    & ! max pot. electron transport rate
+         ejmax  = .FALSE.,    & ! max pot. electron transport rate 
                                 ! top leaf[mol/m2/s](1e-5 - 3e-4) {use}
-          frac4  = .FALSE.,    & ! fraction of c4 plants [-]
-          hc = .FALSE.,        & ! height of canopy [m]
-          rp20  = .FALSE.,     & ! plant respiration coefficient at
+         frac4  = .FALSE.,    & ! fraction of c4 plants [-]
+         hc = .FALSE.,        & ! height of canopy [m]
+         rp20  = .FALSE.,     & ! plant respiration coefficient at 
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
+         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
-          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
-          vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate
+         shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
+         vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate 
                                 ! top leaf [mol/m2/s](5e-6 - 1.5e-4){use}
-          xfang  = .FALSE.,    & ! leaf angle PARAMETER (dimensionless)
+         xfang  = .FALSE.,    & ! leaf angle PARAMETER (dimensionless) 
                                 ! (v leaf -1.0 horiz 1.0 sphere 0 (-1 - 1))
-          wai    = .FALSE.,    & ! wood area index
-          vegcf  = .FALSE.,    & !
-          extkn  = .FALSE.,    & !
-          ratecp = .FALSE.,    & ! plant carbon pool rate constant (1/year)
-          ratecs = .FALSE.,    & ! soil carbon pool rate constant (1/year)
-          albsoil = .FALSE.,   & ! soil reflectance [-]
-          taul = .FALSE.,      & ! leaf transmissivity [-](V:0.07 - 0.15
+         wai    = .FALSE.,    & ! wood area index
+         vegcf  = .FALSE.,    & ! 
+         extkn  = .FALSE.,    & ! 
+         ratecp = .FALSE.,    & ! plant carbon pool rate constant (1/year)
+         ratecs = .FALSE.,    & ! soil carbon pool rate constant (1/year)
+         albsoil = .FALSE.,   & ! soil reflectance [-]
+         taul = .FALSE.,      & ! leaf transmissivity [-](V:0.07 - 0.15 
                                 ! NIR: 0.3 - 0.6 IR: 0.0 - 0.05)
-          refl = .FALSE.,      & ! leaf reflectance [-](V:0.07 - 0.15 \
+         refl = .FALSE.,      & ! leaf reflectance [-](V:0.07 - 0.15 \
                                 ! NIR: 0.3 - 0.6 IR: 0.0 - 0.05)
-          tminvj = .FALSE.,    & ! min temperature of the start of
+         tminvj = .FALSE.,    & ! min temperature of the start of 
                                 ! photosynthesis(leaf phenology)[-] (-10 - 10)
-          tmaxvj  = .FALSE.,   & ! max temperature of the start of
+         tmaxvj  = .FALSE.,   & ! max temperature of the start of 
                                 ! photosynthesis(leaf phenology)[-] (-5 - 15)
-          vbeta = .FALSE.,     & ! stomatal sensitivity to soil water
-          xalbnir = .FALSE.,   & ! modifier for albedo in near ir band
-          iveg  = .FALSE.,     & ! vegetation type from global index
-          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
-          isoil  = .FALSE.,    & ! soil type from global index
-          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
-          za  = .FALSE.          ! something to do with roughness ????
+         vbeta = .FALSE.,     & ! stomatal sensitivity to soil water
+         xalbnir = .FALSE.,   & ! modifier for albedo in near ir band
+         iveg  = .FALSE.,     & ! vegetation type from global index
+         patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
+         isoil  = .FALSE.,    & ! soil type from global index
+         meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
+         za  = .FALSE.          ! something to do with roughness ????
+   
+   END TYPE output_inclusion_type
 
-  END TYPE output_inclusion_type
 
+   TYPE(output_inclusion_type),SAVE :: output 
+   TYPE(output_inclusion_type),SAVE :: patchout ! do we want patch-specific info
 
-  TYPE(output_inclusion_type),SAVE :: output
-  TYPE(output_inclusion_type),SAVE :: patchout ! do we want patch-specific info
-
-  TYPE checks_type
-     LOGICAL :: ranges, energy_bal, mass_bal
-  END TYPE checks_type
-
-  TYPE(checks_type) :: check ! what types of checks to perform
-
-  ! ============== Proxy input variables ================================
-  REAL,POINTER,DIMENSION(:)  :: PrecipScale! precip scaling per site for spinup
-  REAL,POINTER,DIMENSION(:,:)  :: defaultLAI ! in case met file/host model
-  ! has no LAI
-  REAL :: fixedCO2 ! CO2 level if CO2air not in met file
+   TYPE checks_type
+      LOGICAL :: ranges, energy_bal, mass_bal
+   END TYPE checks_type
+   
+   TYPE(checks_type) :: check ! what types of checks to perform
+   
+   ! ============== Proxy input variables ================================
+   REAL,POINTER,DIMENSION(:)  :: PrecipScale! precip scaling per site for spinup
+   REAL,POINTER,DIMENSION(:,:)  :: defaultLAI ! in case met file/host model 
+                                              ! has no LAI
+   REAL :: fixedCO2 ! CO2 level if CO2air not in met file
 
   ! For threading:
   !$OMP THREADPRIVATE(landpt,patch)

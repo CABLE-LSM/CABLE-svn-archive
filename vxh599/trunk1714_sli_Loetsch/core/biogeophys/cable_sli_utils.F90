@@ -19,7 +19,7 @@ MODULE sli_utils
   PUBLIC :: dx, dxL, par, plit, sol, x ! soil water parameters
   PUBLIC :: bd, dis, isopar, isotype   ! soil solute parameters
   PUBLIC :: aquifer_props, flux, generic_thomas, getfluxes_vp, getheatfluxes, hyofh, hyofS, isosub ! subroutines
-  PUBLIC :: litter_props, massman_sparse, potential_evap, setlitterpar, setpar, setsol, setx, tri
+  PUBLIC :: litter_props, massman_sparse, potential_evap, setlitterpar, setpar, setpar_Loetsch, setsol, setx, tri
   PUBLIC :: csat, csoil, dthetalmaxdT, dthetalmaxdTh, esat, esat_ice, gammln, igamma, phi, rh0_sol, rtbis_rh0 ! functions
   PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, zerovars, Tthetalmax, Tfrozen
   PUBLIC :: rtbis_Tfrozen, GTfrozen, JSoilLayer, forcerestore, SEB
@@ -324,7 +324,7 @@ INTEGER(i_d) :: surface_case, j
 REAL(r_2) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
 REAL(r_2) :: E_vap, dE_vapdT1, E_liq
 REAL(r_2) :: Kmin, Khmin, phimin
-REAL(r_2) :: Tqw, dtqwdtb
+REAL(r_2) :: Tqw, dtqwdtb, rhocp1
 
 
                 if (vsnow%nsnow.eq.0) surface_case = 1
@@ -343,7 +343,7 @@ REAL(r_2) :: Tqw, dtqwdtb
                              vmet%cva)*rhow*var(1)%lambdav/vmet%rbw
                      dEdTsoil = zero
                      dGdTsoil = zero
-                     Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                     Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
                      Gpot = vmet%Rn - Hpot - Epot
                      dEdTs = zero
                 endif
@@ -367,6 +367,7 @@ REAL(r_2) :: Tqw, dtqwdtb
                    call hyofh(hmin, par(1)%lam, par(1)%eta, par(1)%Ke, par(1)%he, &
                      Kmin, Khmin, phimin) ! get phi at hmin
                    E_liq = ((var(1)%phi-phimin)/(half*dx(1))-var(1)%K)*thousand*var(1)%lambdav
+                  
                    lE0 = min(Epot,E_vap+ E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
                    if (Epot.gt.(E_vap+ E_liq)) dEdTs = zero
                    Tsurface = (-half*dx(1)*lE0 + half*dx(1)*vmet%Rn + &
@@ -440,23 +441,27 @@ REAL(r_2) :: Tqw, dtqwdtb
                 ! SEB at snow/air interface
                 if (vsnow%hliq(1)>zero) then
                    Tsurface = 0.0
-                   Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
-                              vmet%cva)*rhow*rlambda/vmet%rbw !!vh check this !!
-                  ! write(*,*) "Epot", vmet%rha, vmet%Ta, esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)*rhow*rlambda/vmet%rbw, &
+                   !Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                   !            vmet%cva)*rhow*rlambda/vmet%rbw !!vh check this !!
+                   Epot = (csat(Tsurface)/thousand - vmet%cva)/vmet%rbw *rlambda*rhow  ! m3 H2O (liq) m-3 (air) -> W/m2
+                        ! write(*,*) "Epot", vmet%rha, vmet%Ta, esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)*rhow*rlambda/vmet%rbw, &
                    !vmet%cva*rhow*rlambda/vmet%rbw, Epot
                    dEdTsoil = zero
                    dGdTsoil = zero
-                   Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                   rhocp1 = rmair*101325/rgas/(vmet%Ta+Tzero)*cpa
+                   Hpot = rhocp1*(Tsurface - vmet%Ta)/vmet%rrc
                    Gpot = vmet%Rn - Hpot - Epot
                    dEdTs = zero
                    qevap = Epot/(rhow*rlambda)
                    qTb = zero
+              !     write(*,*) "Epot2", Tsurface, vmet%Ta, Epot, Hpot, vmet%rrc, rhocp1
                 else
 
                    call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
                      vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
                      lambdas, Tsurface, Epot, Hpot, &
-                     Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
+                     Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
+                !   write(*,*) "Epot1", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
 
                      if (Tsurface > zero) then ! temperature of frozen surface must be <= zero
                         Tsurface = 0.0
@@ -464,9 +469,10 @@ REAL(r_2) :: Tqw, dtqwdtb
                               vmet%cva)*rhow*lambdas/vmet%rbw
                         dEdTsoil = zero
                         dGdTsoil = zero
-                        Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                        Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
                         Gpot = vmet%Rn - Hpot - Epot
                         dEdTs= zero
+                !   write(*,*) "Epot3", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
                      endif
                     qevap = Epot/(rhow*lambdas)
                     qTb = -dEdTsoil/(thousand*lambdas)
@@ -503,6 +509,8 @@ REAL(r_2) :: Tqw, dtqwdtb
 
 
              end select ! surface_case
+
+
              ! finished all the surfaces
 
 END SUBROUTINE SEB
@@ -563,7 +571,7 @@ REAL(r_2) :: Tqw, dtqwdtb, d1, tmp1d1,tmp1d2, Tbar, f, csnow
                              vmet%cva)*rhow*var(1)%lambdav/vmet%rbw
                      dEdTsoil = zero
                      dGdTsoil = zero
-                     Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                     Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
                      Gpot = vmet%Rn - Hpot - Epot
                      dEdTs = zero
                 endif
@@ -691,7 +699,7 @@ REAL(r_2) :: Tqw, dtqwdtb, d1, tmp1d1,tmp1d2, Tbar, f, csnow
                               vmet%cva)*rhow*lambdaf/vmet%rbw
                    dEdTsoil = zero
                    dGdTsoil = zero
-                   Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                   Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
                    Gpot = vmet%Rn - Hpot - Epot
                    dEdTs = zero
                    qevap = Epot/(thousand*lambdaf)
@@ -709,7 +717,7 @@ REAL(r_2) :: Tqw, dtqwdtb, d1, tmp1d1,tmp1d2, Tbar, f, csnow
                               vmet%cva)*rhow*lambdas/vmet%rbw
                         dEdTsoil = zero
                         dGdTsoil = zero
-                        Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+                        Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
                         Gpot = vmet%Rn - Hpot - Epot
                         dEdTs= zero
                      endif
@@ -1858,7 +1866,7 @@ END SUBROUTINE SEB_FR
 
   ! For debug: remove elemental pure
   ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
-    !SUBROUTINE hyofS(S, Tsoil, parin, var)
+  !  SUBROUTINE hyofS(S, Tsoil, parin, var)
 
     IMPLICIT NONE
 
@@ -1910,8 +1918,8 @@ END SUBROUTINE SEB_FR
        var%KS = zero
        ! var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
        var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/(parin%thre-var%thetai)
-      ! if (S.lt.one) var%phi = var%phie
-       var%phi = var%phie
+       if (S.lt.one) var%phi = var%phie
+     !  var%phi = var%phie
        var%phiS = zero
        ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
        !      (parin%eta-one/parin%lam)/(parin%thre)
@@ -1960,7 +1968,7 @@ END SUBROUTINE SEB_FR
        !MC otherwise undefined
        var%KT   = zero
     endif
-
+ 
     !  variables required for vapour phase transfer
     theta  =  S*(parin%thre) + (parin%the - parin%thre)
 
@@ -1996,7 +2004,7 @@ END SUBROUTINE SEB_FR
     var%kv    = var%Dv * var%cvsat *c * var%rh
 
     select case(experiment)
-    case(11) ! Hansson et al. (2004)
+    case(11,13) ! Hansson et al. (2004)
        ! Hansson et al. (2004) - Eq. 13b
        ! A=C1, B=C2, C1=C3, D=C4, E=C5
        A  = 0.55_r_2
@@ -2050,8 +2058,7 @@ END SUBROUTINE SEB_FR
        var%csoileff = var%csoil
     endif
     !var%kth = 0.3 !test vh!
-
-
+   
   END SUBROUTINE hyofS
 
   !**********************************************************************************************************************
@@ -2442,7 +2449,7 @@ END SUBROUTINE SEB_FR
 
   ELEMENTAL PURE SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
        Ts, E, H, G, &
-       dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
+       dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice)
 
     ! Pennman-Monteith equation, with additional account for heat flux into the surface
 
@@ -2450,14 +2457,26 @@ END SUBROUTINE SEB_FR
 
     REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz, lambdav
     REAL(r_2), INTENT(OUT) :: Ts, E, H, G, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
-
-    REAL(r_2) :: s, ea, dEdea, dEdesat, dTsdTa, dEdDa, Da
+    LOGICAL, INTENT(IN), OPTIONAL :: iice
+    REAL(r_2) :: s, es, ea, dEdea, dEdesat, dTsdTa, dEdDa, Da
     REAL(r_2):: rhocp, gamma != 67.0 ! psychrometric constant
+
+    if (present(iice)) then
+       if(iice) then
+          es = esat_ice(Ta)
+          s  = slope_esat_ice(Ta)
+       else
+          es = esat(Ta)
+          s  = slope_esat(Ta)
+       endif
+    else
+       es = esat(Ta)
+       s  = slope_esat(Ta)
+    endif
 
     rhocp = rmair*101325/rgas/(Ta+Tzero)*cpa
     gamma = 101325.*cpa/lambdav/(rmh2o/rmair)
-    s  = slope_esat(Ta)
-    ea = esat(Ta) * max(rha, 0.1_r_2)
+    ea = es * max(rha, 0.1_r_2)
     Da = ea/max(rha, 0.1_r_2) - ea
 
     E  = (rhocp*(Da*(k*rbh + dz*rhocp) + rbh*s*(dz*Rn + k*(-Ta + Tsoil)))) / &
@@ -2469,7 +2488,7 @@ END SUBROUTINE SEB_FR
     dEdDa    = (-(k*rbh*rhocp) - dz*rhocp**2)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s)
     dEdea    = -dEdDa
     dEdesat  = dEdea
-    dEdrha   = dEdea *esat(Ta)
+    dEdrha   = dEdea *es
     !dEdTa    = (k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s) + dEdesat *s
     dEdTsoil = -((k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s))
 
@@ -2549,6 +2568,59 @@ END SUBROUTINE SEB_FR
     enddo
 
   END SUBROUTINE setpar
+!**********************************************************************************************************************
+
+  SUBROUTINE setpar_Loetsch(mp, ms, x2dx, soil, index)
+
+    IMPLICIT NONE
+
+    INTEGER(i_d),                 INTENT(IN)    :: mp
+    INTEGER(i_d),                 INTENT(IN)    :: ms
+    REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: x2dx
+    TYPE(soil_parameter_type),    INTENT(INOUT) :: soil
+    integer(i_d), DIMENSION(:),   INTENT(IN)    :: index
+
+    INTEGER(i_d) :: i
+
+    allocate(par(mp,ms))
+
+    do i=1, ms
+       if (sum(x2dx(:,1:i)).lt.0.15) then
+          par(:,i)%ishorizon  = 1
+          par(:,i)%thw        = 0.165
+          par(:,i)%thfc       = 0.421
+          par(:,i)%the        = 0.698
+          par(:,i)%thr        = zero
+          par(:,i)%he         = 8.117e-5
+          par(:,i)%Ke         = 2.754e-5
+          par(:,i)%lam        = 1/5.90
+          par(:,i)%clay       = 0.06
+       else
+          par(:,i)%ishorizon  = 2
+          par(:,i)%thw        = 0.105
+          par(:,i)%thfc       = 0.301
+          par(:,i)%the        = 0.564
+          par(:,i)%thr        = zero
+          par(:,i)%he         = 7.10e-5
+          par(:,i)%Ke         = 2.481e-5
+          par(:,i)%lam        = 1/5.25
+          par(:,i)%clay       = 0.06
+      endif
+
+      par(:,i)%thre =  par(:,i)%the - par(:,i)%thr
+      par(:,i)%eta        = two/par(:,i)%lam + two + one
+      par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
+      par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
+      par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
+      par(:,i)%kd         = real(soil%cnsd(index),r_2)
+      par(:,i)%css        = real(soil%css(index),r_2)
+      par(:,i)%rho        = real(soil%rhosoil(index),r_2)
+      par(:,i)%tortuosity = 0.67_r_2
+      par(:,i)%zeta       = real(soil%zeta(index),r_2)
+      par(:,i)%fsatmax    = real(soil%fsatmax(index),r_2)
+    enddo
+
+  END SUBROUTINE setpar_Loetsch
 
   !**********************************************************************************************************************
 

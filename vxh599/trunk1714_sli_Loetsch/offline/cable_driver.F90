@@ -92,7 +92,7 @@ PROGRAM cable_offline_driver
        write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
   USE cable_cbm_module
-
+  USE cable_diag_module
   ! modules related to CASA-CNP
   USE casadimension,       ONLY: icycle
   USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
@@ -258,12 +258,15 @@ PROGRAM cable_offline_driver
   ENDIF
 
   IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
-     leaps = .FALSE.
+     leaps = .TRUE.
      WRITE(*,*)   "gswp data doesn't have leap years!!! leaps -> .FALSE."
      WRITE(logn,*)"gswp data doesn't have leap years!!! leaps -> .FALSE."
   ENDIF
   
-  IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) cable_user%MetType = 'gswp'
+  IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
+     leaps = .TRUE.
+     cable_user%MetType = 'gswp'
+  ENDIF
 
   cable_runtime%offline = .TRUE.
 
@@ -308,6 +311,11 @@ PROGRAM cable_offline_driver
      NREP: DO RRRR = 1, NRRRR
         YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
            CurYear = YYYY
+           IF ( leaps .and. IS_LEAPYEAR( YYYY ) ) THEN
+              LOY = 366
+           ELSE
+              LOY = 365
+           ENDIF
            ! Check for gswp run
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
               ncciy = CurYear
@@ -322,7 +330,9 @@ PROGRAM cable_offline_driver
 
               ENDIF
               IF ( RRRR .EQ. 1 ) THEN
+                 PRINT*,"kend"
                  CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+                 PRINT*,"kend",kend
                  IF ( NRRRR .GT. 1 ) THEN
                     GSWP_MID(1,YYYY) = ncid_rain
                     GSWP_MID(2,YYYY) = ncid_snow
@@ -342,6 +352,7 @@ PROGRAM cable_offline_driver
                  ncid_qa   = GSWP_MID(6,YYYY)
                  ncid_ta   = GSWP_MID(7,YYYY)
                  ncid_wd   = GSWP_MID(8,YYYY)
+                 kend      = ktauday * LOY
               ENDIF
            ENDIF
 
@@ -387,7 +398,8 @@ PROGRAM cable_offline_driver
               if(.not.spinup)  spinConv=.true.
               IF (.NOT.ALLOCATED(gpp_ann_save)) ALLOCATE(  gpp_ann_save(mp) )
               gpp_ann_save = -999.
-              if( icycle>0 .AND. spincasa) then
+
+             if( icycle>0 .AND. spincasa) then
                  print *, 'EXT spincasacnp enabled with mloop= ', mloop
                  ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
                  call spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
@@ -425,17 +437,11 @@ PROGRAM cable_offline_driver
               ! globally (WRT code) accessible kend through USE cable_common_module
               ktau_gl = ktau_tot
 
-              IF ( leaps .and. IS_LEAPYEAR( YYYY ) ) THEN
-                 LOY = 366
-              ELSE
-                 LOY = 365
-              ENDIF
               idoy = mod(INT(REAL(ktau+koffset)/REAL(ktauday)),LOY)
               IF ( idoy .EQ. 0 ) idoy = LOY
 
               ! needed for CASA-CNP
-              nyear     =INT((kend+koffset)/(365*ktauday))
-
+              nyear     =INT((kend+koffset)/(LOY*ktauday))
               canopy%oldcansto=canopy%cansto
 
               ! Get met data and LAI, set time variables.
@@ -473,7 +479,7 @@ PROGRAM cable_offline_driver
 
               ELSE IF ( mod((ktau-kstart+1+koffset),ktauday)==0 .AND. CABLE_USER%CASA_DUMP_READ ) THEN
                  ! CLN READ FROM FILE INSTEAD !
-                 WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(365*ktauday))
+                 WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
                  ncfile  = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                  casa_it = NINT( REAL(ktau / ktauday) )
                  CALL read_casa_dump( ncfile, casamet, casaflux, casa_it, kend, .FALSE. )
@@ -481,11 +487,12 @@ PROGRAM cable_offline_driver
               !jhan this is insufficient testing. condition for
               !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
               IF(icycle >0 .OR.  CABLE_USER%CASA_DUMP_WRITE ) THEN
-
+        
+            
                  call bgcdriver( ktau, kstart, kend, dels, met,                         &
                       ssnow, canopy, veg, soil, casabiome,                   &
                       casapool, casaflux, casamet, casabal,                  &
-                      phen, pop, spinConv, spinup, ktauday, idoy,            &
+                      phen, pop, spinConv, spinup, ktauday, idoy, loy,           &
                       CABLE_USER%CASA_DUMP_READ, CABLE_USER%CASA_DUMP_WRITE, &
                       gpp_ann_save )
 
@@ -510,9 +517,9 @@ PROGRAM cable_offline_driver
                          .OR. ktau .EQ. kend) THEN
                        !ctime = (ktau + ( YYYY - cable_user%YearStart ) * 365 * ktauday)/ktauday
                        ctime = ctime +1
-                       !CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
-                       !    CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &  !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
-                       !   cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
+                       CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
+                          CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &  !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
+                          cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
                     ENDIF
                  END IF
               ENDIF
@@ -529,23 +536,21 @@ PROGRAM cable_offline_driver
 
               ! Write time step's output to file if either: we're not spinning up
               ! or we're spinning up and the spinup has converged:
-              !IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
+             
                  IF ( .NOT. CASAONLY ) THEN
-                    !     CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                    !         rad, bal, air, soil, veg, C%SBOLTZ, &
-                    !        C%EMLEAF, C%EMSOIL )
-                    !IF ( RRRR .GT. 1 ) THEN
-                       !CLN               CALL write_output( dels, ktau, met, canopy, ssnow,                    &
+                   
                        CALL write_output( dels, ktau_tot, met, canopy, ssnow,                    &
                             rad, bal, air, soil, veg, C%SBOLTZ, &
                             C%EMLEAF, C%EMSOIL )
-                    !ELSE
-                     !  CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                     !       rad, bal, air, soil, veg, C%SBOLTZ, &
-                     !       C%EMLEAF, C%EMSOIL )
-                    !ENDIF
+                  
                  ENDIF
-              !ENDIF
+                      ! dump bitwise reproducible testing data
+         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+                                knode_gl, "FLUXES",                            &
+                          canopy%fe + canopy%fh )
+         ENDIF
            END DO ! END Do loop over timestep ktau
 
            !jhan this is insufficient testing. condition for
@@ -702,14 +707,6 @@ SUBROUTINE prepareFiles(ncciy)
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
-!!$CLN   CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-!!$CLN   CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-!!$CLN   CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-!!$CLN   CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-!!$CLN   CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-!!$CLN   CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
-!!$CLN   CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-!!$CLN   CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
   CALL renameFiles(logn,gswpfile%rainf,ncciy,'rainf')
   CALL renameFiles(logn,gswpfile%snowf,ncciy,'snowf')
   CALL renameFiles(logn,gswpfile%LWdown,ncciy,'LWdown')
@@ -722,26 +719,7 @@ SUBROUTINE prepareFiles(ncciy)
 END SUBROUTINE prepareFiles
 
 
-!!$CLN SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
-!!$CLN   IMPLICIT NONE
-!!$CLN   INTEGER, INTENT(IN) :: logn
-!!$CLN   INTEGER, INTENT(IN) :: nn
-!!$CLN   INTEGER, INTENT(IN) :: ncciy
-!!$CLN   CHARACTER(LEN=99), INTENT(INOUT) :: inFile
-!!$CLN   CHARACTER(LEN=*),  INTENT(IN)    :: inName
-!!$CLN   INTEGER :: idummy
-!!$CLN
-!!$CLN   nn
-!!$CLN   READ(inFile(nn:nn+3),'(i4)') idummy
-!!$CLN   IF (idummy < 1983 .OR. idummy > 1995) THEN
-!!$CLN     PRINT *, 'Check position of the year number in input gswp file', inFile
-!!$CLN     STOP
-!!$CLN   ELSE
-!!$CLN     WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
-!!$CLN     WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
-!!$CLN   ENDIF
-!!$CLN
-!!$CLN END SUBROUTINE renameFiles
+
 SUBROUTINE renameFiles(logn,inFile,ncciy,inName)
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: logn,ncciy

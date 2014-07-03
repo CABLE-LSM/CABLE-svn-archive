@@ -9,10 +9,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
        canopy_type, air_type, radiation_type, ms, mp, r_2, i_d
   !USE physical_constants, ONLY: tfrz
   USE sli_numbers,        ONLY:  zero, half, one, four, thousand, & ! numbers
-       Tzero, &                                       ! variables
+       Tzero, experiment, &                                       ! variables
        vars_met, vars, params, vars_snow, &                                  ! types
        MW, snmin, Rgas, Lambdas, lambdaf, csice, cswat, rhow, nsnow_max, e5
-  USE sli_utils,          ONLY: x, dx, par, setpar, setx, plit, dxL, setlitterpar, esat, &
+  USE sli_utils,          ONLY: x, dx, par, setpar, setpar_Loetsch, setx, plit, dxL, setlitterpar, esat, &
        esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
@@ -69,6 +69,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   REAL(r_2)                           ::  tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
                                            tmp1d5, tmp1d6, tmp1d7, tmp1d8, tmp1d9,tmp1d10, tmp1d11, &
                                            tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16
+  REAL(r_2),      DIMENSION(1:mp)      :: fsnow ! fraction cover snow
 
   REAL(r_2), PARAMETER :: alpha = 0.1 ! anistropy param for lateral flow
   REAL(r_2), PARAMETER :: fsat_max = 2.0 ! exponent for vetical profile of Ksat
@@ -169,7 +170,11 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   ! set required soil hydraulic params
   if (.not. allocated(par)) then
      index=(/(i,i=1,mp,1)/)
-     call setpar(mp, ms, x(:,:)-half*dx(:,:), soil,index)
+     if (experiment .eq. 13) then
+        call setpar_Loetsch(mp, ms, x(:,:)-half*dx(:,:), soil,index)
+     else
+        call setpar(mp, ms, x(:,:)-half*dx(:,:), soil,index)
+     endif
   endif
 
   ! If we want solutes:
@@ -182,18 +187,24 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   endif
 
   ! Met data above soil:
+ 
   vmet(:)%Ta    = real(met%Tvair-273.16,r_2)
   vmet(:)%Da    = real(met%dva,r_2)
- ! write(55,*) ssoil%rtsoil
+  write(55,*) ssoil%rtsoil
   vmet(:)%rbh   = ssoil%rtsoil
   vmet(:)%rbw   = vmet(:)%rbh
+
+  gr(:)       = four * emsoil * (vmet(:)%Ta+273.16)**3 *5.67e-8_r_2 ! radiation conductance Wm-2K-1
+  grc(:)      = one/vmet(:)%rbh   + gr(:)/rhocp ! test vh
+  vmet(:)%rrc = one/grc(:)                            ! resistance to radiative and convective heat transfer
+ 
   vmet(:)%rha   = max(min((esat(vmet(:)%Ta)-vmet(:)%Da)/esat(vmet(:)%Ta),one),0.1_r_2)
   vmet(:)%cva   = vmet(:)%rha * esat(vmet(:)%Ta)*0.018_r_2/thousand/8.314_r_2/(vmet(:)%Ta+Tzero) ! m3 H2O (liq) m-3 (air)
   vmet(:)%phiva = Dva * vmet(:)%cva
-  vmet(:)%Rn    = canopy%fns
+  vmet(:)%Rn    = canopy%fns - gr(:)*(vmet(:)%Ta -( ssoil%tss - Tzero))
   Etrans(:)     = max(canopy%fevc/air%rlam/thousand, zero) ! m s-1
   h0(:) = ssoil%h0
-
+ 
 
   ! Initialisations:
   if (first) then
@@ -280,7 +291,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
      !phi(:,1) = max((phie -par(:,1)%he*Ksat(:,1)), (one+e5)*phie)+(h0(:)-hice(:))*Ksat(:,1)
      phi(:,1) = (one+e5)*phie + (h0(:)-hice(:))*Ksat(:,1)
   endwhere
-
+  var(:,:)%phi = phi
 
 
   ! ----------------------------------------------------------------
@@ -329,9 +340,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
         vsnow(kk)%melt(:) = zero
         vsnow(kk)%Jlatent(:) = zero
         vsnow(kk)%Jsensible(:) = zero
-		vsnow(kk)%J = zero
-		vsnow(kk)%nsnow = 0
-		vsnow(kk)%fsnowliq_max(:) = 0.03
+        vsnow(kk)%J = zero
+        vsnow(kk)%nsnow = 0
+        vsnow(kk)%fsnowliq_max(:) = 0.03
      endif
      ssoil%osnowd(kk) = ssoil%snowd(kk)
   enddo
@@ -340,10 +351,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   lE_old(:)   = ssoil%lE
   gamma(:)    = real(veg%gamma(:),r_2)
 
-  gr(:)       = four * emsoil * (vmet(:)%Ta+273.16)**3 *5.67e-8_r_2 ! radiation conductance Wm-2K-1
-  grc(:)      = one/vmet(:)%rbh + gr(:)/rhocp
-  vmet(:)%rrc = one/grc(:)                            ! resistance to radiative and convective heat transfer
-  qprec(:)    = (canopy%through-met%precip_sn)/thousand/dt              ! liq precip rate (m s-1)
+ qprec(:)    = (canopy%through-met%precip_sn)/thousand/dt              ! liq precip rate (m s-1)
   qprec_snow(:) = (met%precip_sn)/thousand/dt
 
   ! re-calculate qprec_snow and qprec based on total precip and air T (ref Jin et al. Table II, Hyd Proc, 1999
@@ -416,15 +424,30 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   ! calculate base flow (topmodel)
   !qb = alpha * par(:,ms)%Ke*exp(-(par(:,ms)%zeta*zdelta))
   qex(:,ms) =  qex(:,ms) !+qb
+  !  write(*,*) vmet, SEB_only
+ ! stop
 
 
+! test vh !
+!!$    do kk =1,mp
+!!$       if (vsnow(kk)%nsnow>0) then
+!!$          fsnow(kk) = sum(vsnow(kk)%depth(1:(vsnow(kk)%nsnow)))/( sum(vsnow(kk)%depth(1:(vsnow(kk)%nsnow))) + 0.1)
+!!$          write(65,*) fsnow, sum(vsnow(kk)%depth(1:(vsnow(kk)%nsnow)))
+!!$          vmet(kk)%Rn = vmet(kk)%Rn*fsnow(kk)
+!!$       else
+!!$          fsnow(kk) = 0.0
+!!$       endif
+!!$    enddo
 
-
+ 
   if (SEB_only.eq.1) then
 
      do kk=1, mp
-     call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
-        CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk),  1, dx(kk,:), &
+     !call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:)) 
+      do i=1, 1
+                    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
+      end do
+     CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk),  1, dx(kk,:), &
                       h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE(kk),  &
                       tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
@@ -434,10 +457,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
        canopy%ga       = real(G0(:))
        canopy%fes      = real(lE(:))
        canopy%fhs = canopy%fns - canopy%ga - canopy%fes
-       ssoil%tss       = real(Tsurface(:)) + 273.16
+       ssoil%tss       = real(Tsurface(:)) + Tzero
        !write(*,"(a10, 100f16.6)") "sli_main SEB", canopy%fhs, canopy%fes, ssoil%rtsoil, vmet(1)%Ta
-  else
-
+  else 
+    
      call solve(ti, tf, ktau, mp, qprec(:),qprec_snow(:), ms,  dx(:,:), &
            h0(:), S(:,:), thetai(:,:), Jsensible(:,:), Tsoil(:,:), evap(:), &
            evap_pot(:), runoff(:), infil(:), drn(:), discharge(:), qh(:,:), &
@@ -450,7 +473,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
            deltaTa=deltaTa(:), lE_old=lE_old(:), &
            dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
            doadvection=advection)
-
 
   H(:)      = H(:)/(tf-ti)
   lE(:)     = lE(:)/(tf-ti)
@@ -560,9 +582,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
 
      ssoil%smelt(kk) = vsnow(kk)%Qmelt*thousand/dt ! amount of melted snow leaving bottom of snow pack (mm/dt)
      ssoil%nsnow(kk) = vsnow(kk)%nsnow
-    if (sum(ssoil%sdepth(kk,1:nsnow_max)).gt.zero) then
-     ssoil%ssdnn(kk) = ssoil%snowd(kk)/sum(ssoil%sdepth(kk,1:nsnow_max))
-    endif
+     if (sum(ssoil%sdepth(kk,1:nsnow_max)).gt.zero) then
+        ssoil%ssdnn(kk) = ssoil%snowd(kk)/sum(ssoil%sdepth(kk,1:nsnow_max))
+     endif
   enddo
 
 
@@ -576,7 +598,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
 	      qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &
           vsnow(k)%Qevap,vsnow(k)%Qvap,ssoil%albsoilsn(k,1), ssoil%albsoilsn(k,2), ssoil%sconds(k,1), &
 		  vsnow(k)%dens(1),sum(vsnow(k)%depth(1:vsnow(k)%nsnow)), vsnow(k)%J, &
-		  vsnow(k)%MoistureFluxDivergence, vsnow(k)%FluxDivergence, vsnow(k)%dens(nsnow_max), vsnow(k)%tsn(nsnow_max)
+		  vsnow(k)%MoistureFluxDivergence, vsnow(k)%FluxDivergence, vsnow(k)%dens(nsnow_max), vsnow(k)%tsn(nsnow_max), &
+                qh(k,0)
   endif
 
 

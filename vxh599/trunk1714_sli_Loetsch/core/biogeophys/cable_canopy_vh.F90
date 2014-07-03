@@ -631,53 +631,56 @@ CONTAINS
        ! vh 14/04/14
        ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing C%CSW by
        ! csw = cd/2* (U(hc)/ust)**2 according to Eqs 15 & 19 from notes by Ian Harman (9-9-2011)
-      zstar = rough%disp + 1.5*(veg%hc - rough%disp)
-      psihat = log((zstar - rough%disp)/ (veg%hc - rough%disp)) + &
-              (veg%hc - zstar)/(zstar - rough%disp)
-      rL = -(vonk*grav*(zstar - rough%disp)*(canopy%fh))/ &  ! 1/Monin-Obokov Length
+       WHERE (canopy%vlaiw > 0.01)     
+          zstar = rough%disp + 1.5*(veg%hc - rough%disp)
+         ! write(*,*) zstar, rough%disp, veg%hc,rough%disp 
+          psihat = log((zstar - rough%disp)/ (veg%hc - rough%disp)) + &
+               (veg%hc - zstar)/(zstar - rough%disp)
+          rL = -(vonk*grav*(zstar - rough%disp)*(canopy%fh))/ &  ! 1/Monin-Obokov Length
                max( (air%rho*capp*met%tk*canopy%us**3), 1.e-12)
-      phist = 1 + 5.0*(zstar - rough%disp)*rL
+          phist = 1 + 5.0*(zstar - rough%disp)*rL
 
-      where ((zetar(:,iter) .gt. 1.e-6).and.(.not.( canopy%vlaiw .LT. 0.01 .OR.                                          &
-         rough%hruff .LT. rough%z0soilsn )))! stable conditions
+          where ((zetar(:,iter) .gt. 1.e-6).and.(.not.( canopy%vlaiw .LT. 0.01 .OR.                                          &
+               rough%hruff .LT. rough%z0soilsn )))! stable conditions
 
-       csw = min(0.3*((log((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
-       psim(zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
-       psim(zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* c%csw
+             csw = min(0.3*((log((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
+                  psim(zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
+                  psim(zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* c%csw
 
-       rough%term2  = EXP( 2 * CSW * canopy%rghlai *                          &
-            ( 1 - rough%disp / rough%hruff ) )
-       rough%term3  = C%A33**2 * C%CTL * 2 * CSW * canopy%rghlai
-       rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
-       rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
+             rough%term2  = EXP( 2 * CSW * canopy%rghlai *                          &
+                  ( 1 - rough%disp / rough%hruff ) )
+             rough%term3  = C%A33**2 * C%CTL * 2 * CSW * canopy%rghlai
+             rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
+             rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
 
-       !! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
-        rough%rt0us  = log(rough%disp / rough%z0soilsn) * &
+             !! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
+             rough%rt0us  = log(rough%disp / rough%z0soilsn) * &
+                  EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+                  / rough%hruff / (c%a33 ** 2 * c%ctl)
+
+             ! vh ! Modify rt0us to be resistance between shear height = 0.1h and disp
+             ! use this form when including addtional resistance from z0soil to 0.1hc (done in cable_canopy_vh)
+       rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
                       EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
                        / rough%hruff / (c%a33 ** 2 * c%ctl)
 
-       ! vh ! Modify rt0us to be resistance between shear height = 0.1h and disp
-       ! use this form when including addtional resistance from z0soil to 0.1hc (done in cable_canopy_vh)
-       !rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
-       !               EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
-        !               / rough%hruff / (c%a33 ** 2 * c%ctl)
-
-       rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
-      elsewhere
-         csw = c%csw
-      endwhere
+             rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
+          elsewhere
+             csw = c%csw
+          endwhere
+       endwhere
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        ! rt0 = turbulent resistance from soil to canopy:
-       ! use this when accounting for seprate resistance from z0soil to 0.1hc
-!       where (canopy%vlaiw > 0.01)
-!          rt0 = (rough%rt0us+rt0bus) / canopy%us
-!       elsewhere
-!          rt0 = (rough%rt0us) / canopy%us
-!       endwhere
+       ! use this when accounting for separate resistance from z0soil to 0.1hc
+       where (canopy%vlaiw > 0.01)
+          rt0 = (rough%rt0us+rt0bus) / canopy%us
+       elsewhere
+          rt0 = (rough%rt0us) / canopy%us
+       endwhere
 
 
-       rt0 = (rough%rt0us) / canopy%us
+      ! rt0 = (rough%rt0us) / canopy%us
        ! Aerodynamic resistance (sum 3 height integrals)/us
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
        rough%rt1 = max(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
@@ -709,9 +712,9 @@ CONTAINS
           elsewhere
              gbhu(:,1) = gbvtop* 1.0_r_2 / real(tmp1d,r_2)
           endwhere
-          ! MC include max because can go <0 in some weird cirumstances
-          gbhu(:,2) = max(0.0_r_2, (2.0_r_2/real(rough%coexp,r_2))*gbvtop* &
-               (1.0_r_2-EXP(real(-0.5*rough%coexp*canopy%vlaiw,r_2)))-gbhu(:,1) )
+          ! ! MC include max because can go <0 in some weird cirumstances
+          ! gbhu(:,2) = max(0.0_r_2, (2.0_r_2/real(rough%coexp,r_2))*gbvtop* &
+          !      (1.0_r_2-EXP(real(-0.5*rough%coexp*canopy%vlaiw,r_2)))-gbhu(:,1) )
        ENDWHERE
 
        ! special for BIOS2, where input Ta is screen temperature
@@ -1320,7 +1323,6 @@ CONTAINS
     xvcden  = 1.0+exp((entropvc*x-ehdvc)/(rgas*x))
     xvcmxt3_r_1 = max(0.0,xvcnum/xvcden)
 
-
   END FUNCTION xvcmxt3_r_1
 
   FUNCTION xvcmxt3_r_2(x)
@@ -1334,7 +1336,6 @@ CONTAINS
     xvcnum  = xvccoef_r_2*exp((ehavc_r_2/(rgas_r_2*trefk_r_2))*(1.0_r_2-trefk_r_2/x))
     xvcden  = 1.0_r_2+exp((entropvc_r_2*x-ehdvc_r_2)/(rgas_r_2*x))
     xvcmxt3_r_2 = max(0.0_r_2,xvcnum/xvcden)
-
 
   END FUNCTION xvcmxt3_r_2
 

@@ -58,7 +58,7 @@ MODULE physical_constants
   REAL,    PARAMETER :: diffwc = 1.60     ! diffw/diffc = H2O/CO2 diffusivity
   REAL,    PARAMETER :: rhow   = 1000.0   ! liquid water density   [kg/m3]
   REAL,    PARAMETER :: emleaf = 1.0      ! leaf emissivity
-  REAL,    PARAMETER :: emsoil = 1.0     ! soil emissivity
+  REAL,    PARAMETER :: emsoil = 0.95     ! soil emissivity
   REAL,    PARAMETER :: cr     = 0.3      ! element drag coefficient
   REAL,    PARAMETER :: cs     = 0.003    ! substrate drag coefficient
   REAL,    PARAMETER :: beta   = cr/cs    ! ratio cr/cs
