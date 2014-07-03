@@ -1320,6 +1320,7 @@ CONTAINS
     xvcden  = 1.0+exp((entropvc*x-ehdvc)/(rgas*x))
     xvcmxt3_r_1 = max(0.0,xvcnum/xvcden)
 
+
   END FUNCTION xvcmxt3_r_1
 
   FUNCTION xvcmxt3_r_2(x)
@@ -1333,6 +1334,7 @@ CONTAINS
     xvcnum  = xvccoef_r_2*exp((ehavc_r_2/(rgas_r_2*trefk_r_2))*(1.0_r_2-trefk_r_2/x))
     xvcden  = 1.0_r_2+exp((entropvc_r_2*x-ehdvc_r_2)/(rgas_r_2*x))
     xvcmxt3_r_2 = max(0.0_r_2,xvcnum/xvcden)
+
 
   END FUNCTION xvcmxt3_r_2
 

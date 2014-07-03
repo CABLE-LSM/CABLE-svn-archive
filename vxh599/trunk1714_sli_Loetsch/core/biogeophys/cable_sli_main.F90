@@ -182,10 +182,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   endif
 
   ! Met data above soil:
- 
   vmet(:)%Ta    = real(met%Tvair-273.16,r_2)
   vmet(:)%Da    = real(met%dva,r_2)
-  write(55,*) ssoil%rtsoil
+ ! write(55,*) ssoil%rtsoil
   vmet(:)%rbh   = ssoil%rtsoil
   vmet(:)%rbw   = vmet(:)%rbh
   vmet(:)%rha   = max(min((esat(vmet(:)%Ta)-vmet(:)%Da)/esat(vmet(:)%Ta),one),0.1_r_2)
@@ -194,7 +193,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   vmet(:)%Rn    = canopy%fns
   Etrans(:)     = max(canopy%fevc/air%rlam/thousand, zero) ! m s-1
   h0(:) = ssoil%h0
- 
+
 
   ! Initialisations:
   if (first) then
@@ -281,7 +280,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
      !phi(:,1) = max((phie -par(:,1)%he*Ksat(:,1)), (one+e5)*phie)+(h0(:)-hice(:))*Ksat(:,1)
      phi(:,1) = (one+e5)*phie + (h0(:)-hice(:))*Ksat(:,1)
   endwhere
-  var(:,:)%phi = phi
+
 
 
   ! ----------------------------------------------------------------
@@ -349,19 +348,19 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
 
   ! re-calculate qprec_snow and qprec based on total precip and air T (ref Jin et al. Table II, Hyd Proc, 1999
   qprec_tot = qprec + qprec_snow
-!  where (vmet(:)%Ta.gt.2.5)
-!     qprec_snow = zero
-!     qprec = qprec_tot
-!  elsewhere (vmet(:)%Ta.le.2.5.and.vmet(:)%Ta.gt.2.0)
-!     qprec_snow = 0.6*qprec_tot
-!     qprec = qprec_tot - qprec_snow
-!  elsewhere (vmet(:)%Ta.le.2.0.and.vmet(:)%Ta.gt.0)
-!     qprec_snow = (1. - (54.62 - 0.2 *(vmet(:)%Ta + 273.16)))*qprec_tot
-!     qprec = qprec_tot - qprec_snow
-!  elsewhere (vmet(:)%Ta.le.0)
-!     qprec = zero
-!     qprec_snow = qprec_tot
-!  endwhere
+  where (vmet(:)%Ta.gt.2.5)
+     qprec_snow = zero
+     qprec = qprec_tot
+  elsewhere (vmet(:)%Ta.le.2.5.and.vmet(:)%Ta.gt.2.0)
+     qprec_snow = 0.6*qprec_tot
+     qprec = qprec_tot - qprec_snow
+  elsewhere (vmet(:)%Ta.le.2.0.and.vmet(:)%Ta.gt.0)
+     qprec_snow = (1. - (54.62 - 0.2 *(vmet(:)%Ta + 273.16)))*qprec_tot
+     qprec = qprec_tot - qprec_snow
+  elsewhere (vmet(:)%Ta.le.0)
+     qprec = zero
+     qprec_snow = qprec_tot
+  endwhere
 
 
  ! write(*,*) ktau, vmet(:)%Ta, qprec_tot, qprec, qprec_snow
@@ -417,17 +416,15 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   ! calculate base flow (topmodel)
   !qb = alpha * par(:,ms)%Ke*exp(-(par(:,ms)%zeta*zdelta))
   qex(:,ms) =  qex(:,ms) !+qb
-  !  write(*,*) vmet, SEB_only
- ! stop
- 
+
+
+
+
   if (SEB_only.eq.1) then
 
      do kk=1, mp
-     !call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:)) 
-      do i=1, 1
-                    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
-      end do
-     CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk),  1, dx(kk,:), &
+     call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
+        CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk),  1, dx(kk,:), &
                       h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE(kk),  &
                       tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
@@ -439,8 +436,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
        canopy%fhs = canopy%fns - canopy%ga - canopy%fes
        ssoil%tss       = real(Tsurface(:)) + 273.16
        !write(*,"(a10, 100f16.6)") "sli_main SEB", canopy%fhs, canopy%fes, ssoil%rtsoil, vmet(1)%Ta
-  else 
-    
+  else
+
      call solve(ti, tf, ktau, mp, qprec(:),qprec_snow(:), ms,  dx(:,:), &
            h0(:), S(:,:), thetai(:,:), Jsensible(:,:), Tsoil(:,:), evap(:), &
            evap_pot(:), runoff(:), infil(:), drn(:), discharge(:), qh(:,:), &
@@ -453,6 +450,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
            deltaTa=deltaTa(:), lE_old=lE_old(:), &
            dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
            doadvection=advection)
+
 
   H(:)      = H(:)/(tf-ti)
   lE(:)     = lE(:)/(tf-ti)
@@ -562,9 +560,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
 
      ssoil%smelt(kk) = vsnow(kk)%Qmelt*thousand/dt ! amount of melted snow leaving bottom of snow pack (mm/dt)
      ssoil%nsnow(kk) = vsnow(kk)%nsnow
-     if (sum(ssoil%sdepth(kk,1:nsnow_max)).gt.zero) then
-        ssoil%ssdnn(kk) = ssoil%snowd(kk)/sum(ssoil%sdepth(kk,1:nsnow_max))
-     endif
+    if (sum(ssoil%sdepth(kk,1:nsnow_max)).gt.zero) then
+     ssoil%ssdnn(kk) = ssoil%snowd(kk)/sum(ssoil%sdepth(kk,1:nsnow_max))
+    endif
   enddo
 
 

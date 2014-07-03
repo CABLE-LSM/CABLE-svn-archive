@@ -654,9 +654,7 @@ CONTAINS
                 ! this set var-structure
                 isave(kk,:) = var(kk,:)%isat
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-
                 call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:)) ! for layers where S<1
-
                 ! do i=1, n
                 !    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
                 ! end do
