@@ -55,8 +55,9 @@ MODULE cable_def_types_mod
       msn = 3,       & ! max # snow layers
       swb = 2,       & ! # shortwave bands 
       niter = 4,     & ! number of iterations for za/L
-!       ms = 12          ! # soil layers
-       ms = 6          ! # soil layers - standard
+       ms = 12          ! # soil layers
+!       ms = 6          ! # soil layers - standard
+!       ms = 13          ! for Loetschental experiment
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
@@ -254,8 +255,8 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:,:), POINTER :: snowliq   ! liquid snow content (mm H2O)
      REAL(r_2), DIMENSION(:),   POINTER :: nsteps    ! number of iterations at each timestep
      REAL(r_2), DIMENSION(:),   POINTER :: TsurfaceFR  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:,:),   POINTER :: Ta_daily        ! air temp averaged over last 24h
-     INTEGER, DIMENSION(:), POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
+     REAL(r_2), DIMENSION(:,:), POINTER :: Ta_daily        ! air temp averaged over last 24h
+     INTEGER,   DIMENSION(:),   POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
      REAL(r_2), DIMENSION(:),   POINTER :: Qadv_daily  ! advective heat flux into surface , daily average (W m-2)
      REAL(r_2), DIMENSION(:),   POINTER :: G0_daily  ! conductive heat flux into surface , daily average (W m-2)
      REAL(r_2), DIMENSION(:),   POINTER :: Qevap_daily ! evaporative flux at surface, daily average (m s-1)

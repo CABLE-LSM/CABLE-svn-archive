@@ -146,8 +146,8 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
       
       CASE DEFAULT
         
-         PRINT *, 'Error! Dimension not compatible with CASA                   &
-                   or CSIRO or IGBP types!'
+         PRINT *, 'Error! Dimension not compatible with CASA ',                 &
+                  'or CSIRO or IGBP types!'
          PRINT *, 'Dimension =', mvtype
          PRINT *, 'At the rw section.'
          STOP
@@ -156,7 +156,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
    ! Limit size of exponent to avoif overflow when tv is very cold
    coef_cold = EXP( MIN( 1., -( canopy%tv - tvclst( veg%iveg ) ) ) ) 
-   wbav = REAL( SUM( veg%froot * ssnow%wb, 2) )
+   wbav = SUM( veg%froot * real(ssnow%wb), 2)
    wbav = max( 0.01, wbav )  ! EAK Jan2011
    
    ! drought stress
@@ -254,7 +254,7 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
 
       ! key parameter for this scheme is veg%rs20
       
-      avgwrs = SUM( veg%froot * ssnow%wb, 2 )
+      avgwrs = SUM( veg%froot * real(ssnow%wb), 2 )
       avgtrs = MAX( 0.0, SUM( veg%froot * ssnow%tgg, 2 )- C%TFRZ )
 
       canopy%frs = veg%rs20 * MIN( 1.0, MAX( 0.0, MIN(                         &

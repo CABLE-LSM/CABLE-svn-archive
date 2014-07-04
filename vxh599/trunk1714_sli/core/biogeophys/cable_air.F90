@@ -55,7 +55,6 @@ SUBROUTINE define_air(met,air)
    
    ! local vatiables 
    REAL, DIMENSION(mp)     :: es ! sat vapour pressure (mb)   
-   INTEGER :: i 
       
    ! END header
    

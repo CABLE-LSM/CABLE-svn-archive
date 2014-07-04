@@ -57,7 +57,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: h0min     = -2.e-3
   REAL(r_2), PARAMETER :: snmin     = 0.001_r_2 ! depth of snowpack (m) without dedicated snow layer(s)
   REAL(r_2), PARAMETER :: fsnowliq_max = 0.03  ! max fraction of snow water in liquid phase
-  INTEGER(i_d), PARAMETER :: nsnow_max = 2 ! maximum number of dedicated snow layers (1 or 2)
+  INTEGER(i_d), PARAMETER :: nsnow_max = 1 ! maximum number of dedicated snow layers (1 or 2)
 
   REAL(r_2), PARAMETER :: dh0max    = 0.0001
   REAL(r_2), PARAMETER :: SLmax     = 1.01
@@ -93,6 +93,7 @@ MODULE sli_numbers
 
   ! Special setups for sli stand-alone, such as 1-8: testcases of Haverd & Cuntz (2010);
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
+  ! 12: Loetschental
   ! 0=normal run
   INTEGER(i_d) :: experiment = 11
 
@@ -120,9 +121,9 @@ MODULE sli_numbers
           Dv, cv, sl, melt, &
           Jsensible, Jlatent,  deltaJlatent, deltaJsensible, fsnowliq_max
      REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain, totdepth,J, &
-	              Qadv_melt, Qadv_vap, Qcond_net, &
-                  Qadv_transfer, Qmelt, Qtransfer,FluxDivergence, deltaJ, &
-				  Qvap, MoistureFluxDivergence, Qprec, Qevap, deltawcol
+          Qadv_melt, Qadv_vap, Qcond_net, &
+          Qadv_transfer, Qmelt, Qtransfer,FluxDivergence, deltaJ, &
+          Qvap, MoistureFluxDivergence, Qprec, Qevap, deltawcol
      INTEGER(i_d) :: nsnow, nsnow_last
   END TYPE vars_snow
 

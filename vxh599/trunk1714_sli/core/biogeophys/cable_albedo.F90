@@ -372,6 +372,7 @@ END SUBROUTINE surface_albedosn
     ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
     ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
 
+ 
     snrat=0.
     alir =0.
     alv  =0.

@@ -86,6 +86,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
     WHERE( ssnow%snowd .GT. 0.01   )  &
      rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
+  
      
    WHERE( canopy%vlaiw .LT. 0.01 .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
@@ -161,9 +162,9 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
       ! vh ! Modify rt0us to be resistance between shear height = 0.1h and disp
       ! use this form when including addtional resistance from z0soil to 0.1hc (done in cable_canopy_vh)
-      !rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
-      !               EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
-      !               / rough%hruff / (c%a33 ** 2 * c%ctl)
+      rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
+                     EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+                    / rough%hruff / (c%a33 ** 2 * c%ctl)
       
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.49:
       rough%zruffs = rough%disp + rough%hruff * C%A33**2 * C%CTL / C%VONK /    &

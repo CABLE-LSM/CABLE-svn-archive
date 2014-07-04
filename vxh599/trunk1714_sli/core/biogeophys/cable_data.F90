@@ -47,7 +47,7 @@ module cable_data_module
       grav   = 9.8086, & ! gravity acceleration (m/s2)
       rgas   = 8.3143, & ! universal gas const  (J/mol/K)
       rmair  = 0.02897, & ! molecular wt: dry air (kg/mol)
-      rmh2o  = 0.018016, & ! molecular wt: water	(kg/mol)
+      rmh2o  = 0.018016, & ! molecular wt: water (kg/mol)
       sboltz = 5.67e-8, & ! Stefan-Boltz. constant (W/m2/K4)
       tfrz   = 273.16, & ! Temp (K) corresp. to 0 C
       
