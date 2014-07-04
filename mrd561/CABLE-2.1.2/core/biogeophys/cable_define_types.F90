@@ -800,8 +800,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
-   ALLOCATE( var%refl(mp,2) ) !jhan:swb?
-   ALLOCATE( var%taul(mp,2) ) 
+   ALLOCATE( var%refl(mp,3) ) !jhan:swb?
+   ALLOCATE( var%taul(mp,3) ) !MDeck->cable_parameters.F90 tries to access taul(:,3)
    ALLOCATE( var%vlaimax(mp) ) 
 
 END SUBROUTINE alloc_veg_parameter_type

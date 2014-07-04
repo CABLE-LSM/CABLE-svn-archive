@@ -267,7 +267,7 @@ CONTAINS
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
 
-    ok = NF90_GET_VAR(ncid, varID, iVeg)
+    ok = NF90_GET_VAR(ncid, varID, inVeg)
     IF (ok /= NF90_NOERR) THEN
        ok = NF90_GET_VAR(ncid, varID, idummy)
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
@@ -301,7 +301,9 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, r3dum)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable Albedo.')
     DO kk = 1, nband
-      inALB(:,:,1,kk) = r3dum(:,:,kk)
+      DO jj=1,npatch
+         inALB(:,:,jj,kk) = r3dum(:,:,kk)
+      ENDDO
     ENDDO
 
     ok = NF90_INQ_VARID(ncid, 'SnowDepth', varID)
@@ -311,7 +313,9 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable SnowDepth.')
     DO kk = 1, ntime
-      inSND(:, :, 1, kk) = r3dum2(:, :, kk)
+      DO jj=1,npatch
+         inSND(:, :, jj, kk) = r3dum2(:, :, kk)
+      ENDDO
     ENDDO
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
@@ -975,7 +979,7 @@ CONTAINS
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
         DO ir = 1, nrb                                  ! each band
-          ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                       &
+           ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                      &
               = inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir) ! various rad band
         END DO
         ! total depth, change from m to mm
@@ -1442,7 +1446,8 @@ CONTAINS
              WRITE(*,*) 'Silt fraction is ',soil%silt(landpt(i)%cstart + j - 1)
              WRITE(*,*) 'SUM:',soil%sand(landpt(i)%cstart + j - 1)             &
                                + soil%silt(landpt(i)%cstart + j - 1)           &
-                               + soil%clay(landpt(i)%cstart + j - 1)
+                                 + soil%clay(landpt(i)%cstart + j - 1)
+             !MDeck error where fraction was slightly off summing to 1.  Fix rather than abort
              soil%silt(landpt(i)%cstart + j - 1) = 1.0 -                       &
                                          soil%clay(landpt(i)%cstart + j - 1) - &
                                          soil%sand(landpt(i)%cstart + j - 1)    
