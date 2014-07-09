@@ -1,9 +1,13 @@
-module cable_ncdf_module
-contains
-subroutine predef_grid
+!module cable_ncdf_module
+!contains
+subroutine predef_grid(latitude, longitude, node_gl)
    use netcdf
    implicit none
  
+   ! we are passing these as they are declared i8 and r8
+   REAL, dimension(:), POINTER :: latitude, longitude 
+   integer :: node_gl
+
    ! This is the name of the data file we will read. 
    character (len = *), parameter :: FILE_NAME = "LAI.nc"
    character (len = *), parameter :: VARNAME = "field1392"
@@ -87,4 +91,4 @@ subroutine predef_grid
 
 end subroutine predef_grid
 
-end module cable_ncdf_module
+!end module cable_ncdf_module
