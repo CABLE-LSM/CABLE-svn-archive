@@ -119,7 +119,7 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp)
       
     endif  
 
-   call predef_grid(cable%lat, cable%lon, knode_gl)
+   call predef_grid(cable%lat, cable%lon, knode_gl, um1%rows, um1%row_length, mp )
          
       
    return
