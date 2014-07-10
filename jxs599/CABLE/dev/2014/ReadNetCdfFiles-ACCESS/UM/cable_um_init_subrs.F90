@@ -33,7 +33,7 @@ MODULE cable_um_init_subrs_mod
 
 CONTAINS
 
-subroutine initialize_maps(latitude,longitude, tile_index_mp)
+subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseudo_interp )
    use cable_data_module, only : cable
    use cable_um_tech_mod, only : um1
    use cable_def_types_mod, only : mp
@@ -56,8 +56,15 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp)
    real, dimension(um1%row_length, um1%rows) :: new_longitude, new_latitude
    
    integer, save :: iDiag0, iDiag1, iDiag2, iDiag3, iDiag4, iDiag5 
-     
+   
+   !LAI_Ma  
+   integer :: npseudo_interp
+   real, dimension(mp,npseudo_interp) :: new_LAI_Ma
+   real, dimension(:,:), allocatable :: LAI_Ma
+   integer, parameter :: npseudo=12 ! *12 LAI vals, corresponding to 1/month * 1 year
+
    allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
+   allocate( LAI_Ma(mp, npseudo) )
 
    !-------------------------------------   
    !---make indexes for tile, lat, lon
@@ -117,15 +124,32 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp)
       call cable_diag( iDiag5, 'tile_frac', mp, 1, ktau_gl,  & 
             knode_gl, 'tile_frac', cable%tile_frac )
       
-    endif  
+    endif 
+     
+   !LAI_ma
+   call predef_grid(cable%lat, cable%lon, knode_gl, um1%rows,              &
+                        um1%row_length, mp, npseudo, LAI_Ma )
 
-   call predef_grid(cable%lat, cable%lon, knode_gl, um1%rows, um1%row_length, mp )
+   call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
          
-      
    return
 end subroutine initialize_maps
   
+subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
+   !LAI_Ma  
+   integer :: npseudo, mp 
+   real, dimension(mp,npseudo) :: LAI_Ma
+   ! interpolate to  
+   ! BUT I AM JUST SHORTCUTTING
+   integer :: npseudo_interp
+   real, dimension(mp,npseudo_interp) :: new_LAI_Ma
   
+   ! ...........
+   !new_LAI_Ma = interpolated LAI_Ma - BUT I AM JUST SHORTCUTTING
+   ! ...........
+   new_LAI_Ma = LAI_Ma
+    
+End subroutine  
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
@@ -266,16 +290,17 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 !========================================================================
 !========================================================================
           
-SUBROUTINE initialize_veg( canht_ft, lai_ft) 
+SUBROUTINE initialize_veg( canht_ft, lai_ft, LAI_Ma) 
    USE cable_um_tech_mod
    USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
+   REAL, DIMENSION(:,:) :: LAI_Ma 
    
    LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
 
       !---clobbers veg height, lai and resets ivegt for CABLE tiles
-      CALL clobber_height_lai( canht_ft, lai_ft )
+      CALL clobber_height_lai( canht_ft, lai_ft, LAI_Ma )
       
       !--- veg params were read from initialize_soil() 
       IF(first_call)  THEN
@@ -291,11 +316,11 @@ END SUBROUTINE initialize_veg
 !========================================================================
 !========================================================================
 
-SUBROUTINE clobber_height_lai( um_htveg, um_lai )
+SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
    USE cable_um_tech_mod, ONLY : um1, kblum_veg, veg
-
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
+   REAL, DIMENSION(:,:) :: LAI_Ma 
    INTEGER :: i,j,n
     
    DO N=1,um1%NTILES
@@ -330,6 +355,10 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai )
   
    veg%iveg   = PACK(kblum_veg%ivegt, um1%L_TILE_PTS)
    veg%vlai   = PACK(kblum_veg%laift, um1%L_TILE_PTS)
+!LAI_Ma: here for testing i am using the first month only. For the sake of
+!updating and shifting you will need to develop some logic around this based of
+!on the date
+   veg%vlai   = LAI_Ma(:,1) 
    veg%hc     = PACK(kblum_veg%htveg, um1%L_TILE_PTS)
 
 END SUBROUTINE clobber_height_lai

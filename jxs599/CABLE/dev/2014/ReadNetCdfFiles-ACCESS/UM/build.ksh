@@ -264,6 +264,18 @@ build_build()
 ## build.ksh - MAIN SCRIPT STARTS HERE   ##
 ###########################################
 
+if [[ $1 = 'LAI_Ma' ]]; then
+   print '\n making cable_ncdf separately \n'
+   module load netcdf
+   make -f Makefile_LAI_Ma
+   mkdir -p .tmp/
+   #if [[ ! -d .tmp ]]; then
+   #   mkdir .tmp
+   #fi
+   /bin/cp cable_ncdf.o .tmp/
+   module unload netcdf
+fi
+
 if [[ $1 = 'clean' ]]; then
    print '\ncleaning up\n'
    rm -fr .tmp

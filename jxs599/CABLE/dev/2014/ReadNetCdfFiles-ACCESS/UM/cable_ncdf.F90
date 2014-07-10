@@ -1,12 +1,14 @@
 !module cable_ncdf_module
 !contains
-subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp )
+subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,       &
+                     npseudo,mydata)
    use netcdf
    implicit none
  
    ! we are passing these as they are declared i8 and r8
+   integer :: node_gl, rows, row_length, mp, npseudo
    REAL, dimension(mp) :: latitude, longitude 
-   integer :: node_gl, rows, row_length, mp
+   real, dimension(mp, npseudo) :: mydata 
 
    ! This is the name of the data file we will read. 
    character (len = *), parameter :: fbase_name = "LAI"
@@ -15,11 +17,10 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp )
    character (len = *), parameter :: VARNAME = "field1392"
  
    ! We are reading 3D data, a predefined grid. 
-   integer, parameter :: nlon = 192, nlat = 145, npseudo=12 !(pseudo,lat,lon)-(nz,ny,nx)
+   integer, parameter :: nlon = 192, nlat = 145  !(pseudo,lat,lon)-(nz,ny,nx)
    real:: lat_in(nlat,npseudo)
    real:: lon_in(nlon,npseudo)
    real:: data_in(nlon,nlat,npseudo)
-   real, dimension(mp, npseudo) :: mydata 
    integer, dimension(mp) :: x_in, y_in
  
    ! This will be the netCDF ID for the file and data variable.
@@ -29,13 +30,21 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp )
    integer :: i,x, y, z 
    
    integer :: tests
-   integer :: latDimId, lonDimId, pseudoDimId
+   !integer :: latDimId, lonDimId, pseudoDimId
    integer :: IQnlat,IQnlon,IQnpseudo 
    integer :: numdims
    integer :: VarNumDimIds(3)
    character(len=3) :: chnode
    character(len=6) :: frmat
-
+   
+   print *, "Function ncdf node ", node_gl
+   print *, "Function ncdf rows ", rows 
+   print *, "Function ncdf rowlength ", row_length 
+   print *, "Function ncdf mp ",  mp
+   print *, "Function ncdf npseudo ", npseudo
+   print *, "Function ncdf lat ", latitude 
+   print *, "Function ncdf lon ", longitude 
+   
    if(node_gl > 99) then
       frmat = "(I3.1)"
    elseif( node_gl > 9 .AND. node_gl < 100 ) then    
@@ -45,7 +54,6 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp )
    endif   
    write(chnode,frmat) node_gl
 
-if(node_gl == 0) then
    file_name = trim(fbase_name)//trim(chnode)//trim(fext_name) 
 
    ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
@@ -59,16 +67,16 @@ if(node_gl == 0) then
    call check( nf90_inq_varid(ncid, 'longitude', lonid) )
    !print *, "and varid is: ", varid 
 
-   tests = nf90_inq_dimid(ncid, "latitude", latDimID)
-   tests = nf90_inq_dimid(ncid, "longitude", lonDimID)
-   tests = nf90_inq_dimid(ncid, "pseudo", pseudoDimID)
+   !tests = nf90_inq_dimid(ncid, "latitude", latDimID)
+   !tests = nf90_inq_dimid(ncid, "longitude", lonDimID)
+   !tests = nf90_inq_dimid(ncid, "pseudo", pseudoDimID)
    !print *, "latdimiD : ", latDimID
    !print *, "lonDimId : ", lonDimID
    !print *, "pseudoDimId : ", pseudoDimID
 
-   tests = nf90_inquire_dimension(ncid, latDimID, len = IQnlat) 
-   tests = nf90_inquire_dimension(ncid, lonDimID, len = IQnlon) 
-   tests = nf90_inquire_dimension(ncid, pseudoDimID, len = IQnpseudo) 
+   !tests = nf90_inquire_dimension(ncid, latDimID, len = IQnlat) 
+   !tests = nf90_inquire_dimension(ncid, lonDimID, len = IQnlon) 
+   !tests = nf90_inquire_dimension(ncid, pseudoDimID, len = IQnpseudo) 
    !print *, "latdimS  : ", IQnlat 
    !print *, "lonDimS  : ", IQnlon 
    !print *, "pseudoDimS  : ", IQnpseudo 
@@ -119,7 +127,7 @@ if(node_gl == 0) then
    call check( nf90_close(ncid) )
  
    print *,"*** SUCCESS reading example file ", FILE_NAME, "! "
-endif   
+
    contains
    subroutine check(status)
      integer, intent ( in) :: status

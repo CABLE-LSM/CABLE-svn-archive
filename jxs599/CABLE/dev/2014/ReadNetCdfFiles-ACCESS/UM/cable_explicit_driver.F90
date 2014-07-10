@@ -159,7 +159,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+   REAL, INTENT(INOUT), DIMENSION(land_pts, npft) ::                              &
       canht_ft, lai_ft 
    
    REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
@@ -288,7 +288,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-
+   REAL, DIMENSION(land_pts,ntiles) :: LAI_Ma_UM 
+   integer :: i,n,j
+   REAL :: miss = 0.0
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -365,6 +367,25 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
              rad, rough, soil, ssnow, sum_flux, veg )
 
 
+!LAI_Ma{   
+   LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)      
+   do N=1,NTILES  
+      do J=1,TILE_PTS(N) 
+         i = TILE_INDEX(j,N)  
+         if( TILE_FRAC(i,N) .gt. 0.0 ) then
+            if(N < 14 ) then 
+               lai_ft(i,N) = LAI_Ma_UM(i,N) 
+             else 
+               LAI_FT(i,N) = 0.
+            endif
+         endif
+      enddo
+   enddo
+ print *,"jhan:LAI_ma", lai_ft 
+!LAI_Ma: here for testing i am using the first month only. For the sake of
+!updating and shifting you will need to develop some logic around this based of
+!on the date
+!LAI_Ma}
 
 
    !---------------------------------------------------------------------!
