@@ -126,24 +126,39 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
       
     endif 
      
-   !LAI_ma
+   !LAI_ma{
    call predef_grid(cable%lat, cable%lon, knode_gl, um1%rows,              &
                         um1%row_length, mp, npseudo, LAI_Ma )
 
    call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
+   !LAI_Ma}  
          
    return
 end subroutine initialize_maps
   
+!LAI_Ma  
 subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
-   !LAI_Ma  
+   use cable_data_module, ONLY : cable
    integer :: npseudo, mp 
    real, dimension(mp,npseudo) :: LAI_Ma
    ! interpolate to  
    ! BUT I AM JUST SHORTCUTTING
    integer :: npseudo_interp
    real, dimension(mp,npseudo_interp) :: new_LAI_Ma
-  
+   integer :: openstatus=1
+   integer :: LAI_Ma_year, DayOfExp
+   ! As cable%doy resets every year, record when each year has passed
+   open(unit=713941,file='cable_DoY.txt', &
+        action="read", iostat=openstatus )
+      if(openstatus==0) then
+            read(713941,*) LAI_Ma_year 
+      else
+         write (*,*), 'cable_DoY.txt',' Error: unable to read'
+      endif
+   close(713941)
+   ! NB: 365 here assumes gregorian
+   DayOfExp = ( LAI_Ma_year * 365 ) + cable%doy
+ 
    ! ...........
    !new_LAI_Ma = interpolated LAI_Ma - BUT I AM JUST SHORTCUTTING
    ! ...........
@@ -358,7 +373,7 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
 !LAI_Ma: here for testing i am using the first month only. For the sake of
 !updating and shifting you will need to develop some logic around this based of
 !on the date
-   veg%vlai   = LAI_Ma(:,1) 
+   !veg%vlai   = LAI_Ma(:,1) 
    veg%hc     = PACK(kblum_veg%htveg, um1%L_TILE_PTS)
 
 END SUBROUTINE clobber_height_lai

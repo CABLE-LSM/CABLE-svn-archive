@@ -31,19 +31,11 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    
    integer :: tests
    !integer :: latDimId, lonDimId, pseudoDimId
-   integer :: IQnlat,IQnlon,IQnpseudo 
-   integer :: numdims
-   integer :: VarNumDimIds(3)
+   !integer :: IQnlat,IQnlon,IQnpseudo 
+   !integer :: numdims
+   !integer :: VarNumDimIds(3)
    character(len=3) :: chnode
    character(len=6) :: frmat
-   
-   print *, "Function ncdf node ", node_gl
-   print *, "Function ncdf rows ", rows 
-   print *, "Function ncdf rowlength ", row_length 
-   print *, "Function ncdf mp ",  mp
-   print *, "Function ncdf npseudo ", npseudo
-   print *, "Function ncdf lat ", latitude 
-   print *, "Function ncdf lon ", longitude 
    
    if(node_gl > 99) then
       frmat = "(I3.1)"
@@ -81,10 +73,10 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    !print *, "lonDimS  : ", IQnlon 
    !print *, "pseudoDimS  : ", IQnpseudo 
 
-   tests = nf90_inquire_variable(ncid, VarId, ndims = numDims)
+   !tests = nf90_inquire_variable(ncid, VarId, ndims = numDims)
    !print *, "and ToTdim : ", numDims 
 
-   tests = nf90_inquire_variable(ncid, VarId, dimids = VarNumDimIds(:numDims))
+   !tests = nf90_inquire_variable(ncid, VarId, dimids = VarNumDimIds(:numDims))
    !print *, "and shape: ", VarNumDimIds 
    ! Read the data.
    call check( nf90_get_var(ncid, latid, lat_in) )

@@ -219,9 +219,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !--- logn, vegparmnew can be set thru cable.nml
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
-   !LAI_Ma        
+   !LAI_Ma: this is where LAI_Ma is first declared. NB> this is the interpolated
+   !version, NOT the read version        
    integer, parameter :: npseudo_interp = 12
-   real, dimension(:,:), allocatable :: LAI_Ma
+   real, dimension(:,:), allocatable, save :: LAI_Ma
   
 
       !---------------------------------------------------------------------!
