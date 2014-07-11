@@ -1524,17 +1524,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                 g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
                      (veg%g1c4(i)  * veg%frac4(i))
-
-                gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i) / SQRT(vpd))) / &
-                                (csx(i,1)*1E6) ! convert CO2 bar to umol/mol
-
-                gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i) / SQRT(vpd))) / &
-                                (csx(i,2)*1E6) ! convert CO2 bar to umol/mol
-
-
-                ! Convert gs from mol to umol
-                gs_coeff(i,1) = gs_coeff(i,1) * 1E6
-                gs_coeff(i,2) = gs_coeff(i,2) * 1E6
+            
+                gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+                gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF
