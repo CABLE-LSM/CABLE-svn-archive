@@ -369,20 +369,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 !LAI_Ma{   
    LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)      
-!rm
-!   do N=1,NTILES  
-!      do J=1,TILE_PTS(N) 
-!         i = TILE_INDEX(j,N)  
-!         if( TILE_FRAC(i,N) .gt. 0.0 ) then
-!            if(N < 14 ) then 
-!               !lai_ft(i,N) = LAI_Ma_UM(i,N) 
-!               lai_ft(i,N) = 2. 
-!             else 
-!               LAI_FT(i,N) = 0.
-!            endif
-!         endif
-!      enddo
-!   enddo
 !LAI_Ma: here for testing i am using the first month only. For the sake of
 !updating and shifting you will need to develop some logic around this based of
 !on the date
