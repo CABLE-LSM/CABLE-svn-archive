@@ -41,7 +41,7 @@ MODULE cable_def_types_mod
    
    INTEGER :: mp,    & ! # total no of patches/tiles 
               mvtype=17,& ! total # vegetation types,   from input
-              mstype,& ! total # soil types,         from input
+              mstype=9,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
@@ -651,6 +651,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%GWclappB(mp) )
    allocate( var%GWwatsat(mp) )
    allocate( var%GWwatr(mp) )
+   var%GWwatr(:) = 0.05
    allocate( var%GWz(mp) )
    allocate( var%GWdz(mp) )
    allocate( var%GWdensoil(mp) )
@@ -660,6 +661,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%clappB(mp,ms) )
    allocate( var%watsat(mp,ms) )
    allocate( var%watr(mp,ms) )
+   var%watr(:,:) = 0.05
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
    allocate( var%densoil(mp,ms) )

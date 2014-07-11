@@ -2,8 +2,31 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz  mael mons
+   set -A kh vayu cher burn shin squa bliz  mael mons ccrc
 }
+
+
+host_ccrc()
+{
+   export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
+   export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   export CFLAGS='-O2 -xhost -ftrapuv -fp-model precise -ftz -fpe0'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -debug -g -ftrapuv -CB -check bounds -diag-enable warn'
+# -diag-enable sc2 -diag-enable sc-single-file
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -L/home/nfs/z3362708/openmpi/lib'
+   if [[ $1 = 'debug' ]]; then
+      export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O0 -traceback -debug -g -ftrapuv -diag-enable warn'
+# -diag-enable sc2 -diag-enable sc-single-file
+   fi
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 host_bliz()
@@ -50,12 +73,12 @@ host_mael()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=mpif90
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   export CFLAGS='-O5 -shared-intel -xhost -ipo '   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
    fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O5'
    build_build
    cd ../
    build_status

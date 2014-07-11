@@ -247,9 +247,6 @@ CONTAINS
    cable_runtime%run_gw_model = cable_user%GW_MODEL
 
 
-   write(*,*) ' cable alt forcing flag is  ',cable_user%alt_forcing
-
-
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
@@ -408,7 +405,6 @@ CONTAINS
 
          ! MPI: receive input data for this step from the master
          CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
-
          ! MPI: some fields need explicit init, because we don't transfer
          ! them for better performance
          ! in the serial version this is done in get_met_data
