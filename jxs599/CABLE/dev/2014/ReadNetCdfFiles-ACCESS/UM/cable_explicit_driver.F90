@@ -57,7 +57,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
                                   SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
                                   GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype )    
+                                  endstep, timestep_number, mype, LAI_Ma_UM )    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -367,14 +367,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
              rad, rough, soil, ssnow, sum_flux, veg )
 
 
-!lai_ft = 1. 
-!!LAI_Ma{   
-!   LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)      
+!LAI_Ma{   
+   LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)      
+!rm
 !   do N=1,NTILES  
 !      do J=1,TILE_PTS(N) 
 !         i = TILE_INDEX(j,N)  
 !         if( TILE_FRAC(i,N) .gt. 0.0 ) then
-! print *,"jhan:LAI_ma explicit"
 !            if(N < 14 ) then 
 !               !lai_ft(i,N) = LAI_Ma_UM(i,N) 
 !               lai_ft(i,N) = 2. 
