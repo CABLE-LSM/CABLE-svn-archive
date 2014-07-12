@@ -291,7 +291,6 @@ CONTAINS
     REAL, DIMENSION(mp)       :: tmp1d
     REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
 
-
     ! assign local ptrs to constants defined in cable_data_module
     CALL point2constants(C)
 
@@ -738,7 +737,6 @@ CONTAINS
        !              qstar(1:mp:max_vegpatches) * denom(1:mp:max_vegpatches)
        !       ENDDO
        !**********************************************************************************************
-
 
        WHERE (veg%meth > 0 .and. canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
           !      use the dispersion matrix (DM) to find the air temperature and specific humidity

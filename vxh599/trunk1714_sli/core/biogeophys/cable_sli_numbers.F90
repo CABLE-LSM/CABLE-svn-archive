@@ -93,9 +93,9 @@ MODULE sli_numbers
 
   ! Special setups for sli stand-alone, such as 1-8: testcases of Haverd & Cuntz (2010);
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
-  ! 12: Loetschental
+  ! 16: Loetschental
   ! 0=normal run
-  INTEGER(i_d) :: experiment = 12
+  INTEGER(i_d) :: experiment = 16
 
   ! define types
   TYPE vars_met
@@ -120,7 +120,7 @@ MODULE sli_numbers
      REAL(r_2), DIMENSION(nsnow_max):: depth, hsnow, hliq, dens, tsn, kH, kE, kth, &
           Dv, cv, sl, melt, &
           Jsensible, Jlatent,  deltaJlatent, deltaJsensible, fsnowliq_max
-     REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain, totdepth,J, &
+     REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain, totdepth, J, &
           Qadv_melt, Qadv_vap, Qcond_net, &
           Qadv_transfer, Qmelt, Qtransfer,FluxDivergence, deltaJ, &
           Qvap, MoistureFluxDivergence, Qprec, Qevap, deltawcol
@@ -134,7 +134,7 @@ MODULE sli_numbers
 
   TYPE params
      REAL(r_2) :: the, thre, he, lam, Ke, eta, thr
-     REAL(r_2) :: KSe, phie, phiSe, rho, thw,thfc, kd, css, clay, tortuosity
+     REAL(r_2) :: KSe, phie, phiSe, rho, thw, thfc, kd, css, clay, tortuosity
      INTEGER(i_d) :: ishorizon
      REAL(r_2) :: zeta
      REAL(r_2) :: fsatmax

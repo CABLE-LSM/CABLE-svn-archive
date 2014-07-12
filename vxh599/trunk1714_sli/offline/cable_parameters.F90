@@ -906,13 +906,16 @@ CONTAINS
     ssnow%rnof1  = 0.0   ! surface runoff (mm/timestepsize)
     ssnow%rnof2  = 0.0   ! deep drainage (mm/timestepsize)
     ssnow%rtsoil = 100.0 ! turbulent resistance for soil
+!MC!    ssnow%h0     = 0.0   ! 
+!MC!    ssnow%gammzz = 0.0   !
+!MC!    ssnow%sconds = 0.06  ! snow thermal cond (W m-2 K-1)
     canopy%ga     = 0.0  ! ground heat flux (W/m2)
     canopy%dgdtg  = 0.0  ! derivative of ground heat flux wrt soil temp
     canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
 
-    IF(hide%Ticket49Bug2) THEN
+    IF (hide%Ticket49Bug2) THEN
        canopy%ofes    = 0.0  ! latent heat flux from soil (W/m2)
        canopy%fevc     = 0.0 !vh!
        canopy%fevw     = 0.0 !vh!

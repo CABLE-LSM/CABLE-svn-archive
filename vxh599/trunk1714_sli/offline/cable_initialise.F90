@@ -420,6 +420,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
             max_vegpatches,'ms',from_restart,mp)
        CALL readpar(ncid_rin,'h0',dummy,ssnow%h0,filename%restart_in, &
             max_vegpatches,'def',from_restart,mp)
+       CALL readpar(ncid_rin,'nsnow',dummy,ssnow%nsnow,filename%restart_in, &
+            max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'Tsurface',dummy,ssnow%Tsurface,filename%restart_in, &
             max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'snowliq',dummy,ssnow%snowliq,filename%restart_in, &

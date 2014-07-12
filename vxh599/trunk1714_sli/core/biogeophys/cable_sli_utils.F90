@@ -333,7 +333,7 @@ CONTAINS
     if (vsnow%nsnow.eq.0) surface_case = 1
     if (vsnow%nsnow>0) surface_case = 2
     select case (surface_case)
-    case (1)
+    case (1) ! no snow
        call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
             Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
             Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
@@ -350,7 +350,6 @@ CONTAINS
           Gpot = vmet%Rn - Hpot - Epot
           dEdTs = zero
        endif
-
 
        if (var(1)%isat.eq.1) then  ! saturated surface =>. potential evporation
           Tsurface = Tsurface_pot
@@ -1876,7 +1875,7 @@ CONTAINS
 
   ! For debug: remove elemental pure
   ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
-    !  SUBROUTINE hyofS(S, Tsoil, parin, var)
+  ! SUBROUTINE hyofS(S, Tsoil, parin, var)
 
     IMPLICIT NONE
 
@@ -1912,7 +1911,11 @@ CONTAINS
        var%thetal = thetal_max
        ! liquid water content, relative to saturation
        ! Sliq      = (var%thetal - (parin%the-parin%thre))/parin%thre
-       Sliq      = min((var%thetal-(parin%the-parin%thre))/(parin%thre-var%thetai), one)
+       if ((parin%thre-var%thetai) .le. max(parin%thr,1e-5_r_2)) then
+          Sliq = max(parin%thr,1e-5_r_2)
+       else
+          Sliq      = min((var%thetal-(parin%the-parin%thre))/(parin%thre-var%thetai), one)
+       endif
        ! saturated liquid water content (< 1 for frozen soil)
        ! air entry potential, flux matric potential and hydraulic conductivity for saturated frozen soil
        var%he    = parin%he
@@ -1980,7 +1983,7 @@ CONTAINS
     endif
 
     !  variables required for vapour phase transfer
-    theta  =  S*(parin%thre) + (parin%the - parin%thre)
+    theta  =  min(S,one)*(parin%thre) + (parin%the - parin%thre)
 
     !if (z.lt.3.and.theta>parin%thfc) then
     ! macropore_modifier = exp(-parin%zeta*(z-3))
@@ -2014,7 +2017,7 @@ CONTAINS
     var%kv    = var%Dv * var%cvsat *c * var%rh
 
     select case(experiment)
-    case(11,13) ! Hansson et al. (2004)
+    case(11) ! Hansson et al. (2004)
        ! Hansson et al. (2004) - Eq. 13b
        ! A=C1, B=C2, C1=C3, D=C4, E=C5
        A  = 0.55_r_2
@@ -2022,18 +2025,16 @@ CONTAINS
        C1 = 3.07_r_2
        D  = 0.13_r_2
        E  = four
-       !var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E)
+       ! var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E)
        ! Hansson et al. (2004) - Eq. 15
        F1 = 13.05_r_2
        F2 = 1.06_r_2
        if  (Tsoil < var%Tfrz) then ! ice
           F  = one + F1*var%thetai**F2
-
           if ((C1*(theta+F*var%thetai))**E > 100.) then
              var%kH = A + B*(theta+F*var%thetai)
           else
              var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
-
           endif
        else
           var%kH = A + B*(theta)-(A-D)*exp(-(C1*(theta))**E)
@@ -2049,12 +2050,22 @@ CONTAINS
        endif
        D  = 0.03_r_2 + 0.7_r_2*(one-parin%thre)**2 ! (4.22)
        E  = four
-       var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E) ! (4.20)
-       ! ! Hansson et al. (2004) - Eq. 15
-       ! F1 = 13.05_r_2
-       ! F2 = 1.06_r_2
+       ! var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E) ! (4.20)
+       ! Hansson et al. (2004) - Eq. 15
+       F1 = 13.05_r_2
+       F2 = 1.06_r_2
        ! F  = one + F1*var%thetai**F2
        ! var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+       if  (Tsoil < var%Tfrz) then ! ice
+          F  = one + F1*var%thetai**F2
+          if ((C1*(theta+F*var%thetai))**E > 100.) then
+             var%kH = A + B*(theta+F*var%thetai)
+          else
+             var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+          endif
+       else
+          var%kH = A + B*(theta)-(A-D)*exp(-(C1*(theta))**E)
+       endif
     end select
     var%eta_th = one
     var%kE     = var%Dv*var%rh*var%sl*thousand*var%lambdav*var%eta_th
@@ -2533,8 +2544,27 @@ CONTAINS
     plit%phie  = zero
     plit%phiSe = zero
     plit%rho   = 63.5_r_2
-    dxL        = zero            ! litter params
+    ! dxL        = zero            ! litter params
     dxL        = real(soil%clitt(index),r_2)*two/plit%rho*0.1_r_2
+
+    plit%ishorizon  = 0
+    plit%thw        = zero
+    plit%thfc       = zero
+    plit%thr        = zero
+    plit%he         = zero
+    plit%Ke         = zero
+    plit%lam        = zero
+    plit%eta        = zero
+    plit%KSe        = zero
+    plit%phie       = zero
+    plit%phiSe      = zero
+    plit%rho        = zero
+    plit%tortuosity = zero
+    plit%clay       = zero
+    plit%zeta       = zero
+    plit%fsatmax    = zero
+    plit%css        = zero
+    plit%kd         = zero
 
   END SUBROUTINE setlitterpar
 
@@ -2595,41 +2625,63 @@ CONTAINS
 
     allocate(par(mp,ms))
 
-    do i=1, ms
-       if (sum(x2dx(:,1:i)).lt.0.15) then
-          par(:,i)%ishorizon  = 1
-          par(:,i)%thw        = 0.165
-          par(:,i)%thfc       = 0.421
-          par(:,i)%the        = 0.698
-          par(:,i)%thr        = zero
-          par(:,i)%he         = 8.117e-5
-          par(:,i)%Ke         = 2.754e-5
-          par(:,i)%lam        = 1/5.90
-          par(:,i)%clay       = 0.06
-       else
-          par(:,i)%ishorizon  = 2
-          par(:,i)%thw        = 0.105
-          par(:,i)%thfc       = 0.301
-          par(:,i)%the        = 0.564
-          par(:,i)%thr        = zero
-          par(:,i)%he         = 7.10e-5
-          par(:,i)%Ke         = 2.481e-5
-          par(:,i)%lam        = 1/5.25
-          par(:,i)%clay       = 0.06
-       endif
 
-       par(:,i)%thre =  par(:,i)%the - par(:,i)%thr
-       par(:,i)%eta        = two/par(:,i)%lam + two + one
-       par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
-       par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
-       par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
-       par(:,i)%kd         = real(soil%cnsd(index),r_2)
-       par(:,i)%css        = real(soil%css(index),r_2)
-       par(:,i)%rho        = real(soil%rhosoil(index),r_2)
-       par(:,i)%tortuosity = 0.67_r_2
-       par(:,i)%zeta       = real(soil%zeta(index),r_2)
-       par(:,i)%fsatmax    = real(soil%fsatmax(index),r_2)
-    enddo
+    ! do i=1, ms
+    !    where (x2dx(:,i) .lt. 0.15)
+    !       par(:,i)%ishorizon  = 1
+    !       par(:,i)%thw        = 0.165_r_2
+    !       par(:,i)%thfc       = 0.421_r_2
+    !       par(:,i)%the        = 0.698_r_2
+    !       par(:,i)%thr        = zero
+    !       par(:,i)%he         = -8.117e-5_r_2
+    !       par(:,i)%Ke         = 2.754e-5_r_2
+    !       par(:,i)%lam        = 1.0_r_2/5.90_r_2
+    !    elsewhere
+    !       par(:,i)%ishorizon  = 2
+    !       par(:,i)%thw        = 0.105_r_2
+    !       par(:,i)%thfc       = 0.301_r_2
+    !       par(:,i)%the        = 0.564_r_2
+    !       par(:,i)%thr        = zero
+    !       par(:,i)%he         = -7.10e-5_r_2
+    !       par(:,i)%Ke         = 2.481e-5_r_2
+    !       par(:,i)%lam        = 1.0_r_2/5.25_r_2
+    !    end where
+    !    par(:,i)%clay       = 0.06_r_2
+    !    par(:,i)%tortuosity = 0.67_r_2
+    !    par(:,i)%thre       = par(:,i)%the - par(:,i)%thr
+    !    par(:,i)%eta        = two/par(:,i)%lam + two + one
+    !    par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
+    !    par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
+    !    par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
+    !    par(:,i)%kd         = zero ! not used
+    !    par(:,i)%rho        = 2650._r_2 * par(:,i)%the            ! porosity = soil/stone
+    !    par(:,i)%css        = 2400._r_2/2650._r_2  * par(:,i)%rho ! Campbell (1985)
+    !    par(:,i)%zeta       = zero ! not used - force-restore
+    !    par(:,i)%fsatmax    = zero ! not used - force-restore
+    ! enddo
+    
+    ! Cable coarse sand
+    par%ishorizon  = 1
+    par%thw        = 0.072_r_2
+    par%thfc       = 0.143_r_2
+    par%the        = 0.398_r_2
+    par%thr        = zero
+    par%he         = -0.106_r_2
+    par%Ke         = 166.e-6_r_2
+    par%lam        = 1.0_r_2/4.2_r_2
+    par%clay       = 0.09_r_2
+    par%rho        = 1600._r_2
+    par%css        = 850._r_2
+    ! 
+    par%tortuosity = 0.67_r_2
+    par%thre       = par%the - par%thr
+    par%eta        = two/par%lam + two + one
+    par%KSe        = par%eta * par%Ke    ! dK/dS at he
+    par%phie       = par%Ke * par%he / (one - par%lam * par%eta) ! MFP at he
+    par%phiSe      = (par%eta - one/par%lam) * par%phie    ! dphi/dS at he
+    par%kd         = zero ! not used
+    par%zeta       = zero ! not used - force-restore
+    par%fsatmax    = zero ! not used - force-restore
 
   END SUBROUTINE setpar_Loetsch
 
