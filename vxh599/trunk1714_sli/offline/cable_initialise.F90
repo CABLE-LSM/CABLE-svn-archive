@@ -418,6 +418,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
     IF(cable_user%SOIL_STRUC=='sli') THEN
        CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
             max_vegpatches,'ms',from_restart,mp)
+      CALL readpar(ncid_rin,'Tsoil',dummy,ssnow%Tsoil,filename%restart_in, &
+            max_vegpatches,'ms',from_restart,mp)
        CALL readpar(ncid_rin,'h0',dummy,ssnow%h0,filename%restart_in, &
             max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'nsnow',dummy,ssnow%nsnow,filename%restart_in, &
