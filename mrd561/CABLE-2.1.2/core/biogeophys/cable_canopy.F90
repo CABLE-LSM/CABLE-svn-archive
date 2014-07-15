@@ -1219,13 +1219,7 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
   
      call calc_srf_wet_fraction(ssnow,soil)
 
-     !large scale wet part from wtd, non-sat can still be wet if first layer is
-     ssnow%wetfac = ssnow%wetfac +  (1.-ssnow%wetfac)*MAX( 1.e-6, MIN( 1.0,     &
-                    ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
-                    / ( soil%sfc - soil%swilt/2.0 ) ) )
-
-
-     ssnow%wetfac = MAX( 1.e-2, MIN( 1.0,                                     &
+     ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
                   ( REAL (ssnow%wetfac))))
 
    else

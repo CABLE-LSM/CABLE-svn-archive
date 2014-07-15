@@ -410,8 +410,6 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
 
-   write(*,*) 'master starting timestepping'
-   
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -448,6 +446,7 @@ SUBROUTINE mpidrv_master (comm)
 
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
+         write(*,*) ktau
 
 !         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
@@ -478,7 +477,6 @@ SUBROUTINE mpidrv_master (comm)
                             rad, iveg, kend, dels, C%TFRZ, iktau ) 
 
          ! MPI: receive this time step's results from the workers
-         write(*,*) 'master recieve'
          CALL master_receive (ocomm, oktau, recv_ts)
 
          ! MPI: scatter input data to the workers
