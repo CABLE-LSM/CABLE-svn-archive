@@ -1349,14 +1349,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
    lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
-        
+   
     ! Ticket #56, adding Medlyn Switch
    IF(cable_user%GS_SWITCH == 'leuning') THEN
        gswmin = max(1.e-6,lower_limit2)
+   ELSEIF(cable_user%GS_SWITCH == 'medlyn_fit') THEN !to be removed
+       gswmin = max(1.e-6,lower_limit2)
    ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
-       ! convert from mol to umol
-       gswmin = (veg%g0c3(i) * 1E6) * (1. - frac42) + &
-                (veg%g0c4(i) * 1E6) * frac42
+       gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
    ELSE
        STOP 'GS_MODEL switch failed.'
    ENDIF
