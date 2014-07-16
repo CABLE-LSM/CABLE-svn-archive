@@ -620,6 +620,9 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'ncs',from_restart,mp)
                 
    !MD check to see if restart has gw params and variables
+
+  IF ( .NOT. soilparmnew) THEN  !no need?
+
    ok = NF90_INQ_VARID(ncid_rin,'WatSat',parID)
    IF(ok == NF90_NOERR) THEN 
      CALL readpar(ncid_rin,'WatSat',dummy,soil%watsat,filename%restart_in,            &
@@ -674,7 +677,9 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    IF(ok == NF90_NOERR) THEN 
      CALL readpar(ncid_rin,'GWHkSat',dummy,soil%GWhksat,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)   
-   END IF          
+   END IF         
+
+   END IF 
    
    
    
