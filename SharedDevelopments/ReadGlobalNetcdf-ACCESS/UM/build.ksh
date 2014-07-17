@@ -227,7 +227,7 @@ build_build()
       cable_roughness.o cable_carbon.o cable_canopy.o cable_cbm.o    \
       cable_um_tech.o cable_um_init_subrs.o cable_um_init.o \
       casa_variable.o casa_cable.o casa_cnp.o casa_inout.o \
-      casa_types.o casa_um_inout.o cable_iovars.o
+      casa_types.o casa_um_inout.o cable_iovars.o cable_ncdf.o
 
    if [[ -f libcable.a ]]; then
       print '\nLibrary build successful. Copying libcable.a to ' $libroot
@@ -263,6 +263,18 @@ build_build()
 ###########################################
 ## build.ksh - MAIN SCRIPT STARTS HERE   ##
 ###########################################
+
+if [[ $1 = 'LAI_Ma' ]]; then
+   print '\n making cable_ncdf separately \n'
+   module load netcdf
+   make -f Makefile_LAI_Ma
+   mkdir -p .tmp/
+   #if [[ ! -d .tmp ]]; then
+   #   mkdir .tmp
+   #fi
+   /bin/cp cable_ncdf.o .tmp/
+   module unload netcdf
+fi
 
 if [[ $1 = 'clean' ]]; then
    print '\ncleaning up\n'

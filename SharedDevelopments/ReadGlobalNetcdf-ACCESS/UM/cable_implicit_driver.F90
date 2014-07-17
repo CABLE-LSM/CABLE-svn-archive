@@ -54,7 +54,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   RESP_W_FT_ACC, idoy )
 
    USE cable_def_types_mod, ONLY : mp
-   USE cable_data_module,   ONLY : PHYS
+   USE cable_data_module,   ONLY : PHYS, cable
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
                                   ssnow, sum_flux, veg
@@ -215,7 +215,10 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       dqwc
 
    REAL, POINTER :: TFRZ
-   
+   !LAI_Ma
+   integer :: openstatus =1
+   integer :: LAI_Ma_year = 0
+
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -256,10 +259,37 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)
 
+!LAI_Ma{
+   ! As cable%doy resets every year, record when each year has passed
+   if(idoy == 365 ) then !NB> this is for Gregorian Calendar
+      open(unit=713941,file='cable_DoY.txt',  &
+           action="read", iostat=openstatus )
+         if(openstatus==0) then
+               read(713941,*) LAI_Ma_year 
+         else
+            write (*,*), 'cable_DoY.txt',' Error: unable to read'
+         endif
+      close(713941)
+      
+      LAI_Ma_year = LAI_Ma_year + 1     
+      
+      open(unit=713941,file='cable_DoY.txt', status="unknown", &
+           action="write", iostat=openstatus )
+         if(openstatus==0) then
+               write(713941,*) LAI_Ma_year 
+         else
+            write (*,*), 'cable_DoY.txt',' Error: unable to read'
+         endif
+      close(713941)
+   endif
+!LAI_Ma}
+ 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
       IF(idoy==0) idoy =365
-  
+      cable%doy = idoy
+
+
 ! Lestevens Sept2012 - Call CASA-CNP
       if (l_casacnp) then
       CALL bgcdriver(ktau_gl,kstart,kend_gl,TIMESTEP,met,ssnow,canopy,veg,soil, &
