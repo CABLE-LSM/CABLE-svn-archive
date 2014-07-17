@@ -2222,7 +2222,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
 
     !local variables
-    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor
+    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor,xx
     REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters
     REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
     REAL(r_2), DIMENSION(mp,ms)        :: dzmm_mp
@@ -2248,11 +2248,12 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000._r_2
 
-    xxx(:) = exp( - 1.0 * MAX( 1.e-6, MIN( 1.0,                                &
-                  ( REAL (ssnow%wb(:,1) ) - soil%sfc )                  &
-                  / ( soil%watsat(:,1) - soil%sfc ) ) )) - 1.0
 
-    xxx(:) = xxx(:) / (exp(-1.0)-1.0)
+    xx(:) = max(1.e-6, min(1., real((ssnow%wbliq(:,1)-soil%swilt(:))/&
+                                    (soil%sfc(:)-soil%swilt(:)))))
+    xx(:) = max(1.e-6, min(1., xx*xx*xx))
+
+    xxx(:) = (exp(0.5*xx(:))-1.) / (exp(-0.5)-1.0)
 
     satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)+fice(:)
 
