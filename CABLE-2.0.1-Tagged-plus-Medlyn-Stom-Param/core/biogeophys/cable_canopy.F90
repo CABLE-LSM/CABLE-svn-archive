@@ -1344,24 +1344,31 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ENDIF
    
+   
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
 
-   gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
-   lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
-   
-    ! Ticket #56, adding Medlyn Switch
+   ! Ticket #56, adding Medlyn Switch
    IF(cable_user%GS_SWITCH == 'leuning') THEN
+       gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
+       lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
        gswmin = max(1.e-6,lower_limit2)
    ELSEIF(cable_user%GS_SWITCH == 'medlyn_fit') THEN !to be removed
+       gsw_term = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
+       lower_limit2 = rad%scalex * (veg%g0c3(i) * (1. - frac42) + &
+                      veg%g0c3(i) * frac42)
        gswmin = max(1.e-6,lower_limit2)
    ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
        gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
    ELSE
        STOP 'GS_MODEL switch failed.'
    ENDIF
-
-
+   
+   print *, gsw_term
+   print *, lower_limit2
+   print *, gswmin
+   print *, veg%g0c3(i), veg%g0c4(i), C%gsw03, C%gsw04
+   stop
  
 
    gw = 1.0e-3 ! default values of conductance
