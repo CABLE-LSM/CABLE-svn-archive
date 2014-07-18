@@ -1522,11 +1522,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
-                print *, gsw_term
-                print *, lower_limit2
-                print *, gswmin
-                print *, veg%g0c3(i), veg%g0c4(i), veg%g1c3(i), veg%g1c4(i), "**", C%gsw03, C%gsw04
-                stop
+                
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
                 
