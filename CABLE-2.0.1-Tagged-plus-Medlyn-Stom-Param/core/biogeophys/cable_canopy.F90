@@ -1356,7 +1356,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ELSEIF(cable_user%GS_SWITCH == 'medlyn_fit') THEN !to be removed
        gsw_term = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
        lower_limit2 = rad%scalex * (veg%g0c3(i) * (1. - frac42) + &
-                      veg%g0c3(i) * frac42)
+                      veg%g0c4(i) * frac42)
        gswmin = max(1.e-6,lower_limit2)
    ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
        gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
