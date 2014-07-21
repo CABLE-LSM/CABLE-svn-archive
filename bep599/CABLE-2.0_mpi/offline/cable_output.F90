@@ -67,7 +67,7 @@ MODULE cable_output_module
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar,                                   &
                     drybal,wetbal,visAbs,NIRabs,LWcanopy,LWsoil,oLWsoil,       &
-                    ESoilMod,delwc,delSWE,delwb,through,dew,CanWbal,Ecan2
+                    ESoilMod,delwc,delSWE,delwb,through,dew,CanWbal,Ecan2,CanT
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -192,6 +192,8 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: ECan2    ! wet canopy evaporation
                                                     ! not including dew
                                                     ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CanT     ! within-canopy temperature
+                                                    ! [K]
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -586,6 +588,13 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%VegT(mp))
        out%VegT = 0.0 ! initialise
+    END IF
+    IF(output%veg .OR. output%CanT) THEN
+       CALL define_ovar(ncid_out, ovid%CanT, 'CanT', 'K',                      &
+                        'Within-canopy temperature', patchout%CanT,       &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%CanT(mp))
+       out%CanT = 0.0 ! initialise
     END IF
     IF(output%veg .OR. output%CanopInt) THEN
        CALL define_ovar(ncid_out, ovid%CanopInt, 'CanopInt', 'kg/m^2',         &
@@ -1696,6 +1705,20 @@ CONTAINS
                           ranges%VegT, patchout%VegT, 'default', met)
           ! Reset temporary output variable:
           out%VegT = 0.0
+       END IF
+    END IF
+    ! CanT: within-canopy temperature [K]
+    IF(output%veg .OR. output%CanT) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%CanT = out%CanT + REAL(met%tvair, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%CanT = out%CanT / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%CanT, 'CanT', out%CanT, &
+                          ranges%CanT, patchout%CanT, 'default', met)
+          ! Reset temporary output variable:
+          out%CanT = 0.0
        END IF
     END IF
     ! CanopInt: total canopy water storage [kg/m^2]

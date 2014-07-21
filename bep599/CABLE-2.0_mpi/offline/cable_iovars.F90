@@ -275,6 +275,7 @@ MODULE cable_IO_vars_module
          dew      = .FALSE.,  & ! dew rate [kg/m2/s]
          CanWbal  = .FALSE.,  & ! rate of water imbalance within canopy [kg/m2/s]
          ECan2    = .FALSE.,  & ! wet canopy evaporation, not including dew [kg/m2/s]
+         CanT     = .FALSE.,  & ! within-canopy temperature [K]
 
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
