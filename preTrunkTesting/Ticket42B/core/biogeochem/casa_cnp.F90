@@ -54,6 +54,7 @@ USE casadimension
 USE casaparm
 USE casavariable
 USE phenvariable
+USE cable_common_module, only: cable_user ! Added by Kai and Jeff
 IMPLICIT NONE
 CONTAINS
 
@@ -522,6 +523,8 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet)
 
   REAL(r_2), DIMENSION(mp)       :: xkwater,xktemp
   REAL(r_2), DIMENSION(mp)       :: fwps,tsavg
+  ! Added by Jeff
+  REAL(r_2), DIMENSION(mp)       :: smrf,strf,slopt,wlt,tsoil,fcap,sopt 
 !,tsurfavg  !!, msurfavg
   INTEGER :: npt
 
@@ -530,21 +533,70 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet)
   fwps(:)     =  casamet%moistavg(:)/soil%ssat(:)
   tsavg(:)    =  casamet%tsoilavg(:) 
 
+! Added by Jeff
+  tsoil(:)    =  tsavg(:)-TKzeroC !tsoil in C
+  strf(:)     = 1.0
+  smrf(:)     = 1.0
+  slopt(:)    = 1.0
+  sopt(:)     = 1.0
+
 !  PRINT *, 'Starting xratesoil; mp = ', mp
 
   ! BP changed the WHERE construct to DO-IF for Mk3L (jun2010)
+
+  ! Implementing alternative parameterizations by Jeff
   DO npt=1,mp
   IF(casamet%iveg2(npt)/=icewater) THEN
-    ! Kirschbaum function
+    ! Kirschbaum function (original function, still used for xklitter)
     xktemp(npt)  = q10soil**(0.1*(tsavg(npt)-TKzeroC-35.0))
     xkwater(npt) = ((fwps(npt)-wfpscoefb)/(wfpscoefa-wfpscoefb))**wfpscoefe    &
                * ((fwps(npt)-wfpscoefc)/(wfpscoefa-wfpscoefc))**wfpscoefd
     IF (veg%iveg(npt) == cropland .OR. veg%iveg(npt) == croplnd2) &
                xkwater(npt)=1.0
     xklitter(npt) = xkoptlitter(veg%iveg(npt)) * xktemp(npt) * xkwater(npt)
-    xksoil(npt)   = xkoptsoil(veg%iveg(npt))   * xktemp(npt) * xkwater(npt)
+
+    IF(cable_user%SRF) THEN
+      IF(trim(cable_user%SMRF_NAME)=='CASA-CNP') THEN
+         smrf(npt)=xkwater(npt)
+      ELSE IF (trim(cable_user%SMRF_NAME)=='SOILN') then
+         sopt(npt)=0.92
+         slopt(npt)=wlt(npt)+0.1          !SLOPT is the lower optimum
+         IF (fwps(npt)>sopt(npt)) THEN
+           smrf(npt)=0.2+0.8*(1.0-fwps(npt))/(1.0-sopt(npt))
+         ELSE IF(slopt(npt)<=fwps(npt) .AND. fwps(npt)<=sopt(npt)) THEN
+           smrf(npt) = 1.0
+         ELSE IF (wlt(npt)<=fwps(npt) .AND. fwps(npt) <slopt(npt)) THEN
+           smrf(npt)=0.01+0.99*(fwps(npt)-wlt(npt))/(slopt(npt)-wlt(npt))
+         ELSE IF (fwps(npt)<wlt(npt)) THEN
+           smrf(npt) = 0.01
+         END IF
+      ELSE IF (trim(cable_user%SMRF_NAME)=='TRIFFID') THEN
+         sopt(npt) = 0.5 * (1+wlt(npt))
+         IF (fwps(npt) > sopt(npt)) THEN
+           smrf(npt) =1.0-0.8*(fwps(npt)-sopt(npt))
+         ELSE IF (wlt(npt)<fwps(npt) .AND. fwps(npt)<=sopt(npt)) THEN
+           smrf(npt)=0.01+0.8*((fwps(npt)-wlt(npt))/(sopt(npt)-wlt(npt)))
+         ELSE IF (fwps(npt)<wlt(npt)) THEN
+           smrf(npt) = 0.2
+         END IF
+      END IF
+
+      IF(trim(cable_user%STRF_NAME)=='CASA-CNP') THEN
+        strf(npt)=xktemp(npt)
+      ELSE if (trim(cable_user%STRF_NAME)=='K1995') THEN
+      !Kirschbaum from Kirschbaum 1995, eq (4) in SBB, .66 is to collapse smrf
+      !to same area
+        strf(npt)=exp(-3.764+0.204*tsoil(npt)*(1-0.5*tsoil(npt)/36.9))/.66
+      ELSE IF (trim(cable_user%STRF_NAME)=='PnET-CN') THEN
+        strf(npt)=0.68*exp(0.1*(tsoil(npt)-7.1))/12.64
+      END IF
+      xksoil(npt) = xkoptsoil(veg%iveg(npt))*strf(npt)*smrf(npt)
+    ELSE
+      xksoil(npt)   = xkoptsoil(veg%iveg(npt))   * xktemp(npt) * xkwater(npt)
+    END IF
   END IF
   END DO
+
 !  WHERE(casamet%iveg2/=icewater)  
 !!    ! Kirschbaum function
 !!    xktemp(:) = exp(xkalpha + xkbeta*(tsavg(:)-TKzeroC) &
