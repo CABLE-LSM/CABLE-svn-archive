@@ -1014,7 +1014,8 @@ CONTAINS
                vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
                vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
-               vegin%xalbnir, vegin%length, vegin%width )
+               vegin%xalbnir, vegin%length, vegin%width,                       &
+               vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4) 
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous
