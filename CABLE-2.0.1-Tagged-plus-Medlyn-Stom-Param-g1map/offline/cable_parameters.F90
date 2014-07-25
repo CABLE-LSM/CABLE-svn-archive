@@ -109,6 +109,11 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
 
+
+ ! jtk561 - g1map
+  REAL, DIMENSION(:, :),        ALLOCATABLE :: ing1c3
+  REAL, DIMENSION(:, :),        ALLOCATABLE :: ing0c3
+
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
@@ -142,6 +147,13 @@ CONTAINS
       WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
       CALL spatialSoil(nlon, nlat, logn)
     ENDIF
+
+    ! jtk561 - reading g1_map
+    IF (g1map) THEN
+        CALL read_g1map(logn)
+    END IF
+
+
 
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
@@ -598,6 +610,88 @@ CONTAINS
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
 
   END SUBROUTINE spatialSoil
+
+
+! jtk561 - subroutine to read g1 from map 
+!=============================================================
+  SUBROUTINE read_g1map(logn)
+    USE netcdf
+    USE cable_common_module, ONLY : filename, g1map
+    IMPLICIT NONE
+    INTEGER, INTENT(IN) ::  logn ! log file unit number
+
+    INTEGER :: ncid, ok
+    INTEGER :: nlon
+    INTEGER :: nlat
+    INTEGER :: xID, yID
+    INTEGER :: varID
+    INTEGER :: r, e
+
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLong1map
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLatg1map
+
+    ok = NF90_OPEN(filename%g1mapfile, 0, ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening g1 file.')
+
+    ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring x dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, xID, LEN=nlon)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting x dimension.')
+    ok = NF90_INQ_DIMID(ncid, 'latitude', yID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'y', yID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
+
+
+    ALLOCATE( inLong1map(nlon), inLatg1map(nlat) )
+    ALLOCATE( ing0c3(nlon, nlat) )
+    ALLOCATE( ing1c3(nlon,nlat)  )
+
+    ok = NF90_INQ_VARID(ncid, 'longitude', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error finding variable longitude.')
+    ok = NF90_GET_VAR(ncid, varID, inLonSoilCol)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error reading variable longitude.')
+
+    DO r = 1, nlon
+      IF ( inLonSoilCol(r) /= inLon(r) ) CALL nc_abort(ok,                     &
+                                               'Wrong resolution in longitude.')
+    END DO
+
+    ok = NF90_INQ_VARID(ncid, 'latitude', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
+    ok = NF90_GET_VAR(ncid, varID, inLatSoilCol)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
+
+    DO r = 1, nlat
+      IF ( inLatSoilCol(r) /= inLat(r) ) CALL nc_abort(ok,                     &
+                                               'Wrong resolution in latitude.')
+    END DO
+
+    ok = NF90_INQ_VARID(ncid, 'g0c3', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding g0c3')
+    ok = NF90_GET_VAR(ncid, varID, ing0c3)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading g0c3')
+
+    ok = NF90_INQ_VARID(ncid, 'g1c3', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding g1c3')
+    ok = NF90_GET_VAR(ncid, varID, ing1c3)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading g1c3')
+ 
+    ok = NF90_CLOSE(ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing soil color file.')
+
+    END SUBROUTINE read_g1map 
+!====================================================================
+
+
+
+
+
+
   !=============================================================================
   SUBROUTINE NSflip(nlon, nlat, invar)
     IMPLICIT NONE
