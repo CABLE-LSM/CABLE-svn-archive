@@ -117,7 +117,8 @@ MODULE cable_param_module
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
-    use cable_common_module, only : get_type_parameters, filename
+    use cable_common_module, only : get_type_parameters, filename,   &
+                                    g1map ! jtk561
   ! Load parameters for each veg type and each soil type. (get_type_parameters)
   ! Also read in initial information for each grid point. (read_gridinfo)
   ! Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
@@ -652,22 +653,22 @@ CONTAINS
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable longitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLonSoilCol)
+    ok = NF90_GET_VAR(ncid, varID, inLong1map)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable longitude.')
 
     DO r = 1, nlon
-      IF ( inLonSoilCol(r) /= inLon(r) ) CALL nc_abort(ok,                     &
+      IF ( inLong1map(r) /= inLon(r) ) CALL nc_abort(ok,                     &
                                                'Wrong resolution in longitude.')
     END DO
 
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLatSoilCol)
+    ok = NF90_GET_VAR(ncid, varID, inLatg1map)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
     DO r = 1, nlat
-      IF ( inLatSoilCol(r) /= inLat(r) ) CALL nc_abort(ok,                     &
+      IF ( inLatg1map(r) /= inLat(r) ) CALL nc_abort(ok,                     &
                                                'Wrong resolution in latitude.')
     END DO
 
@@ -1008,7 +1009,7 @@ CONTAINS
                                      ing1c3(landpt(e)%ilon, landpt(e)%ilat) 
        veg%g0c3_map(landpt(e)%cstart:landpt(e)%cend) =                        &
                                      ing0c3(landpt(e)%ilon, landpt(e)%ilat)
-    END IF
+   END IF
 
 
 ! offline only below
