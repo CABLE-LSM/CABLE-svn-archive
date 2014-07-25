@@ -1344,26 +1344,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ENDIF
    
+   
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
-
    gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
    lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
-        
-    ! Ticket #56, adding Medlyn Switch
-   IF(cable_user%GS_SWITCH == 'leuning') THEN
-       gswmin = max(1.e-6,lower_limit2)
-   ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
-       ! convert from mol to umol
-       gswmin = (veg%g0c3(i) * 1E6) * (1. - frac42) + &
-                (veg%g0c4(i) * 1E6) * frac42
-   ELSE
-       STOP 'GS_MODEL switch failed.'
-   ENDIF
-
-
- 
-
+   gswmin = max(1.e-6,lower_limit2)
+   
    gw = 1.0e-3 ! default values of conductance
    gh = 1.0e-3
    ghr= 1.0e-3
@@ -1514,8 +1501,33 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                  veg%frac4(i) * C%A1C4 /            &
                                 (1.0+dsx(i) / C%d0c4))
 
+            ! REMOVE THIS IF BLOCK WHEN WE ARE DONE WITH THE PAPER 
+            ELSEIF(cable_user%GS_SWITCH == 'medlyn_fit') THEN
+                
+                frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
+                gsw_term = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
+                lower_limit2 = rad%scalex * (veg%g0c3(i) * (1. - frac42) + &
+                               veg%g0c4(i) * frac42)
+                gswmin = max(1.e-6,lower_limit2)
+                
+                
+                IF (dsx(i) < 50.0) THEN
+                    vpd  = 0.05 ! kPa
+                ELSE
+                    vpd = dsx(i) * 1E-03 ! Pa -> kPa  
+                END IF
+
+                g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
+                     (veg%g1c4(i)  * veg%frac4(i))
+            
+                gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+                gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
+                
+                gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
+                
                 IF (dsx(i) < 50.0) THEN
                     vpd  = 0.05 ! kPa
                 ELSE
