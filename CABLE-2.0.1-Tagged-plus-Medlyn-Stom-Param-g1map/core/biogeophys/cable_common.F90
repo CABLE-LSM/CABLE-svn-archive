@@ -36,7 +36,10 @@ MODULE cable_common_module
    !---allows reference to "gl"obal timestep in run (from atm_step)
    !---total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
-   
+  
+   ! jtk561
+   LOGICAL :: g1map = .FALSE.
+ 
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
@@ -93,6 +96,7 @@ MODULE cable_common_module
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
       inits,      & ! name of file for initialisations
+      g1mapfile,  & ! jtk561 name of file for g1map
       soilIGBP      ! name of file for IGBP soil map
 
    END TYPE filenames_type
