@@ -1002,6 +1002,15 @@ CONTAINS
 
       ENDIF
 
+ ! jtk561 - reading g1map
+   IF (g1map) THEN
+       veg%g1c3_map(landpt(e)%cstart:landpt(e)%cend) =                        &
+                                     ing1c3(landpt(e)%ilon, landpt(e)%ilat) 
+       veg%g0c3_map(landpt(e)%cstart:landpt(e)%cend) =                        &
+                                     ing0c3(landpt(e)%ilon, landpt(e)%ilat)
+    END IF
+
+
 ! offline only below
        ! If user defined veg types are present in the met file then use them. 
        ! This means that if met file just has veg type and no other parameters,
@@ -1096,6 +1105,9 @@ CONTAINS
                        insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
+ ! jtk561
+   IF (g1map) DEALLOCATE(ing0c3,ing1c3)
+
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
 !    IF(ASSOCIATED(vegtype_metfile)) DEALLOCATE(vegtype_metfile)
