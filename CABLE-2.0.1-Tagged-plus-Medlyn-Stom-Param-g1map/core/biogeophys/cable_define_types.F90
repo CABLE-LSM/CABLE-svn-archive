@@ -247,7 +247,9 @@ MODULE cable_def_types_mod
          g0c3,    & ! Belinda's stomatal model intercept, Ticket #56.
          g0c4,    & ! Belinda's stomatal model intercept, Ticket #56.
          g1c3,    & ! Belinda's stomatal model slope, Ticket #56.   
-         g1c4       ! Belinda's stomatal model slope, Ticket #56. 
+         g1c4,    &  ! Belinda's stomatal model slope, Ticket #56. 
+         g1c3_map, & ! jtk561, map version
+         g0c3_map    ! ditto
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -715,7 +717,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var% g0c4(mp) )   ! Ticket #56.
    ALLOCATE( var% g1c3(mp) )   ! Ticket #56.
    ALLOCATE( var% g1c4(mp) )   ! Ticket #56. 
-
+   ALLOCATE( var% g1c3_map(mp) ) ! jtk561
+   ALLOCATE( var% g0c3_map(mp) ) ! jtk561
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -1116,7 +1119,8 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%g0c4 ) ! Ticket #56. 
    DEALLOCATE( var%g1c3 ) ! Ticket #56.
    DEALLOCATE( var%g1c4 ) ! Ticket #56.
-
+   DEALLOCATE( var%g1c3_map ) ! jtk561
+   DEALLOCATE( var%g0c3_map ) ! jtk561
    
 END SUBROUTINE dealloc_veg_parameter_type
    
