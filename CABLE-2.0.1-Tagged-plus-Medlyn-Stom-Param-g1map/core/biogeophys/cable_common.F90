@@ -38,7 +38,7 @@ MODULE cable_common_module
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
   
    ! jtk561
-   LOGICAL :: g1map = .FALSE.
+   !LOGICAL :: g1map = .FALSE.
  
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
@@ -75,8 +75,8 @@ MODULE cable_common_module
          CONSISTENCY_CHECK = .FALSE.,  & !
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED  = .FALSE.!
-
+         CABLE_RUNTIME_COUPLED  = .FALSE., & !
+         g1map = .FALSE. !jtk561
 
    END TYPE kbl_user_switches
 

@@ -117,8 +117,8 @@ MODULE cable_param_module
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
-    use cable_common_module, only : get_type_parameters, filename,   &
-                                    g1map ! jtk561
+    use cable_common_module, only : get_type_parameters, filename, &
+                                    cable_user !jtk561  to use cable_user%g1map 
   ! Load parameters for each veg type and each soil type. (get_type_parameters)
   ! Also read in initial information for each grid point. (read_gridinfo)
   ! Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
@@ -150,7 +150,7 @@ CONTAINS
     ENDIF
 
     ! jtk561 - reading g1_map
-    IF (g1map) THEN
+    IF (cable_user%g1map) THEN
         CALL read_g1map(logn)
     END IF
 
@@ -617,7 +617,7 @@ CONTAINS
 !=============================================================
   SUBROUTINE read_g1map(logn)
     USE netcdf
-    USE cable_common_module, ONLY : filename, g1map
+    USE cable_common_module, ONLY : filename
     IMPLICIT NONE
     INTEGER, INTENT(IN) ::  logn ! log file unit number
 
@@ -683,7 +683,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading g1c3')
  
     ok = NF90_CLOSE(ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing soil color file.')
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing g1 file.')
 
     END SUBROUTINE read_g1map 
 !====================================================================
@@ -843,7 +843,9 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin
+    USE cable_common_module, only : vegin, soilin, &
+                                    cable_user ! jtk561
+                              
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1004,13 +1006,12 @@ CONTAINS
       ENDIF
 
  ! jtk561 - reading g1map
-   IF (g1map) THEN
+     IF (cable_user%g1map) THEN
        veg%g1c3_map(landpt(e)%cstart:landpt(e)%cend) =                        &
                                      ing1c3(landpt(e)%ilon, landpt(e)%ilat) 
        veg%g0c3_map(landpt(e)%cstart:landpt(e)%cend) =                        &
                                      ing0c3(landpt(e)%ilon, landpt(e)%ilat)
-   END IF
-
+    END IF
 
 ! offline only below
        ! If user defined veg types are present in the met file then use them. 
@@ -1107,7 +1108,7 @@ CONTAINS
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
  ! jtk561
-   IF (g1map) DEALLOCATE(ing0c3,ing1c3)
+   IF (cable_user%g1map) DEALLOCATE(ing0c3,ing1c3)
 
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
