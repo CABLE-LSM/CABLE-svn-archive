@@ -1505,9 +1505,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ELSEIF(cable_user%GS_SWITCH == 'medlyn_fit') THEN
                 
                 frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
+                IF (cable_user%g1map) THEN
+                gsw_term = veg%g0c3_map(i) * (1. - frac42) + veg%g0c4(i) * frac42
+                lower_limit2 = rad%scalex * (veg%g0c3_map(i) * (1. - frac42) + &
+                               veg%g0c4(i) * frac42) 
+                ELSE
                 gsw_term = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
                 lower_limit2 = rad%scalex * (veg%g0c3(i) * (1. - frac42) + &
                                veg%g0c4(i) * frac42)
+                END IF
                 gswmin = max(1.e-6,lower_limit2)
                 
                 
@@ -1517,26 +1523,41 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     vpd = dsx(i) * 1E-03 ! Pa -> kPa  
                 END IF
 
+                IF (cable_user%g1map) THEN
+                g1 = (veg%g1c3_map(i) * (1.0 - veg%frac4(i))) + &
+                     (veg%g1c4(i)  * veg%frac4(i))  
+                ELSE
                 g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
                      (veg%g1c4(i)  * veg%frac4(i))
-            
+                END IF            
+
+
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
                 
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
-                
-                gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
-                
+               
+                IF (cable_user%g1map) THEN
+                    gswmin = veg%g0c3_map(i) * (1. - frac42) + veg%g0c4(i) * frac42
+                ELSE 
+                    gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
+                END IF                
+
                 IF (dsx(i) < 50.0) THEN
                     vpd  = 0.05 ! kPa
                 ELSE
                     vpd = dsx(i) * 1E-03 ! Pa -> kPa  
                 END IF
 
+                IF (cable_user%g1map) THEN
+                g1 = (veg%g1c3_map(i) * (1.0 - veg%frac4(i))) + &
+                     (veg%g1c4(i)  * veg%frac4(i))
+                ELSE
                 g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
                      (veg%g1c4(i)  * veg%frac4(i))
-            
+                END IF            
+
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
                 
