@@ -33,7 +33,7 @@ MODULE cable_um_init_subrs_mod
 
 CONTAINS
 
-subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseudo_interp )
+subroutine initialize_maps(latitude,longitude, tile_index_mp, daily_lai, npseudo_interp )
    use cable_data_module, only : cable
    use cable_um_tech_mod, only : um1
    use cable_def_types_mod, only : mp
@@ -59,12 +59,12 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
    
    !LAI_Ma  
    integer :: npseudo_interp
-   real, dimension(mp,npseudo_interp) :: new_LAI_Ma
-   real, dimension(:,:), allocatable :: LAI_Ma
+   real, dimension(mp,npseudo_interp) :: daily_lai
+   real, dimension(:,:), allocatable :: monthly_lai
    integer, parameter :: npseudo=12 ! *12 LAI vals, corresponding to 1/month * 1 year
 
    allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
-   allocate( LAI_Ma(mp, npseudo) )
+   allocate( monthly_lai(mp, npseudo) )
 
    !-------------------------------------   
    !---make indexes for tile, lat, lon
@@ -128,23 +128,24 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
      
    !LAI_ma{
    call predef_grid(cable%lat, cable%lon, knode_gl, um1%rows,              &
-                        um1%row_length, mp, npseudo, LAI_Ma )
-
-   call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
+                        um1%row_length, mp, npseudo, monthly_lai )
+   ! monthly_lai = netcdf data read
+   ! daily_lai = interplate data 
+   call LAI_interpolation( monthly_lai, mp, npseudo, daily_lai, npseudo_interp )      
    !LAI_Ma}  
          
    return
 end subroutine initialize_maps
   
 !LAI_Ma  
-subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
+subroutine LAI_interpolation( monthly_lai, mp, npseudo, daily_lai, npseudo_interp )      
    use cable_data_module, ONLY : cable
    integer :: npseudo, mp 
-   real, dimension(mp,npseudo) :: LAI_Ma
+   real, dimension(mp,npseudo) :: monthly_lai
    ! interpolate to  
    ! BUT I AM JUST SHORTCUTTING
    integer :: npseudo_interp
-   real, dimension(mp,npseudo_interp) :: new_LAI_Ma
+   real, dimension(mp,npseudo_interp) :: daily_lai
    integer :: openstatus=1
    integer :: LAI_Ma_year, DayOfExp
    ! As cable%doy resets every year, record when each year has passed
@@ -160,10 +161,17 @@ subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )
    DayOfExp = ( LAI_Ma_year * 365 ) + cable%doy
  
    ! ...........
-   !new_LAI_Ma = interpolated LAI_Ma - BUT I AM JUST SHORTCUTTING
+   !daily_lai = interpolated LAI_Ma - BUT I AM JUST SHORTCUTTING
    ! ...........
-   new_LAI_Ma = LAI_Ma
+   !daily_lai = monthly_lai(1:12)
     
+
+   print *, "interpolate the lai and write out"    
+   call interp_linear_lai(monthly_lai,daily_lai) ! call interpolation function 
+   ! shift the daily lai data by 20 days (default) and write out 
+   print *, "shifting the daily lai defined shifted days"
+!definitions (some from program) like this 20 should go as far back as possible   
+   call advanced_shift_daily_lai(20,daily_lai,monthly_lai) 
 End subroutine  
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
@@ -333,6 +341,7 @@ END SUBROUTINE initialize_veg
 
 SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
    USE cable_um_tech_mod, ONLY : um1, kblum_veg, veg
+   USE cable_data_module, ONLY : cable 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
    REAL, DIMENSION(:,:) :: LAI_Ma 
@@ -373,7 +382,7 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
 !LAI_Ma: here for testing i am using the first month only. For the sake of
 !updating and shifting you will need to develop some logic around this based of
 !on the date
-   !veg%vlai   = LAI_Ma(:,1) 
+   veg%vlai   = LAI_Ma(:,cable%doy) 
    veg%hc     = PACK(kblum_veg%htveg, um1%L_TILE_PTS)
 
 END SUBROUTINE clobber_height_lai

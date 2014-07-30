@@ -259,7 +259,7 @@ module cable_data_module
          lon, &
          tile, &
          tile_frac 
-      integer :: doy    ! DayOfYear 
+      integer :: doy=1    ! DayOfYear 
       TYPE (const_type) :: const
 
    end TYPE cable_type
