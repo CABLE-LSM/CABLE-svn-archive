@@ -57,7 +57,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
                                   SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
                                   GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype, LAI_Ma_UM )    
+                                  endstep, timestep_number, mype, LAI_Ma_UM, idoy )    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -82,6 +82,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE cable_diag_module
    USE casavariable
    USE casa_types_mod
+   USE cable_data_module,   ONLY : cable
 
    IMPLICIT NONE
  
@@ -291,7 +292,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, DIMENSION(land_pts,ntiles) :: LAI_Ma_UM 
    integer :: i,n,j
    REAL :: miss = 0.0
+   INTEGER ::     &
+      idoy           ! day of year (1:365) counter for CASA-CNP
 
+   cable%doy = idoy
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
