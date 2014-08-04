@@ -10,7 +10,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    2.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   200  10217    876    184    367         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 1.280032 1.280032   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 1.843220 1.843220   ! g0c3, g0c4, g1c3, g1c4
 2   forest     evergreen_broadleaf
 35.0   0.10   0.050  0.100  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.076  0.350  0.010  0.160  0.390  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -21,7 +21,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    2.0    0.962                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   300  16833   1443    303    606         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 2.474599 2.474599   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 3.931309 3.931309   ! g0c3, g0c4, g1c3, g1c4
 3   deciduous  deciduous_needleleaf
 15.5   0.01   0.001  0.040  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.056  0.275  0.010  0.160  0.390  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -32,7 +32,7 @@ CSIRO veg type parameters (2nd guess calibration)
    5    10    2.0    0.966                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   200   5967    511    107    214         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 1.280032 1.280032   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 1.843220 1.843220   ! g0c3, g0c4, g1c3, g1c4
 4   deciduous  deciduous_broadleaf
 20.0   0.25   0.080  0.150  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.092  0.380  0.010  0.160  0.390  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -43,7 +43,7 @@ CSIRO veg type parameters (2nd guess calibration)
    5    15    2.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   300  12000   1029    216    432         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 2.346164 2.346164   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 3.735465 3.735465   ! g0c3, g0c4, g1c3, g1c4
 5   shrub      shrub
  0.6   0.01   0.005  0.100  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.100  0.400  0.010  0.200  0.430  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -54,7 +54,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.964                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   159   5000    500    100    250         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 2.854998 2.854998   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 3.055982 3.055982   ! g0c3, g0c4, g1c3, g1c4
 6   grass      C3 grassland
  0.567 -0.30   0.010  0.300 0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.110  0.470  0.010  0.360  0.580  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -65,7 +65,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 7   grass      C4 grassland
  0.567 -0.30   0.010  0.300 1.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.100  0.400  0.010  0.360  0.580  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -76,7 +76,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 8   grass      Tundra
  0.567 -0.30   0.010  0.300 0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.117  0.343  0.010  0.360  0.580  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -87,7 +87,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 1.286273 1.286273   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 1.417026 1.417026   ! g0c3, g0c4, g1c3, g1c4
 9   crop       C3 cropland
  0.55 -0.30   0.010  0.300  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.100  0.400  0.010  0.327  0.548  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -98,7 +98,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    2.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   150      0    607    149    300         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 4.218256 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.518645 1.360792   ! g0c3, g0c4, g1c3, g1c4
 10  crop       C4 cropland
  0.55 -0.30   0.010  0.300  1.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.090  0.360  0.010  0.327  0.548  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -109,7 +109,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    2.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   150      0    607    149    300         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 4.218256 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.518645 1.360792   ! g0c3, g0c4, g1c3, g1c4
 11  wetgrass    wetland
  0.567 -0.30   0.010  0.300  0.0          ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.108  0.343  0.010  0.360  0.580  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -120,7 +120,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.943                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 12  grass      empty
  0.2   0.100  0.003  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.055  0.190  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -131,7 +131,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.975                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 13  notused    empty
  6.017  0.00   0.015  0.242 0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.091  0.310  0.010  0.283  0.504  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -142,7 +142,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    2.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
   0.1      0    0.1    0.1    0.1         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 14  noveg      barren
  0.2   0.00   0.001  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.238  0.457  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -153,7 +153,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     0      0      0      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 15  noveg      urban
  0.2   0.00   0.001  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.143  0.275  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -164,7 +164,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 16  noveg      lakes
  0.2   0.00   0.001  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.143  0.275  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -175,7 +175,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     1      0      1      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
 17  noveg      ice
  0.2   0.00   0.001  0.030  0.0           ! canopy hgt(m),leaf angle,lf width(m),lf length(m),C4 fraction
 0.159  0.305  0.010  0.081  0.196  0.010  ! rholeaf-vis,nir,therm, rhowood-vis,nir,therm
@@ -186,4 +186,4 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.961                ! tvjmin(oC), tvjmax(oC), vbeta, betaroot
     0      0      0      1     1          ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-0.000000 0.000000 3.042813 0.471264   ! g0c3, g0c4, g1c3, g1c4
+0.000000 0.000000 4.616314 1.360792   ! g0c3, g0c4, g1c3, g1c4
