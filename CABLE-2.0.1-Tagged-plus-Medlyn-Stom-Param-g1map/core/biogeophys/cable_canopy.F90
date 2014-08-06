@@ -1539,10 +1539,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 END IF
 
                 IF (cable_user%g1map) THEN
-                g1 = veg%g1c3_map(i) 
+                    g1 = veg%g1c3_map(i) 
                 ELSE
-                g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
-                     (veg%g1c4(i)  * veg%frac4(i))
+                    g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
+                        (veg%g1c4(i)  * veg%frac4(i))
                 END IF            
 
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
