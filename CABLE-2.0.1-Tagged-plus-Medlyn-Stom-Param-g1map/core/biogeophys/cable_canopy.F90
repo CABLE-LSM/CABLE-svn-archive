@@ -1527,7 +1527,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
                
                 IF (cable_user%g1map) THEN
-                    gswmin = veg%g0c3_map(i) * (1. - frac42) + veg%g0c4(i) * frac42
+                    gswmin = veg%g0c3_map(i)
                 ELSE 
                     gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
                 END IF                
@@ -1539,8 +1539,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 END IF
 
                 IF (cable_user%g1map) THEN
-                g1 = (veg%g1c3_map(i) * (1.0 - veg%frac4(i))) + &
-                     (veg%g1c4(i)  * veg%frac4(i))
+                g1 = veg%g1c3_map(i) 
                 ELSE
                 g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
                      (veg%g1c4(i)  * veg%frac4(i))
