@@ -1359,7 +1359,7 @@ USE cable_common_module
 
   end do
 
-  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
+  !zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1._r_2-invB(:))*            &
@@ -1377,8 +1377,8 @@ USE cable_common_module
 
   end where
 
-  def(:) = sum(tmp_def*dzmm_mp,2)
-  def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
+  def(:) = sum(tmp_def*dzmm_mp,2)*0.5
+  !def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
 
 
   if (empwtd) then
@@ -2249,9 +2249,9 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     wtd_meters = ssnow%wtd / 1000._r_2
 
 
-    xx(:) = max(1.e-6, min(1., real((ssnow%wbliq(:,1)-0.75*soil%swilt(:))/&
-                                    (soil%sfc(:)-0.75*soil%swilt(:)))))
-    xx(:) = max(1.e-6, min(1., xx*xx))
+    xx(:) = max(1.e-6, min(1., real((ssnow%wbliq(:,1)-0.5*soil%swilt(:))/&
+                                    (soil%sfc(:)-0.5*soil%swilt(:)))))
+    xx(:) = max(1.e-6, min(1., xx*xx*xx))
 
     xxx(:) = (exp(1.5*xx(:))-1.) / (exp(-1.5)-1.0)
 
