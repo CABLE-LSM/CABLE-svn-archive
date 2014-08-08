@@ -4,85 +4,6 @@ contains
 
 ! ------------------------------------------------------------------------------
 
-subroutine photosynthesis
-
-End subroutine photosynthesis
-
-! ------------------------------------------------------------------------------
-
-subroutine Temperature_dependence_Vcmax( tlfx, vcmax, &
-               frac4, vcmxt3, scalex )
-   real ::       
-            ! Leuning 2002 (P C & E) equation for temperature response
-            ! used for Vcmax for C3 plants:
-            ! jhan: frac4 = frac of c4 plnts - but why isnt this 0 here 
-            temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
-            
-            ! jhan: 1$2<-mf=sunlkit,shaded. scalex = scaling param from ?  
-            vcmxt3(1) = rad%scalex(i,1) * temp(i)
-            vcmxt3(2) = rad%scalex(i,2) * temp(i)
- 
-End subroutine Temperature_dependence_Vcmax 
-
-! ------------------------------------------------------------------------------
-
-FUNCTION xvcmxt3(x) RESULT(z)
-   
-   !  leuning 2002 (p c & e) equation for temperature response
-   !  used for vcmax for c3 plants
-   REAL, INTENT(IN) :: x
-   REAL :: xvcnum,xvcden,z
- 
-   REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-   REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-   REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
-   REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
-                     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
- 
-   xvcnum=xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
-   xvcden=1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
-   z = max( 0.0,xvcnum / xvcden )
-
-END FUNCTION xvcmxt3
-
-! ------------------------------------------------------------------------------
-
-! Explicit array dimensions as temporary work around for NEC inlining problem
-FUNCTION xvcmxt4(x) RESULT(z)
-   
-   REAL, PARAMETER      :: q10c4 = 2.0
-   REAL, INTENT(IN) :: x
-   REAL :: z
- 
-   z = q10c4 ** (0.1 * x - 2.5) /                                              &
-        ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
- 
-END FUNCTION xvcmxt4
-
-! ------------------------------------------------------------------------------
-
-FUNCTION xejmxt3(x) RESULT(z)
-   
-   !  leuning 2002 (p c & e) equation for temperature response
-   !  used for jmax for c3 plants
- 
-   REAL, INTENT(IN) :: x
-   REAL :: xjxnum,xjxden,z   
- 
-   REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
-   REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
-   REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
-   REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
- 
-   xjxnum = xjxcoef*exp( ( ehajx / ( C%rgas*C%TREFK ) ) * ( 1.-C%TREFK / x ) )
-   xjxden=1.0+exp( ( entropjx*x-ehdjx) / ( C%rgas*x ) )
-   z = max(0.0, xjxnum/xjxden)
-
-END FUNCTION xejmxt3
-
-! ------------------------------------------------------------------------------
-
-
 SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                            rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
                            vx4z, xleuningz, vlaiz, deltlfz, anxz, fwsoilz )
@@ -295,6 +216,82 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    ENDDO
      
 END SUBROUTINE photosynthesis
+
+
+
+! ------------------------------------------------------------------------------
+
+subroutine Temperature_dependence_Vcmax( tlfx, vcmax, &
+               frac4, vcmxt3, scalex )
+   real ::       
+            ! Leuning 2002 (P C & E) equation for temperature response
+            ! used for Vcmax for C3 plants:
+            ! jhan: frac4 = frac of c4 plnts - but why isnt this 0 here 
+            temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+            
+            ! jhan: 1$2<-mf=sunlkit,shaded. scalex = scaling param from ?  
+            vcmxt3(1) = rad%scalex(i,1) * temp(i)
+            vcmxt3(2) = rad%scalex(i,2) * temp(i)
+ 
+End subroutine Temperature_dependence_Vcmax 
+
+! ------------------------------------------------------------------------------
+
+FUNCTION xvcmxt3(x) RESULT(z)
+   
+   !  leuning 2002 (p c & e) equation for temperature response
+   !  used for vcmax for c3 plants
+   REAL, INTENT(IN) :: x
+   REAL :: xvcnum,xvcden,z
+ 
+   REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+   REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
+                     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
+ 
+   xvcnum=xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
+   xvcden=1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
+   z = max( 0.0,xvcnum / xvcden )
+
+END FUNCTION xvcmxt3
+
+! ------------------------------------------------------------------------------
+
+! Explicit array dimensions as temporary work around for NEC inlining problem
+FUNCTION xvcmxt4(x) RESULT(z)
+   
+   REAL, PARAMETER      :: q10c4 = 2.0
+   REAL, INTENT(IN) :: x
+   REAL :: z
+ 
+   z = q10c4 ** (0.1 * x - 2.5) /                                              &
+        ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
+ 
+END FUNCTION xvcmxt4
+
+! ------------------------------------------------------------------------------
+
+FUNCTION xejmxt3(x) RESULT(z)
+   
+   !  leuning 2002 (p c & e) equation for temperature response
+   !  used for jmax for c3 plants
+ 
+   REAL, INTENT(IN) :: x
+   REAL :: xjxnum,xjxden,z   
+ 
+   REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+   REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
+ 
+   xjxnum = xjxcoef*exp( ( ehajx / ( C%rgas*C%TREFK ) ) * ( 1.-C%TREFK / x ) )
+   xjxden=1.0+exp( ( entropjx*x-ehdjx) / ( C%rgas*x ) )
+   z = max(0.0, xjxnum/xjxden)
+
+END FUNCTION xejmxt3
+
+! ------------------------------------------------------------------------------
 
 ! ------------------------------------------------------------------------------
 
