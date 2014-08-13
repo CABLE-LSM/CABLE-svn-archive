@@ -34,13 +34,13 @@ host_bliz()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=mpif90
-   #export CFLAGS='-O3 -fp-model precise -ftz -fpe0 -xavx'
-   export CFLAGS='-O3 -shared-intel -xhost -ipo -fp-model precise'   #-traceback
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -xhost -ftrapuv -ftz -fpe0 -ipo'   #-traceback
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium'
    fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib -O3'
    build_build
    cd ../
    build_status
