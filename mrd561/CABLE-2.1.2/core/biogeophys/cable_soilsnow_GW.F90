@@ -81,7 +81,6 @@ MODULE cable_soil_snow_gw_module
    PRIVATE trimb,snow_accum, stempv
    PRIVATE soilfreeze, remove_trans,calcwtd
    PRIVATE smoistgw, ovrlndflx, solve_tridiag
-   PRIVATE calc_equilibrium_water_content
 
 CONTAINS
 
@@ -1179,11 +1178,12 @@ END SUBROUTINE remove_trans
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
   !-------------------------------------------------------------------------
-  SUBROUTINE ovrlndflx (dels, ssnow, soil,md_prin )
+  SUBROUTINE ovrlndflx (dels, ktau, ssnow, soil,md_prin )
 USE cable_common_module
 
   IMPLICIT NONE
     REAL, INTENT(IN)                         :: dels ! integration time step (s)
+    INTEGER, INTENT(IN)                      :: ktau ! integration step number
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
     LOGICAL, INTENT(IN)                      :: md_prin
@@ -1323,11 +1323,12 @@ USE cable_common_module
   ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
   ! water table depth
   !  
-  SUBROUTINE calcwtd (ssnow, soil, veg, md_prin)
+  SUBROUTINE calcwtd (ssnow, soil, veg, ktau, md_prin)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
   TYPE (veg_parameter_type), INTENT(IN)     :: veg
+  INTEGER, INTENT(IN)                       :: ktau  ! integration step number
   LOGICAL, INTENT(IN)                       :: md_prin  !print info?
 
  
@@ -1358,7 +1359,7 @@ USE cable_common_module
 
   end do
 
-  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
+  !zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   defc(:) = (soil%watsat(:,ms))*(zimm(ms)+Nsmpsat(:)/(1._r_2-invB(:))*            &
@@ -1376,8 +1377,9 @@ USE cable_common_module
 
   end where
 
-  def(:) = sum(tmp_def*dzmm_mp,2)
-  def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
+  def(:) = sum(tmp_def*dzmm_mp,2)*0.5
+  !def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
+
 
   if (empwtd) then
 
@@ -1530,12 +1532,13 @@ USE cable_common_module
   ! vertical mocement of soil water.  Bottom boundary condition is determined
   ! using a single layer groundwater module
   !
-  SUBROUTINE smoistgw (dels,ssnow,soil,md_prin)
+  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,md_prin)
   USE cable_common_module
 
   IMPLICIT NONE
   
     REAL, INTENT(IN)                          :: dels  ! time step size (s)
+    INTEGER, INTENT(IN)                       :: ktau  ! integration step number
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil  ! soil parameters
     LOGICAL, INTENT(IN)                       :: md_prin
@@ -1608,91 +1611,88 @@ USE cable_common_module
     ct = 0._r_2
     old_wb(:,:) = ssnow%wb(:,:)
     
+    !equilibrium water content
+    do k=1,ms
 
-    CALL calc_equilibrium_water_content(ssnow,soil)
+       WHERE ((ssnow%wtd(:) .le. zimm(k-1)))          !fully saturated
 
-!     !equilibrium water content
-!     do k=1,ms
+          ssnow%wbeq(:,k) = real(soil%watsat(:,k)-soil%watr(:,k),r_2)
 
-!        WHERE ((ssnow%wtd(:) .le. zimm(k-1)))          !fully saturated
+       END WHERE
 
-!           ssnow%wbeq(:,k) = real(soil%watsat(:,k)-soil%watr(:,k),r_2)
+       WHERE ((ssnow%wtd(:) .le. zimm(k)) .and. (ssnow%wtd(:) .gt. zimm(k-1)))
 
-!        END WHERE
+          tempi = 1._r_2
+          temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))               
+          voleq1 = -soil%smpsat(:,k)*(soil%watsat(:,k)-soil%watr(:,k))/&
+                       (1._r_2-1._r_2/soil%clappB(:,k))/(ssnow%wtd(:)-zimm(k-1))*(tempi-temp0)
+          ssnow%wbeq(:,k) = (voleq1*(ssnow%wtd(:)-zimm(k-1)) + (soil%watsat(:,k)-soil%watr(:,k))&
+                            *(zimm(k)-ssnow%wtd(:)))/(zimm(k)-zimm(k-1)) + soil%watr(:,k)
 
-!        WHERE ((ssnow%wtd(:) .le. zimm(k)) .and. (ssnow%wtd(:) .gt. zimm(k-1)))
+       END WHERE
 
-!           tempi = 1._r_2
-!           temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))               
-!           voleq1 = -soil%smpsat(:,k)*(soil%watsat(:,k)-soil%watr(:,k))/&
-!                        (1._r_2-1._r_2/soil%clappB(:,k))/(ssnow%wtd(:)-zimm(k-1))*(tempi-temp0)
-!           ssnow%wbeq(:,k) = (voleq1*(ssnow%wtd(:)-zimm(k-1)) + (soil%watsat(:,k)-soil%watr(:,k))&
-!                             *(zimm(k)-ssnow%wtd(:)))/(zimm(k)-zimm(k-1)) + soil%watr(:,k)
+       WHERE (ssnow%wtd .ge. zimm(k))
 
-!        END WHERE
+          tempi = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))
+          temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))   
+          ssnow%wbeq(:,k) = -soil%smpsat(:,k)*(soil%watsat(:,k)-soil%watr(:,k))/&
+                               (1._r_2-1._r_2/soil%clappB(:,k))/(zimm(k)-zimm(k-1))*(tempi-temp0)+soil%watr(:,k)
 
-!        WHERE (ssnow%wtd .ge. zimm(k))
-
-!           tempi = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))
-!           temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))   
-!           ssnow%wbeq(:,k) = -soil%smpsat(:,k)*(soil%watsat(:,k)-soil%watr(:,k))/&
-!                                (1._r_2-1._r_2/soil%clappB(:,k))/(zimm(k)-zimm(k-1))*(tempi-temp0)+soil%watr(:,k)
-
-!        END WHERE
-!     end do
+       END WHERE
+    end do
  
-!     where (ssnow%wbeq(:,:) .gt. soil%watsat(:,:)) ssnow%wbeq(:,:) = soil%watsat(:,:)
+    where (ssnow%wbeq(:,:) .gt. soil%watsat(:,:)) ssnow%wbeq(:,:) = soil%watsat(:,:)
 
-!     where (ssnow%wbeq(:,:) .le. soil%watr(:,:)) ssnow%wbeq(:,:) = soil%watr(:,:)+0.01_r_2 !0.01 is arbitrary
+    where (ssnow%wbeq(:,:) .le. soil%watr(:,:)) ssnow%wbeq(:,:) = soil%watr(:,:)+0.01_r_2 !0.01 is arbitrary
 
-!     wbrat(:,:) = (ssnow%wbeq(:,:) - soil%watr(:,:))/(soil%watsat(:,:) - soil%watr(:,:))
+    wbrat(:,:) = (ssnow%wbeq(:,:) - soil%watr(:,:))/(soil%watsat(:,:) - soil%watr(:,:))
 
-!     where (wbrat .lt. 0.1_r_2)  &
-!            wbrat = 0.1_r_2
+    where (wbrat .lt. 0.1_r_2)  &
+           wbrat = 0.1_r_2
 
-!     where (wbrat .gt. 1._r_2)   &
-!            wbrat = 1._r_2
+    where (wbrat .gt. 1._r_2)   &
+           wbrat = 1._r_2
 
-!     ssnow%zq(:,:) = -soil%smpsat(:,:)*(wbrat(:,:)**(-soil%clappB(:,:)))
+    ssnow%zq(:,:) = -soil%smpsat(:,:)*(wbrat(:,:)**(-soil%clappB(:,:)))
 
-!     where (ssnow%zq(:,:) .lt. sucmin) ssnow%zq(:,:) = sucmin
+    where (ssnow%zq(:,:) .lt. sucmin) ssnow%zq(:,:) = sucmin
 
-!     where (ssnow%zq(:,:) .gt. -soil%smpsat) ssnow%zq(:,:) = -soil%smpsat
+    where (ssnow%zq(:,:) .gt. -soil%smpsat) ssnow%zq(:,:) = -soil%smpsat
 
        
-!     !Aquifer Equilibrium water content
-!     WHERE (ssnow%wtd(:) .le. zimm(ms))                                          !fully saturated
+    !Aquifer Equilibrium water content
+    WHERE (ssnow%wtd(:) .le. zimm(ms))                                          !fully saturated
 
-!        ssnow%GWwbeq(:) = real(soil%GWwatsat(:)-soil%GWwatr(:),r_2)
+       ssnow%GWwbeq(:) = real(soil%GWwatsat(:)-soil%GWwatr(:),r_2)
 
-!     END WHERE
+    END WHERE
 
-!     WHERE ((ssnow%wtd(:) .gt. GWzimm(:)))                                       !fully unsaturated
+    WHERE ((ssnow%wtd(:) .gt. GWzimm(:)))                                       !fully unsaturated
 
-!        tempi = (((soil%GWsmpsat(:)+ssnow%wtd(:)-GWzimm(:))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))
-!        temp0 = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))   
-!        ssnow%GWwbeq(:) = -soil%GWsmpsat(:)*soil%GWwatsat(:)/&
-!                           (1._r_2-1._r_2/soil%GWclappB(:))/(GWzimm(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)	 
+       tempi = (((soil%GWsmpsat(:)+ssnow%wtd(:)-GWzimm(:))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))
+       temp0 = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))   
+       ssnow%GWwbeq(:) = -soil%GWsmpsat(:)*soil%GWwatsat(:)/&
+                          (1._r_2-1._r_2/soil%GWclappB(:))/(GWzimm(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)	 
 
-!     END WHERE           
+    END WHERE           
 
-!     WHERE ((ssnow%wtd(:) .le. GWzimm(:)) .and. (ssnow%wtd(:) .gt. zimm(ms)))    !partially saturated
+    WHERE ((ssnow%wtd(:) .le. GWzimm(:)) .and. (ssnow%wtd(:) .gt. zimm(ms)))    !partially saturated
 
-!        tempi  = 1._r_2
-!        temp0  = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))               
-!        voleq1 = -soil%GWsmpsat(:)*(soil%GWwatsat(:)-soil%GWwatr(:))/&
-!                 (1._r_2-1._r_2/soil%GWclappB(:))/(ssnow%wtd(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)
-!        ssnow%GWwbeq(:) = (voleq1*(ssnow%wtd(:)-zimm(ms)) + (soil%GWwatsat(:)-soil%GWwatr(:))*&
-!                          (GWzimm(:)-ssnow%wtd(:)))/(GWzimm(:)-zimm(ms)) + soil%GWwatr(:)
+       tempi  = 1._r_2
+       temp0  = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))               
+       voleq1 = -soil%GWsmpsat(:)*(soil%GWwatsat(:)-soil%GWwatr(:))/&
+                (1._r_2-1._r_2/soil%GWclappB(:))/(ssnow%wtd(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)
+       ssnow%GWwbeq(:) = (voleq1*(ssnow%wtd(:)-zimm(ms)) + (soil%GWwatsat(:)-soil%GWwatr(:))*&
+                         (GWzimm(:)-ssnow%wtd(:)))/(GWzimm(:)-zimm(ms)) + soil%GWwatr(:)
 
-!     END WHERE
+    END WHERE
 
-!     ssnow%GWwbeq(:) = min(real(soil%GWwatsat(:),r_2),ssnow%GWwbeq(:))
-!     ssnow%GWwbeq(:) = max(ssnow%GWwbeq(:),soil%GWwatr(:)+0.01_r_2) 
+    ssnow%GWwbeq(:) = min(real(soil%GWwatsat(:),r_2),ssnow%GWwbeq(:))
+    ssnow%GWwbeq(:) = max(ssnow%GWwbeq(:),soil%GWwatr(:)+0.01_r_2) 
 
-!     ssnow%GWzq(:) = -soil%GWsmpsat(:)*(max((ssnow%GWwbeq(:)-soil%GWwatr(:))/           &
-!                     (soil%GWwatsat(:)-soil%GWwatr(:)),0.01_r_2))**(-soil%GWclappB(:))
-!     ssnow%GWzq(:) = max(sucmin, ssnow%GWzq(:))
+    ssnow%GWzq(:) = -soil%GWsmpsat(:)*(max((ssnow%GWwbeq(:)-soil%GWwatr(:))/           &
+                    (soil%GWwatsat(:)-soil%GWwatr(:)),0.01_r_2))**(-soil%GWclappB(:))
+    ssnow%GWzq(:) = max(sucmin, ssnow%GWzq(:))
     
 
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
@@ -2163,14 +2163,14 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL calcwtd (ssnow, soil, veg, md_prin)                  !update the wtd
+   CALL calcwtd (ssnow, soil, veg, ktau, md_prin)                  !update the wtd
 
-   CALL ovrlndflx (dels, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
+   CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
    !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always
 
-   CALL smoistgw (dels,ssnow,soil,md_prin)               !vertical soil moisture movement. 
+   CALL smoistgw (dels,ktau,ssnow,soil,md_prin)               !vertical soil moisture movement. 
   
    ! lakes: replace hard-wired vegetation number in next version
    WHERE( veg%iveg == 16 )
@@ -2215,26 +2215,17 @@ END SUBROUTINE soil_snow_gw
 
 
 
-SUBROUTINE calc_srf_wet_fraction(ssnow,soil,veg)
+SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
   IMPLICIT NONE
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
-    TYPE(veg_parameter_type), INTENT(IN)     :: veg
 
     !local variables
     REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor,xx
     REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters
     REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
     REAL(r_2), DIMENSION(mp,ms)        :: dzmm_mp
-
-    INTEGER, SAVE :: ktau_srf_frac = 0
-
-    ktau_srf_frac = ktau_srf_frac + 1
-    !if first time step we don't yet have the water table depth so calc it
-    if (ktau_srf_frac .le. 1) CALL calcwtd(ssnow, soil, veg, .false.)                  !update the wtd
-
-    call calc_equilibrium_water_content(ssnow,soil)
 
     xxx(:)   = 0._r_2
     dzmm_mp  = 1000._r_2 * real(spread(soil%zse,1,mp),r_2)
@@ -2258,8 +2249,11 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,veg)
     wtd_meters = ssnow%wtd / 1000._r_2
 
 
-    xxx(:) = max(1.e-6, min(1., real((ssnow%wbliq(:,1)-0.5*soil%swilt(:))/&
+    xx(:) = max(1.e-6, min(1., real((ssnow%wbliq(:,1)-0.5*soil%swilt(:))/&
                                     (soil%sfc(:)-0.5*soil%swilt(:)))))
+    xx(:) = max(1.e-6, min(1., xx*xx*xx))
+
+    xxx(:) = (exp(1.5*xx(:))-1.) / (exp(-1.5)-1.0)
 
     satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)+fice(:)
 
@@ -2268,132 +2262,6 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,veg)
 
 
 END SUBROUTINE calc_srf_wet_fraction
-
-
-SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
-
-  IMPLICIT NONE
-  
-    TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
-    TYPE (soil_parameter_type), INTENT(INOUT) :: soil  ! soil parameters
-    !local variables
-    REAL(r_2), dimension(mp)    :: zaq      !node depth of the aquifer
-    REAL(r_2), dimension(mp,ms) :: dzmm_mp  !layer thicknesses at each land tile
-    REAL(r_2), dimension(ms)    :: dzmm     !layer thickness for single tile
-    REAL(r_2), dimension(mp)    :: GWdzmm   !aquifer thickness at each tile
-    REAL(r_2), dimension(mp)    :: GWzimm   !aquifer layer interface depth
-    REAL(r_2), dimension(0:ms)  :: zimm     !layer interface depth in mm  
-    REAL(r_2), dimension(ms)    :: zmm      !node depths in mm
-
-    REAL(r_2), dimension(mp,ms) :: wbrat    !temporary variable.  eq water content prior to checks
-
-    REAL(r_2), dimension(mp)    :: voleq1   !temp variable
-    REAL(r_2), dimension(mp)    :: tempi, temp0
-
-    INTEGER :: k
-
-    !make code cleaner define these here
-    dzmm    = 1000.0_r_2 * real(soil%zse(:),r_2)
-    dzmm_mp = spread(dzmm,1,mp)
-    zimm(0) = 0._r_2
-    zmm(1)  = 0.5_r_2*dzmm(1)
-
-    do k=1,ms
-       zimm(k) = zimm(k-1) + dzmm(k)
-    end do
-
-    do k=2,ms
-       zmm(k)  = zimm(k) + 0.5_r_2*dzmm(k)
-    end do 
-
-    GWdzmm(:) = real(soil%GWdz(:),r_2)*1000._r_2
-    GWzimm(:) = zimm(ms)+GWdzmm(:)
-    zaq(:)    = zimm(ms) + 0.5_r_2*GWdzmm(:)
-    
-    !equilibrium water content
-    do k=1,ms
-
-       WHERE ((ssnow%wtd(:) .le. zimm(k-1)))          !fully saturated
-
-          ssnow%wbeq(:,k) = real(soil%watsat(:,k)-soil%watr(:,k),r_2)
-
-       END WHERE
-
-       WHERE ((ssnow%wtd(:) .le. zimm(k)) .and. (ssnow%wtd(:) .gt. zimm(k-1)))
-
-          tempi = 1._r_2
-          temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))               
-          voleq1 = -soil%smpsat(:,k)*(soil%watsat(:,k)-soil%watr(:,k))/&
-                       (1._r_2-1._r_2/soil%clappB(:,k))/(ssnow%wtd(:)-zimm(k-1))*(tempi-temp0)
-          ssnow%wbeq(:,k) = (voleq1*(ssnow%wtd(:)-zimm(k-1)) + (soil%watsat(:,k)-soil%watr(:,k))&
-                            *(zimm(k)-ssnow%wtd(:)))/(zimm(k)-zimm(k-1)) + soil%watr(:,k)
-
-       END WHERE
-
-       WHERE (ssnow%wtd .ge. zimm(k))
-
-          tempi = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))
-          temp0 = (((soil%smpsat(:,k)+ssnow%wtd(:)-zimm(k-1))/soil%smpsat(:,k)))**(1._r_2-1._r_2/soil%clappB(:,k))   
-          ssnow%wbeq(:,k) = -soil%smpsat(:,k)*(soil%watsat(:,k)-soil%watr(:,k))/&
-                               (1._r_2-1._r_2/soil%clappB(:,k))/(zimm(k)-zimm(k-1))*(tempi-temp0)+soil%watr(:,k)
-
-       END WHERE
-    end do
- 
-    where (ssnow%wbeq(:,:) .gt. soil%watsat(:,:)) ssnow%wbeq(:,:) = soil%watsat(:,:)
-
-    where (ssnow%wbeq(:,:) .le. soil%watr(:,:)) ssnow%wbeq(:,:) = soil%watr(:,:)+0.01_r_2 !0.01 is arbitrary
-
-    wbrat(:,:) = (ssnow%wbeq(:,:) - soil%watr(:,:))/(soil%watsat(:,:) - soil%watr(:,:))
-
-    where (wbrat .lt. 0.1_r_2)  &
-           wbrat = 0.1_r_2
-
-    where (wbrat .gt. 1._r_2)   &
-           wbrat = 1._r_2
-
-    ssnow%zq(:,:) = -soil%smpsat(:,:)*(wbrat(:,:)**(-soil%clappB(:,:)))
-
-    where (ssnow%zq(:,:) .lt. sucmin) ssnow%zq(:,:) = sucmin
-
-    where (ssnow%zq(:,:) .gt. -soil%smpsat) ssnow%zq(:,:) = -soil%smpsat
-
-       
-    !Aquifer Equilibrium water content
-    WHERE (ssnow%wtd(:) .le. zimm(ms))                                          !fully saturated
-
-       ssnow%GWwbeq(:) = real(soil%GWwatsat(:)-soil%GWwatr(:),r_2)
-
-    END WHERE
-
-    WHERE ((ssnow%wtd(:) .gt. GWzimm(:)))                                       !fully unsaturated
-
-       tempi = (((soil%GWsmpsat(:)+ssnow%wtd(:)-GWzimm(:))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))
-       temp0 = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))   
-       ssnow%GWwbeq(:) = -soil%GWsmpsat(:)*soil%GWwatsat(:)/&
-                          (1._r_2-1._r_2/soil%GWclappB(:))/(GWzimm(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)   
-
-    END WHERE           
-
-    WHERE ((ssnow%wtd(:) .le. GWzimm(:)) .and. (ssnow%wtd(:) .gt. zimm(ms)))    !partially saturated
-
-       tempi  = 1._r_2
-       temp0  = (((soil%GWsmpsat(:)+ssnow%wtd(:)-zimm(ms))/soil%GWsmpsat(:)))**(1._r_2-1._r_2/soil%GWclappB(:))               
-       voleq1 = -soil%GWsmpsat(:)*(soil%GWwatsat(:)-soil%GWwatr(:))/&
-                (1._r_2-1._r_2/soil%GWclappB(:))/(ssnow%wtd(:)-zimm(ms))*(tempi-temp0) + soil%GWwatr(:)
-       ssnow%GWwbeq(:) = (voleq1*(ssnow%wtd(:)-zimm(ms)) + (soil%GWwatsat(:)-soil%GWwatr(:))*&
-                         (GWzimm(:)-ssnow%wtd(:)))/(GWzimm(:)-zimm(ms)) + soil%GWwatr(:)
-
-    END WHERE
-
-    ssnow%GWwbeq(:) = min(real(soil%GWwatsat(:),r_2),ssnow%GWwbeq(:))
-    ssnow%GWwbeq(:) = max(ssnow%GWwbeq(:),soil%GWwatr(:)+0.01_r_2) 
-
-    ssnow%GWzq(:) = -soil%GWsmpsat(:)*(max((ssnow%GWwbeq(:)-soil%GWwatr(:))/           &
-                    (soil%GWwatsat(:)-soil%GWwatr(:)),0.01_r_2))**(-soil%GWclappB(:))
-    ssnow%GWzq(:) = max(sucmin, ssnow%GWzq(:))
-
-END SUBROUTINE calc_equilibrium_water_content
 
 
 
