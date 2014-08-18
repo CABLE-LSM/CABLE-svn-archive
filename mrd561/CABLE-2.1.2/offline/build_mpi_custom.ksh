@@ -11,13 +11,13 @@ host_ccrc()
    export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
    export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
    export FC=mpif90
-   export CFLAGS='-O3 -ipo  -xhost '   #-traceback
+   export CFLAGS='-O2  -ftrapuv '   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -debug -g -ftrapuv -CB -check bounds -diag-enable warn'
 # -diag-enable sc2 -diag-enable sc-single-file
    fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -L/home/nfs/z3362708/openmpi/lib -O3 -ipo -xhost'
+   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -L/home/nfs/z3362708/openmpi/lib -O2'
    if [[ $1 = 'debug' ]]; then
       export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O0 -traceback -debug -g -ftrapuv -diag-enable warn'
 # -diag-enable sc2 -diag-enable sc-single-file

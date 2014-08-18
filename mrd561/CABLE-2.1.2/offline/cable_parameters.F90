@@ -914,7 +914,7 @@ CONTAINS
     !soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
     soil%zse = (/0.07, 0.58, 0.154,0.409,1.100,2.872/)  !mrd561.  limit qg?
     !MD aquifer layers
-    soil%GWdz = 30.0                          !30 m thick aquifer
+    soil%GWdz = 10.0                          !30 m thick aquifer
 
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -1043,7 +1043,7 @@ CONTAINS
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
-             insucs(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm
+             abs(insucs(landpt(e)%ilon, landpt(e)%ilat)*1000.0)  !convert to mm
                                          
       soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
             inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
