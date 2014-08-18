@@ -82,7 +82,7 @@ MODULE cable_common_module
    ! external files read/written by CABLE
    TYPE filenames_type
 
-   CHARACTER(LEN=99) ::                                                        &
+   CHARACTER(LEN=500) ::                                                        &
       met,        & ! name of file for CABLE input
       out,        & ! name of file for CABLE output
       log,        & ! name of file for execution log
@@ -211,6 +211,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
    OPEN(40,FILE=filename%veg,STATUS='old',ACTION='READ',IOSTAT=ioerror)
       
       IF(ioerror/=0) then 
+         PRINT *, ioerror
          STOP 'CABLE_log: Cannot open veg type definitions.'
       ENDIF
      
