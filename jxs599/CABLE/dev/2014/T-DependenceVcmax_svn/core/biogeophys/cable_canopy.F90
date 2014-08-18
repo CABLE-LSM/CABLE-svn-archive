@@ -1229,6 +1229,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     cansat, ghwet, iter )
 
    USE cable_def_types_mod
+   USE cable_diag_module
    USE cable_common_module
 
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -1325,9 +1326,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
    INTEGER :: i, j, k, kk  ! iteration count
-   
+  integer, save :: jhi=0 
    ! END header
-
+  jhi=jhi+1
 
    ALLOCATE( gswmin(mp,mf ))
 
@@ -1438,12 +1439,35 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! Conductance for heat and longwave radiation:
             ghr(i,:) = rad%gradis(i,:)+gh(i,:)
       
-            ! Leuning 2002 (P C & E) equation for temperature response
-            ! used for Vcmax for C3 plants:
-            temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
-            
-            vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
-            vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+! Temperature dependence of Vcmax
+IF(cable_user%Temp_dep == "Leuning02") then
+   if(jhi==1) print *, "user choice ", cable_user%Temp_dep
+   ! Leuning 2002 (P C & E) equation for temperature response
+   ! used for Vcmax for C3 plants:
+   temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+   vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
+   vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+    
+elseIF(cable_user%Temp_dep == "KK07") then
+   if(jhi==1) print *, "user choice ", cable_user%Temp_dep
+   ! Using Knattage and Knorr (2007) Tempereature depence
+   temp(i) =  KK_Temp_dep(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+   vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
+   vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+    
+elseIF(cable_user%Temp_dep == "KK07_acclim") then
+   if(jhi==1) print *, "user choice ", cable_user%Temp_dep
+   ! Using Knattage and Knorr (2007) Tempereature depence plus 
+   ! Acclimation - assume exponential decaying moving average for 
+   ! growth Temp
+   temp(i) =  KK_Temp_dep_acclim(tlfx(i)) * veg%vcmax(i)              &
+                       * (1.0-veg%frac4(i))
+   vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
+   vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+    
+else
+   STOP "A valid method for Temperature Dependence of Vcmax has not been set"
+endif   
     
             ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
@@ -1505,7 +1529,19 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          ENDIF
          
       ENDDO !i=1,mp
-   
+
+! jhan   
+if (k == C%MAXITER .AND. iter == NITER ) then
+   print *, k, iter, jhi, ktau_gl
+   !print *, jhi, ktau_gl
+   call cable_diag( 1, "Vcmax_sunlit", mp, kend_gl, ktau_gl,                   &
+                    knode_gl, "Vcmax_sunlit",                            &
+                    vcmxt3(:,1) )
+   call cable_diag( 1, "Vcmax_shaded", mp, kend_gl, ktau_gl,                   &
+                    knode_gl, "Vcmax_shaded",                            &
+                    vcmxt3(:,2) )
+endif   
+               
       CALL photosynthesis( csx(:,:),                                           &
                            SPREAD( cx1(:), 2, mf ),                            &
                            SPREAD( cx2(:), 2, mf ),                            &
@@ -1981,6 +2017,46 @@ FUNCTION xvcmxt3(x) RESULT(z)
 
 END FUNCTION xvcmxt3
 
+! ------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------
+!jhan
+function KK_Temp_dep(x) RESULT(z) 
+   !  leuning 2002 (p c & e) equation for temperature response
+   !  used for vcmax for c3 plants
+   REAL, INTENT(IN) :: x
+   REAL :: xvcnum,xvcden,z
+ 
+   REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+   REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
+                     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
+ 
+   xvcnum=xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
+   xvcden=1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
+   z = max( 0.0,xvcnum / xvcden )
+
+End function KK_Temp_dep
+
+
+function KK_Temp_dep_acclim(x) RESULT(z) 
+   !  leuning 2002 (p c & e) equation for temperature response
+   !  used for vcmax for c3 plants
+   REAL, INTENT(IN) :: x
+   REAL :: xvcnum,xvcden,z
+ 
+   REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+   REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+   REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
+                     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
+ 
+   xvcnum=xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
+   xvcden=1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
+   z = max( 0.0,xvcnum / xvcden )
+
+End function KK_Temp_dep_acclim
+! ------------------------------------------------------------------------------
 ! ------------------------------------------------------------------------------
 
 FUNCTION xejmxt3(x) RESULT(z)

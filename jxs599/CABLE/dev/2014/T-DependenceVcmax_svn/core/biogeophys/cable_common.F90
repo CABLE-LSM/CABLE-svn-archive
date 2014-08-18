@@ -84,6 +84,8 @@ MODULE cable_common_module
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE.!
 
+      CHARACTER(LEN=20) ::                                                     &
+         Temp_dep 
 
    END TYPE kbl_user_switches
 
