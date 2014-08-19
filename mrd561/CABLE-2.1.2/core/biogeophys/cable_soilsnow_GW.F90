@@ -2251,7 +2251,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
     xx(:) = max(1.e-3, min(1., real((ssnow%wbliq(:,1)-0.5*soil%swilt(:))/&
                                     (soil%sfc(:)-0.5*soil%swilt(:)))))
-    !xx(:) = max(1.e-6, min(1., xx*xx))
+    xx(:) = max(1.e-6, min(1., xx*xx))
 
     xxx(:) = xx!(exp(-3.0*xx(:))-1.) / (exp(-3.0)-1.0)
 
