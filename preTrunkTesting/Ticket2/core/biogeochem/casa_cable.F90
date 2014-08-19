@@ -299,6 +299,8 @@ END SUBROUTINE bgcdriver
 
   integer np,ivt
   real, dimension(mp)  :: ncleafx,npleafx  ! local variables
+  real, dimension(17)                   ::  xnslope
+  data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
   ! first initialize 
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf) 
@@ -332,6 +334,7 @@ END SUBROUTINE bgcdriver
                           + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
         ENDIF
       ENDIF
+      veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
     ENDIF
 
 !    veg%vcmax(np) = ( nintercept(ivt)  &
