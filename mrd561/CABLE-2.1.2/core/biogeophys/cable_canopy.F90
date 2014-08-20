@@ -1371,24 +1371,24 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
    
-      IF (.not.cable_runtime%run_gw_model) THEN
+      !IF (.not.cable_runtime%run_gw_model) THEN
 
-         IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
-            CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
-         ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
-            !EAK, 09/10 - replace linear approx by polynomial fitting
-            CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
-         ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
-            CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
-         ELSE
-            STOP 'fwsoil_switch failed.'
-         ENDIF
-
+      IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
+         CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
+      ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+         !EAK, 09/10 - replace linear approx by polynomial fitting
+         CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
+      ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+         CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
       ELSE
+         STOP 'fwsoil_switch failed.'
+      ENDIF
 
-         CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
-
-      END IF
+      !ELSE
+      !
+      !   CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
+      !
+      !END IF
 
    ENDIF
 
