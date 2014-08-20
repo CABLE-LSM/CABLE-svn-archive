@@ -1,8 +1,9 @@
 &cable
-  filename%met = '/home/srb001/CABLE-AUX/offline/data/sample_met/Bondville1997_csiro.nc'
+  filename%met = '/home/srb001/CABLE-AUX/offline/data/sample_met/Tumbarumba_csiro.nc'
   filename%out = 'out_cable.nc'
   filename%log = 'log_cable.txt'
-  filename%restart_in = '/home/srb001/CABLE-AUX/offline/data/Bondville97/out_spinupBondville97/restart_out.nc'
+  filename%restart_in = ''
+  !filename%restart_in = '/home/srb001/CABLE-AUX/offline/data/Bondville97/out_spinupBondville97/restart_out.nc'
   filename%restart_out = './restart_out.nc'
   filename%type    = '/home/srb001/CABLE-AUX/offline/data/surface_data/gridinfo_CSIRO_1x1.nc'
   filename%veg    = '/home/srb001/CABLE-AUX/core/biogeophys/def_veg_params.txt'

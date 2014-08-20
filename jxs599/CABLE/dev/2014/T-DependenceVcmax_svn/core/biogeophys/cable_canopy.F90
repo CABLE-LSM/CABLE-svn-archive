@@ -1326,7 +1326,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
    INTEGER :: i, j, k, kk  ! iteration count
-  integer, save :: jhi=0 
+  integer, save :: jhi=0, iDiag(2)
    ! END header
   jhi=jhi+1
 
@@ -1532,12 +1532,13 @@ endif
 
 ! jhan   
 if (k == C%MAXITER .AND. iter == NITER ) then
-   print *, k, iter, jhi, ktau_gl
-   !print *, jhi, ktau_gl
-   call cable_diag( 1, "Vcmax_sunlit", mp, kend_gl, ktau_gl,                   &
+   !print *, k, iter, jhi/4, ktau_gl, mp
+   !print *, "vcmax ", vcmxt3(:,1) 
+   !print *, "vcmax "
+   call cable_diag( iDiag(1), "Vcmax_sunlit", mp, kend_gl, ktau_gl,      &
                     knode_gl, "Vcmax_sunlit",                            &
                     vcmxt3(:,1) )
-   call cable_diag( 1, "Vcmax_shaded", mp, kend_gl, ktau_gl,                   &
+   call cable_diag( iDiag(2), "Vcmax_shaded", mp, kend_gl, ktau_gl,      &
                     knode_gl, "Vcmax_shaded",                            &
                     vcmxt3(:,2) )
 endif   
