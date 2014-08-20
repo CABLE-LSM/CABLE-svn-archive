@@ -2249,11 +2249,11 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     wtd_meters = ssnow%wtd / 1000._r_2
 
 
-    xx(:) = max(1.e-3, min(1., real((ssnow%wbliq(:,1)-0.5*soil%swilt(:))/&
+    xx(:) = max(1.e-6, min(1., real((ssnow%wbliq(:,1)-0.5*soil%swilt(:))/&
                                     (soil%sfc(:)-0.5*soil%swilt(:)))))
-    xx(:) = max(1.e-6, min(1., xx*xx))
+    !xx(:) = max(1.e-6, min(1., xx*xx))
 
-    xxx(:) = xx!(exp(-3.0*xx(:))-1.) / (exp(-3.0)-1.0)
+    xxx(:) = (exp(-2.0*xx(:))-1.) / (exp(-2.0)-1.0)
 
     satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)+fice(:)
 
