@@ -1070,14 +1070,14 @@ IF(casamet%iveg2(nland)/=icewater) THEN
       casapool%dPsoillabdt(nland)= casaflux%Psnet(nland) + fluxptase(nland)         &
                                  + casaflux%Pdep(nland) + casaflux%Pwea(nland)      &
                                  - casaflux%Pleach(nland)-casaflux%pupland(nland)   &
-                                 - casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) &
+                                 - casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) &
                                  + casaflux%kpocc(nland) * casapool%Psoilocc(nland)
       ! here the dPsoillabdt =(dPsoillabdt+dPsoilsorbdt)
       ! dPsoilsorbdt  = xdplabsorb
       casapool%dPsoillabdt(nland)  = casapool%dPsoillabdt(nland)/xdplabsorb(nland)
       casapool%dPsoilsorbdt(nland) = 0.0
 
-      casapool%dPsoiloccdt(nland)  = casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
+      casapool%dPsoiloccdt(nland)  = casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
                                    - casaflux%kpocc(nland) * casapool%Psoilocc(nland)
       ! P loss to non-available P pools
 !      casaflux%Ploss(nland)        = casaflux%kpocc(nland) * casapool%Psoilocc(nland)
