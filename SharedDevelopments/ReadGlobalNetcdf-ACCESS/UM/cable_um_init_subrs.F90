@@ -40,6 +40,7 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
    
    use cable_diag_module, only : cable_diag 
    use cable_common_module, only : ktau_gl, knode_gl, cable_user 
+   ! use cable_ncdf_module
       
    implicit none
    real, intent(in), dimension(um1%row_length,um1%rows) :: &
@@ -135,8 +136,8 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
                         um1%row_length, mp, npseudo, LAI_Ma)
    ! LAI_Ma     = netcdf data read
    ! new_LAI_MA = interplate data 
-   call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
-   !LAI_Ma}  
+     call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
+   !LAI_Ma}  testing 
          
    return
 end subroutine initialize_maps
@@ -144,43 +145,107 @@ end subroutine initialize_maps
 !LAI_Ma  
 subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
    use cable_data_module, ONLY : cable
-
+   use cable_common_module, ONLY : cable_user
    ! define formal variables
    integer :: npseudo, mp 
    real, dimension(mp,npseudo) :: LAI_Ma
    integer :: npseudo_interp
    real, dimension(mp,npseudo_interp) :: new_LAI_Ma
    integer :: shift_days   ! temporary varaible   
-
-
+   
    ! define the local varaibles , this part can be ignored at this moment  
-   integer :: openstatus=1
+   integer :: openstatus=1  ,i_day
    integer :: LAI_Ma_year, DayOfExp
+
+   ! testing shift days
+   ! shift_days  = cable_user%shift_days
+     shift_days  = -1   !  when shift_days = -1 indicate no shift. 
+   ! print *, "shift days of LAI is :", shift_days
+   ! finish testing shift days
+
+
    ! As cable%doy resets every year, record when each year has passed
-   open(unit=713941,file='cable_DoY.txt', &
-        action="read", iostat=openstatus )
-      if(openstatus==0) then
-            read(713941,*) LAI_Ma_year 
-      else
-         write (*,*), 'cable_DoY.txt',' Error: unable to read'
-      endif
-   close(713941)
+   ! open(unit=713941,file='cable_DoY.txt', &
+   !     action="read", iostat=openstatus )
+   !   if(openstatus==0) then
+   !         read(713941,*) LAI_Ma_year 
+   !   else
+   !      write (*,*), 'cable_DoY.txt',' Error: unable to read'
+   !   endif
+   ! close(713941)
    ! NB: 365 here assumes gregorian
-   DayOfExp = ( LAI_Ma_year * 365 ) + cable%doy
+   ! DayOfExp = ( LAI_Ma_year * 365 ) + cable%doy
    ! the above code did not use 
 
    
    ! call the subrountine for linear interpolation and shift
    
-   call interp_linear_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp) ! call interpolation function 
+   ! call interp_linear_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp) ! call interpolation function 
+     call   interp_copy_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp)
 
+   ! new_LAI_Ma  = LAI_Ma  ! no interplocation, only copy
    ! shift the daily lai data by 20 days (default) and write out 
-   
+   ! start the interplocation : only copy the first month data for testing.
+   ! do i_day=1, 365
+   !    new_LAI_Ma(:,i_day)  = LAI_Ma(:,7)
+   ! end do  
+   ! end with interpolation
+
    ! definitions (some from program) like this 20 should go as far back as possible   
    
-   ! call advanced_shift_daily_lai(20,daily_lai,monthly_lai) 
-   
+   if(shift_days>0) then
+      print *, "Shift days of LAI is : ", shift_days
+      call advanced_shift_daily_lai(LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp, shift_days) 
+   end if 
 End subroutine  
+
+
+ subroutine interp_copy_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp)
+     implicit none
+    ! define formal variables for pass the data in and out
+     integer :: mp,npseudo,npseudo_interp       ! processed land points and monthly and daily dimension
+     real, dimension(mp,npseudo) :: LAI_Ma       ! monthly lai as
+     real, dimension(mp,npseudo_interp) :: new_LAI_Ma   ! interpolated into daily LAI
+
+     ! define local temporary variables
+     integer :: i_day
+
+   do i_day =1, 365 
+        select case(i_day)
+        case(1:31)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,1)
+        case(32:59)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,2)
+        case(60:90)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,3)
+        case(91:120)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,4)
+        case(121:151)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,5)
+        case(152:181)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,6)
+        case(182:212)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,7)
+        case(213:243)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,8)
+        case(244:273)  
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,9)
+        case(274:304)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,10)
+        case(305:334)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,11)
+        case(335:365)
+        new_LAI_Ma(:,i_day)    =LAI_Ma(:,12)
+        end select
+   end do ! finsih the day loop  
+
+   ! print to check the month LAI 
+   do i_day=1,12 
+      write(*,*),"Monthly mean LAI =", sum(LAI_Ma(:,i_day),LAI_Ma(:,i_day)<100)/max(1,count(LAI_Ma(:,i_day)<100))
+   end do
+   ! finishing check
+
+  end subroutine interp_copy_lai
  
 subroutine interp_linear_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp)
     implicit none
@@ -210,7 +275,10 @@ subroutine interp_linear_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp)
  do i_mp =1, mp  ! start the land point loop 
     ! initialize the monthly lai for interpolation 
     monthly_lai        = LAI_Ma(i_mp,:)   ! extract 12 month lai for one gridcell
-              
+  if(maxval(monthly_lai) > 100) then
+     print *, "LAI is not available on this piont = ", i_mp
+     daily_lai(:)   = maxval(monthly_lai)
+  else            
     do i_month=1, months_of_year-1  ! do not go to last month 
        first_date_id   = month_date(i_month)
        second_date_id  = month_date(i_month+1)
@@ -227,8 +295,10 @@ subroutine interp_linear_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp)
     ! deal with special case day 1 to 15 and 350 to 365
     daily_lai(1:14)    =  monthly_lai(1) ! 
     daily_lai(351:365) =  monthly_lai(12)!
+  end if ! end with the if statement
     ! put the interpolated daily lai into land index map arrary
     new_LAI_Ma(i_mp,:) = daily_lai
+  
  end do ! end with land point loop
 
 ! end with interpolation
@@ -265,7 +335,7 @@ subroutine advanced_shift_daily_lai(LAI_Ma, mp, npseudo,new_LAI_Ma,npseudo_inter
     pos_max = MAXLOC(daily_lai)
     pos_min = MINLOC(daily_lai) 
 
-    IF(maxval(diff_monthly_lai) > 1.3) THEN 
+    IF(maxval(diff_monthly_lai) > 1.3 .or. maxval(daily_lai)>50 ) THEN 
       print *, "strange value, no shift"
     ELSE ! normal case shift the lai 
        IF(pos_max(1) > 90 .AND. pos_max(1) < 300)  THEN  ! north part   
@@ -457,7 +527,7 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, new_LAI_Ma )
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
    REAL, DIMENSION(:,:) :: new_LAI_Ma 
-   INTEGER :: i,j,n
+   INTEGER :: i,j,n, temp_day
     
    DO N=1,um1%NTILES
       DO J=1,um1%TILE_PTS(N)
@@ -491,10 +561,25 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, new_LAI_Ma )
   
    veg%iveg   = PACK(kblum_veg%ivegt, um1%L_TILE_PTS)
    veg%vlai   = PACK(kblum_veg%laift, um1%L_TILE_PTS)
+   write(*,*) "UM LAI Mean ",sum(veg%vlai,veg%vlai<100 .and. veg%vlai>=0)/max(1,count(veg%vlai<100 .and. veg%vlai >=0))
+
 !LAI_Ma: here for testing i am using the first month only. For the sake of
 !updating and shifting you will need to develop some logic around this based of
 !on the date
-   veg%vlai   = new_LAI_Ma(:,cable%doy) 
+   ! test iday
+   temp_day = cable%doy
+   if(temp_day > 365 .or. temp_day <1) then
+     print *, "cable_doy in veg_intilialization is : ", cable%doy
+     veg%vlai(:)  = new_LAI_Ma(:,365)
+   else ! normal case
+     veg%vlai(:)    = new_LAI_Ma(:,cable%doy)
+   end if
+   write(*,*) "New LAI Mean ", sum(veg%vlai,veg%vlai<100 .and. veg%vlai>=0)/max(1,count(veg%vlai<100 .and. veg%vlai >=0))
+
+   ! finish test iday
+   ! veg%vlai(:)   = new_LAI_Ma(:,cable%doy)  
+   ! veg%vlai(:)   = new_LAI_Ma(:,1)   ! use the first month
+
    veg%hc     = PACK(kblum_veg%htveg, um1%L_TILE_PTS)
 
 END SUBROUTINE clobber_height_lai

@@ -1,9 +1,9 @@
 NCDIR=/apps/netcdf/4.2.1.1/lib
 NCMOD=/apps/netcdf/4.2.1.1/include
 FC=ifort
-CFLAGS=-O0 
+CFLAGS=-O0 # -g -traceback
 LD=-lnetcdf -lnetcdff
-LDFLAGS=-O0
+LDFLAGS=-O0 # -g
 
 # these are all the files we are compiling
 LSRC = cable_ncdf.F90 cable_ncdf_wrapper.F90

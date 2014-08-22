@@ -294,6 +294,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL :: miss = 0.0
    INTEGER ::     &
       idoy           ! day of year (1:365) counter for CASA-CNP
+   ! testing code
+   if(idoy > 365) then
+   print *, "This is a leap year (explicit_driver): idoy = ", idoy
+   end if 
+   ! finishing testing code 
 
    cable%doy = idoy
    !--- initialize cable_runtime% switches 
