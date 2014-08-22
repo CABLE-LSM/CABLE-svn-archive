@@ -63,7 +63,7 @@ MODULE cable_soil_snow_gw_module
                       volwatmin    = 0.05,        &!min soil water [mm]      
                       wtd_uncert   = 0.1,         &! uncertaintiy in wtd calcultations [mm]
                       wtd_max      = 100000.0,    &! maximum wtd [mm]
-                      wtd_min      = 10.0,        &! minimum wtd [mm]
+                      wtd_min      = 100.0,        &! minimum wtd [mm]
                       dri          = 1.0,         &!ratio of density of ice to density of liquid [unitless]
                       denliq       = 1000.0,      &
                       denice       = 1000.0
