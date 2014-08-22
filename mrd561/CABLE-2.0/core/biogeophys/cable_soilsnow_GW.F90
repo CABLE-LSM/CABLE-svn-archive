@@ -68,7 +68,7 @@ MODULE cable_soil_snow_gw_module
                       denliq       = 1000.0,      &
                       denice       = 1000.0
                       
-   INTEGER, PARAMETER :: wtd_iter_mx = 10 ! maximum number of iterations to find the water table depth                    
+   INTEGER, PARAMETER :: wtd_iter_max = 10 ! maximum number of iterations to find the water table depth                    
   
    
    REAL :: cp    ! specific heat capacity for air
