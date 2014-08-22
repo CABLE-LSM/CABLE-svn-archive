@@ -2213,8 +2213,16 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     ! Saturated fraction
     wtd_meters = ssnow%wtd / 1000._r_2
 
-    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)+fice(:)
-    ssnow%wetfac(:) = satfrac(:)
+    satfrac(:) = gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)
+
+    xxx(:)  = MAX( 1.e-6, MIN( 1.0,REAL (ssnow%wb(:,1)  - soil%swilt/ 2.0 ) &
+                  / ( soil%sfc - soil%swilt/2.0 ) ) )
+
+
+    ssnow%wetfac(:) = satfrac(:) + (1.-satfrac(:))*xxx(:)
+
+    ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,&
+                                       (1.-fice(:))*ssnow%wetfac + fice(:)))
 
 
 
