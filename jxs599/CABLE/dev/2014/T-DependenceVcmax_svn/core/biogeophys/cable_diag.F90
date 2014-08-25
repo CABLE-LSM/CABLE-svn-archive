@@ -140,13 +140,10 @@ SUBROUTINE cable_diag_data1( iDiag, filename, dimx, timestep, kend, var1  )
       open(unit=iDiag+1,file=filename//'.bin',status="unknown", &
            action="write", iostat=gopenstatus, form="unformatted", &
            position='append' )
-           print *, "size var1", kind(var1)
    endif   
  
    if(gopenstatus==gok) then
          write (iDiag+1) var1
-   if (iDiag == 715)  &    
-         print *, "var1", (var1)
    else
       write (*,*) filename//'.bin',' NOT open for write. Error'
    endif

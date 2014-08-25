@@ -2021,22 +2021,63 @@ END FUNCTION xvcmxt3
 ! ------------------------------------------------------------------------------
 ! ------------------------------------------------------------------------------
 !jhan
-function KK_Temp_dep(x) RESULT(z) 
-   !  leuning 2002 (p c & e) equation for temperature response
-   !  used for vcmax for c3 plants
-   REAL, INTENT(IN) :: x
-   REAL :: xvcnum,xvcden,z
- 
-   REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-   REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-   REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
-   REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
-                     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
- 
-   xvcnum=xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
-   xvcden=1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
-   z = max( 0.0,xvcnum / xvcden )
+function KK_Temp_dep(T_L) RESULT(z) 
+   !  Knattage & Korr 2007) equation for temperature response
+   !  used here for vcmax for c3 plants
+   ! Leaf Temperature
+   use cable_data_module, only : phys
 
+   REAL, INTENT(IN) :: T_L 
+   REAL :: z 
+   !REAL :: xvcnum,xvcden,z
+ 
+   !REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (KK 2007)
+   REAL, PARAMETER  :: H_a = 72.0 *1000.0 !+/- 3.3 [kJ/mol] (KK 2007)
+   !REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (KK 2007)
+   REAL, PARAMETER  :: H_d  = 200000.0 ! J/mol (KK 2007)
+   !REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (KK 2007)
+   REAL, PARAMETER  :: DeltaS = 649.0 !+/- 1.43  [J/mol/K] (KK 2007)
+
+   REAL, PARAMETER  :: T_ref = 273.15 + 25  ! 25 dec C in K 
+ 
+   real :: DeltaT ! Temperaure diff of leaf from T_ref
+   real :: Eff_activ, norm_activ
+   real :: Activation 
+   real :: Entropy_ref 
+   real :: norm_ref 
+   real :: Deactiv_ref 
+   real :: Entropy_leaf 
+   real :: norm_leaf 
+   real :: Deactiv_leaf
+   
+   ! Activation moderated by deactivation
+   
+   ! Activation 
+   !###################
+   DeltaT = T_L - T_ref
+   
+   ! generally assumes activation per biome, but
+   ! KK only has 3 biomes
+   Eff_activ  = H_a * DeltaT 
+   norm_activ = T_ref * T_L * phys%rgas !jhan: get gas constant, Tfrz 
+
+   Activation = exp( Eff_activ/ norm_activ )
+   
+   ! Deactivation: ratio b/n ref & leaf
+   !###################
+   
+   ! _ref Temperature
+   Entropy_ref =  ( T_ref  * DeltaS ) - H_d
+   norm_ref = phys%rgas * T_ref
+   Deactiv_ref = 1. + exp( Entropy_ref/ norm_ref )
+   
+   ! leaf Temperature
+   Entropy_leaf = ( T_L * DeltaS ) - H_d
+   norm_leaf = phys%rgas * T_L
+   Deactiv_leaf = 1. + exp( Entropy_leaf/ norm_leaf )
+  
+   z =  Activation * Deactiv_ref / Deactiv_leaf
+   z=1. 
 End function KK_Temp_dep
 
 
@@ -2057,6 +2098,7 @@ function KK_Temp_dep_acclim(x) RESULT(z)
    z = max( 0.0,xvcnum / xvcden )
 
 End function KK_Temp_dep_acclim
+
 ! ------------------------------------------------------------------------------
 ! ------------------------------------------------------------------------------
 
