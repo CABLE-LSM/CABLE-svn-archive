@@ -2160,7 +2160,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
     !srf frozen fraction.  should be based on topography
     icef(:) = max(0._r_2,min(1._r_2,icemass(:,1) / totmass(:,1)))
-    fice(:) = (exp(-3._r_2*(1._r_2-icef(:)))- exp(-3._r_2))!/(1.0-exp(-3.0))
+    fice(:) = (exp(-3._r_2*(1._r_2-icef(:)))- exp(-3._r_2))/(1._r_2-exp(-3._r_2))
     where (fice(:) .lt. 0._r_2) fice(:) = 0._r_2
     where (fice(:) .gt. 1._r_2) fice(:) = 1._r_2
 
@@ -2168,15 +2168,15 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     wtd_meters = ssnow%wtd / 1000._r_2
 
 
-    xx(:) = max(1.e-6, min(1., real((ssnow%wbliq(:,1)-0.25*soil%swilt(:))/&
-                                    (soil%sfc(:)-0.25*soil%swilt(:)))))
-    !xx(:) = max(1.e-6, min(1., xx*xx))
+    xx(:) = max(1._r_2e-6, min(1._r_2, real((ssnow%wbliq(:,1)-0.25_r_2*soil%swilt(:))/&
+                                    (soil%sfc(:)-0.25_r_2*soil%swilt(:)))))
 
-    xxx(:) = (exp(-2.0*xx(:))-1.) / (exp(-2.0)-1.0)
+    xxx(:) = (exp(-2._r_2*xx(:))-1._r_2) / (exp(-2._r_2)-1._r_2)
 
-    satfrac(:) = (1._r_2-fice(:))*gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)+fice(:)
+    satfrac(:) = gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)  &
+                 +(1._r_2 - gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)) * xxx(:)
 
-    ssnow%wetfac(:) =satfrac(:) + (1.0 - satfrac(:)) * xxx(:)
+    ssnow%wetfac(:) = fice(:) + ( 1._r_2 - fice(:) )*satfrac(:)
 
 
 
