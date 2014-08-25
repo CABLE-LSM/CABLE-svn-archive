@@ -1,1 +1,7 @@
+Please see the script zero_diff.ksh in execs/ for a full explanation of how this works
+
 Please Note: these executables were compiled on vayu using ifort. The example fluxes were recorded on vayu as well, using a standard configuration for CABLE. In all likelihood, you will need to produce your own base files for comparrisson.
+
+update above for raijin AND base trunk@2229
+
+
