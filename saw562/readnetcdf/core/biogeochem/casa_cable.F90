@@ -111,12 +111,12 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen)
    
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
-            IF ( dump_write ) &
-               call ncdf_dump( casamet%tairk, casamet%tsoil, casamet%moist, &
-                               casaflux%cgpp, casaflux%crmplant, idoy, &
-                               kend/ktauday )
-         ENDIF
+!        IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
+!           IF ( dump_write ) &
+!              call ncdf_dump( casamet%tairk, casamet%tsoil, casamet%moist, &
+!                              casaflux%cgpp, casaflux%crmplant, idoy, &
+!                              kend/ktauday )
+!        ENDIF
 
       ENDIF
 

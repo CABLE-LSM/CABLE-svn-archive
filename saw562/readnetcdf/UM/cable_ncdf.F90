@@ -4,11 +4,11 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
                      npseudo,mydata)
    use netcdf
    implicit none
- 
+
    ! we are passing these as they are declared i8 and r8
-   integer :: node_gl, rows, row_length, mp, npseudo
-   REAL(kind=8), dimension(mp) :: latitude, longitude 
-   real, dimension(mp, npseudo) :: mydata 
+   integer(kind=8), intent(in) :: node_gl, rows, row_length, mp, npseudo
+   real(kind=8), dimension(mp), intent(in) :: latitude, longitude 
+   real(kind=8), dimension(mp, npseudo), intent(out) :: mydata 
 
    ! This is the name of the data file we will read. 
    character (len = *), parameter :: fbase_name = "LAI"
@@ -24,7 +24,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    integer, dimension(mp) :: x_in, y_in
  
    ! This will be the netCDF ID for the file and data variable.
-   integer :: ncid, varid, latid, lonid
+   integer(kind=4) :: ncid, varid, latid, lonid
  
    ! Loop indexes, and error handling.
    integer :: i,x, y, z 
@@ -131,7 +131,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
 
    contains
    subroutine check(status)
-     integer, intent ( in) :: status
+     integer(kind=4), intent ( in) :: status
      
      if(status /= nf90_noerr) then 
        print *, trim(nf90_strerror(status))
