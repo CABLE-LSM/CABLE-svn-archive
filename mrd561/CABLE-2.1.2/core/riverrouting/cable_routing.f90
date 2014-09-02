@@ -47,7 +47,17 @@ module cable_routing
     real(r_2), pointer, dimension(:) :: mass    !river water mass
     real(r_2), pointer, dimension(:) :: vel     !river water speed
     real(r_2), pointer, dimension(:) :: hgt     !river water height 
+    
   end type river_flow_type
+  
+  type basin_type
+    integer                        :: begind         !basin index start in reordered global 1d array
+    integer                        :: endind         !basin end index in global reordered array
+    integer                        :: n_basin_cells  !number of river cells in the basin
+    integer, pointer, dimension(:) :: river_points   !the indices for the basin in the unordered global 1d array
+    
+  end type basin_type
+  
   
   integer,   parameter :: n_river_tracers = 1   !number of tracers...liq  -->carbon,nitrogen and ice??
   integer,   parameter :: max_n_ovrlap = 324   !assume at most 1x1 to 0.0625x0.0625 -->16x16  do 18x18=324 to be safe
@@ -60,6 +70,7 @@ module cable_routing
 
   type(river_grid_type), TARGET, SAVE :: river_grid
   type(river_flow_type), TARGET, SAVE :: river
+  type(basin_type), pointer, save, dimension(:) :: basins
   
   
   !outline
