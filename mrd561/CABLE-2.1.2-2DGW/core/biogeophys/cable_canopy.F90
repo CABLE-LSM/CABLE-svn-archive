@@ -1215,12 +1215,8 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
    !use top-model based wet fraction at the surface
    IF (cable_runtime%run_gw_model) then
-
   
      call calc_srf_wet_fraction(ssnow,soil)
-
-     ssnow%wetfac = MAX( 1.e-2, MIN( 1.0,                                     &
-                  ( REAL (ssnow%wetfac))))
 
    else
 
@@ -1371,6 +1367,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
    
+      !IF (.not.cable_runtime%run_gw_model) THEN
+
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
       ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
@@ -1381,6 +1379,12 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ELSE
          STOP 'fwsoil_switch failed.'
       ENDIF
+
+      !ELSE
+      !
+      !   CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
+      !
+      !END IF
 
    ENDIF
 
@@ -2038,6 +2042,53 @@ FUNCTION xejmxt3(x) RESULT(z)
    z = max(0.0, xjxnum/xjxden)
 
 END FUNCTION xejmxt3
+
+! ------------------------------------------------------------------------------
+
+SUBROUTINE fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
+   USE cable_def_types_mod
+   REAL, DIMENSION(:),         INTENT(INOUT) :: fwsoil
+   TYPE (soil_parameter_type), INTENT(IN)    :: soil
+   TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
+   TYPE (veg_parameter_type),  INTENT(IN)    :: veg
+
+   !Local Variables
+   !For now put pft constants here
+   !move to def_veg_parameters file if sucessful
+
+   REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
+   REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
+
+   INTEGER :: i,j,k
+
+   psi_o(1:3)  = -66000._r_2
+   psi_o(4)    = -35000._r_2
+   psi_o(5)    = -83000._r_2
+   psi_o(6:17) = -74000._r_2
+
+   psi_c(1:3)  = -255000._r_2
+   psi_c(4)    = -224000._r_2
+   psi_c(5)    = -428000._r_2
+   psi_c(6:17) = -275000._r_2   
+
+   !if it is the first timestep we haven't called hydrology so wbliq isn't yet defined
+   ssnow%wbliq = ssnow%wb - ssnow%wbice  !liquid volume.  not this assumes density ice = density liquid
+
+   psi_tmp = -soil%smpsat(:,:) * (max(0.01,ssnow%wbliq(:,:)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
+   fwsoil(:) = 1.
+   do i=1,mp
+      fwsoil(i) = 0.
+      j = veg%iveg(i)
+      do k=1,ms
+         fwsoil(i) = fwsoil(i) + veg%froot(i,k) * max(0.0,min(1.0,&
+                                 (psi_c(j)-psi_tmp(i,k))/(psi_c(j)-psi_o(j))*&
+                                 (soil%watsat(i,k)-ssnow%wbice(i,k))/soil%watsat(i,k)))
+      end do
+
+   end do
+
+END SUBROUTINE fwsoil_calc_pressure
+
 
 ! ------------------------------------------------------------------------------
 

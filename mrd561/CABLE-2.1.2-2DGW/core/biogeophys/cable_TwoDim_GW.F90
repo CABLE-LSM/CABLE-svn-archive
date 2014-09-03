@@ -157,7 +157,7 @@ module cable_TwoDim_GW
       evl(land_x(i),land_y(i))    = soil%elevation(i)
       poros(land_x(i),land_y(i))  = soil%GWwatsat(i)
       ho(land_x(i),land_y(i))     = soil%elevation(i) - ssnow%wtd(i)/1000._r_2
-      hycond(land_x(i),land_y(i)) = soil%GWhksat(i)/1000._r_2   !m/s
+      hycond(land_x(i),land_y(i)) = 0.1*soil%GWhksat(i)/1000._r_2   !m/s
     end do
     if (debug) write(*,*) 'done with mp init'
     compres = 0.0_r_2
@@ -180,7 +180,7 @@ module cable_TwoDim_GW
     if (debug) write(*,*) 'ELEVATION MIN IS ',minval(evl)
     if (debug) write(*,*) 'ELEVATION AVG IS ',sum(evl)/real(xdimsize*ydimsize)
     if (debug) write(*,*) 'hycond max ', maxval(hycond)
-   if (debug) write(*,*) 'hycond min ', minval(hycond)
+    if (debug) write(*,*) 'hycond min ', minval(hycond)
 
 
     dx = soil%delx                           !assumed constant
