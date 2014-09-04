@@ -1,8 +1,8 @@
 module cable_routing
 
-  use routing_constants, only :: nlat_river,nlon_river,npts_river
+  use netcdf
   use cable_types
-  USE cable_common_module, ONLY : cable_user
+  use cable_common_module, only : cable_user
   use cable_def_types_mod, only : r_2, ms, mp,mlat,mlon
 
   use cable_IO_vars_module, only : landpt, patch, max_vegpatches, metGrid,  &
@@ -78,8 +78,9 @@ module cable_routing
   !  call river_route_init(filename,river_grid)
   !    call read_river_route_file(filename,river_grid)
   !                                          => grid%{nlat,nlon,npts,lat,lon,direction,length,slope,elevation,land_mask}
+  !       !need to only read lat/lon for river over same area area as lsm lat/lon
   !
-  !      call alloc_river_route_vars()  !-->call within
+  !       call alloc_river_route_vars()  !-->call within
   !
   !    call find_downstream_index(river_grid)
   !                            => river_grid%{dstrm_index,river_dirc}
@@ -133,33 +134,146 @@ module cable_routing
   
 
 contains
+!-----------------------------------------------------------------------------
+  subroutine read_river_route_data(filename,river_grid)
+    use netcdf
+    implicit none
+    
+    character(len=250), intent(in)       :: filename
+    type(river_grid_type), intent(out) :: river_grid
+    
+    integer :: ncid_river
+    integer :: mask_id, rdir_id, length_id, slope_id, elev_id
+    integer :: rr_lat_dim_id,rr_lon_dim_id,rr_lat_var_id,rr_lon_var_id
+    integer :: nlat_rr_file, nlon_rr_file, npts_rr_file
+    
+    
+    character(len=*), parameter :: mask_name   = "land_mask"
+    character(len=*), parameter :: length_name = "length"
+    character(len=*), parameter :: slope_name  = "slope"
+    character(len=*), parameter :: elev_name   = "elevation"
+    character(len=*), parameter :: rdir_name   = "direction"
+    character(len=*), parameter :: rr_lat_dim_name = "lat"
+    character(len=*), parameter :: rr_lon_dim_name = "lon"
+    character(len=*), parameter :: rdir_name   = "direction"
+    character(len=*), parameter :: rr_lat_var_name = "latitude"
+    character(len=*), parameter :: rr_lon_var_name = "longitude"
+    
+    integer  , dimension(:,:), allocatable :: int_data
+    real(r_2), dimension(:,:), allocatable :: flt_data
+    
+    real(r_2), dimension(:), allocatable :: lat_data
+    real(r_2), dimension(:), allocatable :: lon_data
+    
+    integer :: i,j,k     !integers to loop through lsm data
+    integer :: ri,rj,rk  !integers to loop through river
+    integer :: nc_check
+    
+    integer :: lon_start,lon_end,lat_start,lat_end
+    
+    real :: dlat_lsm,dlon_lsm
+    
+    
+    nc_check = nf90_open(trim(filename), nf90_nowrite, ncid_river)
+    
+    !get dim ids
+    nc_check = nf90_inq_dimid(ncid_river, rr_lat_dim_name, rr_lat_dim_id)
+    nc_check = nf90_inq_dimid(ncid_river, rr_lon_dim_name, rr_lon_dim_id)
+    
+    !get dim lengths
+    nc_check = nf90_inquire_dimension(ncid_river,rr_lat_dim_id,len=nlat_rr_file) 
+    nc_check = nf90_inquire_dimension(ncid_river,rr_lon_dim_id,len=nlon_rr_file) 
+    
+    allocate(lat_data(nlat_rr_file))
+    allocate(lon_data(nlon_rr_file))
+    
+    !read the latitude and longitudes
+    nc_check = nf90_inq_varid(ncid_river,rr_lat_var_name,rr_lat_var_id)
+    nc_check = nf90_inq_varid(ncid_river,rr_lon_var_name,rr_lon_var_id)
+    
+    !
+    nc_check = nf90_get_var(ncid_river,rr_lat_var_id,lat_data(:))
+    nc_check = nf90_get_var(ncid_river,rr_lon_var_id,lon_data(:))
+    
+    !determine regions covered by the lsm forcing/data/simulation
+    !assume always all goes from W->E and S->N
+    dlat_lsm = 0.5*abs(latitude(2)-latitude(1))
+    dlon_lsm = 0.5*abs(longitude(2)-longitude(1))
+    
+    min_lsm_lat = minval(latitude(:)) - dlat_lsm
+    max_lsm_lat = maxval(latitude(:)) + dlat_lsm
+    min_lsm_lon = minval(longitude(:)) - dlon_lsm
+    max_lsm_lon = maxval(longitue(:)) + dlon_lsm
+    
+    found_edge = .false.
+    i=1
+    do while (.not. found_edge)
+      if (lon_data(i) .le. min_lsm_lon .and. lon_data(i+1) .ge. min_lsm_lon) then
+        found_edge = .true.
+      elseif (i .le. nlon_rr_file-1) then
+        i=i+1
+      else
+         stop
+         found_edge = .true.
+    end do
+    lon_start = i
+    
+
+    found_edge = .false.
+    i=nlon_rr_file
+    do while (.not. found_edge)
+      if (lon_data(i-1) .le. max_lsm_lon .and. lon_data(i) .ge. max_lsm_lon) then
+        found_edge = .true.
+      elseif (i .ge. 2) then
+        i=i-1
+      else
+       stop
+       found_edge = .true.
+    end do
+    lon_end = i    
+       
+
+
+    
+    
+  end subroutine read_river_data
+    
+
 
 !-----------------------------------------------------------------------------
 !             !current data set doesn't use these numbers as it is: 1,2,4,8,16,32,64,128,256
-!                8   1   2      128  1   2
-!                7   0   3       64      4
-!                6   5   4       32  16  8
+!                       32 64  128
+!                       16     1
+!                        8  4  2
 !
-  integer function dirc2latindex(in_dirc) 
+  integer function dirc2latindex(in_dirc)   !assuming lat goes from south to north....
     implicit none
     integer, intent(in) :: in_dirc
 
-    dirc2latindex = 0
-    if ((in_dirc .le. 2) .or.  (in_dirc .eq. 128)) dirc2latindex  = 1
-    if ((in_dirc .ge. 8) .and. (in_dirc .le.  32)) dirc2latindex = -1
+    if (in_dirc .eq. 2 .or. in_dirc .eq. 4 .or. in_dirc .eq. 8) then
+       dirc2latindex = -1
+    elseif (in_dirc .eq. 32 .or. in_dirc .eq. 64 .or. in_dirc .eq. 128) then
+       dirc2latindex = 1
+    else
+       dirc2latindex = 0
+    end if
 
   end function dirc2latindex
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
 !
-  integer function dirc2lonindex(in_dirc) 
+  integer function dirc2lonindex(in_dirc)   !lon goes from west to east
     implicit none
     integer, intent(in) :: in_dirc
 
     dirc2lonindex = 0
-    if ((in_dirc .ge.  2) .and. (in_dirc .le.   8)) dirc2lonindex  = 1
-    if ((in_dirc .ge. 32) .and. (in_dirc .le. 128)) dirc2lonindex = -1
-
+    if (in_dirc .eq. 1 .or. in_dirc .eq. 2 .or. in_dirc .eq. 8) then
+      dirc2lonindex  = 1
+    elseif (in_dirc .eq. 8 .or. in_dirc .eq. 16 .or. in_dirc .eq. 32) then
+      dirc2lonindex = -1
+    else
+      dirc2lonindex = 0
+    end if
 
   end function dirc2lonindex
 !-----------------------------------------------------------------------------
@@ -313,6 +427,7 @@ contains
         ord_grid_var%slope(cnt)           = grid_var%slope(k)
         ord_grid_var%length(cnt)          = grid_var%length(k)
         ord_grid_var%land_mask(cnt)       = grid_var%land_mask(k)
+        
         !flow variables yet to be defined.  no need to remap
         ! wat_mass, wat_vol, wat_hgt, wat_length
         cnt = cnt + 1
@@ -325,53 +440,7 @@ contains
     call dealloc_river_grid(ord_grid_var)
 
   end subroutine reorder_grid_by_basin
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------   
-  subroutine step_river_routing(river,river_grid,basins(:),basins_pe_start,basins_pe_end)
-     implicit none
-     
-     type(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
-     type(river_grid_type),          intent(in)    :: river_grid
-     type(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin     
-     
-     real(r_2), pointer, dimension(:) :: river_water
-     real(r_2), pointer, dimension(:) :: river_vel
-     real(r_2), pointer, dimension(:) :: river_hgt
-     real(r_2), pointer, dimension(:) :: river_distance
-     
-     integer :: npoints_local_basin
-     integer :: i
-     
-     river_water => river%mass(:)                            !pointers to full arrays.  each pe has full copy of array?
-     river_vel   => river%vel(:)
-     river_hgt   => river%hgt(:)
-     river_distance => river_grid%distance(:)
-     
-     do i=basins_pe_start,basins_pe_end                       !loop over basins assinged to this pe
-       npoints_local_basin = basins(i)%n_basin_cells
-       do k=1,npoints_local_basin
-         kk = basins(i)%river_points(k)
-         Fin(kk) = 0._r_2
-       end do
-       
-       do k=1,npoints_local_basin
-         kk = basins(i)%river_points(k)
-         Fout(kk) = river_water(kk)*river_vel(kk)/river_disctance(kk)/river_distance(kk)*dels  !made up
-         Fin(grid_var%dwnstrm_index(kk)) = Fin(grid_var%dwnstrm_index(kk)) + Fout(kk)
-       end do
-       
-       do k=1,npoints_local_basin
-         kk = basins(i)%river_points(k)
-         river_water(kk) = river_water(kk) + (Fin(kk)-Fout(kk))*dels
-         if (grid_var%is_outlet .eq. 1) then
-           total_outflow(i) = Fout(kk)*dels
-         end if
-       end do
-     
-     end do
-     
-   end subroutine step_river_routing
-!-----------------------------------------------------------------------------  
+!----------------------------------------------------------------------------- 
 !-----------------------------------------------------------------------------  
   !Determine the wieghts and mapping from 1D global land grid to the 1D river grid
   !river_grid%{lat,lon} are assumed higher resolution than lat_out lon_out?
@@ -433,7 +502,7 @@ contains
       
       do jj=1,river_grid%nlat   !by using two loops Sedge_hi,Nedge_hi only recalced when needed
 
-        kk_tmp = 1 + jj*nlon_river
+        kk_tmp = 1 + jj*river_grid%nlon
 
         Sedge_hi = river_grid%lat(kk_tmp) - dlat_hi/2._r_2  !avoid some calcs dooing it here
         Nedge_hi = river_grid%lat(kk_tmp) + dlat_hi/2._r_2
@@ -476,6 +545,52 @@ contains
     end do  !loop over mp land points
     
   end subroutine determine_hilo_res_mappings 
+!----------------------------------------------------------------------------- 
+!-----------------------------------------------------------------------------   
+  subroutine step_river_routing(river,river_grid,basins(:),basins_pe_start,basins_pe_end)
+     implicit none
+     
+     type(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
+     type(river_grid_type),          intent(in)    :: river_grid
+     type(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin     
+     
+     real(r_2), pointer, dimension(:) :: river_water
+     real(r_2), pointer, dimension(:) :: river_vel
+     real(r_2), pointer, dimension(:) :: river_hgt
+     real(r_2), pointer, dimension(:) :: river_distance
+     
+     integer :: npoints_local_basin
+     integer :: i
+     
+     river_water => river%mass(:)                            !pointers to full arrays.  each pe has full copy of array?
+     river_vel   => river%vel(:)
+     river_hgt   => river%hgt(:)
+     river_distance => river_grid%distance(:)
+     
+     do i=basins_pe_start,basins_pe_end                       !loop over basins assinged to this pe
+       npoints_local_basin = basins(i)%n_basin_cells
+       do k=1,npoints_local_basin
+         kk = basins(i)%river_points(k)
+         Fin(kk) = 0._r_2
+       end do
+       
+       do k=1,npoints_local_basin
+         kk = basins(i)%river_points(k)
+         Fout(kk) = river_water(kk)*river_vel(kk)/river_disctance(kk)/river_distance(kk)*dels  !made up
+         Fin(grid_var%dwnstrm_index(kk)) = Fin(grid_var%dwnstrm_index(kk)) + Fout(kk)
+       end do
+       
+       do k=1,npoints_local_basin
+         kk = basins(i)%river_points(k)
+         river_water(kk) = river_water(kk) + (Fin(kk)-Fout(kk))*dels
+         if (grid_var%is_outlet .eq. 1) then
+           total_outflow(i) = Fout(kk)*dels
+         end if
+       end do
+     
+     end do
+     
+   end subroutine step_river_routing
 !-----------------------------------------------------------------------------  
 !-----------------------------------------------------------------------------
   subroutine alloc_river_route_vars(river_var,grid_var,npts)
@@ -570,7 +685,7 @@ contains
     var%elev(:) = fNaN
     allocate(var%land_mask(npts))
     var%land_mask(:) = iNaN
-    
+
     call alloc_river_map_grid(var%maps,npts)
 
 
@@ -594,6 +709,9 @@ contains
   end subroutine alloc_river_grid
 
 !-----------------------------------------------------------------------------  
+
+
+end module cable_routing
 
     
     
