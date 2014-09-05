@@ -533,6 +533,10 @@ END SUBROUTINE get_type_parameters
 
 ! get svn revision number and status
 SUBROUTINE report_version_no( logn )
+
+#ifdef NAG
+   USE F90_UNIX_ENV, only: getenv
+#endif
    INTEGER, INTENT(IN) :: logn
    ! set from environment variable $HOME
    CHARACTER(LEN=200) ::                                                       & 

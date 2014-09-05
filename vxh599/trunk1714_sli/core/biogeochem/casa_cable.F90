@@ -678,7 +678,8 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   !!    end if
 
   !    write(*,101) ktau,casaflux%Crsoil(:)
-  !    write(*,101) ktau,dels,veg%vlai,veg%vcmax*1.0e6,casaflux%cgpp,canopy%fpn*1.0e6/12.0,canopy%frp*1.0e6/12.0,canopy%frs*1.0e6/12.0,canopy%fnee*1.0e6/12.0
+  !    write(*,101) ktau,dels,veg%vlai,veg%vcmax*1.0e6,casaflux%cgpp,canopy%fpn*1.0e6/12.0, &
+  !        canopy%frp*1.0e6/12.0,canopy%frs*1.0e6/12.0,canopy%fnee*1.0e6/12.0
   !101  format(i6,2x,100(f12.5,2x))
   !    if(ktau==kend) then
   !       PRINT *, 'carbon fluxes'
@@ -840,7 +841,11 @@ SUBROUTINE analyticpool(kend,veg,soil,casabiome,casapool,                       
   casabal%sumnbal(:)   = 0.0
   casabal%sumpbal(:)   = 0.0
 
-  !  write(517,*),'before analyticpool:casaflux%klitter(39:40,1:3),casa%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,1:3),casa%csoil%(39:40,1:3)',casaflux%klitter(39:40,1:3),casaflux%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,:),casapool%csoil(39:40,:)
+  !  write(517,*),'before analyticpool:casaflux%klitter(39:40,1:3),casa%ksoil(39:40,1:3), &
+  !     avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3), &
+  !     casapool%clitter(39:40,1:3),casa%csoil%(39:40,1:3)',casaflux%klitter(39:40,1:3), &
+  !     casaflux%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40), &
+  !     casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,:),casapool%csoil(39:40,:)
   do npt=1,mp
      if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) THEN
         casaflux%fromLtoS(npt,mic,metb)   = 0.45
@@ -967,7 +972,11 @@ SUBROUTINE analyticpool(kend,veg,soil,casabiome,casapool,                       
      ENDIF
   ENDDO
 
-  !  write(517,*),'before analyticpool:casaflux%klitter(39:40,1:3),casa%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,1:3),casa%csoil%(39:40,1:3)',casaflux%klitter(39:40,1:3),casaflux%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,1:3),casapool%csoil(39:40,:)
+  !  write(517,*),'before analyticpool:casaflux%klitter(39:40,1:3),casa%ksoil(39:40,1:3), &
+  !     avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3), &
+  !     casapool%clitter(39:40,1:3),casa%csoil%(39:40,1:3)',casaflux%klitter(39:40,1:3), &
+  !     casaflux%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40), &
+  !     casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,1:3),casapool%csoil(39:40,:)
 END SUBROUTINE analyticpool
 
 

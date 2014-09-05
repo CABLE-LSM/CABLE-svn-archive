@@ -110,7 +110,7 @@ SUBROUTINE cable_diag_desc1( Nvars, filename, dimx, dimy, vname1 )
             write (713941,*) 'dimension of var(s) in y: '
             write (713941,*) dimy 
       else
-         write (*,*), filename//'.dat',' Error: unable to write'
+         write (*,*) filename//'.dat',' Error: unable to write'
       endif
       
    close(713941)

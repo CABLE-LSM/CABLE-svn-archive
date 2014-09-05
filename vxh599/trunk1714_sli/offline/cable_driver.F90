@@ -262,7 +262,7 @@ PROGRAM cable_offline_driver
      WRITE(*,*)   "gswp data doesn't have leap years!!! leaps -> .FALSE."
      WRITE(logn,*)"gswp data doesn't have leap years!!! leaps -> .FALSE."
   ENDIF
-  
+
   IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
      leaps = .TRUE.
      cable_user%MetType = 'gswp'
@@ -399,7 +399,7 @@ PROGRAM cable_offline_driver
               IF (.NOT.ALLOCATED(gpp_ann_save)) ALLOCATE(  gpp_ann_save(mp) )
               gpp_ann_save = -999.
 
-             if( icycle>0 .AND. spincasa) then
+              if( icycle>0 .AND. spincasa) then
                  print *, 'EXT spincasacnp enabled with mloop= ', mloop
                  ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
                  call spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
@@ -454,7 +454,7 @@ PROGRAM cable_offline_driver
               met%ofsd = met%fsd(:,1) + met%fsd(:,2)
               ! Zero out lai where there is no vegetation acc. to veg. index
               WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
-              
+
 
 
               IF ( .NOT. CASAONLY ) THEN
@@ -487,8 +487,8 @@ PROGRAM cable_offline_driver
               !jhan this is insufficient testing. condition for
               !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
               IF(icycle >0 .OR.  CABLE_USER%CASA_DUMP_WRITE ) THEN
-        
-            
+
+
                  call bgcdriver( ktau, kstart, kend, dels, met,                         &
                       ssnow, canopy, veg, soil, casabiome,                   &
                       casapool, casaflux, casamet, casabal,                  &
@@ -517,9 +517,10 @@ PROGRAM cable_offline_driver
                          .OR. ktau .EQ. kend) THEN
                        !ctime = (ktau + ( YYYY - cable_user%YearStart ) * 365 * ktauday)/ktauday
                        ctime = ctime +1
+                       !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
                        CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
-                          CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &  !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
-                          cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
+                            CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &
+                            cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
                     ENDIF
                  END IF
               ENDIF
@@ -536,21 +537,21 @@ PROGRAM cable_offline_driver
 
               ! Write time step's output to file if either: we're not spinning up
               ! or we're spinning up and the spinup has converged:
-             
-                 IF ( .NOT. CASAONLY ) THEN
-                   
-                       CALL write_output( dels, ktau_tot, met, canopy, ssnow,                    &
-                            rad, bal, air, soil, veg, C%SBOLTZ, &
-                            C%EMLEAF, C%EMSOIL )
-                  
-                 ENDIF
-                      ! dump bitwise reproducible testing data
-         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
-            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
-                                knode_gl, "FLUXES",                            &
-                          canopy%fe + canopy%fh )
-         ENDIF
+
+              IF ( .NOT. CASAONLY ) THEN
+
+                 CALL write_output( dels, ktau_tot, met, canopy, ssnow,                    &
+                      rad, bal, air, soil, veg, C%SBOLTZ, &
+                      C%EMLEAF, C%EMSOIL )
+
+              ENDIF
+              ! dump bitwise reproducible testing data
+              IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+                 IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+                      call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+                      knode_gl, "FLUXES",                            &
+                      canopy%fe + canopy%fh )
+              ENDIF
            END DO ! END Do loop over timestep ktau
 
            !jhan this is insufficient testing. condition for

@@ -139,7 +139,7 @@ CONTAINS
        totNreqmax = 0.0
        totNreqmin = 0.0
        xNuptake   = 1.0
-       xnCnpp = max(0.0,casaflux%Cnpp)
+       xnCnpp = max(0.0_r_2,casaflux%Cnpp)
        call casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
             casabiome,casapool,casaflux,casamet)
        DO np=1,mp
@@ -158,7 +158,7 @@ CONTAINS
        totPreqmax = 0.0
        totPreqmin = 0.0
        xPuptake   = 1.0
-       xpCnpp = max(0.0,casaflux%Cnpp)
+       xpCnpp = max(0.0_r_2,casaflux%Cnpp)
        call casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
             casabiome,casapool,casaflux,casamet)
        DO np=1,mp
@@ -1198,8 +1198,10 @@ CONTAINS
              fluxptase(nland) =  prodptase(veg%iveg(nland))*deltcasa  &
                   !VH*  max(zero,(casapool%Psoil(nland,2)+casapool%Psoil(nland,3))) &
                   !VH*  max(zero,(costNpup(veg%iveg(nland))-15.0))/(max(zero,(costNpup(veg%iveg(nland))-15.0)) + 150.0)
-                  *  max(0.0,(casapool%Psoil(nland,2)*casaflux%ksoil(nland,2)+casapool%Psoil(nland,3)*casaflux%ksoil(nland,3))) &
-                  *  max(0.0,(costNpup(veg%iveg(nland))-15.0))/(max(0.0,(costNpup(veg%iveg(nland))-15.0)) + 150.0)
+                  *  max(0.0_r_2,(casapool%Psoil(nland,2)*casaflux%ksoil(nland,2) + &
+                  casapool%Psoil(nland,3)*casaflux%ksoil(nland,3))) &
+                  *  max(0.0_r_2,(costNpup(veg%iveg(nland))-15.0))/ &
+                  (max(0.0_r_2,(costNpup(veg%iveg(nland))-15.0)) + 150.0)
 
              !fluxptase(nland)  = 0.0
              xdplabsorb(nland) = 1.0+ casaflux%Psorbmax(nland)*casaflux%kmlabp(nland) &
@@ -1419,7 +1421,7 @@ CONTAINS
     casaflux%Nminuptake(:)     = 0.0
     casaflux%fracNalloc(:,:)   = 0.0
     !xnCnpp = casaflux%Cnpp
-    xnCnpp = max(0.0,casaflux%Cnpp)
+    xnCnpp = max(0.0_r_2,casaflux%Cnpp)
     call casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
          casabiome,casapool,casaflux,casamet)
 
@@ -1532,7 +1534,7 @@ CONTAINS
     totPreqmax               = 0.0
     totPreqmin               = 0.0
 
-    xpCnpp = max(0.0,casaflux%cnpp)
+    xpCnpp = max(0.0_r_2,casaflux%cnpp)
     !xpCnpp = casaflux%cnpp
     call casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
          casabiome,casapool,casaflux,casamet)

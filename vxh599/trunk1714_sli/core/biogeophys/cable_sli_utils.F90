@@ -9,7 +9,8 @@ MODULE sli_utils
        params, vars_aquifer, vars, rapointer, &
        rhow, lambdaf, lambdas, csice, cswat, cpa,&
        dpmaxr, solve_type, &
-       gf, hmin, csol, rhmin, dsmmax, rhocp, vars_snow, vars_met
+       gf, hmin, csol, rhmin, dsmmax, rhocp, vars_snow, vars_met, &
+       freezefac, ithermalcond
   USE physical_constants,  ONLY: rmair,rmh2o
 
   IMPLICIT NONE
@@ -291,7 +292,7 @@ CONTAINS
   !**********************************************************************************************************************
 
   ! Surface Energy Balance
-  SUBROUTINE SEB(n, par, vmet, vsnow, var, qprec, qprec_snow,  nsteps, dx, h0, hice, S, Tsoil,  &
+  SUBROUTINE SEB(n, par, vmet, vsnow, var, qprec, qprec_snow, dx, h0, Tsoil,  &
        Tsurface, G0, lE0, qsurface, qevap, qliq, qv, &
        qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
 
@@ -304,10 +305,9 @@ CONTAINS
     TYPE(vars),      DIMENSION(1:n), INTENT(IN) :: var
     REAL(r_2),                       INTENT(IN) :: qprec
     REAL(r_2),                       INTENT(IN) :: qprec_snow
-    INTEGER(i_d),                    INTENT(IN) ::  nsteps, irec
+    INTEGER(i_d),                    INTENT(IN) :: irec
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: dx
-    REAL(r_2),                       INTENT(IN) :: h0, hice
-    REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: S
+    REAL(r_2),                       INTENT(IN) :: h0
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: Tsoil
 
     REAL(r_2),                       INTENT(OUT)           :: Tsurface, G0, lE0 ! SEB (subdiurnal, uses T in top layer)
@@ -437,9 +437,7 @@ CONTAINS
        qhyb = qadvyb
        qhTb = dGdTsoil + qadvTb
 
-
-
-    case(2) !dedicated snow layer
+    case (2) !dedicated snow layer
 
        ! SEB at snow/air interface
        if (vsnow%hliq(1)>zero) then
@@ -506,14 +504,20 @@ CONTAINS
           qadv = qadv + rhow*(-qevap)*cswat*Tqw
           qadvTb = rhow*cswat*(-qevap)*dTqwdTb  +  rhow*cswat*Tqw*qTb
        endif
-       qh = qadv + G0
-       qhyb = qhyb +  qadvyb
-       qhTb = qhTb + qadvTb
+       qh     = qadv + G0
+       qhyb   = zero
+       qadvyb = zero
+       qhyb   = qhyb + qadvyb
+       qhTb   = qhTb + qadvTb
 
-
-
+       qv   = -qevap
+       qliq = zero
+       qvyb = qyb
+       qvTb = qTb
+       qlyb = zero
+       qlTb = zero
+       
     end select ! surface_case
-
 
     ! finished all the surfaces
 
@@ -523,7 +527,7 @@ CONTAINS
 
   ! Surface Energy Balance
   SUBROUTINE SEB_FR(n, par, vmet, vsnow, var, qprec, qprec_snow, &
-       nsteps, dx, h0, hice, S, Tsoil, dt, Tsurface0, &
+       nsteps, dx, h0, Tsoil, dt, Tsurface0, &
        Tsurface, G0, lE0, TsurfaceFR, G0FR, lEFR, HFR, qsurface, qevap, qliq, qv, &
        qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
 
@@ -538,8 +542,7 @@ CONTAINS
     REAL(r_2),   INTENT(IN)              :: qprec_snow
     INTEGER(i_d), INTENT(IN)              ::  nsteps, irec
     REAL(r_2),      DIMENSION(1:n),   INTENT(IN)              :: dx
-    REAL(r_2),          INTENT(IN)           :: h0, hice
-    REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: S
+    REAL(r_2),          INTENT(IN)           :: h0
     REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: Tsoil
     REAL(r_2),   INTENT(IN)              :: dt
     REAL(r_2),  INTENT(IN)           :: Tsurface0
@@ -559,7 +562,7 @@ CONTAINS
     REAL(r_2) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     REAL(r_2) :: E_vap, dE_vapdT1, E_liq
     REAL(r_2) :: Kmin, Khmin, phimin
-    REAL(r_2) :: Tqw, dtqwdtb, d1, tmp1d1,tmp1d2, Tbar, f, csnow
+    REAL(r_2) :: Tqw, dtqwdtb, d1, tmp1d2, Tbar, f, csnow
 
 
     if (vsnow%nsnow.eq.0) surface_case = 1
@@ -696,7 +699,7 @@ CONTAINS
           !                       Tbar, d1, vmet%rrc, var(1)%csoileff, dt, real(var(1)%iice), TsurfaceFR, G0FR, HFR, lEFR
        endif
 
-    case(2) !dedicated snow layer
+    case (2) !dedicated snow layer
 
        ! SEB at snow/air interface
        if (vsnow%hliq(1)>zero) then
@@ -758,7 +761,6 @@ CONTAINS
        qh = qadv + G0
        qhyb = qhyb +  qadvyb
        qhTb = qhTb + qadvTb
-
 
        if (nsteps.eq.-1) then
           j = -vsnow%nsnow + 1
@@ -938,14 +940,13 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  SUBROUTINE getfluxes_vp_1d(n, ns, dx, vtop, vbot, parin, var, hint, phimin, q, qya, qyb, qTa, qTb, &
+  SUBROUTINE getfluxes_vp_1d(n, dx, vtop, vbot, parin, var, hint, phimin, q, qya, qyb, qTa, qTb, &
        ql, qlya, qlyb, qv, qvT, qvh, qvya, qvyb, &
        iflux, init, getq0, getqn, Tsoil, T0, nsat, nsatlast)
 
     IMPLICIT NONE
 
     INTEGER(i_d),                 INTENT(IN)    :: n
-    INTEGER(i_d),                 INTENT(IN)    :: ns
     REAL(r_2),    DIMENSION(1:n), INTENT(IN)    :: dx
     TYPE(vars),                   INTENT(IN)    :: vtop
     TYPE(vars),                   INTENT(IN)    :: vbot
@@ -1213,12 +1214,11 @@ CONTAINS
 
   END SUBROUTINE getfluxes_vp_1d
 
-  SUBROUTINE getfluxes_vp_2d(ns, dx, vtop, vbot, parin, var, hint, phimin, i_q, i_qya, i_qyb, i_qTa, i_qTb, &
+  SUBROUTINE getfluxes_vp_2d(dx, vtop, vbot, parin, var, hint, phimin, i_q, i_qya, i_qyb, i_qTa, i_qTb, &
        i_ql, i_qlya, i_qlyb, i_qv, i_qvT, i_qvh, i_qvya, i_qvyb, iflux, init, getq0, getqn, Tsoil, T0, nsat, nsatlast)
 
     IMPLICIT NONE
 
-    INTEGER(i_d), DIMENSION(:),   INTENT(IN)    :: ns
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: dx      ! 1:n
     TYPE(vars),   DIMENSION(:),   INTENT(IN)    :: vtop
     TYPE(vars),   DIMENSION(:),   INTENT(IN)    :: vbot
@@ -1603,14 +1603,12 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  SUBROUTINE getheatfluxes_1d(n, ns, h0, dx, dxL, qh, qhya, qhyb, qhTa, qhTb, var, vlit, T, TL, T0, litter, &
+  SUBROUTINE getheatfluxes_1d(n, dx, dxL, qh, qhya, qhyb, qhTa, qhTb, var, vlit, T, TL, litter, &
        q, qya, qyb, qTa, qTb,qadv, qadvya, qadvyb, qadvTa, qadvTb,advection)
     ! modified 25/05/10 to include contribution to heat flux from liquid water flux in the presence of ice
     IMPLICIT NONE
 
     INTEGER(i_d),               INTENT(IN)    :: n
-    INTEGER(i_d),               INTENT(IN)    :: ns
-    REAL(r_2),                  INTENT(IN)    :: h0
     REAL(r_2),  DIMENSION(1:n), INTENT(IN)    :: dx
     REAL(r_2),                  INTENT(IN)    :: dxL
     REAL(r_2),  DIMENSION(0:n), INTENT(INOUT) :: qh, q, qadv
@@ -1622,7 +1620,6 @@ CONTAINS
     TYPE(vars),                 INTENT(IN)    :: vlit
     REAL(r_2),  DIMENSION(1:n), INTENT(IN)    :: T
     REAL(r_2),                  INTENT(IN)    :: TL
-    REAL(r_2),                  INTENT(IN)    :: T0
     LOGICAL,                    INTENT(IN)    :: litter
     INTEGER(i_d),               INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
@@ -1698,14 +1695,12 @@ CONTAINS
 
   END SUBROUTINE getheatfluxes_1d
 
-  SUBROUTINE getheatfluxes_2d(ns, h0, dx, dxL, i_qh, i_qhya, i_qhyb, i_qhTa, i_qhTb, var, vlit, T, TL, T0, &
+  SUBROUTINE getheatfluxes_2d(dx, dxL, i_qh, i_qhya, i_qhyb, i_qhTa, i_qhTb, var, vlit, T, TL, &
        litter, i_q,i_qya,i_qyb,i_qTa,i_qTb, &
        i_qadv,i_qadvya, i_qadvyb, i_qadvTa, i_qadvTb, advection)
     ! modified 25/05/10 to include contribution to heat flux from liquid water flux in the presence of ice
     IMPLICIT NONE
 
-    INTEGER(i_d), DIMENSION(:),   INTENT(IN)    :: ns
-    REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: h0
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: dx      ! :,1:n
     REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: dxL
     REAL(r_2),    DIMENSION(:,:), INTENT(INOUT) :: i_qh    ! :,0:n => :,1:n+1
@@ -1727,7 +1722,6 @@ CONTAINS
     TYPE(vars),   DIMENSION(:),   INTENT(IN)    :: vlit
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: T       ! :,1:n
     REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: TL
-    REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: T0
     LOGICAL,                      INTENT(IN)    :: litter
     INTEGER(i_d),   INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
@@ -1874,14 +1868,14 @@ CONTAINS
   !**********************************************************************************************************************
 
   ! For debug: remove elemental pure
-  ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
-  ! SUBROUTINE hyofS(S, Tsoil, parin, var)
+   ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
+ ! SUBROUTINE hyofS(S, Tsoil, parin, var)
 
     IMPLICIT NONE
 
     REAL(r_2),    INTENT(IN)    :: S
     REAL(r_2),    INTENT(IN)    :: Tsoil
-    TYPE(params), INTENT(IN)    :: parin
+    TYPE(params), INTENT(INOUT)    :: parin
     TYPE(vars),   INTENT(INOUT) :: var
     ! Get soil water variables from S.
     ! Definitions of arguments:
@@ -1893,17 +1887,22 @@ CONTAINS
     REAL(r_2) :: dhdS, lambda, crh, int
     REAL(r_2) :: thetal_max
     REAL(r_2) :: Sliq
-    REAL(r_2) :: A, B, D, E, C1
+    REAL(r_2) :: A, B, D, C1
+    INTEGER(i_d) :: E
     REAL(r_2) :: F1, F2, F
-    !REAL(r_2) :: macropore_modifier
-
+    ! REAL(r_2) :: macropore_modifier
+    REAL(r_2) :: cdry
+    
     theta         = S*(parin%thre) + (parin%the - parin%thre)
     var%lambdav   = rlambda       ! latent heat of vaporisation
     var%lambdav   = 1.91846e6_r_2*((Tsoil+Tzero)/((Tsoil+Tzero)-33.91_r_2))**2  ! Henderson-Sellers, QJRMS, 1984
     var%lambdaf   = lambdaf        ! latent heat of fusion
-    var%Tfrz      = Tfrz(S,parin%he,one/parin%lam)
+    !var%Tfrz      = Tfrz(S,parin%he,one/parin%lam)
+    var%Tfrz      = Tfrz(S, parin%he, one/(parin%lambc*freezefac)) ! Test steep freezing curve
 
     if (Tsoil < var%Tfrz) then ! ice
+       parin%lam     = parin%lambc * freezefac   ! freezefac>1 -> steeper freezing curve
+       parin%eta     = two/parin%lam + two + one ! freezefac>1 -> steeper freezing curve
        thetal_max    = thetalmax(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
        var%dthetaldT = dthetalmaxdT(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
        var%iice   = 1
@@ -1932,14 +1931,43 @@ CONTAINS
        ! var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
        var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/(parin%thre-var%thetai)
        if (S.lt.one) var%phi = var%phie
-       !  var%phi = var%phie
-       var%phiS = zero
+
        ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
        !      (parin%eta-one/parin%lam)/(parin%thre)
-       var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
-            (parin%eta-one/parin%lam)/(parin%thre-var%thetai)
+     ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
+     !       (parin%eta-one/parin%lam)/(parin%thre-var%thetai)
+
+ ! var%phiT = ((-1. +parin%eta*parin%lam)*parin%phie* &
+  !     (Sliq)**(parin%eta - 1./parin%lam))/ &
+ !     (-parin%lam*(parin%thre-var%thetai)) * var%dthetaldT 
+var%phiT =  -(((-1 +parin%eta*parin%lam)*parin%phie*(theta - parin%thre)* &
+          (var%thetal/(-theta + var%thetal + parin%thre))**(-1 + parin%eta - 1./parin%lam))/ &
+         (parin%lam*(-theta + var%thetal + parin%thre)**2))* var%dthetaldT 
+
+
+
+       if (S < one) then
+         ! var%phiS = ((parin%eta - 1./parin%lam)*parin%phie* &
+          !     (Sliq)**(1 + parin%eta - 1/parin%lam))/var%thetal*parin%thre
+
+  var%phiS =((-1. + parin%eta*parin%lam)*parin%phie* &
+         (var%thetal/(-theta + var%thetal + parin%thre))**(1. + parin%eta - 1./parin%lam))/ &
+       (parin%lam*var%thetal)*parin%thre
+
+
+       else 
+          var%phiS = zero
+       endif
+
+       if (((parin%thre-var%thetai) .le. max(parin%thr,1e-5_r_2)).or.(Sliq.eq.one)) then
+          var%phiS = zero
+          var%phiT = zero
+       endif
+
        var%rh   = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
     else ! no ice
+       parin%lam  = parin%lambc               ! freezefac>1 -> steeper freezing curve
+       parin%eta  = two/parin%lam + two + one ! freezefac>1 -> steeper freezing curve
        var%he     = parin%he
        var%phie   = parin%phie
        var%Ksat   = parin%Ke
@@ -1985,12 +2013,14 @@ CONTAINS
     !  variables required for vapour phase transfer
     theta  =  min(S,one)*(parin%thre) + (parin%the - parin%thre)
 
-    !if (z.lt.3.and.theta>parin%thfc) then
-    ! macropore_modifier = exp(-parin%zeta*(z-3))
-    ! var%macropore_factor = macropore_modifier
-    !else
-    ! var%macropore_factor = 1.
-    !endif
+    ! if (z.lt.3.and.theta>parin%thfc) then
+    !    macropore_modifier = exp(-parin%zeta*(z-3))
+    ! ! if (theta > parin%thfc) then
+    ! !    macropore_modifier = 1000._r_2*exp(-var%h/(-4._r_2))
+    !    var%macropore_factor = macropore_modifier
+    ! else
+    !    var%macropore_factor = one
+    ! endif
     var%macropore_factor = one
 
     var%sl = slope_esat(Tsoil) * Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
@@ -2005,10 +2035,15 @@ CONTAINS
     var%hS     = dhdS
     var%rhS    = crh*dhdS
     var%cvsat  = esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3
-    var%cv     = var%rh*var%cvsat
-    var%cvS    = var%rhS *var%cvsat
-    var%cvsatT = slope_esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
-
+    if (S < one) then
+       var%cv     = var%rh*var%cvsat
+       var%cvS    = var%rhS *var%cvsat
+       var%cvsatT = slope_esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
+    else
+       var%cv = zero
+       var%cvS    = zero
+       var%cvsatT = zero
+    endif
     var%Dv    = Dva*parin%tortuosity*(parin%the-theta)  * ((Tsoil+Tzero)/Tzero)**1.88_r_2 ! m2 s-1
     int       = (-c*parin%he)**lambda * igamma(one-lambda,-c*var%h)
     var%phiv  = Dva*parin%tortuosity * (parin%thre*exp(c*var%h) -parin%thre*int)
@@ -2016,15 +2051,15 @@ CONTAINS
          ( (parin%thre)*c*exp(c*var%h) - parin%thre*c*(var%h/parin%he)**(-parin%lam)*exp(c*var%h) )
     var%kv    = var%Dv * var%cvsat *c * var%rh
 
-    select case(experiment)
-    case(11) ! Hansson et al. (2004)
+    select case (experiment)
+    case (11) ! Hansson et al. (2004)
        ! Hansson et al. (2004) - Eq. 13b
        ! A=C1, B=C2, C1=C3, D=C4, E=C5
        A  = 0.55_r_2
        B  = 0.8_r_2
        C1 = 3.07_r_2
        D  = 0.13_r_2
-       E  = four
+       E  = 4
        ! var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E)
        ! Hansson et al. (2004) - Eq. 15
        F1 = 13.05_r_2
@@ -2040,33 +2075,40 @@ CONTAINS
           var%kH = A + B*(theta)-(A-D)*exp(-(C1*(theta))**E)
        endif
     case default
-       ! calculate v%kH as in Campbell (1985) p.32 eq. 4.20
-       A  = 0.65_r_2 - 0.78_r_2*parin%rho/thousand + 0.60_r_2*(parin%rho/thousand)**2 ! (4.27)
-       B  = 2.8_r_2 * (one-parin%thre)!*theta   ! (4.24)
-       if (parin%clay > zero) then
-          C1 = one + 2.6_r_2/sqrt(parin%clay)      ! (4.28)
-       else
-          C1 = one
-       endif
-       D  = 0.03_r_2 + 0.7_r_2*(one-parin%thre)**2 ! (4.22)
-       E  = four
-       ! var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E) ! (4.20)
-       ! Hansson et al. (2004) - Eq. 15
-       F1 = 13.05_r_2
-       F2 = 1.06_r_2
-       ! F  = one + F1*var%thetai**F2
-       ! var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
-       if  (Tsoil < var%Tfrz) then ! ice
-          F  = one + F1*var%thetai**F2
-          if ((C1*(theta+F*var%thetai))**E > 100.) then
-             var%kH = A + B*(theta+F*var%thetai)
+       select case (ithermalcond)
+       case (0)
+          ! calculate v%kH as in Campbell (1985) p.32 eq. 4.20
+          A  = 0.65_r_2 - 0.78_r_2*parin%rho/thousand + 0.60_r_2*(parin%rho/thousand)**2 ! (4.27)
+          B  = 2.8_r_2 * (one-parin%thre) !*theta   ! (4.24)
+          if (parin%clay > zero) then
+             C1 = one + 2.6_r_2/sqrt(parin%clay*100._r_2) ! (4.28)
           else
-             var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+             C1 = one
           endif
-       else
-          var%kH = A + B*(theta)-(A-D)*exp(-(C1*(theta))**E)
-       endif
+          D  = 0.03_r_2 + 0.7_r_2*(one-parin%thre)**2 ! (4.22)
+          E  = 4
+          ! var%kH = A + B*theta-(A-D)*exp(-(C1*theta)**E) ! (4.20)
+          ! Hansson et al. (2004) - Eq. 15
+          F1 = 13.05_r_2
+          F2 = 1.06_r_2
+          ! F  = one + F1*var%thetai**F2
+          ! var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+          if  (Tsoil < var%Tfrz) then ! ice
+             F  = one + F1*var%thetai**F2
+             if ((C1*(theta+F*var%thetai))**E > 100.) then
+                var%kH = A + B*(theta+F*var%thetai)
+             else
+                var%kH = A + B*(theta+F*var%thetai)-(A-D)*exp(-(C1*(theta+F*var%thetai))**E)
+             endif
+          else
+             var%kH = A + B*(theta)-(A-D)*exp(-(C1*(theta))**E)
+          endif
+       case(1)
+          cdry = 2.0e6_r_2 * (one-parin%thre) ! Sispat Manual (2000), Eq. 2.21
+          var%kH = one/(cdry + 4.18e6_r_2*theta) * ( (parin%lambdaS + 2300._r_2*theta - 1890._r_2)/0.654_r_2 )**2
+       end select
     end select
+    ! var%kH  = 0.1*var%kH ! test mc!
     var%eta_th = one
     var%kE     = var%Dv*var%rh*var%sl*thousand*var%lambdav*var%eta_th
     var%kth    = var%kE + var%kH ! thermal conductivity of soil (includes contribution from vapour phase)
@@ -2078,7 +2120,7 @@ CONTAINS
     else
        var%csoileff = var%csoil
     endif
-    !var%kth = 0.3 !test vh!
+    ! var%kth = 0.3        !test vh!
 
   END SUBROUTINE hyofS
 
@@ -2565,20 +2607,21 @@ CONTAINS
     plit%fsatmax    = zero
     plit%css        = zero
     plit%kd         = zero
+    plit%lambc      = zero
+    plit%lambdaS    = zero
 
   END SUBROUTINE setlitterpar
 
   !**********************************************************************************************************************
 
-  SUBROUTINE setpar(mp, ms, x2dx, soil, index)
+  SUBROUTINE setpar(mp, ms, soil, index)
 
     IMPLICIT NONE
 
-    INTEGER(i_d),                 INTENT(IN)    :: mp
-    INTEGER(i_d),                 INTENT(IN)    :: ms
-    REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: x2dx
-    TYPE(soil_parameter_type),    INTENT(INOUT) :: soil
-    integer(i_d), DIMENSION(:),   INTENT(IN)    :: index
+    INTEGER(i_d),                 INTENT(IN) :: mp
+    INTEGER(i_d),                 INTENT(IN) :: ms
+    TYPE(soil_parameter_type),    INTENT(IN) :: soil
+    integer(i_d), DIMENSION(:),   INTENT(IN) :: index
 
     INTEGER(i_d) :: i
 
@@ -2605,74 +2648,57 @@ CONTAINS
        par(:,i)%clay       = real(soil%clay(index),r_2)
        par(:,i)%zeta       = real(soil%zeta(index),r_2)
        par(:,i)%fsatmax    = real(soil%fsatmax(index),r_2)
+       par(:,i)%lambc      = par(:,i)%lam
+       par(:,i)%lambdaS    = 2600._r_2 !MC ToDo - make dependent of cable soil type
     enddo
 
   END SUBROUTINE setpar
 
   !**********************************************************************************************************************
 
-  SUBROUTINE setpar_Loetsch(mp, ms, x2dx, soil, index)
+  SUBROUTINE setpar_Loetsch(mp, ms, x2dx)
 
     IMPLICIT NONE
 
     INTEGER(i_d),                 INTENT(IN)    :: mp
     INTEGER(i_d),                 INTENT(IN)    :: ms
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: x2dx
-    TYPE(soil_parameter_type),    INTENT(INOUT) :: soil
-    integer(i_d), DIMENSION(:),   INTENT(IN)    :: index
 
     INTEGER(i_d) :: i
 
     allocate(par(mp,ms))
 
-
-    ! do i=1, ms
-    !    where (x2dx(:,i) .lt. 0.15)
-    !       par(:,i)%ishorizon  = 1
-    !       par(:,i)%thw        = 0.165_r_2
-    !       par(:,i)%thfc       = 0.421_r_2
-    !       par(:,i)%the        = 0.698_r_2
-    !       par(:,i)%thr        = zero
-    !       par(:,i)%he         = -8.117e-5_r_2
-    !       par(:,i)%Ke         = 2.754e-5_r_2
-    !       par(:,i)%lam        = 1.0_r_2/5.90_r_2
-    !    elsewhere
-    !       par(:,i)%ishorizon  = 2
-    !       par(:,i)%thw        = 0.105_r_2
-    !       par(:,i)%thfc       = 0.301_r_2
-    !       par(:,i)%the        = 0.564_r_2
-    !       par(:,i)%thr        = zero
-    !       par(:,i)%he         = -7.10e-5_r_2
-    !       par(:,i)%Ke         = 2.481e-5_r_2
-    !       par(:,i)%lam        = 1.0_r_2/5.25_r_2
-    !    end where
-    !    par(:,i)%clay       = 0.06_r_2
-    !    par(:,i)%tortuosity = 0.67_r_2
-    !    par(:,i)%thre       = par(:,i)%the - par(:,i)%thr
-    !    par(:,i)%eta        = two/par(:,i)%lam + two + one
-    !    par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
-    !    par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
-    !    par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
-    !    par(:,i)%kd         = zero ! not used
-    !    par(:,i)%rho        = 2650._r_2 * par(:,i)%the            ! porosity = soil/stone
-    !    par(:,i)%css        = 2400._r_2/2650._r_2  * par(:,i)%rho ! Campbell (1985)
-    !    par(:,i)%zeta       = zero ! not used - force-restore
-    !    par(:,i)%fsatmax    = zero ! not used - force-restore
-    ! enddo
-    
-    ! Cable coarse sand
-    par%ishorizon  = 1
-    par%thw        = 0.072_r_2
-    par%thfc       = 0.143_r_2
-    par%the        = 0.398_r_2
-    par%thr        = zero
-    par%he         = -0.106_r_2
-    par%Ke         = 166.e-6_r_2
-    par%lam        = 1.0_r_2/4.2_r_2
-    par%clay       = 0.09_r_2
-    par%rho        = 1600._r_2
-    par%css        = 850._r_2
-    ! 
+    do i=1, ms
+       where (x2dx(:,i) .lt. 0.15_r_2)
+          par(:,i)%ishorizon  = 1
+          par(:,i)%thw        = 0.07_r_2
+          par(:,i)%thfc       = 0.45_r_2
+          par(:,i)%the        = 0.60_r_2
+          par(:,i)%thr        = 0.00_r_2
+          par(:,i)%he         = -6.76_r_2
+          par(:,i)%lam        = 0.70_r_2
+          par(:,i)%Ke         = 2.754e-5_r_2
+       elsewhere (x2dx(:,i) .gt. 2.0_r_2)
+          par(:,i)%ishorizon  = 3
+          par(:,i)%thw        = 0.18_r_2
+          par(:,i)%thfc       = 0.35_r_2
+          par(:,i)%the        = 0.57_r_2
+          par(:,i)%thr        = 0.00_r_2
+          par(:,i)%he         = -1.46_r_2
+          par(:,i)%lam        = 0.25_r_2
+          par(:,i)%Ke         = 2.481e-7_r_2
+       elsewhere
+          par(:,i)%ishorizon  = 2
+          par(:,i)%thw        = 0.18_r_2
+          par(:,i)%thfc       = 0.35_r_2
+          par(:,i)%the        = 0.57_r_2
+          par(:,i)%thr        = 0.00_r_2
+          par(:,i)%he         = -1.46_r_2
+          par(:,i)%lam        = 0.25_r_2
+          par(:,i)%Ke         = 2.481e-5_r_2
+       end where
+    enddo
+    par%clay       = 0.06_r_2
     par%tortuosity = 0.67_r_2
     par%thre       = par%the - par%thr
     par%eta        = two/par%lam + two + one
@@ -2680,8 +2706,37 @@ CONTAINS
     par%phie       = par%Ke * par%he / (one - par%lam * par%eta) ! MFP at he
     par%phiSe      = (par%eta - one/par%lam) * par%phie    ! dphi/dS at he
     par%kd         = zero ! not used
-    par%zeta       = zero ! not used - force-restore
-    par%fsatmax    = zero ! not used - force-restore
+    par%rho        = 2650._r_2 * par%the            ! porosity = soil/stone
+    par%css        = 2400._r_2/2650._r_2  * par%rho ! Campbell (1985)
+    par%zeta       = 2.0_r_2   ! topmodel exponent baseflow
+    par%fsatmax    = 0.30_r_2  ! topmodel maximum saturated fraction
+    par%lambc      = par%lam
+    par%lambdaS    = 2830._r_2 ! Sispat Manual Table 2
+    
+    ! ! Cable coarse sand
+    ! par%ishorizon  = 1
+    ! par%thw        = 0.072_r_2
+    ! par%thfc       = 0.143_r_2
+    ! par%the        = 0.398_r_2
+    ! par%thr        = zero
+    ! par%he         = -0.106_r_2
+    ! par%Ke         = 166.e-6_r_2
+    ! par%lam        = 1.0_r_2/4.2_r_2
+    ! par%clay       = 0.09_r_2
+    ! par%rho        = 1600._r_2
+    ! par%css        = 850._r_2
+    ! ! 
+    ! par%tortuosity = 0.67_r_2
+    ! par%thre       = par%the - par%thr
+    ! par%eta        = two/par%lam + two + one
+    ! par%KSe        = par%eta * par%Ke    ! dK/dS at he
+    ! par%phie       = par%Ke * par%he / (one - par%lam * par%eta) ! MFP at he
+    ! par%phiSe      = (par%eta - one/par%lam) * par%phie    ! dphi/dS at he
+    ! par%kd         = zero ! not used
+    ! par%zeta       = 2.0_r_2
+    ! par%fsatmax    = 0.3_r_2
+    ! par%lambc      = par%lam
+    ! par%lambdaS    = 2830._r_2 ! Sispat Manual Table 2
 
   END SUBROUTINE setpar_Loetsch
 

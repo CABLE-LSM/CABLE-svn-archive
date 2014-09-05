@@ -51,7 +51,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
                                    soil_snow_type, canopy_type, bgc_pool_type, &
                                    mp, mvtype
                            
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_user
 
     REAL, INTENT(IN) ::                                                       &
       dels     ! integration time step (s)
@@ -177,7 +177,8 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
    !	WOOD:
    ! fraction of photosynthate going to roots, (1-fr) to wood, eq. 9
-   fr = MIN( 1., EXP (- rw( veg%iveg ) * beta *0.0001* bgc%cplant(:,3)                & !!vh!! inserted '0.0001' to avoide floating pt underflow
+   !!vh!! inserted '0.0001' to avoide floating pt underflow
+   fr = MIN( 1., EXP (- rw( veg%iveg ) * beta *0.0001* bgc%cplant(:,3)         &
         / MAX( bgc%cplant(:,2), 0.01 ) ) / beta )
    
    cfwd = trnw(veg%iveg) * bgc%cplant(:,2)

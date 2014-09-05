@@ -250,7 +250,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
         - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
 
    IF (cable_user%soil_struc=='sli') then  !! vh March 2014 !!
-      bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &  ! delwcol includes change in soil water, pond and snowpack
+      ! delwcol includes change in soil water, pond and snowpack
+      bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
                   - ssnow%evap - canopy%fevc*dels/air%rlam, r_2)
 
    END IF
@@ -301,8 +302,8 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
       EMLEAF,  & !leaf emissivity
       EMSOIL     !leaf emissivity
 
-     
-    bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  & !! vh !! March 2014
+    !! vh !! March 2014
+    bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  &
          - (emsoil*sboltz*rad%transd*ssnow%otss**4) - &
          (emleaf*sboltz*(1-rad%transd)*canopy%tv**4) &
          - canopy%fnv - canopy%fns
@@ -322,7 +323,7 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
          & -canopy%fev-canopy%fes*ssnow%cls &
          & -canopy%fh -canopy%ga
     ! Add to cumulative balance:
-   bal%ebal_tot = bal%ebal_tot + bal%ebal
+    bal%ebal_tot = bal%ebal_tot + bal%ebal
     bal%RadbalSum = bal%RadbalSum + bal%Radbal
     
 END SUBROUTINE energy_balance

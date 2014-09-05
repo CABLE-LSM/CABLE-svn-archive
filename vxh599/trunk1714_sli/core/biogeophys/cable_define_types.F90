@@ -240,13 +240,10 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:),   POINTER :: h0        ! pond height in m            (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: rex       ! root extraction from each layer (mm/dels)
      REAL(r_2), DIMENSION(:,:), POINTER :: wflux     ! water flux at layer boundaries (mm s-1)
-     REAL(r_2), DIMENSION(:,:), POINTER :: hflux     ! heat flux at layer boundaries (J m-2 s-1)
      REAL(r_2), DIMENSION(:),   POINTER :: delwcol   ! change in water column (mm / dels)
      REAL(r_2), DIMENSION(:),   POINTER :: zdelta    ! water table depth           (edit vh 23/06/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: kth       ! thermal conductivity           (edit vh 29/07/08)
      REAL(r_2), DIMENSION(:),   POINTER :: Tsurface  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: rh0       !  relative humidity at top of soil column (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: rhsurface ! relative at surface (soil, pond or litter) (edit vh 22/10/08)
      REAL(r_2), DIMENSION(:),   POINTER :: lE        ! soil latent heat flux
      REAL(r_2), DIMENSION(:),   POINTER :: evap      ! soil evaporation (mm / dels)
      REAL(r_2), DIMENSION(:,:), POINTER :: ciso      ! concentration of minor isotopologue in soil water (kg m-3 water)
@@ -389,13 +386,13 @@ MODULE cable_def_types_mod
          ofes     ! latent heatfl from soil (W/m2)
 
      ! Additional variables:
-     REAL(r_2), DIMENSION(:,:), POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
-     REAL(r_2), DIMENSION(:,:,:), POINTER :: ancj ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
-     REAL(r_2), DIMENSION(:,:), POINTER :: tlfy   ! sunlit and shaded leaf temperatures
-     REAL(r_2), DIMENSION(:,:), POINTER :: ecy    ! sunlit and shaded leaf transpiration (dry canopy)
-     REAL(r_2), DIMENSION(:,:), POINTER :: ecx    ! sunlit and shaded leaf latent heat flux
-     REAL(r_2), DIMENSION(:,:,:), POINTER :: ci   ! intra-cellular CO2 vh 6/7/09
-     REAL(r_2), DIMENSION(:), POINTER :: fwsoil   !
+     REAL(r_2), DIMENSION(:,:),   POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
+     REAL(r_2), DIMENSION(:,:,:), POINTER :: ancj   ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
+     REAL(r_2), DIMENSION(:,:),   POINTER :: tlfy   ! sunlit and shaded leaf temperatures
+     REAL(r_2), DIMENSION(:,:),   POINTER :: ecy    ! sunlit and shaded leaf transpiration (dry canopy)
+     REAL(r_2), DIMENSION(:,:),   POINTER :: ecx    ! sunlit and shaded leaf latent heat flux
+     REAL(r_2), DIMENSION(:,:,:), POINTER :: ci     ! intra-cellular CO2 vh 6/7/09
+     REAL(r_2), DIMENSION(:),     POINTER :: fwsoil !
 
    END TYPE canopy_type
 
@@ -776,13 +773,10 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ALLOCATE ( var % h0(mp) )
     ALLOCATE ( var % rex(mp,ms) )
     ALLOCATE ( var % wflux(mp,0:ms) )
-    ALLOCATE ( var % hflux(mp,0:ms) )
     ALLOCATE ( var % delwcol(mp) )
     ALLOCATE ( var % zdelta(mp) )
     ALLOCATE ( var % kth(mp,ms) )
     ALLOCATE ( var % Tsurface(mp) )
-    ALLOCATE ( var % rh0(mp) )
-    ALLOCATE ( var % rhsurface(mp) )
     ALLOCATE ( var % lE(mp) )
     ALLOCATE ( var % evap(mp) )
     ALLOCATE ( var % ciso(mp,ms+1) )
@@ -1257,13 +1251,10 @@ SUBROUTINE dealloc_soil_snow_type(var)
     DEALLOCATE ( var % h0)
     DEALLOCATE ( var % rex )
     DEALLOCATE ( var % wflux )
-    DEALLOCATE ( var % hflux )
     DEALLOCATE ( var % delwcol )
     DEALLOCATE ( var % zdelta )
     DEALLOCATE ( var % kth )
     DEALLOCATE ( var % Tsurface )
-    DEALLOCATE ( var % rh0 )
-    DEALLOCATE ( var % rhsurface )
     DEALLOCATE ( var % lE )
     DEALLOCATE ( var % evap )
     DEALLOCATE ( var % ciso )

@@ -573,8 +573,12 @@ CONTAINS
        elseif (iter ==2) then
           zetar(:,iter) = -(vonk*grav*rough%zref_tq*(canopy%fh+0.07*canopy%fe))/ &
                max( (air%rho*capp*met%tk*canopy%us**3), 1.e-12)
-          zetash(:,iter) = -(vonk*grav*(0.1*rough%hruff)*(canopy%fhs+0.07*real(canopy%fes)))/ &
-               max( (air%rho*capp*met%tk*(canopy%us*rough%term6a)**3), 1.e-12)
+          where (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
+             zetash(:,iter) = -(vonk*grav*(0.1*rough%hruff)*(canopy%fhs+0.07*real(canopy%fes)))/ &
+                  max( (air%rho*capp*met%tk*(canopy%us*rough%term6a)**3), 1.e-12)
+          elsewhere
+             zetash(:,iter) = zetash(:,iter-1)
+          end where
        elseif (iter ==3) then
           zetar(:,iter) = 0.4 * zetar(:,iter-1)
           zetash(:,iter) = 0.4 * zetash(:,iter-1)
@@ -600,9 +604,11 @@ CONTAINS
        canopy%us = MAX(1.e-6, vonk * MAX(met%ua,umin) / ( LOG(rough%zref_tq / rough%z0m) - &
             psim(zetar(:,iter)) + psim(zetar(:,iter) * rough%z0m / rough%zref_tq) ))
        ! write(*,*) ktau, iter, zetar(:,iter), rough%zref_tq, rough%disp
-       rt0bus = (LOG(0.1*rough%hruff/rough%z0soilsn) - psis(zetash(:,iter)) + &
-            psis(zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff))) / &
-            vonk/rough%term6a
+       WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
+          rt0bus = (LOG(0.1*rough%hruff/rough%z0soilsn) - psis(zetash(:,iter)) + &
+               psis(zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff))) / &
+               vonk/rough%term6a
+       end where
 
        !%%change by Ashok Luhar - low wind formulation
        where (zetar(:,iter) > 0.7)
@@ -628,7 +634,7 @@ CONTAINS
        ! vh 14/04/14
        ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing C%CSW by
        ! csw = cd/2* (U(hc)/ust)**2 according to Eqs 15 & 19 from notes by Ian Harman (9-9-2011)
-       WHERE (canopy%vlaiw > 0.01)
+       WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
           zstar = rough%disp + 1.5*(veg%hc - rough%disp)
           ! write(*,*) zstar, rough%disp, veg%hc,rough%disp
           psihat = log((zstar - rough%disp)/ (veg%hc - rough%disp)) + &
@@ -670,7 +676,7 @@ CONTAINS
 
        ! rt0 = turbulent resistance from soil to canopy:
        ! use this when accounting for separate resistance from z0soil to 0.1hc
-       where (canopy%vlaiw > 0.01)
+       WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
           rt0 = (rough%rt0us+rt0bus) / canopy%us
        elsewhere
           rt0 = (rough%rt0us) / canopy%us
@@ -685,7 +691,7 @@ CONTAINS
           ssoil%wetfac = 1.0
        END WHERE
        ! change canopy%vlaiw requirement to 0.01 for conformity (BP may 2009)
-       WHERE (canopy%vlaiw > 0.01)
+       WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
           ssoil%rtsoil = rt0
        ELSEWHERE
           ssoil%rtsoil = rt0 + rough%rt1
@@ -698,7 +704,7 @@ CONTAINS
        ! Vegetation boundary-layer conductance (mol/m2/s)
        ! prandt = kinematic viscosity/molecular diffusivity
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.12. Top leaf:
-       WHERE (canopy%vlaiw > 0.01)
+       WHERE (canopy%vlaiw > 0.01 .and. rough%hruff > rough%z0soilsn)
           gbvtop = real(air%cmolar*apol * air%visc / prandt / veg%dleaf *       &
                sqrt(canopy%us / MIN(rough%usuh, 0.2) * veg%dleaf / air%visc) * prandt**(0.3333333) / veg%shelrb, r_2)
           ! Forced convection boundary layer conductance (see Wang & Leuning 1998, AFM):
@@ -1059,9 +1065,9 @@ CONTAINS
              canopy%fes = MIN(canopy%fes, (ssoil%wb(:,1)-ssoil%wbice(:,1)) &
                   * soil%zse(1) * 1000. * real(air%rlam) / dels)
           END WHERE
-          ssoil%cls=1.
-          WHERE (ssoil%snowd >= 0.1_r_2)
-             ssoil%cls = 1.1335_r_2
+          ssoil%cls = 1.
+          WHERE (ssoil%snowd >= 0.1)
+             ssoil%cls = 1.1335
              canopy%fes= MIN(ssoil%wetfac * real(ssoil%potev),real(ssoil%snowd*air%rlam*ssoil%cls)/dels)
           END WHERE
           ! Calculate soil sensible heat:
@@ -1177,8 +1183,8 @@ CONTAINS
     ssoil%dfe_ddq = ssoil%wetfac*air%rho/ssoil%rtsoil*air%rlam  ! d(canopy%fes)/d(dq)
     ssoil%ddq_dtg = (rmh2o/rmair)/met%pmb *tetena*tetenb*tetenc &
          /((tetenc+ssoil%tss-tfrz)**2)*exp(tetenb*(ssoil%tss-tfrz)/(tetenc+ssoil%tss-tfrz))
-    ssoil%cls = 1.0_r_2
-    WHERE (ssoil%snowd >= 0.1_r_2) ssoil%cls = 1.1335_r_2
+    ssoil%cls = 1.0
+    WHERE (ssoil%snowd >= 0.1) ssoil%cls = 1.1335
     canopy%dgdtg = ssoil%dfn_dtg - ssoil%dfh_dtg &
          - ssoil%cls * ssoil%dfe_ddq * ssoil%ddq_dtg
 

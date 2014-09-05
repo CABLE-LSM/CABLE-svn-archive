@@ -1150,8 +1150,8 @@ WRITE(68,*)"bgc", idoy
   
 
   ! for spinning up only
-  casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-  casapool%Psoillab = max(casapool%Psoillab,0.1)
+  casapool%Nsoilmin = max(casapool%Nsoilmin,0.5_r_2)
+  casapool%Psoillab = max(casapool%Psoillab,0.1_r_2)
 
 END SUBROUTINE biogeochem
 

@@ -21,11 +21,11 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: e7        = 1.e-7
 
   ! define some constants
-  REAL(r_2), PARAMETER :: pi  = 3.1415927
+  REAL(r_2), PARAMETER :: pi        = 3.1415927
   REAL(r_2), PARAMETER :: Tzero     = tfrz      ! Celcius -> Kelvin
   REAL(r_2), PARAMETER :: gravity   = grav      ! gravitation constant [m/s2]
   REAL(r_2), PARAMETER :: Mw        = rmh2o     ! weight of 1 mol of water [kg]
-  REAL(r_2), PARAMETER :: Mw18        = 0.018   ! weight of 1 mol of water [kg] (main isotopologue only)
+  REAL(r_2), PARAMETER :: Mw18      = 0.018     ! weight of 1 mol of water [kg] (main isotopologue only)
   REAL(r_2), PARAMETER :: cpa       = capp      ! specific heat capacity of dry air at 0-40 degC [J/kgK]
   REAL(r_2), PARAMETER :: esata     = tetena*100.0_r_2 ! constants for saturated vapour pressure calculation
   REAL(r_2), PARAMETER :: esatb     = tetenb    ! %
@@ -92,15 +92,31 @@ MODULE sli_numbers
   ! CHARACTER(LEN=20)    :: botbc = "seepage"
 
   ! Special setups for sli stand-alone, such as 1-8: testcases of Haverd & Cuntz (2010);
+  !  0: normal run
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
   ! 16: Loetschental
-  ! 0=normal run
-
   INTEGER(i_d) :: experiment = 0
+
+  ! Steeper freezing curve factor: 1=normal, >1=steeper
+  REAL(r_2), PARAMETER :: freezefac = 1.0
+
+  ! Topmodel approach
+  ! 0: normal ponding and free drainage
+  ! 1: topmodel surface runoff
+  ! 2: topmodel deep drainage
+  ! 3: topmodel surface runoff and deep drainage
+  INTEGER(i_d), PARAMETER :: topmodel = 0
+  REAL(r_2),    PARAMETER :: alpha    = 0.1 ! anistropy param for lateral flow (topmodel)
+  REAL(r_2),    PARAMETER :: fsat_max = 2.0 ! exponent for vertical profile of Ksat (topmodel)
+
+  ! Thermal conductivity of soil
+  ! 0: Campbell (1985)
+  ! 1: Van de Griend and O'Neill (1986)
+  INTEGER(i_d) :: ithermalcond = 0
 
   ! define types
   TYPE vars_met
-     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, ra, rs, Rn, u, Da, cva, civa, ha, phiva, qevappot
+     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, Rn, Da, cva, civa, phiva
   END TYPE vars_met
 
   TYPE vars
@@ -139,6 +155,8 @@ MODULE sli_numbers
      INTEGER(i_d) :: ishorizon
      REAL(r_2) :: zeta
      REAL(r_2) :: fsatmax
+     REAL(r_2) :: lambc   ! original lam for storage
+     REAL(r_2) :: lambdaS ! thermal inertia of saturation for van de Griend & O'Neill (1986) thermal conductivity
   END TYPE params
 
   TYPE rapointer

@@ -50,7 +50,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    !      MRR draft paper "Simplified expressions...", dec-92
    ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_user
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
 
@@ -61,9 +61,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =C%CCD*LAI; working variable 
-      dh,      & ! d/h where d is zero-plane displacement
-      hmax       ! maximum height of canopy from
-                                    ! tiles belonging to the same grid
+      dh         ! d/h where d is zero-plane displacement
    
    CALL point2constants( C ) 
    
@@ -87,7 +85,52 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
     WHERE( ssnow%snowd .GT. 0.01   )  &
      rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
   
-     
+!!!MC!!!    
+!       rough%usuh = MIN( SQRT( C%CSD + C%CRD * ( canopy%rghlai * 0.5 ) ),       &
+!                    C%USUHM )
+       
+!       xx = SQRT( C%CCD * MAX( ( canopy%rghlai * 0.5 ), 0.0005 ) )
+      
+!       ! eq.8 Raupach 1994, BLM, vol 71, p211-216:
+!       dh = 1.0 - ( 1.0 - EXP( -xx ) ) / xx
+      
+!       ! Calculate zero-plane displacement:
+!       rough%disp = dh * rough%hruff
+      
+!       ! Reference height zref is height above the displacement height
+!       rough%zref_uv = MAX( 3.5, rough%za_uv )
+!       rough%zref_tq = MAX( 3.5, rough%za_tq )
+       
+!       ! Calcualte roughness length:
+!       rough%z0m = ( (1.0 - dh) * EXP( LOG( C%CCW_C ) - 1. + 1. / C%CCW_C       &
+!                   - C%VONK / rough%usuh ) ) * rough%hruff
+       
+!       ! find coexp: see notes "simplified wind model ..." eq 34a
+!       ! Extinction coefficient for wind profile in canopy:
+!       ! eq. 3.14, SCAM manual (CSIRO tech report 132)
+!       rough%coexp = rough%usuh / ( C%VONK * C%CCW_C * ( 1.0 - dh ) )
+
+!       rough%term2  = EXP( 2 * C%CSW * canopy%rghlai *                          &
+!                      ( 1 - rough%disp / rough%hruff ) )
+!       rough%term3  = C%A33**2 * C%CTL * 2 * C%CSW * canopy%rghlai
+!       rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
+!       rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
+!       ! vh !
+!       rough%term6a = EXP(rough%coexp * ( 0.1 * rough%hruff / rough%hruff -1. ))
+! print*, 'Ho00 ', canopy%vlaiw, rough%hruff, rough%z0soilsn
+! print*, 'Ho01 ', rough%usuh
+! print*, 'Ho02 ', xx
+! print*, 'Ho03 ', dh
+! print*, 'Ho04 ', rough%disp
+! print*, 'Ho05 ', rough%zref_uv
+! print*, 'Ho06 ', rough%zref_tq
+! print*, 'Ho07 ', rough%z0m
+! print*, 'Ho08 ', rough%term2
+! print*, 'Ho09 ', rough%term3
+! print*, 'Ho10 ', rough%term5
+! print*, 'Ho11 ', rough%term6
+! print*, 'Ho12 ', rough%term6a
+!!!MC!!!
    WHERE( canopy%vlaiw .LT. 0.01 .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
      
