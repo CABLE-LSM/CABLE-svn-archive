@@ -13,19 +13,23 @@ module cable_routing
   implicit none
   
   type map_grid_type
+  
     integer, pointer, dimension(:,:)   :: ind_river_to_land
     real(r_2), pointer, dimension(:,:) :: weight_river_to_land
-    integer, pointer, dimension(:)     :: n_ovrlap   !number of rivers cells that over lap the land cell
+    integer, pointer, dimension(:)     :: n_ovrlap   !number of rivers cells that over lap the land cell    
+        
   end type map_grid_type
 
   
   type river_grid_type    !will move to cable types eventually    
+  
     integer                            :: nlat
     integer                            :: nlon
     integer                            :: npts
     integer                            :: nbasins
     integer                            :: nrr_cells
     
+    !move below into a separate data container??
     real(r_2), pointer, dimension(:) :: lat   !1dimensional array stored as lat=0,lon={1,nlon}; lat=1,lon={1,nlon}, etc
     real(r_2), pointer, dimension(:) :: lon
     real(r_2), pointer, dimension(:) :: length
@@ -38,11 +42,13 @@ module cable_routing
     integer,   pointer, dimension(:) :: upstrm_number  !number of grid cells upstream from the current
 
     type(map_grid_type) :: maps
+   
     
   end type river_grid_type
   
   
   type river_flow_type     !one global.  make 2D and have more than one tracer??????
+  
     real(r_2), pointer, dimension(:) :: vol     !river water volume
     real(r_2), pointer, dimension(:) :: mass    !river water mass
     real(r_2), pointer, dimension(:) :: vel     !river water speed
@@ -51,6 +57,7 @@ module cable_routing
   end type river_flow_type
   
   type basin_type
+  
     integer                        :: begind         !basin index start in reordered global 1d array
     integer                        :: endind         !basin end index in global reordered array
     integer                        :: n_basin_cells  !number of river cells in the basin
@@ -76,9 +83,11 @@ module cable_routing
   !outline
   !if timestep==0 --> 
   !  call river_route_init(filename,river_grid)
-  !    call read_river_route_file(filename,river_grid)
+  !    call get_river_route_data(filename,river_grid)
   !                                          => grid%{nlat,nlon,npts,lat,lon,direction,length,slope,elevation,land_mask}
-  !       !need to only read lat/lon for river over same area area as lsm lat/lon
+  !       !only alloc and fills river data for region covered by the lsm grid.  still need check to ensure that only complete
+  !       !basins are included?  this won't work if lsm region ends in the middle of a basin.....this check needs to occur
+  !       !after reading whole file and calculating the basins
   !
   !       call alloc_river_route_vars()  !-->call within
   !
@@ -135,17 +144,18 @@ module cable_routing
 
 contains
 !-----------------------------------------------------------------------------
-  subroutine read_river_route_data(filename,river_grid)
+  subroutine get_river_route_data(filename,river_grid)
+  !reads while file.  need to determine if covered by lsm grid later
     use netcdf
     implicit none
     
     character(len=250), intent(in)       :: filename
-    type(river_grid_type), intent(out) :: river_grid
+    type(river_grid_type), intent(out)   :: river_grid
     
     integer :: ncid_river
-    integer :: mask_id, rdir_id, length_id, slope_id, elev_id
     integer :: rr_lat_dim_id,rr_lon_dim_id,rr_lat_var_id,rr_lon_var_id
     integer :: nlat_rr_file, nlon_rr_file, npts_rr_file
+    integer :: nlat_rr,nlon_rr,npts_rr
     
     
     character(len=*), parameter :: mask_name   = "land_mask"
@@ -159,9 +169,6 @@ contains
     character(len=*), parameter :: rr_lat_var_name = "latitude"
     character(len=*), parameter :: rr_lon_var_name = "longitude"
     
-    integer  , dimension(:,:), allocatable :: int_data
-    real(r_2), dimension(:,:), allocatable :: flt_data
-    
     real(r_2), dimension(:), allocatable :: lat_data
     real(r_2), dimension(:), allocatable :: lon_data
     
@@ -170,6 +177,8 @@ contains
     integer :: nc_check
     
     integer :: lon_start,lon_end,lat_start,lat_end
+    integer, dimension(2) :: start_inds
+    integer, dimension(2) :: end_inds
     
     real :: dlat_lsm,dlon_lsm
     
@@ -195,50 +204,104 @@ contains
     nc_check = nf90_get_var(ncid_river,rr_lat_var_id,lat_data(:))
     nc_check = nf90_get_var(ncid_river,rr_lon_var_id,lon_data(:))
     
-    !determine regions covered by the lsm forcing/data/simulation
-    !assume always all goes from W->E and S->N
-    dlat_lsm = 0.5*abs(latitude(2)-latitude(1))
-    dlon_lsm = 0.5*abs(longitude(2)-longitude(1))
+    start_inds = (/1           , 1          /)
+    end_inds   = (/nlon_rr_file,nlat_rr_file/)
     
-    min_lsm_lat = minval(latitude(:)) - dlat_lsm
-    max_lsm_lat = maxval(latitude(:)) + dlat_lsm
-    min_lsm_lon = minval(longitude(:)) - dlon_lsm
-    max_lsm_lon = maxval(longitue(:)) + dlon_lsm
+    !allocate variable for the river grid
+    call alloc_river_grid_var(river_grid,npts_rr_file)
     
-    found_edge = .false.
-    i=1
-    do while (.not. found_edge)
-      if (lon_data(i) .le. min_lsm_lon .and. lon_data(i+1) .ge. min_lsm_lon) then
-        found_edge = .true.
-      elseif (i .le. nlon_rr_file-1) then
-        i=i+1
-      else
-         stop
-         found_edge = .true.
+    river_grid%npts = npts_rr_file
+    river_grid%nlat = nlat_rr_file
+    river_grid%nlon = nlon_rr_file
+    !fill lat/lon in river_grid variable
+    k=1
+    do j=1,nlat_rr_file
+      do i=1,nlon_rr_file
+         river_grid%lat(k) = lat_data(j+lat_start-1)
+         river_grid%lon(k) = lon_data(i+lon_start-1)
+      end do
     end do
-    lon_start = i
     
-
-    found_edge = .false.
-    i=nlon_rr_file
-    do while (.not. found_edge)
-      if (lon_data(i-1) .le. max_lsm_lon .and. lon_data(i) .ge. max_lsm_lon) then
-        found_edge = .true.
-      elseif (i .ge. 2) then
-        i=i-1
-      else
-       stop
-       found_edge = .true.
-    end do
-    lon_end = i    
-       
-
-
+    !read the data
+    call read_nc_int(ncid_river,mask_name,start_inds,end_inds,river_grid%land_mask(:))
+    call read_nc_int(ncid_river,rdir_name,start_inds,end_inds,river_grid%direction(:))
+    
+    call read_nc_flt(ncid_river,length_name,start_inds,end_inds,river_grid%length(:))
+    call read_nc_flt(ncid_river,slope_name ,start_inds,end_inds,river_grid%slope(:))
+    call read_nc_flt(ncid_river,elev_name  ,start_inds,end_inds,river_grid%elev(:))
+    
+    nc_check = nf90_close(ncid_river)
+        
+  end subroutine get_river_data
     
     
-  end subroutine read_river_data
+  subroutine read_nc_int(ncid,var_name,start_inds,end_inds,var_data)
+    use netcdf
+    implicit none
     
-
+    integer,               intent(in)    :: ncid
+    character(len=250)   , intent(in)    :: var_name
+    integer, dimension(:), intent(in)    :: start_inds,end_inds
+    integer, dimension(:), intent(inout) :: var_data
+    
+    integer :: nc_check,nlat_rr,nlon_rr,var_id
+    integer :: i,j,k
+    
+    integer, dimension(:,:), allocatable :: ind_data
+    
+    nlat_rr = end_inds(2) - start_inds(2) + 1
+    nlon_rr = end_inds(1) - start_inds(1) + 1
+    
+    allocate(int_data(nlon_rr,nlat_rr))
+    
+    nc_check = nf90_inq_varid(ncid,var_name,var_id)
+    nc_check = nf90_get_var(ncid,var_id,int_data(:,:),start_inds,end_inds)
+    k=1
+    do j=1,nlat_rr
+       do i=1,nlon_rr
+         var_data(k) = int_data(i,j)
+         k=k+1
+       end do
+     end do
+     
+     deallocate(int_data)
+     
+   end subroutine read_nc_int
+   
+ 
+  subroutine read_nc_flt(ncid,var_name,start_inds,end_inds,var_data)
+    use netcdf
+    implicit none
+    
+    integer,                 intent(in)    :: ncid
+    character(len=250)     , intent(in)    :: var_name
+    integer  , dimension(:), intent(in)    :: start_inds,end_inds
+    real(r_2), dimension(:), intent(inout) :: var_data
+    
+    integer :: nc_check,nlat_rr,nlon_rr,var_id
+    integer :: i,j,k
+    
+    real(r_2), dimension(:,:), allocatable :: ind_data
+    
+    nlat_rr = end_inds(2) - start_inds(2) + 1
+    nlon_rr = end_inds(1) - start_inds(1) + 1
+    
+    allocate(int_data(nlon_rr,nlat_rr))
+    
+    nc_check = nf90_inq_varid(ncid,var_name,var_id)
+    nc_check = nf90_get_var(ncid,var_id,int_data(:,:),start_inds,end_inds)
+    k=1
+    do j=1,nlat_rr
+       do i=1,nlon_rr
+         var_data(k) = int_data(i,j)
+         k=k+1
+       end do
+     end do
+     
+     deallocate(int_data)
+     
+   end subroutine read_nc_flt 
+   
 
 !-----------------------------------------------------------------------------
 !             !current data set doesn't use these numbers as it is: 1,2,4,8,16,32,64,128,256
@@ -593,20 +656,9 @@ contains
    end subroutine step_river_routing
 !-----------------------------------------------------------------------------  
 !-----------------------------------------------------------------------------
-  subroutine alloc_river_route_vars(river_var,grid_var,npts)
-    implicit none
-    type(river_flow_type), intent(inout) :: river_var
-    type(river_grid_type), intent(inout) :: grid_var
-    integer, intent(in)                  :: npts
-    
-    call alloc_river_flow(river_var,npts)
-    call alloc_river_grid(gird_var,npts)
-  end subroutine alloc_river_route_vars  
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
   subroutine alloc_river_flow(var,npts)
 
-    type(river_flow_type), intent(inout) :: var
+    type(river_flow_type),intent(inout)  :: var
     integer, intent(in) :: npts
 
     allocate(var%vol(npts))
@@ -626,7 +678,7 @@ contains
 !-----------------------------------------------------------------------------
   subroutine dealloc_river_flow(var)
 
-    type(river_flow_type), intent(inout) :: var
+    type(river_flow_type),intent(inout) :: var
 
     deallocate(var%vol)
     deallocate(var%mass)
@@ -637,7 +689,7 @@ contains
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
   subroutine alloc_river_map_grid(var,npts)
-    type(map_grid_type), intent(inout) :: var
+    type(map_grid_type),intent(inout)  :: var
     integer, intent(in)                :: npts
 
     allocate(var%ind_river_to_land(npts,max_n_ovrlap))
@@ -665,7 +717,7 @@ contains
   subroutine alloc_river_grid(var,npts)
 
     type(river_grid_type), intent(inout) :: var
-    integer, intent(in)             :: npts
+    integer, intent(in)                  :: npts
 
     allocate(var%lat(npts))
     var%lat(:) = fNaN
@@ -686,13 +738,14 @@ contains
     allocate(var%land_mask(npts))
     var%land_mask(:) = iNaN
 
-    call alloc_river_map_grid(var%maps,npts)
+    call alloc_river_map_grid(var%maps,npts)  !normal module 
+    !call var%maps%initialize(npts)             !using oop approach.  is thi legal?
 
 
   end subroutine alloc_river_grid
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-  subroutine dealloc_river_grid(var,npts)
+  subroutine dealloc_river_grid(var)
 
     type(river_grid_type), intent(inout) :: var
 
@@ -706,7 +759,7 @@ contains
     
     call dealloc_river_map_grid(var%maps)
 
-  end subroutine alloc_river_grid
+  end subroutine dealloc_river_grid
 
 !-----------------------------------------------------------------------------  
 
