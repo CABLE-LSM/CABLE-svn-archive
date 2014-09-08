@@ -223,7 +223,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
   !LAI_Ma: this is where LAI_Ma is first declared. NB> this is the interpolated
    !version, NOT the read version, it is daily lai        
    integer, parameter :: npseudo_interp = 365 ! Ma   
-   real, dimension(:,:), allocatable, save :: new_LAI_Ma
+   real(kind=8), dimension(:,:), allocatable, save :: new_LAI_Ma
   
 
       !---------------------------------------------------------------------!

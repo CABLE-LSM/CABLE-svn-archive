@@ -50,9 +50,9 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
 
    !LAI_Ma  
    integer :: npseudo_interp
-   real, dimension(mp,npseudo_interp) :: new_LAI_Ma   ! daily lai
+   real(kind=8), dimension(mp,npseudo_interp) :: new_LAI_Ma   ! daily lai
        
-   real, dimension(:,:), allocatable ::  LAI_Ma  ! monthly 
+   real(kind=8), dimension(:,:), allocatable ::  LAI_Ma  ! monthly 
    integer, parameter :: npseudo=12 ! *12 LAI vals, corresponding to 1/month * 1 year
        
     ! allocate( LAI_Ma(mp, npseudo) )
@@ -148,9 +148,9 @@ subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )
    use cable_common_module, ONLY : cable_user
    ! define formal variables
    integer :: npseudo, mp 
-   real, dimension(mp,npseudo) :: LAI_Ma
+   real(kind=8), dimension(mp,npseudo) :: LAI_Ma
    integer :: npseudo_interp
-   real, dimension(mp,npseudo_interp) :: new_LAI_Ma
+   real(kind=8), dimension(mp,npseudo_interp) :: new_LAI_Ma
    integer :: shift_days   ! temporary varaible   
    
    ! define the local varaibles , this part can be ignored at this moment  
@@ -204,8 +204,8 @@ End subroutine
      implicit none
     ! define formal variables for pass the data in and out
      integer :: mp,npseudo,npseudo_interp       ! processed land points and monthly and daily dimension
-     real, dimension(mp,npseudo) :: LAI_Ma       ! monthly lai as
-     real, dimension(mp,npseudo_interp) :: new_LAI_Ma   ! interpolated into daily LAI
+     real(kind=8), dimension(mp,npseudo) :: LAI_Ma       ! monthly lai as
+     real(kind=8), dimension(mp,npseudo_interp) :: new_LAI_Ma   ! interpolated into daily LAI
 
      ! define local temporary variables
      integer :: i_day
@@ -251,8 +251,8 @@ subroutine interp_linear_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp)
     implicit none
     ! define formal variables for pass the data in and out
     integer :: mp,npseudo,npseudo_interp       ! processed land points and monthly and daily dimension 
-    real, dimension(mp,npseudo) :: LAI_Ma       ! monthly lai as 
-    real, dimension(mp,npseudo_interp) :: new_LAI_Ma   ! interpolated into daily LAI
+    real(kind=8), dimension(mp,npseudo) :: LAI_Ma       ! monthly lai as 
+    real(kind=8), dimension(mp,npseudo_interp) :: new_LAI_Ma   ! interpolated into daily LAI
     
     ! define the local temporary varaible which will be used during the interpolation
     integer, parameter :: days_of_year =  365  !  =  npseudo_interp  !365
@@ -309,8 +309,8 @@ end subroutine interp_linear_lai
 subroutine advanced_shift_daily_lai(LAI_Ma, mp, npseudo,new_LAI_Ma,npseudo_interp, shift_days)
     ! define formal variables for the exchange information between in and out
     integer :: mp, npseudo, npseudo_interp, shift_days
-    real, dimension(mp,npseudo)        :: LAI_Ma
-    real, dimension(mp,npseudo_interp) :: new_LAI_Ma
+    real(kind=8), dimension(mp,npseudo)        :: LAI_Ma
+    real(kind=8), dimension(mp,npseudo_interp) :: new_LAI_Ma
     
     ! define local temperory variables
     integer, parameter :: days_of_year  =365  ! = npseudo_interp  !365
@@ -500,7 +500,7 @@ SUBROUTINE initialize_veg( canht_ft, lai_ft, new_LAI_Ma)
    USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
-   REAL, DIMENSION(:,:) :: new_LAI_Ma 
+   REAL(kind=8), DIMENSION(:,:) :: new_LAI_Ma 
    
    LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
 
@@ -526,7 +526,7 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, new_LAI_Ma )
    USE cable_data_module, ONLY : cable 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
-   REAL, DIMENSION(:,:) :: new_LAI_Ma 
+   REAL(kind=8), DIMENSION(:,:) :: new_LAI_Ma 
    INTEGER :: i,j,n, temp_day
     
    DO N=1,um1%NTILES

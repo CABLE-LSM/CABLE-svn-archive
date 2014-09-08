@@ -289,7 +289,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-   REAL, DIMENSION(land_pts,ntiles) :: LAI_Ma_UM 
+   REAL(kind=8), DIMENSION(land_pts,ntiles) :: LAI_Ma_UM 
    integer :: i,n,j
    REAL :: miss = 0.0
    INTEGER ::     &

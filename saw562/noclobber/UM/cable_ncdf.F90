@@ -8,7 +8,9 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    ! we are passing these as they are declared i8 and r8
    integer :: node_gl, rows, row_length, mp, npseudo
    REAL(kind=8), dimension(mp) :: latitude, longitude 
-   real, dimension(mp, npseudo) :: mydata 
+   real(kind=8), dimension(mp, npseudo) :: mydata 
+   real(kind=8)::UM_lon=279.375, UM_lat= 36.25    ! temp variable
+   real(kind=8)::test_lai(npseudo)
 
    ! This is the name of the data file we will read. 
    character (len = *), parameter :: fbase_name = "LAI"
@@ -18,9 +20,9 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
  
    ! We are reading 3D data, a predefined grid. 
    integer, parameter :: nlon = 192, nlat = 145  !(pseudo,lat,lon)-(nz,ny,nx)
-   real:: lat_in(nlat,npseudo)
-   real:: lon_in(nlon,npseudo)
-   real:: data_in(nlon,nlat,npseudo)
+   real(kind=8):: lat_in(nlat,npseudo)
+   real(kind=8):: lon_in(nlon,npseudo)
+   real(kind=8):: data_in(nlon,nlat,npseudo)
    integer, dimension(mp) :: x_in, y_in
  
    ! This will be the netCDF ID for the file and data variable.
@@ -90,43 +92,53 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
      print *,sum(data_in(:,:,x),data_in(:,:,x)<100)/max(1,count(data_in(:,:,x)<100))
     end do
 
-   print *,"cable_UM_latitude",latitude
+   ! print *,"cable_UM_latitude",latitude
    ! print *,"*********************************latitude checking************************************"
-    print *, "read in lat",lat_in(:,1)
+   ! print *, "read in lat",lat_in(:,1)
   
    ! Check the data.
    !lon, lat, t
    !row_length, rows, t
-   x_in = 1; y_in =1
-   z = 1
-   do x = 1, nlon
-      do y = 1, nlat
-         do i = 1, mp
-            if( (ABS(lon_in(x,1) - longitude(i)) < 0.001) & 
-            .AND. ABS(lat_in(y,1) - latitude(i))< 0.001) then 
-               !print *, "z,y,x,i ", z, y, x, i
-               mydata(i,z) =   data_in(x, y, z)   
-                print *, "data_in  ", data_in(x, y, z) 
-               !print *, "mydata ", mydata(i,z)
-               x_in(i) = x
-               ! print *, "x_in ", x_in(i)
-               y_in(i) = y
-               ! print *, "y_in ", y_in(i)
-               if( i > mp) print *, "Count has reached mp"
-            endif
-         end do
-      end do
-   end do
+  ! x_in = 1; y_in =1
+  ! z = 1
+  ! do x = 1, nlon
+  !    do y = 1, nlat
+  !       do i = 1, mp
+  !          if( (ABS(lon_in(x,1) - longitude(i)) < 0.001) & 
+  !          .AND. ABS(lat_in(y,1) - latitude(i))< 0.001) then 
+  !             !print *, "z,y,x,i ", z, y, x, i
+  !             mydata(i,z) =   data_in(x, y, z)   
+  !              print *, "data_in  ", data_in(x, y, z) 
+  !             !print *, "mydata ", mydata(i,z)
+  !             x_in(i) = x
+  !             ! print *, "x_in ", x_in(i)
+  !             y_in(i) = y
+  !             ! print *, "y_in ", y_in(i)
+  !             if( i > mp) print *, "Count has reached mp"
+  !          endif
+  !       end do
+  !    end do
+  ! end do
 
-   do z = 1, nPseudo
-      do i = 1, mp
-         mydata(i,z) =   data_in(x_in(i), y_in(i), z)   
-      end do
-   end do
+   ! do z = 1, nPseudo
+   !   do i = 1, mp
+   !      mydata(i,z) =   data_in(x_in(i), y_in(i), z)   
+   !   end do
+   ! end do
  
    ! Close the file, freeing all resources.
    call check( nf90_close(ncid) )
- 
+   
+   ! reextract the data 
+   do i=1, mp
+       UM_lon = longitude(i)
+       UM_lat = latitude(i)
+       ! print *, "UM_lon and UM_lat", UM_lon, UM_lat
+       test_lai=interpolate_ngp(UM_lon,UM_lat,npseudo,lon_in(:,1),lat_in(:,1),data_in(:,:,:))
+       ! print *, "test_lai =", test_lai
+       mydata(i,:) = test_lai(:)
+   end do
+
    print *,"*** SUCCESS reading example file ", FILE_NAME, "! "
 
    contains
@@ -138,6 +150,40 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
        stop "Stopped"
      end if
    end subroutine check  
+   ! Get the value in the file grid closest to a model gridpoint
+  pure function interpolate_ngp(grid_lon, grid_lat, time, file_lon, file_lat, file_data) result(grid_val)
+    ! Model gridpoint
+    real(kind=8), intent(in) :: grid_lon
+    real(kind=8), intent(in) :: grid_lat
+    integer,      intent(in) :: time
+
+    ! File data
+    real(kind=8), intent(in) :: file_lon(:)
+    real(kind=8), intent(in) :: file_lat(:)
+    real(kind=8), intent(in) :: file_data(:,:,:)
+
+    real(kind=8)             :: grid_val(12)
+    integer                  :: i, j
+
+    ! Assume file grid is equally distributed
+    i = nearest_index(grid_lon, file_lon)
+    j = nearest_index(grid_lat, file_lat)
+
+    grid_val(:) = file_data(i,j,:)
+  end function
+
+   ! Find the array index closest to `value`
+   ! Assumes array is equally distributed
+   pure function nearest_index(value, array) result(i)
+     real(kind=8), intent(in) :: value
+     real(kind=8), intent(in) :: array(:)
+     integer                  :: i
+
+     real(kind=8)             :: diff
+
+     diff = array(size(array)) - array(1)
+     i = nint((value-array(1))/diff*(size(array)-1)) + 1
+   end function 
 
 end subroutine predef_grid
 
