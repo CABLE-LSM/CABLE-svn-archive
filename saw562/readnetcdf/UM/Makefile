@@ -24,10 +24,13 @@ all : libcable.a
 
 # Paths to source
 VPATH = .:../core/biogeophys:../core/biogeochem:../offline
-FFLAGS += -O2 -i8 -r8 -g -traceback -warn all -fp-model precise -ftz -fpe0 -gen-interfaces -module .tmp -I .tmp
+FFLAGS += -O0 -i8 -r8 -g -traceback -warn all -fp-model precise -ftz -fpe0 -gen-interfaces -module .tmp -I .tmp -check all
+CC      = ${FC}
+LDFLAGS+= -lnetcdff -lnetcdf
 
 #suffixes we use
 .SUFFIXES:.F90 
+.INTERMEDIATE: .tmp/.path
 
 #default rules for these suffixes
 %.o:%.F90 .tmp/.path
@@ -41,6 +44,9 @@ cable_ncdf.o: FFLAGS+=-integer-size 32 -real-size 32
 
 libcable.a: cable_rad_driver.o cable_hyd_driver.o cable_implicit_driver.o cable_explicit_driver.o cable_um_init_subrs.o  cable_um_init.o cable_data.o cable_define_types.o cable_common.o cable_carbon.o cable_air.o cable_albedo.o cable_canopy.o cable_cbm.o cable_roughness.o cable_soilsnow.o cable_radiation.o cable_um_tech.o casa_variable.o casa_cnp.o casa_cable.o casa_inout.o casa_types.o casa_um_inout.o cable_iovars.o cable_ncdf.o cable_diag.o
 	ar r $@ $^
+
+test_ncdf: test_ncdf.o libcable.a
+test_ncdf.o: test_ncdf.F90 cable_ncdf.o
 
 install: libcable.a
 	[ -d ${CABLE_AUX}/CABLE-AUX/UM ] && cp $< ${CABLE_AUX}/CABLE-AUX/UM/$<

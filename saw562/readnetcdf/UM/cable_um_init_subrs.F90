@@ -158,38 +158,14 @@ subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )
    integer :: LAI_Ma_year, DayOfExp
 
    ! testing shift days
-   ! shift_days  = cable_user%shift_days
      shift_days  = -1   !  when shift_days = -1 indicate no shift. 
    ! print *, "shift days of LAI is :", shift_days
    ! finish testing shift days
-
-
-   ! As cable%doy resets every year, record when each year has passed
-   ! open(unit=713941,file='cable_DoY.txt', &
-   !     action="read", iostat=openstatus )
-   !   if(openstatus==0) then
-   !         read(713941,*) LAI_Ma_year 
-   !   else
-   !      write (*,*), 'cable_DoY.txt',' Error: unable to read'
-   !   endif
-   ! close(713941)
-   ! NB: 365 here assumes gregorian
-   ! DayOfExp = ( LAI_Ma_year * 365 ) + cable%doy
-   ! the above code did not use 
-
    
    ! call the subrountine for linear interpolation and shift
    
    ! call interp_linear_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp) ! call interpolation function 
      call   interp_copy_lai(LAI_Ma,mp,npseudo,new_LAI_Ma,npseudo_interp)
-
-   ! new_LAI_Ma  = LAI_Ma  ! no interplocation, only copy
-   ! shift the daily lai data by 20 days (default) and write out 
-   ! start the interplocation : only copy the first month data for testing.
-   ! do i_day=1, 365
-   !    new_LAI_Ma(:,i_day)  = LAI_Ma(:,7)
-   ! end do  
-   ! end with interpolation
 
    ! definitions (some from program) like this 20 should go as far back as possible   
    
@@ -567,13 +543,13 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, new_LAI_Ma )
 !updating and shifting you will need to develop some logic around this based of
 !on the date
    ! test iday
-   temp_day = cable%doy
-   if(temp_day > 365 .or. temp_day <1) then
-     print *, "cable_doy in veg_intilialization is : ", cable%doy
-     veg%vlai(:)  = new_LAI_Ma(:,365)
-   else ! normal case
-     veg%vlai(:)    = new_LAI_Ma(:,cable%doy)
-   end if
+!   temp_day = cable%doy
+!   if(temp_day > 365 .or. temp_day <1) then
+!     print *, "cable_doy in veg_intilialization is : ", cable%doy
+!     veg%vlai(:)  = new_LAI_Ma(:,365)
+!   else ! normal case
+!     veg%vlai(:)    = new_LAI_Ma(:,cable%doy)
+!   end if
    write(*,*) "New LAI Mean ", sum(veg%vlai,veg%vlai<100 .and. veg%vlai>=0)/max(1,count(veg%vlai<100 .and. veg%vlai >=0))
 
    ! finish test iday
