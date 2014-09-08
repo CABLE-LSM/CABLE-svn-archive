@@ -11,7 +11,7 @@ host_raij()
    export NCDIR=$NCDF_ROOT'/lib/Intel'
    export NCMOD=$NCDF_ROOT'/include/Intel'
    export FC=ifort
-   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0' #-check all  
+   export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0 -warn all -check all -diag-disable 7712'
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then      
       export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
@@ -263,18 +263,6 @@ build_build()
 ###########################################
 ## build.ksh - MAIN SCRIPT STARTS HERE   ##
 ###########################################
-
-if [[ $1 = 'LAI_Ma' ]]; then
-   print '\n making cable_ncdf separately \n'
-   module load netcdf
-   make -f Makefile_LAI_Ma
-   mkdir -p .tmp/
-   #if [[ ! -d .tmp ]]; then
-   #   mkdir .tmp
-   #fi
-   /bin/cp cable_ncdf.o .tmp/     
-   module unload netcdf
-fi
 
 if [[ $1 = 'clean' ]]; then
    print '\ncleaning up\n'

@@ -6,7 +6,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    implicit none
  
    ! we are passing these as they are declared i8 and r8
-   integer :: node_gl, rows, row_length, mp, npseudo
+   integer(kind=8) :: node_gl, rows, row_length, mp, npseudo
    REAL(kind=8), dimension(mp) :: latitude, longitude 
    real(kind=8), dimension(mp, npseudo) :: mydata 
    real(kind=8)::UM_lon=279.375, UM_lat= 36.25    ! temp variable
@@ -26,12 +26,13 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    integer, dimension(mp) :: x_in, y_in
  
    ! This will be the netCDF ID for the file and data variable.
-   integer :: ncid, varid, latid, lonid
+   integer(kind=4) :: ncid, varid, latid, lonid
  
    ! Loop indexes, and error handling.
    integer :: i,x, y, z 
    
    integer :: tests
+   integer(kind=4) :: err
    !integer :: latDimId, lonDimId, pseudoDimId
    !integer :: IQnlat,IQnlon,IQnpseudo 
    !integer :: numdims
@@ -52,7 +53,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
 
    ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
    ! the file.
-   call check( nf90_open(FILE_NAME, NF90_NOWRITE, ncid) )
+   call check(nf90_open(FILE_NAME, NF90_NOWRITE, ncid))
    !print *, "File opened on ncid ", ncid 
    
    ! Get the varid of the data variable, based on its name.
@@ -143,11 +144,15 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
 
    contains
    subroutine check(status)
-     integer, intent ( in) :: status
+     use ifcore
+     use mpi
+     integer(kind=4), intent ( in) :: status
+     integer(kind=4) :: ierr
      
      if(status /= nf90_noerr) then 
        print *, trim(nf90_strerror(status))
-       stop "Stopped"
+       call tracebackqq(nf90_strerror(status),-1)
+       call MPI_Abort(MPI_COMM_WORLD,status,ierr)
      end if
    end subroutine check  
    ! Get the value in the file grid closest to a model gridpoint

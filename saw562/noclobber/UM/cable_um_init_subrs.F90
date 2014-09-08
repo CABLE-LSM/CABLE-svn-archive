@@ -505,7 +505,7 @@ SUBROUTINE initialize_veg( canht_ft, lai_ft, new_LAI_Ma)
    LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
 
       !---clobbers veg height, lai and resets ivegt for CABLE tiles
-      CALL clobber_height_lai( canht_ft, lai_ft, new_LAI_Ma )
+      !CALL clobber_height_lai( canht_ft, lai_ft, new_LAI_Ma )
       
       !--- veg params were read from initialize_soil() 
       IF(first_call)  THEN
