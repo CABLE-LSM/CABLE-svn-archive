@@ -373,7 +373,7 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
 !LAI_Ma: here for testing i am using the first month only. For the sake of
 !updating and shifting you will need to develop some logic around this based of
 !on the date
-   !veg%vlai   = LAI_Ma(:,1) 
+   veg%vlai   = LAI_Ma(:,1) 
    veg%hc     = PACK(kblum_veg%htveg, um1%L_TILE_PTS)
 
 END SUBROUTINE clobber_height_lai
