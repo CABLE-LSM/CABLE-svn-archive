@@ -201,11 +201,11 @@ module cable_routing
 
 contains
 
-  function create_river_grid_copy(grid_var,ncells) result(new_grid_var)
-    implicit none
-    class(river_grid_type), intent(in) :: grid_var
-    integer, optional, intent(in)      :: ncells
-    class(river_grid_type)             :: new_grid_var
+  subroutine create_river_grid_copy(grid_var,new_grid_var,ncells)
+    class(river_grid_type), intent(in)    :: grid_var
+    class(river_grid_type), intent(inout) :: new_grid_var    
+    integer, optional, intent(in)         :: ncells
+
 
     !local variables
     integer :: ntot
@@ -216,7 +216,7 @@ contains
       ntot = grid_var%npts
     end if
 
-    new_grid_var%create(ntot)
+    call new_grid_var%create(ntot)
 
     new_grid_var%npts = ntot
     new_grid_var%nlat = grid_var%nlat
@@ -225,27 +225,30 @@ contains
     !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
     !grid_var = ord_grid_var  !have not orderloaded = operator.  this won't work
 
-    !call grid_var%copy_values(new_grid_var,1,ntot,1,ntot)
+    call grid_var%copy_values(new_grid_var,1,ntot,1,ntot)
 
-    new_grid_var%dwnstrm_index(:) = grid_var%dwnstrm_index(1:ntot)   !set ordered by basin to the non ordered values
-    new_grid_var%ocean_outlet(:)  = grid_var%ocean_outlet(1:ntot)
-    new_grid_var%upstrm_number(:) = grid_var%upstrm_number(1:ntot)
-    new_grid_var%maps%ind_lgr(:,:) = grid_var%maps%ind_lgr(1:ntot,:)
-    new_grid_var%maps%weight_lgr(:,:) = grid_var%maps%weight_lgr(1:ntot,:)
-    new_grid_var%maps%n_ovrlap_lgr(:) = grid_var%maps%n_ovrlap_lgr(1:ntot)
-    new_grid_var%lat(:)             = grid_var%lat(1:ntot)
-    new_grid_var%lon(:)             = grid_var%lon(1:ntot)
-    new_grid_var%slope(:)           = grid_var%slope(1:ntot)
-    new_grid_var%length(:)          = grid_var%length(1:ntot)
-    new_grid_var%land_mask(:)       = grid_var%land_mask(1:ntot)    
-    new_grid_var%active_cell(:)     = grid_var%active_cell(1:ntot)
+!    new_grid_var%dwnstrm_index(:) = grid_var%dwnstrm_index(1:ntot)   !set ordered by basin to the non ordered values
+!    new_grid_var%ocean_outlet(:)  = grid_var%ocean_outlet(1:ntot)
+!    new_grid_var%upstrm_number(:) = grid_var%upstrm_number(1:ntot)
+!    new_grid_var%maps%ind_lgr(:,:) = grid_var%maps%ind_lgr(1:ntot,:)
+!    new_grid_var%maps%weight_lgr(:,:) = grid_var%maps%weight_lgr(1:ntot,:)
+!    new_grid_var%maps%n_ovrlap_lgr(:) = grid_var%maps%n_ovrlap_lgr(1:ntot)
+!    new_grid_var%lat(:)             = grid_var%lat(1:ntot)
+!    new_grid_var%lon(:)             = grid_var%lon(1:ntot)
+!    new_grid_var%slope(:)           = grid_var%slope(1:ntot)
+!    new_grid_var%length(:)          = grid_var%length(1:ntot)
+!    new_grid_var%land_mask(:)       = grid_var%land_mask(1:ntot)    
+!    new_grid_var%active_cell(:)     = grid_var%active_cell(1:ntot)
 
 
-  end function create_river_grid_copy
+  end subroutine create_river_grid_copy
 
 !----------------------------------------------------------------------------!
 
   subroutine copy_river_grid_values(grid_var,new_grid_var,n1,n2,n3,n4)
+    !usage: new_var(n1:n2) = old_var(n3:n4).  if single value use n1=n2 and n3=n4
+    !if n3 and n4 are missing then old_var(1:old_var%npts)
+    !if all are missing then it is new_var(1:npts)=old_var(1:npts) where npts = old_var%npts
     implicit none
     class(river_grid_type), intent(in)    :: grid_var
     class(river_grid_type), intent(inout) :: new_grid_var
@@ -300,14 +303,14 @@ contains
 !----------------------------------------------------------------------------!
   function compute_global_mass_balance(river_var,grid_var,basin_var) result(mass_error)
     implicit none
-    class(river_type)     , intent(inout) :: river_var
-    class(river_grid_type), intent(in)    :: grid_var
-    class(basin_type)     , intent(in)    :: basin_var
-    real(r_2)                             :: mass_error
+    class(river_flow_type),         intent(in)  :: river_var
+    class(river_grid_type),         intent(in)  :: grid_var
+    class(basin_type),dimension(:), intent(in)  :: basin_var
+    real(r_2) :: mass_error
     
     !local variables
     real(r_2) :: total_mass, total_lsm_flux,total_outflow, init_total_mass
-    integer :: i,j,k
+    integer :: i,j,k,bg,ed
     
     init_total_mass = 0._r_2
     total_mass      = 0._r_2
@@ -325,7 +328,8 @@ contains
     
       bg = basin_var(i)%begind
       ed = basin_var(i)%endind  
-      j = maxloc(grid_var%upstrm_index(bg:ed),dim=1) + bg - 1 !maxloc returns relative to indices
+      
+      j = maxloc(grid_var%upstrm_number(bg:ed),dim=1) + bg - 1 !maxloc returns relative to indices
       
       total_outflow = total_outflow + river_var%Fout(j)*grid_var%area(j)*dels
     end do
@@ -659,7 +663,7 @@ contains
     !destroy grid var.  make it noew with fewer points (doesn't include the ocean now)
     call grid_var%destroy()
 
-    grid_var = ord_grid_var%create_copy(total_land_cells)
+    call ord_grid_var%create_copy(grid_var,total_land_cells)
 
 !    call grid_var%create(total_land_cells)
     
@@ -775,7 +779,7 @@ contains
       !remove original grid_var variable.  reallocate new one with only active routing cells
       call grid_var%destroy()
 
-      grid_var = cmp_grid_var%create_copy(total_active_cells)
+      call cmp_grid_var%create_copy(grid_var,total_active_cells)
       grid_var%active_cell(:) = 1  !all cells now active.
     
 !      call grid_var%create(total_active_cells) 
@@ -1016,7 +1020,7 @@ contains
     integer, intent(in) :: npts
 
     allocate(var%mass_init(npts))
-    var%vol(:) = fNaN
+    var%mass_init(:) = fNaN
     
     allocate(var%mass(npts))
     var%mass(:) = fNaN
