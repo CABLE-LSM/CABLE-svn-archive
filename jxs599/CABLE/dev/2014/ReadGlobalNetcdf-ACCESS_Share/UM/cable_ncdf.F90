@@ -1,5 +1,5 @@
-! module cable_ncdf_module
-! contains
+!module cable_ncdf_module
+!contains
 subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,       &
                      npseudo,mydata)
    use netcdf
@@ -7,7 +7,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
  
    ! we are passing these as they are declared i8 and r8
    integer :: node_gl, rows, row_length, mp, npseudo
-   REAL(kind=8), dimension(mp) :: latitude, longitude 
+   REAL, dimension(mp) :: latitude, longitude 
    real, dimension(mp, npseudo) :: mydata 
 
    ! This is the name of the data file we will read. 
@@ -84,16 +84,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    call check( nf90_get_var(ncid, varid, data_in) )
    !call check( nf90_get_var(ncid, varid, mydata, & 
    !            start=(/latitude(1),longitude(1),1/),count=(/rows,row_length,12/) ) )
-   
-    print *,"after reading in predef_grid:"
-    do x=1, 12
-     print *,sum(data_in(:,:,x),data_in(:,:,x)<100)/max(1,count(data_in(:,:,x)<100))
-    end do
-
-   print *,"cable_UM_latitude",latitude
-   ! print *,"*********************************latitude checking************************************"
-    print *, "read in lat",lat_in(:,1)
-  
+ 
    ! Check the data.
    !lon, lat, t
    !row_length, rows, t
@@ -102,16 +93,16 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    do x = 1, nlon
       do y = 1, nlat
          do i = 1, mp
-            if( (ABS(lon_in(x,1) - longitude(i)) < 0.001) & 
-            .AND. ABS(lat_in(y,1) - latitude(i))< 0.001) then 
+            if( lon_in(x,1) == longitude(i) & 
+            .AND. lat_in(y,1) == latitude(i) ) then 
                !print *, "z,y,x,i ", z, y, x, i
                mydata(i,z) =   data_in(x, y, z)   
-                print *, "data_in  ", data_in(x, y, z) 
+               !print *, "data_in  ", data_in(x, y, z) 
                !print *, "mydata ", mydata(i,z)
                x_in(i) = x
-               ! print *, "x_in ", x_in(i)
+               !print *, "x_in ", x_in(i)
                y_in(i) = y
-               ! print *, "y_in ", y_in(i)
+               !print *, "y_in ", y_in(i)
                if( i > mp) print *, "Count has reached mp"
             endif
          end do
@@ -141,6 +132,4 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
 
 end subroutine predef_grid
 
-! end module cable_ncdf_module
- 
-
+!end module cable_ncdf_module
