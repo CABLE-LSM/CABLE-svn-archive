@@ -90,6 +90,8 @@ module cable_routing
     procedure :: find_outlets       => associate_ocean_outlet_points     !river_grid%find_outlets()
     procedure :: reorder            => reorder_grid_by_basin             !river_grid%arrange(basins)   !one for grid and one for river_flow?
     procedure :: collapse           => remove_inactive_land_basins       !river_grid%collapse(basins)
+    procedure :: create_copy        => create_river_grid_copy
+    procedure :: copy_values        => copy_river_grid_values
        
     
   end type river_grid_type
@@ -198,6 +200,102 @@ module cable_routing
   
 
 contains
+
+  function create_river_grid_copy(grid_var,ncells) result(new_grid_var)
+    implicit none
+    class(river_grid_type), intent(in) :: grid_var
+    integer, optional, intent(in)      :: ncells
+    class(river_grid_type)             :: new_grid_var
+
+    !local variables
+    integer :: ntot
+
+    if (present(ncells)) then
+      ntot = ncells
+    else
+      ntot = grid_var%npts
+    end if
+
+    new_grid_var%create(ntot)
+
+    new_grid_var%npts = ntot
+    new_grid_var%nlat = grid_var%nlat
+    new_grid_var%nlon = grid_var%nlon
+    
+    !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
+    !grid_var = ord_grid_var  !have not orderloaded = operator.  this won't work
+
+    !call grid_var%copy_values(new_grid_var,1,ntot,1,ntot)
+
+    new_grid_var%dwnstrm_index(:) = grid_var%dwnstrm_index(1:ntot)   !set ordered by basin to the non ordered values
+    new_grid_var%ocean_outlet(:)  = grid_var%ocean_outlet(1:ntot)
+    new_grid_var%upstrm_number(:) = grid_var%upstrm_number(1:ntot)
+    new_grid_var%maps%ind_lgr(:,:) = grid_var%maps%ind_lgr(1:ntot,:)
+    new_grid_var%maps%weight_lgr(:,:) = grid_var%maps%weight_lgr(1:ntot,:)
+    new_grid_var%maps%n_ovrlap_lgr(:) = grid_var%maps%n_ovrlap_lgr(1:ntot)
+    new_grid_var%lat(:)             = grid_var%lat(1:ntot)
+    new_grid_var%lon(:)             = grid_var%lon(1:ntot)
+    new_grid_var%slope(:)           = grid_var%slope(1:ntot)
+    new_grid_var%length(:)          = grid_var%length(1:ntot)
+    new_grid_var%land_mask(:)       = grid_var%land_mask(1:ntot)    
+    new_grid_var%active_cell(:)     = grid_var%active_cell(1:ntot)
+
+
+  end function create_river_grid_copy
+
+!----------------------------------------------------------------------------!
+
+  subroutine copy_river_grid_values(grid_var,new_grid_var,n1,n2,n3,n4)
+    implicit none
+    class(river_grid_type), intent(in)    :: grid_var
+    class(river_grid_type), intent(inout) :: new_grid_var
+    integer, optional :: n1
+    integer, optional :: n2
+    integer, optional :: n3
+    integer, optional :: n4
+
+    integer :: m1,m2,m3,m4
+
+    if (present(n4)) then
+      m4 = n4
+    else
+      m4 = new_grid_var%npts
+    end if
+
+    if (present(n3)) then
+      m3 = n3
+    else
+      m3 = 1
+    end if
+
+    if (present(n2)) then
+      m2 = n2
+    else
+      m2 = grid_var%npts
+    end if
+
+    if (present(n1)) then
+      m1 = n1
+    else
+      m1 = 1
+    end if
+
+    new_grid_var%dwnstrm_index(m1:m2) = grid_var%dwnstrm_index(m3:m4)   !set ordered by basin to the non ordered values
+    new_grid_var%ocean_outlet(m1:m2)  = grid_var%ocean_outlet(m3:m4)
+    new_grid_var%upstrm_number(m1:m2) = grid_var%upstrm_number(m3:m4)
+    new_grid_var%maps%ind_lgr(m1:m2,:) = grid_var%maps%ind_lgr(m3:m4,:)
+    new_grid_var%maps%weight_lgr(m1:m2,:) = grid_var%maps%weight_lgr(m3:m4,:)
+    new_grid_var%maps%n_ovrlap_lgr(m1:m2) = grid_var%maps%n_ovrlap_lgr(m3:m4)
+    new_grid_var%lat(m1:m2)             = grid_var%lat(m3:m4)
+    new_grid_var%lon(m1:m2)             = grid_var%lon(m3:m4)
+    new_grid_var%slope(m1:m2)           = grid_var%slope(m3:m4)
+    new_grid_var%length(m1:m2)          = grid_var%length(m3:m4)
+    new_grid_var%land_mask(m1:m2)       = grid_var%land_mask(m3:m4)    
+    new_grid_var%active_cell(m1:m2)     = grid_var%active_cell(m3:m4)
+
+
+  end subroutine copy_river_grid_values
+
 
 !----------------------------------------------------------------------------!
   function compute_global_mass_balance(river_var,grid_var,basin_var) result(mass_error)
@@ -534,19 +632,21 @@ contains
       basins(i)%endind = cnt + basins(i)%n_basin_cells - 1
       do kk=1,basins(i)%n_basin_cells
         k = basins(i)%river_points(kk)
+
+        call grid_var%copy_values(ord_grid_var,cnt,cnt,k,k)
         
-        ord_grid_var%dwnstrm_index(cnt) = grid_var%dwnstrm_index(k)   !set ordered by basin to the non ordered values
-        ord_grid_var%ocean_outlet(cnt)  = grid_var%ocean_outlet(k)
-        ord_grid_var%upstrm_number(cnt) = grid_var%upstrm_number(k)
-        ord_grid_var%maps%ind_lgr(cnt,:) = grid_var%maps%ind_lgr(k,:)
-        ord_grid_var%maps%weight_lgr(cnt,:) = grid_var%maps%weight_lgr(k,:)
-        ord_grid_var%maps%n_ovrlap_lgr(cnt) = grid_var%maps%n_ovrlap_lgr(k)
-        ord_grid_var%lat(cnt)             = grid_var%lat(k)
-        ord_grid_var%lon(cnt)             = grid_var%lon(k)
-        ord_grid_var%slope(cnt)           = grid_var%slope(k)
-        ord_grid_var%length(cnt)          = grid_var%length(k)
-        ord_grid_var%land_mask(cnt)       = grid_var%land_mask(k)
-        ord_grid_var%active_cell(cnt)     = grid_var%active_cell(k)
+!        ord_grid_var%dwnstrm_index(cnt) = grid_var%dwnstrm_index(k)   !set ordered by basin to the non ordered values
+!        ord_grid_var%ocean_outlet(cnt)  = grid_var%ocean_outlet(k)
+!        ord_grid_var%upstrm_number(cnt) = grid_var%upstrm_number(k)
+!        ord_grid_var%maps%ind_lgr(cnt,:) = grid_var%maps%ind_lgr(k,:)
+!        ord_grid_var%maps%weight_lgr(cnt,:) = grid_var%maps%weight_lgr(k,:)
+!        ord_grid_var%maps%n_ovrlap_lgr(cnt) = grid_var%maps%n_ovrlap_lgr(k)
+!        ord_grid_var%lat(cnt)             = grid_var%lat(k)
+!        ord_grid_var%lon(cnt)             = grid_var%lon(k)
+!        ord_grid_var%slope(cnt)           = grid_var%slope(k)
+!        ord_grid_var%length(cnt)          = grid_var%length(k)
+!        ord_grid_var%land_mask(cnt)       = grid_var%land_mask(k)
+!        ord_grid_var%active_cell(cnt)     = grid_var%active_cell(k)
         
         !flow variables yet to be defined.  no need to remap
         ! wat_mass, wat_vol, wat_hgt, wat_length
@@ -558,26 +658,29 @@ contains
     
     !destroy grid var.  make it noew with fewer points (doesn't include the ocean now)
     call grid_var%destroy()
-    call grid_var%create(total_land_cells)
+
+    grid_var = ord_grid_var%create_copy(total_land_cells)
+
+!    call grid_var%create(total_land_cells)
     
-    grid_var%npts = total_land_cells
-    grid_var%nlat = ord_grid_var%nlat
-    grid_var%nlon = ord_grid_var%nlon
-    
-    !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
-    !grid_var = ord_grid_var  !have not orderloaded = operator.  this won't work
-    grid_var%dwnstrm_index(:) = ord_grid_var%dwnstrm_index(1:total_land_cells)   !set ordered by basin to the non ordered values
-    grid_var%ocean_outlet(:)  = ord_grid_var%ocean_outlet(1:total_land_cells)
-    grid_var%upstrm_number(:) = ord_grid_var%upstrm_number(1:total_land_cells)
-    grid_var%maps%ind_lgr(:,:) = ord_grid_var%maps%ind_lgr(1:total_land_cells,:)
-    grid_var%maps%weight_lgr(:,:) = ord_grid_var%maps%weight_lgr(1:total_land_cells,:)
-    grid_var%maps%n_ovrlap_lgr(:) = ord_grid_var%maps%n_ovrlap_lgr(1:total_land_cells)
-    grid_var%lat(:)             = ord_grid_var%lat(1:total_land_cells)
-    grid_var%lon(:)             = ord_grid_var%lon(1:total_land_cells)
-    grid_var%slope(:)           = ord_grid_var%slope(1:total_land_cells)
-    grid_var%length(:)          = ord_grid_var%length(1:total_land_cells)
-    grid_var%land_mask(:)       = ord_grid_var%land_mask(1:total_land_cells)    
-    grid_var%active_cell(:)     = ord_grid_var%active_cell(1:total_land_cells)
+!    grid_var%npts = total_land_cells
+!    grid_var%nlat = ord_grid_var%nlat
+!    grid_var%nlon = ord_grid_var%nlon
+!    
+!    !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
+!    !grid_var = ord_grid_var  !have not orderloaded = operator.  this won't work
+!    grid_var%dwnstrm_index(:) = ord_grid_var%dwnstrm_index(1:total_land_cells)   !set ordered by basin to the non ordered values
+!    grid_var%ocean_outlet(:)  = ord_grid_var%ocean_outlet(1:total_land_cells)
+!    grid_var%upstrm_number(:) = ord_grid_var%upstrm_number(1:total_land_cells)
+!    grid_var%maps%ind_lgr(:,:) = ord_grid_var%maps%ind_lgr(1:total_land_cells,:)
+!    grid_var%maps%weight_lgr(:,:) = ord_grid_var%maps%weight_lgr(1:total_land_cells,:)
+!    grid_var%maps%n_ovrlap_lgr(:) = ord_grid_var%maps%n_ovrlap_lgr(1:total_land_cells)
+!    grid_var%lat(:)             = ord_grid_var%lat(1:total_land_cells)
+!    grid_var%lon(:)             = ord_grid_var%lon(1:total_land_cells)
+!    grid_var%slope(:)           = ord_grid_var%slope(1:total_land_cells)
+!    grid_var%length(:)          = ord_grid_var%length(1:total_land_cells)
+!    grid_var%land_mask(:)       = ord_grid_var%land_mask(1:total_land_cells)    
+!    grid_var%active_cell(:)     = ord_grid_var%active_cell(1:total_land_cells)
     
     
     call ord_grid_var%destroy()  !clean up
@@ -645,20 +748,23 @@ contains
         
           k  = basins(i)%begind
           kk = basins(i)%endind
-      
-          !overloading = operator would make this much cleaner
-          cmp_grid_var%dwnstrm_index(j:jj) = grid_var%dwnstrm_index(k:kk)
-          cmp_grid_var%ocean_outlet(j:jj)  = grid_var%ocean_outlet(k:kk)
-          cmp_grid_var%upstrm_number(j:jj)  = grid_var%upstrm_number(k:kk)
-          cmp_grid_var%maps%ind_lgr(j:jj,:) = grid_var%maps%ind_lgr(k:kk,:)
-          cmp_grid_var%maps%weight_lgr(j:jj,:) = grid_var%maps%weight_lgr(k:kk,:)
-          cmp_grid_var%maps%n_ovrlap_lgr(j:jj) = grid_var%maps%n_ovrlap_lgr(k:kk)
 
-          cmp_grid_var%lat(j:jj)             = grid_var%lat(k:kk)
-          cmp_grid_var%lon(j:jj)             = grid_var%lon(k:kk)
-          cmp_grid_var%slope(j:jj)           = grid_var%slope(k:kk)
-          cmp_grid_var%length(j:jj)          = grid_var%length(k:kk)
-          cmp_grid_var%land_mask(j:jj)       = grid_var%land_mask(k:kk)      
+          !overloading = operator would make this much cleaner
+
+          call grid_var%copy_values(cmp_grid_var,j,jj,k,kk)
+
+!          cmp_grid_var%dwnstrm_index(j:jj) = grid_var%dwnstrm_index(k:kk)
+!          cmp_grid_var%ocean_outlet(j:jj)  = grid_var%ocean_outlet(k:kk)
+!          cmp_grid_var%upstrm_number(j:jj)  = grid_var%upstrm_number(k:kk)
+!          cmp_grid_var%maps%ind_lgr(j:jj,:) = grid_var%maps%ind_lgr(k:kk,:)
+!          cmp_grid_var%maps%weight_lgr(j:jj,:) = grid_var%maps%weight_lgr(k:kk,:)
+!          cmp_grid_var%maps%n_ovrlap_lgr(j:jj) = grid_var%maps%n_ovrlap_lgr(k:kk)
+
+!          cmp_grid_var%lat(j:jj)             = grid_var%lat(k:kk)
+!          cmp_grid_var%lon(j:jj)             = grid_var%lon(k:kk)
+!          cmp_grid_var%slope(j:jj)           = grid_var%slope(k:kk)
+!          cmp_grid_var%length(j:jj)          = grid_var%length(k:kk)
+!          cmp_grid_var%land_mask(j:jj)       = grid_var%land_mask(k:kk)      
         
           cnt = cmp_basins(i)%endind + 1
         
@@ -668,29 +774,32 @@ contains
     
       !remove original grid_var variable.  reallocate new one with only active routing cells
       call grid_var%destroy()
-    
-      call grid_var%create(total_active_cells) 
-    
-      !copy over all data from the temporary compact river grid (cmp_river_grid)
-      grid_var%npts = total_active_cells
-      grid_var%nlat = cmp_grid_var%nlat  !nlat for global grid.  not all used
-      grid_var%nlon = cmp_grid_var%nlon
-      grid_var%nbasins = cmp_grid_var%nbasins
-      grid_var%nrr_cells = cmp_grid_var%nrr_cells
-    
-      grid_var%active_cell(:) = 1          !all river cells are now active
-      grid_var%lat(:) = cmp_grid_var%lat(:)
-      grid_var%lon(:) = cmp_grid_var%lon(:)
-      grid_var%slope(:) = cmp_grid_var%slope(:)
-      grid_var%length(:) = cmp_grid_var%length(:)
-      grid_var%land_mask(:) = cmp_grid_var%land_mask(:)
 
-      grid_var%dwnstrm_index(:) = cmp_grid_var%dwnstrm_index(:)
-      grid_var%ocean_outlet(:)  = cmp_grid_var%ocean_outlet(:)
-      grid_var%upstrm_number(:)  = cmp_grid_var%upstrm_number(:)
-      grid_var%maps%ind_lgr(:,:) = cmp_grid_var%maps%ind_lgr(:,:)
-      grid_var%maps%weight_lgr(:,:) = cmp_grid_var%maps%weight_lgr(:,:)
-      grid_var%maps%n_ovrlap_lgr(:) = cmp_grid_var%maps%n_ovrlap_lgr(:)
+      grid_var = cmp_grid_var%create_copy(total_active_cells)
+      grid_var%active_cell(:) = 1  !all cells now active.
+    
+!      call grid_var%create(total_active_cells) 
+!    
+!      !copy over all data from the temporary compact river grid (cmp_river_grid)
+!      grid_var%npts = total_active_cells
+!      grid_var%nlat = cmp_grid_var%nlat  !nlat for global grid.  not all used
+!      grid_var%nlon = cmp_grid_var%nlon
+!      grid_var%nbasins = cmp_grid_var%nbasins
+!      grid_var%nrr_cells = cmp_grid_var%nrr_cells
+!    
+!      grid_var%active_cell(:) = 1          !all river cells are now active
+!      grid_var%lat(:) = cmp_grid_var%lat(:)
+!      grid_var%lon(:) = cmp_grid_var%lon(:)
+!      grid_var%slope(:) = cmp_grid_var%slope(:)
+!      grid_var%length(:) = cmp_grid_var%length(:)
+!      grid_var%land_mask(:) = cmp_grid_var%land_mask(:)
+!
+!      grid_var%dwnstrm_index(:) = cmp_grid_var%dwnstrm_index(:)
+!      grid_var%ocean_outlet(:)  = cmp_grid_var%ocean_outlet(:)
+!      grid_var%upstrm_number(:)  = cmp_grid_var%upstrm_number(:)
+!      grid_var%maps%ind_lgr(:,:) = cmp_grid_var%maps%ind_lgr(:,:)
+!      grid_var%maps%weight_lgr(:,:) = cmp_grid_var%maps%weight_lgr(:,:)
+!      grid_var%maps%n_ovrlap_lgr(:) = cmp_grid_var%maps%n_ovrlap_lgr(:)
     
       !do the same for the basin variable
       do i=1,size(basins(:))
