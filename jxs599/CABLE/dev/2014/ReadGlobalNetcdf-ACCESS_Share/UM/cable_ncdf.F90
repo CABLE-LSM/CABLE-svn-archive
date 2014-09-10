@@ -8,7 +8,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    ! we are passing these as they are declared i8 and r8
    integer :: node_gl, rows, row_length, mp, npseudo
    REAL, dimension(mp) :: latitude, longitude 
-   real, dimension(mp, npseudo) :: mydata 
+   real*8, dimension(mp, npseudo) :: mydata 
 
    ! This is the name of the data file we will read. 
    character (len = *), parameter :: fbase_name = "LAI"
@@ -111,7 +111,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
 
    do z = 1, nPseudo
       do i = 1, mp
-         mydata(i,z) =   data_in(x_in(i), y_in(i), z)   
+         mydata(i,z) =  DBLE( data_in(x_in(i), y_in(i), z) )  
       end do
    end do
  
