@@ -84,9 +84,7 @@ MODULE cable_common_module
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE.!
 
-      ! additon variable for lai shift
-      integer :: shift_days  = -10   ! we assume the shifting days is 0 be default.
-      CHARACTER(LEN=20) :: interp_method ="linear"  ! copy or linear, by default, it is linear
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user
