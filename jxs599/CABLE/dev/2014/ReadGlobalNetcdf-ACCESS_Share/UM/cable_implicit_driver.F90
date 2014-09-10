@@ -261,27 +261,27 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
 !LAI_Ma{
    ! As cable%doy resets every year, record when each year has passed
-  ! if(idoy == 365 ) then !NB> this is for Gregorian Calendar
-  !   open(unit=713941,file='cable_DoY.txt',  &
-  !         action="read", iostat=openstatus )
-  !       if(openstatus==0) then
-  !             read(713941,*) LAI_Ma_year 
-  !       else
-  !          write (*,*), 'cable_DoY.txt',' Error: unable to read'
-  !       endif
-  !    close(713941)
-  !    
-  !    LAI_Ma_year = LAI_Ma_year + 1     
-  !    
-  !    open(unit=713941,file='cable_DoY.txt', status="unknown", &
-  !         action="write", iostat=openstatus )
-  !       if(openstatus==0) then
-  !             write(713941,*) LAI_Ma_year 
-  !       else
-  !          write (*,*), 'cable_DoY.txt',' Error: unable to read'
-  !       endif
-  !    close(713941)
-  ! endif
+   if(idoy == 365 ) then !NB> this is for Gregorian Calendar
+      open(unit=713941,file='cable_DoY.txt',  &
+           action="read", iostat=openstatus )
+         if(openstatus==0) then
+               read(713941,*) LAI_Ma_year 
+         else
+            write (*,*), 'cable_DoY.txt',' Error: unable to read'
+         endif
+      close(713941)
+      
+      LAI_Ma_year = LAI_Ma_year + 1     
+      
+      open(unit=713941,file='cable_DoY.txt', status="unknown", &
+           action="write", iostat=openstatus )
+         if(openstatus==0) then
+               write(713941,*) LAI_Ma_year 
+         else
+            write (*,*), 'cable_DoY.txt',' Error: unable to read'
+         endif
+      close(713941)
+   endif
 !LAI_Ma}
  
       ! Lestevens - temporary ?
