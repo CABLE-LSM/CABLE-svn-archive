@@ -828,6 +828,7 @@ contains
 !----------------------------------------------------------------------------! 
   !Determine the wieghts and mapping from 1D global land grid to the 1D river grid
   !river_grid%{lat,lon} are assumed higher resolution than lat_out lon_out?
+  !assumes river grid is lat/lon and so is lsm grid
   
   subroutine determine_hilo_res_mapping(river_grid,lat_lo,lon_lo)
   
@@ -874,7 +875,7 @@ contains
     river_grid%maps%ind_lgr(:,:)    = -1
     
     !initialize all cells to inactive
-    river_grid%active_cell(:)                = 0
+    river_grid%active_cell(:)    = 0
 
     !map each input lat/lon to output grid and calc the fraction of cell within (1 cell can map to upto four output)
     do k=1,mp   !loop over all the land grid points
@@ -1245,7 +1246,124 @@ contains
     deallocate(flt_data)
      
   end subroutine read_nc_flt 
+  
+!----------------------------------------------------------------------------!   
+!****Below are the Routines For MPI settings/gettings/partitioning***********!
+!----------------------------------------------------------------------------!  
 
+  subroutine calculate_basins_per_pe(grid_var,basins,my_basin_start,my_basin_end,np,mrnk)
+  !all procs call this routine.
+  !all calc it but only save the basin start and end inds for myrank
+  !or I could run only on myrank = 1, bcast to other ranks
+    implicit none
+    class(river_grid_type), intent(inout) :: grid_var
+    class(basin_type), intent(inout)      :: basins
+    integer, intent(out)                  :: my_basin_start
+    integer, intent(out)                  :: my_basin_end
+    integer, optional,intent(in)          :: np     !tmp name to check if present of nprocs
+    integer, optional,intent(in)          :: mrnk   !myrank tmp name to allow to check if present
+    
+    integer, dimension(:), allocatable    :: npts_per_pe
+    integer, dimension(:), allocatable    :: basins_pe_start
+    integer, dimension(:), allocatable    :: basins_pe_end    
+    integer                               :: ideal_npts_per_pe
+    
+    integer :: nprocs,myrank
+    
+    integer :: bg,ed,i,j,k
+    integer :: current_basin
+    integer :: npts_tmp
+    logical :: keep_searching
+    
+    if (present(np)) then
+      nprocs = np
+    else
+      nprocs = 1
+    end if
+    
+    if (present(mrnk)) then
+      myrank = mrnk
+    else
+      myrank = 1
+    end if
+    
+    allocate(npts_per_pe(nprocs))
+    npts_per_pe(:) = 0   
+    
+    allocate(basins_pe_start(nprocs)) 
+    allocate(basins_pe_end(nprocs)) 
+    
+    if (nprocs .gt. 1) then
+    
+      ideal_npts_per_pe = int(real(grid_var%npts)/real(npts))
+      
+      current_basin = 1
+      
+      do i=1,nprocs-1
+      
+        keep_searching = .true.
+        npts_tmp = 0
+        start_basin = current_basin
+        
+        do while (keep_searching)
+          npts_tmp = npts_tmp + basins(current_basin)%n_basin_cells
+          if (npts_tmp .gt. 0.95*ideal_npts_per_pe) then
+            keep_searching = .false.
+          elseif (current_basin .lt. grid_var%nbasins -1)
+            current_basin = current_basin + 1
+          else
+            keep_searching = .false.
+          end if
+        end do
+        end_basin = current_basin
+        npts_per_pe(i) = ntps_tmp
+        
+        basins_pe_start(i) = start_basin
+        basins_pe_end(i)   = end_basin
+        
+        current_basin = current_basin + 1
+        
+      end do
+      
+      basins_pe_start(nprocs) = current_basin    !set last process to the rest
+      basins_pe_end(nprocs)   = grid_var%nbasins
+      
+    else
+    
+      basins_pe_start(1) = 1
+      basins_pe_end(1)   = grid_var%nbasins
+      
+    end if
+    
+    if (myrank .eq. 1) then     !write to log if we are the first proc
+      write(*,*) 'The number of river cells per mpi proc is:'
+      do i=1,nprocs
+        write(*,*) 'proc: ',i,' number of cells: ',npts_per_pe(i)
+      end do
+    end if
+    
+    my_basin_start = basins_pe_start(myrank)
+    my_basin_end   = basins_pe_end(myrank)
+    
+    
+      
+    deallocate(npts_per_pe)
+    deallocate(basins_pe_start)
+    deallocate(basins_pe_end)
+    
+
+  end subroutine calc_basins_per_pe
+  
+!----------------------------------------------------------------------------! 
+
+  subroutine send_lsm_runoff_to_procs()
+  end subroutine send_lsm_runoff_to_procs
+  
+  subroutine send_river_vars_to_procs()
+  end subroutine send_river_vars_to_procs()
+  
+  subroutine collect_river_vars_from_procs()
+  end subroutine collect_river_vars_from_proc
 
 
 end module cable_routing
