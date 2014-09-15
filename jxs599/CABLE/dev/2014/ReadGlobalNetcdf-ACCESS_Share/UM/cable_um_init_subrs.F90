@@ -94,7 +94,7 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
    enddo
    
    call um2cable_rr( new_longitude, cable%lon )
-
+   !print *, "jhan: cable"
 
    !--- get tile index/fraction  corresponding to cable points
    cable%tile = pack(tile_index_mp, um1%l_tile_pts)
@@ -130,7 +130,9 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
    call predef_grid(cable%lat, cable%lon, knode_gl, um1%rows,              &
                         um1%row_length, mp, npseudo, LAI_Ma )
 
+   !if() print *, "jhan:LAI_Ma", LAI_Ma 
    call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
+   !print *, "jhan:new_LAI_Ma", new_LAI_Ma 
    !LAI_Ma}  
          
    return

@@ -6,8 +6,8 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    implicit none
  
    ! we are passing these as they are declared i8 and r8
-   integer :: node_gl, rows, row_length, mp, npseudo
-   REAL, dimension(mp) :: latitude, longitude 
+   integer*8 :: node_gl, rows, row_length, mp, npseudo
+   REAL*8, dimension(mp) :: latitude, longitude 
    real*8, dimension(mp, npseudo) :: mydata 
 
    ! This is the name of the data file we will read. 
@@ -57,7 +57,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    call check( nf90_inq_varid(ncid, VARNAME, varid) )
    call check( nf90_inq_varid(ncid, 'latitude', latid) )
    call check( nf90_inq_varid(ncid, 'longitude', lonid) )
-   !print *, "and varid is: ", varid 
+   print *, "and varid is: ", file_name, varid 
 
    !tests = nf90_inq_dimid(ncid, "latitude", latDimID)
    !tests = nf90_inq_dimid(ncid, "longitude", lonDimID)
@@ -82,6 +82,19 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    call check( nf90_get_var(ncid, latid, lat_in) )
    call check( nf90_get_var(ncid, lonid, lon_in) )
    call check( nf90_get_var(ncid, varid, data_in) )
+   if( node_gl == 0 ) then
+      !do x = 1, nlon
+      !   do y = 1, nlat
+      !      print *, "jhan:lon_in ", lon_in(x,1)  
+      !      if( data_in(x, y, z) > 0.001  .AND. data_in(x,y, z) < 10.) &
+      !         print *, "data_in  ", data_in(x, y, z)
+      !   enddo        
+      !enddo        
+      !do i = 1, mp
+      !   print *, "jhan:longitude ", longitude(i)  
+      !enddo        
+   endif        
+
    !call check( nf90_get_var(ncid, varid, mydata, & 
    !            start=(/latitude(1),longitude(1),1/),count=(/rows,row_length,12/) ) )
  
@@ -93,11 +106,18 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    do x = 1, nlon
       do y = 1, nlat
          do i = 1, mp
-            if( lon_in(x,1) == longitude(i) & 
-            .AND. lat_in(y,1) == latitude(i) ) then 
-               !print *, "z,y,x,i ", z, y, x, i
-               mydata(i,z) =   data_in(x, y, z)   
+            !if( node_gl == 0 ) then
+            !endif   
+            !if( data_in(x, y, z) > 0.001  .AND. data_in(x,y, z) < 10.) &
                !print *, "data_in  ", data_in(x, y, z) 
+            if( ( abs(lon_in(x,1) - longitude(i) ) < 0.001 ) .And. & 
+                ( abs(lat_in(y,1) - latitude(i)  ) < 0.001 ) ) then 
+               print *, "jhan:lon_in ", lon_in(x,1)  
+               print *, "jhan:longitude ", longitude(i)  
+               !print *, "jhan:iF z,y,x,i ", z, y, x, i
+               !mydata(i,z) =   data_in(x, y, z)   
+              ! if( data_in(x, y, z) > 0.001  .AND. data_in(x,y, z) < 10.) &
+              !    print *, "data_in  ", data_in(x, y, z) 
                !print *, "mydata ", mydata(i,z)
                x_in(i) = x
                !print *, "x_in ", x_in(i)
@@ -112,6 +132,8 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    do z = 1, nPseudo
       do i = 1, mp
          mydata(i,z) =  DBLE( data_in(x_in(i), y_in(i), z) )  
+         if( mydata(i, z) > 0.001 .AND. mydata(i, z) < 10. ) &
+            print *, "jhan:mydata", mydata(i,z)
       end do
    end do
  
