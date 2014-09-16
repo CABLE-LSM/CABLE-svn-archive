@@ -57,7 +57,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
                                   SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
                                   GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype )    
+                                  endstep, timestep_number, mype, LAI_Ma_UM, idoy )    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -82,6 +82,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE cable_diag_module
    USE casavariable
    USE casa_types_mod
+   USE cable_data_module,   ONLY : cable
 
    IMPLICIT NONE
  
@@ -133,8 +134,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       sw_down,          & 
       cos_zenith_angle
    
+   REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                             &
+      latitude
+   
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
-      latitude,   &
       longitude,  &
       lw_down,    &
       ls_rain,    &
@@ -157,7 +160,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+   REAL, INTENT(INOUT), DIMENSION(land_pts, npft) ::                              &
       canht_ft, lai_ft 
    
    REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
@@ -286,8 +289,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
+   REAL, DIMENSION(land_pts,ntiles) :: LAI_Ma_UM 
+   integer :: i,n,j
+   REAL :: miss = 0.0
+   INTEGER ::     &
+      idoy           ! day of year (1:365) counter for CASA-CNP
 
-
+   cable%doy = idoy
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
@@ -308,6 +316,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- internal FLAGS def. specific call of CABLE from UM
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
+   
+   !--- UM7.3 latitude is not passed correctly. hack 
+   IF(first_cable_call) latitude = sin_theta_latitude
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
@@ -360,6 +371,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
              rad, rough, soil, ssnow, sum_flux, veg )
 
 
+!LAI_Ma{   
+   LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)      
+!LAI_Ma: here for testing i am using the first month only. For the sake of
+!updating and shifting you will need to develop some logic around this based of
+!on the date
+!LAI_Ma}
 
 
    !---------------------------------------------------------------------!
