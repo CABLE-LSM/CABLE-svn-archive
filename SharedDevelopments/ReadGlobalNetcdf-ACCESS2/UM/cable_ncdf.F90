@@ -6,8 +6,8 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    implicit none
  
    ! we are passing these as they are declared i8 and r8
-   integer :: node_gl, rows, row_length, mp, npseudo
-   REAL, dimension(mp) :: latitude, longitude 
+   integer*8 :: node_gl, rows, row_length, mp, npseudo
+   REAL*8, dimension(mp) :: latitude, longitude 
    real, dimension(mp, npseudo) :: mydata 
 
    ! This is the name of the data file we will read. 
@@ -93,16 +93,10 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    do x = 1, nlon
       do y = 1, nlat
          do i = 1, mp
-            if( lon_in(x,1) == longitude(i) & 
-            .AND. lat_in(y,1) == latitude(i) ) then 
-               !print *, "z,y,x,i ", z, y, x, i
-               mydata(i,z) =   data_in(x, y, z)   
-               !print *, "data_in  ", data_in(x, y, z) 
-               !print *, "mydata ", mydata(i,z)
+            if( ( abs(lon_in(x,1) - longitude(i) ) < 0.001 ) .And. & 
+                ( abs(lat_in(y,1) - latitude(i)  ) < 0.001 ) ) then 
                x_in(i) = x
-               !print *, "x_in ", x_in(i)
                y_in(i) = y
-               !print *, "y_in ", y_in(i)
                if( i > mp) print *, "Count has reached mp"
             endif
          end do
