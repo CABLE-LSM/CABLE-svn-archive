@@ -771,9 +771,8 @@ contains
     if (cmp_grid_var%nbasins .lt. grid_var%nbasins) then   !there are some basins that aren't active
     
       cnt = 1    !keep track of starting index of current basins in the global vector of river cells
-      i   = 1    !counter for the original basins variable that has inactie basins
       ii  = 1    !counter for compact (cmp) basin var with no inactive basins
-      do while (i .le. grid_var%nbasins)
+      do i=1,grid_var%nbasins
     
         if (active_basin(i) .eq. 1) then
       
