@@ -1,6 +1,7 @@
 module cable_routing
 
   use netcdf
+  use mpi
   !use cable_types
   !use cable_common_module, only : cable_user
   !use cable_def_types_mod, only : r_2, ms, mp,mlat,mlon
@@ -131,13 +132,16 @@ module cable_routing
     
   end type basin_type
   
-  type(river_grid_type), TARGET, SAVE :: river_grid
-  type(river_flow_type), TARGET, SAVE :: river
-  type(basin_type), pointer, save, dimension(:) :: basins
+  
+  !below will go into cable_routing_main_routine.  !global on myrank =0, local on myrank=1->nprocs
+  type(river_grid_type), TARGET, SAVE :: global_river_grid      , local_river_grid
+  type(river_flow_type), TARGET, SAVE :: global_river           , local_river
+  type(basin_type), pointer, save, dimension(:) :: global_basins, local_basins
    
   
   !outline
   !if timestep==0 --> 
+  ! if myrank = 0:
   !  call river_route_init(river_grid,filename)
   !    call get_river_route_data(filename,river_grid)
   !                                          => grid%{nlat,nlon,npts,lat,lon,direction,length,slope,elevation,land_mask}
@@ -165,14 +169,27 @@ module cable_routing
   !    call partiion_basins_to_pes(river_grids,basin)
   !                             => river_grids%{nrr_cells,nbasins
   !                             => basin%{n_basin_cells,
+  !    Send patition info to all workers
+  !
+  !end if myrank = 0
+  ! if myrank /= 0 
+  !   get data from 0
+  !   allocate local river,river_grid,basin variables on each non-0 myrank
+  !
+  !start time stepping
   !
   !! call river%get_runoff(Qrunoff_lsm,river_grid)
+  !  if myrank is 0.  after mpimaster has gathered output from the workers....
   !call map_qrunoff_lsm_to_river(Qsrf,Qsubsrf,river,river_grid)  !treat surface and subsurface the same
+  !
+  !  !send from myrank=0 to the rest.
   !
   !call step_river(river,river_grid)
   !             => river%{wat_mass,wat_vol,wat_hgt,wat_vel}
   !             => river_grid%{distance,mpi%bg,mpi%ed}
   !   call river_mass_balance()
+  !
+  !  send back to myrank = 0
   !
   !call save_river_output()
   !call map_qriver_river_to_lsm()
@@ -718,7 +735,7 @@ contains
     type(basin_type), allocatable, dimension(:) :: cmp_basins
     type(river_grid_type)                       :: cmp_grid_var
     
-    integer :: i,j,k,ii,jj,kk,cnt
+    integer :: i,j,k,ii,jj,kk,cnt,js,je,ks,ke
     integer :: n_active_cells
     integer :: total_active_cells
     
@@ -753,38 +770,43 @@ contains
     
     if (cmp_grid_var%nbasins .lt. grid_var%nbasins) then   !there are some basins that aren't active
     
-      cnt=1
-      do i=1,grid_var%nbasins
+      cnt = 1    !keep track of starting index of current basins in the global vector of river cells
+      i   = 1    !counter for the original basins variable that has inactie basins
+      ii  = 1    !counter for compact (cmp) basin var with no inactive basins
+      do while (i .le. grid_var%nbasins)
     
         if (active_basin(i) .eq. 1) then
       
-          cmp_basins(i)%begind = cnt
-          cmp_basins(i)%endind = cnt + basins(i)%n_basin_cells - 1
-          cmp_basins(i)%n_basin_cells = basins(i)%n_basin_cells
+          cmp_basins(ii)%begind = cnt
+          cmp_basins(ii)%endind = cnt + basins(i)%n_basin_cells - 1
+          cmp_basins(ii)%n_basin_cells = basins(i)%n_basin_cells
           !use temporaries to make code shorter
-          j  = cmp_basins(i)%begind 
-          jj = cmp_basins(i)%endind
+          js = cmp_basins(ii)%begind   !j start
+          je = cmp_basins(ii)%endind    !j end
         
-          k  = basins(i)%begind
-          kk = basins(i)%endind
+          ks = basins(i)%begind
+          ke = basins(i)%endind
 
-          !overloading = operator would make this much cleaner
-
-          call grid_var%copy_vectors(cmp_grid_var,j,jj,k,kk) 
+          !overloading = operator would make this a little cleaner
+          call grid_var%copy_vectors(cmp_grid_var,js,je,ks,ke) 
         
-          cnt = cmp_basins(i)%endind + 1
+          cnt = cmp_basins(ii)%endind + 1
+          
+          ii = ii + 1
         
         end if
+        
+        i = i + 1
       
       end do
     
       !remove original grid_var variable.  reallocate new one with only active routing cells
       call grid_var%destroy()
 
-      call cmp_grid_var%create_copy(grid_var,total_active_cells)  !doesn't copy scalar values
+      call cmp_grid_var%create_copy(grid_var,total_active_cells) 
 
       !call grid_var%create(total_active_cells)
-      !call cmp_grid_var%copy_vectors(grid_var,1,total_active_cells,1,total_active_cells)
+      !call cmp_grid_var%copy_vectors(grid_var,1,total_active_cells,1,total_active_cells)   !doesn't copy scalar values
 
       grid_var%nbasins   = cmp_grid_var%nbasins
       grid_var%nrr_cells = cmp_grid_var%nrr_cells
@@ -830,12 +852,14 @@ contains
   !river_grid%{lat,lon} are assumed higher resolution than lat_out lon_out?
   !assumes river grid is lat/lon and so is lsm grid
   
-  subroutine determine_hilo_res_mapping(river_grid,lat_lo,lon_lo)
+  subroutine determine_hilo_res_mapping(river_grid,lat_lo,lon_lo,pft_frac_lo)
   
     implicit none
     
-    class(river_grid_type), intent(inout) :: river_grid
-    real(r_2), dimension(:),     intent(in)  :: lat_lo,lon_lo  !the lo resolution grid
+    class(river_grid_type),  intent(inout) :: river_grid
+    real(r_2), dimension(:), intent(in)    :: lat_lo
+    real(r_2), dimension(:), intent(in)    :: lon_lo  !the lo resolution grid
+    real(r_2), dimension(:), intent(in)    :: pft_frac_lo   !for tiled it is the fraction fo grid cell occupied by the pft
 
     !local variables
     integer   :: i,j,ii,jj,k,kk,k_tmp,kk_tmp  !integer counters for the loops
@@ -887,7 +911,7 @@ contains
       Eedge_lo = lon_lo(k)  + dlon_lo/2._r_2
     
       dy_lo = sin(deg2rad*Nedge_lo) - sin(deg2rad*Sedge_lo)
-      area_lo = dy_lo * dlon_lo * re * re  !adjust for fraction of grid cells??
+      area_lo = dy_lo * dlon_lo * re * re * pft_frac_lo(k) !adjust for fraction of grid cells?? need to for sure
       
       do kk=1,river_grid%npts
 
@@ -914,7 +938,7 @@ contains
           dy = max(0.0,(sin(dlatn)-sin(dlats)))
 
           river_grid%maps%ind_lgr(kk,river_grid%maps%n_ovrlap_lgr(kk))    = k                   !lsm point for given river point
-          river_grid%maps%weight_lgr(kk,river_grid%maps%n_ovrlap_lgr(kk)) = dx*dy / area_lo     !fraction of lsm cell k occupied by river cell
+          river_grid%maps%weight_lgr(kk,river_grid%maps%n_ovrlap_lgr(kk)) = dx*dy / area_lo     !fraction of lsm cell k occupied by river cell.  need pft frac somehwere
               
           river_grid%active_cell(kk) = 1             !mark this river cell as active.
 
@@ -928,21 +952,23 @@ contains
   
 !----------------------------------------------------------------------------!
 
-  subroutine step_river_routing(river,river_grid,basins,basins_pe_start,basins_pe_end)
+  subroutine step_river_routing(river,river_grid,basins)
     implicit none
      
     class(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
     class(river_grid_type),          intent(in)    :: river_grid
     class(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin    
-    integer,                         intent(in)    :: basins_pe_start,basins_pe_end
      
     integer :: kk_begind, kk_endind
     integer :: i,j,k,ii,jj,kk
        
-    do i=basins_pe_start,basins_pe_end!    loop over a subsection of all of the basins
+    !do i=basins_pe_start,basins_pe_end!    loop over a subsection of all of the basins
 
-      kk_begind  = basins(i)%begind
-      kk_endind  = basins(i)%endind
+    !  kk_begind  = basins(i)%begind
+    !  kk_endind  = basins(i)%endind
+      kk_begind = 1
+      kk_endind = river_grid%npts
+    
 
       river%Fin(kk_begind:kk_endind) = 0._r_2   !zero out input fluxes
 
@@ -959,7 +985,7 @@ contains
 
 !        call basins(i)%get_outflow(river)  !write a subroutine to compute total basin outflow
 
-    end do  !loop over this pe basins
+    !end do  !loop over this pe basins
 
      
     end subroutine step_river_routing
@@ -1284,7 +1310,7 @@ contains
     if (present(mrnk)) then
       myrank = mrnk
     else
-      myrank = 1
+      myrank = 0
     end if
     
     allocate(npts_per_pe(nprocs))
@@ -1293,40 +1319,49 @@ contains
     allocate(basins_pe_start(nprocs)) 
     allocate(basins_pe_end(nprocs)) 
     
-    if (nprocs .gt. 1) then
+    if (myrank .eq. 0) then
     
-      ideal_npts_per_pe = int(real(grid_var%npts)/real(npts))
+      if (nprocs .gt. 1) then
+    
+        ideal_npts_per_pe = ceiling(real(grid_var%npts)/real(npts))
       
-      current_basin = 1
+        current_basin = 1
       
-      do i=1,nprocs-1
+        do i=1,nprocs-1
       
-        keep_searching = .true.
-        npts_tmp = 0
-        start_basin = current_basin
+          keep_searching = .true.
+          npts_tmp = 0
+          start_basin = current_basin
         
-        do while (keep_searching)
-          npts_tmp = npts_tmp + basins(current_basin)%n_basin_cells
-          if (npts_tmp .gt. 0.95*ideal_npts_per_pe) then
-            keep_searching = .false.
-          elseif (current_basin .lt. grid_var%nbasins -1)
-            current_basin = current_basin + 1
-          else
-            keep_searching = .false.
-          end if
+          do while (keep_searching)
+            npts_tmp = npts_tmp + basins(current_basin)%n_basin_cells
+            if (npts_tmp .gt. 0.95*ideal_npts_per_pe) then
+              keep_searching = .false.
+            elseif (current_basin .lt. grid_var%nbasins -1)
+              current_basin = current_basin + 1
+            else
+              keep_searching = .false.
+            end if
+          end do
+          end_basin = current_basin
+          npts_per_pe(i) = ntps_tmp
+        
+          basins_pe_start(i) = start_basin
+          basins_pe_end(i)   = end_basin
+        
+          current_basin = current_basin + 1
+          
         end do
-        end_basin = current_basin
-        npts_per_pe(i) = ntps_tmp
-        
-        basins_pe_start(i) = start_basin
-        basins_pe_end(i)   = end_basin
-        
-        current_basin = current_basin + 1
-        
+      
+        basins_pe_start(nprocs) = current_basin    !set last process to the rest
+        basins_pe_end(nprocs)   = grid_var%nbasins
+      
+      !need to send this info to mpi workers
+      do i=1,nprocs-1
+        call MPI_SEND(basins_pe_start, nprocs, MPI_INTEGER, i, 0, comm, ierr)
+        call MPI_SEND(basins_pe_end, nprocs, MPI_INTEGER, i, 0, comm, ierr)
       end do
       
-      basins_pe_start(nprocs) = current_basin    !set last process to the rest
-      basins_pe_end(nprocs)   = grid_var%nbasins
       
     else
     
@@ -1335,12 +1370,20 @@ contains
       
     end if
     
-    if (myrank .eq. 1) then     !write to log if we are the first proc
+
       write(*,*) 'The number of river cells per mpi proc is:'
+      
       do i=1,nprocs
         write(*,*) 'proc: ',i,' number of cells: ',npts_per_pe(i)
       end do
-    end if
+      
+      
+    else
+    
+      call MPI_RECV(basins_pe_start,nprocs,MPI_INTEGER,0,0,comm,ierr)
+      call MPI_RECV(basins_pe_end,nprocs,MPI_INTEGER,0,0,comm,ierr)
+      
+    end if  !rank 0 if
     
     my_basin_start = basins_pe_start(myrank)
     my_basin_end   = basins_pe_end(myrank)
