@@ -2,35 +2,42 @@
 ! compile with -Dname=def which is the same as
 !  #define name def
 !
-!  this module needs to have -DRTM
+!  this module needs to have -DRRM  (RRM => River Routing Module)
 !
-!  so if using mpi
-!  -DRTMMPI
+!  so if using mpi (River Routing Modue _ MPI )
+!  -DRRM_MPI
 !  not using mpi don't include this option
-module cable_routing
+!
+!
+!  -Dwith_cable  link to the cable modules
+!  else define local parameters that are needed from cable
 
-#ifdef RTM
+module cable_routing
+#ifdef RRM
 
   use netcdf
   
-#ifdef RTMMPI
+#ifdef RRM_MPI
   use mpi
 #endif
 
-  !use cable_types
-  !use cable_common_module, only : cable_user
-  !use cable_def_types_mod, only : r_2, ms, mp,mlat,mlon
+#ifdef with_cable
+  use cable_types
+  use cable_common_module, only : cable_user
+  use cable_def_types_mod, only : r_2, ms, mp,mlat,mlon
 
-  !use cable_IO_vars_module, only : landpt, patch, max_vegpatches, metGrid,  &
-  !                                land_x,land_y,latitude,longitude,         &
-  !                                lat_all, lon_all,                         &
-  !                                logn,output,xdimsize,ydimsize,check,mask
+  use cable_IO_vars_module, only : landpt, patch, max_vegpatches, metGrid,  &
+                                  land_x,land_y,latitude,longitude,         &
+                                  lat_all, lon_all,                         &
+                                  logn,output,xdimsize,ydimsize,check,mask
+#endif
 
   implicit none
     
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
   !**************************************************************************!
+#ifndef with_cable  
   integer, parameter :: r_2  = SELECTED_REAL_KIND(12, 50)
   integer   :: mlat = 108
   integer   :: mlon = 243
@@ -42,6 +49,7 @@ module cable_routing
 
   real(r_2), dimension(:,:), allocatable, save :: lat_all
   real(r_2), dimension(:,:), allocatable, save :: lon_all   
+#endif  
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
   !**************************************************************************!  
@@ -76,22 +84,24 @@ module cable_routing
     integer                            :: nlon
     integer                            :: npts
     integer                            :: nbasins
-    integer                            :: nrr_cells
+    integer                            :: nrr_cells   !number of active cells
     
-    !move below into a separate data container??
-    real(r_2), pointer, dimension(:) :: lat   !1dimensional array stored as lat=0,lon={1,nlon}; lat=1,lon={1,nlon}, etc
+    !move below into a separate data container?? nah...
+    real(r_2), pointer, dimension(:) :: lat   !1dimensional array stored as lat=0,lon={1,nlon}; lat=1,lon={1,nlon}, etc.  compressed doesn't contain all lat/lon
     real(r_2), pointer, dimension(:) :: lon
     real(r_2), pointer, dimension(:) :: length
     real(r_2), pointer, dimension(:) :: slope
     real(r_2), pointer, dimension(:) :: elev
     real(r_2), pointer, dimension(:) :: area
+    real(r_2), pointer, dimension(:) :: source_area     !upstream source area draining into grid cell
     
-    integer,   pointer, dimension(:) :: land_mask      !1=land,0=ocean,2=land bordering ocean
-    integer,   pointer, dimension(:) :: dwnstrm_index  !index of cell flow goes towards
-    integer,   pointer, dimension(:) :: ocean_outlet   !index of the ending grid cell
-    integer,   pointer, dimension(:) :: upstrm_number  !number of grid cells upstream from the current
-    integer,   pointer, dimension(:) :: active_cell    !1=cell is active, 0=cell not active
-    integer,   pointer, dimension(:) :: direction      !direction of the river flow
+    integer,   pointer, dimension(:) :: land_mask       !1=land,0=ocean,2=land bordering ocean
+    integer,   pointer, dimension(:) :: dwnstrm_index   !index of cell flow goes towards
+    integer,   pointer, dimension(:) :: ocean_outlet    !index of the ending grid cell
+    integer,   pointer, dimension(:) :: upstrm_number   !number of grid cells upstream from the current
+    integer,   pointer, dimension(:) :: active_cell     !1=cell is active, 0=cell not active
+    integer,   pointer, dimension(:) :: direction       !direction of the river flow
+    integer,   pointer, dimension(:) :: is_main_channel !main river channel = 1, not main channel = 0
 
     type(map_grid_type) :: maps
    
@@ -116,19 +126,23 @@ module cable_routing
   
     real(r_2), pointer, dimension(:) :: mass_init   !river water mass at start of timestep (total. not per m2 like the lsm)
     real(r_2), pointer, dimension(:) :: mass        !river water mass  (total.  not per m2 like the lsm)
+    real(r_2), pointer, dimension(:) :: mass_sub    !river water mass  (total.  not per m2 like the lsm)
     real(r_2), pointer, dimension(:) :: vel         !river water speed
     real(r_2), pointer, dimension(:) :: hgt         !river water height 
-    real(r_2), pointer, dimension(:) :: runoff_flux !total flux (+ to river) from lsm
+    real(r_2), pointer, dimension(:) :: srf_runoff_flux !surface runoff flux (+ to river) from lsm
+    real(r_2), pointer, dimension(:) :: sub_runoff_flux !subsurface runoff flux (+ to river) from lsm    
     real(r_2), pointer, dimension(:) :: Fin
+    real(r_2), pointer, dimension(:) :: Fin_sub
     real(r_2), pointer, dimension(:) :: Fout
     
     contains
-    procedure :: create       => alloc_river_flow
-    procedure :: destroy      => dealloc_river_flow   
-    procedure :: step_time    => step_river_routing
-    procedure :: balance      => compute_global_mass_balance  
-    procedure :: get_from_lsm => map_lsm_runoff_to_river
-    procedure :: put_to_lsm   => map_river_mass_to_lsm
+    procedure :: create        => alloc_river_flow
+    procedure :: destroy       => dealloc_river_flow   
+    procedure :: step_time     => step_river_srf_subsrf_routing_kinematic
+    procedure :: step_time_rtm => step_river_routing
+    procedure :: balance       => compute_global_mass_balance  
+    procedure :: get_from_lsm  => map_lsm_runoff_to_river
+    procedure :: put_to_lsm    => map_river_mass_to_lsm
 
     
   end type river_flow_type
@@ -191,13 +205,13 @@ module cable_routing
   !
   !start time stepping
   !
-  !! call river%get_runoff(Qrunoff_lsm,river_grid)
+  !  call river%get_runoff(Qrunoff_lsm,river_grid)
   !  if myrank is 0.  after mpimaster has gathered output from the workers....
   !call map_qrunoff_lsm_to_river(Qsrf,Qsubsrf,river,river_grid)  !treat surface and subsurface the same
   !
   !  !send from myrank=0 to the rest.
   !
-  !call step_river(river,river_grid)
+  !call step_river(river,river_grid)                             !!!!split into main river channel segments and overland/subsurface routing flow
   !             => river%{wat_mass,wat_vol,wat_hgt,wat_vel}
   !             => river_grid%{distance,mpi%bg,mpi%ed}
   !   call river_mass_balance()
@@ -234,24 +248,27 @@ contains
 
 !----------------------------------------------------------------------------!
 
-  subroutine map_lsm_runoff_to_river(river_var,Qrunoff_lsm,grid_var)
+  subroutine map_lsm_runoff_to_river(river_var,Qsrf_runoff_lsm,grid_var)
     implicit none
     class(river_flow_type), intent(inout) :: river_var
-    real(r_2), dimension(:), intent(in)  :: Qrunoff_lsm
+    real(r_2), dimension(:), intent(in)   :: Qsrf_runoff_lsm, Qsub_runoff_lsm
     class(river_grid_type), intent(in)    :: grid_var
 
     integer :: kk,i,ii
 
     !determine runoff input in river cells from lsm:
-    river_var%runoff_flux(:) = 0._r_2
+    river_var%srf_runoff_flux(:) = 0._r_2
+    river_var%sub_runoff_flux(:) = 0._r_2    
     do kk=1,river_grid%npts
 
       do i=1,grid_var%maps%n_ovrlap_lgr(kk)
 
         ii = grid_var%maps%ind_lgr(kk,i)
-        river_var%runoff_flux(kk) = river_var%runoff_flux(kk) + &
-                                    Qrunoff_lsm(ii)*grid_var%maps%weight_lgr(kk,i)*grid_var%area(kk)
+        river_var%srf_runoff_flux(kk) = river_var%srf_runoff_flux(kk) + &
+                                    Qsrf_runoff_lsm(ii)*grid_var%maps%weight_lgr(kk,i)*grid_var%area(kk)  !convert from mm/m2 => mm
 
+        river_var%sub_runoff_flux(kk) = river_var%sub_runoff_flux(kk) + &
+                                    Qsub_runoff_lsm(ii)*grid_var%maps%weight_lgr(kk,i)*grid_var%area(kk)  !convert from mm/m2 => mm
       end do
 
     end do
@@ -265,19 +282,22 @@ contains
     class(river_flow_type), intent(in)      :: river_var
     class(river_grid_type), intent(in)      :: grid_var
     real(r_2), dimension(:), intent(inout)          :: river_mass_lsm
+    real(r_2), dimension(:), intent(inout)          :: subsrf_mass_lsm
 
     integer :: kk,i,ii
 
     !determine runoff input in river cells from lsm:
     river_mass_lsm(:) = 0._r_2
+    subsurf_mass_lsm(:) = 0._r_2
 
     do kk=1,river_grid%npts
 
       do i=1,grid_var%maps%n_ovrlap_lgr(kk)
 
         ii = grid_var%maps%ind_lgr(kk,i) 
-        river_mass_lsm(ii) = river_mass_lsm(ii) + river_var%mass(kk)*grid_var%maps%weight_lgr(kk,i)/grid_var%area(kk)
-
+        river_mass_lsm(ii)   = river_mass_lsm(ii) + river_var%mass(kk)*grid_var%maps%weight_lgr(kk,i)/grid_var%area(kk)  !mm => mm/m2
+        subsurf_mass_lsm(ii) = subsurf_mass_lsm(ii) + river_var%mass_sub(kk)*grid_var%maps%weight_lgr(kk,i)/grid_var%area(kk)  !mm => mm/m2
+        
       end do
 
     end do
@@ -308,7 +328,7 @@ contains
     new_grid_var%npts = ntot
     new_grid_var%nlat = grid_var%nlat
     new_grid_var%nlon = grid_var%nlon
-    new_grid_var%nrr_cells = grid_var%nrr_cells
+    new_grid_var%nrr_cells = ntot
     new_grid_var%nbasins = grid_var%nbasins    
     
     !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
@@ -358,18 +378,20 @@ contains
       m1 = 1
     end if
 
-    new_grid_var%dwnstrm_index(m1:m2) = grid_var%dwnstrm_index(m3:m4)   !copy all the values
-    new_grid_var%ocean_outlet(m1:m2)  = grid_var%ocean_outlet(m3:m4)
-    new_grid_var%upstrm_number(m1:m2) = grid_var%upstrm_number(m3:m4)
-    new_grid_var%maps%ind_lgr(m1:m2,:) = grid_var%maps%ind_lgr(m3:m4,:)
-    new_grid_var%maps%weight_lgr(m1:m2,:) = grid_var%maps%weight_lgr(m3:m4,:)
-    new_grid_var%maps%n_ovrlap_lgr(m1:m2) = grid_var%maps%n_ovrlap_lgr(m3:m4)
+    new_grid_var%dwnstrm_index(m1:m2)   = grid_var%dwnstrm_index(m3:m4)   !copy all the values
+    new_grid_var%ocean_outlet(m1:m2)    = grid_var%ocean_outlet(m3:m4)
+    new_grid_var%upstrm_number(m1:m2)   = grid_var%upstrm_number(m3:m4)
     new_grid_var%lat(m1:m2)             = grid_var%lat(m3:m4)
     new_grid_var%lon(m1:m2)             = grid_var%lon(m3:m4)
     new_grid_var%slope(m1:m2)           = grid_var%slope(m3:m4)
     new_grid_var%length(m1:m2)          = grid_var%length(m3:m4)
     new_grid_var%land_mask(m1:m2)       = grid_var%land_mask(m3:m4)    
     new_grid_var%active_cell(m1:m2)     = grid_var%active_cell(m3:m4)
+    new_grid_var%is_main_channel(m1:m2) = grid_var%is_main_channel(m3:m4) 
+    !don't forget the maps derived type!
+    new_grid_var%maps%ind_lgr(m1:m2,:)    = grid_var%maps%ind_lgr(m3:m4,:)
+    new_grid_var%maps%weight_lgr(m1:m2,:) = grid_var%maps%weight_lgr(m3:m4,:)
+    new_grid_var%maps%n_ovrlap_lgr(m1:m2) = grid_var%maps%n_ovrlap_lgr(m3:m4)
 
 
   end subroutine copy_river_grid_vector_values
@@ -392,9 +414,9 @@ contains
     total_lsm_flux  = 0._r_2
     mass_error      = 0._r_2
     
-    total_mass      = sum(river_var%mass(:))
+    total_mass      = sum(river_var%mass(:)) + sum(river_var%mass_sub(:))
     init_total_mass = sum(river_var%mass_init(:))
-    total_lsm_flux  = sum(river_var%runoff_flux(:)) * dels
+    total_lsm_flux  = (sum(river_var%srf_runoff_flux(:)) + sum(river_var%sub_runoff_flux(:))) * dels
     !need to compute outflow
     
     total_outflow = 0._r_2
@@ -430,11 +452,12 @@ contains
     integer :: nlat_rr,nlon_rr,npts_rr
     
     
-    character(len=*), parameter :: mask_name   = "land_mask"
-    character(len=*), parameter :: length_name = "length"
-    character(len=*), parameter :: slope_name  = "slope"
-    character(len=*), parameter :: elev_name   = "elevation"
-    character(len=*), parameter :: rdir_name   = "direction"
+    character(len=*), parameter :: mask_name     = "land_mask"
+    character(len=*), parameter :: length_name   = "length"
+    character(len=*), parameter :: slope_name    = "slope"
+    character(len=*), parameter :: elev_name     = "elevation"
+    character(len=*), parameter :: rdir_name     = "direction"
+    character(len=*), parameter :: src_area_name = "upstream_area"
     character(len=*), parameter :: rr_lat_dim_name = "lat"
     character(len=*), parameter :: rr_lon_dim_name = "lon"
     character(len=*), parameter :: rr_lat_var_name = "latitude"
@@ -495,12 +518,12 @@ contains
     end do
     
     !read the data
-    call read_nc_int(ncid_river,mask_name,start_inds,end_inds,river_grid%land_mask(:))
-    call read_nc_int(ncid_river,rdir_name,start_inds,end_inds,river_grid%direction(:))
-    
-    call read_nc_flt(ncid_river,length_name,start_inds,end_inds,river_grid%length(:))
-    call read_nc_flt(ncid_river,slope_name ,start_inds,end_inds,river_grid%slope(:))
-    call read_nc_flt(ncid_river,elev_name  ,start_inds,end_inds,river_grid%elev(:))
+    call read_nc_int(ncid_river,mask_name    ,start_inds,end_inds,river_grid%land_mask(:))
+    call read_nc_int(ncid_river,rdir_name    ,start_inds,end_inds,river_grid%direction(:))
+    call read_nc_flt(ncid_river,length_name  ,start_inds,end_inds,river_grid%length(:))
+    call read_nc_flt(ncid_river,slope_name   ,start_inds,end_inds,river_grid%slope(:))
+    call read_nc_flt(ncid_river,elev_name    ,start_inds,end_inds,river_grid%elev(:))
+    call read_nc_flt(ncid_river,src_area_name,start_inds,end_inds,river_grid%source_area(:))
     
     nc_check = nf90_close(ncid_river)
     
@@ -732,7 +755,6 @@ contains
     grid_var%nlon = ord_grid_var%nlon
     grid_var%nrr_cells = ord_grid_var%nrr_cells  
     
-    
     call ord_grid_var%destroy()  !clean up
 
   end subroutine reorder_grid_by_basin
@@ -820,8 +842,9 @@ contains
       !call grid_var%create(total_active_cells)
       !call cmp_grid_var%copy_vectors(grid_var,1,total_active_cells,1,total_active_cells)   !doesn't copy scalar values
 
+      !grid_var%npts     = total_active_cells  !this is set in create_copy
       grid_var%nbasins   = cmp_grid_var%nbasins
-      grid_var%nrr_cells = cmp_grid_var%nrr_cells
+      grid_var%nrr_cells = cmp_grid_var%total_active_cells
       grid_var%nlat      = cmp_grid_var%nlat
       grid_var%nlon      = cmp_grid_var%nlon      
       grid_var%active_cell(:) = 1  !all cells now active.
@@ -979,7 +1002,7 @@ contains
     !  kk_begind  = basins(i)%begind
     !  kk_endind  = basins(i)%endind
       kk_begind = 1
-      kk_endind = river_grid%npts
+      kk_endind = river_grid%nrr_cells
     
 
       river%Fin(kk_begind:kk_endind) = 0._r_2   !zero out input fluxes
@@ -994,13 +1017,91 @@ contains
 
       river%mass(kk_begind:kk_endind) =  river%mass(kk_begind:kk_endind) - &
                                         (river%Fout(kk_begind:kk_endind) + river%Fin(kk_begind:kk_endind))*dels
+                                        
+    end subroutine step_river_routing
+    
+!----------------------------------------------------------------------------!
+
+  subroutine step_river_srf_subsrf_routing_kinematic(river,river_grid,basins)
+    implicit none
+     
+    class(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
+    class(river_grid_type),          intent(in)    :: river_grid
+    class(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin    
+     
+    integer :: kk_begind, kk_endind
+    integer :: i,j,k,ii,jj,kk
+    
+    real(r_2), dimension(:), allocatable  :: river_fin_n, river_mass_n  !overland / river components
+    real(r_2), dimension(:), allocatable  :: subsurf_fin_n, subsurf_mass_n  !subsurface store, fluxes
+    
+    !do i=basins_pe_start,basins_pe_end!    loop over a subsection of all of the basins
+
+    !  kk_begind  = basins(i)%begind
+    !  kk_endind  = basins(i)%endind
+    
+      kk_begind = 1                !loop over all points for this mpi task.
+      kk_endind = river_grid%nrr_cells
+           
+      allocate(river_fin_n(kk_begind:kk_endind))
+      river_fin_n(:) = 0._r_2
+      
+      allocate(river_mass_n  , source=river_fin_n)     !source copies to shape and value! yeah for syntatic sugar!
+      allocate(subsurf_mass_n, source=river_fin_n)
+      allocate(subsurf_fin_n , source=river_fin_n)
+      
+      do kk = kk_begind, kk_endind
+      
+        k = river_grid%dwnstrm_index(kk)
+        
+        if (river_grid%is_main_channel(kk) .and. river_grid%is_main_channel(k)) then  !current and downstream are main channels
+          !main channel flow.  this will use manning and a rectangular channel eventually.  kinematic place holder.
+          river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) + river%srf_runoff_flux(kk) + river%sub_runoff_flux(kk)
+          river_fin_n(k)  = river_fin_n(k) + river_theta * river_mass_n(kk)          
+          !subsurf
+          subsurf_mass_n(kk) = 0.  !no subsurface for the main channel
+          subsurf_fin_n(kk) = 0.
+        elseif (river_grid%is_main_channel(k)) then    !not a main channel.  overland/subsurface routing for current, downstream is a main channel
+          !overland flow
+          river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) + river%srf_runoff_flux(kk)
+          river_fin_n(k)  = river_fin_n(k) + river_theta * river_mass_n(kk)
+          !subsurface flow.  leaves subsurface into main river channel
+          subsurf_mass_n(kk) = (1. - subsurf_theta) * river%mass_sub(kk) + river%Fin_sub(kk) + river%sub_runoff_flux(kk)
+          river_fin_n(k)   = river_fin_n(k) + subsurf_theta * subsurf_mass_n(kk)
+          
+        else   !both are not main channels
+          !overland flow
+          river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) + river%srf_runoff_flux(kk)
+          river_fin_n(k)  = river_fin_n(k) + river_theta * river_mass_n(kk)
+          !subsurface flow.  leaves subsurface into main river channel
+          subsurf_mass_n(kk) = (1. - subsurf_theta) * river%mass_sub(kk) + river%Fin_sub(kk) + river%sub_runoff_flux(kk)
+          subsurf_fin_n(k)   = subsurf_fin_n(k) + subsurf_theta * subsurf_mass_n(kk)
+          
+        end if
+        
+      end do
+      
+      do kk = kk_begind, kk_endind
+      
+        river%Fin(kk)  = river_fin_n(kk)  !store new values
+        river%Fin_sub(kk) = subsurf_fin_n(kk)
+        
+        river%flux(kk) = river_theta / del_river * river%mass(kk)   !why use the old timestep?
+        river%mass(kk) = river_mass_n(kk)
+        river%mass_sub(kk) = subsurf_mass_n(kk)
+      
+      end do                        
 
 !        call basins(i)%get_outflow(river)  !write a subroutine to compute total basin outflow
 
     !end do  !loop over this pe basins
-
+    
+      deallocate(river_fin_n)
+      deallocate(river_mass_n)
+      deallocate(subsurf_fin_n)
+      deallocate(subsurf_mass_n)
      
-    end subroutine step_river_routing
+    end subroutine step_river_srf_subsrf_routing_kinematic
     
 !----------------------------------------------------------------------------!
 
@@ -1017,17 +1118,26 @@ contains
     allocate(var%mass(npts))
     var%mass(:) = fNaN
     
+    allocate(var%mass_sub(npts))
+    var%mass_sub(:) = fNaN    
+    
     allocate(var%vel(npts))
     var%vel(:) = fNaN
     
     allocate(var%hgt(npts))
     var%hgt(:) = fNaN    
     
-    allocate(var%runoff_flux(npts))
-    var%runoff_flux(:) = fNaN
+    allocate(var%srf_runoff_flux(npts))
+    var%srf_runoff_flux(:) = fNaN
+    
+    allocate(var%sub_runoff_flux(npts))
+    var%sub_runoff_flux(:) = fNaN    
     
     allocate(var%Fin(npts))
-    var%Fin(:) = fNaN      
+    var%Fin(:) = fNaN
+    
+    allocate(var%Fin_sub(npts))
+    var%Fin_sub(:) = fNaN       
     
     allocate(var%Fout(npts))
     var%Fout(:) = fNaN       
@@ -1042,10 +1152,13 @@ contains
 
     deallocate(var%mass_init)
     deallocate(var%mass)
+    deallocate(var%mass_sub)
     deallocate(var%vel)
     deallocate(var%hgt)
-    deallocate(var%runoff_flux)
+    deallocate(var%srf_runoff_flux)
+    deallocate(var%sub_runoff_flux)    
     deallocate(var%Fin)
+    deallocate(var%Fin_sub)
     deallocate(var%Fout)
 
   end subroutine dealloc_river_flow
@@ -1112,6 +1225,10 @@ contains
     var%direction(:) = iNaN
     allocate(var%area(npts))
     var%area(:) = fNaN
+    allocate(var%is_main_channel(npts))
+    var%is_main_channel(:) = iNaN
+    allocate(var%source_area(npts))
+    var%source_area(:) = fNaN
 
     !since we know the total number of points set it
     var%npts = npts
@@ -1137,6 +1254,8 @@ contains
     deallocate(var%active_cell)
     deallocate(var%direction)
     deallocate(var%area)
+    deallocate(var%is_main_channel)
+    deallocate(var%source_area)
     
     call var%maps%destroy()
 
@@ -1289,7 +1408,7 @@ contains
 !****Below are the Routines For MPI settings/gettings/partitioning***********!
 !----------------------------------------------------------------------------!  
 
-#ifdef RTMMPI 
+#ifdef RRM_MPI
 
   subroutine calculate_basins_per_pe(grid_var,basins,my_basin_start,my_basin_end,np,mrnk)
   !all procs call this routine.
@@ -1298,8 +1417,10 @@ contains
     implicit none
     class(river_grid_type), intent(inout) :: grid_var
     class(basin_type), intent(inout)      :: basins
-    integer, intent(out)                  :: my_basin_start
-    integer, intent(out)                  :: my_basin_end
+    integer, intent(out)                  :: my_basin_start     !number of starting basin to do 
+    integer, intent(out)                  :: my_basin_end       !basin number of ending basins
+    integer, intent(out)                  :: global_index_start !starting in dex in global river array
+    integer, intent(out)                  :: global_index_end   !endind index in global river array
     integer, optional,intent(in)          :: np     !tmp name to check if present of nprocs
     integer, optional,intent(in)          :: mrnk   !myrank tmp name to allow to check if present
     
@@ -1407,6 +1528,9 @@ contains
     my_basin_start = basins_pe_start(myrank)  !note myrank=0 is the master.  so set to 0
     my_basin_end   = basins_pe_end(myrank)
     
+    global_index_start = basins(my_basin_start)%begind   !start and endind indices in the global river array
+    global_index_end   = basins(my_basin_end)%endind
+    
     
       
     deallocate(npts_per_pe)
@@ -1426,6 +1550,15 @@ contains
   
   subroutine collect_river_vars_from_procs()
   end subroutine collect_river_vars_from_proc
+  
+  
+  subroutine river_routing_main()   !called from cable.
+  !if no mpi or rank=0
+  !compact basins
+  !dtermine basins per pe
+  !start substepping
+  !
+  end subroutine river_routing_main
   
 #endif    !end preproc check for mpi
 
