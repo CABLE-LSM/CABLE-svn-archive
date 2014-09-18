@@ -1,7 +1,22 @@
+!compile using preproc for using mpi.
+! compile with -Dname=def which is the same as
+!  #define name def
+!
+!  this module needs to have -DRTM
+!
+!  so if using mpi
+!  -DRTMMPI
+!  not using mpi don't include this option
 module cable_routing
 
+#ifdef RTM
+
   use netcdf
+  
+#ifdef RTMMPI
   use mpi
+#endif
+
   !use cable_types
   !use cable_common_module, only : cable_user
   !use cable_def_types_mod, only : r_2, ms, mp,mlat,mlon
@@ -11,9 +26,8 @@ module cable_routing
   !                                lat_all, lon_all,                         &
   !                                logn,output,xdimsize,ydimsize,check,mask
 
-
   implicit none
-  
+    
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
   !**************************************************************************!
@@ -131,13 +145,12 @@ module cable_routing
     procedure :: destroy    => dealloc_basin
     
   end type basin_type
-  
-  
+
   !below will go into cable_routing_main_routine.  !global on myrank =0, local on myrank=1->nprocs
   type(river_grid_type), TARGET, SAVE :: global_river_grid      , local_river_grid
   type(river_flow_type), TARGET, SAVE :: global_river           , local_river
   type(basin_type), pointer, save, dimension(:) :: global_basins, local_basins
-   
+  
   
   !outline
   !if timestep==0 --> 
@@ -1276,6 +1289,8 @@ contains
 !****Below are the Routines For MPI settings/gettings/partitioning***********!
 !----------------------------------------------------------------------------!  
 
+#ifdef RTMMPI 
+
   subroutine calculate_basins_per_pe(grid_var,basins,my_basin_start,my_basin_end,np,mrnk)
   !all procs call this routine.
   !all calc it but only save the basin start and end inds for myrank
@@ -1293,7 +1308,7 @@ contains
     integer, dimension(:), allocatable    :: basins_pe_end    
     integer                               :: ideal_npts_per_pe
     
-    integer :: nprocs,myrank
+    integer :: nprocs,myrank,nworkers
     
     integer :: bg,ed,i,j,k
     integer :: current_basin
@@ -1312,21 +1327,26 @@ contains
       myrank = 0
     end if
     
-    allocate(npts_per_pe(nprocs))
+    nworkers = nprocs - 1   !master does no work following CABLE mpi model
+    
+    allocate(npts_per_pe(0:nworkers))
     npts_per_pe(:) = 0   
     
-    allocate(basins_pe_start(nprocs)) 
-    allocate(basins_pe_end(nprocs)) 
+    allocate(basins_pe_start(0:nworkers)) 
+    basins_pe_start(:) = 0
+    
+    allocate(basins_pe_end(0:nworkers)) 
+    basins_pe_end(:) = 0
     
     if (myrank .eq. 0) then
     
-      if (nprocs .gt. 1) then
+      if (nworkers .gt. 1) then   !2 procs means 1 worker 1 master.  worker does all computations
     
-        ideal_npts_per_pe = ceiling(real(grid_var%npts)/real(npts))
+        ideal_npts_per_pe = ceiling(real(grid_var%npts)/real(nworkers))
       
         current_basin = 1
       
-        do i=1,nprocs-1
+        do i=1,nworkers
       
           keep_searching = .true.
           npts_tmp = 0
@@ -1352,27 +1372,27 @@ contains
           
         end do
       
-        basins_pe_start(nprocs) = current_basin    !set last process to the rest
-        basins_pe_end(nprocs)   = grid_var%nbasins
+        basins_pe_start(nworkers) = current_basin    !set last process to the rest
+        basins_pe_end(nworkers)   = grid_var%nbasins
       
-      !need to send this info to mpi workers
-      do i=1,nprocs-1
-        call MPI_SEND(basins_pe_start, nprocs, MPI_INTEGER, i, 0, comm, ierr)
-        call MPI_SEND(basins_pe_end, nprocs, MPI_INTEGER, i, 0, comm, ierr)
-      end do
+        !need to send this info to mpi workers
+        do i=1,nworkers
+          call MPI_SEND(basins_pe_start, nprocs, MPI_INTEGER, i, 0, comm, ierr)
+          call MPI_SEND(basins_pe_end, nprocs, MPI_INTEGER, i, 0, comm, ierr)
+        end do
       
       
-    else
+      else
     
-      basins_pe_start(1) = 1
-      basins_pe_end(1)   = grid_var%nbasins
+        basins_pe_start(1) = 1
+        basins_pe_end(1)   = grid_var%nbasins
       
-    end if
+      end if
     
 
       write(*,*) 'The number of river cells per mpi proc is:'
       
-      do i=1,nprocs
+      do i=1,workers
         write(*,*) 'proc: ',i,' number of cells: ',npts_per_pe(i)
       end do
       
@@ -1384,14 +1404,14 @@ contains
       
     end if  !rank 0 if
     
-    my_basin_start = basins_pe_start(myrank)
+    my_basin_start = basins_pe_start(myrank)  !note myrank=0 is the master.  so set to 0
     my_basin_end   = basins_pe_end(myrank)
     
     
       
     deallocate(npts_per_pe)
     deallocate(basins_pe_start)
-    deallocate(basins_pe_end)
+    deallocate(basins_pe_end)      
     
 
   end subroutine calc_basins_per_pe
@@ -1406,6 +1426,10 @@ contains
   
   subroutine collect_river_vars_from_procs()
   end subroutine collect_river_vars_from_proc
+  
+#endif    !end preproc check for mpi
+
+#endif    !end preproc check for using river routing module
 
 
 end module cable_routing
