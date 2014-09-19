@@ -117,6 +117,7 @@ module cable_routing
     procedure :: collapse           => remove_inactive_land_basins       !river_grid%collapse(basins)
     procedure :: create_copy        => create_river_grid_copy
     procedure :: copy_vectors       => copy_river_grid_vector_values
+    procedure :: find_channels      => find_main_river_channels
        
     
   end type river_grid_type
@@ -259,7 +260,7 @@ contains
     !determine runoff input in river cells from lsm:
     river_var%srf_runoff_flux(:) = 0._r_2
     river_var%sub_runoff_flux(:) = 0._r_2    
-    do kk=1,river_grid%npts
+    do kk=1,grid_var%npts
 
       do i=1,grid_var%maps%n_ovrlap_lgr(kk)
 
@@ -290,7 +291,7 @@ contains
     river_mass_lsm(:) = 0._r_2
     subsurf_mass_lsm(:) = 0._r_2
 
-    do kk=1,river_grid%npts
+    do kk=1,grid_var%npts
 
       do i=1,grid_var%maps%n_ovrlap_lgr(kk)
 
@@ -438,12 +439,12 @@ contains
 
 !----------------------------------------------------------------------------!
 
-  subroutine get_river_route_data(river_grid,filename)
+  subroutine get_river_route_data(grid_var,filename)
   !reads while file.  need to determine if covered by lsm grid later
     use netcdf
     implicit none
 
-    class(river_grid_type), intent(inout)   :: river_grid    
+    class(river_grid_type), intent(inout)   :: grid_var    
     character(len=250), intent(in)          :: filename
     
     integer :: ncid_river
@@ -502,28 +503,28 @@ contains
     end_inds   = (/nlon_rr_file,nlat_rr_file/)
     
     !allocate variable for the river grid
-    call river_grid%create(npts_rr_file)
+    call grid_var%create(npts_rr_file)
     
-    river_grid%npts = npts_rr_file  !includes all lat/lon even ocean
-    river_grid%nlat = nlat_rr_file  
-    river_grid%nlon = nlon_rr_file
-    !fill lat/lon in river_grid variable
+    grid_var%npts = npts_rr_file  !includes all lat/lon even ocean
+    grid_var%nlat = nlat_rr_file  
+    grid_var%nlon = nlon_rr_file
+    !fill lat/lon in grid_var variable
     k=0
     do j=1,nlat_rr_file
       do i=1,nlon_rr_file
         k = k + 1
-        river_grid%lat(k) = lat_data(j)
-        river_grid%lon(k) = lon_data(i)
+        grid_var%lat(k) = lat_data(j)
+        grid_var%lon(k) = lon_data(i)
       end do
     end do
     
     !read the data
-    call read_nc_int(ncid_river,mask_name    ,start_inds,end_inds,river_grid%land_mask(:))
-    call read_nc_int(ncid_river,rdir_name    ,start_inds,end_inds,river_grid%direction(:))
-    call read_nc_flt(ncid_river,length_name  ,start_inds,end_inds,river_grid%length(:))
-    call read_nc_flt(ncid_river,slope_name   ,start_inds,end_inds,river_grid%slope(:))
-    call read_nc_flt(ncid_river,elev_name    ,start_inds,end_inds,river_grid%elev(:))
-    call read_nc_flt(ncid_river,src_area_name,start_inds,end_inds,river_grid%source_area(:))
+    call read_nc_int(ncid_river,mask_name    ,start_inds,end_inds,grid_var%land_mask(:))
+    call read_nc_int(ncid_river,rdir_name    ,start_inds,end_inds,grid_var%direction(:))
+    call read_nc_flt(ncid_river,length_name  ,start_inds,end_inds,grid_var%length(:))
+    call read_nc_flt(ncid_river,slope_name   ,start_inds,end_inds,grid_var%slope(:))
+    call read_nc_flt(ncid_river,elev_name    ,start_inds,end_inds,grid_var%elev(:))
+    call read_nc_flt(ncid_river,src_area_name,start_inds,end_inds,grid_var%source_area(:))
     
     nc_check = nf90_close(ncid_river)
     
@@ -569,40 +570,40 @@ contains
   end function dirc2lonindex
 
 !----------------------------------------------------------------------------!
-!  call find_downstream_index(river_grid%dwnstrm_index,river_dirc)  !this only works if it is on the global grid
+!  call find_downstream_index(grid_var%dwnstrm_index,river_dirc)  !this only works if it is on the global grid
 
-  subroutine find_downstream_index(river_grid)
+  subroutine find_downstream_index(grid_var)
     implicit none
     
-    class(river_grid_type), intent(inout) :: river_grid
+    class(river_grid_type), intent(inout) :: grid_var
     
     integer :: i,j,k,ii,jj,kk
 
     !make sure we called this prior to reordering or removing grid points
-    if (river_grid%npts .ne. river_grid%nlat*river_grid%nlon) &
+    if (grid_var%npts .ne. grid_var%nlat*grid_var%nlon) &
          stop "Must find the downstream index using the entire global grid not a subsection"
     
-    river_grid%dwnstrm_index(:) = 0
+    grid_var%dwnstrm_index(:) = 0
     
-    do j=1,river_grid%nlat
-      do i=1,river_grid%nlon
+    do j=1,grid_var%nlat
+      do i=1,grid_var%nlon
       
-        k = i + (j-1)*river_grid%nlon
+        k = i + (j-1)*grid_var%nlon
         
-        if (river_grid%direction(k) /= -9999) then
+        if (grid_var%direction(k) /= -9999) then
         
-          ii = i + dirc2latindex(river_grid%direction(k))
-          jj = j + dirc2lonindex(river_grid%direction(k))
+          ii = i + dirc2latindex(grid_var%direction(k))
+          jj = j + dirc2lonindex(grid_var%direction(k))
           
-          if (ii .lt. 1     )          ii = ii + river_grid%nlon  
-          if (ii .gt. river_grid%nlon) ii = ii - river_grid%nlon
-          if (jj .lt. 1 .or. jj .gt. river_grid%nlat .or. ii .lt. 1 .or. ii .gt. river_grid%nlon) then
+          if (ii .lt. 1     )          ii = ii + grid_var%nlon  
+          if (ii .gt. grid_var%nlon) ii = ii - grid_var%nlon
+          if (jj .lt. 1 .or. jj .gt. grid_var%nlat .or. ii .lt. 1 .or. ii .gt. grid_var%nlon) then
             stop
           endif
           
-          kk = ii + (jj-1)*river_grid%nlat
+          kk = ii + (jj-1)*grid_var%nlat
           
-          river_grid%dwnstrm_index(k) = kk
+          grid_var%dwnstrm_index(k) = kk
 
         endif
       enddo
@@ -612,51 +613,51 @@ contains
   
 !----------------------------------------------------------------------------! 
 
-  subroutine associate_ocean_outlet_points(river_grid)
+  subroutine associate_ocean_outlet_points(grid_var)
     implicit none
     
-    class(river_grid_type), intent(inout) :: river_grid
+    class(river_grid_type), intent(inout) :: grid_var
   
     !local variables
     integer :: i,j,k
   
-    river_grid%ocean_outlet(:)  = -1
-    river_grid%upstrm_number(:) = 0
+    grid_var%ocean_outlet(:)  = -1
+    grid_var%upstrm_number(:) = 0
     
-    do i=1,river_grid%npts
+    do i=1,grid_var%npts
       j = i
       
-      if (river_grid%land_mask(i) .eq. 1) then   !it is a land cell
+      if (grid_var%land_mask(i) .eq. 1) then   !it is a land cell
       
         k = 0
-        do while ((river_grid%land_mask(j) .eq. 1) .and. k < river_grid%npts)
-           j = river_grid%dwnstrm_index(j)               !index of the most downstream point.  ie end of the line
+        do while ((grid_var%land_mask(j) .eq. 1) .and. k < grid_var%npts)
+           j = grid_var%dwnstrm_index(j)               !index of the most downstream point.  ie end of the line
            k = k + 1
         end do
          
-        if (river_grid%land_mask(j) .eq. 2) then  !ended at an ocean point
-          river_grid%ocean_outlet(i) = j
-          river_grid%upstrm_number(j) = river_grid%upstrm_number(j) + 1
-        elseif (river_grid%land_mask(j) .eq. 1) then          !ended at a land point
-          river_grid%ocean_outlet(i) = j
-          river_grid%upstrm_number(j) = river_grid%upstrm_number(j) + 1
+        if (grid_var%land_mask(j) .eq. 2) then  !ended at an ocean point
+          grid_var%ocean_outlet(i) = j
+          grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1
+        elseif (grid_var%land_mask(j) .eq. 1) then          !ended at a land point
+          grid_var%ocean_outlet(i) = j
+          grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1
         else
           stop
         end if
          
       else
-        river_grid%ocean_outlet(i) = j                                 !if it is ocean it is its own outlet
-        river_grid%upstrm_number(j) = river_grid%upstrm_number(j) + 1  !and has only itself as an upstream cell
+        grid_var%ocean_outlet(i) = j                                 !if it is ocean it is its own outlet
+        grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1  !and has only itself as an upstream cell
       end if
     end do
          
     !count the total number of basins.
-    river_grid%nrr_cells = 0
-    river_grid%nbasins   = 0
-    do i=1,river_grid%npts
-      if (river_grid%upstrm_number(i) .gt. 0) then   !upstrm > 1 only for
-         river_grid%nbasins = river_grid%nbasins + 1
-         river_grid%nrr_cells = river_grid%nrr_cells + 1
+    grid_var%nrr_cells = 0
+    grid_var%nbasins   = 0
+    do i=1,grid_var%npts
+      if (grid_var%upstrm_number(i) .gt. 0) then   !upstrm > 1 only for
+         grid_var%nbasins = grid_var%nbasins + 1
+         grid_var%nrr_cells = grid_var%nrr_cells + 1
       end if
     end do
     
@@ -881,17 +882,58 @@ contains
     deallocate(active_basin)
     
   end subroutine remove_inactive_land_basins
-    
+
+!----------------------------------------------------------------------------! 
+  subroutine find_main_river_channels(grid_var)
+    implicit none
+
+    class(river_grid_type), intent(inout) :: grid_var
+
+    integer :: k,kk,j,jj
+    integer :: ntot
+    logical :: keep_looping
+
+    ntot = size(grid_var%source_area(:))
+
+
+    do k=1,ntot
+      if (grid_var%source_area(k) .ge. source_area_channel_curoff) then
+        grid_var%is_main_channel = 1
+      else
+        grid_var%is_main_channel = 0
+      end if
+    end do
+
+    !check that main channels are continuous
+    do k=1,ntot
+      keep_looping = .true.
+      if (grid_var%is_main_channel(k) .eq. 1) then
+        j  = k
+        kk = 1
+        do while (keep_looping)
+          j = grid_var%dwnstrm_index(j)
+          kk = kk + 1
+          if (kk .gt. ntot) keep_looping = .false.
+          if (grid_var%is_main_channel(j) .ne. 1) then
+            write(*,*) 'a main channel become a non main channel.  something is wrong with main channel or down stream index'
+            stop
+          end if
+        end do
+      end if
+    end do 
+
+  end subroutine find_main_river_channels
+
 !----------------------------------------------------------------------------! 
   !Determine the wieghts and mapping from 1D global land grid to the 1D river grid
   !river_grid%{lat,lon} are assumed higher resolution than lat_out lon_out?
   !assumes river grid is lat/lon and so is lsm grid
   
-  subroutine determine_hilo_res_mapping(river_grid,lat_lo,lon_lo,pft_frac_lo)
+  subroutine determine_hilo_res_mapping(grid_var,lat_lo,lon_lo,pft_frac_lo)
   
     implicit none
     
-    class(river_grid_type),  intent(inout) :: river_grid
+    class(river_grid_type),  intent(inout) :: grid_var
     real(r_2), dimension(:), intent(in)    :: lat_lo
     real(r_2), dimension(:), intent(in)    :: lon_lo  !the lo resolution grid
     real(r_2), dimension(:), intent(in)    :: pft_frac_lo   !for tiled it is the fraction fo grid cell occupied by the pft
@@ -912,12 +954,12 @@ contains
     real(r_2) :: Nedge_hi, Nedge_lo   !northern edge (lat) of high resolution (hi) and lo res (lo) grid cells
 
     !are lat and lon global 1D vectors or only vectors with lat lon values?
-    if (size(river_grid%lat) .gt. river_grid%nlat .and. size(river_grid%lon) .gt. river_grid%nlon) then
-       dlat_hi  = river_grid%lat(river_grid%nlon+1)-river_grid%lat(1)
-       dlon_hi  = river_grid%lon(2) - river_grid%lon(1)
+    if (size(grid_var%lat) .gt. grid_var%nlat .and. size(grid_var%lon) .gt. grid_var%nlon) then
+       dlat_hi  = grid_var%lat(grid_var%nlon+1)-grid_var%lat(1)
+       dlon_hi  = grid_var%lon(2) - grid_var%lon(1)
     else
-       dlat_hi  = river_grid%lat(2) - river_grid%lat(1)
-       dlon_hi  = river_grid%lon(2) - river_grid%lon(1)
+       dlat_hi  = grid_var%lat(2) - grid_var%lat(1)
+       dlon_hi  = grid_var%lon(2) - grid_var%lon(1)
     end if
 
     if (size(lat_lo) .gt. mlat .and. size(lon_lo) .gt. mlon) then
@@ -929,12 +971,12 @@ contains
     end if
 
     !init overlap mappings and areas
-    river_grid%maps%n_ovrlap_lgr(:) = 0
-    river_grid%maps%weight_lgr(:,:) = 0._r_2
-    river_grid%maps%ind_lgr(:,:)    = -1
+    grid_var%maps%n_ovrlap_lgr(:) = 0
+    grid_var%maps%weight_lgr(:,:) = 0._r_2
+    grid_var%maps%ind_lgr(:,:)    = -1
     
     !initialize all cells to inactive
-    river_grid%active_cell(:)    = 0
+    grid_var%active_cell(:)    = 0
 
     !map each input lat/lon to output grid and calc the fraction of cell within (1 cell can map to upto four output)
     do k=1,mp   !loop over all the land grid points
@@ -948,21 +990,21 @@ contains
       dy_lo = sin(deg2rad*Nedge_lo) - sin(deg2rad*Sedge_lo)
       area_lo = dy_lo * dlon_lo * re * re * pft_frac_lo(k) !adjust for fraction of grid cells?? need to for sure
       
-      do kk=1,river_grid%npts
+      do kk=1,grid_var%npts
 
-        Sedge_hi = river_grid%lat(kk) - dlat_hi/2._r_2  !avoid some calcs dooing it here
-        Nedge_hi = river_grid%lat(kk) + dlat_hi/2._r_2
+        Sedge_hi = grid_var%lat(kk) - dlat_hi/2._r_2  !avoid some calcs dooing it here
+        Nedge_hi = grid_var%lat(kk) + dlat_hi/2._r_2
         
         dy_hi = sin(deg2rad*Nedge_hi) - sin(deg2rad*Sedge_hi)
         area_hi = dy_hi * dlon_hi * re * re  !adjust for fraction of grid cells??
 
-        Wedge_hi = river_grid%lon(kk) - dlon_hi/2._r_2
-        Eedge_hi = river_grid%lon(kk) + dlon_hi/2._r_2
+        Wedge_hi = grid_var%lon(kk) - dlon_hi/2._r_2
+        Eedge_hi = grid_var%lon(kk) + dlon_hi/2._r_2
 
         if ((Wedge_hi .le. Eedge_lo) .and. (Eedge_hi .ge. Wedge_lo) .and. &
             (Sedge_hi .le. Nedge_lo) .and. (Nedge_hi .ge. Sedge_lo)) then
               
-          river_grid%maps%n_ovrlap_lgr(kk) = river_grid%maps%n_ovrlap_lgr(kk) + 1  !number of overlapping cells
+          grid_var%maps%n_ovrlap_lgr(kk) = grid_var%maps%n_ovrlap_lgr(kk) + 1  !number of overlapping cells
           
           dlone = min(Eedge_lo,Eedge_hi)*deg2rad !determine area of input cell within the output grid cell
           dlonw = max(Wedge_lo,Wedge_hi)*deg2rad 
@@ -972,10 +1014,10 @@ contains
           dlats = max(Sedge_lo,Sedge_hi)*deg2rad 
           dy = max(0.0,(sin(dlatn)-sin(dlats)))
 
-          river_grid%maps%ind_lgr(kk,river_grid%maps%n_ovrlap_lgr(kk))    = k                   !lsm point for given river point
-          river_grid%maps%weight_lgr(kk,river_grid%maps%n_ovrlap_lgr(kk)) = dx*dy / area_lo     !fraction of lsm cell k occupied by river cell.  need pft frac somehwere
+          grid_var%maps%ind_lgr(kk,grid_var%maps%n_ovrlap_lgr(kk))    = k                   !lsm point for given river point
+          grid_var%maps%weight_lgr(kk,grid_var%maps%n_ovrlap_lgr(kk)) = dx*dy / area_lo     !fraction of lsm cell k occupied by river cell.  need pft frac somehwere
               
-          river_grid%active_cell(kk) = 1             !mark this river cell as active.
+          grid_var%active_cell(kk) = 1             !mark this river cell as active.
 
         end if  !test lon overlap
         
@@ -987,11 +1029,11 @@ contains
   
 !----------------------------------------------------------------------------!
 
-  subroutine step_river_routing(river,river_grid,basins)
+  subroutine step_river_routing(river,grid_var,basins)
     implicit none
      
     class(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
-    class(river_grid_type),          intent(in)    :: river_grid
+    class(river_grid_type),          intent(in)    :: grid_var
     class(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin    
      
     integer :: kk_begind, kk_endind
@@ -1002,16 +1044,16 @@ contains
     !  kk_begind  = basins(i)%begind
     !  kk_endind  = basins(i)%endind
       kk_begind = 1
-      kk_endind = river_grid%nrr_cells
+      kk_endind = grid_var%nrr_cells
     
 
       river%Fin(kk_begind:kk_endind) = 0._r_2   !zero out input fluxes
 
       do kk = kk_begind, kk_endind
 
-        river%Fout(kk) = river%mass(kk)*river%vel(kk)/river_grid%length(kk)
+        river%Fout(kk) = river%mass(kk)*river%vel(kk)/grid_var%length(kk)
 
-        river%Fin(river_grid%dwnstrm_index(kk)) = river%Fin(river_grid%dwnstrm_index(kk)) + river%Fout(kk)
+        river%Fin(grid_var%dwnstrm_index(kk)) = river%Fin(grid_var%dwnstrm_index(kk)) + river%Fout(kk)
 
       end do
 
@@ -1022,11 +1064,11 @@ contains
     
 !----------------------------------------------------------------------------!
 
-  subroutine step_river_srf_subsrf_routing_kinematic(river,river_grid,basins)
+  subroutine step_river_srf_subsrf_routing_kinematic(river,grid_var,basins)
     implicit none
      
     class(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
-    class(river_grid_type),          intent(in)    :: river_grid
+    class(river_grid_type),          intent(in)    :: grid_var
     class(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin    
      
     integer :: kk_begind, kk_endind
@@ -1041,7 +1083,7 @@ contains
     !  kk_endind  = basins(i)%endind
     
       kk_begind = 1                !loop over all points for this mpi task.
-      kk_endind = river_grid%nrr_cells
+      kk_endind = grid_var%nrr_cells
            
       allocate(river_fin_n(kk_begind:kk_endind))
       river_fin_n(:) = 0._r_2
@@ -1052,16 +1094,16 @@ contains
       
       do kk = kk_begind, kk_endind
       
-        k = river_grid%dwnstrm_index(kk)
+        k = grid_var%dwnstrm_index(kk)
         
-        if (river_grid%is_main_channel(kk) .and. river_grid%is_main_channel(k)) then  !current and downstream are main channels
+        if (grid_var%is_main_channel(kk) .and. grid_var%is_main_channel(k)) then  !current and downstream are main channels
           !main channel flow.  this will use manning and a rectangular channel eventually.  kinematic place holder.
           river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) + river%srf_runoff_flux(kk) + river%sub_runoff_flux(kk)
           river_fin_n(k)  = river_fin_n(k) + river_theta * river_mass_n(kk)          
           !subsurf
           subsurf_mass_n(kk) = 0.  !no subsurface for the main channel
           subsurf_fin_n(kk) = 0.
-        elseif (river_grid%is_main_channel(k)) then    !not a main channel.  overland/subsurface routing for current, downstream is a main channel
+        elseif (grid_var%is_main_channel(k)) then    !not a main channel.  overland/subsurface routing for current, downstream is a main channel
           !overland flow
           river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) + river%srf_runoff_flux(kk)
           river_fin_n(k)  = river_fin_n(k) + river_theta * river_mass_n(kk)
