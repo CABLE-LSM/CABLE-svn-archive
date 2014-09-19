@@ -148,7 +148,7 @@ subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )
    integer :: npseudo_interp
    real, dimension(mp,npseudo_interp) :: new_LAI_Ma
    integer :: openstatus=1
-   integer, save :: LAI_Ma_yea = 1
+   integer, save :: LAI_Ma_year = 1
    integer :: DayOfExp
    ! As cable%doy resets every year, record when each year has passed
    open(unit=713941,file='cable_DoY.txt', &
@@ -372,7 +372,7 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
    ENDDO
   
    veg%iveg   = PACK(kblum_veg%ivegt, um1%L_TILE_PTS)
-   veg%vlai   = PACK(kblum_veg%laift, um1%L_TILE_PTS)
+   !veg%vlai   = PACK(kblum_veg%laift, um1%L_TILE_PTS)
 !LAI_Ma: here for testing i am using the first month only. For the sake of
 !updating and shifting you will need to develop some logic around this based of
 !on the date
