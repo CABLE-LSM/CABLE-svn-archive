@@ -148,7 +148,8 @@ subroutine LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )
    integer :: npseudo_interp
    real, dimension(mp,npseudo_interp) :: new_LAI_Ma
    integer :: openstatus=1
-   integer :: LAI_Ma_year, DayOfExp
+   integer, save :: LAI_Ma_yea = 1
+   integer :: DayOfExp
    ! As cable%doy resets every year, record when each year has passed
    open(unit=713941,file='cable_DoY.txt', &
         action="read", iostat=openstatus )

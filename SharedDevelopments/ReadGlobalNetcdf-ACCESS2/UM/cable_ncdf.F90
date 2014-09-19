@@ -105,7 +105,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
 
    do z = 1, nPseudo
       do i = 1, mp
-         mydata(i,z) =   data_in(x_in(i), y_in(i), z)   
+         mydata(i,z) =   DBLE( data_in(x_in(i), y_in(i), z) )  
       end do
    end do
  
