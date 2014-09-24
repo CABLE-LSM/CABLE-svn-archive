@@ -955,19 +955,19 @@ contains
 
     !are lat and lon global 1D vectors or only vectors with lat lon values?
     if (size(grid_var%lat) .gt. grid_var%nlat .and. size(grid_var%lon) .gt. grid_var%nlon) then
-       dlat_hi  = grid_var%lat(grid_var%nlon+1)-grid_var%lat(1)
-       dlon_hi  = grid_var%lon(2) - grid_var%lon(1)
+       dlat_hi  = abs(grid_var%lat(grid_var%nlon+1)-grid_var%lat(1))
+       dlon_hi  = abs(grid_var%lon(2) - grid_var%lon(1))
     else
-       dlat_hi  = grid_var%lat(2) - grid_var%lat(1)
-       dlon_hi  = grid_var%lon(2) - grid_var%lon(1)
+       dlat_hi  = abs(grid_var%lat(2) - grid_var%lat(1))
+       dlon_hi  = abs(grid_var%lon(2) - grid_var%lon(1))
     end if
 
     if (size(lat_lo) .gt. mlat .and. size(lon_lo) .gt. mlon) then
-       dlat_lo  = lat_all(1,2)-lat_all(1,1)  !array is compacted,  must use lat_all lon_all brought in from io_vars module
-       dlon_lo  = lon_all(2,1) - lon_all(1,1)
+       dlat_lo  = abs(lat_all(1,2)-lat_all(1,1))  !array is compacted,  must use lat_all lon_all brought in from io_vars module
+       dlon_lo  = abs(lon_all(2,1) - lon_all(1,1))
     else
-       dlat_lo  = lat_lo(2) - lat_lo(1)
-       dlon_lo  = lon_lo(2) - lon_lo(1)
+       dlat_lo  = abs(lat_lo(2) - lat_lo(1))
+       dlon_lo  = abs(lon_lo(2) - lon_lo(1))
     end if
 
     !init overlap mappings and areas
