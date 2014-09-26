@@ -61,6 +61,11 @@ module cable_routing
   real(r_2), parameter :: deg2rad = 3.14159/180.0     !constant converts degrees to radians
   real(r_2), parameter :: eps=1e-5                    !tolerance parameter.  UNUSED NOW 
 
+  real(r_2), parameter :: river_theta = 0.5
+  real(r_2), parameter :: subsurf_theta = 0.4
+  real(r_2), parameter :: source_area_channel_curoff = 50000.0
+  real(r_2), parameter :: del_river = 600.0
+
   real(r_2), parameter :: fNaN = -1e36
   integer, parameter   :: iNaN = -999999
   
@@ -253,7 +258,7 @@ contains
 
 !----------------------------------------------------------------------------!
 
-  subroutine map_lsm_runoff_to_river(river_var,Qsrf_runoff_lsm,grid_var)
+  subroutine map_lsm_runoff_to_river(river_var,grid_var,Qsrf_runoff_lsm,Qsub_runoff_lsm)
     implicit none
     class(river_flow_type), intent(inout) :: river_var
     real(r_2), dimension(:), intent(in)   :: Qsrf_runoff_lsm, Qsub_runoff_lsm
@@ -283,26 +288,26 @@ contains
 
 !----------------------------------------------------------------------------!
 
-  subroutine map_river_mass_to_lsm(river_var,river_mass_lsm,grid_var)
+  subroutine map_river_mass_to_lsm(river_var,grid_var,river_mass_lsm,subsrf_mass_lsm)
     implicit none
     class(river_flow_type), intent(in)      :: river_var
     class(river_grid_type), intent(in)      :: grid_var
-    real(r_2), dimension(:), intent(inout)          :: river_mass_lsm
-    real(r_2), dimension(:), intent(inout)          :: subsrf_mass_lsm
+    real(r_2),  intent(inout)    :: river_mass_lsm(:)
+    real(r_2), intent(inout)     :: subsrf_mass_lsm(:)
 
     integer :: kk,i,ii
 
     !determine runoff input in river cells from lsm:
-    river_mass_lsm(:) = 0._r_2
-    subsurf_mass_lsm(:) = 0._r_2
+    river_mass_lsm(:) = 0.
+    !subsrf_mass_lsm(:) = 0.
 
     do kk=1,grid_var%npts
 
       do i=1,grid_var%maps%n_ovrlap_lgr(kk)
 
         ii = grid_var%maps%ind_lgr(kk,i) 
-        river_mass_lsm(ii)   = river_mass_lsm(ii) + river_var%mass(kk)*grid_var%maps%weight_rgl(kk,i)/grid_var%area(kk)  !mm => mm/m2
-        subsurf_mass_lsm(ii) = subsurf_mass_lsm(ii) + river_var%mass_sub(kk)*grid_var%maps%weight_rgl(kk,i)/grid_var%area(kk)  !mm => mm/m2
+        river_mass_lsm(ii)   = river_mass_lsm(ii)  + river_var%mass(kk)    * grid_var%maps%weight_rgl(kk,i)/grid_var%area(kk)  !mm => mm/m2
+        subsrf_mass_lsm(ii)  = subsrf_mass_lsm(ii) + river_var%mass_sub(kk)* grid_var%maps%weight_rgl(kk,i)/grid_var%area(kk)  !mm => mm/m2
         
       end do
 
@@ -460,11 +465,11 @@ contains
     
     
     character(len=*), parameter :: mask_name     = "land_mask"
-    character(len=*), parameter :: length_name   = "length"
-    character(len=*), parameter :: slope_name    = "slope"
-    character(len=*), parameter :: elev_name     = "elevation"
-    character(len=*), parameter :: rdir_name     = "direction"
-    character(len=*), parameter :: src_area_name = "upstream_area"
+    character(len=*), parameter :: length_name   = "river_distance"
+    character(len=*), parameter :: slope_name    = "stddev_elevation"  !"slope"
+    character(len=*), parameter :: elev_name     = "outlet_elevation"   !"elevation"
+    character(len=*), parameter :: rdir_name     = "river_direction"
+    character(len=*), parameter :: src_area_name = "source_area"
     character(len=*), parameter :: rr_lat_dim_name = "lat"
     character(len=*), parameter :: rr_lon_dim_name = "lon"
     character(len=*), parameter :: rr_lat_var_name = "latitude"
@@ -644,7 +649,7 @@ contains
         end do
          
         if (grid_var%land_mask(j) .eq. 0) then  !ended at an ocean point.  previous land pt is the outlet cell
-          grid_var%ocean_outlet(i) = j_old
+          grid_var%ocean_outlet(i) = j_prev
           grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1
         elseif (grid_var%land_mask(j) .eq. 1) then          !ended at a land point.  this is the outlet cell
           grid_var%ocean_outlet(i) = j
@@ -841,8 +846,6 @@ contains
           ii = ii + 1
         
         end if
-        
-        i = i + 1
       
       end do
     
@@ -856,7 +859,7 @@ contains
 
       !grid_var%npts     = total_active_cells  !this is set in create_copy
       grid_var%nbasins   = cmp_grid_var%nbasins
-      grid_var%nrr_cells = cmp_grid_var%total_active_cells
+      grid_var%nrr_cells = total_active_cells
       grid_var%nlat      = cmp_grid_var%nlat
       grid_var%nlon      = cmp_grid_var%nlon      
       grid_var%active_cell(:) = 1  !all cells now active.
@@ -1029,7 +1032,7 @@ contains
 
           grid_var%maps%ind_lgr(kk,grid_var%maps%n_ovrlap_lgr(kk))    = k                   !lsm point for given river point
           grid_var%maps%weight_lgr(kk,grid_var%maps%n_ovrlap_lgr(kk)) = dx*dy / area_lo     !fraction of river cell k overlapping by lsm cell k.  need pft frac somehwere
-          grid_var%maps%weight_rgl(kk,grid_var%maps%n_ovrlap_rgl(kk)) = dx*dy / area_hi
+          grid_var%maps%weight_rgl(kk,grid_var%maps%n_ovrlap_lgr(kk)) = dx*dy / area_hi
 
         end if  !test lon overlap
         
@@ -1086,8 +1089,8 @@ contains
     integer :: kk_begind, kk_endind
     integer :: i,j,k,ii,jj,kk
     
-    real(r_2), dimension(:), allocatable  :: river_fin_n, river_mass_n  !overland / river components
-    real(r_2), dimension(:), allocatable  :: subsurf_fin_n, subsurf_mass_n  !subsurface store, fluxes
+    real(r_2), allocatable, dimension(:)  :: river_fin_n, river_mass_n  !overland / river components
+    real(r_2), allocatable, dimension(:)  :: subsurf_fin_n, subsurf_mass_n  !subsurface store, fluxes
     
     !do i=basins_pe_start,basins_pe_end!    loop over a subsection of all of the basins
 
@@ -1097,30 +1100,35 @@ contains
       kk_begind = 1                !loop over all points for this mpi task.
       kk_endind = grid_var%nrr_cells
            
-      allocate(river_fin_n(kk_begind:kk_endind))
+      allocate(river_fin_n(kk_endind))
+      allocate(river_mass_n(kk_endind))   
+      allocate(subsurf_mass_n(kk_endind))
+      allocate(subsurf_fin_n(kk_endind))
+
       river_fin_n(:) = 0._r_2
-      
-      allocate(river_mass_n  , source=river_fin_n)     !source copies to shape and value! yeah for syntatic sugar!
-      allocate(subsurf_mass_n, source=river_fin_n)
-      allocate(subsurf_fin_n , source=river_fin_n)
-      
+      river_mass_n(:) = 0._r_2
+      subsurf_mass_n(:) = 0._r_2
+      subsurf_fin_n(:) = 0._r_2
+
       do kk = kk_begind, kk_endind
       
         k = grid_var%dwnstrm_index(kk)
         
-        if (grid_var%is_main_channel(kk) .and. grid_var%is_main_channel(k)) then  !current and downstream are main channels
+        if (grid_var%is_main_channel(kk) .ne. 0 .and. grid_var%is_main_channel(k) .ne. 0) then  !current and downstream are main channels
           !main channel flow.  this will use manning and a rectangular channel eventually.  kinematic place holder.
-          river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) + river%srf_runoff_flux(kk) + river%sub_runoff_flux(kk)
+          river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) +&
+                             river%srf_runoff_flux(kk) + river%sub_runoff_flux(kk)
           river_fin_n(k)  = river_fin_n(k) + river_theta * river_mass_n(kk)          
           !subsurf
           subsurf_mass_n(kk) = 0.  !no subsurface for the main channel
           subsurf_fin_n(kk) = 0.
-        elseif (grid_var%is_main_channel(k)) then    !not a main channel.  overland/subsurface routing for current, downstream is a main channel
+        elseif (grid_var%is_main_channel(k) .ne. 0) then    !not a main channel.  overland/subsurface routing for current, downstream is a main channel
           !overland flow
           river_mass_n(kk) = (1.-river_theta) * river%mass(kk) + river%Fin(kk) + river%srf_runoff_flux(kk)
           river_fin_n(k)  = river_fin_n(k) + river_theta * river_mass_n(kk)
           !subsurface flow.  leaves subsurface into main river channel
-          subsurf_mass_n(kk) = (1. - subsurf_theta) * river%mass_sub(kk) + river%Fin_sub(kk) + river%sub_runoff_flux(kk)
+          subsurf_mass_n(kk) = (1. - subsurf_theta) * river%mass_sub(kk) + &
+                                river%Fin_sub(kk) + river%sub_runoff_flux(kk)
           river_fin_n(k)   = river_fin_n(k) + subsurf_theta * subsurf_mass_n(kk)
           
         else   !both are not main channels
@@ -1140,7 +1148,7 @@ contains
         river%Fin(kk)  = river_fin_n(kk)  !store new values
         river%Fin_sub(kk) = subsurf_fin_n(kk)
         
-        river%flux(kk) = river_theta / del_river * river%mass(kk)   !why use the old timestep?
+        river%vel(kk) = river_theta / del_river * river%mass(kk)   !should be mass flux not vel
         river%mass(kk) = river_mass_n(kk)
         river%mass_sub(kk) = subsurf_mass_n(kk)
       
@@ -1618,9 +1626,10 @@ contains
   !
   end subroutine river_routing_main
   
-#endif    !end preproc check for mpi
-
-#endif    !end preproc check for using river routing module
+!end preproc check for mpi  
+#endif
+!end preproc check for using river routing module
+#endif
 
 
 end module cable_routing
