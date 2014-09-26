@@ -292,8 +292,8 @@ contains
     implicit none
     class(river_flow_type), intent(in)      :: river_var
     class(river_grid_type), intent(in)      :: grid_var
-    real(r_2),  intent(inout)    :: river_mass_lsm(:)
-    real(r_2), intent(inout)     :: subsrf_mass_lsm(:)
+    real(r_2),  intent(inout)               :: river_mass_lsm(:)
+    real(r_2), intent(inout)                :: subsrf_mass_lsm(:)
 
     integer :: kk,i,ii
 
@@ -322,7 +322,7 @@ contains
   subroutine create_river_grid_copy(grid_var,new_grid_var,ncells)
     class(river_grid_type), intent(in)    :: grid_var
     class(river_grid_type), intent(inout) :: new_grid_var    
-    integer, optional, intent(in)         :: ncells
+    integer, optional,      intent(in)    :: ncells
 
 
     !local variables
