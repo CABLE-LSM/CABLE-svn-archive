@@ -37,7 +37,7 @@ module cable_routing
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
   !**************************************************************************!
-#ifndef with_cable  
+#ifndef with_cable 
   integer, parameter :: r_2  = SELECTED_REAL_KIND(12, 50)
   integer   :: mlat = 108
   integer   :: mlon = 243
@@ -67,9 +67,12 @@ module cable_routing
   
   type map_grid_type
     
-    integer, pointer, dimension(:,:)   :: ind_lgr    !index of the Land cell  Given the River cell
-    real(r_2), pointer, dimension(:,:) :: weight_lgr   
-    integer, pointer, dimension(:)     :: n_ovrlap_lgr   !number of rivers cells that over lap the land cell  
+    integer, pointer, dimension(:,:)   :: ind_lgr        !index of the Land cell  Given the River cell
+    real(r_2), pointer, dimension(:,:) :: weight_lgr     !fraction of the river cell covered by land cell relative to total river cell area
+                                                         !Land Going to River
+    real(r_2), pointer, dimension(:,:) :: weight_rgl     !fraction of the river cell covered by land cell relative to total land cell area
+                                                         !River Going to Land
+    integer, pointer, dimension(:)     :: n_ovrlap_lgr   !number of land cells that over lap the river cell  
     
     contains
     procedure :: create  => alloc_river_map_grid
@@ -184,6 +187,7 @@ module cable_routing
   !
   !    call associate_ocean_outlet_points(river_grid)
   !                                       river_grid%{ocean_outlet,upstrm_number,nbasins,nrr_cells,land_mask}
+  !                                         !currently ocean cells are single cell basins
   !
   !    call reorder_grid_by_basin(river,river_grid,basin)
   !                                             => basin%{n_basin_cells,river_points}
@@ -257,6 +261,7 @@ contains
 
     integer :: kk,i,ii
 
+
     !determine runoff input in river cells from lsm:
     river_var%srf_runoff_flux(:) = 0._r_2
     river_var%sub_runoff_flux(:) = 0._r_2    
@@ -296,8 +301,8 @@ contains
       do i=1,grid_var%maps%n_ovrlap_lgr(kk)
 
         ii = grid_var%maps%ind_lgr(kk,i) 
-        river_mass_lsm(ii)   = river_mass_lsm(ii) + river_var%mass(kk)*grid_var%maps%weight_lgr(kk,i)/grid_var%area(kk)  !mm => mm/m2
-        subsurf_mass_lsm(ii) = subsurf_mass_lsm(ii) + river_var%mass_sub(kk)*grid_var%maps%weight_lgr(kk,i)/grid_var%area(kk)  !mm => mm/m2
+        river_mass_lsm(ii)   = river_mass_lsm(ii) + river_var%mass(kk)*grid_var%maps%weight_rgl(kk,i)/grid_var%area(kk)  !mm => mm/m2
+        subsurf_mass_lsm(ii) = subsurf_mass_lsm(ii) + river_var%mass_sub(kk)*grid_var%maps%weight_rgl(kk,i)/grid_var%area(kk)  !mm => mm/m2
         
       end do
 
@@ -392,6 +397,7 @@ contains
     !don't forget the maps derived type!
     new_grid_var%maps%ind_lgr(m1:m2,:)    = grid_var%maps%ind_lgr(m3:m4,:)
     new_grid_var%maps%weight_lgr(m1:m2,:) = grid_var%maps%weight_lgr(m3:m4,:)
+    new_grid_var%maps%weight_rgl(m1:m2,:) = grid_var%maps%weight_rgl(m3:m4,:)
     new_grid_var%maps%n_ovrlap_lgr(m1:m2) = grid_var%maps%n_ovrlap_lgr(m3:m4)
 
 
@@ -619,7 +625,7 @@ contains
     class(river_grid_type), intent(inout) :: grid_var
   
     !local variables
-    integer :: i,j,k
+    integer :: i,j,k,j_prev
   
     grid_var%ocean_outlet(:)  = -1
     grid_var%upstrm_number(:) = 0
@@ -630,15 +636,17 @@ contains
       if (grid_var%land_mask(i) .eq. 1) then   !it is a land cell
       
         k = 0
+        
         do while ((grid_var%land_mask(j) .eq. 1) .and. k < grid_var%npts)
-           j = grid_var%dwnstrm_index(j)               !index of the most downstream point.  ie end of the line
+           j_prev = j                                  
+           j = grid_var%dwnstrm_index(j)      !index of the next downstream point.  j_prev now the most recent upstream cell
            k = k + 1
         end do
          
-        if (grid_var%land_mask(j) .eq. 2) then  !ended at an ocean point
-          grid_var%ocean_outlet(i) = j
+        if (grid_var%land_mask(j) .eq. 0) then  !ended at an ocean point.  previous land pt is the outlet cell
+          grid_var%ocean_outlet(i) = j_old
           grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1
-        elseif (grid_var%land_mask(j) .eq. 1) then          !ended at a land point
+        elseif (grid_var%land_mask(j) .eq. 1) then          !ended at a land point.  this is the outlet cell
           grid_var%ocean_outlet(i) = j
           grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1
         else
@@ -646,16 +654,16 @@ contains
         end if
          
       else
-        grid_var%ocean_outlet(i) = j                                 !if it is ocean it is its own outlet
-        grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1  !and has only itself as an upstream cell
+        grid_var%ocean_outlet(i) = j                               !if it is ocean it is its own outlet
+        grid_var%upstrm_number(j) = 0                              !and has only itself as an upstream cell
       end if
     end do
          
-    !count the total number of basins.
+    !count the total number of basins.   
     grid_var%nrr_cells = 0
     grid_var%nbasins   = 0
     do i=1,grid_var%npts
-      if (grid_var%upstrm_number(i) .gt. 0) then   !upstrm > 1 only for
+      if (grid_var%upstrm_number(i) .gt. 0) then   !count ocean cells that are now single cell basins.  dealt with in reorder_grid_by_basin
          grid_var%nbasins = grid_var%nbasins + 1
          grid_var%nrr_cells = grid_var%nrr_cells + 1
       end if
@@ -684,7 +692,7 @@ contains
     ord_grid_var%nrr_cells = grid_var%nrr_cells
     ord_grid_var%nbasins   = grid_var%nbasins    
     
-    allocate(tmp_indices(grid_var%npts))
+    allocate(tmp_indices(grid_var%npts))   !tmp_indices large enough to hold all points rather than reallocating specific size
 
     total_nbasins = grid_var%nbasins
     !find the total number of basins with multiple upstream river cells
@@ -703,8 +711,8 @@ contains
     do i=1,total_nbasins
        tmp_indices(:) = 0
        cnt = 0
-       !is this a basin with > 2 river cells?  i.e. not just an ocean cell?
-       if (grid_var%upstrm_number(i) .gt. 2) then
+       !is this a basin with > 1 river cells?  i.e. not just an ocean cell?
+       if (grid_var%upstrm_number(i) .ge. 2) then
          j=j+1
        
          do kk=1,grid_var%npts
@@ -727,20 +735,22 @@ contains
     !the ocean cells have been eliminated through the above process.  npts should also change
     
         ! I need to reorder the basin cells so they are contiguous.
-        !then each loop can go from i=pe_start,pe_end; wat_mass(i) = dt*(Fin-Fout) + wat_mass(i)
+        !then each loop can go from i=pe_start,pe_end if each holds global array
     cnt=1
     do i=1,ord_grid_var%nbasins
+    
       basins(i)%begind = cnt
       basins(i)%endind = cnt + basins(i)%n_basin_cells - 1
+      
       do kk=1,basins(i)%n_basin_cells
+      
         k = basins(i)%river_points(kk)
-
-        call grid_var%copy_vectors(ord_grid_var,cnt,cnt,k,k)
-        
-        !flow variables yet to be defined.  no need to remap
-        ! wat_mass, wat_vol, wat_hgt, wat_length
+        call grid_var%copy_vectors(ord_grid_var,cnt,cnt,k,k)  !copies only a single point for all vectors from grid_var to ord_grid_var
+        !Note: flow variables yet to be defined.  no need to remap
         cnt = cnt + 1
+        
       end do
+      
     end do 
                                                        
     deallocate(tmp_indices)
@@ -748,13 +758,14 @@ contains
     !destroy grid var.  make it new with fewer points (doesn't include the ocean now)
     call grid_var%destroy()
 
-    call ord_grid_var%create_copy(grid_var,total_land_cells)
-!    call grid_var%create(total_land_cells)       !alternate method
+    call ord_grid_var%create_copy(grid_var,total_land_cells)   !now copy ord_grid_var to grid_var
+    !alternate method encapsulated by using create_copy:
+!    call grid_var%create(total_land_cells)     
 !    call ord_grid_var%copy_vectors(ord_grid_var,1,total_land_cells,1,total_land_cells)
-    grid_var%nbasins = ord_grid_var%nbasins
-    grid_var%nlat = ord_grid_var%nlat
-    grid_var%nlon = ord_grid_var%nlon
-    grid_var%nrr_cells = ord_grid_var%nrr_cells  
+!    grid_var%nbasins = ord_grid_var%nbasins
+!    grid_var%nlat = ord_grid_var%nlat
+!    grid_var%nlon = ord_grid_var%nlon
+!    grid_var%nrr_cells = ord_grid_var%nrr_cells  
     
     call ord_grid_var%destroy()  !clean up
 
@@ -777,7 +788,7 @@ contains
     
     integer, allocatable, dimension(:) :: active_basin
     
-    !find the total number of active cells.  use this to create new grid and basins
+    !find the total number of active cells.  use this to create new grid and basins.  
     total_active_cells = sum(grid_var%active_cell(:))
     
     allocate(active_basin(grid_var%nbasins))
@@ -973,6 +984,7 @@ contains
     !init overlap mappings and areas
     grid_var%maps%n_ovrlap_lgr(:) = 0
     grid_var%maps%weight_lgr(:,:) = 0._r_2
+    grid_var%maps%weight_rgl(:,:) = 0._r_2
     grid_var%maps%ind_lgr(:,:)    = -1
     
     !initialize all cells to inactive
@@ -1005,6 +1017,7 @@ contains
             (Sedge_hi .le. Nedge_lo) .and. (Nedge_hi .ge. Sedge_lo)) then
               
           grid_var%maps%n_ovrlap_lgr(kk) = grid_var%maps%n_ovrlap_lgr(kk) + 1  !number of overlapping cells
+          grid_var%active_cell(kk) = 1             !mark this river cell as active.  only active if covered by the lsm
           
           dlone = min(Eedge_lo,Eedge_hi)*deg2rad !determine area of input cell within the output grid cell
           dlonw = max(Wedge_lo,Wedge_hi)*deg2rad 
@@ -1015,9 +1028,8 @@ contains
           dy = max(0.0,(sin(dlatn)-sin(dlats)))
 
           grid_var%maps%ind_lgr(kk,grid_var%maps%n_ovrlap_lgr(kk))    = k                   !lsm point for given river point
-          grid_var%maps%weight_lgr(kk,grid_var%maps%n_ovrlap_lgr(kk)) = dx*dy / area_lo     !fraction of lsm cell k occupied by river cell.  need pft frac somehwere
-              
-          grid_var%active_cell(kk) = 1             !mark this river cell as active.
+          grid_var%maps%weight_lgr(kk,grid_var%maps%n_ovrlap_lgr(kk)) = dx*dy / area_lo     !fraction of river cell k overlapping by lsm cell k.  need pft frac somehwere
+          grid_var%maps%weight_rgl(kk,grid_var%maps%n_ovrlap_rgl(kk)) = dx*dy / area_hi
 
         end if  !test lon overlap
         
@@ -1218,6 +1230,9 @@ contains
     allocate(var%weight_lgr(npts,max_n_ovrlap))
     var%weight_lgr(:,:) = fNaN
     
+    allocate(var%weight_rgl(npts,max_n_ovrlap))
+    var%weight_rgl(:,:) = fNaN    
+    
     allocate(var%n_ovrlap_lgr(npts))
     var%n_ovrlap_lgr(:) = iNaN    
     
@@ -1232,6 +1247,7 @@ contains
     
     deallocate(var%ind_lgr)    
     deallocate(var%weight_lgr)    
+    deallocate(var%weight_rgl)     
     deallocate(var%n_ovrlap_lgr)    
     
   end subroutine dealloc_river_map_grid
