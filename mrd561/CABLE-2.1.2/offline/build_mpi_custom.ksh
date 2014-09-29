@@ -11,7 +11,7 @@ host_ccrc()
    export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
    export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
    export FC=mpif90
-   export CFLAGS='-O3 -fp-model source -ftrapuv -ipo -xhost'   #-traceback
+   export CFLAGS='-O3 -fp-model source -ftrapuv -ipo -xhost -vec-report5'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -debug -g -ftrapuv -CB -check bounds -diag-enable warn'
 # -diag-enable sc2 -diag-enable sc-single-file

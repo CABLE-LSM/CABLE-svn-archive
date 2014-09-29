@@ -1482,8 +1482,8 @@ contains
   !all calc it but only save the basin start and end inds for myrank
   !or I could run only on myrank = 1, bcast to other ranks
     implicit none
-    class(river_grid_type), intent(inout) :: grid_var
-    class(basin_type), intent(inout)      :: basins
+    class(river_grid_type),          intent(inout) :: grid_var
+    class(basin_type), dimension(:), intent(inout) :: basins
     integer, intent(out)                  :: my_basin_start     !number of starting basin to do 
     integer, intent(out)                  :: my_basin_end       !basin number of ending basins
     integer, intent(out)                  :: global_index_start !starting in dex in global river array
@@ -1500,6 +1500,8 @@ contains
     
     integer :: bg,ed,i,j,k
     integer :: current_basin
+    integer :: start_basin
+    integer :: end_basin
     integer :: npts_tmp
     logical :: keep_searching
     
@@ -1526,11 +1528,7 @@ contains
     allocate(basins_pe_end(0:nworkers)) 
     basins_pe_end(:) = 0
     
-    if (myrank .eq. 0) then
-    
-      if (nworkers .gt. 1) then   !2 procs means 1 worker 1 master.  worker does all computations
-    
-        ideal_npts_per_pe = ceiling(real(grid_var%npts)/real(nworkers))
+      ideal_npts_per_pe = int(real(grid_var%npts)/real(grid_var%npts))
       
         current_basin = 1
       
@@ -1540,18 +1538,18 @@ contains
           npts_tmp = 0
           start_basin = current_basin
         
-          do while (keep_searching)
-            npts_tmp = npts_tmp + basins(current_basin)%n_basin_cells
-            if (npts_tmp .gt. 0.95*ideal_npts_per_pe) then
-              keep_searching = .false.
-            elseif (current_basin .lt. grid_var%nbasins -1)
-              current_basin = current_basin + 1
-            else
-              keep_searching = .false.
-            end if
-          end do
-          end_basin = current_basin
-          npts_per_pe(i) = ntps_tmp
+        do while (keep_searching)
+          npts_tmp = npts_tmp + basins(current_basin)%n_basin_cells
+          if (npts_tmp .gt. 0.95*ideal_npts_per_pe) then
+            keep_searching = .false.
+          elseif (current_basin .lt. grid_var%nbasins -1) then
+            current_basin = current_basin + 1
+          else
+            keep_searching = .false.
+          end if
+        end do
+        end_basin = current_basin
+        npts_per_pe(i) = npts_tmp
         
           basins_pe_start(i) = start_basin
           basins_pe_end(i)   = end_basin
@@ -1605,7 +1603,7 @@ contains
     deallocate(basins_pe_end)      
     
 
-  end subroutine calc_basins_per_pe
+  end subroutine calculate_basins_per_pe
   
 !----------------------------------------------------------------------------! 
 
@@ -1613,10 +1611,10 @@ contains
   end subroutine send_lsm_runoff_to_procs
   
   subroutine send_river_vars_to_procs()
-  end subroutine send_river_vars_to_procs()
+  end subroutine send_river_vars_to_procs
   
   subroutine collect_river_vars_from_procs()
-  end subroutine collect_river_vars_from_proc
+  end subroutine collect_river_vars_from_procs
   
   
   subroutine river_routing_main()   !called from cable.

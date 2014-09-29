@@ -1102,12 +1102,11 @@ contains
       
     end do  !loop over mp land points
     
-  end subroutine determine_hilo_res_mapping 
-  
-!----------------------------------------------------------------------------!
-
-  subroutine step_river_routing(river,grid_var,basins)
-    implicit none
+  end subroutine determine_hilo_res_mappings 
+!----------------------------------------------------------------------------- 
+!-----------------------------------------------------------------------------   
+  subroutine step_river_routing(river,river_grid,basins,basins_pe_start,basins_pe_end)
+     implicit none
      
     type(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
     type(river_grid_type),          intent(in)    :: grid_var
@@ -1546,8 +1545,8 @@ contains
   !all calc it but only save the basin start and end inds for myrank
   !or I could run only on myrank = 1, bcast to other ranks
     implicit none
-    type(river_grid_type), intent(inout) :: grid_var
-    type(basin_type), intent(inout)      :: basins
+    type(river_grid_type),          intent(inout) :: grid_var
+    type(basin_type), dimension(:), intent(inout) :: basins
     integer, intent(out)                  :: my_basin_start     !number of starting basin to do 
     integer, intent(out)                  :: my_basin_end       !basin number of ending basins
     integer, intent(out)                  :: global_index_start !starting in dex in global river array
@@ -1564,6 +1563,8 @@ contains
     
     integer :: bg,ed,i,j,k
     integer :: current_basin
+    integer :: start_basin
+    integer :: end_basin
     integer :: npts_tmp
     logical :: keep_searching
     
@@ -1615,7 +1616,7 @@ contains
             end if
           end do
           end_basin = current_basin
-          npts_per_pe(i) = ntps_tmp
+          npts_per_pe(i) = npts_tmp
         
           basins_pe_start(i) = start_basin
           basins_pe_end(i)   = end_basin
