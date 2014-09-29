@@ -49,6 +49,7 @@ module cable_routing
 
   real(r_2), dimension(:,:), allocatable, save :: lat_all
   real(r_2), dimension(:,:), allocatable, save :: lon_all   
+  real(r_2), dimension(:), allocatable, save :: pft_frac_lo
 #endif  
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
@@ -172,7 +173,7 @@ module cable_routing
   !below will go into cable_routing_main_routine.  !global on myrank =0, local on myrank=1->nprocs
   type(river_grid_type), TARGET, SAVE :: global_river_grid      , local_river_grid
   type(river_flow_type), TARGET, SAVE :: global_river           , local_river
-  type(basin_type), pointer, save, dimension(:) :: global_basins, local_basins
+  class(basin_type), pointer, save, dimension(:) :: global_basins, local_basins
   
   
   !outline
