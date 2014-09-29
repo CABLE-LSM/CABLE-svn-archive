@@ -2,10 +2,10 @@
 ! compile with -Dname=def which is the same as
 !  #define name def
 !
-!  this module needs to have -DRRM  (RRM => River Routing Module)
+!  this module needs to have -DRRM=1  (RRM => River Routing Module)
 !
 !  so if using mpi (River Routing Modue _ MPI )
-!  -DRRM_MPI
+!  -DRRM_MPI=1
 !  not using mpi don't include this option
 !
 !
@@ -13,6 +13,7 @@
 !  else define local parameters that are needed from cable
 
 module cable_routing
+
 #ifdef RRM
 
   use netcdf
@@ -33,7 +34,7 @@ module cable_routing
 #endif
 
   implicit none
-    
+  public
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
   !**************************************************************************!
@@ -221,6 +222,10 @@ module cable_routing
     !  end do
     !end do    
 
+  public map_lsm_runoff_to_river,get_river_route_data,find_downstream_index,associate_ocean_outlet_points
+  public reorder_grid_by_basin,remove_inactive_land_basins,find_main_river_channels
+
+
   interface create
     module procedure alloc_river_flow ! interface for a module
     module procedure alloc_river_grid ! procedure is implicit
@@ -239,7 +244,7 @@ module cable_routing
     module procedure read_nc_flt
     module procedure read_nc_int
   end interface
-  
+ 
 
 contains
 
@@ -1102,10 +1107,10 @@ contains
       
     end do  !loop over mp land points
     
-  end subroutine determine_hilo_res_mappings 
+  end subroutine determine_hilo_res_mapping
 !----------------------------------------------------------------------------- 
 !-----------------------------------------------------------------------------   
-  subroutine step_river_routing(river,river_grid,basins,basins_pe_start,basins_pe_end)
+  subroutine step_river_routing(river,grid_var,basins)
      implicit none
      
     type(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
@@ -1540,7 +1545,8 @@ contains
 
 #ifdef RRM_MPI
 
-  subroutine calculate_basins_per_pe(grid_var,basins,my_basin_start,my_basin_end,np,mrnk)
+  subroutine calculate_basins_per_pe(grid_var,basins,my_basin_start,my_basin_end,&
+                                     global_index_start,global_index_end,np,mrnk)
   !all procs call this routine.
   !all calc it but only save the basin start and end inds for myrank
   !or I could run only on myrank = 1, bcast to other ranks
@@ -1609,7 +1615,7 @@ contains
             npts_tmp = npts_tmp + basins(current_basin)%n_basin_cells
             if (npts_tmp .gt. 0.95*ideal_npts_per_pe) then
               keep_searching = .false.
-            elseif (current_basin .lt. grid_var%nbasins -1)
+            elseif (current_basin .lt. grid_var%nbasins -1) then
               current_basin = current_basin + 1
             else
               keep_searching = .false.
@@ -1694,8 +1700,7 @@ contains
   
 !end preproc check for mpi  
 #endif
-!end preproc check for using river routing module
-#endif
 
+#endif
 
 end module cable_routing
