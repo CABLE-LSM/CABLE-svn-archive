@@ -18,10 +18,6 @@ module cable_routing
 
   use netcdf
   
-#ifdef RRM_MPI
-  use mpi
-#endif
-
 #ifdef with_cable
   use cable_types
   use cable_common_module, only : cable_user
@@ -34,6 +30,12 @@ module cable_routing
 #endif
 
   implicit none
+
+#ifdef RRM_MPI
+  include 'mpif.h'
+#endif
+
+
   public
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
@@ -51,6 +53,9 @@ module cable_routing
   real(r_2), dimension(:,:), allocatable, save :: lat_all
   real(r_2), dimension(:,:), allocatable, save :: lon_all   
   real(r_2), dimension(:), allocatable, save :: pft_frac_lo
+
+  !MPI
+  integer :: comm,ierr
 #endif  
   !**************************************************************************!
   !  Temporary to avoid having to link to the CABLE mods while testing       !
@@ -1651,7 +1656,7 @@ contains
 
       write(*,*) 'The number of river cells per mpi proc is:'
       
-      do i=1,workers
+      do i=1,nworkers
         write(*,*) 'proc: ',i,' number of cells: ',npts_per_pe(i)
       end do
       
@@ -1676,7 +1681,7 @@ contains
     deallocate(basins_pe_end)      
     
 
-  end subroutine calc_basins_per_pe
+  end subroutine calculate_basins_per_pe
   
 !----------------------------------------------------------------------------! 
 
@@ -1684,10 +1689,10 @@ contains
   end subroutine send_lsm_runoff_to_procs
   
   subroutine send_river_vars_to_procs()
-  end subroutine send_river_vars_to_procs()
+  end subroutine send_river_vars_to_procs
   
   subroutine collect_river_vars_from_procs()
-  end subroutine collect_river_vars_from_proc
+  end subroutine collect_river_vars_from_procs
   
   
   subroutine river_routing_main()   !called from cable.
