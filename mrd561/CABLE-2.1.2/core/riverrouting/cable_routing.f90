@@ -17,6 +17,7 @@ module cable_routing
 #ifdef RRM
 
   use netcdf
+  use cable_rrm_nc_names  
   
 #ifdef with_cable
   use cable_types
@@ -41,7 +42,7 @@ module cable_routing
   !  Temporary to avoid having to link to the CABLE mods while testing       !
   !**************************************************************************!
 #ifndef with_cable 
-  integer, parameter :: r_2  = SELECTED_REAL_KIND(12, 50)
+  integer, parameter :: r_2  = SELECTED_REAL_KIND(8)
   integer   :: mlat = 108
   integer   :: mlon = 243
   integer   :: mp = 243*108
@@ -63,7 +64,7 @@ module cable_routing
   
   !parameters
   integer,   parameter :: n_river_tracers = 1   !number of tracers...liq  -->carbon,nitrogen and ice??.  not in use as of now
-  integer,   parameter :: max_n_ovrlap = 324   !assume at most 1x1 to 0.0625x0.0625 -->16x16  do 18x18=324 to be safe
+  integer,   parameter :: max_n_ovrlap = 4!324   !assume at most 1x1 to 0.0625x0.0625 -->16x16  do 18x18=324 to be safe
   real(r_2), parameter :: re = 6371000.0              !radius of the earth (km)
   real(r_2), parameter :: deg2rad = 3.14159/180.0     !constant converts degrees to radians
   real(r_2), parameter :: eps=1e-5                    !tolerance parameter.  UNUSED NOW 
@@ -228,7 +229,7 @@ module cable_routing
     !end do    
 
   public map_lsm_runoff_to_river,get_river_route_data,find_downstream_index,associate_ocean_outlet_points
-  public reorder_grid_by_basin,remove_inactive_land_basins,find_main_river_channels
+  public reorder_grid_by_basin,remove_inactive_land_basins,find_main_river_channels,check_nc
 
 
   interface create
@@ -517,7 +518,6 @@ contains
   subroutine get_river_route_data(grid_var,filename)
   
   !reads while file.  need to determine if covered by lsm grid later
-    use netcdf
     implicit none
 
     type(river_grid_type), intent(inout)   :: grid_var    
@@ -528,17 +528,6 @@ contains
     integer :: nlat_rr_file, nlon_rr_file, npts_rr_file
     integer :: nlat_rr,nlon_rr,npts_rr
     
-    
-    character(len=*), parameter :: mask_name     = "land_mask"
-    character(len=*), parameter :: length_name   = "river_distance"
-    character(len=*), parameter :: slope_name    = "stddev_elevation"  !"slope"
-    character(len=*), parameter :: elev_name     = "outlet_elevation"   !"elevation"
-    character(len=*), parameter :: rdir_name     = "river_direction"
-    character(len=*), parameter :: src_area_name = "source_area"
-    character(len=*), parameter :: rr_lat_dim_name = "lat"
-    character(len=*), parameter :: rr_lon_dim_name = "lon"
-    character(len=*), parameter :: rr_lat_var_name = "latitude"
-    character(len=*), parameter :: rr_lon_var_name = "longitude"
     
     real(r_2), dimension(:)  , allocatable :: lat_data
     real(r_2), dimension(:)  , allocatable :: lon_data
@@ -578,6 +567,8 @@ contains
     start_inds = (/1           , 1          /)
     end_inds   = (/nlon_rr_file,nlat_rr_file/)
     
+    npts_rr_file = nlon_rr_file * nlat_rr_file
+    
     !allocate variable for the river grid
     call alloc_river_grid(grid_var,npts_rr_file)
     
@@ -605,7 +596,6 @@ contains
     
     nc_check = nf90_close(ncid_river)
     
-    deallocate(tmp_mask_data)
         
   end subroutine get_river_route_data
     
