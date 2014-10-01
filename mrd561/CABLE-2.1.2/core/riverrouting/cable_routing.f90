@@ -767,13 +767,18 @@ contains
         basin_map(j) = i
       end if 
     end do
-    
+
     ord_grid_var%nbasins = j               !new number of basins with ocean removed
     allocate(basins(ord_grid_var%nbasins))    
+
+     do i=1,ord_grid_var%nbasins 
+       write(*,*) basin_map(i)
+    end do
     
     total_land_cells = 0
     j = 0
-    do i=1,total_nbasins
+    do i=1,ord_grid_var%nbasins
+       write(*,*) real(i)/real(ord_grid_var%nbasins)*100.0
        tmp_indices(:) = 0
        cnt = 0
        !is this a basin with > 1 river cells?  test number of upstream cells for the given ocean outlet (basin number = ocean outlet cell number)
