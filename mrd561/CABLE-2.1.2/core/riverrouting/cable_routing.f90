@@ -687,7 +687,7 @@ contains
     integer :: i,j,k,j_prev
   
     grid_var%ocean_outlet(:)  = -1
-    grid_var%upstrm_number(:) = 0
+    grid_var%upstrm_number(:) = 0   !upstrm_number only non-zero for outlet cells
     
     do i=1,grid_var%npts
       j = i
@@ -724,7 +724,7 @@ contains
     do i=1,grid_var%npts
       if (grid_var%upstrm_number(i) .gt. 0) then   !count ocean cells that are now single cell basins.  dealt with in reorder_grid_by_basin
          grid_var%nbasins = grid_var%nbasins + 1
-         grid_var%nrr_cells = grid_var%nrr_cells + 1
+         grid_var%nrr_cells = grid_var%nrr_cells + grid_var%upstrm_number(i)
       end if
     end do
     
@@ -740,6 +740,7 @@ contains
 
     integer :: cnt, i,ii,j,k, kk, total_nbasins, total_land_cells, ncells
     integer, allocatable, dimension(:) :: tmp_indices
+    integer, allocatable, dimension(:) :: basin_map  !maps the basin number to the outlet cell number in the global array
     
     type(river_grid_type) :: ord_grid_var   !grid variable ordered so basins are continuous
     
@@ -755,12 +756,16 @@ contains
     allocate(tmp_indices(grid_var%npts))   !tmp_indices large enough to hold all points rather than reallocating specific size
 
     total_nbasins = grid_var%nbasins
+
+    allocate(basin_map(total_nbasins))
     !find the total number of basins with multiple upstream river cells
+    basin_map(:) = -1
     j = 0
-    do i=1,total_nbasins
-      if (grid_var%upstrm_number(i) .gt. 2) then
+    do i=1,grid_var%npts
+      if (grid_var%upstrm_number(i) .gt. 2)  then
         j = j + 1
-      end if
+        basin_map(j) = i
+      end if 
     end do
     
     ord_grid_var%nbasins = j               !new number of basins with ocean removed
@@ -771,8 +776,8 @@ contains
     do i=1,total_nbasins
        tmp_indices(:) = 0
        cnt = 0
-       !is this a basin with > 1 river cells?  i.e. not just an ocean cell?
-       if (grid_var%upstrm_number(i) .ge. 2) then
+       !is this a basin with > 1 river cells?  test number of upstream cells for the given ocean outlet (basin number = ocean outlet cell number)
+       if (grid_var%upstrm_number(basin_map(i)) .ge. 2) then
          j=j+1
        
          do kk=1,grid_var%npts
@@ -791,6 +796,7 @@ contains
                                                         !will need to put these in contiguous array to pass back to master.                                          
        end if
     end do
+
     
     !the ocean cells have been eliminated through the above process.  npts should also change
     
@@ -814,6 +820,7 @@ contains
     end do 
                                                        
     deallocate(tmp_indices)
+    deallocate(basin_map)
     
     !destroy grid var.  make it new with fewer points (doesn't include the ocean now)
     call destroy(grid_var)
