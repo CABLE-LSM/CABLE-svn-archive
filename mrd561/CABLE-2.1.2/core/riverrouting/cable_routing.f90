@@ -465,7 +465,7 @@ contains
     real(r_2), pointer, dimension(:)  :: Fout
     
     real(r_2) :: total_mass, total_lsm_flux,total_outflow, init_total_mass
-    integer :: i,j,k,bg,ed
+    integer :: i,j,bg,ed
     
     
     mass_srf        => river_var%mass(:)
@@ -526,22 +526,16 @@ contains
     integer :: ncid_river
     integer :: rr_lat_dim_id,rr_lon_dim_id,rr_lat_var_id,rr_lon_var_id
     integer :: nlat_rr_file, nlon_rr_file, npts_rr_file
-    integer :: nlat_rr,nlon_rr,npts_rr
     
     
     real(r_2), dimension(:)  , allocatable :: lat_data
     real(r_2), dimension(:)  , allocatable :: lon_data
-    integer  , dimension(:,:), allocatable :: tmp_mask_data
     
     integer :: i,j,k     !integers to loop through lsm data
-    integer :: ri,rj,rk  !integers to loop through river
-    integer :: nc_check
     
-    integer :: lon_start,lon_end,lat_start,lat_end
     integer, dimension(2) :: start_inds
     integer, dimension(2) :: end_inds
-    
-    real :: dlat_lsm,dlon_lsm
+    integer :: nc_check
     
     call check_nc( nf90_open(trim(filename), nf90_nowrite, ncid_river) )
 
@@ -744,7 +738,7 @@ contains
     type(river_grid_type),                   intent(inout) :: grid_var    
     type(basin_type), pointer, dimension(:), intent(inout) :: basins
 
-    integer :: cnt, i,ii,j,jj,k, kk, total_nbasins, total_land_cells, ncells
+    integer :: cnt, i,ii,j,k, kk, total_nbasins, total_land_cells, ncells
     integer, allocatable, dimension(:) :: tmp_indices
     
     type(river_grid_type) :: ord_grid_var   !grid variable ordered so basins are continuous
@@ -849,7 +843,7 @@ contains
     type(basin_type), allocatable, dimension(:) :: cmp_basins
     type(river_grid_type)                       :: cmp_grid_var
     
-    integer :: i,j,k,ii,jj,kk,cnt,js,je,ks,ke
+    integer :: i,j,k,ii,kk,cnt,js,je,ks,ke
     integer :: n_active_cells
     integer :: total_active_cells
     
@@ -965,7 +959,7 @@ contains
 
     type(river_grid_type), intent(inout) :: grid_var
 
-    integer :: k,kk,j,jj
+    integer :: k,kk,j
     integer :: ntot
     logical :: keep_looping
 
@@ -1015,7 +1009,7 @@ contains
     real(r_2), dimension(:), intent(in)    :: pft_frac_lo   !for tiled it is the fraction fo grid cell occupied by the pft
 
     !local variables
-    integer   :: i,j,ii,jj,k,kk,k_tmp,kk_tmp  !integer counters for the loops
+    integer   :: i,j,ii,k,kk   !integer counters for the loops
 
     real(r_2) :: dlat_lo,dlon_lo   !grid cell size (degrees) of lo res grid
     real(r_2) :: dlat_hi,dlon_hi !grid cell size (degrees) of hi res grid
@@ -1105,15 +1099,14 @@ contains
   end subroutine determine_hilo_res_mapping
 !----------------------------------------------------------------------------- 
 !-----------------------------------------------------------------------------   
-  subroutine step_river_routing(river,grid_var,basins)
+  subroutine step_river_routing(river,grid_var)
      implicit none
      
     type(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
     type(river_grid_type),          intent(in)    :: grid_var
-    type(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin    
      
     integer :: kk_begind, kk_endind
-    integer :: i,j,k,ii,jj,kk
+    integer :: i,j,ii,kk
        
     !do i=basins_pe_start,basins_pe_end!    loop over a subsection of all of the basins
 
@@ -1140,15 +1133,14 @@ contains
     
 !----------------------------------------------------------------------------!
 
-  subroutine step_river_srf_subsrf_routing_kinematic(river,grid_var,basins)
+  subroutine step_river_srf_subsrf_routing_kinematic(river,grid_var)
     implicit none
      
     type(river_flow_type),          intent(inout) :: river   !contains mass,flow variables
     type(river_grid_type),          intent(in)    :: grid_var
-    type(basin_type), dimension(:), intent(in)    :: basins          !contains info on each basin    
      
     integer :: kk_begind, kk_endind
-    integer :: i,j,k,ii,jj,kk
+    integer :: i,j,k,ii,kk
     
     real(r_2), allocatable, dimension(:)  :: river_fin_n, river_mass_n  !overland / river components
     real(r_2), allocatable, dimension(:)  :: subsurf_fin_n, subsurf_mass_n  !subsurface store, fluxes
@@ -1493,7 +1485,7 @@ contains
     real(r_2), dimension(:), intent(inout) :: var_data
     integer, dimension(:,:), optional    :: mask    
     
-    integer :: nc_check,nlat_rr,nlon_rr,var_id
+    integer :: nlat_rr,nlon_rr,var_id
     integer :: i,j,k
     
     real(r_2), dimension(:,:), allocatable :: flt_data
