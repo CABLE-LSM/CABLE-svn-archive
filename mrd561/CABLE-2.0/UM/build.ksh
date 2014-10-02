@@ -205,7 +205,7 @@ build_build()
    fi
    
    ## make library from CABLE object files
-   /usr/bin/ar r libcable.a cable_explicit_driver.o cable_implicit_driver.o   \
+   /usr/bin/ar r libcable-2.0.a cable_explicit_driver.o cable_implicit_driver.o   \
       cable_rad_driver.o cable_hyd_driver.o cable_common.o  \
       cable_define_types.o cable_data.o \
       cable_soilsnow.o cable_air.o cable_albedo.o cable_radiation.o  \

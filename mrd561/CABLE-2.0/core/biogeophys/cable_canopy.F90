@@ -2113,9 +2113,12 @@ SUBROUTINE calc_srf_wet_fraction_gw(ssnow,soil)
     REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
     REAL(r_2), DIMENSION(mp,ms)        :: dzmm_mp
 
-    REAL(r_2)                          :: MaxSatFraction
+    REAL(r_2)                          :: MaxSatFraction 
     REAL(r_2)                          :: EfoldMaxSatFrac
     LOGICAL, SAVE :: first_call = .true.
+
+    MaxSatFraction = 0.3
+    EfoldMaxSatFrac = 1.0
 
     xxx(:)   = 0._r_2
     dzmm_mp  = 1000._r_2 * real(spread(soil%zse,1,mp),r_2)
