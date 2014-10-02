@@ -76,9 +76,9 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow_gw,calc_srf_wet_fraction,calc_equilibrium_water_content ! must be available outside this module
+   PUBLIC soil_snow_gw,calc_equilibrium_water_content ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
-   PRIVATE trimb,snow_accum, stempv
+   PRIVATE trimb,snow_accum, stempv, calc_srf_wet_fraction
    PRIVATE soilfreeze, remove_trans,calcwtd
    PRIVATE smoistgw, ovrlndflx, solve_tridiag
 
