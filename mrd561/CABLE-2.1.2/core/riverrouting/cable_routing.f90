@@ -64,7 +64,7 @@ module cable_routing
   
   !parameters
   integer,   parameter :: n_river_tracers = 1   !number of tracers...liq  -->carbon,nitrogen and ice??.  not in use as of now
-  integer,   parameter :: max_n_ovrlap = 4!324   !assume at most 1x1 to 0.0625x0.0625 -->16x16  do 18x18=324 to be safe
+  integer,   parameter :: max_n_ovrlap = 16!324   !assume at most 1x1 to 0.0625x0.0625 -->16x16  do 18x18=324 to be safe
   real(r_2), parameter :: re = 6371000.0              !radius of the earth (km)
   real(r_2), parameter :: deg2rad = 3.14159/180.0     !constant converts degrees to radians
   real(r_2), parameter :: eps=1e-5                    !tolerance parameter.  UNUSED NOW 
