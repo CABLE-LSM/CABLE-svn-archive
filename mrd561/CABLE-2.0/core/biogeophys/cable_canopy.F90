@@ -2102,6 +2102,8 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
 
 SUBROUTINE calc_srf_wet_fraction_gw(ssnow,soil)
+   USE cable_def_types_mod
+   USE cable_common_module
 
   IMPLICIT NONE
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
@@ -2115,15 +2117,17 @@ SUBROUTINE calc_srf_wet_fraction_gw(ssnow,soil)
 
     REAL(r_2)                          :: MaxSatFraction 
     REAL(r_2)                          :: EfoldMaxSatFrac
+    REAL(r_2)                          :: dri
     LOGICAL, SAVE :: first_call = .true.
 
     MaxSatFraction = 0.3
     EfoldMaxSatFrac = 1.0
+    dri = 1.0
 
     xxx(:)   = 0._r_2
     dzmm_mp  = 1000._r_2 * real(spread(soil%zse,1,mp),r_2)
 
-    icemass  = ssnow%wbice(:,:) * dzmm_mp * dri
+    icemass  = ssnow%wbice(:,:) * dzmm_mp * dri  !should be dri
     liqmass  = (ssnow%wb-ssnow%wbice) * dzmm_mp
     totmass  = icemass + liqmass
 
