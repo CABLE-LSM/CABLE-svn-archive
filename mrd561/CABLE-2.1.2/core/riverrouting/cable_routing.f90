@@ -43,9 +43,9 @@ module cable_routing
   !**************************************************************************!
 #ifndef with_cable 
   integer, parameter :: r_2  = SELECTED_REAL_KIND(8)
-  integer   :: mlat = 150
-  integer   :: mlon = 360
-  integer   :: mp = mlon*mlat
+  integer, parameter :: mlat = 150
+  integer, parameter :: mlon = 360
+  integer, parameter :: mp = 360*150
   real(r_2) :: dels = 1800.0
   
   real(r_2), dimension(:), allocatable, save :: latitude
