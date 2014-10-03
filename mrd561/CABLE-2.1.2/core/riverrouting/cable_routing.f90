@@ -43,9 +43,9 @@ module cable_routing
   !**************************************************************************!
 #ifndef with_cable 
   integer, parameter :: r_2  = SELECTED_REAL_KIND(8)
-  integer   :: mlat = 108
-  integer   :: mlon = 243
-  integer   :: mp = 243*108
+  integer   :: mlat = 150
+  integer   :: mlon = 360
+  integer   :: mp = mlon*mlat
   real(r_2) :: dels = 1800.0
   
   real(r_2), dimension(:), allocatable, save :: latitude
@@ -1045,8 +1045,8 @@ contains
     end if
 
     if (size(lat_lo) .gt. mlat .and. size(lon_lo) .gt. mlon) then
-       dlat_lo  = abs(lat_all(1,2)-lat_all(1,1))  !array is compacted,  must use lat_all lon_all brought in from io_vars module
-       dlon_lo  = abs(lon_all(2,1) - lon_all(1,1))
+       dlat_lo  = abs(lat_lo(mlon+1)-lat_lo(1) )  !array is compacted,  must use lat_all lon_all brought in from io_vars module
+       dlon_lo  = abs(lon_lo(2) - lon_lo(1) )
     else
        dlat_lo  = abs(lat_lo(2) - lat_lo(1))
        dlon_lo  = abs(lon_lo(2) - lon_lo(1))
