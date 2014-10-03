@@ -570,15 +570,15 @@ contains
     grid_var%nlat = nlat_rr_file  
     grid_var%nlon = nlon_rr_file
     !fill lat/lon in grid_var variable
-    k=0
     do j=1,nlat_rr_file
       do i=1,nlon_rr_file
-        k = k + 1
+        k = (j-1)*nlon_rr_file + i
         grid_var%lat(k) = lat_data(j)
         grid_var%lon(k) = lon_data(i)
         grid_var%orig_ind(k) = k
       end do
     end do
+
     
     !read the data
     call read_nc(ncid_river,mask_name    ,start_inds,end_inds,grid_var%land_mask(:))
@@ -1448,40 +1448,27 @@ contains
     integer :: i,j,k
     
     integer, dimension(:,:), allocatable :: int_data
-    
+    integer, dimension(:)  , allocatable :: mask_1d
+    integer                              :: npts
     nlat_rr = end_inds(2) - start_inds(2) + 1
     nlon_rr = end_inds(1) - start_inds(1) + 1
-    
+    npts    = nlon_rr*nlat_rr
     allocate(int_data(nlon_rr,nlat_rr))
     
     call check_nc( nf90_inq_varid(ncid,var_name,var_id) )
     call check_nc( nf90_get_var(ncid,var_id,int_data(:,:),start_inds,end_inds) )
-    
+
+
+    var_data = reshape(int_data,(/npts/))
+
     if (present(mask)) then
-    
-      k=1
-      do j=1,nlat_rr
-        do i=1,nlon_rr
-          if (mask(i,j) .ge. 1) then
-            var_data(k) = int_data(i,j)
-            k=k+1
-          end if
-        end do
-      end do
-      
-    else   !mask data not present.  get all data
-    
-      k=1
-      do j=1,nlat_rr
-        do i=1,nlon_rr
-          var_data(k) = int_data(i,j)
-          k=k+1
-        end do
-      end do
-    
+      allocate(mask_1d(npts))
+      mask_1d = reshape(mask,(/npts/))
+      where(mask_1d .ge. 1) var_data(:) = -9999
     end if
-     
-     deallocate(int_data)
+    
+    deallocate(int_data)
+    if (allocated(mask_1d)) deallocate(mask_1d)
      
    end subroutine read_nc_int
 
@@ -1501,40 +1488,29 @@ contains
     integer :: i,j,k
     
     real(r_2), dimension(:,:), allocatable :: flt_data
+    integer  , dimension(:)  , allocatable :: mask_1d
+    integer                                :: npts
     
     nlat_rr = end_inds(2) - start_inds(2) + 1
     nlon_rr = end_inds(1) - start_inds(1) + 1
-    
+    npts    = nlon_rr*nlat_rr
     allocate(flt_data(nlon_rr,nlat_rr))
     
     call check_nc( nf90_inq_varid(ncid,var_name,var_id) )
     call check_nc( nf90_get_var(ncid,var_id,flt_data(:,:),start_inds,end_inds) )
 
+
+    var_data = reshape(flt_data,(/npts/))
+
     if (present(mask)) then
-    
-      k=1
-      do j=1,nlat_rr
-        do i=1,nlon_rr
-          if (mask(i,j) .ge. 1) then
-            var_data(k) = flt_data(i,j)
-            k=k+1
-          end if
-        end do
-      end do
-      
-    else   !mask data not present.  get all data
-    
-      k=1
-      do j=1,nlat_rr
-        do i=1,nlon_rr
-          var_data(k) = flt_data(i,j)
-          k=k+1
-        end do
-      end do
-    
+      allocate(mask_1d(npts))
+      mask_1d = reshape(mask,(/npts/))
+      where(mask_1d .ge. 1) var_data(:) = -9999
     end if
 
     deallocate(flt_data)
+    if (allocated(mask_1d)) deallocate(mask_1d)
+
      
   end subroutine read_nc_flt 
   
