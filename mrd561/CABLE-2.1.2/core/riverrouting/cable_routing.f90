@@ -149,7 +149,7 @@ module cable_routing
   !below will go into cable_routing_main_routine.  !global on myrank =0, local on myrank=1->nprocs
   type(river_grid_type), TARGET, SAVE :: global_river_grid      , local_river_grid
   type(river_flow_type), TARGET, SAVE :: global_river           , local_river
-  type(basin_type), pointer, save, dimension(:) :: global_basins, local_basins
+  type(basin_type), allocatable, save, dimension(:) :: global_basins, local_basins
   
   
   !outline
@@ -736,7 +736,7 @@ contains
   
     implicit none
     type(river_grid_type),                   intent(inout) :: grid_var    
-    type(basin_type), pointer, dimension(:), intent(inout) :: basins
+    type(basin_type), allocatable, dimension(:), intent(inout) :: basins
 
     integer :: cnt, i,ii,j,k, kk, total_nbasins, total_land_cells, ncells
     integer, allocatable, dimension(:) :: tmp_indices
@@ -850,7 +850,7 @@ contains
     implicit none
     
     type(river_grid_type),                   intent(inout) :: grid_var
-    type(basin_type), pointer, dimension(:), intent(inout) :: basins  
+    type(basin_type), allocatable, dimension(:), intent(inout) :: basins  
     
     type(basin_type), allocatable, dimension(:) :: cmp_basins
     type(river_grid_type)                       :: cmp_grid_var
@@ -936,8 +936,8 @@ contains
       do i=1,size(basins(:))
         call destroy(basins(i))
       end do
-      deallocate(basins)
-    
+ 
+      if (allocated(basins)) deallocate(basins)
       allocate(basins(grid_var%nbasins))
 
       do i=1,grid_var%nbasins
@@ -960,8 +960,8 @@ contains
       call destroy(cmp_basins(i))
     end do
     
-    deallocate(cmp_basins)
-    deallocate(active_basin)
+    if (allocated(cmp_basins))    deallocate(cmp_basins)
+    if (allocated(active_basin)) deallocate(active_basin)
     
   end subroutine remove_inactive_land_basins
 
@@ -1526,8 +1526,8 @@ contains
   !all calc it but only save the basin start and end inds for myrank
   !or I could run only on myrank = 1, bcast to other ranks
     implicit none
-    type(river_grid_type),          intent(inout) :: grid_var
-    type(basin_type), dimension(:), intent(inout) :: basins
+    type(river_grid_type),                       intent(inout) :: grid_var
+    type(basin_type), dimension(:), allocatable, intent(inout) :: basins
     integer, intent(out)                  :: my_basin_start     !number of starting basin to do 
     integer, intent(out)                  :: my_basin_end       !basin number of ending basins
     integer, intent(out)                  :: global_index_start !starting in dex in global river array
