@@ -868,6 +868,7 @@ contains
     active_basin(:) = 0    
     
     call create(cmp_grid_var,total_active_cells)
+    write(*,*) 'created cmp_grid_var'
     cmp_grid_var%nrr_cells = total_active_cells
     cmp_grid_var%npts      = total_active_cells
     cmp_grid_var%nlat      = grid_var%nlat
@@ -887,6 +888,7 @@ contains
     
     cmp_grid_var%nbasins = sum(active_basin(:))   
     allocate(cmp_basins(cmp_grid_var%nbasins))
+    write(*,*) 'created cmp_basins with ',cmp_grid_var%nbasins,' basins'
     
     if (cmp_grid_var%nbasins .lt. grid_var%nbasins) then   !there are some basins that aren't active
     
@@ -906,6 +908,13 @@ contains
           ks = basins(i)%begind
           ke = basins(i)%endind
 
+          write(*,*) 'new active basin ',ii,' npts-',cmp_basins(ii)%n_basin_cells
+          write(*,*) 'new start ind-',js,' new end ind-',je
+          write(*,*) 'old active basin ',i,' npts-',basins(i)%n_basin_cells 
+          write(*,*) 'old start ind-',ks,' old end ind-',ke
+          write(*,*) ''
+          write(*,*) ''
+
           !overloading = operator would make this a little cleaner
           call copy_river_grid_vector_values(grid_var,cmp_grid_var,js,je,ks,ke) 
         
@@ -919,8 +928,10 @@ contains
     
       !remove original grid_var variable.  reallocate new one with only active routing cells
       call destroy(grid_var)
+      write(*,*) 'destroy grid_var'
 
       call create_river_grid_copy(cmp_grid_var,grid_var,total_active_cells) 
+      write(*,*) 'called create copy'
 
       !call grid_var%create(total_active_cells)
       !call cmp_grid_var%copy_vectors(grid_var,1,total_active_cells,1,total_active_cells)   !doesn't copy scalar values
@@ -933,13 +944,15 @@ contains
       grid_var%active_cell(:) = 1  !all cells now active.
     
       !do the same for the basin variable
+      write(*,*) 'destroy basins'
       do i=1,size(basins(:))
         call destroy(basins(i))
       end do
- 
+      write(*,*) 'deallocate basins' 
       if (allocated(basins)) deallocate(basins)
       allocate(basins(grid_var%nbasins))
 
+      write(*,*) 'reallocate basins'
       do i=1,grid_var%nbasins
         basins(i)%n_basin_cells = cmp_basins(i)%n_basin_cells
         call create(basins(i),basins(i)%n_basin_cells)
