@@ -782,8 +782,8 @@ contains
        tmp_indices(:) = 0
        cnt = 0
        !is this a basin with > 1 river cells?  test number of upstream cells for the given ocean outlet (basin number = ocean outlet cell number)
-       if (grid_var%upstrm_number(basin_map(i)) .ge. 2) then
-         j=j+1
+       !if (grid_var%upstrm_number(basin_map(i)) .ge. 2) then
+       !  j=j+1
        
          do kk=1,grid_var%npts
            if (grid_var%ocean_outlet(kk) .eq. i)  then     !check for land point here?
@@ -792,14 +792,17 @@ contains
            end if
          end do
         
-         total_land_cells = total_land_cells + cnt
-         ncells = cnt
-         basins(j)%n_basin_cells = cnt
-         call alloc_basin(basins(j),cnt)                      !or can use alloc here as below
-         !allocate(basins(i)%river_points(cnt))
-         basins(j)%river_points(:) = tmp_indices(1:cnt)  !i like this solution.  simply pass basin indices to loop over. 
-                                                        !will need to put these in contiguous array to pass back to master.                                          
-       end if
+         if (cnt .gt. 2) then
+           j=j+1
+           total_land_cells = total_land_cells + cnt
+           ncells = cnt
+           basins(j)%n_basin_cells = cnt
+           call alloc_basin(basins(j),cnt)                      !or can use alloc here as below
+           !allocate(basins(i)%river_points(cnt))
+           basins(j)%river_points(:) = tmp_indices(1:cnt)  !i like this solution.  simply pass basin indices to loop over. 
+                                                        !will need to put these in contiguous array to pass back to master.      
+         end if                                    
+       !end if
     end do
 
     
