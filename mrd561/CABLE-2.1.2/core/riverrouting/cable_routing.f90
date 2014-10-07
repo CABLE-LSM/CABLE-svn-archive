@@ -660,11 +660,12 @@ contains
           
           if (ii .lt. 1     )          ii = ii + grid_var%nlon  
           if (ii .gt. grid_var%nlon) ii = ii - grid_var%nlon
+
           if (jj .lt. 1 .or. jj .gt. grid_var%nlat .or. ii .lt. 1 .or. ii .gt. grid_var%nlon) then
-            stop
+            stop "needs checks yo"
           endif
           
-          kk = ii + (jj-1)*grid_var%nlat
+          kk = ii + (jj-1)*grid_var%nlon
           
           grid_var%dwnstrm_index(k) = kk
 
@@ -685,28 +686,34 @@ contains
   
     !local variables
     integer :: i,j,k,j_prev
+    logical :: continue_search
   
     grid_var%ocean_outlet(:)  = -1
     grid_var%upstrm_number(:) = 0   !upstrm_number only non-zero for outlet cells
-    
+   
+!$OMP PARALLEL DO PRIVATE(i,k,j,j_prev,continue_search)
     do i=1,grid_var%npts
       j = i
-      
       if (grid_var%land_mask(i) .eq. 1) then   !it is a land cell
       
         k = 0
-        
-        do while ((grid_var%land_mask(j) .eq. 1) .and. k < grid_var%npts)
+        continue_search = .true. 
+        do while (continue_search)
            j_prev = j                                  
            j = grid_var%dwnstrm_index(j)      !index of the next downstream point.  j_prev now the most recent upstream cell
            k = k + 1
+           if ((k .eq. grid_var%npts)  .or. (j_prev .eq. j) .or. (grid_var%land_mask(j) .eq. 0)) then
+             continue_search = .false.
+           end if
         end do
          
         if (grid_var%land_mask(j) .eq. 0) then  !ended at an ocean point.  previous land pt is the outlet cell
           grid_var%ocean_outlet(i) = j_prev
-          grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1
+!$OMP ATOMIC
+          grid_var%upstrm_number(j_prev) = grid_var%upstrm_number(j_prev) + 1
         elseif (grid_var%land_mask(j) .eq. 1) then          !ended at a land point.  this is the outlet cell
           grid_var%ocean_outlet(i) = j
+!$OMP ATOMIC
           grid_var%upstrm_number(j) = grid_var%upstrm_number(j) + 1
         else
           stop
@@ -717,8 +724,12 @@ contains
         grid_var%upstrm_number(j) = 0                              !and has only itself as an upstream cell
       end if
     end do
+!$OMP END PARALLEL DO
          
     !count the total number of basins.   
+
+    write(*,*) maxval(grid_var%upstrm_number(:))
+
     grid_var%nrr_cells = 0
     grid_var%nbasins   = 0
     do i=1,grid_var%npts
@@ -757,30 +768,33 @@ contains
     
 !    allocate(tmp_indices(grid_var%npts))   !tmp_indices large enough to hold all points rather than reallocating specific size
 
-    total_nbasins = grid_var%nbasins
-
-
+    !basin numbering is based on global array index.  not coninuous.  num basins < possible index vals
+    total_nbasins = maxval(grid_var%ocean_outlet(:))!grid_var%nbasins  
     !can I do this looping without nested grids?
     ! use two loops.  first identify the points in each basin (requires int array nbasins x npts) called basin_points
     ! this array maybe too big to fit in memory of normal computer?
-    write(*,*) total_nbasins
+
     allocate(basin_num_points(total_nbasins))
     basin_num_points(:) = 0
     do k=1,grid_var%npts
-      j = grid_var%ocean_outlet(k)
-      basin_num_points(j) = basin_num_points(j) + 1
+      if (grid_var%upstrm_number(k) .gt. 0) then
+        j = grid_var%ocean_outlet(k)
+        basin_num_points(j) = basin_num_points(j) + 1
+      end if
     end do  
 
-    allocate(basin_points(total_nbasins,maxval(basin_num_points(j))))
+    allocate(basin_points(total_nbasins,maxval(basin_num_points)))
+
+    write(*,*) total_nbasins,grid_var%npts
 
     basin_num_points(:) = 0
     basin_points(:,:)   = 0
     do k=1,grid_var%npts
-
-      j = grid_var%ocean_outlet(k)
-      basin_num_points(j) = basin_num_points(j) + 1
-      basin_points(j,basin_num_points(j)) = k
-
+      if (grid_var%upstrm_number(k) .gt. 0) then
+        j = grid_var%ocean_outlet(k)
+        basin_num_points(j) = basin_num_points(j) + 1
+        basin_points(j,basin_num_points(j)) = k
+      end if 
     end do 
 
     partial_nbasins= 0
@@ -842,7 +856,7 @@ contains
 !       !end if
 !    end do
 !
-      
+   
     total_land_cells = 0
     j = 0
     do i=1,total_nbasins      !basin_num_points contains basins we don't include.  loop over total basins not partial
@@ -855,6 +869,7 @@ contains
         total_land_cells = total_land_cells + cnt
       end if 
     end do 
+    !sanity check that j == ord_grid_var%nbasins (ie partial_nbasins)
 
     !the ocean cells have been eliminated through the above process.  npts should also change
     
@@ -964,12 +979,12 @@ contains
           ks = basins(i)%begind
           ke = basins(i)%endind
 
-          write(*,*) 'new active basin ',ii,' npts-',cmp_basins(ii)%n_basin_cells
-          write(*,*) 'new start ind-',js,' new end ind-',je
-          write(*,*) 'old active basin ',i,' npts-',basins(i)%n_basin_cells 
-          write(*,*) 'old start ind-',ks,' old end ind-',ke
-          write(*,*) ''
-          write(*,*) ''
+          !write(*,*) 'new active basin ',ii,' npts-',cmp_basins(ii)%n_basin_cells
+          !write(*,*) 'new start ind-',js,' new end ind-',je
+          !write(*,*) 'old active basin ',i,' npts-',basins(i)%n_basin_cells 
+          !write(*,*) 'old start ind-',ks,' old end ind-',ke
+          !write(*,*) ''
+          !write(*,*) ''
 
           !overloading = operator would make this a little cleaner
           call copy_river_grid_vector_values(grid_var,cmp_grid_var,js,je,ks,ke) 
