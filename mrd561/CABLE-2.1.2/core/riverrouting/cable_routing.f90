@@ -764,7 +764,13 @@ contains
     ! use two loops.  first identify the points in each basin (requires int array nbasins x npts) called basin_points
     ! this array maybe too big to fit in memory of normal computer?
     allocate(basin_num_points(total_nbasins))
-    allocate(basin_points(total_nbasins,grid_var%npts))
+    basin_num_points(:) = 0
+    do k=1,grid_var%npts
+      j = grid_var%ocean_outlet(k)
+      basin_num_points(j) = basin_num_points(j) + 1
+    end do  
+
+    allocate(basin_points(total_nbasins,maxval(basin_num_points(j))))
 
     basin_num_points(:) = 0
     basin_points(:,:)   = 0
