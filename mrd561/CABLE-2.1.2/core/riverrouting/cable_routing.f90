@@ -763,6 +763,7 @@ contains
     !can I do this looping without nested grids?
     ! use two loops.  first identify the points in each basin (requires int array nbasins x npts) called basin_points
     ! this array maybe too big to fit in memory of normal computer?
+    write(*,*) total_nbasins
     allocate(basin_num_points(total_nbasins))
     basin_num_points(:) = 0
     do k=1,grid_var%npts
