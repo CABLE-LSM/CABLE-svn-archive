@@ -633,18 +633,25 @@ contains
 !----------------------------------------------------------------------------!
 !  call find_downstream_index(grid_var%dwnstrm_index,river_dirc)  !this only works if it is on the global grid
 
-  subroutine find_downstream_index(grid_var)
+  subroutine find_downstream_index(grid_var,is_global)
   
     implicit none
     
     type(river_grid_type), intent(inout) :: grid_var
+    logical,               intent(in   ) :: is_global
     
     integer :: i,j,k,ii,jj,kk
-    
+    integer :: lon_wrap
 
     !make sure we called this prior to reordering or removing grid points
     if (grid_var%npts .ne. grid_var%nlat*grid_var%nlon) &
          stop "Must find the downstream index using the entire global grid not a subsection"
+
+    if (is_global) then
+      lon_wrap = grid_var%nlon
+    else
+      lon_wrap = 1
+    end if
     
     grid_var%dwnstrm_index(:) = 0
     
@@ -657,9 +664,10 @@ contains
         
           ii = i + dirc2latindex(grid_var%direction(k))
           jj = j + dirc2lonindex(grid_var%direction(k))
+         
+         if (ii .lt. 1 )            ii = ii + lon_wrap!grid_var%nlon  
+         if (ii .gt. grid_var%nlon) ii = ii - lon_wrap!grid_var%nlon
           
-          if (ii .lt. 1     )          ii = ii + grid_var%nlon  
-          if (ii .gt. grid_var%nlon) ii = ii - grid_var%nlon
 
           if (jj .lt. 1 .or. jj .gt. grid_var%nlat .or. ii .lt. 1 .or. ii .gt. grid_var%nlon) then
             stop "needs checks yo"
@@ -749,11 +757,11 @@ contains
     type(river_grid_type),                   intent(inout) :: grid_var    
     type(basin_type), allocatable, dimension(:), intent(inout) :: basins
 
-    integer :: cnt, i,ii,j,k, kk, total_nbasins, total_land_cells, ncells, partial_nbasins
+    integer :: cnt, i,ii,j,jj,k,kk, total_nbasins, total_land_cells, ncells, partial_nbasins
     integer, allocatable, dimension(:)   :: tmp_indices
     integer, allocatable, dimension(:)   :: basin_map  !maps the basin number to the outlet cell number in the global array
     integer, allocatable, dimension(:)   :: basin_num_points
-    integer, allocatable, dimension(:,:) :: basin_points
+!    integer, allocatable, dimension(:,:) :: basin_points
     
     type(river_grid_type) :: ord_grid_var   !grid variable ordered so basins are continuous
     
@@ -772,7 +780,8 @@ contains
     total_nbasins = maxval(grid_var%ocean_outlet(:))!grid_var%nbasins  
     !can I do this looping without nested grids?
     ! use two loops.  first identify the points in each basin (requires int array nbasins x npts) called basin_points
-    ! this array maybe too big to fit in memory of normal computer?
+    ! this array maybe too big to fit in memory of normal computer?  YES not
+    ! enough memory  redo without this array
 
     allocate(basin_num_points(total_nbasins))
     basin_num_points(:) = 0
@@ -783,19 +792,19 @@ contains
       end if
     end do  
 
-    allocate(basin_points(total_nbasins,maxval(basin_num_points)))
+!    allocate(basin_points(total_nbasins,maxval(basin_num_points)))
+!
+!    write(*,*) total_nbasins,grid_var%npts
 
-    write(*,*) total_nbasins,grid_var%npts
-
-    basin_num_points(:) = 0
-    basin_points(:,:)   = 0
-    do k=1,grid_var%npts
-      if (grid_var%upstrm_number(k) .gt. 0) then
-        j = grid_var%ocean_outlet(k)
-        basin_num_points(j) = basin_num_points(j) + 1
-        basin_points(j,basin_num_points(j)) = k
-      end if 
-    end do 
+!    basin_num_points(:) = 0
+!    basin_points(:,:)   = 0
+!    do k=1,grid_var%npts
+!      if (grid_var%upstrm_number(k) .gt. 0) then
+!        j = grid_var%ocean_outlet(k)
+!        basin_num_points(j) = basin_num_points(j) + 1
+!        basin_points(j,basin_num_points(j)) = k
+!      end if 
+!    end do 
 
     partial_nbasins= 0
     do i=1,total_nbasins
@@ -865,7 +874,18 @@ contains
         j = j + 1
         call alloc_basin(basins(j),cnt)
         basins(j)%n_basin_cells   = cnt
-        basins(j)%river_points(:) = basin_points(i,1:cnt)
+
+        kk=0
+        do k=1,grid_var%npts
+          if (grid_var%upstrm_number(k) .gt. 0) then
+            jj = grid_var%ocean_outlet(k)
+            if (jj .eq. i) then
+              kk = kk + 1
+              basins(j)%river_points(kk) = k
+            end if
+          end if 
+        end do
+
         total_land_cells = total_land_cells + cnt
       end if 
     end do 
@@ -894,7 +914,7 @@ contains
                                                        
 !    deallocate(tmp_indices)
 !    deallocate(basin_map)
-    deallocate(basin_points)
+!    deallocate(basin_points)
     deallocate(basin_num_points)
 
 
