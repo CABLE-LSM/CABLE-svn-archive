@@ -738,9 +738,11 @@ contains
     type(river_grid_type),                   intent(inout) :: grid_var    
     type(basin_type), allocatable, dimension(:), intent(inout) :: basins
 
-    integer :: cnt, i,ii,j,k, kk, total_nbasins, total_land_cells, ncells
-    integer, allocatable, dimension(:) :: tmp_indices
-    integer, allocatable, dimension(:) :: basin_map  !maps the basin number to the outlet cell number in the global array
+    integer :: cnt, i,ii,j,k, kk, total_nbasins, total_land_cells, ncells, partial_nbasins
+    integer, allocatable, dimension(:)   :: tmp_indices
+    integer, allocatable, dimension(:)   :: basin_map  !maps the basin number to the outlet cell number in the global array
+    integer, allocatable, dimension(:)   :: basin_num_points
+    integer, allocatable, dimension(:,:) :: basin_points
     
     type(river_grid_type) :: ord_grid_var   !grid variable ordered so basins are continuous
     
@@ -753,59 +755,100 @@ contains
     ord_grid_var%nrr_cells = grid_var%nrr_cells
     ord_grid_var%nbasins   = grid_var%nbasins    
     
-    allocate(tmp_indices(grid_var%npts))   !tmp_indices large enough to hold all points rather than reallocating specific size
+!    allocate(tmp_indices(grid_var%npts))   !tmp_indices large enough to hold all points rather than reallocating specific size
 
     total_nbasins = grid_var%nbasins
 
-    allocate(basin_map(total_nbasins))
-    !find the total number of basins with multiple upstream river cells
-    basin_map(:) = -1
-    j = 0
-    do i=1,grid_var%npts
-      if (grid_var%upstrm_number(i) .gt. 2)  then
-        j = j + 1
-        basin_map(j) = i
+
+    !can I do this looping without nested grids?
+    ! use two loops.  first identify the points in each basin (requires int array nbasins x npts) called basin_points
+    ! this array maybe too big to fit in memory of normal computer?
+    allocate(basin_num_points(total_nbasins))
+    allocate(basin_points(total_nbasins,grid_var%npts))
+
+    basin_num_points(:) = 0
+    basin_points(:,:)   = 0
+    do k=1,grid_var%npts
+
+      j = grid_var%ocean_outlet(k)
+      basin_num_points(j) = basin_num_points(j) + 1
+      basin_points(j,basin_num_points(j)) = k
+
+    end do 
+
+    partial_nbasins= 0
+    do i=1,total_nbasins
+      if (basin_num_points(i) .gt. 2) then
+        partial_nbasins = partial_nbasins + 1
       end if 
-    end do
+    end do 
 
-    ord_grid_var%nbasins = j               !new number of basins with ocean removed
-    allocate(basins(ord_grid_var%nbasins))    
+    ord_grid_var%nbasins = partial_nbasins
+    allocate(basins(ord_grid_var%nbasins))
 
-     do i=1,ord_grid_var%nbasins 
-       write(*,*) basin_map(i)
-    end do
-    
+!    allocate(basin_map(total_nbasins))
+!    !find the total number of basins with multiple upstream river cells
+!    basin_map(:) = -1
+!    j = 0
+!    do i=1,grid_var%npts
+!      if (grid_var%upstrm_number(i) .gt. 2)  then
+!        j = j + 1
+!        basin_map(j) = i
+!      end if 
+!    end do
+!
+!    ord_grid_var%nbasins = j               !new number of basins with ocean removed
+!    allocate(basins(ord_grid_var%nbasins))    
+!
+!    do i=1,ord_grid_var%nbasins 
+!       write(*,*) basin_map(i)
+!    end do
+!    
+!    total_land_cells = 0
+!    j = 0
+!    do i=1,ord_grid_var%nbasins
+!       write(*,*) real(i)/real(ord_grid_var%nbasins)*100.0
+!       tmp_indices(:) = 0
+!       cnt = 0
+!       !is this a basin with > 1 river cells?  test number of upstream cells for the given ocean outlet (basin number = ocean outlet cell number)
+!      !trying to eliminate looping over basins known to be eliminated from the complete list
+!       !if (grid_var%upstrm_number(basin_map(i)) .ge. 2) then
+!       !  j=j+1
+!       
+!         do kk=1,grid_var%npts
+!           if (grid_var%ocean_outlet(kk) .eq. i)  then     !check for land point here?
+!             cnt = cnt + 1
+!             tmp_indices(cnt) = kk
+!           end if
+!         end do
+!        
+!         if (cnt .gt. 2) then
+!           j=j+1
+!           total_land_cells = total_land_cells + cnt
+!           ncells = cnt
+!           basins(j)%n_basin_cells = cnt
+!           call alloc_basin(basins(j),cnt)                      !or can use alloc here as below
+!           !allocate(basins(i)%river_points(cnt))
+!           basins(j)%river_points(:) = tmp_indices(1:cnt)  !i like this solution.  simply pass basin indices to loop over. 
+!                                                        !will need to put these in contiguous array to pass back to master.      
+!         end if                                    
+!       !end if
+!    end do
+!
+      
     total_land_cells = 0
     j = 0
-    do i=1,ord_grid_var%nbasins
-       write(*,*) real(i)/real(ord_grid_var%nbasins)*100.0
-       tmp_indices(:) = 0
-       cnt = 0
-       !is this a basin with > 1 river cells?  test number of upstream cells for the given ocean outlet (basin number = ocean outlet cell number)
-       !if (grid_var%upstrm_number(basin_map(i)) .ge. 2) then
-       !  j=j+1
-       
-         do kk=1,grid_var%npts
-           if (grid_var%ocean_outlet(kk) .eq. i)  then     !check for land point here?
-             cnt = cnt + 1
-             tmp_indices(cnt) = kk
-           end if
-         end do
-        
-         if (cnt .gt. 2) then
-           j=j+1
-           total_land_cells = total_land_cells + cnt
-           ncells = cnt
-           basins(j)%n_basin_cells = cnt
-           call alloc_basin(basins(j),cnt)                      !or can use alloc here as below
-           !allocate(basins(i)%river_points(cnt))
-           basins(j)%river_points(:) = tmp_indices(1:cnt)  !i like this solution.  simply pass basin indices to loop over. 
-                                                        !will need to put these in contiguous array to pass back to master.      
-         end if                                    
-       !end if
-    end do
+    do i=1,total_nbasins      !basin_num_points contains basins we don't include.  loop over total basins not partial
+      cnt = basin_num_points(i)
+      if (cnt .gt. 2) then
+        j = j + 1
+        call alloc_basin(basins(j),cnt)
+        basins(j)%n_basin_cells   = cnt
+        basins(j)%river_points(:) = basin_points(i,1:cnt)
+        total_land_cells = total_land_cells + cnt
+      end if 
+    end do 
 
-    
     !the ocean cells have been eliminated through the above process.  npts should also change
     
         ! I need to reorder the basin cells so they are contiguous.
@@ -827,9 +870,12 @@ contains
       
     end do 
                                                        
-    deallocate(tmp_indices)
-    deallocate(basin_map)
-    
+!    deallocate(tmp_indices)
+!    deallocate(basin_map)
+    deallocate(basin_points)
+    deallocate(basin_num_points)
+
+
     !destroy grid var.  make it new with fewer points (doesn't include the ocean now)
     call destroy(grid_var)
 
