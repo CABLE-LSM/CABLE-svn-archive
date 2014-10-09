@@ -35,7 +35,6 @@
 MODULE cable_canopy_module
    
    USE cable_data_module, ONLY : icanopy_type, point2constants 
-   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction   
    
    IMPLICIT NONE
    
@@ -1188,9 +1187,9 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    IF (cable_runtime%run_gw_model) then
 
   
-     call calc_srf_wet_fraction(ssnow,soil)
+     call calc_srf_wet_fraction_gw(ssnow,soil)
 
-     ssnow%wetfac = MAX( 1.e-2, MIN( 1.0,                                     &
+     ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &
                   ( REAL (ssnow%wetfac))))
 
    else
@@ -2100,6 +2099,73 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
    ENDDO
 
 END SUBROUTINE fwsoil_calc_Lai_Ktaul
+
+
+SUBROUTINE calc_srf_wet_fraction_gw(ssnow,soil)
+   USE cable_def_types_mod
+   USE cable_common_module
+
+  IMPLICIT NONE
+    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
+    TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+
+    !local variables
+    REAL(r_2), DIMENSION(mp)           :: xxx,fice,icef,efpor,xx
+    REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters
+    REAL(r_2), DIMENSION(mp,ms)        :: liqmass,icemass,totmass
+    REAL(r_2), DIMENSION(mp,ms)        :: dzmm_mp
+
+    REAL(r_2)                          :: MaxSatFraction 
+    REAL(r_2)                          :: EfoldMaxSatFrac
+    REAL(r_2)                          :: dri
+    LOGICAL, SAVE :: first_call = .true.
+
+    MaxSatFraction = 0.3
+    EfoldMaxSatFrac = 1.0
+    dri = 1.0
+
+    xxx(:)   = 0._r_2
+    dzmm_mp  = 1000._r_2 * real(spread(soil%zse,1,mp),r_2)
+
+    icemass  = ssnow%wbice(:,:) * dzmm_mp * dri  !should be dri
+    liqmass  = (ssnow%wb-ssnow%wbice) * dzmm_mp
+    totmass  = icemass + liqmass
+
+    where (totmass .lt. real(1e-2,r_2)) totmass = real(1e-2,r_2)
+
+    efpor(:) = soil%watsat(:,1) - ssnow%wbice(:,1)!-soil%watr(:,1)
+    where (efpor .lt. 0.05_r_2) efpor = 0.05_r_2
+
+    !srf frozen fraction.  should be based on topography
+    icef(:) = max(0._r_2,min(1._r_2,icemass(:,1) / totmass(:,1)))
+    fice(:) = (exp(-3._r_2*(1._r_2-icef(:)))- exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+    where (fice(:) .lt. 0._r_2) fice(:) = 0._r_2
+    where (fice(:) .gt. 1._r_2) fice(:) = 1._r_2
+
+    ! Saturated fraction
+    if (.not. first_call) then
+       wtd_meters = ssnow%wtd / 1000._r_2
+    else
+       wtd_meters = 2.0
+    end if
+
+    first_call = .false.
+
+
+    xx(:) = max(real(1e-6,r_2), min(1._r_2, (ssnow%wbliq(:,1)-0.25_r_2*real(soil%swilt(:),r_2))/&
+                                    (real(soil%sfc(:)-0.25*soil%swilt(:),r_2))))
+
+    xxx(:) = (exp(-2._r_2*xx(:))-1._r_2) / (exp(-2._r_2)-1._r_2)
+
+    satfrac(:) = MaxSatFraction*exp(-wtd_meters/EfoldMaxSatFrac)  &
+                 +(1._r_2 - MaxSatFraction*exp(-wtd_meters/EfoldMaxSatFrac)) * xxx(:)
+
+    ssnow%wetfac(:) = fice(:) + ( 1._r_2 - fice(:) )*satfrac(:)
+
+
+
+END SUBROUTINE calc_srf_wet_fraction_gw
+
 
 
     
