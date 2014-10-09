@@ -190,7 +190,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
          !mrd561
-         soil%GWdz = 10.0                          !30 m thick aquifer
+         soil%GWdz = 30.0                          !30 m thick aquifer
 
 
          !-------------------------------------------------------------------
@@ -264,7 +264,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
             soil%clappB(:,k)  = soil%bch(:)
             soil%densoil(:,k) = soil%rhosoil(:)
             soil%watsat(:,k)  = soil%ssat(:)
-            soil%watr(:,k)    = 0.0
+            soil%watr(:,k)    = 0.05
 
             soil%Fclay(:,k)   = soil%clay(:)
             soil%Fsand(:,k)   = soil%sand(:)
@@ -275,7 +275,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%GWclappB(:)  = soil%bch(:)
          soil%GWdensoil(:) = soil%rhosoil(:)
          soil%GWwatsat(:)  = soil%ssat(:)
-         soil%GWwatr(:)    = 0.0  !const for simplicity for now
+         soil%GWwatr(:)    = 0.05  !const for simplicity for now
+
           
          first_call= .FALSE.
       ENDIF
@@ -685,7 +686,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
 
 
          !mrd561
-         ssnow%wtd(:)  = 5000.0
          ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
          !ensure that we have reasonable values in case 
          !starting from a non-GW simulation
