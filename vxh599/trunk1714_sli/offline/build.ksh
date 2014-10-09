@@ -15,9 +15,9 @@ host_nXXX()
    export FC=ifort
    #vanessa's test options
 #   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
-export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
+# export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
 #   export CFLAGS='-O0 -fp-model precise -debug all -g  '
-#   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build

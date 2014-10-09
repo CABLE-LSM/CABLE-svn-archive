@@ -1,9 +1,9 @@
 MODULE sli_numbers
 
   USE cable_def_types_mod,  ONLY: r_2, i_d
-  USE physical_constants, ONLY: tfrz, grav, rmh2o, rhow, rgas, capp, tetena, tetenb, tetenc
 
   IMPLICIT NONE
+
 
   ! define some numbers
   REAL(r_2), PARAMETER :: zero      = 0.0
@@ -22,20 +22,21 @@ MODULE sli_numbers
 
   ! define some constants
   REAL(r_2), PARAMETER :: pi        = 3.1415927
-  REAL(r_2), PARAMETER :: Tzero     = tfrz      ! Celcius -> Kelvin
-  REAL(r_2), PARAMETER :: gravity   = grav      ! gravitation constant [m/s2]
-  REAL(r_2), PARAMETER :: Mw        = rmh2o     ! weight of 1 mol of water [kg]
+  REAL(r_2), PARAMETER :: Tzero     = 273.16     ! Celcius -> Kelvin
+  REAL(r_2), PARAMETER :: gravity   = 9.8086    ! gravitation constant [m/s2]
+  REAL(r_2), PARAMETER :: Mw        = 0.018016     ! weight of 1 mol of water [kg]
+  REAL(r_2), PARAMETER ::  rmair  = 0.02897  ! molecular wt: dry air (kg/mol)
   REAL(r_2), PARAMETER :: Mw18      = 0.018     ! weight of 1 mol of water [kg] (main isotopologue only)
-  REAL(r_2), PARAMETER :: cpa       = capp      ! specific heat capacity of dry air at 0-40 degC [J/kgK]
-  REAL(r_2), PARAMETER :: esata     = tetena*100.0_r_2 ! constants for saturated vapour pressure calculation
-  REAL(r_2), PARAMETER :: esatb     = tetenb    ! %
-  REAL(r_2), PARAMETER :: esatc     = tetenc    ! %
+  REAL(r_2), PARAMETER :: cpa       = 1004.64    ! specific heat capacity of dry air at 0-40 degC [J/kgK]
+  REAL(r_2), PARAMETER :: esata     = 6.106*100.0_r_2 ! constants for saturated vapour pressure calculation
+  REAL(r_2), PARAMETER :: esatb     =  17.27  ! %
+  REAL(r_2), PARAMETER :: esatc     = 237.3    ! %
 
   REAL(r_2), PARAMETER :: rlambda   = 2.442e6   ! latent heat of condensation at 25 degC [J/kg]
   REAL(r_2), PARAMETER :: lambdaf   = 335000.   ! latent heat of fusion (J kg-1)
   REAL(r_2), PARAMETER :: lambdas   = 2835000.  ! latent heat of sublimation (J kg-1)
   REAL(r_2), PARAMETER :: Dva       = 2.17e-5   ! vapour diffusivity of water in air at 0 degC [m2/s]
-  !REAL(r_2), PARAMETER :: rhow      = 1000.    ! denisty of water [kg/m3]
+  REAL(r_2), PARAMETER :: rhow      = 1000.0   ! denisty of water [kg/m3]
   REAL(r_2), PARAMETER :: rhoi      = 920.      ! density of ice (kg m-3)
 
   REAL(r_2), PARAMETER :: rhoa      = 1.184     ! denisty of dry air at std (25 degC) [kg/m3]
@@ -45,10 +46,8 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: esatb_ice = 22.46   ! %
   REAL(r_2), PARAMETER :: esatc_ice = 272.62  ! %
   REAL(r_2), PARAMETER :: csice     = 2.100e3 ! specific heat capacity for ice
-  !REAL(r_2), PARAMETER :: csice     = 4.218e3 ! specific heat capacity for ice
-  REAL(r_2), PARAMETER :: cswat     = 4.218e3 ! specific heat capacity for water
-
-!!!MC!!!
+   REAL(r_2), PARAMETER :: cswat     = 4.218e3 ! specific heat capacity for water
+  REAL(r_2), PARAMETER :: rgas = 8.3143 ! universal gas const  (J/mol/K)
   REAL(r_2), PARAMETER :: kw        = 0.58    ! dito
 
   ! numerical limits
@@ -167,5 +166,7 @@ MODULE sli_numbers
      INTEGER(i_d) :: k
      REAL(r_2)    :: T1, Ta, cva, Rnet, hr1, hra, Dv, gv, gh, Dh, dz, phie, he, K1, eta,lambda, Ks, lambdav
   END TYPE solve_type
+
+
 
 END MODULE sli_numbers

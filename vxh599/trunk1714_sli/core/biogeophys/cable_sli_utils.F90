@@ -10,8 +10,7 @@ MODULE sli_utils
        rhow, lambdaf, lambdas, csice, cswat, cpa,&
        dpmaxr, solve_type, &
        gf, hmin, csol, rhmin, dsmmax, rhocp, vars_snow, vars_met, &
-       freezefac, ithermalcond
-  USE physical_constants,  ONLY: rmair,rmh2o
+       freezefac, ithermalcond, rmair, Mw
 
   IMPLICIT NONE
 
@@ -25,6 +24,7 @@ MODULE sli_utils
   PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, zerovars, Tthetalmax, Tfrozen
   PUBLIC :: rtbis_Tfrozen, GTfrozen, JSoilLayer, forcerestore, SEB
   PUBLIC :: spline_b, mean, nse
+
 
   REAL(r_2),        DIMENSION(:,:),   ALLOCATABLE :: dx
   REAL(r_2),        DIMENSION(:),     ALLOCATABLE :: dxL
@@ -2538,7 +2538,7 @@ var%phiT =  -(((-1 +parin%eta*parin%lam)*parin%phie*(theta - parin%thre)* &
     endif
 
     rhocp = rmair*101325/rgas/(Ta+Tzero)*cpa
-    gamma = 101325.*cpa/lambdav/(rmh2o/rmair)
+    gamma = 101325.*cpa/lambdav/(Mw/rmair)
     ea = es * max(rha, 0.1_r_2)
     Da = ea/max(rha, 0.1_r_2) - ea
 

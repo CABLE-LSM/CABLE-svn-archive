@@ -1,57 +1,68 @@
-SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
+SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! POP        : POP structure containing all specific parameter 
+  ! casamet    : structure containing met and grid specific parameters from CASA
+  ! YEAR       : Current year <YYYY>
+  ! ACTION     : What do you want?
+  !              "READ_RST"  : Read a restart file (will be looking for a file 
+  !                            either with given name or from YEAR-1
+  !              "WRITE_RST" : Write a restart file for YEAR+1
+  !              "WRITE_EPI" : Write data at the end of each year 
+  ! CLOSE_FILE : Flag to close file at the end of Episode (Episode only)
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   USE netcdf
   USE POP_constants
   USE POP_types
   USE CASAVARIABLE
   USE CABLE_COMMON_MODULE
+  USE cable_def_types_mod
+
   IMPLICIT NONE
 
   TYPE(POP_TYPE),  INTENT(INOUT) :: POP
   TYPE (casa_met), INTENT(IN)    :: casamet
   INTEGER       ,  INTENT(IN)    :: YEAR
-  CHARACTER     ,  INTENT(IN)    :: ACTION*5
-  LOGICAL               :: CLOSE_FILE
+  CHARACTER(LEN=9),INTENT(IN)    :: ACTION
+  LOGICAL,OPTIONAL,INTENT(IN)    :: CF
 
   INTEGER            :: STATUS,i,m,p,l,land_ID,patch_ID,ndis_ID
-  !CRM  INTEGER            :: ndis1_ID,nlay_ID,hgtb_ID,ncoh_ID,t_ID
   INTEGER            :: nlay_ID,hgtb_ID,ncoh_ID,t_ID
   INTEGER            :: nlayer_dim, ndisturb_dim, ndisturb1_dim,land_dim
   INTEGER            :: HEIGHT_BINS_dim,npatch2d_dim,NCOHORT_MAX_dim
-  INTEGER            :: dID, t_dim, tx = -1
+  INTEGER            :: dID, t_dim, tx = -1, ntile
   CHARACTER(len=3)   :: typ = 'rst'
-  CHARACTER          :: dum*9,fname*100
-
-  !   ! 1 dim arrays (mp)
+  CHARACTER          :: dum*9,fname*120, RUNPATH*100
+  LOGICAL            :: CLOSE_FILE, EXISTFILE
+  INTEGER:: np
+  !   ! 1 dim arrays (np)
   !   CHARACTER(len=40),DIMENSION( 2), PARAMETER :: AR0 = (/'latitude','longitude'/)
 
   !   ! LANDSCAPE STRUCTURE
-  !   ! 2 dim arrays (mp,t)
+  !   ! 2 dim arrays (np,t)
   !   CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI1 = (/ 'npatch_active' /)
   !   CHARACTER(len=40),DIMENSION(11), PARAMETER :: AR1 = (/ 'cmass_sum',           &
   !        'densindiv','height_mean','height_max','basal_area','stress_mortality',  &
   !        'fire_mortality','growth','crown_cover','crown_area','crown_volume' /)
-  !   ! 3 dim arrays (mp,nlayer,t)
+  !   ! 3 dim arrays (np,nlayer,t)
   !   CHARACTER(len=40),DIMENSION( 4), PARAMETER :: AR2 = (/ 'biomass','density',   &
   !        'hmean','hmax' /)
-  !   ! 3 dim arrays (mp,height_bins,t)
+  !   ! 3 dim arrays (np,height_bins,t)
   !   CHARACTER(len=40),DIMENSION( 4), PARAMETER :: AR3 = (/ 'cmass_stem_bin',      &
   !        'densindiv_bin','height_bin','diameter_bin' /)
-  !   ! 3 dim arrays (mp,ndisturb,t)
+  !   ! 3 dim arrays (np,ndisturb,t)
   !   CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI4 = (/ 'n_age' /)
 
   !   ! PATCH STRUCTURE
-  !   ! 3 dim arrays (mp,npatch2d,t)
+  !   ! 3 dim arrays (np,npatch2d,t)
   !   CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI5 = (/ 'patch_id' /)
   !   CHARACTER(len=40),DIMENSION(10), PARAMETER :: AR5 = (/ 'patch_freq',          &
   !        'patch_freq_old','patch_freq_old2','patch_factor_recruit',               &
   !        'patch_biomass','patch_biomass_old','patch_biomass_old2',                &
   !        'patch_stress_mortality','patch_fire_mortality','patch_growth' /)
-  !   ! 4 dim arrays (mp,npatch2d,ndisturb+1,t)
-  ! !CRM  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI6 =                           &
-  ! !CRM       (/ 'patch_ranked_age_unique' /)
-  ! !CRM  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AR6 =                           &
-  ! !CRM       (/ 'patch_freq_ranked_age_unique' /)
-  !   ! 4 dim arrays (mp,npatch2d,ndisturb,t)
+  !   ! 4 dim arrays (np,npatch2d,ndisturb+1,t)
+  !   ! 4 dim arrays (np,npatch2d,ndisturb,t)
   !   CHARACTER(len=40),DIMENSION( 5), PARAMETER :: AI7 =                           &
   !        (/ 'patch_disturbance_interval','patch_first_disturbance_year',          &
   !        'patch_age','patch_age_old','patch_ranked_age_unique' /)
@@ -59,47 +70,47 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
   !        (/ 'patch_freq_ranked_age_unique' /)
 
   !   ! LAYER STRUCTURE
-  !   ! 4 dim arrays (mp,npatch2d,nlayer,t)
+  !   ! 4 dim arrays (np,npatch2d,nlayer,t)
   !   CHARACTER(len=40),DIMENSION( 4), PARAMETER :: AR8 = (/ 'layer_biomass',       &
   !        'layer_density','layer_hmean','layer_hmax' /)
   !   CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI8 = (/ 'layer_ncohort' /)
 
   !   ! COHORT STRUCTURE
-  !   ! 5 dim arrays (mp,npatch2d,nlayer,ncohort_max,t)
+  !   ! 5 dim arrays (np,npatch2d,nlayer,ncohort_max,t)
   !   CHARACTER(len=40),DIMENSION( 5), PARAMETER :: AR9 = (/ 'cohort_biomass',      &
   !        'cohort_density','cohort_frac_resource_uptake','cohort_height',          &
   !        'cohort_diameter' /)
   !   CHARACTER(len=40),DIMENSION( 2), PARAMETER :: AI9 = (/'cohort_age','cohort_id'/)
 
-  ! 1 dim arrays (mp)
+  ! 1 dim arrays (np)
   CHARACTER(len=40),DIMENSION( 2) :: AR0
 
   ! LANDSCAPE STRUCTURE
-  ! 2 dim arrays (mp,t)
+  ! 2 dim arrays (np,t)
   CHARACTER(len=40),DIMENSION( 1) :: AI1
   CHARACTER(len=40),DIMENSION(11) :: AR1
-  ! 3 dim arrays (mp,nlayer,t)
+  ! 3 dim arrays (np,nlayer,t)
   CHARACTER(len=40),DIMENSION( 4) :: AR2
-  ! 3 dim arrays (mp,height_bins,t)
+  ! 3 dim arrays (np,height_bins,t)
   CHARACTER(len=40),DIMENSION( 4) :: AR3
-  ! 3 dim arrays (mp,ndisturb,t)
+  ! 3 dim arrays (np,ndisturb,t)
   CHARACTER(len=40),DIMENSION( 1) :: AI4
 
   ! PATCH STRUCTURE
-  ! 3 dim arrays (mp,npatch2d,t)
+  ! 3 dim arrays (np,npatch2d,t)
   CHARACTER(len=40),DIMENSION( 1) :: AI5
   CHARACTER(len=40),DIMENSION( 8) :: AR5
-  ! 4 dim arrays (mp,npatch2d,ndisturb,t)
+  ! 4 dim arrays (np,npatch2d,ndisturb,t)
   CHARACTER(len=40),DIMENSION( 4) :: AI7
   CHARACTER(len=40),DIMENSION( 1) :: AR7
 
   ! LAYER STRUCTURE
-  ! 4 dim arrays (mp,npatch2d,nlayer,t)
+  ! 4 dim arrays (np,npatch2d,nlayer,t)
   CHARACTER(len=40),DIMENSION( 4) :: AR8
   CHARACTER(len=40),DIMENSION( 1) :: AI8
 
   ! COHORT STRUCTURE
-  ! 5 dim arrays (mp,npatch2d,nlayer,ncohort_max,t)
+  ! 5 dim arrays (np,npatch2d,nlayer,ncohort_max,t)
   CHARACTER(len=40),DIMENSION( 5) :: AR9
   CHARACTER(len=40),DIMENSION( 2) :: AI9
 
@@ -108,7 +119,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
        VIDR2(SIZE(AR2)),VIDR3(SIZE(AR3)),VIDI4(SIZE(AI4)),VIDR5(SIZE(AR5)),     &
        VIDI5(SIZE(AI5)),VIDI7(SIZE(AI7)),VIDR7(SIZE(AR7)),VIDR8(SIZE(AR8)),     &
        VIDI8(SIZE(AI8)),VIDR9(SIZE(AR9)),VIDI9(SIZE(AI9))
-  INTEGER, SAVE :: FILE_ID, CNT = 0
+  INTEGER, SAVE :: FILE_ID, CNT = 0 
 
   ! TEMPORARY ARRAYS
   INTEGER, ALLOCATABLE :: I1(:), I2(:,:),I3(:,:,:),I4(:,:,:,:)
@@ -177,11 +188,28 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
   AI9(1) = 'cohort_age'
   AI9(2) = 'cohort_id'
 
-
+  !ntile  = NINT(REAL(mp)/REAL(np)) 
+ntile = mp ! warning: not currently accoutning for > 1 patch per grid cell
+np = mp
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  !IF ( .NOT. PRESENT( CLOSE_FILE )   ) CLOSE_FILE = .FALSE.
-  IF ( CABLE_USER%POP_OUT .EQ. 'epi' ) typ = 'out'
+  IF ( PRESENT( CF ) ) THEN 
+     CLOSE_FILE = CF
+  ELSE
+     CLOSE_FILE = .FALSE.
+  END IF
+
+  ! Check for valid ACTION
+  IF ( INDEX(ACTION,"WRITE_EPI") .GT. 0 ) THEN
+     typ = 'out'
+  ELSE IF ( INDEX(ACTION,"WRITE_RST") .GT. 0 ) THEN
+     typ = 'rst'
+  ELSE IF ( INDEX(ACTION,"WRITE_INI") .GT. 0 ) THEN
+     typ = 'ini'
+  ELSE IF ( .NOT. INDEX(ACTION,"READ_RST") .GT. 0 ) THEN
+     WRITE(*,*)  "WRONG ACTION:'",TRIM(ACTION),"' in call to pop_bios_io!"
+     STOP -1
+  ENDIF
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! WRITE POP VALUES TO OUTPUT FILE
@@ -193,19 +221,17 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
 
      IF ( CNT .EQ. 1 ) THEN
         ! Get File-Name
-        IF ( typ .EQ. 'out' ) THEN
-           WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-        ELSE
+        IF( typ .EQ. 'rst' ) THEN
            WRITE( dum, FMT="(I4)")YEAR
+           fname = TRIM(cable_user%POP_rst)//'/'//TRIM(dum)//'_pop_'//TRIM(cable_user%RunIDEN)//'_'//typ//'.nc'
+        ELSE 
+           fname = TRIM(cable_user%POP_rst)//'/pop_'//TRIM(cable_user%RunIDEN)//'_'//typ//'.nc'
         ENDIF
 
-        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-             TRIM(dum)//'_pop_'//typ//'.nc'
-
+        write(*,*) "pop_io", fname
         ! Create NetCDF file:
         STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
         ! Put the file in define mode:
         STATUS = NF90_redef(FILE_ID)
 
@@ -215,14 +241,12 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
         STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "RunIden", CABLE_USER%RunIden )
 
         ! Define dimensions:
-        STATUS = NF90_def_dim(FILE_ID, 'land'       , mp         , land_ID )
+        STATUS = NF90_def_dim(FILE_ID, 'land'       , np         , land_ID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'NPATCH2D'   , NPATCH2D   , patch_ID)
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'NDISTURB'   , NDISTURB   , ndis_ID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-        !CRM     STATUS = NF90_def_dim(FILE_ID, 'NDISTURB+1' , NDISTURB+1 , ndis1_ID)
-        !CRM     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'NLAYER'     , NLAYER     , nlay_ID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'HEIGHT_BINS', HEIGHT_BINS, hgtb_ID )
@@ -268,16 +292,6 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
            STATUS = NF90_def_var(FILE_ID,TRIM(AR5(i)), NF90_FLOAT,(/land_ID,patch_ID,t_ID/),VIDR5(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         END DO
-        !CRM     DO i = 1, SIZE(AI6)
-        !CRM        STATUS = NF90_def_var(FILE_ID,TRIM(AI6(i)), NF90_INT  , &
-        !CRM             (/land_ID,patch_ID,ndis1_ID,t_ID/),VIDI6(i))
-        !CRM        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-        !CRM     END DO
-        !CRM     DO i = 1, SIZE(AR6)
-        !CRM        STATUS = NF90_def_var(FILE_ID,TRIM(AR6(i)), NF90_FLOAT, &
-        !CRM             (/land_ID,patch_ID,ndis1_ID,t_ID/),VIDR6(i))
-        !CRM        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-        !CRM     END DO
         DO i = 1, SIZE(AI7)
            STATUS = NF90_def_var(FILE_ID,TRIM(AI7(i)), NF90_INT,   &
                 (/land_ID,patch_ID,ndis_ID,t_ID/),VIDI7(i))
@@ -313,15 +327,14 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
         STATUS = NF90_enddef(FILE_ID)
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-        ! PUT LAT / LON ( mp )
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(1), REAL(casamet%lat),      &
-             start=(/ 1 /), count=(/ mp /)  )
+        ! PUT LAT / LON ( np )
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(1), REAL(casamet%lat(1:mp:ntile)),&
+             start=(/ 1 /), count=(/ np /)  )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(2), REAL(casamet%lon),      &
-             start=(/ 1 /), count=(/ mp /)  )
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(2), REAL(casamet%lon(1:mp:ntile)),&
+             start=(/ 1 /), count=(/ np /)  )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
      END IF
 
      ! WRITE CURRENT STATE
@@ -329,47 +342,47 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
      STATUS = NF90_PUT_VAR(FILE_ID, VIDtime, YEAR, start=(/ CNT /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-     ! PUT 2D VARS ( mp, t )
+     ! PUT 2D VARS ( np, t )
      STATUS = NF90_PUT_VAR(FILE_ID, VIDI1( 1), POP%pop_grid(:)%npatch_active,      &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 1), POP%pop_grid(:)%cmass_sum,          &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 2), POP%pop_grid(:)%densindiv,          &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 3), POP%pop_grid(:)%height_mean,        &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 4), POP%pop_grid(:)%height_max,         &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 5), POP%pop_grid(:)%basal_area,         &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 6), POP%pop_grid(:)%stress_mortality,   &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 7), POP%pop_grid(:)%fire_mortality,     &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 8), POP%pop_grid(:)%growth,             &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 9), POP%pop_grid(:)%crown_cover,        &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(10), POP%pop_grid(:)%crown_area,         &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(11), POP%pop_grid(:)%crown_volume,       &
-          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+          start=(/ 1, CNT /), count=(/ np, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-     ! PUT 3D VARS ( mp,nlayer, t )
-     MPS:DO m = 1, mp
+     ! PUT 3D VARS ( np,nlayer, t )
+     MPS:DO m = 1, np
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR2( 1), POP%pop_grid(m)%biomass,         &
              start=(/ m, 1, CNT /), count=(/ 1, nlayer, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -383,7 +396,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
              start=(/ m, 1, CNT /), count=(/ 1, nlayer, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-        ! PUT 3D VARS ( mp,height_bins, t )
+        ! PUT 3D VARS ( np,height_bins, t )
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR3( 1), POP%pop_grid(m)%cmass_stem_bin,  &
              start=(/ m, 1, CNT /), count=(/ 1, HEIGHT_BINS, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -397,13 +410,13 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
              start=(/ m, 1, CNT /), count=(/ 1, HEIGHT_BINS, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-        ! PUT 3D VARS ( mp,ndisturb, t )
+        ! PUT 3D VARS ( np,ndisturb, t )
         STATUS = NF90_PUT_VAR(FILE_ID, VIDI4( 1), POP%pop_grid(m)%n_age,           &
              start=(/ m, 1, CNT /), count=(/ 1, ndisturb, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
         ! PATCH STRUCTURE
-        ! PUT 3D VARS ( mp,npatch2d, t )
+        ! PUT 3D VARS ( np,npatch2d, t )
         STATUS = NF90_PUT_VAR(FILE_ID, VIDI5( 1), POP%pop_grid(m)%patch(:)%id,     &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -414,7 +427,6 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 2), POP%pop_grid(m)%freq_old,        &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 3), POP%pop_grid(m)%patch(:)%factor_recruit,  &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -435,15 +447,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
         PAT:DO p = 1, npatch2d
-           !CRM        ! PUT 4D VARS ( mp,npatch2d, ndisturb+1,t )
-           !CRM        STATUS = NF90_PUT_VAR(FILE_ID, VIDI6( 1), POP%pop_grid(m)%ranked_age_unique(p,:),&
-           !CRM             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB+1, 1 /) )
-           !CRM        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-           !CRM        STATUS = NF90_PUT_VAR(FILE_ID, VIDR6( 1), POP%pop_grid(m)%freq_ranked_age_unique(p,:),&
-           !CRM             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB+1, 1 /) )
-           !CRM        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-           ! PUT 4D VARS ( mp,npatch2d, ndisturb,t )
+           ! PUT 4D VARS ( np,npatch2d, ndisturb,t )
            STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 1), POP%pop_grid(m)%patch(p)%disturbance_interval,&
                 start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
            IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -453,9 +457,6 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
            STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 3), POP%pop_grid(m)%patch(p)%age,&
                 start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
            IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!           STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 4), POP%pop_grid(m)%patch(p)%age_old,&
-!                start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
-!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
            STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 4), POP%pop_grid(m)%ranked_age_unique(p,:),&
                 start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
            IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -465,7 +466,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
            IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
            ! LAYER STRUCTURE
-           ! PUT 4D VARS ( mp,npatch2d, nlayer,t )
+           ! PUT 4D VARS ( np,npatch2d, nlayer,t )
            STATUS = NF90_PUT_VAR(FILE_ID, VIDI8( 1), POP%pop_grid(m)%patch(p)%layer(:)%ncohort,&
                 start=(/ m, p, 1, CNT /), count=(/ 1, 1, nlayer, 1 /) )
            IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -484,7 +485,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
 
            LAY:DO l = 1, nlayer
               ! COHORT STRUCTURE
-              ! PUT 5D VARS ( mp,npatch2d, nlayer,ncohort_max,t )
+              ! PUT 5D VARS ( np,npatch2d, nlayer,ncohort_max,t )
               STATUS = NF90_PUT_VAR(FILE_ID, VIDI9( 1), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%age,&
                    start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
               IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -517,20 +518,25 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
 
   ELSE IF ( INDEX(ACTION,'READ') .GT. 0 ) THEN
 
-     !   IF ( CABLE_USER%POP_
-     IF ( TRIM(cable_user%POP_rst) .EQ. '' .OR. &
-          INDEX(TRIM(cable_user%POP_rst),'/',BACK=.TRUE.) .EQ. &
-          LEN(TRIM(cable_user%POP_rst)) ) THEN
-        WRITE( dum, FMT="(I4)")CABLE_USER%YEARSTART-1
-        fname = TRIM(cable_user%POP_rst)//TRIM(cable_user%RunIden)//'_'//&
-             TRIM(dum)//'_pop_rst.nc'
-     ELSE
-        fname = cable_user%POP_rst
-     ENDIF
+     WRITE( dum, FMT="(I4)")YEAR-1
+     fname = TRIM(cable_user%POP_rst)//'/'//TRIM(dum)//'_pop_'//TRIM(cable_user%RunIDEN)//'_'//typ//'.nc'
+     INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
+     ! If suitable restart-file, try ini-restart
+     IF ( .NOT. EXISTFILE ) THEN
+        WRITE(*,*) "Restart file not found: ",TRIM(fname)
+        WRITE(*,*) "Looking for initialization file..."        
+        fname = TRIM(cable_user%POP_rst)//'/'//'pop_'//TRIM(cable_user%RunIDEN)//'_ini.nc'
+        INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
+        IF (.NOT. EXISTFILE) THEN
+           WRITE(*,*) " No ini-restart file found either! ", TRIM(fname)
+           STOP -1
+        ENDIF
+     END IF
+
 
      STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
      IF (STATUS /= NF90_noerr)THEN
-        WRITE(*,*)"Error opening file (pop_io.F90) ",TRIM(fname)
+        WRITE(*,*)"Error opening file (pop_bios_io.f90) ",TRIM(fname)
         CALL handle_err(STATUS)
      ENDIF
      ! DIMS
@@ -549,11 +555,6 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
      STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=NDISTURB_dim )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-     !CRM   STATUS = NF90_INQ_DIMID( FILE_ID, 'NDISTURB+1', dID )
-     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     !CRM   STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=NDISTURB1_dim )
-     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
      STATUS = NF90_INQ_DIMID( FILE_ID, 'NLAYER', dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=NLAYER_dim )
@@ -569,12 +570,12 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
      STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=NCOHORT_MAX_dim )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-     IF ( land_dim .NE. mp .OR.  npatch2d_dim .NE. NPATCH2D .OR.  &
+     IF ( land_dim .NE. np .OR.  npatch2d_dim .NE. NPATCH2D .OR.  &
           HEIGHT_BINS_dim .NE. HEIGHT_BINS .OR. NCOHORT_MAX_dim .NE. NCOHORT_MAX &
           .OR. NLAYER_dim .NE. NLAYER .OR. NDISTURB_dim .NE. NDISTURB ) THEN
-        WRITE(*,*)"Dimension misfit in pop_io.F90!"
+        WRITE(*,*)"Dimension misfit in pop_bios_io.f90!"
         WRITE(*,*)"Restart file  | Current Run"
-        WRITE(*,*)"# points   ",land_dim,"     ",mp
+        WRITE(*,*)"# points   ",land_dim,"     ",np
         WRITE(*,*)"# patches  ",NPATCH2D_dim,"     ",NPATCH2D
         WRITE(*,*)"# HGT_BINS ",HEIGHT_BINS_dim,"     ",HEIGHT_BINS
         WRITE(*,*)"NCOHORT_MAX",NCOHORT_MAX_dim,"     ",NCOHORT_MAX
@@ -605,41 +606,47 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
 
      IF ( tx .LE. 0 ) THEN
         WRITE(*,*) 'FILE '//TRIM(fname)//" doesn't contain data for ",YEAR
-        STOP "pop_io.F90"
+        WRITE(*,*) 'Resetting  tx to 1!'
+        tx = 1
+        IF ( typ .NE. "ini" ) THEN
+           WRITE(*,*) "Wrong date in input pop restart-file! ",TRIM(fname)
+        ENDIF
      ENDIF
 
      ! CHECK LAT 'N LON
-     ALLOCATE( R1( mp ) )
+     ALLOCATE( R1( np ) )
      STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR0(1)), dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR ( FILE_ID, dID, R1 )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     IF ( ANY ( casamet%lat .NE. R1 ) ) THEN
-        WRITE(*,*)"INPUT LATs don't match casamet! pop_io.F90"
+     IF ( ANY ( casamet%lat(1:mp:ntile) .NE. R1 ) ) THEN
+        WRITE(*,*)"INPUT LATs don't match casamet! pop_bios_io.f90" &
+             , TRIM(fname)
         STOP
      ENDIF
      STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR0(2)), dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR ( FILE_ID, dID, R1 )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     IF ( ANY ( casamet%lon .NE. R1 ) ) THEN
-        WRITE(*,*)"INPUT LONs don't match casamet! pop_io.F90"
+     IF ( ANY ( casamet%lon(1:mp:ntile) .NE. R1 ) ) THEN
+        WRITE(*,*)"INPUT LONs don't match casamet! pop_bios_io.f90" &
+             , TRIM(fname)
         STOP
      ENDIF
      DEALLOCATE ( R1 )
 
-     ! GET 1D VARS ( mp )
+     ! GET 1D VARS ( np )
      STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI1(1)), dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR  ( FILE_ID, dID, POP%pop_grid(:)%npatch_active, &
-          start=(/ 1,tx /), count=(/ mp, 1 /) )
+          start=(/ 1,tx /), count=(/ np, 1 /) )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-     ALLOCATE ( R1( mp ) )
+     ALLOCATE ( R1( np ) )
      DO i = 1, SIZE(AR1)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR1(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-        STATUS = NF90_GET_VAR  ( FILE_ID, dID, R1, start=(/1,tx/), count=(/mp,1/) )
+        STATUS = NF90_GET_VAR  ( FILE_ID, dID, R1, start=(/1,tx/), count=(/np,1/) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         SELECT CASE ( i )
         CASE( 1); POP%pop_grid(:)%cmass_sum        = R1
@@ -653,85 +660,85 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
         CASE( 9); POP%pop_grid(:)%crown_cover      = R1
         CASE(10); POP%pop_grid(:)%crown_area       = R1
         CASE(11); POP%pop_grid(:)%crown_volume     = R1
-        CASE default; STOP "Parameter not assigned in pop_io.F90!"
+        CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
         END SELECT
      END DO
      DEALLOCATE ( R1 )
 
-     ! GET 2D VARS ( mp,nlayer )
-     ALLOCATE( R2( mp, nlayer ) )
+     ! GET 2D VARS ( np,nlayer )
+     ALLOCATE( R2( np, nlayer ) )
      DO i = 1, SIZE(AR2)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR2(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, R2, &
-             start=(/ 1, 1, tx /), count=(/ mp, nlayer, 1 /) )
+             start=(/ 1, 1, tx /), count=(/ np, nlayer, 1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-        DO m = 1, mp
+        DO m = 1, np
            SELECT CASE ( i )
            CASE( 1); POP%pop_grid(m)%biomass = R2(m,:)
            CASE( 2); POP%pop_grid(m)%density = R2(m,:)
            CASE( 3); POP%pop_grid(m)%hmean   = R2(m,:)
            CASE( 4); POP%pop_grid(m)%hmax    = R2(m,:)
-           CASE default; STOP "Parameter not assigned in pop_io.F90!"
+           CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
            END SELECT
         END DO
      END DO
      DEALLOCATE( R2 )
 
-     ! GET 2D VARS ( mp,height_bins )
-     ALLOCATE( R2( mp, height_bins ) )
+     ! GET 2D VARS ( np,height_bins )
+     ALLOCATE( R2( np, height_bins ) )
      DO i = 1, SIZE(AR3)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR3(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, R2, &
-             start=(/ 1, 1, tx /), count=(/ mp, height_bins, 1 /) )
+             start=(/ 1, 1, tx /), count=(/ np, height_bins, 1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-        DO m = 1, mp
+        DO m = 1, np
            SELECT CASE ( i )
            CASE( 1); POP%pop_grid(m)%cmass_stem_bin = R2(m,:)
            CASE( 2); POP%pop_grid(m)%densindiv_bin  = R2(m,:)
            CASE( 3); POP%pop_grid(m)%height_bin     = R2(m,:)
            CASE( 4); POP%pop_grid(m)%diameter_bin   = R2(m,:)
-           CASE default; STOP "Parameter not assigned in pop_io.F90!"
+           CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
            END SELECT
         END DO
      END DO
      DEALLOCATE( R2 )
 
-     ! GET 2D VARS ( mp,ndisturb)
-     ALLOCATE ( I2( mp, ndisturb ) )
+     ! GET 2D VARS ( np,ndisturb)
+     ALLOCATE ( I2( np, ndisturb ) )
      STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI4(1)), dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR  ( FILE_ID, dID, I2, &
-          start=(/ 1, 1, tx /), count=(/ mp, ndisturb, 1 /) )
+          start=(/ 1, 1, tx /), count=(/ np, ndisturb, 1 /) )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     DO m = 1, mp
+     DO m = 1, np
         POP%pop_grid(m)%n_age = I2( m,: )
      END DO
      DEALLOCATE( I2 )
 
-     ! GET 2D VARS ( mp,npatch2d)
-     ALLOCATE ( I2( mp,npatch2d ) )
+     ! GET 2D VARS ( np,npatch2d)
+     ALLOCATE ( I2( np,npatch2d ) )
      STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI5(1)), dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR  ( FILE_ID, dID, I2, &
-          start=(/ 1, 1, tx /), count=(/ mp, npatch2d, 1 /) )
+          start=(/ 1, 1, tx /), count=(/ np, npatch2d, 1 /) )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     DO m = 1, mp
+     DO m = 1, np
         POP%pop_grid(m)%patch(:)%id = I2( m,: )
      END DO
      DEALLOCATE( I2 )
 
      ! PATCH STRUCTURE
-     ! GET 2D VARS ( mp,npatch2d )
-     ALLOCATE( R2( mp, npatch2d ) )
+     ! GET 2D VARS ( np,npatch2d )
+     ALLOCATE( R2( np, npatch2d ) )
      DO i = 1, SIZE(AR5)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR5(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, R2, &
-             start=(/ 1, 1, tx /), count=(/ mp, npatch2d, 1 /) )
+             start=(/ 1, 1, tx /), count=(/ np, npatch2d, 1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-        DO m = 1, mp
+        DO m = 1, np
            SELECT CASE ( i )
            CASE( 1); POP%pop_grid(m)%freq                      = R2(m,:)
            CASE( 2); POP%pop_grid(m)%freq_old                  = R2(m,:)
@@ -741,103 +748,80 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
            CASE( 6); POP%pop_grid(m)%patch(:)%stress_mortality = R2(m,:)
            CASE( 7); POP%pop_grid(m)%patch(:)%fire_mortality   = R2(m,:)
            CASE( 8); POP%pop_grid(m)%patch(:)%growth           = R2(m,:)
-           CASE default; STOP "Parameter not assigned in pop_io.F90!"
+           CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
            END SELECT
         END DO
      END DO
      DEALLOCATE( R2 )
-
-     ! GET 3D VARS ( mp,npatch2d,ndisturb+1 )
-     !CRM   ALLOCATE( I3( mp, npatch2d,ndisturb+1 ) )
-     !CRM   STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI6(1)), dID )
-     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     !CRM   STATUS = NF90_GET_VAR  ( FILE_ID, dID, I3, &
-     !CRM        start=(/ 1, 1, 1, tx /), count=(/ mp, npatch2d, ndisturb+1, 1 /) )
-     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     !CRM   DO m = 1, mp
-     !CRM      POP%pop_grid(m)%ranked_age_unique = I3(m,:,:)
-     !CRM   END DO
-     !CRM   DEALLOCATE( I3 )
-
-     !CRM   ALLOCATE( R3( mp, npatch2d,ndisturb+1 ) )
-     !CRM   STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR6(1)), dID )
-     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     !CRM   STATUS = NF90_GET_VAR  ( FILE_ID, dID, R3, &
-     !CRM        start=(/ 1, 1, 1, tx /), count=(/ mp, npatch2d, ndisturb+1, 1 /) )
-     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     !CRM   DO m = 1, mp
-     !CRM      POP%pop_grid(m)%freq_ranked_age_unique = R3(m,:,:)
-     !CRM   END DO
-     !CRM   DEALLOCATE( R3 )
-
-     ! GET 3D VARS ( mp,npatch2d,ndisturb )
-     ALLOCATE( I3( mp, npatch2d, ndisturb ) )
+     
+     ! GET 3D VARS ( np,npatch2d,ndisturb )
+     ALLOCATE( I3( np, npatch2d, ndisturb ) )
      DO i = 1, SIZE(AI7)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI7(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, I3, &
-             start=(/ 1, 1, 1, tx /), count=(/ mp, npatch2d, ndisturb, 1 /) )
+             start=(/ 1, 1, 1, tx /), count=(/ np, npatch2d, ndisturb, 1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         DO p = 1, npatch2d
-           DO m = 1, mp
+           DO m = 1, np
               SELECT CASE ( i )
               CASE( 1); POP%pop_grid(m)%patch(p)%disturbance_interval   = I3(m,p,:)
               CASE( 2); POP%pop_grid(m)%patch(p)%first_disturbance_year = I3(m,p,:)
               CASE( 3); POP%pop_grid(m)%patch(p)%age                    = I3(m,p,:)
               CASE( 4); POP%pop_grid(m)%ranked_age_unique(p,:)          = I3(m,p,:)
-              CASE default; STOP "Parameter not assigned in pop_io.F90!"
+              CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
               END SELECT
            END DO
         END DO
      END DO
      DEALLOCATE( I3 )
 
-     ALLOCATE( R3( mp, npatch2d,ndisturb ) )
+     ALLOCATE( R3( np, npatch2d,ndisturb ) )
      STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR7(1)), dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR  ( FILE_ID, dID, R3, &
-          start=(/ 1, 1, 1, tx /), count=(/ mp, npatch2d, ndisturb, 1 /) )
+          start=(/ 1, 1, 1, tx /), count=(/ np, npatch2d, ndisturb, 1 /) )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     DO m = 1, mp
+     DO m = 1, np
         POP%pop_grid(m)%freq_ranked_age_unique = R3(m,:,:)
      END DO
      DEALLOCATE( R3 )
 
      ! LAYER STRUCTURE
-     ! GET 3D VARS ( mp,npatch2d,nlayer )
-     ALLOCATE( I3( mp, npatch2d, nlayer ) )
+     ! GET 3D VARS ( np,npatch2d,nlayer )
+     ALLOCATE( I3( np, npatch2d, nlayer ) )
      DO i = 1, SIZE(AI8)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI8(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, I3, &
-             start=(/ 1, 1, 1, tx /), count=(/ mp, npatch2d, nlayer, 1 /) )
+             start=(/ 1, 1, 1, tx /), count=(/ np, npatch2d, nlayer, 1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         DO p = 1, npatch2d
-           DO m = 1, mp
+           DO m = 1, np
               SELECT CASE ( i )
               CASE( 1); POP%pop_grid(m)%patch(p)%layer(:)%ncohort = I3(m,p,:)
-              CASE default; STOP "Parameter not assigned in pop_io.F90!"
+              CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
               END SELECT
            END DO
         END DO
      END DO
      DEALLOCATE( I3 )
 
-     ALLOCATE( R3( mp, npatch2d, nlayer ) )
+     ALLOCATE( R3( np, npatch2d, nlayer ) )
      DO i = 1, SIZE(AR8)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR8(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, R3, &
-             start=(/ 1, 1, 1, tx /), count=(/ mp, npatch2d, nlayer, 1 /) )
+             start=(/ 1, 1, 1, tx /), count=(/ np, npatch2d, nlayer, 1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         DO p = 1, npatch2d
-           DO m = 1, mp
+           DO m = 1, np
               SELECT CASE ( i )
               CASE( 1); POP%pop_grid(m)%patch(p)%layer(:)%biomass = R3(m,p,:)
               CASE( 2); POP%pop_grid(m)%patch(p)%layer(:)%density = R3(m,p,:)
               CASE( 3); POP%pop_grid(m)%patch(p)%layer(:)%hmean   = R3(m,p,:)
               CASE( 4); POP%pop_grid(m)%patch(p)%layer(:)%hmax    = R3(m,p,:)
-              CASE default; STOP "Parameter not assigned in pop_io.F90!"
+              CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
               END SELECT
            END DO
         END DO
@@ -845,21 +829,21 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
      DEALLOCATE( R3 )
 
      ! COHORT STRUCTURE
-     ! GET 4D VARS ( mp,npatch2d,nlayer,ncohort_max )
-     ALLOCATE( I4( mp, npatch2d, nlayer, ncohort_max ) )
+     ! GET 4D VARS ( np,npatch2d,nlayer,ncohort_max )
+     ALLOCATE( I4( np, npatch2d, nlayer, ncohort_max ) )
      DO i = 1, SIZE(AI9)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI9(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, I4, start=(/ 1, 1, 1, 1, tx /), &
-             count=(/ mp,npatch2d,nlayer,ncohort_max,1 /) )
+             count=(/ np,npatch2d,nlayer,ncohort_max,1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         DO l = 1, nlayer
            DO p = 1, npatch2d
-              DO m = 1, mp
+              DO m = 1, np
                  SELECT CASE ( i )
                  CASE( 1); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%age = I4(m,p,l,:)
                  CASE( 2); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%id  = I4(m,p,l,:)
-                 CASE default; STOP "Parameter not assigned in pop_io.F90!"
+                 CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
                  END SELECT
               END DO
            END DO
@@ -867,16 +851,16 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
      END DO
      DEALLOCATE( I4 )
 
-     ALLOCATE( R4( mp, npatch2d, nlayer, ncohort_max ) )
+     ALLOCATE( R4( np, npatch2d, nlayer, ncohort_max ) )
      DO i = 1, SIZE(AR9)
         STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR9(i)), dID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_GET_VAR  ( FILE_ID, dID, R4, start=(/ 1, 1, 1, 1, tx /), &
-             count=(/ mp,npatch2d,nlayer,ncohort_max,1 /) )
+             count=(/ np,npatch2d,nlayer,ncohort_max,1 /) )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         DO l = 1, nlayer
            DO p = 1, npatch2d
-              DO m = 1, mp
+              DO m = 1, np
                  SELECT CASE ( i )
                  CASE( 1); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%biomass = R4(m,p,l,:)
                  CASE( 2); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%density = R4(m,p,l,:)
@@ -884,7 +868,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
                       = R4(m,p,l,:)
                  CASE( 4); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%height  = R4(m,p,l,:)
                  CASE( 5); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%diameter= R4(m,p,l,:)
-                 CASE default; STOP "Parameter not assigned in pop_io.F90!"
+                 CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
                  END SELECT
               END DO
            END DO
@@ -894,15 +878,13 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
 
   ELSE
      WRITE(*,*) 'ACTION = ',TRIM(ACTION)
-     STOP 'Please, enter either "READ" or "WRITE" when calling pop_io.F90!'
+     STOP 'Please, enter either "READ" or "WRITE" when calling pop_bios_io.f90!'
   END IF
 
-  IF ( CLOSE_FILE .OR. INDEX(ACTION,"READ").GT.0 &
-       .OR. typ .EQ. 'rst') THEN
+  IF ( CLOSE_FILE .OR. INDEX(ACTION,"READ").GT.0 .OR. typ .EQ. 'rst') THEN
      ! Close NetCDF file:
      STATUS = NF90_close(FILE_ID)
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
      ! Reset CNT for next Write
      CNT = 0
   ENDIF

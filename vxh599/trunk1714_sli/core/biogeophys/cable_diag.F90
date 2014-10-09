@@ -188,6 +188,7 @@ END SUBROUTINE cable_diag_data1
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(3))
 
     !tsoil
+    write(*,*) "def_vars" ,  dimID(1), dimID(2),dimID(3)
     ncok = NF90_DEF_VAR(ncid, trim(var_name(4)), xtype, &
          (/ dimID(1), dimID(2),dimID(3)/), varID(4))
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(4))

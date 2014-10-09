@@ -363,6 +363,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
      DO idoy=1,mdyear
 
         CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
+         write(*,*) "before get_var", ms
         CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
         CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
         CALL get_var_ncr2(ncrid, var_name(6), cgpp    , idoy )
@@ -488,6 +489,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
      CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
      ! define variables: from name, type, dims
+     write(*,*) "def_vars", dimID
      CALL def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
 
      ! define variable attributes

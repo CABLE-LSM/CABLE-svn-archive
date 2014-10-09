@@ -174,7 +174,7 @@ SUBROUTINE range_abort(message,ktau,met,value,var_range,                       &
    
    REAL,DIMENSION(2),INTENT(IN) :: var_range ! appropriate var range 
 
- 
+   WRITE(*,*) "in range_abort"
    WRITE(*,*) message ! error from subroutine
    
    IF( PRESENT(yy) ) THEN ! i.e. using rectangular land/sea grid
