@@ -43,9 +43,9 @@ module cable_routing
   !**************************************************************************!
 #ifndef with_cable 
   integer, parameter :: r_2  = SELECTED_REAL_KIND(8)
-  integer, parameter :: mlat = 150
-  integer, parameter :: mlon = 360
-  integer, parameter :: mp = 360*150
+  integer, parameter :: mlat = 35!
+  integer, parameter :: mlon = 50!360
+  integer, parameter :: mp = 50*35!360*150
   real(r_2) :: dels = 1800.0
   
   real(r_2), dimension(:), allocatable, save :: latitude
@@ -80,12 +80,12 @@ module cable_routing
   
   type map_grid_type
     
-    integer, pointer, dimension(:,:)   :: ind_lgr        !index of the Land cell  Given the River cell
-    real(r_2), pointer, dimension(:,:) :: weight_lgr     !fraction of the river cell covered by land cell relative to total river cell area
+    integer, allocatable, dimension(:,:)   :: ind_lgr        !index of the Land cell  Given the River cell
+    real(r_2), allocatable, dimension(:,:) :: weight_lgr     !fraction of the river cell covered by land cell relative to total river cell area
                                                          !Land Going to River
-    real(r_2), pointer, dimension(:,:) :: weight_rgl     !fraction of the river cell covered by land cell relative to total land cell area
+    real(r_2), allocatable, dimension(:,:) :: weight_rgl     !fraction of the river cell covered by land cell relative to total land cell area
                                                          !River Going to Land
-    integer, pointer, dimension(:)     :: n_ovrlap_lgr   !number of land cells that over lap the river cell  
+    integer, allocatable, dimension(:)     :: n_ovrlap_lgr   !number of land cells that over lap the river cell  
 
   end type map_grid_type
 
@@ -99,22 +99,22 @@ module cable_routing
     integer                            :: nrr_cells   !number of active cells
     
     !move below into a separate data container?? nah...
-    real(r_2), pointer, dimension(:) :: lat   !1dimensional array stored as lat=0,lon={1,nlon}; lat=1,lon={1,nlon}, etc.  compressed doesn't contain all lat/lon
-    real(r_2), pointer, dimension(:) :: lon
-    real(r_2), pointer, dimension(:) :: length
-    real(r_2), pointer, dimension(:) :: slope
-    real(r_2), pointer, dimension(:) :: elev
-    real(r_2), pointer, dimension(:) :: area
-    real(r_2), pointer, dimension(:) :: source_area     !upstream source area draining into grid cell
+    real(r_2), allocatable, dimension(:) :: lat   !1dimensional array stored as lat=0,lon={1,nlon}; lat=1,lon={1,nlon}, etc.  compressed doesn't contain all lat/lon
+    real(r_2), allocatable, dimension(:) :: lon
+    real(r_2), allocatable, dimension(:) :: length
+    real(r_2), allocatable, dimension(:) :: slope
+    real(r_2), allocatable, dimension(:) :: elev
+    real(r_2), allocatable, dimension(:) :: area
+    real(r_2), allocatable, dimension(:) :: source_area     !upstream source area draining into grid cell
     
-    integer,   pointer, dimension(:) :: land_mask       !1=land,0=ocean,2=land bordering ocean
-    integer,   pointer, dimension(:) :: dwnstrm_index   !index of cell flow goes towards
-    integer,   pointer, dimension(:) :: ocean_outlet    !index of the ending grid cell
-    integer,   pointer, dimension(:) :: upstrm_number   !number of grid cells upstream from the current
-    integer,   pointer, dimension(:) :: active_cell     !1=cell is active, 0=cell not active
-    integer,   pointer, dimension(:) :: direction       !direction of the river flow
-    integer,   pointer, dimension(:) :: is_main_channel !main river channel = 1, not main channel = 0
-    integer,   pointer, dimension(:) :: orig_ind        !the index of the original global array that has all lat/lon points
+    integer,   allocatable, dimension(:) :: land_mask       !1=land,0=ocean,2=land bordering ocean
+    integer,   allocatable, dimension(:) :: dwnstrm_index   !index of cell flow goes towards
+    integer,   allocatable, dimension(:) :: ocean_outlet    !index of the ending grid cell
+    integer,   allocatable, dimension(:) :: upstrm_number   !number of grid cells upstream from the current
+    integer,   allocatable, dimension(:) :: active_cell     !1=cell is active, 0=cell not active
+    integer,   allocatable, dimension(:) :: direction       !direction of the river flow
+    integer,   allocatable, dimension(:) :: is_main_channel !main river channel = 1, not main channel = 0
+    integer,   allocatable, dimension(:) :: orig_ind        !the index of the original global array that has all lat/lon points
 
     type(map_grid_type) :: maps
        
@@ -124,16 +124,16 @@ module cable_routing
   
   type river_flow_type     !one global.  make 2D and have more than one tracer??????
   
-    real(r_2), pointer, dimension(:) :: mass_init   !river water mass at start of timestep (total. not per m2 like the lsm)
-    real(r_2), pointer, dimension(:) :: mass        !river water mass  (total.  not per m2 like the lsm)
-    real(r_2), pointer, dimension(:) :: mass_sub    !river water mass  (total.  not per m2 like the lsm)
-    real(r_2), pointer, dimension(:) :: vel         !river water speed
-    real(r_2), pointer, dimension(:) :: hgt         !river water height 
-    real(r_2), pointer, dimension(:) :: srf_runoff_flux !surface runoff flux (+ to river) from lsm
-    real(r_2), pointer, dimension(:) :: sub_runoff_flux !subsurface runoff flux (+ to river) from lsm    
-    real(r_2), pointer, dimension(:) :: Fin
-    real(r_2), pointer, dimension(:) :: Fin_sub
-    real(r_2), pointer, dimension(:) :: Fout
+    real(r_2), allocatable, dimension(:) :: mass_init   !river water mass at start of timestep (total. not per m2 like the lsm)
+    real(r_2), allocatable, dimension(:) :: mass        !river water mass  (total.  not per m2 like the lsm)
+    real(r_2), allocatable, dimension(:) :: mass_sub    !river water mass  (total.  not per m2 like the lsm)
+    real(r_2), allocatable, dimension(:) :: vel         !river water speed
+    real(r_2), allocatable, dimension(:) :: hgt         !river water height 
+    real(r_2), allocatable, dimension(:) :: srf_runoff_flux !surface runoff flux (+ to river) from lsm
+    real(r_2), allocatable, dimension(:) :: sub_runoff_flux !subsurface runoff flux (+ to river) from lsm    
+    real(r_2), allocatable, dimension(:) :: Fin
+    real(r_2), allocatable, dimension(:) :: Fin_sub
+    real(r_2), allocatable, dimension(:) :: Fout
     
   end type river_flow_type
   
@@ -142,7 +142,7 @@ module cable_routing
     integer                        :: begind         !basin index start in reordered global 1d array
     integer                        :: endind         !basin end index in global reordered array
     integer                        :: n_basin_cells  !number of river cells in the basin
-    integer, pointer, dimension(:) :: river_points   !the indices for the basin in the unordered global 1d array
+    integer, allocatable, dimension(:) :: river_points   !the indices for the basin in the unordered global 1d array
     
   end type basin_type
 
@@ -258,9 +258,9 @@ contains
 
   subroutine map_lsm_runoff_to_river(river_var,grid_var,Qsrf_runoff_lsm,Qsub_runoff_lsm)
     implicit none
-    type(river_flow_type), intent(inout) :: river_var
+    type(river_flow_type), target,intent(inout) :: river_var
     real(r_2), dimension(:), intent(in)   :: Qsrf_runoff_lsm, Qsub_runoff_lsm
-    type(river_grid_type), intent(in)    :: grid_var
+    type(river_grid_type), target,intent(in)    :: grid_var
 
     !local pointers to the derived variables
     real(r_2), pointer, dimension(:)   :: srf_runoff_flux
@@ -307,8 +307,8 @@ contains
 
   subroutine map_river_mass_to_lsm(river_var,grid_var,river_mass_lsm,subsrf_mass_lsm)
     implicit none
-    type(river_flow_type), intent(in)      :: river_var
-    type(river_grid_type), intent(in)      :: grid_var
+    type(river_flow_type), target,intent(in)      :: river_var
+    type(river_grid_type), target,intent(in)      :: grid_var
     real(r_2),  intent(inout)               :: river_mass_lsm(:)
     real(r_2), intent(inout)                :: subsrf_mass_lsm(:)
     
@@ -367,8 +367,6 @@ contains
       ntot = grid_var%npts
     end if
 
-    call alloc_river_grid(new_grid_var,ntot)
-
     new_grid_var%npts = ntot
     new_grid_var%nlat = grid_var%nlat
     new_grid_var%nlon = grid_var%nlon
@@ -377,8 +375,21 @@ contains
     
     !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
     !grid_var = ord_grid_var  !have not orderloaded = operator.  this won't work
-
-    call copy_river_grid_vector_values(grid_var,new_grid_var,1,ntot,1,ntot)
+    call move_alloc(grid_var%dwnstrm_index    ,new_grid_var%dwnstrm_index)
+    call move_alloc(grid_var%ocean_outlet     ,new_grid_var%ocean_outlet)
+    call move_alloc(grid_var%upstrm_number    ,new_grid_var%upstrm_number)
+    call move_alloc(grid_var%lat              ,new_grid_var%lat)
+    call move_alloc(grid_var%lon              ,new_grid_var%lon)
+    call move_alloc(grid_var%slope            ,new_grid_var%slope)
+    call move_alloc(grid_var%length           ,new_grid_var%length)
+    call move_alloc(grid_var%land_mask        ,new_grid_var%land_mask)
+    call move_alloc(grid_var%active_cell      ,new_grid_var%active_cell)
+    call move_alloc(grid_var%is_main_channel  ,new_grid_var%is_main_channel)
+    call move_alloc(grid_var%orig_ind         ,new_grid_var%orig_ind)
+    call move_alloc(grid_var%maps%ind_lgr     ,new_grid_var%maps%ind_lgr)
+    call move_alloc(grid_var%maps%weight_lgr  ,new_grid_var%maps%weight_lgr)
+    call move_alloc(grid_var%maps%weight_rgl  ,new_grid_var%maps%weight_rgl)
+    call move_alloc(grid_var%maps%n_ovrlap_lgr,new_grid_var%maps%n_ovrlap_lgr)
 
   end subroutine create_river_grid_copy
 
@@ -390,7 +401,7 @@ contains
     !if n3 and n4 are missing then old_var(1:old_var%npts)
     !if all are missing then it is new_var(1:npts)=old_var(1:npts) where npts = old_var%npts
     implicit none
-    type(river_grid_type), intent(in)    :: grid_var
+    type(river_grid_type), intent(inout) :: grid_var
     type(river_grid_type), intent(inout) :: new_grid_var
     
     integer, optional :: n1
@@ -398,30 +409,15 @@ contains
     integer, optional :: n3
     integer, optional :: n4
     integer :: m1,m2,m3,m4
-
-    if (present(n4)) then
-      m4 = n4
-    else
-      m4 = new_grid_var%npts
-    end if
-
-    if (present(n3)) then
-      m3 = n3
-    else
-      m3 = 1
-    end if
-
-    if (present(n2)) then
-      m2 = n2
-    else
-      m2 = grid_var%npts
-    end if
-
-    if (present(n1)) then
-      m1 = n1
-    else
-      m1 = 1
-    end if
+    
+    m4 = new_grid_var%npts
+    if (present(n4)) m4 = n4
+    m3 = 1
+    if (present(n3)) m3 = n3
+    m2 = grid_var%npts
+    if (present(n2)) m2 = n2
+    m1 = 1
+    if (present(n1)) m1 = n1
 
     new_grid_var%dwnstrm_index(m1:m2)   = grid_var%dwnstrm_index(m3:m4)   !copy all the values
     new_grid_var%ocean_outlet(m1:m2)    = grid_var%ocean_outlet(m3:m4)
@@ -448,8 +444,8 @@ contains
   function compute_global_mass_balance_error(river_var,grid_var,basin_var) result(mass_error)
   
     implicit none
-    type(river_flow_type),         intent(in)  :: river_var
-    type(river_grid_type),         intent(in)  :: grid_var
+    type(river_flow_type),         target,intent(in)  :: river_var
+    type(river_grid_type),         target,intent(in)  :: grid_var
     type(basin_type),dimension(:), intent(in)  :: basin_var
     real(r_2) :: mass_error
     !local variables
@@ -595,9 +591,9 @@ contains
     
 !-----------------------------------------------------------------------------
 !             !current data set doesn't use these numbers as it is: 1,2,4,8,16,32,64,128,256
-!                       32 64  128
-!                       16     1
-!                        8  4  2
+!                       32 64  128    1.0  lat(3)
+!                       16     1      0.0  lat(2)
+!                        8  4  2     -1.0  lat(1)
 
   integer function dirc2latindex(in_dirc)   !assuming lat goes from south to north....
     implicit none
@@ -614,13 +610,18 @@ contains
   end function dirc2latindex
   
 !----------------------------------------------------------------------------!
+!                      179 180   181
+!                     l(1) l(2) l(3)
+!                       32 64  128    1.0  lat(3)
+!                       16     1      0.0  lat(2)
+!                        8  4  2     -1.0  lat(1)
 
   integer function dirc2lonindex(in_dirc)   !lon goes from west to east
     implicit none
     integer, intent(in) :: in_dirc
 
     dirc2lonindex = 0
-    if (in_dirc .eq. 1 .or. in_dirc .eq. 2 .or. in_dirc .eq. 8) then
+    if (in_dirc .eq. 1 .or. in_dirc .eq. 2 .or. in_dirc .eq. 128) then
       dirc2lonindex  = 1
     elseif (in_dirc .eq. 8 .or. in_dirc .eq. 16 .or. in_dirc .eq. 32) then
       dirc2lonindex = -1
@@ -667,9 +668,14 @@ contains
          
          if (ii .lt. 1 )            ii = ii + lon_wrap!grid_var%nlon  
          if (ii .gt. grid_var%nlon) ii = ii - lon_wrap!grid_var%nlon
+
+         if (jj .lt. 1) jj = 1
+         if (jj .gt. grid_var%nlat) jj = grid_var%nlat
           
 
           if (jj .lt. 1 .or. jj .gt. grid_var%nlat .or. ii .lt. 1 .or. ii .gt. grid_var%nlon) then
+            write(*,*) ii
+            write(*,*) jj
             stop "needs checks yo"
           endif
           
@@ -698,26 +704,23 @@ contains
   
     grid_var%ocean_outlet(:)  = -1
     grid_var%upstrm_number(:) = 0   !upstrm_number only non-zero for outlet cells
-   
-!$OMP PARALLEL DO PRIVATE(i,k,j,j_prev,continue_search)
+  
+!$OMP PARALLEL DO PRIVATE(i,j,k,j_prev) 
     do i=1,grid_var%npts
       j = i
       if (grid_var%land_mask(i) .eq. 1) then   !it is a land cell
       
         k = 0
-        continue_search = .true. 
-        do while (continue_search)
+        j_prev = j
+        do while (k < grid_var%npts .and. grid_var%land_mask(j) .ne. 0)
            j_prev = j                                  
            j = grid_var%dwnstrm_index(j)      !index of the next downstream point.  j_prev now the most recent upstream cell
            k = k + 1
-           if ((k .eq. grid_var%npts)  .or. (j_prev .eq. j) .or. (grid_var%land_mask(j) .eq. 0)) then
-             continue_search = .false.
-           end if
         end do
          
         if (grid_var%land_mask(j) .eq. 0) then  !ended at an ocean point.  previous land pt is the outlet cell
           grid_var%ocean_outlet(i) = j_prev
-!$OMP ATOMIC
+!$OMP ATOMIC 
           grid_var%upstrm_number(j_prev) = grid_var%upstrm_number(j_prev) + 1
         elseif (grid_var%land_mask(j) .eq. 1) then          !ended at a land point.  this is the outlet cell
           grid_var%ocean_outlet(i) = j
@@ -786,9 +789,14 @@ contains
     allocate(basin_num_points(total_nbasins))
     basin_num_points(:) = 0
     do k=1,grid_var%npts
-      if (grid_var%upstrm_number(k) .gt. 0) then
-        j = grid_var%ocean_outlet(k)
-        basin_num_points(j) = basin_num_points(j) + 1
+      j = grid_var%ocean_outlet(k)
+      basin_num_points(j) = basin_num_points(j) + 1
+    end do 
+
+    partial_nbasins = 0
+    do i=1,total_nbasins
+      if (basin_num_points(i) .gt. 2) then
+        partial_nbasins = partial_nbasins + 1
       end if
     end do  
 
@@ -805,15 +813,10 @@ contains
 !        basin_points(j,basin_num_points(j)) = k
 !      end if 
 !    end do 
-
-    partial_nbasins= 0
-    do i=1,total_nbasins
-      if (basin_num_points(i) .gt. 2) then
-        partial_nbasins = partial_nbasins + 1
-      end if 
-    end do 
+    write(*,*) 'partial nbasins - ',partial_nbasins
 
     ord_grid_var%nbasins = partial_nbasins
+    if (allocated(basins)) write(*,*) 'basins is already allocated'
     allocate(basins(ord_grid_var%nbasins))
 
 !    allocate(basin_map(total_nbasins))
@@ -865,25 +868,25 @@ contains
 !       !end if
 !    end do
 !
-   
+    write(*,*) 'toal_nbasins-',total_nbasins
+    !write(*,*) 'num points per basin:'  
     total_land_cells = 0
     j = 0
     do i=1,total_nbasins      !basin_num_points contains basins we don't include.  loop over total basins not partial
       cnt = basin_num_points(i)
       if (cnt .gt. 2) then
         j = j + 1
+        !write(*,*) 'org basin-',i,'new basin-',j,' #-',cnt
         call alloc_basin(basins(j),cnt)
         basins(j)%n_basin_cells   = cnt
 
         kk=0
         do k=1,grid_var%npts
-          if (grid_var%upstrm_number(k) .gt. 0) then
-            jj = grid_var%ocean_outlet(k)
-            if (jj .eq. i) then
-              kk = kk + 1
-              basins(j)%river_points(kk) = k
-            end if
-          end if 
+          jj = grid_var%ocean_outlet(k)
+          if (jj .eq. i) then
+            kk = kk + 1
+            basins(j)%river_points(kk) = k
+          end if
         end do
 
         total_land_cells = total_land_cells + cnt
@@ -895,6 +898,7 @@ contains
     
         ! I need to reorder the basin cells so they are contiguous.
         !then each loop can go from i=pe_start,pe_end if each holds global array
+    write(*,*) 'start reordering'
     cnt=1
     do i=1,ord_grid_var%nbasins
     
@@ -911,6 +915,7 @@ contains
       end do
       
     end do 
+    write(*,*) 'reordered'
                                                        
 !    deallocate(tmp_indices)
 !    deallocate(basin_map)
@@ -929,8 +934,8 @@ contains
 !    grid_var%nlat = ord_grid_var%nlat
 !    grid_var%nlon = ord_grid_var%nlon
 !    grid_var%nrr_cells = ord_grid_var%nrr_cells  
-    
-    call destroy(ord_grid_var)  !clean up
+    write(*,*) 'about to destroy ord_grid_var' 
+    !call destroy(ord_grid_var)  !clean up
 
   end subroutine reorder_grid_by_basin
   
@@ -944,13 +949,14 @@ contains
     type(basin_type), allocatable, dimension(:), intent(inout) :: basins  
     
     type(basin_type), allocatable, dimension(:) :: cmp_basins
+    type(basin_type), allocatable, dimension(:) :: tmp_basins
     type(river_grid_type)                       :: cmp_grid_var
     
     integer :: i,j,k,ii,kk,cnt,js,je,ks,ke
     integer :: n_active_cells
     integer :: total_active_cells
     
-    integer, allocatable, dimension(:) :: active_basin
+    integer, allocatable, dimension(:) :: active_basin,basin_ind_map
     
     !find the total number of active cells.  use this to create new grid and basins.  
     total_active_cells = sum(grid_var%active_cell(:))
@@ -970,7 +976,7 @@ contains
       
       n_active_cells = sum(grid_var%active_cell(basins(i)%begind:basins(i)%endind))  !count the number of active cells in the basin
       
-      if (n_active_cells .ge. int(0.75*basins(i)%n_basin_cells)) then   !compute basin if we have forcing for > 3/4 of it
+      if (n_active_cells .ge. int(0.51*basins(i)%n_basin_cells)) then   !compute basin if we have forcing for > 3/4 of it
         active_basin(i) = 1
       else
         active_basin(i) = 0
@@ -979,43 +985,45 @@ contains
     
     cmp_grid_var%nbasins = sum(active_basin(:))   
     allocate(cmp_basins(cmp_grid_var%nbasins))
-    write(*,*) 'created cmp_basins with ',cmp_grid_var%nbasins,' basins'
+    allocate(basin_ind_map(cmp_grid_var%nbasins))
+
+    k=0
+    do i=1,grid_var%nbasins
+       if (active_basin(i) .eq. 1) then
+         k = k + 1
+         basin_ind_map(k) = i
+       end if
+    end do
+
+    write(*,*) 'created cmp_basins with ',cmp_grid_var%nbasins,' basins out of ',grid_var%nbasins,' total basins'
     
     if (cmp_grid_var%nbasins .lt. grid_var%nbasins) then   !there are some basins that aren't active
     
       cnt = 1    !keep track of starting index of current basins in the global vector of river cells
       ii  = 1    !counter for compact (cmp) basin var with no inactive basins
-      do i=1,grid_var%nbasins
-    
-        if (active_basin(i) .eq. 1) then
-      
-          cmp_basins(ii)%begind = cnt
-          cmp_basins(ii)%endind = cnt + basins(i)%n_basin_cells - 1
-          cmp_basins(ii)%n_basin_cells = basins(i)%n_basin_cells
-          !use temporaries to make code shorter
-          js = cmp_basins(ii)%begind   !j start
-          je = cmp_basins(ii)%endind    !j end
+      do k=1,cmp_grid_var%nbasins
+        write(*,*) real(k)/real(cmp_grid_var%nbasins) 
+        i = basin_ind_map(k)
+        cmp_basins(ii)%begind = cnt
+        cmp_basins(ii)%endind = cnt + basins(i)%n_basin_cells - 1
+        cmp_basins(ii)%n_basin_cells = basins(i)%n_basin_cells
+        !use temporaries to make code shorter
+        js = cmp_basins(ii)%begind   !j start
+        je = cmp_basins(ii)%endind    !j end
         
-          ks = basins(i)%begind
-          ke = basins(i)%endind
+        ks = basins(i)%begind
+        ke = basins(i)%endind
 
-          !write(*,*) 'new active basin ',ii,' npts-',cmp_basins(ii)%n_basin_cells
-          !write(*,*) 'new start ind-',js,' new end ind-',je
-          !write(*,*) 'old active basin ',i,' npts-',basins(i)%n_basin_cells 
-          !write(*,*) 'old start ind-',ks,' old end ind-',ke
-          !write(*,*) ''
-          !write(*,*) ''
-
-          !overloading = operator would make this a little cleaner
-          call copy_river_grid_vector_values(grid_var,cmp_grid_var,js,je,ks,ke) 
+        !overloading = operator would make this a little cleaner
+        call copy_river_grid_vector_values(grid_var,cmp_grid_var,js,je,ks,ke) 
         
-          cnt = cmp_basins(ii)%endind + 1
+        cnt = cmp_basins(ii)%endind + 1
           
-          ii = ii + 1
-        
-        end if
+        ii = ii + 1
       
       end do
+
+      write(*,*) 'finished copying to cmp_grid_var'
     
       !remove original grid_var variable.  reallocate new one with only active routing cells
       call destroy(grid_var)
@@ -1039,12 +1047,16 @@ contains
       do i=1,size(basins(:))
         call destroy(basins(i))
       end do
-      write(*,*) 'deallocate basins' 
-      if (allocated(basins)) deallocate(basins)
-      allocate(basins(grid_var%nbasins))
 
-      write(*,*) 'reallocate basins'
+      write(*,*) 'deallocate basins - old size ',size(basins) 
+      allocate(tmp_basins(grid_var%nbasins))
+      call move_alloc(tmp_basins,basins)   !reallocates basins with tmp_basins
+
+      write(*,*) 'reallocate basins - ',size(basins)
       do i=1,grid_var%nbasins
+        write(*,*) 'basin number - ',i, 'ncells - ',cmp_basins(i)%n_basin_cells
+        write(*,*) 'start-',cmp_basins(i)%begind,' end-',cmp_basins(i)%endind
+
         basins(i)%n_basin_cells = cmp_basins(i)%n_basin_cells
         call create(basins(i),basins(i)%n_basin_cells)
         basins(i)%begind = cmp_basins(i)%begind
@@ -1421,12 +1433,12 @@ contains
   subroutine dealloc_river_map_grid(var)
     implicit none
     type(map_grid_type), intent(inout) :: var
-    
+    write(*,*) 'deallocating maps' 
     deallocate(var%ind_lgr)    
     deallocate(var%weight_lgr)    
     deallocate(var%weight_rgl)     
     deallocate(var%n_ovrlap_lgr)    
-    
+    write(*,*) 'deallocated maps' 
   end subroutine dealloc_river_map_grid
   
 !----------------------------------------------------------------------------!
@@ -1481,6 +1493,7 @@ contains
     implicit none
     type(river_grid_type), intent(inout) :: var
 
+    write(*,*) 'starting to dealloc grid var'
     deallocate(var%lat)
     deallocate(var%lon)
     deallocate(var%slope)
@@ -1494,9 +1507,9 @@ contains
     deallocate(var%is_main_channel)
     deallocate(var%source_area)
     deallocate(var%orig_ind)
-    
+    write(*,*) 'dealloced gird var now dealloc maps'
     call destroy(var%maps)
-
+    write(*,*) 'dealloced grid'
   end subroutine dealloc_river_grid
 
 !----------------------------------------------------------------------------!
