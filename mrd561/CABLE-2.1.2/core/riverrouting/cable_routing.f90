@@ -372,23 +372,30 @@ contains
     new_grid_var%nlon = grid_var%nlon
     new_grid_var%nrr_cells = ntot
     new_grid_var%nbasins = grid_var%nbasins    
-    
+
     !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
     !grid_var = ord_grid_var  !have not orderloaded = operator.  this won't work
+    write(*,*) 'move_alloc dwnstrm'
     call move_alloc(grid_var%dwnstrm_index    ,new_grid_var%dwnstrm_index)
+    write(*,*) 'move_alloc ocean'
     call move_alloc(grid_var%ocean_outlet     ,new_grid_var%ocean_outlet)
+    write(*,*) 'move_alloc upstrm'
     call move_alloc(grid_var%upstrm_number    ,new_grid_var%upstrm_number)
     call move_alloc(grid_var%lat              ,new_grid_var%lat)
     call move_alloc(grid_var%lon              ,new_grid_var%lon)
+    write(*,*) 'move_alloc slope'
     call move_alloc(grid_var%slope            ,new_grid_var%slope)
     call move_alloc(grid_var%length           ,new_grid_var%length)
     call move_alloc(grid_var%land_mask        ,new_grid_var%land_mask)
+    write(*,*) 'move_alloc land mask'
     call move_alloc(grid_var%active_cell      ,new_grid_var%active_cell)
     call move_alloc(grid_var%is_main_channel  ,new_grid_var%is_main_channel)
     call move_alloc(grid_var%orig_ind         ,new_grid_var%orig_ind)
+    write(*,*) 'move_alloc maps%ind'
     call move_alloc(grid_var%maps%ind_lgr     ,new_grid_var%maps%ind_lgr)
     call move_alloc(grid_var%maps%weight_lgr  ,new_grid_var%maps%weight_lgr)
     call move_alloc(grid_var%maps%weight_rgl  ,new_grid_var%maps%weight_rgl)
+    write(*,*) 'move_alloc novr_lap'
     call move_alloc(grid_var%maps%n_ovrlap_lgr,new_grid_var%maps%n_ovrlap_lgr)
 
   end subroutine create_river_grid_copy
@@ -1026,7 +1033,7 @@ contains
       write(*,*) 'finished copying to cmp_grid_var'
     
       !remove original grid_var variable.  reallocate new one with only active routing cells
-      call destroy(grid_var)
+      !call destroy(grid_var)
       write(*,*) 'destroy grid_var'
 
       call create_river_grid_copy(cmp_grid_var,grid_var,total_active_cells) 
@@ -1048,25 +1055,27 @@ contains
         call destroy(basins(i))
       end do
 
-      write(*,*) 'deallocate basins - old size ',size(basins) 
-      allocate(tmp_basins(grid_var%nbasins))
-      call move_alloc(tmp_basins,basins)   !reallocates basins with tmp_basins
+      !write(*,*) 'deallocate basins - old size ',size(basins) 
+      !allocate(tmp_basins(grid_var%nbasins))
 
-      write(*,*) 'reallocate basins - ',size(basins)
-      do i=1,grid_var%nbasins
-        write(*,*) 'basin number - ',i, 'ncells - ',cmp_basins(i)%n_basin_cells
-        write(*,*) 'start-',cmp_basins(i)%begind,' end-',cmp_basins(i)%endind
+      !do i=1,grid_var%nbasins
+      !  write(*,*) 'basin number - ',i, 'ncells - ',cmp_basins(i)%n_basin_cells
+      !  write(*,*) 'start-',cmp_basins(i)%begind,' end-',cmp_basins(i)%endind
 
-        basins(i)%n_basin_cells = cmp_basins(i)%n_basin_cells
-        call create(basins(i),basins(i)%n_basin_cells)
-        basins(i)%begind = cmp_basins(i)%begind
-        basins(i)%endind = cmp_basins(i)%endind
-        do k=1,basins(i)%n_basin_cells
-          basins(i)%river_points(k) = k + cmp_basins(i)%begind - 1
-        end do
-      
-      end do
-      
+      !  tmp_basins(i)%n_basin_cells = cmp_basins(i)%n_basin_cells
+      !  call create(basins(i),basins(i)%n_basin_cells)
+      !  tmp_basins(i)%begind = cmp_basins(i)%begind
+      !  tmp_basins(i)%endind = cmp_basins(i)%endind
+      !  do k=1,tmp_basins(i)%n_basin_cells
+      !    tmp_basins(i)%river_points(k) = k + cmp_basins(i)%begind - 1
+      !  end do
+
+      !end do
+
+
+      !call move_alloc(tmp_basins,basins)   !reallocates basins with tmp_basins
+      call move_alloc(cmp_basins,basins)
+
     end if  !some basins are not active.
     
     !clean up the temporary variables
