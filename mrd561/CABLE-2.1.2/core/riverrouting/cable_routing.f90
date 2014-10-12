@@ -80,12 +80,12 @@ module cable_routing
   
   type map_grid_type
     
-    integer, allocatable, dimension(:,:)   :: ind_lgr        !index of the Land cell  Given the River cell
+    integer  , allocatable, dimension(:,:)   :: ind_lgr        !index of the Land cell  Given the River cell
     real(r_2), allocatable, dimension(:,:) :: weight_lgr     !fraction of the river cell covered by land cell relative to total river cell area
                                                          !Land Going to River
     real(r_2), allocatable, dimension(:,:) :: weight_rgl     !fraction of the river cell covered by land cell relative to total land cell area
                                                          !River Going to Land
-    integer, allocatable, dimension(:)     :: n_ovrlap_lgr   !number of land cells that over lap the river cell  
+    integer  , allocatable, dimension(:)     :: n_ovrlap_lgr   !number of land cells that over lap the river cell  
 
   end type map_grid_type
 
@@ -526,8 +526,8 @@ contains
   !reads while file.  need to determine if covered by lsm grid later
     implicit none
 
-    type(river_grid_type), intent(inout)   :: grid_var    
-    character(len=250), intent(in)          :: filename
+    type(river_grid_type), intent(inout),pointer  :: grid_var    
+    character(len=250), intent(in)                :: filename
     
     integer :: ncid_river
     integer :: rr_lat_dim_id,rr_lon_dim_id,rr_lat_var_id,rr_lon_var_id
@@ -546,6 +546,9 @@ contains
     call check_nc( nf90_open(trim(filename), nf90_nowrite, ncid_river) )
 
     !get dim ids
+    write(*,*) trim(rr_lat_dim_name)
+    write(*,*) trim(rr_lon_dim_name)
+
     call check_nc( nf90_inq_dimid(ncid_river, rr_lat_dim_name, rr_lat_dim_id) )
     call check_nc( nf90_inq_dimid(ncid_river, rr_lon_dim_name, rr_lon_dim_id) )
     
@@ -759,6 +762,8 @@ contains
          grid_var%nrr_cells = grid_var%nrr_cells + grid_var%upstrm_number(i)
       end if
     end do
+
+    write(*,*) 'ended associate_ocean_outlet_pts'
     
   end subroutine associate_ocean_outlet_points    
   
@@ -767,8 +772,8 @@ contains
   subroutine reorder_grid_by_basin(grid_var,basins)
   
     implicit none
-    type(river_grid_type),pointer,           intent(inout) :: grid_var    
-    type(basin_type), pointer, dimension(:), intent(inout) :: basins
+    type(river_grid_type), pointer,  intent(inout) :: grid_var    
+    type(basin_type),  pointer, dimension(:), intent(inout) :: basins
 
     integer :: cnt, i,ii,j,jj,k,kk, total_nbasins, total_land_cells, ncells, partial_nbasins
     integer, allocatable, dimension(:)   :: tmp_indices
@@ -777,10 +782,13 @@ contains
 !    integer, allocatable, dimension(:,:) :: basin_points
     
     type(river_grid_type),pointer :: ord_grid_var   !grid variable ordered so basins are continuous
-    
-    allocate(ord_grid_var) 
+   
+    write(*,*) 'in reorder'    
+ 
+    allocate(ord_grid_var)
     call create(ord_grid_var, grid_var%npts)  !this is the total number of possible river points
-    
+   
+    write(*,*) 'created ord_grid_var' 
     ord_grid_var%npts = grid_var%npts
     ord_grid_var%nlon = grid_var%nlon
     ord_grid_var%nlat = grid_var%nlat        
@@ -798,11 +806,13 @@ contains
 
     allocate(basin_num_points(total_nbasins))
     basin_num_points(:) = 0
+    write(*,*) 'find basin_num pts'
     do k=1,grid_var%npts
       j = grid_var%ocean_outlet(k)
       basin_num_points(j) = basin_num_points(j) + 1
     end do 
 
+    write(*,*) 'count basins'
     partial_nbasins = 0
     do i=1,total_nbasins
       if (basin_num_points(i) .gt. 2) then
@@ -976,7 +986,8 @@ contains
     
     allocate(active_basin(grid_var%nbasins))
     active_basin(:) = 0    
-    
+   
+    allocate(cmp_grid_var) 
     call create(cmp_grid_var,total_active_cells)
     write(*,*) 'created cmp_grid_var'
     cmp_grid_var%nrr_cells = total_active_cells
@@ -1041,7 +1052,7 @@ contains
       !remove original grid_var variable.  reallocate new one with only active routing cells
       !call destroy(grid_var)
       write(*,*) 'destroy grid_var'
-      deallocate(grid_var)
+      !deallocate(grid_var)
       grid_var => cmp_grid_var
 
       !call create_river_grid_copy(cmp_grid_var,grid_var,total_active_cells) 
@@ -1059,9 +1070,9 @@ contains
     
       !do the same for the basin variable
       write(*,*) 'destroy basins'
-      do i=1,size(basins(:))
-        call destroy(basins(i))
-      end do
+      !do i=1,size(basins(:))
+      !  call destroy(basins(i))
+      !end do
 
       !write(*,*) 'deallocate basins - old size ',size(basins) 
       !allocate(tmp_basins(grid_var%nbasins))
@@ -1083,18 +1094,26 @@ contains
 
       !call move_alloc(tmp_basins,basins)   !reallocates basins with tmp_basins
       !call move_alloc(cmp_basins,basins)
+      write(*,*) 'point basins to cmp_basins'
       basins => cmp_basins
+      write(*,*) 'done the poiting yo'
+
+
+    else
+
+      grid_var => cmp_grid_var
+
 
     end if  !some basins are not active.
     
     !clean up the temporary variables
-    call destroy(cmp_grid_var)
+    !call destroy(cmp_grid_var)
 
-    do i=1,size(cmp_basins(:))
-      call destroy(cmp_basins(i))
-    end do
+    !do i=1,size(cmp_basins(:))
+    !  call destroy(cmp_basins(i))
+    !end do
     
-    if (associated(cmp_basins))    deallocate(cmp_basins)
+    !if (associated(cmp_basins))    deallocate(cmp_basins)
     if (allocated(active_basin)) deallocate(active_basin)
     
   end subroutine remove_inactive_land_basins
