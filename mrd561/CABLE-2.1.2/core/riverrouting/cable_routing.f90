@@ -361,44 +361,14 @@ contains
     !local variables
     integer :: ntot
 
-    if (present(ncells)) then
+    if (present(ncells)) then !not used anymore
       ntot = ncells
     else
       ntot = grid_var%npts
     end if
 
-    !new_grid_var%npts = ntot
-    !new_grid_var%nlat = grid_var%nlat
-    !new_grid_var%nlon = grid_var%nlon
-    !new_grid_var%nrr_cells = ntot
-    !new_grid_var%nbasins = grid_var%nbasins    
-
     new_grid_var => grid_var
 
-    !then set to grid_var which is now continuous in terms of basins.  map same as before reordered
-    !grid_var = ord_grid_var  !have not orderloaded = operator.  this won't work
-    write(*,*) 'move_alloc dwnstrm'
-    !call move_alloc(grid_var%dwnstrm_index    ,new_grid_var%dwnstrm_index)
-    write(*,*) 'move_alloc ocean'
-    !call move_alloc(grid_var%ocean_outlet     ,new_grid_var%ocean_outlet)
-    write(*,*) 'move_alloc upstrm'
-    !call move_alloc(grid_var%upstrm_number    ,new_grid_var%upstrm_number)
-    !call move_alloc(grid_var%lat              ,new_grid_var%lat)
-    !call move_alloc(grid_var%lon              ,new_grid_var%lon)
-    write(*,*) 'move_alloc slope'
-    !call move_alloc(grid_var%slope            ,new_grid_var%slope)
-    !call move_alloc(grid_var%length           ,new_grid_var%length)
-    !call move_alloc(grid_var%land_mask        ,new_grid_var%land_mask)
-    !write(*,*) 'move_alloc land mask'
-    !call move_alloc(grid_var%active_cell      ,new_grid_var%active_cell)
-    !call move_alloc(grid_var%is_main_channel  ,new_grid_var%is_main_channel)
-    !call move_alloc(grid_var%orig_ind         ,new_grid_var%orig_ind)
-    write(*,*) 'move_alloc maps%ind'
-    !call move_alloc(grid_var%maps%ind_lgr     ,new_grid_var%maps%ind_lgr)
-    !call move_alloc(grid_var%maps%weight_lgr  ,new_grid_var%maps%weight_lgr)
-    !call move_alloc(grid_var%maps%weight_rgl  ,new_grid_var%maps%weight_rgl)
-    write(*,*) 'move_alloc novr_lap'
-    !Acall move_alloc(grid_var%maps%n_ovrlap_lgr,new_grid_var%maps%n_ovrlap_lgr)
 !not done
 
   end subroutine create_river_grid_copy
@@ -454,8 +424,8 @@ contains
   function compute_global_mass_balance_error(river_var,grid_var,basin_var) result(mass_error)
   
     implicit none
-    type(river_flow_type),         target,intent(in)  :: river_var
-    type(river_grid_type),         target,intent(in)  :: grid_var
+    type(river_flow_type),  target,intent(in)  :: river_var
+    type(river_grid_type),  target,intent(in)  :: grid_var
     type(basin_type),dimension(:), intent(in)  :: basin_var
     real(r_2) :: mass_error
     !local variables
