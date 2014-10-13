@@ -769,10 +769,6 @@ contains
 
     !basin numbering is based on global array index.  not coninuous.  num basins < possible index vals
     total_nbasins = maxval(grid_var%ocean_outlet(:))!grid_var%nbasins  
-    !can I do this looping without nested grids?
-    ! use two loops.  first identify the points in each basin (requires int array nbasins x npts) called basin_points
-    ! this array maybe too big to fit in memory of normal computer?  YES not
-    ! enough memory  redo without this array
 
     allocate(basin_num_points(total_nbasins))
     basin_num_points(:) = 0
@@ -809,55 +805,6 @@ contains
     if (associated(basins)) write(*,*) 'basins is already allocated'
     allocate(basins(ord_grid_var%nbasins))
 
-!    allocate(basin_map(total_nbasins))
-!    !find the total number of basins with multiple upstream river cells
-!    basin_map(:) = -1
-!    j = 0
-!    do i=1,grid_var%npts
-!      if (grid_var%upstrm_number(i) .gt. 2)  then
-!        j = j + 1
-!        basin_map(j) = i
-!      end if 
-!    end do
-!
-!    ord_grid_var%nbasins = j               !new number of basins with ocean removed
-!    allocate(basins(ord_grid_var%nbasins))    
-!
-!    do i=1,ord_grid_var%nbasins 
-!       write(*,*) basin_map(i)
-!    end do
-!    
-!    total_land_cells = 0
-!    j = 0
-!    do i=1,ord_grid_var%nbasins
-!       write(*,*) real(i)/real(ord_grid_var%nbasins)*100.0
-!       tmp_indices(:) = 0
-!       cnt = 0
-!       !is this a basin with > 1 river cells?  test number of upstream cells for the given ocean outlet (basin number = ocean outlet cell number)
-!      !trying to eliminate looping over basins known to be eliminated from the complete list
-!       !if (grid_var%upstrm_number(basin_map(i)) .ge. 2) then
-!       !  j=j+1
-!       
-!         do kk=1,grid_var%npts
-!           if (grid_var%ocean_outlet(kk) .eq. i)  then     !check for land point here?
-!             cnt = cnt + 1
-!             tmp_indices(cnt) = kk
-!           end if
-!         end do
-!        
-!         if (cnt .gt. 2) then
-!           j=j+1
-!           total_land_cells = total_land_cells + cnt
-!           ncells = cnt
-!           basins(j)%n_basin_cells = cnt
-!           call alloc_basin(basins(j),cnt)                      !or can use alloc here as below
-!           !allocate(basins(i)%river_points(cnt))
-!           basins(j)%river_points(:) = tmp_indices(1:cnt)  !i like this solution.  simply pass basin indices to loop over. 
-!                                                        !will need to put these in contiguous array to pass back to master.      
-!         end if                                    
-!       !end if
-!    end do
-!
     write(*,*) 'toal_nbasins-',total_nbasins
     !write(*,*) 'num points per basin:'  
     total_land_cells = 0
@@ -907,28 +854,12 @@ contains
     end do 
     write(*,*) 'reordered'
                                                        
-!    deallocate(tmp_indices)
-!    deallocate(basin_map)
-!    deallocate(basin_points)
     deallocate(basin_num_points)
 
 
     !destroy grid var.  make it new with fewer points (doesn't include the ocean now)
-    !call destroy(grid_var)
     deallocate(grid_var)
     grid_var => ord_grid_var
-
-
-    !call create_river_grid_copy(ord_grid_var,grid_var,total_land_cells)   !now copy ord_grid_var to grid_var
-    !alternate method encapsulated by using create_copy:
-!    call create(grid_var,total_land_cells)     
-!    call copy_river_grid_vector_values(ord_grid_var,grid_var,1,total_land_cells,1,total_land_cells)
-!    grid_var%nbasins = ord_grid_var%nbasins
-!    grid_var%nlat = ord_grid_var%nlat
-!    grid_var%nlon = ord_grid_var%nlon
-!    grid_var%nrr_cells = ord_grid_var%nrr_cells  
-    write(*,*) 'about to destroy ord_grid_var' 
-    !call destroy(ord_grid_var)  !clean up
 
   end subroutine reorder_grid_by_basin
   
@@ -951,12 +882,24 @@ contains
     
     integer, allocatable, dimension(:) :: active_basin,basin_ind_map
     
-    !find the total number of active cells.  use this to create new grid and basins.  
-    total_active_cells = sum(grid_var%active_cell(:))
-    
     allocate(active_basin(grid_var%nbasins))
     active_basin(:) = 0    
    
+   
+    !  determine if each basin is active.  only active if all cells covered by land model.  make cut off 90%???
+    total_active_cells = 0
+    do i=1,grid_var%nbasins
+      
+      n_active_cells = sum(grid_var%active_cell(basins(i)%begind:basins(i)%endind))  !count the number of active cells in the basin
+      
+      if (n_active_cells .ge. int(0.75*basins(i)%n_basin_cells)) then   !compute basin if we have forcing for > 3/4 of it
+        active_basin(i) = 1
+        total_active_cells = total_active_cells + n_active_cells
+      else
+        active_basin(i) = 0
+      end if
+    end do
+
     allocate(cmp_grid_var) 
     call create(cmp_grid_var,total_active_cells)
     write(*,*) 'created cmp_grid_var'
@@ -964,20 +907,8 @@ contains
     cmp_grid_var%npts      = total_active_cells
     cmp_grid_var%nlat      = grid_var%nlat
     cmp_grid_var%nlon      = grid_var%nlon
-    
-    !  determine if each basin is active.  only active if all cells covered by land model.  make cut off 90%???
-    do i=1,grid_var%nbasins
-      
-      n_active_cells = sum(grid_var%active_cell(basins(i)%begind:basins(i)%endind))  !count the number of active cells in the basin
-      
-      if (n_active_cells .ge. int(0.51*basins(i)%n_basin_cells)) then   !compute basin if we have forcing for > 3/4 of it
-        active_basin(i) = 1
-      else
-        active_basin(i) = 0
-      end if
-    end do
-    
     cmp_grid_var%nbasins = sum(active_basin(:))   
+
     allocate(cmp_basins(cmp_grid_var%nbasins))
     allocate(basin_ind_map(cmp_grid_var%nbasins))
 
@@ -990,20 +921,26 @@ contains
     end do
 
     write(*,*) 'created cmp_basins with ',cmp_grid_var%nbasins,' basins out of ',grid_var%nbasins,' total basins'
+    write(*,*) 'cmp_grid_var -> npts=',cmp_grid_var%npts
+    write(*,*) 'grid_var -> npts=',grid_var%npts
+    write(*,*) 'number of active cells by basin --'
+    do i=1,size(active_basin)
+      if (active_basin(i) .eq. 1) then
+        write(*,*) 'basin number ',i,' with ',sum(grid_var%active_cell(basins(i)%begind:basins(i)%endind)),' active cells'
+      end if
+    end do
     
     if (cmp_grid_var%nbasins .lt. grid_var%nbasins) then   !there are some basins that aren't active
     
       cnt = 1    !keep track of starting index of current basins in the global vector of river cells
-      ii  = 1    !counter for compact (cmp) basin var with no inactive basins
       do k=1,cmp_grid_var%nbasins
-        write(*,*) real(k)/real(cmp_grid_var%nbasins) 
         i = basin_ind_map(k)
-        cmp_basins(ii)%begind = cnt
-        cmp_basins(ii)%endind = cnt + basins(i)%n_basin_cells - 1
-        cmp_basins(ii)%n_basin_cells = basins(i)%n_basin_cells
+        cmp_basins(k)%begind = cnt
+        cmp_basins(k)%endind = cnt + basins(i)%n_basin_cells - 1
+        cmp_basins(k)%n_basin_cells = basins(i)%n_basin_cells
         !use temporaries to make code shorter
-        js = cmp_basins(ii)%begind   !j start
-        je = cmp_basins(ii)%endind    !j end
+        js = cmp_basins(k)%begind   !j start
+        je = cmp_basins(k)%endind    !j end
         
         ks = basins(i)%begind
         ke = basins(i)%endind
@@ -1011,9 +948,7 @@ contains
         !overloading = operator would make this a little cleaner
         call copy_river_grid_vector_values(grid_var,cmp_grid_var,js,je,ks,ke) 
         
-        cnt = cmp_basins(ii)%endind + 1
-          
-        ii = ii + 1
+        cnt = cmp_basins(k)%endind + 1
       
       end do
 
@@ -1028,42 +963,12 @@ contains
       !call create_river_grid_copy(cmp_grid_var,grid_var,total_active_cells) 
       write(*,*) 'called create copy'
 
-      !call grid_var%create(total_active_cells)
-      !call cmp_grid_var%copy_vectors(grid_var,1,total_active_cells,1,total_active_cells)   !doesn't copy scalar values
-
-      !grid_var%npts     = total_active_cells  !this is set in create_copy
-      !grid_var%nbasins   = cmp_grid_var%nbasins
       grid_var%nrr_cells = total_active_cells
-      !grid_var%nlat      = cmp_grid_var%nlat
-      !grid_var%nlon      = cmp_grid_var%nlon      
       grid_var%active_cell(:) = 1  !all cells now active.
     
       !do the same for the basin variable
       write(*,*) 'destroy basins'
-      !do i=1,size(basins(:))
-      !  call destroy(basins(i))
-      !end do
 
-      !write(*,*) 'deallocate basins - old size ',size(basins) 
-      !allocate(tmp_basins(grid_var%nbasins))
-
-      !do i=1,grid_var%nbasins
-      !  write(*,*) 'basin number - ',i, 'ncells - ',cmp_basins(i)%n_basin_cells
-      !  write(*,*) 'start-',cmp_basins(i)%begind,' end-',cmp_basins(i)%endind
-
-      !  tmp_basins(i)%n_basin_cells = cmp_basins(i)%n_basin_cells
-      !  call create(basins(i),basins(i)%n_basin_cells)
-      !  tmp_basins(i)%begind = cmp_basins(i)%begind
-      !  tmp_basins(i)%endind = cmp_basins(i)%endind
-      !  do k=1,tmp_basins(i)%n_basin_cells
-      !    tmp_basins(i)%river_points(k) = k + cmp_basins(i)%begind - 1
-      !  end do
-
-      !end do
-
-
-      !call move_alloc(tmp_basins,basins)   !reallocates basins with tmp_basins
-      !call move_alloc(cmp_basins,basins)
       write(*,*) 'point basins to cmp_basins'
       basins => cmp_basins
       write(*,*) 'done the poiting yo'
@@ -1076,15 +981,9 @@ contains
 
     end if  !some basins are not active.
     
-    !clean up the temporary variables
-    !call destroy(cmp_grid_var)
-
-    !do i=1,size(cmp_basins(:))
-    !  call destroy(cmp_basins(i))
-    !end do
-    
-    !if (associated(cmp_basins))    deallocate(cmp_basins)
     if (allocated(active_basin)) deallocate(active_basin)
+
+    write(*,*) 'leaving remove_inactive_land_basins'
     
   end subroutine remove_inactive_land_basins
 
@@ -1111,19 +1010,26 @@ contains
 
     !check that main channels are continuous
     do k=1,ntot
+      write(*,*) real(k)/real(ntot)
       keep_looping = .true.
       if (grid_var%is_main_channel(k) .eq. 1) then
         j  = k
         kk = 1
         do while (keep_looping)
+
           j = grid_var%dwnstrm_index(j)
           kk = kk + 1
-          if (kk .gt. ntot) keep_looping = .false.
+          if (kk .ge. ntot) then
+            keep_looping = .false.
+          end if
+
           if (grid_var%is_main_channel(j) .ne. 1) then
             write(*,*) 'a main channel become a non main channel.  something is wrong with main channel or down stream index'
             stop
           end if
+
         end do
+
       end if
     end do 
 
