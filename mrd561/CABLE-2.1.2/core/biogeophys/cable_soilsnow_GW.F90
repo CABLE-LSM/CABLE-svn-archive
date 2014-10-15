@@ -1422,7 +1422,7 @@ USE cable_common_module
              ssnow%wtd(i) = calc
              EXIT mainloop
 
-           ELSEIF (jlp .ge. wtd_iter_mx) THEN
+           ELSEIF (jlp .ge. wtd_iter_max) THEN
 
               EXIT mainloop
 
@@ -1458,7 +1458,7 @@ USE cable_common_module
              ssnow%wtd(i) = calc
              EXIT mainloop2
 
-           ELSEIF (jlp==wtd_iter_mx) THEN
+           ELSEIF (jlp==wtd_iter_max) THEN
 
              EXIT mainloop2
 
