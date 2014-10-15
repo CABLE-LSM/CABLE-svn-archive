@@ -59,14 +59,12 @@ MODULE cable_soil_snow_gw_module
    !mrd561 GW params
    !Should read some in from namelist
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0, &! minimum soil pressure head [mm]
-                      hkrz         = 0.0,         &! GW_hksat e-folding depth [mm**-1]
+                      hkrz         = 1.0,         &! GW_hksat e-folding depth [m**-1]
                       volwatmin    = 0.05,        &!min soil water [mm]      
                       wtd_uncert   = 0.1,         &! uncertaintiy in wtd calcultations [mm]
                       wtd_max      = 100000.0,    &! maximum wtd [mm]
-                      wtd_min      = 100.0,        &! minimum wtd [mm]
-                      dri          = 1.0,         & !ratio of density of ice to density of liquid [unitless]
-                      denliq       = 1000.0,      &
-                      denice       = 1000.0
+                      wtd_min      = 100.0,       &! minimum wtd [mm]
+                      dri          = 1.0             !ratio of density of ice to density of liquid [unitless]
 
    INTEGER, PARAMETER :: wtd_iter_max = 10 ! maximum number of iterations to find the water table depth                    
    
@@ -1025,15 +1023,15 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    xx = 0.
    DO k = 1, ms
 
-      ice_mass = ssnow%wbice(:,k)*real(soil%zse(k)*denice,r_2)
-      liq_mass = ssnow%wbliq(:,k)*real(soil%zse(k)*denliq,r_2)
+      ice_mass = ssnow%wbice(:,k)*real(soil%zse(k)*C%denice,r_2)
+      liq_mass = ssnow%wbliq(:,k)*real(soil%zse(k)*C%denliq,r_2)
       tot_mass = liq_mass + ice_mass
       
       WHERE (ssnow%tgg(:,k) < C%TFRZ &
           & .AND. frozen_limit * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
          
          sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit * ssnow%wb(:,k) -      &
-                      ssnow%wbice(:,k) ) ) * soil%zse(k) * denice,             &
+                      ssnow%wbice(:,k) ) ) * soil%zse(k) * C%denice,             &
                       ( C%TFRZ - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
          ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
                             * 1000.0), frozen_limit * ssnow%wb(:,k) )
@@ -1041,7 +1039,7 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
          ssnow%gammzz(:,k) = MAX(                                              &
              REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
              + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
-             + ssnow%wbice(:,k) * REAL(csice * denice,r_2),              &
+             + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),              &
              REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
 
          WHERE (k == 1 .AND. ssnow%isflag == 0)
@@ -1052,16 +1050,16 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
       
       ELSEWHERE( ssnow%tgg(:,k) > C%TFRZ .AND. ssnow%wbice(:,k) > 0. )
          
-         sicemelt = MIN( ssnow%wbice(:,k) * soil%zse(k) * denice,              &
+         sicemelt = MIN( ssnow%wbice(:,k) * soil%zse(k) * C%denice,              &
                     ( ssnow%tgg(:,k) - C%TFRZ ) * ssnow%gammzz(:,k) / C%HLF )
          
          ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
-                            / (soil%zse(k) * denice) )
+                            / (soil%zse(k) * C%denice) )
          xx = soil%css * soil%rhosoil
          ssnow%gammzz(:,k) = MAX(                                              &
               REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat*rhowat,r_2)   &
-              + ssnow%wbice(:,k) * REAL(csice * denice,r_2),            &
+              + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),            &
               REAL(xx,r_2) ) * REAL(soil%zse(k),r_2)
          WHERE (k == 1 .AND. ssnow%isflag == 0)
             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
@@ -1071,10 +1069,10 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
        
       END WHERE
       !update the liq and ice volume and mass
-      ice_mass = ssnow%wbice(:,k)*real(soil%zse(k)*denice,r_2)
+      ice_mass = ssnow%wbice(:,k)*real(soil%zse(k)*C%denice,r_2)
       liq_mass = tot_mass - ice_mass
-      ssnow%wbliq(:,k) = liq_mass / real(soil%zse(k)*denliq,r_2)
-      ssnow%wbice(:,k) = ice_mass / real(soil%zse(k)*denice,r_2)
+      ssnow%wbliq(:,k) = liq_mass / real(soil%zse(k)*C%denliq,r_2)
+      ssnow%wbice(:,k) = ice_mass / real(soil%zse(k)*C%denice,r_2)
       ssnow%wb(:,k)    = ssnow%wbliq(:,k) + ssnow%wbice(:,k)
     
    END DO
@@ -1110,18 +1108,18 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
          ! which can be removed:
          xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
          diff(:,k) = MAX( 0._r_2, ssnow%wbliq(:,k) - soil%swilt) &      ! m3/m3  
-                     * real(soil%zse(k)*denliq,r_2)
+                     * real(soil%zse(k)*C%denliq,r_2)
          xxd = xx - diff(:,k)
        
          WHERE ( xxd .GT. 0._r_2 )
-            ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - diff(:,k)/real(soil%zse(k)*denliq,r_2)  !volume
+            ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - diff(:,k)/real(soil%zse(k)*C%denliq,r_2)  !volume
             diff(:,k) = xxd
          ELSEWHERE
-            ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - xx/real(soil%zse(k)*denliq,r_2)  !volume
+            ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - xx/real(soil%zse(k)*C%denliq,r_2)  !volume
             diff(:,k) = 0._r_2
          END WHERE
 
-         ssnow%wmliq(:,k) = ssnow%wbliq(:,k)*real(soil%zse(k)*denliq,r_2)  !mass
+         ssnow%wmliq(:,k) = ssnow%wbliq(:,k)*real(soil%zse(k)*C%denliq,r_2)  !mass
          ssnow%wmtot(:,k) = ssnow%wmliq(:,k) + ssnow%wmice(:,k)  !mass
          ssnow%wb(:,k)    = ssnow%wbliq(:,k) + ssnow%wbice(:,k)  !volume
      
@@ -1729,7 +1727,7 @@ USE cable_common_module
     zaq(:)    = zimm(ms) + 0.5_r_2*GWdzmm(:)
     
     masswatmin(:,1:ms) = volwatmin * dzmm_mp        !soil must retain this much liquid (mm)
-    masswatmin(:,ms+1) = volwatmin * real(denliq,r_2) * soil%GWdz
+    masswatmin(:,ms+1) = volwatmin * real(C%denliq,r_2) * soil%GWdz
 
     ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     ! preset to allow for non-land & snow points in trimb
@@ -1767,9 +1765,11 @@ USE cable_common_module
           where (s1 .lt. 0.01_r_2) s1 = 0.01_r_2
 
           s2 = soil%hksat(:,k)*s1**(2._r_2*soil%clappB(:,k)+2._r_2)
-          ssnow%hk(:,k)    = (1._r_2-0.5_r_2*(ssnow%fracice(:,k)+ssnow%fracice(:,kk)))*s1*s2
+          ssnow%hk(:,k)    = (1._r_2-0.5_r_2*(ssnow%fracice(:,k)+ssnow%fracice(:,kk)))*s1*s2*&
+                              exp(-hkrz*zimm(k)/1000.0_r_2)
           ssnow%dhkdw(:,k) = (1._r_2-0.5_r_2*(ssnow%fracice(:,k)+ssnow%fracice(:,kk)))* &
-                    (2._r_2*soil%clappB(:,k)+3._r_2)*s2*0.5_r_2/(soil%watsat(:,k)-soil%watr(:,k))
+                    (2._r_2*soil%clappB(:,k)+3._r_2)*s2*0.5_r_2/(soil%watsat(:,k)-soil%watr(:,k))*&
+                     exp(-hkrz*zimm(k)/1000.0_r_2)
 
        else
 
@@ -1780,9 +1780,9 @@ USE cable_common_module
           where (s1 .lt. 0.01_r_2) s1 = 0.01_r_2
 
           s2 = soil%hksat(:,k)*s1**(2._r_2*soil%clappB(:,k)+2._r_2)
-          ssnow%hk(:,k)    = s1*s2*(1._r_2-ssnow%fracice(:,k))* exp (-hkrz*zimm(ms)/1000._r_2)
+          ssnow%hk(:,k)    = s1*s2*(1._r_2-ssnow%fracice(:,k))* exp(-hkrz*zimm(ms)/1000._r_2)
           ssnow%dhkdw(:,k) = (1._r_2-ssnow%fracice(:,k))* (2._r_2*soil%clappB(:,k)+3._r_2)*&
-                         s2*0.5_r_2/(soil%watsat(:,k)-soil%watr(:,k)*exp (hkrz*zimm(ms)/1000._r_2))
+                         s2*0.5_r_2/(soil%watsat(:,k)-soil%watr(:,k)*exp(-hkrz*zimm(ms)/1000._r_2))
 
        end if
   
@@ -1858,7 +1858,7 @@ USE cable_common_module
        qout    = -ssnow%hk(:,k)*num/den
        dqodw1  = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2  = -( ssnow%hk(:,k)*ssnow%dsmpdw(:,k+1) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout - qhlev(:,k)
+       rt(:,k) =  qin - qout !- qhlev(:,k)
        at(:,k) =  0._r_2
        bt(:,k) =  dzmm(k)/dels + dqodw1
        ct(:,k) =  dqodw2      
@@ -1877,7 +1877,7 @@ USE cable_common_module
        qout    = -ssnow%hk(:,k)*num/den
        dqodw1  = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2  = -( ssnow%hk(:,k)*ssnow%dsmpdw(:,k+1) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout- qhlev(:,k)
+       rt(:,k) =  qin - qout !- qhlev(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
        ct(:,k) =  dqodw2
@@ -1897,7 +1897,7 @@ USE cable_common_module
        qout    = -ssnow%hk(:,k)*num/den
        dqodw1  = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k)   + num*ssnow%dhkdw(:,k))/den
        dqodw2  = -( ssnow%hk(:,k)*ssnow%GWdsmpdw(:) + num*ssnow%dhkdw(:,k))/den
-       rt(:,k) =  qin - qout - qhlev(:,k)
+       rt(:,k) =  qin - qout !- qhlev(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
        ct(:,k) =  dqodw2 
@@ -1915,7 +1915,7 @@ USE cable_common_module
        qout    = 0._r_2
        dqodw1  = 0._r_2
        dqodw2  = 0._r_2
-       rt(:,k) =  qin - qout  - qhlev(:,k)
+       rt(:,k) =  qin - qout ! - qhlev(:,k)
        at(:,k) = -dqidw0
        bt(:,k) =  GWdzmm(:)/dels - dqidw1
        ct(:,k) =  0._r_2
@@ -1923,8 +1923,8 @@ USE cable_common_module
     !CALL solve_tridiag(at, bt, ct, rt, del_wb,ms+1)                      !solve system of eqns
     CALL trimb(at,bt,ct,rt,ms+1)                       !use the defulat cable tridiag solution
 
-    ssnow%wbliq = ssnow%wbliq + rt(:,1:ms)! - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
-    ssnow%GWwb  = ssnow%GWwb  + rt(:,ms+1)! - qhlev(:,ms+1)*dels/GWdzmm
+    ssnow%wbliq = ssnow%wbliq + rt(:,1:ms) - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
+    ssnow%GWwb  = ssnow%GWwb  + rt(:,ms+1) - qhlev(:,ms+1)*dels/GWdzmm
 
     msliq       = ssnow%wbliq * dzmm_mp                    !liquid mass
     msice       = ssnow%wbice * dzmm_mp * dri              !ice mass
@@ -2144,8 +2144,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
          xx=soil%css * soil%rhosoil
 
          ssnow%gammzz(:,1) = MAX( (1.0 - soil%watsat(:,1)) * soil%css * soil%rhosoil &
-              & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * denliq &
-              & + ssnow%wbice(:,1) * csice * denice, xx ) * soil%zse(1)
+              & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * C%denliq &
+              & + ssnow%wbice(:,1) * csice * C%denice, xx ) * soil%zse(1)
 
       END IF
 
@@ -2154,25 +2154,25 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    !Start with wb and wbice.  Need wbliq, wmliq,wmice,wmtot
    !find the mass of ice and liq from the prognostic volumetric values
    ssnow%wbliq = ssnow%wb - ssnow%wbice                     !liquid volume
-   ssnow%wmice = ssnow%wbice*denice*spread(soil%zse,1,mp) !ice mass
-   ssnow%wmliq = ssnow%wbliq*denliq*spread(soil%zse,1,mp) !liquid mass
+   ssnow%wmice = ssnow%wbice*C%denice*spread(soil%zse,1,mp) !ice mass
+   ssnow%wmliq = ssnow%wbliq*C%denliq*spread(soil%zse,1,mp) !liquid mass
    ssnow%wmtot = ssnow%wmice + ssnow%wmliq                  !liq+ice mass
 
    xx=soil%css * soil%rhosoil
 
    IF (ktau <= 1)                                                              &
      ssnow%gammzz(:,1) = MAX( (1.0 - soil%watsat(:,1)) * soil%css * soil%rhosoil      &
-            & + ssnow%wbliq(:,1) * cswat * denliq           &
-            & + ssnow%wbice(:,1) * csice * denice, xx ) * soil%zse(1) +   &
+            & + ssnow%wbliq(:,1) * cswat * C%denliq           &
+            & + ssnow%wbice(:,1) * csice * C%denice, xx ) * soil%zse(1) +   &
             & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
 
    ssnow%wblf   = max(0.01_r_2,ssnow%wbliq/soil%watsat)
    ssnow%wbfice = max(0.01_r_2,ssnow%wbice/soil%watsat)  
 
    !initial water in the soil column
-   wbtot_ic  = sum(ssnow%wbliq(:,:)*denliq*spread(soil%zse,1,mp),2) + &
-               sum(ssnow%wbice(:,:)*denice*spread(soil%zse,1,mp),2) + &
-               ssnow%GWwb(:)*soil%GWdz*denliq
+   wbtot_ic  = sum(ssnow%wbliq(:,:)*C%denliq*spread(soil%zse,1,mp),2) + &
+               sum(ssnow%wbice(:,:)*C%denice*spread(soil%zse,1,mp),2) + &
+               ssnow%GWwb(:)*soil%GWdz*C%denliq
                
    GWwb_ic = ssnow%GWwb
 
@@ -2249,9 +2249,9 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
 
    !total water mass at the end of the soilsnow_GW routine
-   ssnow%wbtot = sum(ssnow%wbliq(:,:)*real(denliq,r_2)*real(spread(soil%zse,1,mp),r_2),2) + &
-                 sum(ssnow%wbice(:,:)*real(denice,r_2)*real(spread(soil%zse,1,mp),r_2),2) + &
-                 ssnow%GWwb(:)*soil%GWdz*real(denliq,r_2)
+   ssnow%wbtot = sum(ssnow%wbliq(:,:)*real(C%denliq,r_2)*real(spread(soil%zse,1,mp),r_2),2) + &
+                 sum(ssnow%wbice(:,:)*real(C%denice,r_2)*real(spread(soil%zse,1,mp),r_2),2) + &
+                 ssnow%GWwb(:)*soil%GWdz*real(C%denliq,r_2)
                  
    !for debug water balance.  del_wbtot = fluxes = infiltration [though-evap] - trans - qhorz drainage
    del_wbtot   = dels * (ssnow%sinfil - ssnow%rnof2 - canopy%fevc / C%HL)
