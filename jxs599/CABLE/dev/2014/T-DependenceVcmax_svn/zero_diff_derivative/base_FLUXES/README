@@ -1,7 +1,0 @@
-FLUXES.... 2.0.01 correspond to fluxes written using version 2.0.01 of the code
-std...._um .... 388 correspond to fluxes written using revision 388 of the code
-
-BOTH of these should only be considered examples. The output fluxes are VERY sensitive to namelist files etc,
-and so weencourage you to use your own
-
-
