@@ -1,0 +1,34 @@
+&JULES_OUTPUT
+  run_id = 'gswp2',
+  
+  output_dir = './output',
+  
+  nprofiles = 2
+/
+
+&JULES_OUTPUT_PROFILE
+  profile_name = 'drive',
+  
+  output_main_run = T,
+  
+  output_start = '1982-07-05 03:00:00',
+  output_end   = '1982-07-07 03:00:00',
+  
+  nvars = 8,
+  var         = 'rainfall'  'snowfall'  'sw_down'  'lw_down'  'tl1'  'u1'  'v1'  'qw1',
+  output_type =        'S'         'S'        'S'        'S'    'S'   'S'   'S'    'S' 
+/
+
+&JULES_OUTPUT_PROFILE
+  profile_name = 'fluxes',
+  
+  output_main_run = T,
+  
+  output_start = '1982-07-05 03:00:00',
+  output_end   = '1982-07-07 03:00:00',
+  
+  nvars = 10,
+  var         = 'fqw_gb'  'ftl_gb'  'tstar_gb'  'latent_heat'  'snow_mass_gb'  'sthu'  'sthf'  't_soil'  'frac'  'lai',
+  output_type =      'S'       'S'         'S'            'S'             'S'     'S'     'S'       'S'     'S'    'S'
+/
+
