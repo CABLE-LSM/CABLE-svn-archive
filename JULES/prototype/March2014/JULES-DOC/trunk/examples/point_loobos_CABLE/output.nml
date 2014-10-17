@@ -11,9 +11,9 @@
   
   output_main_run = T,
 
-  nvars = 13,
-  var         = 'tl1' 'fqw_gb' 'runoff' 'ftl_gb' 'tstar_gb' 'tstar' 'latent_heat' 'snow_mass_gb' 'sthu' 'sthf' 't_soil' 'smcl' 'canopy_gb',
-  output_type =   'S'      'S'      'S'      'S'        'S'     'S'           'S'            'S'    'S'    'S'      'S'    'S'         'S'
+  nvars = 16,
+  var         = 'tl1' 'fqw_gb' 'runoff' 'ftl_gb' 'tstar_gb' 'tstar' 'latent_heat' 'snow_mass_gb' 'sthu' 'sthf' 't_soil' 'smcl' 'canopy_gb' 'precip' 'rainfall' 'snowfall',
+  output_type =   'S'      'S'      'S'      'S'        'S'     'S'           'S'            'S'    'S'    'S'      'S'    'S'         'S' 'S' 'S' 'S'
 /
 
 

@@ -9,7 +9,7 @@
 
   dzsnow_io         = 0.1  0.2  0.2,
 
-  cansnowpft        = F  T  F  F  F
+  cansnowpft        = F  T  F  F  F  F  F  F  F  F  F  F  F
 /
 
 &JULES_RAD_PARAM

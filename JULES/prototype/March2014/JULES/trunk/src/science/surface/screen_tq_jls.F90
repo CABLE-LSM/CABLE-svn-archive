@@ -284,7 +284,7 @@ IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
 
   DO n=1,ntiles
     DO l=1,land_pts
-      q1p5m_tile(l,n) = 0.
+      !q1p5m_tile(l,n) = 0.
     END DO
 ! DEPENDS ON: qsat_mix
     CALL qsat_mix(qs_tile,tstar_tile(:,n),pstar_land,land_pts     &
@@ -294,8 +294,8 @@ IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
       j=(land_index(l)-1)/t_i_length + 1
       i = land_index(l) - (j-1)*t_i_length
       cer1p5m = resft(l,n)*(chr1p5m(l,n) - 1.)
-      q1p5m_tile(l,n) = qw_1(i,j) +                               &
-                        cer1p5m*( qw_1(i,j) - qs_tile(l) )
+      !q1p5m_tile(l,n) = qw_1(i,j) +                               &
+      !                  cer1p5m*( qw_1(i,j) - qs_tile(l) )
       q1p5m(i,j) = q1p5m(i,j)                                     &
         + flandg(i,j)*tile_frac(l,n)*q1p5m_tile(l,n)
     END DO
@@ -336,15 +336,15 @@ END IF
 
     DO n = 1, ntiles
 
-      t1p5m_tile(1:land_pts,n)=0.0
+      !t1p5m_tile(1:land_pts,n)=0.0
 
       DO k = 1, tile_pts(n)
         l = tile_index(k,n)
         j=(land_index(l)-1)/row_len + 1
         i = land_index(l) - (j-1)*row_len
-        t1p5m_tile(l,n) = tstar_tile(l,n) - grcp*z1p5m +                &
-          chr1p5m(l,n)*( tl_1(i,j) - tstar_tile(l,n) +                  &
-          grcp*(z1(i,j)+z0m_tile(l,n)-z0h_tile(l,n)) )
+        !t1p5m_tile(l,n) = tstar_tile(l,n) - grcp*z1p5m +                &
+        !  chr1p5m(l,n)*( tl_1(i,j) - tstar_tile(l,n) +                  &
+        !  grcp*(z1(i,j)+z0m_tile(l,n)-z0h_tile(l,n)) )
         t1p5m(i,j) = t1p5m(i,j)                                         &
           + flandg(i,j)*tile_frac(l,n)*t1p5m_tile(l,n)
       END DO

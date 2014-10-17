@@ -797,21 +797,42 @@ END IF
 ! and carbon fluxes.
 !-----------------------------------------------------------------------
 
-! DEPENDS ON: physiol
-CALL physiol (                                                    &
- land_pts,land_index,                                             &
- sm_levels,ntiles,tile_pts,tile_index,l_aggregate,                &
- dim_cs1, dim_cs2,                                                &
- co2_mmr,co2_3d,co2_dim_len,co2_dim_row,l_co2_interactive,        &
- l_triffid, l_q10,                                                &
- can_model,cs,frac,fland,canht_ft,photosynth_act_rad,             &
- lai_ft,pstar,qw_1,sthu,t_soil(:,1),tstar_tile,                   &
- smvccl,smvcst,smvcwt,vshr,z0_tile,z1_uv,o3,                      &
- canhc_tile,vfrac_tile,emis_tile,emis_soil,flake,                 &
- g_leaf,gs,gc,gpp,gpp_ft,npp,npp_ft,                              &
- resp_p,resp_p_ft,resp_s,resp_w_ft,smc,wt_ext_tile,fsmc,          &
- wt_ext,ra,albsoil,cos_zenith_angle                               &
-,can_rad_mod,ilayers,flux_o3_ft,fo3_ft)
+! CABLE {
+!! DEPENDS ON: physiol
+!CALL physiol (                                                    &
+! land_pts,land_index,                                             &
+! sm_levels,ntiles,tile_pts,tile_index,l_aggregate,                &
+! dim_cs1, dim_cs2,                                                &
+! co2_mmr,co2_3d,co2_dim_len,co2_dim_row,l_co2_interactive,        &
+! l_triffid, l_q10,                                                &
+! can_model,cs,frac,fland,canht_ft,photosynth_act_rad,             &
+! lai_ft,pstar,qw_1,sthu,t_soil(:,1),tstar_tile,                   &
+! smvccl,smvcst,smvcwt,vshr,z0_tile,z1_uv,o3,                      &
+! canhc_tile,vfrac_tile,emis_tile,emis_soil,flake,                 &
+! g_leaf,gs,gc,gpp,gpp_ft,npp,npp_ft,                              &
+! resp_p,resp_p_ft,resp_s,resp_w_ft,smc,wt_ext_tile,fsmc,          &
+! wt_ext,ra,albsoil,cos_zenith_angle                               &
+!,can_rad_mod,ilayers,flux_o3_ft,fo3_ft)
+! }
+
+!!      if (l_cable) then
+!          NPP=0.0
+!          GPP=0.0
+!          NPP_FT=0.0
+!          GPP_FT=0.0
+!          RESP_S=0.0
+!          RESP_S_TOT=0.0
+!          RESP_P=0.0
+!          RESP_P_FT=0.0
+!         !RESP_W=0.0
+!         !RESP_W_FT=0.0
+!         G_LEAF=0.0
+!         ! Need to replace the gs_tile calculation in physiol?
+!         ! Just use zero to have something defined.
+!         GS = 0.
+!         GC = 0.
+!!      endif
+
 
 
 !----------------------------------------------------------------------
@@ -930,18 +951,18 @@ IF (land_pts >  0) THEN    ! Omit if no land points
   CALL heat_con (land_pts,hcon,sthu(:,1),sthf(:,1),               &
                  smvcst(:,1),hcons)
 
-! Thermal conductvity of top snow layer if nsmax > 0
-  IF(nsmax > 0) THEN
-    DO n=1,ntiles
-! DEPENDS ON: snowtherm
-      CALL snowtherm(land_pts,tile_pts(n),nsnow(:,n),             &
-                     tile_index(:,n),ds(:,n,:),sice(:,n,:),       &
-                     sliq(:,n,:),csnow,ksnow)
-      DO l=1,land_pts
-        hcons_snow(l,n) = ksnow(l,1)
-      END DO
-    END DO
-  END IF
+!! Thermal conductvity of top snow layer if nsmax > 0
+!  IF(nsmax > 0) THEN
+!    DO n=1,ntiles
+!! DEPENDS ON: snowtherm
+!      CALL snowtherm(land_pts,tile_pts(n),nsnow(:,n),             &
+!                     tile_index(:,n),ds(:,n,:),sice(:,n,:),       &
+!                     sliq(:,n,:),csnow,ksnow)
+!      DO l=1,land_pts
+!        hcons_snow(l,n) = ksnow(l,1)
+!      END DO
+!    END DO
+!  END IF
 
 END IF                     ! End test on land points
 

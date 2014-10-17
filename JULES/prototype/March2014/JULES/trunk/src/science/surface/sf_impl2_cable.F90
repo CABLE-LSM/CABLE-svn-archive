@@ -1116,11 +1116,11 @@ IF ( .NOT. l_correct ) THEN
                      lc*elake_tile(l,n) + ls*ei_tile(l,n)
       surf_ht_store(l,n) = (canhc_tile(l,n)/timestep) *           &
                            (tstar_tile(l,n) - tstar_tile_old(l,n))
-      surf_htf_tile(l,n) = radnet_tile(l,n) + anthrop_heat(l,n) - &
-                          ftl_tile(l,n) -                         &
-                          le_tile(l,n) -                          &
-                          lf*(melt_tile(l,n)+melt_ice_tile(l,n))- &
-                          surf_ht_store(l,n)
+      !surf_htf_tile(l,n) = radnet_tile(l,n) + anthrop_heat(l,n) - &
+      !                    ftl_tile(l,n) -                         &
+      !                    le_tile(l,n) -                          &
+      !                    lf*(melt_tile(l,n)+melt_ice_tile(l,n))- &
+      !                    surf_ht_store(l,n)
 ! separate out the lake heat flux for FLake
 ! and replace the snow-melt and ice-melt heat flux
 ! so Flake can do its melting
@@ -1132,8 +1132,8 @@ IF ( .NOT. l_correct ) THEN
         non_lake_frac(    i,j) = non_lake_frac(i,j) - tile_frac(l,n)
       ELSE
         !CABLE
-        !surf_ht_flux_land(i,j) = surf_ht_flux_land(i,j)           &
-        !                  + tile_frac(l,n) * surf_htf_tile(l,n)
+        surf_ht_flux_land(i,j) = surf_ht_flux_land(i,j)           &
+                          + tile_frac(l,n) * surf_htf_tile(l,n)
       END IF
       tstar_land(i,j) = tstar_land(i,j)                           &
                  + tile_frac(l,n)*tstar_tile(l,n)
@@ -1270,17 +1270,17 @@ IF ( .NOT. l_correct ) THEN
   IF (l_sice_new_code) THEN
 
     DO n=1, nice_use
-! DEPENDS ON: sf_melt
-      CALL sf_melt (                                                &
-        ssi_pts,ssi_index,                                          &
-        sice_index_ncat(:,n),sice_pts_ncat(n),fssi,                 &
-        alpha1_sice,ashtf_prime,dtrdz_charney_grid_1,               &
-        array_one,rhokh_sice,sice_frac_ncat(:,n),timestep,GAMMA,    &
-        ei_sice(:,:,n),fqw_1,ftl_1,fqw_ice(:,:,n),ftl_ice(:,:,n),   &
-        tstar_sice_cat(:,:,n),array_one_e_six,                      &
-        array_one_e_six/rho_snow_const,                             &
-        sice_melt(:,:,n)                                            &
-        )
+!! DEPENDS ON: sf_melt
+!      CALL sf_melt (                                                &
+!        ssi_pts,ssi_index,                                          &
+!        sice_index_ncat(:,n),sice_pts_ncat(n),fssi,                 &
+!        alpha1_sice,ashtf_prime,dtrdz_charney_grid_1,               &
+!        array_one,rhokh_sice,sice_frac_ncat(:,n),timestep,GAMMA,    &
+!        ei_sice(:,:,n),fqw_1,ftl_1,fqw_ice(:,:,n),ftl_ice(:,:,n),   &
+!        tstar_sice_cat(:,:,n),array_one_e_six,                      &
+!        array_one_e_six/rho_snow_const,                             &
+!        sice_melt(:,:,n)                                            &
+!        )
 
       DO k=1,sice_pts_ncat(n)
         l = sice_index_ncat(k,n)
@@ -1304,17 +1304,17 @@ IF ( .NOT. l_correct ) THEN
       dfqw_sice_ncat(:,:)=0.0
       dei_sice_ncat(:,:)=0.0
 
-! DEPENDS ON: sf_melt
-      CALL sf_melt (                                                &
-        ssi_pts,ssi_index,                                          &
-        sice_index_ncat(:,n),sice_pts_ncat(n),fssi,                 &
-        alpha1_sice,ashtf_prime,dtrdz_charney_grid_1,               &
-        array_one,rhokh_sice,sice_frac_ncat(:,n),timestep,GAMMA,    &
-        dei_sice_ncat,fqw_1,ftl_1,dfqw_sice_ncat,dftl_sice_ncat,    &
-        tstar_sic(:,:,n),array_one_e_six,                           &
-        array_one_e_six/rho_snow_const,                             &
-        sice_melt(:,:,n)                                            &
-        )
+!! DEPENDS ON: sf_melt
+!      CALL sf_melt (                                                &
+!        ssi_pts,ssi_index,                                          &
+!        sice_index_ncat(:,n),sice_pts_ncat(n),fssi,                 &
+!        alpha1_sice,ashtf_prime,dtrdz_charney_grid_1,               &
+!        array_one,rhokh_sice,sice_frac_ncat(:,n),timestep,GAMMA,    &
+!        dei_sice_ncat,fqw_1,ftl_1,dfqw_sice_ncat,dftl_sice_ncat,    &
+!        tstar_sic(:,:,n),array_one_e_six,                           &
+!        array_one_e_six/rho_snow_const,                             &
+!        sice_melt(:,:,n)                                            &
+!        )
 
       DO k=1,sice_pts_ncat(n)
         l = sice_index_ncat(k,n)

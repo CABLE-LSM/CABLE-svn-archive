@@ -15,7 +15,7 @@ SUBROUTINE update_derived_variables()
   USE switches, ONLY : l_imogen, l_point_data, l_aggregate, can_model
 
   USE ancil_info, ONLY : land_pts, land_index, ntiles, tile_pts, tile_index,  &
-                         frac
+                         frac, rows, row_length
 
   USE theta_field_sizes, ONLY : t_i_length
 
@@ -47,6 +47,8 @@ SUBROUTINE update_derived_variables()
 
   INTEGER :: i,j,l  ! Index variables
 
+  REAL :: ls_prec(row_length,rows) ! Work array for holding LS_Prec. Lest 18sep14
+  REAL :: ls_snw(row_length,rows)  ! Work array for holding LS_Snow. Lest 18sep14
 
 !------------------------------------------------------------------------------
 
@@ -127,6 +129,14 @@ SUBROUTINE update_derived_variables()
 
       CASE ( 2 )
 ! Total rainfall given in file and currently stored in ls_rain
+        ls_prec = ls_rain + ls_snow
+        ls_snw  = ls_snow
+        ls_snow = 0.
+        WHERE ( tl_1(:,:) <= t_for_snow )
+          ls_snow = ls_snw  + ls_rain
+        END WHERE
+          ls_rain = ls_prec - ls_snow
+        print *, 'Lest ',ls_prec,ls_snw,ls_snow,ls_rain,tl_1,t_for_snow
 
 ! If using point data assume all rain is large-scale
         con_rain(:,:) = 0.0

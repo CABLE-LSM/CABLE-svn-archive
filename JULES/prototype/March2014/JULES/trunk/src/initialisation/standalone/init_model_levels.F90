@@ -117,6 +117,7 @@ SUBROUTINE init_model_levels(nml_dir)
 !   Set dim_cs1=1 to use a single soil C pool.
     dim_cs1 = 1
   END IF
+    npft_trif = npft
 
 ! Set the dimension sizes for IO
   pft_dim_size    = npft

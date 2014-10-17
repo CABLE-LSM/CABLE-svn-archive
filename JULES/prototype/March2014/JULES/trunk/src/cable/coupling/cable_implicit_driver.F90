@@ -385,6 +385,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
   
       !--- set UM vars to zero
       SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
+      TSOIL_TILE = 0.
 
       DO j = 1,um1%SM_LEVELS
          TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), um1%L_TILE_PTS, miss)

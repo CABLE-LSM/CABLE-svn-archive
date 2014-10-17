@@ -244,6 +244,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
+      !cable_runtime%offline = .TRUE.
       write(6,*) ""
       write(6,*) "CABLE_log"
       CALL report_version_no(6) ! wriite revision number to stdout(6)

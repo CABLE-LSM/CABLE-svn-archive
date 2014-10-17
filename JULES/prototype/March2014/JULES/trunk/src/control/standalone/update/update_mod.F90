@@ -38,7 +38,8 @@ MODULE update_mod
       !   F means diffuse radiation is set to a constant fraction (diffFracConst)
 
   REAL ::                                                                     &
-    t_for_snow      = 274.0,                                                  &
+    t_for_snow      = 273.16,                                                  &
+    !t_for_snow      = 274.0,                                                  &
       !   air temperature (K) at or below which precipitation is assumed to
       !   be snow
     t_for_con_rain  = 373.15,                                                 &

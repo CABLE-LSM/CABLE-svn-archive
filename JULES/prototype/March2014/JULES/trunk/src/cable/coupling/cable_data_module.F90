@@ -1,9 +1,9 @@
 ! this module is to live in the JULES src code to be compiled with the UM
 ! data/fields/vars in this module are required when calling CABLE from UM
 ! this module serves as a mechanism of transporting all those vars from the
-! top_level in the UM to teh calling points. It also serves as a library
+! top_level in the UM to the calling points. It also serves as a library
 ! defining what vars are required for CABLE and what it can give back.
-! It is further intended that this module serve asa template for the future 
+! It is further intended that this module serve as a template for the future 
 ! data atructure to be adopted by CABLE
 
 !jhan***************************************************************************
