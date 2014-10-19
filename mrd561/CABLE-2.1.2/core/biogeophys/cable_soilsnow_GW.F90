@@ -1159,6 +1159,8 @@ END SUBROUTINE remove_trans
     where (bet(:) .ne. 0.0_r_2) ut(:,1) = rt(:,1) / bet(:)
     where (bet(:) .eq. 0.0_r_2) ut(:,1) = rt(:,1) / (bet(:) + 0.000001_r_2)
 
+    ut(:,1) = rt(:,1) / bet(:)
+
     do k = 2,n
        gam(:,k) = ct(:,k-1) / bet(:)
        bet(:)   = max(bt(:,k) - at(:,k) * gam(:,k),0.00001_r_2)
@@ -1171,7 +1173,6 @@ END SUBROUTINE remove_trans
 
   end subroutine solve_tridiag
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
@@ -1261,15 +1262,15 @@ USE cable_common_module
 
    ssnow%fwtop(:) = ssnow%fwtop(:) - ssnow%rnof1(:)
 
-   ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
-   ssnow%rnof1(:) = 0._r_2
+   !ssnow%pudsto(:) = ssnow%pudsto(:) + ssnow%rnof1(:)*dels
+   !ssnow%rnof1(:) = 0._r_2
 
-   where (ssnow%pudsto(:) .gt. satfrac(:)*ssnow%pudsmx)
+   !where (ssnow%pudsto(:) .gt. satfrac(:)*ssnow%pudsmx)
 
-     ssnow%rnof1 = (ssnow%pudsto(:) - satfrac(:)*ssnow%pudsmx)/dels
-     ssnow%pudsto(:)  =  satfrac(:)*ssnow%pudsmx
+   !  ssnow%rnof1 = (ssnow%pudsto(:) - satfrac(:)*ssnow%pudsmx)/dels
+   !  ssnow%pudsto(:)  =  satfrac(:)*ssnow%pudsmx
 
-   end where
+   !end where
            
    !---  glacier formation
    rnof5= 0.
@@ -1311,6 +1312,35 @@ USE cable_common_module
    END IF
 
   END SUBROUTINE ovrlndflx
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+  SUBROUTINE simple_wtd(ssnow, soil, veg, ktau, md_prin)
+  IMPLICIT NONE
+  TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
+  TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
+  TYPE (veg_parameter_type), INTENT(IN)     :: veg
+  INTEGER, INTENT(IN)                       :: ktau  ! integration step number
+  LOGICAL, INTENT(IN)                       :: md_prin  !print info?
+
+  REAL(r_2), DIMENSION(mp)            :: fz, wmean
+  REAL(r_2), DIMENSION(mp,ms)         :: stot
+  INTEGER                             :: k
+
+  wmean(:) = 0._r_2
+  fz(:)    = 1._r_2
+  do k  = 1, ms
+     wmean(:) = wmean(:) + stot(:,k)*soil%zse(k)*1000._r_2
+  enddo
+  wmean(:) = wmean(:) + ssnow%GWwb(:)/soil%GWwatsat(:) * soil%GWdz(:)*1000._r_2
+
+  ssnow%wtd(:) = fz(:) * ((sum(soil%zse,1)+soil%GWdz(:))*1000._r_2 - wmean(:))
+
+  END SUBROUTINE simple_wtd
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
 
@@ -1379,7 +1409,6 @@ USE cable_common_module
 
   def(:) = sum(tmp_def*dzmm_mp,2)
   def(:) = def(:) + max(soil%GWwatsat(:) - ssnow%GWwb(:),0._r_2)*soil%GWdz*1000._r_2
-
 
   if (empwtd) then
 
@@ -1699,7 +1728,6 @@ USE cable_common_module
     REAL(r_2),DIMENSION(mp,ms+1)           :: masswatmin
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
-   
     !MD DEBUG VARS
     INTEGER :: imp,ims
 
@@ -1731,13 +1759,16 @@ USE cable_common_module
 
     ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     ! preset to allow for non-land & snow points in trimb
-    at = 0._r_2
-    bt = 1._r_2
-    ct = 0._r_2
     old_wb(:,:) = ssnow%wb(:,:)
     
     !equilibrium water content
     CALL calc_equilibrium_water_content(ssnow,soil)
+
+    !if (ktau .le. 1) then
+    !   ssnow%wbliq = ssnow%wbeq
+    !   ssnow%wb    = ssnow%wbliq
+    !   ssnow%GWwb  = ssnow%GWwbeq
+    !end if
 
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
     do k=1,ms
@@ -1752,6 +1783,7 @@ USE cable_common_module
     fice_avg(:)  = min(max(fice_avg(:),0.0_r_2),1._r_2)  
 
     where(fice_avg(:) < ssnow%fracice(:,ms)) fice_avg(:) = ssnow%fracice(:,ms)         !frozen ms limits qh
+
        
     do k=1,ms   
        kk=min(k+1,ms)
@@ -1782,7 +1814,7 @@ USE cable_common_module
           s2 = soil%hksat(:,k)*s1**(2._r_2*soil%clappB(:,k)+2._r_2)
           ssnow%hk(:,k)    = s1*s2*(1._r_2-ssnow%fracice(:,k))* exp(-hkrz*zimm(ms)/1000._r_2)
           ssnow%dhkdw(:,k) = (1._r_2-ssnow%fracice(:,k))* (2._r_2*soil%clappB(:,k)+3._r_2)*&
-                         s2*0.5_r_2/(soil%watsat(:,k)-soil%watr(:,k)*exp(-hkrz*zimm(ms)/1000._r_2))
+                         s2*0.5_r_2/(soil%watsat(:,k)-soil%watr(:,k))*exp(-hkrz*zimm(ms)/1000._r_2)
 
        end if
   
@@ -1804,7 +1836,8 @@ USE cable_common_module
 
     !Aquifer properties
     s_mid = (ssnow%GWwb(:)-soil%GWwatr(:))/(soil%GWwatsat(:)-soil%GWwatr(:))
-    s_mid = max(min(s_mid,1._r_2),0.01_r_2)   
+    where (s_mid .gt. 1._r_2) s_mid = 1._r_2
+    where (s_mid .lt. 0.01_r_2) s_mid = 0.01_r_2
     s2    = soil%GWhksat(:)*s_mid**(2._r_2*soil%clappB(:,ms)+2._r_2)
 
     ssnow%GWhk(:)     = s_mid*s2*(1._r_2-ssnow%fracice(:,ms))
@@ -1846,6 +1879,7 @@ USE cable_common_module
          qhlev(i,idlev(i)) = ssnow%qhz(i)
 
     end do  
+
 
     rt(:,:) = 0._r_2; at(:,:) = 0._r_2     !ensure input to tridiag is valid
     bt(:,:) = 1._r_2; ct(:,:) = 0._r_2
@@ -1901,7 +1935,18 @@ USE cable_common_module
        at(:,k) = -dqidw0
        bt(:,k) =  dzmm(k)/dels - dqidw1 + dqodw1
        ct(:,k) =  dqodw2 
-          
+
+       !den = dzmm(k)
+       !dne = -ssnow%zq(:,k)
+       !num = -ssnow%smp(:,k) - dne
+       !qout = -ssnow%hk(:,k)*num/den
+       !dqodw1 = -(-ssnow%hk(:,k)*ssnow%dsmpdw(:,k) + num*ssnow%dhkdw(:,k))/den
+       !dqodw2 = 0._r_2
+       !rt(:,k) = qin-qout
+       !at(:,k) = -dqidw0
+       !bt(:,k) = dzmm(k)/dels - dqidw1 + dqodw1
+       !ct(:,k) = dqodw2
+         
     k = ms+1   !Aquifer layer
        den     = (zaq(:) - zmm(k-1))
        dne     = (ssnow%GWzq(:)-ssnow%zq(:,k-1))
@@ -1925,6 +1970,7 @@ USE cable_common_module
 
     ssnow%wbliq = ssnow%wbliq + rt(:,1:ms) - qhlev(:,1:ms)*dels/spread(dzmm,1,mp)   !volutermic liquid
     ssnow%GWwb  = ssnow%GWwb  + rt(:,ms+1) - qhlev(:,ms+1)*dels/GWdzmm
+    !ssnow%GWwb = ssnow%GWwb + qout + dqodw1*rt(:,ms) - qhlev(:,ms+1)*dels/GWdzmm  !use if solve 1:ms but not if solve 1:ms+1
 
     msliq       = ssnow%wbliq * dzmm_mp                    !liquid mass
     msice       = ssnow%wbice * dzmm_mp * dri              !ice mass

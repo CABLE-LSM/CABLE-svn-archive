@@ -912,9 +912,19 @@ CONTAINS
     ! *******************************************************************
     ! parameters that are not spatially dependent
     !soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
-    soil%zse = (/0.07, 0.58, 0.154,0.409,1.100,2.872/)  !mrd561.  limit qg?
+    !soil%zse = (/0.007, 0.058, 0.154,0.409,1.085,2.872/)  !mrd561.  limit qg?
+    !soil%zse = (/0.12,&
+    !             0.20,&
+    !             0.34,&
+    !             0.55,&
+    !             0.92,&
+    !             1.14   /)
+
+    soil%zse(:) = (/0.09,0.15,0.34,0.65,0.95,1.4/)
+    
+
     !MD aquifer layers
-    soil%GWdz = 10.0                          !30 m thick aquifer
+    soil%GWdz = 5.0                          !30 m thick aquifer
 
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -1380,7 +1390,7 @@ CONTAINS
   SUBROUTINE check_parameter_values(soil, veg, ssnow)
     ! Checks for basic inconsistencies in parameter values
     TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameter data
-    TYPE (veg_parameter_type),  INTENT(IN)    :: veg   ! vegetation parameter
+    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg   ! vegetation parameter
                                                        ! data
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow
                                                        ! variables
@@ -1463,7 +1473,9 @@ CONTAINS
              WRITE(*,*) 'SUBROUTINE load_parameters:'
              WRITE(*,*) 'At land point number:', i, 'patch:', j
              WRITE(*,*) 'Froot:',veg%froot((landpt(i)%cstart + j - 1), :)
-             CALL abort ('Sum of fraction of roots in each soil layer /= 1!')
+             veg%froot((landpt(i)%cstart+j-1),ms) = veg%froot((landpt(i)%cstart+j-1),ms) + &
+                      (1. - SUM(veg%froot((landpt(i)%cstart + j - 1), :)))
+             !CALL abort ('Sum of fraction of roots in each soil layer /= 1!')
           END IF
        END DO
     END DO
