@@ -60,7 +60,7 @@ MODULE cable_soil_snow_gw_module
    !Should read some in from namelist
    REAL(r_2), PARAMETER :: sucmin  = -10000000.0, &! minimum soil pressure head [mm]
                       hkrz         = 1.0,         &! GW_hksat e-folding depth [m**-1]
-                      volwatmin    = 0.05,        &!min soil water [mm]      
+                      volwatmin    = 0.0005,        &!min soil water [mm]      
                       wtd_uncert   = 0.1,         &! uncertaintiy in wtd calcultations [mm]
                       wtd_max      = 100000.0,    &! maximum wtd [mm]
                       wtd_min      = 100.0,       &! minimum wtd [mm]
