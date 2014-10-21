@@ -1327,16 +1327,23 @@ USE cable_common_module
 
   REAL(r_2), DIMENSION(mp)            :: fz, wmean
   REAL(r_2), DIMENSION(mp,ms)         :: stot
+  REAL(r_2)                           :: ztot
   INTEGER                             :: k
 
   wmean(:) = 0._r_2
-  fz(:)    = 1._r_2
+  fz(:)    = 2._r_2
+  ztot     = 0._r_2
+
+  stot(:,:) = (ssnow%wb(:,:)-soil%watr(:,:)) / (soil%watsat(:,:)-soil%watr(:,:))
+
   do k  = 1, ms
      wmean(:) = wmean(:) + stot(:,k)*soil%zse(k)*1000._r_2
+     ztot = ztot + soil%zse(k)*1000._r_2
   enddo
   wmean(:) = wmean(:) + ssnow%GWwb(:)/soil%GWwatsat(:) * soil%GWdz(:)*1000._r_2
+  ztot     = ztot + soil%GWdz(:)*1000._r_2
 
-  ssnow%wtd(:) = fz(:) * ((sum(soil%zse,1)+soil%GWdz(:))*1000._r_2 - wmean(:))
+  ssnow%wtd(:) = fz(:) * (ztot - wmean(:))
 
   END SUBROUTINE simple_wtd
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
