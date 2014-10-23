@@ -1331,7 +1331,7 @@ USE cable_common_module
   INTEGER                             :: k
 
   wmean(:) = 0._r_2
-  fz(:)    = 2._r_2
+  fz(:)    = 0.5_r_2
   ztot(:)  = 0._r_2
 
   stot(:,:) = (ssnow%wb(:,:)-soil%watr(:,:)) / (soil%watsat(:,:)-soil%watr(:,:))
@@ -1343,7 +1343,8 @@ USE cable_common_module
   wmean(:) = wmean(:) + ssnow%GWwb(:)/soil%GWwatsat(:) * soil%GWdz(:)*1000._r_2
   ztot(:)     = ztot(:) + soil%GWdz(:)*1000._r_2
 
-  ssnow%wtd(:) = fz(:) * (ztot(:) - wmean(:))
+  ssnow%wtd(:) = fz(:) * (ztot(:) - wmean(:))**2.0
+  ssnow%wtd = min(200000._r_2,ssnow%wtd(:))
 
   END SUBROUTINE simple_wtd
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
@@ -1753,7 +1754,7 @@ USE cable_common_module
 
     do k=2,ms
 
-       zmm(k)  = zimm(k) + 0.5_r_2*dzmm(k)
+       zmm(k)  = zimm(k-1) + 0.5_r_2*dzmm(k)
 
     end do 
 
