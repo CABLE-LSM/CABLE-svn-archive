@@ -2264,8 +2264,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
    !CALL calcwtd (ssnow, soil, veg, ktau, md_prin)                  !update the wtd
-   !CALL liscalcwtd (ssnow, soil, veg, ktau, md_prin)            !test the calcwtd from lis to bug hunt
-   CALL simple_wtd (ssnow, soil, veg, ktau, md_prin)
+   CALL liscalcwtd (ssnow, soil, veg, ktau, md_prin)            !test the calcwtd from lis to bug hunt
+   !CALL simple_wtd (ssnow, soil, veg, ktau, md_prin)
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
