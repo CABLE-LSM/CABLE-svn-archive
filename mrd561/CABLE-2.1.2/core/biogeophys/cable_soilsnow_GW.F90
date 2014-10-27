@@ -1744,18 +1744,13 @@ USE cable_common_module
     dzmm    = 1000.0_r_2 * real(soil%zse(:),r_2)
     dzmm_mp = spread(dzmm,1,mp)
     zimm(0) = 0._r_2
-    zmm(1)  = 0.5_r_2*dzmm(1)
 
     do k=1,ms
-
        zimm(k) = zimm(k-1) + dzmm(k)
-
     end do
 
-    do k=2,ms
-
+    do k=1,ms
        zmm(k)  = zimm(k-1) + 0.5_r_2*dzmm(k)
-
     end do 
 
     GWdzmm(:) = real(soil%GWdz(:),r_2)*1000._r_2
@@ -2393,14 +2388,13 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
     dzmm    = 1000.0_r_2 * real(soil%zse(:),r_2)
     dzmm_mp = spread(dzmm,1,mp)
     zimm(0) = 0._r_2
-    zmm(1)  = 0.5_r_2*dzmm(1)
 
     do k=1,ms
        zimm(k) = zimm(k-1) + dzmm(k)
     end do
 
-    do k=2,ms
-       zmm(k)  = zimm(k) + 0.5_r_2*dzmm(k)
+    do k=1,ms
+       zmm(k)  = zimm(k-1) + 0.5_r_2*dzmm(k)
     end do 
 
     GWdzmm(:) = real(soil%GWdz(:),r_2)*1000._r_2
