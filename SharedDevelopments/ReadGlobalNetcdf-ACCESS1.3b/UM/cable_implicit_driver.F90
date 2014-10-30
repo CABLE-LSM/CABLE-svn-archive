@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -178,13 +178,19 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       RESP_S(um1%LAND_PTS,DIM_CS1),     &
       RESP_S_old(um1%LAND_PTS,DIM_CS1), &
       RESP_S_TOT(DIM_CS2)    
-     
+
+   INTEGER ::     &
+      idoy           ! day of year (1:365) counter for CASA-CNP
+
    REAL, DIMENSION(mp) ::                                                      & 
       dtlc, & 
       dqwc
 
    REAL, POINTER :: TFRZ
-   
+   !LAI_Ma
+   integer :: openstatus =1
+   integer :: LAI_Ma_year = 0
+
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -224,8 +230,32 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
       CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)
-  
-        
+
+!LAI_Ma{
+   ! As cable%doy resets every year, record when each year has passed
+   if(idoy == 365 ) then !NB> this is for Gregorian Calendar
+      open(unit=713941,file='cable_DoY.txt',  &
+           action="read", iostat=openstatus )
+         if(openstatus==0) then
+               read(713941,*) LAI_Ma_year 
+         else
+            write (*,*), 'cable_DoY.txt',' Error: unable to read'
+         endif
+      close(713941)
+      
+      LAI_Ma_year = LAI_Ma_year + 1     
+      
+      open(unit=713941,file='cable_DoY.txt', status="unknown", &
+           action="write", iostat=openstatus )
+         if(openstatus==0) then
+               write(713941,*) LAI_Ma_year 
+         else
+            write (*,*), 'cable_DoY.txt',' Error: unable to read'
+         endif
+      close(713941)
+   endif
+!LAI_Ma}
+
       CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &

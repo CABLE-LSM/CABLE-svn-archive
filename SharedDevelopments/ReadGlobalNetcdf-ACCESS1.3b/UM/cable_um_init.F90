@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -180,7 +180,11 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !--- logn, vegparmnew can be set thru cable.nml
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
-         
+   !LAI_Ma: this is where LAI_Ma is first declared. NB> this is the interpolated
+   !version, NOT the read version        
+   integer, parameter :: npseudo_interp = 12
+   real, dimension(:,:), allocatable, save :: LAI_Ma
+  
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -229,17 +233,18 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          
       !jhan: turn this off until implementation finalised
       !--- initialize latitude/longitude & mapping IF required
-      !if ( first_call ) & 
-      !   call initialize_maps(latitude,longitude, tile_index_mp)
-
-
+      if ( first_call ) then 
+         allocate( LAI_Ma(mp,npseudo_interp) )
+         call initialize_maps(latitude,longitude, tile_index_mp, LAI_Ma,    &
+                              npseudo_interp )
+      endif
 
       !--- read in soil (and veg) parameters 
       IF(first_call)                                                        & 
          CALL  get_type_parameters(logn,vegparmnew)
 
       !--- initialize veg   
-      CALL initialize_veg( canht_ft, lai_ft ) 
+      CALL initialize_veg( canht_ft, lai_ft, LAI_Ma ) 
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
