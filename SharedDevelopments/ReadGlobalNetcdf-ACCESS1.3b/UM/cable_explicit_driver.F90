@@ -252,6 +252,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
    REAL, DIMENSION(land_pts,ntiles) :: LAI_Ma_UM 
+   REAL :: miss = 0.0
    INTEGER ::     &
       idoy           ! day of year (1:365) counter for CASA-CNP
 
