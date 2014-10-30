@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -242,7 +242,26 @@ module cable_data_module
    END TYPE issnow_type
 
 
+   TYPE const_type
+      ! instantiate major types of constants 
+      type( physical_constants ) :: phys
+      type( math_constants ) :: math
+      type( other_constants ) :: other
+      type( photosynthetic_constants ) :: photo
+   end TYPE const_type
 
+   TYPE cable_type
+      REAL, dimension(:), POINTER ::                                            &
+         lat, &
+         lon, &
+         tile, &
+         tile_frac 
+      integer :: doy=1    ! DayOfYear 
+      TYPE (const_type) :: const
+
+   end TYPE cable_type
+
+   TYPE (cable_type) :: cable
    
 
  
