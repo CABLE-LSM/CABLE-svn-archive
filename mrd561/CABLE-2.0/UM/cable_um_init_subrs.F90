@@ -690,14 +690,14 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          !ensure that we have reasonable values in case 
          !starting from a non-GW simulation
          where (ssnow%GWwb(:) .eq. 0.0 ) &
-                ssnow%GWwb(:) = soil%GWwatsat*0.95
+                ssnow%GWwb(:) = 0.4
 
          where (ssnow%GWwb(:) .lt. 0.01) & 
                 ssnow%GWwb(:)  = 0.01
 
          where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
                 ssnow%GWwb(:) = soil%GWwatsat
-         
+
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
                          ( soil%sfc - soil%swilt) ) )
