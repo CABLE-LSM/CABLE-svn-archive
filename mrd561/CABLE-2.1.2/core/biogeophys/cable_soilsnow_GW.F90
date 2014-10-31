@@ -74,7 +74,7 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow_gw ! must be available outside this module
+   PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv,calc_equilibrium_water_content
    PRIVATE soilfreeze, remove_trans,iterative_wtd,simple_wtd
@@ -2139,7 +2139,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
     !local variables
     REAL(r_2), DIMENSION(mp)           :: icef
-    REAL(r_2)                          :: satfrac,wtd_meters,fice
+    REAL(r_2)                          :: satfrac,wtd_meters,fice,xx
     REAL(r_2)                          :: dzmm_one,liqmass,icemass,totmass
     INTEGER                            :: i
 
