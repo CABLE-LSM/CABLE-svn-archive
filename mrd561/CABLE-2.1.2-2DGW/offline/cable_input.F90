@@ -374,6 +374,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ELSE
        !MDeck switch to read old school CLM style forcing
        write(logn,*) 'Opening CLM style met data file: ', trim(gswpfile%rainf)
+       LAT1D = .true.
+       LON1D = .true.
        ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
        if (gswpfile%rainf .eq. gswpfile%PSurf) then
           !set all ncid values to rain to read data from same file
@@ -445,7 +447,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        IF(ok /= NF90_NOERR) then
           !MDeck allow for 1d lat called 'lat'
           ok = NF90_INQ_VARID(ncid_met, 'lat', latitudeID)
-          LAT1D = .true.
           if (ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding latitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -458,6 +459,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF (LAT1D) THEN
        ALLOCATE(temparray1(ydimsize))
     END IF
+
     ! Get latitude values for entire region:
     IF (.not.LAT1D) THEN
        ok= NF90_GET_VAR(ncid_met,latitudeID,temparray2)
@@ -478,7 +480,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        IF(ok /= NF90_NOERR) THEN
           !MDeck allow for 1d lon called 'lon'
           ok = NF90_INQ_VARID(ncid_met, 'lon', longitudeID)
-          LON1D = .true.
           IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding longitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')

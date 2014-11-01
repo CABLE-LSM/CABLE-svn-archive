@@ -41,7 +41,7 @@ MODULE cable_def_types_mod
    
    INTEGER :: mp,    & ! # total no of patches/tiles 
               mvtype=17,& ! total # vegetation types,   from input
-              mstype,& ! total # soil types,         from input
+              mstype=9,& ! total # soil types,         from input
               mland,&                       ! # land grid cells
               mlat,mlon
 
@@ -663,6 +663,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%GWclappB(mp) )
    allocate( var%GWwatsat(mp) )
    allocate( var%GWwatr(mp) )
+   var%GWwatr(:) = 0.05
    allocate( var%GWz(mp) )
    allocate( var%GWdz(mp) )
    allocate( var%GWdensoil(mp) )
@@ -672,6 +673,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%clappB(mp,ms) )
    allocate( var%watsat(mp,ms) )
    allocate( var%watr(mp,ms) )
+   var%watr(:,:) = 0.05
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
    allocate( var%densoil(mp,ms) )
@@ -782,7 +784,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWconvergence(mp) )
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
-   var%GWwb = 0.3_r_2
+   var%GWwb = 0.45_r_2
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -816,8 +818,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
-   ALLOCATE( var%refl(mp,2) ) !jhan:swb?
-   ALLOCATE( var%taul(mp,2) ) 
+   ALLOCATE( var%refl(mp,3) ) !jhan:swb?
+   ALLOCATE( var%taul(mp,3) ) !MDeck->cable_parameters.F90 tries to access taul(:,3)
    ALLOCATE( var%vlaimax(mp) ) 
 
 END SUBROUTINE alloc_veg_parameter_type

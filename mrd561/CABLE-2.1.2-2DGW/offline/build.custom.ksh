@@ -57,7 +57,7 @@ host_mael()
    export FC=ifort
    export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -parallel -ftrapuv  -fp-model precise'
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2 -openmp'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
    cd ../
    build_status
@@ -331,7 +331,7 @@ do_i_no_u()
 build_status()
 {
    if [[ -f .tmp/cable ]]; then
-   	mv .tmp/cable .
+   	mv .tmp/cable "./cable-r${CABLE_REV}"
    	print '\nBUILD OK\n'
    else
       print '\nOooops. Something went wrong\n'        
@@ -362,11 +362,11 @@ build_build()
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
-   if [[ $CABLE_REV="" ]]; then
-      echo "this is not an svn checkout"
-      CABLE_REV=0
-      echo "setting CABLE revision number to " $CABLE_REV 
-   fi         
+   #if [[ $CABLE_REV="" ]]; then
+   #   echo "this is not an svn checkout"
+   #   CABLE_REV=0
+   #   echo "setting CABLE revision number to " $CABLE_REV 
+   #fi         
    print $CABLE_REV > ~/.cable_rev
    # get SVN status 
    CABLE_STAT=`svn status`

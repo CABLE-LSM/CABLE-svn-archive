@@ -409,7 +409,7 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -429,14 +429,15 @@ SUBROUTINE mpidrv_master (comm)
 
       canopy%oldcansto=canopy%cansto
 
-      imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)
+!      imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)  !imes%fsd is not yet set.
 
       ! MPI: flip ktau_gl
       !tmp_kgl = ktau_gl
       ktau_gl = iktau
-
       CALL get_met_data( spinup, spinConv, imet, soil,                    &
                          rad, iveg, kend, dels, C%TFRZ, iktau )
+
+      imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)
 
       ! MPI: scatter input data to the workers
       CALL master_send_input (icomm, inp_ts, iktau)
@@ -445,6 +446,7 @@ SUBROUTINE mpidrv_master (comm)
 
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
+         write(*,*) ktau
 
 !         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1

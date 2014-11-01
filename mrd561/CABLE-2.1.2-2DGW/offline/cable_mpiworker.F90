@@ -111,7 +111,7 @@ CONTAINS
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename,                    & 
-                                   redistrb, wiltParam, satuParam
+                                   redistrb, wiltParam, satuParam,gw_params
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -227,7 +227,8 @@ CONTAINS
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
-                  cable_user           ! additional USER switches 
+                  cable_user,       &   ! additional USER switches 
+                  gw_params
 
    ! END header
 
@@ -244,9 +245,6 @@ CONTAINS
     
    cable_runtime%offline = .TRUE.
    cable_runtime%run_gw_model = cable_user%GW_MODEL
-
-
-   write(*,*) ' cable alt forcing flag is  ',cable_user%alt_forcing
 
 
    ! associate pointers used locally with global definitions
@@ -407,7 +405,6 @@ CONTAINS
 
          ! MPI: receive input data for this step from the master
          CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
-
          ! MPI: some fields need explicit init, because we don't transfer
          ! them for better performance
          ! in the serial version this is done in get_met_data
