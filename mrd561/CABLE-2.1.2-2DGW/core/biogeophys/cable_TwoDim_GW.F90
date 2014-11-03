@@ -157,7 +157,8 @@ module cable_TwoDim_GW
       evl(land_x(i),land_y(i))    = soil%elevation(i)
       poros(land_x(i),land_y(i))  = soil%GWwatsat(i)
       ho(land_x(i),land_y(i))     = soil%elevation(i) - ssnow%wtd(i)/1000._r_2
-      hycond(land_x(i),land_y(i)) = 0.01*soil%GWhksat(i)/1000._r_2   !m/s
+      hycond(land_x(i),land_y(i)) = 0.1*soil%GWhksat(i)/1000._r_2   !m/s
+      if (ssnow%GWwb(i) .le. 1e-4) hycond(land_x(i),land_y(i)) = 0._r_2
     end do
     if (debug) write(*,*) 'done with mp init'
     compres = 0.0_r_2
@@ -262,7 +263,6 @@ module cable_TwoDim_GW
       g(:) = 0.0
 
 !-------------------
-      !do 190 ii=1,mlon
       LonLoopOne: do ii=1,mlon
 !-------------------
         i=ii
@@ -271,7 +271,6 @@ module cable_TwoDim_GW
 !          calculate b and g arrays
 
 !>>>>>>>>>>>>>>>>>>>>
- !       do 170 j=1,mlat
         LatLoopOne: do j=1,mlat
 !>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
@@ -279,67 +278,34 @@ module cable_TwoDim_GW
           aa = 0.0
           cc = 0.0
 
-!          if (j-1) 90,100,90 
-!   90     aa = -t(i,j-1,1)
-!          bb = bb + t(i,j-1,1)
-
           if (j .gt. 1) then
              aa = -t(i,j-1,1)
              bb = bb + t(i,j-1,1)
           end if
-
-!  100     if (j-mlat) 110,120,110
-!  110     cc = -t(i,j,1)
-!          bb = bb + t(i,j,1)
 
           if (j .lt. mlat) then
              cc = -t(i,j,1)
              bb = bb + t(i,j,1)
           end if
 
-!  120     if (i-1) 130,140,130
-!  130     bb = bb + t(i-1,j,2)
-!          dd = dd + h(i-1,j)*t(i-1,j,2)
-
           if (i .gt. 1) then
              bb = bb + t(i-1,j,2)
              dd = dd + h(i-1,j)*t(i-1,j,2)
           end if
-
- ! 140     if (i-mlon) 150,160,150
- ! 150     bb = bb + t(i,j,2)
- !         dd = dd + h(i+1,j)*t(i,j,2)
 
           if (i .lt. mlon) then
             bb = bb + t(i,j,2)
             dd = dd + h(i+1,j)*t(i,j,2)
           end if
 
-!  160     w = bb - aa*b(j-1)
-!          b(j) = cc/w
-!          g(j) = (dd-aa*g(j-1))/w
-
           w    = bb - aa*b(j-1)
           b(j) = cc / w
           g(j) = (dd -aa*g(j-1))/w
 !>>>>>>>>>>>>>>>
-!  170   continue
         end do LatLoopOne
 !>>>>>>>>>>>>>>>
 
-!          re-estimate heads
-
-  !      e = e + abs(h(i,mlat)-g(mlat))
-  !      h(i,mlat) = g(mlat)
-  !      n = mlat-1
-  !180   if (n.eq.0) goto 185
-  !      ha = g(n) - b(n)*h(i,n+1)
-  !      e = e + abs(ha-h(i,n))
-  !      h(i,n) = ha
-  !      n = n-1
-  !      goto 180
-  !185   continue
-
+        !calc the heads again
         e = e + abs(h(i,mlat)-g(mlat))
         h(i,mlat) = g(mlat)
 
@@ -351,7 +317,6 @@ module cable_TwoDim_GW
 
 
 !-------------
-!!  190 continue
    end do LonLoopOne
 !-------------
 !=======================
@@ -359,7 +324,6 @@ module cable_TwoDim_GW
 !=======================
 
 !       set transmissivities (same as above)
-
       do j=1,mlat
         jp = min (j+1,mlat)
         do i=1,mlon
@@ -386,14 +350,12 @@ module cable_TwoDim_GW
       g(:) = 0.0
 
 !-------------------
-!!      do 300 jj=1,mlat
       LatLoopTwo: do jj=1,mlat
 !-------------------
         j=jj
         if (mod(istep+iter,2).eq.1) j = mlat-j+1
 !         calculate b and g arrays
 !>>>>>>>>>>>>>>>>>>>>
-!        do 280 i=1,mlon
         LonLoopTwo: do i=1,mlon
 !>>>>>>>>>>>>>>>>>>>>
           bb = (sf2(i,j)/dels) * darea
@@ -401,65 +363,36 @@ module cable_TwoDim_GW
           aa = 0.0
           cc = 0.0
 
-!          if (j-1) 200,210,200
-!  200     bb = bb + t(i,j-1,1)
-!          dd = dd + h(i,j-1)*t(i,j-1,1)
-
           if (j .gt. 1) then
             bb = bb + t(i,j-1,1)
             dd = dd + h(i,j-1)*t(i,j-1,1)
           end if
-
-!  210     if (j-mlat) 220,230,220
-!  220     dd = dd + h(i,j+1)*t(i,j,1)
-!          bb = bb + t(i,j,1)
 
           if (j .lt. mlat) then
             dd = dd + h(i,j+1)*t(i,j,1)
             bb = bb + t(i,j,1)
           end if
 
-!  230     if (i-1) 240,250,240
-!  240     bb = bb + t(i-1,j,2)
-!          aa = -t(i-1,j,2)
-
           if (i .gt. 1) then
             bb = bb + t(i-1,j,2)
             aa = -t(i-1,j,2)
           end if
 
-!  250     if (i-mlon) 260,270,260
-!  260     bb = bb + t(i,j,2)
-!          cc = -t(i,j,2)
-
           if (i .lt. mlon) then
             bb = bb + t(i,j,2)
             cc = -t(i,j,2)
           end if
-
-!  270     w = bb - aa*b(i-1)
-!          b(i) = cc/w
-!          g(i) = (dd-aa*g(i-1))/w
-
           w = bb - aa*b(i-1)
           b(i) = cc / w
           g(i) = (dd - aa * g(i-1))/w
 
 !>>>>>>>>>>>>>>>
-  !280   continue
         end do LonLoopTwo
 !>>>>>>>>>>>>>>>
 !          re-estimate heads
         e = e + abs(h(mlon,j)-g(mlon))
         h(mlon,j) = g(mlon)
         n = mlon-1
-!  290   if (n.eq.0) goto 295
-!        ha = g(n)-b(n)*h(n+1,j)
-!        e = e + abs(h(n,j)-ha)
-!        h(n,j) = ha
-!        n = n-1
-!        goto 290
-!  295   continue
 
         e = e + abs(h(mlon,j)-g(mlon))
         h(mlon,j) = g(mlon)
@@ -470,7 +403,6 @@ module cable_TwoDim_GW
         end do
 
 !-------------
-!  !300 continue
       end do LatLoopTwo
 !-------------
       do j=1,mlat
@@ -495,13 +427,6 @@ module cable_TwoDim_GW
 
       delcur = e/(mlon*mlat)
 
-
-!      if ( (delcur.gt.delskip*dels .and. iter.lt.itermax)      &
-!           .or. iter.lt.itermin ) then
-!        goto 80
-!      else
-!      endif
-
       if (delcur .le. delskip*dels .or. iter .gt. itermax) then
           KeepLooping = .False.
       end if
@@ -511,7 +436,7 @@ module cable_TwoDim_GW
 
       if (debug) write(*,*) 'done with iterations'
 
-!        Compute convergence rate due to ground water flow (returned)
+!  Rate of convergence from ground water flow (returned)
 
     do j=1,mlat
       do i=1,mlon
@@ -586,15 +511,24 @@ module cable_TwoDim_GW
       xx(i) = ssnow%GWconvergence(i)  !convergence of water in mm
       !try to add to GWwb
 
-      vol_av(i) = max(soil%GWwatsat(i) - ssnow%GWwb(i),0._r_2)
+      if (xx(i) .ge. 0._r_2) then
+         vol_av(i) = max(soil%GWwatsat(i) - ssnow%GWwb(i),0._r_2)
+      else
+         vol_av(i) = 0.9*ssnow%GWwb(i)
+      end if 
       mss_av(i) = vol_av(i)*soil%GWdz(i)*C%denliq
 
-      if (xx(i) .le. mss_av(i)) then
+      if (abs(xx(i)) .le. mss_av(i)) then
         ssnow%GWwb(i) = ssnow%GWwb(i) + xx(i)/(soil%GWdz(i)*C%denliq)
         xx(i) = 0._r_2
-      elseif (xx(i) .gt. mss_av(i)) then
-        xx(i) = xx(i) - mss_av(i)
-        ssnow%GWwb(i) = soil%GWwatsat(i)
+      elseif (abs(xx(i)) .gt. mss_av(i)) then
+        if (xx(i) .ge. 0._r_2) then
+           xx(i) = xx(i) - mss_av(i)
+           ssnow%GWwb(i) = soil%GWwatsat(i)
+        else
+           xx(i) = xx(i) + mss_av(i)
+           ssnow%GWwb(i) = (ssnow%GWwb(i)-vol_av(i))
+        end if
       end if
 
 
@@ -610,6 +544,21 @@ module cable_TwoDim_GW
             xx(i) = xx(i) - mss_av(i)
             ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + mss_av(i) / (soil%zse(k)*C%denliq)
           end if
+
+        elseif (xx(i) .le. 1e-7) then
+
+          vol_av(i) = 0.9*ssnow%wb(i,k)
+          mss_av(i) = vol_av(i) * soil%zse(k) * C%denliq
+
+          if (abs(xx(i)) .le. mss_av(i)) then
+            ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + xx(i) / (soil%zse(k)*C%denliq)
+            xx(i) = 0._r_2
+          elseif (abs(xx(i)) .gt. mss_av(i)) then
+            xx(i) = xx(i) + mss_av(i)
+            ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - mss_av(i) / (soil%zse(k)*C%denliq)
+          end if
+
+
         end if
       end do   !soil layer loop
 
@@ -778,7 +727,6 @@ module cable_TwoDim_GW
     h = ho
 
     if (debug) write(*,*) 'ELEVATION MAX IS ',maxval(soil%elevation)
-
     if (debug) write(*,*) 'ELEVATION MAX IS ',maxval(evl)
     if (debug) write(*,*) 'ELEVATION MIN IS ',minval(evl)
     if (debug) write(*,*) 'ELEVATION AVG IS ',sum(evl)/real(xdimsize*ydimsize)
@@ -791,6 +739,18 @@ module cable_TwoDim_GW
     darea = dx*dy
 
     call compute_storage(h,ho,poros,evl,sf2)
+
+    !mpi call here????
+    ! subarrays will be: (Wnx,Ny) global:(Nx,Ny)
+    ! Wnx = Nx / nprocs
+    ! create single derived type or 3x send/recv?
+    !if rank=0
+    ! do i=1,np
+    !    call mpi_send((/h,hs,sf2/),0,i)
+    ! end od
+    !else !rank /= 0
+    !  call mpi_recv((/h,hs,sf2/),0)
+    !end if
 
     call TwoDGW_XDirCalc(LatBg,LatEd,dels,hycond,evl,dx,dy,sf2,h,hs)
 
@@ -983,18 +943,20 @@ end subroutine compute_storage
 
 
     ! Solve the matrix
-    bet = bt(1)
-       
-    if (bet .ne. 0.0_r_2) ut(1) = rt(1) / bet
+    if (abs(bt(1)) .gt. 1e-7) then
+      bet = bt(1)
+    else
+      bet = bt(1) + sign(1e-7,bt(1))
+    end if
 
-    if (bet .eq. 0.0_r_2) ut(1) = rt(1) / (bet + 0.000001_r_2)
-    do k = 1,n
+    ut(1) = rt(1) / bet
+    do k = 2,n
        gam(k) = ct(k-1) / bet
        bet    = max(bt(k) - at(k) * gam(k),0.00001_r_2)
        ut(k)  = (rt(k) - at(k)*ut(k-1)) / bet
     end do
 
-    do k = n-1,2,-1
+    do k = n-1,1,-1
        ut(k) = ut(k) - gam(k+1) * ut(k+1)
     end do
 
