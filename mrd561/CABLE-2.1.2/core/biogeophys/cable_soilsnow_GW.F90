@@ -1503,6 +1503,7 @@ END SUBROUTINE remove_trans
     REAL(r_2), DIMENSION(mp)            :: xs1,GWmsliq!xsi    !mass (mm) of liquid over/under saturation, mass of aquifer water
     REAL(r_2)                           :: xsi
     REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
+    REAL(r_2), DIMENSION(mp)            :: sm_tot  !total column soil water available for drainage
     INTEGER, DIMENSION(mp)              :: idlev
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
@@ -1623,24 +1624,33 @@ END SUBROUTINE remove_trans
        ssnow%GWdsmpdw(i) = -soil%GWclappB(i)*ssnow%GWsmp(i)/(s_mid(i)*(soil%GWwatsat(i)-soil%GWwatr(i)))
     end do
        
-    !Note: temporaary parameteriation of horizontal drainage
+    !Note: temporary parameteriation of horizontal drainage
     !too be replaced with explivit treatment of subgrid scale, topographically
     !based subsurface flux convergence flowing to river channels 
     !find index of soil layer with the water table
     do i=1,mp
        ssnow%qhz(i)  = gw_params%MaxHorzDrainRate *(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
-       idlev(i)   = ms
-       qhlev(i,:) = 0._r_2
-       do k=ms,1,-1
-         if ((ssnow%wtd(i) .le. zimm(k)) .and. (ssnow%wtd(i) .gt. zimm(k-1))) then
-           idlev(i) = k
-         end if
-      end do
+       qhlev(i,1:2) = 0._r_2
+       sm_tot(i) = ssnow%GWwb(i)*GWdzmm(i)
+       do k=3,ms
+          sm_tot(i) = sm_tot(i) + max((ssnow%wbliq(i,k)-soil%swilt(k))*dzmm(k),0._r_2)
+       end do
+       sm_tot(i) = max(sm_tot(i),0.01_r_2)
+       do k=3,ms
+          qhlev(i,k) = ssnow%qhz(i)*max((ssnow%wbliq(i,k)-soil%swilt(k))*dzmm(k),0._r_2)/sm_tot(i)
+       end do
+       qhlev(i,ms+1) = ssnow%qhz(i)*ssnow%GWwb(i)*GWdzmm(i)/sm_tot(i)
       !If the layer is frozen there shouldn't be any drainage
-      ssnow%qhz(i)      = ssnow%qhz(i) * (1._r_2 - ssnow%fracice(i,min(idlev(i),ms)))
-      qhlev(i,idlev(i)) = ssnow%qhz(i)
-
+      !ssnow%qhz(i)      = ssnow%qhz(i) * (1._r_2 - ssnow%fracice(i,min(idlev(i),ms)))
+      !qhlev(i,idlev(i)) = ssnow%qhz(i)
+      
+      !incase every layer is frozen
+      ssnow%qhz(i) = qhlev(i,ms+1)
+      do k=3,ms
+         ssnow%qhz(i) = ssnow%qhz(i) +qhlev(i,k)
+      end do
+      
     end do  
 
 
@@ -2089,7 +2099,7 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
           ssnow%wbeq(i,k) = min(max(ssnow%wbeq(i,k),soil%watr(i,k)),soil%watsat(i,k))
           
           wbrat = min(max((ssnow%wbeq(i,k) - soil%watr(i,k))/(soil%watsat(i,k)-soil%watr(i,k)),&
-                          1._r_2),0.001_r_2)
+                          0.001_r_2),1._r_2)
 
           ssnow%zq(i,k) = max(-soil%smpsat(i,k)*(wbrat**(-soil%clappB(i,k))),sucmin)
           
@@ -2158,7 +2168,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        !Saturated fraction
        wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
 
-       xx = max(real(1e-6,r_2), min(1._r_2,(ssnow%wbliq(i,1)-0.5_r_2*real(soil%swilt(i),r_2))/&
+       xx = max(real(1e-6,r_2), min(1._r_2,&
+                        ((ssnow%wb(i,1)-ssnow%wbice(i,1)*dri)-0.5_r_2*real(soil%swilt(i),r_2))/&
                                     (real(soil%sfc(i),r_2) - 0.5_r_2*real(soil%swilt(i),r_2))))
                                     
        satfrac = (1._r_2 + gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac))*xx
