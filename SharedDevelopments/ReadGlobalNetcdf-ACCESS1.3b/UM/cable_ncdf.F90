@@ -13,7 +13,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    ! This is the name of the data file we will read. 
    character (len = *), parameter :: fbase_name = "LAI"
    character (len = *), parameter :: fext_name = ".nc"
-   character (len =10) :: file_name = ".nc"
+   character (len =10) :: file_name
    character (len = *), parameter :: VARNAME = "field1392"
  
    ! We are reading 3D data, a predefined grid. 
@@ -95,9 +95,12 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
          do i = 1, mp
             if( ( abs(lon_in(x,1) - longitude(i) ) < 0.001 ) .And. & 
                 ( abs(lat_in(y,1) - latitude(i)  ) < 0.001 ) ) then 
+               !print *, "jh:lonnc, lonum ", x,y,lon_in(x,1), longitude(i), data_in(x_in(i), y_in(i), z)
+               !print *, "jh:latnc, latum ", x,y,lat_in(y,1), latitude(i)  
                x_in(i) = x
                y_in(i) = y
-               if( i > mp) print *, "Count has reached mp"
+               !jh: this suggests data_in is being set OK
+               !print *, "jh:lonnc, lonum ", data_in(x_in(i), y_in(i), z)
             endif
          end do
       end do
@@ -112,7 +115,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
    ! Close the file, freeing all resources.
    call check( nf90_close(ncid) )
  
-   print *,"*** SUCCESS reading example file ", FILE_NAME, "! "
+   print *,"reading example file: DONE ", FILE_NAME, "! "
 
    contains
    subroutine check(status)

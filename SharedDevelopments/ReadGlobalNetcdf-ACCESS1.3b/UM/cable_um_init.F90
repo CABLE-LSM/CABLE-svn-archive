@@ -239,6 +239,11 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npseudo_interp )
       endif
 
+   !jh: keep commnt side of print to immediately compare 
+   !j = 1
+   !do i = 1, mp
+   !   print *, "jh:um_init ", LAI_Ma(i,j)
+   !end do
       !--- read in soil (and veg) parameters 
       IF(first_call)                                                        & 
          CALL  get_type_parameters(logn,vegparmnew)

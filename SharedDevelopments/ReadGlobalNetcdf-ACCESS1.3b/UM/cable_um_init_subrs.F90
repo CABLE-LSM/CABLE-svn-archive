@@ -50,6 +50,7 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
    logical, save :: first_call = .true.
    
    INTEGER :: i, j
+   INTEGER :: z
    
    real :: dlon
    real, dimension(um1%row_length) :: tlong,acoslong
@@ -130,8 +131,18 @@ subroutine initialize_maps(latitude,longitude, tile_index_mp, new_LAI_Ma, npseud
    call predef_grid(cable%lat, cable%lon, knode_gl, um1%rows,              &
                         um1%row_length, mp, npseudo, LAI_Ma )
 
-   call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
+   !call LAI_interpolation( LAI_Ma, mp, npseudo, new_LAI_Ma, npseudo_interp )      
    !LAI_Ma}  
+   
+   new_LAI_Ma = LAI_Ma
+   !!jh: keep commnt side of print to immediately compare 
+   !do z = 1, nPseudo
+   !   do i = 1, mp
+   !      !print *, "jh:lonnc, lonum ", mydata(i,z)
+   !      print *, "jh:lonnc, lonum ", LAI_Ma(i,z)
+   !      print *, "jh:lonnc, newMa ", new_LAI_Ma(i,z)
+   !   end do
+   !end do
          
    return
 end subroutine initialize_maps
@@ -330,6 +341,7 @@ END SUBROUTINE initialize_veg
 
 SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
    USE cable_um_tech_mod, ONLY : um1, kblum_veg, veg
+   USE cable_def_types_mod, ONLY : mp
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
    REAL, DIMENSION(:,:) :: LAI_Ma 
@@ -367,10 +379,14 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai, LAI_Ma )
   
    veg%iveg   = PACK(kblum_veg%ivegt, um1%L_TILE_PTS)
    !veg%vlai   = PACK(kblum_veg%laift, um1%L_TILE_PTS)
-!LAI_Ma: here for testing i am using the first month only. For the sake of
-!updating and shifting you will need to develop some logic around this based of
-!on the date
+   !LAI_Ma: here for testing i am using the first month only. For the sake of
+   !updating and shifting you will need to develop some logic around this based of
+   !on the date
    veg%vlai   = LAI_Ma(:,1) 
+   !do i=1,mp
+   !   print *, "jhan:clobber:LAI ", LAI_Ma(i,1)
+   !enddo   
+
    veg%hc     = PACK(kblum_veg%htveg, um1%L_TILE_PTS)
 
 END SUBROUTINE clobber_height_lai

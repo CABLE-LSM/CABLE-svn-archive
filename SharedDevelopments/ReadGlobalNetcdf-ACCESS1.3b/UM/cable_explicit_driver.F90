@@ -255,6 +255,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL :: miss = 0.0
    INTEGER ::     &
       idoy           ! day of year (1:365) counter for CASA-CNP
+   integer :: n,k,i
 
    cable%doy = idoy
    !--- initialize cable_runtime% switches 
@@ -322,7 +323,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
 !LAI_Ma{   
-   LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)      
+   LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)     
+   do i=1,mp
+      print *, "jh:expl:%LAI ", veg%vlai(i) 
+   enddo    
+
+   DO N=1,NTILES
+      DO K=1,land_pts
+         print *, "jh:expl:UM_lai ", LAI_Ma_UM(k,n) 
+      ENDDO
+   ENDDO
 !LAI_Ma: here for testing i am using the first month only. For the sake of
 !updating and shifting you will need to develop some logic around this based of
 !on the date
