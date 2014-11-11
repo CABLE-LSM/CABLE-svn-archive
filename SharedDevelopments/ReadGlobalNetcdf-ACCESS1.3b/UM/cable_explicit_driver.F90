@@ -57,6 +57,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
                                  met, bal, rad, rough, soil, ssnow, sum_flux, veg 
    
+   USE cable_um_tech_mod,   ONLY : um1
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
                                    knode_gl, kwidth_gl, kend_gl,               &
@@ -323,7 +324,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
 
 !LAI_Ma{   
-   LAI_Ma_UM = unpack(veg%vlai, L_TILE_PTS, miss)     
+   !jhan:unpacking when only one processor is fine but as soon as there ismore
+   !than one it does not work at all. whether this leads to the crash in
+   !bi_linesar is dubious though
+   print *, "jh:expl:UM shape ", shape( LAI_Ma_UM ) 
+   print *, "jh:expl:UM shape ", shape( um1%L_TILE_PTS )
+
+   LAI_Ma_UM = unpack(veg%vlai, um1%L_TILE_PTS, miss)     
    do i=1,mp
       print *, "jh:expl:%LAI ", veg%vlai(i) 
    enddo    

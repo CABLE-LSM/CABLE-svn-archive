@@ -48,6 +48,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
 
    file_name = trim(fbase_name)//trim(chnode)//trim(fext_name) 
 
+   print *, "File per node ", node_gl, file_name 
    ! Open the file. NF90_NOWRITE tells netCDF we want read-only access to
    ! the file.
    call check( nf90_open(FILE_NAME, NF90_NOWRITE, ncid) )
@@ -100,6 +101,7 @@ subroutine predef_grid(latitude, longitude, node_gl, rows, row_length, mp,      
                x_in(i) = x
                y_in(i) = y
                !jh: this suggests data_in is being set OK
+               !if(node_gl > 1) & 
                !print *, "jh:lonnc, lonum ", data_in(x_in(i), y_in(i), z)
             endif
          end do
