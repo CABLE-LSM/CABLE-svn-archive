@@ -1629,7 +1629,7 @@ END SUBROUTINE remove_trans
     !based subsurface flux convergence flowing to river channels 
     !find index of soil layer with the water table
     do i=1,mp
-       ssnow%qhz(i)  = gw_params%MaxHorzDrainRate *(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = gw_params%MaxHorzDrainRate*soil%GWhksat(i)*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
        qhlev(i,1:2) = 0._r_2
        sm_tot(i) = ssnow%GWwb(i)*GWdzmm(i)
