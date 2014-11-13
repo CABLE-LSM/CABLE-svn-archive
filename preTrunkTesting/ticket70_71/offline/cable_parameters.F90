@@ -1235,6 +1235,7 @@ CONTAINS
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
+    WHERE(soil%ssat > 0. ) soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
     ! owetfac introduced by EAK apr2009
