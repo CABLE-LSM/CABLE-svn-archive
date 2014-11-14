@@ -1207,7 +1207,7 @@ CONTAINS
 
   END SUBROUTINE write_cnp_params
   !============================================================================
-  SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
+  SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough, met)
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
@@ -1215,10 +1215,15 @@ CONTAINS
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
     TYPE (balances_type),       INTENT(INOUT) :: bal
     TYPE (roughness_type),      INTENT(INOUT) :: rough
+    TYPE (met_type),            INTENT(IN)    :: met
+    TYPE( icanopy_type ) :: C
 
     INTEGER :: j ! do loop counter
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
+
+    ! assign local ptrs to constants defined in cable_data_module
+    CALL point2constants(C)
 
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations 
@@ -1239,19 +1244,34 @@ CONTAINS
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
     ! owetfac introduced by EAK apr2009
-    ssnow%owetfac = MAX(0.0, MIN(1.0,                                          &
-                   (REAL(ssnow%wb(:, 1)) - soil%swilt) /                  &
-                   (soil%sfc - soil%swilt)))
-    temp(:) = 0.0
-    tmp2(:) = 0.0
-    WHERE ( ssnow%wbice(:, 1) > 0. ) ! Prevents divide by zero at glaciated
-                                     ! points where wb and wbice=0.
-      temp(:) = ssnow%wbice(:, 1) / ssnow%wb(:, 1)
-      tmp2(:) = REAL(temp(:))
-      ssnow%owetfac = ssnow%owetfac * (1.0 - tmp2(:)) ** 2
-!      ssnow%owetfac = ssnow%owetfac &
-!                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
-    END WHERE
+    DO j=1,mp
+      IF (ssnow%owetfac(j) < -990.0) THEN ! i.e. no restart value
+        ssnow%owetfac(j) = MAX(1.e-6, MIN(1.0,                                 &
+                           (REAL(ssnow%wb(j, 1)) - soil%swilt(j)/2.0 ) /       &
+                           (soil%sfc(j) - soil%swilt(j)/2.0)))
+        IF( ssnow%wbice(j,1) > 0. )                                            &
+           ssnow%owetfac(j) = ssnow%owetfac(j) * MAX( 0.5, 1. - MIN( 0.2,      &
+                             ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) )
+        IF( ssnow%snowd(j) > 0.1) ssnow%owetfac(j) = 0.9
+        IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                &
+           ssnow%owetfac(j) = 1.0 ! lakes: hard-wired number to be removed
+        IF( veg%iveg(j) == 16 .and. met%tk(j) < C%tfrz + 5. )                  &
+           ssnow%owetfac(j) = 0.7 ! lakes: hard-wired number to be removed
+      END IF
+    ENDDO
+!    ssnow%owetfac = MAX(0.0, MIN(1.0,                                          &
+!                   (REAL(ssnow%wb(:, 1)) - soil%swilt) /                  &
+!                   (soil%sfc - soil%swilt)))
+!    temp(:) = 0.0
+!    tmp2(:) = 0.0
+!    WHERE ( ssnow%wbice(:, 1) > 0. ) ! Prevents divide by zero at glaciated
+!                                     ! points where wb and wbice=0.
+!      temp(:) = ssnow%wbice(:, 1) / ssnow%wb(:, 1)
+!      tmp2(:) = REAL(temp(:))
+!      ssnow%owetfac = ssnow%owetfac * (1.0 - tmp2(:)) ** 2
+!!      ssnow%owetfac = ssnow%owetfac &
+!!                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
+!    END WHERE
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
 

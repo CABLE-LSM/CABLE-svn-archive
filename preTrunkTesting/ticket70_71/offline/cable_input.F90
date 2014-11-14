@@ -2411,7 +2411,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       WRITE(logn,*) ' Pre-loaded default initialisations are used.'
       WRITE(*,*)    ' Could not find restart file ', TRIM(filename%restart_in)
       WRITE(*,*)    ' Pre-loaded default initialisations are used.'
-
+      ! This triggers initialization of owetfac when restart file not available
+      ssnow%owetfac = -999.0
     ELSE
       ! Restart file exists, parameters and init will be loaded from it.
       WRITE(logn,*) ' Overwriting initialisations with values in ', &
@@ -2470,7 +2471,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 
     ! Construct derived parameters and zero initialisations, regardless 
     ! of where parameters and other initialisations have loaded from:
-    CALL derived_parameters(soil,sum_flux,bal,ssnow,veg,rough)
+    CALL derived_parameters(soil,sum_flux,bal,ssnow,veg,rough,met)
 
     ! Check for basic inconsistencies in parameter values:
     CALL check_parameter_values(soil,veg,ssnow)
