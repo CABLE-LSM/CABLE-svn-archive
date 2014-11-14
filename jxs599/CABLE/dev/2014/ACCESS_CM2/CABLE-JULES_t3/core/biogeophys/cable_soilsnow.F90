@@ -523,6 +523,7 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
    INTEGER, DIMENSION(mp,3) :: ssnow_isflag_ssdn 
    REAL, DIMENSION(mp) :: ssnow_tgg_min1
    REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
+!   real, DIMENSION(mp)  :: term1, term2, term3, exp_term
      
    ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
    
@@ -575,7 +576,15 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
             * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,3)))            &
             - MERGE(0.046, 0.0, ssnow%ssdn(:,3) >= 150.0)                      &
             * (ssnow%ssdn(:,3) - 150.0) )
-      
+
+!            term1 =       .021 * ssnow%ssdn(:,1)
+!            term2 =  MIN( C%TFRZ, ssnow%tggsn(:,1) )
+!            term3 =  (273.15 - term2)
+!            exp_term = term1 + 0.081 * term3 
+!      ssnow%ssdn(:,1) = ssnow%ssdn(:,1) + dels * 9.806 * ssnow%ssdn(:,1)       &
+!            * ssnow%t_snwlr*ssnow%ssdn(:,1)                                    &
+!            / (3.0e7 * EXP(exp_term) )
+
       ssnow%ssdn(:,1) = ssnow%ssdn(:,1) + dels * 9.806 * ssnow%ssdn(:,1)       &
             * ssnow%t_snwlr*ssnow%ssdn(:,1)                                    &
             / (3.0e7 * EXP(.021 * ssnow%ssdn(:,1) + 0.081                      &
