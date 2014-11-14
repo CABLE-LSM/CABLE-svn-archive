@@ -474,7 +474,7 @@ SUBROUTINE cable_control( UM_eq_TRUE, L_cable, a_step, timestep_len, row_length,
    !---------------------------------------------------------------------------
    !local vars
    
-   LOGICAL :: first_atmstep_call
+   LOGICAL, save :: first_call=.TRUE.
    
    integer :: i,j, k,n
    
@@ -483,9 +483,8 @@ SUBROUTINE cable_control( UM_eq_TRUE, L_cable, a_step, timestep_len, row_length,
    !call print_control_args()
 
    !vn8.6 intros
-   first_atmstep_call = (a_step == 1)
    ! vn8.6 some differences herewhat is allocated etc
-   if( first_atmstep_call ) then 
+   if( first_call ) then 
       !if( UM_eq_TRUE) then
       !   allocate( flatitude(row_length,rows) )
       !   allocate( flongitude(row_length,rows) )
@@ -596,6 +595,8 @@ SUBROUTINE cable_control( UM_eq_TRUE, L_cable, a_step, timestep_len, row_length,
       !vn8.6 intros
       cable% tmp% Epsilon = 0.62198 
       cable% tmp% c_virtual =  1. / cable% tmp% Epsilon - 1. 
+
+   first_call=.FALSE.
 
 contains
    
@@ -904,20 +905,28 @@ integer :: jhi, jhj, jhk
    cable% um% TILE_PTS = TILE_PTS
    cable% um% TILE_INDEX = TILE_INDEX
 
-jhistart = 1
-jhiend = cable% mp% land_pts
-jhjstart = 1
-jhjend = cable% mp% ntiles
+!jhistart = 1
+!jhiend = cable% mp% land_pts
+!jhjstart = 1
+!jhjend = cable% mp% ntiles
+!
+!if(write125) then
+!   open(unit=125,file='control5_index',status="unknown", &
+!        action="write", form="formatted",position='append' )
+!   open(unit=1251,file='control5_pts',status="unknown", &
+!        action="write", form="formatted",position='append' )
+!      do jhj=jhjstart,jhjend!;do jhk=jhkstart,jhkend
+!         WRITE(1251,*) , jhj, TILE_pts(jhj)
+!      enddo
+!      do jhi=jhistart,jhiend; do jhj=jhjstart,jhjend!;do jhk=jhkstart,jhkend
+!         !if( TILE_INDEX(jhi,jhj) > 15000 .OR. TILE_INDEX(jhi,jhj) < 0.) & 
+!         WRITE(125,*) , jhi, jhj, TILE_INDEX(jhi,jhj)
+!      enddo; enddo!; enddo
+!   close(125)
+!   close(1251)
+!
+!endif 
 
-if(write125) then
-   open(unit=125,file='control5B',status="unknown", &
-        action="write", form="formatted",position='append' )
-      do jhi=jhistart,jhiend; do jhj=jhjstart,jhjend!;do jhk=jhkstart,jhkend
-         if( TILE_INDEX(jhi,jhj) > 15000 .OR. TILE_INDEX(jhi,jhj) < 0.) & 
-         WRITE(125,*) , jhi, jhj, TILE_INDEX(jhi,jhj)
-      enddo; enddo!; enddo
-   close(125)
- endif 
    !cable% forcing% ShortWave    = surf_down_sw
 
 END SUBROUTINE cable_control5 
