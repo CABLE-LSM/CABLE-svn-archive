@@ -123,6 +123,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    INTEGER, SAVE :: call_number =0
    
+!           real :: jhterm1 
+!           real :: jhterm1b 
+!           real :: jhterm2 
+!           real :: jhterm3 
+!           real :: jhterm5 
    ! END header
    
    call_number = call_number + 1
@@ -295,6 +300,29 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
             rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
                            sum_rad_gradis(j) 
+!		!jhan: this is where divide by 0 occurs due to tad%transd remaining default 1, !
+!		!jhan: because never gets re-processed due to canopy%vlaiw < 0.01.
+!		!jhan: WAS probably OK because ACCESS1.3 never uses canopy%tv on non-veg tiles
+!
+!		!jhan: fudge this for now as effectively canopy%tv (below) is being set to 
+!		! squareroot of negative occasionally. this is due sqroot() consists of two 
+!		! major terms modified rad%lwabv vs met%tk. However, in some cells either 
+!		! rad%lwabv term or met%tk is too high/low for balance to e greater than zero.
+!		! hence limit to zero or greater.
+!
+!            !jhterm1 = 2.0*(1.0-rad%transd(j))            &
+!                           * C%SBOLTZ*C%EMLEAF
+!            !print *, "jhterm1 ", jhterm1 
+!           
+!            !jhterm1b = rad%lwabv(j) / jhterm1 
+!            !print *,"jhterm1b ", jhterm1b, met%tk(j), (met%tk(j)**4)
+!            !jhterm2 =  jhterm1b + met%tk(j)**4
+!            !print *,"jhterm2 ", jhterm2 
+!            !jhterm3 = jhterm2 **0.25 
+!            !print *,"jhterm3 ", jhterm3 
+!            !jhterm2 = max( 0.0, jhterm2 ) 
+!            !canopy%tv(j) = jhterm2 **0.25 
+!            !print *,"jhtermX ",  canopy%tv(j),  jhterm2 **0.25 
 
             canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
                            * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
@@ -896,7 +924,27 @@ SUBROUTINE qsatfjh2(var,tair,pmb)
    
    REAL, INTENT(OUT) ::                                                        &
       var             ! result; sat sp humidity
-      
+!   integer, save :: first_call=.TRUE.   
+!   real :: exp_term
+!   !if( first_call) then
+!   !   print *, "C%RMH2o ", C%RMH2o
+!   !   print *, "C%rmair ", C%rmair
+!   !   print *, "C%TETENA ",      C%TETENA
+!   !   print *, "C%TETENB ",       C%TETENB
+!   !   print *, "C%TETENC ",       C%TETENC
+!   !  first_call=.FALSE.  
+!   !endif
+!   !   print *,"tair ",      tair
+!   !   print *,"pmb ",       pmb
+!   !   print *, " C%TETENB*tair, C%TETENC,tair ", C%TETENB*tair , C%TETENC , tair  
+!   !   print *, " C%TETENB*tair, C%TETENC+tair ", C%TETENB*tair , ( C%TETENC + tair ) 
+!   !   print *, " (C%TETENB*tair/(C%TETENC+tair)) ", C%TETENB*tair / ( C%TETENC + tair ) 
+!   !   print *, "var ", (C%RMH2o/C%rmair) * (C%TETENA*EXP(C%TETENB*tair/(C%TETENC+tair))) / pmb
+!      exp_term = C%TETENB*tair/(C%TETENC+tair)
+!      exp_term = max(-20.0, exp_term)
+!      exp_term = min(20.0, exp_term)
+!
+!      var = (C%RMH2o/C%rmair) * (C%TETENA*EXP(exp_term)) / pmb
       var = (C%RMH2o/C%rmair) * (C%TETENA*EXP(C%TETENB*tair/(C%TETENC+tair))) / pmb
 
 END SUBROUTINE qsatfjh2
@@ -1179,7 +1227,9 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    ! Calculate fraction of canopy which is wet:
    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
                    MAX( cansat, 0.01 ) ) )
-
+!jhan: reverted as manipulated tile frac ancillary avoids error here
+!soil%sfc=max(soil%sfc,.01)
+!soil%swilt=max(soil%swilt,.1)
    ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
                   ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
                   / ( soil%sfc - soil%swilt/2.0 ) ) )
@@ -1585,13 +1635,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          ENDIF !lai/abs_deltlf
 
       ENDDO !i=1,mp
+!jhan: i.e. itteration was successful wrt convergence
 
       ! Whhere leaf temp change b/w iterations is significant, and
       ! difference is smaller than the previous iteration, store results:
       DO i=1,mp
       
          IF ( abs_deltlf(i) < ABS( deltlfy(i) ) ) THEN
-
+!jhan: up the ante for covergence test on next itteration
             deltlfy(i) = deltlf(i)
             tlfy(i) = tlfx(i)
             rny(i) = rnx(i)
