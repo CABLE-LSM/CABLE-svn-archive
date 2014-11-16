@@ -1366,7 +1366,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
    
-      !IF (.not.cable_runtime%run_gw_model) THEN
+      IF (.not.cable_runtime%run_gw_model) THEN
 
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
@@ -1379,11 +1379,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          STOP 'fwsoil_switch failed.'
       ENDIF
 
-      !ELSE
-      !
-      !   CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
-      !
-      !END IF
+      ELSE
+      
+        CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
+      
+      END IF
 
    ENDIF
 
@@ -2073,7 +2073,7 @@ SUBROUTINE fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
    !if it is the first timestep we haven't called hydrology so wbliq isn't yet defined
    ssnow%wbliq = ssnow%wb - ssnow%wbice  !liquid volume.  not this assumes density ice = density liquid
 
-   psi_tmp = -soil%smpsat(:,:) * (max(0.01,ssnow%wbliq(:,:)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
+   psi_tmp = -soil%smpsat(:,:) * (max(0.01,(ssnow%wb-ssnow%wbice)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
    fwsoil(:) = 1.
    do i=1,mp
       fwsoil(i) = 0.
