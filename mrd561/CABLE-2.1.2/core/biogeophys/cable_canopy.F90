@@ -1381,7 +1381,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
       ELSE
       
-        CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
+      !  CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
+         call fwsoil_mass_calc_std(fwsoil, soil, ssnow, veg)
       
       END IF
 
@@ -1572,7 +1573,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                       anx(i,kk) ) )
 
                   !Recalculate conductance for water:
-                  gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
+                  gw(i,kk) = 2.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
                              1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
 
                   gw(i,kk) = MAX( gw(i,kk), 0.00001 )
@@ -2087,6 +2088,28 @@ SUBROUTINE fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
    end do
 
 END SUBROUTINE fwsoil_calc_pressure
+
+
+! ------------------------------------------------------------------------------
+
+SUBROUTINE fwsoil_mass_calc_std(fwsoil, soil, ssnow, veg)
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
+
+   rwater = MAX(1.0e-9,                                                    &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
+            SPREAD(1.1*soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+  
+   fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+ 
+END SUBROUTINE fwsoil_mass_calc_std
+
+! ------------------------------------------------------------------------------
+
 
 
 ! ------------------------------------------------------------------------------
