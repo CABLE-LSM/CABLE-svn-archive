@@ -234,7 +234,21 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
    INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
-    
+   
+   ! Vars for standard for quasi-bitwise reproducability b/n runs
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   CHARACTER(len=30), PARAMETER ::                                             &
+      Ftrunk_sumbal  = ".trunk_sumbal",                                        &
+      Fnew_sumbal    = "new_sumbal"
+
+   DOUBLE PRECISION ::                                                                     &
+      trunk_sumbal = 0.0, & !
+      new_sumbal = 0.0
+
+   INTEGER :: ioerror=0
+
+   ! END header
+
    IF(cable_user%run_diag_level == "BASIC")                                    &     
       CALL basic_diag(subr_name, "Called.") 
 
@@ -269,7 +283,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       first_cable_call = .FALSE.
    ENDIF      
 
-
+   ! Open, read and close the consistency check file.
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   IF(cable_user%consistency_check) THEN 
+      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
+         IF(ioerror==0) then
+            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+         ENDIF
+      CLOSE(11)
+   ENDIF
+ 
 
 
    !---------------------------------------------------------------------!
@@ -305,6 +328,37 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
              rad, rough, soil, ssnow, sum_flux, veg )
 
 
+
+   !---------------------------------------------------------------------!
+   ! Check this run against standard for quasi-bitwise reproducability   !  
+   ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
+   !---------------------------------------------------------------------!
+   IF(cable_user%consistency_check) THEN 
+      if(knode_gl==0) then 
+         new_sumbal = SUM(canopy%fe) + SUM(canopy%fh)                       &
+                    + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+     
+         IF( new_sumbal == trunk_sumbal) THEN
+   
+            print *, ""
+            print *, &
+            "Internal check shows this version reproduces the trunk sumbal"
+         
+         ELSE
+   
+            print *, ""
+            print *, &
+            "Internal check shows in this version new_sumbal != trunk sumbal"
+            print *, &
+            "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+                  
+            OPEN( 12, FILE = Fnew_sumbal )
+               WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+            CLOSE(12)
+         
+         ENDIF   
+      ENDIF   
+   ENDIF
 
 
    !---------------------------------------------------------------------!
