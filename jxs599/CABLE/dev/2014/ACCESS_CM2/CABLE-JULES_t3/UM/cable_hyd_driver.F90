@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -72,7 +72,17 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
 
       TOT_TFALL_TILE = UNPACK(canopy%through, um1%L_TILE_PTS, miss)
       TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
-      
+
+      if(L_fudge) then
+         call fudge_out( 1,1, snow_tile, 'snow_tile',   .TRUE., 0.  )
+         call fudge_out( 1, lying_snow, 'lying_snow',   .TRUE., 0.  )
+         call fudge_out( 1,1, surf_cab_roff, 'surf_cab_roff',   .TRUE., 0.  )
+         call fudge_out( 1, surf_roff, 'surf_roff',   .TRUE., 0.  )
+         call fudge_out( 1,1, TOT_TFALL_TILE, 'TOT_TFALL_TILE',   .TRUE., 0.  )
+         call fudge_out( 1, TOT_TFALL, 'TOT_TFALL',   .TRUE., 0.  )
+      endif
+       
+   write( 6,'("End of cable_hyd_UNPACK")' )
 END SUBROUTINE cable_hyd_driver
       
 
