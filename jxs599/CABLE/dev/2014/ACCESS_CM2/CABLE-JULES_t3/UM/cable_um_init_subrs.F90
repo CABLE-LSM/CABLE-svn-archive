@@ -131,7 +131,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
    USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
-                                   soilin, get_type_parameters
+                                   soilin, get_type_parameters, knode_gl
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: &
       bexp, &
@@ -178,7 +178,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
            
          !--- set CABLE-var soil%albsoil from UM var albsoil
          ! (see below ~ um2cable_lp)
-         CALL um2cable_lp( albsoil, albsoil, soil%albsoil(:,1),                &
+         CALL um2cable_lp( albsoil, albsoil(1:10), soil%albsoil(:,1),                &
                            soil%isoilm, skip )
 
          !--- defined in soil_thick.h in UM
@@ -209,7 +209,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! parameter b in Campbell equation 
          CALL um2cable_lp( BEXP, soilin%bch, soil%bch, soil%isoilm)
          
-         ALLOCATE( tempvar(um1%land_pts), tempvar2(mp) )
+         ALLOCATE( tempvar(10), tempvar2(mp) )
          tempvar = soilin%sand(9) * 0.3  + soilin%clay(9) *0.25 +              &
                    soilin%silt(9) * 0.265
          
@@ -552,9 +552,11 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL :: first_call = .TRUE.
-
-      ssnow%wbtot1 = 0
-      ssnow%wbtot2 = 0
+   REAL, DIMENSION(10) :: dummy 
+      
+      dummy=0. 
+      ssnow%wbtot1 = 0.
+      ssnow%wbtot2 = 0.
       TFRZ => PHYS%TFRZ
 
       snow_tile = MIN(max_snow_depth, snow_tile)
@@ -624,8 +626,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                fvar(L) = real(L)
             ENDDO
          ENDDO
-         CALL um2cable_lp( fland, fland, ssnow%fland, soil%isoilm, skip )
-         CALL um2cable_lp( fvar, fvar, ssnow%ifland, soil%isoilm, skip )
+         CALL um2cable_lp( fland,dummy , ssnow%fland, soil%isoilm, skip )
+         CALL um2cable_lp( fvar, dummy, ssnow%ifland, soil%isoilm, skip )
          DEALLOCATE( fvar )
          
          !--- updated via smcl,sthf etc 
@@ -652,7 +654,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
-                         ( soil%sfc - soil%swilt) ) )
+                         ( max(0.083, (soil%sfc - soil%swilt) ) )              &
+                         ) )
 
          ! Temporay fix for accounting for reduction of soil evaporation 
          ! due to freezing
@@ -852,6 +855,7 @@ END SUBROUTINE um2cable_rr
 SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
    USE cable_def_types_mod, ONLY : mp
    USE cable_um_tech_mod,   ONLY :um1
+   use cable_common_module, only : knode_gl
   
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: umvar
    REAL, INTENT(IN), DIMENSION(10) :: defaultin    
@@ -865,11 +869,17 @@ SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
       ALLOCATE( fvar(um1%land_pts,um1%ntiles) )
       fvar = 0.0
 
+      ! loop over Ntiles
       DO N=1,um1%NTILES
+         ! loop over number of points per tile
          DO K=1,um1%TILE_PTS(N)
+            ! index of each point per tile in an array of dim=(land_pts,ntiles)
             L = um1%TILE_INDEX(K,N)
+            ! at this point fvar=umvar, ELSE=0.0 
             fvar(L,N) = umvar(L)
+            ! unless explicitly SKIPPED by including arg in subr call
             IF(.NOT. PRESENT(skip) ) THEN
+               ! on perma frost tile, set fvar=defaultin
                IF( N == um1%ntiles ) THEN
                   fvar(L,N) =  defaultin(9)
                ENDIF
@@ -879,8 +889,10 @@ SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
      
       cablevar     =  PACK(fvar,um1%l_tile_pts)
   
+      ! unless explicitly SKIPPED by including arg in subr call
       IF(.NOT. PRESENT(skip) ) THEN
          DO i=1,mp
+            ! soiltype=9 for perma-frost tiles 
             IF(soiltype(i)==9) cablevar(i) =  defaultin(9)         
          ENDDO        
       ENDIF
