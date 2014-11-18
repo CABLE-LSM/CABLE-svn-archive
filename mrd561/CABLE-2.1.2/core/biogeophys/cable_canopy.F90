@@ -1573,7 +1573,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                       anx(i,kk) ) )
 
                   !Recalculate conductance for water:
-                  gw(i,kk) = 2.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
+                  gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
                              1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
 
                   gw(i,kk) = MAX( gw(i,kk), 0.00001 )
