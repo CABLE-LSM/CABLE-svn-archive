@@ -21,7 +21,7 @@
 !          layer and convection scheme), calls cbm, passes CABLE variables back 
 !          to UM. 'Implicit' is the second call to cbm in each UM timestep.
 !
-! Called from: UM code sf_impl
+! Called from: UM/JULES sf_impl
 !
 ! Contact: Jhan.Srbinovsky@csiro.au
 !
@@ -29,38 +29,37 @@
 !
 ! ==============================================================================
 
-
-   !USE cable_data_module,   ONLY : PHYS
-   !REAL, POINTER :: TFRZ
-   !   TFRZ => PHYS%TFRZ
 subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
                                   SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
                                   ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
                                   SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
-                                  FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB,          &
-                                  LE_CAB, FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
-                                  TSTAR_TILE, TSTAR_TILE_CAB, TSTAR_CAB,       &
-                                  SMCL_CAB, TSOIL_CAB, SURF_HTF_CAB,           &
+                                  FTL_1, FTL_TILE, FQW_1, FQW_TILE,    &
+                                  TSTAR_TILE, &
                                   SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE,    &
                                   EI_TILE, RADNET_TILE, TOT_ALB, SNAGE_TILE,   &
                                   CANOPY_TILE, GS, T1P5M_TILE, Q1P5M_TILE,     &
                                   CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
-                                  G_LEAF )   
+                                  G_LEAF, & 
+                                  LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
+                                  TOT_TFALL )
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
+   USE cable_data_mod,   ONLY : cable 
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep, &
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
-                                  ssnow, sum_flux, veg
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+                                  ssnow, sum_flux, veg, basic_diag
+   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl
    USE cable_um_init_subrs_mod, ONLY : um2cable_rr
    USE cable_cbm_module,    ONLY : cbm
 
    IMPLICIT NONE
+   
+   character(len=*), parameter :: subr_name = "cable_implicit_driver"
         
    REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
       LS_RAIN,  & ! IN Large scale rain
@@ -93,7 +92,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                              &
       !___Surface FTL, FQL for land tiles
-      FTL_TILE, FQW_TILE, FQW_TILE_CAB,                                     &
+      FTL_TILE, FQW_TILE,                                                   &
       
       !___(tiled) latent heat flux, melting, stomatatal conductance
      LE_TILE, MELT_TILE, GS_TILE,                                           &
@@ -111,10 +110,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       SMCL,       & ! 
       STHF,       & !
       STHU,       & !
-      SMCL_CAB,   & !
-      TSOIL_CAB,  & !
-      TSOIL,      & !
-      SURF_CAB_ROFF !       
+      TSOIL         !
 
    !___(tiled) soil prognostics: as above 
    REAL, dimension(um1%land_pts,um1%ntiles,um1%sm_levels) ::                &
@@ -149,10 +145,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    REAL, DIMENSION(um1%land_pts) ::                                         &
       SNOW_GRD,    & !
       CANOPY_GB,   & !
-      FTL_CAB,     & !   
-      LE_CAB,      & !
-      TSTAR_CAB,   & !  
-      SURF_HTF_CAB,& !
       RESP_P,      & !
       NPP,         & !
       GPP            !
@@ -162,13 +154,9 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       SNOW_RHO1L,    &  ! Mean snow density
       SNAGE_TILE,    &
       CANOPY_TILE,   &
-      FTL_TILE_CAB,  & 
-      LE_TILE_CAB,   &
       T1P5M_TILE,    &
       Q1P5M_TILE,    &
-      TSTAR_TILE_CAB,&
       TSTAR_TILE,    &
-      SURF_HTF_T_CAB,& 
       RESP_S_TILE,   & 
       RESP_P_FT,     &
       RESP_P_FT_old, &
@@ -182,9 +170,21 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    REAL, DIMENSION(mp) ::                                                      & 
       dtlc, & 
       dqwc
+   
+   REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) ::                               &
+      LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
+      SUB_SURF_ROFF, & !
+      SURF_ROFF,     & !
+      TOT_TFALL        !
 
    REAL, POINTER :: TFRZ
-   
+
+   !___ 1st call in RUN (!=ktau_gl -see below) 
+   LOGICAL, SAVE :: first_cable_call = .TRUE.
+
+      IF(cable_user%run_diag_level == "BASIC")                                    &     
+         CALL basic_diag(subr_name, "Called.") 
+
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -222,7 +222,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
  
       canopy%cansto = canopy%oldcansto
 
-      CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
+      CALL cbm(real(TIMESTEP), air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)
   
         
@@ -230,18 +230,24 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
-                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
                             FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
-                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
-                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
+                            SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
                             SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF )
        
+! DEPENDS ON: cable_hyd_driver
+      call cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
+                             TOT_TFALL )
+
+
       cable_runtime%um_implicit = .FALSE.
   
+   IF(cable_user%run_diag_level == "BASIC")                                    &     
+      CALL basic_diag(subr_name, "Done.") 
+
 END SUBROUTINE cable_implicit_driver
 
 
@@ -253,10 +259,8 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
-                            FTL_TILE_CAB, FTL_CAB, LE_TILE_CAB, LE_CAB,        &
                             FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
-                            TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
-                            SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
+                            SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
                             SNAGE_TILE, CANOPY_TILE, GS, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
@@ -265,10 +269,14 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
  
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1 ,canopy, rad, soil, ssnow, air
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_um_tech_mod,   ONLY : um1 ,canopy, rad, soil, ssnow, air,         &
+                                   basic_diag
+   USE cable_common_module, ONLY : cable_runtime, cable_user, fudge_out,       &
+                                   L_fudge
    IMPLICIT NONE
  
+   character(len=*), parameter :: subr_name = "cable_implicit_unpack"
+        
    !jhan:these need to be cleaned out to what is actualllly passed
    INTEGER :: DIM_CS1 ,DIM_CS2 
 
@@ -290,7 +298,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
 
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
       !___Surface FTL, FQL for land tiles
-      FTL_TILE, FQW_TILE, FQW_TILE_CAB,   &  
+      FTL_TILE, FQW_TILE,                 &  
       !___(tiled) latent heat flux, melting, stomatatal conductance
       LE_TILE, MELT_TILE, GS_TILE,     &  
       RADNET_TILE, & ! INOUT Surface net radiation on tiles (W/m2)
@@ -305,10 +313,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       SMCL,       & !
       STHF,       &
       STHU,       &
-      SMCL_CAB,   &
-      TSOIL_CAB,  &
-      TSOIL,      &
-      SURF_CAB_ROFF !      
+      TSOIL       
 
    !___(tiled) soil prognostics: as above 
    REAL, DIMENSION(um1%land_pts,um1%ntiles,um1%sm_levels) ::                   &
@@ -333,36 +338,33 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       NEE_TILE,   & ! Local
       NPP_TILE,   & ! Local
       GPP_TILE,   & ! Local
+      SURF_HTF_T_CAB, &
       GLEAF_TILE, & ! Local, kdcorbin, 10/10
-      FRP_TILE,   &
+      FRP_TILE
+
+   REAL, dimension(um1%land_pts,um1%ntiles) ::                           &
       NPP_FT,     &
       NPP_FT_old, &
       GPP_FT,     &
-      GPP_FT_old       
+      GPP_FT_old
 
    REAL, dimension(um1%land_pts) ::                                            &
-      SNOW_GRD,   &  
-      CANOPY_GB,  &
-      FTL_CAB,    &
-      LE_CAB,     &
-      TSTAR_CAB,  &
-      SURF_HTF_CAB,&
       RESP_P,     & 
       NPP,        & 
       GPP
+
+   REAL, dimension(um1%land_pts) ::                                            &
+      SNOW_GRD,   &  
+      CANOPY_GB
    
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
       SNOW_TILE,     & !
       SNOW_RHO1L,    & ! Mean snow density
       SNAGE_TILE,    & !
       CANOPY_TILE,   & !
-      FTL_TILE_CAB,  & !
-      LE_TILE_CAB,   & !
       T1P5M_TILE,    &
       Q1P5M_TILE,    &
-      TSTAR_TILE_CAB,&
       TSTAR_TILE,    &
-      SURF_HTF_T_CAB,& 
       RESP_S_TILE,   & 
       RESP_P_FT,     &
       RESP_P_FT_old, &
@@ -390,19 +392,29 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
    
    REAL, POINTER :: TFRZ
    
+   LOGICAL, SAVE :: first_call = .TRUE.
    
+   IF(cable_user%run_diag_level == "BASIC")                                    &     
+      CALL basic_diag(subr_name, "Called.") 
+
+   if( first_call ) then
+      NPP_FT = 0.
+      NPP_FT_old = 0.
+      GPP_FT = 0.
+      GPP_FT_old = 0.       
+      RESP_P =0.
+      NPP =0.
+      first_call = .false.
+   endif    
       TFRZ => PHYS%TFRZ
   
       !--- set UM vars to zero
-      TSOIL_CAB = 0.; SMCL_CAB = 0.; TSOIL_TILE = 0.; 
       SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
 
       DO j = 1,um1%SM_LEVELS
          TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), um1%L_TILE_PTS, miss)
-         TSOIL_CAB(:,j) = SUM(um1%TILE_FRAC * TSOIL_TILE(:,:,j),2)
          SMCL_TILE(:,:,j)= UNPACK(REAL(ssnow%wb(:,j)), um1%L_TILE_PTS, miss)
          SMCL_TILE(:,:,j)=SMCL_TILE(:,:,j)*soil%zse(j)*um1%RHO_WATER
-         SMCL_CAB(:,j) = SUM(um1%TILE_FRAC * SMCL_TILE(:,:,j),2)
          STHF_TILE(:,:,j)= UNPACK(REAL(ssnow%wbice(:,j)), um1%L_TILE_PTS, miss)
          SMCL(:,j) = SUM(um1%TILE_FRAC * SMCL_TILE(:,:,j),2)
          TSOIL(:,j) = SUM(um1%TILE_FRAC * TSOIL_TILE(:,:,j),2)
@@ -444,37 +456,26 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
       GS_TILE = UNPACK(canopy%gswx_T,um1%L_TILE_PTS,miss)
       GS =  SUM(um1%TILE_FRAC * GS_TILE,2)
 
+      !---preserve fluxes from the previous time step for the coastal grids
+      FTL_TILE_old = FTL_TILE
+      FQW_TILE_old = FQW_TILE
       !___return fluxes
-      FTL_TILE_CAB = UNPACK(canopy%fh,  um1%l_tile_pts, miss)
-      FTL_CAB = SUM(um1%TILE_FRAC * FTL_TILE_CAB,2)
-      FQW_TILE_CAB = UNPACK(canopy%fe,  um1%l_tile_pts, miss)
-      LE_TILE_CAB = FQW_TILE_CAB 
-      LE_CAB = SUM(um1%TILE_FRAC * LE_TILE_CAB,2)
+      FTL_TILE = UNPACK(canopy%fh,  um1%l_tile_pts, miss)
       fe_dlh = canopy%fe/(air%rlam*ssnow%cls)
       where ( fe_dlh .ge. 0.0 ) fe_dlh = MAX ( 1.e-6, fe_dlh )
       where ( fe_dlh .lt. 0.0 ) fe_dlh = MIN ( -1.e-6, fe_dlh )
       fes_dlh = canopy%fes/(air%rlam*ssnow%cls)
       fev_dlh = canopy%fev/air%rlam
 
-      !---preserve fluxes from the previous time step for the coastal grids
-      FTL_TILE_old = FTL_TILE
-      FQW_TILE_old = FQW_TILE
-      
       !---update fluxes 
-      FTL_TILE = FTL_TILE_CAB 
       FQW_TILE = UNPACK(fe_dlh, um1%l_tile_pts, miss)
 
 
       !___return temp and roughness
-      TSTAR_TILE_CAB = UNPACK(rad%trad, um1%l_tile_pts, miss)
-      TSTAR_CAB = SUM(um1%TILE_FRAC * TSTAR_TILE_CAB,2)
-      TSTAR_TILE = TSTAR_TILE_CAB 
+      TSTAR_TILE = UNPACK(rad%trad, um1%l_tile_pts, miss)
 
       !___return miscelaneous 
       RADNET_TILE = unpack( canopy%rnet , um1%l_tile_pts, miss)
-
-      SURF_HTF_T_CAB = UNPACK(canopy%ga,um1%L_TILE_PTS,miss)
-      SURF_HTF_CAB = SUM(um1%TILE_FRAC * SURF_HTF_T_CAB,2)
 
      TOT_ALB=UNPACK(rad%albedo_T,um1%L_TILE_PTS, miss) 
      ESOIL_TILE = UNPACK(fes_dlh, um1%L_TILE_PTS, miss)
@@ -586,6 +587,65 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
          ENDDO
       ENDDO
 
+   IF(cable_user%run_diag_level == "BASIC")                                    &     
+      CALL basic_diag(subr_name, "Call fudge_out on Logic switch") 
+
+      if(L_fudge) then
+         call fudge_out( 1,1,1,  tsoil_tile,    'tsoil_tile',  .TRUE., 278. )
+         call fudge_out( 1,1,1,  smcl_tile,     'smcl_tile',   .TRUE., 0. )
+         call fudge_out( 1,1,    tsoil,         'tsoil',       .TRUE., 278. )
+         call fudge_out( 1,1,1,  sthf_tile,     'sthf_tile',   .TRUE., 0. )
+         call fudge_out( 1,1,1,  sthu_tile,     'sthu_tile',   .TRUE., 0. )
+         call fudge_out( 1,1,    sthf,          'sthf',        .TRUE., 0. )
+         call fudge_out( 1,1,    sthu,          'sthu',        .TRUE., 0. )
+         call fudge_out( 1,1,    snow_rho1l,    'snow_rho1l',  .TRUE., 0. )
+         call fudge_out( 1,1,    ISNOW_FLG3L,   'ISNOW_FLG3L', .TRUE., 0 )     
+         call fudge_out( 1,1,    MELT_TILE,     'MELT_TILE',   .TRUE., 0. )   
+         call fudge_out( 1,1,    snow_TILE,     'snow_TILE',   .TRUE., 0. )   
+         call fudge_out( 1,      snow_grd,      'snow_grd',    .TRUE., 0. )   
+         call fudge_out( 1,1,1,  snow_Tmp3L,    'snow_Tmp3L',  .TRUE., 0. )      
+         call fudge_out( 1,1,1,  snow_mass3L,   'snow_mass3L', .TRUE., 0. )      
+         call fudge_out( 1,1,1,  snow_rho3L,    'snow_rho3L',  .TRUE., 0. )      
+         call fudge_out( 1,1,1,  snow_depth3L,  'snow_depth3L',.TRUE., 0. )         
+         call fudge_out( 1,1,1,  snow_cond,     'snow_cond',   .TRUE., 0. )         
+         call fudge_out( 1,1,    GS_TILE,       'GS_TILE',     .TRUE., 0. )      
+         call fudge_out( 1,      GS,            'GS',          .TRUE., 0. )            
+         call fudge_out( 1,1,    FTL_TILE,      'FTL_TILE',    .TRUE., 0. )                        
+         call fudge_out( 1,1,    Fqw_TILE,      'Fqw_TILE',    .TRUE., 0. )                                 
+         call fudge_out( 1,1,    tstar_TILE,    'tstar_TILE',  .TRUE., 280. )                              
+         call fudge_out( 1,1,    radnet_TILE,   'radnet_TILE', .TRUE., 0. )                                    
+         call fudge_out( 1,1,    TOT_ALB,       'TOT_ALB',     .TRUE., 0. )                                 
+         call fudge_out( 1,1,    ESOIL_TILE,    'ESOIL_TILE',  .TRUE., 0. )                                 
+         call fudge_out( 1,1,    ECAN_TILE,     'ECAN_TILE',   .TRUE., 0. )                                    
+         call fudge_out( 1,1,    snage_TILE,    'snage_TILE',  .TRUE., 0. )                                 
+         call fudge_out( 1,1,    t1p5m_TILE,    't1p5m_TILE',  .TRUE., 0. )                           
+         call fudge_out( 1,1,    q1p5m_TILE,    'q1p5m_TILE',  .TRUE., 0. )                                       
+         call fudge_out( 1,1,    canopy_TILE,   'canopy_TILE', .TRUE., 0. )               
+         call fudge_out( 1,      canopy_GB,     'canopy_GB',   .TRUE., 0. )                           
+         call fudge_out( 1,1,    frs_TILE,      'frs_TILE',    .TRUE., 0. )                                 
+         call fudge_out( 1,1,    NEE_TILE,      'NEE_TILE',    .TRUE., 0. )                                 
+         call fudge_out( 1,1,    NPP_TILE,      'NPP_TILE',    .TRUE., 0. )                                          
+         call fudge_out( 1,1,    Gleaf_TILE,    'Gleaf_TILE',  .TRUE., 0. )                                          
+         call fudge_out( 1,1,    GPP_TILE,      'GPP_TILE',    .TRUE., 0. )                                    
+         call fudge_out( 1,1,    frp_TILE,      'frp_TILE',    .TRUE., 0. )                                                
+         call fudge_out( 1,1,    fTL_1,         'fTL_1',       .TRUE., 0. )                                                
+         call fudge_out( 1,1,    fqw_1,         'fqw_1',       .TRUE., 0. )                                                
+         call fudge_out( 1,1,SURF_HT_FLUX_LAND, 'SURF_HT_FLUX_LAND',  .TRUE., 0. )                                         
+         call fudge_out( 1,1,    RESP_S_TILE,   'RESP_S_TILE', .TRUE., 0. )
+         call fudge_out( 1,1,    g_leaf,        'g_leaf',      .TRUE., 0. )
+         call fudge_out( 1,1,    NPP_ft,        'NPP_ft',      .TRUE., 0. )
+         call fudge_out( 1,1,    GPP_ft,        'GPP_ft',      .TRUE., 0. )
+         call fudge_out( 1,1,    RESP_S,        'RESP_S',      .TRUE., 0. )                        
+         call fudge_out( 1,      RESP_S_tot,    'RESP_S_tot',  .TRUE., 0. )                              
+         call fudge_out( 1,1,    RESP_P_FT,     'RESP_p_FT',   .TRUE., 0. )                              
+         call fudge_out( 1,      RESP_p,        'RESP_p',      .TRUE., 0. )                                       
+      endif
+
+   IF(cable_user%run_diag_level == "BASIC")                           &     
+      CALL basic_diag(subr_name, "Done.") 
+
+!print *, "jhan:cable_imUN 7"
+   !write( 6,'("End of cable_implicit_UNPACK")' )
 END SUBROUTINE Implicit_unpack
 
 
