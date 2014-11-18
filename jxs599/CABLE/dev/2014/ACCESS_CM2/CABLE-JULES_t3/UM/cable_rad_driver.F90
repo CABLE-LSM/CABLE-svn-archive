@@ -19,7 +19,7 @@
 !
 ! Purpose: Pass CABLE albedo to UM variable for UM radiation scheme
 !
-! Called from: UM code glue_rad_ctl
+! Called from: UM/JULES tile_allbedo
 !
 ! Contact: Jhan.Srbinovsky@csiro.au
 !
@@ -40,13 +40,16 @@ SUBROUTINE cable_rad_driver(                                                   &
    USE cable_def_types_mod, ONLY : mp
    USE cable_albedo_module, ONLY : surface_albedo
    USE cable_um_tech_mod,   ONLY : kblum_rad, um1, soil, ssnow, rad, veg,      &
-                                   met, canopy
+                                   met, canopy, basic_diag
+
    USE cable_um_init_subrs_mod, ONLY : update_kblum_radiation,  um2cable_met_rad,  &
                                    um2cable_lp 
    USE cable_common_module, ONLY : cable_runtime, cable_user
    
    IMPLICIT NONE                     
 
+   character(len=*), parameter :: subr_name = "cable_rad_driver"
+   
    INTEGER, DIMENSION(um1%LAND_PTS,um1%NTILES) :: isnow_flg3l    
    
    REAL :: ALBSOIL(um1%LAND_PTS)          !          &! IN soil albedo 
@@ -79,6 +82,9 @@ SUBROUTINE cable_rad_driver(                                                   &
    LOGICAL :: skip =.TRUE. 
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
+   
+   IF(cable_user%run_diag_level == "BASIC")                                    &     
+      CALL basic_diag(subr_name, "Called.") 
 
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
@@ -86,6 +92,9 @@ SUBROUTINE cable_rad_driver(                                                   &
       !     **** surf_down_sw is from the previous time step  ****
       !--- re-set UM rad. forcings to suit CABLE. also called in explicit call to 
       !--- CABLE from subr cable_um_expl_update() 
+      IF(cable_user%run_diag_level == "BASIC")                                    &     
+         CALL basic_diag(subr_name, "Call update_kblum_rad.") 
+
       CALL update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
    
       !--- set met. and rad. forcings to CABLE. also called in explicit call to 
@@ -112,6 +121,9 @@ SUBROUTINE cable_rad_driver(                                                   &
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
 
+      IF(cable_user%run_diag_level == "BASIC")                                    &     
+         CALL basic_diag(subr_name, "Call surface albedo.") 
+
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
       ! only for land points, at present do not have a method for treating 
@@ -130,8 +142,6 @@ SUBROUTINE cable_rad_driver(                                                   &
       rad_albedo_tot = met_fsd_tot_rel  * rad_vis                              &
                        + ( 1.- met_fsd_tot_rel ) * rad_nir
 
-      LAND_ALBEDO_CABLE =0.
-      LAND_ALB_CABLE =0.
       LAND_ALB_CABLE_TILE = UNPACK( rad_albedo_tot, um1%L_TILE_PTS, miss )
 
       DO N=1,um1%NTILES
@@ -161,7 +171,10 @@ SUBROUTINE cable_rad_driver(                                                   &
       ENDDO
 
       cable_runtime%um_radiation= .FALSE.
-
+      
+      IF(cable_user%run_diag_level == "BASIC")                                    &     
+         CALL basic_diag(subr_name, "Done.") 
+     
 END SUBROUTINE cable_rad_driver
 
      
