@@ -241,7 +241,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       Ftrunk_sumbal  = ".trunk_sumbal",                                        &
       Fnew_sumbal    = "new_sumbal"
 
-   DOUBLE PRECISION ::                                                                     &
+   DOUBLE PRECISION ::                                                         &
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
 
@@ -334,11 +334,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
    !---------------------------------------------------------------------!
    IF(cable_user%consistency_check) THEN 
-      if(knode_gl==0) then 
+      if(knode_gl==0 .and. ktau_gl==kend_gl) then 
          new_sumbal = SUM(canopy%fe) + SUM(canopy%fh)                       &
                     + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
      
-         IF( new_sumbal == trunk_sumbal) THEN
+         IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
    
             print *, ""
             print *, &
@@ -349,6 +349,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
             print *, ""
             print *, &
             "Internal check shows in this version new_sumbal != trunk sumbal"
+            print *, "The difference is: ", new_sumbal - trunk_sumbal
             print *, &
             "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
                   
