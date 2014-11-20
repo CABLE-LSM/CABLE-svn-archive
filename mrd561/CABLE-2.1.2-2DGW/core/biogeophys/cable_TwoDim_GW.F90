@@ -18,7 +18,7 @@ module cable_TwoDim_GW
  
   TYPE ( issnow_type ) :: C 
 
-  PUBLIC gwstep, update_GW
+  PUBLIC gwstep, update_GW,mpi_step_gw_model
 
   contains
    
@@ -45,7 +45,7 @@ module cable_TwoDim_GW
 
     real, intent(in)                         :: dels
     type(soil_snow_type), intent(inout)      :: ssnow
-    type(soil_parameter_type), intent(inout) :: soil
+    type(soil_parameter_type), intent(in)    :: soil
     !LOCAL variables to map ssnow to previous code
     !note assume continantal??
     real(r_2),  dimension(mlon,mlat) ::  &
@@ -80,7 +80,7 @@ module cable_TwoDim_GW
 !   parameter (botinc = 0.  )  ! re-wetting increment to fmlon h < bot
                                  ! (m); else no flow into dry cells
     real(r_2), parameter    :: delskip = 0.005 ! av.|dhead| value for iter.skip out(m)
-    integer, parameter :: itermax = 10    ! maximum number of iterations
+    integer, parameter :: itermax = 25    ! maximum number of iterations
     integer, parameter :: itermin = 3     ! minimum number of iterations
     real(r_2), parameter    :: sealev = -1.     ! sea-level evlation (m)
       
@@ -157,13 +157,22 @@ module cable_TwoDim_GW
       evl(land_x(i),land_y(i))    = soil%elevation(i)
       poros(land_x(i),land_y(i))  = soil%GWwatsat(i)
       ho(land_x(i),land_y(i))     = soil%elevation(i) - ssnow%wtd(i)/1000._r_2
-      hycond(land_x(i),land_y(i)) = 0.1*soil%GWhksat(i)/1000._r_2   !m/s
-      if (ssnow%GWwb(i) .le. 1e-4) hycond(land_x(i),land_y(i)) = 0._r_2
+      hycond(land_x(i),land_y(i)) = 0.000005*soil%GWhksat(i)/1000._r_2   !m/s
+      if (ssnow%GWwb(i) .le. 1e-10) hycond(land_x(i),land_y(i)) = 0._r_2
     end do
     if (debug) write(*,*) 'done with mp init'
     compres = 0.0_r_2
     convgw  = 0._r_2
-    bot     = evl - 10.0
+
+    bot(1,:) = 0.!evl(1,:) - 50.
+    bot(:,1) = 0.!evl(:,1) - 50.
+    bot(mlat,:) = 0.!evl(mlat,:) - 50.
+    bot(:,mlon) = 0.!evl(:,mlon) - 50.
+    do j=2,mlat-1
+       do i=2,mlon-1
+         bot(i,j) = 0.!sum(evl(i-1:i+1,j-1:j+1))/9._r_2 - 50._r_2
+       end do
+     end do
 
     where(bot .lt. 0.0) bot  = 0.0
     where(evl .le. 0.1) evl = 10.0
@@ -246,7 +255,7 @@ module cable_TwoDim_GW
                         hycond(i, j)*(min(h(i ,j),evl(i ,j))-bot(i ,j))  &
                        *hycond(ip,j)*(min(h(ip,j),evl(ip,j))-bot(ip,j))  &
                          )    )                                           &
-                   * (0.5*(dy+dy)) & ! in WRF the dx and dy are usually equal
+                   * (0.5*(dy+dy)) & 
                    / (0.5*(dx+dx))
 
           t(i,j,1) = sqrt( abs(                                           &
@@ -255,6 +264,7 @@ module cable_TwoDim_GW
                          )    )                                           &
                    * (0.5*(dx+dx))  &
                    / (0.5*(dy+dy))
+
         enddo
       enddo
 !#OMP END PARALLEL DO
@@ -451,35 +461,6 @@ module cable_TwoDim_GW
       ssnow%wtd(i)           = max((evl(land_x(i),land_y(i)) - h(land_x(i),land_y(i)))* 1000.0,0.01)  ![mm]
     end do
 
-!        Diagnostic water conservation check for this timestep
-!    dtot = 0.     ! total change in water storage (m3)
-!    dtoa = 0.
-
-!    do j=1,mlat
-!      do i=1,mlon
-!         dtot = dtot + sf2(i,j) *(h(i,j)-ho(i,j)) * darea
-!         dtoa = dtoa + sf2(i,j) * abs(h(i,j)-ho(i,j)) * darea
-!      enddo
-!    enddo
-
-!    dtot = (dtot/tareal)/dels   ! convert to m/s, rel to land area
-!    dtoa = (dtoa/tareal)/dels
-!!    eocn = (eocn/tareal)/dels
-!    ebot = (ebot/tareal)/dels
-
-
-   !deallocate(evl)
-   !deallocate(bot)
-   !deallocate(hycond)
-   !deallocate(poros)
-   !deallocate(compres)
-   !deallocate(ho)
-   !deallocate(h)
-   !deallocate(convgw)
-   !deallocate(sf2)
-   !deallocate(t)
-   !deallocate(b)
-   !deallocate(g)
 
 
       
@@ -580,33 +561,22 @@ module cable_TwoDim_GW
 !!                   step_gw_model                                      !!
 !!======================================================================!!
 
-  subroutine mpi_step_gw_model(dels,ssnow,soil,LonBg,LonEd,LatBg,LatEd)! dx,              &
+  subroutine mpi_step_gw_model(dels,ssnow,soil)!,LonBg,LonEd,LatBg,LatEd)! dx,              &
             !ltype, evl, bot,        &
             !hycond, poros, compres,  &
             !ho, h, convgw,           &
             ! ebot, eocn,              &
             ! dt, istep)
 
-! taken from WRF-HYDRO initially
-  ! Steps ground-water hydrology (head) through one timestep.
-  ! Modified from Prickett and Lonnquist (1971), basic one-layer aquifer 
-  ! simulation program, with mods by Zhongbo Yu(1997).
-  ! Solves S.dh/dt = d/dx(T.dh/dx) + d/dy(T.dh/dy) + "external sources"
-  ! for a single layer, where h is head, S is storage coeff and T is 
-  ! transmissivity. 3-D arrays in main program (hycond,poros,h,bot)
-  ! are 2-D here, since only a single (uppermost) layer is solved.
-  ! Uses an iterative time-implicit ADI method.
-
-  ! use module_hms_constants
     implicit none
 
     real, intent(in)                         :: dels
     type(soil_snow_type), intent(inout)      :: ssnow
     type(soil_parameter_type), intent(inout) :: soil
-    integer, intent(in)                      :: LonBg,&
-                                                LonEd,&
-                                                LatBg,&
-                                                LatEd
+    !integer, intent(in)                      :: LonBg,&
+    !                                            LonEd,&
+    !                                            LatBg,&
+    !                                            LatEd
     !LOCAL variables to map ssnow to previous code
     !note assume continantal??
     real(r_2),  dimension(mlon,mlat) ::  &
@@ -624,7 +594,7 @@ module cable_TwoDim_GW
         convgw             ! convergence due to gw flow (m/s)     (ret)
 
     real(r_2)  :: ebot, eocn
-    integer ::  istep,i
+    integer ::  istep
 !       eocn  = mean spurious sink for h_ocn = sealev fmlon (m/s)(ret)
 !               This equals the total ground-water flow across 
 !               land->ocean boundaries.
@@ -651,7 +621,7 @@ module cable_TwoDim_GW
 
     integer ::                &
         iter,                   &
-        j,                      &
+        j,i,                    &
         jp,                     &
         ip,                     &
         ii,                     &
@@ -681,7 +651,14 @@ module cable_TwoDim_GW
         zz
 
    LOGICAL :: debug,KeepLooping
-      
+
+   integer                                   :: LonBg,&
+                                                LonEd,&
+                                                LatBg,&
+                                                LatEd
+
+   LonBg=1;LatBg=1;
+   LonEd=mlon;LatEd=mlat 
    debug = .false.  
     !map the 1D vector of ssnow to the 2D matrmlon that is longitude x latitude
     !hold ocean points to h=0
@@ -734,29 +711,33 @@ module cable_TwoDim_GW
     if (debug) write(*,*) 'hycond min ', minval(hycond)
 
 
-    dx = soil%delx                           !assumed constant
-    dy = soil%dely                           !need to add dx to global params
+    dx = soil%delx*1000.                           !assumed constant
+    dy = soil%dely*1000.                           !need to add dx to global params
     darea = dx*dy
 
     call compute_storage(h,ho,poros,evl,sf2)
 
-    !mpi call here????
-    ! subarrays will be: (Wnx,Ny) global:(Nx,Ny)
-    ! Wnx = Nx / nprocs
-    ! create single derived type or 3x send/recv?
-    !if rank=0
-    ! do i=1,np
-    !    call mpi_send((/h,hs,sf2/),0,i)
-    ! end od
-    !else !rank /= 0
-    !  call mpi_recv((/h,hs,sf2/),0)
-    !end if
 
     call TwoDGW_XDirCalc(LatBg,LatEd,dels,hycond,evl,dx,dy,sf2,h,hs)
 
     call compute_storage(hs,h,poros,evl,sf2)
 
     call TwoDGW_YDirCalc(LonBg,LonEd,dels,hycond,evl,dx,dy,sf2,h,hs,hn)
+
+
+    do j=1,mlat
+      do i=1,mlon
+        convgw(i,j) = sf2(i,j) * (h(i,j)-ho(i,j)) / dels
+      enddo
+    enddo
+
+    do i=1,mp
+      ssnow%GWconvergence(i) = convgw(land_x(i),land_y(i)) / 1000._r_2 * darea * dels         ![mm]
+      ssnow%wtd(i)           = max((evl(land_x(i),land_y(i)) - h(land_x(i),land_y(i)))* 1000.0,0.01)  ![mm]
+    end do
+
+
+
 
   end subroutine mpi_step_gw_model
 
@@ -806,7 +787,10 @@ end subroutine compute_storage
     integer                      :: j,jm,jp
     real(r_2), dimension(mlon)   :: at,bt,ct,rt
 
-
+    at(:) = 0._r_2
+    bt(:) = 0._r_2
+    ct(:) = 0._r_2
+    rt(:) = 1._r_2
     do j=LatBg,LatEd
       jp = min(j+1,mlat)
       jm = max(j-1,1)
@@ -865,6 +849,12 @@ end subroutine compute_storage
     integer                      :: i,im,ip
     integer                      :: j,jm,jp
     real(r_2), dimension(mlat)   :: at,bt,ct,rt
+
+    at(:) = 0._r_2
+    bt(:) = 0._r_2
+    ct(:) = 0._r_2
+    rt(:) = 1._r_2
+
 
     do i=LonBg,LonEd
       ip = min(i+1,mlon)
@@ -938,8 +928,9 @@ end subroutine compute_storage
     integer, intent(in)      :: n
 !   local variables
     integer  :: k
-    REAL(r_2), DIMENSION(ms+1) ::  gam  
+    REAL(r_2), DIMENSION(n) ::  gam  
     REAL(r_2)                  ::  bet 
+
 
 
     ! Solve the matrix

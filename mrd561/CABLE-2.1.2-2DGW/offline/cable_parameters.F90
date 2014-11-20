@@ -924,7 +924,7 @@ CONTAINS
     
 
     !MD aquifer layers
-    soil%GWdz = 5.0                          !30 m thick aquifer
+    soil%GWdz = 250.0                          !30 m thick aquifer
 
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height

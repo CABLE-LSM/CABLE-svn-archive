@@ -332,7 +332,7 @@ PROGRAM cable_offline_driver
 
          if (cable_user%TwoD_GW) then
             !write(*,*) 'about to call gwstep'
-              call gwstep(GWdels,ssnow,soil)
+              call mpi_step_gw_model(GWdels,ssnow,soil)!gwstep(GWdels,ssnow,soil)
               call update_gw(GWdels,ssnow,soil)
          end if
    
