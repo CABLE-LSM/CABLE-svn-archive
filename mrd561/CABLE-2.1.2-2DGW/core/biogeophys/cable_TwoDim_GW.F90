@@ -690,7 +690,7 @@ module cable_TwoDim_GW
     if (debug) write(*,*) 'done with mp init'
     compres   = 0.0_r_2
     convgw    = 0._r_2
-    bot       = evl - 100.0
+    bot       = evl - 250.0
     xs_runoff = 0._r_2
 
     where(bot .lt. 0.0) bot  = 0.0
@@ -698,7 +698,7 @@ module cable_TwoDim_GW
 
     where (poros .lt. 0.0) poros = 0.01
     where (poros .ge. 1.0) poros = 0.9
-    where (ho .lt. evl) ho = 0.99*evl
+    where (ho .lt. bot) ho = 1.01*evl
     where(hycond .lt. 0.0) hycond = 0._r_2
 
     h = ho
