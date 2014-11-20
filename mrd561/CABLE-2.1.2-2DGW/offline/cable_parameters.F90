@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -121,10 +121,14 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWWatr
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inWatr
 
+  ! vars intro for Ticket #27 
+  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
+
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
-    use cable_common_module, only : get_type_parameters, filename
+    use cable_common_module, only : get_type_parameters, filename,             &
+                                    calcsoilalbedo
   ! Load parameters for each veg type and each soil type. (get_type_parameters)
   ! Also read in initial information for each grid point. (read_gridinfo)
   ! Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
@@ -154,6 +158,11 @@ CONTAINS
       WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
       CALL spatialSoil(nlon, nlat, logn)
     ENDIF
+
+    ! include prescribed soil colour in determining albedo - Ticket #27
+    IF (calcsoilalbedo) THEN
+       CALL read_soilcolor(logn)
+    END IF
 
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
@@ -703,6 +712,89 @@ CONTAINS
 
   END SUBROUTINE spatialSoil
   !=============================================================================
+  !subr to read soil color for albed o calc - Ticket #27
+  SUBROUTINE read_soilcolor(logn)
+  ! Read soil color
+  !
+  ! Input variables:
+  !   filename%soilcolor  - via cable_IO_vars_module
+  ! Output variables:
+  !   soilcol    - via cable_param_module
+  !
+  ! New input structure using netcdf
+
+    USE netcdf
+    USE cable_common_module, ONLY : filename, calcsoilalbedo
+    ! USE cable_IO_vars_module, ONLY : soilcol
+
+    IMPLICIT NONE
+    ! INTEGER, DIMENSION(:), INTENT(INOUT) :: soilcol
+    ! TYPE (soil_parameter_type), INTENT(OUT) :: soil
+    INTEGER, INTENT(IN) ::  logn ! log file unit number
+
+    ! local variables  
+    ! INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
+    INTEGER :: ncid, ok
+    INTEGER :: nlon
+    INTEGER :: nlat
+    INTEGER :: xID, yID
+    INTEGER :: varID
+    INTEGER :: r, e
+
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLonSoilCol
+    REAL,    DIMENSION(:),          ALLOCATABLE :: inLatSoilCol
+
+    ok = NF90_OPEN(filename%soilcolor, 0, ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening soil color file.')
+
+    ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring x dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, xID, LEN=nlon)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting x dimension.')
+    ok = NF90_INQ_DIMID(ncid, 'latitude', yID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'y', yID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
+
+
+    ALLOCATE( inLonSoilCol(nlon), inLatSoilCol(nlat) )
+    ALLOCATE( inSoilColor(nlon, nlat) )
+    ! ALLOCATE( soilcol(mp) )
+
+    ok = NF90_INQ_VARID(ncid, 'longitude', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error finding variable longitude.')
+    ok = NF90_GET_VAR(ncid, varID, inLonSoilCol)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                                        'Error reading variable longitude.')
+
+    DO r = 1, nlon 
+      IF ( inLonSoilCol(r) /= inLon(r) ) CALL nc_abort(ok,                     &
+                                               'Wrong resolution in longitude.')
+    END DO
+
+    ok = NF90_INQ_VARID(ncid, 'latitude', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
+    ok = NF90_GET_VAR(ncid, varID, inLatSoilCol)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
+
+    DO r = 1, nlat
+      IF ( inLatSoilCol(r) /= inLat(r) ) CALL nc_abort(ok,                     &
+                                               'Wrong resolution in latitude.')
+    END DO
+
+    ok = NF90_INQ_VARID(ncid, 'SOIL_COLOR', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable soil color.')
+    ok = NF90_GET_VAR(ncid, varID, inSoilColor)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable soil color.')
+
+    ok = NF90_CLOSE(ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing soil color file.')
+
+  END SUBROUTINE read_soilcolor
+  !=============================================================================
   SUBROUTINE NSflip(nlon, nlat, invar)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
@@ -852,7 +944,7 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin
+    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,cable_user
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1073,6 +1165,12 @@ CONTAINS
 
       ENDIF
 
+      ! vars intro for Ticket #27
+      IF (calcsoilalbedo) THEN
+        soil%soilcol(landpt(e)%cstart:landpt(e)%cend) =                        &
+                                     inSoilColor(landpt(e)%ilon, landpt(e)%ilat)
+      END IF
+
 ! offline only below
        ! If user defined veg types are present in the met file then use them. 
        ! This means that if met file just has veg type and no other parameters,
@@ -1181,6 +1279,12 @@ CONTAINS
     IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
            CALL abort('Albedo nuts')
 
+     if (cable_user%alt_forcing) then
+        rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
+        rough%za_tq = 2.0 + veg%hc
+     end if
+
+
     WRITE(logn, *)
 
     ! Deallocate temporary variables:
@@ -1194,6 +1298,7 @@ CONTAINS
     if (allocated(inGWsucs)) deallocate(inGWclay)
     if (allocated(inGWsucs)) deallocate(inGWssat)
 
+    IF (calcsoilalbedo) DEALLOCATE(inSoilColor) ! vars intro for Ticket #27
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&

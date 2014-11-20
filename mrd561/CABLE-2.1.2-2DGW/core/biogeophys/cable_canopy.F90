@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -193,7 +193,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       CALL comp_friction_vel()
 
-      CALL ruff_resist(veg, rough, ssnow, canopy)
+      ! E.Kowalczyk 2014
+      IF (cable_user%l_new_roughness_soil)                                     &
+         CALL ruff_resist(veg, rough, ssnow, canopy)
 
       
       ! Turbulent aerodynamic resistance from roughness sublayer depth 
@@ -564,16 +566,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%spill=max(0.0, canopy%cansto-cansat)
 
    ! Move excess canopy water to throughfall:
+   ! %through is /dels in UM app. (unpacked in hyd driver) for STASH output  
    canopy%through = canopy%through + canopy%spill
    
    ! Initialise 'throughfall to soil' as 'throughfall from canopy'; 
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
 
-   ! this change of units does not affect next timestep as canopy%through is
-   ! re-calc in Surf_wetness_fact routine
-   canopy%through = canopy%through / dels   ! change units for stash output
-   
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
    
@@ -712,7 +711,12 @@ SUBROUTINE Latent_heat_flux()
       
       IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
 
+        IF (.not.cable_user%l_new_reduce_soilevp) THEN
          flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+        ELSE
+         ! E.Kowalczyk 2014 - reduces the soil evaporation
+         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
+        ENDIF
          fupper_limit(j) = MAX( 0._r_2,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
@@ -1366,7 +1370,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
    
-      !IF (.not.cable_runtime%run_gw_model) THEN
+      IF (.not.cable_runtime%run_gw_model) THEN
 
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
@@ -1379,11 +1383,12 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          STOP 'fwsoil_switch failed.'
       ENDIF
 
-      !ELSE
-      !
-      !   CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
-      !
-      !END IF
+      ELSE
+      
+      !  CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
+         call fwsoil_mass_calc_std(fwsoil, soil, ssnow, veg)
+      
+      END IF
 
    ENDIF
 
@@ -2043,7 +2048,6 @@ FUNCTION xejmxt3(x) RESULT(z)
 END FUNCTION xejmxt3
 
 ! ------------------------------------------------------------------------------
-
 SUBROUTINE fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
    USE cable_def_types_mod
    REAL, DIMENSION(:),         INTENT(INOUT) :: fwsoil
@@ -2073,7 +2077,7 @@ SUBROUTINE fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
    !if it is the first timestep we haven't called hydrology so wbliq isn't yet defined
    ssnow%wbliq = ssnow%wb - ssnow%wbice  !liquid volume.  not this assumes density ice = density liquid
 
-   psi_tmp = -soil%smpsat(:,:) * (max(0.01,ssnow%wbliq(:,:)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
+   psi_tmp = -soil%smpsat(:,:) * (max(0.01,(ssnow%wb-ssnow%wbice)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
    fwsoil(:) = 1.
    do i=1,mp
       fwsoil(i) = 0.
@@ -2091,6 +2095,29 @@ END SUBROUTINE fwsoil_calc_pressure
 
 ! ------------------------------------------------------------------------------
 
+SUBROUTINE fwsoil_mass_calc_std(fwsoil, soil, ssnow, veg)
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
+
+   rwater = MAX(1.0e-9,                                                    &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
+            SPREAD(1.1*soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+  
+   fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+ 
+END SUBROUTINE fwsoil_mass_calc_std
+
+! ------------------------------------------------------------------------------
+
+
+
+! ------------------------------------------------------------------------------
+
+>>>>>>> .merge-right.r2511
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow

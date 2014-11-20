@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -72,8 +72,9 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew,elev
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            & 
-                                   redistrb, wiltParam, satuParam, gw_params
+                                   cable_runtime, filename, redistrb,          & 
+                                   report_version_no, wiltParam, satuParam,    &
+                                   calcsoilalbedo, gw_params
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -163,8 +164,9 @@ PROGRAM cable_offline_driver
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! jhan: use new soil param. method
-                  soilparmnew,      & ! jhan: use new soil param. method
+                  vegparmnew,       & ! use new soil param. method
+                  soilparmnew,      & ! use new soil param. method
+                  calcsoilalbedo,   & ! albedo considers soil color Ticket #27
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
@@ -189,6 +191,18 @@ PROGRAM cable_offline_driver
                   cable_user,       &    ! additional USER switches 
                   gw_params              !four additional tunable paramters controlling the GW hydro
 
+   ! Vars for standard for quasi-bitwise reproducability b/n runs
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   CHARACTER(len=30), PARAMETER ::                                             &
+      Ftrunk_sumbal  = ".trunk_sumbal",                                        &
+      Fnew_sumbal    = "new_sumbal"
+
+   DOUBLE PRECISION ::                                                                     &
+      trunk_sumbal = 0.0, & !
+      new_sumbal = 0.0
+
+   INTEGER :: ioerror
+
    ! END header
 
    ! Open, read and close the namelist file.
@@ -196,6 +210,21 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
+   ! Open, read and close the consistency check file.
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   IF(cable_user%consistency_check) THEN 
+      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
+         IF(ioerror==0) then
+            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+         ENDIF
+      CLOSE(11)
+   ENDIF
+   
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   CALL report_version_no( logn )
+    
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
@@ -239,9 +268,7 @@ PROGRAM cable_offline_driver
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-
-   CALL open_met_file( dels, kend, spinup, C%TFRZ)
-
+   CALL open_met_file( dels, kend, spinup, C%TFRZ )
    !write(*,*) 'opened the met file' 
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -253,7 +280,6 @@ PROGRAM cable_offline_driver
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
-
 
    !write(*,*) 'loaded params' 
    ! Open output file:
@@ -449,6 +475,35 @@ PROGRAM cable_offline_driver
                            sum_flux, veg )
 
    WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+   
+   ! Check this run against standard for quasi-bitwise reproducability
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   IF(cable_user%consistency_check) THEN 
+      
+      new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
+                       + SUM(bal%ebal_tot_cncheck)
+  
+      IF( new_sumbal == trunk_sumbal) THEN
+
+         print *, ""
+         print *, &
+         "Internal check shows this version reproduces the trunk sumbal"
+      
+      ELSE
+
+         print *, ""
+         print *, &
+         "Internal check shows in this version new_sumbal != trunk sumbal"
+         print *, &
+         "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+               
+         OPEN( 12, FILE = Fnew_sumbal )
+            WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+         CLOSE(12)
+      
+      ENDIF   
+      
+   ENDIF
 
    ! Close log file
    CLOSE(logn)

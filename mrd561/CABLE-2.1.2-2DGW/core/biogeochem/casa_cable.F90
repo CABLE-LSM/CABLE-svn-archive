@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -309,7 +309,8 @@ END SUBROUTINE bgcdriver
 !  data xnslope/0.64,0.71,0.70,0.67,0.42,0.40,0.45,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
 !  data xnslope/0.64,0.71,0.70,0.60,0.42,0.40,0.40,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
 ! Q.Zhang: test parameters 13/09/2011
-  data xnslope/1.00,1.00,2.00,1.00,1.00,1.00,1.00,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
+! Modified further in ACCESS-1.4
+  data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
   integer np,ivt
   real, dimension(mp)  :: ncleafx,npleafx  ! local variables

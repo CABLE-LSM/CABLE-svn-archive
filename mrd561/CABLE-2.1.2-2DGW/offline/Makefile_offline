@@ -5,7 +5,7 @@
 # (the "Licence").
 # You may not use this file except in compliance with the Licence.
 # A copy of the Licence and registration form can be obtained from 
-# http://www.accessimulator.org.au/cable
+# http://www.cawcr.gov.au/projects/access/cable
 # You need to register and read the Licence agreement before use.
 # Please contact cable_help@nf.nci.org.au for any questions on 
 # registration and the Licence.
@@ -99,7 +99,6 @@ cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable
 cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
 
 cable_soilsnow_GW.o: cable_soilsnow_GW.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_TwoDim_GW.o
-
 
 casa_variable.o: casa_variable.F90 
 

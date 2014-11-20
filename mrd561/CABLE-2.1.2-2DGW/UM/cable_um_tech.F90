@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -143,6 +143,12 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                         cable_user%LEAF_RESPIRATION)
       CALL check_nmlvar('cable_user%FWSOIL_SWITCH', cable_user%FWSOIL_SWITCH)
       CALL check_nmlvar('cable_user%RUN_DIAG_LEVEL', cable_user%RUN_DIAG_LEVEL)
+      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
+                         cable_user%l_new_roughness_soil)
+      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
+                         cable_user%l_new_roughness_soil)
+      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
+                         cable_user%l_new_roughness_soil)
 
       !mrd561
       CALL check_nmlvar('cable_user%GW_MODEL', cable_user%GW_MODEL)
