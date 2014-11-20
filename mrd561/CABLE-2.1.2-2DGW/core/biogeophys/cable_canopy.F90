@@ -2117,7 +2117,6 @@ END SUBROUTINE fwsoil_mass_calc_std
 
 ! ------------------------------------------------------------------------------
 
->>>>>>> .merge-right.r2511
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
