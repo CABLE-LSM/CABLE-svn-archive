@@ -944,7 +944,7 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin, calcsoilalbedo
+    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,cable_user
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1278,6 +1278,12 @@ CONTAINS
            CALL abort('Soil temps nuts')
     IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
            CALL abort('Albedo nuts')
+
+     if (cable_user%alt_forcing) then
+        rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
+        rough%za_tq = 2.0 + veg%hc
+     end if
+
 
     WRITE(logn, *)
 
