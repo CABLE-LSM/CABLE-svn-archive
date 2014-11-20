@@ -685,7 +685,7 @@ module cable_TwoDim_GW
       evl(land_x(i),land_y(i))    = soil%elevation(i)
       poros(land_x(i),land_y(i))  = soil%GWwatsat(i)
       ho(land_x(i),land_y(i))     = soil%elevation(i) - ssnow%wtd(i)/1000._r_2
-      hycond(land_x(i),land_y(i)) = soil%GWhksat(i)/1000._r_2   !m/s
+      hycond(land_x(i),land_y(i)) = 0.05*soil%GWhksat(i)/1000._r_2   !m/s
     end do
     if (debug) write(*,*) 'done with mp init'
     compres   = 0.0_r_2
