@@ -83,7 +83,9 @@ module cable_data_module
       zetneg = -15.0, & ! negative limit on za/L when niter>=3
       zetpos = 1.0,  & ! positive limit on za/L when niter>=3
       zdlin  = 1.0,  & ! height frac of d below which TL linear
-      umin   = 0.01
+      umin   = 0.01, &
+      denliq = 1000.0,  &  !density of liquid water
+      denice = 1000.0       !denisty of ice
        
    END TYPE physical_constants
 
@@ -100,8 +102,8 @@ module cable_data_module
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
-      real:: RAD_THRESH = 0.01 
-      real:: LAI_THRESH = 0.01 
+      real:: RAD_THRESH = 0.015 
+      real:: LAI_THRESH = 0.015
    end type other_constants
 
    type photosynthetic_constants
@@ -241,7 +243,7 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF
+         CAPP, TFRZ, HL, HLF, denliq, denice
    END TYPE issnow_type
 
 
@@ -432,6 +434,8 @@ SUBROUTINE ssnow_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
+   C%denice=> PHYS%denice
+   C%denliq=> PHYS%denliq
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr 
 

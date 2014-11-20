@@ -108,6 +108,18 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inclay
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
+  
+  !MD temp vars for reading in aquifer properties
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWssat
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWhyds
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWsucs
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWrhosoil
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWclay
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWsilt
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWsand
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWWatr
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inWatr
 
   ! vars intro for Ticket #27 
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
@@ -263,9 +275,13 @@ CONTAINS
 
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-    ok = NF90_GET_VAR(ncid, varID, idummy)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+
+    ok = NF90_GET_VAR(ncid, varID, inVeg)
+    IF (ok /= NF90_NOERR) THEN
+       ok = NF90_GET_VAR(ncid, varID, idummy)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+    END IF
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -273,31 +289,30 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inPFrac)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable patchfrac.')
-    inPFrac(:, :, 1) = rdummy(:, :)
 
+    !inPFrac(:, :, 1) = rdummy(:, :)  !rdummy has been allocated but not set.
     ok = NF90_INQ_VARID(ncid, 'isoil', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
     ok = NF90_GET_VAR(ncid, varID, inSoil)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable isoil.')
-
     ok = NF90_INQ_VARID(ncid, 'SoilMoist', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable SoilMoist.')
     ok = NF90_GET_VAR(ncid, varID, inWB)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable SoilMoist.')
-
     ok = NF90_INQ_VARID(ncid, 'SoilTemp', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable SoilTemp.')
     ok = NF90_GET_VAR(ncid, varID, inTGG)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable SoilTemp.')
-
     ok = NF90_INQ_VARID(ncid, 'Albedo', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
     ok = NF90_GET_VAR(ncid, varID, r3dum)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable Albedo.')
     DO kk = 1, nband
-      inALB(:,:,1,kk) = r3dum(:,:,kk)
+      DO jj=1,npatch
+         inALB(:,:,jj,kk) = r3dum(:,:,kk)
+      ENDDO
     ENDDO
 
     ok = NF90_INQ_VARID(ncid, 'SnowDepth', varID)
@@ -307,14 +322,14 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable SnowDepth.')
     DO kk = 1, ntime
-      inSND(:, :, 1, kk) = r3dum2(:, :, kk)
+      DO jj=1,npatch
+         inSND(:, :, jj, kk) = r3dum2(:, :, kk)
+      ENDDO
     ENDDO
-
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
     ok = NF90_GET_VAR(ncid,varID,inLAI)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable LAI.')
-
     IF (icycle > 0) THEN
       ! casaCNP parameters
       ALLOCATE( inArea(nlon, nlat) )
@@ -404,6 +419,8 @@ CONTAINS
     REAL, DIMENSION(:,:,:,:), ALLOCATABLE :: indummy
     REAL, DIMENSION(:,:),     ALLOCATABLE :: sfact, dummy2
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
+    
+    integer :: ok2
 
     ok = NF90_OPEN(filename%type, 0, ncid)
 
@@ -422,6 +439,17 @@ CONTAINS
     ALLOCATE(    inclay(nlon, nlat) )
     ALLOCATE(    insilt(nlon, nlat) )
     ALLOCATE(    insand(nlon, nlat) )
+    
+    !MD Aquifer properties
+    ALLOCATE(    inGWssat(nlon, nlat) )
+    ALLOCATE(     inGWbch(nlon, nlat) )
+    ALLOCATE(    inGWhyds(nlon, nlat) )
+    ALLOCATE(    inGWsucs(nlon, nlat) )
+    ALLOCATE( inGWrhosoil(nlon, nlat) )
+!     ALLOCATE(    inGWclay(nlon, nlat) )
+!     ALLOCATE(    inGWsilt(nlon, nlat) )
+!     ALLOCATE(    inGWsand(nlon, nlat) )
+    ALLOCATE(    inGWWatr(nlon, nlat) )
 
     ! 1
     ok = NF90_INQ_VARID(ncid, 'swilt', fieldID)
@@ -488,7 +516,83 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable UM albedo')
     ok = NF90_GET_VAR(ncid, fieldID, in2alb)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
-
+    
+    
+    
+    !MD try to read aquifer properties from the file
+    ! if they don't exist set aquifer properties to the same as the soil
+    ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWssat(:,:) = inssat(:,:)
+    END IF
+    
+    ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWWatr(:,:) = 0.05
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWsucs(:,:) = insucs(:,:)
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWbch', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWbch)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWbch(:,:) = inbch(:,:)
+    END IF    
+        
+    ok = NF90_INQ_VARID(ncid, 'GWhyds', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWhyds)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWhyds(:,:) = inhyds(:,:)
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWrhosoil', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWrhosoil)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWrhosoil(:,:) = inrhosoil(:,:)
+    END IF    
+    
+!     ok = NF90_INQ_VARID(ncid, 'GWsand', fieldID)
+!     IF (ok .eq. NF90_NOERR) then
+!       ok2 = NF90_GET_VAR(ncid, fieldID, inGWsand)
+!     end if
+!     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+!       inGWsand(:,:) = insand(:,:)
+!     END IF        
+!     
+!      ok = NF90_INQ_VARID(ncid, 'GWclay', fieldID)
+!     IF (ok .eq. NF90_NOERR) then
+!       ok2 = NF90_GET_VAR(ncid, fieldID, inGWclay)
+!     end if
+!     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+!       inGWclay(:,:) = inclay(:,:)
+!     END IF       
+!     
+!     ok = NF90_INQ_VARID(ncid, 'GWsilt', fieldID)
+!     IF (ok .eq. NF90_NOERR) then
+!       ok2 = NF90_GET_VAR(ncid, fieldID, inGWsilt)
+!     end if
+!     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+!       inGWsilt(:,:) = insilt(:,:)
+!     END IF        
+    
 ! Use this code if need to process original UM file soil fields into CABLE 
 ! offline format
 !    ! 1
@@ -861,6 +965,7 @@ CONTAINS
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
+    INTEGER :: klev   !soil layer
 
 !    The following is for the alternate method to calculate froot by Zeng 2001
 !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -898,7 +1003,21 @@ CONTAINS
 
     ! *******************************************************************
     ! parameters that are not spatially dependent
-    soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+    !soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+    soil%zse = (/0.005, 0.075, 0.154,0.409,1.085,2.872/)  !mrd561.  limit qg?
+    !soil%zse = (/0.12,&
+    !             0.20,&
+    !             0.34,&
+    !             0.55,&
+    !             0.92,&
+    !             1.14   /)
+
+    !soil%zse(:) = (/0.09,0.15,0.34,0.65,0.95,1.4/)
+    
+
+    !MD aquifer layers
+    soil%GWdz = 5.0                          !30 m thick aquifer
+
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
     rough%za_tq = 40.0
@@ -962,7 +1081,7 @@ CONTAINS
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
         DO ir = 1, nrb                                  ! each band
-          ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                       &
+           ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                      &
               = inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir) ! various rad band
         END DO
         ! total depth, change from m to mm
@@ -997,6 +1116,52 @@ CONTAINS
                                            incss(landpt(e)%ilon, landpt(e)%ilat)
       soil%cnsd(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           incnsd(landpt(e)%ilon, landpt(e)%ilat)
+                                          
+      !MD
+      !possibly heterogeneous soil properties
+      DO klev=1,ms
+        soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+         abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
+                                         
+        soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+             inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
+                                         
+        soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+              inbch(landpt(e)%ilon, landpt(e)%ilat)                       
+                                         
+        soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+            inclay(landpt(e)%ilon, landpt(e)%ilat)                      
+                                         
+        soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+            insand(landpt(e)%ilon, landpt(e)%ilat)                       
+                                         
+        soil%densoil(landpt(e)%cstart:landpt(e)%cend,klev) =                  &
+           inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
+                                         
+        soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+             inssat(landpt(e)%ilon, landpt(e)%ilat) 
+                                         
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.001!0.1 *              !&
+             !inswilt(landpt(e)%ilon, landpt(e)%ilat)
+      END DO
+      !Aquifer properties  same as bottom soil layer for now
+      soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
+             abs(insucs(landpt(e)%ilon, landpt(e)%ilat)*1000.0)  !convert to mm
+                                         
+      soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
+            inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
+                                         
+      soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
+              inbch(landpt(e)%ilon, landpt(e)%ilat)                       
+                                         
+      soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
+           inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
+                                         
+      soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
+             inssat(landpt(e)%ilon, landpt(e)%ilat) 
+                                         
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) = 0.001!  0.1 *                   &
+         !inswilt(landpt(e)%ilon, landpt(e)%ilat)
 
       ENDIF
 
@@ -1038,8 +1203,10 @@ CONTAINS
           veg%frac4(h)    = vegin%frac4(veg%iveg(h))
           veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
           veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
+          veg%taul(h,3)    = vegin%taul(3,veg%iveg(h))
           veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
           veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
+          veg%refl(h,3)    = vegin%refl(3,veg%iveg(h))
           veg%canst1(h)   = vegin%canst1(veg%iveg(h))
           veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
           veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
@@ -1065,6 +1232,13 @@ CONTAINS
           soil%silt(h)    =  soilin%silt(soil%isoilm(h))
           soil%clay(h)    =  soilin%clay(soil%isoilm(h))
           soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+
+          !MDeck
+          do klev=1,ms
+            soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
+            soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+          end do
+
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
@@ -1074,6 +1248,24 @@ CONTAINS
             soil%sucs(h)    =  soilin%sucs(soil%isoilm(h))
             soil%rhosoil(h) =  soilin%rhosoil(soil%isoilm(h))
             soil%css(h)     =  soilin%css(soil%isoilm(h))
+
+            !MD
+            do klev=1,ms
+              soil%smpsat(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+              soil%hksat(h,klev)   = soilin%hyds(soil%isoilm(h))*1000.0
+              soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
+              soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
+              soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
+              soil%watr(h,klev)    = 0.001!0.1*soil%swilt(h)!soilin%hyds(soil%isoilm(h))
+            end do
+
+            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))*1000.0
+            soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
+            soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
+            soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
+            soil%GWwatr(h)    = 0.001!0.1*soil%swilt(h)!soilin%hyds(soil%isoilm(h))
+
           END IF
           rad%latitude(h) = latitude(e)
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
@@ -1091,7 +1283,15 @@ CONTAINS
 
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
-                       insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010
+                       insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010, MD
+    if (allocated(inGWsucs)) deallocate(inGWsucs)
+    if (allocated(inGWsucs)) deallocate(inGWhyds)
+    if (allocated(inGWsucs)) deallocate(inGWbch)
+    if (allocated(inGWsucs)) deallocate(inGWsilt)
+    if (allocated(inGWsucs)) deallocate(inGWsand)
+    if (allocated(inGWsucs)) deallocate(inGWclay)
+    if (allocated(inGWsucs)) deallocate(inGWssat)
+
     IF (calcsoilalbedo) DEALLOCATE(inSoilColor) ! vars intro for Ticket #27
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
@@ -1209,7 +1409,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
+    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
@@ -1227,6 +1427,12 @@ CONTAINS
                                      ! midpoints:
     soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
     soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
+    
+    !MD aquifer node depth
+    soil%GWz = 0.5*soil%GWdz + sum(soil%zse)  !node is halfway through aquifer depth
+    
+    
+    
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
@@ -1284,8 +1490,8 @@ CONTAINS
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)
     ! Checks for basic inconsistencies in parameter values
-    TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameter data
-    TYPE (veg_parameter_type),  INTENT(IN)    :: veg   ! vegetation parameter
+    TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameter data
+    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg   ! vegetation parameter
                                                        ! data
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow
                                                        ! variables
@@ -1351,8 +1557,12 @@ CONTAINS
              WRITE(*,*) 'Silt fraction is ',soil%silt(landpt(i)%cstart + j - 1)
              WRITE(*,*) 'SUM:',soil%sand(landpt(i)%cstart + j - 1)             &
                                + soil%silt(landpt(i)%cstart + j - 1)           &
-                               + soil%clay(landpt(i)%cstart + j - 1)
-             CALL abort ('clay+sand+silt fraction does not sum to 1!')
+                                 + soil%clay(landpt(i)%cstart + j - 1)
+             !MDeck error where fraction was slightly off summing to 1.  Fix rather than abort
+             soil%silt(landpt(i)%cstart + j - 1) = 1.0 -                       &
+                                         soil%clay(landpt(i)%cstart + j - 1) - &
+                                         soil%sand(landpt(i)%cstart + j - 1)    
+             !CALL abort ('clay+sand+silt fraction does not sum to 1!')
           END IF
        END DO
     END DO
@@ -1364,7 +1574,9 @@ CONTAINS
              WRITE(*,*) 'SUBROUTINE load_parameters:'
              WRITE(*,*) 'At land point number:', i, 'patch:', j
              WRITE(*,*) 'Froot:',veg%froot((landpt(i)%cstart + j - 1), :)
-             CALL abort ('Sum of fraction of roots in each soil layer /= 1!')
+             veg%froot((landpt(i)%cstart+j-1),ms) = veg%froot((landpt(i)%cstart+j-1),ms) + &
+                      (1. - SUM(veg%froot((landpt(i)%cstart + j - 1), :)))
+             !CALL abort ('Sum of fraction of roots in each soil layer /= 1!')
           END IF
        END DO
     END DO

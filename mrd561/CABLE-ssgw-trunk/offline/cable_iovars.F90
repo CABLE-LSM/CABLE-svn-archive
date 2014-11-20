@@ -138,7 +138,10 @@ MODULE cable_IO_vars_module
           ejmax,frac4,hc,lai,rp20,rpcoef,shelrb, vbeta, xalbnir,               &
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
-          veg_class,soil_class,mvtype,mstype,patchfrac
+          veg_class,soil_class,mvtype,mstype,patchfrac,                        &
+          !MD
+          WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
+          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr
    
    END TYPE parID_type
   
@@ -256,7 +259,18 @@ MODULE cable_IO_vars_module
          HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
-         
+
+         !MD GW
+         GWMoist = .FALSE.,   & ! water balance of aquifer [mm3/mm3]
+         WatTable = .FALSE.,  & ! water table depth [m]
+         SoilMatPot=.FALSE.,  & ! soil matric potential [mm]
+         EqSoilMatPot=.FALSE.,& ! equilibirum soil matric potential [mm]
+         EqSoilMoist=.FALSE., & ! equilibirum soil moisture [mm3/mm3]
+         EqGWMoist=.FALSE.,   & ! equilibrium water of aquifer
+         GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
+         EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
+         Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
+
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude
@@ -311,7 +325,20 @@ MODULE cable_IO_vars_module
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
-         za  = .FALSE.          ! something to do with roughness ????
+         za  = .FALSE.,       &  ! something to do with roughness ????
+
+         !MD GW
+         WatSat=.FALSE.,      & ! soil moisture at saturation [mm3/mm3]
+         SoilMatPotSat=.FALSE.,& ! soil matruc potential at saturation [mm]
+         ClappB=.FALSE.,      & ! clapp hornberger B parameter
+         FrcSand=.FALSE.,     & ! fraction of sand in soil
+         FrcClay=.FALSE.,     & ! fraction of clay in soil
+         HkSat=.FALSE.,       & ! saturated soil hydraulic conductivity [mm/s]
+         GWHkSat=.FALSE.,     & ! aquifer saturated soil hydraulic conductivity [mm/s]
+         GWWatSat=.FALSE.,    & ! soil moisture at saturation [mm3/mm3]
+         GWSoilMatPotSat=.FALSE.,&! soil matruc potential at saturation [mm]
+         GWWatr=.FALSE.,      & ! Aquifer soil moisture residual [mm3/mm3]
+         Watr=.FALSE.           ! soil moisture residual [mm3/mm3]      
    
    END TYPE output_inclusion_type
 

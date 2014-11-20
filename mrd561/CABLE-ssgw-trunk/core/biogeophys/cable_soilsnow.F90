@@ -279,11 +279,13 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
          hydss = soil%hyds
     
          speed_k = hydss * ( wh / soil%ssat )**( soil%i2bp3 - 1 )
-         speed_k =  0.5 * speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
+         !speed_k =  0.5 * speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
+         speed_k =  speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
          fluxlo = wbl_k
          
          ! scale speed to grid lengths per dt & limit speed for stability
-         speed_k = MIN( 0.5 * speed_k, 0.5 * soil%zse(ms) / dels )
+         !speed_k = MIN( 0.5 * speed_k, 0.5 * soil%zse(ms) / dels )
+         speed_k = MIN( speed_k, 0.5 * soil%zse(ms) / dels )
          fluxh(:,ms) = MAX( 0.0, speed_k * fluxlo )
      
       END WHERE

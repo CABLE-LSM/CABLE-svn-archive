@@ -45,7 +45,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Fland,                                       &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                                  sthu_tile, smcl_tile,                        &
+                                  sthu_tile, smcl_tile,smgw_tile,              &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
                                   LAND_MASK, FTL_TILE_CAB, FTL_CAB, FTL_TILE,  &
@@ -181,6 +181,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       smcl_tile, &
       tsoil_tile
    
+   !mrd561
+   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         &
+      smgw_tile
+
    REAL, INTENT(IN) :: co2_mmr
 ! rml 2/7/13 Extra atmospheric co2 variables
    LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
@@ -336,7 +340,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                           sthu_tile, smcl_tile, sthf_tile,                    &
+                           sthu_tile, smcl_tile, smgw_tile, sthf_tile,         &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil,                         &
                            CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &

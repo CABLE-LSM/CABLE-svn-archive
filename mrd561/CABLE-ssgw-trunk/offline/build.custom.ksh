@@ -2,99 +2,26 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz mael r r90 r94 r377 r373
+   set -A kh vayu cher burn shin jigg raij squa bliz ccrc mael mons
 }
 
 
-## 
-host_r373()
+host_ccrc()
 {
-   export NCDIR='/'
-   export NCMOD='/'
+   export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
+   export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-
-## 
-host_r377()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-
-## 
-host_r94()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-
-## 
-host_r90()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
-host_mael()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -xhost -ipo -parallel   -ftrapuv  -fp-model source'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -debug -g -ftrapuv -CB -check bounds -diag-enable warn'
+# -diag-enable sc2 -diag-enable sc-single-file
+   fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-host_bliz()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -parallel -O3'
+   if [[ $1 = 'debug' ]]; then
+      export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O0 -debug -g -ftrapuv -diag-enable warn'
+# -diag-enable sc2 -diag-enable sc-single-file
+   fi
    build_build
    cd ../
    build_status
@@ -105,8 +32,64 @@ host_squa()
 {
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export FC=ifort
+   #export CFLAGS='-O2  -shared-intel -mcmodel=medium -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+host_bliz()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=ifort
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx  -shared-intel -mcmodel=medium -parallel'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+host_mael()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=ifort
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -parallel -ftrapuv  -shared-intel -mcmodel=medium'
+   export CFLAGS='-O2 -shared-intel -xhost -ipo -ftrapuv'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
+host_mons()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=ifort
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -shared-intel -mcmodel=medium -parallel'
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
@@ -116,12 +99,27 @@ host_squa()
 
 
 
+## jiggle
+host_jigg()
+{
+   export NCDIR='/usr/local/lib'
+   export NCMOD='/usr/local/include'
+   export FC=gfortran
+   export CFLAGS='-O2 -x f95-cpp-input'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/local/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 ## shine-cl.nexus.csiro.au 
 host_shin()
 {
-   export NCDIR='/usr/local/intel/'
-   export NCMOD='/usr/local/intel/'
-   export FC=ifort    ## need to check ??
+   export NCDIR='/usr/local/intel/lib'
+   export NCMOD='/usr/local/intel/include'
+   export FC=ifort
    export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
    export LD='-lnetcdf'
    export LDFLAGS='-L/usr/local/intel/lib -O2'
@@ -134,12 +132,9 @@ host_shin()
 ## burnet.hpsc.csiro.au 
 host_burn()
 {
-   . /apps/modules/Modules/default/init/ksh
-   module add netcdf/3.6.3 openmpi
-
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
-   export FC='mpif90'
+   export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
@@ -154,7 +149,7 @@ host_cher()
 {
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
-   export FC='mpif90'
+   export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
@@ -169,10 +164,27 @@ host_vayu()
 {
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC='mpif90'
+   export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf'
+   build_build
+   cd ../
+   build_status
+}
+
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC=$F90
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
@@ -180,26 +192,6 @@ host_vayu()
    cd ../
    build_status
 }
-
-
-
-## vayu.nci.org.au
-host_r()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise'
-   fi
-   export LDFLAGS='-L'$NCDIR''
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
 
 ## unknown machine, user entering options stdout 
 host_read()
@@ -229,10 +221,8 @@ host_read()
    if [[ $NCDF_MOD == '' ]]; then
       export NCMOD=$NCDF_ROOT/'include'
    else   
-      export NCDIR=$NCDF_ROOT/$NCDF_MOD
+      export NCMOD=$NCDF_ROOT/$NCDF_MOD
    fi
-
-   export NCMOD=$NCDF_ROOT/$NCDF_MOD
 
    print "\n\tWhat is the Fortran compiler you wish to use."
    print "\te.g. ifort, gfortran"
@@ -285,8 +275,8 @@ host_write()
    print '## '$HOST_COMM >> junk
    print 'host_'$HOST_MACH'()' >> junk
    print '{' >> junk
-   print '   export NCDIR='"'"$NCDF_ROOT'/'$NCDF_DIR"'" >> junk
-   print '   export NCMOD='"'"$NCDF_ROOT'/'$NCDF_MOD"'" >> junk
+   print '   export NCDIR='"'"$NCDIR"'" >> junk
+   print '   export NCMOD='"'"$NCMOD"'" >> junk
    print '   export FC='$FC >> junk
    print '   export CFLAGS='"'"$CFLAGS"'" >> junk
    print '   export LD='"'"$LD"'" >> junk
@@ -303,51 +293,11 @@ host_write()
 clean_build()
 {
       print '\ncleaning up\n'
-      rm -fr .mpitmp
-      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
-      read dummy 
+      rm -fr .tmp
+      #print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      #read dummy 
 }
 
-
-set_up_CABLE_AUX()
-{
-      print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
-      print "\tcontains configuration and data essential to using CABLE."
-      print "\tNCI account holders can have this set up for you now (anywhere)."
-      print "\tOthers will have to use the tarball available for download at ..."
-      print "\n\tDo you want to run set up this directory now? y/[n]"
-      
-      read setup_CABLE_AUX
-      if [[ $setup_CABLE_AUX = 'y' ]]; then
-         print "\n\tPlease enter your NCI user ID"
-         read NCI_USERID 
-         mkdir ~/CABLE-AUX 
-         
-         fscp1="scp -r "
-         fscp2="@vayu.nci.org.au:/projects/access/CABLE-AUX/"
-         fscp3="offline "
-         fscp4=$HOME"/CABLE-AUX/"
-         fscp5=$fscp1$NCI_USERID$fscp2
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-          
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/offline failed" 
-            exit $RC 
-         fi
-         
-         fscp3="core "
-         fscp=$fscp5$fscp3$fscp4$fscp3
-         $fscp
-         
-         RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/core failed" 
-            exit $RC 
-         fi
-      fi        
-}
 
 
 
@@ -363,7 +313,7 @@ not_recognized()
    print "\n\tIf this is a common machine for CABLE users, " \
          "please email"
    print "\n\t\t cable_help@nf.nci.org.au "  
-   print "\n\talong with your new build_mpi.ksh so that we can " \
+   print "\n\talong with your new build.ksh so that we can " \
          "update the script "
    print "\tfor all users. "
    print "\n\tTo enter compile options for this build press " \
@@ -374,7 +324,7 @@ not_recognized()
 
    print "\n\tPlease supply a comment include the new build " \
          "script." 
-   print "\n\tGenerally the host URL e.g. vayu.nci.org.au "
+   print "\n\tGenerally the host URL e.g. raijin.nci.org.au "
    read HOST_COMM
    
    build_build
@@ -389,7 +339,7 @@ do_i_no_u()
    
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
-         print 'Host recognized'
+         print 'Host recognized as' $HOST_MACH
          subr=host_${kh[$k]}
          $subr $1
       fi        
@@ -400,12 +350,12 @@ do_i_no_u()
 
 build_status()
 {
-   if [[ -f .mpitmp/cable-mpi ]]; then
-   	mv .mpitmp/cable-mpi .
+   if [[ -f .tmp/cable ]]; then
+   	mv .tmp/cable "./cable-r${CABLE_REV}"
    	print '\nBUILD OK\n'
    else
       print '\nOooops. Something went wrong\n'        
-      print '\nKnow build issues:\n'        
+      print '\nKnown build issues:\n'        
       print '\nSome systems require additional library. \n'        
       print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'        
    fi
@@ -418,57 +368,56 @@ i_do_now()
 {
       cd ../
       host_write
-      tail -n +7 build_mpi.ksh > build_mpi.ksh.tmp
-      cat junk build_mpi.ksh.tmp > build_mpi.ksh.new
-      mv build_mpi.ksh.new build_mpi.ksh
-      chmod u+x build_mpi.ksh 
-      rm -f build_mpi.ksh.tmp build_mpi.ksh.new junk 
+      tail -n +7 build.ksh > build.ksh.tmp
+      cat junk build.ksh.tmp > build.ksh.new
+      mv build.ksh.new build.ksh
+      chmod u+x build.ksh 
+      rm -f build.ksh.tmp build.ksh.new junk 
       build_status
 }
 
 
 build_build()
 {
-
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
-   if [[ $CABLE_REV="" ]]; then
-      echo "this is not an svn checkout"
-      CABLE_REV=0
-      echo "setting CABLE revision number to " $CABLE_REV 
-   fi         
+   #if [[ $CABLE_REV="" ]]; then
+   #   echo "this is not an svn checkout"
+   #   CABLE_REV=0
+   #   echo "setting CABLE revision number to " $CABLE_REV 
+   #fi         
    print $CABLE_REV > ~/.cable_rev
    # get SVN status 
    CABLE_STAT=`svn status`
    print $CABLE_STAT >> ~/.cable_rev
  
-   if [[ ! -d .mpitmp ]]; then
-      mkdir .mpitmp
+   if [[ ! -d .tmp ]]; then
+      mkdir .tmp
    fi
    
-   if [[ -f cable-mpi ]]; then
-      print '\ncable-mpi executable exists. copying to a dated backup file\n' 
-      mv cable-mpi cable-mpi.`date +%d.%m.%y`
+   if [[ -f cable ]]; then
+      print '\ncable executable exists. copying to dated backup file\n' 
+      mv cable cable.`date +%d.%m.%y`
    fi
    
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
    
-   /bin/cp -p $CORE/*90 ./.mpitmp
-   /bin/cp -p $DRV/*90 ./.mpitmp
-   /bin/cp -p $CASA/*90 ./.mpitmp
+   /bin/cp -p $CORE/*90 ./.tmp
+   /bin/cp -p $DRV/*90 ./.tmp
+   /bin/cp -p $CASA/*90 ./.tmp
    
    print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
    print "\ttechnical reasons. Implementation is not officially available with" 
    print "\tthe release of CABLE 2.0\n"
     
-   /bin/cp -p Makefile_mpi  ./.mpitmp
+   /bin/cp -p Makefile_offline  ./.tmp
    
-  cd .mpitmp/
-
-   make -f Makefile_mpi
+  cd .tmp/
+   
+   make -f Makefile_offline
 }
 
 ###########################################
@@ -479,17 +428,10 @@ if [[ $1 = 'clean' ]]; then
    clean_build
 fi
 
-if [[ ! -d ~/CABLE-AUX ]];then
-   set_up_CABLE_AUX
-else
-   print "\n~/CABLE-AUX is at least present.\n"
-fi
-
-
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1`
+HOST_MACH=`uname -n | cut -c 1-4`
 
 do_i_no_u $1
 

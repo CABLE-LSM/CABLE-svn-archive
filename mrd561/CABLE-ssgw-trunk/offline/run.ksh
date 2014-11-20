@@ -51,6 +51,19 @@ book_keeping()
       fi
       
    fi
+
+   if [[ $HOST_MACH = 'ccrc' ]]; then
+
+      if [[ ! -e cable.nml ]]; then
+         ln -s  $CABLE_AUX/CABLE_AUX-dev/offline/gw_cable.nml cable.nml
+      fi
+
+      if [[ ! -e sites.txt ]]; then
+         ln -s  $CABLE_AUX/CABLE_AUX-dev/offline/glass_sites.txt sites.txt
+      fi
+
+
+   fi
 }
 
 
