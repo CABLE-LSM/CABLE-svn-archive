@@ -42,7 +42,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   cos_zenith_angle, surf_down_sw, ls_rain,     &
                                   ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
                                   z1_uv, L_tile_pts, canopy_tile,   &
-                                  Fland, CO2_MMR, sthu_tile, smcl_tile,        &
+                                  Fland,                                       &
+! r935 rml 2/7/13 pass 3d co2 through to cable if required
+                CO2_MMR, & !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
+                                  sthu_tile, smcl_tile,                        &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
                                   FTL_TILE,  &
@@ -178,6 +181,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       tsoil_tile
    
    REAL :: co2_mmr
+! rml 2/7/13 Extra atmospheric co2 variables
+!   LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
+!   INTEGER, INTENT(IN) ::                              &
+!      CO2_DIM_LEN                                      &
+!     ,CO2_DIM_ROW
+!   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
 
    !___true IF vegetation (tile) fraction is greater than 0
    LOGICAL, DIMENSION(land_pts, ntiles) :: L_tile_pts
@@ -342,7 +351,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
                            ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
-                           CO2_MMR, sthu_tile, smcl_tile, sthf_tile,           &
+                   		   CO2_MMR, &
+! r935 rml 2/7/13 pass 3d co2 through to cable if required
+                   !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
+                           sthu_tile, smcl_tile, sthf_tile,                    &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil )!,                         &
 						   ! r825	
