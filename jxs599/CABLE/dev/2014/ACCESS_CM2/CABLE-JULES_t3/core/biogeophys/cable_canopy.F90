@@ -52,6 +52,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    USE cable_radiation_module
    USE cable_air_module
    USE cable_common_module   
+   USE cable_roughness_module
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -193,6 +194,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! resistances rt0, rt1 (elements of dispersion matrix):
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
       CALL comp_friction_vel()
+
+      CALL ruff_resist(veg, rough, ssnow, canopy)
+
       
       ! Turbulent aerodynamic resistance from roughness sublayer depth 
       ! to reference height, x=1 if zref+disp>zruffs, 
@@ -416,8 +420,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
                     rad%transd*ssnow%potev) * dels/air%rlam  
 
-      ! convert to mm/day
-      rlower_limit = canopy%epot * air%rlam / dels
+      rlower_limit = canopy%epot * air%rlam / dels  
+      where (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
+
       
       canopy%wetfac_cs = max(0., min(1.0,canopy%fe / rlower_limit ))
       
@@ -714,7 +719,8 @@ SUBROUTINE Latent_heat_flux()
       
       IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
 
-         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+         !flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
          fupper_limit(j) = MAX( 0._r_2,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
@@ -1174,13 +1180,6 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
          canopy%fhvw(j) = canopy%fwet(j) * ( sum_rad_rniso(j) -C%CAPP * C%rmair&
                           * ( tlfy(j) - met%tk(j) ) * sum_rad_gradis(j) )      &
                            - canopy%fevw(j)
-
-          xx1(j) = canopy%fhvw(j)
-
-         canopy%fhvw(j) = sum_rad_rniso(j) - canopy%fevc(j) - canopy%fevw(j)   &
-                          - ( 1.0 - canopy%fwet(j) ) *  REAL( hcy(j) ) 
-          
-         canopy%fhvw(j) =  xx1(j)
 
       ENDIF
        

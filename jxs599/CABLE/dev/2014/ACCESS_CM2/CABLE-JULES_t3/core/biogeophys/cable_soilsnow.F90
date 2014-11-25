@@ -223,8 +223,8 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
       DO k = 1, ms-1
       
          ! Calculate amount of liquid soil water:
-         wbl_k = MAX( 0.01_r_2, ssnow%wb(:,k) - ssnow%wbice(:,k) )
-         wbl_kp = MAX( 0.01_r_2, ssnow%wb(:,k+1) - ssnow%wbice(:,k+1) )
+         wbl_k = MAX( 0.001_r_2, ssnow%wb(:,k) - ssnow%wbice(:,k) )
+         wbl_kp = MAX( 0.001_r_2, ssnow%wb(:,k+1) - ssnow%wbice(:,k+1) )
          
          ! Calculate difference in liq soil water b/w consecutive layers:
          delt(:,k) = wbl_kp - wbl_k
@@ -272,11 +272,13 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
          hydss = soil%hyds
     
          speed_k = hydss * ( wh / soil%ssat )**( soil%i2bp3 - 1 )
-         speed_k =  0.5 * speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
+         !speed_k =  0.5 * speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
+         speed_k =  speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
          fluxlo = wbl_k
          
          ! scale speed to grid lengths per dt & limit speed for stability
-         speed_k = MIN( 0.5 * speed_k, 0.5 * soil%zse(ms) / dels )
+         !speed_k = MIN( 0.5 * speed_k, 0.5 * soil%zse(ms) / dels )
+         speed_k = MIN( speed_k, 0.5 * soil%zse(ms) / dels )
          fluxh(:,ms) = MAX( 0.0, speed_k * fluxlo )
      
       END WHERE
@@ -698,6 +700,7 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
          
          sgamm = ssnow%smass(:,k) * cgsnow
         
+         smelt1(:,k-1) = 0.0
          smelt1(:,k) = 0.0
          
          ! snow melting
@@ -988,14 +991,40 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
    END IF
 
 !  Rescale drainage to remove water added to lakes (wb_lake) 
-   wb_lake_T = 0.0
-   rnof2_T = 0.
-   DO j=1,mp
-      IF( ssnow%wb_lake(j) >  0.0 ) wb_lake_T = wb_lake_T + ssnow%wb_lake(j)
-      rnof2_T = rnof2_T + ssnow%rnof2(j)
-   END DO
-   ratio = min( 1., wb_lake_T/max(rnof2_T,1.))
-   ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
+   ssnow%sinfil = 0.0
+   WHERE( veg%iveg == 16 )
+      ssnow%sinfil  = MIN( ssnow%rnof1, ssnow%wb_lake ) ! water that can be extracted from the rnof1
+      ssnow%rnof1   = MAX( 0.0, ssnow%rnof1 - ssnow%sinfil )
+      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
+      ssnow%sinfil  = MIN( ssnow%rnof2, ssnow%wb_lake ) ! water that can be extracted from the rnof2
+      ssnow%rnof2   = MAX( 0.0, ssnow%rnof2 - ssnow%sinfil )
+      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
+      xxx = MAX(0.0, (ssnow%wb(:,ms) - soil%sfc(:))*soil%zse(ms)*1000.0)
+      ssnow%sinfil  = MIN( xxx, ssnow%wb_lake )
+      ssnow%wb(:,ms) = ssnow%wb(:,ms) - ssnow%sinfil / (soil%zse(ms)*1000.0)
+      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
+      xxx = MAX(0.0, (ssnow%wb(:,ms) - .5*(soil%sfc + soil%swilt))*soil%zse(ms)*1000.0)
+      ssnow%sinfil  = MIN( xxx, ssnow%wb_lake )
+      ssnow%wb(:,ms) = ssnow%wb(:,ms) - ssnow%sinfil / (soil%zse(ms)*1000.0)
+      ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
+   ENDWHERE
+
+   !wb_lake_T = sum( ssnow%wb_lake )
+   !rnof2_T = sum( ssnow%rnof2 )
+   !ratio = min( 1., wb_lake_T/max(rnof2_T,1.))
+   !ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
+   !ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
+
+!  Rescale drainage to remove water added to lakes (wb_lake)
+   !wb_lake_T = 0.0
+   !rnof2_T = 0.
+   !DO j=1,mp
+   !   IF( ssnow%wb_lake(j) >  0.0 ) wb_lake_T = wb_lake_T + ssnow%wb_lake(j)
+   !   rnof2_T = rnof2_T + ssnow%rnof2(j)
+   !END DO
+   !ratio = min( 1., wb_lake_T/max(rnof2_T,1.))
+   !ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
+   !ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
 
    ssnow%rnof1 = ssnow%rnof1 / dels + rnof5/dels
    ssnow%rnof2 = ssnow%rnof2 / dels
@@ -1151,11 +1180,10 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
    WHERE( ssnow%isflag == 0 )
       bt(:,1) = bt(:,1) - canopy%dgdtg * dels / ssnow%gammzz(:,1)
       ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
-                       * REAL( canopy%dgdtg ) ) * dels /                       &
-                       REAL( ssnow%gammzz(:,1) )
+                      * REAL( canopy%dgdtg ) ) * dels / REAL( ssnow%gammzz(:,1) )
    END WHERE
    
-   coeff(:,1-3) = 0.0  ! SO DOES THIS MEAN coeff(:,-2) ??
+   coeff(:,1-3) = 0.0  ! coeff(:,-2)
 
    ! 3-layer snow points done here
    WHERE( ssnow%isflag /= 0 )
