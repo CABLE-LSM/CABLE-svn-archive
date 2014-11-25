@@ -119,8 +119,8 @@
     ,l_sice_multilayers, i_sea_alb_method               &
     ,L_SOIL_SAT_DOWN,l_anthrop_heat_src,buddy_sea       &
 !CABLE{
-	! set .TRUE. to use CABLE LSM and switch corresponding
-	! JULES components on/off [default=.FALSE.]
+       ! set .TRUE. to use CABLE LSM and switch corresponding
+       ! JULES components on/off [default=.FALSE.]
     ,L_cable 
 
   !jhan: revise HACKs here
@@ -1141,6 +1141,7 @@ call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
 !-------------------------------------------------------------------------------
 !   Snow processes.
 !-------------------------------------------------------------------------------
+   if (.not. l_cable) then
     CALL snow ( land_pts,REAL(timestep_len),stf_hf_snow_melt,ntiles,tile_pts,  &
                 tile_index,catch_snow,con_snow_land,tile_frac,ls_snow_land,    &
                 ei_tile,hcap(:,1),hcons,melt_tile,smcl(:,1),sthf(:,1),         &
@@ -1148,6 +1149,7 @@ call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
                 rgrainl,rho_snow_grnd,sice,sliq,snow_grnd,snow_tile,snowdepth, &
                 tsnow,nsnow,ds,hf_snow_melt,lying_snow,rho_snow,snomlt_sub_htf,&
                 snow_melt,surf_ht_flux_ld )
+   endif
 
 !-------------------------------------------------------------------------------
 !   Reset snowmelt over land points.
@@ -1161,7 +1163,8 @@ call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
 !-------------------------------------------------------------------------------
 !   Land hydrology.
 !-------------------------------------------------------------------------------
-    CALL hydrol (                                                             &
+   !if (.not. l_cable) then
+    CALL hydrol_cable (                                                       &
               lice_pts,lice_index,soil_pts,soil_index,nsnow,                  &
               land_pts,sm_levels,b,catch,con_rain_land,                       &
               ecan_tile,ext,hcap,hcon,ls_rain_land,                           &
@@ -1176,6 +1179,7 @@ call cable_control7( dtl_1, dqw_1, T_SOIL, FTL_1, FQW_1,                       &
               dun_roff,drain,fsat,fwetl,qbase,qbase_zw,                       &
               zw,sthzw,a_fsat,c_fsat,a_fwet,c_fwet,                           &
               fch4_wetl,dim_cs1,l_soil_sat_down,l_triffid)
+   !endif
 
   ENDIF   !  not routeonly
 

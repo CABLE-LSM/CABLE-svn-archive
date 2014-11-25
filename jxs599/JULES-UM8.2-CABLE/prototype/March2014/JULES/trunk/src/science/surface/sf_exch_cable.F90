@@ -910,6 +910,22 @@ DO n=1,ntiles
     u_s_std_tile(l,n)=0.0
     chr1p5m(l,n)=0.0
     resfs(l,n)=0.0
+          !IF(TILE_FRAC(L,N) .eq. 0.0 ) THEN
+          !  VFRAC_TILE(L,N) = 0.0
+          !  CANHC_TILE(L,N) = 0.0
+          !  CD_TILE(L,N) = 0.0
+          !  CH_TILE(L,N) = 0.0
+          !  Z0H_TILE(L,N) = 0.0
+          !  Z0M_EFF_TILE(L,N) = 0.0
+          !  RHOKPM(L,N) = 0.0
+          !  !RHOKPM_POT(L,N) = 0.0
+          !  RADNET_TILE(L,N) = 0.0
+          !  RHOKH_1(L,N) = 0.0
+          !  FRACA(L,N) = 0.0
+          !  RHOKM_1_TILE(L,N) = 0.0
+          !  RESFT(L,N) = 0.0
+          !  !RESFS(L,N) = 0.0
+          !ENDIF
   END DO
 END DO
 

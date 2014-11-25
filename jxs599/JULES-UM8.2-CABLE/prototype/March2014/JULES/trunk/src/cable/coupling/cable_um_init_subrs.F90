@@ -361,12 +361,18 @@ SUBROUTINE init_veg_pars_fr_vegin()
 
       !froot fixed here for all vegetation types for ACCESS
       !need more flexibility in next version to read in or parameterise
-      veg%froot(:,1) = 0.05
-      veg%froot(:,2) = 0.20
-      veg%froot(:,3) = 0.20
-      veg%froot(:,4) = 0.20
-      veg%froot(:,5) = 0.20
-      veg%froot(:,6) = 0.15
+      veg%froot(:,1) = 0.1211
+      veg%froot(:,2) = 0.2536
+      veg%froot(:,3) = 0.3720
+      veg%froot(:,4) = 0.2303
+      veg%froot(:,5) = 0.0229
+      veg%froot(:,6) = 0.00
+      !veg%froot(:,1) = 0.05
+      !veg%froot(:,2) = 0.20
+      !veg%froot(:,3) = 0.20
+      !veg%froot(:,4) = 0.20
+      !veg%froot(:,5) = 0.20
+      !veg%froot(:,6) = 0.15
 
 END SUBROUTINE init_veg_pars_fr_vegin
 

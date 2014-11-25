@@ -347,6 +347,10 @@ SUBROUTINE init_model_grid()
     land_pts_trif = 1
     dim_cs2 = 1
   ENDIF
+  ! CABLE {
+    land_pts_trif = land_pts
+    dim_cs2 = land_pts
+  !}
 
   IF( l_co2_interactive ) THEN
     co2_dim_len = t_i_length

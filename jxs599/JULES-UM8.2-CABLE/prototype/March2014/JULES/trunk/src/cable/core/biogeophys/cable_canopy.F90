@@ -1046,7 +1046,7 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
    REAL,INTENT(IN), DIMENSION(:) ::                                            &
-      tlfy,          & ! leaf temp (K) - assC%UMINg the temperature of 
+      tlfy,          & ! leaf temp (K) - assuming the temperature of 
                        ! wet leaf is equal that of dry leaf ="tlfy"
       cansat           ! max canopy intercept. (mm)
 
