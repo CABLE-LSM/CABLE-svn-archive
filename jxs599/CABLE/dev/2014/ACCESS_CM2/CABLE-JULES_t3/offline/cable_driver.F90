@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
+! http://www.cawcr.gov.au/projects/access/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -73,7 +73,8 @@ PROGRAM cable_offline_driver
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
-                                   report_version_no, wiltParam, satuParam
+                                   report_version_no, wiltParam, satuParam,    &
+                                   calcsoilalbedo
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -159,8 +160,9 @@ PROGRAM cable_offline_driver
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! jhan: use new soil param. method
-                  soilparmnew,      & ! jhan: use new soil param. method
+                  vegparmnew,       & ! use new soil param. method
+                  soilparmnew,      & ! use new soil param. method
+                  calcsoilalbedo,   & ! albedo considers soil color Ticket #27
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
