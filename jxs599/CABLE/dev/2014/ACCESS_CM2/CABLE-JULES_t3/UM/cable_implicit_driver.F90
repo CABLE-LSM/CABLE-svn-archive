@@ -45,10 +45,15 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,        &
                                   DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
-                                  G_LEAF, & ! r825 added casa vars here, we dont
-                                  ! yet need. vars here satisfy _hydrol CALL 
+					! r825 added casa vars after G_LEAF, but we need
+                    ! need. vars here satisfy _hydrol CALL that is now from _impl
+                    !idoy added r1164+
+                                  G_LEAF, & 
                                   LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
                                   TOT_TFALL )
+                                  !G_LEAF, TRANSP_TILE, CPOOL_TILE, NPOOL_TILE, &
+                                  !PPOOL_TILE, GLAI, PHENPHASE, NPP_FT_ACC,     &
+                                  !RESP_W_FT_ACC, idoy )
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
@@ -259,7 +264,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
-      idoy = mod(ktau_gl/ktauday,365)
       IF(idoy==0) idoy =365
   
 ! Lestevens Sept2012 - Call CASA-CNP
