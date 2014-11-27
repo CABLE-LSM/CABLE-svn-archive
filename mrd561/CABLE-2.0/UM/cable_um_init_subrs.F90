@@ -190,7 +190,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
          !mrd561
-         soil%GWdz = 10.0                          !30 m thick aquifer
+         soil%GWdz = 30.0                          !30 m thick aquifer
 
 
          !-------------------------------------------------------------------
@@ -548,6 +548,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user
+
+   USE cable_soilsnow_GW, ONLY : calc_equilibrium_water_content,iterative_wtd
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
@@ -685,18 +687,23 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
 
 
          !mrd561
-         ssnow%wtd(:)  = 5000.0
-         ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
+         ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
+         call iterative_wtd(ssnow,soil,veg,.false.,first_call)
+         !ssnow%wtd(:)  = 5000.0
+         !ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
          !ensure that we have reasonable values in case 
          !starting from a non-GW simulation
-         where (ssnow%GWwb(:) .eq. 0.0 ) &
-                ssnow%GWwb(:) = 0.4
+         !where (ssnow%GWwb(:) .eq. 0.0 ) &
+         !       ssnow%GWwb(:) = 0.4
 
-         where (ssnow%GWwb(:) .lt. 0.01) & 
-                ssnow%GWwb(:)  = 0.01
+         !where (ssnow%GWwb(:) .lt. 0.01) & 
+         !       ssnow%GWwb(:)  = 0.01
 
-         where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
-                ssnow%GWwb(:) = soil%GWwatsat
+         !where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
+         !       ssnow%GWwb(:) = soil%GWwatsat
+
+         call calc_equilibrium_water_content(ssnow,soil)
+         ssnow%GWwb(:) = ssnow%GWwbeq(:)
 
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &

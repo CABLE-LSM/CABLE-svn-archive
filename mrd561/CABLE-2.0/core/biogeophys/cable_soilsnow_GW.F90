@@ -74,10 +74,11 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
+   PUBLIC soil_snow_gw,calc_srf_wet_fraction,calc_equilibrium_water_content,&
+           iterative_wtd
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
-   PRIVATE trimb,snow_accum, stempv,calc_equilibrium_water_content
-   PRIVATE soilfreeze, remove_trans,iterative_wtd,simple_wtd
+   PRIVATE trimb,snow_accum, stempv
+   PRIVATE soilfreeze, remove_trans,simple_wtd
    PRIVATE smoistgw, ovrlndflx
 
 CONTAINS
@@ -1296,13 +1297,14 @@ END SUBROUTINE remove_trans
   ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
   ! water table depth
   !  
-  SUBROUTINE iterative_wtd (ssnow, soil, veg, ktau, md_prin)
+  SUBROUTINE iterative_wtd (ssnow, soil, veg, ktau, md_prin,first_call)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
   TYPE (veg_parameter_type), INTENT(IN)     :: veg
   INTEGER, INTENT(IN)                       :: ktau  ! integration step number
   LOGICAL, INTENT(IN)                       :: md_prin  !print info?
+  LOGICAL, INTENT(IN)                       :: first_call
 
  
   !Local vars 
@@ -1329,7 +1331,8 @@ END SUBROUTINE remove_trans
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000._r_2
   end do
-  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
+  if (.not.first_call) &
+       zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   do i=1,mp
@@ -1348,10 +1351,12 @@ END SUBROUTINE remove_trans
         end if
       end do  !mp
   end do  !ms
-
-  do i=1,mp
-    def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
-  end do   
+  
+  if (.not.first_call) then
+    do i=1,mp
+      def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
+    end do   
+  end if
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
@@ -1977,7 +1982,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin)  
+   CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin,.false.)  !fcall=false
    !CALL simple_wtd(ssnow, soil, veg, ktau, md_prin)
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
@@ -2159,7 +2164,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
 
        xx = max(real(1e-6,r_2), min(1._r_2,(ssnow%wbliq(i,1)-0.5_r_2*real(soil%swilt(i),r_2))/&
-                                    (real(soil%sfc(i),r_2) - 0.5_r_2*real(soil%swilt(i),r_2))))
+                                    (real(soil%sfc(i),r_2) - 0.5_r_2*real(soil%swilt(i),r_2))))**2.5
                                     
        satfrac = (1._r_2 + gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac))*xx
        satfrac = min(1._r_2,max(0._r_2,satfrac))
