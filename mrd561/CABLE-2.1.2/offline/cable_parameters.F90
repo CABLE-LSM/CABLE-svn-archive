@@ -852,7 +852,7 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin
+    USE cable_common_module, only : vegin, soilin,cable_user
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -924,7 +924,7 @@ CONTAINS
     
 
     !MD aquifer layers
-    soil%GWdz = 5.0                          !30 m thick aquifer
+    soil%GWdz = 20.0                          !30 m thick aquifer
 
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -990,7 +990,7 @@ CONTAINS
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
         DO ir = 1, nrb                                  ! each band
            ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                      &
-              = inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir) ! various rad band
+              = min(inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir),0.2) ! various rad band
         END DO
         ! total depth, change from m to mm
         ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
@@ -1173,7 +1173,7 @@ CONTAINS
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
        END DO ! over each veg patch in land point
     END DO ! over all land points
-    soil%albsoil = ssnow%albsoilsn
+    soil%albsoil = min(ssnow%albsoilsn,0.2)
 
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
@@ -1182,6 +1182,11 @@ CONTAINS
            CALL abort('Albedo nuts')
 
     WRITE(logn, *)
+
+    if (cable_user%alt_forcing) then
+       rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
+       rough%za_tq = 2.0 + veg%hc
+    end if
 
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
