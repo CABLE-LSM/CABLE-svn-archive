@@ -1297,12 +1297,11 @@ END SUBROUTINE remove_trans
   ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
   ! water table depth
   !  
-  SUBROUTINE iterative_wtd (ssnow, soil, veg, ktau, md_prin,first_call)
+  SUBROUTINE iterative_wtd (ssnow, soil, veg, md_prin,first_call)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
   TYPE (veg_parameter_type), INTENT(IN)     :: veg
-  INTEGER, INTENT(IN)                       :: ktau  ! integration step number
   LOGICAL, INTENT(IN)                       :: md_prin  !print info?
   LOGICAL, INTENT(IN)                       :: first_call
 
@@ -1838,9 +1837,10 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0 
    LOGICAL :: prin,md_prin
+   LOGICAL :: false_variable
    REAL(r_2) :: wb_lake_T, rnof2_T, ratio
 
-   
+   false_variable = .false.
    prin = .FALSE.
    md_prin = .false.
    
@@ -1982,7 +1982,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin,.false.)  !fcall=false
+   CALL iterative_wtd (ssnow, soil, veg, md_prin,false_variable)  !fcall=false
    !CALL simple_wtd(ssnow, soil, veg, ktau, md_prin)
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?

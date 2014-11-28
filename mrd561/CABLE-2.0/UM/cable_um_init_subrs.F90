@@ -549,7 +549,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user
 
-   USE cable_soilsnow_GW, ONLY : calc_equilibrium_water_content,iterative_wtd
+   USE cable_soil_snow_gw_module, ONLY : calc_equilibrium_water_content,iterative_wtd
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
@@ -587,6 +587,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL :: first_call = .TRUE.
+   LOGICAL :: false_variable
+
+      false_variable = .FALSE.
 
       ssnow%wbtot1 = 0
       ssnow%wbtot2 = 0
@@ -688,7 +691,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
 
          !mrd561
          ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
-         call iterative_wtd(ssnow,soil,veg,.false.,first_call)
+         call iterative_wtd(ssnow,soil,veg,false_variable,first_call)
          !ssnow%wtd(:)  = 5000.0
          !ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
          !ensure that we have reasonable values in case 
