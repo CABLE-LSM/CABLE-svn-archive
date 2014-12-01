@@ -75,6 +75,7 @@ MODULE cable_input_module
         ncid_qa,         &
         ncid_ta,         &
         ncid_wd,         &    
+        ncid_elv,        &
         ok                 ! netcdf error status
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
@@ -396,7 +397,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          (ok,'Error opening netcdf met forcing file '//TRIM(filename%met)// &
          ' (SUBROUTINE open_met_file)') 
   ENDIF
-
+  
     !!=====================VV Determine spatial details VV=================
     ! Determine number of sites/gridcells.
     ! Find size of 'x' or 'lon' dimension:
@@ -2035,7 +2036,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
-      !write(*,*) 'line 1957'
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
     ELSE IF(metGrid=='land') THEN

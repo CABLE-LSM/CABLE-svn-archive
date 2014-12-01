@@ -88,6 +88,7 @@ MODULE cable_common_module
      !MD
       LOGICAL :: GW_MODEL = .FALSE.
       LOGICAL :: alt_forcing = .FALSE.
+      LOGICAL :: twod_subgrid = .FALSE.
 
    END TYPE kbl_user_switches
 
@@ -108,7 +109,8 @@ MODULE cable_common_module
       soil,       & ! name of file for soil parameters
       soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
       inits,      & ! name of file for initialisations
-      soilIGBP      ! name of file for IGBP soil map
+      soilIGBP,   & ! name of file for IGBP soil map
+      elevation     !file anme for subgrid tiling using elevation
 
    END TYPE filenames_type
 

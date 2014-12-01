@@ -61,6 +61,9 @@ MODULE cable_IO_vars_module
    CHARACTER(LEN=4) :: metGrid ! Either 'land' or 'mask'
    
    INTEGER,POINTER,DIMENSION(:,:) :: mask ! land/sea mask from met file
+   REAL, SAVE, POINTER,DIMENSION(:,:,:)   :: elev3D
+   REAL, SAVE, POINTER, DIMENSION(:,:,:)  :: tilearea3D
+   REAL, SAVE, POINTER, DIMENSION(:,:,:)  :: tiledistance3D
    
    INTEGER,POINTER,DIMENSION(:) :: land_x,land_y ! indicies of land in mask
    

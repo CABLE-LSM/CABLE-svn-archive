@@ -67,6 +67,13 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
+  
+  
+  use cable_common_module
+  use cable_data_module
+  use netcdf  
+  
+  
   IMPLICIT NONE
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
@@ -121,6 +128,8 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWWatr
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inWatr
 
+  REAL,    DIMENSION(:,:,:),    ALLOCATABLE :: inArea3d, inDist, inElev
+
   ! vars intro for Ticket #27 
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
 
@@ -128,7 +137,7 @@ CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
     use cable_common_module, only : get_type_parameters, filename,             &
-                                    calcsoilalbedo
+                                    calcsoilalbedo, cable_user
   ! Load parameters for each veg type and each soil type. (get_type_parameters)
   ! Also read in initial information for each grid point. (read_gridinfo)
   ! Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
@@ -144,6 +153,12 @@ CONTAINS
     INTEGER :: npatch
     INTEGER :: nlon
     INTEGER :: nlat
+
+    integer :: ncid_elv, elev
+    CHARACTER(LEN=20)  :: elev_name
+
+    real, allocatable, dimension(:,:,:)    :: rtmp3d
+    integer, allocatable, dimension(:,:,:) :: itmp3d
 
     ! Get parameter values for all default veg and soil types:
     CALL get_type_parameters(logn, vegparmnew, classification)
@@ -167,8 +182,67 @@ CONTAINS
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
 
+
   END SUBROUTINE get_default_params
-  !=============================================================================
+ !=============================================================================
+  SUBROUTINE get_tiled_elevation(nlon,nlat,npatch)
+
+    implicit none
+    integer, intent(in) :: nlon, &
+                           nlat, &
+                           npatch
+    integer :: ncid_elv, ok, ok2, elevID
+
+    allocate(inElev(nlon,nlat,npatch))
+    allocate(inDist(nlon,nlat,npatch))
+    allocate(inArea3d(nlon,nlat,npatch))
+ 
+     ok = NF90_OPEN(filename%elevation,0,ncid_elv)
+     IF (ok /= NF90_NOERR) CALL nc_abort &
+         (ok,'Error opening netcdf elevation forcing file'//TRIM(filename%elevation)// &
+         ' (SUBROUTINE open_met_file)')
+
+     ok = NF90_INQ_VARID(ncid_elv, 'elevation', elevID) ! check for elevation
+     IF(ok .eq. NF90_NOERR) THEN
+       ok2 = NF90_GET_VAR(ncid_elv,elevID,inElev)
+       !IF(ok2 /= NF90_NOERR) CALL nc_abort &
+       !     (ok2,'Error reading elevation variable in ')
+       ! do i=1,mland
+       !    ib = landpt%cstart(i)
+       !    ie = landpt%cend(i)
+       !    soil%elevation(ib:ie) = rtmp3D(land_x(i),land_y(i),:)
+       ! end do
+       ! rtmp3D = 0.0
+     END IF
+
+     ok = NF90_INQ_VARID(ncid_elv, 'distance', elevID) ! check for elevation
+     IF(ok .eq. NF90_NOERR) THEN
+       ok2 = NF90_GET_VAR(ncid_elv,elevID,inDist)
+     END IF
+
+     ok = NF90_INQ_VARID(ncid_elv, 'area', elevID) ! check for elevation
+     IF(ok .eq. NF90_NOERR) THEN
+       ok2 = NF90_GET_VAR(ncid_elv,elevID,inArea3d)
+     END IF
+
+     ok = NF90_INQ_VARID(ncid_elv, 'iveg', elevID) ! check for elevation
+     IF(ok .eq. NF90_NOERR) THEN
+       ok2 = NF90_GET_VAR(ncid_elv,elevID,inVeg)
+     END IF
+
+     ok = NF90_INQ_VARID(ncid_elv, 'patchfrac', elevID) ! check for elevation
+     IF(ok .eq. NF90_NOERR) THEN
+       ok2 = NF90_GET_VAR(ncid_elv,elevID,inPFrac)
+     END IF
+
+     !done with th elevation file so close if
+     ok=NF90_CLOSE(ncid_elv)
+     IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
+         //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
+
+
+  END SUBROUTINE get_tiled_elevation
+ !=============================================================================
   SUBROUTINE read_gridinfo(nlon, nlat, npatch)
   ! Reads in veg type, patch fraction, soil type, soil moisture and temperature
   ! profiles; also grid area and nutrients
@@ -195,7 +269,7 @@ CONTAINS
   ! soil profiles with the correct monthly average values (BP apr2010)
 
     USE netcdf
-    use cable_common_module, only : filename
+    use cable_common_module, only : filename, cable_user
       
     IMPLICIT NONE
     INTEGER, INTENT(OUT) :: nlon
@@ -377,8 +451,11 @@ CONTAINS
 
     ENDIF
 
+    if (cable_user%twod_subgrid) CALL get_tiled_elevation(nlon,nlat,npatch)
+
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
+    
 
   END SUBROUTINE read_gridinfo
   !============================================================================
@@ -1272,6 +1349,31 @@ CONTAINS
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
+    
+    if (cable_user%twod_subgrid) then
+       DO e = 1, mland ! over all land grid points
+          veg%iveg(landpt(e)%cstart:landpt(e)%cend) =                              &
+                             inVeg(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
+          patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
+                           inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)    
+                           
+          soil%elevation(landpt(e)%cstart:landpt(e)%cend) =                    &
+                           inElev(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap)
+                           
+          soil%distance(landpt(e)%cstart:landpt(e)%cend) =                    &
+                           inDist(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap)
+                           
+          soil%area(landpt(e)%cstart:landpt(e)%cend) =                    &
+                           inArea3d(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap)  
+                           
+       end do
+       
+       deallocate(inDist)
+       deallocate(inArea3d)
+       deallocate(inElev)
+       
+    end if               
+    
 
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &

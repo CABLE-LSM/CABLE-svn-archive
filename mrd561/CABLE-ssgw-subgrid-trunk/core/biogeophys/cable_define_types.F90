@@ -54,7 +54,8 @@ MODULE cable_def_types_mod
       msn = 3,       & ! max # snow layers
       swb = 2,       & ! # shortwave bands 
       niter = 4,     & ! number of iterations for za/L
-      ms = 6           ! # soil layers
+      ms = 6,        & ! # soil layers
+      mtiles = 9       !number of tiles when using elevation depend. tiling
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
@@ -151,6 +152,8 @@ MODULE cable_def_types_mod
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
+         
+      real, dimension(:), pointer :: elevation, distance, area
 
   END TYPE soil_parameter_type
 
@@ -261,6 +264,8 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
+         
+       real(r_2), dimension(:), pointer :: qsrf_store, qsrf_flow, qsrf_gen
          
          
    END TYPE soil_snow_type
@@ -668,6 +673,9 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
    allocate( var%densoil(mp,ms) )
+   allocate( var%elevation(mp) )
+   allocate( var%distance(mp) )
+   allocate( var%area(mp) )
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -772,6 +780,10 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
    var%GWwb = 0.45_r_2
+   
+   allocate( var%qsrf_store(mp) )
+   allocate( var%qsrf_flow(mp) ) 
+   allocate( var%qsrf_gen(mp) )
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -1116,6 +1128,9 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
    DEALLOCATE( var%densoil )   
+   deallocate( var%elevation )
+   deallocate( var%distance )
+   deallocate( var%area )
    
 END SUBROUTINE dealloc_soil_parameter_type
  
@@ -1216,6 +1231,10 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
+   
+   deallocate( var%qsrf_store )
+   deallocate( var%qsrf_flow ) 
+   deallocate( var%qsrf_gen )
    
 END SUBROUTINE dealloc_soil_snow_type
    
