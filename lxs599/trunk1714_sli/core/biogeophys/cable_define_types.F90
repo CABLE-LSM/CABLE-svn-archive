@@ -55,8 +55,9 @@ MODULE cable_def_types_mod
       msn = 3,       & ! max # snow layers
       swb = 2,       & ! # shortwave bands 
       niter = 4,     & ! number of iterations for za/L
-       ms = 12          ! # soil layers
-      ! ms = 6          ! # soil layers - standard
+!      ms = 12          ! # soil layers
+      ms = 6          ! # soil layers - standard
+!      ms = 13          ! for Loetschental experiment
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
@@ -233,18 +234,16 @@ MODULE cable_def_types_mod
 
      ! Additional SLI variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: S         ! moisture content relative to sat value    (edit vh 23/01/08)
+     REAL(r_2), DIMENSION(:,:), POINTER :: Tsoil         !     Tsoil (deg C)
      REAL(r_2), DIMENSION(:),   POINTER :: SL        ! litter moisture content relative to sat value (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:),   POINTER :: TL        ! litter temperature in K     (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:),   POINTER :: h0        ! pond height in m            (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: rex       ! root extraction from each layer (mm/dels)
      REAL(r_2), DIMENSION(:,:), POINTER :: wflux     ! water flux at layer boundaries (mm s-1)
-     REAL(r_2), DIMENSION(:,:), POINTER :: hflux     ! heat flux at layer boundaries (J m-2 s-1)
      REAL(r_2), DIMENSION(:),   POINTER :: delwcol   ! change in water column (mm / dels)
      REAL(r_2), DIMENSION(:),   POINTER :: zdelta    ! water table depth           (edit vh 23/06/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: kth       ! thermal conductivity           (edit vh 29/07/08)
      REAL(r_2), DIMENSION(:),   POINTER :: Tsurface  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: rh0       !  relative humidity at top of soil column (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: rhsurface ! relative at surface (soil, pond or litter) (edit vh 22/10/08)
      REAL(r_2), DIMENSION(:),   POINTER :: lE        ! soil latent heat flux
      REAL(r_2), DIMENSION(:),   POINTER :: evap      ! soil evaporation (mm / dels)
      REAL(r_2), DIMENSION(:,:), POINTER :: ciso      ! concentration of minor isotopologue in soil water (kg m-3 water)
@@ -254,8 +253,8 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:,:), POINTER :: snowliq   ! liquid snow content (mm H2O)
      REAL(r_2), DIMENSION(:),   POINTER :: nsteps    ! number of iterations at each timestep
      REAL(r_2), DIMENSION(:),   POINTER :: TsurfaceFR  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:,:),   POINTER :: Ta_daily        ! air temp averaged over last 24h
-     INTEGER, DIMENSION(:), POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
+     REAL(r_2), DIMENSION(:,:), POINTER :: Ta_daily        ! air temp averaged over last 24h
+     INTEGER,   DIMENSION(:),   POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
      REAL(r_2), DIMENSION(:),   POINTER :: Qadv_daily  ! advective heat flux into surface , daily average (W m-2)
      REAL(r_2), DIMENSION(:),   POINTER :: G0_daily  ! conductive heat flux into surface , daily average (W m-2)
      REAL(r_2), DIMENSION(:),   POINTER :: Qevap_daily ! evaporative flux at surface, daily average (m s-1)
@@ -387,13 +386,13 @@ MODULE cable_def_types_mod
          ofes     ! latent heatfl from soil (W/m2)
 
      ! Additional variables:
-     REAL(r_2), DIMENSION(:,:), POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
-     REAL(r_2), DIMENSION(:,:,:), POINTER :: ancj ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
-     REAL(r_2), DIMENSION(:,:), POINTER :: tlfy   ! sunlit and shaded leaf temperatures
-     REAL(r_2), DIMENSION(:,:), POINTER :: ecy    ! sunlit and shaded leaf transpiration (dry canopy)
-     REAL(r_2), DIMENSION(:,:), POINTER :: ecx    ! sunlit and shaded leaf latent heat flux
-     REAL(r_2), DIMENSION(:,:,:), POINTER :: ci   ! intra-cellular CO2 vh 6/7/09
-     REAL(r_2), DIMENSION(:), POINTER :: fwsoil   !
+     REAL(r_2), DIMENSION(:,:),   POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
+     REAL(r_2), DIMENSION(:,:,:), POINTER :: ancj   ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
+     REAL(r_2), DIMENSION(:,:),   POINTER :: tlfy   ! sunlit and shaded leaf temperatures
+     REAL(r_2), DIMENSION(:,:),   POINTER :: ecy    ! sunlit and shaded leaf transpiration (dry canopy)
+     REAL(r_2), DIMENSION(:,:),   POINTER :: ecx    ! sunlit and shaded leaf latent heat flux
+     REAL(r_2), DIMENSION(:,:,:), POINTER :: ci     ! intra-cellular CO2 vh 6/7/09
+     REAL(r_2), DIMENSION(:),     POINTER :: fwsoil !
 
    END TYPE canopy_type
 
@@ -768,18 +767,16 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     ALLOCATE ( var % S(mp,ms) )
+ ALLOCATE ( var % Tsoil(mp,ms) )
     ALLOCATE ( var % SL(mp) )
     ALLOCATE ( var % TL(mp) )
     ALLOCATE ( var % h0(mp) )
     ALLOCATE ( var % rex(mp,ms) )
     ALLOCATE ( var % wflux(mp,0:ms) )
-    ALLOCATE ( var % hflux(mp,0:ms) )
     ALLOCATE ( var % delwcol(mp) )
     ALLOCATE ( var % zdelta(mp) )
     ALLOCATE ( var % kth(mp,ms) )
     ALLOCATE ( var % Tsurface(mp) )
-    ALLOCATE ( var % rh0(mp) )
-    ALLOCATE ( var % rhsurface(mp) )
     ALLOCATE ( var % lE(mp) )
     ALLOCATE ( var % evap(mp) )
     ALLOCATE ( var % ciso(mp,ms+1) )
@@ -1248,18 +1245,16 @@ SUBROUTINE dealloc_soil_snow_type(var)
    
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
+    DEALLOCATE ( var % Tsoil )
     DEALLOCATE ( var % SL )
     DEALLOCATE ( var % TL )
     DEALLOCATE ( var % h0)
     DEALLOCATE ( var % rex )
     DEALLOCATE ( var % wflux )
-    DEALLOCATE ( var % hflux )
     DEALLOCATE ( var % delwcol )
     DEALLOCATE ( var % zdelta )
     DEALLOCATE ( var % kth )
     DEALLOCATE ( var % Tsurface )
-    DEALLOCATE ( var % rh0 )
-    DEALLOCATE ( var % rhsurface )
     DEALLOCATE ( var % lE )
     DEALLOCATE ( var % evap )
     DEALLOCATE ( var % ciso )

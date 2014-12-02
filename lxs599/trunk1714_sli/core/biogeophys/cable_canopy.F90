@@ -267,7 +267,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                         (rad%extkb(j)+0.5*rough%coexp(j))
             
             gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
-                        (1.0-EXP(max(-0.5*rough%coexp(j)*canopy%vlaiw(j),1.e-12))) &
+                        (1.0-EXP(-max(0.5*rough%coexp(j)*canopy%vlaiw(j),1.e-12))) &
                         - gbhu(j,1)
          ENDIF 
       
@@ -353,6 +353,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
 
+          ssnow%cls = 1.
+
           WHERE (ssnow%smass(:,1).gt.0.0_r_2)
              kth = ssnow%sconds(:,1)
              dz = ssnow%sdepth(:,1)/2.0
@@ -436,6 +438,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+
+          ssnow%cls = 1.
 
           WHERE (ssnow%smass(:,1).gt.0.0_r_2)
              kth = ssnow%sconds(:,1)
@@ -535,7 +539,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    END DO           ! do iter = 1, NITER
 
 
-   canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
+   canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN+min(rough%z0m,0.5)))**2
 
    !---diagnostic purposes
    canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         & 
@@ -821,7 +825,7 @@ SUBROUTINE Latent_heat_flux()
          ! E.Kowalczyk 2014 - reduces the soil evaporation
          flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
         ENDIF
-         fupper_limit(j) = MAX( 0._r_2,                                        &
+         fupper_limit(j) = MAX( 0.,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
 
@@ -1743,12 +1747,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             an_y(i,2) = anx(i,2)
             
             ! save last values calculated for ssnow%evapfbl
-            oldevapfbl(i,1) = ssnow%evapfbl(i,1)
-            oldevapfbl(i,2) = ssnow%evapfbl(i,2)
-            oldevapfbl(i,3) = ssnow%evapfbl(i,3)
-            oldevapfbl(i,4) = ssnow%evapfbl(i,4)
-            oldevapfbl(i,5) = ssnow%evapfbl(i,5)
-            oldevapfbl(i,6) = ssnow%evapfbl(i,6)
+             oldevapfbl(i,:) = ssnow%evapfbl(i,:)
+!!$            oldevapfbl(i,1) = ssnow%evapfbl(i,1)
+!!$            oldevapfbl(i,2) = ssnow%evapfbl(i,2)
+!!$            oldevapfbl(i,3) = ssnow%evapfbl(i,3)
+!!$            oldevapfbl(i,4) = ssnow%evapfbl(i,4)
+!!$            oldevapfbl(i,5) = ssnow%evapfbl(i,5)
+!!$            oldevapfbl(i,6) = ssnow%evapfbl(i,6)
 
          ENDIF
           
@@ -2140,7 +2145,7 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
    REAL, DIMENSION(mp) :: rwater ! soil water availability
 
    rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
   
    fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
@@ -2160,7 +2165,7 @@ SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
    INTEGER :: j
 
    rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(0.0,MIN(1.0_r_2,ssnow%wb -                   &
+            SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
 
    fwsoil = 1.

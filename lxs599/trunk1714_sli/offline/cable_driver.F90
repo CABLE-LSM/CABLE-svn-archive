@@ -121,18 +121,20 @@ PROGRAM cable_offline_driver
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
       kend,       &  ! no. of time steps in run
                                 !CLN      kstart = 1, &  ! timestep to start at
-       koffset = 0, &  ! timestep to start at
+      koffset = 0, &  ! timestep to start at
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
       nyear,      &  ! year counter for CASA-CNP
       maxdiff(2), &  ! location of maximum in convergence test
-       casa_it,    &  ! number of calls to CASA-CNP
-       YYYY,       &  !
-       RYEAR,      &  !
-       RRRR,       &  !
-       NRRRR,      &  !
-       ctime,      &  ! day count for casacnp
-       LOY
+      spinLoop,   &  ! specifying number of loops in spinup
+      ii,         &  !
+      casa_it,    &  ! number of calls to CASA-CNP
+      YYYY,       &  !
+      RYEAR,      &  !
+      RRRR,       &  !
+      NRRRR,      &  !
+      ctime,      &  ! day count for casacnp
+      LOY
 
    REAL :: dels                        ! time step size in seconds
    
@@ -163,25 +165,27 @@ PROGRAM cable_offline_driver
    TYPE (casa_met)       :: casamet
    TYPE (casa_balance)   :: casabal
    TYPE (phen_variable)  :: phen 
-  TYPE ( POP_TYPE )     :: POP
-  CHARACTER             :: cyear*4
-  CHARACTER             :: ncfile*99
+   TYPE ( POP_TYPE )     :: POP
+   CHARACTER             :: cyear*4
+   CHARACTER             :: ncfile*99
    
    ! declare vars for switches (default .FALSE.) etc declared thru namelist
    LOGICAL, SAVE           :: &
       vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
       spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
       spinConv = .FALSE.,         & ! has spinup converged?
+      spin_1yr = .FALSE.,         & ! only use 1 year of forcing for spinup
+      spin_sat = .FALSE.,         & ! spinup start with saturated soil
       spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-       l_vcmaxFeedbk = .FALSE.,    & ! using prognostic Vcmax
-       CASAONLY      = .FALSE.,    & ! ONLY Run CASA-CNP
-       CALL1 = .TRUE.,             &
-       SPINon= .TRUE.
+      l_vcmaxFeedbk = .FALSE.,    & ! using prognostic Vcmax
+      CASAONLY      = .FALSE.,    & ! ONLY Run CASA-CNP
+      CALL1 = .TRUE.,             &
+      SPINon= .TRUE.
    
    
    REAL              :: &  
@@ -205,6 +209,8 @@ PROGRAM cable_offline_driver
                   soilparmnew,      & ! use new soil param. method
                   calcsoilalbedo,   & ! albedo considers soil color Ticket #27
                   spinup,           & ! spinup model (soil) to steady state 
+                  spin_1yr,spin_sat,& ! specifying spinup initial conditions
+                  spinLoop,         & ! specifying number of loops in spinup
                   delsoilM,delsoilT,& ! 
                   output,           &
                   patchout,         &
@@ -258,6 +264,9 @@ PROGRAM cable_offline_driver
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
+     IF ( IARGC() > 2 ) THEN
+      CALL GETARG(3, filename%restart_in)
+     ENDIF
    ENDIF
 
 !!!! INISTUFF
@@ -326,15 +335,19 @@ PROGRAM cable_offline_driver
   IF ( TRIM(cable_user%MetType) .NE. "gswp" ) THEN
 
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+
+   ! spinup using 1 year data only, assume 365 days (normal spin use all data)
+   IF (spinup .AND. spin_1yr) kend = 365 * 24 * 3600.0 / dels
       
   ELSE IF ( NRRRR .GT. 1 ) THEN
      ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
   ENDIF
+
   ! outer loop - spinup loop no. ktau_tot :
   ktau_tot = 0
   SPINon   = .TRUE.
 
-  SPINLOOP:DO WHILE ( SPINon )
+  SPIN_LOOP:DO WHILE ( SPINon )
 
      NREP: DO RRRR = 1, NRRRR
         YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
@@ -387,6 +400,16 @@ PROGRAM cable_offline_driver
                          bal, logn, vegparmnew, casabiome, casapool,           &
                    casaflux, casamet, casabal, phen, POP, spinup,        &
                    C%EMSOIL, C%TFRZ )
+
+   ! spinup can specify to start from saturated soil
+   IF (spinup .AND. spin_sat) THEN
+      DO ii = 1, ms
+         ssnow%wb(:,ii) = soil%ssat(:)
+      ENDDO
+      PRINT *, 'Soil moisture altered to saturation: ', ssnow%wb(1,:)
+      WRITE(logn,'(A38,6f7.4)') 'Soil moisture altered to saturation:', &
+                                 ssnow%wb(1,:)
+   ENDIF
    
    ! Open output file:
               IF (.not.CASAONLY) THEN
@@ -633,6 +656,14 @@ PROGRAM cable_offline_driver
                  IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
          
          END IF
+
+         IF (spinup .AND. spin_1yr) THEN
+            IF (INT(ktau_tot/kend) < spinLoop-1) THEN
+               spinConv = .FALSE.
+            ELSE
+               spinConv = .TRUE.
+            END IF
+         END IF
          
          ! store soil moisture and temperature
               IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
@@ -706,7 +737,7 @@ PROGRAM cable_offline_driver
  
      END DO NREP
 
-  END DO SPINLOOP
+  END DO SPIN_LOOP
 
   IF ( SpinConv .AND. .NOT. CASAONLY ) THEN
    ! Close output file and deallocate main variables:

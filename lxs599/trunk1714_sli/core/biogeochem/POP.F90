@@ -1,81 +1,115 @@
+! This file contains Fortran90 code for the POP model,
+! a stand-alone tree demography and landscape structure module for Earth system models
+! 17-01-2014
+! Written by Vanessa Haverd, Ben Smith and Lars Nieradzik
+! Report Bugs to Vanessa.Haverd@csiro.au
+
+
+!CITATION
+!--------------------------------------------------------
+!When referring to this code in publications, please cite:
+
+! Haverd, V., Smith, B., Cook, G., Briggs, P.R., Nieradzik, L., Roxburgh, S.R., Liedloff, A.,
+! Meyer, C.P. and Canadell, J.G., 2013.
+! A stand-alone tree demography and landscape structure module for Earth system models.
+! Geophysical Research Letters, 40: 1-6.
+
+
+!DISCLAIMER, COPYRIGHT AND LICENCE
+
+!--------------------------------------------------------
+
+! Use of this code is subject to the Legal Notice and Disclaimer at
+
+! http://www.csiro.au/org/LegalNoticeAndDisclaimer.html
+
+! This code is Copyright, CSIRO, 2014.
+
+! This code is made available under the conditions of the Creative Commons
+
+! Attribution-Share Alike 3.0 License:
+! http://creativecommons.org/licenses/by-sa/3.0/
 !*******************************************************************************
 
 MODULE TypeDef
   !-------------------------------------------------------------------------------
-  ! PRB: 18-06-2000
   ! This module explicitly defines the sizes of variable types
   !-------------------------------------------------------------------------------
+
   IMPLICIT NONE
-  SAVE
+
+  !SAVE
+
   ! Define integer kind parameters to accommodate the range of numbers usually
   ! associated with 4, 2, and 1 byte integers.
-  INTEGER,PARAMETER :: i4b = SELECTED_INT_KIND(9)
-  INTEGER,PARAMETER :: i2b = SELECTED_INT_KIND(4)
-  INTEGER,PARAMETER :: i1b = SELECTED_INT_KIND(2)
+  INTEGER, PARAMETER :: i4b = SELECTED_INT_KIND(9)
+  INTEGER, PARAMETER :: i2b = SELECTED_INT_KIND(4)
+  INTEGER, PARAMETER :: i1b = SELECTED_INT_KIND(2)
   ! Define single and double precision real kind parameters:
   ! * Kind(1.0)   defines sp as the machine's default size for single precision
   ! * Kind(1.0d0) defines dp as the machine's default size for double precision
-  !INTEGER,PARAMETER :: sp  = KIND(1.0)
-  !INTEGER,PARAMETER :: dp  = KIND(1.0d0)
-  !INTEGER,PARAMETER :: sp = SELECTED_REAL_KIND(6,37)    ! IEEE single Precision Real
-  INTEGER,PARAMETER :: dp  = SELECTED_REAL_KIND(12, 50) ! IEEE double Precision Real
+  INTEGER, PARAMETER :: sp  = KIND(1.0)
+  INTEGER, PARAMETER :: dp  = KIND(1.0d0)
   ! lgt is set to the default kind required for representing logical values.
-  INTEGER,PARAMETER :: lgt = KIND(.TRUE.)
+  INTEGER, PARAMETER :: lgt = KIND(.TRUE.)
 
 END MODULE TypeDef
 
 
 !*******************************************************************************
 MODULE POP_Constants
+
   USE TYPEdef, ONLY: dp, i4b
 
-  !REAL(dp),PARAMETER:: FULTON_ALPHA=9.61 ! recruitment scalar alpha in Fulton (1991)
-  REAL(dp),PARAMETER:: FULTON_ALPHA=5.6 ! recruitment scalar alpha in Fulton (1991)
-  REAL(dp),PARAMETER:: DENSINDIV_MAX=2.0  !  Maximum density of individuals within a cohort indiv/m2
+  REAL(dp),PARAMETER:: FULTON_ALPHA= 5.6! recruitment scalar alpha in Fulton (1991)
+  REAL(dp),PARAMETER:: DENSINDIV_MAX=2  !  Maximum density of individuals within a cohort indiv/m2
   REAL(dp),PARAMETER:: DENSINDIV_MIN=1e-12 !
   REAL(dp),PARAMETER:: Kbiometric=50.0 ! Constant in height-diameter relationship
   REAL(dp),PARAMETER:: WD= 300.0 ! Wood density kgC/m3
   REAL(dp),PARAMETER:: GROWTH_EFFICIENCY_MIN=0.015 ! threshold growth efficiency for enhanced mortality
-  !REAL(dp),PARAMETER:: GROWTH_EFFICIENCY_MIN=0.0076 ! threshold growth efficiency for enhanced mortality
   REAL(dp),PARAMETER:: Pmort=5.0 ! exponent in mortality formula
   REAL(dp),PARAMETER:: MORT_MAX=0.3 ! upper asymptote for enhanced mortality
   REAL(dp),PARAMETER:: THETA_recruit=0.95 ! shape parameter in recruitment equation
   REAL(dp),PARAMETER:: CMASS_STEM_INIT= 1e-6 ! initial biomass kgC/m2
   REAL(dp),PARAMETER:: POWERbiomass=0.75 ! exponent for biomass in proportion to which cohorts preempt resources
   REAL(dp),PARAMETER:: POWERGrowthEfficiency = 0.75
-  REAL(dp),PARAMETER:: CrowdingFactor = 0.016
-  !REAL(dp),PARAMETER:: CrowdingFactor = 0.049
+  REAL(dp),PARAMETER:: CrowdingFactor = 0.0128
   REAL(dp),PARAMETER:: ALPHA_CPC = 10.0
-  !REAL(dp),PARAMETER:: ALPHA_CPC = 3.33
-  REAL(dp),PARAMETER:: k_allom1 = 200.0 ! crownarea =  k_allom1 * diam ** k_rp
-  REAL(dp),PARAMETER:: k_rp = 1.67
-
+  REAL(dp),PARAMETER:: k_allom1 = 200.0 ! crown area =  k_allom1 * diam ** k_rp
+  REAL(dp),PARAMETER:: k_rp = 1.67  ! constant in crown area relation to tree diameter
 
   REAL(dp),PARAMETER:: Q=7.0 ! governs rate of increase of mortality with age (2=exponential)
   REAL(dp),PARAMETER:: F_MORT=0.0001 ! proportion of cohort surviving to age Amax
   REAL(dp),PARAMETER:: AMAX=250.0 ! age to which proportion F of cohort will survive in absence of resource stress
-  REAL(dp),PARAMETER:: EPS=1e-12;
-  INTEGER(i4b),PARAMETER :: NLAYER = 1
-  INTEGER(i4b),PARAMETER :: NCOHORT_MAX = 20
-  INTEGER(i4b),PARAMETER :: NDISTURB=2 ! number of disturbance regimes (1 or 2)
+  REAL(dp),PARAMETER:: EPS=1e-12
+  INTEGER(i4b),PARAMETER :: NLAYER = 1 ! number of vertical veg layers (1 is currently the only option)
+  INTEGER(i4b),PARAMETER :: NCOHORT_MAX = 20 ! maximum number of cohorts
+  INTEGER(i4b),PARAMETER :: NDISTURB=1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
   INTEGER(i4b),PARAMETER :: PATCH_REPS=7 ! higher number reduces 'noise'
   INTEGER(i4b),PARAMETER :: NAGE_MAX = 6 ! number of maxium ages
-  INTEGER(i4b),PARAMETER :: NPATCH=(NAGE_MAX*PATCH_REPS)**NDISTURB ! number of patches with different disturbance intervals to simulate
+  ! number of patches with different disturbance intervals to simulate
+  INTEGER(i4b),PARAMETER :: NPATCH=(NAGE_MAX*PATCH_REPS)**NDISTURB
   INTEGER(i4b),PARAMETER :: NPATCH1D=(NAGE_MAX*PATCH_REPS)
-  INTEGER(i4b),PARAMETER :: NPATCH2D= NPATCH  ! + NPATCH1D*(NDISTURB-1) ! number of patches to be simulated, including those correponding to a1>a2
+  INTEGER(i4b),PARAMETER :: NPATCH2D= NPATCH ! number of patches to be simulated, including those correponding to a1>a2
   INTEGER(i4b),PARAMETER ::  HEIGHT_BINS=12 ! number of height categories to keep track of for diagnostics
   REAL(dp),PARAMETER:: BIN_POWER=1.4 ! bins have muscles
-  INTEGER(i4b),PARAMETER :: TIMEBASE_FACTOR=50 ! Time base factor (to be multiplied by mean dist interval to give TIMEBASE)  for sampling disturbance probabilities from Poisson distribution
+  ! Time base factor (to be multiplied by mean dist interval to give TIMEBASE)
+  ! for sampling disturbance probabilities from Poisson distribution
+  INTEGER(i4b),PARAMETER :: TIMEBASE_FACTOR=50
   REAL(dp),PARAMETER:: PI=3.14159265358979323846264
   INTEGER(i4b),PARAMETER :: ALLOM_SWITCH = 0 ! 0 == default; 1 = top-end allometry (requires precip as input to POPSTEP)
-  INTEGER(i4b),PARAMETER :: MAX_HEIGHT_SWITCH = 2 ! 0 == binnned max height variable; 1 = continuous (needs lots of memory); 2 = binned by integer heights
+  ! 0 == binnned max height variable; 1 = continuous (needs lots of memory); 2 = binned by integer heights
+  INTEGER(i4b),PARAMETER :: MAX_HEIGHT_SWITCH = 2
 
 END MODULE POP_Constants
+
 !*******************************************************************************
+
 MODULE POP_Types
+
   USE TYPEdef, ONLY: dp, i4b
   USE POP_Constants, ONLY: NCOHORT_MAX, NLAYER, HEIGHT_BINS, NDISTURB, NPATCH, NPATCH2D
-  !USE BGCModule, ONLY: np
+
 
   TYPE Cohort
      INTEGER(i4b) :: id
@@ -102,24 +136,22 @@ MODULE POP_Types
      REAL(dp)     :: factor_recruit
      REAL(dp) :: biomass ! total biomass in patch
      REAL(dp) :: biomass_old ! total biomass in patch
-     REAL(dp) :: biomass_old2 ! total biomass in patch
      REAL(dp) :: stress_mortality ! biomass lost in each patch due to stress
      REAL(dp) :: fire_mortality ! biomass lost in each patch due partial fire disturbance
      REAL(dp) :: crowding_mortality ! biomass lost to crowding mortality
+     REAL(dp) :: cpc
      REAL(dp) :: mortality !
      REAL(dp) :: growth ! biomass growth in each patch due to stem increment
      INTEGER(i4b) :: disturbance_interval(NDISTURB)  ! prescribed disturbance(s) interval for this patch
      INTEGER(i4b) :: first_disturbance_year(NDISTURB)
      INTEGER(i4b) :: age(NDISTURB) ! number of years since last disturbance(s)
-     INTEGER(i4b) :: age_old(NDISTURB) ! number of years since last disturbance(s)
      INTEGER(i4b) :: id
   END TYPE Patch
 
   TYPE Landscape
      TYPE (Patch), DIMENSION(NPATCH2D) :: patch
      REAL(dp), DIMENSION(NPATCH2D)     :: freq ! patch weighting
-     REAL(dp), DIMENSION(NPATCH2D)     :: freq_old ! patch weighting
-     REAL(dp), DIMENSION(NPATCH2D)     :: freq_old2 ! patch weighting
+     REAL(dp), DIMENSION(NPATCH2D)     :: freq_old ! patch weighting (previous time-step)
      REAL(dp), DIMENSION(NPATCH2D,NDISTURB)     :: freq_ranked_age_unique ! unique age weighting
      INTEGER(i4b), DIMENSION(NPATCH2D, NDISTURB)     :: ranked_age_unique ! unique age
      INTEGER(i4b), DIMENSION(NDISTURB)     :: n_age ! number of unique ages
@@ -158,10 +190,10 @@ MODULE POPModule
   !-------------------------------------------------------------------------------
   ! * This module contains all subroutines for POP calcs at a single time step.
   !-------------------------------------------------------------------------------
-  USE TYPEdef, ONLY: i4b
+  USE TYPEdef, ONLY: sp, i4b
   USE POP_Types
   USE POP_Constants
-  !USE BGCModule, ONLY: np
+
 
 CONTAINS
 
@@ -171,14 +203,11 @@ CONTAINS
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
     INTEGER:: g,k,l,c, np
 
-    PRINT*,"ZEROPOP"
-
     np = SIZE(pop%pop_grid)
 
     DO g=1,np
        POP%pop_grid(g)%freq = 0 ! patch weighting
        POP%pop_grid(g)%freq_old = 0 ! patch weighting
-       POP%pop_grid(g)%freq_old2 = 0 ! patch weighting
        POP%pop_grid(g)%biomass = 0 ! landscape stem biomass (weighted mean over patches)
        POP%pop_grid(g)%density= 0  ! landscape tree density (weighted mean over patches)
        POP%pop_grid(g)%hmean= 0  ! landscape mean treen height (weighted mean over patches)
@@ -204,16 +233,15 @@ CONTAINS
           POP%pop_grid(g)%patch(k)%factor_recruit= 0
           POP%pop_grid(g)%patch(k)%biomass= 0  ! total biomass in patch
           POP%pop_grid(g)%patch(k)%biomass_old= 0
-          POP%pop_grid(g)%patch(k)%biomass_old2 = 0
           POP%pop_grid(g)%patch(k)%stress_mortality = 0  ! biomass lost in each patch due to stress
           POP%pop_grid(g)%patch(k)%fire_mortality= 0 ! biomass lost in each patch due to fire partial dist
           POP%pop_grid(g)%patch(k)%crowding_mortality = 0
+          POP%pop_grid(g)%patch(k)%cpc = 0
           POP%pop_grid(g)%patch(k)%mortality = 0
           POP%pop_grid(g)%patch(k)%growth= 0  ! biomass growth in each patch due stem increment
           POP%pop_grid(g)%patch(k)%disturbance_interval= 0   ! prescribed disturbance(s) interval for this patch
           POP%pop_grid(g)%patch(k)%first_disturbance_year = 0
           POP%pop_grid(g)%patch(k)%age= 0  ! number of years since last disturbance(s)
-          POP%pop_grid(g)%patch(k)%age_old= 0  ! number of years since last disturbance(s)
           POP%pop_grid(g)%patch(k)%id = 0
           DO l=1,NLAYER
              POP%pop_grid(g)%patch(k)%Layer(L)%ncohort = 0 ! number of cohorts with density >0
@@ -258,7 +286,7 @@ CONTAINS
     INTEGER(i4b):: disturbances_per_timebase, timebase
     INTEGER:: i_min, i_max, age_sample(2,NAGE_MAX), tmp(NAGE_MAX)
     INTEGER:: age_tmp, tmp_unique(NAGE_MAX), n_age, np
-    REAL(dp):: disturbance_freq, tmp1 ! (BEN)
+    REAL(dp):: disturbance_freq, tmp1
 
     np = SIZE(pop%pop_grid)
 
@@ -404,7 +432,6 @@ CONTAINS
                    patch_disturbance_interval1(k,k)   = disturbance_interval
                    tmp2 = disturbance_interval*c/PATCH_REPS
                    patch_first_disturbance_year1(k,k) = tmp2
-                   !write(*,*) tmp2
                 ELSEIF (idist.EQ.2) THEN
                    patch_disturbance_interval2(k,k)   = disturbance_interval
                    patch_first_disturbance_year2(k,k) = disturbance_interval*c/PATCH_REPS
@@ -428,9 +455,9 @@ CONTAINS
        DO k=1,NPATCH1D
           DO j=1,NPATCH1D
              POP%pop_grid(g)%patch(ipatch)%disturbance_interval(1)   = patch_disturbance_interval1(k,j)
-             POP%pop_grid(g)%patch(ipatch)%disturbance_interval(2)   = patch_disturbance_interval2(k,j)
+             POP%pop_grid(g)%patch(ipatch)%disturbance_interval(NDISTURB)   = patch_disturbance_interval2(k,j)
              POP%pop_grid(g)%patch(ipatch)%first_disturbance_year(1) = patch_first_disturbance_year1(k,j)
-             POP%pop_grid(g)%patch(ipatch)%first_disturbance_year(2) = patch_first_disturbance_year2(k,j)
+             POP%pop_grid(g)%patch(ipatch)%first_disturbance_year(NDISTURB) = patch_first_disturbance_year2(k,j)
              POP%pop_grid(g)%patch(ipatch)%age = 0
              POP%pop_grid(g)%patch(ipatch)%id = ipatch
              ipatch = ipatch + 1
@@ -440,9 +467,9 @@ CONTAINS
        IF (NPATCH2D.GT.NPATCH+1) THEN
           DO k=1,NPATCH1D
              POP%pop_grid(g)%patch(ipatch)%disturbance_interval(1)   = 0
-             POP%pop_grid(g)%patch(ipatch)%disturbance_interval(2)   = patch_disturbance_interval2(k,k)
+             POP%pop_grid(g)%patch(ipatch)%disturbance_interval(NDISTURB)   = patch_disturbance_interval2(k,k)
              POP%pop_grid(g)%patch(ipatch)%first_disturbance_year(1) = 0
-             POP%pop_grid(g)%patch(ipatch)%first_disturbance_year(2) = patch_first_disturbance_year2(k,k)
+             POP%pop_grid(g)%patch(ipatch)%first_disturbance_year(NDISTURB) = patch_first_disturbance_year2(k,k)
              POP%pop_grid(g)%patch(ipatch)%age = 0
              POP%pop_grid(g)%patch(ipatch)%id  = ipatch
              ipatch = ipatch + 1
@@ -478,13 +505,13 @@ CONTAINS
     ENDIF
 
 
-
     IF (NDISTURB.EQ.1) THEN
        IF (PRESENT(precip)) THEN
           CALL Patch_disturb(POP,it,1,precip)
        ELSE
           CALL Patch_disturb(POP,it,1)
        ENDIF
+
     ELSEIF (NDISTURB.EQ.2) THEN
        IF (PRESENT(frac_intensity1)) THEN
           IF (PRESENT(precip)) THEN
@@ -521,8 +548,6 @@ CONTAINS
     ENDIF
 
 
-
-
   END SUBROUTINE POPStep
   !*******************************************************************************
   SUBROUTINE PatchAnnualDynamics(pop, StemNPP, disturbance_interval, it, precip)
@@ -542,9 +567,7 @@ CONTAINS
     REAL(dp) :: mort, mort_bg, fire_mort
     REAL(dp) :: s2, cpc, crown_area
     REAL(dp) :: mort_cpc
-    !Maximum disturbance interval that makes sense is 1.75*2^((NPATCH)/4) as we don't always have a
-    !patch that has been undisturbed longer than this
-    !This is also the minimum spinup time
+
 
     idisturb = 1
     np = SIZE(POP%POP_grid)
@@ -553,13 +576,10 @@ CONTAINS
     ! Distributes layer biomass increment among cohorts and increments age
     ! calculate fractional resource uptake by each cohort
     DO j=1,np
-       pop%pop_grid(j)%freq_old2 = pop%pop_grid(j)%freq_old
        pop%pop_grid(j)%freq_old = pop%pop_grid(j)%freq
 
        DO k=1,NPATCH2D
-          pop%pop_grid(j)%patch(k)%biomass_old2 = pop%pop_grid(j)%patch(k)%biomass_old
           pop%pop_grid(j)%patch(k)%biomass_old = pop%pop_grid(j)%patch(k)%biomass
-          pop%pop_grid(j)%patch(k)%age_old = pop%pop_grid(j)%patch(k)%age
           pop%pop_grid(j)%patch(k)%growth = 0.0
           tmp = 0.0
           DO c=1,pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
@@ -592,27 +612,7 @@ CONTAINS
 
     ! Mortality
     !Implements resource stress mortality and crowding mortality for all cohorts in layer
-    ! first, calculate fractional resource uptake by each cohort
-    DO j=1,np
-       pop%pop_grid(j)%patch(:)%fire_mortality = 0.0
-       DO k=1,NPATCH2D
 
-          tmp = 0.0
-          DO c=1,pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
-             tmp = tmp + (pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%biomass/ &
-                  pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density)**POWERbiomass * &
-                  pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density
-          ENDDO
-          DO c=1,pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
-
-             pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%frac_resource_uptake = &
-                  (pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%biomass/ &
-                  pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density)**POWERbiomass * &
-                  pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density/tmp
-
-          ENDDO
-       ENDDO
-    ENDDO
     DO j=1,np
        DO k=1,NPATCH2D
           nc = 0
@@ -633,23 +633,23 @@ CONTAINS
 
              if (ALLOM_SWITCH.eq.1) then
                 crown_area = crown_area + pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density* &
-                     PI*(pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%diameter*100.*0.14)**2 !! assumes crown radius (m) = 0.14 * dbh (cm)
+                     !! assumes crown radius (m) = 0.14 * dbh (cm)
+                     PI*(pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%diameter*100.*0.14)**2
              else
                 crown_area = crown_area + pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density* &
-                     k_allom1 * pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%diameter ** k_rp  !! assumes crown radius (m) = 0.07 * dbh (cm)
+                     k_allom1 * pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%diameter ** k_rp
              endif
 
              cpc = 1. - exp(-crown_area)
+             pop%pop_grid(j)%patch(k)%cpc = cpc
              if (cpc .gt. 1.e-8) then
                 mort_cpc = exp(alpha_cpc * (1. - 1./cpc))
              else
                 mort_cpc = 0.
              endif
-             mort = mort + (mort_cpc*CrowdingFactor)*(1.-mort)
              pop%pop_grid(j)%patch(k)%crowding_mortality = pop%pop_grid(j)%patch(k)%crowding_mortality + &
-                  (mort_cpc*CrowdingFactor)*cmass_stem
-             mort = min(mort,cmass_stem_inc/cmass_stem)
-
+                  min((mort_cpc*CrowdingFactor),cmass_stem_inc/cmass_stem)*cmass_stem
+             mort = mort + min((mort_cpc*CrowdingFactor),cmass_stem_inc/cmass_stem)
              pop%pop_grid(j)%patch(k)%mortality = pop%pop_grid(j)%patch(k)%mortality + mort*cmass_stem
 
              IF (((pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).NE.0).AND. &
@@ -703,8 +703,6 @@ CONTAINS
     DO j=1,np
        DO k=1,NPATCH
 
-          if(j.eq.1.and.k.eq.42) write(*,*)  pop%pop_grid(j)%patch(k)%age(1)
-
           IF (((pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).NE.0).AND. &
                (pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb))).OR. &
                (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb))) THEN
@@ -715,22 +713,18 @@ CONTAINS
              pop%pop_grid(j)%patch(k)%age(1) = pop%pop_grid(j)%patch(k)%age(1) + 1
           ENDIF
 
-          if(j.eq.1.and.k.eq.42) write(*,*)  pop%pop_grid(j)%patch(k)%age(1)
-
           IF (NDISTURB.EQ.2) THEN
-             pop%pop_grid(j)%patch(k)%age(2) = pop%pop_grid(j)%patch(k)%age(2) + 1
+             pop%pop_grid(j)%patch(k)%age(NDISTURB) = pop%pop_grid(j)%patch(k)%age(NDISTURB) + 1
           ENDIF
 
        ENDDO
        IF (NPATCH2D.GT.NPATCH+1) THEN
           DO k= NPATCH+1,NPATCH2D
-             pop%pop_grid(j)%patch(k)%age(2) = pop%pop_grid(j)%patch(k)%age(2) + 1
+             pop%pop_grid(j)%patch(k)%age(NDISTURB) = pop%pop_grid(j)%patch(k)%age(NDISTURB) + 1
           ENDDO
        ENDIF
     ENDDO
 
-    !tmp1 = pop%pop_grid(1)%patch(:)%age(1)
-    !tmp2 = pop%pop_grid(1)%patch(:)%age(2)
 
   END SUBROUTINE PatchAnnualDynamics
   !*******************************************************************************
@@ -742,15 +736,13 @@ CONTAINS
     INTEGER(i4b) :: g, i,j,k,ct,lastct,agecopy,idcopy
     REAL(dp), ALLOCATABLE :: midpoint(:)
     INTEGER(i4b), ALLOCATABLE :: ranked_age(:), ranked_age_init(:)
-    !REAL(dp), ALLOCATABLE, SAVE ::freq_ranked_age_unique(:,:), ranked_age_unique(:,:)
     INTEGER(i4b) ::  tmp_count, tmp_i, age_tmp
     INTEGER(i4b), ALLOCATABLE :: ranked_age_unique_id(:), ranked_age_id(:), counter(:)
     REAL(dp), ALLOCATABLE :: tmp(:), freq_tmp(:), freq_tmp1(:)
     REAL(dp) :: p,cump,lastcump, freq, tmp1
     INTEGER(i4b) :: n_age ! number of unique ages
     INTEGER(i4b) :: npatch_active ! number of active patches
-    !REAL(dp) :: timebase ! (BEN)
-    REAL(dp):: disturbance_freq ! (BEN)
+    REAL(dp):: disturbance_freq
     INTEGER(i4b) :: i_max, age_max, Poisson_age(1000), np
     REAL(dp):: Poisson_weight(1000), CumPoisson_weight(1000)
     INTEGER(i4b), ALLOCATABLE :: bound(:,:), unique_age(:)
@@ -838,7 +830,6 @@ CONTAINS
                 bound(i,2) = (unique_age(i)+ unique_age(i+1))/2
              ELSE
                 i_max = MAXLOC(Poisson_age, 1, CumPoisson_weight.GE.0.99)
-                !bound(i, 2) = Poisson_age(i_max)
                 bound(i, 2) = bound(i,1)
              ENDIF
           ENDIF
@@ -849,7 +840,6 @@ CONTAINS
        DO i=1,n_age
           DO j = bound(i,1),bound(i,2)
              freq_tmp(i) = freq_tmp(i) + REALExponential(disturbance_freq,REAL(j,dp))
-             !freq_tmp(i) = freq_tmp(i) + Exponential(disturbance_freq,j)
           ENDDO
        ENDDO
 
@@ -887,13 +877,13 @@ CONTAINS
        ELSEIF (NDISTURB.EQ.2) THEN
           ! first calculate weights for patches with age(2)>age(1)
           DO n1=1,pop%pop_grid(g)%n_age(1)
-             DO n2=1,pop%pop_grid(g)%n_age(2)
+             DO n2=1,pop%pop_grid(g)%n_age(NDISTURB)
                 repcount = COUNT((pop%pop_grid(g)%patch(1:NPATCH)%age(1).EQ.pop%pop_grid(g)%ranked_age_unique(n1,1)).AND. &
-                     (pop%pop_grid(g)%patch(1:NPATCH)%age(2).EQ.pop%pop_grid(g)%ranked_age_unique(n2,2)))
+                     (pop%pop_grid(g)%patch(1:NPATCH)%age(NDISTURB).EQ.pop%pop_grid(g)%ranked_age_unique(n2,NDISTURB)))
                 WHERE ((pop%pop_grid(g)%patch(1:NPATCH)%age(1).EQ.pop%pop_grid(g)%ranked_age_unique(n1,1)).AND. &
-                     (pop%pop_grid(g)%patch(1:NPATCH)%age(2).EQ.pop%pop_grid(g)%ranked_age_unique(n2,2)))
-                   pop%pop_grid(g)%freq(1:NPATCH) = &
-                        pop%pop_grid(g)%freq_ranked_age_unique(n1,1)*pop%pop_grid(g)%freq_ranked_age_unique(n2,2) &
+                     (pop%pop_grid(g)%patch(1:NPATCH)%age(NDISTURB).EQ.pop%pop_grid(g)%ranked_age_unique(n2,NDISTURB)))
+                   pop%pop_grid(g)%freq(1:NPATCH) = pop%pop_grid(g)%freq_ranked_age_unique(n1,1) * &
+                        pop%pop_grid(g)%freq_ranked_age_unique(n2,NDISTURB) &
                         /REAL(repcount,dp)
                 ENDWHERE
              ENDDO
@@ -901,25 +891,24 @@ CONTAINS
 
 
           IF (NPATCH2D.GT.NPATCH) THEN
-             ! second calculate weights for patches with age(1)>age(2)
-             !tmp1 =  pop%pop_grid(g)%patch(NPATCH+1:NPATCH2D)%age(2)
+             ! second calculate weights for patches with age(1)>age(NDISTURB)
              tmp2 = 0.
              tmp3 = 0.
              DO n1=1,pop%pop_grid(g)%n_age(1)
-                DO n2=1,pop%pop_grid(g)%n_age(2)
+                DO n2=1,pop%pop_grid(g)%n_age(NDISTURB)
                    IF (n1>n2) THEN
-                      repcount = COUNT(tmp1.EQ.pop%pop_grid(g)%ranked_age_unique(n2,2))
+                      repcount = COUNT(tmp1.EQ.pop%pop_grid(g)%ranked_age_unique(n2,NDISTURB))
                       tmp3 = 0.
-                      WHERE ((tmp1.EQ.pop%pop_grid(g)%ranked_age_unique(n2,2)))
+                      WHERE ((tmp1.EQ.pop%pop_grid(g)%ranked_age_unique(n2,NDISTURB)))
 
-                         tmp3 =  pop%pop_grid(g)%freq_ranked_age_unique(n1,1)*pop%pop_grid(g)%freq_ranked_age_unique(n2,2)  &
+                         tmp3 =  pop%pop_grid(g)%freq_ranked_age_unique(n1,1) * &
+                              pop%pop_grid(g)%freq_ranked_age_unique(n2,NDISTURB)  &
                               /REAL(repcount,dp)
                       ENDWHERE
                       tmp2 = tmp2+tmp3
                    ENDIF
                 ENDDO
              ENDDO
-             !pop%pop_grid(g)%freq(NPATCH+1:NPATCH2D) = tmp2
           ENDIF
 
        ENDIF
@@ -930,6 +919,7 @@ CONTAINS
   END SUBROUTINE GetPatchFrequencies
 
   !*******************************************************************************
+
   SUBROUTINE GetDiagnostics(pop,LAI, it, precip)
     ! Gets diagnostic data for current landscape structure
     IMPLICIT NONE
@@ -964,6 +954,8 @@ CONTAINS
        IF (MAX_HEIGHT_SWITCH.EQ.1) THEN
           ALLOCATE(height_list(NPATCH2D*NCOHORT_MAX))
           ALLOCATE(height_list_weight(NPATCH2D*NCOHORT_MAX))
+          height_list = 0.0
+          height_list_weight = 0.0
        ENDIF
 
 
@@ -983,8 +975,6 @@ CONTAINS
           limits_highres(i+1) = REAL(i)
        ENDDO
 
-       height_list = 0.0
-       height_list_weight = 0.0
        i_height = 0
        pop%pop_grid(g)%cmass_sum = 0.0
        pop%pop_grid(g)%height_mean = 0.0
@@ -1010,8 +1000,6 @@ CONTAINS
           DO i = 1, pop%pop_grid(g)%patch(p)%layer(1)%ncohort
              cmass_stem = pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%biomass
              densindiv = pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%density
-             !ht=(Kbiometric**(3.0/5.0))*((2.0/PI)**(2.0/5.0))*((cmass_stem/densindiv/WD)**(2.0/5.0))
-             !
 
              IF (ALLOM_SWITCH.EQ.1.AND.PRESENT(precip)) THEN
                 ht=GetHeight(precip(g),cmass_stem,densindiv)
@@ -1053,8 +1041,20 @@ CONTAINS
                 ! assumes vertical radius = 1.5 * horizontal radius
              ENDIF
 
-             ! crown radius (m) = 0.1492 *DBH (cm)
+             IF (diam*100..GT.5.) THEN
+                if (ALLOM_SWITCH.eq.1) then
+                   !! assumes crown radius (m) = 0.1492 * dbh (cm) (from G. Cook, pers. comm.)
+                   ! assumes vertical radius = 1.5 * horizontal radius
+                   pop%pop_grid(g)%crown_volume = pop%pop_grid(g)%crown_volume + &
+                        freq*densindiv*(4./3.)*PI*(diam*100.*0.1492)**2*(1.5*(diam*100.*0.1492))
+                else
+                   !! global allometry
+                   ! assumes vertical radius = 1.5 * horizontal radius
+                   pop%pop_grid(g)%crown_volume = pop%pop_grid(g)%crown_volume + &
+                        freq*densindiv*(4./3.)*PI*1.5*((k_allom1 * diam ** k_rp )/PI)**1.5
+                endif
 
+             ENDIF
 
              pop%pop_grid(g)%patch(p)%biomass = pop%pop_grid(g)%patch(p)%biomass + cmass_stem
              pop%pop_grid(g)%cmass_stem_bin(ct) = pop%pop_grid(g)%cmass_stem_bin(ct) + freq*cmass_stem
@@ -1071,18 +1071,10 @@ CONTAINS
              ENDIF
           ENDDO ! cohorts
 
-          patch_crown_cover(p) = 1. -EXP(-patch_crown_area(p))
-          !
-          !pop%pop_grid(g)%crown_cover = pop%pop_grid(g)%crown_cover  + freq*patch_crown_cover(p)
+
           pop%pop_grid(g)%stress_mortality = pop%pop_grid(g)%stress_mortality + freq*pop%pop_grid(g)%patch(p)%stress_mortality
           pop%pop_grid(g)%fire_mortality = pop%pop_grid(g)%fire_mortality + freq*pop%pop_grid(g)%patch(p)%fire_mortality + &
                pop%pop_grid(g)%patch(p)%biomass_old*(freq_old-freq)
-          !WRITE(333,"(6i5, 100e16.6)") it,  p, pop%pop_grid(g)%patch(p)%disturbance_interval,pop%pop_grid(g)%patch(p)%first_disturbance_year, &
-          !     pop%pop_grid(g)%patch(p)%age_old(1), &
-          !     pop%pop_grid(g)%patch(p)%age(1), &
-          !     freq_old, freq, pop%pop_grid(g)%patch(p)%biomass_old, pop%pop_grid(g)%patch(p)%biomass
-
-
 
           pop%pop_grid(g)%growth =  pop%pop_grid(g)%growth + freq*pop%pop_grid(g)%patch(p)%growth
 
@@ -1104,8 +1096,20 @@ CONTAINS
              ENDIF
 
              IF (diam*100..GT.5.) THEN
-                Pwc  = EXP(-0.5*(4./3.)*(diam*100.*0.1492)*1.5*FAVD) ! Pwc = exp(-G*FAVD*s)
-                pop%pop_grid(g)%crown_area = pop%pop_grid(g)%crown_area + freq*densindiv*PI*(diam*100.*0.1492)**2*(1.-Pwc)
+
+                if (ALLOM_SWITCH.eq.1) then
+                   !! assumes crown radius (m) = 0.1492 * dbh (cm) (from G. Cook, pers. comm.)
+                   ! Pwc = exp(-G*FAVD*s); s = V/(cos.A) (Haverd et al. 2012)
+                   Pwc  = EXP(-0.5*(4./3.)*(diam*100.*0.1492)*1.5*FAVD)
+                   pop%pop_grid(g)%crown_area = pop%pop_grid(g)%crown_area + &
+                        freq*densindiv*PI*(diam*100.*0.1492)**2*(1.-Pwc)
+
+                else
+                   !! global allometry
+                   Pwc  = EXP(-0.5*(4./3.)*(((k_allom1 * diam ** k_rp )/PI)**0.5)*1.5*FAVD)
+                   pop%pop_grid(g)%crown_area = pop%pop_grid(g)%crown_area + &
+                        freq*densindiv*PI*(((k_allom1 * diam ** k_rp )/PI)**0.5)**2*(1.-Pwc)
+                endif
              ENDIF
 
           ENDDO ! cohorts
@@ -1169,8 +1173,11 @@ CONTAINS
     ENDDO ! end loop over grid cells
 
   END SUBROUTINE GetDiagnostics
+
   !*******************************************************************************
+
   SUBROUTINE Patch_partial_disturb(pop,it,idisturb,intensity,precip,frac_intensity1)
+
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
@@ -1237,18 +1244,12 @@ CONTAINS
                    Psurvival = Psurvival_s*(1.-frac_intensity1(j)) + Psurvival*frac_intensity1(j)
                 ENDIF
 
-                !Psurvival = 0.0 ! test vh
-
-                IF (it.EQ.10) THEN
-                   !        write(333,*) ht, Psurvival
-                ENDIF
-
-
-
                 pop%pop_grid(j)%patch(k)%fire_mortality = pop%pop_grid(j)%patch(k)%fire_mortality + &
                      (1.-Psurvival)*pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%biomass
-                pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%biomass = Psurvival*pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%biomass
-                pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density = Psurvival*pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density
+                pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%biomass = Psurvival * &
+                     pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%biomass
+                pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density = Psurvival * &
+                     pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density
                 IF (pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density.LT.DENSINDIV_MIN) THEN
                    ! remove cohort
                    pop%pop_grid(j)%patch(k)%fire_mortality = pop%pop_grid(j)%patch(k)%fire_mortality + &
@@ -1289,8 +1290,11 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE Patch_partial_disturb
+
   !*******************************************************************************
+
   SUBROUTINE Patch_disturb(pop, it,idisturb,precip)
+
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
@@ -1346,6 +1350,8 @@ CONTAINS
              ! understorey recruitment
              IF (PRESENT(precip)) THEN
                 CALL layer_recruitment_single_patch(pop,k,j,precip)
+             ELSE
+                CALL layer_recruitment_single_patch(pop,k,j)
              ENDIF
           ENDIF
 
@@ -1353,9 +1359,13 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE Patch_disturb
+
   !*******************************************************************************
+
   SUBROUTINE  layer_recruitment(pop,precip)
+
     IMPLICIT NONE
+
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
     REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
     REAL(dp) :: f, mu, densindiv, cmass, ht
@@ -1366,12 +1376,8 @@ CONTAINS
     np = SIZE(Pop%pop_grid)
 
     DO j=1,np
-       !f = exp(-0.6*((pop%pop_grid(j)%cmass_sum)**(0.6667)))
        DO k=1,NPATCH2D
-          IF(k.EQ.33) THEN
-             ! write(*,*)
-          ENDIF
-          !write(*,*) k,  pop%pop_grid(j)%patch(k)%Layer(1)%biomass
+
           pop%pop_grid(j)%patch(k)%factor_recruit = EXP(-0.6*((pop%pop_grid(j)%patch(k)%Layer(1)%biomass)**(0.6667)))
           f = pop%pop_grid(j)%patch(k)%factor_recruit
           mu=EXP(FULTON_ALPHA*(1.0-2*THETA_recruit/(f+1-SQRT((f+1)*(f+1)-4*THETA_recruit*f))));
@@ -1383,9 +1389,6 @@ CONTAINS
              ncohort = pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(ncohort)%biomass = cmass
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(ncohort)%density = densindiv
-
-             ! ht=(Kbiometric**(3.0/5.0))*((2.0/PI)**(2.0/5.0))*((pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%biomass/ &
-             !pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%density/WD)**(2.0/5.0))
              IF ((ALLOM_SWITCH.EQ.1).AND.(PRESENT(Precip))) THEN
 
                 ht=GetHeight(precip(j),pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%biomass, &
@@ -1411,17 +1414,17 @@ CONTAINS
              ENDIF
           ENDIF
 
-          !if (k==1) then
-          ! write(*,*) it, pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
-          !0 endif
        ENDDO
     ENDDO
 
   END SUBROUTINE layer_recruitment
 
   !*******************************************************************************
+
   SUBROUTINE  layer_recruitment_single_patch(pop, index, grid_index,precip)
+
     IMPLICIT NONE
+
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
     REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
     INTEGER(i4b), INTENT(IN) :: index, grid_index
@@ -1445,11 +1448,6 @@ CONTAINS
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(ncohort)%biomass = cmass
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(ncohort)%density = densindiv
 
-             !ht=(Kbiometric**(3.0/5.0))*((2.0/PI)**(2.0/5.0))*((pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%biomass/ &
-             ! pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%density/WD)**(2.0/5.0))
-
-             !ht=(Kbiometric**(3.0/4.0))*((4.*pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%biomass/ &
-             !pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%density/WD/PI)**(1.0/4.0))
              IF ((ALLOM_SWITCH.EQ.1).AND.(PRESENT(Precip))) THEN
 
                 ht=GetHeight(precip(j),pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%biomass, &
@@ -1472,33 +1470,14 @@ CONTAINS
              ENDIF
           ENDIF
 
-          !if (k==1) then
-          ! write(*,*) it, pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
-          !0 endif
+
        ENDDO
     ENDDO
 
   END SUBROUTINE layer_recruitment_single_patch
-  !*******************************************************************************
-  REAL(dp) FUNCTION SuperPoisson(lambda, x)
-    IMPLICIT NONE
-    INTEGER(i4b), INTENT(IN) :: x
-    REAL(dp), INTENT(IN) ::  lambda
-    INTEGER(i4b), PARAMETER :: SWITCH_THRESHOLD=120 ! Switch to normal distribution for x above this value
-    REAL(dp) :: p, sd
-    REAL(dp) :: tmp
 
-    IF (x.GT.SWITCH_THRESHOLD) THEN ! use normal distribution
-       !SuperPoisson=1.0/(lambda**(0.5))/((PI*2.0)**0.5)*exp(-(real(x)-lambda)*(real(x)-lambda)/2.0/lambda)
-       SuperPoisson=1.0/(lambda*(PI*2.0)**0.5)*EXP(-(REAL(x)-lambda)*(REAL(x)-lambda)/2.0/lambda)
-    ELSE  ! use Poisson distribution
-       tmp = factorial(x)
-       SuperPoisson= (lambda**x)/(tmp)*EXP(-lambda)
-    ENDIF
-
-  END FUNCTION SuperPoisson
   !*******************************************************************************
-  ! Exponential distribution (BEN)
+  ! Exponential distribution
   ! Returns probability of a given time-between-events (x)
   ! Given a Poisson process with expected frequency (events per unit time) lambda
   ! Reference: http://en.wikipedia.org/wiki/Exponential_distribution
@@ -1506,7 +1485,9 @@ CONTAINS
   ! frequency lambda (disturbances per year)
 
   REAL(dp) FUNCTION Exponential(lambda, x)
+
     IMPLICIT NONE
+
     INTEGER(i4b), INTENT(IN) :: x
     REAL(dp), INTENT(IN) ::  lambda
 
@@ -1517,8 +1498,9 @@ CONTAINS
     ENDIF
 
   END FUNCTION Exponential
+
   !*******************************************************************************
-  ! Exponential distribution (BEN)
+  ! Exponential distribution
   ! Returns probability of a given time-between-events (x)
   ! Given a Poisson process with expected frequency (events per unit time) lambda
   ! Reference: http://en.wikipedia.org/wiki/Exponential_distribution
@@ -1526,7 +1508,9 @@ CONTAINS
   ! frequency lambda (disturbances per year)
 
   REAL(dp) FUNCTION REALExponential(lambda, x)
+
     IMPLICIT NONE
+
     REAL(dp), INTENT(IN) ::  x
     REAL(dp), INTENT(IN) ::  lambda
 
@@ -1538,11 +1522,11 @@ CONTAINS
 
   END FUNCTION REALExponential
 
-
-
   !*******************************************************************************
   REAL(dp) FUNCTION CumExponential(lambda, x)
+
     IMPLICIT NONE
+
     REAL(dp), INTENT(IN) :: x
     REAL(dp), INTENT(IN) ::  lambda
 
@@ -1554,14 +1538,14 @@ CONTAINS
 
   END FUNCTION CumExponential
 
-
   !*******************************************************************************
 
   REAL(dp)  FUNCTION Factorial(n)
+
     IMPLICIT NONE
+
     INTEGER , INTENT(IN) :: n
-    INTEGER  :: i
-    REAL(dp) :: Ans
+    REAL(dp) :: i, Ans
 
     Ans = 1
     DO i = 1, n
@@ -1571,10 +1555,11 @@ CONTAINS
     Factorial = Ans
 
   END FUNCTION Factorial
+
   !*******************************************************************************
   ! TOP-END ALLOMETRY STARTS HERE
   !*******************************************************************************
-  ! Tree height based on precipitation and Gary Cook Top-End allometry (BEN)
+  ! Tree height based on precipitation and Gary Cook Top-End allometry
   ! Bisection solution for tree height (m) based on modified height-DBH relationship
   ! from Garry Cook (pers. comm. 15/4/2013)
   ! "I have been using H=0.054xExp(0.0014xRF)xD + 4.05*exp(-0.00032*rf) with Rf in mm, D in cm and height in m."
@@ -1587,7 +1572,9 @@ CONTAINS
   ! density = tree density (indiv/m2)
 
   REAL(dp) FUNCTION GetHeight(precip,biomass,density)
+
     IMPLICIT NONE
+
     REAL(dp), INTENT(IN) :: precip
     REAL(dp), INTENT(IN) :: biomass
     REAL(dp), INTENT(IN) :: density
@@ -1635,13 +1622,16 @@ CONTAINS
     GetHeight=xmid
 
   END FUNCTION GetHeight
+
   !*******************************************************************************
-  ! Top-End Allometry (BEN)
+  ! Top-End Allometry
   ! Computes tree stem diameter (m) and basal area (m2/ha)
   ! given height (m), stem biomass (kgC/m2) and tree population density (indiv/m2)
 
   SUBROUTINE Allometry(height,biomass,density,diam,basal)
+
     IMPLICIT NONE
+
     REAL(dp), INTENT(IN) :: height
     REAL(dp), INTENT(IN) :: biomass
     REAL(dp), INTENT(IN) :: density
@@ -1661,8 +1651,10 @@ CONTAINS
   !*******************************************************************************
 
   SUBROUTINE POP_init(POP, disturbance_interval)
+
     USE POP_types, ONLY: POP_TYPE
     USE TypeDef, ONLY: i4b
+
     IMPLICIT NONE
 
     INTEGER(i4b), INTENT(IN) ::  disturbance_interval(:,:)
@@ -1670,425 +1662,18 @@ CONTAINS
 
     POP%it_pop = 0
     CALL ZeroPOP(pop)
-    CALL InitPOP1D_Poisson(pop,INT(disturbance_interval))
+    CALL InitPOP1D_Poisson(pop,(disturbance_interval))
+    !CALL InitPOP1D_Poisson(pop,INT(disturbance_interval))
 
   END SUBROUTINE POP_init
 
-  !*******************************************************************************
-
-!!!SUBROUTINE WRITE_POP_OUTPUT_NC ( POP, casamet, YEAR ) !,RST
-!!!  USE netcdf
-!!!  USE CASAVARIABLE
-!!!  USE CABLE_COMMON_MODULE
-!!!  IMPLICIT NONE
-!!!
-!!!  TYPE(POP_TYPE), INTENT(IN) :: POP
-!!!  TYPE (casa_met),INTENT(IN) :: casamet
-!!!  INTEGER       , INTENT(IN) :: YEAR
-!!!!  LOGICAL       , INTENT(IN) :: RST
-!!!
-!!!  INTEGER                    :: STATUS,i,m,p,l,land_ID,patch_ID,ndis_ID
-!!!  INTEGER                    :: ndis1_ID,nlay_ID,hgtb_ID,ncoh_ID,t_ID
-!!!  CHARACTER(len=3)           :: typ = 'out'
-!!!  CHARACTER                  :: dum*9,fname*100
-!!!
-!!!  ! 1 dim arrays (mp)
-!!!  CHARACTER(len=40),DIMENSION( 2), PARAMETER :: AR0 = (/'latitude','longitude'/)
-!!!
-!!!  ! LANDSCAPE STRUCTURE
-!!!  ! 2 dim arrays (mp,t)
-!!!  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI1 = (/ 'npatch_active' /)
-!!!  CHARACTER(len=40),DIMENSION(11), PARAMETER :: AR1 = (/ 'cmass_sum',           &
-!!!       'densindiv','height_mean','height_max','basal_area','stress_mortality',  &
-!!!       'fire_mortality','growth','crown_cover','crown_area','crown_volume' /)
-!!!  ! 3 dim arrays (mp,nlayer,t)
-!!!  CHARACTER(len=40),DIMENSION( 4), PARAMETER :: AR2 = (/ 'biomass','density',   &
-!!!       'hmean','hmax' /)
-!!!  ! 3 dim arrays (mp,height_bins,t)
-!!!  CHARACTER(len=40),DIMENSION( 4), PARAMETER :: AR3 = (/ 'cmass_stem_bin',      &
-!!!       'densindiv_bin','height_bin','diameter_bin' /)
-!!!  ! 3 dim arrays (mp,ndisturb,t)
-!!!  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI4 = (/ 'n_age' /)
-!!!
-!!!  ! PATCH STRUCTURE
-!!!  ! 3 dim arrays (mp,npatch2d,t)
-!!!  CHARACTER(len=40),DIMENSION(10), PARAMETER :: AR5 = (/ 'patch_freq',          &
-!!!       'patch_freq_old','patch_freq_old2','patch_factor_recruit',               &
-!!!       'patch_biomass','patch_biomass_old','patch_biomass_old2',                &
-!!!       'patch_stress_mortality','patch_fire_mortality','patch_growth' /)
-!!!  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI5 = (/ 'patch_id' /)
-!!!  ! 4 dim arrays (mp,npatch2d,ndisturb+1,t)
-!!!  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI6 =                           &
-!!!       (/ 'patch_ranked_age_unique' /)
-!!!  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AR6 =                           &
-!!!       (/ 'patch_freq_ranked_age_unique' /)
-!!!  ! 4 dim arrays (mp,npatch2d,ndisturb,t)
-!!!  CHARACTER(len=40),DIMENSION( 4), PARAMETER :: AI7 =                           &
-!!!       (/ 'patch_disturbance_interval','patch_first_disturbance_year',          &
-!!!       'patch_age','patch_age_old' /)
-!!!
-!!!  ! LAYER STRUCTURE
-!!!  ! 4 dim arrays (mp,npatch2d,nlayer,t)
-!!!  CHARACTER(len=40),DIMENSION( 4), PARAMETER :: AR8 = (/ 'layer_biomass',       &
-!!!       'layer_density','layer_hmean','layer_hmax' /)
-!!!  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI8 = (/ 'layer_ncohort' /)
-!!!
-!!!  ! COHORT STRUCTURE
-!!!  ! 5 dim arrays (mp,npatch2d,nlayer,ncohort_max,t)
-!!!  CHARACTER(len=40),DIMENSION( 5), PARAMETER :: AR9 = (/ 'cohort_biomass',      &
-!!!       'cohort_density','cohort_frac_resource_uptake','cohort_height',          &
-!!!       'cohort_diameter' /)
-!!!  CHARACTER(len=40),DIMENSION( 2), PARAMETER :: AI9 = (/'cohort_age','cohort_id'/)
-!!!
-!!!  LOGICAL, SAVE :: CALL1 = .TRUE.
-!!!  INTEGER, SAVE :: VIDtime, VIDR0(SIZE(AR0)),VIDR1(SIZE(AR1)),VIDI1(SIZE(AI1)), &
-!!!       VIDR2(SIZE(AR2)),VIDR3(SIZE(AR3)),VIDI4(SIZE(AI4)),VIDR5(SIZE(AR5)),     &
-!!!       VIDI5(SIZE(AI5)),VIDR6(SIZE(AR6)),VIDI6(SIZE(AI6)),VIDI7(SIZE(AI7)),     &
-!!!       VIDR8(SIZE(AR8)),VIDI8(SIZE(AI8)),VIDR9(SIZE(AR9)),VIDI9(SIZE(AI9))
-!!!  INTEGER, SAVE :: FILE_ID, CNT = 0
-!!!
-!!!  CNT = CNT + 1
-!!!
-!!!  IF ( CALL1 ) THEN
-!!!     ! Get File-Name
-!!!     WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-!!!     fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-!!!          TRIM(dum)//'_pop_'//typ//'.nc'
-!!!
-!!!     ! Create NetCDF file:
-!!!     STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!
-!!!     ! Put the file in define mode:
-!!!     STATUS = NF90_redef(FILE_ID)
-!!!
-!!!     ! GLOBAL ATTRIBUTES
-!!!     STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Icycle" , icycle             )
-!!!     STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Year"   , YEAR               )
-!!!     STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "RunIden", CABLE_USER%RunIden )
-!!!
-!!!     ! Define dimensions:
-!!!     STATUS = NF90_def_dim(FILE_ID, 'land'       , mp         , land_ID )
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_def_dim(FILE_ID, 'NPATCH2D'   , NPATCH2D   , patch_ID)
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_def_dim(FILE_ID, 'NDISTURB'   , NDISTURB   , ndis_ID )
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_def_dim(FILE_ID, 'NDISTURB+1' , NDISTURB+1 , ndis1_ID)
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_def_dim(FILE_ID, 'NLAYER'     , NLAYER     , nlay_ID )
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_def_dim(FILE_ID, 'HEIGHT_BINS', HEIGHT_BINS, hgtb_ID )
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_def_dim(FILE_ID, 'NCOHORT_MAX', NCOHORT_MAX, ncoh_ID )
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_def_dim(FILE_ID, 'time'   ,  NF90_UNLIMITED, t_ID    )
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!
-!!!     ! Define variables
-!!!     STATUS = NF90_def_var(FILE_ID,'Time' ,NF90_INT,(/t_ID/),VIDtime )
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!
-!!!     DO i = 1, SIZE(AR0)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR0(i)), NF90_FLOAT,(/land_ID/),VIDR0(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AI1)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)), NF90_INT  ,(/land_ID,t_ID/),VIDI1(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AR1)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR1(i)), NF90_FLOAT,(/land_ID,t_ID/),VIDR1(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AR2)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR2(i)), NF90_FLOAT,(/land_ID,nlay_ID,t_ID/),VIDR2(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AR3)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR3(i)), NF90_FLOAT,(/land_ID,hgtb_ID,t_ID/),VIDR3(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AI4)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AI4(i)), NF90_INT  ,(/land_ID,ndis_ID,t_ID/),VIDI4(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AI5)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AI5(i)), NF90_INT  ,(/land_ID,patch_ID,t_ID/),VIDI5(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AR5)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR5(i)), NF90_FLOAT,(/land_ID,patch_ID,t_ID/),VIDR5(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AI6)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AI6(i)), NF90_INT  , &
-!!!             (/land_ID,patch_ID,ndis1_ID,t_ID/),VIDI6(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AR6)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR6(i)), NF90_FLOAT, &
-!!!             (/land_ID,patch_ID,ndis1_ID,t_ID/),VIDR6(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AI7)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AI7(i)), NF90_INT,   &
-!!!             (/land_ID,patch_ID,ndis_ID,t_ID/),VIDI7(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AI8)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AI8(i)), NF90_INT  , &
-!!!             (/land_ID,patch_ID,nlay_ID,t_ID/),VIDI8(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AR8)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR8(i)), NF90_FLOAT, &
-!!!             (/land_ID,patch_ID,nlay_ID,t_ID/),VIDR8(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AI9)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AI9(i)), NF90_INT  , &
-!!!             (/land_ID,patch_ID,nlay_ID,ncoh_ID,t_ID/),VIDI9(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!     DO i = 1, SIZE(AR9)
-!!!        STATUS = NF90_def_var(FILE_ID,TRIM(AR9(i)), NF90_FLOAT, &
-!!!             (/land_ID,patch_ID,nlay_ID,ncoh_ID,t_ID/),VIDR9(i))
-!!!        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!     END DO
-!!!
-!!!     ! End define mode:
-!!!     STATUS = NF90_enddef(FILE_ID)
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!
-!!!     ! PUT LAT / LON ( mp )
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(1), REAL(casamet%lat),      &
-!!!          start=(/ 1 /), count=(/ mp /)  )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(2), REAL(casamet%lon),      &
-!!!          start=(/ 1 /), count=(/ mp /)  )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!     CALL1 = .FALSE.
-!!!
-!!!  END IF
-!!!
-!!!  ! WRITE CURRENT STATE
-!!!  ! TIME  ( t )
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDtime, YEAR, start=(/ CNT /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!  ! PUT 2D VARS ( mp, t )
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDI1( 1), POP%pop_grid(:)%npatch_active,      &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 1), POP%pop_grid(:)%cmass_sum,          &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 2), POP%pop_grid(:)%densindiv,          &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 3), POP%pop_grid(:)%height_mean,        &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 4), POP%pop_grid(:)%height_max,         &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 5), POP%pop_grid(:)%basal_area,         &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 6), POP%pop_grid(:)%stress_mortality,   &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 7), POP%pop_grid(:)%fire_mortality,     &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 8), POP%pop_grid(:)%growth,             &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 9), POP%pop_grid(:)%crown_cover,        &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(10), POP%pop_grid(:)%crown_area,         &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!  STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(11), POP%pop_grid(:)%crown_volume,       &
-!!!       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-!!!  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!  ! PUT 3D VARS ( mp,nlayer, t )
-!!!  MPS:DO m = 1, mp
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR2( 1), POP%pop_grid(m)%biomass,         &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, nlayer, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR2( 2), POP%pop_grid(m)%density,         &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, nlayer, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR2( 3), POP%pop_grid(m)%hmean,           &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, nlayer, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR2( 4), POP%pop_grid(m)%hmax,            &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, nlayer, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!     ! PUT 3D VARS ( mp,height_bins, t )
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR3( 1), POP%pop_grid(m)%cmass_stem_bin,  &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, HEIGHT_BINS, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR3( 2), POP%pop_grid(m)%densindiv_bin,   &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, HEIGHT_BINS, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR3( 3), POP%pop_grid(m)%height_bin,      &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, HEIGHT_BINS, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR3( 4), POP%pop_grid(m)%diameter_bin,    &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, HEIGHT_BINS, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!     ! PUT 3D VARS ( mp,ndisturb, t )
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDI4( 1), POP%pop_grid(m)%n_age,           &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, ndisturb, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!     ! PATCH STRUCTURE
-!!!     ! PUT 3D VARS ( mp,npatch2d, t )
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDI5( 1), POP%pop_grid(m)%patch(:)%id,     &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 1), POP%pop_grid(m)%freq,            &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 2), POP%pop_grid(m)%freq_old,        &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 3), POP%pop_grid(m)%freq_old2,       &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 4), POP%pop_grid(m)%patch(:)%factor_recruit,  &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 5), POP%pop_grid(m)%patch(:)%biomass,         &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 6), POP%pop_grid(m)%patch(:)%biomass_old,     &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 7), POP%pop_grid(m)%patch(:)%biomass_old2,    &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 8), POP%pop_grid(m)%patch(:)%stress_mortality,&
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 9), POP%pop_grid(m)%patch(:)%fire_mortality,  &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!     STATUS = NF90_PUT_VAR(FILE_ID, VIDR5(10), POP%pop_grid(m)%patch(:)%growth,          &
-!!!          start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-!!!     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!     PAT:DO p = 1, npatch2d
-!!!        ! PUT 4D VARS ( mp,npatch2d, ndisturb+1,t )
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDI6( 1), POP%pop_grid(m)%ranked_age_unique(p,:),&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB+1, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDR6( 1), POP%pop_grid(m)%freq_ranked_age_unique(p,:),&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB+1, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!        ! PUT 4D VARS ( mp,npatch2d, ndisturb,t )
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 1), POP%pop_grid(m)%patch(p)%disturbance_interval,&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 2), POP%pop_grid(m)%patch(p)%first_disturbance_year,&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 3), POP%pop_grid(m)%patch(p)%age,&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 4), POP%pop_grid(m)%patch(p)%age_old,&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!        ! LAYER STRUCTURE
-!!!        ! PUT 4D VARS ( mp,npatch2d, nlayer,t )
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDI8( 1), POP%pop_grid(m)%patch(p)%layer(:)%ncohort,&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, nlayer, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDR8( 1), POP%pop_grid(m)%patch(p)%layer(:)%biomass,&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, nlayer, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDR8( 2), POP%pop_grid(m)%patch(p)%layer(:)%density,&
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, nlayer, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDR8( 3), POP%pop_grid(m)%patch(p)%layer(:)%hmean,  &
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, nlayer, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!        STATUS = NF90_PUT_VAR(FILE_ID, VIDR8( 4), POP%pop_grid(m)%patch(p)%layer(:)%hmax,   &
-!!!             start=(/ m, p, 1, CNT /), count=(/ 1, 1, nlayer, 1 /) )
-!!!        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!        LAY:DO l = 1, nlayer
-!!!           ! COHORT STRUCTURE
-!!!           ! PUT 5D VARS ( mp,npatch2d, nlayer,ncohort_max,t )
-!!!           STATUS = NF90_PUT_VAR(FILE_ID, VIDI9( 1), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%age,&
-!!!                start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!           STATUS = NF90_PUT_VAR(FILE_ID, VIDI9( 2), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%id,&
-!!!                start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!           STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 1), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%biomass,&
-!!!                start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!           STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 2), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%density,&
-!!!                start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!           STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 3), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_resource_uptake,&
-!!!                start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!           STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 4), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%height,&
-!!!                start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!           STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 5), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%diameter,&
-!!!                start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-!!!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-!!!
-!!!        END DO LAY
-!!!     END DO PAT
-!!!  END DO MPS
-!!!
-!!!  IF ( YEAR .EQ. cable_user%YEAREND ) THEN
-!!!     ! Close NetCDF file:
-!!!     STATUS = NF90_close(FILE_ID)
-!!!     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!!  ENDIF
-!!!
-!!!END SUBROUTINE WRITE_POP_OUTPUT_NC
-!!!
-!!!
-!!!
-!!!
-!!!
-!!!
-!!!
-
-  !*******************************************************************************
-
-  !CLNMODULE POPvariable
-  !CLN
-  !CLN    IMPLICIT NONE
-  !CLN
-  !CLNCONTAINS
-  !CLN
   !*******************************************************************************
 
   SUBROUTINE alloc_POP(POP, arraysize)
 
     USE TypeDef,   Only: i4b, dp
     USE POP_Types, Only: POP_TYPE
-    !    USE POPModule, Only: InitPOP2D_Poisson,InitPOP1D_Poisson, ZeroPOP
+
 
     TYPE( POP_TYPE ),INTENT(INOUT) :: POP
     INTEGER,            INTENT(IN) :: arraysize
@@ -2097,8 +1682,8 @@ CONTAINS
 
   END SUBROUTINE alloc_POP
 
-  !CLNEnd MODULE POPvariable
-
   !*******************************************************************************
+
 END MODULE POPModule
+
 !*******************************************************************************

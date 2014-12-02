@@ -1,9 +1,9 @@
 MODULE sli_numbers
 
   USE cable_def_types_mod,  ONLY: r_2, i_d
-  USE physical_constants, ONLY: tfrz, grav, rmh2o, rhow, rgas, capp, tetena, tetenb, tetenc
 
   IMPLICIT NONE
+
 
   ! define some numbers
   REAL(r_2), PARAMETER :: zero      = 0.0
@@ -21,21 +21,22 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: e7        = 1.e-7
 
   ! define some constants
-  REAL(r_2), PARAMETER :: pi  = 3.1415927
-  REAL(r_2), PARAMETER :: Tzero     = tfrz      ! Celcius -> Kelvin
-  REAL(r_2), PARAMETER :: gravity   = grav      ! gravitation constant [m/s2]
-  REAL(r_2), PARAMETER :: Mw        = rmh2o     ! weight of 1 mol of water [kg]
-  REAL(r_2), PARAMETER :: Mw18        = 0.018   ! weight of 1 mol of water [kg] (main isotopologue only)
-  REAL(r_2), PARAMETER :: cpa       = capp      ! specific heat capacity of dry air at 0-40 degC [J/kgK]
-  REAL(r_2), PARAMETER :: esata     = tetena*100.0_r_2 ! constants for saturated vapour pressure calculation
-  REAL(r_2), PARAMETER :: esatb     = tetenb    ! %
-  REAL(r_2), PARAMETER :: esatc     = tetenc    ! %
+  REAL(r_2), PARAMETER :: pi        = 3.1415927
+  REAL(r_2), PARAMETER :: Tzero     = 273.16     ! Celcius -> Kelvin
+  REAL(r_2), PARAMETER :: gravity   = 9.8086    ! gravitation constant [m/s2]
+  REAL(r_2), PARAMETER :: Mw        = 0.018016     ! weight of 1 mol of water [kg]
+  REAL(r_2), PARAMETER ::  rmair  = 0.02897  ! molecular wt: dry air (kg/mol)
+  REAL(r_2), PARAMETER :: Mw18      = 0.018     ! weight of 1 mol of water [kg] (main isotopologue only)
+  REAL(r_2), PARAMETER :: cpa       = 1004.64    ! specific heat capacity of dry air at 0-40 degC [J/kgK]
+  REAL(r_2), PARAMETER :: esata     = 6.106*100.0_r_2 ! constants for saturated vapour pressure calculation
+  REAL(r_2), PARAMETER :: esatb     =  17.27  ! %
+  REAL(r_2), PARAMETER :: esatc     = 237.3    ! %
 
   REAL(r_2), PARAMETER :: rlambda   = 2.442e6   ! latent heat of condensation at 25 degC [J/kg]
   REAL(r_2), PARAMETER :: lambdaf   = 335000.   ! latent heat of fusion (J kg-1)
   REAL(r_2), PARAMETER :: lambdas   = 2835000.  ! latent heat of sublimation (J kg-1)
   REAL(r_2), PARAMETER :: Dva       = 2.17e-5   ! vapour diffusivity of water in air at 0 degC [m2/s]
-  !REAL(r_2), PARAMETER :: rhow      = 1000.    ! denisty of water [kg/m3]
+  REAL(r_2), PARAMETER :: rhow      = 1000.0   ! denisty of water [kg/m3]
   REAL(r_2), PARAMETER :: rhoi      = 920.      ! density of ice (kg m-3)
 
   REAL(r_2), PARAMETER :: rhoa      = 1.184     ! denisty of dry air at std (25 degC) [kg/m3]
@@ -45,10 +46,8 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: esatb_ice = 22.46   ! %
   REAL(r_2), PARAMETER :: esatc_ice = 272.62  ! %
   REAL(r_2), PARAMETER :: csice     = 2.100e3 ! specific heat capacity for ice
-  !REAL(r_2), PARAMETER :: csice     = 4.218e3 ! specific heat capacity for ice
-  REAL(r_2), PARAMETER :: cswat     = 4.218e3 ! specific heat capacity for water
-
-!!!MC!!!
+   REAL(r_2), PARAMETER :: cswat     = 4.218e3 ! specific heat capacity for water
+  REAL(r_2), PARAMETER :: rgas = 8.3143 ! universal gas const  (J/mol/K)
   REAL(r_2), PARAMETER :: kw        = 0.58    ! dito
 
   ! numerical limits
@@ -57,7 +56,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: h0min     = -2.e-3
   REAL(r_2), PARAMETER :: snmin     = 0.001_r_2 ! depth of snowpack (m) without dedicated snow layer(s)
   REAL(r_2), PARAMETER :: fsnowliq_max = 0.03  ! max fraction of snow water in liquid phase
-  INTEGER(i_d), PARAMETER :: nsnow_max = 2 ! maximum number of dedicated snow layers (1 or 2)
+  INTEGER(i_d), PARAMETER :: nsnow_max = 1 ! maximum number of dedicated snow layers (1 or 2)
 
   REAL(r_2), PARAMETER :: dh0max    = 0.0001
   REAL(r_2), PARAMETER :: SLmax     = 1.01
@@ -92,13 +91,31 @@ MODULE sli_numbers
   ! CHARACTER(LEN=20)    :: botbc = "seepage"
 
   ! Special setups for sli stand-alone, such as 1-8: testcases of Haverd & Cuntz (2010);
+  !  0: normal run
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
-  ! 0=normal run
-  INTEGER(i_d) :: experiment = 11
+  ! 16: Loetschental
+  INTEGER(i_d) :: experiment = 0
+
+  ! Steeper freezing curve factor: 1=normal, >1=steeper
+  REAL(r_2), PARAMETER :: freezefac = 1.0
+
+  ! Topmodel approach
+  ! 0: normal ponding and free drainage
+  ! 1: topmodel surface runoff
+  ! 2: topmodel deep drainage
+  ! 3: topmodel surface runoff and deep drainage
+  INTEGER(i_d), PARAMETER :: topmodel = 0
+  REAL(r_2),    PARAMETER :: alpha    = 0.1 ! anistropy param for lateral flow (topmodel)
+  REAL(r_2),    PARAMETER :: fsat_max = 2.0 ! exponent for vertical profile of Ksat (topmodel)
+
+  ! Thermal conductivity of soil
+  ! 0: Campbell (1985)
+  ! 1: Van de Griend and O'Neill (1986)
+  INTEGER(i_d) :: ithermalcond = 0
 
   ! define types
   TYPE vars_met
-     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, ra, rs, Rn, u, Da, cva, civa, ha, phiva, qevappot
+     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, Rn, Da, cva, civa, phiva
   END TYPE vars_met
 
   TYPE vars
@@ -119,10 +136,10 @@ MODULE sli_numbers
      REAL(r_2), DIMENSION(nsnow_max):: depth, hsnow, hliq, dens, tsn, kH, kE, kth, &
           Dv, cv, sl, melt, &
           Jsensible, Jlatent,  deltaJlatent, deltaJsensible, fsnowliq_max
-     REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain, totdepth,J, &
-	              Qadv_melt, Qadv_vap, Qcond_net, &
-                  Qadv_transfer, Qmelt, Qtransfer,FluxDivergence, deltaJ, &
-				  Qvap, MoistureFluxDivergence, Qprec, Qevap, deltawcol
+     REAL(r_2) ::  wcol, Qadv_snow, Qadv_rain, totdepth, J, &
+          Qadv_melt, Qadv_vap, Qcond_net, &
+          Qadv_transfer, Qmelt, Qtransfer,FluxDivergence, deltaJ, &
+          Qvap, MoistureFluxDivergence, Qprec, Qevap, deltawcol
      INTEGER(i_d) :: nsnow, nsnow_last
   END TYPE vars_snow
 
@@ -133,10 +150,12 @@ MODULE sli_numbers
 
   TYPE params
      REAL(r_2) :: the, thre, he, lam, Ke, eta, thr
-     REAL(r_2) :: KSe, phie, phiSe, rho, thw,thfc, kd, css, clay, tortuosity
+     REAL(r_2) :: KSe, phie, phiSe, rho, thw, thfc, kd, css, clay, tortuosity
      INTEGER(i_d) :: ishorizon
      REAL(r_2) :: zeta
      REAL(r_2) :: fsatmax
+     REAL(r_2) :: lambc   ! original lam for storage
+     REAL(r_2) :: lambdaS ! thermal inertia of saturation for van de Griend & O'Neill (1986) thermal conductivity
   END TYPE params
 
   TYPE rapointer
@@ -147,5 +166,7 @@ MODULE sli_numbers
      INTEGER(i_d) :: k
      REAL(r_2)    :: T1, Ta, cva, Rnet, hr1, hra, Dv, gv, gh, Dh, dz, phie, he, K1, eta,lambda, Ks, lambdav
   END TYPE solve_type
+
+
 
 END MODULE sli_numbers

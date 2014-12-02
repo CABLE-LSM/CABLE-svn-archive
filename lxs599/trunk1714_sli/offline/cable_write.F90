@@ -506,7 +506,8 @@ CONTAINS
                                                                ! dimension IDs
     INTEGER, INTENT(OUT) :: parID ! variable's netcdf ID
     LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    LOGICAL, INTENT(IN), OPTIONAL :: restart ! are we writing to a restart file?                                                          ! dimension IDs
+    LOGICAL, INTENT(IN), OPTIONAL :: restart ! are we writing to a restart file?
+    ! dimension IDs
     CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
     CHARACTER(LEN=*), INTENT(IN) :: punits ! variable units
     CHARACTER(LEN=*), INTENT(IN) :: longname ! full variable name

@@ -262,6 +262,7 @@ MODULE cable_IO_vars_module
           RnetSoil = .FALSE.,     & ! sensible heat from soil [W/m2] !vh!
          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
+         CanT = .FALSE.,      & ! within-canopy temperature [K]
          
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985

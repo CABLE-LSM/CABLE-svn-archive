@@ -51,7 +51,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
                                    soil_snow_type, canopy_type, bgc_pool_type, &
                                    mp, mvtype
                            
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_user
 
     REAL, INTENT(IN) ::                                                       &
       dels     ! integration time step (s)
@@ -146,8 +146,8 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
       
       CASE DEFAULT
         
-         PRINT *, 'Error! Dimension not compatible with CASA                   &
-                   or CSIRO or IGBP types!'
+         PRINT *, 'Error! Dimension not compatible with CASA ',                 &
+                  'or CSIRO or IGBP types!'
          PRINT *, 'Dimension =', mvtype
          PRINT *, 'At the rw section.'
          STOP
@@ -156,7 +156,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
    ! Limit size of exponent to avoif overflow when tv is very cold
    coef_cold = EXP( MIN( 1., -( canopy%tv - tvclst( veg%iveg ) ) ) ) 
-   wbav = REAL( SUM( veg%froot * ssnow%wb, 2) )
+   wbav = SUM( veg%froot * real(ssnow%wb), 2)
    wbav = max( 0.01, wbav )  ! EAK Jan2011
    
    ! drought stress
@@ -177,7 +177,8 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
    !	WOOD:
    ! fraction of photosynthate going to roots, (1-fr) to wood, eq. 9
-   fr = MIN( 1., EXP (- rw( veg%iveg ) * beta *0.0001* bgc%cplant(:,3)                & !!vh!! inserted '0.0001' to avoide floating pt underflow
+   !!vh!! inserted '0.0001' to avoide floating pt underflow
+   fr = MIN( 1., EXP (- rw( veg%iveg ) * beta *0.0001* bgc%cplant(:,3)         &
         / MAX( bgc%cplant(:,2), 0.01 ) ) / beta )
    
    cfwd = trnw(veg%iveg) * bgc%cplant(:,2)
@@ -254,7 +255,7 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
 
       ! key parameter for this scheme is veg%rs20
       
-      avgwrs = SUM( veg%froot * ssnow%wb, 2 )
+      avgwrs = SUM( veg%froot * real(ssnow%wb), 2 )
       avgtrs = MAX( 0.0, SUM( veg%froot * ssnow%tgg, 2 )- C%TFRZ )
 
       canopy%frs = veg%rs20 * MIN( 1.0, MAX( 0.0, MIN(                         &

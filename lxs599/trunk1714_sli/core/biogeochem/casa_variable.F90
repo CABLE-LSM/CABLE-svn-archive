@@ -66,7 +66,7 @@ MODULE casaparm
   USE casadimension
 
   IMPLICIT NONE
-  INTEGER, PARAMETER :: initcasa= 1   ! =0 spin; 1 restart file
+  INTEGER, PARAMETER :: initcasa= 0   ! =0 spin; 1 restart file
   INTEGER, PARAMETER :: iceland  = 17 !=13 for casa vegtype =15 for IGBP vegtype
   INTEGER, PARAMETER :: cropland = 9  ! 12 and 14 for IGBP vegtype 
   INTEGER, PARAMETER :: croplnd2 =10  ! ditto
@@ -87,7 +87,7 @@ MODULE casaparm
   INTEGER, PARAMETER :: PLAB    = 1
   INTEGER, PARAMETER :: PSORB   = 2
   INTEGER, PARAMETER :: POCC    = 3
-  INTEGER, PARAMETER :: LALLOC  = 2      !=0 constant; 1 variable; 2 following Litton
+  INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable; 2 following Litton
   REAL(r_2), PARAMETER :: z30=0.3
   REAL(r_2), PARAMETER :: R0=0.3
   REAL(r_2), PARAMETER :: S0=0.3

@@ -328,7 +328,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
         isoil_dims,             & ! number of dims of isoil var if in met file
         tsmin,tsdoy,tsyear,     & ! temporary variables
         x,y,i,j,                & ! do loop counters
-        tempmonth,				&
+        tempmonth,              &
         ssod, &
         nsod, &
         LOY, &

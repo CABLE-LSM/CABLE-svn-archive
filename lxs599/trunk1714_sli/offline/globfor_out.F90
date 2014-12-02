@@ -32,8 +32,10 @@ SUBROUTINE GLOBFOR_OUT(mp, pop, casapool,  veg, rad, cleaf_max, npp_ann, gpp_ann
      if (pop%pop_grid(x)%patch(k_output)%Layer(1)%density.gt.1e-9) then
         write(10000+x,"(i6, 13e16.6, i6)")  pop%pop_grid(x)%patch(k_output)%age(1), &
              log10(pop%pop_grid(x)%patch(k_output)%Layer(1)%density*10000), &
-             log10(pop%pop_grid(x)%patch(k_output)%Layer(1)%biomass/0.49/0.7/pop%pop_grid(x)%patch(k_output)%Layer(1)%density), & ! log(total biomass)
-             log10(pop%pop_grid(x)%patch(k_output)%Layer(1)%biomass/0.49/pop%pop_grid(x)%patch(k_output)%Layer(1)%density), & ! log(stem biomass)
+             ! log(total biomass)
+             log10(pop%pop_grid(x)%patch(k_output)%Layer(1)%biomass/0.49/0.7/pop%pop_grid(x)%patch(k_output)%Layer(1)%density), &
+             ! log(stem biomass)
+             log10(pop%pop_grid(x)%patch(k_output)%Layer(1)%biomass/0.49/pop%pop_grid(x)%patch(k_output)%Layer(1)%density), &
              log10(cleaf_max(x)/1000/0.49/pop%pop_grid(x)%patch(k_output)%Layer(1)%density), &
              cleaf_max(x), casapool%cplant(x,2), casapool%cplant(x,3), npp_ann(x), gpp_ann(x), stemnpp_ann(x), &
              stemnpp_ann(x)/npp_ann(x), leafnpp_ann(x), leafnpp_ann(x)/npp_ann(x), veg%iveg(x)

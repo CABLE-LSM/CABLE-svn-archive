@@ -120,6 +120,7 @@ MODULE cable_checks_module
            SnowDepth = (/0.0,50.0/),           & ! EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
+           CanT = (/213.0,333.0/),      &
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &
@@ -321,9 +322,42 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
           -rad%flws*rad%transd &
          & -canopy%fev-canopy%fes*ssnow%cls &
          & -canopy%fh -canopy%ga
+   !bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2)) &
+   !     *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)  &
+   !     -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes    &
+   !     * ssnow%cls-canopy%fh
     ! Add to cumulative balance:
-   bal%ebal_tot = bal%ebal_tot + bal%ebal
+    bal%ebal_tot = bal%ebal_tot + bal%ebal
     bal%RadbalSum = bal%RadbalSum + bal%Radbal
+!print 58,bal%ebal_tot,bal%Ebal,SUM(rad%qcan(:,:,1),2),SUM(rad%qcan(:,:,2),2),rad%qssabs,&
+!         met%fld,sboltz*emleaf*canopy%tv**4*(1-rad%transd),&
+!         rad%flws*rad%transd,canopy%fev,canopy%fes*ssnow%cls,&
+!         canopy%fh,canopy%ga,sboltz,emsoil,rad%transd,emleaf, &
+!         sboltz*emsoil*ssnow%tss**4*rad%transd,&
+!         sboltz*emsoil*rad%transd*ssnow%tss**4
+!58 format('Lest ebal1',20(1x,e11.4))
+
+   bal%ebal_cncheck = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs &
+        +met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)                     &
+        -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
+        !& -rad%flws*rad%transd -canopy%fev-canopy%fes * ssnow%cls &
+        * ssnow%cls -canopy%fh -canopy%ga              ! removed bug (EK 1jul08)
+   ! Add to cumulative balance:
+   bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
+
+!print 59,bal%ebal_tot_cncheck,bal%Ebal_cncheck,SUM(rad%qcan(:,:,1),2),SUM(rad%qcan(:,:,2),2),rad%qssabs,&
+!         met%fld,sboltz*emleaf*canopy%tv**4*(1-rad%transd),&
+!         rad%flws*rad%transd,canopy%fev,canopy%fes*ssnow%cls,&
+!         canopy%fh,canopy%ga,sboltz,emsoil,rad%transd,emleaf, &
+!         sboltz*emsoil*ssnow%tss**4*rad%transd,&
+!         sboltz*emsoil*rad%transd*ssnow%tss**4
+!59 format('Lest ebal2',20(1x,e11.4))
+
+!   bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))      &
+!        *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)       &
+!        -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes         &
+!        * ssnow%cls-canopy%fh
+!   bal%ebal_tot = bal%ebal_tot + bal%ebal
     
 END SUBROUTINE energy_balance
 

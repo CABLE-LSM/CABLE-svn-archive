@@ -72,8 +72,9 @@ site_name()
          (( i = i + 1 ))
       fi   
    done 
-   integer isites=i/2
-   #integer isites=i/3
+   #integer isites=i/2
+   integer isites=i/3
+   #integer isites=i/4
    
    i=0
    exec < fsites.txt
@@ -81,7 +82,8 @@ site_name()
    do
       read sites[i]	
       read fsites[i]	
-      #read fpoolsites[i]	
+      read fpoolsites[i]	
+      #read frestart[i]	
       print "\n\t${sites[i]}"
       (( i = i + 1 ))
    done 
@@ -122,8 +124,9 @@ run_run()
 
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then
-      ./cable ${fsites[$1]}
-      #./cable ${fsites[$1]} ${fpoolsites[$1]}
+      #./cable ${fsites[$1]}
+      ./cable ${fsites[$1]} ${fpoolsites[$1]}
+      #./cable ${fsites[$1]} ${fpoolsites[$1]} ${frestart[$1]}
    else
       ./cable       
    fi
@@ -137,12 +140,14 @@ run_run()
       		
       # CABLE output + restart if applicable
       mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$1]}
-      mv *.out fort.* out/${sites[$1]}
       cp cable.nml  out/${sites[$1]}
       cp new_sumbal  out/${sites[$1]}
       # pools for CASA-CNP
       if [[ -e poolcnpOut.csv ]]; then
          mv poolcnpOut.csv cnpfluxOut.csv out/${sites[$1]}
+      fi 
+      if [[ -e vh08.out ]]; then
+         mv *.out fort.* out/${sites[$1]}
       fi 
    else
       print '\n*** ERROR: RUN FAILED ***\n'     

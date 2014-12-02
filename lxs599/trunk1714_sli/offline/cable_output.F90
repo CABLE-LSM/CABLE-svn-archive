@@ -66,7 +66,7 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar, RnetSoil, SnowMelt
+                    HVeg, HSoil, Rnet, tvar, CanT, RnetSoil, SnowMelt
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -168,6 +168,8 @@ MODULE cable_output_module
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CanT  ! within-canopy temperature
+                                                 ! [K]
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -559,7 +561,7 @@ CONTAINS
        out%Albedo = 0.0 ! initialise
     END IF
 
-	 ! output calc of soil albedo based on colour? - Ticket #27
+ ! output calc of soil albedo based on colour? - Ticket #27
      IF (calcsoilalbedo) THEN
       IF(output%radiation .OR. output%visAlbedo) THEN
          CALL define_ovar(ncid_out, ovid%visAlbedo, 'visAlbedo', '-',          &
@@ -591,6 +593,13 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%VegT(mp))
        out%VegT = 0.0 ! initialise
+    END IF
+    IF(output%veg .OR. output%CanT) THEN
+       CALL define_ovar(ncid_out, ovid%CanT, 'CanT', 'K', &
+                        'Within-canopy temperature', patchout%CanT, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%CanT(mp))
+       out%CanT = 0.0 ! initialise
     END IF
     IF(output%veg .OR. output%CanopInt) THEN
        CALL define_ovar(ncid_out, ovid%CanopInt, 'CanopInt', 'kg/m^2',         &
@@ -1161,8 +1170,7 @@ CONTAINS
     ! Tair: surface air temperature [K]
     IF(output%met .OR. output%Tair) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Tair = out%Tair + REAL(met%tvair, 4) !VH TEST!
-       !out%Tair = out%Tair + REAL(met%tk, 4)
+       out%Tair = out%Tair + REAL(met%tk, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Tair = out%Tair/REAL(output%interval, 4)
@@ -1656,6 +1664,20 @@ CONTAINS
                           ranges%VegT, patchout%VegT, 'default', met)
           ! Reset temporary output variable:
           out%VegT = 0.0
+       END IF
+    END IF
+    ! CanT: within-canopy temperature [K]
+    IF(output%veg .OR. output%CanT) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%CanT = out%CanT + REAL(met%tvair, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%CanT = out%CanT / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%CanT, 'CanT', out%CanT, &
+                          ranges%CanT, patchout%CanT, 'default', met)
+          ! Reset temporary output variable:
+          out%CanT = 0.0
        END IF
     END IF
     ! CanopInt: total canopy water storage [kg/m^2]
