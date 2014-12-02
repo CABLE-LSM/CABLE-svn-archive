@@ -314,206 +314,206 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 END SUBROUTINE bgcdriver
 
-!SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
-!  USE netcdf
-!  USE cable_def_types_mod,   ONLY : r_2,ms,mp
-!  USE casadimension,         ONLY : mplant,mdyear
-!  USE casavariable,          ONLY : casa_met, casa_flux
-!  USE cable_diag_module,     ONLY : get_var_ncr2, &
-!       get_var_ncr3, stderr_nc
-!
-!  IMPLICIT NONE
-!
-!  TYPE (casa_flux), INTENT(INOUT) :: casaflux
-!  TYPE (casa_met), INTENT(inout)  :: casamet
-!  INTEGER, INTENT(in)             :: kend, ncall
-!  CHARACTER(len=*), INTENT(in)    :: ncfile
-!  LOGICAL, INTENT(in)             :: allATonce
-!
-!  !netcdf IDs/ names
-!  INTEGER, PARAMETER :: num_vars=7
-!  INTEGER, PARAMETER :: num_dims=3
-!  INTEGER, SAVE                        :: ncrid  ! netcdf file ID
-!  INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
-!
-!  !vars
-!  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
-!       var_name =  (/  "lat          ", &
-!       "lon          ", &
-!       "casamet_tairk", &
-!       "tsoil        ", &
-!       "moist        ", &
-!       "cgpp         ", &
-!       "crmplant     " /)
-!
-!
-!  REAL     , DIMENSION(mp)        :: lat, lon
-!  REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp
-!  REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
-!  REAL(r_2), DIMENSION(mp,mplant) :: crmplant
-!  INTEGER :: ncok,  idoy
-!
-!  IF ( allATonce .OR. ncall .EQ. 1 ) THEN
-!     ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
-!     IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
-!
-!     !         ncok = NF90_INQ_DIMID(ncrid, 'npt', nptid )
-!     !         ncok = NF90_INQ_VARID(ncrid, TRIM(VAR_NAME(1)), varrID(1))
-!  ENDIF
-!
-!  IF ( allATonce ) THEN
-!     DO idoy=1,mdyear
-!
-!        CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
-!         write(*,*) "before get_var", ms
-!        CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
-!        CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
-!        CALL get_var_ncr2(ncrid, var_name(6), cgpp    , idoy )
-!        CALL get_var_ncr3(ncrid, var_name(7), crmplant, idoy ,mplant)
-!
-!
-!        casamet%Tairkspin(:,idoy) = tairk
-!        casamet%cgppspin (:,idoy) = cgpp
-!        casamet%crmplantspin_1(:,idoy) = crmplant(:,1)
-!        casamet%crmplantspin_2(:,idoy) = crmplant(:,2)
-!        casamet%crmplantspin_3(:,idoy) = crmplant(:,3)
-!        casamet%Tsoilspin_1(:,idoy)    = tsoil(:,1)
-!        casamet%Tsoilspin_2(:,idoy)    = tsoil(:,2)
-!        casamet%Tsoilspin_3(:,idoy)    = tsoil(:,3)
-!        casamet%Tsoilspin_4(:,idoy)    = tsoil(:,4)
-!        casamet%Tsoilspin_5(:,idoy)    = tsoil(:,5)
-!        casamet%Tsoilspin_6(:,idoy)    = tsoil(:,6)
-!        casamet%moistspin_1(:,idoy)    = moist(:,1)
-!        casamet%moistspin_2(:,idoy)    = moist(:,2)
-!        casamet%moistspin_3(:,idoy)    = moist(:,3)
-!        casamet%moistspin_4(:,idoy)    = moist(:,4)
-!        casamet%moistspin_5(:,idoy)    = moist(:,5)
-!        casamet%moistspin_6(:,idoy)    = moist(:,6)
-!
-!     END DO
-!  ELSE
-!
-!     CALL get_var_ncr2(ncrid, var_name(3), tairk   ,ncall )
-!     CALL get_var_ncr3(ncrid, var_name(4), tsoil   ,ncall , ms)
-!     CALL get_var_ncr3(ncrid, var_name(5), moist   ,ncall , ms)
-!     CALL get_var_ncr2(ncrid, var_name(6), cgpp    ,ncall )
-!     CALL get_var_ncr3(ncrid, var_name(7), crmplant,ncall , mplant)
-!
-!     casamet%tairk     = tairk
-!     casamet%tsoil     = tsoil
-!     casamet%moist     = moist
-!     casaflux%cgpp     = cgpp
-!     casaflux%crmplant = crmplant
-!
-!  ENDIF
-!
-!  IF ( allATonce .OR. ncall .EQ. kend ) THEN
-!     ncok = NF90_CLOSE(ncrid)
-!     IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'closing ', ncfile)
-!  ENDIF
-!
-!END SUBROUTINE read_casa_dump
+SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
+  USE netcdf
+  USE cable_def_types_mod,   ONLY : r_2,ms,mp
+  USE casadimension,         ONLY : mplant,mdyear
+  USE casavariable,          ONLY : casa_met, casa_flux
+  USE cable_diag_module,     ONLY : get_var_ncr2, &
+       get_var_ncr3, stderr_nc
+
+  IMPLICIT NONE
+
+  TYPE (casa_flux), INTENT(INOUT) :: casaflux
+  TYPE (casa_met), INTENT(inout)  :: casamet
+  INTEGER, INTENT(in)             :: kend, ncall
+  CHARACTER(len=*), INTENT(in)    :: ncfile
+  LOGICAL, INTENT(in)             :: allATonce
+
+  !netcdf IDs/ names
+  INTEGER, PARAMETER :: num_vars=7
+  INTEGER, PARAMETER :: num_dims=3
+  INTEGER, SAVE                        :: ncrid  ! netcdf file ID
+  INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
+
+  !vars
+  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
+       var_name =  (/  "lat          ", &
+       "lon          ", &
+       "casamet_tairk", &
+       "tsoil        ", &
+       "moist        ", &
+       "cgpp         ", &
+       "crmplant     " /)
+
+
+  REAL     , DIMENSION(mp)        :: lat, lon
+  REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp
+  REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
+  REAL(r_2), DIMENSION(mp,mplant) :: crmplant
+  INTEGER :: ncok,  idoy
+
+  IF ( allATonce .OR. ncall .EQ. 1 ) THEN
+     ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
+     IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
+
+     !         ncok = NF90_INQ_DIMID(ncrid, 'npt', nptid )
+     !         ncok = NF90_INQ_VARID(ncrid, TRIM(VAR_NAME(1)), varrID(1))
+  ENDIF
+
+  IF ( allATonce ) THEN
+     DO idoy=1,mdyear
+
+        CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
+         write(*,*) "before get_var", ms
+        CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
+        CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
+        CALL get_var_ncr2(ncrid, var_name(6), cgpp    , idoy )
+        CALL get_var_ncr3(ncrid, var_name(7), crmplant, idoy ,mplant)
+
+
+        casamet%Tairkspin(:,idoy) = tairk
+        casamet%cgppspin (:,idoy) = cgpp
+        casamet%crmplantspin_1(:,idoy) = crmplant(:,1)
+        casamet%crmplantspin_2(:,idoy) = crmplant(:,2)
+        casamet%crmplantspin_3(:,idoy) = crmplant(:,3)
+        casamet%Tsoilspin_1(:,idoy)    = tsoil(:,1)
+        casamet%Tsoilspin_2(:,idoy)    = tsoil(:,2)
+        casamet%Tsoilspin_3(:,idoy)    = tsoil(:,3)
+        casamet%Tsoilspin_4(:,idoy)    = tsoil(:,4)
+        casamet%Tsoilspin_5(:,idoy)    = tsoil(:,5)
+        casamet%Tsoilspin_6(:,idoy)    = tsoil(:,6)
+        casamet%moistspin_1(:,idoy)    = moist(:,1)
+        casamet%moistspin_2(:,idoy)    = moist(:,2)
+        casamet%moistspin_3(:,idoy)    = moist(:,3)
+        casamet%moistspin_4(:,idoy)    = moist(:,4)
+        casamet%moistspin_5(:,idoy)    = moist(:,5)
+        casamet%moistspin_6(:,idoy)    = moist(:,6)
+
+     END DO
+  ELSE
+
+     CALL get_var_ncr2(ncrid, var_name(3), tairk   ,ncall )
+     CALL get_var_ncr3(ncrid, var_name(4), tsoil   ,ncall , ms)
+     CALL get_var_ncr3(ncrid, var_name(5), moist   ,ncall , ms)
+     CALL get_var_ncr2(ncrid, var_name(6), cgpp    ,ncall )
+     CALL get_var_ncr3(ncrid, var_name(7), crmplant,ncall , mplant)
+
+     casamet%tairk     = tairk
+     casamet%tsoil     = tsoil
+     casamet%moist     = moist
+     casaflux%cgpp     = cgpp
+     casaflux%crmplant = crmplant
+
+  ENDIF
+
+  IF ( allATonce .OR. ncall .EQ. kend ) THEN
+     ncok = NF90_CLOSE(ncrid)
+     IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'closing ', ncfile)
+  ENDIF
+
+END SUBROUTINE read_casa_dump
 
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
 
-!SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
-!  USE netcdf
-!  USE cable_def_types_mod,   ONLY : r_2,ms,mp
-!  USE cable_common_module,   ONLY : kend_gl
-!  USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
-!       put_var_ncr1, put_var_ncr2,       &
-!       put_var_ncr3, stderr_nc
-!  USE casavariable,          ONLY : CASA_MET, CASA_FLUX
-!  USE casadimension,         ONLY : mplant
-!
-!  IMPLICIT NONE
-!
-!  INTEGER, INTENT(in) :: &
-!       n_call, &         ! this timestep #
-!       kend              ! final timestep of run
-!
-!
-!  !number of instances. dummied here and so=1
-!  !integer :: inst =1
-!
-!  !netcdf IDs/ names
-!  CHARACTER(len=*)   :: ncfile
-!  INTEGER, PARAMETER :: num_vars=7
-!  INTEGER, PARAMETER :: num_dims=3
-!  INTEGER, SAVE :: ncid       ! netcdf file ID
-!
-!  !vars
-!  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
-!       var_name =  (/  "lat          ", &
-!       "lon          ", &
-!       "casamet_tairk", &
-!       "tsoil        ", &
-!       "moist        ", &
-!       "cgpp         ", &
-!       "crmplant     " /)
-!
-!  INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
-!
-!  !dims
-!  CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
-!       dim_name =  (/ "pnt ", &
-!       "soil", &
-!       "time" /)
-!
-!  INTEGER, PARAMETER :: soil_dim = 6
-!
-!  INTEGER, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /)
-!
-!  INTEGER, DIMENSION(num_dims)  :: &
-!       dimID   ! (1) x, (2) y, (3) time
-!
-!  INTEGER, DIMENSION(num_dims)  :: &
-!                                !x,y generally lat/lon BUT for single site = 1,1
-!       dim_len = (/-1,soil_dim,-1/)  ! (1) x, (2) y, (3) soil, (4) time [re-set]
-!
-!  TYPE(CASA_MET)  :: CASAMET
-!  TYPE(CASA_FLUX) :: CASAFLUX
-!
-!  !local only
-!  INTEGER :: ncok      !ncdf return status
-!
-!  ! END header
-!
-!  dim_len(1)        = mp
-!  dim_len(num_dims) = kend
-!
-!  IF (n_call == 1) THEN
-!     ! create netCDF dataset: enter define mode
-!     ncok = nf90_create(path = TRIM(ncfile), cmode = nf90_clobber, ncid = ncid)
-!     IF (ncok /= nf90_noerr) CALL stderr_nc(ncok,'ncdf creating ', ncfile)
-!
-!     ! define dimensions: from name and length
-!     CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
-!
-!     ! define variables: from name, type, dims
-!     write(*,*) "def_vars", dimID
-!     CALL def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
-!
-!     ! define variable attributes
-!     !CLN LATER!             CALL def_var_atts( ncfile, ncid, varID )
-!
-!     ncok = nf90_enddef(ncid)
-!
-!     CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
-!     CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
-!
-!  ENDIF
-!
-!  CALL put_var_ncr2(ncid, var_name(3), casamet%tairk    ,n_call )
-!  CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil    ,n_call, ms )
-!  CALL put_var_ncr3(ncid, var_name(5), casamet%moist    ,n_call, ms )
-!  CALL put_var_ncr2(ncid, var_name(6), casaflux%cgpp    ,n_call )
-!  CALL put_var_ncr3(ncid, var_name(7), casaflux%crmplant,n_call, mplant )
-!
-!  IF (n_call == kend ) &
-!       ncok = nf90_close(ncid)            ! close: save new netCDF dataset
-!
-!END SUBROUTINE write_casa_dump
+SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
+  USE netcdf
+  USE cable_def_types_mod,   ONLY : r_2,ms,mp
+  USE cable_common_module,   ONLY : kend_gl
+  USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
+       put_var_ncr1, put_var_ncr2,       &
+       put_var_ncr3, stderr_nc
+  USE casavariable,          ONLY : CASA_MET, CASA_FLUX
+  USE casadimension,         ONLY : mplant
+
+  IMPLICIT NONE
+
+  INTEGER, INTENT(in) :: &
+       n_call, &         ! this timestep #
+       kend              ! final timestep of run
+
+
+  !number of instances. dummied here and so=1
+  !integer :: inst =1
+
+  !netcdf IDs/ names
+  CHARACTER(len=*)   :: ncfile
+  INTEGER, PARAMETER :: num_vars=7
+  INTEGER, PARAMETER :: num_dims=3
+  INTEGER, SAVE :: ncid       ! netcdf file ID
+
+  !vars
+  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
+       var_name =  (/  "lat          ", &
+       "lon          ", &
+       "casamet_tairk", &
+       "tsoil        ", &
+       "moist        ", &
+       "cgpp         ", &
+       "crmplant     " /)
+
+  INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
+
+  !dims
+  CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
+       dim_name =  (/ "pnt ", &
+       "soil", &
+       "time" /)
+
+  INTEGER, PARAMETER :: soil_dim = 6
+
+  INTEGER, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /)
+
+  INTEGER, DIMENSION(num_dims)  :: &
+       dimID   ! (1) x, (2) y, (3) time
+
+  INTEGER, DIMENSION(num_dims)  :: &
+                                !x,y generally lat/lon BUT for single site = 1,1
+       dim_len = (/-1,soil_dim,-1/)  ! (1) x, (2) y, (3) soil, (4) time [re-set]
+
+  TYPE(CASA_MET)  :: CASAMET
+  TYPE(CASA_FLUX) :: CASAFLUX
+
+  !local only
+  INTEGER :: ncok      !ncdf return status
+
+  ! END header
+
+  dim_len(1)        = mp
+  dim_len(num_dims) = kend
+
+  IF (n_call == 1) THEN
+     ! create netCDF dataset: enter define mode
+     ncok = nf90_create(path = TRIM(ncfile), cmode = nf90_clobber, ncid = ncid)
+     IF (ncok /= nf90_noerr) CALL stderr_nc(ncok,'ncdf creating ', ncfile)
+
+     ! define dimensions: from name and length
+     CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
+
+     ! define variables: from name, type, dims
+     write(*,*) "def_vars", dimID
+     CALL def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
+
+     ! define variable attributes
+     !CLN LATER!             CALL def_var_atts( ncfile, ncid, varID )
+
+     ncok = nf90_enddef(ncid)
+
+     CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
+     CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
+
+  ENDIF
+
+  CALL put_var_ncr2(ncid, var_name(3), casamet%tairk    ,n_call )
+  CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil    ,n_call, ms )
+  CALL put_var_ncr3(ncid, var_name(5), casamet%moist    ,n_call, ms )
+  CALL put_var_ncr2(ncid, var_name(6), casaflux%cgpp    ,n_call )
+  CALL put_var_ncr3(ncid, var_name(7), casaflux%crmplant,n_call, mplant )
+
+  IF (n_call == kend ) &
+       ncok = nf90_close(ncid)            ! close: save new netCDF dataset
+
+END SUBROUTINE write_casa_dump
 
 SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet)
   USE cable_def_types_mod
