@@ -194,8 +194,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
               !CLN CHECK FOR LEAP YEAR
               WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
               ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-              !CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
-              !     kend/ktauday )
+              CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
+                   kend/ktauday )
            END IF
 
 

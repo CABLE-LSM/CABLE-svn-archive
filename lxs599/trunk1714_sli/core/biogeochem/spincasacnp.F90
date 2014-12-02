@@ -88,11 +88,11 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      !     read(91,901) ncfile
      WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-     !call read_casa_dump( ncfile,casamet, casaflux,ktau ,kend,.TRUE. )
+     call read_casa_dump( ncfile,casamet, casaflux,ktau ,kend,.TRUE. )
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +1
-        !      CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend/ktauday )
+        !     CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend/ktauday )
         casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
         casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
         casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
@@ -223,11 +223,11 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         !!CLN      read(91,901) ncfile
         WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
         ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-        !call read_casa_dump( ncfile, casamet, casaflux, ktau, kend, .TRUE. )
+        call read_casa_dump( ncfile, casamet, casaflux, ktau, kend, .TRUE. )
 
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
-           !      CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend )
+           !     CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend )
            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
            casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)

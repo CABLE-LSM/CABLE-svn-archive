@@ -728,7 +728,7 @@ SUBROUTINE comp_friction_vel()
 
    psim_1 = psim(canopy%zetar(:,iter)) 
    
-      rescale = C%VONK * MAX(met%ua,C%UMIN)
+      rescale = C%VONK * MAX(met%ua,C%UMIN+min(rough%z0m,0.5))
       z_eff = rough%zref_uv / rough%z0m
    
    psim_arg = canopy%zetar(:,iter) / z_eff 

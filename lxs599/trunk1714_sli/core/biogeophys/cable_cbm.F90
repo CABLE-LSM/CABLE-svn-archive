@@ -38,7 +38,7 @@
 MODULE cable_cbm_module
    
    USE cable_canopy_module
-   !USE canopy_vh_module
+   USE canopy_vh_module
    USE cable_albedo_module
   
    IMPLICIT NONE
@@ -125,11 +125,11 @@ CONTAINS
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
-   !IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
-   !   CALL define_canopy_vh(ktau,bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
-   !ELSEIF (cable_user%CANOPY_STRUC=='default') THEN
+   IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
+      CALL define_canopy_vh(ktau,bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+   ELSEIF (cable_user%CANOPY_STRUC=='default') THEN
       CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
-   !ENDIF
+   ENDIF
 
 
    ! RML moved out of following IF after discussion with Eva

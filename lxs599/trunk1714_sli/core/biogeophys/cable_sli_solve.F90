@@ -1779,20 +1779,20 @@ CONTAINS
                    end if
                 end if  ! (.not. again(kk))
                 nsteps(kk)        = nsteps(kk) + 1
-                                if ((irec.eq.106).and.(kk.eq.14206)) then
-                                  write(*,*) 'writing diags', again(kk)
-                                   write(345,"(13i8,1500e16.6)") nsteps, nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, nfac10, &
-                                   nfac11, nfac12, q, qsig, qH, qhsig, &
-                                   dy(kk,0:n), de(kk,0:n), dTsoil, S,thetai, Tsoil, real(var(kk,1)%iice), &
-                                   real(var(kk,1)%isat), &
-                                    h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
-                                     vsnow(kk)%wcol, &
-                                    qadv, qadvsig, qhya, qhyb, qhTa, qhTb, qya, qyb, qTa, qTb, &
-                                     var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
-                                    RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
-                                    real(-var(kk,1:n)%isat+1), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1), vsnow(kk)%hsnow(1)
-                                  if (nsteps(kk).gt.30) STOP
-                                endif
+!!$                                if ((irec.eq.106).and.(kk.eq.14206)) then
+!!$                                  write(*,*) 'writing diags', again(kk)
+!!$                                   write(345,"(13i8,1500e16.6)") nsteps, nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, nfac10, &
+!!$                                   nfac11, nfac12, q, qsig, qH, qhsig, &
+!!$                                   dy(kk,0:n), de(kk,0:n), dTsoil, S,thetai, Tsoil, real(var(kk,1)%iice), &
+!!$                                   real(var(kk,1)%isat), &
+!!$                                    h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
+!!$                                     vsnow(kk)%wcol, &
+!!$                                    qadv, qadvsig, qhya, qhyb, qhTa, qhTb, qya, qyb, qTa, qTb, &
+!!$                                     var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
+!!$                                    RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
+!!$                                    real(-var(kk,1:n)%isat+1), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1), vsnow(kk)%hsnow(1)
+!!$                                  if (nsteps(kk).gt.30) STOP
+!!$                                endif
              end do ! while (iok==0) ----- end get and solve eqns
 
              !----- update unknowns
