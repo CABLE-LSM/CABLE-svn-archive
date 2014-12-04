@@ -131,7 +131,8 @@ MODULE cable_checks_module
            clay = (/0.0,1.0/),                 &
            css = (/700.0,2200.0/),             &
            rhosoil = (/300.0,3000.0/),         &
-           hyds = (/5.0E-7,8.5E-4/),           &
+           !hyds = (/5.0E-7,8.5E-4/),           &
+           hyds = (/5.0E-7,8.5E-3/),           & ! VH ! sep14
            rs20 = (/0.0,10.0/),                &
            sand = (/0.0,1.0/),                 &
            sfc = (/0.1,0.5/),                  & 
@@ -251,7 +252,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
         - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
 
    IF (cable_user%soil_struc=='sli') then  !! vh March 2014 !!
-      bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &  ! delwcol includes change in soil water, pond and snowpack
+      ! delwcol includes change in soil water, pond and snowpack
+      bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
                   - ssnow%evap - canopy%fevc*dels/air%rlam, r_2)
 
    END IF
@@ -302,8 +304,8 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
       EMLEAF,  & !leaf emissivity
       EMSOIL     !leaf emissivity
 
-     
-    bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  & !! vh !! March 2014
+    !! vh !! March 2014 
+    bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  &
          - (emsoil*sboltz*rad%transd*ssnow%otss**4) - &
          (emleaf*sboltz*(1-rad%transd)*canopy%tv**4) &
          - canopy%fnv - canopy%fns

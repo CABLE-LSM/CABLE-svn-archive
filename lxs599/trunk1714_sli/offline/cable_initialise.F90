@@ -418,8 +418,12 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
     IF(cable_user%SOIL_STRUC=='sli') THEN
        CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
             max_vegpatches,'ms',from_restart,mp)
+       CALL readpar(ncid_rin,'Tsoil',dummy,ssnow%Tsoil,filename%restart_in, &
+             max_vegpatches,'ms',from_restart,mp)
        CALL readpar(ncid_rin,'h0',dummy,ssnow%h0,filename%restart_in, &
             max_vegpatches,'def',from_restart,mp)
+      CALL readpar(ncid_rin,'nsnow',dummy,ssnow%nsnow,filename%restart_in, &
+             max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'Tsurface',dummy,ssnow%Tsurface,filename%restart_in, &
             max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'snowliq',dummy,ssnow%snowliq,filename%restart_in, &
@@ -445,6 +449,7 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
        DEALLOCATE(var_r2)
        CALL readpar(ncid_rin,'clitt',dummy,soil%clitt,filename%restart_in,           &
             max_vegpatches,'def',from_restart,mp)
+
     ENDIF
    CALL readpar(ncid_rin,'cansto',dummy,canopy%cansto,filename%restart_in,     &
                 max_vegpatches,'def',from_restart,mp)

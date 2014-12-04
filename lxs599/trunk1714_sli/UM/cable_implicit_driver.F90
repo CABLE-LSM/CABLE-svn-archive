@@ -253,9 +253,9 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       met%tvrad = met%tk
  
       canopy%cansto = canopy%oldcansto
-      do k=1,mp
-      print *,'impl_tgg',k, ssnow%tgg(k,:)
-      end do
+      !do k=1,mp
+      !print *,'impl_tgg',k, ssnow%tgg(k,:)
+      !end do
 
       CALL cbm(ktau_gl,TIMESTEP, air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)

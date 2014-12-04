@@ -420,7 +420,7 @@ np = mp
         STATUS = NF90_PUT_VAR(FILE_ID, VIDI5( 1), POP%pop_grid(m)%patch(:)%id,     &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        !IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 1), POP%pop_grid(m)%freq,            &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)

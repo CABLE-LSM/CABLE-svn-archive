@@ -540,25 +540,25 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL
      win = win + (qprec+qprec_snow)*(tf-ti)
 
-     if (1 == 1) then
-        k=14206
-        write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
-             win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
-             evap(k), evap_pot(k), infil(k), &
-             drn(k), h0(k), Etrans(k)*dt, discharge(k), fws(k), (ip(k)-ipi(k)), fsat(k), runoff_sat(k), qb(k)
-        write(334,"(100f15.6)") S(k,:), S(k,:)*par(k,:)%thre+par(k,:)%thr
-        write(336,"(100f15.6)") Tsoil(k,:)
-        write(335,"(100e20.12)") vmet(k)%Ta, T0(k), zero, H(k), lE(k), &
-             G0(k),Jcol_sensible(k),Jcol_latent_S(k), Jcol_latent_T(k), &
-             vmet(k)%Rn, TL(k), SL(k), deltaice_cum_T(k), &
-             deltaice_cum_S(k), zero, Tsurface(k), vmet(k)%rha, &
-             Qadvcum(k), sum((Jsensible(k,:)-ssnow%gammzz(k,:)),1)
-        write(338,"(100f18.6)") thetai(k,:)
-        write(369,"(13e20.12)") vmet(k)%Ta, vmet(k)%rha, rbw, &
-             rbh, rrc, vmet(k)%Rn, &
-             vmet(k)%Da, vmet(k)%cva, vmet(k)%civa, &
-             vmet(k)%phiva, Etrans(k), qprec(k), qprec_snow(k)
-     endif
+     !if (1 == 1) then
+        !k=14206
+        !write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
+        !     win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
+        !     evap(k), evap_pot(k), infil(k), &
+        !     drn(k), h0(k), Etrans(k)*dt, discharge(k), fws(k), (ip(k)-ipi(k)), fsat(k), runoff_sat(k), qb(k)
+        !!write(334,"(100f15.6)") S(k,:), S(k,:)*par(k,:)%thre+par(k,:)%thr
+        !write(336,"(100f15.6)") Tsoil(k,:)
+        !write(335,"(100e20.12)") vmet(k)%Ta, T0(k), zero, H(k), lE(k), &
+        !     G0(k),Jcol_sensible(k),Jcol_latent_S(k), Jcol_latent_T(k), &
+        !     vmet(k)%Rn, TL(k), SL(k), deltaice_cum_T(k), &
+        !     deltaice_cum_S(k), zero, Tsurface(k), vmet(k)%rha, &
+        !     Qadvcum(k), sum((Jsensible(k,:)-ssnow%gammzz(k,:)),1)
+        !write(338,"(100f18.6)") thetai(k,:)
+        !write(369,"(13e20.12)") vmet(k)%Ta, vmet(k)%rha, rbw, &
+        !     rbh, rrc, vmet(k)%Rn, &
+        !     vmet(k)%Da, vmet(k)%cva, vmet(k)%civa, &
+        !     vmet(k)%phiva, Etrans(k), qprec(k), qprec_snow(k)
+     !endif
 
      ! Update variables for output:
      ssnow%tss      = real(Tsurface + Tzero)

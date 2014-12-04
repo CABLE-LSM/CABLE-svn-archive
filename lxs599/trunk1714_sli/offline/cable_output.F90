@@ -465,7 +465,7 @@ CONTAINS
             'Net radiation absorbed by ground', patchout%RnetSoil, 'dummy',    &
             xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%RnetSoil(mp))
-       out%Rnet = 0.0 ! initialise
+       out%RnetSoil = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%carbon .OR. output%NEE) THEN
        CALL define_ovar(ncid_out, ovid%NEE, 'NEE', 'umol/m^2/s',               &
@@ -1899,7 +1899,7 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID
-    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     CHARACTER         :: FRST_OUT*100, CYEAR*4
 
@@ -2280,6 +2280,9 @@ CONTAINS
        CALL define_ovar(ncid_restart,SID,'S','-',&
             'Fractional soil moisture content relative to saturated value', &
             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,TsoilID,'Tsoil','degC',&
+             'Tsoil', &
+             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.
        CALL define_ovar(ncid_restart,snowliqID,'snowliq','mm',&
             'liquid water content of snowpack', &
             .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
@@ -2289,6 +2292,9 @@ CONTAINS
        CALL define_ovar(ncid_restart,h0ID,'h0','m',&
             'Pond height above soil', &
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+        CALL define_ovar(ncid_restart,nsnowID,'nsnow','-',&
+             'number of snow layers', &
+             .TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,TsurfaceID,'Tsurface','degC',&
             'soil or snow surface T', &
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
@@ -2531,12 +2537,16 @@ CONTAINS
        ! Write SLI variables:
        CALL write_ovar (ncid_restart,SID,'S',REAL(ssnow%S,4), &
             (/0.0,1.5/),.TRUE.,'soil',.TRUE.)
+        CALL write_ovar (ncid_restart,TsoilID,'Tsoil',REAL(ssnow%Tsoil,4), &
+             (/-100.0,100.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,snowliqID,'snowliq',REAL(ssnow%snowliq,4), &
             (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
        CALL write_ovar (ncid_restart,scondsID,'sconds',REAL(ssnow%sconds,4), &
             (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
        CALL write_ovar (ncid_restart,h0ID,'h0',REAL(ssnow%h0,4), &
             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+        CALL write_ovar (ncid_restart,nsnowID,'nsnow',REAL(ssnow%nsnow,4), &
+             (/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
        CALL write_ovar (ncid_restart,TsurfaceID,'Tsurface',REAL(ssnow%Tsurface,4), &
             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
 

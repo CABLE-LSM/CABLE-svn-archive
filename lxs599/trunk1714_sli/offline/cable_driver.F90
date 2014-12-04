@@ -305,10 +305,15 @@ PROGRAM cable_offline_driver
    ENDIF
 
   IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
-     leaps = .FALSE.
+     leaps = .TRUE.
      WRITE(*,*)   "gswp data doesn't have leap years!!! leaps -> .FALSE."
      WRITE(logn,*)"gswp data doesn't have leap years!!! leaps -> .FALSE."
   ENDIF
+
+   IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
+      leaps = .TRUE.
+      cable_user%MetType = 'gswp'
+   ENDIF
     
    cable_runtime%offline = .TRUE.
    
@@ -332,13 +337,18 @@ PROGRAM cable_offline_driver
   ! Open met data and get site information from netcdf file. (NON-GSWP ONLY!)
   ! This retrieves time step size, number of timesteps, starting date,
   ! latitudes, longitudes, number of sites.
-  IF ( TRIM(cable_user%MetType) .NE. "gswp" ) THEN
+  IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
+        TRIM(cable_user%MetType) .NE. "gpgs") THEN
 
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
 
    ! spinup using 1 year data only, assume 365 days (normal spin use all data)
    IF (spinup .AND. spin_1yr) kend = 365 * 24 * 3600.0 / dels
       
+      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
+         WRITE(*,*)"When using POP, episode must start at Jan 1st!"
+         STOP 991
+      ENDIF
   ELSE IF ( NRRRR .GT. 1 ) THEN
      ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
   ENDIF
@@ -352,6 +362,11 @@ PROGRAM cable_offline_driver
      NREP: DO RRRR = 1, NRRRR
         YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
            CurYear = YYYY
+            IF ( leaps .and. IS_LEAPYEAR( YYYY ) ) THEN
+               LOY = 366
+            ELSE
+               LOY = 365
+            ENDI
            ! Check for gswp run
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
               ncciy = CurYear
@@ -366,7 +381,9 @@ PROGRAM cable_offline_driver
       
       ENDIF
               IF ( RRRR .EQ. 1 ) THEN
+                 PRINT*,"kend"
                  CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+                 PRINT*,"kend",kend
                  IF ( NRRRR .GT. 1 ) THEN
                     GSWP_MID(1,YYYY) = ncid_rain
                     GSWP_MID(2,YYYY) = ncid_snow
@@ -386,6 +403,7 @@ PROGRAM cable_offline_driver
                  ncid_qa   = GSWP_MID(6,YYYY)
                  ncid_ta   = GSWP_MID(7,YYYY)
                  ncid_wd   = GSWP_MID(8,YYYY)
+                 kend      = ktauday * LOY
               ENDIF
    ENDIF
  
@@ -478,18 +496,13 @@ PROGRAM cable_offline_driver
          ktau_tot = ktau_tot + 1
          
          ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau_gl + 1
+         ktau_gl = ktau_tot
          
-              IF ( leaps .and. IS_LEAPYEAR( YYYY ) ) THEN
-                 LOY = 366
-              ELSE
-                 LOY = 365
-              ENDIF
               idoy = mod(INT(REAL(ktau+koffset)/REAL(ktauday)),LOY)
               IF ( idoy .EQ. 0 ) idoy = LOY
          
          ! needed for CASA-CNP
-              nyear     =INT((kend+koffset)/(365*ktauday))
+              nyear     =INT((kend+koffset)/(LOY*ktauday))
    
          canopy%oldcansto=canopy%cansto
    
@@ -539,7 +552,7 @@ PROGRAM cable_offline_driver
             call bgcdriver( ktau, kstart, kend, dels, met,                     &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
-                      phen, pop, spinConv, spinup, ktauday, idoy,            &
+                      phen, pop, spinConv, spinup, ktauday, idoy, loy,       &
                       CABLE_USER%CASA_DUMP_READ, CABLE_USER%CASA_DUMP_WRITE, &
                       gpp_ann_save )
 
@@ -564,9 +577,10 @@ PROGRAM cable_offline_driver
                          .OR. ktau .EQ. kend) THEN
                        !ctime = (ktau + ( YYYY - cable_user%YearStart ) * 365 * ktauday)/ktauday
                        ctime = ctime +1
-                       !CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
-                       !    CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &  !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
-                       !   cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
+                       !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
+                       CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
+                           CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &
+                          cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
          ENDIF 
                  END IF
               ENDIF
@@ -583,7 +597,7 @@ PROGRAM cable_offline_driver
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                            &
+         IF(((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. .NOT. CASAONLY)      &
             CALL write_output( dels, ktau, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
@@ -591,12 +605,13 @@ PROGRAM cable_offline_driver
 
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+           IF (.NOT.CASAONLY) THEN
             IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
                call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
+            ENDIF
          ENDIF
-                
       END DO ! END Do loop over timestep ktau
 
       !jhan this is insufficient testing. condition for 
@@ -713,7 +728,7 @@ PROGRAM cable_offline_driver
                  RYEAR = YYYY
               END if
               IF ( cable_user%CALL_POP ) then
-                 CALL POP_IO( pop, casamet, RYEAR, 'WRITE', &
+                 CALL POP_IO( pop, casamet, RYEAR, 'WRITE_EPI', &
                       (YYYY.EQ.CABLE_USER%YearEnd .AND. RRRR.EQ.NRRRR) )
                  CALL GLOBFOR_OUT(mp, pop, casapool, veg, rad, cleaf_max, npp_ann, gpp_ann, stemnpp_ann, &
                       leafnpp_ann )
@@ -746,10 +761,14 @@ PROGRAM cable_offline_driver
                            sum_flux, veg )
   ENDIF
 
-  IF ( TRIM(cable_user%MetType) .NE. "gswp" ) CALL close_met_file
+   IF ( cable_user%CALL_POP ) THEN
+      IF ( spinup ) THEN
+         CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_INI', .TRUE.)
+       ELSE
+         CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_RST', .TRUE.)
+       ENDIF
+    ENDIF
 
-   WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
-   
    ! Check this run against standard for quasi-bitwise reproducability
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    IF(cable_user%consistency_check) THEN 
@@ -779,6 +798,9 @@ PROGRAM cable_offline_driver
       
    ENDIF
 
+  IF ( TRIM(cable_user%MetType) .NE. "gswp" ) CALL close_met_file
+
+   WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
 
    ! Close log file
    CLOSE(logn)
