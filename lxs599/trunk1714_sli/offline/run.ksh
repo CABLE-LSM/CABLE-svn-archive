@@ -72,8 +72,8 @@ site_name()
          (( i = i + 1 ))
       fi   
    done 
-   #integer isites=i/2
-   integer isites=i/3
+   integer isites=i/2
+   #integer isites=i/3
    #integer isites=i/4
    
    i=0
@@ -82,7 +82,7 @@ site_name()
    do
       read sites[i]	
       read fsites[i]	
-      read fpoolsites[i]	
+      #read fpoolsites[i]	
       #read frestart[i]	
       print "\n\t${sites[i]}"
       (( i = i + 1 ))
@@ -124,8 +124,8 @@ run_run()
 
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then
-      #./cable ${fsites[$1]}
-      ./cable ${fsites[$1]} ${fpoolsites[$1]}
+      ./cable ${fsites[$1]}
+      #./cable ${fsites[$1]} ${fpoolsites[$1]}
       #./cable ${fsites[$1]} ${fpoolsites[$1]} ${frestart[$1]}
    else
       ./cable       

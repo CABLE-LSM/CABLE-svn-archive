@@ -2282,7 +2282,7 @@ CONTAINS
             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,TsoilID,'Tsoil','degC',&
              'Tsoil', &
-             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.
+             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,snowliqID,'snowliq','mm',&
             'liquid water content of snowpack', &
             .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)

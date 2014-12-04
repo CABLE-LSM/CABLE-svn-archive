@@ -711,9 +711,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ssnow%tgg(:,J) = PACK(TSOIL_TILE(:,:,J),um1%l_tile_pts)
       ENDDO 
 
-      do k=1,mp
-       print *, 'expl_tgg', k,ssnow%tgg(k,:)
-      enddo
+      !do k=1,mp
+      ! print *, 'expl_tgg', k,ssnow%tgg(k,:)
+      !enddo
       
       ssnow%snage = PACK(SNAGE_TILE, um1%l_tile_pts)
 

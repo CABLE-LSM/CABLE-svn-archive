@@ -366,7 +366,7 @@ PROGRAM cable_offline_driver
                LOY = 366
             ELSE
                LOY = 365
-            ENDI
+            ENDIF
            ! Check for gswp run
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
               ncciy = CurYear
@@ -541,7 +541,7 @@ PROGRAM cable_offline_driver
    
               ELSE IF ( mod((ktau-kstart+1+koffset),ktauday)==0 .AND. CABLE_USER%CASA_DUMP_READ ) THEN
                  ! CLN READ FROM FILE INSTEAD !
-                 WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(365*ktauday))
+                 WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
                  ncfile  = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                  casa_it = NINT( REAL(ktau / ktauday) )
                  CALL read_casa_dump( ncfile, casamet, casaflux, casa_it, kend, .FALSE. )
@@ -598,7 +598,7 @@ PROGRAM cable_offline_driver
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
          IF(((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. .NOT. CASAONLY)      &
-            CALL write_output( dels, ktau, met, canopy, ssnow,                 &
+            CALL write_output( dels, ktau_tot, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
          !ENDIF
@@ -606,6 +606,7 @@ PROGRAM cable_offline_driver
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
            IF (.NOT.CASAONLY) THEN
+                   write(*,*) 'before diags'
             IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
                call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
                                 knode_gl, "FLUXES",                            &

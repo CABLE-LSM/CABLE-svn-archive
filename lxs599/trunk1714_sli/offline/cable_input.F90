@@ -945,7 +945,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
     ! Multiply acceptable Rainf ranges by time step size:
-    !ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
+    !ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels ! vh ! why has this been commented out?
     ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
