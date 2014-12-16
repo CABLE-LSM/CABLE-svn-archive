@@ -179,7 +179,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ssnow%potev = 0.
    canopy%fevw_pot = 0.
 
-   CALL radiation( ssnow, veg, air, met, rad, canopy )
+   CALL radiation( ssnow, veg, air, met, rad, canopy, soil )
 
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 
