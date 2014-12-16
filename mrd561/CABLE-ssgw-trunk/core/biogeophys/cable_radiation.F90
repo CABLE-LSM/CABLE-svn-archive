@@ -225,7 +225,12 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    flpwb = C%sboltz * (met%tk) ** 4
    flwv = C%EMLEAF * flpwb
 
-   rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+   if (.not. cable_user%GW_MODEL) then
+      rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+   else
+      rad%flws = C%sboltz*(C%EMSOIL + (1.-C%EMSOIL)*(ssnow%wb(:,1)/soil%watsat(:,1)))*&  !maybe use liq? check init
+                 ssnow%tss*ssnow%tss*ssnow%tss*ssnow%tss
+   end if
    
    ! Define air emissivity:
    emair = met%fld / flpwb
