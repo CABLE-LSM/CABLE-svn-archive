@@ -171,9 +171,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 ! ~r935 rml 2/7/13 Extra atmospheric co2 variables
    LOGICAL  :: L_CO2_INTERACTIVE
    INTEGER ::                              &
-      CO2_DIM_LEN                                      &
-     ,CO2_DIM_ROW
-   REAL :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
+      CO2_DIM_LEN                                     &
+     ,CO2_DIM_ROW 
+   REAL :: CO2_3D(1,1)  ! co2 mass mixing ratio
 
    LOGICAL, INTENT(INOUT),DIMENSION(land_pts, ntiles) ::                       &
       L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0

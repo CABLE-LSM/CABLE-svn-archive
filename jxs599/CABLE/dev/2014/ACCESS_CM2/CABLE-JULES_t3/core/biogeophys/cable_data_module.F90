@@ -82,9 +82,8 @@ End interface cond_print
          land_pts,          & !
          ntiles,          & !
          npft,          & !
-         timestep_number!,    & !
-         ! vn8.6 comments as not available
-         !mype
+         timestep_number,    & !
+         mype
 
       !integer, POINTER ::                                                      &
       REAL, POINTER ::                                                      &
@@ -394,7 +393,7 @@ end subroutine set_endstep_umodel
 
 !===============================================================================
 
-SUBROUTINE cable_control( UM_eq_TRUE, L_cable, a_step, timestep_len, row_length,     &
+SUBROUTINE cable_control( mype, UM_eq_TRUE, L_cable, a_step, timestep_len, row_length,     &
                rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,              &
                latitude, longitude,                                              &
                land_index, bexp, hcon, satcon, sathh, smvcst, smvcwt, smvccl,       &
@@ -417,7 +416,7 @@ SUBROUTINE cable_control( UM_eq_TRUE, L_cable, a_step, timestep_len, row_length,
       land_index
    
    ! vn8.6 fudged at present as NA in JULES
-   !INTEGER, target :: endstep, mype
+   INTEGER, target :: mype
 
    ! integer, target : elsewhere
    ! UM vn 8.6 atm_step carries as REAL
@@ -512,7 +511,7 @@ SUBROUTINE cable_control( UM_eq_TRUE, L_cable, a_step, timestep_len, row_length,
   
       cable% um% L_cable            => L_cable
       ! vn8.6 some revisions and renaming
-      !cable% mp% mype               => mype
+      cable% mp% mype               => mype
       !cable% mp% endstep            => endstep     
       cable% mp% timestep_number    => a_step
       cable% mp% timestep_width     => timestep_len

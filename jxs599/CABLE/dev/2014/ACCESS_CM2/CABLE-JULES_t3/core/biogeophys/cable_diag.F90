@@ -78,8 +78,10 @@ MODULE cable_diag_module
 
 
 CONTAINS
+
 !==========================================================================!
 
+! writes text files 
 SUBROUTINE cable_fprintf1( iDiag, basename, dimx, dimy, timestep, node, &
                         vname1, var1 )
    integer, intent(inOUT) :: iDiag 
@@ -124,6 +126,7 @@ END SUBROUTINE cable_fprintf1
 !=============================================================================!
 
 
+! writes binary files 
 !==========================================================================!
 ! cable_diag1/2/3 call subrs to write filename.dat which contains description
 ! of data and format etc., and filename.bin containing the data   
@@ -156,8 +159,6 @@ SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
                              var1 )
 END SUBROUTINE cable_diag1
 
-!=============================================================================!
-!=============================================================================!
 
 SUBROUTINE cable_diag_desc1( iDiag, filename, dimx, dimy, vname1 )
 
@@ -575,8 +576,6 @@ subroutine fill_farray( n, f, i )
       farray_fields(i,:) = f
    
 end subroutine fill_farray 
-
-
 
 
 subroutine fill_farray2( n, f, i )   

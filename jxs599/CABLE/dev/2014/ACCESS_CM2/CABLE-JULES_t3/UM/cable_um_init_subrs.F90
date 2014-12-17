@@ -468,7 +468,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
    INTEGER, INTENT(IN) ::                              &
       CO2_DIM_LEN                                      &
      ,CO2_DIM_ROW
-   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
+   REAL, INTENT(IN) :: CO2_3D(:,:)  ! co2 mass mixing ratio
              
    !___defs 1st call to CABLE in this run. OK in UM & coupled
    LOGICAL, SAVE :: first_call= .TRUE.
