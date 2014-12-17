@@ -66,7 +66,7 @@ module cable_data_module
       diffwc = 1.60, & ! diffw/diffc = H2O/CO2 diffusivity
       rhow   = 1000.0, & ! liquid water density   [kg/m3]
       emleaf = 1.0, & ! leaf emissivity
-      emsoil = 0.92, & ! soil emissivity
+      emsoil = 0.94, & ! soil emissivity
       crd = 0.3,    & ! element drag coefficient
       csd = 0.003,  & ! substrate drag coefficient
       
