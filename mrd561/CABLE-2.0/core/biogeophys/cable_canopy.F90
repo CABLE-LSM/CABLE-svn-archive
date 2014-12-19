@@ -304,13 +304,22 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
            canopy%tv(j) = met%tk(j)
          
          ENDIF
+
+         if (.not. cable_user%GW_MODEL) then
+            canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
+               C%SBOLTZ*canopy%tv(j)**4 - C%EMSOIL*C%SBOLTZ* tss4(j)
+         else
+            canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
+               C%SBOLTZ*canopy%tv(j)**4 - &
+               (C%EMSOIL+ (1.-C%EMSOIL)*ssnow%wb(j,1)/soil%watsat(j,1))*C%SBOLTZ* tss4(j)
+         end if         
           
       ENDDO 
      
 
       ! Calculate net rad to soil:
-      canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
-            C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
+      !canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
+      !      C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
 
 
       ! Saturation specific humidity at soil/snow surface temperature:
@@ -554,7 +563,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fns)/d(ssnow%tgg)
    ! d(canopy%fhs)/d(ssnow%tgg)
    ! d(canopy%fes)/d(dq)
-   ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
+   if (.not. cable_user%GW_MODEL) then
+      ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
+   else
+      ssnow%dfn_dtg = (-1.)*4.*(C%EMSOIL+ (1.-C%EMSOIL)*ssnow%wb(:,1)/soil%watsat(:,1))*C%SBOLTZ*tss4/ssnow%tss
+   end if
    ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil      
    ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam/ssnow%rtsoil  
   

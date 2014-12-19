@@ -160,11 +160,11 @@ END SUBROUTINE init_radiation
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
+SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, soil )
    
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, soil_snow_type,         &
-                                   air_type, mp, mf, r_2
+                                   air_type, soil_parameter_type, mp, mf, r_2
                                        
    USE cable_common_module, only : cable_runtime, cable_user
 
@@ -175,6 +175,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    TYPE (radiation_type),INTENT(INOUT) :: rad
    
    TYPE (veg_parameter_type), INTENT(IN) :: veg
+   TYPE (soil_parameter_type), INTENT(IN) :: soil
    
    REAL, DIMENSION(mp) ::                                                      &
       cf1, &      ! (1.0 - rad%transb * cexpkdm) / (extkb + extkdm(:,b))
@@ -225,7 +226,12 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    flpwb = C%sboltz * (met%tk) ** 4
    flwv = C%EMLEAF * flpwb
 
-   rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+   if (.not. cable_user%GW_MODEL) then
+      rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+   else
+      rad%flws = C%sboltz*(C%EMSOIL + (1.-C%EMSOIL)*(ssnow%wb(:,1)/soil%watsat(:,1)))*&  !maybe use liq? check init
+                 ssnow%tss*ssnow%tss*ssnow%tss*ssnow%tss
+   end if
    
    ! Define air emissivity:
    emair = met%fld / flpwb
