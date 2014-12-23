@@ -84,6 +84,9 @@ PROGRAM cable_offline_driver
    
    USE cable_diag_module
    
+   USE cable_extremes_module
+   USE cable_farray_module
+   
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
@@ -200,6 +203,9 @@ PROGRAM cable_offline_driver
       new_sumbal = 0.0
 
    INTEGER :: ioerror
+
+   character(len=30), dimension(:), allocatable :: ImplNames != "ImplDriver" 
+   real, dimension(:,:), allocatable :: ImplFields
 
    ! END header
 
@@ -346,7 +352,23 @@ PROGRAM cable_offline_driver
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
-   
+  
+         ! farray, extremes ETC, overloaded to include 1 & 2 dim fields
+         ! BUT must be the same dim type for a single call
+         ! CALL cable_farray( mp, CheckNames, CheckFields, n1,f1, ...., n50,f50)
+         ! farray creates "N" dim array offield names =  CheckNames 
+         ! farray create "N" dim array offield names =  CheckNames 
+         CALL cable_farray( mp, ImplNames, ImplFields, 'cansto',canopy%cansto )
+         !CALL cable_farray( mp, "ImplDriver", ImplFields, 'ssnow_wb',ssnow%wb )
+         
+         ! CALL cable_extremes(fname,field,mype)
+         ! fname = multi-dims array containing "N" field names
+         ! fname can be created by farray as CheckNames 
+         ! field = multi-dims array containing "N" fields of arbitrary
+         ! BUT same length. e.g. length=mp
+         ! field can be created by farray as CheckFields 
+         CALL cable_extremes(ImplNames,ImplFields)
+         
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
          CALL sumcflux( ktau, kstart, kend, dels, bgc,                         &
@@ -367,7 +389,15 @@ PROGRAM cable_offline_driver
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
          ENDIF
-                
+         
+         !jhan: declare T_farray etc as types: can include returned name as well 
+         !jhan: standardized distributions  
+         !jhan: ADD call here to onboard diagnostics - although intended 
+         ! for UM application
+         ! CALL onboard_diag( T_farray, T_NaN, T_fprintf,                      &
+         !                    T_diag, T_extremes,                              &
+         !                    var(s) )
+         
       END DO ! END Do loop over timestep ktau
 
 
