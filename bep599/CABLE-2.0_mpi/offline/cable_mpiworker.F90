@@ -134,8 +134,9 @@ CONTAINS
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
-   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-   
+!   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+   INTEGER        ::  kstart
+
    INTEGER        ::                                                           &
       ktau,       &  ! increment equates to timestep, resets if spinning up
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
@@ -235,6 +236,9 @@ CONTAINS
                   cable_user           ! additional USER switches 
 
    ! END header
+
+   kstart = 1
+!   kstart = 49
 
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
