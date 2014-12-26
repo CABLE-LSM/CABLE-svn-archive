@@ -11,17 +11,19 @@ host_ccrc()
    export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
    export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O3 -xhost -ipo -parallel   -ftrapuv  -fp-model source'   #-traceback
+   export CFLAGS='-O2 -xhost -shared-intel -ipo -parallel  -ftrapuv  -fp-model source'   #-traceback
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -parallel -O2'
+
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -debug -g -ftrapuv -CB -check bounds -diag-enable warn'
-# -diag-enable sc2 -diag-enable sc-single-file
-   fi
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -parallel -O3'
-   if [[ $1 = 'debug' ]]; then
       export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O0 -debug -g -ftrapuv -diag-enable warn'
-# -diag-enable sc2 -diag-enable sc-single-file
    fi
+   if [[ $1 = 'fast' ]]; then
+      export CFLAGS='-O5 -xhost  -ipo -parallel -ftrapuv  -fp-model source' 
+      export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -parallel -O5 '
+   fi
+         
    build_build
    cd ../
    build_status
@@ -34,7 +36,7 @@ host_squa()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2  -shared-intel -mcmodel=medium -fp-model precise -ftz -fpe0 -xavx'
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fp-model precise -fp-model except'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
    fi
@@ -51,7 +53,7 @@ host_bliz()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx  -shared-intel -mcmodel=medium -parallel'
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fp-model precise -fp-model except'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
    fi
@@ -67,13 +69,19 @@ host_mael()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -parallel -ftrapuv  -shared-intel -mcmodel=medium'
-   export CFLAGS='-O2 -shared-intel -xhost -ipo -ftrapuv'   #-traceback
+   export LD='-lnetcdf -lnetcdff'
+   export CFLAGS='-O2 -g -shared-intel -xhost -ftrapuv -fpe0 -fp-model source '   #-traceback
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2   '
+
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
    fi
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+
+   if [[ $1 = 'fast' ]]; then
+      export CFLAGS='-O3 -parallel -ipo -shared-intel -xhost -ftrapuv -fpe0 -fp-model source '
+      export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O3 -parallel '
+   fi
+
    build_build
    cd ../
    build_status
