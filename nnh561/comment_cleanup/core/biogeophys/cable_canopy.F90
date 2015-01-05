@@ -184,6 +184,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%zetar(:,2) = C%ZETPOS + 1 
 
 
+   ! zeta stabilisation loop, as described in Kowalczyk (2006, p.6)
    DO iter = 1, NITER
 
       ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
@@ -338,6 +339,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL latent_heat_flux()
 
       ! Calculate soil sensible heat:
+      ! Instance of the equation (1), Kowalczyk (2006, p 3)
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
 
 
@@ -363,6 +365,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL latent_heat_flux()
 
       ! Soil sensible heat:
+      ! Instance of the equation (1), Kowalczyk (2006, p 3)
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
       !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
@@ -597,6 +600,7 @@ CONTAINS
 ! ------------------------------------------------------------------------------
 
 SUBROUTINE comp_friction_vel()
+   ! Calculate friction velocity, as described in Equation 6, Kowalczyk (2006, p4)
    USE cable_def_types_mod, only : mp
    REAL, DIMENSION(mp)  :: lower_limit, rescale
 
@@ -839,6 +843,7 @@ SUBROUTINE update_zetar()
    IF (iter < NITER) THEN ! dont compute zetar on the last iter
 
       iterplus = MAX(iter+1,2)
+      ! This is equation 9 in Kowalczyk (2006), page 4.
       canopy%zetar(:,iterplus) = -( C%VONK * C%GRAV * rough%zref_tq *              &
                                  ( canopy%fh + 0.07 * canopy%fe ) ) /          &
                                  ( air%rho * C%CAPP * met%tk * canopy%us**3 )
@@ -929,7 +934,8 @@ FUNCTION psim(zeta) RESULT(r)
    ! computes integrated stability function psim(z/l) (z/l=zeta)
    ! for momentum, using the businger-dyer form for unstable cases
    ! and the Beljaars and Holtslag (1991) form for stable cases.
-   
+
+   ! Psi_m, as used in equation 6, Kowalczyk (2006, p.4).
    
    REAL, INTENT(IN), DIMENSION(mp) ::  zeta       !
 

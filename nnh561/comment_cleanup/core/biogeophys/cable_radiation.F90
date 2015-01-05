@@ -83,6 +83,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
 
    ! See Sellers 1985, eq.13 (leaf angle parameters):
    WHERE (canopy%vlaiw > C%LAI_THRESH)
+      ! Equation 29, Kowalczyk (2006, p. 10)
       xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
       xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
    END WHERE
@@ -93,6 +94,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    ! Extinction coefficient for beam radiation and black leaves;
    ! eq. B6, Wang and Leuning, 1998
    WHERE (xvlai2 > C%LAI_THRESH) ! vegetated
+      ! Equation 26, Kowalczyk (2006, p. 9)
       xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
    ELSEWHERE ! i.e. bare soil
       xk = 0.0          
@@ -101,6 +103,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    WHERE (canopy%vlaiw > C%LAI_THRESH ) ! vegetated
    
       ! Extinction coefficient for diffuse radiation for black leaves:
+      ! Equation 27, Kowalczyk (2006, p. 9)
       rad%extkd = -LOG( SUM(                                                   &
                   SPREAD( C%GAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
                   / canopy%vlaiw
@@ -117,6 +120,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    ! Canopy REFLection of diffuse radiation for black leaves:
    DO ictr=1,nrb
      
+     ! Equation 33, Kowalczyk (2006, p. 10)
      rad%rhocdf(:,ictr) = rhoch(:,ictr) *                                      &
                           ( C%GAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
                           + C%GAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
@@ -143,6 +147,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       
       ! SW beam extinction coefficient ("black" leaves, extinction neglects
       ! leaf SW transmittance and REFLectance):
+      ! Equation 26, Kowalczyk (2006, p. 9)
       rad%extkb = xphi1 / met%coszen + xphi2
    
    ELSEWHERE ! i.e. bare soil
@@ -279,6 +284,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
                ( rad%extkb + rad%extkbm(:,b) )
 
          ! scale to real sunlit flux
+         ! equations 21-24 in Kowalczyk (2006, p.9)
          rad%qcan(:,1,b) = met%fsd(:,b) * (                                    &
                            ( 1.0 - rad%fbeam(:,b) ) * ( 1.0 - rad%reffdf(:,b) )&
                            * rad%extkdm(:,b) * cf1                             &
@@ -330,6 +336,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    ELSEWHERE ! i.e. either vegetation or sunlight are NOT present
    
       ! Shortwave absorbed by soil/snow surface:
+      ! A modification of equation 20 in Kowalczyk (2006, p. 9)
       rad%qssabs = ( 1.0 - ssnow%albsoilsn(:,1) ) * met%fsd(:,1) +             &
                    ( 1.0 - ssnow%albsoilsn(:,2) ) * met%fsd(:,2)
 
@@ -407,20 +414,24 @@ FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
 
    REAL, DIMENSION(mp) ::                                                      &
       fbeam,      & ! beam fraction (result)
-      tmpr,       & !                                      
-      tmpk,       & !                                
-      tmprat        !                               
+      tmpr,       & !< b3 Equation 39, Kowalczyk (2006, p. 11)
+      tmpk,       & !< b2 Equation 38, Kowalczyk (2006, p. 11)
+      tmprat        !< b1 Equation 37, Kowalczyk (2006, p. 11)
 
-   REAL, PARAMETER :: solcon = 1370.0
+   REAL, PARAMETER :: solcon = 1370.0 !< Solar constant Wm-2
    
    fbeam = 0.0
+   ! b3 Equation 39, Kowalczyk (2006, p. 11)
    tmpr = 0.847 + coszen * (1.04 * coszen - 1.61)
+   ! b2 Equation 38, Kowalczyk (2006, p. 11)
    tmpk = (1.47 - tmpr) / 1.66
 
    WHERE (coszen > 1.0e-10 .AND. fsd > 10.0)
+      ! b1 Equation 37, Kowalczyk (2006, p. 11)
       tmprat = fsd / ( solcon * ( 1.0 + 0.033 * COS( 2. * C%PI_C * ( doy-10.0 )&
                / 365.0 ) ) * coszen )
    ELSEWHERE
+   ! Equation set 36, Kowalczyk (2006, p. 10)
      tmprat = 0.0
    END WHERE
    

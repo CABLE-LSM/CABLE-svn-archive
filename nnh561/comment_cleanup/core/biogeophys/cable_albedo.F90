@@ -124,12 +124,14 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
          rad%cexpkbm(:,b) = REAL(dummy)
 
          ! Calculate effective beam reflectance (fraction):
+         ! Equation 30/31 in Kowalczyk (2006, p.10)
          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
                - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
 
       END WHERE
 
       ! Define albedo:
+      ! Inside of equation 35, Kowalczyk (2006, p. 10)
       WHERE( canopy%vlaiw> C%LAI_THRESH )                                      &
          rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
                            rad%fbeam(:,b) * rad%reffbm(:,b)
