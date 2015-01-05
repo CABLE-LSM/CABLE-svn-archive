@@ -43,22 +43,22 @@ MODULE cable_def_types_mod
    !---CABLE default KINDs for representing INTEGER/REAL values   
    !---at least 10-digit precision
    
-   INTEGER :: mp,    & ! # total no of patches/tiles 
-              mvtype,& ! total # vegetation types,   from input
-              mstype,& ! total # soil types,         from input
-              mland                           ! # land grid cells
+   INTEGER :: mp,    & !< total number of patches/tiles
+              mvtype,& !< total number of vegetation types,   from input
+              mstype,& !< total number of soil types,         from input
+              mland    !< number of land grid cells
    
    INTEGER, PARAMETER ::                                                        &
       r_2  = SELECTED_REAL_KIND(12, 50), &
-      n_tiles = 17,  & ! # possible no of different 
-      ncp = 3,       & ! # vegetation carbon stores
-      ncs = 2,       & ! # soil carbon stores
-      mf = 2,        & ! # leaves (sunlit, shaded)
-      nrb = 3,       & ! # radiation bands
-      msn = 3,       & ! max # snow layers
-      swb = 2,       & ! # shortwave bands 
-      niter = 4,     & ! number of iterations for za/L
-      ms = 6           ! # soil layers
+      n_tiles = 17,  & !< number of possible no of different
+      ncp = 3,       & !< number of vegetation carbon stores
+      ncs = 2,       & !< number of soil carbon stores
+      mf = 2,        & !< number of leaves (sunlit, shaded)
+      nrb = 3,       & !< number of radiation bands
+      msn = 3,       & !< max number of snow layers
+      swb = 2,       & !< number of shortwave bands
+      niter = 4,     & !< number of iterations for za/L
+      ms = 6           !< number of soil layers
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
@@ -68,33 +68,33 @@ MODULE cable_def_types_mod
    TYPE balances_type 
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         drybal,           & ! energy balance for dry canopy
-         ebal,             & ! energy balance per time step (W/m^2)
-         ebal_tot,         & ! cumulative energy balance (W/m^2)
-         ebal_cncheck,     & ! energy balance consistency check (W/m^2)
-         ebal_tot_cncheck, & ! cumulative energy balance (W/m^2)
-         ebaltr,           & ! energy balance per time step (W/m^2)
-         ebal_tottr,       & ! cumulative energy balance (W/m^2)
-         evap_tot,         & ! cumulative evapotranspiration (mm/dels)
-         osnowd0,          & ! snow depth, first time step
-         precip_tot,       & ! cumulative precipitation (mm/dels)
-         rnoff_tot,        & ! cumulative runoff (mm/dels)
-         wbal,             & ! water balance per time step (mm/dels)
-         wbal_tot,         & ! cumulative water balance (mm/dels)
-         wbtot0,           & ! total soil water (mm), first time step
-         wetbal,           & ! energy balance for wet canopy
-         cansto0,          & ! canopy water storage (mm)
-         owbtot,           & ! total soil water (mm), first time step
-         evapc_tot,        & ! cumulative evapotranspiration (mm/dels)
-         evaps_tot,        & ! cumulative evapotranspiration (mm/dels)
-         rnof1_tot,        & ! cumulative runoff (mm/dels)
-         rnof2_tot,        & ! cumulative runoff (mm/dels)
-         snowdc_tot,       & ! cumulative runoff (mm/dels)
-         wbal_tot1,        & ! cumulative water balance (mm/dels)
-         delwc_tot,        & ! energy balance for wet canopy
-         qasrf_tot,        & ! heat advected to the snow by precip. 
-         qfsrf_tot,        & ! energy of snowpack phase changes 
-         qssrf_tot           ! energy of snowpack phase changes 
+         drybal,           & !< energy balance for dry canopy
+         ebal,             & !< energy balance per time step (W/m^2)
+         ebal_tot,         & !< cumulative energy balance (W/m^2)
+         ebal_cncheck,     & !< energy balance consistency check (W/m^2)
+         ebal_tot_cncheck, & !< cumulative energy balance (W/m^2)
+         ebaltr,           & !< energy balance per time step (W/m^2)
+         ebal_tottr,       & !< cumulative energy balance (W/m^2)
+         evap_tot,         & !< cumulative evapotranspiration (mm/dels)
+         osnowd0,          & !< snow depth, first time step
+         precip_tot,       & !< cumulative precipitation (mm/dels)
+         rnoff_tot,        & !< cumulative runoff (mm/dels)
+         wbal,             & !< water balance per time step (mm/dels)
+         wbal_tot,         & !< cumulative water balance (mm/dels)
+         wbtot0,           & !< total soil water (mm), first time step
+         wetbal,           & !< energy balance for wet canopy
+         cansto0,          & !< canopy water storage (mm)
+         owbtot,           & !< total soil water (mm), first time step
+         evapc_tot,        & !< cumulative evapotranspiration (mm/dels)
+         evaps_tot,        & !< cumulative evapotranspiration (mm/dels)
+         rnof1_tot,        & !< cumulative runoff (mm/dels)
+         rnof2_tot,        & !< cumulative runoff (mm/dels)
+         snowdc_tot,       & !< cumulative runoff (mm/dels)
+         wbal_tot1,        & !< cumulative water balance (mm/dels)
+         delwc_tot,        & !< energy balance for wet canopy
+         qasrf_tot,        & !< heat advected to the snow by precip.
+         qfsrf_tot,        & !< energy of snowpack phase changes
+         qssrf_tot           !< energy of snowpack phase changes
 
    END TYPE balances_type
 
@@ -104,36 +104,36 @@ MODULE cable_def_types_mod
    TYPE soil_parameter_type 
    
       INTEGER, DIMENSION(:), POINTER ::                                        &
-         isoilm     ! integer soil type
+         isoilm     !< integer soil type
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         bch,     & ! parameter b in Campbell equation
-         c3,      & ! c3 drainage coeff (fraction)
-         clay,    & ! fraction of soil which is clay
-         css,     & ! soil specific heat capacity [kJ/kg/K]
-         hsbh,    & ! difsat * etasat (=hyds*abs(sucs)*bch)
-         hyds,    & ! hydraulic conductivity @ saturation [m/s], Ksat
-         i2bp3,   & ! par. one in K vis suction (=nint(bch)+2)
-         ibp2,    & ! par. two in K vis suction (fn of pbch)
-         rhosoil, & ! soil density [kg/m3]
-         sand,    & ! fraction of soil which is sand
-         sfc,     & ! vol H2O @ field capacity
-         silt,    & ! fraction of soil which is silt
-         ssat,    & ! vol H2O @ saturation
-         sucs,    & ! suction at saturation (m)
-         swilt,   & ! vol H2O @ wilting
-         zse,     & ! thickness of each soil layer (1=top) in m
-         zshh,    & ! distance between consecutive layer midpoints (m)
+         bch,     & !< parameter b in Campbell equation
+         c3,      & !< c3 drainage coeff (fraction)
+         clay,    & !< fraction of soil which is clay
+         css,     & !< soil specific heat capacity [kJ/kg/K]
+         hsbh,    & !< difsat * etasat (=hyds*abs(sucs)*bch)
+         hyds,    & !< hydraulic conductivity @ saturation [m/s], Ksat
+         i2bp3,   & !< par. one in K vis suction (=nint(bch)+2)
+         ibp2,    & !< par. two in K vis suction (fn of pbch)
+         rhosoil, & !< soil density [kg/m3]
+         sand,    & !< fraction of soil which is sand
+         sfc,     & !< vol H2O @ field capacity
+         silt,    & !< fraction of soil which is silt
+         ssat,    & !< vol H2O @ saturation
+         sucs,    & !< suction at saturation (m)
+         swilt,   & !< vol H2O @ wilting
+         zse,     & !< thickness of each soil layer (1=top) in m
+         zshh,    & !< distance between consecutive layer midpoints (m)
   		 ! vars intro for Ticket #27
-         soilcol, & ! keep color for all patches/tiles
-         albsoilf   ! soil reflectance
+         soilcol, & !< keep color for all patches/tiles
+         albsoilf   !< soil reflectance
      
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         cnsd,    & ! thermal conductivity of dry soil [W/m/K]
-         pwb_min    ! working variable (swilt/ssat)**ibp2
+         cnsd,    & !< thermal conductivity of dry soil [W/m/K]
+         pwb_min    !< working variable (swilt/ssat)**ibp2
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
-         albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
+         albsoil    !< soil reflectance (2nd dim. BP 21Oct2009)
 
   END TYPE soil_parameter_type
 
@@ -142,79 +142,79 @@ MODULE cable_def_types_mod
    ! Soil and snow variables:
    TYPE soil_snow_type 
      
-     INTEGER, DIMENSION(:), POINTER :: isflag ! 0 => no snow 1 => snow
+     INTEGER, DIMENSION(:), POINTER :: isflag !< 0 => no snow 1 => snow
     
       REAL, DIMENSION(:), POINTER ::                                           &
-         iantrct, & ! pointer to Antarctic land points
-         pudsto,  & ! puddle storage
-         pudsmx,  & ! puddle storage
-         cls,     & ! factor for latent heat
-         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg)
-         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg)
-         dfe_ddq, & ! d(canopy%fes)/d(dq)
-         ddq_dtg, & ! d(dq)/d(ssnow%tgg)
-         evapsn,  & ! snow evaporation  
-         fwtop,   & ! water flux to the soil
-         fwtop1,  & ! water flux to the soil
-         fwtop2,  & ! water flux to the soil
-         fwtop3,  & ! water flux to the soil
-         osnowd,  & ! snow depth from previous time step
-         potev,   & ! potential evapotranspiration
-         runoff,  & ! total runoff (mm/dels)
-         rnof1,   & ! surface runoff (mm/dels)
-         rnof2,   & ! deep drainage (mm/dels)
-         rtsoil,  & ! turbulent resistance for soil
-         wbtot1,  & ! total soil water (mm)
-         wbtot2,  & ! total soil water (mm)
+         iantrct, & !< pointer to Antarctic land points
+         pudsto,  & !< puddle storage
+         pudsmx,  & !< puddle storage
+         cls,     & !< factor for latent heat
+         dfn_dtg, & !< d(canopy%fns)/d(ssnow%tgg)
+         dfh_dtg, & !< d(canopy%fhs)/d(ssnow%tgg)
+         dfe_ddq, & !< d(canopy%fes)/d(dq)
+         ddq_dtg, & !< d(dq)/d(ssnow%tgg)
+         evapsn,  & !< snow evaporation
+         fwtop,   & !< water flux to the soil
+         fwtop1,  & !< water flux to the soil
+         fwtop2,  & !< water flux to the soil
+         fwtop3,  & !< water flux to the soil
+         osnowd,  & !< snow depth from previous time step
+         potev,   & !< potential evapotranspiration
+         runoff,  & !< total runoff (mm/dels)
+         rnof1,   & !< surface runoff (mm/dels)
+         rnof2,   & !< deep drainage (mm/dels)
+         rtsoil,  & !< turbulent resistance for soil
+         wbtot1,  & !< total soil water (mm)
+         wbtot2,  & !< total soil water (mm)
          wb_lake, &
          sinfil,  & 
          qstss,   & 
-         wetfac,  & ! surface wetness fact. at current time step
-         owetfac, & ! surface wetness fact. at previous time step
-         t_snwlr, & ! top snow layer depth in 3 layer snowpack
-         tggav,   & ! mean soil temperature in K
-         otgg,    & ! soil temperature in K
-         otss,    & ! surface temperature (weighted soil, snow)
-         otss_0,  & ! surface temperature (weighted soil, snow)
+         wetfac,  & !< surface wetness fact. at current time step
+         owetfac, & !< surface wetness fact. at previous time step
+         t_snwlr, & !< top snow layer depth in 3 layer snowpack
+         tggav,   & !< mean soil temperature in K
+         otgg,    & !< soil temperature in K
+         otss,    & !< surface temperature (weighted soil, snow)
+         otss_0,  & !< surface temperature (weighted soil, snow)
          tprecip, &
          tevap,   &
          trnoff,  &
          totenbal,&!
          totenbal2,&
-         fland,   & ! factor for latent heat
-         ifland,  & ! integer soil type
-         qasrf,   & ! heat advected to the snow by precip. 
-         qfsrf,   & ! energy of snowpack phase changes 
-         qssrf,   & ! sublimation 
-         snage,   & ! snow age
-         snowd,   & ! snow depth (liquid water)
-         smelt,   & ! snow melt 
-         ssdnn,   & ! average snow density
-         tss,     & ! surface temperature (weighted soil, snow)
-         tss_p,   & ! surface temperature (weighted soil, snow)
-         deltss,  & ! surface temperature (weighted soil, snow)
-         owb1       ! surface temperature (weighted soil, snow)
+         fland,   & !< factor for latent heat
+         ifland,  & !< integer soil type
+         qasrf,   & !< heat advected to the snow by precip.
+         qfsrf,   & !< energy of snowpack phase changes
+         qssrf,   & !< sublimation
+         snage,   & !< snow age
+         snowd,   & !< snow depth (liquid water)
+         smelt,   & !< snow melt
+         ssdnn,   & !< average snow density
+         tss,     & !< surface temperature (weighted soil, snow)
+         tss_p,   & !< surface temperature (weighted soil, snow)
+         deltss,  & !< surface temperature (weighted soil, snow)
+         owb1       !< surface temperature (weighted soil, snow)
  
       REAL, DIMENSION(:,:), POINTER ::                                         &
          sconds,     & !
-         sdepth,     & ! snow depth
-         smass,      & ! snow mass
-         ssdn,       & ! snow densities
-         tgg,        & ! soil temperature in K
-         tggsn,      & ! snow temperature in K
-         dtmlt,      & ! water flux to the soil
-         albsoilsn,  & ! soil + snow reflectance
+         sdepth,     & !< snow depth
+         smass,      & !< snow mass
+         ssdn,       & !< snow densities
+         tgg,        & !< soil temperature in K
+         tggsn,      & !< snow temperature in K
+         dtmlt,      & !< water flux to the soil
+         albsoilsn,  & !< soil + snow reflectance
          evapfbl,    & !
-         tilefrac      ! factor for latent heat
+         tilefrac      !< factor for latent heat
      
     
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         wbtot   ! total soil water (mm)
+         wbtot   !< total soil water (mm)
      
       REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
-         gammzz,  & ! heat capacity for each soil layer
-         wb,      & ! volumetric soil moisture (solid+liq)
-         wbice,   & ! soil ice
+         gammzz,  & !< heat capacity for each soil layer
+         wb,      & !< volumetric soil moisture (solid+liq)
+         wbice,   & !< soil ice
          wblf,    & !
          wbfice     !
 
@@ -226,38 +226,38 @@ MODULE cable_def_types_mod
    TYPE veg_parameter_type
      
       INTEGER, DIMENSION(:), POINTER ::                                        &
-         iveg       ! vegetation type
+         iveg       !< vegetation type
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         canst1,  & ! max intercepted water by canopy (mm/LAI)
-         dleaf,   & ! chararacteristc legnth of leaf (m)
-         ejmax,   & ! max pot. electron transp rate top leaf(mol/m2/s)
-         meth,    & ! method for calculation of canopy fluxes and temp.
-         frac4,   & ! fraction of c4 plants
-         hc,      & ! roughness height of canopy (veg - snow)
-         vlai,    & ! leaf area index
-         xalbnir, & 
-         rp20,    & ! plant respiration coefficient at 20 C
-         rpcoef,  & ! temperature coef nonleaf plant respiration (1/C)
-         rs20,    & ! soil respiration at 20 C [mol m-2 s-1]
-         shelrb,  & ! sheltering factor (dimensionless)
-         vegcf,   & ! kdcorbin, 08/10
-         tminvj,  & ! min temperature of the start of photosynthesis
-         tmaxvj,  & ! max temperature of the start of photosynthesis
-         vbeta,   & ! 
-         vcmax,   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
-         xfang,   & ! leaf angle PARAMETER
-         extkn,   & ! extinction coef for vertical
-         vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
+         canst1,  & !< max intercepted water by canopy (mm/LAI)
+         dleaf,   & !< chararacteristc legnth of leaf (m)
+         ejmax,   & !< max pot. electron transp rate top leaf(mol/m2/s)
+         meth,    & !< method for calculation of canopy fluxes and temp.
+         frac4,   & !< fraction of c4 plants
+         hc,      & !< roughness height of canopy (veg - snow)
+         vlai,    & !< leaf area index
+         xalbnir, &
+         rp20,    & !< plant respiration coefficient at 20 C
+         rpcoef,  & !< temperature coef nonleaf plant respiration (1/C)
+         rs20,    & !< soil respiration at 20 C [mol m-2 s-1]
+         shelrb,  & !< sheltering factor (dimensionless)
+         vegcf,   & !< kdcorbin, 08/10
+         tminvj,  & !< min temperature of the start of photosynthesis
+         tmaxvj,  & !< max temperature of the start of photosynthesis
+         vbeta,   & !<
+         vcmax,   & !< max RuBP carboxylation rate top leaf (mol/m2/s)
+         xfang,   & !< leaf angle PARAMETER
+         extkn,   & !< extinction coef for vertical
+         vlaimax, & !< extinction coef for vertical
+         wai        !< wood area index (stem+branches+twigs)
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
-         deciduous ! flag used for phenology fix
+         deciduous !< flag used for phenology fix
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          refl,    &
          taul,    & 
-         froot      ! fraction of root in each soil layer
+         froot      !< fraction of root in each soil layer
 
    END TYPE veg_parameter_type
 
@@ -268,64 +268,64 @@ MODULE cable_def_types_mod
       
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         cansto,  & ! canopy water storage (mm)
-         cduv,    & ! drag coefficient for momentum
-         delwc,   & ! change in canopy water store (mm/dels)
-         dewmm,   & ! dewfall (mm)
-         fe,      & ! total latent heat (W/m2)
-         fh,      & ! total sensible heat (W/m2)
-         fpn,     & ! plant photosynthesis (g C m-2 s-1)
-         frp,     & ! plant respiration (g C m-2 s-1)
-         frpw,    & ! plant respiration (g C m-2 s-1)???
-         frpr,    & ! plant respiration (g C m-2 s-1)???
-         frs,     & ! soil respiration (g C m-2 s-1)
-         fnee,    & ! net carbon flux (g C m-2 s-1)
-         frday,   & ! daytime leaf resp
-         fnv,     & ! net rad. avail. to canopy (W/m2)
-         fev,     & ! latent hf from canopy (W/m2)
-         epot,    & ! total potential evaporation 
-         fnpp,    & ! npp flux
-         fevw_pot,& ! potential lat heat from canopy
-         gswx_T,  & ! ! stom cond for water
-         cdtq,    & ! drag coefficient for momentum
+         cansto,  & !< canopy water storage (mm)
+         cduv,    & !< drag coefficient for momentum
+         delwc,   & !< change in canopy water store (mm/dels)
+         dewmm,   & !< dewfall (mm)
+         fe,      & !< total latent heat (W/m2)
+         fh,      & !< total sensible heat (W/m2)
+         fpn,     & !< plant photosynthesis (g C m-2 s-1)
+         frp,     & !< plant respiration (g C m-2 s-1)
+         frpw,    & !< plant respiration (g C m-2 s-1)???
+         frpr,    & !< plant respiration (g C m-2 s-1)???
+         frs,     & !< soil respiration (g C m-2 s-1)
+         fnee,    & !< net carbon flux (g C m-2 s-1)
+         frday,   & !< daytime leaf resp
+         fnv,     & !< net rad. avail. to canopy (W/m2)
+         fev,     & !< latent hf from canopy (W/m2)
+         epot,    & !< total potential evaporation
+         fnpp,    & !< npp flux
+         fevw_pot,& !< potential lat heat from canopy
+         gswx_T,  & !< ! stom cond for water
+         cdtq,    & !< drag coefficient for momentum
          wetfac_cs,&! 
-         fevw,    & ! lat heat fl wet canopy (W/m2)
-         fhvw,    & ! sens heatfl from wet canopy (W/m2)
-         oldcansto,&! canopy water storage (mm)
-         fhv,     & ! sens heatfl from canopy (W/m2)
-         fns,     & ! net rad avail to soil (W/m2)
-         fhs,     & ! sensible heat flux from soil
+         fevw,    & !< lat heat fl wet canopy (W/m2)
+         fhvw,    & !< sens heatfl from wet canopy (W/m2)
+         oldcansto,&!< canopy water storage (mm)
+         fhv,     & !< sens heatfl from canopy (W/m2)
+         fns,     & !< net rad avail to soil (W/m2)
+         fhs,     & !< sensible heat flux from soil
          fhs_cor, &
-         ga,      & ! ground heat flux (W/m2) ???
-         ghflux,  & ! ground heat flux (W/m2) ???
-         precis,  & ! throughfall to soil, after snow (mm)
-         qscrn,   & ! specific humudity at screen height (g/g)
-         rnet,    & ! net radiation absorbed by surface (W/m2)
-         segg,    & ! latent heatfl from soil mm
-         sghflux, & ! ground heat flux (W/m2) ???
-         through, & ! canopy throughfall (mm)
-         spill,   & ! can.storage excess after dewfall (mm)
-         tscrn,   & ! air temperature at screen height (oC)
-         wcint,   & ! canopy rainfall interception (mm)
-         tv,      & ! vegetation temp (K)
-         us,      & ! friction velocity
-         uscrn,   & ! wind speed at screen height (m/s)
-         vlaiw,   & ! lai adj for snow depth for calc of resistances
-         rghlai,  & ! lai adj for snow depth for calc of resistances
-         fwet       ! fraction of canopy wet
+         ga,      & !< ground heat flux (W/m2) ???
+         ghflux,  & !< ground heat flux (W/m2) ???
+         precis,  & !< throughfall to soil, after snow (mm)
+         qscrn,   & !< specific humudity at screen height (g/g)
+         rnet,    & !< net radiation absorbed by surface (W/m2)
+         segg,    & !< latent heatfl from soil mm
+         sghflux, & !< ground heat flux (W/m2) ???
+         through, & !< canopy throughfall (mm)
+         spill,   & !< can.storage excess after dewfall (mm)
+         tscrn,   & !< air temperature at screen height (oC)
+         wcint,   & !< canopy rainfall interception (mm)
+         tv,      & !< vegetation temp (K)
+         us,      & !< friction velocity
+         uscrn,   & !< wind speed at screen height (m/s)
+         vlaiw,   & !< lai adj for snow depth for calc of resistances
+         rghlai,  & !< lai adj for snow depth for calc of resistances
+         fwet       !< fraction of canopy wet
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
-         gswx,    & ! stom cond for water
-         zetar      ! stability correction
+         gswx,    & !< stom cond for water
+         zetar      !< stability correction
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         fess,    & ! latent heatfl from soil (W/m2)
-         fesp,    & ! latent heatfl from soil (W/m2)
-         dgdtg,   & ! derivative of gflux wrt soil temp
-         fes,     & ! latent heatfl from soil (W/m2)
-         fes_cor, & ! latent heatfl from soil (W/m2)
-         fevc       ! dry canopy transpiration (W/m2)
+         fess,    & !< latent heatfl from soil (W/m2)
+         fesp,    & !< latent heatfl from soil (W/m2)
+         dgdtg,   & !< derivative of gflux wrt soil temp
+         fes,     & !< latent heatfl from soil (W/m2)
+         fes_cor, & !< latent heatfl from soil (W/m2)
+         fevc       !< dry canopy transpiration (W/m2)
 
    END TYPE canopy_type
 
@@ -335,40 +335,40 @@ MODULE cable_def_types_mod
    TYPE radiation_type
    
       REAL, DIMENSION(:), POINTER   ::                                         &
-         transb,  & ! fraction SW beam tranmitted through canopy
-         albedo_T,& ! canopy+soil albedo for VIS+NIR
-         longitude,&! longitude
-         workp1,  & ! absorbed short-wave radiation for soil
-         workp2,  & ! absorbed short-wave radiation for soil
-         workp3,  & ! absorbed short-wave radiation for soil
-         extkb,   & ! beam radiation extinction coeff
-         extkd2,  & ! diffuse 2D radiation extinction coeff
-         extkd,   & ! diffuse radiation extinction coeff (-)
-         flws,    & ! soil long-wave radiation
-         latitude,& ! latitude
-         lwabv,   & ! long wave absorbed by vegetation
-         qssabs,  & ! absorbed short-wave radiation for soil
-         transd,  & ! frac SW diffuse transmitted through canopy
-         trad       !  radiative temperature (soil and veg)
+         transb,  & !< fraction SW beam tranmitted through canopy
+         albedo_T,& !< canopy+soil albedo for VIS+NIR
+         longitude,&!< longitude
+         workp1,  & !< absorbed short-wave radiation for soil
+         workp2,  & !< absorbed short-wave radiation for soil
+         workp3,  & !< absorbed short-wave radiation for soil
+         extkb,   & !< beam radiation extinction coeff
+         extkd2,  & !< diffuse 2D radiation extinction coeff
+         extkd,   & !< diffuse radiation extinction coeff (-)
+         flws,    & !< soil long-wave radiation
+         latitude,& !< latitude
+         lwabv,   & !< long wave absorbed by vegetation
+         qssabs,  & !< absorbed short-wave radiation for soil
+         transd,  & !< frac SW diffuse transmitted through canopy
+         trad       !<  radiative temperature (soil and veg)
      
       REAL, DIMENSION(:,:), POINTER  ::                                        &
-         fvlai,   & ! leaf area index of big leaf
-         rhocdf,  & ! canopy diffuse reflectance (-)
-         rniso,   & ! sum(rad%qcan, 3) total abs by canopy (W/m2)
-         scalex,  & ! scaling PARAMETER for big leaf
-         albedo,  & ! canopy+soil albedo
-         reffdf,  & ! effective conopy diffuse reflectance
-         reffbm,  & ! effective conopy beam reflectance
-         extkbm,  & ! modified k beam(6.20)(for leaf scattering)
-         extkdm,  & ! modified k diffuse(6.20)(for leaf scattering)
-         fbeam,   & ! beam fraction 
-         cexpkbm, & ! canopy beam transmittance
-         cexpkdm, & ! canopy diffuse transmittance
-         rhocbm,  & ! modified canopy beam reflectance(6.21)
-         gradis     ! radiative conductance
+         fvlai,   & !< leaf area index of big leaf
+         rhocdf,  & !< canopy diffuse reflectance (-)
+         rniso,   & !< sum(rad%qcan, 3) total abs by canopy (W/m2)
+         scalex,  & !< scaling PARAMETER for big leaf
+         albedo,  & !< canopy+soil albedo
+         reffdf,  & !< effective conopy diffuse reflectance
+         reffbm,  & !< effective conopy beam reflectance
+         extkbm,  & !< modified k beam(6.20)(for leaf scattering)
+         extkdm,  & !< modified k diffuse(6.20)(for leaf scattering)
+         fbeam,   & !< beam fraction
+         cexpkbm, & !< canopy beam transmittance
+         cexpkdm, & !< canopy diffuse transmittance
+         rhocbm,  & !< modified canopy beam reflectance(6.21)
+         gradis     !< radiative conductance
      
       REAL, DIMENSION(:,:,:), POINTER ::                                       &
-         qcan ! absorbed radiation for canopy (W/m^2)
+         qcan !< absorbed radiation for canopy (W/m^2)
     
     
   END TYPE radiation_type
@@ -379,34 +379,34 @@ MODULE cable_def_types_mod
    TYPE roughness_type
       
       REAL, DIMENSION(:), POINTER ::                                           &
-         disp,    & ! zero-plane displacement
-         hruff,   & ! canopy height above snow level
-         hruff_grmx,&! max ht of canopy from tiles on same grid 
-         rt0us,   & ! eq. 3.54, SCAM manual (CSIRO tech report 132)
-         rt1usa,  & ! resistance from disp to hruf
-         rt1usb,  & ! resist fr hruf to zruffs (zref if zref<zruffs)
-         rt1,     & ! 1/aerodynamic conductance
-         za_uv,   & ! level of lowest atmospheric model layer
-         za_tq,   & ! level of lowest atmospheric model layer
-         z0m,     & ! roughness length
-         zref_uv, & ! Reference height for met forcing
-         zref_tq, & ! Reference height for met forcing
-         zruffs,  & ! SCALAR Roughness sublayer depth (ground=origin)
-         z0soilsn,& ! roughness length of bare soil surface
-         z0soil     ! roughness length of bare soil surface
+         disp,    & !< zero-plane displacement
+         hruff,   & !< canopy height above snow level
+         hruff_grmx,&!< max ht of canopy from tiles on same grid
+         rt0us,   & !< eq. 3.54, SCAM manual (CSIRO tech report 132)
+         rt1usa,  & !< resistance from disp to hruf
+         rt1usb,  & !< resist fr hruf to zruffs (zref if zref<zruffs)
+         rt1,     & !< 1/aerodynamic conductance
+         za_uv,   & !< level of lowest atmospheric model layer
+         za_tq,   & !< level of lowest atmospheric model layer
+         z0m,     & !< roughness length
+         zref_uv, & !< Reference height for met forcing
+         zref_tq, & !< Reference height for met forcing
+         zruffs,  & !< SCALAR Roughness sublayer depth (ground=origin)
+         z0soilsn,& !< roughness length of bare soil surface
+         z0soil     !< roughness length of bare soil surface
       
       ! "coexp": coefficient in exponential in-canopy wind profile
       ! U(z) = U(h)*exp(coexp*(z/h-1)), found by gradient-matching
       ! canopy and roughness-sublayer U(z) at z=h
       REAL, DIMENSION(:), POINTER ::                                           &
-         coexp ! Extinction coef for wind profile in canopy
+         coexp !< Extinction coef for wind profile in canopy
      
-      ! "usuh": us/uh (us=friction velocity, uh = mean velocity at z=h)
+      !< "usuh": us/uh (us=friction velocity, uh = mean velocity at z=h)
       REAL, DIMENSION(:), POINTER ::                                           &
-         usuh ! Friction velocity/windspeed at canopy height
+         usuh !< Friction velocity/windspeed at canopy height
    
       REAL, DIMENSION(:), POINTER ::                                           &
-         term2, term3, term5, term6 ! for aerodyn resist. calc.
+         term2, term3, term5, term6 !< for aerodyn resist. calc.
    
    END TYPE roughness_type
 
@@ -416,15 +416,15 @@ MODULE cable_def_types_mod
    TYPE air_type
       
       REAL, DIMENSION(:), POINTER ::                                           &
-         rho,     & ! dry air density (kg m-3)
-         volm,    & ! molar volume (m3 mol-1)
-         rlam,    & ! latent heat for water (j/kg)
-         qsat,    & ! saturation specific humidity
-         epsi,    & ! d(qsat)/dT ((kg/kg)/K)
-         visc,    & ! air kinematic viscosity (m2/s)
-         psyc,    & ! psychrometric constant
-         dsatdk,  & ! d(es)/dT (mb/K)
-         cmolar     ! conv. from m/s to mol/m2/s
+         rho,     & !< dry air density (kg m-3)
+         volm,    & !< molar volume (m3 mol-1)
+         rlam,    & !< latent heat for water (j/kg)
+         qsat,    & !< saturation specific humidity
+         epsi,    & !< d(qsat)/dT ((kg/kg)/K)
+         visc,    & !< air kinematic viscosity (m2/s)
+         psyc,    & !< psychrometric constant
+         dsatdk,  & !< d(es)/dT (mb/K)
+         cmolar     !< conv. from m/s to mol/m2/s
 
    END TYPE air_type
 
@@ -434,30 +434,30 @@ MODULE cable_def_types_mod
    TYPE met_type
      
       INTEGER, DIMENSION(:), POINTER ::                                        &
-         year,    & ! local time year AD 
-         moy        ! local time month of year 
+         year,    & !< local time year AD
+         moy        !< local time month of year
      
       REAL, DIMENSION(:), POINTER ::                                           &
-         ca,      & ! CO2 concentration (mol/mol)
-         doy,     & ! local time day of year = days since 0 hr 1st Jan 
-         hod,     & ! local hour of day
-         ofsd,    & ! downward short-wave radiation (W/m2)
-         fld,     & ! downward long-wave radiation (W/m2)
-         precip,  & ! rainfall (liquid+solid)(mm/dels)
-         precip_sn,&! solid preipitation only (mm/dels)
-         tk,      & ! surface air temperature (oK)
-         tvair,   & ! within canopy air temperature (oK)
-         tvrad,   & ! radiative vegetation temperature (K)
-         pmb,     & ! surface air pressure (mbar)
-         ua,      & ! surface wind speed (m/s)
-         qv,      & ! surface specific humidity (g/g)
-         qvair,   & ! within canopy specific humidity (g/g)
-         da,      & ! water vap pressure deficit at ref height (Pa)
-         dva,     & ! in canopy water vap pressure deficit (Pa)
-         coszen     ! cos(zenith angle of sun)
+         ca,      & !< CO2 concentration (mol/mol)
+         doy,     & !< local time day of year = days since 0 hr 1st Jan
+         hod,     & !< local hour of day
+         ofsd,    & !< downward short-wave radiation (W/m2)
+         fld,     & !< downward long-wave radiation (W/m2)
+         precip,  & !< rainfall (liquid+solid)(mm/dels)
+         precip_sn,&!< solid preipitation only (mm/dels)
+         tk,      & !< surface air temperature (oK)
+         tvair,   & !< within canopy air temperature (oK)
+         tvrad,   & !< radiative vegetation temperature (K)
+         pmb,     & !< surface air pressure (mbar)
+         ua,      & !< surface wind speed (m/s)
+         qv,      & !< surface specific humidity (g/g)
+         qvair,   & !< within canopy specific humidity (g/g)
+         da,      & !< water vap pressure deficit at ref height (Pa)
+         dva,     & !< in canopy water vap pressure deficit (Pa)
+         coszen     !< cos(zenith angle of sun)
      
       REAL, DIMENSION(:,:), POINTER ::                                         &
-         fsd  ! downward short-wave radiation (W/m2)
+         fsd  !< downward short-wave radiation (W/m2)
      
    END TYPE met_type
 
@@ -467,18 +467,18 @@ MODULE cable_def_types_mod
    TYPE sum_flux_type
      
       REAL, DIMENSION(:), POINTER ::                                           &
-         sumpn,   & ! sum of canopy photosynthesis (g C m-2)
-         sumrp,   & ! sum of plant respiration (g C m-2)
-         sumrpw,  & ! sum of plant respiration (g C m-2)
-         sumrpr,  & ! sum of plant respiration (g C m-2)
-         sumrs,   & ! sum of soil respiration (g C m-2)
-         sumrd,   & ! sum of daytime respiration (g C m-2)
-         dsumpn,  & ! daily sumpn
-         dsumrp,  & ! daily sumrp
-         dsumrs,  & ! daily sumrs
-         dsumrd,  & ! daily sumrd
-         sumxrp,  & ! sum plant resp. modifier
-         sumxrs     ! sum soil resp. modifier
+         sumpn,   & !< sum of canopy photosynthesis (g C m-2)
+         sumrp,   & !< sum of plant respiration (g C m-2)
+         sumrpw,  & !< sum of plant respiration (g C m-2)
+         sumrpr,  & !< sum of plant respiration (g C m-2)
+         sumrs,   & !< sum of soil respiration (g C m-2)
+         sumrd,   & !< sum of daytime respiration (g C m-2)
+         dsumpn,  & !< daily sumpn
+         dsumrp,  & !< daily sumrp
+         dsumrs,  & !< daily sumrs
+         dsumrd,  & !< daily sumrd
+         sumxrp,  & !< sum plant resp. modifier
+         sumxrs     !< sum soil resp. modifier
 
    END TYPE sum_flux_type
 
@@ -487,12 +487,12 @@ MODULE cable_def_types_mod
    TYPE bgc_pool_type
       
       REAL, DIMENSION(:,:), POINTER ::                                         &
-         cplant,  & ! plant carbon (g C/m2))
-         csoil      ! soil carbon (g C/m2)
+         cplant,  & !< plant carbon (g C/m2))
+         csoil      !< soil carbon (g C/m2)
      
-      REAL, DIMENSION(ncp)  :: ratecp ! plant carbon rate constant (1/year)
+      REAL, DIMENSION(ncp)  :: ratecp !< plant carbon rate constant (1/year)
       
-      REAL, DIMENSION(ncs)  :: ratecs ! soil carbon rate constant (1/year)
+      REAL, DIMENSION(ncs)  :: ratecs !< soil carbon rate constant (1/year)
    
    END TYPE bgc_pool_type
 
