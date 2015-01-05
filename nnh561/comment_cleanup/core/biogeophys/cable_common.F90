@@ -424,15 +424,15 @@ SUBROUTINE report_version_no( logn )
       
       
       WRITE(logn,*) ''
-      WRITE(logn,*) 'Revision nuber: ', icable_rev
+      WRITE(logn,*) 'Revision number: ', icable_rev
       WRITE(logn,*) ''
-      WRITE(logn,*)'This is the latest revision of you workin copy as sourced ' 
+      WRITE(logn,*)'This is the latest revision of your working copy as sourced'
       WRITE(logn,*)'by the SVN INFO command at build time. Please note that the' 
       WRITE(logn,*)'accuracy of this number is dependent on how recently you ' 
       WRITE(logn,*)'used SVN UPDATE.'
    
       ! get svn status (see WRITE comments)
-      ! (jhan: make this output prettier & not limitted to 200 chars) 
+      ! (jhan: make this output prettier & not limited to 200 chars)
       WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
       WRITE(logn,*)'local changes: '
       IF(ioerror==0) then 
