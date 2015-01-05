@@ -1,42 +1,47 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: Input and output code for CASA-CNP when run offline
-!          ACCESS version may use some of this code but split into different files?
-!
-! Contact: Yingping.Wang@csiro.au and Bernard.Pak@csiro.au
-!
-! History: Developed for offline code.  Expect to re-write for MPI and ACCESS 
-!          versions
-!
-!
-! ==============================================================================
-! casa_inout.f90
-!
-! the following routines are used when "casacnp" is coupled to "cable"
-!   casa_readbiome
-!   casa_readphen
-!   casa_readpoint   (removed, now done in parameter_module)
-!   casa_init
-!   casa_poolout
-!   casa_cnpflux  (not used?)
-!   biogeochem
+!>==============================================================================
+!>
+!> This source code is part of the
+!> Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+!> This work is licensed under the CABLE Academic User Licence Agreement
+!> (the "Licence").
+!> You may not use this file except in compliance with the Licence.
+!> A copy of the Licence and registration form can be obtained from
+!> http://www.cawcr.gov.au/projects/access/cable
+!> You need to register and read the Licence agreement before use.
+!> Please contact cable_help@nf.nci.org.au for any questions on
+!> registration and the Licence.
+!>
+!> Unless required by applicable law or agreed to in writing,
+!> software distributed under the Licence is distributed on an "AS IS" BASIS,
+!> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+!> See the Licence for the specific language governing permissions and
+!> limitations under the Licence.
+!>
+!> ==============================================================================
+!>
+!> Purpose: Input and output code for CASA-CNP when run offline
+!>          ACCESS version may use some of this code but split into different files?
+!>
+!> Contact: Yingping.Wang@csiro.au and Bernard.Pak@csiro.au
+!>
+!> History: Developed for offline code.  Expect to re-write for MPI and ACCESS
+!>          versions
+!>
+!>
+!> ==============================================================================
+!>
+!> casa_inout.f90
+!>
+!> the following routines are used when "casacnp" is coupled to "cable"
+!>   casa_readbiome
+!>   casa_readphen
+!>   casa_readpoint   (removed, now done in parameter_module)
+!>   casa_init
+!>   casa_poolout
+!>   casa_cnpflux  (not used?)
+!>   biogeochem
+!>
+!> ==============================================================================
 
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)

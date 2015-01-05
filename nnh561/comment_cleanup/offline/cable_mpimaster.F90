@@ -1,83 +1,87 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: Offline driver for mpi master in CABLE global run
-!
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
-!          inclusion of call to CASA-CNP (icycle>0)
-!          soil_snow_type now ssnow (instead of ssoil)
-!
-!          MPI wrapper developed by Maciej Golebiewski (2012)
-!          Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
-!
-! ==============================================================================
-! Uses:           mpi
-!                 cable_mpicommon
-!                 cable_def_types_mod
-!                 cable_IO_vars_module
-!                 cable_common_module
-!                 cable_data_module
-!                 cable_input_module
-!                 cable_output_module
-!                 cable_cbm_module
-!                 casadimension
-!                 casavariable
-!                 phenvariable
-!
-! CALLs:       point2constants
-!              open_met_file
-!              load_parameters
-!              open_output_file
-!              get_met_data
-!              write_output
-!              casa_poolout
-!              casa_fluxout
-!              create_restart
-!              close_met_file
-!              close_output_file
-!              prepareFiles
-!              find_extents
-!              master_decomp
-!              master_cable_params
-!              master_casa_params
-!              master_intypes
-!              master_outtypes
-!              master_casa_types
-!              master_restart_types
-!              master_send_input
-!              master_receive
-!              master_end
-!
-! input  file: [SiteName].nc
-!              poolcnpIn[SiteName].csv -- for CASA-CNP only
-!              gridinfo_CSIRO_1x1.nc
-!              def_veg_params.txt
-!              def_soil_params.txt -- nearly redundant, can be switched on
-!              restart_in.nc -- not strictly required
-!
-! output file: log_cable.txt
-!              out_cable.nc
-!              restart_out.nc
-!              poolcnpOut.csv -- from CASA-CNP
-!==============================================================================
+!>==============================================================================
+!>
+!> This source code is part of the
+!> Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+!> This work is licensed under the CABLE Academic User Licence Agreement
+!> (the "Licence").
+!> You may not use this file except in compliance with the Licence.
+!> A copy of the Licence and registration form can be obtained from
+!> http://www.cawcr.gov.au/projects/access/cable
+!> You need to register and read the Licence agreement before use.
+!> Please contact cable_help@nf.nci.org.au for any questions on
+!> registration and the Licence.
+!>
+!> Unless required by applicable law or agreed to in writing,
+!> software distributed under the Licence is distributed on an "AS IS" BASIS,
+!> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+!> See the Licence for the specific language governing permissions and
+!> limitations under the Licence.
+!>
+!> ==============================================================================
+!>
+!> Purpose: Offline driver for mpi master in CABLE global run
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: Since 1.4b, capability to run global offline (ncciy = YEAR),
+!>          inclusion of call to CASA-CNP (icycle>0)
+!>          soil_snow_type now ssnow (instead of ssoil)
+!>
+!>          MPI wrapper developed by Maciej Golebiewski (2012)
+!>          Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
+!>
+!> ==============================================================================
+!>
+!> Uses:           mpi
+!>                 cable_mpicommon
+!>                 cable_def_types_mod
+!>                 cable_IO_vars_module
+!>                 cable_common_module
+!>                 cable_data_module
+!>                 cable_input_module
+!>                 cable_output_module
+!>                 cable_cbm_module
+!>                 casadimension
+!>                 casavariable
+!>                 phenvariable
+!>
+!> CALLs:       point2constants
+!>              open_met_file
+!>              load_parameters
+!>              open_output_file
+!>              get_met_data
+!>              write_output
+!>              casa_poolout
+!>              casa_fluxout
+!>              create_restart
+!>              close_met_file
+!>              close_output_file
+!>              prepareFiles
+!>              find_extents
+!>              master_decomp
+!>              master_cable_params
+!>              master_casa_params
+!>              master_intypes
+!>              master_outtypes
+!>              master_casa_types
+!>              master_restart_types
+!>              master_send_input
+!>              master_receive
+!>              master_end
+!>
+!> input  file: [SiteName].nc
+!>              poolcnpIn[SiteName].csv -- for CASA-CNP only
+!>              gridinfo_CSIRO_1x1.nc
+!>              def_veg_params.txt
+!>              def_soil_params.txt -- nearly redundant, can be switched on
+!>              restart_in.nc -- not strictly required
+!>
+!> output file: log_cable.txt
+!>              out_cable.nc
+!>              restart_out.nc
+!>              poolcnpOut.csv -- from CASA-CNP
+!>
+!>==============================================================================
 MODULE cable_mpimaster
 
   USE cable_mpicommon

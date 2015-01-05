@@ -1,54 +1,57 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: Writing routines for CABLE offline
-!
-! Contact: Bernard.Pak@csiro.au
-!
-! History: No significant changes since v1.4b except addition of extra variables
-!
-!
-! ==============================================================================
-!
-! CALLed from:    cable_initialise.F90
-!                 cable_input.F90
-!
-! MODULEs used:   cable_abort_module
-!                 cable_def_types_mod
-!                 cable_IO_vars_module
-!                 netcdf
-!
-! CALLs:          define_output_variable_r1
-!                 define_output_variable_r2
-!                 define_output_parameter_r1
-!                 define_output_parameter_r2
-!                 write_output_variable_r1
-!                 write_output_variable_r2
-!                 write_output_parameter_r1
-!                 write_output_parameter_r1d
-!                 write_output_parameter_r2
-!                 write_output_parameter_r2d
-!
-!
-!
-! Notes: Single precision netcdf writes are forced to single precision here
-!        (using REAL(,4)) in case of compilation with -r8
+!>==============================================================================
+!>
+!> This source code is part of the
+!> Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+!> This work is licensed under the CABLE Academic User Licence Agreement
+!> (the "Licence").
+!> You may not use this file except in compliance with the Licence.
+!> A copy of the Licence and registration form can be obtained from
+!> http://www.cawcr.gov.au/projects/access/cable
+!> You need to register and read the Licence agreement before use.
+!> Please contact cable_help@nf.nci.org.au for any questions on
+!> registration and the Licence.
+!>
+!> Unless required by applicable law or agreed to in writing,
+!> software distributed under the Licence is distributed on an "AS IS" BASIS,
+!> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+!> See the Licence for the specific language governing permissions and
+!> limitations under the Licence.
+!>
+!> ==============================================================================
+!>
+!> Purpose: Writing routines for CABLE offline
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: No significant changes since v1.4b except addition of extra variables
+!>
+!>
+!> ==============================================================================
+!>
+!> CALLed from:    cable_initialise.F90
+!>                 cable_input.F90
+!>
+!> MODULEs used:   cable_abort_module
+!>                 cable_def_types_mod
+!>                 cable_IO_vars_module
+!>                 netcdf
+!>
+!> CALLs:          define_output_variable_r1
+!>                 define_output_variable_r2
+!>                 define_output_parameter_r1
+!>                 define_output_parameter_r2
+!>                 write_output_variable_r1
+!>                 write_output_variable_r2
+!>                 write_output_parameter_r1
+!>                 write_output_parameter_r1d
+!>                 write_output_parameter_r2
+!>                 write_output_parameter_r2d
+!>
+!>
+!> Notes: Single precision netcdf writes are forced to single precision here
+!>        (using REAL(,4)) in case of compilation with -r8
+!>
+!> ==============================================================================
 
 MODULE cable_write_module
 

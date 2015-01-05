@@ -1,63 +1,66 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose:       This module file reads default parameter sets and basic
-!                initialisations for CABLE. Parameters values are chosen based
-!                on a global map of vegetation and soil types, currently based
-!                on a 1x1-degree grid for offline case and host-model grid for
-!                online case. Default initialisations are obtained from monthly
-!                climatology in GSWP and Mk3L runs for offline and online
-!                respectively.
-!
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Changes since v1.4b for global offline (GSWP) cases, read in new 
-!          input files
-!          Two subroutines moved to cable_common (reading veg and soil parameter
-!          files)
-!          Addition of code for CASA-CNP
-!
-!
-! ==============================================================================
-! CALLed from:   cable_input.F90
-!
-! MODULEs used:  cable_abort_module
-!                cable_common_module
-!                cable_def_types_mod
-!                casadimension
-!                casaparm
-!                cable_IO_vars_module
-!                phenvariable
-!                physical_constants
-!                netcdf
-
-! CALLs:         get_default_params
-!                read_gridinfo
-!                spatialSoil
-!                NSflip
-!                countPatch
-!                write_default_params
-!                write_cnp_params
-!                derived_parameters
-!                check_parameter_values
-!                report_parameters
-!
+!> ==============================================================================
+!>
+!> This source code is part of the
+!> Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+!> This work is licensed under the CABLE Academic User Licence Agreement
+!> (the "Licence").
+!> You may not use this file except in compliance with the Licence.
+!> A copy of the Licence and registration form can be obtained from
+!> http://www.cawcr.gov.au/projects/access/cable
+!> You need to register and read the Licence agreement before use.
+!> Please contact cable_help@nf.nci.org.au for any questions on
+!> registration and the Licence.
+!>
+!> Unless required by applicable law or agreed to in writing,
+!> software distributed under the Licence is distributed on an "AS IS" BASIS,
+!> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+!> See the Licence for the specific language governing permissions and
+!> limitations under the Licence.
+!>
+!> ==============================================================================
+!>
+!> Purpose:       This module file reads default parameter sets and basic
+!>                initialisations for CABLE. Parameters values are chosen based
+!>                on a global map of vegetation and soil types, currently based
+!>                on a 1x1-degree grid for offline case and host-model grid for
+!>                online case. Default initialisations are obtained from monthly
+!>                climatology in GSWP and Mk3L runs for offline and online
+!>                respectively.
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: Changes since v1.4b for global offline (GSWP) cases, read in new
+!>          input files
+!>          Two subroutines moved to cable_common (reading veg and soil parameter
+!>          files)
+!>          Addition of code for CASA-CNP
+!>
+!> ==============================================================================
+!>
+!> CALLed from:   cable_input.F90
+!>
+!> MODULEs used:  cable_abort_module
+!>                cable_common_module
+!>                cable_def_types_mod
+!>                casadimension
+!>                casaparm
+!>                cable_IO_vars_module
+!>                phenvariable
+!>                physical_constants
+!>                netcdf
+!>
+!> CALLs:         get_default_params
+!>                read_gridinfo
+!>                spatialSoil
+!>                NSflip
+!>                countPatch
+!>                write_default_params
+!>                write_cnp_params
+!>                derived_parameters
+!>                check_parameter_values
+!>                report_parameters
+!>
+!> ==============================================================================
 
 MODULE cable_param_module
 
