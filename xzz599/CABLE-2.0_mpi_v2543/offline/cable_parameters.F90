@@ -197,7 +197,7 @@ CONTAINS
     INTEGER, INTENT(OUT) :: npatch
 
     ! local variables
-    INTEGER :: ncid, ok
+    INTEGER :: ncid, ncndepid, ok
     INTEGER :: xID, yID, pID, sID, tID, bID, ppID, plID, psID
     INTEGER :: varID
     INTEGER :: nslayer, ntime, nband, ppool, lpool, spool
@@ -211,6 +211,12 @@ CONTAINS
     ok = NF90_OPEN(filename%type, 0, ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file ' &
                                             //filename%type)
+    IF(casafile%l_ndep) then
+      ok = NF90_OPEN(casafile%ndep, 0, ncndepid)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.' &
+                                           //casafile%ndep)
+    ENDIF
+
 
     ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
     IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
@@ -233,6 +239,7 @@ CONTAINS
     ok = NF90_INQUIRE_DIMENSION(ncid, tID, LEN=ntime)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting time dimension.')
     ok = NF90_INQ_DIMID(ncid, 'pools_plant', ppID)
+ 
     IF (ok /= NF90_NOERR) THEN
       ACCESS_run = .FALSE.
     ELSE
@@ -302,15 +309,14 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    IF (ACCESS_run) THEN
+    IF (ACCESS_run) THEN  !!changed from veg_fraction to patchfrac, by xzhang,3/12/2014
 
-      ok = NF90_INQ_VARID(ncid, 'veg_fraction', varID)
-      IF (ok /= NF90_NOERR) ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
+      ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
-                                        'Error finding variable veg_fraction.')
+                                        'Error finding variable patchfrac.')
       ok = NF90_GET_VAR(ncid, varID, inPFrac)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
-                                        'Error reading variable veg_fraction.')
+                                        'Error reading variable patchfrac.')
       DO kk = 1, npatch
         inVeg(:, :, kk) = kk
       END DO
@@ -417,7 +423,7 @@ CONTAINS
     ok = NF90_GET_VAR(ncid,varID,inLAI)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable LAI.')
 
-    IF (icycle > 0) THEN
+   IF (icycle > 0) THEN
       ! casaCNP parameters
       ALLOCATE( inArea(nlon, nlat) )
       ALLOCATE( inSorder(nlon, nlat) )
@@ -448,6 +454,13 @@ CONTAINS
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Ndep.')
       ok = NF90_GET_VAR(ncid, varID, inNdep)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Ndep.')
+
+      IF (casafile%l_ndep)THEN
+        ok = NF90_INQ_VARID(ncndepid, 'N_total_deposition', varID)
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Ndep. in Ndep file')
+        ok = NF90_GET_VAR(ncndepid, varID, inNdep)
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Ndep. in Ndep file')
+      END IF
 
       ok = NF90_INQ_VARID(ncid, 'Nfix', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Nfix.')
@@ -558,10 +571,15 @@ CONTAINS
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_strongly_sorbed.')
     ENDIF
 
-    ENDIF
+   ENDIF
 
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
+
+    IF(casafile%l_ndep) THEN
+      ok = NF90_CLOSE(ncndepid)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing N deposition file.')
+    ENDIF
 
   END SUBROUTINE read_gridinfo
   !============================================================================
@@ -1486,24 +1504,18 @@ CONTAINS
 
   END SUBROUTINE init_cnp_pools
   !============================================================================
-  SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough, met)
+  SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    USE cable_data_module
     TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
     TYPE (balances_type),       INTENT(INOUT) :: bal
     TYPE (roughness_type),      INTENT(INOUT) :: rough
-    TYPE (met_type),            INTENT(IN)    :: met
-    TYPE( icanopy_type ) :: C
 
     INTEGER :: j ! do loop counter
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
-
-    ! assign local ptrs to constants defined in cable_data_module
-    CALL point2constants(C)
 
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations 
@@ -1520,38 +1532,22 @@ CONTAINS
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
-    WHERE(soil%ssat > 0. ) soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
     ! owetfac introduced by EAK apr2009
-    DO j=1,mp
-      IF (ssnow%owetfac(j) < -990.0) THEN ! i.e. no restart value
-        ssnow%owetfac(j) = MAX(1.e-6, MIN(1.0,                                 &
-                           (REAL(ssnow%wb(j, 1)) - soil%swilt(j)/2.0 ) /       &
-                           (soil%sfc(j) - soil%swilt(j)/2.0)))
-        IF( ssnow%wbice(j,1) > 0. )                                            &
-           ssnow%owetfac(j) = ssnow%owetfac(j) * MAX( 0.5, 1. - MIN( 0.2,      &
-                             ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) )
-        IF( ssnow%snowd(j) > 0.1) ssnow%owetfac(j) = 0.9
-        IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                &
-           ssnow%owetfac(j) = 1.0 ! lakes: hard-wired number to be removed
-        IF( veg%iveg(j) == 16 .and. met%tk(j) < C%tfrz + 5. )                  &
-           ssnow%owetfac(j) = 0.7 ! lakes: hard-wired number to be removed
-      END IF
-    ENDDO
-!    ssnow%owetfac = MAX(1.e-6, MIN(1.0,                                        &
-!                   (REAL(ssnow%wb(:, 1)) - soil%swilt/2.0 ) /                  &
-!                   (soil%sfc - soil%swilt/2.0)))
-!    temp(:) = 0.0
-!    tmp2(:) = 0.0
-!    WHERE ( ssnow%wbice(:, 1) > 0. ) ! Prevents divide by zero at glaciated
-!                                     ! points where wb and wbice=0.
-!      temp(:) = ssnow%wbice(:, 1) / ssnow%wb(:, 1)
-!      tmp2(:) = REAL(temp(:))
-!      ssnow%owetfac = ssnow%owetfac * (1.0 - tmp2(:)) ** 2
-!!      ssnow%owetfac = ssnow%owetfac &
-!!                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
-!    END WHERE
+    ssnow%owetfac = MAX(0.0, MIN(1.0,                                          &
+                   (REAL(ssnow%wb(:, 1)) - soil%swilt) /                  &
+                   (soil%sfc - soil%swilt)))
+    temp(:) = 0.0
+    tmp2(:) = 0.0
+    WHERE ( ssnow%wbice(:, 1) > 0. ) ! Prevents divide by zero at glaciated
+                                     ! points where wb and wbice=0.
+      temp(:) = ssnow%wbice(:, 1) / ssnow%wb(:, 1)
+      tmp2(:) = REAL(temp(:))
+      ssnow%owetfac = ssnow%owetfac * (1.0 - tmp2(:)) ** 2
+!      ssnow%owetfac = ssnow%owetfac &
+!                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
+    END WHERE
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
 
@@ -1751,8 +1747,6 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
             ' point ',e,':'
       WRITE(logn, *) '==================================================='//  &
                      '======'
-      WRITE(logn, *) 'Longitudes and latitudes: ', &
-            patch(landpt(e)%cstart)%longitude, patch(landpt(e)%cstart)%latitude
       !      WRITE(logn,'(A21)') ' Surface type ratios:'
       !      WRITE(logn,*) '---------------------------------------------'//  &
       !                    '------------'

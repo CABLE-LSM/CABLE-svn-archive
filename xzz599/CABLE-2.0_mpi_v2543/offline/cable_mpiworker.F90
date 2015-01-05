@@ -134,9 +134,8 @@ CONTAINS
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
-!   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-   INTEGER        ::  kstart
-
+   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+   
    INTEGER        ::                                                           &
       ktau,       &  ! increment equates to timestep, resets if spinning up
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
@@ -237,9 +236,6 @@ CONTAINS
 
    ! END header
 
-   kstart = 1
-!   kstart = 49
-
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -327,7 +323,7 @@ CONTAINS
    CALL find_extents
 
    ! MPI: receive decomposition info from the master
-   call worker_decomp(comm)
+   CALL worker_decomp(comm)
 
    ! MPI: in overlap version sends and receives occur on separate comms
    CALL MPI_Comm_dup (comm, icomm, ierr)

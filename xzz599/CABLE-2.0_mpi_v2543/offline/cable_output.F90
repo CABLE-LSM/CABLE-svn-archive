@@ -2077,7 +2077,7 @@ CONTAINS
     !    INTEGER :: mlandID, surftypeID, patchID, radID, soilID, &
     !         soilcarbID, plantcarbID, tID, snowID ! dimension IDs
     INTEGER :: tvarID, latID, lonID !,surffracID ! time,lat,lon variable ID
-    INTEGER :: tggID, wbID, wbiceID,wetfacID,tssID, ssdnnID, ssdnID, osnowdID, &
+    INTEGER :: tggID, wbID, wbiceID, tssID, ssdnnID, ssdnID, osnowdID,    &
                     smassID, sdepthID, snageID, snowdID, rtsoilID, isflagID,   &
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
@@ -2212,8 +2212,6 @@ CONTAINS
     CALL define_ovar(ncid_restart, wbiceID, 'wbice', 'vol/vol',                &
                      'Average layer volumetric soil ice',                      &
                      .TRUE., soilID, 'r2soil', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, wetfacID, 'wetfac', '-', 'Wetness factor',  &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, tssID, 'tss', 'K',                          &
                      'Combined soil/snow temperature',                         &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -2603,8 +2601,6 @@ CONTAINS
                      ranges%za, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%za_tq, 'za_tq', REAL(rough%za_tq, 4),  &
                      ranges%za, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, wetfacID, 'wetfac', REAL(ssnow%owetfac, 4), &
-                     (/0.0, 1.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, tssID, 'tss', REAL(ssnow%tss, 4),           &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, ssdnnID, 'ssdnn', REAL(ssnow%ssdnn, 4),     &

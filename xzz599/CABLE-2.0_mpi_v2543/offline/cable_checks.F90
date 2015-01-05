@@ -264,7 +264,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
          END DO
       END IF
    END IF
-   ssnow%delwb = delwb  ! Added Mar 2014 for checking balances
+ !  ssnow%delwb = delwb  ! Added Mar 2014 for checking balances
 
    ! IF(ktau==kend) DEALLOCATE(bwb)
 
@@ -283,7 +283,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
         - (canopy%fevw+MIN(canopy%fevc,0.0))*dels/air%rlam)
-   canopy%wbal = canopy_wbal ! Added Mar 2014 for checking balances
+
+ !  canopy%wbal = canopy_wbal ! Added Mar 2014 for checking balances
 
    bal%wbal_tot = 0. 
    IF(ktau>10) THEN

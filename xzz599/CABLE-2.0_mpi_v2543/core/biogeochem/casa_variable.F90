@@ -323,12 +323,14 @@ MODULE casavariable
     CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes
     CHARACTER(LEN=99) :: cnpmetin      ! met file for spin up 
     CHARACTER(LEN=99) :: cnpmetout     ! met file for spin up 
+    CHARACTER(LEN=99) :: ndep          ! N deposition input file (Chris LU and XZhang,02Dec2014)
 ! added yp wang
     CHARACTER(LEN=99) :: cnpspin       ! input file for spin up
     CHARACTER(LEN=99) :: dump_cnpspin  ! name of dump file for spinning casa-cnp
  
     CHARACTER(LEN=99) :: phen        ! leaf phenology datafile
     CHARACTER(LEN=99) :: cnpflux     ! modelled mean yearly CNP fluxes
+    LOGICAL           :: l_ndep      !added by Chris LU and XZhang,02Dec2014
   END TYPE casafiles_type
   TYPE(casafiles_type) :: casafile
 

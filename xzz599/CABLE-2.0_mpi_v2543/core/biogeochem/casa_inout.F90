@@ -338,7 +338,6 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     ! initializing glai in case not reading pool file (eg. during spin)
     casamet%glai(npt) = MAX(casabiome%glaimin(iv1), &
                         casabiome%sla(iv1) * casapool%cplant(npt,leaf))
-    casamet%glai(npt) = MIN(casabiome%glaimax(iv1),casamet%glai(npt))
 
     casaflux%fNminloss(npt)   = xfNminloss(iv1) 
     ! comment out by ypw 12/07/2009
@@ -828,11 +827,11 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
         ' differs from number in CASA_dimension')
 
   CALL readpar(ncid,'LAI',dummy,casamet%glai,filename%restart_in, &
-                max_vegpatches,'cnp',from_restart,mp)
+                max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'phase',dummy,phen%phase,filename%restart_in, &
                 max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'Clabile',dummy,casapool%Clabile,filename%restart_in, &
-                max_vegpatches,'cnp',from_restart,mp)
+                max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'CASA_Cplant',dummy,casapool%Cplant,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'Clitter',dummy,casapool%Clitter,filename%restart_in, &
@@ -846,7 +845,7 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
   CALL readpar(ncid,'Nsoil',dummy,casapool%Nsoil,filename%restart_in, & 
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'Nsoilmin',dummy,casapool%Nsoilmin,filename%restart_in, &
-                max_vegpatches,'cnp',from_restart,mp)
+                max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'Pplant',dummy,casapool%Pplant,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'Plitter',dummy,casapool%Plitter,filename%restart_in, &
@@ -854,11 +853,11 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
   CALL readpar(ncid,'Psoil',dummy,casapool%Psoil,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'Psoillab',dummy,casapool%Psoillab,filename%restart_in, &
-                max_vegpatches,'cnp',from_restart,mp)
+                max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'Psoilsorb',dummy,casapool%Psoilsorb,filename%restart_in, &
-                max_vegpatches,'cnp',from_restart,mp)
+                max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'Psoilocc',dummy,casapool%Psoilocc,filename%restart_in, &
-                max_vegpatches,'cnp',from_restart,mp)
+                max_vegpatches,'def',from_restart,mp)
 
   ncok = NF90_CLOSE(ncid)
   IF(ncok/=NF90_NOERR) CALL nc_abort(ncok,'Error closing restart file '     &
@@ -1126,41 +1125,41 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
 !  CALL define_ovar(ncid, areaID, 'areacell', '1.0E-9 m2', 'area of tile', &
 !                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, areaID, 'areacell', 'm2', 'area of tile', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, laiID, 'LAI', '-', 'Leaf Area Index', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, slaID, 'SLA', 'm2', 'Specific Leaf Area', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, phaseID, 'phase', '-', 'phenological phase', &
                    .TRUE., 'integer', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, ClabID, 'Clabile', 'gC/m2', 'labile C pool', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, CplantID, 'CASA_Cplant', 'gC/m2', 'plant C pools', &
-                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(1), 'mplant', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, ClitterID, 'Clitter', 'gC/m2', 'litter C pools', &
-                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(2), 'mlitter', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, CsoilID, 'CASA_Csoil', 'gC/m2', 'soil C pools', &
-                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(3), 'msoil', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, NplantID, 'Nplant', 'gN/m2', 'plant N pools', &
-                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(1), 'mplant', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, NlitterID, 'Nlitter', 'gN/m2', 'litter N pools', &
-                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(2), 'mlitter', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, NsoilID, 'Nsoil', 'gN/m2', 'soil N pools', &
-                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(3), 'msoil', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, NsminID, 'Nsoilmin', 'gN/m2', 'mineral N in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, PplantID, 'Pplant', 'gP/m2', 'plant P pools', &
-                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(1), 'mplant', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, PlitterID, 'Plitter', 'gP/m2', 'litter P pools', &
-                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(2), 'mlitter', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, PsoilID, 'Psoil', 'gP/m2', 'soil P pools', &
-                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., dimID(3), 'msoil', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, PslabID, 'Psoillab', 'gP/m2', 'labile P in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, PssorbID, 'Psoilsorb', 'gP/m2', 'adsorbed P in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, PsoccID, 'Psoilocc', 'gP/m2', 'occluded P in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, CbalID, 'sumCbal', 'gC/m2', 'Accumulated C balance', &
                    .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, NbalID, 'sumNbal', 'gN/m2', 'Accumulated N balance', &
@@ -1176,16 +1175,16 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
   CALL write_ovar(ncid, soID, 'soilOrder', REAL(casamet%isorder,4),  &
                    ranges%SoilOrder, .TRUE., 'integer', .TRUE.)
   CALL write_ovar(ncid, areaID, 'areacell', casamet%areacell, ranges%area, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, laiID, 'LAI', casamet%glai, ranges%lai, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   dummy(:) = casabiome%sla(veg%iveg(:))
   CALL write_ovar(ncid, slaID, 'SLA', dummy, ranges%sla, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, phaseID, 'phase', REAL(phen%phase,4), ranges%phase, &
-                  .TRUE., 'integer', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, ClabID, 'Clabile', casapool%clabile, ranges%Clab, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, CplantID, 'CASA_Cplant', casapool%cplant,ranges%Cplant,&
                   .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, ClitterID, 'Clitter', casapool%clitter, ranges%Clitter,&
@@ -1199,7 +1198,7 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
   CALL write_ovar(ncid, NsoilID, 'Nsoil', casapool%nsoil, ranges%Nsoil, &
                   .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, NsminID, 'Nsoilmin', casapool%nsoilmin, ranges%Nsmin, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, PplantID, 'Pplant', casapool%pplant, ranges%Pplant, &
                   .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, PlitterID, 'Plitter', casapool%plitter, ranges%Plitter,&
@@ -1207,11 +1206,11 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
   CALL write_ovar(ncid, PsoilID, 'Psoil', casapool%psoil, ranges%Psoil, &
                   .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, PslabID, 'Psoillab', casapool%psoillab, ranges%Pslab, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, PssorbID, 'Psoilsorb', casapool%psoilsorb,  &
-                  ranges%Pssorb, .TRUE., 'cnp', .TRUE.)
+                  ranges%Pssorb, .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, PsoccID, 'Psoilocc', casapool%psoilocc, ranges%Psocc, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, CbalID, 'sumCbal', casabal%sumcbal, ranges%Cbal, &
                   .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, NbalID, 'sumNbal', casabal%sumnbal, ranges%Nbal, &
@@ -1244,10 +1243,11 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 
   ! local variables
   INTEGER  npt,nout
-  REAL(r_2) xyear, totGPP, totNPP
+  REAL(r_2) xyear, totGPP, totNPP, totNEP !added by xzhang 03/12/2014
 
   totGPP =0.0
   totNPP =0.0
+  totNEP =0.0
   nout=104
   xyear=1.0/FLOAT(myear)
   casabal%FCgppyear=casabal%FCgppyear * xyear
@@ -1316,10 +1316,12 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
       END SELECT 
       totGPP = totGPP+casabal%Fcgppyear(npt)* casamet%areacell(npt)
       totNPP = totNPP+casabal%Fcnppyear(npt)* casamet%areacell(npt)
+      totNEP = totNEP+casabal%Fcneeyear(npt)* casamet%areacell(npt)
     ENDDO
 
     print *, 'totGPP global = ', totGPP*(1.0e-15)
     print *, 'totNPP global = ', totNPP*(1.0e-15)
+    print *, 'totNEP global = ', totNEP*(1.0e-15) !added by xzhang 03/12/2014
   CLOSE(nout)
 92    format(5(i6,',',2x),100(f15.6,',',2x))
 END SUBROUTINE casa_fluxout

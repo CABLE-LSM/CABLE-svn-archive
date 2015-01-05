@@ -44,7 +44,7 @@ MODULE cable_init_module
    USE cable_IO_vars_module,       ONLY: latitude,longitude, patch,            &
                                  landpt,smoy,ncid_rin,max_vegpatches,          &
                                  soilparmnew,ncciy, vegtype_metfile,           &
-                                 soiltype_metfile
+                                 soiltype_metfile,l_vcmaxFeedbk   !added by x.zhang 2014
    USE cable_read_module
    USE netcdf
    USE cable_common_module, ONLY : filename
@@ -383,8 +383,6 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 !    WHERE (ssnow%tgg > 273.2 .AND. ssnow%wbice >0.0) ssnow%wbice=0.0
    CALL readpar(ncid_rin,'gammzz',dummy,ssnow%gammzz,filename%restart_in,      &
                 max_vegpatches,'msd',from_restart,mp)
-   CALL readpar(ncid_rin,'wetfac',dummy,ssnow%owetfac,filename%restart_in,     &
-                max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'tss',dummy,ssnow%tss,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'ssdnn',dummy,ssnow%ssdnn,filename%restart_in,        &
@@ -564,8 +562,11 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'ejmax',dummy,veg%ejmax,filename%restart_in,          &
                 max_vegpatches,'def',from_restart,mp)
+   IF(l_vcmaxFeedbk)THEN !!added by x.zhang 12/12/2014
+   PRINT*,"vcmax will be readed from restart_in"
    CALL readpar(ncid_rin,'vcmax',dummy,veg%vcmax,filename%restart_in,          &
                 max_vegpatches,'def',from_restart,mp)
+   END IF
    CALL readpar(ncid_rin,'rp20',dummy,veg%rp20,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'rpcoef',dummy,veg%rpcoef,filename%restart_in,        &

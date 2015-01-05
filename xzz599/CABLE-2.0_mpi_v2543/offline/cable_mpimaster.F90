@@ -165,9 +165,8 @@ SUBROUTINE mpidrv_master (comm)
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
-!   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-   INTEGER        :: kstart
-
+   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+   
    INTEGER        ::                                                           &
       ktau,       &  ! increment equates to timestep, resets if spinning up
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
@@ -273,9 +272,6 @@ SUBROUTINE mpidrv_master (comm)
 
    ! END header
 
-   kstart = 1
-!   kstart = 49
-
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -356,10 +352,7 @@ SUBROUTINE mpidrv_master (comm)
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, kstart, C%TFRZ )
-
-!   kend = 48
-!   kend = 96
+   CALL open_met_file( dels, kend, spinup, C%TFRZ )
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -373,16 +366,16 @@ SUBROUTINE mpidrv_master (comm)
                          C%TFRZ )
 
    spinConv = .FALSE. ! initialise spinup convergence variable
-   if(.not.spinup)  spinConv=.true.
+   IF(.not.spinup)  spinConv=.true.
    
-   if(icycle>0) then
-     if (spincasa) then
+   IF(icycle>0) then
+     IF (spincasa) then
       print *, 'spincasacnp enabled with mloop= ', mloop
       ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
-      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,     &
+      CALL spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,     &
                        casabiome,casapool,casaflux,casamet,casabal,phen)
-     endif
-   endif
+     ENDIF
+   ENDIF
 
    ! MPI: above was standard serial code
    ! now it's time to initialize the workers
@@ -473,8 +466,8 @@ SUBROUTINE mpidrv_master (comm)
 
       ! MPI: separate time step counters for reading and writing
       ! (ugly, I know)
-      iktau = kstart - 1
-      oktau = kstart - 1
+      iktau = ktau_gl
+      oktau = ktau_gl
 
       ! MPI: read ahead
       iktau = iktau + 1
@@ -485,13 +478,13 @@ SUBROUTINE mpidrv_master (comm)
 
       ! MPI: flip ktau_gl
       !tmp_kgl = ktau_gl
-      ktau_gl = ktau_gl + 1
+      ktau_gl = iktau
 
       CALL get_met_data( spinup, spinConv, imet, soil,                    &
                          rad, iveg, kend, dels, C%TFRZ, iktau )
 
       ! MPI: scatter input data to the workers
-      CALL master_send_input (icomm, inp_ts, iktau-kstart+1)
+      CALL master_send_input (icomm, inp_ts, iktau)
       CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
 
@@ -508,7 +501,7 @@ SUBROUTINE mpidrv_master (comm)
 
          ! globally (WRT code) accessible kend through USE cable_common_module
          ktau_tot= ktau_tot + 1
-         ktau_gl = ktau_gl + 1
+         ktau_gl = iktau
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          ktauday=int(24.0*3600.0/dels)
@@ -527,14 +520,14 @@ SUBROUTINE mpidrv_master (comm)
                             rad, iveg, kend, dels, C%TFRZ, iktau ) 
 
          ! MPI: receive this time step's results from the workers
-         CALL master_receive (ocomm, oktau-kstart+1, recv_ts)
+         CALL master_receive (ocomm, oktau, recv_ts)
 !!!         IF (icycle > 0) THEN
 !!!            ! MPI: gather casa results from all the workers
 !!!            CALL master_receive (comm, oktau, casa_out)
 !!!         ENDIF
 
          ! MPI: scatter input data to the workers
-         CALL master_send_input (icomm, inp_ts, iktau-kstart+1)
+         CALL master_send_input (icomm, inp_ts, iktau)
 
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 !!!         IF (icycle > 0) THEN
@@ -555,7 +548,7 @@ SUBROUTINE mpidrv_master (comm)
          ! or we're spinning up and the spinup has converged:
          ! MPI: TODO: pull mass and energy balance calculation from write_output
          ! and refactor into worker code
-    !!     ktau_gl = oktau
+         ktau_gl = oktau
          IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
@@ -571,8 +564,8 @@ SUBROUTINE mpidrv_master (comm)
       met%doy = imet%doy
       oktau = oktau + 1
       ktau_tot= ktau_tot + 1
-   !!   ktau_gl = oktau
-      CALL master_receive (ocomm, oktau-kstart+1, recv_ts)
+      ktau_gl = oktau
+      CALL master_receive (ocomm, oktau, recv_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
       met%ofsd = met%fsd(:,1) + met%fsd(:,2)
       canopy%oldcansto=canopy%cansto
@@ -670,7 +663,7 @@ SUBROUTINE mpidrv_master (comm)
 
    IF (icycle > 0) THEN
       ! MPI: gather casa results from all the workers
-      CALL master_receive (comm, oktau-kstart+1, casa_ts)
+      CALL master_receive (comm, ktau_gl, casa_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
 !      print *, 'output BGC pools'
@@ -699,7 +692,7 @@ SUBROUTINE mpidrv_master (comm)
       !       &              canopy,rough,rad,bgc,bal)
       ! gol124: how about call master_receive (comm, ktau, restart_ts)
       ! instead of a separate receive_restart sub?
-      CALL master_receive (comm, oktau-kstart+1, restart_ts)
+      CALL master_receive (comm, ktau_gl, restart_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &

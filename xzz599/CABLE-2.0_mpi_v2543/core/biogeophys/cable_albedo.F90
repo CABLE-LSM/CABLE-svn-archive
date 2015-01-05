@@ -173,11 +173,6 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    
    INTEGER :: k,i,j,l,l1,l2
 
-  IF( cable_runtime%offline  ) THEN
-   ssnow%albsoilsn(:,1) = soil%albsoil(:,1)
-   ssnow%albsoilsn(:,2) = soil%albsoil(:,2)
-  ELSE
-
    soil%albsoilf = soil%albsoil(:,1)
 
    ! lakes: hard-wired number to be removed in future
@@ -196,9 +191,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
 
    ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
    ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
-
-  ENDIF
-
+  
    snrat=0.
    alir =0.
    alv  =0.

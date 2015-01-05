@@ -95,8 +95,7 @@ PROGRAM cable_offline_driver
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
-!   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-   INTEGER        :: kstart
+   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
    
    INTEGER        ::                                                           &
       ktau,       &  ! increment equates to timestep, resets if spinning up
@@ -192,9 +191,6 @@ PROGRAM cable_offline_driver
 
    ! END header
 
-   kstart = 1
-!   kstart = 49
-
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -275,10 +271,7 @@ PROGRAM cable_offline_driver
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, kstart, C%TFRZ )
-
-!   kend = 48
-!   kend = 96
+   CALL open_met_file( dels, kend, spinup, C%TFRZ )
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 

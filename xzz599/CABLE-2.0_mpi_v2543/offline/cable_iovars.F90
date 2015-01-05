@@ -110,7 +110,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind, &
+         lai               ! X.ZHANG Dec 2014
 
       LOGICAL           ::                                                     &
          l_gpcc, &         ! ypwang following Chris Lu (30/oct/2012)
@@ -130,8 +131,8 @@ MODULE cable_IO_vars_module
    
    LOGICAL ::                                                                  &
       verbose,    & ! print init and param details of all grid cells?
-      soilparmnew   ! read IGBP new soil map. Q.Zhang @ 12/20/2010
-
+      soilparmnew, &   ! read IGBP new soil map. Q.Zhang @ 12/20/2010
+      l_vcmaxFeedbk ! X.Zhang 12/12/2014
    ! ================ Veg and soil type variables ============================
    INTEGER, POINTER ::                                                         &
       soiltype_metfile(:,:),  & ! user defined soil type (from met file)
