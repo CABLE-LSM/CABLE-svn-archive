@@ -107,7 +107,7 @@ MODULE cable_def_types_mod
          isoilm     !< integer soil type
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         bch,     & !< parameter b in Campbell equation
+         bch,     & !< parameter b in Campbell equation (http://www.clw.csiro.au/publications/technical97/tr2-97.pdf)
          c3,      & !< c3 drainage coeff (fraction)
          clay,    & !< fraction of soil which is clay
          css,     & !< soil specific heat capacity [kJ/kg/K]
