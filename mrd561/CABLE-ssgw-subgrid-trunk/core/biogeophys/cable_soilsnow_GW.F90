@@ -2220,20 +2220,20 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
     ie = landpt(i)%cend
     do ii=ib+1,ie
     
-      slope = (soil%elevation(ii) - soil%elevation(ii-1)) / min(max(abs(soil%distance(ii)-soil%distance(ii-1)),250.0/9.0),25000.0/9.0)
-      def   = sum((soil%watsat(ii,:)-ssnow%wbliq(ii,:)))!*soil%zse(:))
+      slope = (soil%elevation(ii) - soil%elevation(ii-1)) / (soil%distance(ii)-soil%distance(ii-1))
+      def   = sum((soil%watsat(ii,:)-(ssnow%wbliq(ii,:)+dri*ssnow%wbice(ii,:))))!*soil%zse(:))
       def   = def + (soil%GWwatsat(ii) - ssnow%GWwb(ii))!*soil%GWdz(ii)
       
-      q_tot(ii) = ani*soil%hksat(ii,ms)*slope/soil%distance(ii)*def*soil%area(ii)
+      q_tot(ii) = ani*soil%hksat(ii,ms)*sin(slope)/soil%distance(ii)*def*soil%area(ii)
       ! sin(slope)*(exp(-f*sum(soil%zse)*cos(slope)) - exp(-f*def*cos(slope)))
 
     end do
     
     ii = ib
-    slope = (soil%elevation(ii+1) - soil%elevation(ii)) / min(max(abs(soil%distance(ii+1)-soil%distance(ii)),250.0/9.0),25000.0/9.0)
-    def   = sum(max(soil%watsat(ii,:)-ssnow%wbliq(ii,:),0.))!*soil%zse(:))
+    slope = (soil%elevation(ii+1) - soil%elevation(ii)) / (soil%distance(ii+1)-soil%distance(ii))
+    def   = sum(max(soil%watsat(ii,:)-(ssnow%wbliq(ii,:)+dri*ssnow%wbice(ii,:)),0.))!*soil%zse(:))
     def   = def + (soil%GWwatsat(ii) - ssnow%GWwb(ii))!*soil%GWdz(ii)
-    q_tot(ii) = ani*soil%hksat(ii,ms)*slope/soil%distance(ii)*def*soil%area(ii)
+    q_tot(ii) = ani*soil%hksat(ii,ms)*sin(slope)/soil%distance(ii)*def*soil%area(ii)
     !sin(slope)* (exp(-f*sum(soil%zse)*cos(slope)) - exp(-f*def*cos(slope)))
  
       if (ii .eq. 388 .and. verbose_debug) then
@@ -2292,7 +2292,7 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
       ie = landpt(i)%cend
       do ii=ib,ie
         if (ii .lt. ie) then
-          ssnow%GWwb(ii) = ssnow%GWwb(ii) - q_lev(ii,k)*dels / (soil%GWdz(ii)*1000.0) / soil%area(ii)   !mm^3
+          ssnow%GWwb(ii) = ssnow%GWwb(ii) + (q_lev(ii+1,k) - q_lev(ii,k))*dels / (soil%GWdz(ii)*1000.0) / soil%area(ii)   !mm^3
         else
           ssnow%GWwb(ii) = ssnow%GWwb(ii) - q_lev(ii,k)*dels / (soil%GWdz(ii)*1000.0) / soil%area(ii)
         end if
