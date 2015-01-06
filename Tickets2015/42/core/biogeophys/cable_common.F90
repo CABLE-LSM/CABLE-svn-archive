@@ -87,7 +87,7 @@ MODULE cable_common_module
          ! L.Stevens - Test Switches
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
-         L_NEW_REDUCE_SOILEVP  = .FALSE.!
+         L_NEW_REDUCE_SOILEVP  = .FALSE., & !
 
 	     ! Switch for customized soil respiration - see Ticket #42
          SRF = .FALSE.
