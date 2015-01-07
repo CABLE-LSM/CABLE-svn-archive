@@ -237,6 +237,11 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
+   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
+   INTEGER :: kstart_sml    ! start timestep of simulation
+   INTEGER :: kend_sml    ! no. kend for output of simulation
+   !!!by Xuanze Zhang 21 Dec 2014
+
    ! added variable by yp wang 7-nov-2012
    ! BP had values of mloop read in from namelist file (Jun 2013)
    INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
@@ -455,14 +460,32 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
 
+
+   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
+     kstart_sml = kstart
+     kend_sml   = kend
+   IF(.NOT.spinup) THEN   
+     OPEN(99,file='timestep.txt')
+     READ(99,*) kstart_sml, kend_sml
+     CLOSE(99)
+   END IF 
+   !!!by X.Zhang 21 Dec 2014 
+
+   
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
-      ktau_gl = 0
-      kend_gl = kend
-      knode_gl = 0
+     ! ktau_gl = 0
+     ! kend_gl = kend
+     ! knode_gl = 0
+
+   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation 
+       ktau_gl = kstart_sml - 1
+       kend_gl = kend_sml
+       knode_gl = 0
+   !!!by X.Zhang 21 Dec 2014
 
       ! MPI: separate time step counters for reading and writing
       ! (ugly, I know)
@@ -489,9 +512,10 @@ SUBROUTINE mpidrv_master (comm)
 
 
       ! time step loop over ktau
-      DO ktau=kstart, kend - 1
+!      DO ktau=kstart, kend - 1
+      DO ktau=kstart_sml, kend_sml - 1   !!changed by X.Zhang 21/Dec/2014
 
-!         ! increment total timstep counter
+!        ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
          iktau = iktau + 1
          oktau = oktau + 1
@@ -518,6 +542,13 @@ SUBROUTINE mpidrv_master (comm)
 !          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          CALL get_met_data( spinup, spinConv, imet, soil,                    &
                             rad, iveg, kend, dels, C%TFRZ, iktau ) 
+
+         !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
+         PRINT*,"by X.Zhang 21 Dec 2014....."
+         PRINT*,"kstart,kend,ktau,iktau,ktau_gl,kstart_sml,kend_sml,idoy,nyear"
+         PRINT*,kstart,kend,ktau,iktau,ktau_gl,kstart_sml,kend_sml,idoy,nyear
+         !!!by X.Zhang 21 Dec 2014
+
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau, recv_ts)
@@ -550,7 +581,7 @@ SUBROUTINE mpidrv_master (comm)
          ! and refactor into worker code
          ktau_gl = oktau
          IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-            CALL write_output( dels, ktau, met, canopy, ssnow,              &
+            CALL write_output( dels, kstart_sml, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
 !!!            IF (icycle > 0) CALL write_casa_flux( dels, ktau, casabal, casamet)
@@ -577,7 +608,7 @@ SUBROUTINE mpidrv_master (comm)
 !      END IF
 
       IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-         CALL write_output( dels, ktau, met, canopy, ssnow,         &
+         CALL write_output( dels, kstart_sml, ktau, met, canopy, ssnow,         &
                             rad, bal, air, soil, veg, C%SBOLTZ,     &
                             C%EMLEAF, C%EMSOIL )
 !         IF (icycle > 0) CALL write_casaout( dels, ktau, casabal, casamet)

@@ -201,6 +201,11 @@ CONTAINS
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
+   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
+   INTEGER :: kstart_sml    ! start timestep of simulation
+   INTEGER :: kend_sml    ! no. kend for output of simulation
+   !!!by Xuanze Zhang 21 Dec 2014
+
    ! added variable by yp wang 7-nov-2012
    ! BP had values of mloop read in from namelist file (Jun 2013)
    INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
@@ -376,18 +381,34 @@ CONTAINS
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+ 
+   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
+     kstart_sml = kstart
+     kend_sml   = kend
+   IF(.NOT.spinup) THEN
+     OPEN(99,file='timestep.txt')
+     READ(99,*) kstart_sml, kend_sml
+     CLOSE(99)
+   END IF
+   !!!by X.Zhang 21 Dec 2014
+  
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
-      ktau_gl = 0
-      kend_gl = kend
-      knode_gl = 0
-      
+      !ktau_gl = 0
+      !kend_gl = kend
+      !knode_gl = 0
+
+   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
+       ktau_gl = kstart_sml - 1
+       kend_gl = kend_sml
+       knode_gl = 0
+   !!!by X.Zhang 21 Dec 2014      
+
       ! time step loop over ktau
-      DO ktau=kstart, kend 
+      DO ktau=kstart_sml, kend_sml 
          
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1
@@ -441,8 +462,9 @@ CONTAINS
    
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
-         IF(icycle >0) THEN
-            call bgcdriver( ktau, kstart, kend, dels, met,                  &
+         !!! kstart,kend has be changed to kstart_sml, kend_sml  X.Zhang 21Dec2014
+         IF(icycle >0) THEN 
+            call bgcdriver( ktau, kstart_sml, kend_sml, dels, met,                  &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
@@ -451,7 +473,8 @@ CONTAINS
    
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
+         !!! kstart,kend has be changed to kstart_sml, kend_sml  X.Zhang 21Dec2014
+         CALL sumcflux( ktau, kstart_sml, kend_sml, dels, bgc,                      &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
 
@@ -466,7 +489,7 @@ CONTAINS
          ! or we're spinning up and the spinup has converged:
          ! MPI: writing done only by the master
          !IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-         !   CALL write_output( dels, ktau, met, canopy, ssnow,                    &
+         !   CALL write_output( dels,kstart, ktau, met, canopy, ssnow,                    &
          !                      rad, bal, air, soil, veg, C%SBOLTZ, &
          !                      C%EMLEAF, C%EMSOIL )
    

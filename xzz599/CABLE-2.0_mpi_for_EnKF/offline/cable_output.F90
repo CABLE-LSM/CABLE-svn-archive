@@ -1074,7 +1074,7 @@ CONTAINS
 
   END SUBROUTINE open_output_file
   !=============================================================================
-  SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
+  SUBROUTINE write_output(dels, kstart, ktau, met, canopy, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
     ! energy and mass balance routines. This subroutine is called 
@@ -1082,6 +1082,7 @@ CONTAINS
     ! depending on whether the user has specified that output should be 
     ! aggregated, e.g. to monthly or 6-hourly averages.
     REAL, INTENT(IN)              :: dels ! time step size
+    INTEGER, INTENT(IN)           :: kstart ! start time step added by X.Zhang and Chris Lu 21Dec2014
     INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
     REAL, INTENT(IN) :: SBOLTZ, EMLEAF, EMSOIL
     TYPE(met_type), INTENT(IN)         :: met  ! met data
@@ -1111,7 +1112,8 @@ CONTAINS
                                              SBOLTZ, EMLEAF, EMSOIL ) 
 
     ! Initialise output time step counter and month counter:
-    IF(ktau == 1) THEN
+    !IF(ktau == 1) THEN
+    IF(ktau==kstart) THEN ! added by X.Zhang and Chris Lu 21Dec2014
        out_timestep = 0
        out_month = 0
     END IF
@@ -1121,7 +1123,8 @@ CONTAINS
        ! Set flag to write data for current time step:
        writenow = .TRUE.
        ! Set output time step to be current model time step:
-       out_timestep = ktau
+     ! ! out_timestep = ktau  !by X.Zhang and Chris Lu 21Dec2014
+       out_timestep = ktau - kstart + 1 
        backtrack = 0
     ELSE IF(output%averaging(1:4) == 'user' .OR. output%averaging(1:2)=='da')  &
             THEN
