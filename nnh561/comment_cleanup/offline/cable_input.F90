@@ -1,24 +1,25 @@
-!>==============================================================================
-!>
-!> This source code is part of the
-!> Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-!> This work is licensed under the CABLE Academic User Licence Agreement
-!> (the "Licence").
-!> You may not use this file except in compliance with the Licence.
-!> A copy of the Licence and registration form can be obtained from
-!> http://www.cawcr.gov.au/projects/access/cable
-!> You need to register and read the Licence agreement before use.
-!> Please contact cable_help@nf.nci.org.au for any questions on
-!> registration and the Licence.
-!>
-!> Unless required by applicable law or agreed to in writing,
-!> software distributed under the Licence is distributed on an "AS IS" BASIS,
-!> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-!> See the Licence for the specific language governing permissions and
-!> limitations under the Licence.
-!>
-!> ==============================================================================
-!>
+!==============================================================================
+!
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing,
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and
+! limitations under the Licence.
+!
+! ==============================================================================
+!
+!> \file
 !> Purpose: Input module for CABLE offline version
 !>
 !> Contact: Bernard.Pak@csiro.au
@@ -29,20 +30,21 @@
 !>
 !> ==============================================================================
 !>
-!> MODULEs used: cable_abort_module
-!>               cable_def_types_mod
-!>               cable_IO_vars_module
-!>               cable_read_module
-!>               netcdf
-!>               casadimension
-!>               casavariable
-!>               phenvariable
-!>               cable_param_module
-!>               cable_checks_module
-!>               cable_radiation_module
-!>               cable_init_module
-!>
-!>==============================================================================
+!> MODULEs used:
+!> - cable_abort_module
+!> - cable_def_types_mod
+!> - cable_IO_vars_module
+!> - cable_read_module
+!> - netcdf
+!> - casadimension
+!> - casavariable
+!> - phenvariable
+!> - cable_param_module
+!> - cable_checks_module
+!> - cable_radiation_module
+!> - cable_init_module
+!
+!==============================================================================
 
 MODULE cable_input_module   
 ! Note that any precision changes from r_1 to REAL(4) enable running with -r8

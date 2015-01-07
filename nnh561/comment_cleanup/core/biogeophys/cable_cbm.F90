@@ -1,38 +1,41 @@
-!>==============================================================================
-!>
-!> This source code is part of the
-!> Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-!> This work is licensed under the CABLE Academic User Licence Agreement
-!> (the "Licence").
-!> You may not use this file except in compliance with the Licence.
-!> A copy of the Licence and registration form can be obtained from
-!> http://www.cawcr.gov.au/projects/access/cable
-!> You need to register and read the Licence agreement before use.
-!> Please contact cable_help@nf.nci.org.au for any questions on
-!> registration and the Licence.
-!>
-!> Unless required by applicable law or agreed to in writing,
-!> software distributed under the Licence is distributed on an "AS IS" BASIS,
-!> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-!> See the Licence for the specific language governing permissions and
-!> limitations under the Licence.
-!>
-!> ==============================================================================
-!>
+!==============================================================================
+!
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing,
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and
+! limitations under the Licence.
+!
+! ==============================================================================
+!
+!> \file
 !> Purpose: Calls CABLE routines including define_air, surface_albedo,
-!>          define_canopy, soilsnow, carbon
+!>          define_canopy, soilsnow, carbon.
 !>          Note that cbm is called once per timestep in the offline case but
 !>          twice per timestep in the ACCESS case. Not all parts of cbm
 !>          are executed in each of the ACCESS calls.
 !>
-!> Called from: cable_driver for offline version
-!>              cable_explicit_driver, cable_implicit_driver for ACCESS
+!> Called from:
+!> - cable_driver for offline version
+!> - cable_explicit_driver
+!> -cable_implicit_driver for ACCESS
 !>
 !> Contact: Yingping.Wang@csiro.au
 !>
 !> History: Calling sequence changes for ACCESS compared to v1.4b
-!>
-!> ==============================================================================
+!
+! ==============================================================================
 
 !#define NO_CASA_YET 1
 

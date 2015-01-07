@@ -1,24 +1,25 @@
-!>==============================================================================
-!>
-!> This source code is part of the
-!> Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-!> This work is licensed under the CABLE Academic User Licence Agreement
-!> (the "Licence").
-!> You may not use this file except in compliance with the Licence.
-!> A copy of the Licence and registration form can be obtained from
-!> http://www.cawcr.gov.au/projects/access/cable
-!> You need to register and read the Licence agreement before use.
-!> Please contact cable_help@nf.nci.org.au for any questions on
-!> registration and the Licence.
-!>
-!> Unless required by applicable law or agreed to in writing,
-!> software distributed under the Licence is distributed on an "AS IS" BASIS,
-!> WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-!> See the Licence for the specific language governing permissions and
-!> limitations under the Licence.
-!>
-!> ==============================================================================
-!>
+!==============================================================================
+!
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CABLE Academic User Licence Agreement
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on
+! registration and the Licence.
+!
+! Unless required by applicable law or agreed to in writing,
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and
+! limitations under the Licence.
+!
+! ==============================================================================
+!
+!> \file
 !> Purpose: handles additional, dynamically decided diagnostic output from model.
 !>          permanently used for bitwise identical testing. more applications
 !>          will follow.
@@ -29,19 +30,19 @@
 !>          re-implemented in time.
 !>
 !> ==============================================================================
-
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
-!+++ USE this module in any subr. you wish to write vars from.             +++!
-!+++ x is typically the number of landpoints(tiles). binary file is        +++!
-!+++ then appended every timestep with the new foo(x_i)                    +++!
-!+++                                                                       +++! 
-!+++ CALL syntax:                                                          +++!  
-!+++                                                                       +++! 
-!+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )     +++!
-!+++                                                                       +++! 
-!+++ output binaries can be interpreted from the command line              +++!
-!+++ using a suite of tools. Currently, only zero_diff.ksh is supported.   +++!  
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!>
+!>     ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!>     +++ USE this module in any subr. you wish to write vars from.          +++
+!>     +++ x is typically the number of landpoints(tiles). binary file is     +++
+!>     +++ then appended every timestep with the new foo(x_i)                 +++
+!>     +++                                                                    +++
+!>     +++ CALL syntax:                                                       +++
+!>     +++                                                                    +++
+!>     +++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )  +++
+!>     +++                                                                    +++
+!>     +++ output binaries can be interpreted from the command line using     +++
+!>     +++ a suite of tools. Currently, only zero_diff.ksh is supported.      +++
+!>     ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 MODULE cable_diag_module
