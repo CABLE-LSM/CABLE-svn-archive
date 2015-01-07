@@ -75,12 +75,12 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    IMPLICIT NONE
         
    REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
-      LS_RAIN,  & ! IN Large scale rain
-      LS_SNOW,  & ! IN Large scale snow
-      CON_RAIN, & ! IN Convective rain
-      CONV_SNOW,& ! IN Convective snow
-      DTL_1,    & ! IN Level 1 increment to T field 
-      DQW_1       ! IN Level 1 increment to q field 
+      LS_RAIN,  & !< IN Large scale rain
+      LS_SNOW,  & !< IN Large scale snow
+      CON_RAIN, & !< IN Convective rain
+      CONV_SNOW,& !< IN Convective snow
+      DTL_1,    & !< IN Level 1 increment to T field 
+      DQW_1       !< IN Level 1 increment to q field 
 
    REAL :: timestep
 
@@ -171,7 +171,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       
    REAL, DIMENSION( um1%land_pts,um1%ntiles ) ::                               &
       SNOW_TILE,     &
-      SNOW_RHO1L,    &  ! Mean snow density
+      SNOW_RHO1L,    &  !< Mean snow density
       SNAGE_TILE,    &
       CANOPY_TILE,   &
       FTL_TILE_CAB,  & 
@@ -208,8 +208,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       RESP_W_FT_ACC
 
    INTEGER ::     &
-      ktauday,    &  ! day counter for CASA-CNP
-      idoy           ! day of year (1:365) counter for CASA-CNP
+      ktauday,    &  !< day counter for CASA-CNP
+      idoy           !< day of year (1:365) counter for CASA-CNP
    INTEGER, SAVE :: &
       kstart = 1
 

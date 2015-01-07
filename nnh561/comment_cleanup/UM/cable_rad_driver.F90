@@ -51,30 +51,30 @@ SUBROUTINE cable_rad_driver(                                                   &
 
    INTEGER, DIMENSION(um1%LAND_PTS,um1%NTILES) :: isnow_flg3l    
    
-   REAL :: ALBSOIL(um1%LAND_PTS)          !          &! IN soil albedo 
+   REAL :: ALBSOIL(um1%LAND_PTS)          & !< IN soil albedo 
    
    REAL, DIMENSION(um1%row_length,um1%rows) ::                                 &
-      LAND_ALB_CABLE,      & ! Land albedo calculated by Cable
-      SW_DOWN,             & ! Surface downward SW radiation (W/m2).
+      LAND_ALB_CABLE,      & !< Land albedo calculated by Cable
+      SW_DOWN,             & !< Surface downward SW radiation (W/m2).
       cos_zenith_angle
 
    REAL, DIMENSION(um1%row_length,um1%rows,4) ::                               &
-      LAND_ALBEDO_CABLE, & ! Land albedo calculated by Cable NIR/VIS/Beam/Diffuse
-      surf_down_sw         ! IN Surface downward SW radiation
+      LAND_ALBEDO_CABLE, & !< Land albedo calculated by Cable NIR/VIS/Beam/Diffuse
+      surf_down_sw         !< IN Surface downward SW radiation
 
    REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
-      LAND_ALB_CABLE_TILE,  & ! Land albedo calculated by Cable
-      SNOW_TILE,            & ! IN Lying snow on tiles (kg/m2) 
-      SNOW_RHO1L             ! snow cover in the ice tile.
+      LAND_ALB_CABLE_TILE,  & !< Land albedo calculated by Cable
+      SNOW_TILE,            & !< IN Lying snow on tiles (kg/m2) 
+      SNOW_RHO1L             !< snow cover in the ice tile.
    
    REAL, DIMENSION( um1%LAND_PTS, um1%NTILES, 4 ) ::                           &
-      ALB_TILE    ! Land albedo calculated by Cable
+      ALB_TILE    !< Land albedo calculated by Cable
       
    REAL, DIMENSION( um1%LAND_PTS, um1%NTILES, um1%SM_LEVELS ) ::               &
-      TSOIL_TILE  ! Mean snow density  (or 1 layer)
+      TSOIL_TILE  !< Mean snow density  (or 1 layer)
 
    REAL, DIMENSION( um1%LAND_PTS, um1%NTILES, 3 ) ::                           &
-      SNOW_TMP3L  ! Snow temperature (3 layer)
+      SNOW_TMP3L  !< Snow temperature (3 layer)
                                                                    
    INTEGER :: i,J,N,K,L
    REAL :: miss = 0.0

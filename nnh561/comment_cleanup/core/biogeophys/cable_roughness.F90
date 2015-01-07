@@ -42,15 +42,12 @@ MODULE cable_roughness_module
 
 CONTAINS
 
-
-
+!> - m.r. raupach, 24-oct-92
+!> - see: Raupach, 1992, BLM 60 375-395
+!>      - MRR notes "Simplified wind model for canopy", 23-oct-92
+!>      - MRR draft paper "Simplified expressions...", dec-92
+!> - modified to include resistance calculations by Ray leuning 19 Jun 1998  
 SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
-
-   ! m.r. raupach, 24-oct-92
-   ! see: Raupach, 1992, BLM 60 375-395
-   !      MRR notes "Simplified wind model for canopy", 23-oct-92
-   !      MRR draft paper "Simplified expressions...", dec-92
-   ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
    USE cable_common_module, ONLY : cable_runtime, cable_user
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
@@ -62,9 +59,9 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
 
    REAL, DIMENSION(mp) ::                                                      &
-      xx,      & ! =C%CCD*LAI; working variable 
-      dh,      & ! d/h where d is zero-plane displacement
-      hmax       ! maximum height of canopy from
+      xx,      & !< =C%CCD*LAI; working variable 
+      dh,      & !< d/h where d is zero-plane displacement
+      hmax       !< maximum height of canopy from
                                     ! tiles belonging to the same grid
    
    CALL point2constants( C ) 

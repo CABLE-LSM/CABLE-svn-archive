@@ -56,14 +56,14 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
    USE cable_common_module, ONLY : cable_runtime, cable_user
 
     REAL, INTENT(IN) ::                                                       &
-      dels     ! integration time step (s)
+      dels     !< integration time step (s)
 
-    TYPE(soil_snow_type), INTENT(IN)     :: ssnow  ! soil/snow variables
-    TYPE(veg_parameter_type), INTENT(IN) :: veg    ! vegetation parameters
-    TYPE(canopy_type), INTENT(IN)        :: canopy ! canopy/veg variables
-    TYPE(bgc_pool_type), INTENT(INOUT)   :: bgc    ! biogeochemistry variables
-    
-    TYPE(soil_parameter_type), INTENT(IN):: soil   ! soil parameters
+    TYPE(soil_snow_type), INTENT(IN)     :: ssnow  !< soil/snow variables
+    TYPE(veg_parameter_type), INTENT(IN) :: veg    !< vegetation parameters
+    TYPE(canopy_type), INTENT(IN)        :: canopy !< canopy/veg variables
+    TYPE(bgc_pool_type), INTENT(INOUT)   :: bgc    !< biogeochemistry variables
+
+    TYPE(soil_parameter_type), INTENT(IN):: soil   !< soil parameters
 
     REAL, PARAMETER     :: beta = 0.9
 
@@ -72,8 +72,8 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
       cfrts,      & ! roots turnover
       cfwd,       & ! wood turnover
       fcl,        & ! fraction of assimilated carbon that
-                     ! goes to the construction of leaves  (eq. 5)
-      fr,         & ! 
+                    ! goes to the construction of leaves  (eq. 5)
+      fr,         & !
       clitt,      & !
       coef_cd,    & ! total stress coeff. for veg (eq. 6)
       coef_cold,  & ! coeff. for cold stress (eq. 7)
@@ -313,7 +313,7 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
 
 ! -----------------------------------------------------------------------------
 
-! plant respiration subroutine
+!> plant respiration subroutine
 SUBROUTINE plantcarb(veg, bgc, met, canopy)
    
    USE cable_def_types_mod, ONLY : veg_parameter_type, met_type,               &

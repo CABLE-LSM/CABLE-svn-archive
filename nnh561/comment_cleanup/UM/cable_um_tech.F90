@@ -41,19 +41,19 @@ MODULE cable_um_tech_mod
    TYPE(balances_type), SAVE        :: bal
    TYPE(radiation_type), SAVE       :: rad
    TYPE(roughness_type), SAVE       :: rough
-   TYPE(soil_parameter_type), SAVE  :: soil       ! soil parameters
+   TYPE(soil_parameter_type), SAVE  :: soil       !< soil parameters
    TYPE(soil_snow_type), SAVE       :: ssnow
    TYPE(sum_flux_type), SAVE        :: sum_flux
-   TYPE(veg_parameter_type), SAVE   :: veg        ! vegetation parameters
+   TYPE(veg_parameter_type), SAVE   :: veg        !< vegetation parameters
    TYPE(canopy_type), SAVE          :: canopy
 
    TYPE derived_rad_bands    
       REAL, ALLOCATABLE ::                                                     &
-         SW_DOWN_DIR (:,:), & ! Surface downward SW direct radiation (W/m2).
-         SW_DOWN_DIF(:,:), & ! Surface downward SW diffuse radiation (W/m2).
-         SW_DOWN_VIS(:,:), & ! Surface downward VIS radiation (W/m2).
-         SW_DOWN_NIR(:,:), & ! Surface downward NIR radiation (W/m2).
-         FBEAM(:,:,:)      ! Surface downward SW radiation (W/m2).
+         SW_DOWN_DIR (:,:), & !< Surface downward SW direct radiation (W/m2).
+         SW_DOWN_DIF(:,:), &  !< Surface downward SW diffuse radiation (W/m2).
+         SW_DOWN_VIS(:,:), &  !< Surface downward VIS radiation (W/m2).
+         SW_DOWN_NIR(:,:), &  !< Surface downward NIR radiation (W/m2).
+         FBEAM(:,:,:)         !< Surface downward SW radiation (W/m2).
    END TYPE derived_rad_bands
    
    TYPE um_dimensions 
@@ -69,8 +69,8 @@ MODULE cable_um_tech_mod
 
    TYPE derived_veg_pars
       INTEGER, DIMENSION(:,:), POINTER ::                                      &
-         ivegt(:,:),    & ! vegetation  types
-         isoilm(:,:)      ! soil types
+         ivegt(:,:),    & !< vegetation  types
+         isoilm(:,:)      !< soil types
       REAL, DIMENSION(:,:), POINTER ::                                         &
          htveg(:,:),    &
          laift(:,:)       ! hruffmax(:.:)

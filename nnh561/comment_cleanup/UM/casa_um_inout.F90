@@ -203,10 +203,10 @@ END SUBROUTINE casa_readpoint_pk
 !========================================================================
 !========================================================================
 
+!> initialize some values in phenology parameters and leaf growth phase
 SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,canopy,phen, &
                        cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
 !                       um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
-!  initialize some values in phenology parameters and leaf growth phase
 
    USE cable_def_types_mod
 !!  USE define_dimensions    ! mp, r_1, r_2, i_d
@@ -692,13 +692,12 @@ END SUBROUTINE unpack_cnppool
 !========================================================================
 !========================================================================
 
-   !--- Lestevens 23Nov11: Based on Jhan's um2cable_lp but for Integers.
-   !--- UM met forcing vars needed by CABLE which have UM dimensions
-   !---(land_points)[_lp], which is no good to cable. These have to be
-   !--- re-packed in a single vector of active tiles. Hence we use
-   !--- conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
-   !--- if the land point is/has an active tile
-
+   !> Lestevens 23Nov11: Based on Jhan's um2cable_lp but for Integers.
+   !> UM met forcing vars needed by CABLE which have UM dimensions
+   !> (land_points)[_lp], which is no good to cable. These have to be
+   !> re-packed in a single vector of active tiles. Hence we use
+   !> conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
+   !> if the land point is/has an active tile
    SUBROUTINE um2cable_ilp(umvar, defaultin, cablevar, soiltype, skip )
          USE cable_def_types_mod, ONLY : mp
          !USE define_dimensions, ONLY : mp

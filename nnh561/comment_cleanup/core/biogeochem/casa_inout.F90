@@ -45,6 +45,8 @@
 !
 ! ==============================================================================
 
+
+!> Read and write CASA biome data
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)
 !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &
@@ -57,8 +59,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   USE cable_common_module, ONLY : knode_gl
   IMPLICIT NONE
 !  INTEGER,               INTENT(IN)    :: mvt,mst
-  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
+  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type), INTENT(INOUT) :: soil !< soil parameters  
   TYPE (casa_biome),          INTENT(INOUT) :: casabiome
   TYPE (casa_pool),           INTENT(INOUT) :: casapool
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
@@ -370,10 +372,10 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 
 END SUBROUTINE casa_readbiome
 
+!> read in the tabulated modis-derived leaf phenology data
+!> for latitude bands of 79.75 to -55.25
 SUBROUTINE casa_readphen(veg,casamet,phen)
 !SUBROUTINE casa_readphen(mvt,veg,casamet,phen)
-  ! read in the tabulated modis-derived leaf phenology data
-  ! for latitude bands of 79.75 to -55.25
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
@@ -382,12 +384,12 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
   USE cable_common_module, ONLY : knode_gl
   IMPLICIT NONE
 !  INTEGER,              INTENT(IN)    :: mvt
-  TYPE (veg_parameter_type), INTENT(IN)    :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type), INTENT(IN)    :: veg  !< vegetation parameters
   TYPE (casa_met),           INTENT(IN)    :: casamet
   TYPE (phen_variable),      INTENT(INOUT) :: phen
 
   ! local variables
-  INTEGER, PARAMETER            :: nphen=8! was 10(IGBP). changed by Q.Zhang @01/12/2011
+  INTEGER, PARAMETER            :: nphen=8  !< was 10(IGBP). changed by Q.Zhang @01/12/2011
   INTEGER np,nx,ilat
   INTEGER, DIMENSION(271,mvtype) :: greenup, fall,  phendoy1
   INTEGER, DIMENSION(nphen)     :: greenupx,fallx,xphendoy1
@@ -624,13 +626,13 @@ END SUBROUTINE casa_readphen
 !
 !END SUBROUTINE casa_readpoint
 
+!> initialize some values in phenology parameters and leaf growth phase
 SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
 ! mst not used (BP sep2010)
 !! for first time reading file *_1220.csv  (BP may2010)
 !SUBROUTINE casa_init(mst,casapool,casabal,veg)
 !!SUBROUTINE casa_init(mst,casapool,casabal)
 !! end addition (BP may2010)
-!  initialize some values in phenology parameters and leaf growth phase
   USE casadimension
   USE casaparm
   USE casavariable
@@ -768,8 +770,8 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   USE phenvariable
   IMPLICIT NONE
   INTEGER,               INTENT(IN)    :: ktau
-  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
+  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type), INTENT(INOUT) :: soil !< soil parameters  
   TYPE (casa_biome),          INTENT(INOUT) :: casabiome
   TYPE (casa_pool),           INTENT(INOUT) :: casapool
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
@@ -859,8 +861,8 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
 92    format(5(i6,',',2x),5(f15.6,',',2x),i6,',',2x,100(f15.6,',',2x))
 END SUBROUTINE casa_poolout
 
-! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
 SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
+! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
 !SUBROUTINE casa_fluxout(myear,clitterinput,csoilinput)
   USE cable_def_types_mod
 !  USE cableDeclare, ONLY: veg, soil
@@ -870,8 +872,8 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
   USE phenvariable
 !  USE casaDeclare
   IMPLICIT NONE
-  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters 
+  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type), INTENT(INOUT) :: soil !< soil parameters 
   TYPE (casa_met),            INTENT(INOUT) :: casamet
   TYPE (casa_balance),        INTENT(INOUT) :: casabal
   INTEGER,               INTENT(IN)    :: myear
@@ -1002,8 +1004,8 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   INTEGER, INTENT(IN)    :: ktau
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: idoy
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil !< soil parameters  
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux

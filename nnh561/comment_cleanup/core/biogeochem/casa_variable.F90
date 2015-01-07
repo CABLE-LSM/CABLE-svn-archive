@@ -47,23 +47,23 @@ MODULE casadimension
   
 
   
-  INTEGER, PARAMETER :: mdyear=365         ! days per year
-  INTEGER, PARAMETER :: mdmonth=30         ! days per month
-  INTEGER, PARAMETER :: mdweek=7           ! days per week
-  INTEGER, PARAMETER :: mmyear=12          ! month per year
-  INTEGER, PARAMETER :: mt=36500           ! integration time step
-  INTEGER, PARAMETER :: mpftmax=2          ! max. PFT/cell
-  INTEGER, PARAMETER :: mplant = 3         ! plant pools
-  INTEGER, PARAMETER :: mlitter= 3         ! litter pools
-  INTEGER, PARAMETER :: msoil  = 3         ! soil pools
-  INTEGER, PARAMETER :: mso    = 12        ! soil order number
+  INTEGER, PARAMETER :: mdyear=365         !< days per year
+  INTEGER, PARAMETER :: mdmonth=30         !< days per month
+  INTEGER, PARAMETER :: mdweek=7           !< days per week
+  INTEGER, PARAMETER :: mmyear=12          !< month per year
+  INTEGER, PARAMETER :: mt=36500           !< integration time step
+  INTEGER, PARAMETER :: mpftmax=2          !< max. PFT/cell
+  INTEGER, PARAMETER :: mplant = 3         !< plant pools
+  INTEGER, PARAMETER :: mlitter= 3         !< litter pools
+  INTEGER, PARAMETER :: msoil  = 3         !< soil pools
+  INTEGER, PARAMETER :: mso    = 12        !< soil order number
 ! BP put icycle into namelist file
   INTEGER            :: icycle
-!  INTEGER, PARAMETER :: icycle=3           ! =1 for C, =2 for C+N; =3 for C+N+P
-  INTEGER, PARAMETER :: mstart=1           ! starting time step
-  INTEGER, PARAMETER :: mphase=4           ! phen. phases
-  REAL(r_2),    PARAMETER :: deltcasa=1.0/365.0 ! year
-  REAL(r_2),    PARAMETER :: deltpool=1.0       ! pool delt(1day)
+!  INTEGER, PARAMETER :: icycle=3          !< =1 for C, =2 for C+N; =3 for C+N+P
+  INTEGER, PARAMETER :: mstart=1           !< starting time step
+  INTEGER, PARAMETER :: mphase=4           !< phen. phases
+  REAL(r_2),    PARAMETER :: deltcasa=1.0/365.0 !< year
+  REAL(r_2),    PARAMETER :: deltpool=1.0       !< pool delt(1day)
 
 END MODULE casadimension
 
@@ -71,10 +71,10 @@ MODULE casaparm
   USE casadimension
 
   IMPLICIT NONE
-  INTEGER, PARAMETER :: initcasa= 1   ! =0 spin; 1 restart file
-  INTEGER, PARAMETER :: iceland  = 17 !=13 for casa vegtype =15 for IGBP vegtype
-  INTEGER, PARAMETER :: cropland = 9  ! 12 and 14 for IGBP vegtype 
-  INTEGER, PARAMETER :: croplnd2 =10  ! ditto
+  INTEGER, PARAMETER :: initcasa= 1   !< =0 spin; 1 restart file
+  INTEGER, PARAMETER :: iceland  = 17 !< =13 for casa vegtype =15 for IGBP vegtype
+  INTEGER, PARAMETER :: cropland = 9  !< 12 and 14 for IGBP vegtype 
+  INTEGER, PARAMETER :: croplnd2 =10  !< ditto
   INTEGER, PARAMETER :: forest  = 3
   INTEGER, PARAMETER :: shrub   = 2
   INTEGER, PARAMETER :: grass   = 1
@@ -92,7 +92,7 @@ MODULE casaparm
   INTEGER, PARAMETER :: PLAB    = 1
   INTEGER, PARAMETER :: PSORB   = 2
   INTEGER, PARAMETER :: POCC    = 3
-  INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable
+  INTEGER, PARAMETER :: LALLOC  = 0      !< =0 constant; 1 variable
   REAL(r_2), PARAMETER :: z30=0.3
   REAL(r_2), PARAMETER :: R0=0.3
   REAL(r_2), PARAMETER :: S0=0.3
@@ -292,14 +292,14 @@ MODULE casavariable
 
 ! Added filename type for casaCNP (BP apr2010)
   TYPE casafiles_type
-    CHARACTER(LEN=99) :: cnpbiome    ! file for biome-specific BGC parameters
-    CHARACTER(LEN=99) :: cnppoint    ! file for point-specific BGC inputs
-    CHARACTER(LEN=99) :: cnpepool    ! file for end-of-run pool sizes
-    CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes
-    CHARACTER(LEN=99) :: cnpmetin      ! met file for spin up 
-    CHARACTER(LEN=99) :: cnpmetout     ! met file for spin up 
-    CHARACTER(LEN=99) :: phen        ! leaf phenology datafile
-    CHARACTER(LEN=99) :: cnpflux     ! modelled mean yearly CNP fluxes
+    CHARACTER(LEN=99) :: cnpbiome    !< file for biome-specific BGC parameters
+    CHARACTER(LEN=99) :: cnppoint    !< file for point-specific BGC inputs
+    CHARACTER(LEN=99) :: cnpepool    !< file for end-of-run pool sizes
+    CHARACTER(LEN=99) :: cnpipool    !< file for inital pool sizes
+    CHARACTER(LEN=99) :: cnpmetin    !< met file for spin up 
+    CHARACTER(LEN=99) :: cnpmetout   !< met file for spin up 
+    CHARACTER(LEN=99) :: phen        !< leaf phenology datafile
+    CHARACTER(LEN=99) :: cnpflux     !< modelled mean yearly CNP fluxes
   END TYPE casafiles_type
   TYPE(casafiles_type) :: casafile
 

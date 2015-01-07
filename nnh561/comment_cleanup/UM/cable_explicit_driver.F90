@@ -95,35 +95,34 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !___IN: UM dimensions, array indexes, flags
    INTEGER, INTENT(IN) ::                                                      & 
-      row_length, rows, & ! UM grid resolution
-      land_pts,         & ! # of land points being processed
-      ntiles,           & ! # of tiles 
-      npft,             & ! # of plant functional types
-      sm_levels           ! # of soil layers 
+      row_length, rows, & !< UM grid resolution
+      land_pts,         & !< # of land points being processed
+      ntiles,           & !< # of tiles 
+      npft,             & !< # of plant functional types
+      sm_levels           !< # of soil layers 
 
-   ! index of land points being processed
+   !> index of land points being processed
    INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
 
-   ! # of land points on each tile
+   !> # of land points on each tile
    INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
    
    INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
-      tile_index ,& ! index of tile points being processed
-      isnow_flg3l   ! 3 layer snow flag
+      tile_index ,& !< index of tile points being processed
+      isnow_flg3l   !< 3 layer snow flag
 
-   !--- TRUE if land, F elsewhere.
    !jhan:rm land_mask
-   LOGICAL,DIMENSION(row_length,rows) :: land_mask   
+   LOGICAL,DIMENSION(row_length,rows) :: land_mask  !< TRUE if land, F elsewhere.
 
-   !___UM parameters: water density, soil layer thicknesses 
-   REAL, INTENT(IN) :: rho_water 
-   REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
+   !___UM parameters:
+   REAL, INTENT(IN) :: rho_water                    !< water density 
+   REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil !< soil layer thicknesses 
 
    !___UM soil/snow/radiation/met vars
    REAL, INTENT(IN), DIMENSION(land_pts) :: & 
-      bexp,    & ! => parameter b in Campbell equation 
-      hcon,    & ! Soil thermal conductivity (W/m/K).
-      satcon,  & ! hydraulic conductivity @ saturation [mm/s]
+      bexp,    & !< => parameter b in Campbell equation 
+      hcon,    & !< Soil thermal conductivity (W/m/K).
+      satcon,  & !< hydraulic conductivity @ saturation [mm/s]
       sathh,   &
       smvcst,  &
       smvcwt,  &
@@ -189,9 +188,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    INTEGER, INTENT(IN) ::                              &
       CO2_DIM_LEN                                      &
      ,CO2_DIM_ROW
-   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
+   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  !< co2 mass mixing ratio
 
-   !___true IF vegetation (tile) fraction is greater than 0
+   !> true IF vegetation (tile) fraction is greater than 0
    LOGICAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) :: L_tile_pts
   
    REAL :: sin_theta_latitude(row_length,rows) 
@@ -203,8 +202,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
       FTL_TILE_CAB, &
-      FTL_TILE,   &  ! Surface FTL for land tiles     
-      FQW_TILE,   &  ! Surface FQW for land tiles     
+      FTL_TILE,   &  !< Surface FTL for land tiles     
+      FQW_TILE,   &  !< Surface FQW for land tiles     
       LE_TILE_CAB
 
    !___return temp and roughness
@@ -218,54 +217,56 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !___return friction velocities/drags/ etc
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      CD_TILE,    &     ! Drag coefficient
-      CH_TILE,    &     ! Transfer coefficient for heat & moisture
-      U_S_STD_TILE      ! Surface friction velocity
+      CD_TILE,    &     !< Drag coefficient
+      CH_TILE,    &     !< Transfer coefficient for heat & moisture
+      U_S_STD_TILE      !< Surface friction velocity
 
    REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
-      U_S               ! Surface friction velocity (m/s)
+      U_S               !< Surface friction velocity (m/s)
    
    REAL, INTENT(OUT), DIMENSION(land_pts) ::                  &
-      CH_CAB,  &  ! Turbulent surface exchange
-      CD_CAB,  &  ! Turbulent surface exchange
-      U_S_CAB     ! Surface friction velocity (m/s)
+      CH_CAB,  &  !< Turbulent surface exchange
+      CD_CAB,  &  !< Turbulent surface exchange
+      U_S_CAB     !< Surface friction velocity (m/s)
 
-   ! end step of experiment, this step, step width, processor num
-   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
-   REAL, INTENT(IN) ::  timestep     
-   
+   INTEGER, INTENT(IN) :: &
+      endstep, &                 !< end step of experiment
+      timestep_number, &         !< this step
+      mype                       !< processor num
+   REAL, INTENT(IN) ::  timestep !< step width   
+
    INTEGER:: itimestep
     
    !___return miscelaneous 
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      RADNET_TILE,   & ! Surface net radiation
-      RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
-                       ! factor for fraction (1-FRACA) of snow-free land tiles
-      RESFT,         & ! Total resistance factor.
-                       ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,        
-                       ! 1 for snow.    
-      FRACA,         & ! Fraction of surface moisture
-      RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
+      RADNET_TILE,   &  !< Surface net radiation
+      RESFS,         &  !< Combined soil, stomatal & aerodynamic resistance
+                        !< factor for fraction (1-FRACA) of snow-free land tiles
+      RESFT,         &  !< Total resistance factor.
+                        !< FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,        
+                        !< 1 for snow.    
+      FRACA,         &  !< Fraction of surface moisture
+      RECIP_L_MO_TILE,& !< Reciprocal of the Monin-Obukhov length for tiles (m^-1)
       EPOT_TILE
 
 ! Lestevens Sept2012 - CASA-CNP Pools
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,10) :: &
-      CPOOL_TILE,    & ! Carbon Pools
-      NPOOL_TILE       ! Nitrogen Pools
+      CPOOL_TILE,    & !< Carbon Pools
+      NPOOL_TILE       !< Nitrogen Pools
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,12) :: &
-      PPOOL_TILE       ! Phosphorus Pools
+      PPOOL_TILE       !< Phosphorus Pools
 
    REAL, INTENT(INOUT), DIMENSION(land_pts) :: &
-      SOIL_ORDER,    & ! Soil Order (1 to 12)
-      NIDEP,         & ! Nitrogen Deposition
-      NIFIX,         & ! Nitrogen Fixation
-      PWEA,          & ! Phosphorus from Weathering
-      PDUST            ! Phosphorus from Dust
+      SOIL_ORDER,    & !< Soil Order (1 to 12)
+      NIDEP,         & !< Nitrogen Deposition
+      NIFIX,         & !< Nitrogen Fixation
+      PWEA,          & !< Phosphorus from Weathering
+      PDUST            !< Phosphorus from Dust
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-      GLAI, &          ! Leaf Area Index for Prognostics LAI
-      PHENPHASE        ! Phenology Phase for Casa-CNP
+      GLAI, &          !< Leaf Area Index for Prognostics LAI
+      PHENPHASE        !< Phenology Phase for Casa-CNP
                                   
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,     &
@@ -449,11 +450,10 @@ END SUBROUTINE cable_explicit_driver
 
 
 
+!---------------------------------------------------------------------!
 
-!---------------------------------------------------------------------!
-!--- pass land-surface quantities calc'd by CABLE in explicit call ---!
-!--- back to UM.                                                   ---!
-!---------------------------------------------------------------------!
+!> pass land-surface quantities calc'd by CABLE in explicit call
+!> back to UM.                                                  
 SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
                            LE_TILE_CAB, LE_CAB, TSTAR_TILE, TSTAR_TILE_CAB,    &
                            TSTAR_CAB, U_S, U_S_STD_TILE, U_S_CAB, CH_CAB,      &
@@ -487,8 +487,8 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       LE_CAB
    REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
       FTL_TILE_CAB, &
-      FTL_TILE,   &  ! Surface FTL for land tiles     
-      FQW_TILE,   &  ! Surface FQW for land tiles     
+      FTL_TILE,   &  !< Surface FTL for land tiles     
+      FQW_TILE,   &  !< Surface FQW for land tiles     
       LE_TILE_CAB
 
    !___return temp and roughness
@@ -499,44 +499,44 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
 
    !___return friction velocities/drags/ etc
    REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      CD_TILE,    &     ! Drag coefficient
-      CH_TILE,    &     ! Transfer coefficient for heat & moisture
-      U_S_STD_TILE      ! Surface friction velocity
+      CD_TILE,    &     !< Drag coefficient
+      CH_TILE,    &     !< Transfer coefficient for heat & moisture
+      U_S_STD_TILE      !< Surface friction velocity
    REAL, INTENT(OUT), DIMENSION(um1%row_length,um1%rows)  :: &
-      U_S               ! Surface friction velocity (m/s)
+      U_S               !< Surface friction velocity (m/s)
    REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::                  &
-      CH_CAB,  &  ! Turbulent surface exchange
-      CD_CAB,  &  ! Turbulent surface exchange
-      U_S_CAB     ! Surface friction velocity (m/s)
+      CH_CAB,  &  !< Turbulent surface exchange
+      CD_CAB,  &  !< Turbulent surface exchange
+      U_S_CAB     !< Surface friction velocity (m/s)
 
    !___return miscelaneous 
    REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      RADNET_TILE,   & ! Surface net radiation
-      RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
-                       ! factor for fraction (1-FRACA) of snow-free land tiles
-      RESFT,         & ! Total resistance factor.
-                       ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
-                       ! 1 for snow.    
-      FRACA,         & ! Fraction of surface moisture
-      RECIP_L_MO_TILE,&! Reciprocal of the Monin-Obukhov length for tiles (m^-1).
+      RADNET_TILE,   & !< Surface net radiation
+      RESFS,         & !< Combined soil, stomatal & aerodynamic resistance
+                       !< factor for fraction (1-FRACA) of snow-free land tiles
+      RESFT,         & !< Total resistance factor.
+                       !< FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
+                       !< 1 for snow.    
+      FRACA,         & !< Fraction of surface moisture
+      RECIP_L_MO_TILE,&!< Reciprocal of the Monin-Obukhov length for tiles (m^-1).
       EPOT_TILE
    
    LOGICAL,DIMENSION(um1%land_pts,um1%ntiles) :: l_tile_pts
 
    !___UM vars used but NOT returned 
    REAL, INTENT(IN), DIMENSION(um1%land_pts) ::   &
-      FLAND(um1%land_pts)              ! IN Land fraction on land tiles.
+      FLAND(um1%land_pts)              !< IN Land fraction on land tiles.
 
 
 
 
    !___ decs of intent(in) CABLE variables to be unpacked
 
-   ! snow depth (liquid water), factor for latent heat
-   REAL, INTENT(IN), DIMENSION(mp) :: ssnow_snowd, ssnow_cls
+   REAL, INTENT(IN), DIMENSION(mp) :: &
+      ssnow_snowd, & !< snow depth (liquid water)
+      ssnow_cls      !< factor for latent heat
    
-   ! surface wind speed (m/s)
-   REAL, INTENT(IN), DIMENSION(mp) :: met_ua 
+   REAL, INTENT(IN), DIMENSION(mp) :: met_ua !< surface wind speed (m/s)
    
    ! latent heat for water (j/kg), dry air density (kg m-3)
    REAL, INTENT(IN), DIMENSION(mp) :: air_rlam, air_rho 

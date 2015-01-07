@@ -31,14 +31,14 @@
 !
 !==============================================================================
 
+!> Ranges_type in the module sets the acceptable ranges for all variables
+!> coming in or going out of the offline netcdf driver. The mass_balance
+!> and energy_balance subroutines calculate cumulative and per-timestep 
+!> balances, as well as allow user to scrutinise balances in
+!> particular sections of the code - largely for diagnostics/fault finding.
+!> rh_sh - converts relative to sensible humidity if met file units require it
 MODULE cable_checks_module
-! Ranges_type in the module sets the acceptable ranges for all variables
-! coming in or going out of the offline netcdf driver. The mass_balance
-! and energy_balance subroutines calculate cumulative and per-timestep 
-! balances, as well as allow user to scrutinise balances in
-! particular sections of the code - largely for diagnostics/fault finding.
-! rh_sh - converts relative to sensible humidity if met file units require it
-!
+
    USE cable_radiation_module, ONLY: sinbet
    USE cable_def_types_mod
 
@@ -48,12 +48,12 @@ MODULE cable_checks_module
    PUBLIC ranges_type, ranges, mass_balance, energy_balance, rh_sh
 
    TYPE units_type
-      CHARACTER(LEN=1) :: Rainf ! 's' (mm/s) or 'h' (mm/h)
-      CHARACTER(LEN=1) :: PSurf  ! 'h'(hPa or mbar) or 'P'(Pa)
-      CHARACTER(LEN=1) :: Tair  ! 'C' or 'K'
-      CHARACTER(LEN=1) :: Qair  ! '%' or 'g' (spec hum)
-      CHARACTER(LEN=1) :: CO2air ! 'p' (ppmv)
-      CHARACTER(LEN=1) :: Wind ! 'm'(m/s)
+      CHARACTER(LEN=1) :: Rainf  !< 's' (mm/s) or 'h' (mm/h)
+      CHARACTER(LEN=1) :: PSurf  !< 'h'(hPa or mbar) or 'P'(Pa)
+      CHARACTER(LEN=1) :: Tair   !< 'C' or 'K'
+      CHARACTER(LEN=1) :: Qair   !< '%' or 'g' (spec hum)
+      CHARACTER(LEN=1) :: CO2air !< 'p' (ppmv)
+      CHARACTER(LEN=1) :: Wind   !< 'm'(m/s)
    END TYPE units_type
    TYPE(units_type) :: units
 
@@ -64,25 +64,25 @@ MODULE cable_checks_module
            time,                               &     
            timestp,                            &      
            ! possible forcing variables for CABLE
-           SWdown = (/0.0,1360.0/),            & ! W/m^2
-           LWdown = (/0.0,750.0/),             & ! W/m^2
-           Rainf = (/0.0,0.03/),               & ! mm/s
-           Snowf = (/0.0,0.0085/),             & ! mm/s
-           PSurf = (/500.0,1100.0/),           & ! mbar/hPa
-           Tair = (/200.0,333.0/),             & ! K
-           Qair = (/0.0,0.04/),                & ! g/g
-           CO2air = (/160.0,2000.0/),          & ! ppmv   
-           Wind = (/0.0,75.0/),                & ! m/s
-           Wind_N = (/-75.0,75.0/),            & ! m/s
-           Wind_E = (/-75.0,75.0/),            & ! m/s
+           SWdown = (/0.0,1360.0/),            & !< W/m^2
+           LWdown = (/0.0,750.0/),             & !< W/m^2
+           Rainf = (/0.0,0.03/),               & !< mm/s
+           Snowf = (/0.0,0.0085/),             & !< mm/s
+           PSurf = (/500.0,1100.0/),           & !< mbar/hPa
+           Tair = (/200.0,333.0/),             & !< K
+           Qair = (/0.0,0.04/),                & !< g/g
+           CO2air = (/160.0,2000.0/),          & !< ppmv   
+           Wind = (/0.0,75.0/),                & !< m/s
+           Wind_N = (/-75.0,75.0/),            & !< m/s
+           Wind_E = (/-75.0,75.0/),            & !< m/s
            ! possible output variables
-           Qh = (/-1000.0,1000.0/),            & ! W/m^2
-           Qle = (/-1000.0,1000.0/),           & ! W/m^2
-           Qg = (/-1000.0,1000.0/),            & ! W/m^2   
-           SWnet = (/0.0,1350.0/),             & ! W/m^2 (YP oct07)
+           Qh = (/-1000.0,1000.0/),            & !< W/m^2
+           Qle = (/-1000.0,1000.0/),           & !< W/m^2
+           Qg = (/-1000.0,1000.0/),            & !< W/m^2   
+           SWnet = (/0.0,1350.0/),             & !< W/m^2 (YP oct07)
            ! SWnet = (/0.0,1250.0/),            & ! W/m^2
-           LWnet = (/-500.0,510.0/),           & ! W/m^2 
-           Rnet = (/-500.0,1250.0/),           & ! W/m^2 
+           LWnet = (/-500.0,510.0/),           & !< W/m^2 
+           Rnet = (/-500.0,1250.0/),           & !< W/m^2 
            Evap = (/-0.0003,0.00035/),         &      
            Ewater = (/-0.0003,0.0003/),        &
            ESoil = (/-0.0003,0.0003/),         &
@@ -92,8 +92,8 @@ MODULE cable_checks_module
            ACond = (/0.0,1.0/),                &
            SoilWet = (/-0.4,1.2/),             &
            Albedo = (/0.0,1.0/),               &
-           visAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
-           nirAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
+           visAlbedo = (/0.0,1.0/),            & !< vars intro for Ticket #27
+           nirAlbedo = (/0.0,1.0/),            & !< vars intro for Ticket #27
            VegT = (/213.0,333.0/),             &
            SoilTemp = (/213.0,343.0/),         &
            SoilMoist = (/0.0,2000.0/),         &
@@ -109,15 +109,15 @@ MODULE cable_checks_module
            SWE = (/0.0,2000.0/),               &
            RootMoist = (/0.0,2000.0/),         &
            CanopInt = (/0.0,100.0/),           &
-           NEE = (/-70.0,50.0/),               & ! umol/m2/s
-           NPP = (/-20.0,75.0/),               & ! umol/m2/s 
-           GPP = (/-20.0,100.0/),              & ! umol/m2/s 
-           AutoResp = (/-50.0,20.0/),          & ! umol/m2/s
-           LeafResp = (/-50.0,20.0/),          & ! umol/m2/s
-           HeteroResp = (/-50.0,20.0/),        & ! umol/m2/s
+           NEE = (/-70.0,50.0/),               & !< umol/m2/s
+           NPP = (/-20.0,75.0/),               & !< umol/m2/s 
+           GPP = (/-20.0,100.0/),              & !< umol/m2/s 
+           AutoResp = (/-50.0,20.0/),          & !< umol/m2/s
+           LeafResp = (/-50.0,20.0/),          & !< umol/m2/s
+           HeteroResp = (/-50.0,20.0/),        & !< umol/m2/s
            HSoil = (/-1000.0,1000.0/),         &
            HVeg = (/-1000.0,1000.0/),          &
-           SnowDepth = (/0.0,50.0/),           & ! EK nov07
+           SnowDepth = (/0.0,50.0/),           & !< EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
            ! parameters:
@@ -126,7 +126,7 @@ MODULE cable_checks_module
            iveg = (/1.0,30.0/),                &
            bch = (/2.0,15.0/),                 &
            latitude = (/-90.0,90.0/),          &
-           c3 = (/0.0,1.0/),                   & ! EK nov07   
+           c3 = (/0.0,1.0/),                   & !< EK nov07   
            clay = (/0.0,1.0/),                 &
            css = (/700.0,2200.0/),             &
            rhosoil = (/300.0,3000.0/),         &
@@ -162,12 +162,12 @@ MODULE cable_checks_module
            refl = (/0.0,0.5/),                 &
            tauw = (/0.0,0.1/),                 &
            refw = (/0.0,0.5/),                 &
-           extkn = (/0.0,10.0/),               & ! YP oct07
-           wai = (/0.0,5.0/),                  & ! YP oct07
-           vegcf = (/0.0,100.0/),              & ! YP oct07
+           extkn = (/0.0,10.0/),               & !< YP oct07
+           wai = (/0.0,5.0/),                  & !< YP oct07
+           vegcf = (/0.0,100.0/),              & !< YP oct07
            tminvj = (/-20.0,15.0/),            &  
            tmaxvj = (/-15.0,30.0/),            &
-           rootbeta = (/0.7,1.0/),             & ! YP oct07
+           rootbeta = (/0.7,1.0/),             & !< YP oct07
            veg_class = (/1.0,20.0/),           &
            soil_class = (/1.0,20.0/)  
    END TYPE ranges_type
@@ -175,29 +175,23 @@ MODULE cable_checks_module
 
 CONTAINS
 
-!==============================================================================
-!
-! Name: mass_balance
-!
-! Purpose: Calculate cumulative and per-timestep balance, as well as allow user
-!          to scrutinise balance in particular sections of the code - largely 
-!          for diagnostics/fault finding.
-!
-! CALLed from: write_output
-!
-!
-!==============================================================================
-
+!> Name: mass_balance
+!>
+!> Purpose: Calculate cumulative and per-timestep balance, as well as allow user
+!>          to scrutinise balance in particular sections of the code - largely 
+!>          for diagnostics/fault finding.
+!>
+!> CALLed from: write_output
 SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                            &
                         air,bal)
 
    ! Input arguments
-   REAL,INTENT(IN)                           :: dels        ! time step size
-   INTEGER, INTENT(IN)                       :: ktau        ! timestep number  
-   TYPE (soil_snow_type),INTENT(IN)          :: ssnow       ! soil data
-   TYPE (soil_parameter_type),INTENT(IN)     :: soil        ! soil data
-   TYPE (canopy_type),INTENT(IN)             :: canopy      ! canopy variable data
-   TYPE(met_type),INTENT(IN)                 :: met         ! met data
+   REAL,INTENT(IN)                           :: dels        !< time step size
+   INTEGER, INTENT(IN)                       :: ktau        !< timestep number  
+   TYPE (soil_snow_type),INTENT(IN)          :: ssnow       !< soil data
+   TYPE (soil_parameter_type),INTENT(IN)     :: soil        !< soil data
+   TYPE (canopy_type),INTENT(IN)             :: canopy      !< canopy variable data
+   TYPE(met_type),INTENT(IN)                 :: met         !< met data
    TYPE (air_type),INTENT(IN)                :: air
 
    ! Local variables
@@ -262,34 +256,29 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
 
 END SUBROUTINE mass_balance
 
-!==============================================================================
-!
-! Name: energy_balance
-!
-! Purpose: Calculate cumulative and per-timestep balance, as well as allow user
-!          to scrutinise balance in particular sections of the code - largely 
-!          for diagnostics/fault finding.
-!
-! CALLed from: write_output
-!
-! MODULEs used: cable_data (inherited) 
-!
-!==============================================================================
-
+!> Name: energy_balance
+!> 
+!> Purpose: Calculate cumulative and per-timestep balance, as well as allow user
+!>          to scrutinise balance in particular sections of the code - largely 
+!>          for diagnostics/fault finding.
+!> 
+!> CALLed from: write_output
+!> 
+!> MODULEs used: cable_data (inherited) 
 SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
                              SBOLTZ,EMLEAF, EMSOIL )
 
    ! Input arguments
-   REAL,INTENT(IN)              :: dels   ! time step size
-   TYPE (canopy_type),INTENT(IN)     :: canopy ! canopy variable data
-   TYPE(met_type),INTENT(IN)         :: met    ! met data
-   TYPE(radiation_type),INTENT(IN)   :: rad    ! met data
+   REAL,INTENT(IN)                   :: dels   !< time step size
+   TYPE (canopy_type),INTENT(IN)     :: canopy !< canopy variable data
+   TYPE(met_type),INTENT(IN)         :: met    !< met data
+   TYPE(radiation_type),INTENT(IN)   :: rad    !< met data
    TYPE (balances_type),INTENT(INOUT):: bal 
-   TYPE (soil_snow_type),INTENT(IN)  :: ssnow  ! soil data
+   TYPE (soil_snow_type),INTENT(IN)  :: ssnow  !< soil data
    REAL, INTENT(IN)::                                                         &
-      SBOLTZ,  & !Stefan-Bolzman constant
-      EMLEAF,  & !leaf emissivity
-      EMSOIL     !leaf emissivity
+      SBOLTZ,  & !< Stefan-Bolzman constant
+      EMLEAF,  & !< leaf emissivity
+      EMSOIL     !< leaf emissivity
 
      
  
@@ -324,27 +313,22 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
     
 END SUBROUTINE energy_balance
 
-!==============================================================================
-!
-! Name: rh_sh
-!
-! Purpose: Converts relative humidity to specific humidity
-!
-! CALLed from: units_in
-!              get_met_data
-!
-! CALLs: svp
-!
-!==============================================================================
-
+!> Name: rh_sh
+!>
+!> Purpose: Converts relative humidity to specific humidity
+!>
+!> CALLed from: units_in
+!>              get_met_data
+!>
+!> CALLs: svp
 SUBROUTINE rh_sh (relHum,tk,psurf,specHum)
 
    ! Input arguments
    REAL, INTENT (IN)  ::                                                  &
-        psurf,  & ! surface pressure (hPa)
-        relHum, & ! relative humidity (%)
-        tk        ! air temp (K) 
-   REAL, INTENT (OUT) :: specHum ! specific humidity (kg/kg)
+        psurf,  & !< surface pressure (hPa)
+        relHum, & !< relative humidity (%)
+        tk        !< air temp (K) 
+   REAL, INTENT (OUT) :: specHum !< specific humidity (kg/kg)
    
    ! Local variables
    REAL ::                                                                &
@@ -357,16 +341,12 @@ SUBROUTINE rh_sh (relHum,tk,psurf,specHum)
 
 END SUBROUTINE rh_sh
 
-!==============================================================================
-!
-! Name: svp
-!
-! Purpose: Calculates saturation vapour pressure
-!
-! CALLed from: rh_sh
-!
-!==============================================================================
 
+!> Name: svp
+!>
+!> Purpose: Calculates saturation vapour pressure
+!>
+!> CALLed from: rh_sh
 FUNCTION svp(tk) RESULT (F_Result)
 
    ! Local variables

@@ -100,7 +100,7 @@ PROGRAM cable_offline_driver
 
    IMPLICIT NONE
    
-   ! CABLE namelist: model configuration, runtime/user switches 
+   !> CABLE namelist: model configuration, runtime/user switches 
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 

@@ -59,10 +59,11 @@ MODULE cable_read_module
    PRIVATE
    PUBLIC readpar, redistr_i, redistr_r, redistr_rd, redistr_r2, redistr_r2d
   
-  INTEGER :: ok ! netcdf error status
+  INTEGER :: ok !< netcdf error status
+
+  !> Loads a parameter from the met file - chooses subroutine 
+  !> below depending on number/type/dimension of arguments
   INTERFACE readpar
-     ! Loads a parameter from the met file - chooses subroutine 
-     ! below depending on number/type/dimension of arguments
      MODULE PROCEDURE readpar_i   ! for integer parameter read
      MODULE PROCEDURE readpar_r   ! for real parameter read
      MODULE PROCEDURE readpar_rd  ! for double precision real parameter read
@@ -79,20 +80,20 @@ MODULE cable_read_module
 
 CONTAINS
  
+  !> Subroutine for loading an integer-valued parameter
   SUBROUTINE readpar_i(ncid, parname, completeSet, var_i, filename,            &
                        npatch, dimswitch, from_restart, INpatch)
-    ! Subroutine for loading an integer-valued parameter
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: npatch ! # of veg patches in parameter's file
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: npatch !< # of veg patches in parameter's file
     INTEGER, INTENT(IN),OPTIONAL :: INpatch
-    INTEGER, DIMENSION(:), INTENT(INOUT) :: var_i ! returned parameter
-                                                       ! values
-    LOGICAL, INTENT(IN),OPTIONAL :: from_restart ! reading from restart file?
-    LOGICAL, INTENT(INOUT) :: completeSet ! has every parameter been loaded?
-    CHARACTER(LEN=*), INTENT(IN) :: parname ! name of parameter
-    CHARACTER(LEN=*), INTENT(IN) :: filename ! file containing parameter values
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimension of
-                                              ! parameter
+    INTEGER, DIMENSION(:), INTENT(INOUT) :: var_i !< returned parameter
+                                                  !< values
+    LOGICAL, INTENT(IN),OPTIONAL :: from_restart !< reading from restart file?
+    LOGICAL, INTENT(INOUT) :: completeSet !< has every parameter been loaded?
+    CHARACTER(LEN=*), INTENT(IN) :: parname !< name of parameter
+    CHARACTER(LEN=*), INTENT(IN) :: filename !< file containing parameter values
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimension of
+                                              !< parameter
 
     INTEGER :: parID ! parameter's netcdf ID
     INTEGER :: pardims ! # dimensions of parameter
@@ -100,8 +101,7 @@ CONTAINS
     INTEGER, DIMENSION(1) :: data1i ! temporary for ncdf read in
     INTEGER, DIMENSION(1, 1) :: data2i ! temporary for ncdf read in
     INTEGER, DIMENSION(:, :), POINTER :: tmp2i ! temporary for ncdf read in
-    INTEGER, DIMENSION(:, :, :), POINTER :: tmp3i ! temporary for ncdf read
-                                                       ! in
+    INTEGER, DIMENSION(:, :, :), POINTER :: tmp3i ! temporary for ncdf read in
 
     ! Check if parameter exists:
     ok = NF90_INQ_VARID(ncid,parname, parID)
@@ -189,20 +189,22 @@ CONTAINS
     END IF ! parameter's existence
 
   END SUBROUTINE readpar_i
+
   !=============================================================================
+
+  !> Subroutine for loading a real-valued parameter
   SUBROUTINE readpar_r(ncid, parname, completeSet, var_r, filename,            &
                        npatch, dimswitch, from_restart, INpatch)
-    ! Subroutine for loading a real-valued parameter
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: npatch ! # of veg patches in parameter's file
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: npatch !< # of veg patches in parameter's file
     INTEGER, INTENT(IN), OPTIONAL :: INpatch
-    REAL(KIND=4), DIMENSION(:), INTENT(INOUT) :: var_r ! returned parameter
-                                                       ! values
-    LOGICAL, INTENT(IN), OPTIONAL :: from_restart ! reading from restart file?
-    LOGICAL, INTENT(INOUT) :: completeSet ! has every parameter been loaded?
-    CHARACTER(LEN=*), INTENT(IN) :: parname ! name of parameter
-    CHARACTER(LEN=*), INTENT(IN) :: filename ! file containing parameter values
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    REAL(KIND=4), DIMENSION(:), INTENT(INOUT) :: var_r !< returned parameter
+                                                       !< values
+    LOGICAL, INTENT(IN), OPTIONAL :: from_restart !< reading from restart file?
+    LOGICAL, INTENT(INOUT) :: completeSet !< has every parameter been loaded?
+    CHARACTER(LEN=*), INTENT(IN) :: parname !< name of parameter
+    CHARACTER(LEN=*), INTENT(IN) :: filename !< file containing parameter values
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
 
     INTEGER :: parID ! parameter's netcdf ID
     INTEGER :: pardims ! # dimensions of parameter
@@ -329,20 +331,22 @@ CONTAINS
     END IF ! parameter's existence
 
   END SUBROUTINE readpar_r
+
   !=============================================================================
+
+  !> Subroutine for loading a double precision real-valued parameter
   SUBROUTINE readpar_rd(ncid, parname, completeSet, var_rd, filename,          &
                         npatch, dimswitch, from_restart, INpatch)
-    ! Subroutine for loading a double precision real-valued parameter
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: npatch ! # of veg patches in parameter's file
-    REAL(r_2), DIMENSION(:), INTENT(INOUT) :: var_rd ! returned parameter
-                                                     ! values
-    LOGICAL, INTENT(IN), OPTIONAL :: from_restart ! reading from restart file?
-    LOGICAL, INTENT(INOUT) :: completeSet ! has every parameter been loaded?
-    CHARACTER(LEN=*), INTENT(IN) :: parname ! name of parameter
-    CHARACTER(LEN=*), INTENT(IN) :: filename ! file containing parameter values
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of
-                                              ! parameter
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: npatch !< # of veg patches in parameter's file
+    REAL(r_2), DIMENSION(:), INTENT(INOUT) :: var_rd !< returned parameter
+                                                     !< values
+    LOGICAL, INTENT(IN), OPTIONAL :: from_restart !< reading from restart file?
+    LOGICAL, INTENT(INOUT) :: completeSet !< has every parameter been loaded?
+    CHARACTER(LEN=*), INTENT(IN) :: parname !< name of parameter
+    CHARACTER(LEN=*), INTENT(IN) :: filename !< file containing parameter values
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of
+                                              !< parameter
     INTEGER, INTENT(IN),OPTIONAL :: INpatch
     INTEGER :: parID ! parameter's netcdf ID
     INTEGER :: pardims ! # dimensions of parameter
@@ -500,21 +504,23 @@ CONTAINS
     END IF ! parameter's existence
 
   END SUBROUTINE readpar_rd
+
   !=============================================================================
+
+  !> Subroutine for loading a two dimensional real-valued parameter
   SUBROUTINE readpar_r2(ncid, parname, completeSet, var_r2, filename,          &
                         npatch, dimswitch, from_restart, INpatch)
-    ! Subroutine for loading a two dimensional real-valued parameter
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: npatch ! number of veg patches in file
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: npatch !< number of veg patches in file
     INTEGER, INTENT(IN), OPTIONAL :: INpatch
-    REAL(KIND=4), DIMENSION(:,:), INTENT(INOUT) :: var_r2 ! returned parameter
+    REAL(KIND=4), DIMENSION(:,:), INTENT(INOUT) :: var_r2 !< returned parameter
                                                           ! values
-    LOGICAL, INTENT(IN), OPTIONAL :: from_restart ! reading from restart file?
-    LOGICAL, INTENT(INOUT) :: completeSet ! has every parameter been loaded?
-    CHARACTER(LEN=*), INTENT(IN) :: filename ! file containing parameter values
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of
-                                              ! parameter
-    CHARACTER(LEN=*), INTENT(IN) :: parname ! name of parameter
+    LOGICAL, INTENT(IN), OPTIONAL :: from_restart !< reading from restart file?
+    LOGICAL, INTENT(INOUT) :: completeSet !< has every parameter been loaded?
+    CHARACTER(LEN=*), INTENT(IN) :: filename !< file containing parameter values
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of
+                                              !< parameter
+    CHARACTER(LEN=*), INTENT(IN) :: parname !< name of parameter
 
     INTEGER :: parID ! parameter's netcdf ID
     INTEGER :: pardims ! # dimensions of parameter
@@ -668,21 +674,23 @@ CONTAINS
     END IF ! parameter's existence
 
   END SUBROUTINE readpar_r2
+
   !=============================================================================
+
+  !> Subroutine for loading a double precision two dimensional real-valued 
+  !> soil dimensioned parameter
   SUBROUTINE readpar_r2d(ncid, parname, completeSet, var_r2d, filename,        &
                          npatch, dimswitch, from_restart, INpatch)
-    ! Subroutine for loading a double precision two dimensional real-valued 
-    ! soil dimensioned parameter
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: npatch ! # of veg patches in parameter's file
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: npatch !< # of veg patches in parameter's file
     INTEGER, INTENT(IN), OPTIONAL :: INpatch
-    REAL(r_2), DIMENSION(:, :), INTENT(INOUT) :: var_r2d ! returned parameter
-                                                         ! value
-    LOGICAL, INTENT(IN), OPTIONAL :: from_restart ! reading from restart file?
-    LOGICAL, INTENT(INOUT) :: completeSet ! has every parameter been loaded?
-    CHARACTER(LEN=*), INTENT(IN) :: parname ! name of parameter
-    CHARACTER(LEN=*), INTENT(IN) :: filename ! file containing parameter values
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    REAL(r_2), DIMENSION(:, :), INTENT(INOUT) :: var_r2d !< returned parameter
+                                                         !< value
+    LOGICAL, INTENT(IN), OPTIONAL :: from_restart !< reading from restart file?
+    LOGICAL, INTENT(INOUT) :: completeSet !< has every parameter been loaded?
+    CHARACTER(LEN=*), INTENT(IN) :: parname !< name of parameter
+    CHARACTER(LEN=*), INTENT(IN) :: filename !< file containing parameter values
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
 
     INTEGER :: parID ! parameter's netcdf ID
     INTEGER :: pardims ! # dimensions of parameter
@@ -841,14 +849,16 @@ CONTAINS
     END IF ! parameter's existence
 
   END SUBROUTINE readpar_r2d
+
   !=============================================================================
+
   SUBROUTINE redistr_i(INpatch, nap, in_i, out_i, parname)
     IMPLICIT NONE
     INTEGER,     INTENT(IN)  :: INpatch
     INTEGER,     INTENT(IN)  :: nap(INpatch)
     INTEGER,     INTENT(IN)  :: in_i(INpatch)
     INTEGER,     INTENT(OUT) :: out_i(mp)
-    CHARACTER(LEN=*), INTENT(IN)  :: parname ! name of parameter
+    CHARACTER(LEN=*), INTENT(IN)  :: parname !< name of parameter
 
     ! local variables    
 !    REAL    :: ave_r
@@ -879,7 +889,7 @@ CONTAINS
     INTEGER,     INTENT(IN)  :: nap(INpatch)
     REAL,        INTENT(IN)  :: in_r(INpatch)
     REAL,        INTENT(OUT) :: out_r(mp)
-    CHARACTER(LEN=*), INTENT(IN)  :: parname ! name of parameter
+    CHARACTER(LEN=*), INTENT(IN)  :: parname !< name of parameter
 
     ! local variables    
     REAL    :: ave_r
@@ -908,7 +918,7 @@ CONTAINS
     INTEGER,     INTENT(IN)  :: nap(INpatch)
     REAL(r_2),        INTENT(IN)  :: in_rd(INpatch)
     REAL(r_2),        INTENT(OUT) :: out_rd(mp)
-    CHARACTER(LEN=*), INTENT(IN)  :: parname ! name of parameter
+    CHARACTER(LEN=*), INTENT(IN)  :: parname !< name of parameter
 
     ! local variables    
     REAL(r_2)    :: ave_rd
@@ -938,7 +948,7 @@ CONTAINS
     INTEGER,     INTENT(IN)  :: nap(INpatch)
     REAL,        INTENT(IN)  :: in_r2 (INpatch,dim2)
     REAL,        INTENT(OUT) :: out_r2(mp,dim2)
-    CHARACTER(LEN=*), INTENT(IN)  :: parname ! name of parameter
+    CHARACTER(LEN=*), INTENT(IN)  :: parname !< name of parameter
 
     ! local variables
     REAL    :: ave_r2(dim2)
@@ -970,7 +980,7 @@ CONTAINS
     INTEGER,     INTENT(IN)  :: nap(INpatch)
     REAL(r_2),        INTENT(IN)  :: in_r2d (INpatch,dim2)
     REAL(r_2),        INTENT(OUT) :: out_r2d(mp,dim2)
-    CHARACTER(LEN=*), INTENT(IN)  :: parname ! name of parameter
+    CHARACTER(LEN=*), INTENT(IN)  :: parname !< name of parameter
 
     ! local variables
     REAL(r_2)    :: ave_r2d(dim2)

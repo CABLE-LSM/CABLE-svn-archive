@@ -321,8 +321,8 @@ END SUBROUTINE surface_albedosn
 
 ! ------------------------------------------------------------------------------
 
-!jhan:subr was reintroduced here to temporarily resolve issue when 
-!creating libcable.a  (repeated in cable_radiation.F90)
+!> jhan:subr was reintroduced here to temporarily resolve issue when 
+!> creating libcable.a  (repeated in cable_radiation.F90)
 SUBROUTINE calc_rhoch(veg,c1,rhoch) 
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
@@ -340,14 +340,14 @@ SUBROUTINE calc_rhoch(veg,c1,rhoch)
 END SUBROUTINE calc_rhoch 
 
 ! -----------------------------------------------------------------------------
-! subr to calc soil albedo based on colour - Ticket #27
+!> subr to calc soil albedo based on colour - Ticket #27
 SUBROUTINE soilcol_albedo(ssnow, soil)
 
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                                    r_2, mp, nrb
    ! Arguments
-   TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow      ! soil+snow variables
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
+   TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow      !< soil+snow variables
+   TYPE(soil_parameter_type), INTENT(INOUT) :: soil       !< soil parameters
 
    ! Local Variables 
    INTEGER   :: ib, ic

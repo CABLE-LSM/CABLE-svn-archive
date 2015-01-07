@@ -356,8 +356,8 @@ END SUBROUTINE radiation
 
 ! ------------------------------------------------------------------------------
 
-! this subroutine currently also in cable_albedo.F90
-! future release should reduce to one version
+!> this subroutine currently also in cable_albedo.F90
+!> future release should reduce to one version
 SUBROUTINE calc_rhoch(veg,c1,rhoch) 
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
@@ -378,15 +378,15 @@ END SUBROUTINE calc_rhoch
 
 ! -----------------------------------------------------------------------------
 
+!> calculate sin(bet), bet = elevation angle of sun
+!> calculations according to goudriaan & van laar 1994 p30
 ELEMENTAL FUNCTION sinbet(doy,xslat,hod) RESULT(z)
 
    USE cable_data_module, ONLY : MATH 
-   ! calculate sin(bet), bet = elevation angle of sun
-   ! calculations according to goudriaan & van laar 1994 p30
    REAL, INTENT(IN) ::                                                         &
-      doy,     & ! day of year
-      xslat,   & ! latitude (degrees north)
-      hod        ! hour of day
+      doy,     & !< day of year
+      xslat,   & !< latitude (degrees north)
+      hod        !< hour of day
    
    REAL ::                                                                     &
       sindec,  & ! sine of maximum declination
@@ -402,16 +402,16 @@ END FUNCTION sinbet
  
 ! -----------------------------------------------------------------------------
 
+!> Calculate beam fraction
+!> See spitters et al. 1986, agric. for meteorol., 38:217-229
 FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
 
    USE cable_def_types_mod, ONLY : mp  
    
-   ! Calculate beam fraction
-   ! See spitters et al. 1986, agric. for meteorol., 38:217-229
    REAL, DIMENSION(mp), INTENT(IN) ::                                          &
-      doy,        & ! day of year
-      coszen,     & ! cos(zenith angle of sun)
-      fsd           ! short wave down (positive) w/m^2
+      doy,        & !< day of year
+      coszen,     & !< cos(zenith angle of sun)
+      fsd           !< short wave down (positive) w/m^2
 
    REAL, DIMENSION(mp) ::                                                      &
       fbeam,      & ! beam fraction (result)

@@ -29,8 +29,8 @@
 !>
 !> ==============================================================================
 !>
-!> CALLed from:  
-!> - cable_initialise.F90              
+!> CALLed from:
+!> - cable_initialise.F90
 !> - cable_input.F90
 !>
 !> MODULEs used:
@@ -39,7 +39,7 @@
 !> - cable_IO_vars_module
 !> - netcdf
 !>
-!> CALLs:         
+!> CALLs:
 !> - define_output_variable_r1
 !> - define_output_variable_r2
 !> - define_output_parameter_r1
@@ -77,17 +77,19 @@ MODULE cable_write_module
          otmp4lpsnt, otmp4lprt, otmp4lpsct, otmp4lppct, otmp4xyps,             &
          otmp4xyppc, otmp4xypsc, otmp5xypst, otmp5xypsnt, otmp5xyprt,          &
          otmp5xyppct, otmp5xypsct
+
+  !> Defines an output variable in the output netcdf file. Units, long name,
+  !> variable, dimensions etc are created.
   INTERFACE define_ovar
-    ! Defines an output variable in the output netcdf file. Units, long name,
-    ! variable, dimensions etc are created.
     MODULE PROCEDURE define_output_variable_r1
     MODULE PROCEDURE define_output_variable_r2
     MODULE PROCEDURE define_output_parameter_r1
     MODULE PROCEDURE define_output_parameter_r2
   END INTERFACE
+
+  !> Writes a single time step of an output variable to the output netcdf
+  !> file
   INTERFACE write_ovar
-    ! Writes a single time step of an output variable to the output netcdf
-    ! file
     MODULE PROCEDURE write_output_variable_r1
     MODULE PROCEDURE write_output_variable_r2
     MODULE PROCEDURE write_output_parameter_r1
@@ -97,12 +99,12 @@ MODULE cable_write_module
   END INTERFACE
 
   INTEGER :: ncmissingi = -9999999
-  INTEGER :: ok ! netcdf file read status
+  INTEGER :: ok !< netcdf file read status
 
-  ! Temporary variables of same dimension as variables in netcdf file;
-  ! e.g. 'o'utput 'tmp'orary with '2' dimensions: 'l'and and 't'ime -> otmp2lt
-  ! Other dimension abbrevs: 'x','y','z','p'atch,'s'oil,'sn'ow,
-  ! 'r'adiation,'p'lant 'c'arbon,'s'oil 'c'arbon,'s'urface 'f'raction
+  !> Temporary variables of same dimension as variables in netcdf file;
+  !> e.g. 'o'utput 'tmp'orary with '2' dimensions: 'l'and and 't'ime -> otmp2lt
+  !> Other dimension abbrevs: 'x','y','z','p'atch,'s'oil,'sn'ow,
+  !> 'r'adiation,'p'lant 'c'arbon,'s'oil 'c'arbon,'s'urface 'f'raction
   REAL, POINTER, DIMENSION(:) :: otmp1, otmp1l
   REAL, POINTER, DIMENSION(:, :) :: otmp2lt, otmp2xy, otmp2lp, otmp2ls,   &
                                          otmp2lpc, otmp2lsc, otmp2lsf,         &
@@ -128,20 +130,20 @@ MODULE cable_write_module
 
 CONTAINS
 
+   !> Subroutine for defining a real valued 1D variable
   SUBROUTINE define_output_variable_r1(ncid, varID, vname,                     &
                                        vunits, longname, writepatch,           &
                                        dimswitch, xID, yID, zID, landID,       &
                                        patchID, tID)
-    ! Subroutine for defining a real valued 1D variable
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(OUT) :: varID ! variable's netcdf ID
-    ! netcdf dimension IDs
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(OUT) :: varID !< variable's netcdf ID
+    !> netcdf dimension IDs
     INTEGER, INTENT(IN) :: xID, yID, zID, landID, patchID, tID
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    CHARACTER(LEN=*), INTENT(IN) :: vname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: vunits ! variable units
-    CHARACTER(LEN=*), INTENT(IN) :: longname ! full variable name
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    CHARACTER(LEN=*), INTENT(IN) :: vname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: vunits !< variable units
+    CHARACTER(LEN=*), INTENT(IN) :: longname !< full variable name
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
     
     ! First, decide which grid to use. If user has forced grid using output%grid
     ! in the namelist file, use this grid. Else use format of met file.
@@ -235,21 +237,23 @@ CONTAINS
                                                       '(INTERFACE define_ovar)')
 
   END SUBROUTINE define_output_variable_r1
+
   !=============================================================================
+
+  !> Subroutine for defining a real valued 2D variable
   SUBROUTINE define_output_variable_r2(ncid, varID, vname, vunits, longname,   &
                                        writepatch, dimswitch, xID, yID, zID,   &
                                        landID, patchID, othdimID, tID)
-    ! Subroutine for defining a real valued 2D variable
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    ! netcdf dimension IDs
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    !> netcdf dimension IDs
     INTEGER, INTENT(IN) :: xID, yID, zID, landID, patchID, tID
-    INTEGER, INTENT(IN) :: othdimID ! ID of variable's second dimension
-    INTEGER, INTENT(OUT) :: varID ! variable's netcdf ID
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    CHARACTER(LEN=*), INTENT(IN) :: vname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: vunits ! variable units
-    CHARACTER(LEN=*), INTENT(IN) :: longname ! full variable name
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    INTEGER, INTENT(IN) :: othdimID !< ID of variable's second dimension
+    INTEGER, INTENT(OUT) :: varID !< variable's netcdf ID
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    CHARACTER(LEN=*), INTENT(IN) :: vname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: vunits !< variable units
+    CHARACTER(LEN=*), INTENT(IN) :: longname !< full variable name
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
     
     ! First, decide which grid to use. If user has forced grid using output%grid
     ! in the namelist file, use this grid. Else use format of met file.
@@ -442,21 +446,22 @@ CONTAINS
                                                       '(INTERFACE define_ovar)')
 
   END SUBROUTINE define_output_variable_r2
+
   !=============================================================================
+
+  !> Subroutine for defining a real valued 1D parameter (time invariant)
   SUBROUTINE define_output_parameter_r1(ncid, parID, pname, punits, longname,  &
                                         writepatch, dimswitch, xID, yID, zID,  &
                                         landID, patchID, restart)
-    ! Subroutine for defining a real valued 1D parameter (time invariant)
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: xID, yID, zID, landID, patchID ! netcdf
-                                                               ! dimension IDs
-    INTEGER, INTENT(OUT) :: parID ! variable's netcdf ID
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    LOGICAL, INTENT(IN), OPTIONAL :: restart ! are we writing to a restart file?                                                          ! dimension IDs
-    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: punits ! variable units
-    CHARACTER(LEN=*), INTENT(IN) :: longname ! full variable name
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimension of parameter
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: xID, yID, zID, landID, patchID !< netcdf dimension IDs
+    INTEGER, INTENT(OUT) :: parID !< variable's netcdf ID
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    LOGICAL, INTENT(IN), OPTIONAL :: restart !< are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: punits !< variable units
+    CHARACTER(LEN=*), INTENT(IN) :: longname !< full variable name
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimension of parameter
    
     ! First, decide which grid to use. If user has forced grid using output%grid
     ! in the namelist file, use this grid. Else use format of met file.
@@ -587,22 +592,23 @@ CONTAINS
     END IF
 
   END SUBROUTINE define_output_parameter_r1
+
   !=============================================================================
+
+  !> Subroutine for defining a real valued 2D parameter (time invariant)
   SUBROUTINE define_output_parameter_r2(ncid, parID, pname, punits, longname,  &
                                         writepatch, othdimID, dimswitch, xID,  &
                                         yID, zID, landID, patchID, restart)
-    ! Subroutine for defining a real valued 2D parameter (time invariant)
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: othdimID ! ID of parameter's second dimension
-    INTEGER, INTENT(IN) :: xID, yID, zID, landID, patchID ! netcdf
-                                                               ! dimension IDs
-    INTEGER, INTENT(OUT) :: parID ! variable's netcdf ID
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    LOGICAL,INTENT(IN),OPTIONAL :: restart ! are we writing to a restart file?
-    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: punits ! variable units
-    CHARACTER(LEN=*), INTENT(IN) :: longname ! full variable name
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: othdimID !< ID of parameter's second dimension
+    INTEGER, INTENT(IN) :: xID, yID, zID, landID, patchID !< netcdf dimension IDs
+    INTEGER, INTENT(OUT) :: parID !< variable's netcdf ID
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    LOGICAL,INTENT(IN),OPTIONAL :: restart !< are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: punits !< variable units
+    CHARACTER(LEN=*), INTENT(IN) :: longname !< full variable name
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
 
     ! First, decide which grid to use. If user has forced grid using output%grid
     ! in the namelist file, use this grid. Else use format of met file.
@@ -775,20 +781,22 @@ CONTAINS
     END IF
 
   END SUBROUTINE define_output_parameter_r2
+
   !=============================================================================
+
+  !> Subroutine for writing a real valued 1D variable
   SUBROUTINE write_output_variable_r1(ktau, ncid, varID, vname, var_r1,        &
                                       vrange, writepatch, dimswitch, met)
-    ! Subroutine for writing a real valued 1D variable
-    INTEGER, INTENT(IN) :: ktau ! current time step #
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: varID ! variable's netcdf ID
-    REAL(KIND=4), DIMENSION(:), INTENT(IN) :: var_r1 ! variable values
-    REAL, DIMENSION(2), INTENT(IN) :: vrange ! max and min for variable
-                                                  ! error checking
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    CHARACTER(LEN=*), INTENT(IN) :: vname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
-    TYPE(met_type), INTENT(IN) :: met  ! met data
+    INTEGER, INTENT(IN) :: ktau !< current time step #
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: varID !< variable's netcdf ID
+    REAL(KIND=4), DIMENSION(:), INTENT(IN) :: var_r1 !< variable values
+    REAL, DIMENSION(2), INTENT(IN) :: vrange !< max and min for variable
+                                             !< error checking
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    CHARACTER(LEN=*), INTENT(IN) :: vname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
+    TYPE(met_type), INTENT(IN) :: met  !< met data
 
     INTEGER :: i,j ! do loop counter
     
@@ -918,20 +926,22 @@ CONTAINS
                ' variable to output file (SUBROUTINE write_output_variable_r1)')
     
   END SUBROUTINE write_output_variable_r1
+
   !=============================================================================
+
+  !> Subroutine for writing a real valued 2D variable
   SUBROUTINE write_output_variable_r2(ktau, ncid, varID, vname, var_r2,        &
                                       vrange, writepatch, dimswitch, met)
-    ! Subroutine for writing a real valued 2D variable
-    INTEGER, INTENT(IN) :: ktau ! current time step #
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: varID ! variable's netcdf ID
-    REAL(KIND=4), DIMENSION(:, :), INTENT(IN) :: var_r2 ! variable values
-    REAL, DIMENSION(2), INTENT(IN) :: vrange ! max and min for variable
-                                                  ! error checking
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    CHARACTER(LEN=*), INTENT(IN) :: vname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
-    TYPE(met_type), INTENT(IN) :: met  ! met data
+    INTEGER, INTENT(IN) :: ktau !< current time step #
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: varID !< variable's netcdf ID
+    REAL(KIND=4), DIMENSION(:, :), INTENT(IN) :: var_r2 !< variable values
+    REAL, DIMENSION(2), INTENT(IN) :: vrange !< max and min for variable
+                                             !< error checking
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    CHARACTER(LEN=*), INTENT(IN) :: vname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
+    TYPE(met_type), INTENT(IN) :: met  !< met data
 
     INTEGER :: i, j, k ! do loop counter
   
@@ -1494,19 +1504,21 @@ CONTAINS
                ' variable to output file (SUBROUTINE write_output_variable_r2)')
     
   END SUBROUTINE write_output_variable_r2
+
   !=============================================================================
+
+  !> Subroutine for writing a real valued 1D parameter (time invariant)
   SUBROUTINE write_output_parameter_r1(ncid, parID, pname, par_r1,             &
                                        prange, writepatch, dimswitch, restart)
-    ! Subroutine for writing a real valued 1D parameter (time invariant)
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: parID ! variable's netcdf ID
-    REAL(KIND=4), DIMENSION(:), INTENT(IN) :: par_r1 ! variable values
-    REAL, DIMENSION(2), INTENT(IN) :: prange ! max and min for variable
-                                                  ! error checking
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    LOGICAL, INTENT(IN), OPTIONAL :: restart ! are we writing to a restart file?
-    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: parID !< variable's netcdf ID
+    REAL(KIND=4), DIMENSION(:), INTENT(IN) :: par_r1 !< variable values
+    REAL, DIMENSION(2), INTENT(IN) :: prange !< max and min for variable
+                                             !< error checking
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    LOGICAL, INTENT(IN), OPTIONAL :: restart !< are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
 
     INTEGER :: i, j ! do loop counter
     
@@ -1680,19 +1692,21 @@ CONTAINS
                                        '(SUBROUTINE write_output_parameter_r1)')
     
   END SUBROUTINE write_output_parameter_r1
+
   !=============================================================================
+
+  !> Subroutine for writing a double precision 1D parameter (time invariant)
   SUBROUTINE write_output_parameter_r1d(ncid, parID, pname, par_r1d,           &
                                         prange, writepatch, dimswitch, restart)
-    ! Subroutine for writing a double precision 1D parameter (time invariant)
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: parID ! variable's netcdf ID
-    REAL(r_2), DIMENSION(:), INTENT(IN) :: par_r1d ! variable values
-    REAL, DIMENSION(2), INTENT(IN) :: prange ! max and min for variable
-                                                  ! error checking
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    LOGICAL,INTENT(IN),OPTIONAL :: restart ! are we writing to a restart file?
-    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: parID !< variable's netcdf ID
+    REAL(r_2), DIMENSION(:), INTENT(IN) :: par_r1d !< variable values
+    REAL, DIMENSION(2), INTENT(IN) :: prange !< max and min for variable
+                                             ! error checking
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    LOGICAL,INTENT(IN),OPTIONAL :: restart !< are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
 
     INTEGER :: i, j ! do loop counter
     REAL(r_2), POINTER, DIMENSION(:, :) :: tmpout
@@ -1735,19 +1749,21 @@ CONTAINS
     END IF ! If writing to a a restart file
 
   END SUBROUTINE write_output_parameter_r1d
+
   !=============================================================================
+
+  !> Subroutine for writing a real valued 2D parameter (time invariant)
   SUBROUTINE write_output_parameter_r2(ncid, parID, pname, par_r2, prange,     &
                                        writepatch, dimswitch, restart)
-    ! Subroutine for writing a real valued 2D parameter (time invariant)
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: parID ! variable's netcdf ID
-    REAL(KIND=4), DIMENSION(:, :), INTENT(IN) :: par_r2 ! variable values
-    REAL, DIMENSION(2), INTENT(IN) :: prange ! max and min for variable
-                                                  ! error checking
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    LOGICAL,INTENT(IN),OPTIONAL :: restart ! are we writing to a restart file?
-    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: parID !< variable's netcdf ID
+    REAL(KIND=4), DIMENSION(:, :), INTENT(IN) :: par_r2 !< variable values
+    REAL, DIMENSION(2), INTENT(IN) :: prange !< max and min for variable
+                                             !< error checking
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    LOGICAL,INTENT(IN),OPTIONAL :: restart !< are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
 
     INTEGER :: i, j, k ! do loop counter
 
@@ -2298,20 +2314,22 @@ CONTAINS
               ' variable to output file (SUBROUTINE write_output_parameter_r2)')
     
   END SUBROUTINE write_output_parameter_r2
+
  !==============================================================================
+
+ !> Subroutine for writing a double precision 2D parameter (time invariant)
+ !> ONLY USED FOR RESTART FILE.
   SUBROUTINE write_output_parameter_r2d(ncid, parID, pname, par_r2d, prange,   &
                                         writepatch, dimswitch, restart)
-    ! Subroutine for writing a double precision 2D parameter (time invariant)
-    ! ONLY USED FOR RESTART FILE.
-    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
-    INTEGER, INTENT(IN) :: parID ! variable's netcdf ID
-    REAL(r_2), DIMENSION(:, :), INTENT(IN) :: par_r2d ! variable values
-    REAL, DIMENSION(2), INTENT(IN) :: prange ! max and min for variable
-                                                  ! error checking
-    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
-    LOGICAL,INTENT(IN),OPTIONAL :: restart ! are we writing to a restart file?
-    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
-    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+    INTEGER, INTENT(IN) :: ncid !< netcdf file ID
+    INTEGER, INTENT(IN) :: parID !< variable's netcdf ID
+    REAL(r_2), DIMENSION(:, :), INTENT(IN) :: par_r2d !< variable values
+    REAL, DIMENSION(2), INTENT(IN) :: prange !< max and min for variable
+                                             ! error checking
+    LOGICAL, INTENT(IN) :: writepatch !< write patch-specific info for this var?
+    LOGICAL,INTENT(IN),OPTIONAL :: restart !< are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname !< name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch !< indicates dimesnion of parameter
 
     INTEGER :: i,j ! do loop counter
     REAL(r_2),POINTER,DIMENSION(:,:,:) :: tmpout
