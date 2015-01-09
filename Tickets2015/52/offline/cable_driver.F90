@@ -156,7 +156,10 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-   
+
+   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
+   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -361,7 +364,7 @@ PROGRAM cable_offline_driver
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
             IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+               call cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,                   &
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
          ENDIF
@@ -375,6 +378,7 @@ PROGRAM cable_offline_driver
   
             IF( ktau == kend ) THEN
                nkend = nkend+1
+
                IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
 
                   print *, ""
@@ -394,7 +398,7 @@ PROGRAM cable_offline_driver
                   "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
                         
                   OPEN( 12, FILE = Fnew_sumbal )
-                     WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+                     WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
                   CLOSE(12)
                
                ENDIF   
