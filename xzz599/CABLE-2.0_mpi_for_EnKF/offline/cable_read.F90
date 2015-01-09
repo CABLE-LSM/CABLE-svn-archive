@@ -374,7 +374,11 @@ CONTAINS
     ELSE
        exists%parameters = .TRUE. ! Note that pars were found in file
        ! If block to distinguish params with non-spatial dimensions:
-       IF(dimswitch(1:3) == 'def') THEN ! i.e. parameters with one spatial dim
+       IF(dimswitch(1:3) == 'cnp') THEN ! changed by BP Dec2014
+          ok = NF90_GET_VAR(ncid, parID, var_rd, start=(/1/),count=(/INpatch/)) 
+          IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading '//parname//    &
+                ' in cnp file '//TRIM(filename)//' (SUBROUTINE readpar_rd)')
+       ELSE IF(dimswitch(1:3) == 'def') THEN ! i.e. parameters with one spatial dim
           ! of length mland*maxpatches
           ! Check for grid type - restart file uses land type grid
           IF(metGrid == 'land' .OR. PRESENT(from_restart)) THEN

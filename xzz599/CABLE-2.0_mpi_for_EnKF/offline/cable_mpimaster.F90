@@ -165,8 +165,9 @@ SUBROUTINE mpidrv_master (comm)
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
-   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-   
+!   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+   INTEGER        ::  kstart = 1 
+  
    INTEGER        ::                                                           &
       ktau,       &  ! increment equates to timestep, resets if spinning up
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
@@ -357,7 +358,7 @@ SUBROUTINE mpidrv_master (comm)
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, C%TFRZ )
+   CALL open_met_file( dels, kstart, kend, spinup, C%TFRZ )
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 

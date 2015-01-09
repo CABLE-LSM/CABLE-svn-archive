@@ -173,24 +173,31 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    
    INTEGER :: k,i,j,l,l1,l2
 
-   soil%albsoilf = soil%albsoil(:,1)
+   IF( cable_runtime%offline  ) THEN  !added by BP Dec2014
+    ssnow%albsoilsn(:,1) = soil%albsoil(:,1)
+    ssnow%albsoilsn(:,2) = soil%albsoil(:,2)
+   ELSE
 
-   ! lakes: hard-wired number to be removed in future
-   WHERE( veg%iveg == 16 )                                                     &
+    soil%albsoilf = soil%albsoil(:,1)
+
+    ! lakes: hard-wired number to be removed in future
+    WHERE( veg%iveg == 16 )                                                     &
       soil%albsoilf = -0.022*( MIN( 275., MAX( 260., met%tk ) ) - 260. ) + 0.45
 
-   WHERE(ssnow%snowd > 1. .and. veg%iveg == 16 ) soil%albsoilf = 0.85
+    WHERE(ssnow%snowd > 1. .and. veg%iveg == 16 ) soil%albsoilf = 0.85
 
-   sfact = 0.68
+    sfact = 0.68
   
-   WHERE (soil%albsoilf <= 0.14)
-      sfact = 0.5
-   ELSEWHERE (soil%albsoilf > 0.14 .and. soil%albsoilf <= 0.20)
-      sfact = 0.62
-   END WHERE
+    WHERE (soil%albsoilf <= 0.14)
+       sfact = 0.5
+    ELSEWHERE (soil%albsoilf > 0.14 .and. soil%albsoilf <= 0.20)
+       sfact = 0.62
+    END WHERE
 
-   ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
-   ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
+    ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
+    ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
+
+   ENDIF  
   
    snrat=0.
    alir =0.

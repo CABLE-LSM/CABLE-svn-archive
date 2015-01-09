@@ -383,6 +383,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 !    WHERE (ssnow%tgg > 273.2 .AND. ssnow%wbice >0.0) ssnow%wbice=0.0
    CALL readpar(ncid_rin,'gammzz',dummy,ssnow%gammzz,filename%restart_in,      &
                 max_vegpatches,'msd',from_restart,mp)
+   CALL readpar(ncid_rin,'wetfac',dummy,ssnow%owetfac,filename%restart_in,     &
+                max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'tss',dummy,ssnow%tss,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'ssdnn',dummy,ssnow%ssdnn,filename%restart_in,        &
