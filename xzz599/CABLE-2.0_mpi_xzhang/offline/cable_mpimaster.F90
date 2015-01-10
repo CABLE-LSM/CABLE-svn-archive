@@ -577,7 +577,7 @@ SUBROUTINE mpidrv_master (comm)
          ! and refactor into worker code
          ktau_gl = oktau
          IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-            CALL write_output( dels, kstart_sml, ktau, met, canopy, ssnow,              &
+            CALL write_output( dels, kstart, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
 !!!            IF (icycle > 0) CALL write_casa_flux( dels, ktau, casabal, casamet)
