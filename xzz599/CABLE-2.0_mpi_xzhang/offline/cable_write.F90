@@ -1692,13 +1692,20 @@ CONTAINS
     INTEGER :: i, j ! do loop counter
     REAL(r_2), POINTER, DIMENSION(:, :) :: tmpout
     
-    IF(PRESENT(restart)) THEN ! If writing to a a restart file
-       ! Write parameter data:
-       ok = NF90_PUT_VAR(ncid, parID, par_r1d,                                 &
-                         start = (/1, 1/), count = (/mp/)) ! write data to file
-       ! Check writing was successful:
-       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing '//pname//        &
-           ' parameter to restart file (SUBROUTINE write_output_parameter_r1d)')
+    IF(PRESENT(restart)) THEN ! If writing to a a restart file       
+       IF(dimswitch(1:3) == 'cnp') THEN  !changed by BP Dec 2014
+          ok = NF90_PUT_VAR(ncid, parID, par_r1d,                &  
+                    start = (/1/), count = (/mp/)) ! write data to file  
+          IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing '//pname//        &  
+              ' cnp to restart file (SUBROUTINE write_output_parameter_r1d)')  
+       ELSE  
+          ! Write parameter data:  
+          ok = NF90_PUT_VAR(ncid, parID, par_r1d,                                 &  
+                            start = (/1, 1/), count = (/mp/)) ! write data to file  
+          ! Check writing was successful:  
+          IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing '//pname//        &  
+              ' parameter to restart file (SUBROUTINE write_output_parameter_r1d)')  
+       END IF  !changed by BP Dec 2014
     ELSE ! a 1D double precision time invariant parameter for output file
        ALLOCATE(tmpout(mland, max_vegpatches))
        DO i = 1, mland ! over all land grid points

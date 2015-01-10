@@ -1074,7 +1074,7 @@ CONTAINS
 
   END SUBROUTINE open_output_file
   !=============================================================================
-  SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
+  SUBROUTINE write_output(dels, kstart, ktau, met, canopy, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
     ! energy and mass balance routines. This subroutine is called 
@@ -1082,6 +1082,7 @@ CONTAINS
     ! depending on whether the user has specified that output should be 
     ! aggregated, e.g. to monthly or 6-hourly averages.
     REAL, INTENT(IN)              :: dels ! time step size
+    INTEGER, INTENT(IN)           :: kstart ! start time step added by X.Zhang and Chris Lu 21Dec2014
     INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
     REAL, INTENT(IN) :: SBOLTZ, EMLEAF, EMSOIL
     TYPE(met_type), INTENT(IN)         :: met  ! met data
@@ -1111,7 +1112,8 @@ CONTAINS
                                              SBOLTZ, EMLEAF, EMSOIL ) 
 
     ! Initialise output time step counter and month counter:
-    IF(ktau == 1) THEN
+    !IF(ktau == 1) THEN
+    IF(ktau==kstart) THEN ! added by X.Zhang and Chris Lu 21Dec2014
        out_timestep = 0
        out_month = 0
     END IF
@@ -1121,7 +1123,8 @@ CONTAINS
        ! Set flag to write data for current time step:
        writenow = .TRUE.
        ! Set output time step to be current model time step:
-       out_timestep = ktau
+     ! ! out_timestep = ktau  !by X.Zhang and Chris Lu 21Dec2014
+       out_timestep = ktau - kstart + 1 
        backtrack = 0
     ELSE IF(output%averaging(1:4) == 'user' .OR. output%averaging(1:2)=='da')  &
             THEN
@@ -2077,12 +2080,15 @@ CONTAINS
     !    INTEGER :: mlandID, surftypeID, patchID, radID, soilID, &
     !         soilcarbID, plantcarbID, tID, snowID ! dimension IDs
     INTEGER :: tvarID, latID, lonID !,surffracID ! time,lat,lon variable ID
-    INTEGER :: tggID, wbID, wbiceID, tssID, ssdnnID, ssdnID, osnowdID,    &
+    INTEGER :: tggID, wbID, wbiceID, wetfacID, tssID, ssdnnID, ssdnID, osnowdID,    &
                     smassID, sdepthID, snageID, snowdID, rtsoilID, isflagID,   &
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                    csoilID, tradID, albedoID
+                    csoilID, tradID, albedoID, fpnID, frpID, frpwID, frprID,   &
+                    frdayID, frsID      !!! fpnID-frsID are added by x.zhang 2015.01.09
+
+
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     dummy = 0 ! initialise
 
@@ -2212,6 +2218,8 @@ CONTAINS
     CALL define_ovar(ncid_restart, wbiceID, 'wbice', 'vol/vol',                &
                      'Average layer volumetric soil ice',                      &
                      .TRUE., soilID, 'r2soil', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, wetfacID, 'wetfac', '-', 'Wetness factor',  &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, tssID, 'tss', 'K',                          &
                      'Combined soil/snow temperature',                         &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -2276,6 +2284,26 @@ CONTAINS
     CALL define_ovar(ncid_restart, fhsID, 'fhs', 'W/m^2',                      &
                      'Sensible heat flux from soil',                           &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!added by x.zhang 09/01/2015 !!!!!!!!!!!!!!!!!!!!!!!
+    CALL define_ovar(ncid_restart, fpnID, 'fpn', 'kg C/m^2/s',                 &
+                     'Canopy fpn',                                             &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frpID, 'frp', 'kg C/m^2/s',                 &
+                     'Canopy frp',                                             &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frpwID, 'frpw', 'kg C/m^2/s',               &
+                     'Canopy frpw',                                            &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frprID, 'frpr', 'kg C/m^2/s',               &
+                     'Canopy frpr',                                            &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frdayID, 'frday', 'kg C/m^2/s',             &
+                     'Canopy frday',                                           &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frsID, 'frs', 'kg C/m^2/s',                 &
+                     'Canopy frs',                                             &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!added end!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !--------------biogeochemical variables------------------------
     CALL define_ovar(ncid_restart, cplantID, 'cplant', 'gC/m^2',               &
                      'Plant carbon stores',                                    &
@@ -2601,6 +2629,8 @@ CONTAINS
                      ranges%za, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%za_tq, 'za_tq', REAL(rough%za_tq, 4),  &
                      ranges%za, .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, wetfacID, 'wetfac', REAL(ssnow%owetfac, 4), &
+                     (/0.0, 1.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, tssID, 'tss', REAL(ssnow%tss, 4),           &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, ssdnnID, 'ssdnn', REAL(ssnow%ssdnn, 4),     &
@@ -2638,6 +2668,20 @@ CONTAINS
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, fhsID, 'fhs', REAL(canopy%fhs, 4),          &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+   !!!!!!!!!!!!!!!!!!!!Added by x.zhang 09/01/2015 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    CALL write_ovar (ncid_restart, fpnID, 'fpn', REAL(canopy%fpn, 4),          &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frpID, 'frp', REAL(canopy%frp, 4),          &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frpwID, 'frpw', REAL(canopy%frpw, 4),       &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frprID, 'frpr', REAL(canopy%frpr, 4),       &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frdayID, 'frday', REAL(canopy%frday, 4),    &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frsID, 'frs', REAL(canopy%frs, 4),          &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+   !!!!!!!!!!!!!!!!!!!!!!!added end !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     CALL write_ovar (ncid_restart, wbtot0ID, 'wbtot0', REAL(bal%wbtot0, 4),    &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, osnowd0ID, 'osnowd0', REAL(bal%osnowd0, 4), &

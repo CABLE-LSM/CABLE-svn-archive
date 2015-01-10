@@ -57,7 +57,7 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename, ktau_gl
 
    IMPLICIT NONE
    
@@ -285,11 +285,12 @@ CONTAINS
 !
 !==============================================================================
 
-SUBROUTINE open_met_file(dels,kend,spinup, TFRZ )
+SUBROUTINE open_met_file(dels,kstart,kend,spinup, TFRZ )
 
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
    REAL, INTENT(IN) :: TFRZ 
+   INTEGER, INTENT(IN)        :: kstart   ! starting time step
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
    LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
 
@@ -730,7 +731,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ )
     IF (ncciy > 0 .AND. globalMetfile%l_ncar) THEN
       PRINT *, 'original time step size = ', dels, ' days'
       PRINT *, 'which is wrong due to precision problem, changed to 3600 s'
-      dels = 3600.0 * nint (dels * 24) 
+    !  dels = 3600.0 * nint (dels * 24) 
+       dels = 3600.0
       ! save year number before changes
       syear = timevar(1) / 365
       ! change timevar units from days to seconds
@@ -819,6 +821,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ )
     READ(timeunits(20:21),*) smoy ! integer month
     READ(timeunits(23:24),*) sdoytmp ! integer day of that month
     READ(timeunits(26:27),*) shod  ! starting hour of day 
+    IF (kstart > 1) THEN 
+      sdoytmp = sdoytmp + INT((kstart-1)*dels/24.0/3600.0)
+      shod    = shod    + ((kstart-1)*dels  &
+              - 24.0*3600.0*INT((kstart-1)*dels/24.0/3600.0)) / 3600.0
+      IF (shod >= 24.0) THEN 
+       shod    = shod - 24.0
+       sdoytmp = sdoytmp + 1
+      END IF 
+    END IF
+
     ! Decide day-of-year for non-leap year:
     SELECT CASE(smoy)
     CASE(1) ! Jan
@@ -1767,7 +1779,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        ! First set timing variables:
        ! All timing details below are initially written to the first patch
        ! of each gridcell, then dumped to all patches for the gridcell.
-       IF(ktau==1) THEN ! initialise...
+       IF(ktau_gl==1) THEN ! initialise...
+!       IF(ktau==1) THEN ! initialise...
           SELECT CASE(time_coord)
           CASE('LOC')! i.e. use local time by default
              ! hour-of-day = starting hod 
@@ -2748,6 +2761,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
         WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
         CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
       ENDIF
+      ! This triggers initialization of owetfac when restart file not available
+      ssnow%owetfac = -999.0
     ELSE
       ! Restart file exists, parameters and init will be loaded from it.
       WRITE(logn,*) ' Overwriting initialisations with values in ', &
@@ -2784,7 +2799,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 !        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
 !        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
         WRITE(logn,*) ' Initialize pool sizes with values in restart file.'
-        CALL get_casa_restart(casamet,casapool,casabal,phen)
+        CALL get_casa_restart(casamet,casapool,casaflux,casabal,phen)
       ENDIF
     END IF ! if restart file exists
 
@@ -2813,7 +2828,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 
     ! Construct derived parameters and zero initialisations, regardless 
     ! of where parameters and other initialisations have loaded from:
-    CALL derived_parameters(soil,sum_flux,bal,ssnow,veg,rough)
+    CALL derived_parameters(soil,sum_flux,bal,ssnow,veg,rough,met)
 
     ! Check for basic inconsistencies in parameter values:
     CALL check_parameter_values(soil,veg,ssnow)

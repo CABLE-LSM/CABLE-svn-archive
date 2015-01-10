@@ -383,6 +383,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 !    WHERE (ssnow%tgg > 273.2 .AND. ssnow%wbice >0.0) ssnow%wbice=0.0
    CALL readpar(ncid_rin,'gammzz',dummy,ssnow%gammzz,filename%restart_in,      &
                 max_vegpatches,'msd',from_restart,mp)
+   CALL readpar(ncid_rin,'wetfac',dummy,ssnow%owetfac,filename%restart_in,     &
+                max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'tss',dummy,ssnow%tss,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'ssdnn',dummy,ssnow%ssdnn,filename%restart_in,        &
@@ -431,6 +433,20 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 !         max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'fhs',dummy,canopy%fhs,filename%restart_in,           &
                 max_vegpatches,'def',from_restart,mp)
+!!!!!!!!!added by x.zhang 09/01/2015!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   CALL readpar(ncid_rin,'fpn',dummy,canopy%fpn,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'frp',dummy,canopy%frp,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'frpw',dummy,canopy%frpw,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'frpr',dummy,canopy%frpr,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'frday',dummy,canopy%frday,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'frs',dummy,canopy%frs,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    CALL readpar(ncid_rin,'cplant',dummy,bgc%cplant,filename%restart_in,        &
                 max_vegpatches,'ncp',from_restart,mp)
    CALL readpar(ncid_rin,'csoil',dummy,bgc%csoil,filename%restart_in,          &

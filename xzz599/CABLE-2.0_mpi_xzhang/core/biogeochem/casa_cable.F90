@@ -73,16 +73,16 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    !    phen%phase = 2
 
    IF ( .NOT. dump_read ) then
-      if(ktau == kstart) then
+      IF(ktau == kstart) then
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
          casaflux%cgpp  = 0.0
          ! add initializations (BP jul2010)
-         casaflux%Crsoil   = 0.0
-         casaflux%crgplant = 0.0
-         casaflux%crmplant = 0.0
-         casaflux%clabloss = 0.0
+ !        casaflux%Crsoil   = 0.0
+ !        casaflux%crgplant = 0.0
+ !        casaflux%crmplant = 0.0
+ !        casaflux%clabloss = 0.0
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
       ENDIF
