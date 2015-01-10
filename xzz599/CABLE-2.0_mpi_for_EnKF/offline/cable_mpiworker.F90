@@ -242,6 +242,16 @@ CONTAINS
 
    ! END header
 
+  !!! added by xzhang 09/01/2015
+   IF(.NOT.spinup) THEN
+     OPEN(99,file='timestep.txt')
+     READ(99,*) kstart_sml, kend_sml
+     CLOSE(99)
+   END IF
+
+     kstart = kstart_sml
+  !!! added by xzhang 09/01/2015
+
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -382,34 +392,18 @@ CONTAINS
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
- 
-   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
-     kstart_sml = kstart
-     kend_sml   = kend
-   IF(.NOT.spinup) THEN
-     OPEN(99,file='timestep.txt')
-     READ(99,*) kstart_sml, kend_sml
-     CLOSE(99)
-   END IF
-   !!!by X.Zhang 21 Dec 2014
   
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
-      !ktau_gl = 0
-      !kend_gl = kend
-      !knode_gl = 0
-
-   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
-       ktau_gl = kstart_sml - 1
-       kend_gl = kend_sml
-       knode_gl = 0
-   !!!by X.Zhang 21 Dec 2014      
+      ktau_gl = 0
+      kend_gl = kend
+      knode_gl = 0
 
       ! time step loop over ktau
-      DO ktau=kstart_sml, kend_sml 
+      DO ktau=kstart, kend
          
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1
@@ -463,9 +457,8 @@ CONTAINS
    
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
-         !!! kstart,kend has be changed to kstart_sml, kend_sml  X.Zhang 21Dec2014
          IF(icycle >0) THEN 
-            call bgcdriver( ktau, kstart_sml, kend_sml, dels, met,                  &
+            call bgcdriver( ktau, kstart, kend, dels, met,                  &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
@@ -475,7 +468,7 @@ CONTAINS
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
          !!! kstart,kend has be changed to kstart_sml, kend_sml  X.Zhang 21Dec2014
-         CALL sumcflux( ktau, kstart_sml, kend_sml, dels, bgc,                      &
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
 
@@ -5254,6 +5247,11 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * msoil
 
+ !!!!!!!!!!!!!!!!!!added by x.zhang 10/01/2015 !!!!!!!!!!!!!!!!!!!!!!!!
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crmplant(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! added by yp wang 27-nov-2012 for variables for spinning casa-cnp
 
   bidx = bidx + 1
@@ -5359,6 +5357,36 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%psorbmax(off), displs(bidx), ierr)
   blocks(bidx) = r2len
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!Added by x.zhang 10/01/2015!!!!!!!!!!!!!
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Clabloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracClabile(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fluxCtoCO2(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   bidx = bidx + 1
   CALL MPI_Get_address (casabal%sumcbal(off), displs(bidx), ierr)

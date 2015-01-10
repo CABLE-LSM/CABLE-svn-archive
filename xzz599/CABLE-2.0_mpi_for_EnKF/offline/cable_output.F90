@@ -2085,7 +2085,10 @@ CONTAINS
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                    csoilID, tradID, albedoID
+                    csoilID, tradID, albedoID, fpnID, frpID, frpwID, frprID,   &
+                    frdayID, frsID      !!! fpnID-frsID are added by x.zhang 2015.01.09
+
+
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     dummy = 0 ! initialise
 
@@ -2281,6 +2284,26 @@ CONTAINS
     CALL define_ovar(ncid_restart, fhsID, 'fhs', 'W/m^2',                      &
                      'Sensible heat flux from soil',                           &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!added by x.zhang 09/01/2015 !!!!!!!!!!!!!!!!!!!!!!!
+    CALL define_ovar(ncid_restart, fpnID, 'fpn', 'kg C/m^2/s',                 &
+                     'Canopy fpn',                                             &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frpID, 'frp', 'kg C/m^2/s',                 &
+                     'Canopy frp',                                             &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frpwID, 'frpw', 'kg C/m^2/s',               &
+                     'Canopy frpw',                                            &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frprID, 'frpr', 'kg C/m^2/s',               &
+                     'Canopy frpr',                                            &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frdayID, 'frday', 'kg C/m^2/s',             &
+                     'Canopy frday',                                           &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, frsID, 'frs', 'kg C/m^2/s',                 &
+                     'Canopy frs',                                             &
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!added end!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !--------------biogeochemical variables------------------------
     CALL define_ovar(ncid_restart, cplantID, 'cplant', 'gC/m^2',               &
                      'Plant carbon stores',                                    &
@@ -2645,6 +2668,20 @@ CONTAINS
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, fhsID, 'fhs', REAL(canopy%fhs, 4),          &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+   !!!!!!!!!!!!!!!!!!!!Added by x.zhang 09/01/2015 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    CALL write_ovar (ncid_restart, fpnID, 'fpn', REAL(canopy%fpn, 4),          &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frpID, 'frp', REAL(canopy%frp, 4),          &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frpwID, 'frpw', REAL(canopy%frpw, 4),       &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frprID, 'frpr', REAL(canopy%frpr, 4),       &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frdayID, 'frday', REAL(canopy%frday, 4),    &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, frsID, 'frs', REAL(canopy%frs, 4),          &
+                     (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
+   !!!!!!!!!!!!!!!!!!!!!!!added end !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     CALL write_ovar (ncid_restart, wbtot0ID, 'wbtot0', REAL(bal%wbtot0, 4),    &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, osnowd0ID, 'osnowd0', REAL(bal%osnowd0, 4), &

@@ -278,6 +278,16 @@ SUBROUTINE mpidrv_master (comm)
 
    ! END header
 
+  !!! added by xzhang 09/01/2015
+   IF(.NOT.spinup) THEN
+     OPEN(99,file='timestep.txt')
+     READ(99,*) kstart_sml, kend_sml
+     CLOSE(99)
+   END IF
+
+     kstart = kstart_sml
+  !!! added by xzhang 09/01/2015
+
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -359,6 +369,10 @@ SUBROUTINE mpidrv_master (comm)
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kstart, kend, spinup, C%TFRZ )
+
+   !!! added by xzhang 09/01/2015
+    kend = kend_sml
+   !!! added by xzhang 09/01/2015
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -460,38 +474,20 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-
-
-   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
-     kstart_sml = kstart
-     kend_sml   = kend
-   IF(.NOT.spinup) THEN   
-     OPEN(99,file='timestep.txt')
-     READ(99,*) kstart_sml, kend_sml
-     CLOSE(99)
-   END IF 
-   !!!by X.Zhang 21 Dec 2014 
-
    
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
-     ! ktau_gl = 0
-     ! kend_gl = kend
-     ! knode_gl = 0
-
-   !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation 
-       ktau_gl = kstart_sml - 1
-       kend_gl = kend_sml
-       knode_gl = 0
-   !!!by X.Zhang 21 Dec 2014
+      ktau_gl = 0
+      kend_gl = kend
+      knode_gl = 0
 
       ! MPI: separate time step counters for reading and writing
       ! (ugly, I know)
-      iktau = ktau_gl
-      oktau = ktau_gl
+      iktau = kstart - 1
+      oktau = kstart - 1
 
       ! MPI: read ahead
       iktau = iktau + 1
@@ -502,19 +498,18 @@ SUBROUTINE mpidrv_master (comm)
 
       ! MPI: flip ktau_gl
       !tmp_kgl = ktau_gl
-      ktau_gl = iktau
+      ktau_gl = ktau_gl + 1
 
       CALL get_met_data( spinup, spinConv, imet, soil,                    &
                          rad, iveg, kend, dels, C%TFRZ, iktau )
 
       ! MPI: scatter input data to the workers
-      CALL master_send_input (icomm, inp_ts, iktau)
+      CALL master_send_input (icomm, inp_ts, iktau-kstart+1)
       CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
 
       ! time step loop over ktau
-!      DO ktau=kstart, kend - 1
-      DO ktau=kstart_sml, kend_sml - 1   !!changed by X.Zhang 21/Dec/2014
+      DO ktau = kstart, kend - 1
 
 !        ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
@@ -526,7 +521,7 @@ SUBROUTINE mpidrv_master (comm)
 
          ! globally (WRT code) accessible kend through USE cable_common_module
          ktau_tot= ktau_tot + 1
-         ktau_gl = iktau
+         ktau_gl = ktau_gl + 1
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          ktauday=int(24.0*3600.0/dels)
@@ -545,21 +540,21 @@ SUBROUTINE mpidrv_master (comm)
                             rad, iveg, kend, dels, C%TFRZ, iktau ) 
 
          !!!Added by Xuanze Zhang 21 Dec 2014 for split timestep simulation
-         PRINT*,"by X.Zhang 21 Dec 2014....."
-         PRINT*,"kstart,kend,ktau,iktau,ktau_gl,kstart_sml,kend_sml,idoy,nyear"
-         PRINT*,kstart,kend,ktau,iktau,ktau_gl,kstart_sml,kend_sml,idoy,nyear
+!         PRINT*,"by X.Zhang 21 Dec 2014....."
+!         PRINT*,"kstart,kend,ktau,iktau,ktau_gl,kstart_sml,kend_sml,idoy,nyear"
+!         PRINT*,kstart,kend,ktau,iktau,ktau_gl,kstart_sml,kend_sml,idoy,nyear
          !!!by X.Zhang 21 Dec 2014
 
 
          ! MPI: receive this time step's results from the workers
-         CALL master_receive (ocomm, oktau, recv_ts)
+         CALL master_receive (ocomm, oktau-kstart+1, recv_ts)
 !!!         IF (icycle > 0) THEN
 !!!            ! MPI: gather casa results from all the workers
 !!!            CALL master_receive (comm, oktau, casa_out)
 !!!         ENDIF
 
          ! MPI: scatter input data to the workers
-         CALL master_send_input (icomm, inp_ts, iktau)
+         CALL master_send_input (icomm, inp_ts, iktau-kstart+1)
 
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 !!!         IF (icycle > 0) THEN
@@ -596,8 +591,8 @@ SUBROUTINE mpidrv_master (comm)
       met%doy = imet%doy
       oktau = oktau + 1
       ktau_tot= ktau_tot + 1
-      ktau_gl = oktau
-      CALL master_receive (ocomm, oktau, recv_ts)
+  !!    ktau_gl = oktau
+      CALL master_receive (ocomm, oktau-kstart+1, recv_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
       met%ofsd = met%fsd(:,1) + met%fsd(:,2)
       canopy%oldcansto=canopy%cansto
@@ -609,7 +604,7 @@ SUBROUTINE mpidrv_master (comm)
 !      END IF
 
       IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-         CALL write_output( dels, kstart_sml, ktau, met, canopy, ssnow,         &
+         CALL write_output( dels, kstart, ktau, met, canopy, ssnow,         &
                             rad, bal, air, soil, veg, C%SBOLTZ,     &
                             C%EMLEAF, C%EMSOIL )
 !         IF (icycle > 0) CALL write_casaout( dels, ktau, casabal, casamet)
@@ -695,7 +690,7 @@ SUBROUTINE mpidrv_master (comm)
 
    IF (icycle > 0) THEN
       ! MPI: gather casa results from all the workers
-      CALL master_receive (comm, ktau_gl, casa_ts)
+      CALL master_receive (comm, oktau-kstart+1, casa_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
 !      print *, 'output BGC pools'
@@ -724,7 +719,7 @@ SUBROUTINE mpidrv_master (comm)
       !       &              canopy,rough,rad,bgc,bal)
       ! gol124: how about call master_receive (comm, ktau, restart_ts)
       ! instead of a separate receive_restart sub?
-      CALL master_receive (comm, ktau_gl, restart_ts)
+      CALL master_receive (comm, oktau-kstart+1, restart_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
@@ -5066,6 +5061,14 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      &                             types(bidx), ierr)
      blocks(bidx) = 1
 
+    !!!!!!!!!!!!!!!!!!!!!Added by x.zhang 10/01/2015!!!!!!!!!!!!!!!!!!!!!!!
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crmplant(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
      ! added by ypwang 27-nov2012 for casa-cnp spinning up variables
      bidx = bidx + 1
      CALL MPI_Get_address (casamet%Tairkspin(off,1), displs(bidx), ierr)
@@ -5204,6 +5207,36 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%psorbmax(off), displs(bidx), ierr)
      blocks(bidx) = r2len
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!Added by x.zhang 10/01/2015!!!!!!!!!!!!!
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Clabloss(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fracClabile(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fluxCtoCO2(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      bidx = bidx + 1
      CALL MPI_Get_address (casabal%sumcbal(off), displs(bidx), ierr)

@@ -788,7 +788,7 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
 END SUBROUTINE casa_init
 
 
-SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
+SUBROUTINE get_casa_restart(casamet,casapool,casaflux,casabal,phen)
 !SUBROUTINE get_casa_restart(casabiome,casamet,casapool,casabal,veg,phen)
 ! read pool sizes from restart file, then initialize a few more related vars.
   USE casadimension
@@ -806,6 +806,7 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
 !  TYPE (casa_biome),   INTENT(IN)    :: casabiome
   TYPE (casa_met),     INTENT(INOUT) :: casamet
   TYPE (casa_pool),    INTENT(INOUT) :: casapool
+  TYPE (casa_flux),    INTENT(INOUT) :: casaflux
   TYPE (casa_balance), INTENT(INOUT) :: casabal
 !  TYPE (veg_parameter_type), INTENT(IN) :: veg
   TYPE (phen_variable),   INTENT(INOUT) :: phen
@@ -859,6 +860,16 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'Psoilocc',dummy,casapool%Psoilocc,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!Added by x.zhang 10/01/2015!!!!!!!!!!!!!!!!!!!!!!!
+  CALL readpar(ncid,'Crsoil',dummy,casaflux%Crsoil,filename%restart_in, &
+                max_vegpatches,'cnp',from_restart,mp)
+  CALL readpar(ncid,'Clabloss',dummy,casaflux%Clabloss,filename%restart_in, &
+                max_vegpatches,'cnp',from_restart,mp)
+  CALL readpar(ncid,'Crgplant',dummy,casaflux%Crgplant,filename%restart_in, &
+                max_vegpatches,'cnp',from_restart,mp)
+  CALL readpar(ncid,'Crmplant',dummy,casaflux%Crmplant,filename%restart_in, &
+                max_vegpatches,'cnp',from_restart,mp)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ncok = NF90_CLOSE(ncid)
   IF(ncok/=NF90_NOERR) CALL nc_abort(ncok,'Error closing restart file '     &
@@ -955,6 +966,7 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
   INTEGER                       :: NplantID, NlitterID, NsoilID, NsminID
   INTEGER                       :: PplantID, PlitterID, PsoilID
   INTEGER                       :: PslabID, PssorbID, PsoccID
+  INTEGER                       :: CrsoilID, ClablossID, CrgplantID, CrmplantID !added by x.zhang
   INTEGER                       :: CbalID, NbalID, PbalID
   INTEGER,  DIMENSION(num_dims) :: dimID, dim_len
   CHARACTER(LEN=12),DIMENSION(num_dims) :: dim_name 
@@ -1161,6 +1173,16 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
                    .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, PsoccID, 'Psoilocc', 'gP/m2', 'occluded P in soil', &
                    .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!Added by x.zhang 10.01.2015!!!!!!!!!!!!!!!!!!!!!!!!!!
+  CALL define_ovar(ncid, CrsoilID, 'Crsoil', 'KgC/m2/s', 'casaflux Crsoil', &
+                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+  CALL define_ovar(ncid, ClablossID, 'Clabloss', 'KgC/m2/s', 'casaflux Clabloss', &
+                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+  CALL define_ovar(ncid, CrgplantID, 'Crgplant', 'KgC/m2/s', 'casaflux Crgplant', &
+                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+  CALL define_ovar(ncid, CrmplantID, 'Crmplant', 'KgC/m2/s', 'casaflux Crmplant', &
+                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   CALL define_ovar(ncid, CbalID, 'sumCbal', 'gC/m2', 'Accumulated C balance', &
                    .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
   CALL define_ovar(ncid, NbalID, 'sumNbal', 'gN/m2', 'Accumulated N balance', &
@@ -1212,6 +1234,16 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
                   ranges%Pssorb, .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, PsoccID, 'Psoilocc', casapool%psoilocc, ranges%Psocc, &
                   .TRUE., 'cnp', .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!Added by x.zhang 10.01.2015!!!!!!!!!!!!!!!!!!!!!!!!!!
+  CALL write_ovar(ncid, CrsoilID, 'Crsoil', casaflux%Crsoil, ranges%Crsoil, &
+                  .TRUE., 'cnp', .TRUE.)
+  CALL write_ovar(ncid, ClablossID, 'Clabloss', casaflux%Clabloss, ranges%Clabloss, &
+                  .TRUE., 'cnp', .TRUE.)
+  CALL write_ovar(ncid, CrgplantID, 'Crgpant', casaflux%Crgplant, ranges%Crgplant, &
+                  .TRUE., 'cnp', .TRUE.)
+  CALL write_ovar(ncid, CrmplantID, 'Crmplant', casaflux%Crmplant, ranges%Crmplant, &
+                  .TRUE., 'cnp', .TRUE.)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   CALL write_ovar(ncid, CbalID, 'sumCbal', casabal%sumcbal, ranges%Cbal, &
                   .TRUE., 'real', .TRUE.)
   CALL write_ovar(ncid, NbalID, 'sumNbal', casabal%sumnbal, ranges%Nbal, &

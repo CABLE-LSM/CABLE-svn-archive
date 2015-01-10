@@ -731,7 +731,8 @@ SUBROUTINE open_met_file(dels,kstart,kend,spinup, TFRZ )
     IF (ncciy > 0 .AND. globalMetfile%l_ncar) THEN
       PRINT *, 'original time step size = ', dels, ' days'
       PRINT *, 'which is wrong due to precision problem, changed to 3600 s'
-      dels = 3600.0 * nint (dels * 24) 
+    !  dels = 3600.0 * nint (dels * 24) 
+       dels = 3600.0
       ! save year number before changes
       syear = timevar(1) / 365
       ! change timevar units from days to seconds
@@ -2798,7 +2799,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 !        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
 !        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
         WRITE(logn,*) ' Initialize pool sizes with values in restart file.'
-        CALL get_casa_restart(casamet,casapool,casabal,phen)
+        CALL get_casa_restart(casamet,casapool,casaflux,casabal,phen)
       ENDIF
     END IF ! if restart file exists
 
