@@ -90,10 +90,12 @@ PROGRAM cable_offline_driver
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
 
+   USE cable_namelists_mod
+
    IMPLICIT NONE
    
-   ! CABLE namelist: model configuration, runtime/user switches 
-   CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
+   !! CABLE namelist: model configuration, runtime/user switches 
+   !CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
@@ -135,17 +137,17 @@ PROGRAM cable_offline_driver
    TYPE (phen_variable)  :: phen 
    
    ! declare vars for switches (default .FALSE.) etc declared thru namelist
-   LOGICAL, SAVE           :: &
-      vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
-      spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
-      spinConv = .FALSE.,         & ! has spinup converged?
-      spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
-                                    ! FALSE: READ input to spin CASA-CNP 
-      spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
-                                    ! FALSE: no spin up
-      l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
-      l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
+   !LOGICAL, SAVE           :: &
+   !   vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
+   !   spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
+   !   spinConv = .FALSE.,         & ! has spinup converged?
+   !   spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
+   !                                 ! FALSE: READ input to spin CASA-CNP 
+   !   spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
+   !                                 ! FALSE: no spin up
+   !   l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
+   !   l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
+   !   l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
    
    
    REAL              :: &  
@@ -204,10 +206,12 @@ PROGRAM cable_offline_driver
 
    ! END header
 
+
    ! Open, read and close the namelist file.
-   OPEN( 10, FILE = CABLE_NAMELIST )
-      READ( 10, NML=CABLE )   !where NML=CABLE defined above
-   CLOSE(10)
+   call cable_namelists()
+   !OPEN( 10, FILE = CABLE_NAMELIST )
+   !   READ( 10, NML=CABLE )   !where NML=CABLE defined above
+   !CLOSE(10)
 
    ! Open, read and close the consistency check file.
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
