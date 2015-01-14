@@ -32,7 +32,7 @@
 ! ==============================================================================
 
 SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
-                             TOT_TFALL, WB_LAKE )
+                             TOT_TFALL ) !, WB_LAKE )
 
    USE cable_data_module,   ONLY : PHYS, OTHER
    USE cable_common_module!, only : cable_runtime, cable_user
@@ -77,7 +77,18 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
 
       ! Lest 25sep13 - wb_lake fix
       WB_LAKE        = UNPACK(ssnow%wb_lake, um1%L_TILE_PTS, miss)
-      
+
+      if(L_fudge) then
+         call fudge_out( 1,1, snow_tile, 'snow_tile',   .TRUE., 0.  )
+         call fudge_out( 1, lying_snow, 'lying_snow',   .TRUE., 0.  )
+         call fudge_out( 1,1, surf_cab_roff, 'surf_cab_roff',   .TRUE., 0.  )
+         call fudge_out( 1, surf_roff, 'surf_roff',   .TRUE., 0.  )
+         call fudge_out( 1,1, TOT_TFALL_TILE, 'TOT_TFALL_TILE',   .TRUE., 0.  )
+         call fudge_out( 1, TOT_TFALL, 'TOT_TFALL',   .TRUE., 0.  )
+      endif
+       
+   write( 6,'("End of cable_hyd_UNPACK")' )
+
 END SUBROUTINE cable_hyd_driver
       
 

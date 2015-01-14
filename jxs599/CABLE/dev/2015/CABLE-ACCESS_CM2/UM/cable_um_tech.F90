@@ -78,6 +78,10 @@ MODULE cable_um_tech_mod
       MODULE PROCEDURE check_chvar, check_intvar, check_lgvar
    END INTERFACE check_nmlvar 
  
+   INTERFACE basic_diag 
+      MODULE PROCEDURE basic_chdiag 
+   END INTERFACE basic_diag 
+ 
       TYPE(derived_rad_bands), SAVE :: kblum_rad    
       TYPE(derived_veg_pars),  SAVE :: kblum_veg    
       TYPE(um_dimensions),     SAVE :: um1
@@ -185,6 +189,24 @@ SUBROUTINE check_intvar(this_var, val_var)
       ENDIF
 
 END SUBROUTINE check_intvar
+ 
+SUBROUTINE basic_chdiag(upto, message)
+   USE cable_common_module, ONLY : knode_gl
+
+   CHARACTER(LEN=*), INTENT(IN) :: upto, message 
+   
+      IF (knode_gl==0) THEN
+         PRINT *, '  '; PRINT *, 'CABLE_log:' 
+         PRINT *, '   From subroutine:- '
+         PRINT *, '  ', trim(upto) 
+         PRINT *, '   broadcast - '
+         PRINT *, '  ', trim(message) 
+         PRINT *, 'End CABLE_log:'; PRINT *, '  '
+      ENDIf
+
+END SUBROUTINE basic_chdiag 
+
+   
 
 SUBROUTINE check_lgvar(this_var, val_var)
    USE cable_common_module, ONLY : knode_gl

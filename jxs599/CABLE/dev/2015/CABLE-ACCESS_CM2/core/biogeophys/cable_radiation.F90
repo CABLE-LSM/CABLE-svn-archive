@@ -122,20 +122,23 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
                           + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
 
    ENDDO
-   
-   IF( .NOT. cable_runtime%um) THEN
-   
-      ! Define beam fraction, fbeam:
-      rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
-      rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
-      ! coszen is set during met data read in.
-   
-      WHERE (met%coszen <1.0e-2)
-         rad%fbeam(:,1) = 0.0
-         rad%fbeam(:,2) = 0.0
-      END WHERE
-   
-   ENDIF
+!   !jhan: for the sake of getting this running in JULES ....
+!   !revise and make switchable
+!   ! crashed Run vagnM (dt=3246) used this code w commented switch check
+!   !so effectively was calling spitter in online run
+!   !IF( .NOT. cable_runtime%um) THEN
+!   
+!      ! Define beam fraction, fbeam:
+!      rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
+!      rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
+!      ! coszen is set during met data read in.
+!   
+!      WHERE (met%coszen <1.0e-2)
+!         rad%fbeam(:,1) = 0.0
+!         rad%fbeam(:,2) = 0.0
+!      END WHERE
+!  
+!   !ENDIF
    
    ! In gridcells where vegetation exists....
    WHERE (canopy%vlaiw > C%LAI_THRESH)    
@@ -204,7 +207,8 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
 
    ! Relative leaf nitrogen concentration within canopy:
    cf2n = EXP(-veg%extkn * canopy%vlaiw)
-   
+   !during debug i got this off 1 which eventually led to divide by (1-1)
+   !rad%transd = 0.9
    rad%transd = 1.0
    
    WHERE (canopy%vlaiw > C%LAI_THRESH )    ! where vegetation exists....
