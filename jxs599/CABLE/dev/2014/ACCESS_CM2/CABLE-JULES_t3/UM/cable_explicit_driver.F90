@@ -44,7 +44,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   z1_uv, L_tile_pts, canopy_tile,   &
                                   Fland,                                       &
 ! r935 rml 2/7/13 pass 3d co2 through to cable if required
-                CO2_MMR, & !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
+                   CO2_MMR, CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,  &
                                   sthu_tile, smcl_tile,                        &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
@@ -55,9 +55,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   RADNET_TILE, FRACA, RESFS, RESFT, Z0H_TILE,  &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
                                   ! r825 adds CASA vars here
-                                  !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
-                                  !SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  !GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
+                                  CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
+                                  SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
+                                  GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
                                   endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
@@ -126,23 +126,21 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       smvcwt,  &
       smvccl,  &
       albsoil, &
-      fland,   & 
-      cos_zenith_angle ! jules
+      fland  !,& !cos_zenith_angle ! jules
    
-   REAL,  DIMENSION(row_length,rows) :: &
-      sw_down
-      
-   REAL,  DIMENSION(row_length,rows) ::                             &
-      latitude,   &
-      longitude,  &
-      lw_down,    &
-      ls_rain,    &
-      ls_snow,    &
-      tl_1,       &
-      qw_1,       &  
-      vshr_land,  &
-      pstar,      &
-      z1_tq,      &
+   REAL, DIMENSION(row_length,rows) :: &
+      sw_down,          & 
+      cos_zenith_angle, &
+      latitude,   		&	
+      longitude, 		&
+      lw_down,    		&
+      ls_rain,    		&
+      ls_snow,    		&
+      tl_1,       		&
+      qw_1,       		&  
+      vshr_land,  		&
+      pstar,      		&
+      z1_tq,      		&
       z1_uv
 
    REAL,  DIMENSION(land_pts, ntiles) ::                         &
@@ -182,11 +180,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    REAL :: co2_mmr
 ! rml 2/7/13 Extra atmospheric co2 variables
-!   LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
-!   INTEGER, INTENT(IN) ::                              &
-!      CO2_DIM_LEN                                      &
-!     ,CO2_DIM_ROW
-!   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
+   LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
+   INTEGER, INTENT(IN) ::                              &
+      CO2_DIM_LEN                                      &
+     ,CO2_DIM_ROW
+   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
 
    !___true IF vegetation (tile) fraction is greater than 0
    LOGICAL, DIMENSION(land_pts, ntiles) :: L_tile_pts
@@ -232,28 +230,28 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
       EPOT_TILE
 
-! r825 adds CASA vars here
-!   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,10) :: &
-!      CPOOL_TILE,    & ! Carbon Pools
-!      NPOOL_TILE       ! Nitrogen Pools
-!
-!   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,12) :: &
-!      PPOOL_TILE       ! Phosphorus Pools
-!
-!   REAL, INTENT(INOUT), DIMENSION(land_pts) :: &
-!      SOIL_ORDER,    & ! Soil Order (1 to 12)
-!      NIDEP,         & ! Nitrogen Deposition
-!      NIFIX,         & ! Nitrogen Fixation
-!      PWEA,          & ! Phosphorus from Weathering
-!      PDUST            ! Phosphorus from Dust
-!
-!   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-!      GLAI, &          ! Leaf Area Index for Prognostics LAI
-!      PHENPHASE        ! Phenology Phase for Casa-CNP
-!                                  
-!   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-!      NPP_FT_ACC,     &
-!      RESP_W_FT_ACC
+ r825 adds CASA vars here
+   REAL, DIMENSION(land_pts,ntiles,10) :: &
+      CPOOL_TILE,    & ! Carbon Pools
+      NPOOL_TILE       ! Nitrogen Pools
+
+   REAL, DIMENSION(land_pts,ntiles,12) :: &
+      PPOOL_TILE       ! Phosphorus Pools
+
+   REAL, DIMENSION(land_pts) :: &
+      SOIL_ORDER,    & ! Soil Order (1 to 12)
+      NIDEP,         & ! Nitrogen Deposition
+      NIFIX,         & ! Nitrogen Fixation
+      PWEA,          & ! Phosphorus from Weathering
+      PDUST            ! Phosphorus from Dust
+
+   REAL, DIMENSION(land_pts,ntiles) :: &
+      GLAI, &          ! Leaf Area Index for Prognostics LAI
+      PHENPHASE        ! Phenology Phase for Casa-CNP
+                                  
+   REAL, DIMENSION(land_pts,ntiles) :: &
+      NPP_FT_ACC,     &
+      RESP_W_FT_ACC
      
    !-------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM sf_exch() ----------------------------------------
@@ -271,16 +269,17 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
+
+   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
+   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
  
-   INTEGER, SAVE ::  iDiag0=0,iDiag1=0, iDiag2=0
-   
    ! Vars for standard for quasi-bitwise reproducability b/n runs
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    CHARACTER(len=30), PARAMETER ::                                             &
       Ftrunk_sumbal  = ".trunk_sumbal",                                        &
       Fnew_sumbal    = "new_sumbal"
 
-   DOUBLE PRECISION ::                                                         &
+   DOUBLE PRECISION, save ::                                                         &
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
 
@@ -313,6 +312,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- internal FLAGS def. specific call of CABLE from UM
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
+   
+   !--- UM7.3 latitude is not passed correctly. hack 
+   IF(first_cable_call) latitude = sin_theta_latitude
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
@@ -331,8 +333,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
          ENDIF
       CLOSE(11)
    ENDIF
- 
-
 
    !---------------------------------------------------------------------!
    !--- initialize CABLE using UM forcings etc. these args are passed ---!
@@ -353,20 +353,20 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
                    		   CO2_MMR, &
 ! r935 rml 2/7/13 pass 3d co2 through to cable if required
-                   !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
+                   CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
                            sthu_tile, smcl_tile, sthf_tile,                    &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil )!,                         &
 						   ! r825	
-                           !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
-                           !NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
-                           !NPP_FT_ACC,RESP_W_FT_ACC )
+                           CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
+                           NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
+                           NPP_FT_ACC,RESP_W_FT_ACC )
 
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
    !---------------------------------------------------------------------!
-   !IF(l_vcmaxFeedbk) call casa_feedback(ktau_gl,veg,casabiome,casapool,casamet)
-   !IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
+   IF(l_vcmaxFeedbk) call casa_feedback(ktau_gl,veg,casabiome,casapool,casamet)
+   IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
 
    canopy%oldcansto=canopy%cansto
 
@@ -376,21 +376,22 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
    !---------------------------------------------------------------------!
-   CALL cbm( real(timestep), air, bgc, canopy, met, bal,                             &
+   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg )
-
-
 
    !---------------------------------------------------------------------!
    ! Check this run against standard for quasi-bitwise reproducability   !  
    ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
    !---------------------------------------------------------------------!
    IF(cable_user%consistency_check) THEN 
-      if(knode_gl==0 .and. ktau_gl==kend_gl) then 
-         new_sumbal = SUM(canopy%fe) + SUM(canopy%fh)                       &
-                    + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+         
+      IF( knode_gl==1 ) &
+         new_sumbal = new_sumbal + ( SUM(canopy%fe) + SUM(canopy%fh)           &
+                    + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1)) )
      
-         IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
+      IF( knode_gl==1 .and. ktau_gl==kend_gl ) then 
+         
+         IF( abs(new_sumbal-trunk_sumbal) < 1.e-7 ) THEN
    
             print *, ""
             print *, &
@@ -406,13 +407,14 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
             "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
                   
             OPEN( 12, FILE = Fnew_sumbal )
-               WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+               WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
             CLOSE(12)
          
          ENDIF   
+      
       ENDIF   
+   
    ENDIF
-
 
    !---------------------------------------------------------------------!
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
@@ -435,7 +437,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    ! dump bitwise reproducible testing data
    IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( iDiag0, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+      call cable_diag( iDiagZero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
                           "FLUXES", canopy%fe + canopy%fh )
                 
 

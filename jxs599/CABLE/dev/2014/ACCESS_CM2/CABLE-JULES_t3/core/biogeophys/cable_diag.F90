@@ -132,12 +132,14 @@ END SUBROUTINE cable_fprintf1
 ! of data and format etc., and filename.bin containing the data   
 !==========================================================================!
 
+
 SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
-                        vname1, var1 )
+                        vname1, var1, once )
    integer, intent(inOUT) :: iDiag 
    integer, SAVE :: pDiag=713 
    integer, intent(in) :: dimx, dimy, timestep,node
    real, intent(in), dimension(:) :: var1
+   integer, optional :: once
    integer :: Nvars=1 !this WAS input
    integer :: i=0
    character(len=*), intent(in) :: basename, vname1
@@ -149,14 +151,23 @@ SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
       ENDIF
          
       write(chnode,10) node
-   10 format(i2.2)   
+   10 format(i3.3)   
       filename=trim(trim(basename)//trim(chnode))
       
       if (timestep == 1) & 
          call cable_diag_desc1( iDiag, trim(filename), dimx, dimy, vname1 )
-      
-      call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
-                             var1 )
+         
+      if( present(once) ) then
+         if (timestep == 1) & 
+         ! write data only on first timestep
+         call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
+                                var1 )
+      else
+         ! write data every timestep
+         call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
+                                var1 )
+      endif
+
 END SUBROUTINE cable_diag1
 
 
