@@ -2178,7 +2178,11 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        !                 ((ssnow%wb(i,1)-ssnow%wbice(i,1)*dri)-0.5_r_2*real(soil%swilt(i),r_2))/&
        !                             (real(soil%sfc(i),r_2) - 0.5_r_2*real(soil%swilt(i),r_2))))**2.0
        !Sakguchi and Zeng 2009
-       xx = (1._r_2 - cos(pi*ssnow%wb(i,1)/soil%sfc(i)))**2.0
+       if (ssnow%wb(i,1) .ge. soil%sfc(i)) then
+          xx = 1.
+       else
+          xx = 0.25 * (1._r_2 - cos(pi*ssnow%wb(i,1)/soil%sfc(i)))**2.0
+       end if
                                     
        !satfrac = (1._r_2 - gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac))*xx+&
        !          gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)
@@ -2188,7 +2192,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
        !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
 
-       ssnow%wetfac(i) = fice + satfrac + 0.25*(1. - (satfrac + fice))*xx
+       ssnow%wetfac(i) = fice + satfrac + (1. - (satfrac + fice))*xx
 
     end do
 
