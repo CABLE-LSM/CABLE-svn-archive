@@ -2156,6 +2156,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     REAL(r_2)                          :: satfrac,wtd_meters,fice,xx
     REAL(r_2)                          :: dzmm_one,liqmass,icemass,totmass
     INTEGER                            :: i
+    REAL(r_2), parameter               :: pi=3.1415926535898
 
     dzmm_one  = 1000._r_2 * real(soil%zse(1),r_2)
 
