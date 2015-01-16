@@ -59,12 +59,13 @@ MODULE cable_soil_snow_gw_module
    !mrd561 GW params
    !Should read some in from namelist
    REAL(r_2), PARAMETER :: sucmin  = -1.0e9, &! minimum soil pressure head [mm]
-                      hkrz         = 1.0,         &! GW_hksat e-folding depth [m**-1]
+                      hkrz         = 0.,         &! GW_hksat e-folding depth [m**-1]
                       volwatmin    = 1e-5,        &!min soil water [mm]      
                       wtd_uncert   = 0.1,         &! uncertaintiy in wtd calcultations [mm]
                       wtd_max      = 100000.0,    &! maximum wtd [mm]
                       wtd_min      = 100.0,       &! minimum wtd [mm]
-                      dri          = 1.0           !ratio of density of ice to density of liquid [unitless]
+                      dri          = 1.0,         &!ratio of density of ice to density of liquid [unitless]
+                      zdepth       = 0.
 
    INTEGER, PARAMETER :: wtd_iter_max = 10 ! maximum number of iterations to find the water table depth                    
    
@@ -1568,10 +1569,10 @@ END SUBROUTINE remove_trans
 
              s2(i) = soil%hksat(i,k)*s1(i)**(2._r_2*soil%clappB(i,k)+2._r_2)
              ssnow%hk(i,k)    = (1._r_2-0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
-                              exp(-hkrz*zimm(k)/1000.0_r_2)
+                              exp(-hkrz*(zimm(k)-zdepth)/1000.0_r_2)
              ssnow%dhkdw(i,k) = (1._r_2-0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))* &
                     (2._r_2*soil%clappB(i,k)+3._r_2)*s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*&
-                     exp(-hkrz*zimm(k)/1000.0_r_2)
+                     exp(-hkrz*(zimm(k)-zdepth)/1000.0_r_2)
             end do
          
        else
@@ -1582,9 +1583,9 @@ END SUBROUTINE remove_trans
              s1(i) = min(max(s1(i),0.001_r_2),1._r_2)
 
              s2(i) = soil%hksat(i,k)*s1(i)**(2._r_2*soil%clappB(i,k)+2._r_2)
-             ssnow%hk(i,k)    = s1(i)*s2(i)*(1._r_2-ssnow%fracice(i,k))* exp(-hkrz*zimm(k)/1000._r_2)
+             ssnow%hk(i,k)    = s1(i)*s2(i)*(1._r_2-ssnow%fracice(i,k))* exp(-hkrz*(zimm(k)-zdepth)/1000._r_2)
              ssnow%dhkdw(i,k) = (1._r_2-ssnow%fracice(i,k))* (2._r_2*soil%clappB(i,k)+3._r_2)*&
-                         s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*exp(-hkrz*zimm(k)/1000._r_2)
+                         s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*exp(-hkrz*(zimm(k)-zdepth)/1000._r_2)
          end do
        end if
   
@@ -2167,19 +2168,26 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     !srf frozen fraction.  should be based on topography
     do i = 1,mp
        fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+       fice = min(1._r_2,max(0._r_2,fice))
 
        !Saturated fraction
        wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
 
-       xx = max(real(1e-6,r_2), min(1._r_2,&
-                        ((ssnow%wb(i,1)-ssnow%wbice(i,1)*dri)-0.5_r_2*real(soil%swilt(i),r_2))/&
-                                    (real(soil%sfc(i),r_2) - 0.5_r_2*real(soil%swilt(i),r_2))))**2.0
+       !xx = max(real(1e-6,r_2), min(1._r_2,&
+       !                 ((ssnow%wb(i,1)-ssnow%wbice(i,1)*dri)-0.5_r_2*real(soil%swilt(i),r_2))/&
+       !                             (real(soil%sfc(i),r_2) - 0.5_r_2*real(soil%swilt(i),r_2))))**2.0
+       !Sakguchi and Zeng 2009
+       xx = (1._r_2 - cos(pi*ssnow%wb(i,1)/soil%sfc(i)))**2.0
                                     
-       satfrac = (1._r_2 - gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac))*xx+&
-                 gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)
-       satfrac = min(1._r_2,max(0._r_2,satfrac))
+       !satfrac = (1._r_2 - gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac))*xx+&
+       !          gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)
+       !satfrac = min(1._r_2,max(0._r_2,satfrac))
+ 
+       satfrac = min(1._r_2,max(0._r_2,gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)))
 
-       ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
+       !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
+
+       ssnow%wetfac(i) = fice + satfrac + 0.25*(1. - (satfrac + fice))*xx
 
     end do
 
