@@ -1205,7 +1205,7 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
   CALL write_ovar(ncid, slaID, 'SLA', dummy, ranges%sla, &
                   .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, phaseID, 'phase', REAL(phen%phase,4), ranges%phase, &
-                  .TRUE., 'cnp', .TRUE.)
+                  .TRUE., 'integer', .TRUE.)
   CALL write_ovar(ncid, ClabID, 'Clabile', casapool%clabile, ranges%Clab, &
                   .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, CplantID, 'CASA_Cplant', casapool%cplant,ranges%Cplant,&
@@ -1231,7 +1231,7 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
   CALL write_ovar(ncid, PslabID, 'Psoillab', casapool%psoillab, ranges%Pslab, &
                   .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, PssorbID, 'Psoilsorb', casapool%psoilsorb,  &
-                  ranges%Pssorb, .TRUE., 'real', .TRUE.)
+                  ranges%Pssorb, .TRUE., 'cnp', .TRUE.)
   CALL write_ovar(ncid, PsoccID, 'Psoilocc', casapool%psoilocc, ranges%Psocc, &
                   .TRUE., 'cnp', .TRUE.)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!Added by x.zhang 10.01.2015!!!!!!!!!!!!!!!!!!!!!!!!!!
