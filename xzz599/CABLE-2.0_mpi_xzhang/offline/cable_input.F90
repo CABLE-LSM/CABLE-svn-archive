@@ -401,12 +401,16 @@ SUBROUTINE open_met_file(dels,kstart,kend,spinup, TFRZ )
          ' (SUBROUTINE open_met_file)') 
   ENDIF
 
+  print*,"In open_met, ncid_met,ncid_rain,ncid_lw,ncid_sw,ncid_ps,ncid_qa,ncid_ta,ncid_wd"
+  print*,ncid_met,ncid_rain,ncid_lw,ncid_sw,ncid_ps,ncid_qa,ncid_ta,ncid_wd
+
     !!=====================VV Determine spatial details VV=================
     ! Determine number of sites/gridcells.
     ! Find size of 'x' or 'lon' dimension:
     ok = NF90_INQ_DIMID(ncid_met,'x', xdimID)
 
-! added by xzhang 1/12/2014, added by ypwang following Chris LU to account for diffferent orders of latitude and longtitude between GPCC and GSWP
+! added by ypwang following Chris LU to account for diffferent orders of latitude and longtitude between GPCC and GSWP
+! added by xzhang 1/12/2014
   IF(.NOT. globalMetfile%l_gswp) then  ! added by xzhang 1/12/2014
     IF(ok/=NF90_NOERR) THEN ! if failed
        ! Try 'lon' instead of x
@@ -673,18 +677,15 @@ SUBROUTINE open_met_file(dels,kstart,kend,spinup, TFRZ )
       !print*,nmetpatches
 
     ! Check if monthly dimension exists for LAI info
-    ncid_temp=ncid_met
-    ncid_met=ncid_lai
     ok = NF90_INQ_DIMID(ncid_met,'monthly', monthlydimID)
     IF(ok==NF90_NOERR) THEN ! if found
        ok = NF90_INQUIRE_DIMENSION(ncid_met,monthlydimID,len=tempmonth)
        IF(tempmonth/=12) CALL abort ('Number of months in met file /= 12.')
     END IF
-    print*,"In SUB. open_met_file"
-    print*,"Check ncid_temp=",ncid_temp
+
+    print*,"In SUB. open_met_file, check spatial details for LAI info"
     print*,"Check ncid_met=",ncid_met
     print*,"Check ncid_lai=",ncid_lai
-    ncid_met=ncid_temp
 
     ! Set longitudes to be [-180,180]:
     WHERE(longitude>180.0) 
@@ -1421,7 +1422,11 @@ SUBROUTINE open_met_file(dels,kstart,kend,spinup, TFRZ )
           exists%LAI_P = .FALSE. ! i.e. not patch varying LAI
        END IF
     ELSE
-       ncid_met=ncid_snow
+       IF (ncciy > 0 .AND. (globalMetfile%l_gswp .OR. globalMetfile%l_ncar))Then
+       ncid_met = ncid_snow
+       ELSE
+       ncid_met=ncid_lw
+       END IF
        ok = NF90_INQ_VARID(ncid_met,'LAI',id%LAI)
        IF(ok == NF90_NOERR)THEN
           exists%LAI = .TRUE. ! LAI is present in met file
@@ -1460,7 +1465,11 @@ SUBROUTINE open_met_file(dels,kstart,kend,spinup, TFRZ )
        print*,"exists%LAI,exists%LAI,exists%LAI_T,exists%LAI_M,exists%LAI_P"
        print*,'exists%LAI',exists%LAI,exists%LAI_T,exists%LAI_M,exists%LAI_P
 
-    ncid_met=ncid_snow
+     IF (ncciy > 0 .AND. (globalMetfile%l_gswp .OR. globalMetfile%l_ncar))Then
+       ncid_met = ncid_snow
+     ELSE
+       ncid_met=ncid_lw
+     END IF
 
     ! If a spinup is to be performed:
     IF(spinup) THEN
@@ -1708,9 +1717,9 @@ SUBROUTINE open_met_file(dels,kstart,kend,spinup, TFRZ )
     IF(ASSOCIATED(temparray1)) DEALLOCATE(temparray1)
     IF(ASSOCIATED(temparray2)) DEALLOCATE(temparray2)
    
- !     print*,"In SUBROUTINE open_met_file,by xzhang"
- !     print*,"ncid_met,ncid_lai,ncid_sw,ncid_snow,ncid_ta,ncid_temp"
- !     print*,ncid_met,ncid_lai,ncid_sw,ncid_snow,ncid_ta,ncid_temp
+    print*,"In SUBROUTINE open_met_file,by xzhang"
+    print*,"ncid_met,ncid_lai,ncid_sw,ncid_snow,ncid_ta,ncid_temp"
+    print*,ncid_met,ncid_lai,ncid_sw,ncid_snow,ncid_ta,ncid_temp
 
  
     ! Report finding met variables to log file:
@@ -2199,13 +2208,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -      
-      ncid_temp=ncid_met
-      ncid_met=ncid_lai
+       ncid_temp=ncid_met
+       ncid_met=ncid_lai
 
-       !print*,"In SUBROUTINE get_met_data_file ktau=",ktau
-       !print*,"Check ncid_temp=",ncid_temp
-       !print*,"Check ncid_met=",ncid_met
-       !print*,"Check ncid_lai=",ncid_lai
+       print*,"In SUBROUTINE get_met_data_file ktau=",ktau
+       print*,"Check ncid_temp=",ncid_temp
+       print*,"Check ncid_met=",ncid_met
+       print*,"Check ncid_lai=",ncid_lai
 
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
@@ -2480,6 +2489,12 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get LAI data, if it exists, for land-only grid:- - - - - - - - -
+      ! added by Chris Lu and X.Zhang 02/12/2014
+        ncid_temp=ncid_met 
+      IF (filename%LAI .ne. '')THEN
+        IF (ncciy > 0) ncid_met = ncid_lai
+ !       print *,'reading from lai data'
+      END IF
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
           IF(exists%LAI_P) THEN ! i.e. patch dependent LAI
@@ -2562,6 +2577,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
       ncid_met=ncid_temp  !added by chris LU, xzhang,2/12/2014
+ !     print*,"print ncid_met affter call get_met_data"
+ !     print*,"ncid_met:",ncid_met
       DEALLOCATE(tmpDat1, tmpDat2, tmpDat3, tmpDat2x)
 
     ELSE
@@ -2619,6 +2636,8 @@ END SUBROUTINE get_met_data
 
 SUBROUTINE close_met_file
 
+ ! print*,"print ncid_met when call close_met_file"
+ ! print*,"ncid_met:",ncid_met
   ok=NF90_CLOSE(ncid_met)
   IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
        //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
