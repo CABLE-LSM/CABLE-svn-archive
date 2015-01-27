@@ -82,12 +82,16 @@ CONTAINS
    REAL, INTENT(IN)               :: dels ! time setp size (s)
     
    INTEGER :: k,kk,j  
+!   REAL RainTotal
+!   save RainTotal
+
 
 #ifdef NO_CASA_YET
    INTEGER :: ICYCLE
    ICYCLE = 0
 #endif
-
+!   if( ktau_gl .eq. 1) RainTotal =0.
+!     RainTotal =  RainTotal + met%precip
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
@@ -127,6 +131,12 @@ CONTAINS
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac
 
+   !if( ssnow%snowd(1) .gt. 0.0001)   print 23,ktau_gl,met%tk,canopy%precis,met%precip_sn,ssnow%snowd, &
+!   print 23,ktau_gl,met%tk,canopy%precis,met%precip_sn,ssnow%snowd, &
+!            ssnow%ssdnn, ssnow%snowd/ssnow%ssdnn,ssnow%sconds(:,1),rad%albedo(:,1),rad%albedo(:,2), &
+!            ssnow%albsoilsn(:,1),ssnow%albsoilsn(:,2),soil%albsoil(:,1),soil%albsoil(:,2),RainTotal
+!23 format(1x,'snow',i6,f7.2,2f9.5,f7.2,f7.2,f7.2,7f6.3,f10.1)
+!   print *,'coffline ',cable_runtime%offline ,cable_user%cable_runtime_coupled,cable_runtime%um 
    IF( cable_runtime%um ) THEN
       
      IF( cable_runtime%um_implicit ) THEN

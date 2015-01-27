@@ -329,6 +329,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qv
+         dq = max( -0.1e-4, dq)
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -353,6 +354,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qvair
+         dq = max( -0.1e-4, dq)
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -414,7 +416,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    END DO           ! do iter = 1, NITER
 
 
-   canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
+   !canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
+   canopy%cduv = canopy%us * canopy%us / (max(met%ua,0.01))**2
 
    !---diagnostic purposes
    canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         & 
@@ -601,7 +604,7 @@ SUBROUTINE comp_friction_vel()
 
    psim_1 = psim(canopy%zetar(:,iter)) 
    
-      rescale = C%VONK * MAX(met%ua,C%UMIN)
+      rescale = C%VONK * MAX(met%ua,C%UMIN+min(0.5,rough%z0m/2.))
       z_eff = rough%zref_uv / rough%z0m
    
    psim_arg = canopy%zetar(:,iter) / z_eff 
@@ -656,11 +659,10 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
        
    INTEGER :: j
    
-   DO j=1,mp
-      !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
-      IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
-         dq(j) = max( -0.1e-3, dq(j))
-   ENDDO 
+   !DO j=1,mp
+   !   IF( ssnow%snowd(j)>1.0 .OR. ssnow%tss(j).LE.C%tfrz)    
+   !      dq(j) = max( -0.1e-4, dq(j))
+   !ENDDO 
    
    ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
    
@@ -724,7 +726,7 @@ SUBROUTINE Latent_heat_flux()
    
    ! Evaporation form soil puddle
    canopy%fesp = min(ssnow%pudsto/dels*air%rlam,max(pwet*ssnow%potev,0.))
-   canopy%fes = canopy%fess + canopy%fesp
+   canopy%fes = canopy%fess + pwet*canopy%fesp
 
 END SUBROUTINE latent_heat_flux
 
@@ -1203,6 +1205,7 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
                            ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) )
 
       IF( ssnow%snowd(j) > 0.1) ssnow%wetfac(j) = 0.9
+      IF( soil%isoilm(j) == 9 ) ssnow%wetfac(j) = 1.0
       
       IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                  &
          ssnow%wetfac(j) = 1.0 ! lakes: hard-wired number to be removed
@@ -1212,11 +1215,14 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
    ENDDO 
       
-
    ! owetfac introduced to reduce sharp changes in dry regions,
    ! especially in offline runs in which there may be discrepancies b/n
    ! timing of precip and temperature change (EAK apr2009)
-   ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
+   where ( ssnow%wetfac - ssnow%owetfac .gt. 0.8 )
+           ssnow%wetfac = 0.9*ssnow%owetfac + 0.1*ssnow%wetfac
+   elsewhere
+           ssnow%wetfac = 0.5*(ssnow%owetfac + ssnow%wetfac)
+   endwhere
 
 END SUBROUTINE Surf_wetness_fact
 
