@@ -758,6 +758,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                L = um1%TILE_INDEX(K,N)
                J=(um1%LAND_INDEX(L)-1)/um1%row_length + 1
                I = um1%LAND_INDEX(L) - (J-1)*um1%row_length
+               fwork(1,L,N) = 0.0
                IF( sin_theta_latitude(I,J) .LT. -0.91 ) fwork(1,L,N) = 1.0
             ENDDO
          ENDDO

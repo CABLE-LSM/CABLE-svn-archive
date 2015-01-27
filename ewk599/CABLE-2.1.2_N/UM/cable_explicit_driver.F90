@@ -374,6 +374,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
                            ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
                            canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
+                           canopy%cduv,                                        &
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
@@ -405,6 +406,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
                            RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
                            ssnow_snowd, ssnow_cls, air_rlam, air_rho,          &
                            canopy_fe, canopy_fh, canopy_us, canopy_cdtq,       &
+                           canopy_cduv,                                        &
                            canopy_fwet, canopy_wetfac_cs, canopy_rnet,         &
                            canopy_zetar, canopy_epot, met_ua, rad_trad,        &
                            rad_transd, rough_z0m, rough_zref_tq )
@@ -493,8 +495,8 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
    ! fraction of canopy wet
    REAL, INTENT(IN), DIMENSION(mp) :: canopy_fwet, canopy_wetfac_cs
    
-   ! friction velocity, drag coefficient for momentum
-   REAL, INTENT(IN), DIMENSION(mp) :: canopy_us, canopy_cdtq
+   ! friction velocity, drag coefficient for heat and momentum
+   REAL, INTENT(IN), DIMENSION(mp) :: canopy_us, canopy_cdtq,canopy_cduv
    
    ! net rad. absorbed by surface (W/m2), total potential evaporation 
    REAL, INTENT(IN), DIMENSION(mp) :: canopy_rnet, canopy_epot        
@@ -522,8 +524,8 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       CD_CAB_TILE,   &  
       CH_CAB_TILE,   &  ! (bulk transfer) coeff. for momentum
       U_S_TILE
-   REAL, DIMENSION(mp)  :: &
-      CDCAB,CHCAB
+   !REAL, DIMENSION(mp)  :: &
+   !   CDCAB,CHCAB
 
    !___local miscelaneous
    REAL, DIMENSION(mp)  :: &
@@ -556,9 +558,10 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       !___return friction velocities/drags/ etc
       U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)
       U_S_CAB  = SUM(um1%TILE_FRAC *  U_S_TILE,2)
-      CDCAB = canopy_us**2/met_ua**2   ! met%ua is always above umin = 0.1m/s
+      !CDCAB = canopy_us**2/met_ua**2   ! met%ua is always above umin = 0.1m/s
       ! for Cable CD*
-      CD_CAB_TILE =  UNPACK(CDCAB,um1%l_tile_pts, miss)
+      !CD_CAB_TILE =  UNPACK(CDCAB,um1%l_tile_pts, miss)
+      CD_CAB_TILE =  UNPACK(canopy_cduv,um1%l_tile_pts, miss)
       CD_CAB= SUM(um1%TILE_FRAC * CD_CAB_TILE,2)
       ! for Cable CH*
       CH_CAB_TILE =  UNPACK(canopy_cdtq,um1%l_tile_pts, miss)
