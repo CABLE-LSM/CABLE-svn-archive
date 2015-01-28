@@ -54,10 +54,6 @@ if ($SPLIT == n) then
 
   set short = `ls h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc | head -${YR}`  
   cdo mergetime $short Mmonthly_means_${YR}yrs.nc  
-  #cdo mergetime h?.nc Mmon_dec_70s.nc  
-  #cdo mergetime i?.nc Mmon_dec_80s.nc  
-  #cdo mergetime j?.nc Mmon_dec_90s.nc  
-  #cdo mergetime k?.nc Mmon_dec_00s.nc  
   cdo yearmean Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
 
  endif

@@ -16,11 +16,23 @@ mDir  = systemfunc("echo $MOSES")
 cDir  = systemfunc("echo $CABLE")
 tDir  = "~ste69f/access/access13/amip" ;systemfunc("echo $CABLE3")
 ;tDir  = "~"+usr+"/access/access13/amip" ;systemfunc("echo $CABLE3")
+cname = systemfunc("echo $CNM")
 
 ;mland = False
 ;mland = True
-rtype = "amip"
-;rtype = "historical"
+
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname.eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname.eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
 PltDir    = "~"+usr+"/umplot/data/"
 ObsDir    = "~"+usr+"/umplot/obs/"
@@ -86,7 +98,11 @@ emsk&longitude = emsk1&longitude
 emsk&time      = emsk1&time
 
 zpr1 = dim_avg_n_Wrap(pr1(:,0,:,:),0)
-zpr0 = dim_avg_n_Wrap(pr0(:,0,:,:),0)
+if (dimsizes(dimsizes(pr0)).eq.4) then
+ zpr0 = dim_avg_n_Wrap(pr0(:,0,:,:),0)
+else
+ zpr0 = dim_avg_n_Wrap(pr0(:,:,:),0)
+end if
 zpr3 = dim_avg_n_Wrap(pr3,0)
 zpro = dim_avg_n_Wrap(pro,0)
 ;printVarSummary(zpro)
@@ -115,7 +131,7 @@ wgteo   = wgte*(1-emsk(0,:,:))
 
 ; Zonal Mean ====================
 
-zmean  = new((/3,145/),float)
+zmean  = new((/3,145/),typeof(pr0))
 zmean  = 0.0
 zmean(0,:) = zonalAve((zpr0(:,:)))
 zmean(1,:) = zonalAve((zpr1(:,:)))
@@ -169,6 +185,7 @@ res3@tiYAxisString = ""
 res3@tmYRLabelsOn = False
 res3@tmXTLabelsOn = False
 
+  print("")
   print("Plotting AMOJ Zonal Precip")
   print("")
 plot3 = gsn_csm_x2y2(wks3,yzon,yzoo,zmean(:,:),zobmn,res2,res3)

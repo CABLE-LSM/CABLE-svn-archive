@@ -15,6 +15,20 @@ begin
 numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
+cname = systemfunc("echo $CNM")
+
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname .eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname .eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
 wDir   = "~"+usr+"/access/"
 ObsDir = "~"+usr+"/umplot/obs/"
@@ -22,15 +36,22 @@ ObsDir = "~"+usr+"/umplot/obs/"
 moses  = addfile(mDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 
-;moses  = addfile(wDir+"access10/saaca/seasonal_means_27yrs.nc","r")
-;cable  = addfile(wDir+"access11/saaba/seasonal_means_27yrs.nc","r")
+;moses  = addfile(wDir+"access10/saaca/seasonal_means_"+numYR+"yrs.nc","r")
+;cable  = addfile(wDir+"access11/saaba/seasonal_means_"+numYr+"yrs.nc","r")
 
-;moses  = addfile(wDir+"access10/historical/27years/seasonal_means_27yrs.nc","r")
-;cable  = addfile(wDir+"access13/historical/27years/seasonal_means_27yrs.nc","r")
+;moses  = addfile(wDir+"access10/historical/27years/seasonal_means_"+numYr+"yrs.nc","r")
+;cable  = addfile(wDir+"access13/historical/27years/seasonal_means_"+numYr+"yrs.nc","r")
 ;;obstas = addfile(ObsDir+"ERAi_precip.nc","r")
 
+if (isfilevar(moses,"field1532")) then
 tas_m1 = moses  ->field1532;mrro
 tas_m2 = moses  ->field1533;mrro
+else
+if (isfilevar(moses,"mrros")) then
+tas_m1 = moses  ->mrros
+tas_m2 = moses  ->smrros
+end if
+end if
 tas_m  = tas_m1+tas_m2
 tas_c1 = cable  ->field1532;mrro
 tas_c2 = cable  ->field1533;mrro
@@ -38,8 +59,14 @@ tas_c  = tas_c1+tas_c2
 copy_VarMeta(tas_m1,tas_m)
 copy_VarMeta(tas_c1,tas_c)
 ;tas_o = obstas ->a
-tas_l = tas_c - tas_m
-copy_VarMeta(tas_c,tas_l)
+dimc = dimsizes(dimsizes(tas_c))
+dimm = dimsizes(dimsizes(tas_m))
+if (dimc.eq.4.and.dimm.eq.4) then
+tas_l = tas_c(:,0,:,:) - tas_m(:,0,:,:)
+else
+tas_l = tas_c(:,0,:,:) - tas_m
+end if
+copy_VarMeta(tas_c(:,0,:,:),tas_l)
 
 tas_m              = tas_m*24*60*60
 tas_m@long_name    = "Total Runoff"
@@ -76,8 +103,7 @@ cnLevels = (/0.1,0.5,1,2,4,8,16/)
 lmask    = True ;False
 jpeg     = False
 
-pltName = "seas_totroff_amip6p_27yrs" ;Dir + "/" + varName + "_" + Yr + "yrs"
-;pltName = "seas_totroff_hist6p_27yrs" ;Dir + "/" + varName + "_" + Yr + "yrs"
+pltName = "seas_totroff_"+rtype+"6p_"+numYr+"yrs" ;Dir + "/" + varName + "_" + Yr + "yrs"
 pltType = "ps"
 
 wks = gsn_open_wks(pltType,pltName)
@@ -228,6 +254,10 @@ cmaprn = (/"white","black","cornsilk3","blueviolet","dodgerblue","chartreuse3","
   ;res@gsnRightString       = "ACCESS 1.0"
   
 ; Plot ------------------------------------------------------------------
+
+  print("")
+  print("Plotting AMOJ 6 Panel Total Runoff")
+  print("")
        
   plot = new(6,graphic)
     
@@ -251,30 +281,62 @@ cmaprn = (/"white","black","cornsilk3","blueviolet","dodgerblue","chartreuse3","
 
   res@tmXBLabelsOn = False
   res@gsnRightString       = "MAM"
-  res@gsnLeftString       = "ACCESS 1.0"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.3"
+else
+  res@gsnLeftString       = "ACCESS1.0"
+end if
+  if (dimm.eq.4) then
   plot(0) = gsn_csm_contour_map(wks,tas_m(1,0,{latS:latN},{lonL:lonR}),res)
+  else
+  plot(0) = gsn_csm_contour_map(wks,tas_m(1,{latS:latN},{lonL:lonR}),res)
+  end if
   res@tmYLLabelsOn = False
   res@gsnRightString       = "JJA"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.3"
+else
   res@gsnLeftString       = "ACCESS1.0"
+end if
+  if (dimm.eq.4) then
   plot(1) = gsn_csm_contour_map(wks,tas_m(2,0,{latS:latN},{lonL:lonR}),res)
+  else
+  plot(1) = gsn_csm_contour_map(wks,tas_m(2,{latS:latN},{lonL:lonR}),res)
+  end if
   ;res@tmXBLabelsOn = True
   res@tmYLLabelsOn = True
   res@gsnRightString       = "MAM"
-  res@gsnLeftString       = "ACCESS1.3"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4"
+else
+  res@gsnLeftString       = "ACCESS1.1"
+end if
   plot(2) = gsn_csm_contour_map(wks,tas_c(1,0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString       = "JJA"
-  res@gsnLeftString       = "ACCESS1.3"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4"
+else
+  res@gsnLeftString       = "ACCESS1.1"
+end if
   plot(3) = gsn_csm_contour_map(wks,tas_c(2,0,{latS:latN},{lonL:lonR}),res)  
   res@tmXBLabelsOn = True
   res@tmYLLabelsOn = True
   res@gsnRightString       = "MAM"
-  res@gsnLeftString       = "ACCESS1.3 - ACCESS1.0"
-  plot(4) = gsn_csm_contour_map(wks,tas_l(1,0,{latS:latN},{lonL:lonR}),res)
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4 - ACCESS1.3"
+else
+  res@gsnLeftString       = "ACCESS1.1 - ACCESS1.0"
+end if
+  plot(4) = gsn_csm_contour_map(wks,tas_l(1,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString       = "JJA"
-  res@gsnLeftString       = "ACCESS1.3 - ACCESS1.0"
-  plot(5) = gsn_csm_contour_map(wks,tas_l(2,0,{latS:latN},{lonL:lonR}),res)
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4 - ACCESS1.3"
+else
+  res@gsnLeftString       = "ACCESS1.1 - ACCESS1.0"
+end if
+  plot(5) = gsn_csm_contour_map(wks,tas_l(2,{latS:latN},{lonL:lonR}),res)
 
 
 ; Paneled Plot ====================================================

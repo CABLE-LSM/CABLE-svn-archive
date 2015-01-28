@@ -15,10 +15,21 @@ begin
 numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
+cname = systemfunc("echo $CNM")
 ObsDir = "~"+usr+"/umplot/obs/"
 
-rtype = "amip"
-;rtype = "hist"
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname .eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname .eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
 moses  = addfile(mDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/seasonal_means_"+numYr+"yrs.nc","r")
@@ -31,6 +42,8 @@ if (isfilevar(moses,"clt")) then
  tas_m = moses  ->clt
 else
  tas_m = moses  ->field30_1
+end if
+if (max(tas_m).le.2.0) then
  tas_m = tas_m*100.
 end if
 if (isfilevar(cable,"clt")) then
@@ -40,8 +53,13 @@ else
  tas_c = tas_c*100.
 end if
 ;tas_o = obstas ->tcc
+dims = dimsizes(dimsizes(tas_m))
+if (dims.eq.4) then
 tas_l = tas_c-tas_m
+else
+tas_l = tas_c(:,0,:,:)-tas_m(:,:,:)
 ;tas_l = tas_c(:,0,:,:)-tas_m
+end if
 copy_VarMeta(tas_m,tas_l)
 
 ;printVarSummary(tas_l)  ;[t | 4] x [unspecified_1 | 1] x [latitude | 145] x [longitude | 192]
@@ -185,6 +203,7 @@ gsn_define_colormap(wks,"WhiteBlueGreenYellowRed")
   
 ; Plot 1 -----------------------------------------------------------------
 
+  print("")
   print("Plotting AMOJ 6 Panel Cloud Fraction")
   print("")
        
@@ -193,23 +212,47 @@ gsn_define_colormap(wks,"WhiteBlueGreenYellowRed")
   res@cnLevels = (/1,2,3,4,5,6,7,8,9,10,15,25,35,45,55,65,75,85,95/)
   ;res@cnLevels = (/2,4,6,8,10,12,14,16,18,20,25,35,45,65,75,85,95/)
   res@tmXBLabelsOn = False
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.3 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.0 "+rtype
+end if
   res@gsnRightString      = "DJF"
+  if (dims.eq.4) then
   plot1(0) = gsn_csm_contour_map(wks,tas_m(0,0,{latS:latN},{lonL:lonR}),res)
+  else
+  plot1(0) = gsn_csm_contour_map(wks,tas_m(0,{latS:latN},{lonL:lonR}),res)
+  end if
   res@tmXBLabelsOn = False
   res@tmYLLabelsOn = False
   res@gsnRightString      = "JJA"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.3 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.0 "+rtype
+end if
+  if (dims.eq.4) then
   plot1(1) = gsn_csm_contour_map(wks,tas_m(2,0,{latS:latN},{lonL:lonR}),res)
+  else
+  plot1(1) = gsn_csm_contour_map(wks,tas_m(2,{latS:latN},{lonL:lonR}),res)
+  end if
   res@tmYLLabelsOn = True
   res@tmXBLabelsOn = True
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.1 "+rtype
+end if
   res@gsnRightString      = "DJF"
   ;plot1(2) = gsn_csm_contour_map(wks,tas_c(0,{latS:latN},{lonL:lonR}),res)
   plot1(2) = gsn_csm_contour_map(wks,tas_c(0,0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString      = "JJA"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.1 "+rtype
+end if
   ;plot1(3) = gsn_csm_contour_map(wks,tas_c(2,{latS:latN},{lonL:lonR}),res)
   plot1(3) = gsn_csm_contour_map(wks,tas_c(2,0,{latS:latN},{lonL:lonR}),res)
 
@@ -240,12 +283,28 @@ gsn_define_colormap(wks,"WhiteBlueGreenYellowRed")
   res1@tmXBLabelsOn = True
   res1@tmYLLabelsOn = True
   res1@gsnRightString      = "DJF"
+if (a14) then
+  res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
+else
   res1@gsnLeftString       = "ACCESS1.1 - ACCESS1.0 "+rtype
+end if
+  if (dims.eq.4) then
   plot2(0) = gsn_csm_contour_map(wks,tas_l(0,0,{latS:latN},{lonL:lonR}),res1)
+  else
+  plot2(0) = gsn_csm_contour_map(wks,tas_l(0,{latS:latN},{lonL:lonR}),res1)
+  end if
   res1@tmYLLabelsOn = False
   res1@gsnRightString      = "JJA"
+if (a14) then
+  res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
+else
   res1@gsnLeftString       = "ACCESS1.1 - ACCESS1.0 "+rtype
+end if
+  if (dims.eq.4) then
   plot2(1) = gsn_csm_contour_map(wks,tas_l(2,0,{latS:latN},{lonL:lonR}),res1)
+  else
+  plot2(1) = gsn_csm_contour_map(wks,tas_l(2,{latS:latN},{lonL:lonR}),res1)
+  end if
 
 ; Paneled Plot 2 ====================================================
 

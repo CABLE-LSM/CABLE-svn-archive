@@ -15,33 +15,50 @@ begin
 numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
-ObsDir = "~"+usr+"/umplot/obs/"
 tname = systemfunc("echo $tname")
+cname = systemfunc("echo $CNM")
+jpg   = systemfunc("echo $CHFMT")
+if(jpg.eq."y") then
+ jpeg = True
+else
+ jpeg = False
+end if
+ObsDir = "~"+usr+"/umplot/obs/"
 
 moses  = addfile(mDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 obstas = addfile(ObsDir+"ERAi_tp2m.nc","r")
 
-rtype = "amip"
-;rtype = "hist"
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname.eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname.eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
 if (isfilevar(moses,"tscrn")) then
  tas_m = moses  ->tscrn
 else
-if (isfilevar(moses,"tas")) then
- tas_m = moses  ->tas
-else
- tas_m = moses  ->$tname$
-end if
+ if (isfilevar(moses,"tas")) then
+  tas_m = moses  ->tas
+ else
+  tas_m = moses  ->$tname$
+ end if
 end if
 if (isfilevar(cable,"tscrn")) then
  tas_c = cable  ->tscrn
 else
-if (isfilevar(cable,"tas")) then
- tas_c = cable  ->tas
-else
- tas_c = cable  ->$tname$
-end if
+ if (isfilevar(cable,"tas")) then
+  tas_c = cable  ->tas
+ else
+  tas_c = cable  ->$tname$
+ end if
 end if
 dimc = dimsizes(dimsizes(tas_c))
 dimm = dimsizes(dimsizes(tas_m))
@@ -74,10 +91,17 @@ era_t              = regrid_bilin(tas_o,tas_m)
 era_t@long_name    = "ERAi Tscrn regridded to UM N96"
 era_t@units        = "~S~o~N~K"
 
-bias_tasm         = tas_m(:,0,:,:)-era_t(:,:,:)
-bias_tasl         = tas_l(:,0,:,:);-era_t(:,:,:)
-bias_tasc         = tas_c(:,0,:,:)-era_t(:,:,:)
-bias_tas          = tas_c(:,0,:,:)-tas_m(:,0,:,:)
+if (dimm.eq.4) then
+ bias_tasm         = tas_m(:,0,:,:)-era_t(:,:,:)
+ bias_tasl         = tas_l(:,0,:,:);-era_t(:,:,:)
+ bias_tasc         = tas_c(:,0,:,:)-era_t(:,:,:)
+ bias_tas          = tas_c(:,0,:,:)-tas_m(:,0,:,:)
+else
+ bias_tasm         = tas_m(:,:,:)-era_t(:,:,:)
+ bias_tasl         = tas_l(:,:,:);-era_t(:,:,:)
+ bias_tasc         = tas_c(:,0,:,:)-era_t(:,:,:)
+ bias_tas          = tas_c(:,0,:,:)-tas_m(:,:,:)
+end if
 copy_VarMeta(era_t(:,:,:),bias_tasm)
 copy_VarMeta(era_t(:,:,:),bias_tasl)
 copy_VarMeta(era_t(:,:,:),bias_tasc)
@@ -88,16 +112,22 @@ bias_tasl@long_name  = "Screen Temperature Bias: UM-ERAi"
 bias_tasl@units      = "~S~o~N~K"
 bias_tasc@long_name  = "Screen Temperature Bias: UM-ERAi"
 bias_tasc@units      = "~S~o~N~K"
+if (a14) then
+bias_tas@long_name   = "Screen Temperature Bias: A1.4-A1.3"
+else
 bias_tas@long_name   = "Screen Temperature Bias: A1.1-A1.0"
+end if
 bias_tas@units       = "~S~o~N~K"
 
 ;WKS===================================================================
 
 region   = False
+regno    = 4
 ;cnLevels = fspan(-3,3,13)
-cnLevels = ispan(-9,9,1)
+cnLevels = (/-9,-8,-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7,8,9/)
+;cnLevels = ispan(-9,9,1)
 lmask    = False
-jpeg     = False
+;jpeg     = False
 
 pltName = "bias_tscrn_"+rtype+"6p_"+numYr+"yrs" ;Dir + "/" + varName + "_" + Yr + "yrs"
 ;pltName = "bias_tscrn_hist6p_27yrs" ;Dir + "/" + varName + "_" + Yr + "yrs"
@@ -183,19 +213,49 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   
 ;region -----------------------------------------------------------------
 
-  if (.not.region) then
+ if (region) then
+  if (regno.eq.1) then
    Area = "Global"
    latS = -90
    latN =  90 
    lonL =   0
    lonR = 360
-  else
+  end if
+  if (regno.eq.2) then
    Area = "Australia"
    latS = -45
    latN = -10 
    lonL = 110 
    lonR = 160
   end if 
+  ;if (regno.eq.3) then
+  ; Area = "45degN"
+  ; latS = 45
+  ; latN = 90
+  ; lonL = 0
+  ; lonR = 360
+  ;end if
+  if (regno.eq.3) then
+   Area = "NorthAmerica"
+   latS = 14
+   latN = 85
+   lonL = 190
+   lonR = 308
+  end if
+  if (regno.eq.4) then
+   Area = "NorthHemi"
+   latS =  6
+   latN = 85
+   lonL = 0.1
+   lonR = 189.9
+  end if
+ else
+   Area = "Global"
+   latS = -90
+   latN =  90
+   lonL =   0
+   lonR = 360
+ end if
   ; what about map projections - Arctic and Antarctic
 
   res@mpMinLatF  = latS
@@ -204,7 +264,7 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   res@mpMaxLonF  = lonR
   
   if(region) then
-  res@gsnAddCyclic = False
+   res@gsnAddCyclic = False
   end if
 
   res@mpCenterLonF         = -180.             ; center on dateline
@@ -228,10 +288,11 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   res@gsnRightStringFontHeightF = .02
   res@gsnLeftString        = ""
   res@gsnRightString       = ""
-  ;res@gsnRightString       = "ACCESS1.0"
+  ;res@gsnRightString       = "A1.0"
   
 ; Plot ------------------------------------------------------------------
        
+  print("")
   print("Plotting AMOJ 6 Panel Tscrn Biases")
   print("")
   plot = new(6,graphic)
@@ -239,7 +300,7 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
 ;  res@tmXBLabelsOn = False
 ;  plot(0) = gsn_csm_contour_map(wks,bias_tasm(0,{latS:latN},{lonL:lonR}),res)
 ;  res@tmYLLabelsOn = False
-;  ;res@gsnRightString       = "ACCESS1.1"
+;  ;res@gsnRightString       = "A1.1"
 ;  plot(1) = gsn_csm_contour_map(wks,bias_tasl(0,{latS:latN},{lonL:lonR}),res)
 ;  ;res@tmXBLabelsOn = True
 ;  ;res@tmYLLabelsOn = True
@@ -260,14 +321,26 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
 
   res@tmXBLabelsOn = False
   res@gsnRightString = "DJF"
-  res@gsnLeftString = "ACCESS1.0 "+rtype
+  if (a14) then
+  res@gsnLeftString = "A1.3: Tscrn (K)"
+  ;res@gsnLeftString = "A1.3 "+rtype
+  else
+  res@gsnLeftString = "A1.0: Tscrn (K)"
+  ;res@gsnLeftString = "A1.0 "+rtype
+  end if
   plot(0) = gsn_csm_contour_map(wks,bias_tasm(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString = "JJA"
   plot(1) = gsn_csm_contour_map(wks,bias_tasm(2,{latS:latN},{lonL:lonR}),res)
   ;res@tmXBLabelsOn = True
   res@tmYLLabelsOn = True
-  res@gsnLeftString = "ACCESS1.1 "+rtype
+  if (a14) then
+  res@gsnLeftString = "A1.4: Tscrn (K)"
+  ;res@gsnLeftString = "A1.4 "+rtype
+  else
+  res@gsnLeftString = "A1.1: Tscrn (K)"
+  ;res@gsnLeftString = "A1.1 "+rtype
+  end if
   res@gsnRightString = "DJF"
   plot(2) = gsn_csm_contour_map(wks,bias_tasc(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
@@ -277,7 +350,13 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   plot(3) = gsn_csm_contour_map(wks,bias_tasc(2,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = True
   res@tmXBLabelsOn = True
-  res@gsnLeftString = "ACCESS1.1 - ACCESS1.0 "+rtype
+  if (a14) then
+  res@gsnLeftString = "A1.4 - A1.3: Tscrn (K)"
+  ;res@gsnLeftString = "A1.4 - A1.3 "+rtype
+  else
+  res@gsnLeftString = "A1.1 - A1.0: Tscrn (K)"
+  ;res@gsnLeftString = "A1.1 - A1.0 "+rtype
+  end if
   res@gsnRightString = "DJF"
   plot(4) = gsn_csm_contour_map(wks,bias_tas(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
@@ -291,19 +370,21 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   ;pres@gsnMaximize           = True
   ;pres@gsnOrientation        = "landscape"
   pres@gsnPanelLabelBar      = True
-  pres@gsnPanelYWhiteSpacePercent = 5
+  pres@gsnPanelYWhiteSpacePercent = 6
   pres@gsnPanelFigureStrings = (/"a","b","c","d","e","f"/)
   ;pres@gsnPanelFigureStrings = (/"DJF","DJF","DJF","JJA","JJA","JJA"/)
   ;pres@gsnPanelFigureStrings = (/"DJF","MAM","JJA","SON"/)
   ;pres@gsnPanelRowSpec       = True
   pres@pmLabelBarWidthF      = 0.8         ; makes label bar bigger
-  pres@txString              = "Seasonal Mean "+(tas_m@long_name + " Bias (K)")
-  ;pres@txString              = "Seasonal Mean "+(tas_m@long_name + " Bias (" + tas_m@units + ")")
+  ;pres@txString              = "Seasonal Mean "+(tas_m@long_name + " Bias (K)")
+  ;;pres@txString              = "Seasonal Mean "+(tas_m@long_name + " Bias (" + tas_m@units + ")")
   
   gsn_panel(wks,plot,(/3,2/),pres)
 
+  delete(wks)
   if(jpeg) then
-  system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
+  system("ps2epsi "+pltName+".ps "+pltName+".eps")
+  system("convert -density 500 "+pltName+".eps "+pltName+".jpg")
 ;  system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
   end if
 

@@ -14,6 +14,7 @@ procedure Panel3Plot(pltName:string,top:numeric,middle:numeric,bottom:numeric,jp
 
 begin
 
+a14 = False ;True
 usr = systemfunc("echo $USERID")
 numYr = systemfunc("echo $YR")
 ;jpg = systemfunc("echo $CHFMT")
@@ -23,11 +24,16 @@ numYr = systemfunc("echo $YR")
 ;jpeg = False
 ;end if
 
-PltNam            = pltName+"_"+numYr+"yrs"
-wks               = gsn_open_wks("ps",pltName+"_"+numYr+"yrs")
-cmap = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
-gsn_define_colormap(wks,cmap)
-;gsn_define_colormap(wks,"BlueDarkRed18");pltColor)
+PltNam  = pltName+"_"+numYr+"yrs"
+wks     = gsn_open_wks("ps",pltName+"_"+numYr+"yrs")
+if (pltName.eq."bias_ann_prec_3p") then
+ gsn_define_colormap(wks,"BlueDarkRed18")
+ gsn_reverse_colormap(wks)
+else
+ cmap = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
+ gsn_define_colormap(wks,cmap)
+ ;gsn_define_colormap(wks,"BlueDarkRed18");pltColor)
+end if
 
 res               = True
 res@gsnDraw       = False
@@ -51,8 +57,12 @@ res@gsnLeftString        = ""                ;
 res@gsnRightString       = ""                ;
 res@mpCenterLonF         = -180. 
 res@cnLevelSelectionMode = "ExplicitLevels"  ; Define your own
-    res@cnLevels = ispan(-9,9,1) ;cnLevels   
-    ;res@cnLevels = (/-8,-4,-2,-1,0,1,2,4,8/) ;cnLevels   
+if (pltName.eq."bias_ann_prec_3p") then
+ res@cnLevels = (/-8,-4,-2,-1,-0.5,0,0.5,1,2,4,8/)
+else
+ res@cnLevels = ispan(-9,9,1) ;cnLevels
+ ;res@cnLevels = (/-8,-4,-2,-1,0,1,2,4,8/) ;cnLevels
+end if
 
 latS = -90
 latN =  90
@@ -77,8 +87,12 @@ plot(2)           = gsn_csm_contour_map(wks,bottom,res)
 pres                      = True
 pres@gsnMaximize          = True
 pres@txString             = ""
+if (a14) then
+pres@gsnPanelFigureStrings = (/"A1.4","A1.3","A1.4-A1.3"/)
+else
 ;pres@gsnPanelFigureStrings = (/"cable","moses","cable-moses"/)
 pres@gsnPanelFigureStrings = (/"new (c)","old (m)","new-old"/)
+end if
 pres@gsnPanelLabelBar      = True
 pres@gsnPanelBottom       = 0.18
 ;pres@txFontHeightF       = 0.03
@@ -86,10 +100,10 @@ pres@gsnPanelBottom       = 0.18
 gsn_panel(wks,plot,(/3,1/),pres)
 
 if(jpeg)then
-system("ps2epsi "+PltNam+".ps "+PltNam+".eps")
-system("convert -density 500 -rotate 270 "+PltNam+".eps "+PltNam+".jpg")
-;system("convert -density 1000 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
-;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
+ system("ps2epsi "+PltNam+".ps "+PltNam+".eps")
+ system("convert -density 500 -rotate 270 "+PltNam+".eps "+PltNam+".jpg")
+ ;system("convert -density 1000 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
+ ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+PltNam+".ps "+PltNam+".jpg")
 end if
 
 end

@@ -13,7 +13,7 @@ loadscript("~"+usr+"/umplot/regrid.ncl")
 
 procedure run_ncl(fileDir:string,Runid:string,numYr:string,Tiles:string,\
               sLevs:string,Res:string,Split:logical,Taylor:logical,    \
-              compDir:string,lcable:logical,jpeg:logical)
+              compDir:string,Region:string,lcable:logical,jpeg:logical)
 
 begin
 
@@ -63,14 +63,15 @@ begin
 
 ; Directories ------------------------------------------------------
 
-  ;usr = systemfunc("echo $USERID")
+  ;usr    = systemfunc("echo $USERID")
   ObsDir = "~"+usr+"/umplot/obs/"
   ;ModDir = fileDir
   ModDir = systemfunc("echo $PWD")
   ;ModDir = systemfunc("echo $DIRW")
-  tname =  systemfunc("echo $tname")
+  tname  =  systemfunc("echo $tname")
   txname =  systemfunc("echo $txname")
   tiname =  systemfunc("echo $tiname")
+  modl   =  systemfunc("echo $MODEL")
 
 ; Obs & Model netCDF ----------------------------------------------- 
 
@@ -143,8 +144,14 @@ else
  end if
  end if
 end if
-if(isfilevar(sea_file,"temp")) then
-  tsurf    = sea_file    ->temp        ; Surface Temperature (deg K)
+if(isfilevar(sea_file,"ts")) then
+  tsurf    = sea_file    ->ts          ; Surface Temperature (deg K)
+else
+ if(modl.eq."c") then
+  tsurf    = sea_file    ->temp_28     ; Surface Temperature (deg K)
+ else
+  tsurf    = sea_file    ->temp_4      ; Surface Temperature (deg K)
+ end if
 end if
 if(isfilevar(sea_file,"sh")) then
   sh       = sea_file    ->sh          ; Sensible Heat
@@ -158,25 +165,40 @@ else
 end if
 if(isfilevar(sea_file,"solar")) then
   solar    = sea_file    ->solar       ; Net short wave radiation flux
+else
+  solar    = sea_file    ->rss         ; Net short wave radiation flux
 end if
 if(isfilevar(sea_file,"longwave")) then
   longwave = sea_file    ->longwave    ; Net long wave radiation flux
+else
+  longwave = sea_file    ->rls         ; Net long wave radiation flux
 end if
 if(isfilevar(sea_file,"ilr")) then
   lw       = sea_file    ->ilr         ;
+else
+  lw       = sea_file    ->rlds        ;
 end if
 if(isfilevar(sea_file,"field203")) then
   sw       = sea_file    ->field203    ; Total downward surface solar fl
+else
+  sw       = sea_file    ->rsds    ; Total downward surface solar fl
 end if
 if(isfilevar(sea_file,"field208")) then
   csky     = sea_file    ->field208    ; Clear-sky flux (type II) solar
+else
+  csky     = sea_file    ->rsdscs     ; Clear-sky flux (type II) solar
 end if
 if(isfilevar(sea_file,"field1526")) then
   evap1    = sea_file    ->field1526   ; Evaporation from soil or canopy
   evap2    = sea_file    ->field1527   ; Evaporation from soil or canopy
 else
-  evap1    = sea_file    ->evspsblsoi
-  evap2    = sea_file    ->evspsblveg
+ if(isfilevar(sea_file,"evspsblsoi")) then
+   evap1    = sea_file    ->evspsblsoi
+   evap2    = sea_file    ->evspsblveg
+ else
+   evap1    = sea_file    ->evpsoil
+   evap2    = sea_file    ->evpcan
+ end if
 end if
 if(isfilevar(sea_file,"field1528")) then
   evap3    = sea_file    ->field1528   ; Evaporation from soil or canopy
@@ -200,6 +222,10 @@ if(isfilevar(sea_file,"field202_1")) then
 end if
 if(isfilevar(sea_file,"field141")) then 
   snmelt   = sea_file    ->field141    ;
+else
+ if(isfilevar(sea_file,"field3258")) then 
+  snmelt   = sea_file    ->field3258    ;
+ end if
 end if
 if(isfilevar(sea_file,"field1532")) then
   srnf     = sea_file    ->field1532   ; Surf Runoff                     ; **** rsea_file
@@ -748,6 +774,7 @@ Panel_Plot(pltDir,"erai_precip","20",type, cmapr2            ,era_prec ,False,Tr
 AnnPlot(pltDir,"erai_atscrn","20",type,"BlAqGrYeOrReVi200",era_tp2m,False,True,levtp,False,jpeg)
 AnnPlot(pltDir,"erai_aprec" ,"20",type,cmapr2             ,era_prec,False,True,levbpr,False,jpeg)
 
+if (modl.eq."m") then
 if(isvar("lai")) then
 do n = 0,npft-1
 b = n+1
@@ -761,6 +788,20 @@ canht@long_name = "Canopy Height for PFT "+c
 Panel_Plot(pltDir,"seas_canht"+c,numYr,type,"BlAqGrYeOrReVi200",canht(:,n,:,:),False,True,levdf,True,False)
 end do
 end if
+;else
+;print("")
+;do s =0,3
+;print("LAI, v1 = "+lai(s, 0,0,0)+", v2 = "+lai(s, 1,0,0)+", v3 = "+lai(s, 2,0,0)+", v4 = "+lai(s, 3,0,0)+"")
+;print("LAI, v5 = "+lai(s, 4,0,0)+", v6 = "+lai(s, 5,0,0)+", v7 = "+lai(s, 6,0,0)+", v8 = "+lai(s, 7,0,0)+"")
+;print("LAI, v9 = "+lai(s, 8,0,0)+", v10= "+lai(s, 9,0,0)+", v11= "+lai(s,10,0,0)+", v12= "+lai(s,11,0,0)+"")
+;print("LAI, v13= "+lai(s,12,0,0)+"")
+;print("CHT, v1 = "+canht(s, 0,0,0)+", v2 = "+canht(s, 1,0,0)+", v3 = "+canht(s, 2,0,0)+", v4 = "+canht(s, 3,0,0)+"")
+;print("CHT, v5 = "+canht(s, 4,0,0)+", v6 = "+canht(s, 5,0,0)+", v7 = "+canht(s, 6,0,0)+", v8 = "+canht(s, 7,0,0)+"")
+;print("CHT, v9 = "+canht(s, 8,0,0)+", v10= "+canht(s, 9,0,0)+", v11= "+canht(s,10,0,0)+", v12= "+canht(s,11,0,0)+"")
+;print("CHT, v13= "+canht(s,12,0,0)+"")
+;end do
+;print("")
+end if
 
 if(isvar("lalb")) then
 Panel_Plot(pltDir,"seas_lalb"  ,numYr,type,"BlAqGrYeOrReVi200",lalb(:,0,:,:)  ,False,True,levalb,True,jpeg)
@@ -771,7 +812,9 @@ end if
 if(isvar("sfrac")) then
 do n = 0,ntiles-1
 d = n + 1
+if (sum(sfrac(:,n,:,:)).ne.0) then
 Panel_Plot(pltDir,"seas_sfrac"+d,numYr,type,"BlAqGrYeOrReVi200",sfrac(:,n,:,:),False,True,levsfr,True,False)
+end if
 end do
 end if
 
@@ -782,30 +825,44 @@ if(isvar("nsradf")) then
 Panel_Plot(pltDir,"seas_nsradf",numYr,type,"BlAqGrYeOrReVi200",nsradf(:,0,:,:),False,True,levrad,True,jpeg)
 end if
 if(isvar("evap")) then
-if(dims.gt.3) then
-Panel_Plot(pltDir,"seas_evap"  ,numYr,type,cmapsn,evap(:,0,:,:)  ,False,True,levevp,True,jpeg)
-else
-Panel_Plot(pltDir,"seas_evap"  ,numYr,type,cmapsn,evap(:,:,:)  ,False,True,levevp,True,jpeg)
-end if
+ if(dims.gt.3) then
+  Panel_Plot(pltDir,"seas_evap"  ,numYr,type,cmapsn,evap(:,0,:,:)  ,False,True,levevp,True,jpeg)
+ else
+  Panel_Plot(pltDir,"seas_evap"  ,numYr,type,cmapsn,evap(:,:,:)  ,False,True,levevp,True,jpeg)
+ end if
 end if
 if(isvar("tsurf")) then
-Panel_Plot(pltDir,"seas_tsurf" ,numYr,type,"BlAqGrYeOrReVi200",tsurf(:,0,:,:) ,False,True,levtp,True,jpeg)
+ if(dims.gt.3) then
+  Panel_Plot(pltDir,"seas_tsurf" ,numYr,type,"BlAqGrYeOrReVi200",tsurf(:,0,:,:) ,False,True,levtp,True,jpeg)
+ else
+  Panel_Plot(pltDir,"seas_tsurf" ,numYr,type,"BlAqGrYeOrReVi200",tsurf(:,:,:) ,False,True,levtp,True,jpeg)
+ end if
 end if
 if (isvar("solar")) then
-Panel_Plot(pltDir,"seas_solar",numYr,type,"BlAqGrYeOrReVi200",solar(:,0,:,:),False,True,levsw1,False,jpeg)
-Panel_Plot(pltDir,"seas_swdown",numYr,type,"BlAqGrYeOrReVi200",sw(:,0,:,:),False,True,levsw1,False,jpeg)
-Panel_Plot(pltDir,"seas_longwave",numYr,type,"BlAqGrYeOrReVi200",longwave(:,0,:,:),False,True,levlw2,False,jpeg)
-Panel_Plot(pltDir,"seas_lwdown",numYr,type,"BlAqGrYeOrReVi200",lw(:,0,:,:),False,True,levlw1,False,jpeg)
+ if(dims.gt.3) then
+  Panel_Plot(pltDir,"seas_solar",numYr,type,"BlAqGrYeOrReVi200",solar(:,0,:,:),False,True,levsw1,False,jpeg)
+  Panel_Plot(pltDir,"seas_swdown",numYr,type,"BlAqGrYeOrReVi200",sw(:,0,:,:),False,True,levsw1,False,jpeg)
+  Panel_Plot(pltDir,"seas_longwave",numYr,type,"BlAqGrYeOrReVi200",longwave(:,0,:,:),False,True,levlw2,False,jpeg)
+  Panel_Plot(pltDir,"seas_lwdown",numYr,type,"BlAqGrYeOrReVi200",lw(:,0,:,:),False,True,levlw1,False,jpeg)
+ else
+  Panel_Plot(pltDir,"seas_solar",numYr,type,"BlAqGrYeOrReVi200",solar(:,:,:),False,True,levsw1,False,jpeg)
+  Panel_Plot(pltDir,"seas_swdown",numYr,type,"BlAqGrYeOrReVi200",sw(:,:,:),False,True,levsw1,False,jpeg)
+  Panel_Plot(pltDir,"seas_longwave",numYr,type,"BlAqGrYeOrReVi200",longwave(:,:,:),False,True,levlw2,False,jpeg)
+  Panel_Plot(pltDir,"seas_lwdown",numYr,type,"BlAqGrYeOrReVi200",lw(:,:,:),False,True,levlw1,False,jpeg)
+ end if
 end if
 if (dims.gt.3) then
-Panel_Plot(pltDir,"seas_sh"      ,numYr,type,"BlAqGrYeOrReVi200",sh(:,0,:,:) ,False,True,levsh,True,jpeg)
-Panel_Plot(pltDir,"seas_lh"      ,numYr,type,"BlAqGrYeOrReVi200",lh(:,0,:,:) ,False,True,levlh,True,jpeg)
+ Panel_Plot(pltDir,"seas_sh"      ,numYr,type,"BlAqGrYeOrReVi200",sh(:,0,:,:) ,False,True,levsh,True,jpeg)
+ Panel_Plot(pltDir,"seas_lh"      ,numYr,type,"BlAqGrYeOrReVi200",lh(:,0,:,:) ,False,True,levlh,True,jpeg)
+ if(isvar("snmelt")) then
+  Panel_Plot(pltDir,"seas_snmlt" ,numYr,type,"BlAqGrYeOrReVi200",snmelt(:,0,:,:) ,False,True,levmlt,True,jpeg)
+ end if
 else
-Panel_Plot(pltDir,"seas_sh"      ,numYr,type,"BlAqGrYeOrReVi200",sh(:,:,:) ,False,True,levsh,True,jpeg)
-Panel_Plot(pltDir,"seas_lh"      ,numYr,type,"BlAqGrYeOrReVi200",lh(:,:,:) ,False,True,levlh,True,jpeg)
-end if
-if(isvar("snmelt")) then
-Panel_Plot(pltDir,"seas_snmlt" ,numYr,type,"BlAqGrYeOrReVi200",snmelt(:,0,:,:) ,False,True,levmlt,True,jpeg)
+ Panel_Plot(pltDir,"seas_sh"      ,numYr,type,"BlAqGrYeOrReVi200",sh(:,:,:) ,False,True,levsh,True,jpeg)
+ Panel_Plot(pltDir,"seas_lh"      ,numYr,type,"BlAqGrYeOrReVi200",lh(:,:,:) ,False,True,levlh,True,jpeg)
+ if(isvar("snmelt")) then
+  Panel_Plot(pltDir,"seas_snmlt" ,numYr,type,"BlAqGrYeOrReVi200",snmelt(:,:,:) ,False,True,levmlt,True,jpeg)
+ end if
 end if
 if(isvar("srnf")) then
 Panel_Plot(pltDir,"seas_tot_rnf",numYr,type,cmaprn,tot_rnf(:,0,:,:),False,True,levrnf,True,jpeg)
@@ -844,13 +901,24 @@ Panel_Plot(pltDir,"seas_frp" ,numYr,type,"BlAqGrYeOrReVi200",frp(:,0,:,:) ,False
 Panel_Plot(pltDir,"seas_frs" ,numYr,type,"BlAqGrYeOrReVi200",frs(:,0,:,:) ,False,True,levs,True,False)
 end if
 
-if (isvar("solar")) then
-Panel_Plot(pltDir,"seas_cloudalb",numYr,type,"BlAqGrYeOrReVi200",calb(:,0,:,:),False,True,levsfr,False,jpeg)
-Panel_Plot(pltDir,"seas_surfalb" ,numYr,type,"BlAqGrYeOrReVi200",surfalb(:,0,:,:),False,True,levsal,False,jpeg)
-Panel_Plot(pltDir,"seas_swnet"   ,numYr,type,"BlAqGrYeOrReVi200",swnet(:,0,:,:),False,True,levsw,False,jpeg)
-Panel_Plot(pltDir,"seas_seb" ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,True,levseb,True,jpeg)
+if (dims.gt.3) then
+ if (isvar("solar")) then
+  Panel_Plot(pltDir,"seas_cloudalb",numYr,type,"BlAqGrYeOrReVi200",calb(:,0,:,:),False,True,levsfr,False,jpeg)
+  Panel_Plot(pltDir,"seas_surfalb" ,numYr,type,"BlAqGrYeOrReVi200",surfalb(:,0,:,:),False,True,levsal,False,jpeg)
+  Panel_Plot(pltDir,"seas_swnet"   ,numYr,type,"BlAqGrYeOrReVi200",swnet(:,0,:,:),False,True,levsw,False,jpeg)
+  Panel_Plot(pltDir,"seas_seb" ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,True,levseb,True,jpeg)
 ; annual SEB ----------
-AnnPlot(pltDir,"ann_seb"      ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,True,levseb,True,jpeg)
+  AnnPlot(pltDir,"ann_seb"      ,numYr,type,"BlueDarkRed18",seb(:,0,:,:)  ,False,True,levseb,True,jpeg)
+ end if
+else
+ if (isvar("solar")) then
+  Panel_Plot(pltDir,"seas_cloudalb",numYr,type,"BlAqGrYeOrReVi200",calb(:,:,:),False,True,levsfr,False,jpeg)
+  Panel_Plot(pltDir,"seas_surfalb" ,numYr,type,"BlAqGrYeOrReVi200",surfalb(:,:,:),False,True,levsal,False,jpeg)
+  Panel_Plot(pltDir,"seas_swnet"   ,numYr,type,"BlAqGrYeOrReVi200",swnet(:,:,:),False,True,levsw,False,jpeg)
+  Panel_Plot(pltDir,"seas_seb" ,numYr,type,"BlueDarkRed18",seb(:,:,:)  ,False,True,levseb,True,jpeg)
+; annual SEB ----------
+  AnnPlot(pltDir,"ann_seb"      ,numYr,type,"BlueDarkRed18",seb(:,:,:)  ,False,True,levseb,True,jpeg)
+ end if
 end if
 
 ; soil temp -----------
@@ -897,25 +965,44 @@ end if
 
 ; Australian Region ===============================================
 
+if (Region.eq."2") then
+
 print("Plotting Australian Region")
 
 lev_aT   = (/240,250,260,270,275,280,285,290,295,300,305,310,315/)
 lev_aSnw = (/0,5,10,20,40,60,80,100,150,200,400,800,1000,1500/) 
 
-Panel_Plot(pltDir,"aust_tscrn" ,numYr,type,"BlAqGrYeOrReVi200",tscrn(:,0,:,:) ,True,True,levtp,True,jpeg)
-Panel_Plot(pltDir,"aust_precip",numYr,type,cmapr2,precip(:,0,:,:),True,True,levbpr,True,jpeg)
+if (dims.gt.3) then
+ Panel_Plot(pltDir,"aust_tscrn" ,numYr,type,"BlAqGrYeOrReVi200",tscrn(:,0,:,:) ,True,True,levtp,True,jpeg)
+ Panel_Plot(pltDir,"aust_precip",numYr,type,cmapr2,precip(:,0,:,:),True,True,levbpr,True,jpeg)
 
-IndPlot(pltDir,"apr_djf",numYr,type,cmapr2,precip(0,0,:,:),True,True,levbpr,True,jpeg)
-IndPlot(pltDir,"apr_mam",numYr,type,cmapr2,precip(1,0,:,:),True,True,levbpr,True,jpeg)
-IndPlot(pltDir,"apr_jja",numYr,type,cmapr2,precip(2,0,:,:),True,True,levbpr,True,jpeg)
-IndPlot(pltDir,"apr_son",numYr,type,cmapr2,precip(3,0,:,:),True,True,levbpr,True,jpeg)
+ IndPlot(pltDir,"apr_djf",numYr,type,cmapr2,precip(0,0,:,:),True,True,levbpr,True,jpeg)
+ IndPlot(pltDir,"apr_mam",numYr,type,cmapr2,precip(1,0,:,:),True,True,levbpr,True,jpeg)
+ IndPlot(pltDir,"apr_jja",numYr,type,cmapr2,precip(2,0,:,:),True,True,levbpr,True,jpeg)
+ IndPlot(pltDir,"apr_son",numYr,type,cmapr2,precip(3,0,:,:),True,True,levbpr,True,jpeg)
 
-if(isvar("tmax")) then
-Panel_Plot(pltDir,"aust_tmax"  ,numYr,type,"BlAqGrYeOrReVi200",tmax(:,0,:,:)  ,True,True,levtp,True,jpeg)
-Panel_Plot(pltDir,"aust_tmin"  ,numYr,type,"BlAqGrYeOrReVi200",tmin(:,0,:,:)  ,True,True,levtp,True,jpeg)
-Panel_Plot(pltDir,"aust_tamp"  ,numYr,type,"BlAqGrYeOrReVi200",tamp(:,0,:,:)  ,True,True,levam,True,jpeg)
+ if(isvar("tmax")) then
+  Panel_Plot(pltDir,"aust_tmax"  ,numYr,type,"BlAqGrYeOrReVi200",tmax(:,0,:,:)  ,True,True,levtp,True,jpeg)
+  Panel_Plot(pltDir,"aust_tmin"  ,numYr,type,"BlAqGrYeOrReVi200",tmin(:,0,:,:)  ,True,True,levtp,True,jpeg)
+  Panel_Plot(pltDir,"aust_tamp"  ,numYr,type,"BlAqGrYeOrReVi200",tamp(:,0,:,:)  ,True,True,levam,True,jpeg)
+ end if
+else
+ Panel_Plot(pltDir,"aust_tscrn" ,numYr,type,"BlAqGrYeOrReVi200",tscrn(:,:,:) ,True,True,levtp,True,jpeg)
+ Panel_Plot(pltDir,"aust_precip",numYr,type,cmapr2,precip(:,:,:),True,True,levbpr,True,jpeg)
+
+ IndPlot(pltDir,"apr_djf",numYr,type,cmapr2,precip(0,:,:),True,True,levbpr,True,jpeg)
+ IndPlot(pltDir,"apr_mam",numYr,type,cmapr2,precip(1,:,:),True,True,levbpr,True,jpeg)
+ IndPlot(pltDir,"apr_jja",numYr,type,cmapr2,precip(2,:,:),True,True,levbpr,True,jpeg)
+ IndPlot(pltDir,"apr_son",numYr,type,cmapr2,precip(3,:,:),True,True,levbpr,True,jpeg)
+
+ if(isvar("tmax")) then
+  Panel_Plot(pltDir,"aust_tmax"  ,numYr,type,"BlAqGrYeOrReVi200",tmax(:,0,:,:)  ,True,True,levtp,True,jpeg)
+  Panel_Plot(pltDir,"aust_tmin"  ,numYr,type,"BlAqGrYeOrReVi200",tmin(:,0,:,:)  ,True,True,levtp,True,jpeg)
+  Panel_Plot(pltDir,"aust_tamp"  ,numYr,type,"BlAqGrYeOrReVi200",tamp(:,0,:,:)  ,True,True,levam,True,jpeg)
+ end if
 end if
 
+if (modl.eq."m") then
 if(isvar("lai")) then
 ;precip2_17lev
 do n =0,npft-1
@@ -969,6 +1056,7 @@ canht@long_name = "Canopy Height for PFT 13"
 Panel_Plot(pltDir,"aust_canht13",numYr,type,"BlAqGrYeOrReVi200",canht(:,12,:,:),True,True,levht2,True,False)
 end if
 end if ; if lai
+end if ; if lai
  
 if (isvar("lalb")) then
 Panel_Plot(pltDir,"aust_lalb"  ,numYr,type,"BlAqGrYeOrReVi200",lalb(:,0,:,:)  ,True,True,levalb,True,jpeg)
@@ -980,7 +1068,9 @@ end if
 if(isvar("sfrac")) then
 do n = 0,ntiles-1
 d = n + 1
+if (sum(sfrac(:,n,{-45:-10},{110:160})).ne.0) then
 Panel_Plot(pltDir,"aust_sfrac"+d,numYr,type,"BlAqGrYeOrReVi200",sfrac(:,n,:,:),True,True,levsfr,True,False)
+end if
 end do
 end if
 
@@ -991,19 +1081,31 @@ if(isvar("nsradf")) then
 Panel_Plot(pltDir,"aust_nsradf",numYr,type,"BlAqGrYeOrReVi200",nsradf(:,0,:,:),True,True,levrad,True,jpeg)
 end if
 
-if(isvar("evap")) then
-Panel_Plot(pltDir,"aust_evap"  ,numYr,type,cmapsn,evap(:,0,:,:)  ,True,True,levevp,True,jpeg)
+if (dims.gt.3) then
+ if(isvar("evap")) then
+  Panel_Plot(pltDir,"aust_evap"  ,numYr,type,cmapsn,evap(:,0,:,:)  ,True,True,levevp,True,jpeg)
+ end if
+ if(isvar("tsurf")) then
+  Panel_Plot(pltDir,"aust_tsurf" ,numYr,type,"BlAqGrYeOrReVi200",tsurf(:,0,:,:) ,True,True,levtp,True,jpeg)
+ end if
+ Panel_Plot(pltDir,"aust_sh"    ,numYr,type,"BlAqGrYeOrReVi200",sh(:,0,:,:)  ,True,True,levsh,True,jpeg)
+ Panel_Plot(pltDir,"aust_lh"    ,numYr,type,"BlAqGrYeOrReVi200",lh(:,0,:,:)  ,True,True,levlh,True,jpeg)
+ ;Panel_Plot(pltDir,"aust_seb"   ,numYr,type,"BlAqGrYeOrReVi200",seb(:,0,:,:) ,True,True,levseb,True,jpeg)
+ ; annual SEB
+ AnnPlot(pltDir,"austann_seb"   ,numYr,type,"BlueDarkRed18",seb(:,0,:,:) ,True,True,levseb,True,jpeg)
+ ;AnnPlot(pltDir,"austann_wbal"  ,numYr,type,"BlueDarkRed18",wbal(:,0,:,:),True,True,levwb,True,jpeg)
+ ;Panel_Plot(pltDir,"aust_precip_bom"   ,numYr,type,cmapr2,bmpr(:,:,:) ,True,True,levbpr,True,jpeg)
+else
+ if(isvar("evap")) then
+  Panel_Plot(pltDir,"aust_evap"  ,numYr,type,cmapsn,evap(:,:,:)  ,True,True,levevp,True,jpeg)
+ end if
+ if(isvar("tsurf")) then
+  Panel_Plot(pltDir,"aust_tsurf" ,numYr,type,"BlAqGrYeOrReVi200",tsurf(:,:,:) ,True,True,levtp,True,jpeg)
+ end if
+ Panel_Plot(pltDir,"aust_sh"    ,numYr,type,"BlAqGrYeOrReVi200",sh(:,:,:)  ,True,True,levsh ,True,jpeg)
+ Panel_Plot(pltDir,"aust_lh"    ,numYr,type,"BlAqGrYeOrReVi200",lh(:,:,:)  ,True,True,levlh ,True,jpeg)
+    AnnPlot(pltDir,"austann_seb",numYr,type,"BlueDarkRed18"    ,seb(:,:,:) ,True,True,levseb,True,jpeg)
 end if
-if(isvar("tsurf")) then
-Panel_Plot(pltDir,"aust_tsurf" ,numYr,type,"BlAqGrYeOrReVi200",tsurf(:,0,:,:) ,True,True,levtp,True,jpeg)
-end if
-Panel_Plot(pltDir,"aust_sh"    ,numYr,type,"BlAqGrYeOrReVi200",sh(:,0,:,:)  ,True,True,levsh,True,jpeg)
-Panel_Plot(pltDir,"aust_lh"    ,numYr,type,"BlAqGrYeOrReVi200",lh(:,0,:,:)  ,True,True,levlh,True,jpeg)
-;Panel_Plot(pltDir,"aust_seb"   ,numYr,type,"BlAqGrYeOrReVi200",seb(:,0,:,:) ,True,True,levseb,True,jpeg)
-; annual SEB
-AnnPlot(pltDir,"austann_seb"   ,numYr,type,"BlueDarkRed18",seb(:,0,:,:) ,True,True,levseb,True,jpeg)
-;AnnPlot(pltDir,"austann_wbal"  ,numYr,type,"BlueDarkRed18",wbal(:,0,:,:),True,True,levwb,True,jpeg)
-;Panel_Plot(pltDir,"aust_precip_bom"   ,numYr,type,cmapr2,bmpr(:,:,:) ,True,True,levbpr,True,jpeg)
 
 IndPlot(pltDir,"bom_pr_djf","101",type,cmapr2,bmpr(0,:,:),True,True,levbpr,True,jpeg)
 IndPlot(pltDir,"bom_pr_mam","101",type,cmapr2,bmpr(1,:,:),True,True,levbpr,True,jpeg)
@@ -1032,21 +1134,37 @@ Panel_Plot(pltDir,"austbias_evap"  ,numYr,type,"BlueDarkRed18",bias_evap  ,True,
 end if
 Panel_Plot(pltDir,"austbias_precip_bom" ,numYr,type,"BlueDarkRed18",bias_bmpr ,True,True,lev_bP2,True,jpeg)
 
+end if ; Region.eq.2
+
 ; Jan and Jul Monthly Means =======================================
 
 print("Plotting Jan/Jul Means")
 
-MmnPanel(pltDir,"mmn_precip" ,numYr,type,cmapr,prmn(:,0,:,:) ,False,True,levpr,True,False)
-MmnPanel(pltDir,"mmn_tscrn"  ,numYr,type,"BlAqGrYeOrReVi200",t2mn(:,0,:,:) ,False,True,levtp,True,False)
-if(isvar("tmax")) then
-MmnPanel(pltDir,"mmn_tmax"   ,numYr,type,"BlAqGrYeOrReVi200",txmn(:,0,:,:) ,False,True,levtp,True,False)
-MmnPanel(pltDir,"mmn_tmin"   ,numYr,type,"BlAqGrYeOrReVi200",tnmn(:,0,:,:) ,False,True,levtp,True,False)
-MmnPanel(pltDir,"mmn_tamp"   ,numYr,type,"BlAqGrYeOrReVi200",tamn(:,0,:,:) ,False,True,levam,True,False)
-end if
-if(isvar("lalb")) then
-MmnPanel(pltDir,"mmn_lalb"   ,numYr,type,"BlAqGrYeOrReVi200",albmn(:,0,:,:),False,True,levalb,True,False)
+if (dims.gt.3) then
+ MmnPanel(pltDir,"mmn_precip" ,numYr,type,cmapr,prmn(:,0,:,:) ,False,True,levpr,True,False)
+ MmnPanel(pltDir,"mmn_tscrn"  ,numYr,type,"BlAqGrYeOrReVi200",t2mn(:,0,:,:) ,False,True,levtp,True,False)
+ if(isvar("tmax")) then
+  MmnPanel(pltDir,"mmn_tmax"   ,numYr,type,"BlAqGrYeOrReVi200",txmn(:,0,:,:) ,False,True,levtp,True,False)
+  MmnPanel(pltDir,"mmn_tmin"   ,numYr,type,"BlAqGrYeOrReVi200",tnmn(:,0,:,:) ,False,True,levtp,True,False)
+  MmnPanel(pltDir,"mmn_tamp"   ,numYr,type,"BlAqGrYeOrReVi200",tamn(:,0,:,:) ,False,True,levam,True,False)
+ end if
+ if(isvar("lalb")) then
+  MmnPanel(pltDir,"mmn_lalb"   ,numYr,type,"BlAqGrYeOrReVi200",albmn(:,0,:,:),False,True,levalb,True,False)
+ end if
+else
+ MmnPanel(pltDir,"mmn_precip" ,numYr,type,cmapr,prmn(:,:,:) ,False,True,levpr,True,False)
+ MmnPanel(pltDir,"mmn_tscrn"  ,numYr,type,"BlAqGrYeOrReVi200",t2mn(:,:,:) ,False,True,levtp,True,False)
+ if(isvar("tmax")) then
+  MmnPanel(pltDir,"mmn_tmax"   ,numYr,type,"BlAqGrYeOrReVi200",txmn(:,0,:,:) ,False,True,levtp,True,False)
+  MmnPanel(pltDir,"mmn_tmin"   ,numYr,type,"BlAqGrYeOrReVi200",tnmn(:,0,:,:) ,False,True,levtp,True,False)
+  MmnPanel(pltDir,"mmn_tamp"   ,numYr,type,"BlAqGrYeOrReVi200",tamn(:,0,:,:) ,False,True,levam,True,False)
+ end if
+ if(isvar("lalb")) then
+  MmnPanel(pltDir,"mmn_lalb"   ,numYr,type,"BlAqGrYeOrReVi200",albmn(:,:,:),False,True,levalb,True,False)
+ end if
 end if
 
+if (modl.eq."m") then
 if(isvar("laimn")) then
 
 do n =0,npft-1
@@ -1062,6 +1180,7 @@ MmnPanel(pltDir,"mmn_canht"+g,numYr,type,"BlAqGrYeOrReVi200",chtmn(:,n,:,:),Fals
 end do
 if(isvar("lstmn")) then
 MmnPanel(pltDir,"mmn_lsftp"  ,numYr,type,"BlAqGrYeOrReVi200",lstmn(:,0,:,:),False,True,levtp,True,False)
+end if
 end if
 end if
 
@@ -1093,25 +1212,45 @@ print("")
 
 nHem = "NH"
 sHem = "SH"
-Polar_Plot(pltDir,"mp_tscrn_"+nHem,numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,nHem,False)
-Polar_Plot(pltDir,"mp_tscrn_"+sHem,numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,sHem,False)
+if (dims.gt.3) then
+ Polar_Plot(pltDir,"mp_tscrn_"+nHem,numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"mp_tscrn_"+sHem,numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,sHem,False)
+else
+ Polar_Plot(pltDir,"mp_tscrn_"+nHem,numYr,type,"perc2_9lev",tscrn(:,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"mp_tscrn_"+sHem,numYr,type,"perc2_9lev",tscrn(:,:,:),False,True,levtp,sHem,False)
+end if
 Polar_Plot(pltDir,"mpbias_tscrn_"+nHem,numYr,type,"BlueDarkRed18",bias_tscrn,False,True,lev_bT,nHem,False)
 Polar_Plot(pltDir,"mpbias_tscrn_"+sHem,numYr,type,"BlueDarkRed18",bias_tscrn,False,True,lev_bT,sHem,False)
 
 if(isvar("tmax")) then
-Polar_Plot(pltDir,"mp_tmax_"+nHem,numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,nHem,False)
-Polar_Plot(pltDir,"mp_tmax_"+sHem,numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,sHem,False)
+if (dims.gt.3) then
+ Polar_Plot(pltDir,"mp_tmax_"+nHem,numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"mp_tmax_"+sHem,numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,sHem,False)
+else
+ Polar_Plot(pltDir,"mp_tmax_"+nHem,numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"mp_tmax_"+sHem,numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,sHem,False)
+end if
 Polar_Plot(pltDir,"mpbias_tmax_"+nHem,numYr,type,"BlueDarkRed18",bias_tmax,False,True,lev_bT,nHem,False)
 Polar_Plot(pltDir,"mpbias_tmax_"+sHem,numYr,type,"BlueDarkRed18",bias_tmax,False,True,lev_bT,sHem,False)
 
+if (dims.gt.3) then
 Polar_Plot(pltDir,"mp_tmin_"+nHem,numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,nHem,False)
 Polar_Plot(pltDir,"mp_tmin_"+sHem,numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,sHem,False)
+else
+Polar_Plot(pltDir,"mp_tmin_"+nHem,numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,nHem,False)
+Polar_Plot(pltDir,"mp_tmin_"+sHem,numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,sHem,False)
+end if
 Polar_Plot(pltDir,"mpbias_tmin_"+nHem,numYr,type,"BlueDarkRed18",bias_tmin,False,True,lev_bT,nHem,False)
 Polar_Plot(pltDir,"mpbias_tmin_"+sHem,numYr,type,"BlueDarkRed18",bias_tmin,False,True,lev_bT,sHem,False)
 end if
 
+if (dims.gt.3) then
 Polar_Plot(pltDir,"mp_precip_"+nHem,numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,nHem,False)
 Polar_Plot(pltDir,"mp_precip_"+sHem,numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,sHem,False)
+else
+Polar_Plot(pltDir,"mp_precip_"+nHem,numYr,type,cmapr,precip(:,:,:),False,True,levpr,nHem,False)
+Polar_Plot(pltDir,"mp_precip_"+sHem,numYr,type,cmapr,precip(:,:,:),False,True,levpr,sHem,False)
+end if
 Polar_Plot(pltDir,"mpbias_precip_"+nHem,numYr,type,"BlueDarkRed18",bias_precip,False,True,lev_bP,nHem,False)
 Polar_Plot(pltDir,"mpbias_precip_"+sHem,numYr,type,"BlueDarkRed18",bias_precip,False,True,lev_bP,sHem,False)
 ; annual ?
@@ -1149,6 +1288,7 @@ Polar_Plot(pltDir,"mpbias_precip_"+sHem,numYr,type,"BlueDarkRed18",bias_precip,F
 
 if(.not.Split)then
 system("mv *.ps ./plots")
+;system("mv *.ps ./plots_"+numYr+"yrs")
 if(jpeg)then
 system("mv *.jpg ./plots_jpg")
 end if

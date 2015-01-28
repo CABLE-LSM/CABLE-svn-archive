@@ -247,6 +247,7 @@ end if
 gsn_table(wksT,ncr2,x2,y2,text2,res2)
 gsn_table(wksT,ncr3,x3,y3,text_values,res3)
 
+delete(wksT)
 system("ps2epsi "+pltName+".ps "+pltName+".eps")
 system("rm "+pltName+".ps")
 

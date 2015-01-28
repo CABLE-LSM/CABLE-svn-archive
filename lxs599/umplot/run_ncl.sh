@@ -7,9 +7,9 @@
 
 #*******Edit********
 if ($HOSTNAME == cherax) then
- setenv USERID ste69f  # Cherax/Burnet
+ setenv USERID ste69f  # Cherax/Burnet/Shine/Pearcey
 else
- setenv USERID lxs599  # NCI- Raijin/Access*
+ setenv USERID lxs599  # NCI- Raijin/Accessdev
 endif
 #*******************
 
@@ -23,7 +23,7 @@ echo ""
 
 # SET UP - see Chapter 2 in Documentation.
 # You must have certain modules loaded before running UMPLOT. E.g.
-#module load ncl #/6.1.0-beta or later
+module load ncl/6.1.2 #/6.1.0-beta or later
 #module load nco
 module load cdo/1.6.1
 #module load python
@@ -87,11 +87,14 @@ if ($rfile > 0) then
 endif
 echo " "
 
+#if ($SELYR == y) then
+# @ YR = 1 + $EYR - $SYR
+#endif
 #=================
 setenv FullYrs $YR
 #=================
 
-ncl ~$USERID/umplot/mod_func.ncl 
+ncl ~$USERID/umplot/mod_func.ncl
 # WARNING: Can't put anything between this line and status
 if ( $status == 38 ) then
  @ noblks = ${FullYrs} / 5
@@ -107,21 +110,6 @@ else
  setenv SPLIT n
 endif
 
-#if ($YR == 20 || $YR == 15 || $YR == 10) then
-# if ($SPLIT == y) then
-#  if ($YR == 20) then
-#   setenv block '1 2 3 4'
-#  else if ($YR == 15) then
-#   setenv block '1 2 3'
-#  else if ($YR == 10) then
-#   setenv block '1 2'
-#  endif
-#  setenv YR 5
-# endif
-#else
-# setenv SPLIT n
-#endif
-
 if ($MODEL == c && $RES == 96) then
  setenv TILE 17
  setenv SOIL 6
@@ -131,7 +119,7 @@ else
 endif
 
 # NCI Transfer =============================================
-#set date=`date`
+#set nsdate=`date`
 #if (${?NCI_CP} == 1) then
 if ($NCI_CP == y) then
  echo "(0)     Transferring Fields Files to Cherax"
@@ -146,14 +134,14 @@ endif
 # echo "(1)     NCI_CP not set. Please update umplot.nml"
 # echo "(1)     Contact Lauren.Stevens@csiro.au"
 #endif
-#set date=`date`
+#set nedate=`date`
 
 # if ~/access doesn't exist ?
 if ($HOSTNAME == cherax) then
-if ($DIRW == ~/access) then
- setenv DIRW ~/access/$RUNID
- cd $DIRW
-endif
+ if ($DIRW == ~/access) then
+  setenv DIRW ~/access/$RUNID
+  cd $DIRW
+ endif
 #else
 #/short/p66/$NCI_ID/
 endif
@@ -172,24 +160,41 @@ if ($CPL == n) then
 else
  set pnc=`ls $DIR/$RUNID.p?-??????????.nc | wc -l`
 endif
+if (${?CNM} == 0) then
+ setenv CNM A
+endif
 
-#Do Check - so that you aren't going to edit someone else's $DIR
-#if ($CNV2NC == y && ) then
-# setenv CNV2NC n
-##or
-# echo "Check the Set DIR in umplot.nml"
-# exit(1)
-#endif
+#Check - so you don't edit someone else's $DIR
+if ( $CNV2NC == y ) then
+ if ($HOSTNAME == cherax) then
+  set nchar=17
+ else
+  set nchar=16 # for /home
+  #set ncharS=17 # for /short
+  #set usid=`echo "$PWD" | head -c3` #/sh /ho
+ endif
+ set udir1=`echo $PWD | head -c$nchar | tail -c6`
+ cd $DIR
+ set udir2=`echo $PWD | head -c$nchar | tail -c6`
+ cd $DIRW
+ if ($udir1 != $udir2) then
+  echo "Directories:" $udir1 $udir2
+  setenv CNV2NC n
+  echo "(1)     You Were About to Edit Someone Else's Directory"
+  echo "(1)     Check How DIR is Set in umplot.nml"
+  #exit(1)
+ endif
+endif
 
 if ($CNV2NC == y) then
 
-  #set date=`date`
+  #set csdate=`date`
    #echo ""
    echo "(0)     Converting Fields Files to NetCDF"
    echo ""
    cd $DIR
    ~$USERID/umplot/conv_um2nc.sh
-  #set date=`date`
+  #set cedate=`date`
  if ($CPL == n) then
    echo " "
    echo "(0)     Extracting Tmax and Tmin to" $Ptemps "File"
@@ -217,6 +222,14 @@ else #CNV2NC == n
 
 endif #CNV2NC
 
+#cd $DIR
+#if ( $SELYR == y ) then
+# need to do for both SELYR cases?
+# ~$USERID/umplot/{workdir/selyr/}umformat2years.sh
+# setenv CPL y
+#endif
+#cd $DIRW
+
 if ($CPL == n) then
  set pnc2=`ls $DIR/$RUNID$a.p??????.nc | wc -l`
  set chk=`ls -s $DIR/$RUNID$a.p??????.nc`
@@ -227,8 +240,8 @@ endif
 #set cnt=`find -size 4 | wc -l`
 set i = 0
  while ($i < $pnc2)
-  @ k = 2 * $i + 1
-  @ m = 2 * $i + 2
+  @ k = 2 * $i + 1  # 2*$i-1 for i=1
+  @ m = 2 * $i + 2  # 2*$i   for i=1
    if ( $chk[$k] == "4") then
     echo " "
     echo "(1)     Not all NetCDF Have Been Converted Properly"
@@ -253,6 +266,13 @@ else
  echo "(1)     NOTE: UMPLT is Set and Set to" $UMPLT
 endif
 
+if (${?REGION} == 0) then
+ setenv REGION 2
+else
+ echo " "
+ echo "(1)     NOTE: REGION is Set and Set to" $REGION
+endif
+
 if ($UMPLT == y) then
 
 echo " "
@@ -267,8 +287,8 @@ endif
 
 echo " "
 #set a=a
-set date=`date`
-echo "Start Time:" $date
+set sdate=`date`
+echo "Start Time:" $sdate
 echo " "
 echo "=================================================================="
 echo " "
@@ -322,7 +342,7 @@ echo " "
 if ($SPLIT == y) then
 
 if ( -d $DIRW/block1_5yrs ) then
- echo "(1)     $date - Block Directory Already Exists"
+ echo "(1)     $sdate - Block Directory Already Exists"
  echo "(1)     Please Move or Delete Directory and Run Again"
  exit (1)
 endif
@@ -332,6 +352,7 @@ if ($CPL == n) then
 ~$USERID/umplot/cdo_merge.sh
 else
 ~$USERID/umplot/cdo_merge_cpl.sh
+#~$USERID/umplot/{workdir/selyr/}process_years.sh
 endif
 
 #foreach blk ( $block )
@@ -385,7 +406,9 @@ ncl ~$USERID/umplot/run.ncl
 ncl ~$USERID/umplot/global_means_wbal.ncl
 ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
- ncl ~$USERID/umplot/global_means_ctables.ncl
+ if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc ) then
+  ncl ~$USERID/umplot/global_means_ctables.ncl
+ endif
 endif
 #if ( -e mm.*.nc ) then
  ncl ~$USERID/umplot/carbon_zonal_means.ncl
@@ -417,12 +440,18 @@ if( -e $DIRW/block${BLOCK}_5yrs/Timeseries_${YR}yrs.nc ) then
  # non-Jan start: python $PLOT/AnnCycle_roll.py $YR
  mv AnnCycle_${YR}yrs.nc AnnualCycle_${YR}yrs.nc
  
+ # New - getting Tested
+ #ncl process_timeseries_1.ncl
+ #ncl process_timeseries_1.ncl
+ #python process_timeseries_2.py $YR $years[1] $years[$YR] False
+ #python process_timeseries_2.py $YR $years[1] $years[$YR] True
+
+ # Jaeger Figure6 ----------
  ncl ~$USERID/umplot/mmdc.ncl
- # Jaeger figure 6 with 6/9 plots - find way to join
  ncl ~$USERID/umplot/mmdc_jan.ncl
  ncl ~$USERID/umplot/mmdc_jul.ncl
  ncl ~$USERID/umplot/annualcycles.ncl
-endif
+endif # if Timeseries
 # Timeseries ===============================================
 
 # Benchmarking =============================================
@@ -446,7 +475,7 @@ if ($BMRK == y) then
   endif
   ncl ~$USERID/umplot/plot_amoj6p_clouds.ncl
   ncl ~$USERID/umplot/plot_diff6p_surfalb.ncl
-  ncl ~$USERID/umplot/plot_amoj4p_trunoff.ncl
+  ncl ~$USERID/umplot/plot_amoj6p_trunoff.ncl
   ncl ~$USERID/umplot/barchart.ncl
   #ncl chv=0 ~$USERID/umplot/barchart_amp.ncl
   #ncl chv=1 ~$USERID/umplot/barchart_amp.ncl
@@ -550,7 +579,9 @@ ncl ~$USERID/umplot/run.ncl
 ncl ~$USERID/umplot/global_means_wbal.ncl
 ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
- ncl ~$USERID/umplot/global_means_ctables.ncl
+ if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc ) then
+  ncl ~$USERID/umplot/global_means_ctables.ncl
+ endif
 endif
 #if ( -e mm.*.nc ) then
  ncl ~$USERID/umplot/carbon_zonal_means.ncl
@@ -582,8 +613,14 @@ if ( -e $DIRW/Timeseries_${YR}yrs.nc ) then
  #non-Jan start: python $PLOT/AnnCycle_roll.py $YR
  mv AnnCycle_${YR}yrs.nc AnnualCycle_${YR}yrs.nc
 
+ # New - getting Tested
+ #ncl process_timeseries_1.ncl
+ #ncl process_timeseries_1.ncl
+ #python process_timeseries_2.py $YR $years[1] $years[$YR] False
+ #python process_timeseries_2.py $YR $years[1] $years[$YR] True
+
+ # Jaeger Figure6 ----------
  ncl ~$USERID/umplot/mmdc.ncl
- # Jaeger figure 6 with 6/9 plots - find way to join
  ncl ~$USERID/umplot/mmdc_jan.ncl
  ncl ~$USERID/umplot/mmdc_jul.ncl
  ncl ~$USERID/umplot/annualcycles.ncl
@@ -611,7 +648,7 @@ if ($BMRK == y) then
   endif
   ncl ~$USERID/umplot/plot_amoj6p_clouds.ncl
   ncl ~$USERID/umplot/plot_diff6p_surfalb.ncl
-  ncl ~$USERID/umplot/plot_amoj4p_trunoff.ncl
+  ncl ~$USERID/umplot/plot_amoj6p_trunoff.ncl
   ncl ~$USERID/umplot/barchart.ncl
   #ncl chv=0 ~$USERID/umplot/barchart_amp.ncl
   #ncl chv=1 ~$USERID/umplot/barchart_amp.ncl
@@ -646,6 +683,8 @@ endif
 
 mv *.ps plots/
 mv *.eps plots/
+#mv *.ps plots_${YR}yrs/
+#mv *.eps plots_${YR}yrs/
 if ($CHFMT == y) then
  mv *.jpg plots_jpg/
  #mv *.$FMT plots_$FMT/
@@ -677,10 +716,34 @@ echo " "
 echo "==================================================================="
 echo " "
 
-echo "Start Time:" $date
-set date=`date`
-echo "End   Time:" $date
+echo "Start Time:" $sdate
+set edate=`date`
+echo "End   Time:" $edate
 echo " "
+
+#endif # UMPLT
+
+#if ($UMPLT == y) then
+
+setenv wLog n
+if ($wLog == y) then
+ echo " "                                                          > log_`date +%d.%m.%y`
+ echo "You have Set the Parameters of this UMPLOT Run as:"        >> log_`date +%d.%m.%y`
+ echo "Jobid:" $RUNID "with files in Directory:" $DIR             >> log_`date +%d.%m.%y`
+ echo "Running for" $FullYrs "years with" $SPLIT "5yr Splitting," $BMRK "Extra Plots, and" $CHFMT $FMT "files" >> log_`date +%d.%m.%y`
+ if ($BMRK == y) then
+  echo "You are Comparing results with" $BDIR                     >> log_`date +%d.%m.%y`
+ endif
+ echo " "                                                         >> log_`date +%d.%m.%y`
+ echo "Start Time:" $sdate                                        >> log_`date +%d.%m.%y`
+ echo " "                                                         >> log_`date +%d.%m.%y`
+ echo "  End Time:" $edate                                        >> log_`date +%d.%m.%y`
+ echo " "                                                         >> log_`date +%d.%m.%y`
+ mv log_`date +%d.%m.%y` log_`date +%d.%m.%y_%H.%M.%S`
+endif # wlog
+
+#else
+#endif # UMPLT
 
 endif # UMPLT
 

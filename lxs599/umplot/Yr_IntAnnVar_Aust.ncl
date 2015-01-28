@@ -45,6 +45,9 @@ end if
 ObsDir = "~"+usr+"/umplot/obs/"
 LsmDir = "~"+usr+"/umplot/data/"
 
+if (isfilepresent(cabDir+"/yearly_means_"+numYr+"yrs.nc") .and. \
+    isfilepresent(mosDir+"/yearly_means_"+numYr+"yrs.nc")) then
+
 system("dmget "+mosDir+"/yearly_means_"+numYr+"yrs.nc")
 moses_year = addfile(mosDir+"/yearly_means_"+numYr+"yrs.nc","r")         ; 20 years  ; 1980-2000
 system("dmget "+cabDir+"/yearly_means_"+numYr+"yrs.nc")
@@ -389,6 +392,7 @@ res@tiXAxisFontHeightF         = 0.020
 res@tmYLLabelFontHeightF       = 0.015
 res@tmXBLabelFontHeightF       = 0.015
 
+print("")
 print("Plotting Inter-Annual Variability (Yearly Means) for Australia")
 print("")
 
@@ -427,6 +431,14 @@ pres@gsnPanelBottom       = 0.18
 ;pres@txFontHeightF       = 0.03
 ;pres@pmLegendDisplayMode = "Always"
 gsn_panel(wks,plot,(/2,1/),pres)
+
+else
+
+print("")
+print("Yearly Files not Present")
+print("")
+
+end if
 
 end
 

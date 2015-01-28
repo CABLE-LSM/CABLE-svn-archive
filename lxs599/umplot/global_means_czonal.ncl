@@ -27,38 +27,41 @@ loadscript("~"+usr+"/umplot/wgt_func.ncl")
 
 begin
 
-;usr = systemfunc("echo $USERID")
-numYr  = systemfunc("echo $YR")
-;filDir = systemfunc("echo $DIR")
-;ModDir = systemfunc("echo $DIRW")
-resol  = systemfunc("echo $RES")
-vMask  = systemfunc("echo $MASK")
-;Runid  = systemfunc("echo $RUNID")
-cabdir = systemfunc("echo $CABLE")
-mosdir = systemfunc("echo $MOSES")
-tname =  systemfunc("echo $tname")
-txname =  systemfunc("echo $txname")
-tiname =  systemfunc("echo $tiname")
+;usr      = systemfunc("echo $USERID")
+numYr    = systemfunc("echo $YR")
+;filDir   = systemfunc("echo $DIR")
+;ModDir   = systemfunc("echo $DIRW")
+resol    = systemfunc("echo $RES")
+vMask    = systemfunc("echo $MASK")
+;Runid    = systemfunc("echo $RUNID")
+cabdir   = systemfunc("echo $CABLE")
+mosdir   = systemfunc("echo $MOSES")
+tname    = systemfunc("echo $tname")
+txname   = systemfunc("echo $txname")
+tiname   = systemfunc("echo $tiname")
+ice_mask = False ; Antarctica and Greenland
+msk_A    = False ; Antarctica mask
+msk_G    = False ; Greenland mask
+
+ObsDir = "~"+usr+"/umplot/obs/"
+PltDir = "~"+usr+"/umplot/data/"
 
 ; FILES --------------------------------------------------------------
 
 moses_file = addfile(mosdir+"/seasonal_means_"+numYr+"yrs.nc","r") 
 toses_file = addfile(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc","r") 
 if (isfilepresent(mosdir+"/clt_yseasmean.nc")) then
-coses_file = addfile(mosdir+"/clt_yseasmean.nc","r") 
+ coses_file = addfile(mosdir+"/clt_yseasmean.nc","r") 
 end if
 cable_file = addfile(cabdir+"/seasonal_means_"+numYr+"yrs.nc","r")
 table_file = addfile(cabdir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
-
-ObsDir = "~"+usr+"/umplot/obs/"
-PltDir = "~"+usr+"/umplot/data/"
+;sea_file   = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
+;tsea_file  = addfile(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 
 erai_file = addfile(ObsDir+"ERAi_tp2m.nc","r")
 erat_file = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
 elsm_file = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
-;sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
-;tsea_file = addfile(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 if (resol.eq.48) then 
 lsm_file = addfile(PltDir+"LSM_UMn"+resol+".nc","r")
 frac_file = addfile(PltDir+"landfrac_n48.nc","r")
@@ -307,6 +310,88 @@ drunoff_m@units = "mm/day"
 trunoff_m       = trunoff_m*24*60*60
 trunoff_m@units = "mm/day"
 
+; -------------------------------
+if (ice_mask) then
+   csfr   = cable_file->field1893
+  if (isfilevar(moses_file,"field1893")) then
+   msfr   = moses_file->field1893
+  else
+   msfr   = moses_file->field3317
+  end if
+  ;val    = (/  0,-1/)
+  ;lat1   = (/-90, 0/)
+  ;lat2   = (/  0,90/)
+  mdice  = 8  ; mtiles -1
+  cdice  = 16 ; ctiles -1
+
+  icmsk1 = csfr(0,cdice,:,:)
+  immsk1 = msfr(0,mdice,:,:)
+  icmsk1 = where(ismissing(icmsk1),0,icmsk1)
+  immsk1 = where(ismissing(immsk1),0,immsk1)
+  icmsk  = (-1)*(icmsk1-1)
+  immsk  = (-1)*(immsk1-1)
+  copy_VarMeta(icmsk1,icmsk)
+  copy_VarMeta(immsk1,immsk)
+  ; ------------------------
+  ; -- for global masking --
+  cfr = where(icmsk1.eq.1.,lsm(0,0,:,:),0.)
+  copy_VarMeta(icmsk1,cfr)
+  gfr = (-1)*(cfr-1)
+  copy_VarMeta(cfr,gfr)
+  ; ------------------------
+  ; -- Antarc/Grland mask --
+  if (msk_A) then
+   latiS =  0
+   latiN = 90
+   icmsk({latiS:latiN},:) = 1
+   immsk({latiS:latiN},:) = 1
+     gfr({latiS:latiN},:) = 1
+  end if
+  if (msk_G) then
+   latiS =-90
+   latiN =  0
+   icmsk({latiS:latiN},:) = 1
+   immsk({latiS:latiN},:) = 1
+     gfr({latiS:latiN},:) = 1
+  end if
+  ; ------------------------
+
+  ; Antarctica --
+  ;icmsk  = (-1)*(csfr(0,cdice,:,:)-1)
+  ;immsk  = (-1)*(msfr(0,mdice,:,:)-1)
+  ;
+  ;csfr_1 = csfr(0,cdice,:,:)
+  ;msfr_1 = msfr(0,mdice,:,:)
+  ;csfr_2 = csfr_1
+  ;msfr_2 = msfr_1
+  ;csfr_2 = where(csfr_1.lt.1.and.ismissing(csfr_1),val(1),csfr_1)
+  ;msfr_2 = where(msfr_1.lt.1.and.ismissing(msfr_1),val(1),msfr_1)
+  ;csfr_3 = csfr_2
+  ;msfr_3 = msfr_2
+  ;do i = 0,1
+  ;  csfr_3({lat1(i):lat2(i)},:) = where(csfr_2({lat1(i):lat2(i)},:).eq.1,val(i),-1);csfr_2({lat1(i):lat2(i)},:))
+  ;  msfr_3({lat1(i):lat2(i)},:) = where(msfr_2({lat1(i):lat2(i)},:).eq.1,val(i),-1);msfr_2({lat1(i):lat2(i)},:))
+  ;end do
+  ;csfr_3 = where(ismissing(csfr_3),-1,csfr_3)
+  ;csfr_4           = (-1)*csfr_3
+  ;csfr_4!0         = "latitude"
+  ;csfr_4!1         = "longitude"
+  ;csfr_4&latitude  = csfr&latitude
+  ;csfr_4&longitude = csfr&longitude
+  ;msfr_4           = (-1)*msfr_3
+  ;msfr_4!0         = "latitude"
+  ;msfr_4!1         = "longitude"
+  ;if (isdim(msfr,"latitude")) then
+  ; msfr_4&latitude  = msfr&latitude
+  ; msfr_4&longitude = msfr&longitude
+  ;else
+  ; msfr_4&latitude  = msfr&lat;itude
+  ; msfr_4&longitude = msfr&lon;gitude
+  ;end if
+  ;;csfr_4 = where(csfr_4.eq.csfr@_FillValue,0,csfr_4)
+end if
+; -------------------------------
+
 prec         = dim_avg_n_Wrap(precip,0)
 radnet       = dim_avg_n_Wrap(rnet,0)
 sensh        = dim_avg_n_Wrap(sh,0)
@@ -365,56 +450,55 @@ ebal_m       = radnet_m-sensh_m-lathf_m
 ; -------------------------------
 
 dNames = getvardims(prec)
-dims = dimsizes(prec)
-nsiz = dimsizes(dims)
-nlat = dims(nsiz-2)
-mlon = dims(nsiz-1)
-;lat  = prec&$dNames(nsiz-2)$
-;lon  = prec&$dNames(nsiz-1)$
+dims   = dimsizes(prec)
+nsiz   = dimsizes(dims)
+nlat   = dims(nsiz-2)
+mlon   = dims(nsiz-1)
+;lat    = prec&$dNames(nsiz-2)$
+;lon    = prec&$dNames(nsiz-1)$
 
-re    = 6.37122e06
-con   = re * rad
-clat  = cos(prec&latitude*rad)
+re     = 6.37122e06
+con    = re * rad
+clat   = cos(prec&latitude*rad)
 
-dlon = (prec&longitude(2)-prec&longitude(1))
-dlat = (prec&latitude(2)-prec&latitude(1))
-dx   = con * dlon * clat
-dy   = con * dlat
-dydx = dy * dx
+dlon   = (prec&longitude(2)-prec&longitude(1))
+dlat   = (prec&latitude(2)-prec&latitude(1))
+dx     = con * dlon * clat
+dy     = con * dlat
+dydx   = dy * dx
 
-;wgt   = new((/nlat,mlon/),double)
-;wgt   = conform(wgt,dydx,0)
-wgt = larea
-wgto  = wgt*(1-lfrac(0,0,:,:))
-wgtl  = wgt*lfrac(0,0,:,:)
-wgtlm = wgt*(lsm(0,0,:,:))
-wgtom = wgt*(1-lsm(0,0,:,:))
-wgt!0 = "lat"
-wgt!1 = "lon"
+;wgt    = new((/nlat,mlon/),double)
+;wgt    = conform(wgt,dydx,0)
+wgt    = larea
+wgto   = wgt*(1-lfrac(0,0,:,:))
+wgtl   = wgt*lfrac(0,0,:,:)
+wgtlm  = wgt*(lsm(0,0,:,:))
+wgtom  = wgt*(1-lsm(0,0,:,:))
+
+if (ice_mask) then
+ wgt    = wgt*gfr
+ wgtl   = wgtl*icmsk
+ wgtlm  = wgtlm*icmsk
+end if
+
+wgt!0   = "lat"
+wgt!1   = "lon"
 wgt&lat = precip&latitude
 wgt&lon = precip&longitude
-wgtl!0 = "lat"
-wgtl!1 = "lon"
+wgtl!0   = "lat"
+wgtl!1   = "lon"
 wgtl&lat = precip&latitude
 wgtl&lon = precip&longitude
-wgtlm!0 = "lat"
-wgtlm!1 = "lon"
+wgtlm!0   = "lat"
+wgtlm!1   = "lon"
 wgtlm&lat = precip&latitude
 wgtlm&lon = precip&longitude
-wgtl!0 = "lat"
-wgtl!1 = "lon"
-wgtl&lat = precip&latitude
-wgtl&lon = precip&longitude
-wgtlm!0 = "lat"
-wgtlm!1 = "lon"
-wgtlm&lat = precip&latitude
-wgtlm&lon = precip&longitude
-wgto!0 = "lat"
-wgto!1 = "lon"
+wgto!0   = "lat"
+wgto!1   = "lon"
 wgto&lat = precip&latitude
 wgto&lon = precip&longitude
-wgtom!0 = "lat"
-wgtom!1 = "lon"
+wgtom!0   = "lat"
+wgtom!1   = "lon"
 wgtom&lat = precip&latitude
 wgtom&lon = precip&longitude
 
@@ -437,22 +521,33 @@ wgtlo&lon = emax&longitude
 ; ANN WBAL -----------------------------------------------------------
 
 ; have a external chv ?
-mlat      = new((/2,7/),float)
+mlat      = new((/2,8/),float)
 mlat(:,0) = (/-90, 90/)    ; chv=0, Global
 mlat(:,1) = (/ 66, 90/)    ; chv=1, High Northern Latitudes (hNlat)
 mlat(:,2) = (/ 23, 66/)    ; chv=2, Mid Northern Latitudes  (mNlat)
 mlat(:,3) = (/-23, 23/)    ; chv=3, Tropics                 (Trop)
 mlat(:,4) = (/-66,-23/)    ; chv=4, Mid Southern Latitudes  (mSlat)
 mlat(:,5) = (/-90,-66/)    ; chv=5, High Southern Latitudes (hSlat)
-mlat(:,6) = (/ 30, 90/)    ; chv=6, High Northern Latitudes (Paper)
+mlat(:,6) = (/ 30, 90/)    ; chv=6, High Northern Latitudes (P30n - paper)
+mlat(:,7) = (/ 45, 90/)    ; chv=7, High Northern Latitudes (P45n - paper)
 Dlat      = dimsizes(mlat)
-wlat = (/"glob","highN","midN","trops","midS","highS","Paper"/)
+wlat = (/"glob","highN","midN","trops","midS","highS","P30n","P45n"/)
 
 ;do k = 0,Dlat-1,1
 
 latS       = mlat(0,chv)
 latN       = mlat(1,chv)
 latr       = lat({latS:latN})
+
+;longitude---
+;mlon      = new((/2,3/),float)
+;mlon(:,0) = (/-180,180/)    ; chv=0, Global
+;mlon(:,1) = (/   0,360/)    ; chv=1, High Northern Latitudes (hNlat)
+;mlon(:,2) = (/-180,180/)    ; chv=2, Mid Northern Latitudes  (mNlat)
+;Dlon      = dimsizes(mlat)
+;lonS      = mlon(0,chv)
+;lonN      = mlon(1,chv)
+;lonr      = lon({lonS:lonN})
 
 ;region -> Land ---------------------------
 
@@ -472,9 +567,9 @@ if(dimsizes(dimsizes(prec)).gt.2) then
  ;ev_l          = wgt_areaave2(     evp(:,{latS:latN},:),wgtlm({latS:latN},:),0)
  lh_l          = wgt_areaave2(    lath(:,{latS:latN},:), wgtl({latS:latN},:),0)
  lh_l2         = wgt_areaave2(lath_snw(:,{latS:latN},:), wgtl({latS:latN},:),0)
- rf_l          = wgt_areaave2(     srf(:,{latS:latN},:),wgtlm({latS:latN},:),0)
- dr_l          = wgt_areaave2(      dr(:,{latS:latN},:),wgtlm({latS:latN},:),0)
- trf_l         = wgt_areaave2(     trf(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ rf_l          = wgt_areaave2(     srf(:,{latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ dr_l          = wgt_areaave2(      dr(:,{latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ trf_l         = wgt_areaave2(     trf(:,{latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
  tot_l         = wgt_areaave2(    wbal(:,{latS:latN},:), wgtl({latS:latN},:),0)
  ;tot_l         = wgt_areaave2(    wbal(:,{latS:latN},:),wgtlm({latS:latN},:),0)
 else
@@ -492,9 +587,9 @@ else
  ev_l          = wgt_areaave2(     evp({latS:latN},:), wgtl({latS:latN},:),0)
  lh_l          = wgt_areaave2(    lath({latS:latN},:), wgtl({latS:latN},:),0)
  lh_l2         = wgt_areaave2(lath_snw({latS:latN},:), wgtl({latS:latN},:),0)
- rf_l          = wgt_areaave2(     srf({latS:latN},:),wgtlm({latS:latN},:),0)
- dr_l          = wgt_areaave2(      dr({latS:latN},:),wgtlm({latS:latN},:),0)
- trf_l         = wgt_areaave2(     trf({latS:latN},:),wgtlm({latS:latN},:),0)
+ rf_l          = wgt_areaave2(     srf({latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ dr_l          = wgt_areaave2(      dr({latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ trf_l         = wgt_areaave2(     trf({latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
  tot_l         = wgt_areaave2(    wbal({latS:latN},:), wgtl({latS:latN},:),0)
 end if
 if(dimsizes(dimsizes(prec_m)).gt.2) then
@@ -513,9 +608,9 @@ if(dimsizes(dimsizes(prec_m)).gt.2) then
  ;ev_l_m        = wgt_areaave2(     evp_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
  lh_l_m        = wgt_areaave2(    lath_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
  lh_l2_m       = wgt_areaave2(lath_snw_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
- rf_l_m        = wgt_areaave2(     srf_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
- dr_l_m        = wgt_areaave2(      dr_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
- trf_l_m       = wgt_areaave2(     trf_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+ rf_l_m        = wgt_areaave2(     srf_m(:,{latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ dr_l_m        = wgt_areaave2(      dr_m(:,{latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ trf_l_m       = wgt_areaave2(     trf_m(:,{latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
  tot_l_m       = wgt_areaave2(    wbal_m(:,{latS:latN},:), wgtl({latS:latN},:),0)
  ;tot_l_m       = wgt_areaave2(    wbal_m(:,{latS:latN},:),wgtlm({latS:latN},:),0)
 else
@@ -533,9 +628,9 @@ else
  ev_l_m        = wgt_areaave2(     evp_m({latS:latN},:), wgtl({latS:latN},:),0)
  lh_l_m        = wgt_areaave2(    lath_m({latS:latN},:), wgtl({latS:latN},:),0)
  lh_l2_m       = wgt_areaave2(lath_snw_m({latS:latN},:), wgtl({latS:latN},:),0)
- rf_l_m        = wgt_areaave2(     srf_m({latS:latN},:),wgtlm({latS:latN},:),0)
- dr_l_m        = wgt_areaave2(      dr_m({latS:latN},:),wgtlm({latS:latN},:),0)
- trf_l_m       = wgt_areaave2(     trf_m({latS:latN},:),wgtlm({latS:latN},:),0)
+ rf_l_m        = wgt_areaave2(     srf_m({latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ dr_l_m        = wgt_areaave2(      dr_m({latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
+ trf_l_m       = wgt_areaave2(     trf_m({latS:latN},:), wgtl({latS:latN},:),0) ; wgtlm
  tot_l_m       = wgt_areaave2(    wbal_m({latS:latN},:), wgtl({latS:latN},:),0)
 end if
 
@@ -837,7 +932,7 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 ebal_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.6) then
+if (chv.ge.0 .and. chv.le.7) then
 system("mv ebal_ctable" + "_" + numYr + "yrs.eps ebalc_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 
@@ -867,7 +962,7 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 wbal_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.6) then
+if (chv.ge.0 .and. chv.le.7) then
 system("mv wbal_ctable" + "_" + numYr + "yrs.eps wbalc_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 
@@ -889,7 +984,7 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 temp_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.6) then
+if (chv.ge.0 .and. chv.le.7) then
 system("mv temp_ctable" + "_" + numYr + "yrs.eps tempc_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 
@@ -932,10 +1027,21 @@ ocean_vals@_FillValue  = -999
 global_vals@_FillValue = -999
 
 ecomps_compr(land_vals,ocean_vals,global_vals,numYr,wlat(chv),"1")
-if (chv.ge.0 .and. chv.le.6) then
+if (chv.ge.0 .and. chv.le.7) then
 system("mv ecomps_ctable" + "_" + numYr + "yrs.eps ecomps_"+wlat(chv)+"_" + numYr + "yrs.eps")
 end if
 ;=========================
+
+print("Precipitation (mm/day)  ,"+decimalPlaces(pr_l_m,2,True) +","+decimalPlaces(pr_l,2,True) +"")
+print("Evaporation (mm/day)    ,"+decimalPlaces(lh_l_m,2,True) +","+decimalPlaces(lh_l,2,True) +"")
+print("Surface Runoff (mm/day) ,"+decimalPlaces(rf_l_m,2,True) +","+decimalPlaces(rf_l,2,True) +"")
+print("Drainage (mm/day)       ,"+decimalPlaces(dr_l_m,2,True) +","+decimalPlaces(dr_l,2,True) +"")
+print("Screen Temperature (C)  ,"+decimalPlaces(ts_l_m,2,True) +","+decimalPlaces(ts_l,2,True) +"")
+print(" - Maximum              ,"+decimalPlaces(tx_l_m,2,True) +","+decimalPlaces(tx_l,2,True) +"")
+print(" - Minimum              ,"+decimalPlaces(tn_l_m,2,True) +","+decimalPlaces(tn_l,2,True) +"")
+print("Sensible Heat (Wm-2)    ,"+decimalPlaces(sh_l_m,2,True) +","+decimalPlaces(sh_l,2,True) +"")
+print("Latent Heat (Wm-2)      ,"+decimalPlaces(lhf_l_m,2,True)+","+decimalPlaces(lhf_l,2,True)+"")
+print("Net Radiation (Wm-2)    ,"+decimalPlaces(rn_l_m,2,True) +","+decimalPlaces(rn_l,2,True) +"")
 
 end
 

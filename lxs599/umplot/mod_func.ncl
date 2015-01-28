@@ -9,6 +9,7 @@ begin
  print("Calculating Mod of FullYrs")
  ;print("")
  myrs = mod(yrs,5)
+ ;system("echo "+myrs+" > mod_tmp")
  if ( myrs .eq. 0 ) then
   status_exit(38)
  end if

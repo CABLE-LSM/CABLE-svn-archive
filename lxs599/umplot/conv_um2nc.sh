@@ -1,4 +1,4 @@
-#!/bin/csh -x
+#!/bin/csh
 
 ######################################################################
 
@@ -25,6 +25,7 @@ set a = a
        set fillist = `ls $RUNID.$ext-??????????`
        foreach file ( $fillist )
         if (! -e $file.nc) then
+         echo "Converting " $file " to " $file".nc"
          $CONV2NC -i $file -o $file.nc
         else
          echo "File" $file "Already Exists!"
@@ -34,7 +35,9 @@ set a = a
        set i = 1
        set fillist = `ls $RUNID$a.$ext?????`
        #set fillist = `ls $DIR/$RUNID$a.$ext?????`
+       set cfiles = ${#fillist}
 
+       if ($cfiles > 0) then
         # change months to numbers in .p
         set newlist=`echo $fillist | sed -e 's/jan/001/g'`
         set newlist=`echo $newlist | sed -e 's/feb/002/g'`
@@ -62,18 +65,28 @@ set a = a
            #cdo inttime,$cdate[1],$ctime[1],30minutes $newlist[$i]_swlw.nc $newlist[$i]_swlw_intp30min.nc
            python $FLDSUBSET -i $file -o $file.sub -v 3234 -v 3236 -v 3217 -v 5226 -v 3333
            python $CONV2NCTS -i $file.sub -o $newlist[$i].nc
-           rm $file.sub
-           rm $file.sub2
-           rm $file.sub3
+           #$CONV2NC -i $file.sub -o $newlist[$i].nc
+           rm $file.sub $file.sub2 $file.sub3
           else
            $CONV2NC -i $file -o $newlist[$i].nc
           endif
          else
           echo "File" $newlist[$i] "Already Exists!"
          endif
+         set ntime=`cdo ntime $newlist[$i].nc`
+         if (($ext == pc && $ntime >= 224)) then # 224 = 8ts * 1month
+          python $FLDSUBSET -i $file -o $file.sub2 -x 1201 -x 1235 -x 2201 -x 2207
+          $CONV2NC -i $file.sub2 -o $newlist[$i]_noswlw.nc
+          python $FLDSUBSET -i $file -o $file.sub3 -v 1201 -v 1235 -v 2201 -v 2207
+          $CONV2NC -i $file.sub3 -o $newlist[$i]_swlw.nc
+          #python $FLDSUBSET -i $file -o $file.sub -v 3234 -v 3236 -v 3217 -v 5226 -v 3333
+          #$CONV2NC -i $file.sub -o $newlist[$i].nc
+          rm $file.sub2 $file.sub3 #$file.sub
+         endif
          @ i++
         end # fe file
 
+       endif # cfiles
       endif # CPL
 
     end # foreach

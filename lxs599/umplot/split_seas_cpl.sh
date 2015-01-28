@@ -43,12 +43,16 @@ if ($REINIT == 1) then
  #set penosw=`ls $DIR/$RUNID.$Ptimes-??????????_noswlw.nc | head -${nom}`
  set pblist=`ls $DIR/$RUNID.$Ptemps-??????????.nc | head -${nom}`
  set pmlist=`ls $DIR/$RUNID.$Pmonth-??????????.nc | head -${nom}`
+ #set pcswlw=`ls $DIR/$RUNID.pc-??????????_swlw.nc | head -${nom}`
+ #set pcnosw=`ls $DIR/$RUNID.pc-??????????_noswlw.nc | head -${nom}`
 else
  set pelist=`ls $DIR/$RUNID.$Ptimes-??????????.nc | head -${noy}`
  #set peswlw=`ls $DIR/$RUNID.$Ptimes-??????????_swlw.nc | head -${noy}`
  #set penosw=`ls $DIR/$RUNID.$Ptimes-??????????_noswlw.nc | head -${noy}`
  set pblist=`ls $DIR/$RUNID.$Ptemps-??????????.nc | head -${noy}`
  set pmlist=`ls $DIR/$RUNID.$Pmonth-??????????.nc | head -${noy}`
+ #set pcswlw=`ls $DIR/$RUNID.pc-??????????_swlw.nc | head -${noy}`
+ #set pcnosw=`ls $DIR/$RUNID.pc-??????????_noswlw.nc | head -${noy}`
 endif
 
  echo $bblk
@@ -70,11 +74,15 @@ if ($REINIT == 1) then
  #set pesw=`ls $peswlw | head -${mblk} | tail -60`
  #set peno=`ls $penosw | head -${mblk} | tail -60`
  set pbls=`ls $pblist | head -${mblk} | tail -60`
+ #set pcsw=`ls $pcswlw | head -${mblk} | tail -60`
+ #set pcno=`ls $pcnosw | head -${mblk} | tail -60`
 else
  set pels=`ls $pelist | head -${yblk} | tail -20`
  #set pesw=`ls $peswlw | head -${yblk} | tail -20`
  #set peno=`ls $penosw | head -${yblk} | tail -20`
  set pbls=`ls $pblist | head -${yblk} | tail -20`
+ #set pcsw=`ls $pcswlw | head -${yblk} | tail -20`
+ #set pcno=`ls $pcnosw | head -${yblk} | tail -20`
 endif
  set pmls=`ls $pmlist | head -${mblk} | tail -60`
 
@@ -100,6 +108,8 @@ endif
  cdo mergetime $pels Timeseries_5yrs.nc
  #cdo mergetime $pesw Timeseries_5yrs_swlw.nc
  #cdo mergetime $peno Timeseries_5yrs_noswlw.nc
+ #cdo mergetime $pcsw PALS_ts_5yrs_swlw.nc
+ #cdo mergetime $pcno PALS_ts_5yrs_noswlw.nc
  cdo mergetime $pbls Tempseries_5yrs.nc
  cdo mergetime $pmls Mmonthly_means_5yrs.nc
  cdo yearmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc

@@ -16,40 +16,16 @@ tfile = cdms2.open('Timeseries_%syrs.nc' % sys.argv[1])
 ystrt = int(sys.argv[2])
 yend = int(sys.argv[3])
 
+#varn = [tas,qh,qle,apr,rnt,u,v,mflx,u1,v1,wnd,sevp,cevp,ievp,tmht,friv,tsl,clt,ts,u2,v2,sndep,ts2,blht,sw,swd,lw,lwd]
+# last four varn from t3file
+#fields = ['temp','lh','sh','precip','field202','u','v','field184','u_1','v_1','wind','field1526','field1527','field1528','field1534','field1696','soiltemp','field30','temp_1','u_2','v_2','snowdepth','temp_2','blht','solar','field203','longwave','ilr']
+##fields = ['temp','lh','sh','tot_precip','field202','u','v','field184','u_1','v_1','wind','field1526','field1527','field1528','field1534','field1696','soiltemp','field30','temp_1','u_2','v_2','snowdepth','temp_2','blht','solar','field203','longwave','ilr']
+
 tas = tfile['tas']
 qh  = tfile['hfss']
 qle = tfile['hfls']
 apr = tfile['field5226']
 rnt = tfile['field3333']
-#tas = t2file['temp']
-#qh  = t2file['lh']
-#qle = t2file['sh']
-##apr = t2file['precip']
-#apr = t2file['tot_precip']
-#rnt = t2file['field202']
-#u = t2file['u']
-#v = t2file['v']
-#mflx = t2file['field184']
-#u1 = t2file['u_1']
-#v1 = t2file['v_1']
-#wnd = t2file['wind']
-#sevp = t2file['field1526']
-#cevp = t2file['field1527']
-#ievp = t2file['field1528']
-#tmht = t2file['field1534']
-#friv = t2file['field1696']
-#tsl = t2file['soiltemp']
-#clt = t2file['field30']
-#ts = t2file['temp_1']
-#u2 = t2file['u_2']
-#v2 = t2file['v_2']
-#sndep = t2file['snowdepth']
-#ts2 = t2file['temp_2']
-#blht = t2file['blht']
-#sw = t3file['solar']
-#swd = t3file['field203'] 
-#lw = t3file['longwave'] 
-#lwd = t3file['ilr'] 
 
 #print(tas.shape)
 tstep = 48 # hardwired, (tas.shape[0]/(12*30*int(year)))

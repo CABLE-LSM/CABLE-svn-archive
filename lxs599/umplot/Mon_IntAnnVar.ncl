@@ -24,11 +24,11 @@ vMask  = systemfunc("echo $MASK")
 split  = systemfunc("echo $SPLIT")
 tname  =  systemfunc("echo $tname")
 if (split.eq."y") then
-blck  = True
-blk   = systemfunc("echo $BLOCK")
-block = stringtoint(blk)
+ blck  = True
+ blk   = systemfunc("echo $BLOCK")
+ block = stringtoint(blk)
 else
-blck  = False
+ blck  = False
 end if
 
 ;rid  = systemfunc("echo $RUNID")
@@ -42,6 +42,9 @@ end if
 ObsDir = "~"+usr+"/umplot/obs/"
 LsmDir = "~"+usr+"/umplot/data/"
 
+if (isfilepresent(cabDir+"/Mmonthly_means_"+numYr+"yrs.nc") .and. \
+    isfilepresent(mosDir+"/Mmonthly_means_"+numYr+"yrs.nc")) then
+
 ;system("dmget "+ObsDir+"ERA*")
 system("dmget "+mosDir+"/Mmonthly_means_"+numYr+"yrs.nc")
 moses_file = addfile(mosDir+"/Mmonthly_means_"+numYr+"yrs.nc","r")
@@ -52,14 +55,15 @@ pr_obs     = addfile(ObsDir+"ERA_INT_pr_8908.nc","r")
 era_mask   = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 if (resol.eq.48) then
-lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
+ lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
 else
-if (vMask.eq.2) then
-lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
-else
-lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
+ if (vMask.eq.2) then
+  lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
+ else
+  lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
+ end if
 end if
-end if
+area_file = addfile(LsmDir+"areacella.nc","r")
 
 ; Variables ------------------------------------------------------------------
 
@@ -94,13 +98,14 @@ else
 end if
 era_pr1         = pr_obs     ->pr
 lsm             = lsm_file   ->lsm
+larea           = area_file  ->areacella
 emsk1           = era_mask   ->lsm
 if (isfilevar(cable_file,"time")) then
-Mtime           = moses_file ->time
-Ctime           = cable_file ->time
+ Mtime           = moses_file ->time
+ Ctime           = cable_file ->time
 else
-Mtime           = moses_file ->t
-Ctime           = cable_file ->t
+ Mtime           = moses_file ->t
+ Ctime           = cable_file ->t
 end if
 ;Mtim1 = systemfunc("cdo showyear "+mosDir+"/Mmonthly_means_"+numYr+"yrs.nc")
 ;Ctim1 = systemfunc("cdo showyear "+cabDir+"/Mmonthly_means_"+numYr+"yrs.nc")
@@ -121,18 +126,18 @@ Mmon            = stringtoint(str_get_field(str_get_field(Mtime@units,3," "),2,"
 Cmon            = stringtoint(str_get_field(str_get_field(Mtime@units,3," "),2,"-"))
 
 if (blck) then
-if (block.eq.2) then
-Myear = Myear + 5
-Cyear = Cyear + 5
-end if
-if (block.eq.3) then
-Myear = Myear + 10
-Cyear = Cyear + 10
-end if
-if (block.eq.4) then
-Myear = Myear + 15
-Cyear = Cyear + 15
-end if
+ if (block.eq.2) then
+  Myear = Myear + 5
+  Cyear = Cyear + 5
+ end if
+ if (block.eq.3) then
+  Myear = Myear + 10
+  Cyear = Cyear + 10
+ end if
+ if (block.eq.4) then
+  Myear = Myear + 15
+  Cyear = Cyear + 15
+ end if
 end if
 
 if (isfilevar(moses_file,"field77")) then
@@ -194,17 +199,17 @@ LandPc(k:k,:,:,:) = where(lsm.gt.0,prC(k:k,:,:,:),-9999)
 end do
 
 if (nmon .gt. ttp(0)) then
-do k=0,ttp(0)-1,1
-LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
-end do
-do k=0,tpr(0)-1,1
-LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
-end do
+ do k=0,ttp(0)-1,1
+  LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
+ end do
+ do k=0,tpr(0)-1,1
+  LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
+ end do
 else
-do k=0,nmon-1,1
-LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
-LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
-end do
+ do k=0,nmon-1,1
+  LandTe(k:k,:,:)   = where(emsk.eq.1,era_t2m(k:k,:,:),-9999)
+  LandPe(k:k,:,:)   = where(emsk.eq.1,era_pr(k:k,:,:),-9999)
+ end do
 end if
 
 LandTm@_FillValue = -9999
@@ -217,6 +222,7 @@ LandPe@_FillValue = -9999
 ; Weighted Averages ---------------------------------------------------------
 
 wgt_tscrnM      = wgt_areaave(LandTm,cos(tscrnM&latitude*0.0174532),1.0,0)
+;wgt_tscrnM      = wgt_areaave2(LandTm,larea,0)
 wgt_tscrnM!0    = "time"
 wgt_tscrnM!1    = "ht"
 if (isfilevar(moses_file,"time")) then
@@ -226,6 +232,7 @@ wgt_tscrnM&time = tscrnM&t
 end if
 wgt_tscrnM&ht   = tscrnM&ht
 wgt_tscrnC      = wgt_areaave(LandTc,cos(tscrnC&latitude*0.0174532),1.0,0)
+;wgt_tscrnC      = wgt_areaave2(LandTc,larea,0)
 wgt_tscrnC!0    = "time"
 wgt_tscrnC!1    = "ht"
 if (isfilevar(cable_file,"time")) then
@@ -239,6 +246,7 @@ wgt_erat2m!0    = "time"
 wgt_erat2m&time = era_t2m&time
 
 wgt_prM         = wgt_areaave(LandPm,cos(prM&latitude*0.0174532),1.0,0)
+;wgt_prM         = wgt_areaave2(LandPm,larea,0)
 wgt_prM!0       = "time"
 wgt_prM!1       = "ht"
 if (isfilevar(moses_file,"time")) then
@@ -248,6 +256,7 @@ wgt_prM&time    = prM&t
 end if
 wgt_prM&ht      = prM&surface
 wgt_prC         = wgt_areaave(LandPc,cos(prC&latitude*0.0174532),1.0,0)
+;wgt_prC         = wgt_areaave2(LandPc,larea,0)
 wgt_prC!0       = "time"
 wgt_prC!1       = "ht"
 if (isfilevar(cable_file,"time")) then
@@ -353,6 +362,7 @@ res@tiXAxisFontHeightF         = 0.020
 res@tmYLLabelFontHeightF       = 0.015
 res@tmXBLabelFontHeightF       = 0.015
 
+print("")
 print("Plotting Inter-Annual Variability (Monthly Means)")
 print("")
 
@@ -391,6 +401,14 @@ pres@gsnPanelBottom       = 0.18
 ;pres@txFontHeightF       = 0.03
 ;pres@pmLegendDisplayMode = "Always"
 gsn_panel(wks,plot,(/2,1/),pres)
+
+else
+
+print("")
+print("Mmon Files not Present")
+print("")
+
+end if
 
 end
 

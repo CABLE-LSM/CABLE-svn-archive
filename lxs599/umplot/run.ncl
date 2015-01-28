@@ -35,6 +35,7 @@ begin
   tile = systemfunc("echo $TILE")
   soil = systemfunc("echo $SOIL")
   resn = systemfunc("echo $RES")
+  regn = systemfunc("echo $REGION")
 
   jpg = systemfunc("echo $CHFMT")
   if (jpg.eq."y") then
@@ -71,7 +72,7 @@ begin
   end if
 
 ; Call to variables.ncl
-  run_ncl(dir,rid,year,tile,soil,"n"+resn,split,tay,odir,lcable,jpeg)
+  run_ncl(dir,rid,year,tile,soil,"n"+resn,split,tay,odir,regn,lcable,jpeg)
 
 ;Examples:
   ;run_ncl("./","xagpb","20","9" ,"4","n96",False,False,"./",False,False) 

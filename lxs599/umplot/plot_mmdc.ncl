@@ -4,8 +4,10 @@
 ;load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+;load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
 ;====================================================================
+
+; CONTAINS: ts_flux, ts_rad, ts_prec, ts_prec4, ts_swlw
 
 procedure ts_flux(FlxName:string,ShJan,LhJan,ShJul,LhJul,jpeg) ; :numeric
 
@@ -51,7 +53,7 @@ res@lgLabelFontHeightF     = .016                ; label font height
 if (dims(0).eq.5) then
 res@xyExplicitLegendLabels = (/" a10"," a11_r0"," a11_r4"," a11_r5"," fluxnet"/)         ; create explicit labels
 else
-res@xyExplicitLegendLabels = (/"A1.0","A1.1","fluxnet"/)         ; create explicit labels
+res@xyExplicitLegendLabels = (/"A1.0","A1.1","Obs"/)         ; create explicit labels
 end if
 ;res@xyExplicitLegendLabels = (/"igbp","A1.0","A1.1","fluxnet"/)         ; create explicit labels
 
@@ -196,7 +198,7 @@ res@lgLabelFontHeightF     = .016                ; label font height
 if (dims(0).eq.5) then
 res@xyExplicitLegendLabels = (/" a10"," a11_r0"," a11_r4"," a11_r5"," fluxnet"/)         ; create explicit labels
 else
-res@xyExplicitLegendLabels = (/"A1.0","A1.1","fluxnet"/)         ; create explicit labels
+res@xyExplicitLegendLabels = (/"A1.0","A1.1","Obs"/)         ; create explicit labels
 end if
 ;res@xyExplicitLegendLabels = (/"igbp","A1.0","A1.1","fluxnet"/)         ; create explicit labels
 
@@ -281,7 +283,7 @@ res@lgLabelFontHeightF     = .016                ; label font height
 if (dims(0).eq.5) then
 res@xyExplicitLegendLabels = (/" a10"," a11_r0"," a11_r4"," a11_r5"," fluxnet"/)         ; create explicit labels
 else
-res@xyExplicitLegendLabels = (/"A1.0","A1.1","fluxnet"/)         ; create explicit labels
+res@xyExplicitLegendLabels = (/"A1.0","A1.1","Obs"/)         ; create explicit labels
 end if
 ;res@xyExplicitLegendLabels = (/"igbp","A1.0","A1.1","fluxnet"/)         ; create explicit labels
 
@@ -384,7 +386,7 @@ res@lgLabelFontHeightF     = .016                ; label font height
 if (dims(0).eq.5) then
 res@xyExplicitLegendLabels = (/" a10"," a11_r0"," a11_r4"," a11_r5"," fluxnet"/)         ; create explicit labels
 else
-res@xyExplicitLegendLabels = (/"A1.0","A1.1","fluxnet"/)         ; create explicit labels
+res@xyExplicitLegendLabels = (/"A1.0","A1.1","Obs"/)         ; create explicit labels
 end if
 ;res@xyExplicitLegendLabels = (/"igbp","A1.0","A1.1","fluxnet"/)         ; create explicit labels
 
@@ -460,7 +462,7 @@ res@lgLabelFontHeightF     = .016                ; label font height
 if (dims(0).eq.5) then
 res@xyExplicitLegendLabels = (/" a10"," a11_r0"," a11_r4"," a11_r5"," fluxnet"/)         ; create explicit labels
 else
-res@xyExplicitLegendLabels = (/"A1.0","A1.1","fluxnet"/)         ; create explicit labels
+res@xyExplicitLegendLabels = (/"A1.0","A1.1","Obs"/)         ; create explicit labels
 end if
 ;res@xyExplicitLegendLabels = (/"igbp","A1.0","A1.1","fluxnet"/)         ; create explicit labels
 

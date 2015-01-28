@@ -16,7 +16,7 @@ numYr    = systemfunc("echo $YR")
 modl     = systemfunc("echo $MODEL")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
-jpg = systemfunc("echo $CHFMT")
+jpg      = systemfunc("echo $CHFMT")
 if(jpg.eq."y") then
  jpeg = True
 else
@@ -28,17 +28,18 @@ home     = "~"+usr+"/"
 flxobs   = "/home/cmar/ste69f/obsdata/fluxnet/PALS/flxnt_mon/"
 
 ;obs ---
- flux_ma  = addfile(tsDir + "MA96_lu_u0_mm_flx.nc"    ,"r")
- met_ma   = addfile(tsDir + "MA96_mm_met.nc"          ,"r")
- flux_tb  = addfile(tsDir + "AnnCycles_tumbarumba.nc" ,"r")
- hyy_new  = addfile(flxobs+"mmdc_ts_Hyytiala.nc"       ,"r")
- lo_new   = addfile(flxobs+"mmdc_ts_Loobos.nc"         ,"r")
- nb_new   = addfile(flxobs+"mmdc_ts_Boreas.nc"         ,"r")
- bv_new = addfile(flxobs + "mmdc_ts_Bondv.nc"         ,"r")
- th_new = addfile(flxobs + "mmdc_ts_Tharandt.nc"      ,"r")
- hv_new = addfile(flxobs + "mmdc_ts_Harvard.nc"       ,"r")
+ flux_ma = addfile(tsDir  + "MA96_lu_u0_mm_flx.nc"    ,"r")
+ met_ma  = addfile(tsDir  + "MA96_mm_met.nc"          ,"r")
+ flux_tb = addfile(tsDir  + "AnnCycles_tumbarumba.nc" ,"r")
+ hyy_new = addfile(flxobs + "mmdc_ts_Hyytiala.nc"     ,"r")
+ lo_new  = addfile(flxobs + "mmdc_ts_Loobos.nc"       ,"r")
+ nb_new  = addfile(flxobs + "mmdc_ts_Boreas.nc"       ,"r")
+ bv_new  = addfile(flxobs + "mmdc_ts_Bondv.nc"        ,"r")
+ th_new  = addfile(flxobs + "mmdc_ts_Tharandt.nc"     ,"r")
+ hv_new  = addfile(flxobs + "mmdc_ts_Harvard.nc"      ,"r")
+ tb_new  = addfile(flxobs + "mmdc_ts_Tumba.nc"        ,"r")
 ; model ---
- mosfil   = addfile(filDir+"/AnnualCycle_"+numYr+"yrs.nc"        ,"r")
+ mosfil  = addfile(filDir+"/AnnualCycle_"+numYr+"yrs.nc" ,"r")
 
 ;OBS===========================================================================
 
@@ -54,85 +55,153 @@ fils2  = systemfunc("ls "+tsDir+"*-*_mm_met.nc")
 f2     = addfiles(fils2,"r")
 ListSetType(f2,"join")
 radnet = f2[:]->Rn  ;(0:11)
-temp2m = f2[:]->Ta  ;(0:11)
-preci  = f2[:]->PPT ;(0:11)
+;temp2m = f2[:]->Ta  ;(0:11)
+;preci  = f2[:]->PPT ;(0:11)
 
 sens_ma = flux_ma ->H
 lat_ma  = flux_ma ->LH
 rad_ma  = met_ma  ->Rn
-temp_ma = met_ma  ->Ta
-prec_ma = met_ma  ->PPT
+;temp_ma = met_ma  ->Ta
+;prec_ma = met_ma  ->PPT
 sens_tb = flux_tb ->qh_8yr_mean    ;Qh    ;H
 lat_tb  = flux_tb ->qle_8yr_mean   ;Qle   ;LH
 rad_tb  = flux_tb ->rnet_8yr_mean  ;Rnet  ;Rn
-temp_tb = flux_tb ->tair_8yr_mean  ;Tair  ;Ta
-prec_tb = flux_tb ->rainf_8yr_mean ;Rainf ;PPT
+;temp_tb = flux_tb ->tair_8yr_mean  ;Tair  ;Ta
+;prec_tb = flux_tb ->rainf_8yr_mean ;Rainf ;PPT
+;sens_tb = tb_new ->Qh
+;lat_tb  = tb_new ->Qle
+;rad_tb  = tb_new ->Rnet
+;temp_tb = tb_new ->Tair
+;prec_tb = tb_new ->Rainf
 sens_hy = hyy_new ->Qh
 lat_hy  = hyy_new ->Qle
 rad_hy  = hyy_new ->Rnet
-temp_hy = hyy_new ->Tair
-prec_hy = hyy_new ->Rainf
+;temp_hy = hyy_new ->Tair
+;prec_hy = hyy_new ->Rainf
 sens_lo = lo_new  ->Qh
 lat_lo  = lo_new  ->Qle
 rad_lo  = lo_new  ->Rnet
-temp_lo = lo_new  ->Tair
-prec_lo = lo_new  ->Rainf
+;temp_lo = lo_new  ->Tair
+;prec_lo = lo_new  ->Rainf
 sens_nb = nb_new  ->Qh
 lat_nb  = nb_new  ->Qle
 rad_nb  = nb_new  ->Rnet
-temp_nb = nb_new  ->Tair
-prec_nb = nb_new  ->Rainf
-;sens_th = th_new  ->Qh
-;lat_th  = th_new  ->Qle
+;temp_nb = nb_new  ->Tair
+;prec_nb = nb_new  ->Rainf
+sens_th = th_new  ->Qh
+lat_th  = th_new  ->Qle
 ;rad_th  = th_new  ->Rnet ; missing
 ;temp_th = th_new  ->Tair
 ;prec_th = th_new  ->Rainf
-;sens_hv = hv_new  ->Qh
-;lat_hv  = hv_new  ->Qle
-;rad_hv  = hv_new  ->Rnet
+sens_hv = hv_new  ->Qh
+lat_hv  = hv_new  ->Qle
+rad_hv  = hv_new  ->Rnet
 ;temp_hv = hv_new  ->Tair
 ;prec_hv = hv_new  ->Rainf
-;sens_bv = bv_new  ->Qh
-;lat_bv  = bv_new  ->Qle
-;rad_bv  = bv_new  ->Rnet
+sens_bv = bv_new  ->Qh
+lat_bv  = bv_new  ->Qle
+rad_bv  = bv_new  ->Rnet
 ;temp_bv = bv_new  ->Tair
 ;prec_bv = bv_new  ->Rainf
+
+sens_tb!0 = "axis_1"
+copy_VarCoords(sens_tb,lat_tb)
+copy_VarCoords(sens_tb,rad_tb)
+sens_hy!0 = "axis_1"
+sens_hy!1 = "axis_2"
+sens_hy!2 = "axis_3"
+copy_VarCoords(sens_hy,lat_hy)
+copy_VarCoords(sens_hy,rad_hy)
+copy_VarCoords(sens_hy,sens_lo)
+copy_VarCoords(sens_hy, lat_lo)
+copy_VarCoords(sens_hy, rad_lo)
+copy_VarCoords(sens_hy,sens_hv)
+copy_VarCoords(sens_hy, lat_hv)
+copy_VarCoords(sens_hy, rad_hv)
+copy_VarCoords(sens_hy,sens_bv)
+copy_VarCoords(sens_hy, lat_bv)
+copy_VarCoords(sens_hy, rad_bv)
+copy_VarCoords(sens_hy,sens_nb)
+copy_VarCoords(sens_hy, lat_nb)
+copy_VarCoords(sens_hy, rad_nb)
+copy_VarCoords(sens_hy,sens_th)
+copy_VarCoords(sens_hy, lat_th)
 
 ;OBS===========================================================================
 
 sensht            = new((/11,12/),double)
 latht             = new((/11,12/),double)
 rad               = new((/11,12/),double)
-temp              = new((/11,12/),double)
-precip            = new((/11,12/),double)
+;temp              = new((/11,12/),double)
+;precip            = new((/11,12/),double)
 sensht            = -9999
 latht             = -9999
 rad               = -9999
-temp              = -9999
-precip            = -9999
+;temp              = -9999
+;precip            = -9999
 sensht@_FillValue = -9999
 latht@_FillValue  = -9999
 rad@_FillValue    = -9999
-temp@_FillValue   = -9999
-precip@_FillValue = -9999
+;temp@_FillValue   = -9999
+;precip@_FillValue = -9999
+sensht!0 = "axis_0"
+ latht!0 = "axis_0"
+   rad!0 = "axis_0"
+sensht!1 = "axis_1"
+ latht!1 = "axis_1"
+   rad!1 = "axis_1"
 
 do k=0,8,1
  sensht(k,:)       = sens(k,0:11)*1000000/(31*24*60*60)   ;H
  latht(k,:)        = lat(k,0:11)*1000000/(31*24*60*60)    ;LH
  rad(k,:)          = radnet(k,0:11)*1000000/(31*24*60*60) ;Rn
- temp(k,:)         = temp2m(k,0:11)                       ;Ta
- precip(k,:)       = preci(k,0:11)                        ;PPT
+ ;temp(k,:)         = temp2m(k,0:11)                       ;Ta
+ ;precip(k,:)       = preci(k,0:11)                        ;PPT
 end do
+
 sensht(9,:)       = sens_ma(0:11)*1000000/(31*24*60*60)   ;H
 latht(9,:)        = lat_ma(0:11)*1000000/(31*24*60*60)    ;LH
 rad(9,:)          = rad_ma(0:11)*1000000/(31*24*60*60)    ;Rn
-temp(9,:)         = temp_ma(0:11)                         ;Ta
-precip(9,:)       = prec_ma(0:11)                         ;PPT
+;temp(9,:)         = temp_ma(0:11)                         ;Ta
+;precip(9,:)       = prec_ma(0:11)                         ;PPT
+
 sensht(10,:)      = sens_tb(0:11)                         ;H
 latht(10,:)       = lat_tb(0:11)                          ;LH
 rad(10,:)         = rad_tb(0:11)                          ;Rn
-temp(10,:)        = temp_tb(0:11)                         ;Ta
-precip(10,:)      = prec_tb(0:11)                         ;PPT
+;temp(10,:)        = temp_tb(0:11)                         ;Ta
+;precip(10,:)      = prec_tb(0:11)                         ;PPT
+
+sensht(2,:)       = dim_avg_n_Wrap(sens_hy(:,:,0),1) ;H
+latht(2,:)        = dim_avg_n_Wrap(lat_hy(:,:,0),1)  ;LH
+rad(2,:)          = dim_avg_n_Wrap(rad_hy(:,:,0),1)  ;Rn
+;temp(2,:)         = dim_avg_n_Wrap(temp_hy(:,:,0),1) ;Ta
+;precip(2,:)       = dim_avg_n_Wrap(prec_hy(:,:,0),1) ;PPT
+sensht(3,:)       = dim_avg_n_Wrap(sens_lo(:,:,0),1) ;H
+latht(3,:)        = dim_avg_n_Wrap(lat_lo(:,:,0),1)  ;LH
+rad(3,:)          = dim_avg_n_Wrap(rad_lo(:,:,0),1)  ;Rn
+;temp(3,:)         = dim_avg_n_Wrap(temp_lo(:,:,0),1) ;Ta
+;precip(3,:)       = dim_avg_n_Wrap(prec_lo(:,:,0),1) ;PPT
+sensht(5,:)       = dim_avg_n_Wrap(sens_nb(:,:,0),1) ;H
+latht(5,:)        = dim_avg_n_Wrap(lat_nb(:,:,0),1)  ;LH
+rad(5,:)          = dim_avg_n_Wrap(rad_nb(:,:,0),1)  ;Rn
+;temp(5,:)         = dim_avg_n_Wrap(temp_nb(:,:,0),1) ;Ta
+;precip(5,:)       = dim_avg_n_Wrap(prec_nb(:,:,0),1) ;PPT
+sensht(0,:)       = dim_avg_n_Wrap(sens_bv(:,:,0),1) ;H
+latht(0,:)        = dim_avg_n_Wrap(lat_bv(:,:,0),1)  ;LH
+rad(0,:)          = dim_avg_n_Wrap(rad_bv(:,:,0),1)  ;Rn
+;temp(0,:)         = dim_avg_n_Wrap(temp_bv(:,:,0),1) ;Ta
+;precip(0,:)       = dim_avg_n_Wrap(prec_bv(:,:,0),1) ;PPT
+sensht(1,:)       = dim_avg_n_Wrap(sens_hv(:,:,0),1) ;H
+latht(1,:)        = dim_avg_n_Wrap(lat_hv(:,:,0),1)  ;LH
+rad(1,:)          = dim_avg_n_Wrap(rad_hv(:,:,0),1)  ;Rn
+;temp(1,:)         = dim_avg_n_Wrap(temp_hv(:,:,0),1) ;Ta
+;precip(1,:)       = dim_avg_n_Wrap(prec_hv(:,:,0),1) ;PPT
+sensht(6,:)       = dim_avg_n_Wrap(sens_th(:,:,0),1) ;H
+latht(6,:)        = dim_avg_n_Wrap(lat_th(:,:,0),1)  ;LH
+;rad(6,:)          = dim_avg_n_Wrap(rad_th(:,:,0),1)  ;Rn
+;temp(6,:)         = dim_avg_n_Wrap(temp_th(:,:,0),1) ;Ta
+;precip(6,:)       = dim_avg_n_Wrap(prec_th(:,:,0),1) ;PPT
+
 ;;Lest 7/1/14 - For AMOJ papers
 ;sensht(9,:)       = -9999;sens_ma(0:11)*1000000/(31*24*60*60)   ;H
 ;latht(9,:)        = -9999;lat_ma(0:11)*1000000/(31*24*60*60)    ;LH
@@ -151,36 +220,20 @@ precip(10,:)      = prec_tb(0:11)                         ;PPT
 ;precip(7,:)       = -9999 ; vie
 ;;Lest 7/1/14 - For AMOJ papers
 
-sensht(2,:)       = dim_avg_n_Wrap(sens_hy(:,:,0),1) ;H
-latht(2,:)        = dim_avg_n_Wrap(lat_hy(:,:,0),1)  ;LH
-rad(2,:)          = dim_avg_n_Wrap(rad_hy(:,:,0),1)  ;Rn
-temp(2,:)         = dim_avg_n_Wrap(temp_hy(:,:,0),1) ;Ta
-precip(2,:)       = dim_avg_n_Wrap(prec_hy(:,:,0),1) ;PPT
-sensht(3,:)       = dim_avg_n_Wrap(sens_lo(:,:,0),1) ;H
-latht(3,:)        = dim_avg_n_Wrap(lat_lo(:,:,0),1)  ;LH
-rad(3,:)          = dim_avg_n_Wrap(rad_lo(:,:,0),1)  ;Rn
-temp(3,:)         = dim_avg_n_Wrap(temp_lo(:,:,0),1) ;Ta
-precip(3,:)       = dim_avg_n_Wrap(prec_lo(:,:,0),1) ;PPT
-;sensht(5,:)       = dim_avg_n_Wrap(sens_nb(:,:,0),1) ;H
-;latht(5,:)        = dim_avg_n_Wrap(lat_nb(:,:,0),1)  ;LH
-;rad(5,:)          = dim_avg_n_Wrap(rad_nb(:,:,0),1)  ;Rn
-;temp(5,:)         = dim_avg_n_Wrap(temp_nb(:,:,0),1) ;Ta
-;precip(5,:)       = dim_avg_n_Wrap(prec_nb(:,:,0),1) ;PPT
-
 ;MODEL==========================================
 
 if (isfilevar(mosfil,"hfss")) then
  msh     = mosfil ->hfss      ; sh
  mlh     = mosfil ->hfls      ; lh
  mrad    = mosfil ->field3333 ; field202
- mta     = mosfil ->tas       ; temp
- mpr     = mosfil ->field5226 ; tot_precip
+ ;mta     = mosfil ->tas       ; temp
+ ;mpr     = mosfil ->field5226 ; tot_precip
 else
  msh     = mosfil ->sh
  mlh     = mosfil ->lh
  mrad    = mosfil ->field202
- mta     = mosfil ->temp
- mpr     = mosfil ->tot_precip
+ ;mta     = mosfil ->temp
+ ;mpr     = mosfil ->tot_precip
 end if
 
 if (isfilevar(mosfil,"solar")) then

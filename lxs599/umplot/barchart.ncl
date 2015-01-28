@@ -49,21 +49,22 @@ tscrn_obs  = addfile(ObsDir+"ERAi_tp2m.nc","r")
 era_mask   = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 if (resol.eq.48) then
-lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
-orog_file  = addfile(LsmDir+"orography_UMn48.nc","r")
-lf_file   = addfile(LsmDir+"landfrac_n48.nc","r")
+ lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
+ orog_file  = addfile(LsmDir+"orography_UMn48.nc","r")
+ lf_file   = addfile(LsmDir+"landfrac_n48.nc","r")
 else
-if (vMask.eq.2) then
-lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
-orog_file  = addfile(LsmDir+"qrparm.orog_hg2.nc","r")
-;orog_file  = addfile(LsmDir+"qrparm.orog_accessV2.nc","r")
-lf_file   = addfile(LsmDir+"landfrac_v2.nc","r")
-else
-lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
-orog_file  = addfile(LsmDir+"qrparm.orog_v1.nc","r")
-lf_file   = addfile(LsmDir+"landfrac_ACCESS_N96.nc","r")
+ if (vMask.eq.2) then
+  lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
+  orog_file  = addfile(LsmDir+"qrparm.orog_hg2.nc","r")
+  ;orog_file  = addfile(LsmDir+"qrparm.orog_accessV2.nc","r")
+  lf_file   = addfile(LsmDir+"landfrac_v2.nc","r")
+ else
+  lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
+  orog_file  = addfile(LsmDir+"qrparm.orog_v1.nc","r")
+  lf_file   = addfile(LsmDir+"landfrac_ACCESS_N96.nc","r")
+ end if
 end if
-end if
+area_file = addfile(LsmDir+"areacella.nc","r")
 
 ; Variables -------------------------------------------------------
 
@@ -89,11 +90,12 @@ tscrnC1           = cable_file ->$tname$ ; tas
 end if
 end if
 era_t2m1          = tscrn_obs  ->a ;t2m
-;lsm               = lsm_file   ->lsm
-;lfr               = lf_file   ->lsm
-lsm               = lf_file   ->lsm
+lsm               = lsm_file   ->lsm
+lfr               = lf_file   ->lsm
+;lsm               = lf_file   ->lsm
 orog              = orog_file  ->ht
 emsk1             = era_mask   ->lsm
+larea             = area_file  ->areacella
 
 ;Mtime             = moses_file ->t;ime
 ;Ctime             = cable_file ->t;ime
@@ -109,9 +111,15 @@ emsk&longitude    = emsk1&longitude
 emsk&time         = emsk1&time
 ;;emsk_rg           = linint2(emsk&longitude,emsk&latitude,emsk,True,tscrnM1&longitude,tscrnM1&latitude,0)
 
+if (isdim(tscrnM1,"latitude")) then
 latitude          = tscrnM1&latitude
 latitude!0        = "latitude"
 latitude&latitude = tscrnM1&latitude
+else
+latitude          = tscrnM1&lat
+latitude!0        = "latitude"
+latitude&latitude = tscrnM1&lat
+end if
 lat_era           = era_t2m1&latitude
 lat_era!0         = "latitude"
 lat_era&latitude  = era_t2m1&latitude
@@ -140,8 +148,14 @@ LandTe          = era_t2m1
 ;OrogTc          = tscrnC
 ;OrogTe          = era_t2m
 
+dimc = dimsizes(dimsizes(tscrnC1))
+dimm = dimsizes(dimsizes(tscrnM1))
 do i= 0,3,1
+if (dimm.eq.4) then
 LandTm(i,:,:,:) = where(lsm(0,:,:,:).gt.0,tscrnM1(i,:,:,:),-9999)
+else
+LandTm(i,:,:) = where(lsm(0,0,:,:).gt.0,tscrnM1(i,:,:),-9999)
+end if
 LandTc(i,:,:,:) = where(lsm(0,:,:,:).gt.0,tscrnC1(i,:,:,:),-9999)
 LandTe(i,:,:)   = where(emsk(0,:,:).eq.1,era_t2m1(i,:,:),-9999)
 end do
@@ -203,16 +217,17 @@ dx   = con * dlon * clat
 dy   = con * dlati
 dydx = dy * dx
 
-wgt  = new((/nlat,mlon/),double)
-wgt!0 = "lat"
-wgt!1 = "lon"
-wgt&lat = tscrnC&latitude
-wgt&lon = tscrnC&$dNames(nsiz-1)$ ;longitude
-wgt  = conform(wgt,dydx,0)
-;wgto = wgt*(1-lfr(0,0,:,:))
-;wgtl = wgt*lfr(0,0,:,:)
-wgtlm = wgt*(lsm(0,0,:,:)) ;lsm = lfr
-;wgtom = wgt*(1-lsm(0,0,:,:))
+;wgt  = new((/nlat,mlon/),double)
+;wgt!0 = "lat"
+;wgt!1 = "lon"
+;wgt&lat = tscrnC&latitude
+;wgt&lon = tscrnC&$dNames(nsiz-1)$ ;longitude
+;wgt  = conform(wgt,dydx,0)
+wgt   = larea
+wgto  = wgt*(1-lfr(0,0,:,:))
+wgtl  = wgt*lfr(0,0,:,:)
+wgtlm = wgt*(lsm(0,0,:,:)) ;lsm != lfr
+wgtom = wgt*(1-lsm(0,0,:,:))
 wgtlm!0 = "lat"
 wgtlm!1 = "lon"
 wgtlm&lat = tscrnC&latitude
@@ -224,10 +239,16 @@ latS       = mlat(0,i)
 latN       = mlat(1,i)
 lat        = latitude({latS:latN})
 late       = lat_era({latS:latN})
+if (dimm.eq.4) then
 wgt_M      = wgt_areaave2(tscrnM(:,{latS:latN},:),wgt({latS:latN},:),0)
+else
+wgt_M      = wgt_areaave2(tscrnM({latS:latN},:),wgt({latS:latN},:),0)
+end if
 ;wgt_M      = wgt_areaave(tscrnM(:,{latS:latN},:),cos(lat*rad),1.0,0)
+if (dimm.eq.4) then
 wgt_M!0    = "ht"
 wgt_M@ht   = tscrnM1&ht
+end if
 wgt_C      = wgt_areaave2(tscrnC(:,{latS:latN},:),wgt({latS:latN},:),0)
 ;wgt_C      = wgt_areaave(tscrnC(:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_C!0    = "ht"
@@ -235,10 +256,16 @@ wgt_C@ht   = tscrnC1&ht
 wgt_E      = wgt_areaave(era_t2m({latS:latN},:),cos(late*rad),1.0,0)
 wgt_E!0    = "ht"
 wgt_E@ht   = tscrnC1&ht
+if (dimm.eq.4) then
 wgt_lM     = wgt_areaave2(LandTmA(:,{latS:latN},:),wgtlm({latS:latN},:),0)
+else
+wgt_lM     = wgt_areaave2(LandTmA({latS:latN},:),wgtlm({latS:latN},:),0)
+end if
 ;wgt_lM     = wgt_areaave(LandTmA(:,{latS:latN},:),cos(lat*rad),1.0,0)
+if (dimm.eq.4) then
 wgt_lM!0   = "ht"
 wgt_lM@ht  = tscrnM1&ht
+end if
 wgt_lC     = wgt_areaave2(LandTcA(:,{latS:latN},:),wgtlm({latS:latN},:),0)
 ;wgt_lC     = wgt_areaave(LandTcA(:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_lC!0   = "ht"
@@ -284,7 +311,9 @@ bias_ann(j+1)      = gdata(m+1)-gdata(m+2)
 m    = m + 3
 end do
 
+print("")
 print("Plotting Annual Barcharts")
+print("")
 
 PlotBar("Global Annual Screen Temperature Means"    ,gdata        ,"bar_tscrn_gann_"+numYr+"yrs"    ,"ps",False)
 PlotBar("Global Annual Screen Temperature Biases"   ,bias_ann     ,"bar_tscrn_gbias_"+numYr+"yrs"   ,"ps",False)
@@ -310,10 +339,16 @@ latS       = mlat(0,i)
 latN       = mlat(1,i)
 lat        = latitude({latS:latN})
 late       = lat_era({latS:latN})
+if (dimm.eq.4) then
 wgt_M      = wgt_areaave2(tscrnM1(j,:,{latS:latN},:),wgt({latS:latN},:),0)
+else
+wgt_M      = wgt_areaave2(tscrnM1(j,{latS:latN},:),wgt({latS:latN},:),0)
+end if
 ;wgt_M      = wgt_areaave(tscrnM1(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
+if (dimm.eq.4) then
 wgt_M!0    = "ht"
 wgt_M@ht   = tscrnM1&ht
+end if
 wgt_C      = wgt_areaave2(tscrnC1(j,:,{latS:latN},:),wgt({latS:latN},:),0)
 ;wgt_C      = wgt_areaave(tscrnC1(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_C!0    = "ht"
@@ -321,10 +356,16 @@ wgt_C@ht   = tscrnC1&ht
 wgt_E      = wgt_areaave(era_t2m1(j,{latS:latN},:),cos(late*rad),1.0,0)
 wgt_E!0    = "ht"
 wgt_E@ht   = tscrnC1&ht
+if (dimm.eq.4) then
 wgt_lM     = wgt_areaave2(LandTm(j,:,{latS:latN},:),wgtlm({latS:latN},:),0)
+else
+wgt_lM     = wgt_areaave2(LandTm(j,{latS:latN},:),wgtlm({latS:latN},:),0)
+end if
 ;wgt_lM     = wgt_areaave(LandTm(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
+if (dimm.eq.4) then
 wgt_lM!0   = "ht"
 wgt_lM@ht  = tscrnM1&ht
+end if
 wgt_lC     = wgt_areaave2(LandTc(j,:,{latS:latN},:),wgtlm({latS:latN},:),0)
 ;wgt_lC     = wgt_areaave(LandTc(j,:,{latS:latN},:),cos(lat*rad),1.0,0)
 wgt_lC!0   = "ht"

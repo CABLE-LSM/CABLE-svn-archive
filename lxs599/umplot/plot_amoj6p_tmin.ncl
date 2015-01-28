@@ -14,14 +14,25 @@ begin
 numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
+cname = systemfunc("echo $CNM")
 ObsDir = "~"+usr+"/umplot/obs/"
 
 moses  = addfile(mDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 obstas = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
 
-rtype = "amip"
-;rtype = "hist"
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname .eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname .eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
 if (isfilevar(moses,"tmin")) then
 tas_m = moses  ->tmin ;tasmin
@@ -79,7 +90,11 @@ bias_tasl@long_name  = "Min Screen Temperature Bias: UM-ERAi"
 bias_tasl@units      = "~S~o~N~K"
 bias_tasc@long_name  = "Min Screen Temperature Bias: UM-ERAi"
 bias_tasc@units      = "~S~o~N~K"
+if (a14) then
 bias_tas@long_name   = "Min Screen Temperature Bias: A1.1-A1.0"
+else
+bias_tas@long_name   = "Min Screen Temperature Bias: A1.1-A1.0"
+end if
 bias_tas@units       = "~S~o~N~K"
 
 ;WKS===================================================================
@@ -221,6 +236,7 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   
 ; Plot ------------------------------------------------------------------
        
+  print("")
   print("Plotting AMOJ 6 Panel Tmin Biases")
   print("")
   plot = new(6,graphic)
@@ -249,14 +265,22 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
 
   res@tmXBLabelsOn = False
   res@gsnRightString = "DJF"
+if (a14) then
+  res@gsnLeftString = "ACCESS1.3 "+rtype
+else
   res@gsnLeftString = "ACCESS1.0 "+rtype
+end if
   plot(0) = gsn_csm_contour_map(wks,bias_tasm(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString = "JJA"
   plot(1) = gsn_csm_contour_map(wks,bias_tasm(2,{latS:latN},{lonL:lonR}),res)
   ;res@tmXBLabelsOn = True
   res@tmYLLabelsOn = True
+if (a14) then
+  res@gsnLeftString = "ACCESS1.4 "+rtype
+else
   res@gsnLeftString = "ACCESS1.1 "+rtype
+end if
   res@gsnRightString = "DJF"
   plot(2) = gsn_csm_contour_map(wks,bias_tasc(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
@@ -266,7 +290,11 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   plot(3) = gsn_csm_contour_map(wks,bias_tasc(2,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = True
   res@tmXBLabelsOn = True
+if (a14) then
+  res@gsnLeftString = "ACCESS1.4 - ACCESS1.3 "+rtype
+else
   res@gsnLeftString = "ACCESS1.1 - ACCESS1.0 "+rtype
+end if
   res@gsnRightString = "DJF"
   plot(4) = gsn_csm_contour_map(wks,bias_tas(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False

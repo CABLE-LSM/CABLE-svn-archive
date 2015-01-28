@@ -14,11 +14,23 @@ numYr = systemfunc("echo $YR")
 mDir  = systemfunc("echo $MOSES")
 cDir  = systemfunc("echo $CABLE")
 tDir  = "~"+usr+"/access/access13/amip" ;systemfunc("echo $CABLE")
+cname = systemfunc("echo $CNM")
 
 ;mland = False
 ;mland = True
-rtype = "amip"
-;rtype = "historical"
+
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname.eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname.eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
 PltDir    = "~"+usr+"/umplot/data/"
 ObsDir    = "~"+usr+"/umplot/obs/"
@@ -70,7 +82,11 @@ emsk&longitude = emsk1&longitude
 emsk&time      = emsk1&time
 
 zclt1 = dim_avg_n_Wrap(clt1(:,0,:,:),0)
-zclt0 = dim_avg_n_Wrap(clt0(:,0,:,:),0)
+if (dimsizes(dimsizes(clt0)).eq.4) then
+ zclt0 = dim_avg_n_Wrap(clt0(:,0,:,:),0)
+else
+ zclt0 = dim_avg_n_Wrap(clt0(:,:,:),0)
+end if
 zclt3 = dim_avg_n_Wrap(clt3,0)
 zclto = dim_avg_n_Wrap(clto,0)
 zclto!0 = "latitude"
@@ -99,7 +115,7 @@ wgteo   = wgte*(1-emsk(0,:,:))
 
 ; Zonal Mean ====================
 
-zstdd  = new((/3,145/),float)
+zstdd  = new((/3,145/),typeof(clt0))
 zstdd  = 0.0
 zstdd(0,:) = zonalAve((zclt0(:,:)))
 zstdd(1,:) = zonalAve((zclt1(:,:)))
@@ -153,6 +169,7 @@ res3@tiYAxisString = ""
 res3@tmYRLabelsOn = False
 res3@tmXTLabelsOn = False
 
+  print("")
   print("Plotting AMOJ Zonal Cloud Fraction")
   print("")
 

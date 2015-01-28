@@ -1,7 +1,6 @@
 #!/bin/csh 
 
 unalias ls
-#alias ls ls
 
 #----------------------------
 set a=a
@@ -9,8 +8,6 @@ set date=`date`
 set DIRW=$PWD
 #----------------------------
 
-#module load hdf5/1.8.1 netcdf/4.0 cdo/1.4.0
-#dmget $DIR/$RUNID$a.ps?????.nc 
 echo " "
 dmget $DIR/$RUNID$a.$Pdaily?????.nc
 dmget $DIR/$RUNID$a.$Ptemps?????.nc 
@@ -45,12 +42,16 @@ if ($REINIT == 1) then
  set penosw=`ls $DIR/$RUNID$a.$Ptimes?????_noswlw.nc | head -${nom}`
  set pblist=`ls $DIR/$RUNID$a.$Ptemps?????.nc | head -${nom}`
  set pmlist=`ls $DIR/$RUNID$a.$Pmonth?????.nc | head -${nom}`
+ set pcswlw=`ls $DIR/$RUNID$a.pc?????_swlw.nc | head -${nom}`
+ set pcnosw=`ls $DIR/$RUNID$a.pc?????_noswlw.nc | head -${nom}`
 else
  set pelist=`ls $DIR/$RUNID$a.$Ptimes?????.nc | head -${noy}`
  set peswlw=`ls $DIR/$RUNID$a.$Ptimes?????_swlw.nc | head -${noy}`
  set penosw=`ls $DIR/$RUNID$a.$Ptimes?????_noswlw.nc | head -${noy}`
  set pblist=`ls $DIR/$RUNID$a.$Ptemps?????.nc | head -${noy}`
  set pmlist=`ls $DIR/$RUNID$a.$Pmonth?????.nc | head -${noy}`
+ set pcswlw=`ls $DIR/$RUNID$a.pc?????_swlw.nc | head -${noy}`
+ set pcnosw=`ls $DIR/$RUNID$a.pc?????_noswlw.nc | head -${noy}`
 endif
  if ($count_all == $Numyr) then
   echo "(1)     Warning: Number of Years = YR+1. Please Check."
@@ -77,12 +78,16 @@ if ($REINIT == 1) then
  set peno=`ls $penosw | head -60`
  set pbls=`ls $pblist | head -60`
  set pmls=`ls $pmlist | head -60`
+ set pcsw=`ls $pcswlw | head -60`
+ set pcno=`ls $pcnosw | head -60`
 else
  set pels=`ls $pelist | head -20`
  set pesw=`ls $peswlw | head -20`
  set peno=`ls $penosw | head -20`
  set pbls=`ls $pblist | head -20`
  set pmls=`ls $pmlist | head -20`
+ set pcsw=`ls $pcswlw | head -20`
+ set pcno=`ls $pcnosw | head -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -111,12 +116,16 @@ if ($REINIT == 1) then
  set peno=`ls $penosw | head -120 | tail -60`
  set pbls=`ls $pblist | head -120 | tail -60`
  set pmls=`ls $pmlist | head -120 | tail -60`
+ set pcsw=`ls $pcswlw | head -120 | tail -60`
+ set pcno=`ls $pcnosw | head -120 | tail -60`
 else
  set pels=`ls $pelist | head -40 | tail -20` #tail +21 | head -20
  set pesw=`ls $peswlw | head -40 | tail -20`
  set peno=`ls $penosw | head -40 | tail -20`
  set pbls=`ls $pblist | head -40 | tail -20`
  set pmls=`ls $pmlist | head -40 | tail -20`
+ set pcsw=`ls $pcswlw | head -40 | tail -20`
+ set pcno=`ls $pcnosw | head -40 | tail -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -145,12 +154,16 @@ if ($REINIT == 1) then
  set peno=`ls $penosw | head -180 | tail -60`
  set pbls=`ls $pblist | head -180 | tail -60`
  set pmls=`ls $pmlist | head -180 | tail -60`
+ set pcsw=`ls $pcswlw | head -180 | tail -60`
+ set pcno=`ls $pcnosw | head -180 | tail -60`
 else
  set pels=`ls $pelist | head -60 | tail -20` # tail +41 | head -20
  set pesw=`ls $peswlw | head -60 | tail -20`
  set peno=`ls $penosw | head -60 | tail -20`
  set pbls=`ls $pblist | head -60 | tail -20`
  set pmls=`ls $pmlist | head -60 | tail -20`
+ set pcsw=`ls $pcswlw | head -60 | tail -20`
+ set pcno=`ls $pcnosw | head -60 | tail -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -179,12 +192,16 @@ if ($REINIT == 1) then
  set peno=`ls $penosw | tail -60`
  set pbls=`ls $pblist | tail -60`
  set pmls=`ls $pmlist | tail -60`
+ set pcsw=`ls $pcswlw | tail -60`
+ set pcno=`ls $pcnosw | tail -60`
 else
  set pels=`ls $pelist | tail -20`
  set pesw=`ls $peswlw | tail -20`
  set peno=`ls $penosw | tail -20`
  set pbls=`ls $pblist | tail -20`
  set pmls=`ls $pmlist | tail -20`
+ set pcsw=`ls $pcswlw | tail -20`
+ set pcno=`ls $pcnosw | tail -20`
 endif
 
  if ($count_all == $Numyr) then
@@ -218,8 +235,14 @@ ncrcat -O avedjf.nc avemam.nc avejja.nc aveson.nc seasonal_5yrs.nc
 
 cdo mergetime $pels Timeseries_5yrs.nc
 #cdo copy $pels Timeseries_5yrs.nc
-cdo mergetime $pesw Timeseries_5yrs_swlw.nc
-cdo mergetime $peno Timeseries_5yrs_noswlw.nc
+if ( ${#peswlw} > 0 ) then
+ cdo mergetime $pesw Timeseries_5yrs_swlw.nc
+ cdo mergetime $peno Timeseries_5yrs_noswlw.nc
+endif
+if ( ${#pcswlw} > 0 ) then
+ cdo mergetime $pcsw PALS_ts_5yrs_swlw.nc
+ cdo mergetime $pcno PALS_ts_5yrs_noswlw.nc
+endif
 
 cdo mergetime $pbls Tempseries_5yrs.nc
 #cdo copy $pbls Tempseries_5yrs.nc

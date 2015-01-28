@@ -1,25 +1,23 @@
-; Procedure Code ==================================================
-; created by Lauren Stevens 11-21 April 2011
-; during the NCL cource at BMTC.
-; =================================================================
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 ;load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+
+; Procedure Code ==================================================
+; created by Lauren Stevens 11-21 April 2011
+; during the NCL cource at BMTC.
+; Modified 21 May 2012
 ; =================================================================
 
-procedure Panel_Plot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
-                        field:numeric,region:logical,smthFlag:logical,cnLevels:numeric,  \
+procedure MmnPanel(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
+                        field:numeric,region:logical,smthFlag:logical,cnLevels:numeric,\
                         lmask:logical,jpeg:logical)
 
 begin
 
-  if (varName.eq."mondiff_sndep") then
-   regno = 4
-  else
-   regno = 1
-  end if
-  usr = systemfunc("echo $USERID")
+ if (region) then
+  regno = 4
+ end if
 
   pltName = Dir + "/" + varName + "_" + Yr + "yrs"
 
@@ -41,21 +39,9 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
           (/1.0,.30,0.0/), \
           (/.73,0.0,.21/) /)
 
-cmap_bT = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
-
   ;gsn_define_colormap(wks,cmap)
-if (varName.eq."bias_tscrn".or.varName.eq."bias_totcl".or. \
-    varName.eq."bias_tmax".or. \
-    varName.eq."bias_tmin".or. \
-    varName.eq."bias_tamp") then
-  gsn_define_colormap(wks,cmap_bT)
-else
-;if (pltColor.eq."cmap") then
-;  gsn_define_colormap(wks,cmap_bT)
-;else
   gsn_define_colormap(wks,pltColor)
-;end if
-end if
+  ;gsn_define_colormap(wks,"BlAqGrYeOrReVi200")
 
 ; Resources ========================================================
 
@@ -67,20 +53,12 @@ end if
 
   res@cnFillOn             = True              ; Turn on contour fill.
   res@cnFillMode           = "RasterFill"      ; Pixels
-if (varName.eq."austbias_tscrn".or.varName.eq."austbias_precip".or. \
-    varName.eq."aust_tscrn".or.varName.eq."aust_precip") then
-  res@cnRasterSmoothingOn  = True
-end if
-;if (varName.eq."aust_srnf".or.varName.eq."aust_tot_rnf") then
-;  res@cnRasterSmoothingOn  = True
-;end if
   res@cnLineLabelsOn       = False             ; Turn off line labels.
   res@cnInfoLabelOn        = False             ; Turn off info label.
-  if(lmask)
-  res@cnFillDrawOrder      = "PreDraw"
-                  ; Predraw cn so mask will appear
-                  ; (if land transparent ow land will also be masked)
-  end if
+if (lmask) then
+  res@cnFillDrawOrder      = "PreDraw"         ; Predraw cn so mask will appear
+                                               ; (if land transparent ow land will also be masked)
+end if
   res@cnLinesOn            = False             ; Turn off Lines ?
    
   res@gsnSpreadColors      = True              ;
@@ -95,22 +73,14 @@ end if
   ; ;symMinMaxPlt(field,12,False,res)
   ;end if
 
-  ;if(cnLevels.eq."0") then
-  ;  res@cnLevelSelectionMode = "AutomaticLevels"
-  ;else
+;  if(cnLevels.eq."0") then
+;    res@cnLevelSelectionMode = "AutomaticLevels"
+;  else
     res@cnLevelSelectionMode = "ExplicitLevels"  ; Define your own
     res@cnLevels = cnLevels 
-  ;end if
+;  end if
 
-  if (varName.eq."bias_precip".or.varName.eq."bias_evap" \
-  .or.varName.eq."austbias_precip".or.varName.eq."austbias_precip_bom" \
-  .or.varName.eq."bias_totcl".or.varName.eq."mondiff_sndep") then
-   gsn_reverse_colormap(wks)
-  end if
-  if ( varName.eq."seas_smc".or.varName.eq."seas_smc1"  \
-   .or.varName.eq."seas_smc2".or.varName.eq."seas_smc3" \
-   .or.varName.eq."seas_smc4".or.varName.eq."seas_smc5" \
-   .or.varName.eq."seas_smc6" ) then
+  if (varName.eq."bias_precip".or.varName.eq."bias_evap") then
    gsn_reverse_colormap(wks)
   end if
 
@@ -126,24 +96,24 @@ end if
   ;res@cnMinLevelValF       = mnlvl          ; contour levels.
   ;res@cnMaxLevelValF       = mxlvl
   ;res@cnLevelSpacingF      = spcng
-  
+
 ;region -----------------------------------------------------------------
 
   if (region) then
    if (regno.eq.1) then
     Area = "Global"
     latS = -90
-    latN =  90
+    latN =  90 
     lonL =   0
     lonR = 360
-   end if
+   end if 
    if (regno.eq.2) then
     Area = "Australia"
     latS = -45
-    latN = -10
-    lonL = 110
+    latN = -10 
+    lonL = 110 
     lonR = 160
-   end if
+   end if 
    if (regno.eq.3) then
     Area = "NorthAmerica"
     latS = 14
@@ -153,17 +123,17 @@ end if
    end if
    if (regno.eq.4) then
     Area = "45degN"
-    latS = 0 
+    latS = 0
     latN = 90
     lonL = 0
     lonR = 360
    end if
   else
-    Area = "Global"
-    latS = -90
-    latN =  90
-    lonL =   0
-    lonR = 360
+   Area = "Global"
+   latS = -90
+   latN =  90
+   lonL =   0
+   lonR = 360
   end if
   ; what about map projections - Arctic and Antarctic
 
@@ -179,58 +149,52 @@ end if
   res@mpCenterLonF         = -180.             ; center on dateline
 
 ;mask -------------------------------------------------------------------
- 
-  if(lmask) 
+  
+if (lmask) then
   ;res@mpAreaMaskingOn      = True
   ;res@mpMaskAreaSpecifiers = "Water"
   ;res@mpGridMaskMode       = "MaskOcean"
   res@mpFillOn             = True
   res@mpOceanFillColor     = "white"
   res@mpLandFillColor      = "transparent"
-  end if  
+end if
 
 ;titles -----------------------------------------------------------------  
   
   res@tiMainOn      = False
   ;res@tiXAxisString = "Longitude"
   ;res@tiYAxisString = "Latitude"
-  
-; Plot ------------------------------------------------------------------
 
-  plot = new(4,graphic)
+; Plot ------------------------------------------------------------------
+       
+  plot  = new(12,graphic)
     
-  res@tmXBLabelsOn = False
-  plot(0) = gsn_csm_contour_map(wks,field(0,{latS:latN},{lonL:lonR}),res)
-  res@tmYLLabelsOn = False
-  plot(1) = gsn_csm_contour_map(wks,field(1,{latS:latN},{lonL:lonR}),res)
-  res@tmXBLabelsOn = True
-  res@tmYLLabelsOn = True
-  plot(2) = gsn_csm_contour_map(wks,field(2,{latS:latN},{lonL:lonR}),res)
-  res@tmYLLabelsOn = False
-  plot(3) = gsn_csm_contour_map(wks,field(3,{latS:latN},{lonL:lonR}),res)
-  
+do i =0,11,1
+  plot(i)  = gsn_csm_contour_map(wks,field(i,{latS:latN},{lonL:lonR}),res)
+end do
+
 ; Paneled Plot ====================================================
 
   pres                       = True
   pres@gsnMaximize           = True
   pres@gsnOrientation        = "landscape"
   pres@gsnPanelLabelBar      = True
-  if (varName.eq."mondiff_sndep") then
-  pres@gsnPanelFigureStrings = (/"FEB","MAR","APR","MAY"/)
-  else
-  pres@gsnPanelFigureStrings = (/"DJF","MAM","JJA","SON"/)
-  end if
+  pres@gsnPanelFigureStrings = (/"JAN","FEB","MAR","APR","MAY","JUN",\
+                                      "JUL","AUG","SEP","OCT","NOV","DEC"/)
   pres@gsnPanelRowSpec       = True
+  pres@gsnPanelYWhiteSpacePercent = 5
   pres@pmLabelBarWidthF      = 0.8         ; makes label bar bigger
   pres@txString              = (field@long_name + " (" + field@units + ")")
   
-  gsn_panel(wks,plot,(/2,2/),pres)
+  gsn_panel(wks,plot,(/4,4,4/),pres)
+  ;gsn_panel(wks,plot,(/3,3,3,3/),pres)
 
-  if(jpeg) then
+ if(jpeg) then
   system("ps2epsi "+pltName+".ps "+pltName+".eps")
-  system("convert -density 500 -rotate 270 "+pltName+".eps "+pltName+".jpg")
+  ;system("convert -density 500 -rotate 270 "+pltName+".eps "+pltName+".jpg")
   ;system("convert -density 1000 -rotate 270 "+pltName+".ps "+pltName+".jpg")
   ;system("convert -density 1000 -geometry 1200x1600 -rotate 270 "+pltName+".ps "+pltName+".jpg")
-  end if
+ end if
 
 end
+

@@ -63,16 +63,31 @@ if (isfilevar(sea_file,"sh")) then
 else
  sh      = sea_file ->hfss
 end if
+if (isfilevar(sea_file,"field202_1")) then
 rnet1   = sea_file ->field202_1
+else
+rnet1   = sea_file ->field3333
+end if
+if (isfilevar(sea_file,"precip")) then
 precip  = sea_file ->precip
+else
+precip  = sea_file ->pr
+end if
 if (isfilevar(sea_file,"field1526")) then
  evap1   = sea_file ->field1526
  evap2   = sea_file ->field1527
+else
+ evap1   = sea_file ->evpsoil
+ evap2   = sea_file ->evpcan
 end if
 if (isfilevar(sea_file,"field1528")) then
  evap3   = sea_file ->field1528
 end if
+if (isfilevar(sea_file,"lh")) then
 lh      = sea_file ->lh ;hfls
+else
+lh      = sea_file ->hfls
+end if
 if (isfilevar(sea_file,"field184")) then
  mflx   = sea_file->field184
 end if
@@ -80,13 +95,25 @@ lsm     = lsm_file ->lsm
 lfrac   = frac_file->lsm
 ;lsm     = frac_file->lsm
 area    = area_file->areacella
+if (isfilevar(sea_file,"field1532")) then
 srunoff = sea_file ->field1532
 drunoff = sea_file ->field1533
+else
+srunoff = sea_file ->mrros
+drunoff = sea_file ->smrros
+end if
 
+if (isfilevar(sea_file,"solar")) then
 rsd = sea_file->solar
 ;rsu = sea_file->field203
 rld = sea_file->longwave
 ;rlu = sea_file->ilr
+else
+rsd = sea_file->rss
+;rsu = sea_file->rsds
+rld = sea_file->rls
+;rlu = sea_file->rlds
+end if
 
 ;rsds = rsu
 ;rsus = (-1)*(rsd-rsu)
@@ -354,8 +381,9 @@ gsn_table(wks,ncr1,x1,y1,text1,res1)
 gsn_table(wks,ncr2,x2,y2,text2,res2)
 gsn_table(wks,ncr3,x3,y3,text_values,res3)
 
+delete(wks)
 system("ps2epsi "+pltName+".ps "+pltName+".eps")
-system("rm "+pltName+".ps")
+;system("rm "+pltName+".ps")
 ;system("convert -density 500 -rotate 270 "+pltName+".ps "+pltName+".jpg")
 
 end

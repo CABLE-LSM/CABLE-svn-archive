@@ -84,9 +84,17 @@ else
  tmin   = tsea_file ->$tiname$ ;temp_1   ;tasmin
 end if
 end if
+if (isfilevar(sea_file,"sh")) then
 sh     = sea_file ->sh        ;hfss
+else
+sh     = sea_file ->hfss        ;hfss
+end if
 ;rnet1  = sea_file ->field3333 ;field202_1
+if (isfilevar(sea_file,"precip")) then
 precip = sea_file ->precip    ;pr
+else
+precip = sea_file ->pr    ;pr
+end if
 ;if (isfilevar(sea_file,"evspsblsoi")) then
 if (isfilevar(sea_file,"field1526")) then
  evap1 = sea_file ->field1526 ;evspsblsoi
@@ -95,7 +103,11 @@ end if
 if (isfilevar(sea_file,"field1528")) then
  evap3 = sea_file ->field1528 ;evspsbsubll
 end if
+if (isfilevar(sea_file,"lh")) then
 lh     = sea_file->lh         ;hfls
+else
+lh     = sea_file->hfls         ;hfls
+end if
 if (isfilevar(sea_file,"field184")) then
  mflx   = sea_file->field184
 end if

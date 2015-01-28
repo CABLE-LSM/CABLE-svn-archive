@@ -27,20 +27,22 @@ loadscript("~"+usr+"/umplot/wgt_func.ncl")
 
 begin
 
-;usr = systemfunc("echo $USERID")
-numYr  = systemfunc("echo $YR")
-filDir = systemfunc("echo $DIR")
-ModDir = systemfunc("echo $PWD")
-;ModDir = systemfunc("echo $DIRW")
-resol  = systemfunc("echo $RES")
-vMask  = systemfunc("echo $MASK")
-;Runid  = systemfunc("echo $RUNID")
-cabdir = systemfunc("echo $CABLE")
-mosdir = systemfunc("echo $MOSES")
-tname =  systemfunc("echo $tname")
-txname =  systemfunc("echo $txname")
-tiname =  systemfunc("echo $tiname")
-Amask  = True ; Mask for Antarctica
+;usr      = systemfunc("echo $USERID")
+numYr    = systemfunc("echo $YR")
+filDir   = systemfunc("echo $DIR")
+ModDir   = systemfunc("echo $PWD")
+;ModDir   = systemfunc("echo $DIRW")
+resol    = systemfunc("echo $RES")
+vMask    = systemfunc("echo $MASK")
+;Runid    = systemfunc("echo $RUNID")
+cabdir   = systemfunc("echo $CABLE")
+mosdir   = systemfunc("echo $MOSES")
+tname    =  systemfunc("echo $tname")
+txname   =  systemfunc("echo $txname")
+tiname   =  systemfunc("echo $tiname")
+ice_mask = False ; Mask for Antarctica
+msk_A    = False ; Antarctica mask
+msk_G    = False ; Greenland mask
 
 ; FILES --------------------------------------------------------------
 
@@ -134,17 +136,20 @@ rlus   = (-1)*(rld1-rlds)
 ;rlds   = cable_file->rlds
 ;rlus   = cable_file->rlus
 
+rnet   = rsd1 + rld1
+;rnet   = rsds - rsus + rlds - rlus
+
 if (isfilevar(moses_file,"tscrn")) then
-tscrn_m  = moses_file ->tscrn      ;tas
-else
-if (isfilevar(moses_file,"tas")) then
-tscrn_m  = moses_file ->tas
-else
-tscrn_m  = moses_file ->$tname$
-end if
+ tscrn_m  = moses_file ->tscrn      ;tas
+ else
+  if (isfilevar(moses_file,"tas")) then
+   tscrn_m  = moses_file ->tas
+  else
+   tscrn_m  = moses_file ->$tname$
+ end if
 end if
 if (isfilevar(moses_file,"tasmax")) then
-tmax_m   = moses_file ->tasmax
+ tmax_m   = moses_file ->tasmax
 else
 if (isfilepresent(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
  if (isfilevar(toses_file,"tmax")) then
@@ -155,30 +160,38 @@ if (isfilepresent(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 end if
 end if
 if (isfilevar(moses_file,"tasmin")) then
-tmin_m   = moses_file ->tasmin
+ tmin_m   = moses_file ->tasmin
 else
-if (isfilepresent(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
- if (isfilevar(toses_file,"tmin")) then
-  tmin_m   = toses_file ->tmin
- else
-  tmin_m   = toses_file ->$tiname$ ;temp_1
+ if (isfilepresent(mosdir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+  if (isfilevar(toses_file,"tmin")) then
+   tmin_m   = toses_file ->tmin
+  else
+   tmin_m   = toses_file ->$tiname$ ;temp_1
+  end if
  end if
 end if
-end if
 if (isfilevar(moses_file,"hfss")) then
-sh_m     = moses_file ->hfss
+ sh_m     = moses_file ->hfss
 else
-sh_m     = moses_file ->sh         ;hfss
+ sh_m     = moses_file ->sh         ;hfss
 end if
 ;rnet1_m  = moses_file ->field3333 ;field202_1
 if (isfilevar(moses_file,"pr")) then
-precip_m = moses_file ->pr
+ precip_m = moses_file ->pr
 else
-precip_m = moses_file ->precip     ; pr
+ precip_m = moses_file ->precip     ; pr
 end if
 if (isfilevar(moses_file,"evspsblsoi")) then
  evap1_m = moses_file ->evspsblsoi
  evap2_m = moses_file ->evspsblveg
+else
+ if (isfilevar(moses_file,"evpsoil")) then
+  evap1_m = moses_file ->evpsoil
+  evap2_m = moses_file ->evpcan
+ else
+  evap1_m = moses_file ->field1526
+  evap2_m = moses_file ->field1527
+ end if
 end if
 if (isfilevar(moses_file,"field1526")) then
  evap1_m = moses_file ->field1526  ;evspsblsoi
@@ -186,11 +199,17 @@ if (isfilevar(moses_file,"field1526")) then
 end if
 if (isfilevar(moses_file,"field1528")) then
  evap3_m = moses_file ->field1528  ;evspsblsubl
+else
+ if (isfilevar(moses_file,"evspsblsubl")) then
+  evap3_m = moses_file ->evspsblsubl
+ else
+  evap3_m = moses_file ->field3298  ;evspsblsubl
+ end if
 end if
 if (isfilevar(moses_file,"hfls")) then
-lh_m     = moses_file ->hfls
+ lh_m     = moses_file ->hfls
 else
-lh_m     = moses_file ->lh         ;hfls
+ lh_m     = moses_file ->lh         ;hfls
 end if
 diml = dimsizes(lh_m)
 rank = dimsizes(getvardims(lh_m))
@@ -221,48 +240,90 @@ else
  end if
 end if
 if (isfilepresent(mosdir+"/clt_yseasmean.nc")) then
-if (isfilevar(coses_file,"clt")) then
-clt_m = coses_file->clt
-end if
+ if (isfilevar(coses_file,"clt")) then
+  clt_m = coses_file->clt
+ end if
 else
-if (isfilevar(moses_file,"field30_1")) then
-clt_m = moses_file->field30_1
-clt_m = clt_m*100
-else
-if (rank.eq.4) then
-clt_m = new((/diml(0),diml(1),diml(2),diml(3)/),float)
-else
-clt_m = new((/diml(0),diml(1),diml(2)/),float)
+ if (isfilevar(moses_file,"field30_1")) then
+  clt_m = moses_file->field30_1
+  clt_m = clt_m*100
+ else
+  if (rank.eq.4) then
+   clt_m = new((/diml(0),diml(1),diml(2),diml(3)/),float)
+  else
+   clt_m = new((/diml(0),diml(1),diml(2)/),float)
+  end if
+ clt_m = 0.
+ end if
 end if
-clt_m = 0.
-end if
-end if
+
+;if (isfilevar(moses_file,"rss")) then
+; rsds_m = moses_file ->rsds
+; if (isfilevar(moses_file,"rsus")) then
+;  rsus_m = moses_file ->rsus
+; end if
+; rlds_m = moses_file ->rlds
+; rlus_m = moses_file ->rlus
+; if (.not.isfilevar(moses_file,"rsus")) then
+;  rss_m  = moses_file ->rss
+;  rsus_m = rsds_m - rss_m
+; end if
+; rnet_m = rsds_m - rsus_m + rlds_m - rlus_m
+;else
+; rsd1_m = moses_file ->solar
+; rsds_m = moses_file ->field203
+; rld1_m = moses_file ->longwave
+; rlds_m = moses_file ->ilr
+; rsus_m = (-1)*(rsd1_m-rsds_m)
+; rlus_m = (-1)*(rld1_m-rlds_m)
+; rnet_m = rsd1_m + rld1_m
+;end if
 
 if (isfilevar(moses_file,"rsds")) then
  rsds_m = moses_file ->rsds
- rsus_m = moses_file ->rsus
- rlds_m = moses_file ->rlds
- rlus_m = moses_file ->rlus
- rnet_m = rsds_m - rsus_m + rlds_m - rlus_m
 else
- rsd1_m = moses_file ->solar
  rsds_m = moses_file ->field203
- rld1_m = moses_file ->longwave
+end if
+if (isfilevar(moses_file,"rlds")) then
+ rlds_m = moses_file ->rlds
+else
  rlds_m = moses_file ->ilr
- rsus_m = (-1)*(rsd1_m-rsds_m)
+end if
+if (isfilevar(moses_file,"rls")) then
+ rld1_m = moses_file ->rls
+else
+ rld1_m = moses_file ->longwave
+end if
+if (isfilevar(moses_file,"rss")) then
+ rss_m  = moses_file ->rss
+else
+ rss_m  = moses_file ->solar
+end if
+if (isfilevar(moses_file,"rsus")) then
+ rsus_m = moses_file ->rsus
+else   
+ rsus_m = (-1)*(rss_m-rsds_m)
+end if
+if (isfilevar(moses_file,"rlus")) then
+ rlus_m = moses_file ->rlus
+else
  rlus_m = (-1)*(rld1_m-rlds_m)
- rnet_m = rsd1_m + rld1_m
+end if
+if (isfilevar(moses_file,"solar")) then
+ rnet_m = rss_m + rld1_m
+else
+ rnet_m = rsds_m - rsus_m + rlds_m - rlus_m
 end if
 
-rnet   = rsd1 + rld1
-;rnet   = rsds - rsus + rlds - rlus
+;rnet   = rsd1 + rld1
+;;rnet   = rsds - rsus + rlds - rlus
 
 trunoff = srunoff ;drunoff
 trunoff = trunoff + drunoff
 ;drunoff = trunoff - srunoff
 
 lhf     = lh
-lhf_m     = lh_m
+lhf_m   = lh_m
 
 rlam  = 2501000             ;
 cls   = 1.1335              ;
@@ -334,38 +395,94 @@ trunoff_m       = trunoff_m*24*60*60
 trunoff_m@units = "mm/day"
 
 ; ----------------------------------------
-if (Amask) then
+if (ice_mask) then
   csfr   = cable_file->field1893
-  msfr   = moses_file->field1893
-  val    = (/  0,-1/)
-  lat1   = (/-90, 0/)
-  lat2   = (/  0,90/)
+  if (isfilevar(moses_file,"field1893")) then
+   msfr   = moses_file->field1893
+  else
+   msfr   = moses_file->field3317
+  end if
+  ;val    = (/  0,-1/)
+  ;lat1   = (/-90, 0/)
+  ;lat2   = (/  0,90/)
   mdice  = 8
   cdice  = 16
 
-  csfr_1 = csfr(0,cdice,:,:)
-  msfr_1 = msfr(0,mdice,:,:)
-  csfr_2 = csfr_1
-  msfr_2 = msfr_1
-  csfr_2 = where(csfr_1.lt.1,val(1),csfr_1)
-  msfr_2 = where(msfr_1.lt.1,val(1),msfr_1)
-  csfr_3 = csfr_2
-  msfr_3 = msfr_2
-  do i = 0,1
-    csfr_3({lat1(i):lat2(i)},:) = where(csfr_2({lat1(i):lat2(i)},:).eq.1,val(i),csfr_2({lat1(i):lat2(i)},:))
-    msfr_3({lat1(i):lat2(i)},:) = where(msfr_2({lat1(i):lat2(i)},:).eq.1,val(i),msfr_2({lat1(i):lat2(i)},:))
-  end do
-  csfr_4           = (-1)*csfr_3
-  csfr_4!0         = "latitude"
-  csfr_4!1         = "longitude"
-  csfr_4&latitude  = csfr&latitude
-  csfr_4&longitude = csfr&longitude
-  msfr_4           = (-1)*msfr_3
-  msfr_4!0         = "latitude"
-  msfr_4!1         = "longitude"
-  msfr_4&latitude  = msfr&latitude
-  msfr_4&longitude = msfr&longitude
-  ;csfr_4 = where(csfr_4.eq.csfr@_FillValue,0,csfr_4)
+  icmsk1 = csfr(0,cdice,:,:)
+  immsk1 = msfr(0,mdice,:,:)
+  icmsk1 = where(ismissing(icmsk1),0,icmsk1)
+  immsk1 = where(ismissing(immsk1),0,immsk1)
+  icmsk  = (-1)*(icmsk1-1)
+  immsk  = (-1)*(immsk1-1)
+  copy_VarMeta(icmsk1,icmsk)
+  copy_VarMeta(immsk1,immsk)
+  ; -- for global masking --
+  cfr = where(icmsk1.eq.1,lsm,0)
+  copy_VarMeta(icmsk1,cfr)
+  gfr = (-1)*(cfr-1)
+  copy_VarMeta(cfr,gfr)
+  ; ------------------------
+  ; -- Antarc/Grland mask --
+  if (msk_A) then
+   latiS =  0
+   latiN = 90
+   icmsk({latiS:latiN},:) = 1
+   immsk({latiS:latiN},:) = 1
+     gfr({latiS:latiN},:) = 1
+  end if
+  if (msk_G) then
+   latiS =-90
+   latiN =  0
+   icmsk({latiS:latiN},:) = 1
+   immsk({latiS:latiN},:) = 1
+     gfr({latiS:latiN},:) = 1
+  end if
+  ; ------------------------
+
+  ;csfr_1 = csfr(0,cdice,:,:)
+  ;msfr_1 = msfr(0,mdice,:,:)
+  ;csfr_2 = csfr_1
+  ;msfr_2 = msfr_1
+  ;csfr_2 = where(csfr_1.lt.1.and.ismissing(csfr_1),val(1),csfr_1)
+  ;msfr_2 = where(msfr_1.lt.1.and.ismissing(msfr_1),val(1),msfr_1)
+  ;csfr_3 = csfr_2
+  ;msfr_3 = msfr_2
+  ;do i = 0,1
+  ;  csfr_3({lat1(i):lat2(i)},:) = where(csfr_2({lat1(i):lat2(i)},:).eq.1,val(i),-1);csfr_2({lat1(i):lat2(i)},:))
+  ;  msfr_3({lat1(i):lat2(i)},:) = where(msfr_2({lat1(i):lat2(i)},:).eq.1,val(i),-1);msfr_2({lat1(i):lat2(i)},:))
+  ;end do
+  ;csfr_3 = where(ismissing(csfr_3),-1,csfr_3)
+  ;csfr_4           = (-1)*csfr_3
+  ;csfr_4!0         = "latitude"
+  ;csfr_4!1         = "longitude"
+  ;csfr_4&latitude  = csfr&latitude
+  ;csfr_4&longitude = csfr&longitude
+  ;msfr_4           = (-1)*msfr_3
+  ;msfr_4!0         = "latitude"
+  ;msfr_4!1         = "longitude"
+  ;if (isdim(msfr,"latitude")) then
+  ; msfr_4&latitude  = msfr&latitude
+  ; msfr_4&longitude = msfr&longitude
+  ;else
+  ; msfr_4&latitude  = msfr&lat;itude
+  ; msfr_4&longitude = msfr&lon;gitude
+  ;end if
+  ;;csfr_4 = where(csfr_4.eq.csfr@_FillValue,0,csfr_4)
+  ;
+  ;; test ----
+  ;;csfr_2 = where(csfr_1.ne.csfr_1@_FillValue,(csfr_1 - 1)*(-1),1)
+  ;;print(""+sum(csfr_2)+"")
+  ;;csfr_4 = csfr_2
+  ;;copy_VarMeta(csfr_1,csfr_4)
+  ;;printVarSummary(csfr_4)
+  ;;printVarSummary(lfrac)
+  ;;lfr = lfrac(0,0,:,:)*csfr_4
+  ;;copy_VarMeta(csfr(0,0,:,:),lfr)
+  ;;wks          = gsn_open_wks("x11","wgt_map")
+  ;;res          = True
+  ;;res@cnFillOn = True
+  ;;plot         = gsn_csm_contour_map(wks,csfr_4,res)
+  ;; test ----
 end if
 ; ----------------------------------------
 
@@ -442,15 +559,16 @@ dydx = dy * dx
 
 ;wgt   = new((/nlat,mlon/),double)
 ;wgt   = conform(wgt,dydx,0)
-wgt = area
+wgt   = area
 wgto  = wgt*(1-lfrac(0,0,:,:))
-if (Amask) then
-  wgtl  = wgt*lfrac(0,0,:,:)*csfr_4
-else
-  wgtl  = wgt*lfrac(0,0,:,:)
-end if
+wgtl  = wgt*lfrac(0,0,:,:)
 wgtlm = wgt*(lsm(0,0,:,:))
 wgtom = wgt*(1-lsm(0,0,:,:))
+if (ice_mask) then
+ wgt   = wgt*gfr
+ wgtl  = wgtl*icmsk
+ wgtlm = wgtlm*icmsk
+end if
 
 wgte  = get_wgt(emx)
 ;wgtle = wgte*elsm(0,:,:)
@@ -829,6 +947,17 @@ global_vals@_FillValue = -999
 ecomps_compr(land_vals,ocean_vals,global_vals,numYr,"glob","1")
 
 ;=========================
+
+;print("Precipitation (mm/day)  ,"+decimalPlaces(pr_l_m,2,True) +","+decimalPlaces(pr_l,2,True) +"")
+;print("Evaporation (mm/day)    ,"+decimalPlaces(lh_l_m,2,True) +","+decimalPlaces(lh_l,2,True) +"")
+;print("Surface Runoff (mm/day) ,"+decimalPlaces(rf_l_m,2,True) +","+decimalPlaces(rf_l,2,True) +"")
+;print("Drainage (mm/day)       ,"+decimalPlaces(dr_l_m,2,True) +","+decimalPlaces(dr_l,2,True) +"")
+;print("Screen Temperature (C)  ,"+decimalPlaces(ts_l_m,2,True) +","+decimalPlaces(ts_l,2,True) +"")
+;print(" - Maximum              ,"+decimalPlaces(tx_l_m,2,True) +","+decimalPlaces(tx_l,2,True) +"")
+;print(" - Minimum              ,"+decimalPlaces(tn_l_m,2,True) +","+decimalPlaces(tn_l,2,True) +"")
+;print("Sensible Heat (Wm-2)    ,"+decimalPlaces(sh_l_m,2,True) +","+decimalPlaces(sh_l,2,True) +"")
+;print("Latent Heat (Wm-2)      ,"+decimalPlaces(lhf_l_m,2,True)+","+decimalPlaces(lhf_l,2,True)+"")
+;print("Net Radiation (Wm-2)    ,"+decimalPlaces(rn_l_m,2,True) +","+decimalPlaces(rn_l,2,True) +"")
 
 end
 

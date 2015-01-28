@@ -16,16 +16,39 @@ numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
 ObsDir = "~"+usr+"/umplot/obs/"
+cname = systemfunc("echo $CNM")
 
-rtype = "amip"
-;rtype = "hist"
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname.eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname.eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
 moses  = addfile(mDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 
-swd_m = moses  ->field203 ;rsus
-swd_c = cable  ->field203 ;rsus
+if (isfilevar(moses,"field203")) then
+ swd_m = moses  ->field203 ;rsus
+else
+ swd_m = moses  ->rsds
+end if
+if (isfilevar(cable,"field203")) then
+ swd_c = cable  ->field203 ;rsus
+else
+ swd_c = cable  ->rsds
+end if
+if (isfilevar(moses,"solar")) then
 sw_m  = moses  ->solar    ;rsds
+else
+sw_m  = moses  ->rss
+end if
 sw_c  = cable  ->solar    ;rsds
 ;printVarSummary(sw_m)
 sw_c@_FillValue = -9999
@@ -44,10 +67,16 @@ copy_VarMeta(sw_c,sup_c)
 
 tas_m = sup_m/swd_m
 tas_c = sup_c/swd_c
-tas_l = tas_c - tas_m
+dimc = dimsizes(dimsizes(tas_c))
+dimm = dimsizes(dimsizes(tas_m))
+if (dimc.eq.4.and.dimm.eq.4) then
+ tas_l = tas_c(:,0,:,:) - tas_m(:,0,:,:)
+else
+ tas_l = tas_c(:,0,:,:) - tas_m
+end if
 copy_VarMeta(sw_m,tas_m)
 copy_VarMeta(sw_c,tas_c)
-copy_VarMeta(sw_c,tas_l)
+copy_VarMeta(sw_c(:,0,:,:),tas_l)
 ;salb@long_name = "Surface Albedo as Calculated by method in UMui"
 
 tas_m@long_name    = "Surface Albedo"
@@ -64,7 +93,7 @@ region   = False
 lmask    = True ;False
 jpeg     = False
 
-pltName = "seas_salb_amip6p_"+numYr+"yrs" ;Dir + "/" + varName + "_" + Yr + "yrs"
+pltName = "seas_salb_"+rtype+"6p_"+numYr+"yrs" ;Dir + "/" + varName + "_" + Yr + "yrs"
 pltType = "ps"
 
 wks = gsn_open_wks(pltType,pltName)
@@ -158,6 +187,7 @@ gsn_define_colormap(wks,"BlAqGrYeOrReVi200")
   
 ; Plot 1 -----------------------------------------------------------------
        
+  print("")
   print("Plotting AMOJ 6 Panel Albedo")
   print("")
   plot1 = new(4,graphic)
@@ -168,21 +198,45 @@ gsn_define_colormap(wks,"BlAqGrYeOrReVi200")
 
   res@tmXBLabelsOn = False
   res@gsnRightString      = "DJF"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.3 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.0 "+rtype
+end if
+  if (dimm.eq.4) then
   plot1(0) = gsn_csm_contour_map(wks,tas_m(0,0,{latS:latN},{lonL:lonR}),res)
+  else
+  plot1(0) = gsn_csm_contour_map(wks,tas_m(0,{latS:latN},{lonL:lonR}),res)
+  end if
   res@tmYLLabelsOn = False
   res@tmXBLabelsOn = False
   res@gsnRightString      = "JJA"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.3 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.0 "+rtype
+end if
+  if (dimm.eq.4) then
   plot1(1) = gsn_csm_contour_map(wks,tas_m(2,0,{latS:latN},{lonL:lonR}),res)
+  else
+  plot1(1) = gsn_csm_contour_map(wks,tas_m(2,{latS:latN},{lonL:lonR}),res)
+  end if
   res@tmYLLabelsOn = True
   res@tmXBLabelsOn = True
   res@gsnRightString      = "DJF"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.1 "+rtype
+end if
   plot1(2) = gsn_csm_contour_map(wks,tas_c(0,0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString      = "JJA"
+if (a14) then
+  res@gsnLeftString       = "ACCESS1.4 "+rtype
+else
   res@gsnLeftString       = "ACCESS1.1 "+rtype
+end if
   plot1(3) = gsn_csm_contour_map(wks,tas_c(2,0,{latS:latN},{lonL:lonR}),res)
 
 ; Paneled Plot 1 ====================================================
@@ -209,18 +263,27 @@ gsn_define_colormap(wks,"BlAqGrYeOrReVi200")
   ;gsn_reverse_colormap(wks)
 
   plot2 = new(2,graphic)
+  ;res1@cnLevels = (/-.3,-.2,-.1,-.05,-.025,-0.01,0,0.01,.025,.05,.1,.2,.3/)
   res1@cnLevels = (/-.4,-.3,-.2,-.1,-.05,-.025,0,.025,.05,.1,.2,.3,.4/)
   ;res1@cnLevels = (/-.4,-.2,-.1,-.08,-.06,-.04,-.02,0,.02,.04,.06,.08,.1,.2,.4/)
   ;res1@lbLabelFontHeightF = .010
   res1@tmXBLabelsOn = True
   res1@tmYLLabelsOn = True
   res1@gsnRightString      = "DJF"
+if (a14) then
+  res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
+else
   res1@gsnLeftString       = "ACCESS1.1 - ACCESS1.0 "+rtype
-  plot2(0) = gsn_csm_contour_map(wks,tas_l(0,0,{latS:latN},{lonL:lonR}),res1)
+end if
+  plot2(0) = gsn_csm_contour_map(wks,tas_l(0,{latS:latN},{lonL:lonR}),res1)
   res1@tmYLLabelsOn = False
   res1@gsnRightString      = "JJA"
+if (a14) then
+  res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
+else
   res1@gsnLeftString       = "ACCESS1.1 - ACCESS1.0 "+rtype
-  plot2(1) = gsn_csm_contour_map(wks,tas_l(2,0,{latS:latN},{lonL:lonR}),res1)
+end if
+  plot2(1) = gsn_csm_contour_map(wks,tas_l(2,{latS:latN},{lonL:lonR}),res1)
 
 ; Paneled Plot 2 ====================================================
 

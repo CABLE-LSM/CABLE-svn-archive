@@ -15,30 +15,54 @@ begin
 numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
-
+cname = systemfunc("echo $CNM")
 ObsDir = "~"+usr+"/umplot/obs/"
 
 moses  = addfile(mDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 obstas = addfile(ObsDir+"ERAi_precip.nc","r")
 
-rtype = "amip"
-;rtype = "hist"
+if ( cname .eq. "A" ) then
+ rtype = "amip"
+ a14 = False
+end if
+if ( cname .eq. "H" ) then
+ rtype = "hist"
+ a14 = True
+end if
+if ( cname .eq. "PI" ) then
+ rtype = "pi"
+ a14 = True
+end if
 
-;if () then
-tas_m = moses  ->precip
-;else
-;tas_m = moses  ->precip
-;end if
-;if () then
-tas_c = cable  ->precip
-;else
-;tas_c = cable  ->precip
-;end if
+if (isfilevar(moses,"precip")) then
+ tas_m = moses  ->precip
+else
+if (isfilevar(cable,"tot_precip")) then
+ tas_m = moses  ->tot_precip
+else
+ tas_m = moses  ->pr
+end if
+end if
+if (isfilevar(cable,"precip")) then
+ tas_c = cable  ->precip
+else
+if (isfilevar(cable,"tot_precip")) then
+ tas_c = cable  ->tot_precip
+else
+ tas_c = cable  ->pr
+end if
+end if
 ;tas_l = cab11  ->pr
+dims = dimsizes(dimsizes(tas_m))
+if (dims.eq.4) then
 tas_l = tas_c(:,0,:,:) - tas_m(:,0,:,:)
-tas_o = obstas ->a
 copy_VarMeta(tas_m(:,0,:,:),tas_l)
+else
+tas_l = tas_c(:,0,:,:) - tas_m(:,:,:)
+copy_VarMeta(tas_m(:,:,:),tas_l)
+end if
+tas_o = obstas ->a
 
 tas_m              = tas_m*24*60*60
 tas_m@long_name    = "Precipitation"
@@ -56,9 +80,15 @@ era_t              = regrid_bilin(tas_o,tas_m)
 era_t@long_name    = "ERAi Precip regridded to UM N96"
 era_t@units        = "mm/day"
 
+if (dims.eq.4) then
 bias_tasm         = tas_m(:,0,:,:)-era_t(:,:,:)
 bias_tasl         = tas_l(:,:,:);-era_t(:,:,:)
 bias_tasc         = tas_c(:,0,:,:)-era_t(:,:,:)
+else
+bias_tasm         = tas_m(:,:,:)-era_t(:,:,:)
+bias_tasl         = tas_l(:,:,:);-era_t(:,:,:)
+bias_tasc         = tas_c(:,0,:,:)-era_t(:,:,:)
+end if
 copy_VarMeta(era_t(:,:,:),bias_tasm)
 ;copy_VarMeta(tas_c(:,:,:),bias_tasl)
 ;copy_VarMeta(era_t(:,:,:),bias_tasl)
@@ -227,6 +257,7 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   
 ; Plot ------------------------------------------------------------------
        
+  print("")
   print("Plotting AMOJ 6 Panel Precip Biases")
   print("")
   plot = new(6,graphic)
@@ -236,7 +267,11 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
 
   res@tmXBLabelsOn = False
   res@gsnRightString = "DJF"
+if (a14) then
+  res@gsnLeftString = "ACCESS1.3 "+rtype
+else
   res@gsnLeftString = "ACCESS1.0 "+rtype
+end if
   plot(0) = gsn_csm_contour_map(wks,bias_tasm(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString = "JJA"
@@ -244,7 +279,11 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   ;res@tmXBLabelsOn = True
   res@tmYLLabelsOn = True
   res@gsnRightString = "DJF"
+if (a14) then
+  res@gsnLeftString = "ACCESS1.4 "+rtype
+else
   res@gsnLeftString = "ACCESS1.1 "+rtype
+end if
   plot(2) = gsn_csm_contour_map(wks,bias_tasc(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   ;res@tmXBLabelsOn = True
@@ -254,7 +293,11 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   res@tmYLLabelsOn = True
   res@tmXBLabelsOn = True
   res@gsnRightString = "DJF"
+if (a14) then
+  res@gsnLeftString = "ACCESS1.4 - ACCESS1.3 "+rtype
+else
   res@gsnLeftString = "ACCESS1.1 - ACCESS1.0 "+rtype
+end if
   plot(4) = gsn_csm_contour_map(wks,bias_tasl(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
   res@gsnRightString = "JJA"
