@@ -110,7 +110,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind, &
+         mask      !GSWP3 has separate mask file
 
    END TYPE gswp_type
    

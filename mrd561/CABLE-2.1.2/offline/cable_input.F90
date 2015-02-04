@@ -75,6 +75,7 @@ MODULE cable_input_module
         ncid_qa,         &
         ncid_ta,         &
         ncid_wd,         &    
+        ncid_mask,       &   !gswp3 forcing has mask file
         ok                 ! netcdf error status
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
@@ -368,6 +369,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
        ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
        ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+       if (cable_user%GSWP3) then
+          ok = NF90_OPEN(gswpfile%mask,0,ncid_mask)
+          if (ok .ne. NF90_NOERR) then
+             CALL nc_abort(ok, "Error opening GSWP3 mask file")
+          end if
+          LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
+          LON1D = .true.  
+       else
+          ncid_mask = ncid_rain
+       end if
        ncid_met = ncid_rain
     ELSE
        !MDeck switch to read old school CLM style forcing
@@ -498,7 +509,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Check for "mask" variable or "land" variable to tell grid type
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
     ! with dims x,y and "land" is a 1D variable.
-    ok = NF90_INQ_VARID(ncid_met, 'mask', maskID) ! check for "mask"
+    ok = NF90_INQ_VARID(ncid_mask, 'mask', maskID) ! check for "mask" 
+                                                   !in mask or met file
     IF(ok /= NF90_NOERR) THEN ! if error, i.e. no "mask" variable:
        ! Check for "land" variable:
        ok = NF90_INQ_VARID(ncid_met, 'land', landID)
@@ -568,13 +580,14 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
           END DO
        END IF ! does "land" variable exist 
     ELSE ! i.e. "mask" variable exists
+       write(*,*) "Mask variable is in the file,  Score!"
        ! Allocate "mask" variable:
        ALLOCATE(mask(xdimsize,ydimsize))
        metGrid='mask' ! Use mask system
        ! Get mask values from file:
-       !MDeck
-       !write(*,*) 'about to read mask var'
-       ok= NF90_GET_VAR(ncid_met,maskID,mask)
+       ok= NF90_GET_VAR(ncid_mask,maskID,mask)
+       write(*,*) "The total number of land points is ",sum(mask)
+       write(*,*) "The size of mask is ",xdimsize,ydimsize," total: ",ngridcells
        !MDeck
        !write(*,*) 'read mask'
        IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -588,6 +601,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        mland_ctr = 0 ! initialise
        DO y=1,ydimsize
           DO x=1,xdimsize
+             write(*,*) lat_all(x,y),lon_all(x,y),mask(x,y)
              IF(mask(x,y)==1) THEN ! If land
                 mland_ctr = mland_ctr + 1
                 ! Store lat and lon for land points
@@ -684,6 +698,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF (cable_user%alt_forcing) THEN
        timevar = timevar*24.0*3600.0  !convert from days to seconds
     END IF
+    IF (cable_user%gswp3) then
+       timevar = timevar*3600.0  !convert hours to seconds
+    end if
     dels = REAL(timevar(2) - timevar(1))
     WRITE(logn,'(1X,A29,I8,A3,F10.3,A5)') 'Number of time steps in run: ',&
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
@@ -707,11 +724,14 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Write time step size to log file:
     WRITE(logn,'(1X,A17,F8.1,1X,A7)') 'Time step size:  ', dels, 'seconds'
     ! Get units for 'time' variable:
-    ok = NF90_GET_ATT(ncid_met,timevarID,'units',timeunits)
-    IF(ok /= NF90_NOERR) CALL nc_abort &
-         (ok,'Error finding time variable units in met data file ' &
-         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-
+    if (.not.cable_user%GSWP3) then
+       ok = NF90_GET_ATT(ncid_met,timevarID,'units',timeunits)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding time variable units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    else
+       timeunits='seconds'
+    end if
     !MDeck
     !write(*,*) timeunits
 
@@ -767,11 +787,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        !write(*,*) 'read day'
        READ(timeunits(23:24),*) shod  ! starting hour of day 
        !write(*,*) 'read hour'
-    ELSE
+    ELSEIF (.not.cable_user%GSWP3) then
        READ(timeunits(15:18),*) syear
        READ(timeunits(20:21),*) smoy ! integer month
        READ(timeunits(23:24),*) sdoytmp ! integer day of that month
        READ(timeunits(26:27),*) shod  ! starting hour of day 
+    ELSE
+       syear=ncciy
+       smoy=1
+       sdoytmp=1
+       shod=0
     END IF
     ! Decide day-of-year for non-leap year:
     SELECT CASE(smoy)
@@ -990,7 +1015,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     IF(metunits%SWdown(1:4)/='W/m2'.AND.metunits%SWdown(1:5) &
          /='W/m^2'.AND.metunits%SWdown(1:5)/='Wm^-2' &
-         .AND.metunits%SWdown(1:4)/='Wm-2') THEN
+         .AND.metunits%SWdown(1:4)/='Wm-2' .and. &   !add GSWP3 unit
+                  metunits%SWdown(1:5) /= 'W m-2') THEN
        WRITE(*,*) metunits%SWdown
        CALL abort('Unknown units for SWdown'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1034,7 +1060,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        convert%Qair = -999.0
        WRITE(logn,*) 'Humidity will be converted from relative to specific'
     ELSE IF(metunits%Qair(1:3)=='g/g'.OR.metunits%Qair(1:5)=='kg/kg' &
-         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG') THEN
+         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG' .or.  & !gswp3)
+          metunits%Qair(1:7)=='kg kg-1') THEN
        ! Units are correct
        convert%Qair=1.0
     ELSE
@@ -1056,7 +1083,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF(metunits%Rainf(1:8)=='kg/m^2/s'.OR.metunits%Rainf(1:10)== &
          'kgm^-2s^-1'.OR.metunits%Rainf(1:4)=='mm/s'.OR. &
          metunits%Rainf(1:6)=='mms^-1'.OR. &
-         metunits%Rainf(1:7)=='kg/m^2s') THEN
+         metunits%Rainf(1:7)=='kg/m^2s' .or. &!  gswp3
+         metunits%Rainf(1:10)=='kg m-2 s-1') THEN
        ! Change from mm/s to mm/time step:
        convert%Rainf = dels
     ELSE IF(metunits%Rainf(1:4)=='mm/h'.OR.metunits%Rainf(1:6)== &
@@ -1066,7 +1094,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ELSE
        WRITE(*,*) metunits%Rainf
        CALL abort('Unknown units for Rainf'// &
-            ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+         ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
     ! Multiply acceptable Rainf ranges by time step size:
     ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
@@ -1092,7 +1120,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Wind units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF(metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms') THEN
+    IF(metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms' .and. &!gswp3
+       metunits%Wind(1:5)/='m s-1') THEN
        WRITE(*,*) metunits%Wind
        CALL abort('Unknown units for Wind'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1110,7 +1139,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
        IF(metunits%LWdown(1:4)/='W/m2'.AND.metunits%LWdown(1:5) &
             /='W/m^2'.AND.metunits%LWdown(1:5)/='Wm^-2' &
-            .AND.metunits%LWdown(1:4)/='Wm-2') THEN
+            .AND.metunits%LWdown(1:4)/='Wm-2'.and. &   !add GSWP3 units
+                metunits%SWdown(1:5) /= 'W m-2') THEN
           WRITE(*,*) metunits%LWdown
           CALL abort('Unknown units for LWdown'// &
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1765,6 +1795,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
     IF(metGrid=='mask') THEN
       ! N.B. not for GSWP runs, therefore only one met file here.
+      !Mdeck:  unless using gswp3 forcing
       ! Also, xdimsize and ydimsize are passed from io_variables.
 
       ALLOCATE(tmpDat2(xdimsize,ydimsize))
@@ -1774,6 +1805,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ALLOCATE(tmpDat4x(xdimsize,ydimsize,nmetpatches,1))
 
       ! Get SWdown data for mask grid:
+      if (cable_user%GSWP3) ncid_met = ncid_sw
       ok= NF90_GET_VAR(ncid_met,id%SWdown,tmpDat3, &
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1789,6 +1821,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
 
       ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
+      if (cable_user%GSWP3) ncid_met = ncid_ta
       ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat4, &
            start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1801,6 +1834,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
 
       ! Get PSurf data for mask grid:- - - - - - - - - - - - - - - - - -
+      if (cable_user%GSWP3) ncid_met = ncid_ps
       IF(exists%PSurf) THEN ! IF PSurf is in met file:
         ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
@@ -1820,6 +1854,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
+      if (cable_user%GSWP3) ncid_met = ncid_qa
       ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat4, &
            start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1842,6 +1877,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get Wind data for mask grid: - - - - - - - - - - - - - - - - - -
+      if (cable_user%GSWP3) ncid_met = ncid_wd
       IF(exists%Wind) THEN ! Scalar Wind
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
@@ -1878,6 +1914,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get Rainf and Snowf data for mask grid:- - - - - - - - - - - - -
+      if (cable_user%GSWP3) ncid_met = ncid_rain
       ok= NF90_GET_VAR(ncid_met,id%Rainf,tmpDat3, &
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1888,6 +1925,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
              REAL(tmpDat3(land_x(i),land_y(i),1)) ! store Rainf
       ENDDO
       IF(exists%Snowf) THEN
+        if (cable_user%GSWP3) ncid_met = ncid_snow
         ok= NF90_GET_VAR(ncid_met,id%Snowf,tmpDat3, &
              start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1921,6 +1959,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get LWdown data for mask grid: - - - - - - - - - - - - - - - - - 
+      if (cable_user%GSWP3) ncid_met = ncid_lw
       IF(exists%LWdown) THEN ! If LWdown exists in met file
         ok= NF90_GET_VAR(ncid_met,id%LWdown,tmpDat3, &
              start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))

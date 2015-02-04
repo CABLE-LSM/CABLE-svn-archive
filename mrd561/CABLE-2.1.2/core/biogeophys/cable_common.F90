@@ -83,6 +83,9 @@ MODULE cable_common_module
       LOGICAL :: GW_MODEL = .FALSE.
       LOGICAL :: alt_forcing = .FALSE.
 
+     !using GSWP3 forcing?
+     LOGICAL :: GSWP3 = .FALSE.
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user

@@ -259,6 +259,13 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable longitude.')
 
+    !ensure this longitude is -180->180
+    !as for GSWP3 it is 0-360
+    WHERE (inLON > 180.0)
+       inLON = inLON - 360.0
+    ENDWHERE
+    write(*,*) 'the values for inLON are ',inLON(:)
+
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
     ok = NF90_GET_VAR(ncid, varID, inLat)
@@ -686,12 +693,12 @@ CONTAINS
     WRITE(logn, *) 'When choosing spatially-specific soil properties,'
     WRITE(logn, *) 'snow-free albedo is also overwritten by this data set.'
     sfact = 0.68
-    WHERE (in2alb <= 0.14)
+    WHERE (in2alb <= 0.14 .and. in2alb > 0.0)
        sfact = 0.5
     ELSEWHERE (in2alb > 0.14 .and. in2alb <= 0.20)
        sfact = 0.62
     END WHERE
-    WHERE (in2alb > 1.0e19)   ! ocean points
+    WHERE (in2alb > 1.0e19 .or. in2alb <= 0.0)   ! ocean points
       in2alb = -1.0
     END WHERE
     dummy2(:, :) = 2.0 * in2alb(:, :) / (1.0 + sfact(:, :))
@@ -752,9 +759,10 @@ CONTAINS
     ! and longitude(:) has already been converted to -180 to 180 for CABLE.
     landpt(:)%ilon = -999
     landpt(:)%ilat = -999
+    write(*,*) 'the values for longitude are ',longitude(:)
     ncount = 0
     DO kk = 1, mland
-      distance = 3.0 ! initialise, units are degrees
+      distance = 300.0 ! initialise, units are degrees
       DO jj = 1, nlat
       DO ii = 1, nlon
         IF (inVeg(ii,jj, 1) > 0) THEN
@@ -924,7 +932,7 @@ CONTAINS
     
 
     !MD aquifer layers
-    soil%GWdz = 20.0                          !30 m thick aquifer
+    soil%GWdz = 20.0                          !20 m thick aquifer
 
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -1402,6 +1410,7 @@ CONTAINS
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow
                                                        ! variables
     INTEGER :: i, j ! do loop counter
+    INTEGER :: ii,jj
 
     DO i = 1, mland
        ! Check all veg types make sense:
@@ -1418,6 +1427,15 @@ CONTAINS
        IF(ANY(soil%isoilm(landpt(i)%cstart:(landpt(i)%cstart + landpt(i)%nap   &
           - 1)) < 1 ) .OR. ANY(soil%isoilm(landpt(i)%cstart:(landpt(i)%cstart  &
           + landpt(i)%nap - 1)) > mstype)) THEN
+
+         do ii=1,mland
+           do jj=landpt(ii)%cstart,landpt(ii)%cstart + landpt(ii)%nap-1
+              if (soil%isoilm(jj) < 1 .or. soil%isoilm(jj) > mstype) then
+                 write(*,*) 'isoilm at ',ii,jj,' is ',soil%isoilm(jj)
+              end if
+           end do
+         end do
+
           WRITE(*,*) 'SUBROUTINE load_parameters:'
           WRITE(*,*) 'Land point number:',i
           CALL abort('Unknown soil type! Aborting.') 
@@ -1497,6 +1515,12 @@ CONTAINS
                 soil%ssat(landpt(i)%cstart + j - 1)) THEN
                 WRITE(*, *) 'SUBROUTINE load_parameters:'
                 WRITE(*, *) 'At land point number', i, 'patch:', j
+                WRITE(*,*) 'wilting pt - ',soil%swilt(landpt(i)%cstart + j - 1)
+                WRITE(*,*) 'sfc        - ',soil%sfc(landpt(i)%cstart + j - 1)
+                WRITE(*,*) 'ssat       - ',soil%ssat(landpt(i)%cstart + j - 1)
+                WRITE(*,*) 'latitude-',patch(landpt(i)%cstart+j-1)%latitude
+                WRITE(*,*) 'longitude-',patch(landpt(i)%cstart+j-1)%longitude
+
                 CALL abort ('Wilting pt < field capacity < saturation '//      &
                             'violated!')
              END IF

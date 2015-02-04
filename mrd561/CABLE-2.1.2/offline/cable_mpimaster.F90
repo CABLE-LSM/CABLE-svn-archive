@@ -314,7 +314,7 @@ SUBROUTINE mpidrv_master (comm)
          STOP
       ELSE
          
-         if (.not.cable_user%alt_forcing) CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing .and. .not.cable_user%GSWP3) CALL prepareFiles(ncciy)
       
       ENDIF
    
@@ -446,7 +446,11 @@ SUBROUTINE mpidrv_master (comm)
 
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
-         write(*,*) ktau
+         
+         if (mod(ktau,50) .eq. 0) then
+            write(*,*)    "Progess -- ",real(ktau)/real(kend)*100.0,"%"
+            write(logn,*) "Progess -- ",real(ktau)/real(kend)*100.0,"%"
+         end if
 
 !         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1

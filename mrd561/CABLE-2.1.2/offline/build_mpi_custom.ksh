@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz  mael mons ccrc typh
+   set -A kh vayu cher burn shin squa bliz  mael mons ccrc typh raij
 }
 
 
