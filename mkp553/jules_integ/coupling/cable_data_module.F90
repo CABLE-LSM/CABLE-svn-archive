@@ -14,7 +14,7 @@
    !by redistributing to higher level calls
 !jhan***************************************************************************
    
-module cable_data_mod 
+module cable_data_mod
    !use define_dimensions, only : nrb 
    implicit none
   
@@ -27,18 +27,6 @@ module cable_data_mod
    integer, parameter :: ms= 6, & ! soil levels must be same as UM
                          msn = 3   
 
-   !! introduced tiled prognostics that have to go through UM's I/O 
-   !real, dimension(:), pointer, save ::           &
-   !   TSOIL_TILE,    & !
-   !   SMCL_TILE,     & !
-   !   STHF_TILE,     & !
-   !   SNOW_DEPTH3L,  & !
-   !   SNOW_MASS3L,   & !
-   !   SNOW_TMP3L,    & !
-   !   SNOW_RHO3L,    & !
-   !   SNOW_RHO1L,    & !
-   !   SNOW_AGE,      & !
-   !   SNOW_FLG3L       !
    ! introduced tiled prognostics that have to go through JULES's I/O 
    real, dimension(:,:,:), pointer, save ::           &
       SOIL_Temp_CABLE, & !
@@ -62,8 +50,8 @@ module cable_data_mod
 
    type model_params
 
-      INTEGER, POINTER ::                                                      &
-         endstep,            & !       
+      INTEGER ::                                                      &
+         endstep,            & !
          row_length, rows,  & !
          sm_levels,          & !
          land_pts,          & !
@@ -73,7 +61,7 @@ module cable_data_mod
          !mype
 
       !REAL, POINTER ::                                                      &
-      integer, POINTER ::                                                      &
+      INTEGER ::                                                      &
          timestep_width
       
       REAL, DIMENSION(:), POINTER ::                                           &
@@ -128,7 +116,7 @@ module cable_data_mod
    type forcing_vars
       
       real, dimension(:,:,:), pointer :: & 
-      ShortWave!, & ! => surf_down_sw
+      ShortWave => NULL()!, & ! => surf_down_sw
 
       !LongWave, &
       !AirTemper, &
@@ -142,11 +130,7 @@ module cable_data_mod
    ! TYPEd vars pased onto cable after UM version being pointed to 
    type UM_params
 
-      LOGICAL, POINTER ::                                                      &
-         L_cable
-
-      INTEGER, POINTER ::                                                      &
-         dim_cs1, dim_cs2     !
+      INTEGER :: dim_cs1, dim_cs2
 
       INTEGER, DIMENSION(:), POINTER ::                                        &
          land_index,       &
@@ -212,9 +196,6 @@ module cable_data_mod
       REAL, DIMENSION(:,:), POINTER :: &
          tl_1, &
          qw_1
-
-       LOGICAL, dimension(:,:), pointer :: & 
-         LAND_MASK
 
        real, dimension(:,:), pointer :: & 
          SW_DOWN, &  
@@ -354,38 +335,85 @@ module cable_data_mod
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    
 
-contains
+CONTAINS
 
 
-!===============================================================================
-
-!subroutine set_endstep_umodel(fendstep)
-!   integer, target :: fendstep
+!=============================================================================
+! Routine for setting the pointers and variables required by cable_rad_driver,
+! except sw_down
 !
-!      cable% mp% endstep            => fendstep
-!
-!end subroutine set_endstep_umodel
+! NOTE: cable_rad_driver is not called on the first timestep - JULES values
+!       are used instead - because the CABLE albedo scheme requires sw_down
+!       which is not known until after the call to tile_albedo
+!=============================================================================
+  SUBROUTINE cable_radiation_setup(                                           &
+             timestep_number, cosz, snow_tile, albsoil, land_albedo, alb_tile)
 
-!===============================================================================
+    INTEGER, INTENT(IN) :: timestep_number
 
- ! call cable_control( L_cable, a_step, &!mype, 
- !        timestep_len, row_length,                                             &
- !        rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,                  & 
- !        !sin_theta_latitude, cos_theta_longitude,                              &
- !        land_index, b, hcon, satcon, SATHH, smvcst, smvcwt,                   &
- !        smvccl, albsoil, lw_down, cosz, ls_rain, ls_snow, pstar,              &
- !        CO2_MMR, sthu, smcl, sthf, GS, canopy, land_albedo )
+    REAL, INTENT(INOUT), TARGET ::                                            &
+      cosz(:,:), snow_tile(:,:), albsoil(:),                                  &
+      land_albedo(:,:,:), alb_tile(:,:,:)
+
+!-----------------------------------------------------------------------------
+
+    cable% mp% timestep_number  = timestep_number
+
+    cable% um% cos_zenith_angle => cosz
+    cable% um% snow_tile        => snow_tile
+    cable% um% albsoil          => albsoil
+    cable% um% land_albedo      => land_albedo
+    cable% um% alb_tile         => alb_tile
+
+  END SUBROUTINE cable_radiation_setup
 
 
-SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
+  SUBROUTINE cable_store_sw_down(sw_down_4band)
+
+    REAL, INTENT(IN) :: sw_down_4band(:,:,:)
+
+!-----------------------------------------------------------------------------
+
+! Check if we need to allocate the pointer
+     IF( .NOT. ASSOCIATED(cable% forcing% ShortWave) )                        &
+       ALLOCATE(cable% forcing% ShortWave(SIZE(sw_down_4band, 1),             &
+                                          SIZE(sw_down_4band, 2), 4)
+
+     cable% forcing% ShortWave(:,:,:) = sw_down(:,:,:)
+
+  END SUBROUTINE cable_store_sw_down
+
+
+!=============================================================================
+! Routine for setting up variables and pointers required for the call to
+! cable_explicit_driver
+!=============================================================================
+  SUBROUTINE cable_explicit_setup(                                            &
+    row_length, rows, land_pts, ntiles, npft, sm_levels, timestep,            &
+    latitude, longitude, land_index, tile_frac, tile_pts, tile_index,         &
+    bexp, hcon, satcon, sathh, smvcst, smvcwt, smvccl, albsoil, snow_tile,    &
+    sw_down_4band, lw_down, cos_zenith_angle, ls_rain, ls_snow, tl_1, qw_1,   &
+    vshr_land, pstar, z1_tq, z1_uv, rho_water, canopy, fland, co2_mmr, sthu,  &
+    canht_ft, lai_ft, dzsoil, ftl_tile, fqw_tile, tstar_tile,                 &
+    u_s, u_s_std_tile, cd_tile, ch_tile, radnet_tile, fraca, resfs, resft,    &
+    z0h_tile, z0m_tile, recip_l_mo_tile, epot_tile, timestep_number )
+
+
+
+  END SUBROUTINE cable_explicit_setup
+
+
+
+
+
+
+SUBROUTINE cable_control( a_step, timestep_len, row_length,     &
              rows, land_pts, ntiles, sm_levels, dim_cs1, dim_cs2,              &
              latitude, longitude,                                              &
              land_index, b, hcon, satcon, sathh, smvcst, smvcwt, smvccl,       &
              albsoil, lw_down, cosz, ls_rain, ls_snow, pstar, CO2_MMR,         &
              sthu, smcl, sthf, GS, canopy_gb , land_albedo )
 
-   LOGICAL, target :: L_CABLE
-   
    !fudged at present as NA in JULES
    INTEGER, target :: endstep
                                                 &
@@ -477,19 +505,10 @@ SUBROUTINE cable_control( L_cable, a_step, timestep_len, row_length,     &
    !        snow_depth3l, snow_mass3l, snow_tmp3l,                              & 
    !        snow_rho3l, snow_rho1l, snow_age ) 
   
-      cable% um% L_cable            => L_cable
       !cable% mp% mype               => mype
       cable% mp% endstep            => endstep     
       cable% mp% timestep_number    => a_step
-      cable% mp% timestep_width     => timestep_len
-      cable% mp% row_length         => row_length 
-      cable% mp% rows               => rows        
-      cable% mp% land_pts           => land_pts
-      cable% mp% ntiles             => ntiles
-      cable% mp% sm_levels          => sm_levels
       
-      cable% um% dim_cs1           => dim_cs1
-      cable% um% dim_cs2           => dim_cs2
 
       cable% cable% tsoil_tile       => soil_temp_CABLE
       cable% cable% smcl_tile        => smcl_CABLE
@@ -699,7 +718,7 @@ END SUBROUTINE cable_control4
 
 !===============================================================================
 
-SUBROUTINE cable_control6( z1_tq, z1_uv, Fland, dzsoil, LAND_MASK, FTL_TILE, &
+SUBROUTINE cable_control6( z1_tq, z1_uv, Fland, dzsoil, FTL_TILE, &
              FQW_TILE, TSTAR_TILE, U_S, U_S_STD_TILE, CD_TILE, CH_TILE, FRACA, &
              rESFS, RESFT, Z0H_TILE, Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE )
 
@@ -731,9 +750,6 @@ SUBROUTINE cable_control6( z1_tq, z1_uv, Fland, dzsoil, LAND_MASK, FTL_TILE, &
       !FLAND(land_pts)
       FLAND(:)
 
-   logical, dimension(:,:), target :: & 
-      LAND_MASK
-
    real, dimension(ms), target :: dzsoil
    !real, target :: dzsoil
  
@@ -759,8 +775,6 @@ SUBROUTINE cable_control6( z1_tq, z1_uv, Fland, dzsoil, LAND_MASK, FTL_TILE, &
       cable% tmp% rho_water => rho_water
       
       cable% um% FLAND => FLAND
-     
-      cable% um% LAND_MASK => LAND_MASK
      
       cable% mp% dzsoil => dzsoil
        

@@ -35,7 +35,7 @@ SUBROUTINE cable_rad_driver(                                                   &
                              SNOW_TILE, SNOW_TMP3L, SNOW_RHO1L, TSOIL_TILE,    &
                              ISNOW_FLG3L, ALBSOIL,                             &
                              ! OUT
-                             LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
+                             LAND_ALBEDO_CABLE, ALB_TILE )
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_albedo_module, ONLY : surface_albedo

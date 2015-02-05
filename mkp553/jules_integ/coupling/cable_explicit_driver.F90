@@ -44,7 +44,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Fland, CO2_MMR, sthu_tile, smcl_tile,        &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
-                                  LAND_MASK, FTL_TILE,  &
+                                  FTL_TILE,  &
                                   FQW_TILE, TSTAR_TILE,   &
                                   U_S, U_S_STD_TILE,&
                                   CD_TILE, CH_TILE,   &
@@ -100,10 +100,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    INTEGER,  DIMENSION(land_pts, ntiles) ::                         & 
       tile_index ,& ! index of tile points being processed
       isnow_flg3l   ! 3 layer snow flag
-
-   !--- TRUE if land, F elsewhere.
-   !jhan:rm land_mask
-   LOGICAL,DIMENSION(row_length,rows) :: land_mask   
 
    !___UM parameters: water density, soil layer thicknesses 
    REAL :: rho_water 
