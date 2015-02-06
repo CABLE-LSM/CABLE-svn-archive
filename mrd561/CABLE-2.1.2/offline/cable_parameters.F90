@@ -264,7 +264,6 @@ CONTAINS
     WHERE (inLON > 180.0)
        inLON = inLON - 360.0
     ENDWHERE
-    write(*,*) 'the values for inLON are ',inLON(:)
 
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')

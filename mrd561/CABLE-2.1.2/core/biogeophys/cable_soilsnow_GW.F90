@@ -1179,7 +1179,7 @@ END SUBROUTINE remove_trans
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
       wtd_meters(i) = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
-      satfrac(i) = fice + (1._r_2+fice) * gw_params%MaxSatFraction*exp(-wtd_meters(i)/gw_params%EfoldMaxSatFrac)
+      satfrac(i) = fice + (1._r_2-fice) * gw_params%MaxSatFraction*exp(-wtd_meters(i)/gw_params%EfoldMaxSatFrac)
 
    end do
 
@@ -1330,7 +1330,7 @@ END SUBROUTINE remove_trans
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000._r_2
   end do
-  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
+  !zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   do i=1,mp
@@ -1350,9 +1350,9 @@ END SUBROUTINE remove_trans
       end do  !mp
   end do  !ms
 
-  do i=1,mp
-    def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
-  end do   
+  !do i=1,mp
+  !  def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
+  !end do   
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)

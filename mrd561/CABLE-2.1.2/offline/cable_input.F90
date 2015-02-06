@@ -337,6 +337,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
    REAL(4),POINTER,DIMENSION(:,:,:) :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
         all_met,LAT1D,LON1D     ! ALL required met in met file (no synthesis)?
+   CHARACTER(LEN=10)                 :: year_str
 
     ! Initialise parameter loading switch - will be set to TRUE when 
     ! parameters are loaded:
@@ -601,7 +602,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        mland_ctr = 0 ! initialise
        DO y=1,ydimsize
           DO x=1,xdimsize
-             write(*,*) lat_all(x,y),lon_all(x,y),mask(x,y)
              IF(mask(x,y)==1) THEN ! If land
                 mland_ctr = mland_ctr + 1
                 ! Store lat and lon for land points
@@ -698,8 +698,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF (cable_user%alt_forcing) THEN
        timevar = timevar*24.0*3600.0  !convert from days to seconds
     END IF
-    IF (cable_user%gswp3) then
-       timevar = timevar*3600.0  !convert hours to seconds
+    IF (cable_user%gswp3) then         !Hack the GSWP3 time units to make from start of year
+       timevar(:) = (timevar(:)-timevar(1))*3600.0 + 1.5*3600.0  !convert hours to seconds
     end if
     dels = REAL(timevar(2) - timevar(1))
     WRITE(logn,'(1X,A29,I8,A3,F10.3,A5)') 'Number of time steps in run: ',&
@@ -730,23 +730,26 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             (ok,'Error finding time variable units in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     else
-       timeunits='seconds'
+       !Hack the GSWP3 time units to make from start of year
+       write(*,*) 'writing timeunits'
+       write (timeunits, "('seconds since ',I4.4,'-01-01 00:00:00')") ncciy
+       write(*,*) 'wrote time units'
     end if
     !MDeck
     !write(*,*) timeunits
 
 
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
-    if (.not.cable_user%alt_forcing .and. ncciy .eq. 0) then
-    IF (timevar(1) == 0.0) THEN
-      READ(timeunits(29:30),*) tsmin
-      IF (tsmin*60.0 >= dels) THEN
-        tsmin = tsmin - INT(dels / 60)
-        timevar = timevar + dels
-        WRITE(timeunits(29:30),'(i2.2)') tsmin
+    IF (.not.cable_user%alt_forcing .and. ncciy .eq. 0) THEN
+      IF (timevar(1) == 0.0) THEN
+        READ(timeunits(29:30),*) tsmin
+        IF (tsmin*60.0 >= dels) THEN
+          tsmin = tsmin - INT(dels / 60)
+          timevar = timevar + dels
+          WRITE(timeunits(29:30),'(i2.2)') tsmin
+        ENDIF
       ENDIF
-    ENDIF
-    end if
+    END IF
     !****** done bug fixing for timevar in PALS met file **********************
 
     !********* gswp input file has bug in timeunits ************
