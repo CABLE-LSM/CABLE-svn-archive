@@ -53,7 +53,6 @@ SUBROUTINE cable_rad_driver(                                                   &
    
    REAL, DIMENSION(um1%row_length,um1%rows) ::                                 &
       LAND_ALB_CABLE,      & ! Land albedo calculated by Cable
-      SW_DOWN,             & ! Surface downward SW radiation (W/m2).
       cos_zenith_angle
 
    REAL, DIMENSION(um1%row_length,um1%rows,4) ::                               &
@@ -86,7 +85,7 @@ SUBROUTINE cable_rad_driver(                                                   &
       !     **** surf_down_sw is from the previous time step  ****
       !--- re-set UM rad. forcings to suit CABLE. also called in explicit call to 
       !--- CABLE from subr cable_um_expl_update() 
-      CALL update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
+      CALL update_kblum_radiation( cos_zenith_angle, surf_down_sw )
    
       !--- set met. and rad.forcings to CABLE. also called in explicit call to 
       !--- CABLE from subr update_explicit_vars() 

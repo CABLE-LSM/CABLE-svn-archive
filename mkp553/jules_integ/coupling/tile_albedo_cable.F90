@@ -924,6 +924,10 @@ ELSE
 END IF
 
 IF( cable% mp% timestep_number > 1 ) THEN
+! Do the setup required for the CABLE radiation call
+  CALL cable_radiation_setup(                                                 &
+             timestep_number, cosz, snow_tile, albsoil, land_albedo, alb_tile)
+
 ! DEPENDS ON: cable_rad_driver
   CALL cable_rad_driver( cable% forcing% ShortWave,                           &
           cable% um% cos_zenith_angle, cable% um% SNOW_TILE,                  &

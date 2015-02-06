@@ -380,7 +380,7 @@ END SUBROUTINE init_veg_pars_fr_vegin
 !========================================================================
 !========================================================================
         
-SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
+SUBROUTINE initialize_radiation( lw_down, cos_zenith_angle,                    &
                                  surf_down_sw, sin_theta_latitude, ls_rain,    &
                                  ls_snow, tl_1, qw_1, vshr_land, pstar, co2_mmr ) 
    USE cable_def_types_mod, ONLY : mp
@@ -389,8 +389,6 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
                                    conv_rain_prevstep, conv_snow_prevstep
    USE cable_common_module, ONLY : cable_runtime, cable_user
 
-   REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
-   
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) ::                    & 
       lw_down,           &
       sin_theta_latitude
@@ -427,7 +425,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       
       ! re-set UM rad. forcings to suit CABLE. also called in explicit call to 
       ! CABLE from subr cable_um_expl_update() 
-      CALL update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
+      CALL update_kblum_radiation( cos_zenith_angle, surf_down_sw )
       
       ! set met. and rad. forcings to CABLE. also called in radiation call to 
       ! CABLE from subr cable_rad_() !jhan?
@@ -749,19 +747,12 @@ END SUBROUTINE initialize_roughness
 !========================================================================
 !========================================================================
 
-SUBROUTINE update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
+SUBROUTINE update_kblum_radiation( cos_zenith_angle, surf_down_sw )
    USE cable_um_tech_mod!, only : um1, um_rad, kblum_rad
   
-   REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: cos_zenith_angle
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows, 4) :: surf_down_sw 
 
-      !jhan: do you really want to be changing sw_down            
-      SW_DOWN = ( surf_down_sw(:,:,1)                                          &
-                        + surf_down_sw(:,:,2)                                  &
-                        + surf_down_sw(:,:,3)                                  &
-                        + surf_down_sw(:,:,4) )                                &
-                        * cos_zenith_angle(:,:)
       ! jhan: JULES standalone hack: we are going to use spitter so we want 
       ! same %fsd as seen offline
       !kblum_rad%SW_DOWN_DIR = ( surf_down_sw(:,:,1)                            &

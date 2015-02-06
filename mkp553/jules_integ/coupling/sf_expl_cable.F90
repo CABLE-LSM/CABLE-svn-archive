@@ -73,10 +73,12 @@ SUBROUTINE sf_expl_l_cable (                                      &
  gpp,npp,resp_p,g_leaf,gpp_ft,npp_ft,                             &
  resp_p_ft,resp_s,resp_s_tot,resp_w_ft,                           &
  gc,canhc_tile,wt_ext_tile,flake,                                 &
- tile_index,tile_pts,tile_frac,fsmc,emis_tile,emis_soil           &
+ tile_index,tile_pts,tile_frac,fsmc,emis_tile,emis_soil,          &
+! Extra variables required for CABLE
+ ls_rain, ls_snow
  )
 
-USE theta_field_sizes, ONLY : t_i_length
+USE theta_field_sizes, ONLY : t_i_length, t_j_length
 
 USE dust_param, ONLY: ndiv
 USE c_0_dg_c
@@ -649,6 +651,16 @@ REAL, INTENT(OUT) ::                                              &
                              ! OUT Tile fractions including
 !                                  !     snow cover in the ice tile.
 ,fsmc(land_pts,npft)         ! OUT Moisture availability factor.
+
+
+!=================================================================
+! Extra variables required for CABLE
+!=================================================================
+REAL, INTENT(INOUT) ::                                            &
+ ls_rain(t_i_length, t_j_length),                                 &
+ ls_snow(t_i_length, t_j_length)
+
+
 !-----------------------------------------------------------------------
 ! LOCAL variables
 !-----------------------------------------------------------------------
@@ -1027,7 +1039,10 @@ CALL sf_exch_cable (                                              &
  rho_aresist_tile,aresist_tile,resist_b_tile,                     &
  r_b_dust,cd_std_dust,u_s_std_tile,                               &
  rhokh_tile,rhokh_sice,rhokm_1,rhokm_land,rhokm_ssi,              &
- dtstar_tile,dtstar,rhokh,anthrop_heat                            &
+ dtstar_tile,dtstar,rhokh,anthrop_heat,                           &
+! Extra variables required by CABLE
+ albsoil, lw_down, cos_zenith_angle, ls_rain, ls_snow, co2_mmr,   &
+ sthu, canht_ft, lai_ft
  )
 
 

@@ -162,8 +162,7 @@ module cable_data_mod
          CANOPY_GB, &
          GS
       
-      REAL, POINTER ::                                              &
-         co2_mmr
+      REAL :: co2_mmr
 
       REAL, DIMENSION(:,:), POINTER :: &
          sthu, &
@@ -189,7 +188,6 @@ module cable_data_mod
 
       REAL, DIMENSION(:,:), POINTER :: &
         lw_down, &
-        !cos_zenith_angle, &
         ls_rain, &
         ls_snow 
 
@@ -198,7 +196,6 @@ module cable_data_mod
          qw_1
 
        real, dimension(:,:), pointer :: & 
-         SW_DOWN, &  
          Z1_TQ, &
          Z1_UV, &
          U_S, &
@@ -246,8 +243,10 @@ module cable_data_mod
      !(LAND_PTS,DIM_CS1)                                      &
      RESP_S
 
-      Real, dimension(:,:,:), pointer ::                       &
-         alb_tile,      & !
+   Real, dimension(:,:,:), pointer ::                       &
+         alb_tile
+
+   Real, dimension(:,:), pointer ::                       &
          land_albedo
 
    end type UM_params
@@ -304,8 +303,7 @@ module cable_data_mod
          DS_RATIO,                                                             & 
          LH 
        
-      real, POINTER :: & 
-         rho_water
+      REAL :: rho_water
 
    end type tmp_pvars
 
@@ -339,6 +337,14 @@ CONTAINS
 
 
 !=============================================================================
+! Routine for allocating any explicitly allocated pointers during
+! initialisation
+!=============================================================================
+  SUBROUTINE cable_allocate_ptrs()
+  END SUBROUTINE cable_allocate_ptrs
+
+
+!=============================================================================
 ! Routine for setting the pointers and variables required by cable_rad_driver,
 ! except sw_down
 !
@@ -352,8 +358,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: timestep_number
 
     REAL, INTENT(INOUT), TARGET ::                                            &
-      cosz(:,:), snow_tile(:,:), albsoil(:),                                  &
-      land_albedo(:,:,:), alb_tile(:,:,:)
+      cosz(:), snow_tile(:,:), albsoil(:), land_albedo(:,:), alb_tile(:,:,:)
 
 !-----------------------------------------------------------------------------
 
@@ -379,26 +384,139 @@ CONTAINS
        ALLOCATE(cable% forcing% ShortWave(SIZE(sw_down_4band, 1),             &
                                           SIZE(sw_down_4band, 2), 4)
 
-     cable% forcing% ShortWave(:,:,:) = sw_down(:,:,:)
+     cable% forcing% ShortWave(:,:,:) = sw_down_4band(:,:,:)
 
   END SUBROUTINE cable_store_sw_down
 
 
 !=============================================================================
-! Routine for setting up variables and pointers required for the call to
+! Routines for setting up variables and pointers required for the call to
 ! cable_explicit_driver
 !=============================================================================
   SUBROUTINE cable_explicit_setup(                                            &
     row_length, rows, land_pts, ntiles, npft, sm_levels, timestep,            &
-    latitude, longitude, land_index, tile_frac, tile_pts, tile_index,         &
+    land_index, tile_frac, tile_pts, tile_index,                              &
     bexp, hcon, satcon, sathh, smvcst, smvcwt, smvccl, albsoil, snow_tile,    &
-    sw_down_4band, lw_down, cos_zenith_angle, ls_rain, ls_snow, tl_1, qw_1,   &
+    lw_down, cos_zenith_angle, ls_rain, ls_snow, tl_1, qw_1,                  &
     vshr_land, pstar, z1_tq, z1_uv, rho_water, canopy, fland, co2_mmr, sthu,  &
     canht_ft, lai_ft, dzsoil, ftl_tile, fqw_tile, tstar_tile,                 &
     u_s, u_s_std_tile, cd_tile, ch_tile, radnet_tile, fraca, resfs, resft,    &
     z0h_tile, z0m_tile, recip_l_mo_tile, epot_tile, timestep_number )
 
+    INTEGER, INTENT(IN) ::                                                    &
+! Scalars
+      row_length, rows, land_pts, ntiles, npft, sm_levels, timestep,          &
+      timestep_number,                                                        &
+! Arrays
+      land_index(land_pts), tile_pts(ntiles), tile_index(land_pts, ntiles)
 
+    REAL, INTENT(IN) :: co2_mmr, rho_water
+
+    REAL, INTENT(IN), TARGET ::                                               &
+      dzsoil(sm_levels),                                                      &
+      bexp(land_pts),                                                         &
+      hcon(land_pts),                                                         &
+      satcon(land_pts),                                                       &
+      sathh(land_pts),                                                        &
+      smvcst(land_pts),                                                       &
+      smvcwt(land_pts),                                                       &
+      smvccl(land_pts),                                                       &
+      albsoil(land_pts),                                                      &
+      fland(land_pts),                                                        &
+      cos_zenith_angle(row_length * rows),                                    &
+      lw_down(row_length,rows),                                               &
+      ls_rain(row_length,rows),                                               &
+      ls_snow(row_length,rows),                                               &
+      tl_1(row_length,rows),                                                  &
+      qw_1(row_length,rows),                                                  &
+      vshr_land(row_length,rows),                                             &
+      pstar(row_length,rows),                                                 &
+      z1_tq(row_length,rows),                                                 &
+      z1_uv(row_length,rows),                                                 &
+      snow_tile(land_pts, ntiles),                                            &
+      tile_frac(land_pts, ntiles),                                            &
+      canht_ft(land_pts, npft),                                               &
+      lai_ft(land_pts, npft),                                                 &
+      canopy(land_pts, ntiles),                                               &
+      sthu(land_pts, sm_levels)
+
+    REAL, INTENT(INOUT), TARGET ::                                            &
+      ftl_tile(land_pts,ntiles),                                              &
+      fqw_tile(land_pts,ntiles),                                              &
+      tstar_tile(land_pts,ntiles),                                            &
+      z0h_tile(land_pts,ntiles),                                              &
+      z0m_tile(land_pts,ntiles),                                              &
+      cd_tile(land_pts,ntiles),                                               &
+      ch_tile(land_pts,ntiles),                                               &
+      u_s_std_tile(land_pts,ntiles),                                          &
+      u_s(row_length,rows),                                                   &
+      radnet_tile(land_pts,ntiles),                                           &
+      resfs(land_pts,ntiles),                                                 &
+      resft(land_pts,ntiles),                                                 &
+      fraca(land_pts,ntiles),                                                 &
+      recip_l_mo_tile(land_pts,ntiles),                                       &
+      epot_tile(land_pts,ntiles)
+
+!-----------------------------------------------------------------------------
+
+    cable% mp% row_length      = row_length
+    cable% mp% rows            = rows
+    cable% mp% land_pts        = land_pts
+    cable% mp% ntiles          = ntiles
+    cable% mp% npft            = npft
+    cable% mp% sm_levels       = sm_levels
+    cable% mp% timestep_width  = timestep
+    cable% mp% timestep_number = timestep_number
+
+    cable% tmp% rho_water = rho_water
+    cable% um% co2_mmr    = co2_mmr
+
+    cable% mp% dzsoil => dzsoil
+
+    cable% um% tile_pts   = tile_pts
+    cable% um% tile_index = tile_index
+
+    cable% um% land_index       => land_index
+    cable% ppar% tile_frac      => tile_frac
+    cable% um% bexp             => bexp
+    cable% um% hcon             => hcon
+    cable% um% satcon           => satcon
+    cable% um% sathh            => sathh
+    cable% um% smvcst           => smvcst
+    cable% um% smvcwt           => smvcwt
+    cable% um% smvccl           => smvccl
+    cable% um% albsoil          => albsoil
+    cable% um% snow_tile        => snow_tile
+    cable% um% lw_down          => lw_down
+    cable% um% cos_zenith_angle => cos_zenith_angle
+    cable% um% ls_rain          => ls_rain
+    cable% um% ls_snow          => ls_snow
+    cable% um% tl_1             => tl_1
+    cable% um% qw_1             => qw_1
+    cable% um% vshr_land        => vshr_land
+    cable% um% pstar            => pstar
+    cable% um% z1_tq            => z1_tq
+    cable% um% z1_uv            => z1_uv
+    cable% um% canopy           => canopy
+    cable% um% fland            => fland
+    cable% um% sthu             => sthu
+    cable% um% canht_ft         => canht_ft
+    cable% um% lai_ft           => lai_ft
+    cable% um% ftl_tile         => ftl_tile
+    cable% um% fqw_tile         => fqw_tile
+    cable% um% tstar_tile       => tstar_tile
+    cable% um% u_s              => u_s
+    cable% um% u_s_std_tile     => u_s_std_tile
+    cable% um% cd_tile          => cd_tile
+    cable% um% ch_tile          => ch_tile
+    cable% um% radnet_tile      => radnet_tile
+    cable% um% fraca            => fraca
+    cable% um% resfs            => resfs
+    cable% um% resft            => resft
+    cable% um% z0h_tile         => z0h_tile
+    cable% um% z0m_tile         => z0m_tile
+    cable% um% recip_l_mo_tile  => recip_l_mo_tile
+    cable% um% epot_tile        => epot_tile
 
   END SUBROUTINE cable_explicit_setup
 
@@ -492,8 +610,6 @@ SUBROUTINE cable_control( a_step, timestep_len, row_length,     &
       allocate( cable% cable% SNOW_COND(land_pts,NTILES,3))
       allocate( cable% cable% STHU_TILE(land_pts,NTILES,sm_levels))
       allocate( cable% tmp% L_TILE_PTS(land_pts,NTILES))
-      !this can be deleted once rm from cable_explicit_driver (call/recieve )
-      allocate( cable% um% SW_DOWN(row_length,rows)           )
       allocate( cable% forcing% ShortWave(row_length,rows,4)    )
       allocate( cable% um% TILE_INDEX(land_pts,NTiles) ) 
       allocate( cable% um% TILE_PTS(NTiles) )  

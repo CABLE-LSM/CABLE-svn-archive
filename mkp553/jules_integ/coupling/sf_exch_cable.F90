@@ -49,7 +49,10 @@ SUBROUTINE sf_exch_cable (                                        &
  rho_aresist_tile,aresist_tile,resist_b_tile,                     &
  r_b_dust,cd_std_dust,u_s_std_tile,                               &
  rhokh_1,rhokh_1_sice,rhokm_1,rhokm_land,rhokm_ssi,               &
- dtstar_tile,dtstar,rhokh_gb,anthrop_heat)
+ dtstar_tile,dtstar,rhokh_gb,anthrop_heat,                        &
+! Extra variables required by CABLE
+ albsoil, lw_down, cos_zenith_angle, ls_rain, ls_snow, co2_mmr,   &
+ sthu, canht_ft, lai_ft )
 
 
 USE atm_fields_bounds_mod
@@ -117,13 +120,20 @@ USE lake_mod, ONLY : lake_t_ice                                   &
                     ,nusselt                                      &
                     ,g_dt
 
-USE jules_soil_mod, ONLY : hcice, hcwat
+USE jules_soil_mod, ONLY : sm_levels, hcice, hcwat,               &
+                           dzsoil_layers => dzsoil
 
 USE science_fixes_mod, ONLY: l_emis_ssi_full
 
 USE crop_vars_mod, ONLY: gc_irr, resfs_irr
 
 USE cable_data_mod, ONLY : cable
+
+USE p_s_parms, ONLY : b, sathh, hcon, satcon, smvcwt, smvccl
+
+USE water_constants_mod, ONLY : rho_water
+
+USE timestep_mod, ONLY : timestep_number
 
 USE parkind1, ONLY: jprb, jpim
 USE yomhook, ONLY: lhook, dr_hook
@@ -530,6 +540,23 @@ REAL                                                              &
 !                            ! OUT Grid-box surface exchange coefficient
 ,epot_tile(land_pts,ntiles)                                       
                              ! OUT EPOT for land tiles.
+
+!=================================================================
+! Extra arguments required by CABLE
+!
+! TODO: Refine INTENTs?
+!=================================================================
+REAL, INTENT(INOUT) ::                                            &
+ albsoil(land_pts),                                               &
+ lw_down(t_i_length,t_j_length),                                  &
+ cos_zenith_angle(t_i_length * t_j_length),                       &
+ ls_rain(t_i_length,t_j_length),                                  &
+ ls_snow(t_i_length,t_j_length),                                  &
+ co2_mmr,                                                         &
+ sthu(land_pts,sm_levels),                                        &
+ canht_ft(land_pts,npft),                                         &
+ lai_ft(land_pts,npft)
+
 
 !   Define local storage.
 
@@ -1118,6 +1145,18 @@ END IF
 !-----------------------------------------------------------------------
 ! Call CABLE explicit driver
 !-----------------------------------------------------------------------
+! Make sure the data is set up for the CABLE explicit call
+  CALL cable_explicit_setup(                                         &
+    t_i_length, t_j_length, land_pts, ntiles, npft, sm_levels,       &
+    INT(timestep), land_index, tile_frac, tile_pts, tile_index,      &
+    b, hcon, satcon, sathh, smvcst, smvcwt, smvccl, albsoil,         &
+    snow_tile, lw_down, cos_zenith_angle, ls_rain, ls_snow, tl_1,    &
+    qw_1, vshr_land, pstar, z1_tq, z1_uv, rho_water, canopy, fland,  &
+    co2_mmr, sthu, canht_ft, lai_ft, dzsoil_layers, ftl_tile,        &
+    fqw_tile, tstar_tile, u_s, u_s_std_tile, cd_tile, ch_tile,       &
+    radnet_tile, fraca, resfs, resft, z0h_tile, z0m_tile,            &
+    recip_l_mo_tile, epot_tile, timestep_number )
+
   CALL cable_explicit_driver(                                        &
              cable% mp% row_length, cable% mp% rows,                &
              cable% mp% land_pts, cable% mp% ntiles,                &
@@ -1135,7 +1174,6 @@ END IF
              cable% cable% snow_cond,  cable% cable% snow_depth3l,  &
              cable% cable% snow_tmp3l, cable% cable% snow_mass3l,   &
              ! jhan: what do we need this for if use ShortWave
-             cable% um% sw_down,                                    &
              cable% um% lw_down,                                    &
              cable% um% cos_zenith_angle, cable% forcing% ShortWave,&
              cable% um% ls_rain, cable% um% ls_snow,                &
@@ -1143,7 +1181,7 @@ END IF
              cable% um% qw_1, & !not declared/defined unti bdy_layr
              cable% um% vshr_land, cable% um% pstar,                &
              cable% um% z1_tq, cable% um% z1_uv,                    &
-             1000.00, &!rm this later
+             cable% tmp% rho_water,                                 &
              cable% tmp% L_tile_pts, cable% um% canopy,             &
              cable% um% Fland, cable% um% CO2_MMR,                  &
              cable% cable% sthu_tile, cable% cable% smcl_tile,      &
