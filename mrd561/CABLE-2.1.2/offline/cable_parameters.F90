@@ -932,9 +932,13 @@ CONTAINS
     !MD aquifer layers
     soil%GWdz = 20.0                          !20 m thick aquifer
 
-
-    rough%za_uv = 40.0 ! lowest atm. model layer/reference height
-    rough%za_tq = 40.0
+    if (.not.cable_user%GSWP3) then
+       rough%za_uv = 40.0 ! lowest atm. model layer/reference height
+       rough%za_tq = 40.0
+    else
+       rough%za_uv = 2.0 ! lowest atm. model layer/reference height
+       rough%za_tq = 2.0
+    end if
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
