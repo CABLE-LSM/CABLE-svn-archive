@@ -1635,23 +1635,23 @@ END SUBROUTINE remove_trans
        ssnow%qhz(i)  = gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
 
-       qhlev(i,1:2) = 0._r_2
-       sm_tot(i) = ssnow%GWwb(i)*GWdzmm(i)
-       do k=3,ms
-          sm_tot(i) = sm_tot(i) + max((ssnow%wbliq(i,k)-soil%swilt(k))*dzmm(k),0._r_2)
+       qhlev(i,:) = 0._r_2
+       sm_tot(i) = max(ssnow%GWwb(i) - soil%swilt(i),0._r_2)
+       do k=4,ms
+          sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%swilt(i),0._r_2)
        end do
        sm_tot(i) = max(sm_tot(i),0.01_r_2)
-       do k=3,ms
-          qhlev(i,k) = ssnow%qhz(i)*max((ssnow%wbliq(i,k)-soil%swilt(k))*dzmm(k),0._r_2)/sm_tot(i)
+       do k=4,ms
+          qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%swilt(i),0._r_2)/sm_tot(i)
        end do
-       qhlev(i,ms+1) = ssnow%qhz(i)*ssnow%GWwb(i)*GWdzmm(i)/sm_tot(i)
+       qhlev(i,ms+1) = ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%swilt(i),0._r_2)/sm_tot(i)
       !If the layer is frozen there shouldn't be any drainage
       !ssnow%qhz(i)      = ssnow%qhz(i) * (1._r_2 - ssnow%fracice(i,min(idlev(i),ms)))
       !qhlev(i,idlev(i)) = ssnow%qhz(i)
       
       !incase every layer is frozen
       ssnow%qhz(i) = qhlev(i,ms+1)
-      do k=3,ms
+      do k=4,ms
          ssnow%qhz(i) = ssnow%qhz(i) +qhlev(i,k)
       end do
       
@@ -1670,7 +1670,7 @@ END SUBROUTINE remove_trans
        qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
        dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
        dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%dsmpdw(i,k+1) + num(i)*ssnow%dhkdw(i,k))/den(i)
-       rt(i,k) =  qin(i) - qout(i) - qhlev(i,k)
+       rt(i,k) =  qin(i) - qout(i) !- qhlev(i,k)
        at(i,k) =  0._r_2
        bt(i,k) =  dzmm(k)/dels + dqodw1(i)
        ct(i,k) =  dqodw2(i)      
