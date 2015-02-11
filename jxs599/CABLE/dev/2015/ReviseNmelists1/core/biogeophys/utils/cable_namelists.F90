@@ -53,13 +53,13 @@ CONTAINS
 
 SUBROUTINE cable_namelists
 !   USE cable_def_types_mod
-!   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
-!                                   verbose, fixedCO2,output,check,patchout,    &
-!                                   patch_type,soilparmnew
-!   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-!                                   cable_runtime, filename, redistrb,          & 
-!                                   report_version_no, wiltParam, satuParam,    &
-!                                   calcsoilalbedo
+   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+                                   verbose, fixedCO2,output,check,patchout,    &
+                                   soilparmnew
+   USE cable_common_module,  ONLY: cable_user,     &
+                                   filename, redistrb,          & 
+                                   wiltParam, satuParam,    &
+                                   calcsoilalbedo
 !   USE cable_data_module,    ONLY: driver_type, point2constants
 !   USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
 !                                   get_met_data,close_met_file
@@ -69,9 +69,9 @@ SUBROUTINE cable_namelists
 !   
 !   USE cable_diag_module
 !   
-!   ! modules related to CASA-CNP
-!   USE casadimension,       ONLY: icycle 
-!   USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
+   ! modules related to CASA-CNP
+   USE casadimension,       ONLY: icycle 
+   USE casavariable,        ONLY: casafile!, casa_biome, casa_pool, casa_flux,  &
 !                                  casa_met, casa_balance
 !   USE phenvariable,        ONLY: phen_variable
 !
@@ -100,9 +100,9 @@ SUBROUTINE cable_namelists
 !   TYPE (casa_balance)   :: casabal
 !   TYPE (phen_variable)  :: phen 
   
-!   REAL              :: &  
-!      delsoilM,         & ! allowed variation in soil moisture for spin up
-!      delsoilT            ! allowed variation in soil temperature for spin up
+   REAL              :: &  
+      delsoilM,         & ! allowed variation in soil moisture for spin up
+      delsoilT            ! allowed variation in soil temperature for spin up
 !  
 !   ! temporary storage for soil moisture/temp. in spin up mode
 !   REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
@@ -111,7 +111,7 @@ SUBROUTINE cable_namelists
 !
 !   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
 !   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
-!
+!!
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 

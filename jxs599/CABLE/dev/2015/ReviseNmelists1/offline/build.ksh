@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg raij
+   set -A kh vayu cher burn shin jigg raij higg
 }
+
+
+## higgledy
+host_higg()
+{
+   export NCDIR='/usr/lib'
+   export NCMOD='/usr/include'
+   export FC=gfortran
+   export CFLAGS='-O2 -x f95-cpp-input'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/usr/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## jiggle
