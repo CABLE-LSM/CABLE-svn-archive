@@ -136,6 +136,13 @@ MODULE cable_def_types_mod
          densoil,& !soil density  [kg/m3]
          watsat, & !volumetric water content at saturation [mm3/mm3]
          watr      !residual water content of the soil [mm3/mm3]
+
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+         slope,  &  !mean slope of grid cell
+         slope_std, & !stddev of grid cell slope
+         elev,      & !mean elevation of gridcell
+         elev_std     !stddev elev of grid cell
+
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
          GWsmpsat,  &  !head in the aquifer [mm]
@@ -666,6 +673,11 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%Fclay(mp,ms) )
    allocate( var%densoil(mp,ms) )
 
+   allocate( var%elev(mp) )
+   allocate( var%elev_std(mp) )
+   allocate( var%slope(mp) )
+   allocate( var%slope_std(mp) )
+
 END SUBROUTINE alloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -1112,6 +1124,10 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
    DEALLOCATE( var%densoil )   
+   DEALLOCATE( var%elev )
+   DEALLOCATE( var%elev_std )
+   DEALLOCATE( var%slope )
+   DEALLOCATE( var%slope_std )
    
 END SUBROUTINE dealloc_soil_parameter_type
  

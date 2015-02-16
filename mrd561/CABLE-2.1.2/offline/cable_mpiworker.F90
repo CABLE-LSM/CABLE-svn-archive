@@ -1911,6 +1911,23 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
   blen(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev_std, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope_std, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+
 
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)

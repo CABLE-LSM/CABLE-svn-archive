@@ -104,7 +104,8 @@ MODULE cable_common_module
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
       inits,      & ! name of file for initialisations
-      soilIGBP      ! name of file for IGBP soil map
+      soilIGBP,   & ! name of file for IGBP soil map
+      gw_elev       !name of file for gw/elevation data
 
    END TYPE filenames_type
 

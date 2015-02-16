@@ -121,6 +121,11 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWWatr
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inWatr
 
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElev
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElevSTD
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
+
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
@@ -400,9 +405,15 @@ CONTAINS
   !   insilt    - via cable_param_module
   !   insand    - via cable_param_module
   !   inALB     - via cable_param_module
+  !   Optional output variables if using SSGW
+  !   From elevation data file
+  !   inElev
+  !   inElevSTD
+  !   inSlope
+  !   inSlopeSTD
 
     USE netcdf
-    use cable_common_module, only : filename
+    use cable_common_module, only : filename, cable_user
       
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
@@ -417,7 +428,7 @@ CONTAINS
     REAL, DIMENSION(:,:),     ALLOCATABLE :: sfact, dummy2
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
     
-    integer :: ok2
+    integer :: ok2, ncid_elev
 
     ok = NF90_OPEN(filename%type, 0, ncid)
 
@@ -704,6 +715,42 @@ CONTAINS
     inALB(:, :, 1, 2) = dummy2(:, :)
     inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
+    IF (cable_user%GW_MODEL) THEN
+       ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
+       allocate(inElev(nlon,nlat),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElev ')
+       allocate(inElevSTD(nlon,nlat),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElevSTD ')
+       allocate(inSlope(nlon,nlat),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlope ')
+       allocate(inSlopeSTD(nlon,nlat),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
+
+       ok = NF90_INQ_VARID(ncid_elev, 'elevation', fieldID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable elevation.')
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inElev)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable elevation.')
+
+       ok = NF90_INQ_VARID(ncid_elev, 'elevation_std', fieldID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable elevation stddev.')
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inElevSTD)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable elevation stddev.')
+
+       ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable slope')
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlope)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable slope')
+
+       ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable slope std')
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable slope std')
+
+       ok = NF90_CLOSE(ncid_elev)
+
+    ENDIF  !running gw model
+ 
     DEALLOCATE(in2alb, sfact, dummy2)
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
 
@@ -918,16 +965,6 @@ CONTAINS
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
-    !soil%zse = (/0.005, 0.075, 0.154,0.409,1.085,2.872/)  !mrd561.  limit qg?
-    !soil%zse = (/0.12,&
-    !             0.20,&
-    !             0.34,&
-    !             0.55,&
-    !             0.92,&
-    !             1.14   /)
-
-    !soil%zse(:) = (/0.09,0.15,0.34,0.65,0.95,1.4/)
-    
 
     !MD aquifer layers
     soil%GWdz = 20.0                          !20 m thick aquifer
@@ -1078,8 +1115,21 @@ CONTAINS
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) = 0.001!  0.1 *                   &
+      soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) = 0.001!  0.1 *            &
          !inswilt(landpt(e)%ilon, landpt(e)%ilat)
+
+      soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
+                                    inElev(landpt(e)%ilon,landpt(e)%ilat)
+
+      soil%elev_std(landpt(e)%cstart:landpt(e)%cend) =                        &
+                                    inElevSTD(landpt(e)%ilon,landpt(e)%ilat)
+
+      soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
+                                    inSlope(landpt(e)%ilon,landpt(e)%ilat)
+
+      soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
+                                    inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat)
+
 
       ENDIF
 
@@ -1201,13 +1251,17 @@ CONTAINS
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
                        insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010, MD
-    if (allocated(inGWsucs)) deallocate(inGWsucs)
-    if (allocated(inGWsucs)) deallocate(inGWhyds)
-    if (allocated(inGWsucs)) deallocate(inGWbch)
-    if (allocated(inGWsucs)) deallocate(inGWsilt)
-    if (allocated(inGWsucs)) deallocate(inGWsand)
-    if (allocated(inGWsucs)) deallocate(inGWclay)
-    if (allocated(inGWsucs)) deallocate(inGWssat)
+    if (allocated(inGWsucs  )) deallocate(inGWsucs)
+    if (allocated(inGWhyds  )) deallocate(inGWhyds)
+    if (allocated(inGWbch   )) deallocate(inGWbch)
+    if (allocated(inGWsilt  )) deallocate(inGWsilt)
+    if (allocated(inGWsand  )) deallocate(inGWsand)
+    if (allocated(inGWclay  )) deallocate(inGWclay)
+    if (allocated(inGWssat  )) deallocate(inGWssat)
+    if (allocated(inElev    )) deallocate(inElev)
+    if (allocated(inElevSTD )) deallocate(inElevSTD)
+    if (allocated(inSlope   )) deallocate(inSlope)
+    if (allocated(inSlopeSTD)) deallocate(inSlopeSTD)
 
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)

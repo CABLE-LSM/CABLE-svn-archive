@@ -2240,6 +2240,25 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
 
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
@@ -2248,7 +2267,6 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)
   blen(bidx) = r2len
-
 
 
   ! MPI: sanity check
