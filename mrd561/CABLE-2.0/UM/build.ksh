@@ -228,7 +228,7 @@ build_build()
       rm -f $libpath
    fi
    
-   /bin/cp -p libcable.a $libroot 
+   /bin/cp -p libcable-2.0.a $libroot 
    
    if [[ -f $libpath ]]; then
       print "\nYour timestamped library should be this one:\n"

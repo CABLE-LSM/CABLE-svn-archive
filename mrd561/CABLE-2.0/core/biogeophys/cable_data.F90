@@ -62,8 +62,8 @@ module cable_data_module
       schmid = 0.60, & ! Schmidt number: visc/diffw
       diffwc = 1.60, & ! diffw/diffc = H2O/CO2 diffusivity
       rhow   = 1000.0, & ! liquid water density   [kg/m3]
-      emleaf = 1.0, & ! leaf emissivity
-      emsoil = 0.93, & ! soil emissivity
+      emleaf = 0.98, & ! leaf emissivity
+      emsoil = 0.98, & ! soil emissivity
       crd = 0.3,    & ! element drag coefficient
       csd = 0.003,  & ! substrate drag coefficient
       

@@ -1179,7 +1179,7 @@ END SUBROUTINE remove_trans
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
       wtd_meters(i) = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
-      satfrac(i) = fice + (1._r_2+fice) * gw_params%MaxSatFraction*exp(-wtd_meters(i)/gw_params%EfoldMaxSatFrac)
+      satfrac(i) = fice + (1._r_2-fice) * gw_params%MaxSatFraction*exp(-wtd_meters(i)/gw_params%EfoldMaxSatFrac)
 
    end do
 
@@ -1631,21 +1631,35 @@ END SUBROUTINE remove_trans
     !too be replaced with explivit treatment of subgrid scale, topographically
     !based subsurface flux convergence flowing to river channels 
     !find index of soil layer with the water table
-    do i=1,mp
-       ssnow%qhz(i)  = gw_params%MaxHorzDrainRate *(1._r_2 - fice_avg(i)) * &
-                    exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
-       idlev(i)   = ms
-       qhlev(i,:) = 0._r_2
-       do k=ms,1,-1
-         if ((ssnow%wtd(i) .le. zimm(k)) .and. (ssnow%wtd(i) .gt. zimm(k-1))) then
-           idlev(i) = k
-         end if
-      end do
-      !If the layer is frozen there shouldn't be any drainage
-      ssnow%qhz(i)      = ssnow%qhz(i) * (1._r_2 - ssnow%fracice(i,min(idlev(i),ms)))
-      qhlev(i,idlev(i)) = ssnow%qhz(i)
 
-    end do  
+
+    do i=1,mp
+      ssnow%qhz(i)  = gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+                    exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
+
+       !ssnow%qhz(i) =  ssnow%qhz(i)*(1. + exp(-0.01/(soil%slope(i)+soil%slope_std(i)) + 1.0))
+
+       qhlev(i,:) = 0._r_2
+       if (ssnow%wtd(i) .le. sum(soil%zse(:),dim=1)*1000.0) then
+          sm_tot(i) = 0._r_2!max(ssnow%GWwb(i) - soil%swilt(i),0._r_2)
+          do k=4,ms
+             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-0.5*soil%swilt(i),0._r_2)
+          end do
+          sm_tot(i) = max(sm_tot(i),0.01_r_2)
+          do k=4,ms
+             qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-0.5*soil%swilt(i),0._r_2)/sm_tot(i)
+          end do
+       else
+         qhlev(i,ms+1) = ssnow%qhz(i)*max(ssnow%GWwb(i)-0.25*soil%swilt(i),0.0)
+       end if
+
+      !incase every layer is frozen
+      ssnow%qhz(i) = qhlev(i,ms+1)
+      do k=4,ms
+         ssnow%qhz(i) = ssnow%qhz(i) +qhlev(i,k)
+      end do
+
+    end do
 
 
     rt(:,:) = 0._r_2; at(:,:) = 0._r_2     !ensure input to tridiag is valid
@@ -1660,7 +1674,7 @@ END SUBROUTINE remove_trans
        qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
        dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
        dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%dsmpdw(i,k+1) + num(i)*ssnow%dhkdw(i,k))/den(i)
-       rt(i,k) =  qin(i) - qout(i) - qhlev(i,k)
+       rt(i,k) =  qin(i) - qout(i) 
        at(i,k) =  0._r_2
        bt(i,k) =  dzmm(k)/dels + dqodw1(i)
        ct(i,k) =  dqodw2(i)      
@@ -1679,7 +1693,7 @@ END SUBROUTINE remove_trans
           qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
           dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
           dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%dsmpdw(i,k+1) + num(i)*ssnow%dhkdw(i,k))/den(i)
-          rt(i,k) =  qin(i) - qout(i) - qhlev(i,k)
+          rt(i,k) =  qin(i) - qout(i) 
           at(i,k) = -dqidw0(i)
           bt(i,k) =  dzmm(k)/dels - dqidw1(i) + dqodw1(i)
           ct(i,k) =  dqodw2(i)
@@ -1700,7 +1714,7 @@ END SUBROUTINE remove_trans
        qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
        dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
        dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%GWdsmpdw(i) + num(i)*ssnow%dhkdw(i,k))/den(i)
-       rt(i,k) =  qin(i) - qout(i) - qhlev(i,k)
+       rt(i,k) =  qin(i) - qout(i) 
        at(i,k) = -dqidw0(i)
        bt(i,k) =  dzmm(k)/dels - dqidw1(i) + dqodw1(i)
        ct(i,k) =  dqodw2(i) 
@@ -1720,7 +1734,7 @@ END SUBROUTINE remove_trans
        qout(i)    = 0._r_2
        dqodw1(i)  = 0._r_2
        dqodw2(i)  = 0._r_2
-       rt(i,k) =  qin(i) - qout(i)  - qhlev(i,k)
+       rt(i,k) =  qin(i) - qout(i) 
        at(i,k) = -dqidw0(i)
        bt(i,k) =  GWdzmm(i)/dels - dqidw1(i)
        ct(i,k) =  0._r_2
@@ -1730,11 +1744,11 @@ END SUBROUTINE remove_trans
 
     do k=1,ms
        do i=1,mp
-          ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + rt(i,k)! - qhlev(i,1:ms)*dels/dzmm   !volutermic liquid
+          ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + rt(i,k) - qhlev(i,k)*dels/dzmm(k)   !volutermic liquid
        end do
     end do
     do i=1,mp
-       ssnow%GWwb(i)    = ssnow%GWwb(i)  + rt(i,ms+1)! - qhlev(i,ms+1)*dels/GWdzmm(i)
+       ssnow%GWwb(i)    = ssnow%GWwb(i)  + rt(i,ms+1) - qhlev(i,ms+1)*dels/GWdzmm(i)
     end do
     !determine the available pore space
     !volumetric
