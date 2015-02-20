@@ -137,7 +137,9 @@ MODULE cable_def_types_mod
          Forg,   & !fration of soil made of organic soils [frac]
          densoil,& !soil density  [kg/m3]
          watsat, & !volumetric water content at saturation [mm3/mm3]
-         watr      !residual water content of the soil [mm3/mm3]
+         watr,   & !residual water content of the soil [mm3/mm3]
+         fldcap, & !field capcacity (hk = 1 mm/day)
+         wiltp     ! wilting point (hk = 0.02 mm/day)
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          slope,  &  !mean slope of grid cell
@@ -671,6 +673,8 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%watsat(mp,ms) )
    allocate( var%watr(mp,ms) )
    var%watr(:,:) = 0.05
+   allocate( var%fldcap(mp,ms) )
+   allocate( var%wiltp(mp,ms) )
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
    allocate( var%Fsilt(mp,ms) )
@@ -1125,6 +1129,8 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%clappB )
    DEALLOCATE( var%watsat )
    DEALLOCATE( var%watr )
+   DEALLOCATE( var%fldcap )
+   DEALLOCATE( var%wiltp )
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
    DEALLOCATE( var%Fsilt )

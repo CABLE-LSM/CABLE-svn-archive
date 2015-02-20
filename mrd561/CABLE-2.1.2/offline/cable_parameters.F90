@@ -1424,6 +1424,8 @@ CONTAINS
     REAL(r_2), parameter :: watr_organic   = 0.1
     REAL(r_2), parameter :: perc_lim        = 0.5
     REAL(r_2), parameter :: perc_beta      = 0.139  
+    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-05
+    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-7
     REAL(r_2), dimension(mp,ms) :: perc_frac
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations 
@@ -1472,6 +1474,10 @@ CONTAINS
        soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 + soil%Fsilt(:,1)
 
     END IF
+
+    soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
+    soil%wiltp  = (wiltp_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) *soil%watsat
+
     
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &

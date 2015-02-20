@@ -1146,7 +1146,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
          if (canopy%fevc(i) .gt. 0._r_2) then
 
             xx(i) = canopy%fevc(i) * dels / C%HL * veg%froot(i,k) + diff(i,k-1)
-            diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt(i)) &
+            diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%wiltp(i,k)) &
                        * real(soil%zse(k)*C%denliq,r_2)
             xxd(i) = xx(i) - diff(i,k)
 
@@ -1669,15 +1669,15 @@ END SUBROUTINE remove_trans
 
        qhlev(i,:) = 0._r_2
        !if (ssnow%wtd(i) .le. sum(soil%zse(:),dim=1)*1000.0) then
-          sm_tot(i) = max(ssnow%GWwb(i) - 0.2*soil%swilt(i),0._r_2)
+          sm_tot(i) = max(ssnow%GWwb(i) - 0.2*soil%wiltp(i,ms),0._r_2)
           do k=4,ms
-             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-0.2*soil%swilt(i),0._r_2)
+             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-0.2*soil%wiltp(i,k),0._r_2)
           end do
           sm_tot(i) = max(sm_tot(i),0.01_r_2)
           do k=4,ms
-             qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-0.2*soil%swilt(i),0._r_2)/sm_tot(i)
+             qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-0.2*soil%wiltp(i,k),0._r_2)/sm_tot(i)
           end do
-         qhlev(i,ms+1) = ssnow%qhz(i)*max(ssnow%GWwb(i)-0.2*soil%swilt(i),0._r_2)/sm_tot(i)
+         qhlev(i,ms+1) = ssnow%qhz(i)*max(ssnow%GWwb(i)-0.2*soil%wiltp(i,k),0._r_2)/sm_tot(i)
          !If the layer is frozen there shouldn't be any drainage
          !ssnow%qhz(i)      = ssnow%qhz(i) * (1._r_2 - ssnow%fracice(i,min(idlev(i),ms)))
          !qhlev(i,idlev(i)) = ssnow%qhz(i)
@@ -1932,7 +1932,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                                                   ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
-         ssnow%wb(:,:)  = MIN( soil%watsat(:,:), MAX ( ssnow%wb(:,:), spread(soil%swilt(:),2,ms) ) )   
+         ssnow%wb(:,:)  = MIN( soil%watsat(:,:), MAX ( ssnow%wb(:,:), soil%wiltp(:,:) ) )   
 
          DO k = 1, ms
             
@@ -2216,14 +2216,11 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1) - satfrac*soil%watsat(i,1))/(1.-satfrac)
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
-       !xx = max(real(1e-6,r_2), min(1._r_2,&
-       !                 ((ssnow%wb(i,1)-ssnow%wbice(i,1)*dri)-0.5_r_2*real(soil%swilt(i),r_2))/&
-       !                             (real(soil%sfc(i),r_2) - 0.5_r_2*real(soil%swilt(i),r_2))))**2.0
        !Sakguchi and Zeng 2009
-       if (wb_unsat .ge. soil%sfc(i)) then
+       if (wb_unsat .ge. soil%fldcap(i,1)) then
           xx = 1.
        else
-          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/soil%sfc(i)))**2.0
+          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/soil%fldcap(i,1)))**2.0
        end if
               !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
 
