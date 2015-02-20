@@ -133,6 +133,8 @@ MODULE cable_def_types_mod
          clappB, & !C and H B [none]
          Fclay,  & !fraction of soil that is clay [frac]
          Fsand,  & !fraction of soil that is sand [frac]
+         Fsilt,  & !fraction of soil that is silt [frac]
+         Forg,   & !fration of soil made of organic soils [frac]
          densoil,& !soil density  [kg/m3]
          watsat, & !volumetric water content at saturation [mm3/mm3]
          watr      !residual water content of the soil [mm3/mm3]
@@ -671,6 +673,8 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    var%watr(:,:) = 0.05
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
+   allocate( var%Fsilt(mp,ms) )
+   allocate( var%Forg(mp,ms) )
    allocate( var%densoil(mp,ms) )
 
    allocate( var%elev(mp) )
@@ -1123,6 +1127,8 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%watr )
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
+   DEALLOCATE( var%Fsilt )
+   DEALLOCATE( var%Forg  )
    DEALLOCATE( var%densoil )   
    DEALLOCATE( var%elev )
    DEALLOCATE( var%elev_std )
