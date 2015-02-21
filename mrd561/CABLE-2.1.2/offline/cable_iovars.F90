@@ -142,7 +142,7 @@ MODULE cable_IO_vars_module
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
           !MD
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
-          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr
+          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp
    
    END TYPE parID_type
   
@@ -337,7 +337,10 @@ MODULE cable_IO_vars_module
          GWWatSat=.FALSE.,    & ! soil moisture at saturation [mm3/mm3]
          GWSoilMatPotSat=.FALSE.,&! soil matruc potential at saturation [mm]
          GWWatr=.FALSE.,      & ! Aquifer soil moisture residual [mm3/mm3]
-         Watr=.FALSE.           ! soil moisture residual [mm3/mm3]      
+         Watr=.FALSE.,        & ! soil moisture residual [mm3/mm3]      
+         fldcap=.FALSE.,      & !field cap including org frac [mm3/mm3]
+         wiltp=.FALSE.,       & !wilt point including org frac [mm3/mm3]
+         Forg=.FALSE.           !ogranic frac in soil   [-]
    
    END TYPE output_inclusion_type
 

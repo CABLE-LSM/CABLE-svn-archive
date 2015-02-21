@@ -50,7 +50,7 @@ MODULE cable_output_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: filename
+  USE cable_common_module, ONLY: filename,cable_user
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -68,7 +68,7 @@ MODULE cable_output_module
                     HVeg, HSoil, Rnet, tvar,                                   &
                     !MD
                     WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
-                    EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot
+                    EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,wiltp
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -172,6 +172,11 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:)   :: EqGWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]
     REAL(KIND=4), POINTER, DIMENSION(:)   :: GWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]     
     REAL(KIND=4), POINTER, DIMENSION(:)   :: Qinfl         !infiltration rate into first soil layer [mm/s] 
+
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: wiltp         !wilt pnt inc forg
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fldcap        !field capcaicty adj for organic content
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Forg          !organic carbon frac.soil
+
 
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
@@ -1092,6 +1097,14 @@ CONTAINS
               'FrcClay', REAL(soil%FClay, 4), ranges%FrcClay, patchout%FrcClay, 'soil')          
     IF(output%params .OR. output%ClappB) CALL write_ovar (ncid_out, opid%ClappB, &
               'ClappB', REAL(soil%clappB, 4), ranges%ClappB, patchout%ClappB, 'soil')    
+
+    IF(output%params .and. cable_user%GW_MODEL) CALL write_ovar (ncid_out,opid%fldcap, &
+              'FieldCap', REAL(soil%fldcap, 4), (/0.,1./), patchout%fldcap,'soil')
+    IF(output%params .and. cable_user%GW_MODEL) CALL write_ovar (ncid_out,opid%wiltp, &
+              'WiltPoint', REAL(soil%wiltp, 4), (/0.,1./), patchout%wiltp,'soil')
+    IF(output%params .and. cable_user%GW_MODEL) CALL write_ovar (ncid_out,opid%forg, &
+              'Frcorg', REAL(soil%forg, 4), (/0.,1./), patchout%forg,'real')
+
               
   END SUBROUTINE open_output_file
   !=============================================================================
@@ -2603,6 +2616,7 @@ CONTAINS
                      ranges%FrcSand, .TRUE., 'soil', .TRUE.)                       
     CALL write_ovar (ncid_restart, rpid%FrcClay, 'FrcClay', REAL(soil%Fclay, 4),    &
                      ranges%FrcClay, .TRUE., 'soil', .TRUE.)                 
+
     !GW MD
     CALL write_ovar (ncid_restart, rpid%GWWatSat, 'GWWatSat', REAL(soil%GWwatsat, 4),    &
                      ranges%GWWatSat, .TRUE., 'real', .TRUE.)   
