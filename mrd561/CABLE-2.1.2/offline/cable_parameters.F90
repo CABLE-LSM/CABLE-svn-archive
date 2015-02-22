@@ -1441,8 +1441,8 @@ CONTAINS
     IF (cable_user%GW_MODEL) then
 
        DO klev=1,ms
-          soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 - 1.53*soil%Fsand(:,klev))
-          soil%smpsat(:,klev) = 10.0**(1.88 - 1.31*soil%Fsand(:,klev))
+          soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 1.53*soil%Fsand(:,klev))
+          soil%smpsat(:,klev) = 10.0 * 10.0**(1.88 - 1.31*soil%Fsand(:,klev))
           soil%clappB(:,klev) = 2.91 + 15.9*soil%Fclay(:,klev)
           soil%watsat(:,klev) = 0.489 - 0.126*soil%Fsand(:,klev)
           soil%watr(:,klev) = 0.02 + 0.018*soil%Fclay(:,klev) 
