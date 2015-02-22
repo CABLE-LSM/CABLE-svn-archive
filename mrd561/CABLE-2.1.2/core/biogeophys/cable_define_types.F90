@@ -145,7 +145,8 @@ MODULE cable_def_types_mod
          slope,  &  !mean slope of grid cell
          slope_std, & !stddev of grid cell slope
          elev,      & !mean elevation of gridcell
-         elev_std     !stddev elev of grid cell
+         elev_std,  & !stddev elev of grid cell
+         topo_ind
 
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
@@ -685,6 +686,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%elev_std(mp) )
    allocate( var%slope(mp) )
    allocate( var%slope_std(mp) )
+   allocate( var%topo_ind(mp) )
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -1140,6 +1142,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%elev_std )
    DEALLOCATE( var%slope )
    DEALLOCATE( var%slope_std )
+   DEALLOCATE( var%topo_ind )
    
 END SUBROUTINE dealloc_soil_parameter_type
  

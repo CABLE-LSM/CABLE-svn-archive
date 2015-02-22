@@ -126,6 +126,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElevSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
 
 CONTAINS
 
@@ -457,6 +458,7 @@ CONTAINS
     ALLOCATE( inGWrhosoil(nlon, nlat) )
     ALLOCATE(    inGWWatr(nlon, nlat) )
     ALLOCATE(       inORG(nlon, nlat) )
+    ALLOCATE(       inTI (nlon, nlat) )
 
     ! 1
     ok = NF90_INQ_VARID(ncid, 'swilt', fieldID)
@@ -584,6 +586,15 @@ CONTAINS
       inORG(:,:) = 0.0
       write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE '
     END IF    
+
+    ok = NF90_INQ_VARID(ncid, 'topo_index', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inTI)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      write(logn,*) 'Set the topo index to constant due to read error'
+      inTI(:,:) = 500.0
+    END IF
     
 ! Use this code if need to process original UM file soil fields into CABLE 
 ! offline format
@@ -1159,6 +1170,9 @@ CONTAINS
       soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat)
 
+      soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+                                    inTI(landpt(e)%ilon,landpt(e)%ilat)
+
 
       ENDIF
 
@@ -1292,6 +1306,7 @@ CONTAINS
     if (allocated(inSlope   )) deallocate(inSlope)
     if (allocated(inSlopeSTD)) deallocate(inSlopeSTD)
     if (allocated(inORG     )) deallocate(inORG)
+    if (allocated(inTI      )) deallocate(inTI)
 
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
