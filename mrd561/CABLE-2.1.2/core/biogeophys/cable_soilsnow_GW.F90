@@ -1578,6 +1578,7 @@ END SUBROUTINE remove_trans
        do i=1,mp
           ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2))
           ssnow%fracice(i,k) = 10.0**(-6.0*max(min(ssnow%fracice(i,k),1.),0.))
+          if (ssnow%fracice(i,k) .le. 0.004) ssnow%fracice(i,k) = 0.0
           !ssnow%fracice(i,k) = ssnow%icefrac(i,k)- exp(-3._r_2)! / (1._r_2 - exp(-3._r_2))  !normalizing allows range of 0-1
           !ssnow%fracice(i,k) = max(min(ssnow%fracice(i,k),1.0_r_2),0.0_r_2)
        end do
@@ -1598,9 +1599,9 @@ END SUBROUTINE remove_trans
           s1(i) = min(max(s1(i),0.001_r_2),1._r_2)
 
           s2(i) = soil%hksat(i,k)*s1(i)**(2._r_2*soil%clappB(i,k)+2._r_2)
-          ssnow%hk(i,k)    = (1._r_2-0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
+          ssnow%hk(i,k)    = (0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
                               exp(-hkrz*(zimm(k)-zdepth)/1000.0_r_2)
-          ssnow%dhkdw(i,k) = (1._r_2-0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))* &
+          ssnow%dhkdw(i,k) = (0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))* &
                     (2._r_2*soil%clappB(i,k)+3._r_2)*s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*&
                      exp(-hkrz*(zimm(k)-zdepth)/1000.0_r_2)
        end do
@@ -1614,8 +1615,8 @@ END SUBROUTINE remove_trans
           s1(i) = min(max(s1(i),0.001_r_2),1._r_2)
 
           s2(i) = soil%hksat(i,k)*s1(i)**(2._r_2*soil%clappB(i,k)+2._r_2)
-          ssnow%hk(i,k)    = s1(i)*s2(i)*(1._r_2-ssnow%fracice(i,k))* exp(-hkrz*(zimm(k)-zdepth)/1000._r_2)
-          ssnow%dhkdw(i,k) = (1._r_2-ssnow%fracice(i,k))* (2._r_2*soil%clappB(i,k)+3._r_2)*&
+          ssnow%hk(i,k)    = s1(i)*s2(i)*(ssnow%fracice(i,k))* exp(-hkrz*(zimm(k)-zdepth)/1000._r_2)
+          ssnow%dhkdw(i,k) = (ssnow%fracice(i,k))* (2._r_2*soil%clappB(i,k)+3._r_2)*&
                       s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*exp(-hkrz*(zimm(k)-zdepth)/1000._r_2)
        end do
  
