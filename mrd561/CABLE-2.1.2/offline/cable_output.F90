@@ -884,6 +884,21 @@ CONTAINS
                          'ClappB', '-', 'clapp and horn b param  in soil layer', &
                  patchout%ClappB, soilID, 'soil', xID, yID, zID, landID, patchID)                     
 
+    IF(output%params) CALL define_ovar(ncid_out, opid%fldcap,&
+                         'FieldCap', 'mm3/mm3', 'field capcaicty from hk',&
+                 patchout%fldcap, soilID, 'soil', xID, yID, zID, landID,patchID)
+
+    IF(output%params) CALL define_ovar(ncid_out, opid%wiltp,&
+                         'WiltP', 'mm3/mm3', 'wilting point from hk',&
+                 patchout%wiltp, soilID, 'soil', xID, yID, zID, landID,patchID)
+
+    IF(output%params) CALL define_ovar(ncid_out, opidforg,&
+                         'FrcOrg', 'mm3/mm3', 'organic fraction',&
+                 patchout%forg, soilID, 'real', xID, yID, zID, landID,patchID)
+
+
+
+
     !MDeck
     write(*,*) 'write global attributes for th file'
 
