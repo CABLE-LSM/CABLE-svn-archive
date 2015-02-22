@@ -576,10 +576,13 @@ CONTAINS
   
     ok = NF90_INQ_VARID(ncid, 'organic', fieldID)
     IF (ok .eq. NF90_NOERR) then
-      ok2 = NF90_GET_VAR(ncid, fieldID, inORG)
+      ok2 = NF90_GET_VAR(ncid, fieldID, inORG)       
+      write(logn,*) 'READ FORG FROM THE DATA FILE, yeidling '
+      write(logn,*) 'A maximum value of ',maxval(inORG),' and min val of',minval(inORG)
     end if
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inORG(:,:) = 0.0
+      write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE '
     END IF    
     
 ! Use this code if need to process original UM file soil fields into CABLE 
@@ -1414,7 +1417,7 @@ CONTAINS
     TYPE (balances_type),       INTENT(INOUT) :: bal
     TYPE (roughness_type),      INTENT(INOUT) :: rough
 
-    INTEGER :: j,klev ! do loop counter
+    INTEGER :: i,j,klev ! do loop counter
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
     REAL(r_2), parameter :: hksat_organic  = 1.0e-4
@@ -1424,9 +1427,23 @@ CONTAINS
     REAL(r_2), parameter :: watr_organic   = 0.1
     REAL(r_2), parameter :: perc_lim        = 0.5
     REAL(r_2), parameter :: perc_beta      = 0.139  
-    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-05
-    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-7
+    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
+    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
     REAL(r_2), dimension(mp,ms) :: perc_frac
+
+    REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
+    REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
+
+    psi_o(1:3)  = -66000._r_2
+    psi_o(4)    = -35000._r_2
+    psi_o(5)    = -83000._r_2
+    psi_o(6:17) = -74000._r_2
+
+    psi_c(1:3)  = -255000._r_2
+    psi_c(4)    = -224000._r_2
+    psi_c(5)    = -428000._r_2
+    psi_c(6:17) = -275000._r_2
+
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations 
     ! have loaded from:
@@ -1476,7 +1493,12 @@ CONTAINS
     END IF
 
     soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
-    soil%wiltp  = (wiltp_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) *soil%watsat
+    !soil%wiltp  = (wiltp_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) *soil%watsat
+    !vegetation dependent wilting point
+    DO i=1,mp
+       psi_tmp(i,:) = -psi_c(veg%iveg(i))
+    END DO
+    soil%wiltp = soil%watsat * (psi_tmp/soil%smpsat)**(-1.0/soil%clappB)
 
     
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
