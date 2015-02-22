@@ -892,7 +892,7 @@ CONTAINS
                          'WiltP', 'mm3/mm3', 'wilting point from hk',&
                  patchout%wiltp, soilID, 'soil', xID, yID, zID, landID,patchID)
 
-    IF(output%params) CALL define_ovar(ncid_out, opidforg,&
+    IF(output%params) CALL define_ovar(ncid_out, opid%forg,&
                          'FrcOrg', 'mm3/mm3', 'organic fraction',&
                  patchout%forg, soilID, 'real', xID, yID, zID, landID,patchID)
 
