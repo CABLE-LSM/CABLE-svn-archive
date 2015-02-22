@@ -894,9 +894,7 @@ CONTAINS
 
     IF(output%params) CALL define_ovar(ncid_out, opid%forg,&
                          'FrcOrg', 'mm3/mm3', 'organic fraction',&
-                 patchout%forg, soilID, 'real', xID, yID, zID, landID,patchID)
-
-
+                 patchout%forg, soilID, 'soil', xID, yID, zID, landID,patchID)
 
 
     !MDeck
@@ -1118,7 +1116,7 @@ CONTAINS
     IF(output%params .and. cable_user%GW_MODEL) CALL write_ovar (ncid_out,opid%wiltp, &
               'WiltPoint', REAL(soil%wiltp, 4), (/0.,1./), patchout%wiltp,'soil')
     IF(output%params .and. cable_user%GW_MODEL) CALL write_ovar (ncid_out,opid%forg, &
-              'Frcorg', REAL(soil%forg, 4), (/0.,1./), patchout%forg,'real')
+              'Frcorg', REAL(soil%forg, 4), (/0.,1./), patchout%forg,'soil')
 
               
   END SUBROUTINE open_output_file
