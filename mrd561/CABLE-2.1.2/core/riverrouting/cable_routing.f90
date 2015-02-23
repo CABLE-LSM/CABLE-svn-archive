@@ -107,9 +107,8 @@ module cable_routing
     real(r_2), allocatable, dimension(:) :: elev
     real(r_2), allocatable, dimension(:) :: area
     real(r_2), allocatable, dimension(:) :: source_area     !upstream source area draining into grid cell
-    real(r_2), allocatable, dimension(:) :: topo_ind        !topographic index -- ln(area/tan(slope))
-
-    integer,   allocatable, dimension(:) :: basin_ind       !basin index to group basins -- number large to small
+    !real(r_2), allocatable, dimension(:) :: topo_ind        !topographic index -- ln(area/tan(slope))
+    !integer,   allocatable, dimension(:) :: basin_ind       !basin index to group basins -- number large to small
     integer,   allocatable, dimension(:) :: land_mask       !1=land,0=ocean,2=land bordering ocean
     integer,   allocatable, dimension(:) :: dwnstrm_index   !index of cell flow goes towards
     integer,   allocatable, dimension(:) :: ocean_outlet    !index of the ending grid cell
@@ -569,8 +568,8 @@ contains
     call read_nc(ncid_river,slope_name   ,start_inds,end_inds,grid_var%slope(:))
     call read_nc(ncid_river,elev_name    ,start_inds,end_inds,grid_var%elev(:))
     call read_nc(ncid_river,src_area_name,start_inds,end_inds,grid_var%source_area(:))
-    call read_nc(ncid_river,topo_ind_name,start_inds,end_inds,grid_var%topo_ind(:))
-    call read_nc(ncid_river,basin_ind_name,start_inds,end_inds,grid_var%basin_ind(:))
+    !call read_nc(ncid_river,topo_ind_name,start_inds,end_inds,grid_var%topo_ind(:))
+    !call read_nc(ncid_river,basin_ind_name,start_inds,end_inds,grid_var%basin_ind(:))
     
     nc_check = nf90_close(ncid_river)
     
@@ -773,15 +772,15 @@ contains
 !    allocate(tmp_indices(grid_var%npts))   !tmp_indices large enough to hold all points rather than reallocating specific size
 
     !basin numbering is based on global array index.  not coninuous.  num basins < possible index vals
-    !total_nbasins = maxval(grid_var%ocean_outlet(:))!grid_var%nbasins  
-    total_nbasins  = maxval(grid_var%basin_ind(:))
+    total_nbasins = maxval(grid_var%ocean_outlet(:))!grid_var%nbasins  
+    !total_nbasins  = maxval(grid_var%basin_ind(:))
 
     allocate(basin_num_points(total_nbasins))
     basin_num_points(:) = 0
     write(*,*) 'find basin_num pts'
     do k=1,grid_var%npts
-      !j = grid_var%ocean_outlet(k)
-      j = grid_var%basin_ind(k)
+      j = grid_var%ocean_outlet(k)
+      !j = grid_var%basin_ind(k)
       basin_num_points(j) = basin_num_points(j) + 1
     end do 
 
@@ -838,8 +837,8 @@ contains
 
         kk=0
         do k=1,grid_var%npts
-          !jj = grid_var%ocean_outlet(k)
-          jj = grid_var%basin_ind(k)
+          jj = grid_var%ocean_outlet(k)
+          !jj = grid_var%basin_ind(k)
           if (jj .eq. i) then
             kk = kk + 1
             basins%river_points(kk,j) = k
@@ -888,12 +887,12 @@ contains
   
     implicit none
     
-    type(river_grid_type),pointer  ,         intent(inout) :: grid_var
-    type(basin_type), pointer, dimension(:), intent(inout) :: basins  
+    type(river_grid_type),pointer, intent(inout) :: grid_var
+    type(basin_type),     pointer, intent(inout) :: basins  
     
-    type(basin_type), pointer, dimension(:) :: cmp_basins
-    type(basin_type), pointer, dimension(:) :: tmp_basins
-    type(river_grid_type),pointer          :: cmp_grid_var
+    type(basin_type), pointer     :: cmp_basins
+    type(basin_type), pointer     :: tmp_basins
+    type(river_grid_type),pointer :: cmp_grid_var
     
     integer :: i,j,k,ii,kk,cnt,js,je,ks,ke
     integer :: n_active_cells
@@ -909,9 +908,9 @@ contains
     total_active_cells = 0
     do i=1,grid_var%nbasins
       
-      n_active_cells = sum(grid_var%active_cell(basins(i)%begind:basins(i)%endind))  !count the number of active cells in the basin
+      n_active_cells = sum(grid_var%active_cell(basins%begind(i):basins%endind(i)))  !count the number of active cells in the basin
       
-      if (n_active_cells .ge. int(0.75*basins(i)%n_basin_cells)) then   !compute basin if we have forcing for > 3/4 of it
+      if (n_active_cells .ge. int(0.75*basins%n_basin_cells(i))) then   !compute basin if we have forcing for > 3/4 of it
         active_basin(i) = 1
         total_active_cells = total_active_cells + n_active_cells
       else
@@ -928,7 +927,8 @@ contains
     cmp_grid_var%nlon      = grid_var%nlon
     cmp_grid_var%nbasins = sum(active_basin(:))   
 
-    allocate(cmp_basins(cmp_grid_var%nbasins))
+    allocate(cmp_basins)
+    call alloc_basin(cmp_basins,cmp_grid_var%nbasins,maxval(basins%n_river_cells(:)))
     allocate(basin_ind_map(cmp_grid_var%nbasins))
 
     k=0
@@ -945,7 +945,7 @@ contains
     write(*,*) 'number of active cells by basin --'
     do i=1,size(active_basin)
       if (active_basin(i) .eq. 1) then
-        write(*,*) 'basin number ',i,' with ',sum(grid_var%active_cell(basins(i)%begind:basins(i)%endind)),' active cells'
+        write(*,*) 'basin number ',i,' with ',sum(grid_var%active_cell(basins%begind(i):basins%endind(i))),' active cells'
       end if
     end do
     
@@ -954,20 +954,20 @@ contains
       cnt = 1    !keep track of starting index of current basins in the global vector of river cells
       do k=1,cmp_grid_var%nbasins
         i = basin_ind_map(k)
-        cmp_basins(k)%begind = cnt
-        cmp_basins(k)%endind = cnt + basins(i)%n_basin_cells - 1
-        cmp_basins(k)%n_basin_cells = basins(i)%n_basin_cells
+        cmp_basins%begind(k) = cnt
+        cmp_basins%endind(k) = cnt + basins%n_basin_cells(i) - 1
+        cmp_basins%n_basin_cells(k) = basins%n_basin_cells(i)
         !use temporaries to make code shorter
-        js = cmp_basins(k)%begind   !j start
-        je = cmp_basins(k)%endind    !j end
+        js = cmp_basins%begind(k)   !j start
+        je = cmp_basins%endind(k)    !j end
         
-        ks = basins(i)%begind
-        ke = basins(i)%endind
+        ks = basins%begind(i)
+        ke = basins%endind(i)
 
         !overloading = operator would make this a little cleaner
         call copy_river_grid_vector_values(grid_var,cmp_grid_var,js,je,ks,ke) 
         
-        cnt = cmp_basins(k)%endind + 1
+        cnt = cmp_basins%endind(k) + 1
       
       end do
 
