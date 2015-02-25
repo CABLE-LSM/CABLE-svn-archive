@@ -1663,7 +1663,7 @@ END SUBROUTINE remove_trans
 
       !1.0 + np.exp(-0.01/(slope_std[0:250] + slope[0:250])+1
 
-      ssnow%qhz(i)  = tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+      ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
 
        !ssnow%qhz(i) =  ssnow%qhz(i)*(1. + exp(-0.01/(soil%slope(i)+soil%slope_std(i)) + 1.0))
@@ -2218,10 +2218,10 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
        !Sakguchi and Zeng 2009
-       if (wb_unsat .ge. soil%fldcap(i,1)) then
+       if (wb_unsat .ge. 0.5*soil%fldcap(i,1)) then
           xx = 1.
        else
-          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/soil%fldcap(i,1)))**2.0
+          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
        end if
               !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
 
