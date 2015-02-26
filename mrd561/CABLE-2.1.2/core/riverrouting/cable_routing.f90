@@ -71,12 +71,12 @@ module cable_routing
 
   real(r_2), parameter :: river_theta = 0.5
   real(r_2), parameter :: subsurf_theta = 0.4
-  real(r_2), parameter :: source_area_channel_curoff = 50000.0
+  real(r_2), parameter :: source_area_channel_cutoff = 50000.0
   real(r_2), parameter :: del_river = 600.0
 
   real(r_2), parameter :: fNaN = -1e36
   integer, parameter   :: iNaN = -999999
-  integer, parameter   :: min_npts_per_basin = 25  !min number of cells to call group a basin
+  integer, parameter   :: min_pts_per_basin = 25  !min number of cells to call group a basin
   
   
   type map_grid_type
@@ -809,7 +809,7 @@ contains
 
     ord_grid_var%nbasins = partial_nbasins
     if (associated(basins)) write(*,*) 'basins is already allocated'
-    allocate(basins(ord_grid_var%nbasins))
+    allocate(basins)
 
     write(*,*) 'toal_nbasins-',total_nbasins
 
@@ -928,7 +928,7 @@ contains
     cmp_grid_var%nbasins = sum(active_basin(:))   
 
     allocate(cmp_basins)
-    call alloc_basin(cmp_basins,cmp_grid_var%nbasins,maxval(basins%n_river_cells(:)))
+    call alloc_basin(cmp_basins,cmp_grid_var%nbasins,maxval(basins%n_basin_cells(:)))
     allocate(basin_ind_map(cmp_grid_var%nbasins))
 
     k=0
@@ -1410,10 +1410,10 @@ contains
     var%source_area(:) = fNaN
     allocate(var%orig_ind(npts))
     var%orig_ind(:) = iNaN
-    allocate(var%topo_in(npts))
-    var%topo_ind(:) = fNaN
-    allocate(var%basin_ind(npts))
-    var%basin_ind(:) = iNaN
+!    allocate(var%topo_in(npts))
+!    var%topo_ind(:) = fNaN
+!    allocate(var%basin_ind(npts))
+!    var%basin_ind(:) = iNaN
 
     !since we know the total number of points set it
     var%npts = npts
@@ -1443,8 +1443,8 @@ contains
     deallocate(var%is_main_channel)
     deallocate(var%source_area)
     deallocate(var%orig_ind)
-    deallocate(var%topo_ind)
-    deallocate(var%basin_ind)
+!    deallocate(var%topo_ind)
+!    deallocate(var%basin_ind)
     write(*,*) 'dealloced gird var now dealloc maps'
     call destroy(var%maps)
     write(*,*) 'dealloced grid'
@@ -1465,7 +1465,7 @@ contains
     allocate(var%n_basin_cells(nbasins))
     var%n_basin_cells(:) = iNaN 
     allocate(var%river_points(npts,nbasins))
-    var%river_points(:) = iNaN
+    var%river_points(:,:) = iNaN
     
   end subroutine alloc_basin
   
