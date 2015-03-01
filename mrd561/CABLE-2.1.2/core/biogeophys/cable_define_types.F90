@@ -139,7 +139,10 @@ MODULE cable_def_types_mod
          watsat, & !volumetric water content at saturation [mm3/mm3]
          watr,   & !residual water content of the soil [mm3/mm3]
          fldcap, & !field capcacity (hk = 1 mm/day)
-         wiltp     ! wilting point (hk = 0.02 mm/day)
+         wiltp,  & ! wilting point (hk = 0.02 mm/day)
+         cnsd_l, & ! soil thermal conductivity including organic
+         css_l     !soil specific heat including organic
+   
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          slope,  &  !mean slope of grid cell
@@ -676,6 +679,8 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    var%watr(:,:) = 0.05
    allocate( var%fldcap(mp,ms) )
    allocate( var%wiltp(mp,ms) )
+   allocate( var%cnsd_l(mp,ms) )
+   allocate( var%css_l(mp,ms) )
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
    allocate( var%Fsilt(mp,ms) )
@@ -1133,6 +1138,8 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%watr )
    DEALLOCATE( var%fldcap )
    DEALLOCATE( var%wiltp )
+   DEALLOCATE( var%cnsd_l )
+   DEALLOCATE( var%css_l )
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
    DEALLOCATE( var%Fsilt )
