@@ -1444,6 +1444,9 @@ CONTAINS
     REAL(r_2), parameter :: perc_beta      = 0.139  
     REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
     REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
+    REAL(r_2), parameter :: cnsd_organic = 0.06
+    REAL(r_2), parameter :: css_organic  = 1920.0
+    REAL(r_2), parameter :: rho_organic  = 300.0
     REAL(r_2), dimension(mp,ms) :: perc_frac
 
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
@@ -1515,8 +1518,16 @@ CONTAINS
     END DO
     soil%wiltp = soil%watsat * (psi_tmp/soil%smpsat)**(-1.0/soil%clappB)
 
+    !add the impact of organic soil on cnsd_l and css_l
+    DO klev=1,ms 
+       DO i=1,mp
+          soil%cnsd_l(i,klev) = (1.-soil%Forg(i,klev))*soil%cnsd(i) + soil%Forg(i,klev)*cnsd_organic
+          soil%css_l(i,klev)  = (1.-soil%Forg(i,klev))*soil%css(i)  + soil%Forg(i,klev)*css_organic
+          soil%densoil(i,klev)= (1.-soil%Forg(i,klev))*soil%rhosoil(i) +soil%Forg(i,klev)*rho_organic    
+       END DO
+    END DO
     
-    IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
+    IF ( .NOT. soilparmnew .and. .NOT.cable_user%GW_model) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
