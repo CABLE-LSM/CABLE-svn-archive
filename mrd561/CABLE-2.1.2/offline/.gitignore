@@ -1,1 +1,5 @@
 /cable-*
+/.tmp
+/.mpitmp
+/readme
+/load_this
