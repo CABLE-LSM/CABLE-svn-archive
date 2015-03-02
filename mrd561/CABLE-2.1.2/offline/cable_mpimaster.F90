@@ -2254,9 +2254,12 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
-
   bidx = bidx + 1
   CALL MPI_Get_address (soil%slope_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%topo_ind(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
 
