@@ -1577,16 +1577,12 @@ END SUBROUTINE remove_trans
     do k=1,ms
        do i=1,mp
           ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2))
-          ssnow%fracice(i,k) = 10.0**(-6.0*max(min(ssnow%fracice(i,k),1.),0.))
-          if (ssnow%fracice(i,k) .le. 0.004) ssnow%fracice(i,k) = 0.0
-          !ssnow%fracice(i,k) = ssnow%icefrac(i,k)- exp(-3._r_2)! / (1._r_2 - exp(-3._r_2))  !normalizing allows range of 0-1
-          !ssnow%fracice(i,k) = max(min(ssnow%fracice(i,k),1.0_r_2),0.0_r_2)
+          ssnow%fracice(i,k) = 1.0 - 10.0**(-6.0*max(min(ssnow%icefrac(i,k),1.),0.))
        end do
     end do
     do i=1,mp
        fice_avg(i)  = sum(ssnow%fracice(i,4:ms)*dzmm(4:ms)) / sum(dzmm(4:ms))
        fice_avg(i)  = min(fice_avg(i),1._r_2)
-       !fice_avg(i)  = min(max(fice_avg(i),ssnow%fracice(i,ms)),1._r_2)
     end do
        
     do k=1,ms-1
@@ -1663,7 +1659,7 @@ END SUBROUTINE remove_trans
 
       !1.0 + np.exp(-0.01/(slope_std[0:250] + slope[0:250])+1
 
-      ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+      ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*fice_avg(i) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
 
        !ssnow%qhz(i) =  ssnow%qhz(i)*(1. + exp(-0.01/(soil%slope(i)+soil%slope_std(i)) + 1.0))

@@ -1443,7 +1443,7 @@ CONTAINS
     REAL(r_2), parameter :: perc_lim        = 0.5
     REAL(r_2), parameter :: perc_beta      = 0.139  
     REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
-    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
+    REAL(r_2), parameter :: wiltp_hk      =1e-7! 2.31481481e-7
     REAL(r_2), parameter :: cnsd_organic = 0.06
     REAL(r_2), parameter :: css_organic  = 1920.0
     REAL(r_2), parameter :: rho_organic  = 300.0
