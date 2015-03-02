@@ -1644,8 +1644,8 @@ END SUBROUTINE remove_trans
        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
        s2(i)  = soil%GWhksat(i)*s_mid(i)**(2._r_2*soil%clappB(i,ms)+2._r_2)
 
-       ssnow%GWhk(i)     = s_mid(i)*s2(i)*(1._r_2-ssnow%fracice(i,ms))
-       ssnow%GWdhkdw(i)  = (1._r_2-ssnow%fracice(i,ms))* (2._r_2*soil%clappB(i,ms)+3._r_2)*&
+       ssnow%GWhk(i)     = s_mid(i)*s2(i)*ssnow%fracice(i,ms)
+       ssnow%GWdhkdw(i)  = ssnow%fracice(i,ms)* (2._r_2*soil%clappB(i,ms)+3._r_2)*&
                          s2(i)*0.5_r_2/(soil%GWwatsat(i)-soil%GWwatr(i))
        ssnow%GWsmp(i)    = -soil%smpsat(i,ms)*s_mid(i)**(-soil%clappB(i,ms))
 
