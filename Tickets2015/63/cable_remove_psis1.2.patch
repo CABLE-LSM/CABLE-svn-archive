@@ -1,0 +1,108 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+ <title>#63: cable_remove_psis1.2.patch - cable - Trac</title><link rel="start" href="/trac/cable/wiki" /><link rel="search" href="/trac/cable/search" /><link rel="help" href="/trac/cable/wiki/TracGuide" /><link rel="stylesheet" href="/trac/cable/chrome/common/css/trac.css" type="text/css" /><link rel="stylesheet" href="/trac/cable/chrome/common/css/diff.css" type="text/css" /><link rel="stylesheet" href="/trac/cable/chrome/common/css/code.css" type="text/css" /><link rel="icon" href="/trac/cable/chrome/common/trac.ico" type="image/x-icon" /><link rel="shortcut icon" href="/trac/cable/chrome/common/trac.ico" type="image/x-icon" /><link rel="up" href="/trac/cable/ticket/63" title="Ticket #63" /><link rel="alternate" href="/trac/cable/attachment/ticket/63/cable_remove_psis1.2.patch?format=raw" title="Original Format" type="text/x-diff; charset=iso-8859-15" /><style type="text/css">
+</style>
+ <script type="text/javascript" src="/trac/cable/chrome/common/js/trac.js"></script>
+</head>
+<body>
+
+
+<div id="banner">
+
+<div id="header"><a id="logo" href="/trac/cable"><img src="/trac/cable/chrome/common/trac_banner.png" alt="" /></a><hr /></div>
+
+<form id="search" action="/trac/cable/search" method="get">
+ <div>
+  <label for="proj-search">Search:</label>
+  <input type="text" id="proj-search" name="q" size="10" accesskey="f" value="" />
+  <input type="submit" value="Search" />
+  <input type="hidden" name="wiki" value="on" />
+  <input type="hidden" name="changeset" value="on" />
+  <input type="hidden" name="ticket" value="on" />
+ </div>
+</form>
+
+
+
+<div id="metanav" class="nav"><ul><li class="first">logged in as jxs599</li><li><a href="/trac/cable/logout">Logout</a></li><li><a href="/trac/cable/settings">Settings</a></li><li><a accesskey="6" href="/trac/cable/wiki/TracGuide">Help/Guide</a></li><li class="last"><a href="/trac/cable/about">About Trac</a></li></ul></div>
+</div>
+
+<div id="mainnav" class="nav"><ul><li class="first"><a accesskey="1" href="/trac/cable/wiki">Wiki</a></li><li><a accesskey="2" href="/trac/cable/timeline">Timeline</a></li><li><a accesskey="3" href="/trac/cable/roadmap">Roadmap</a></li><li><a href="/trac/cable/browser">Browse Source</a></li><li><a href="/trac/cable/report">View Tickets</a></li><li><a accesskey="7" href="/trac/cable/newticket">New Ticket</a></li><li><a accesskey="4" href="/trac/cable/search">Search</a></li><li class="last"><a href="/trac/cable/admin">Admin</a></li></ul></div>
+<div id="main">
+
+
+
+
+<div id="ctxtnav" class="nav"></div>
+
+<div id="content" class="attachment">
+
+
+ <h1><a href="/trac/cable/ticket/63">Ticket #63</a>: cable_remove_psis1.2.patch</h1>
+ <table id="info" summary="Description"><tbody><tr>
+   <th scope="col">
+    File cable_remove_psis1.2.patch, 2.5 kB 
+    (added by nnh561,  4 months ago)
+   </th></tr><tr>
+   <td class="message"><p>
+Sorry, using git, this one might work better with SVN.
+</p>
+</td>
+  </tr>
+ </tbody></table>
+ <div id="preview">
+   
+
+
+<div class="diff"><ul class="entries"><li class="entry">
+  <h2>core/biogeophys/cable_canopy.F90</h2>
+  <table class="inline" summary="Differences" cellspacing="0">
+   <colgroup><col class="lineno" /><col class="lineno" /><col class="content" /></colgroup>
+   <thead><tr>
+    <th>old</th>
+    <th>new</th>
+    <th>&nbsp;</th>
+   </tr></thead><tbody><tr><th>507</th><th>507</th><td class="l"><span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +&nbsp; &nbsp; &nbsp;&amp;</span>&nbsp;</td></tr><tr><th>508</th><th>508</th><td class="l"><span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ( LOG( (zscl(j) - rough%disp(j)) /&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&amp;</span>&nbsp;</td></tr><tr><th>509</th><th>509</th><td class="l"><span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; MAX( rough%zruffs(j)-rough%disp(j),&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &amp;</span>&nbsp;</td></tr></tbody><tbody class="mod"><tr class="first"><th>510</th><th>&nbsp;</th><td class="l">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; rough%z0soilsn(j) ) ) - psis<del>1( (zscl(j)-rough%disp(j))</del>&nbsp; &nbsp;&amp;&nbsp;</td></tr><tr class="last"><th>&nbsp;</th><th>510</th><td class="r">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; rough%z0soilsn(j) ) ) - psis<ins>( (zscl(j)-rough%disp(j)) </ins>&nbsp; &nbsp;&amp;&nbsp;</td></tr></tbody><tbody><tr><th>511</th><th>511</th><td class="l"><span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&amp;</span>&nbsp;</td></tr></tbody><tbody class="mod"><tr class="first"><th>512</th><th>&nbsp;</th><td class="l">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; + psis<del>1( (rough%zruffs(j) - rough%disp(j) )</del>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &amp;&nbsp;</td></tr><tr class="last"><th>&nbsp;</th><th>512</th><td class="r">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; + psis<ins>( (rough%zruffs(j) - rough%disp(j) ) </ins>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &amp;&nbsp;</td></tr></tbody><tbody><tr><th>513</th><th>513</th><td class="l"><span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )&nbsp; &nbsp; &nbsp; &amp;</span>&nbsp;</td></tr><tr><th>514</th><th>514</th><td class="l"><span>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; / C%VONK</span>&nbsp;</td></tr><tr><th>515</th><th>515</th><td class="l"><span></span>&nbsp;</td></tr></tbody>
+     <tbody class="skipped">
+      <tr><th>&hellip;</th><th>&hellip;</th><td>&nbsp;</td></tr>
+     </tbody><tbody><tr><th>1016</th><th>1016</th><td class="l"><span></span>&nbsp;</td></tr><tr><th>1017</th><th>1017</th><td class="l"><span>! -----------------------------------------------------------------------------</span>&nbsp;</td></tr><tr><th>1018</th><th>1018</th><td class="l"><span></span>&nbsp;</td></tr></tbody><tbody class="rem"><tr class="first"><th>1019</th><th>&nbsp;</th><td class="l"><del>FUNCTION psis1(zeta) RESULT(r)</del>&nbsp;</td></tr><tr><th>1020</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)</del>&nbsp;</td></tr><tr><th>1021</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;! computes integrated stability function psis(z/l) (z/l=zeta)</del>&nbsp;</td></tr><tr><th>1022</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;! for scalars, using the businger-dyer form for unstable cases</del>&nbsp;</td></tr><tr><th>1023</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;! and the webb form for stable cases. see paulson (1970).</del>&nbsp;</td></tr><tr><th>1024</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL, INTENT(IN)&nbsp; &nbsp; &nbsp;:: zeta</del>&nbsp;</td></tr><tr><th>1025</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;</del>&nbsp;</td></tr><tr><th>1026</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL, PARAMETER&nbsp; &nbsp; &nbsp; :: gu = 16.0</del>&nbsp;</td></tr><tr><th>1027</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL, PARAMETER&nbsp; &nbsp; &nbsp; :: gs = 5.0</del>&nbsp;</td></tr><tr><th>1028</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL, PARAMETER&nbsp; &nbsp; &nbsp; :: a = 1.0</del>&nbsp;</td></tr><tr><th>1029</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL, PARAMETER&nbsp; &nbsp; &nbsp; :: b = 0.667</del>&nbsp;</td></tr><tr><th>1030</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL, PARAMETER&nbsp; &nbsp; &nbsp; :: c = 5.0</del>&nbsp;</td></tr><tr><th>1031</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL, PARAMETER&nbsp; &nbsp; &nbsp; :: d = 0.35</del>&nbsp;</td></tr><tr><th>1032</th><th>&nbsp;</th><td class="l"><del>&nbsp;</del>&nbsp;</td></tr><tr><th>1033</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: r</del>&nbsp;</td></tr><tr><th>1034</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: stable</del>&nbsp;</td></tr><tr><th>1035</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: unstable</del>&nbsp;</td></tr><tr><th>1036</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: stzeta</del>&nbsp;</td></tr><tr><th>1037</th><th>&nbsp;</th><td class="l"><del>&nbsp;</del>&nbsp;</td></tr><tr><th>1038</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: z</del>&nbsp;</td></tr><tr><th>1039</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: y</del>&nbsp;</td></tr><tr><th>1040</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;!REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: stable</del>&nbsp;</td></tr><tr><th>1041</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;!REAL&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;:: unstable</del>&nbsp;</td></tr><tr><th>1042</th><th>&nbsp;</th><td class="l"><del>&nbsp;</del>&nbsp;</td></tr><tr><th>1043</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;z&nbsp; &nbsp; &nbsp; = 0.5 + sign(0.5,zeta)&nbsp; &nbsp; ! z=1 in stable, 0 in unstable </del>&nbsp;</td></tr><tr><th>1044</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;</del>&nbsp;</td></tr><tr><th>1045</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;! Beljaars and Holtslag (1991) for stable</del>&nbsp;</td></tr><tr><th>1046</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;stzeta = max(0.,zeta)</del>&nbsp;</td></tr><tr><th>1047</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;stable = -(1.+2./3.*a*stzeta)**(3./2.) -&nbsp; &amp;</del>&nbsp;</td></tr><tr><th>1048</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;b*(stzeta-c/d)*exp(-d*stzeta) - b*c/d + 1.</del>&nbsp;</td></tr><tr><th>1049</th><th>&nbsp;</th><td class="l"><del>&nbsp;</del>&nbsp;</td></tr><tr><th>1050</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;y&nbsp; &nbsp; &nbsp; = (1.0 + gu*abs(zeta))**0.5</del>&nbsp;</td></tr><tr><th>1051</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;unstable = 2.0 * alog((1+y)*0.5)</del>&nbsp;</td></tr><tr><th>1052</th><th>&nbsp;</th><td class="l"><del>&nbsp; &nbsp;r&nbsp; &nbsp;= z*stable + (1.0-z)*unstable</del>&nbsp;</td></tr><tr><th>1053</th><th>&nbsp;</th><td class="l"><del></del>&nbsp;</td></tr><tr><th>1054</th><th>&nbsp;</th><td class="l"><del>END FUNCTION psis1</del>&nbsp;</td></tr><tr><th>1055</th><th>&nbsp;</th><td class="l"><del></del>&nbsp;</td></tr><tr><th>1056</th><th>&nbsp;</th><td class="l"><del>! -----------------------------------------------------------------------------</del>&nbsp;</td></tr><tr class="last"><th>1057</th><th>&nbsp;</th><td class="l"><del></del>&nbsp;</td></tr></tbody><tbody><tr><th>1058</th><th>1019</th><td class="l"><span>ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) result(z)</span>&nbsp;</td></tr><tr><th>1059</th><th>1020</th><td class="l"><span>&nbsp; &nbsp;REAL, INTENT(IN)&nbsp; &nbsp; &nbsp;:: rpconst</span>&nbsp;</td></tr><tr><th>1060</th><th>1021</th><td class="l"><span>&nbsp; &nbsp;REAL, INTENT(IN)&nbsp; &nbsp; &nbsp;:: rpcoef</span>&nbsp;</td></tr></tbody>
+  </table>
+ </li>
+</ul></div>
+
+ </div>
+ <div class="buttons">
+  <form method="get" action=""><div id="delete">
+   <input type="hidden" name="action" value="delete" />
+   <input type="submit" value="Delete attachment" />
+  </div></form>
+ </div>
+
+
+</div>
+<script type="text/javascript">searchHighlight()</script>
+<div id="altlinks"><h3>Download in other formats:</h3><ul><li class="first last"><a href="/trac/cable/attachment/ticket/63/cable_remove_psis1.2.patch?format=raw">Original Format</a></li></ul></div>
+
+</div>
+
+<div id="footer">
+ <hr />
+ <a id="tracpowered" href="http://trac.edgewall.org/"><img src="/trac/cable/chrome/common/trac_logo_mini.png" height="30" width="107"
+   alt="Trac Powered"/></a>
+ <p class="left">
+  Powered by <a href="/trac/cable/about"><strong>Trac 0.10.5</strong></a><br />
+  By <a href="http://www.edgewall.org/">Edgewall Software</a>.
+ </p>
+ <p class="right">
+  Visit the Trac open source project at<br /><a href="http://trac.edgewall.org/">http://trac.edgewall.org/</a>
+ </p>
+</div>
+
+
+
+ </body>
+</html>
+
