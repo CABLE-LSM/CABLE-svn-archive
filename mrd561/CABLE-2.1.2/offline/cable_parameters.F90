@@ -1130,7 +1130,7 @@ CONTAINS
         soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.001!0.1 *              !&
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01!0.1 *              !&
              !inswilt(landpt(e)%ilon, landpt(e)%ilat)
       END DO
       !Aquifer properties  same as bottom soil layer for now
@@ -1242,6 +1242,7 @@ CONTAINS
           do klev=1,ms
             soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
             soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+            soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
           end do
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
@@ -1443,10 +1444,7 @@ CONTAINS
     REAL(r_2), parameter :: perc_lim        = 0.5
     REAL(r_2), parameter :: perc_beta      = 0.139  
     REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
-    REAL(r_2), parameter :: wiltp_hk      =1e-7! 2.31481481e-7
-    REAL(r_2), parameter :: cnsd_organic = 0.06
-    REAL(r_2), parameter :: css_organic  = 1920.0
-    REAL(r_2), parameter :: rho_organic  = 300.0
+    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
     REAL(r_2), dimension(mp,ms) :: perc_frac
 
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
@@ -1476,11 +1474,11 @@ CONTAINS
     IF (cable_user%GW_MODEL) then
 
        DO klev=1,ms
-          soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 1.53*soil%Fsand(:,klev))
-          soil%smpsat(:,klev) = 10.0 * 10.0**(1.88 - 1.31*soil%Fsand(:,klev))
-          soil%clappB(:,klev) = 2.91 + 15.9*soil%Fclay(:,klev)
-          soil%watsat(:,klev) = 0.489 - 0.126*soil%Fsand(:,klev)
-          soil%watr(:,klev) = 0.02 + 0.018*soil%Fclay(:,klev) 
+          soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
+          soil%smpsat(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Fsand(:,klev)*100.0)
+          soil%clappB(:,klev) = 2.91 + 0.159*soil%Fclay(:,klev)*100.0
+          soil%watsat(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
+          soil%watr(:,klev) = 0.02 + 0.00018*soil%Fclay(:,klev)*100.0
        ENDDO
        !aquifer share non-organic with last layer
        soil%GWhksat(:)  = soil%hksat(:,ms)
@@ -1498,40 +1496,36 @@ CONTAINS
        ENDWHERE
 
        DO klev=1,3  !0-23.3 cm, data really is to 30cm
-          soil%hksat(:,klev ) = (1.-perc_frac(:,klev))*((1.-soil%Forg(:,klev))/soil%hksat(:,klev) + &
-                                 (soil%Forg(:,klev)-perc_frac(:,klev))/hksat_organic)**(-1.0)
+          !soil%hksat(:,klev ) = (1.-perc_frac(:,klev))*((1.-soil%Forg(:,klev))/soil%hksat(:,klev) + &
+          !                       (soil%Forg(:,klev)-perc_frac(:,klev))/hksat_organic)**(-1.0)
+          soil%hksat(:,klev)  = (1.-soil%Forg(:,klev))*soil%hksat(:,klev) +soil%Forg(:,klev)*hksat_organic
           soil%smpsat(:,klev) = (1.-soil%Forg(:,klev))*soil%smpsat(:,klev) + soil%Forg(:,klev)*smpsat_organic
           soil%clappB(:,klev) = (1.-soil%Forg(:,klev))*soil%clappB(:,klev) +soil%Forg(:,klev)*clappb_organic
           soil%watsat(:,klev) = (1.-soil%Forg(:,klev))*soil%watsat(:,klev) + soil%Forg(:,klev)*watsat_organic
           soil%watr(:,klev)   = (1.-soil%Forg(:,klev))*soil%watr(:,klev) + soil%Forg(:,klev)*watr_organic
        END DO
 
-       soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 + soil%Fsilt(:,1)
+       soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 +soil%Fsilt(:,1)*0.265
 
     END IF
 
     soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
-    !soil%wiltp  = (wiltp_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) *soil%watsat
     !vegetation dependent wilting point
     DO i=1,mp
        psi_tmp(i,:) = -psi_c(veg%iveg(i))
     END DO
     soil%wiltp = soil%watsat * (psi_tmp/soil%smpsat)**(-1.0/soil%clappB)
 
-    !add the impact of organic soil on cnsd_l and css_l
-    DO klev=1,ms 
-       DO i=1,mp
-          soil%cnsd_l(i,klev) = (1.-soil%Forg(i,klev))*soil%cnsd(i) + soil%Forg(i,klev)*cnsd_organic
-          soil%css_l(i,klev)  = (1.-soil%Forg(i,klev))*soil%css(i)  + soil%Forg(i,klev)*css_organic
-          soil%densoil(i,klev)= (1.-soil%Forg(i,klev))*soil%rhosoil(i) +soil%Forg(i,klev)*rho_organic    
-       END DO
-    END DO
     
-    IF ( .NOT. soilparmnew .and. .NOT.cable_user%GW_model) THEN  ! Q,Zhang @ 12/20/2010
+    IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
     END IF
+
+      soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
+                   + soil%silt * 0.265 ! set dry soil thermal conductivity
+
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
