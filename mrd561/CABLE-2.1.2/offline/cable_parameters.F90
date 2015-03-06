@@ -1489,6 +1489,9 @@ CONTAINS
 
        !include organin impact.  fraction of grid cell where percolation through
        !organic macropores dominates
+       soil%Forg = max(0._r_2,soil%Forg)
+       soil%Forg = min(1._r_2,soil%Forg)
+
        WHERE (soil%Forg .ge. 0.5)
           perc_frac = (1.-perc_lim)**(-perc_beta) * (soil%Forg -perc_lim)**perc_beta
        ELSEWHERE (soil%Forg .lt. 0.5)
