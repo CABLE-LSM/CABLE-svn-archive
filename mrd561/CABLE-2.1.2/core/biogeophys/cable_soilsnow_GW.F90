@@ -59,7 +59,7 @@ MODULE cable_soil_snow_gw_module
    !mrd561 GW params
    !Should read some in from namelist
    REAL(r_2), PARAMETER :: sucmin  = -1.0e8, &! minimum soil pressure head [mm]
-                      hkrz         = 0.5,&!0.3,         &! GW_hksat e-folding depth [m**-1]
+                      hkrz         = 0.4,&!0.3,         &! GW_hksat e-folding depth [m**-1]
                       volwatmin    = 1e-4,        &!min soil water [mm]      
                       wtd_uncert   = 0.1,         &! uncertaintiy in wtd calcultations [mm]
                       wtd_max      = 100000.0,    &! maximum wtd [mm]
@@ -1663,39 +1663,25 @@ END SUBROUTINE remove_trans
     end do
        
     do i=1,mp
-       !ssnow%qhz(i)  = gw_params%MaxHorzDrainRate*soil%GWhksat(i)*(1._r_2 - fice_avg(i)) * &
-       !             exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
-
-      !1.0 + np.exp(-0.01/(slope_std[0:250] + slope[0:250])+1
-
-      ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
 
-       !ssnow%qhz(i) =  ssnow%qhz(i)*(1. + exp(-0.01/(soil%slope(i)+soil%slope_std(i)) + 1.0))
-
        qhlev(i,:) = 0._r_2
-       !if (ssnow%wtd(i) .le. sum(soil%zse(:),dim=1)*1000.0) then
-          sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1.0 -ssnow%fracice(i,ms))
-          do k=4,ms
-             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
-          end do
-          sm_tot(i) = max(sm_tot(i),0.01_r_2)
-          do k=4,ms
-             qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
-          end do
-         qhlev(i,ms+1) = (1.0 -ssnow%fracice(i,ms))*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
-         !If the layer is frozen there shouldn't be any drainage
-         !ssnow%qhz(i)      = ssnow%qhz(i) * (1._r_2 - ssnow%fracice(i,min(idlev(i),ms)))
-         !qhlev(i,idlev(i)) = ssnow%qhz(i)
-       !else
-       !  qhlev(i,ms+1) = ssnow%qhz(i)*max(ssnow%GWwb(i)-0.25*soil%swilt(i),0.0)
-       !end if
+       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1.0 -ssnow%fracice(i,ms))
+       do k=4,ms
+          sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
+       end do
+       sm_tot(i) = max(sm_tot(i),0.01_r_2)
+       do k=4,ms
+          qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
+       end do
+       qhlev(i,ms+1) = (1.0 -ssnow%fracice(i,ms))*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
       
-      !incase every layer is frozen very dry
-      ssnow%qhz(i) = qhlev(i,ms+1)
-      do k=4,ms
-         ssnow%qhz(i) = ssnow%qhz(i) +qhlev(i,k)
-      end do
+       !incase every layer is frozen very dry
+       ssnow%qhz(i) = qhlev(i,ms+1)
+       do k=4,ms
+          ssnow%qhz(i) = ssnow%qhz(i) +qhlev(i,k)
+       end do
       
     end do  
 
