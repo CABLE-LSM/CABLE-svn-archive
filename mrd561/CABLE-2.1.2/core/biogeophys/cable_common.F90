@@ -118,7 +118,6 @@ MODULE cable_common_module
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam=0.5, satuParam=0.8
 
-
    ! soil parameters read from file(filename%soil def. in cable.nml)
    ! & veg parameters read from file(filename%veg def. in cable.nml)
    TYPE soilin_type
@@ -191,11 +190,14 @@ MODULE cable_common_module
 
    TYPE gw_parameters_type
 
-      REAL ::                                                             &
-        MaxSatFraction=0.3,                                                &
-        MaxHorzDrainRate=0.0001,                                           &
-        EfoldHorzDrainRate=0.5,                                            &
-        EfoldMaxSatFrac=0.5
+      REAL ::                   &
+        MaxSatFraction=0.7,     & !maximum fraction of cell that is saturated [qsrf]
+        MaxHorzDrainRate=100.0, & !anisintropy [qsub]
+        EfoldHorzDrainRate=0.5, & !qsub(wtd)
+        EfoldMaxSatFrac=0.5,    & !sat frac srf (wtd)
+        hkrz=0.2,               & !hksat variation with z
+        zdepth=1.0,             & !level where hksat(z) = hksat(no z)
+        frozen_frac=0.2  !ice fraction to determine first non-frozen layer for qsub
 
    END TYPE gw_parameters_type
 
