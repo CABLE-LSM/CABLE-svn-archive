@@ -57,7 +57,8 @@ MODULE cable_mpicommon
            !in master.  in worker
   !GWwb, wtd                                   ---> +2 new variables
            !in master.  in worker
-  INTEGER, PARAMETER :: nparam = 301!297 !283
+  !added topo_ind, slope,slope_std,elev,elev_std
+  INTEGER, PARAMETER :: nparam = 302! 301!297 !283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
