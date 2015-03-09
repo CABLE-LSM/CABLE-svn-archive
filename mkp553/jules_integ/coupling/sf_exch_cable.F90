@@ -36,11 +36,11 @@ SUBROUTINE sf_exch_cable (                                        &
  l_aero_classic,l_dust,l_dust_diag,                               &
  vfrac_tile,vshr_land,vshr_ssi,zh,ddmfx,                          &
  z0_tile,z0h_tile_bare,z1_uv,z1_uv_top,z1_tq,z1_tq_top,           &
- su10,sv10,suv10m_n,sq1p5,st1p5,sfme,sz0heff,formdrag,fd_stab_dep,&
+ sf_diag,formdrag,fd_stab_dep,                                    &
  orog_drag_param,z0msea,                                          &
  alpha1,alpha1_sice,ashtf_prime,ashtf_prime_tile,                 &
  recip_l_mo_sea,cdr10m,cdr10m_n,cd10m_n,                          &
- chr1p5m,chr1p5m_sice,fme,fqw_1,fqw_tile,epot_tile,               &
+ chr1p5m,chr1p5m_sice,fqw_1,fqw_tile,epot_tile,                   &
  fqw_ice,                                                         &
  ftl_1,ftl_tile,ftl_ice,fraca,h_blend_orog,charnock,              &
  rhostar,resfs,resft,rib,rib_tile,                                &
@@ -100,7 +100,7 @@ USE jules_sea_seaice_mod, ONLY : iseasurfalg, ip_ss_solid,        &
 
 USE urban_param, ONLY : hgt, hwr, ztm, disp, z0m_mat, z0h_z0m_c,  &
                         z0h_z0m_rf
-
+USE sf_diags_mod, ONLY: strnewsfdiag
 USE switches_urban, ONLY :                                        &
    l_urban2t, l_moruses_rough, l_moruses_storage
 
@@ -318,21 +318,7 @@ REAL                                                              &
                          !    Used in SCM Configurations
 
 LOGICAL                                                           &
- su10                                                             &
-                       ! IN STASH flag for 10-metre W wind.
-,sv10                                                             &
-                       ! IN STASH flag for 10-metre S wind.
-,suv10m_n                                                         &
-                       ! IN STASH flag for 10 m neutral diagnostics
-,sq1p5                                                            &
-                       ! IN STASH flag for 1.5-metre sp humidity.
-,st1p5                                                            &
-                       ! IN STASH flag for 1.5-metre temperature.
-,sfme                                                             &
-                       ! IN STASH flag for wind mixing energy flux
-,sz0heff                                                          &
-                       ! IN STASH flag for Z0H_EFF
-,lq_mix_bl                                                        &
+ lq_mix_bl                                                        &
                        ! IN TRUE if mixing ratios used in
                        !    boundary layer code
 ,l_aero_classic                                                   &
@@ -355,6 +341,8 @@ REAL, INTENT(IN) :: seasalinityfactor
 
 
 !  Modified (INOUT) variables.
+! Diagnostics
+TYPE (strnewsfdiag), INTENT(INOUT) :: sf_diag
 
 REAL                                                              &
  z0msea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
@@ -405,8 +393,6 @@ REAL                                                              &
 ,chr1p5m_sice(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)&
                        ! OUT CHR1P5M for sea and sea-ice
                        !     (leads ignored).
-,fme(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)         &
-                       ! OUT Wind mixing energy flux (Watts/sq m).
 ,fqw_1(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)       &
                        ! OUT "Explicit" surface flux of QW (i.e.
                        !     evaporation), on P-grid (kg/m2/s).
@@ -1672,7 +1658,7 @@ DO j=tdims%j_start,tdims%j_end
   END DO
 END DO
 
-IF (suv10m_n) THEN
+IF (sf_diag%suv10m_n) THEN
   DO j=pdims%j_start,pdims%j_end
     DO i=pdims%i_start,pdims%i_end
       cdr10m_n(i,j) = 0.
@@ -1682,8 +1668,8 @@ IF (suv10m_n) THEN
 END IF
 
 ! Land tiles
-IF (su10 .OR. sv10 .OR. sq1p5 .OR. st1p5 .OR.                     &
-    suv10m_n .OR.                                                 &
+IF (sf_diag%su10 .OR. sf_diag%sv10 .OR. sf_diag%sq1p5 .OR.        &
+    sf_diag%st1p5 .OR. sf_diag%suv10m_n .OR.                      &
     (IScrnTDiag == IP_ScrnDecpl2) ) THEN
   DO n=1,ntiles
 ! DEPENDS ON: sfl_int
@@ -1695,7 +1681,7 @@ IF (su10 .OR. sv10 .OR. sq1p5 .OR. st1p5 .OR.                     &
      recip_l_mo_tile(1,n),                                        &
      v_s_tile(:,n),v_s_std(:,n),                                  &
      z1_uv,z1_tq,db_tile(:,n),                                    &
-     su10,sv10,suv10m_n,st1p5,sq1p5,                              &
+     sf_diag,                                                     &
      cdr10m,cdr10m_n,cd10m_n,chr1p5m(:,n)                         &
      )
   END DO
@@ -2112,15 +2098,14 @@ END DO
 DO j=tdims%j_start,tdims%j_end
  DO i=tdims%i_start,tdims%i_end
 
-  fme(i,j) = 0.0
   IF (flandg(i,j).lt.1.0) THEN
     tau = rhokm_ssi(i,j) * vshr_ssi(i,j)             ! P243.130
     IF (ice_fract(i,j) .gt. 0.0)                                  &
       tau = rhostar(i,j) * cd_sea(i,j)                            &
         * vshr_ssi(i,j) * vshr_ssi(i,j)
 
-    IF (sfme)                                                     &
-      fme(i,j) = (1.0-ice_fract(i,j)) * tau * SQRT(tau/rhosea)
+    IF (sf_diag%sfme)                                                   &
+      sf_diag%fme(i,j) = (1.0-ice_fract(i,j)) * tau * SQRT(tau/rhosea)
 !                                                            ! P243.96
 !     Recalculate the momentum roughness length under the older 
 !     non-interactive treatments. 
@@ -2193,8 +2178,8 @@ END IF
 
 
 ! Sea and sea-ice (leads ignored)
-IF (su10 .OR. sv10 .OR. sq1p5 .OR. st1p5 .OR.                     &
-    suv10m_n .OR.                                                 &
+IF (sf_diag%su10 .OR. sf_diag%sv10 .OR. sf_diag%sq1p5 .OR.        &
+    sf_diag%st1p5 .OR. sf_diag%suv10m_n .OR.                      &
     (IScrnTDiag == IP_ScrnDecpl2) ) THEN
 ! DEPENDS ON: sfl_int
   CALL sfl_int (                                                  &
@@ -2205,7 +2190,7 @@ IF (su10 .OR. sv10 .OR. sq1p5 .OR. st1p5 .OR.                     &
      recip_l_mo_sea,                                              &
      v_s_sea,v_s_std_sea,                                         &
      z1_uv,z1_tq_sea,db_sea,                                      &
-     su10,sv10,suv10m_n,st1p5,sq1p5,                              &
+     sf_diag,                                                     &
      cdr10m,cdr10m_n,cd10m_n,chr1p5m_sice                         &
      )
 
@@ -2218,7 +2203,7 @@ IF (su10 .OR. sv10 .OR. sq1p5 .OR. st1p5 .OR.                     &
      recip_l_mo_ice,                                              &
      v_s_ice,v_s_std_ice,                                         &
      z1_uv,z1_tq_sea,db_ice,                                      &
-     su10,sv10,suv10m_n,st1p5,sq1p5,                              &
+     sf_diag,                                                     &
      cdr10m,cdr10m_n,cd10m_n,chr1p5m_sice                         &
      )
 END IF
@@ -2298,7 +2283,7 @@ IF(formdrag ==  effective_z0) THEN
    land_pts,land_index,                                           &
    fd_stab_dep,orog_drag_param,                                   &
    ho2r2_orog,rib,sil_orog,z0m_gb_land,z1_uv,                     &
-   h_blend_orog,z0m_eff,sz0heff,z0h_gb_land,z0h_eff               &
+   h_blend_orog,z0m_eff,sf_diag,z0h_gb_land,z0h_eff               &
    )
  END IF
 

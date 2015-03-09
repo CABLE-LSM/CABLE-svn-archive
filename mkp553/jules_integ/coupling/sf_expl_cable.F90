@@ -43,8 +43,8 @@ SUBROUTINE sf_expl_l_cable (                                      &
  l_spec_z0, z0m_scm, z0h_scm,                                     &
 ! IN variables for message passing
  u_1_px, v_1_px, u_0_px, v_0_px,                                  &
-! IN STASH flags :-
- sfme,sq1p5,st1p5,su10,sv10,suv10m_n,sz0heff,                     &
+! INOUT diagnostics
+ sf_diag,                                                         &
 ! INOUT data :
  l_q10,z0msea,gs,g_leaf_acc,npp_ft_acc,resp_w_ft_acc,resp_s_acc,  &
 ! OUT Diagnostic not requiring STASH flags :
@@ -53,8 +53,6 @@ SUBROUTINE sf_expl_l_cable (                                      &
 ! OUT variables for message passing
  flandfac, fseafac, rhokm_land, rhokm_ssi, cdr10m,                &
  cdr10m_n, cd10m_n,                                               &
-! OUT diagnostic requiring STASH flags :
- fme,                                                             &
 ! OUT diagnostics required for soil moisture nudging scheme :
  wt_ext,ra,                                                       &
 ! OUT data required for tracer mixing :
@@ -71,8 +69,8 @@ SUBROUTINE sf_expl_l_cable (                                      &
  h_blend_orog,z0hssi,z0h_tile,z0h_eff,z0m_gb,z0mssi,z0m_tile,     &
  z0m_eff,chr1p5m,chr1p5m_sice,smc,hcons,vshr,vshr_land,vshr_ssi,  &
  gpp,npp,resp_p,g_leaf,gpp_ft,npp_ft,                             &
- resp_p_ft,resp_s,resp_s_tot,resp_w_ft,                           &
- gc,canhc_tile,wt_ext_tile,flake,                                 &
+ resp_p_ft,resp_s,resp_s_tot,resp_l_ft,resp_r_ft,resp_w_ft,       &
+ n_leaf,n_root,n_stem,lai_bal,gc,canhc_tile,wt_ext_tile,flake,    &
  tile_index,tile_pts,tile_frac,fsmc,emis_tile,emis_soil,          &
 ! Extra variables required for CABLE
  ls_rain, ls_snow
@@ -95,7 +93,7 @@ USE jules_sea_seaice_mod, ONLY : emis_sice
 
 USE jules_surface_types_mod, ONLY : npft, nnpft, ntype
 USE fluxes, ONLY : anthrop_heat,                                  &
-                   sw_sice
+                   sw_sice,et_stom,et_stom_ft
 
 USE jules_sea_seaice_mod, ONLY : l_ctile, buddy_sea, charnock, SeaSalinityFactor
 
@@ -105,7 +103,7 @@ USE veg_param, ONLY : secs_per_360days
 
 use jules_surface_mod, ONLY: l_aggregate, formdrag, orog_drag_param,         &
                              fd_stab_dep, l_anthrop_heat_src
-
+USE sf_diags_mod, ONLY: strnewsfdiag
 USE timestep_mod, ONLY: timestep
 USE science_fixes_mod, ONLY: l_emis_ssi_full
 
@@ -357,24 +355,14 @@ LOGICAL, INTENT(IN) ::                                            &
 ,l_dust_diag                                                      &
                              ! IN Switch for diagnostic mineral dust
                              !    lifting
-,lq_mix_bl                                                        &
-,sfme                                                             &
-         ! IN Flag for FME (q.v.).
-,sz0heff                                                          &
-         ! IN Flag for Z0H_EFF
-,sq1p5                                                            &
-         ! IN Flag for Q1P5M (q.v.)
-,st1p5                                                            &
-         ! IN Flag for T1P5M (q.v.)
-,su10                                                             &
-         ! IN Flag for U10M (q.v.)
-,sv10                                                             &
-         ! IN Flag for V10M (q.v.)
-,suv10m_n! IN Flag for neutral 10 m wind diagnostics
+,lq_mix_bl
 !-----------------------------------------------------------------------
 !  In/outs :-
 !-----------------------------------------------------------------------
 LOGICAL, INTENT(INOUT) :: l_q10  ! INOUT True if using Q10 for soil resp
+
+! Diagnostics
+TYPE (strnewsfdiag), INTENT(INOUT) :: sf_diag
 
 REAL, INTENT(INOUT) ::                                            &
  z0msea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)      &
@@ -389,7 +377,26 @@ REAL, INTENT(INOUT) ::                                            &
 !                                  ! INOUT Accumulated NPP_FT
 ,resp_w_ft_acc(land_pts_trif,npft_trif)                           &
 !                                  ! INOUT Accum RESP_W_FT
-,resp_s_acc(land_pts_trif,dim_cs1) ! INOUT Accumulated RESP_S
+,resp_s_acc(land_pts_trif,dim_cs1)                                &
+                                   ! INOUT Accumulated RESP_S
+,n_leaf(land_pts,npft)                                            &
+                            ! OUT Leaf N content scaled by LAI
+!                                 !     (kg N/m2).
+,n_root(land_pts,npft)                                            &
+                            ! OUT Root N content scaled by LAI_bal
+!                                 !     (kg N/m2).
+,n_stem(land_pts,npft)                                            &
+                            ! OUT Stem N content scaled by LAI_bal
+!                                 !     (kg N/m2).
+,lai_bal(land_pts,npft)                                            &
+                            ! OUT LAI_bal
+,resp_l_ft(land_pts,npft)                                         &
+                            ! OUT Leaf maintenance respiration
+!                                 !     (kg C/m2/s).
+,resp_r_ft(land_pts,npft)
+                            ! OUT Root maintenance respiration
+!                                 !     (kg C/m2/s).
+
 !-----------------------------------------------------------------------
 !  Outputs :-
 !-----------------------------------------------------------------------
@@ -480,10 +487,6 @@ REAL, INTENT(OUT) ::                                              &
 
 !  (b) Not passed between lower-level routines (not in workspace at this
 !      level) :-
-
-REAL, INTENT(OUT) ::                                                    &
- fme(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
-                             ! OUT Wind mixing "power" (W/m2).
 
 !-2 Genuinely output, needed by other atmospheric routines :-
 REAL, INTENT(OUT) ::                                              &
@@ -1027,11 +1030,11 @@ CALL sf_exch_cable (                                              &
  l_aero_classic,l_dust,l_dust_diag,                               &
  vfrac_tile,vshr_land,vshr_ssi,zh,ddmfx,                          &
  z0_tile,z0h_tile_bare,z1_uv,z1_uv_top,z1_tq,z1_tq_top,           &
- su10,sv10,suv10m_n,sq1p5,st1p5,sfme,sz0heff,formdrag,fd_stab_dep,&
+ sf_diag,formdrag,fd_stab_dep,                                    &
  orog_drag_param,z0msea,                                          &
  alpha1,alpha1_sice,ashtf_prime,ashtf_prime_tile,                 &
  recip_l_mo_sea,cdr10m,cdr10m_n,cd10m_n,chr1p5m,                  &
- chr1p5m_sice,fme,fqw_1,fqw_tile,epot_tile,fqw_ice,               &
+ chr1p5m_sice,fqw_1,fqw_tile,epot_tile,fqw_ice,                   &
  ftl_1,ftl_tile,ftl_ice,fraca,h_blend_orog,charnock,              &
  rhostar,resfs,resft,rib,rib_tile,                                &
  fb_surf,u_s,q1_sd,t1_sd,z0hssi,z0h_tile,z0h_eff,                 &

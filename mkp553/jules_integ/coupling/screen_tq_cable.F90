@@ -12,14 +12,13 @@
 SUBROUTINE screen_tq_cable (                                      &
  land_pts,ntiles,                                                 &
  land_index,tile_index,tile_pts,flandg,                           &
- sq1p5,st1p5,chr1p5m,chr1p5m_sice,pstar,qw_1,resft,               &
+ sf_diag,chr1p5m,chr1p5m_sice,pstar,qw_1,resft,                   &
  tile_frac,tl_1,tstar_ssi,tstar_tile,                             &
  z0hssi,z0h_tile,z0mssi,z0m_tile,z1,                              &
  timestep,tstar_ssi_old,tstar_tile_old,                           &
  l_co2_interactive, co2_mmr, co2_3d,                              &
  f3_at_p, ustargbm, rho1,                                         &
  tscrndcl_ssi,tscrndcl_tile,tstbtrans,                            &
- q1p5m,q1p5m_tile,t1p5m,t1p5m_tile,                               &
  lq_mix_bl                                                        &
  )
 
@@ -29,6 +28,7 @@ USE theta_field_sizes, ONLY : t_i_length,t_j_length
 USE c_ht_m
 use jules_surface_mod, ONLY : grcp, ip_scrndecpl2, g, cp
 use jules_surface_mod, ONLY : iscrntdiag
+USE sf_diags_mod, ONLY: strnewsfdiag
 USE missing_data_mod, ONLY    : rmdi
 USE c_pi, ONLY     : pi
 USE csigma, ONLY  : sbcon
@@ -47,12 +47,6 @@ INTEGER                                                           &
 ,tile_index(land_pts,ntiles)                                      &
 !                           ! IN Index of tile points.
 ,tile_pts(ntiles)     ! IN Number of tile points.
-
-
-LOGICAL                                                           &
- sq1p5                                                            &
-                      ! IN STASH flag for 1.5-metre sp humidity.
-,st1p5                ! IN STASH flag for 1.5-metre temperature.
 
 LOGICAL                                                           &
  lq_mix_bl              ! TRUE if mixing ratios used in
@@ -121,19 +115,6 @@ REAL, INTENT(IN)    :: f3_at_p(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_e
 REAL, INTENT(IN)    :: ustargbm(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
                       ! GBM surface friction velocity
 
-
-REAL                                                              &
- q1p5m(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)       &
-                       ! OUT Specific humidity at screen height
-!                           !      of 1.5 metres (kg water per kg air).
-,q1p5m_tile(land_pts,ntiles)                                      &
-!                           ! OUT Q1P5M over land tiles.
-,t1p5m(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)       &
-                       ! OUT Temperature at screen height of
-!                           !     1.5 metres (K).
-,t1p5m_tile(land_pts,ntiles)
-!                           ! OUT T1P5M over land tiles.
-
 REAL, INTENT(INOUT) :: TScrnDcl_SSI(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
                             !    Decoupled screen-level temperature
                             !    over sea or sea-ice
@@ -143,6 +124,8 @@ REAL, INTENT(INOUT) :: TScrnDcl_TILE(land_pts,ntiles)
 REAL, INTENT(INOUT) :: tStbTrans(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
                             !    Time since the transition
 
+! Diagnostics
+TYPE (strnewsfdiag), INTENT(INOUT) :: sf_diag
 
 !  External routines called :-
 EXTERNAL qsat_mix
@@ -256,19 +239,19 @@ INTEGER :: nrows
 row_len = tdims%i_end - tdims%i_start + 1
 nrows   = tdims%j_end - tdims%j_start + 1
 
-IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
+IF (sf_diag%sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
 
 ! DEPENDS ON: qsat_mix
   CALL qsat_mix(qs,tstar_ssi,pstar,t_i_length*t_j_length,lq_mix_bl)
   DO j=tdims%j_start,tdims%j_end
     DO i=tdims%i_start,tdims%i_end
-      q1p5m(i,j) = 0.
+      sf_diag%q1p5m(i,j) = 0.
       q1p5m_ssi(i,j) = 0.
       IF (flandg(i,j) <  1.0 ) THEN
         cer1p5m = chr1p5m_sice(i,j) - 1.
         q1p5m_ssi(i,j) =                                            &
           (qw_1(i,j) + cer1p5m*( qw_1(i,j) - qs(i,j) ))
-        q1p5m(i,j) = (1.-flandg(i,j))*q1p5m_ssi(i,j)
+        sf_diag%q1p5m(i,j) = (1.-flandg(i,j))*q1p5m_ssi(i,j)
       END IF
     END DO
   END DO
@@ -288,8 +271,8 @@ IF (sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
       j=(land_index(l)-1)/t_i_length + 1
       i = land_index(l) - (j-1)*t_i_length
       cer1p5m = resft(l,n)*(chr1p5m(l,n) - 1.)
-      q1p5m(i,j) = q1p5m(i,j)                                     &
-        + flandg(i,j)*tile_frac(l,n)*q1p5m_tile(l,n)
+      sf_diag%q1p5m(i,j) = sf_diag%q1p5m(i,j)                     &
+        + flandg(i,j)*tile_frac(l,n)*sf_diag%q1p5m_tile(l,n)
     END DO
   END DO
 
@@ -310,14 +293,14 @@ END IF
     DO j = tdims%j_start, tdims%j_end
       DO i = tdims%i_start, tdims%i_end
         t1p5m_ssi(i,j) = 0.
-        t1p5m(i,j) = 0.
+        sf_diag%t1p5m(i,j) = 0.
 
         IF (flandg(i,j) <  1.0 ) THEN
 !             Calculate the screen-level temperature.
           t1p5m_ssi(i,j) = tstar_ssi(i,j) - grcp*z1p5m +                &
             chr1p5m_sice(i,j) * (tl_1(i,j) - tstar_ssi(i,j) +           &
             grcp*(z1(i,j)+z0mssi(i,j)-z0hssi(i,j)))
-          t1p5m(i,j) = (1.-flandg(i,j)) * t1p5m_ssi(i,j)
+          sf_diag%t1p5m(i,j) = (1.-flandg(i,j)) * t1p5m_ssi(i,j)
         END IF
 
       END DO
@@ -330,8 +313,8 @@ END IF
         l = tile_index(k,n)
         j=(land_index(l)-1)/row_len + 1
         i = land_index(l) - (j-1)*row_len
-        t1p5m(i,j) = t1p5m(i,j)                                         &
-          + flandg(i,j)*tile_frac(l,n)*t1p5m_tile(l,n)
+        sf_diag%t1p5m(i,j) = sf_diag%t1p5m(i,j)                         &
+          + flandg(i,j)*tile_frac(l,n)*sf_diag%t1p5m_tile(l,n)
       END DO
 
     END DO
@@ -394,7 +377,7 @@ END IF
 !         diagnosis is applied: to start the process, it is zeroed at
 !         points marked with LDclDiag.
       WHERE (LDclDiag)
-        t1p5m = 0.0
+        sf_diag%t1p5m = 0.0
       END WHERE
 
 !         Initialize the decoupled temperatures: separate blocks
@@ -413,7 +396,7 @@ END IF
           j=(land_index(l)-1)/row_len + 1
           i = land_index(l) - (j-1)*row_len
           IF ( (tStbTrans(i,j) >= 0) .AND. (.NOT.LDclDiag(i,j)) )       &
-            TScrnDcl_TILE(l,n)=t1p5m_tile(l,n)
+            TScrnDcl_TILE(l,n)=sf_diag%t1p5m_tile(l,n)
         END DO
       END DO
 
@@ -504,7 +487,7 @@ END IF
 !               than the M-O value.
             t1p5m_ssi(i,j) = t1p5m_ssi(i,j) + WeightDcl *               &
               MAX(0.0, (TRadCool - t1p5m_ssi(i,j)))
-            t1p5m(i,j) = (1.0 - flandg(i,j)) * t1p5m_ssi(i,j)
+            sf_diag%t1p5m(i,j) = (1.0 - flandg(i,j)) * t1p5m_ssi(i,j)
 !               Set the decoupled temperature to the newly diagnosed
 !               screen temperature.
             TScrnDcl_SSI(i,j) = t1p5m_ssi(i,j)
@@ -549,7 +532,7 @@ END IF
             WaterPath = rho1(i,j) * z1p5m *                             &
               (qs_tile(l) + 0.5*(qw_1(i,j)-qs_tile(l)) *                &
               (z1p5m/z1(i,j)))
-            QScrn = q1p5m_tile(l,n)
+            QScrn = sf_diag%q1p5m_tile(l,n)
             IF (l_co2_interactive) THEN
               CO2Path = rho1(i,j) * co2_3d(i,j) * z1p5m
               CO2Scrn = co2_3d(i,j)
@@ -621,13 +604,13 @@ END IF
 !               Interpolate between the value obtained from surface
 !               similarity theory and the radiative temperature, provided
 !               that the radiative temperature is above the M-O value.
-            t1p5m_tile(l,n) = t1p5m_tile(l,n) + WeightDcl *             &
-              MAX(0.0, (TRadCool - t1p5m_tile(l,n)))
-            t1p5m(i,j) = t1p5m(i,j) + flandg(i,j) *                     &
-              tile_frac(l,n) * t1p5m_tile(l,n)
+            sf_diag%t1p5m_tile(l,n) = sf_diag%t1p5m_tile(l,n) + WeightDcl * &
+              MAX(0.0, (TRadCool - sf_diag%t1p5m_tile(l,n)))
+            sf_diag%t1p5m(i,j) = sf_diag%t1p5m(i,j) + flandg(i,j) *         &
+              tile_frac(l,n) * sf_diag%t1p5m_tile(l,n)
 !               Reset the decoupled temperature to the newly
 !               diagnosed one.
-            TScrnDcl_TILE(l,n) = t1p5m_tile(l,n)
+            TScrnDcl_TILE(l,n) = sf_diag%t1p5m_tile(l,n)
 
           END IF
 

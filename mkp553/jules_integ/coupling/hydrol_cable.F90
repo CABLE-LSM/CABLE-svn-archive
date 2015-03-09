@@ -27,9 +27,9 @@ SUBROUTINE hydrol_cable (                                         &
                    satcon,sathh,snowdepth,                        &
                    surf_ht_flux,timestep,                         &
                    v_sat,v_wilt,                                  &
-                   can_wcnt,stf_hf_snow_melt,                     &
+                   can_wcnt,                                      &
                    stf_sub_surf_roff,smcl,sthf,sthu,tsoil,        &
-                   can_wcnt_gb,hf_snow_melt,smc,                  &
+                   can_wcnt_gb,smc,                               &
                    snow_melt,                                     &
                    sub_surf_roff,surf_roff,tot_tfall,             &
 ! add new inland basin variable
@@ -81,10 +81,7 @@ REAL, INTENT(IN) ::                                               &
  timestep            ! IN Model timestep (s).
 
 LOGICAL , INTENT(IN) ::                                           &
- stf_hf_snow_melt                                                 &
-                     ! IN Stash flag for snowmelt heat flux.
-!cxyz STF_HF_SNOW_MELT is not used in this version.
-,stf_sub_surf_roff                                                &
+ stf_sub_surf_roff                                                &
                      ! IN Stash flag for sub-surface runoff.
 ,l_top                                                            &
              ! IN Flag for TOPMODEL-based hydrology.
@@ -197,12 +194,6 @@ REAL, INTENT(INOUT) ::                                            &
 ,zw(npnts)                                                        &
                       ! INOUT Water table depth (m).
 ,sthzw(npnts)         ! INOUT soil moist fract. in deep-zw layer.
-
-! Arguments which are required for compatibility but not used.
-! Shouldnt use OUT.
-REAL              ::                                              &
- hf_snow_melt(npnts)
-                      ! OUT Gridbox snowmelt heat flux (W/m2).
 
 
 !   Array arguments with intent(OUT) :

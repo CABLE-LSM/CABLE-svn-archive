@@ -34,20 +34,14 @@ SUBROUTINE sf_impl2_cable (                                       &
  emis_tile,ti,tstar_sea,snow_tile,                                &
 ! IN variables used to calculate cooling at the screen level
  l_co2_interactive, co2_mmr, co2_3d,rho1, f3_at_p, ustargbm,      &
-! IN STASH flags :-
- simlt,smlt,slh,sq1p5,st1p5,su10,sv10,suv10m_n,                   &
 ! INOUT data :
  epot_tile,fqw_ice,ftl_ice,dtstar_tile,dtstar,                    &
  tstar_sice_cat,tstar_ssi,tstar_tile,radnet_sice,fqw_tile,        &
  fqw_1,ftl_1,ftl_tile,olr,taux_land,taux_ssi,tauy_land,tauy_ssi,  &
- TScrnDcl_SSI,TScrnDcl_TILE,tStbTrans,                            &
+ TScrnDcl_SSI,TScrnDcl_TILE,tStbTrans,sf_diag,                    &
 ! OUT Diagnostic not requiring STASH flags :
  ecan,ei_tile,esoil_tile,sea_ice_htf,surf_ht_flux,                &
  surf_ht_flux_land,surf_ht_flux_sice,surf_htf_tile,               &
-! OUT diagnostic requiring STASH flags :
- sice_mlt_htf,snomlt_surf_htf,latent_heat,                        &
- q1p5m,q1p5m_tile,t1p5m,t1p5m_tile,u10m,v10m,                     &
- u10m_n,v10m_n,                                                   &
 ! OUT data required elsewhere in UM system :
  tstar,tstar_land,tstar_sice,le_tile,radnet_tile,e_sea,h_sea,     &
  taux_1,tauy_1,taux_land_star,tauy_land_star,taux_ssi_star,       &
@@ -93,7 +87,7 @@ USE jules_surface_types_mod,  ONLY: &
 
 USE lake_mod,                 ONLY: &
   surf_ht_flux_lake, lake_h_ice
-
+USE sf_diags_mod, ONLY: strnewsfdiag
 USE timestep_mod,             ONLY: &
   timestep
 
@@ -379,28 +373,10 @@ LOGICAL, INTENT(IN) ::                                            &
 LOGICAL, INTENT(IN) ::                                            &
  lq_mix_bl              ! TRUE if mixing ratios used in
 !                             ! boundary layer code
-!  STASH flags :-
-
-LOGICAL, INTENT(IN) ::                                            &
- simlt                                                            &
-         ! IN Flag for SICE_MLT_HTF (q.v.)
-,smlt                                                             &
-         ! IN Flag for SNOMLT_SURF_HTF (q.v.)
-,slh                                                              &
-         ! IN Flag for LATENT_HEAT (q.v.)
-,sq1p5                                                            &
-         ! IN Flag for Q1P5M (q.v.)
-,st1p5                                                            &
-         ! IN Flag for T1P5M (q.v.)
-,su10                                                             &
-         ! IN Flag for U10M (q.v.)
-,sv10                                                             &
-         ! IN Flag for V10M (q.v.)
-,suv10m_n
-         ! IN Flag for neutral 10 m winds
 !--------------------------------------------------------------------
 !  In/outs :-
 !--------------------------------------------------------------------
+TYPE (strnewsfdiag), INTENT(INOUT) :: sf_diag
 REAL, INTENT(INOUT) ::                                            &
  epot_tile(land_pts,ntiles)                                       &
                              ! INOUT surface tile potential
@@ -514,38 +490,6 @@ REAL, INTENT(OUT) ::                                              &
 ,surf_htf_tile(land_pts,ntiles)
 !                                  ! OUT Net downward surface heat flux
 !                                  !     on tiles (W/m2)
-
-!  (b) Not passed between lower-level routines (not in workspace at this
-!      level) :-
-
-REAL, INTENT(OUT) ::                                              &
- sice_mlt_htf(tdims%i_start:tdims%i_end,                          &
-              tdims%j_start:tdims%j_end,nice)                     &
-!                                  ! OUT Heat flux due to melting of
-!                                  !     sea-ice (Watts per sq metre).
-,snomlt_surf_htf(tdims%i_start:tdims%i_end,                       &
-                 tdims%j_start:tdims%j_end)                       &
-!                                  ! OUT Heat flux required for surface
-!                                  !     melting of snow (W/m2).
-,latent_heat(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end) &
-                             ! OUT Surface latent heat flux, +ve
-!                                  !     upwards (Watts per sq m).
-,q1p5m(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)       &
-                             ! OUT Q at 1.5 m (kg water / kg air).
-,q1p5m_tile(land_pts,ntiles)                                      &
-                             ! OUT Q1P5M over land tiles.
-,t1p5m(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)       &
-                             ! OUT T at 1.5 m (K).
-,u10m(udims%i_start:udims%i_end,udims%j_start:udims%j_end)        &
-                             ! OUT U at 10 m (m per s).
-,u10m_n(udims%i_start:udims%i_end,udims%j_start:udims%j_end)      &
-                             ! OUT U_N at 10 m (m per s).
-,t1p5m_tile(land_pts,ntiles)                                      &
-                             ! OUT T1P5M over land tiles.
-,v10m(vdims%i_start:vdims%i_end,vdims%j_start:vdims%j_end)        &
-                             ! OUT V at 10 m (m per s).
-,v10m_n(vdims%i_start:vdims%i_end,vdims%j_start:vdims%j_end)
-                             ! OUT V_N at 10 m (m per s).
 
 !-2 Genuinely output, needed by other atmospheric routines :-
 
@@ -925,10 +869,10 @@ IF ( .NOT. l_correct ) THEN
 
   END DO
 
-  IF (smlt) THEN
+  IF (sf_diag%smlt) THEN
     DO j=tdims%j_start,tdims%j_end
       DO i=tdims%i_start,tdims%i_end
-        snomlt_surf_htf(i,j) = lf*snowmelt(i,j)
+        sf_diag%snomlt_surf_htf(i,j) = lf*snowmelt(i,j)
       END DO
     END DO
   END IF
@@ -1043,7 +987,7 @@ IF ( .NOT. l_correct ) THEN
   surf_ht_flux_sice_sm(:,:)=0.0
   sice_melt(:,:,:)=0.0
   ei_sice(:,:,:)=fqw_ice(:,:,:)
-  sice_mlt_htf(:,:,:)=0.0
+  IF (sf_diag%simlt) sf_diag%sice_mlt_htf(:,:,:)=0.0
   sea_ice_htf(:,:,:)=0.0
 
 !-----------------------------------------------------------------------
@@ -1104,7 +1048,7 @@ IF ( .NOT. l_correct ) THEN
         l = sice_index_ncat(k,n)
         j=(ssi_index(l)-1)/t_i_length + 1
         i = ssi_index(l) - (j-1)*t_i_length
-        IF (simlt) sice_mlt_htf(i,j,n) = lf * sice_melt(i,j,n)
+        IF (sf_diag%simlt) sf_diag%sice_mlt_htf(i,j,n) = lf * sice_melt(i,j,n)
       END DO
 
     END DO
@@ -1126,7 +1070,7 @@ IF ( .NOT. l_correct ) THEN
         l = sice_index_ncat(k,n)
         j=(ssi_index(l)-1)/t_i_length + 1
         i = ssi_index(l) - (j-1)*t_i_length
-        IF (simlt) sice_mlt_htf(i,j,n) = lf * sice_melt(i,j,n)
+        IF (sf_diag%simlt) sf_diag%sice_mlt_htf(i,j,n) = lf * sice_melt(i,j,n)
 ! Add weighted increments to ftl_ice, fqw_ice and ei_sice
         ftl_ice(i,j,1)=ftl_ice(i,j,1)                               &
            +( sice_frac_ncat(l,n)/sice_frac(l) )*dftl_sice_ncat(i,j)
@@ -1389,14 +1333,13 @@ IF ( .NOT. l_correct ) THEN
   CALL screen_tq_cable (                                          &
     land_pts,ntiles,                                              &
     land_index,tile_index,tile_pts,flandg,                        &
-    sq1p5,st1p5,chr1p5m,chr1p5m_sice,pstar,qim_1,resft,           &
+    sf_diag,chr1p5m,chr1p5m_sice,pstar,qim_1,resft,               &
     tile_frac,tim_1,tstar_ssi,tstar_tile,                         &
     z0hssi,z0h_tile,z0mssi,z0m_tile,z1,                           &
     timestep,tstar_ssi_old,tstar_tile_old,                        &
     l_co2_interactive, co2_mmr, co2_3d,                           &
     f3_at_p, uStarGBM, rho1,                                      &
     TScrnDcl_SSI,TScrnDcl_TILE,tStbTrans,                         &
-    q1p5m,q1p5m_tile,t1p5m,t1p5m_tile,                            &
     lq_mix_bl                                                     &
     )
 
@@ -1408,10 +1351,10 @@ IF ( .NOT. l_correct ) THEN
 !! 9.  Calculate surface latent heat flux.
 !-----------------------------------------------------------------------
 
-  IF (slh) THEN
+  IF (sf_diag%slh) THEN
     DO j=tdims%j_start,tdims%j_end
       DO i=tdims%i_start,tdims%i_end
-        latent_heat(i,j) = lc*fqw_1(i,j)                           &
+        sf_diag%latent_heat(i,j) = lc*fqw_1(i,j)                   &
                           + lf*(flandg(i,j)*ei_land(i,j) +         &
                              (1.-flandg(i,j))*ei_sice_sm(i,j))
       END DO
@@ -1449,22 +1392,22 @@ ELSE ! L_correct = true: 2nd stage of the scheme
 !  consistently with the new scheme.
 !-----------------------------------------------------------------------
 ! U component of 10m wind
-  IF (su10) THEN
+  IF (sf_diag%su10) THEN
     DO j=udims%j_start,udims%j_end
       DO i=udims%i_start,udims%i_end
-        u10m(i,j) = (u_1(i,j) + du_star1(i,j) + (du_1(i,j) -      &
-                     cq_cm_u_1(i,j)*taux_1(i,j)) -                &
+        sf_diag%u10m(i,j) = (u_1(i,j) + du_star1(i,j) + (du_1(i,j) -    &
+                     cq_cm_u_1(i,j)*taux_1(i,j)) -                      &
                      u_0(i,j))*cdr10m_u(i,j) + u_0(i,j)
       END DO
     END DO
   END IF
 
 ! V component of 10m wind
-  IF (sv10) THEN
+  IF (sf_diag%sv10) THEN
     DO j=vdims%j_start,vdims%j_end
       DO i=vdims%i_start,vdims%i_end
-        v10m(i,j) = (v_1(i,j) + dv_star1(i,j) + (dv_1(i,j) -      &
-                     cq_cm_v_1(i,j)*tauy_1(i,j)) -                &
+        sf_diag%v10m(i,j) = (v_1(i,j) + dv_star1(i,j) + (dv_1(i,j) -    &
+                     cq_cm_v_1(i,j)*tauy_1(i,j)) -                      &
                      v_0(i,j))*cdr10m_v(i,j) + v_0(i,j)
       END DO
     END DO
@@ -1472,18 +1415,18 @@ ELSE ! L_correct = true: 2nd stage of the scheme
   END IF
 
 ! Similar calculations for the neutral winds.
-  IF (suv10m_n) THEN
+  IF (sf_diag%suv10m_n) THEN
     DO j=udims%j_start,udims%j_end
       DO i=udims%i_start,udims%i_end
-        u10m_n(i,j) = (u_1(i,j) + du_star1(i,j) + (du_1(i,j) -    &
-                     cq_cm_u_1(i,j)*taux_1(i,j)) -                &
+        sf_diag%u10m_n(i,j) = (u_1(i,j) + du_star1(i,j) + (du_1(i,j) -  &
+                     cq_cm_u_1(i,j)*taux_1(i,j)) -                      &
                      u_0(i,j))*cdr10m_n_u(i,j) + u_0(i,j)
       END DO
     END DO
     DO j=vdims%j_start,vdims%j_end
       DO i=vdims%i_start,vdims%i_end
-        v10m_n(i,j) = (v_1(i,j) + dv_star1(i,j) + (dv_1(i,j) -    &
-                     cq_cm_v_1(i,j)*tauy_1(i,j)) -                &
+        sf_diag%v10m_n(i,j) = (v_1(i,j) + dv_star1(i,j) + (dv_1(i,j) -  &
+                     cq_cm_v_1(i,j)*tauy_1(i,j)) -                      &
                      v_0(i,j))*cdr10m_n_v(i,j) + v_0(i,j)
       END DO
     END DO
