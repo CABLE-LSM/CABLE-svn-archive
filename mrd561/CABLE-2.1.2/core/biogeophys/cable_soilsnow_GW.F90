@@ -1502,7 +1502,7 @@ END SUBROUTINE remove_trans
   ! vertical mocement of soil water.  Bottom boundary condition is determined
   ! using a single layer groundwater module
   !
-  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,md_prin)
+  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,veg,md_prin)
   USE cable_common_module
 
   IMPLICIT NONE
@@ -1511,6 +1511,7 @@ END SUBROUTINE remove_trans
     INTEGER, INTENT(IN)                       :: ktau  ! integration step number
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
     TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
+    TYPE (veg_parameter_type), INTENT(IN)     :: veg
     LOGICAL, INTENT(IN)                       :: md_prin
     
     !Local variables.  
@@ -1541,12 +1542,14 @@ END SUBROUTINE remove_trans
     REAL(r_2), DIMENSION(mp)            :: xs1,GWmsliq!xsi    !mass (mm) of liquid over/under saturation, mass of aquifer water
     REAL(r_2)                           :: xsi
     REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
-    REAL(r_2), DIMENSION(mp)            :: sm_tot  !total column soil water available for drainage
+    REAL(r_2), DIMENSION(mp)            :: sm_tot,drainmod  !total column soil water available for drainage
     INTEGER, DIMENSION(mp)              :: idlev
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
     !MD DEBUG VARS
     INTEGER :: imp,ims,k_drain
+
+    drainmod(:) = 1._r_2 - veg%vlai(:) / 8._r_2
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
@@ -1668,7 +1671,7 @@ END SUBROUTINE remove_trans
        !work on router and add river type cells
 
        ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
-                    exp(-ssnow%wtd(i)/(1000._r_2*gw_params%EfoldHorzDrainRate))
+                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
 
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
@@ -2059,7 +2062,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
    !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always
 
-   CALL smoistgw (dels,ktau,ssnow,soil,md_prin)               !vertical soil moisture movement. 
+   CALL smoistgw (dels,ktau,ssnow,soil,veg,md_prin)               !vertical soil moisture movement. 
   
    ! lakes: replace hard-wired vegetation number in next version
    WHERE( veg%iveg .eq. 16 )
