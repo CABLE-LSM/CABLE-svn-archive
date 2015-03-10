@@ -68,7 +68,8 @@ MODULE cable_output_module
                     HVeg, HSoil, Rnet, tvar,                                   &
                     !MD
                     WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
-                    EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,wiltp
+                    EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,   &
+                    wiltp,SoilIce
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -176,6 +177,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: wiltp         !wilt pnt inc forg
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: fldcap        !field capcaicty adj for organic content
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: Forg          !organic carbon frac.soil
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilIce       !SOil Ice volume [mm3/mm3]
 
 
   END TYPE output_temporary_type
@@ -697,6 +699,14 @@ CONTAINS
        ALLOCATE(out%Qinfl(mp))
        out%Qinfl = 0.0 ! initialise
     END IF         
+
+    IF(output%soil .OR. output%SoilIce) THEN
+       CALL define_ovar(ncid_out, ovid%SoilIce, 'SoilIce', 'm^3/m^3',      &
+                        'Average layer soil ice', patchout%SoilIce,     &
+                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       ALLOCATE(out%SoilIce(mp,ms))
+       out%SoilIce = 0.0 ! initialise
+    END IF
     
 
     ! Define CABLE parameters in output file:
@@ -2022,6 +2032,20 @@ CONTAINS
           out%Qinfl = 0.0
        END IF
     END IF      
+     ! SoilIce: av.layer soil moisture [kg/m^2]
+    IF(output%soil .OR. output%SoilIce) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%SoilIce = out%SoilIce + REAL(ssnow%wb, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%SoilIce = out%SoilIce / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SoilIce, 'SoilIce', &
+               out%SoilIce, ranges%SoilMoist, patchout%SoilIce, 'soil', met)
+          ! Reset temporary output variable:
+          out%SoilIce = 0.0
+       END IF
+    END IF
    
     !write(*,*) ' at end of write_output '    !MDeck
  

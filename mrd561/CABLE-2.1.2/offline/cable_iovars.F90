@@ -340,7 +340,8 @@ MODULE cable_IO_vars_module
          Watr=.FALSE.,        & ! soil moisture residual [mm3/mm3]      
          fldcap=.FALSE.,      & !field cap including org frac [mm3/mm3]
          wiltp=.FALSE.,       & !wilt point including org frac [mm3/mm3]
-         Forg=.FALSE.           !ogranic frac in soil   [-]
+         Forg=.FALSE.,        & !ogranic frac in soil   [-]
+         SoilIce=.FALSE.        !volumetric soil ice [mm3/mm3]
    
    END TYPE output_inclusion_type
 
