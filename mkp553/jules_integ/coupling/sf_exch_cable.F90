@@ -1134,13 +1134,14 @@ END IF
 ! Make sure the data is set up for the CABLE explicit call
   CALL cable_explicit_setup(                                         &
     t_i_length, t_j_length, land_pts, ntiles, npft, sm_levels,       &
-    INT(timestep), land_index, tile_frac, tile_pts, tile_index,      &
+    INT(timestep), land_index, latitude, longitude, tile_frac,       &
+    tile_pts, tile_index,                                            &
     b, hcon, satcon, sathh, smvcst, smvcwt, smvccl, albsoil,         &
-    snow_tile, lw_down, cos_zenith_angle, ls_rain, ls_snow, tl_1,    &
-    qw_1, vshr_land, pstar, z1_tq, z1_uv, rho_water, canopy, fland,  &
-    co2_mmr, sthu, canht_ft, lai_ft, dzsoil_layers, ftl_tile,        &
-    fqw_tile, tstar_tile, u_s, u_s_std_tile, cd_tile, ch_tile,       &
-    radnet_tile, fraca, resfs, resft, z0h_tile, z0m_tile,            &
+    snow_tile, lw_down, cos_zenith_angle, sw_down_4band, ls_rain,    &
+    ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq, z1_uv, rho_water,  &
+    canopy, fland, co2_mmr, sthu, canht_ft, lai_ft, dzsoil_layers,   &
+    ftl_tile, fqw_tile, tstar_tile, u_s, u_s_std_tile, cd_tile,      &
+    ch_tile, radnet_tile, fraca, resfs, resft, z0h_tile, z0m_tile,   &
     recip_l_mo_tile, epot_tile, timestep_number )
 
   CALL cable_explicit_driver(                                        &
@@ -1159,7 +1160,6 @@ END IF
              cable% cable% snow_flg3l, cable% cable% snow_rho3l,    &
              cable% cable% snow_cond,  cable% cable% snow_depth3l,  &
              cable% cable% snow_tmp3l, cable% cable% snow_mass3l,   &
-             ! jhan: what do we need this for if use ShortWave
              cable% um% lw_down,                                    &
              cable% um% cos_zenith_angle, cable% forcing% ShortWave,&
              cable% um% ls_rain, cable% um% ls_snow,                &

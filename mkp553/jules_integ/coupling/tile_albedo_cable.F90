@@ -923,19 +923,17 @@ ELSE
   albobs_sc(:,:,:)=1.0
 END IF
 
-IF( cable% mp% timestep_number > 1 ) THEN
 ! Do the setup required for the CABLE radiation call
-  CALL cable_radiation_setup(                                                 &
+CALL cable_radiation_setup(                                                   &
              timestep_number, cosz, snow_tile, albsoil, land_albedo, alb_tile)
 
+IF( cable% mp% timestep_number > 1 ) THEN
 ! DEPENDS ON: cable_rad_driver
   CALL cable_rad_driver( cable% forcing% ShortWave,                           &
           cable% um% cos_zenith_angle, cable% um% SNOW_TILE,                  &
           cable% cable% SNOW_TMP3L, cable% cable% SNOW_RHO1L,                 &
           cable% cable% TSOIL_TILE, cable% cable% SNOW_FLG3L,                 &
-          cable% um% albsoil,                                                 &
-          ! the next 2 same vars are available here anyway
-          cable% um% LAND_ALBEDO, cable% um% ALB_TILE )
+          cable% um% albsoil, cable% um% LAND_ALBEDO, cable% um% ALB_TILE )
 END IF
 
 IF (lhook) CALL dr_hook('TILE_ALBEDO_CABLE',zhook_out,zhook_handle)

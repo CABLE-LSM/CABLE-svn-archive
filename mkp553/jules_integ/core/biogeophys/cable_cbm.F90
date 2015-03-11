@@ -172,7 +172,7 @@ CONTAINS
    ! from canopy. in UM only call on implicit step.
    ! put old and new soil resp calculations into soilcarb subroutine
    ! make new plantcarb subroutine
-   IF (.not.cable_runtime%um_explicit .AND. icycle == 0) THEN
+   IF ( cable_runtime%um_explicit .AND. icycle == 0 ) THEN
 
       !calculate canopy%frp
       CALL plantcarb(veg,bgc,met,canopy)

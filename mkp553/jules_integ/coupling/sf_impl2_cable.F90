@@ -756,24 +756,21 @@ IF ( .NOT. l_correct ) THEN
     END DO
   END DO
 
+  CALL cable_implicit_setup(                                                  &
+    ls_rain, conv_rain, ls_snow, conv_snow, timestep_width, ftl_1, ftl_tile,  &
+    fqw_1, fqw_tile, tstar_tile, surf_ht_flux_land,          &
+    ecan_tile, esoil_tile, ei_tile, radnet_tile, sf_diag%t1p5m_tile, &
+    sf_diag%q1p5m_tile, fland, melt_tile, esp_s, resp_s_tot, resp_s_tile, resp_p,        &
+    resp_p_ft, g_leaf, sub_surf_roff, surf_roff, tot_tfall, lying_snow )
+
   CALL cable_implicit_driver(                                                 &
     cable% um% LS_RAIN, cable% um% CONV_RAIN,                                 &
     cable% um% LS_SNOW, cable% um% CONV_SNOW, cable% im% dtl_1,               &
-    cable% im% dqw_1, cable% im% T_SOIL, cable%cable% TSOIL_TILE,             &
-    cable% um% SMCL, cable% cable% SMCL_TILE,                                 &
-    cable% mp% timestep_width, cable% um%SMVCST, cable% um% STHF,             &
-    cable% cable% STHF_TILE, cable% um% STHU,                                 &
-    cable% cable% STHU_TILE, cable% um% snow_tile,                            &
-    cable% cable% SNOW_RHO1L, cable% cable% SNOW_FLG3L,                       &
-    cable% cable% SNOW_DEPTH3L, cable% cable% SNOW_MASS3L,                    &
-    cable% cable% SNOW_RHO3L, cable% cable% SNOW_TMP3L,                       &
-    cable% cable% SNOW_COND, cable% im% FTL_1,                                &
+    cable% im% dqw_1, cable% mp% timestep_width, cable% im% FTL_1,            &
     cable% um% FTL_TILE, cable% im% FQW_1, cable% um% FQW_TILE,               &
     cable% um% TSTAR_TILE, cable% im% SURF_HT_FLUX_LAND,                      &
     cable% im% ECAN_TILE, cable% im% ESOIL_TILE,                              &
     cable% im% EI_TILE, cable% um% RADNET_TILE,                               &
-    cable% um% TOT_ALB,  cable% cable% SNow_AGE,                              &
-    cable% um% CANOPY, cable% um% GS,                                         &
     cable% im% T1P5M_TILE, cable% im% Q1P5M_TILE,                             &
     cable% um% CANOPY_GB, cable% um% Fland,                                   &
     cable% im% MELT_TILE, cable% um% DIM_CS1,                                 &

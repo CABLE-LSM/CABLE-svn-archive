@@ -31,8 +31,9 @@
 ! ==============================================================================
 
 SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
-                                  sm_levels, timestep, latitude, longitude,    &
-                                  land_index, tile_frac,  tile_pts, tile_index,&
+                                  sm_levels, DIM_CS1, DIM_CS2, timestep,       &
+                                  latitude, longitude,                         &
+                                  land_index, tile_frac, tile_pts, tile_index, &
                                   bexp, hcon, satcon, sathh, smvcst,           &
                                   smvcwt,  smvccl, albsoil, snow_tile,         &
                                   snow_rho1l, snage_tile, snow_flg3l,          &
@@ -50,6 +51,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   CD_TILE, CH_TILE,   &
                                   RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
+                                  GS, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
+                                  RESP_S_TOT, RESP_P, RESP_P_FT, G_LEAF, &
                                   endstep, timestep_number, mype & 
 )    
    
@@ -86,7 +89,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       land_pts,         & ! # of land points being processed
       ntiles,           & ! # of tiles 
       npft,             & ! # of plant functional types
-      sm_levels           ! # of soil layers 
+      sm_levels           ! # of soil layers
+      DIM_CS1, DIM_CS2
 
    ! index of land points being processed
    INTEGER, DIMENSION(land_pts) :: land_index 
@@ -204,7 +208,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    INTEGER:: itimestep
     
-   !___return miscelaneous 
+   !___return miscelaneous
+   REAL, DIMENSION(land_pts) ::  &
+      GS,      &  ! OUT "Stomatal" conductance
+      NPP,         & !
+      GPP            !
+      RESP_P,      & !
+
    REAL,  DIMENSION(land_pts,ntiles) :: &
       RADNET_TILE,   & ! Surface net radiation
       RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
@@ -214,7 +224,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                        ! 1 for snow.    
       FRACA,         & ! Fraction of surface moisture
       RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
-      EPOT_TILE
+      EPOT_TILE,  &
+      NPP_FT,     &
+      GPP_FT,     &
+      RESP_P_FT,     &
+      G_LEAF
+
+   REAL ::                                                                    &
+      RESP_S(LAND_PTS,DIM_CS1),     &
+      RESP_S_TOT(DIM_CS2)
+
      
    !-------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM sf_exch() ----------------------------------------
@@ -298,17 +317,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
    !--- back to UM.                                                   ---!
    !---------------------------------------------------------------------!
-   call cable_expl_unpack( FTL_TILE, FQW_TILE,          &
-                           TSTAR_TILE, &
-                           U_S, U_S_STD_TILE, &
-                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
-                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
-                           RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
-                           ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
-                           canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
-                           canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
-                           canopy%zetar, canopy%epot, met%ua, rad%trad,        &
-                           rad%transd, rough%z0m, rough%zref_tq )
+   call cable_expl_unpack( DIM_CS1, DIM_CS2,                                  &
+                           FTL_TILE, FQW_TILE,                                &
+                           TSTAR_TILE,                                        &
+                           U_S, U_S_STD_TILE,                                 &
+                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,              &
+                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,           &
+                           RECIP_L_MO_TILE, EPOT_TILE,                        &
+                           GS, NPP, NPP_FT, GPP, GPP_FT, RESP_S, RESP_S_TOT,  &
+                           RESP_P, RESP_P_FT, G_LEAF,                         &
+                           l_tile_pts )
 
 
    ! dump bitwise reproducible testing data
