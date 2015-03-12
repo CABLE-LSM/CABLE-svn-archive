@@ -53,7 +53,7 @@ USE jules_mod, ONLY : snowdep_surf, albobs_scaling
 
 USE prognostics, ONLY : snowdepth
 
-USE cable_data_mod, ONLY : cable
+USE cable_data_mod, ONLY : cable, cable_radiation_setup
 
 USE timestep_mod, ONLY : timestep_number
 

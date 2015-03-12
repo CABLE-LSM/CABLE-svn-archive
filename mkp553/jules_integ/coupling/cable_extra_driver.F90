@@ -43,7 +43,7 @@ SUBROUTINE cable_extra_driver( SMVCST, TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,    &
 
   USE cable_data_module,   ONLY : PHYS, OTHER
   USE cable_common_module!, only : cable_runtime, cable_user
-  USE cable_um_tech_mod, only : um1, ssnow, canopy, veg
+  USE cable_um_tech_mod, only : um1, ssnow, canopy, veg, soil
 
   IMPLICIT NONE
 
@@ -93,7 +93,9 @@ SUBROUTINE cable_extra_driver( SMVCST, TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,    &
     TOT_TFALL_TILE
 
   REAL :: miss =0.
+  INTEGER:: i_miss = 0
   REAL, POINTER :: TFRZ
+  INTEGER :: i, j, k, n
 
 !-----------------------------------------------------------------------------
       

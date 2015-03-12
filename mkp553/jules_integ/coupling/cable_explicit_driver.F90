@@ -45,16 +45,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles, npft,    &
                                   Fland, CO2_MMR, sthu_tile, smcl_tile,        &
                                   sthf_tile, sthu, tsoil_tile, canht_ft,       &
                                   lai_ft, sin_theta_latitude, dzsoil,          &
-                                  FTL_TILE,  &
-                                  FQW_TILE, TSTAR_TILE,   &
-                                  U_S, U_S_STD_TILE,&
-                                  CD_TILE, CH_TILE,   &
+                                  FTL_TILE, FQW_TILE, TSTAR_TILE,              &
+                                  U_S, U_S_STD_TILE, CD_TILE, CH_TILE,         &
                                   RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE,  &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
-                                  GS, NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
-                                  RESP_S_TOT, RESP_P, RESP_P_FT, G_LEAF, &
-                                  endstep, timestep_number, mype & 
-)    
+                                  GS, NPP, NPP_FT, GPP, GPP_FT, RESP_S,        &
+                                  RESP_S_TOT, RESP_P, RESP_P_FT, G_LEAF,       &
+                                  endstep, timestep_number, mype )
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -89,8 +86,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles, npft,    &
       land_pts,         & ! # of land points being processed
       ntiles,           & ! # of tiles 
       npft,             & ! # of plant functional types
-      sm_levels           ! # of soil layers
-      DIM_CS1, DIM_CS2
+      sm_levels,        & ! # of soil layers
+      dim_cs1, dim_cs2
 
    ! index of land points being processed
    INTEGER, DIMENSION(land_pts) :: land_index 
@@ -210,27 +207,27 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles, npft,    &
     
    !___return miscelaneous
    REAL, DIMENSION(land_pts) ::  &
-      GS,      &  ! OUT "Stomatal" conductance
-      NPP,         & !
-      GPP            !
-      RESP_P,      & !
+      GS,      &
+      NPP,     &
+      GPP,     &
+      RESP_P
 
    REAL,  DIMENSION(land_pts,ntiles) :: &
-      RADNET_TILE,   & ! Surface net radiation
-      RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
-                       ! factor for fraction (1-FRACA) of snow-free land tiles
-      RESFT,         & ! Total resistance factor.
-                       ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,        
-                       ! 1 for snow.    
-      FRACA,         & ! Fraction of surface moisture
-      RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
-      EPOT_TILE,  &
-      NPP_FT,     &
-      GPP_FT,     &
-      RESP_P_FT,     &
+      RADNET_TILE,     & ! Surface net radiation
+      RESFS,           & ! Combined soil, stomatal & aerodynamic resistance
+                         ! factor for fraction (1-FRACA) of snow-free land tiles
+      RESFT,           & ! Total resistance factor.
+                         ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
+                         ! 1 for snow.
+      FRACA,           & ! Fraction of surface moisture
+      RECIP_L_MO_TILE, & ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
+      EPOT_TILE,       &
+      NPP_FT,          &
+      GPP_FT,          &
+      RESP_P_FT,       &
       G_LEAF
 
-   REAL ::                                                                    &
+   REAL ::                          &
       RESP_S(LAND_PTS,DIM_CS1),     &
       RESP_S_TOT(DIM_CS2)
 
@@ -317,6 +314,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles, npft,    &
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
    !--- back to UM.                                                   ---!
    !---------------------------------------------------------------------!
+! DEPENDS ON: cable_expl_unpack
    call cable_expl_unpack( DIM_CS1, DIM_CS2,                                  &
                            FTL_TILE, FQW_TILE,                                &
                            TSTAR_TILE,                                        &

@@ -370,8 +370,11 @@ CONTAINS
 
     INTEGER, INTENT(IN) :: timestep_number
 
+    REAL, INTENT(IN), TARGET ::                                               &
+      cosz(:), snow_tile(:,:), albsoil(:)
+
     REAL, INTENT(INOUT), TARGET ::                                            &
-      cosz(:), snow_tile(:,:), albsoil(:), land_albedo(:,:), alb_tile(:,:,:)
+      land_albedo(:,:), alb_tile(:,:,:)
 
 !-----------------------------------------------------------------------------
 
@@ -405,15 +408,16 @@ CONTAINS
     resp_p_ft, g_leaf )
 
     INTEGER, INTENT(IN) ::                                                    &
-! Scalars
       row_length, rows, land_pts, ntiles, npft, sm_levels, dim_cs1, dim_cs2,  &
       timestep, timestep_number,                                              &
-! Arrays
-      land_index(:), tile_pts(:), tile_index(:,:)
+      tile_pts(:), tile_index(:,:)
+
+    INTEGER, INTENT(IN), TARGET ::                                            &
+      land_index(:)
 
     REAL, INTENT(IN) :: co2_mmr, rho_water
 
-    REAL, INTENT(IN), TARGET ::                                               &
+    REAL, INTENT(INOUT), TARGET ::                                            &
       latitude(:,:), longitude(:,:), dzsoil(:), bexp(:,:), hcon(:,:),         &
       satcon(:,:), sathh(:,:), smvcst(:,:), smvcwt(:,:), smvccl(:,:),         &
       albsoil(:), fland(:), cos_zenith_angle(:), sw_down_4band(:,:,:),        &
@@ -516,7 +520,7 @@ CONTAINS
 ! Routine for setting up variables and pointers required for the call to
 ! cable_implicit_driver
 !=============================================================================
-  SUBROUTINE cable_implicit_setup(
+  SUBROUTINE cable_implicit_setup(                                            &
     timestep_width,                                                           &
     ls_rain, conv_rain, ls_snow, conv_snow, dtl_1, dqw_1, ftl_1, ftl_tile,    &
     fqw_1, fqw_tile, tstar_tile, surf_ht_flux_land, ecan_tile, esoil_tile,    &
@@ -524,12 +528,14 @@ CONTAINS
 
     INTEGER, INTENT(IN) :: timestep_width
 
+    REAL, INTENT(IN), TARGET ::                                               &
+      dtl_1(:,:), dqw_1(:,:), fland(:)
+
     REAL, INTENT(INOUT), TARGET ::                                            &
-      ls_rain(:,:), conv_rain(:,:), ls_snow(:,:), conv_snow(:,:), dtl_1(:,:), &
-      dqw_1(:,:), ftl_1(:,:), ftl_tile(:,:), fqw_1(:,:), fqw_tile(:,:),       &
-      tstar_tile(:,:), surf_ht_flux_land(:,:), ecan_tile(:,:),                &
-      esoil_tile(:,:), ei_tile(:,:), radnet_tile(:,:), t1p5m_tile(:,:),       &
-      q1p5m_tile(:,:), fland(:), melt_tile(:,:)
+      ls_rain(:,:), conv_rain(:,:), ls_snow(:,:), conv_snow(:,:), ftl_1(:,:), &
+      ftl_tile(:,:), fqw_1(:,:), fqw_tile(:,:), tstar_tile(:,:),              &
+      surf_ht_flux_land(:,:), ecan_tile(:,:), esoil_tile(:,:), ei_tile(:,:),  &
+      radnet_tile(:,:), t1p5m_tile(:,:), q1p5m_tile(:,:), melt_tile(:,:)
 
 !-----------------------------------------------------------------------------
 

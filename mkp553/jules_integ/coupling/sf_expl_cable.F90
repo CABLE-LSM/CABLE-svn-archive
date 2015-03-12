@@ -73,7 +73,7 @@ SUBROUTINE sf_expl_l_cable (                                      &
  n_leaf,n_root,n_stem,lai_bal,gc,canhc_tile,wt_ext_tile,flake,    &
  tile_index,tile_pts,tile_frac,fsmc,emis_tile,emis_soil,          &
 ! Extra variables required for CABLE
- sw_down_4band, ls_rain, ls_snow
+ sw_down_4band, ls_rain, ls_snow                                  &
  )
 
 USE theta_field_sizes, ONLY : t_i_length, t_j_length
@@ -1013,7 +1013,7 @@ END DO
 !!     diagnostic calculations, are also evaluated if requested.
 !-----------------------------------------------------------------------
 
-! DEPENDS ON: sf_exch
+! DEPENDS ON: sf_exch_cable
 CALL sf_exch_cable (                                              &
  land_pts,ntiles,land_index,                                      &
  tile_index,tile_pts,fland,                                       &
@@ -1050,7 +1050,7 @@ CALL sf_exch_cable (                                              &
 ! Extra variables required by CABLE
  albsoil, cos_zenith_angle, sw_down_4band, lw_down, ls_rain,      &
  ls_snow, co2_mmr, sthu, canht_ft, lai_ft, gs, npp, npp_ft, gpp,  &
- gpp_ft, resp_s, resp_s_tot, resp_p, resp_p_ft, g_leaf )
+ gpp_ft, resp_s, resp_s_tot, resp_p, resp_p_ft, g_leaf            &
  )
 
 

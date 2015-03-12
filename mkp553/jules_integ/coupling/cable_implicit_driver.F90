@@ -90,7 +90,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    REAL, DIMENSION( um1%land_pts,um1%ntiles ) ::                              &
       T1P5M_TILE,    &
       Q1P5M_TILE,    &
-      TSTAR_TILE,    &
+      TSTAR_TILE
      
    REAL, DIMENSION(mp) ::                                                     &
       dtlc, & 
@@ -200,12 +200,12 @@ SUBROUTINE implicit_unpack( FTL_1, FTL_TILE, FQW_1,  FQW_TILE, TSTAR_TILE,     &
     ESOIL_TILE     ! evapotranspiration from soil moisture store (kg/m2/s)
 
   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
-    SURF_HTF_T_CAB, &
+    SURF_HTF_T_CAB
 
   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
     T1P5M_TILE,    &
     Q1P5M_TILE,    &
-    TSTAR_TILE,    &
+    TSTAR_TILE
 
 
 !--- Local vars

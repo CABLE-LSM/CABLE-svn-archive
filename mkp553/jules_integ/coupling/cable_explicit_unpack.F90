@@ -81,26 +81,26 @@ SUBROUTINE cable_expl_unpack( DIM_CS1, DIM_CS2,                               &
 
   !___return miscelaneous
   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-     RADNET_TILE,   & ! Surface net radiation
-     RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
-                      ! factor for fraction (1-FRACA) of snow-free land tiles
-     RESFT,         & ! Total resistance factor.
-                      ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
-                      ! 1 for snow.
-     FRACA,         & ! Fraction of surface moisture
-     RECIP_L_MO_TILE,&! Reciprocal of the Monin-Obukhov length for tiles (m^-1).
-     EPOT_TILE, &
-     NPP_FT,     &
-     GPP_FT,     &
-     RESP_P_FT,     &
-     G_LEAF
+     RADNET_TILE,     & ! Surface net radiation
+     RESFS,           & ! Combined soil, stomatal & aerodynamic resistance
+                        ! factor for fraction (1-FRACA) of snow-free land tiles
+     RESFT,           & ! Total resistance factor.
+                        ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
+                        ! 1 for snow.
+     FRACA,           & ! Fraction of surface moisture
+     RECIP_L_MO_TILE, &! Reciprocal of the Monin-Obukhov length for tiles (m^-1).
+     EPOT_TILE,       &
+     NPP_FT,          &
+     GPP_FT,          &
+     RESP_P_FT,       &
+     G_LEAF,          &
      TSTAR_TILE
 
   REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::                              &
-     GS,         &  ! "Stomatal" conductance
+     GS,         &
      NPP,        &
-     GPP
-     RESP_P,     &
+     GPP,        &
+     RESP_P
 
   REAL, INTENT(OUT) ::                                                       &
     RESP_S(um1%LAND_PTS,DIM_CS1),    & !

@@ -118,7 +118,7 @@ USE c_perma,                  ONLY: &
 USE solinc_data,              ONLY: &
   sky, l_skyview
 
-USE cable_data_mod, ONLY : cable
+USE cable_data_mod, ONLY : cable, cable_implicit_setup
 
 USE parkind1,                 ONLY: &
   jprb, jpim
@@ -778,6 +778,7 @@ IF ( .NOT. l_correct ) THEN
     ei_tile, radnet_tile, sf_diag%t1p5m_tile, sf_diag%q1p5m_tile, fland,      &
     melt_tile )
 
+! DEPENDS ON: cable_implicit_driver
   CALL cable_implicit_driver(                                                 &
     cable% um% LS_RAIN, cable% um% CONV_RAIN,                                 &
     cable% um% LS_SNOW, cable% um% CONV_SNOW, cable% im% dtl_1,               &

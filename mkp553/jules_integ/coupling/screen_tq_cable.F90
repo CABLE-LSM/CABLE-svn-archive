@@ -283,7 +283,7 @@ END IF
 ! The transitional diagnostic requires that this be done on all
 ! timesteps as the decoupled screen temperature is prognostic.
 !-----------------------------------------------------------------------
-  IF (st1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
+  IF (sf_diag%st1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2) ) THEN
 
 !       Calculate the screen-level temperature using the standard
 !       interpolation. If using the decoupled diagnosis with
@@ -498,7 +498,7 @@ END IF
 
 !         PSTAR_LAND will previously have been calculated if the
 !         humidity diagnostic has been requested.
-      IF (.NOT.sq1p5) THEN
+      IF (.NOT. sf_diag%sq1p5) THEN
         DO l = 1, land_pts
           j=(land_index(l)-1)/row_len + 1
           i = land_index(l) - (j-1)*row_len

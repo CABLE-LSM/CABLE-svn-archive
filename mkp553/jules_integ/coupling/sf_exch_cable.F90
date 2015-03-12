@@ -138,7 +138,7 @@ USE science_fixes_mod, ONLY: l_emis_ssi_full
 
 USE crop_vars_mod, ONLY: gc_irr, resfs_irr
 
-USE cable_data_mod, ONLY : cable
+USE cable_data_mod, ONLY : cable, cable_explicit_setup
 
 USE p_s_parms, ONLY : b, sathh, hcon, satcon,                     &
                       smvcst_levs => smvcst,                      &
@@ -549,7 +549,7 @@ REAL                                                              &
 REAL, INTENT(INOUT) ::                                            &
  albsoil(land_pts),                                               &
  cos_zenith_angle(t_i_length * t_j_length),                       &
- sw_down_4band(t_i_length,t_j_length),                            &
+ sw_down_4band(t_i_length,t_j_length,4),                          &
  lw_down(t_i_length,t_j_length),                                  &
  ls_rain(t_i_length,t_j_length),                                  &
  ls_snow(t_i_length,t_j_length),                                  &
@@ -1163,14 +1163,15 @@ END IF
     land_index, tile_pts, tile_index,                                         &
     co2_mmr, rho_water,                                                       &
     latitude, longitude, dzsoil_layers, b, hcon, satcon, sathh, smvcst_levs,  &
-    smvcwt_levs, smvccl_levs, albsoil, fland, cos_zenith_angle, sw_down_4band, lw_down, &
-    ls_rain, ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq, z1_uv, snow_tile,  &
-    tile_frac, canht_ft, lai_ft, canopy, sthu,                                &
+    smvcwt_levs, smvccl_levs, albsoil, fland, cos_zenith_angle,               &
+    sw_down_4band, lw_down, ls_rain, ls_snow, tl_1, qw_1, vshr_land, pstar,   &
+    z1_tq, z1_uv, snow_tile, tile_frac, canht_ft, lai_ft, canopy, sthu,       &
     ftl_tile, fqw_tile, tstar_tile, z0h_tile, z0m_tile, cd_tile, ch_tile,     &
     u_s_std_tile, u_s, radnet_tile, resfs, resft, fraca, recip_l_mo_tile,     &
     epot_tile, gs, npp, npp_ft, gpp, gpp_ft, resp_s, resp_s_tot, resp_p,      &
     resp_p_ft, g_leaf )
 
+! DEPENDS ON: cable_explicit_driver
   CALL cable_explicit_driver(                                       &
              cable% mp% row_length, cable% mp% rows,                &
              cable% mp% land_pts, cable% mp% ntiles,                &
