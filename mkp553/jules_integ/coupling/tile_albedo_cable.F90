@@ -46,11 +46,7 @@ USE lake_mod,    ONLY : albedo_whiteice_ref                       &
                        ,c_albice_MR                               &
                        ,lake_h_ice
 
-#if defined(UM_JULES)
-USE jules_mod,   ONLY : smvcst_levs
-#else
-USE p_s_parms, ONLY : smvcst_levs => smvcst
-#endif
+USE p_s_parms, ONLY : smvcst
 
 USE ereport_mod, ONLY : ereport
 USE jules_mod, ONLY : snowdep_surf, albobs_scaling
@@ -515,7 +511,7 @@ IF (l_spec_albedo) THEN
         END DO
 
 ! MORUSES: overwrite alb_type with values from canyonalb or albsnf_rf. Use
-! test on smvcst_levs to check for land-ice points. Loop around band could be
+! test on smvcst to check for land-ice points. Loop around band could be
 ! taken out as no snow involved at the moment.
         IF ( l_moruses_albedo ) THEN
           IF ( n == urban_canyon ) THEN
@@ -526,7 +522,7 @@ IF (l_spec_albedo) THEN
                  alb_type(l,n,band))
             END DO
           ELSE IF ( n == urban_roof                                 &
-                  .AND. smvcst_levs(l,1) > 0.0 ) THEN
+                  .AND. smvcst(l,1) > 0.0 ) THEN
 ! MORUSES here removes the effects of snow; snow scheme for MORUSES needs
 ! to be added
             alb_type(l,n,:) = albsnf_rf
