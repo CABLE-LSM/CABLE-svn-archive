@@ -73,7 +73,7 @@ SUBROUTINE sf_expl_l_cable (                                      &
  n_leaf,n_root,n_stem,lai_bal,gc,canhc_tile,wt_ext_tile,flake,    &
  tile_index,tile_pts,tile_frac,fsmc,emis_tile,emis_soil,          &
 ! Extra variables required for CABLE
- ls_rain, ls_snow
+ sw_down_4band, ls_rain, ls_snow
  )
 
 USE theta_field_sizes, ONLY : t_i_length, t_j_length
@@ -658,10 +658,14 @@ REAL, INTENT(OUT) ::                                              &
 
 !=================================================================
 ! Extra variables required for CABLE
+!
+! TODO: Refine INTENTs
 !=================================================================
 REAL, INTENT(INOUT) ::                                            &
- ls_rain(t_i_length, t_j_length),                                 &
- ls_snow(t_i_length, t_j_length)
+ sw_down_4band(tdims%i_start:tdims%i_end,                         &
+               tdims%j_start:tdims%j_end, 4),                     &
+ ls_rain(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),    &
+ ls_snow(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
 
 
 !-----------------------------------------------------------------------
@@ -1044,8 +1048,9 @@ CALL sf_exch_cable (                                              &
  rhokh_tile,rhokh_sice,rhokm_1,rhokm_land,rhokm_ssi,              &
  dtstar_tile,dtstar,rhokh,anthrop_heat,                           &
 ! Extra variables required by CABLE
- albsoil, lw_down, cos_zenith_angle, ls_rain, ls_snow, co2_mmr,   &
- sthu, canht_ft, lai_ft
+ albsoil, cos_zenith_angle, sw_down_4band, lw_down, ls_rain,      &
+ ls_snow, co2_mmr, sthu, canht_ft, lai_ft, gs, npp, npp_ft, gpp,  &
+ gpp_ft, resp_s, resp_s_tot, resp_p, resp_p_ft, g_leaf )
  )
 
 

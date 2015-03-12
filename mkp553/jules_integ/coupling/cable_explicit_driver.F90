@@ -30,7 +30,7 @@
 !
 ! ==============================================================================
 
-SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
+SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles, npft,    &
                                   sm_levels, DIM_CS1, DIM_CS2, timestep,       &
                                   latitude, longitude,                         &
                                   land_index, tile_frac, tile_pts, tile_index, &

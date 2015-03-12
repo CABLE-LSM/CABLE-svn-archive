@@ -51,12 +51,23 @@ SUBROUTINE sf_exch_cable (                                        &
  rhokh_1,rhokh_1_sice,rhokm_1,rhokm_land,rhokm_ssi,               &
  dtstar_tile,dtstar,rhokh_gb,anthrop_heat,                        &
 ! Extra variables required by CABLE
- albsoil, lw_down, cos_zenith_angle, ls_rain, ls_snow, co2_mmr,   &
- sthu, canht_ft, lai_ft )
+ albsoil, cos_zenith_angle, sw_down_4band, lw_down, ls_rain,      &
+ ls_snow, co2_mmr, sthu, canht_ft, lai_ft, gs, npp, npp_ft, gpp,  &
+ gpp_ft, resp_s, resp_s_tot, resp_p, resp_p_ft, g_leaf )
 
 
 USE atm_fields_bounds_mod
 USE theta_field_sizes, ONLY : t_i_length,t_j_length
+
+#if defined(UM_JULES)
+USE atm_step_local, ONLY : dim_cs1, dim_cs2
+USE trignometric_mod, ONLY : latitude => true_latitude,           &
+                             longitude => true_longitude
+USE
+#else
+USE ancil_info, ONLY : dim_cs1, dim_cs2
+USE model_grid_mod, ONLY : latitude, longitude
+#endif
 
 USE c_z0h_z0m, ONLY : z0h_z0m, z0h_z0m_classic
 USE c_vkman
@@ -129,7 +140,10 @@ USE crop_vars_mod, ONLY: gc_irr, resfs_irr
 
 USE cable_data_mod, ONLY : cable
 
-USE p_s_parms, ONLY : b, sathh, hcon, satcon, smvcwt, smvccl
+USE p_s_parms, ONLY : b, sathh, hcon, satcon,                     &
+                      smvcst_levs => smvcst,                      &
+                      smvcwt_levs => smvcwt,                      &
+                      smvccl_levs => smvccl
 
 USE water_constants_mod, ONLY : rho_water
 
@@ -534,14 +548,25 @@ REAL                                                              &
 !=================================================================
 REAL, INTENT(INOUT) ::                                            &
  albsoil(land_pts),                                               &
- lw_down(t_i_length,t_j_length),                                  &
  cos_zenith_angle(t_i_length * t_j_length),                       &
+ sw_down_4band(t_i_length,t_j_length),                            &
+ lw_down(t_i_length,t_j_length),                                  &
  ls_rain(t_i_length,t_j_length),                                  &
  ls_snow(t_i_length,t_j_length),                                  &
  co2_mmr,                                                         &
  sthu(land_pts,sm_levels),                                        &
  canht_ft(land_pts,npft),                                         &
- lai_ft(land_pts,npft)
+ lai_ft(land_pts,npft),                                           &
+ gs(land_pts),                                                    &
+ npp(land_pts),                                                   &
+ npp_ft(land_pts,npft),                                           &
+ gpp(land_pts),                                                   &
+ gpp_ft(land_pts,npft),                                           &
+ resp_s(land_pts,dim_cs1),                                        &
+ resp_s_tot(dim_cs2),                                             &
+ resp_p(land_pts),                                                &
+ resp_p_ft(land_pts,npft),                                        &
+ g_leaf(land_pts,npft)
 
 
 !   Define local storage.
@@ -1132,22 +1157,25 @@ END IF
 ! Call CABLE explicit driver
 !-----------------------------------------------------------------------
 ! Make sure the data is set up for the CABLE explicit call
-  CALL cable_explicit_setup(                                         &
-    t_i_length, t_j_length, land_pts, ntiles, npft, sm_levels,       &
-    INT(timestep), land_index, latitude, longitude, tile_frac,       &
-    tile_pts, tile_index,                                            &
-    b, hcon, satcon, sathh, smvcst, smvcwt, smvccl, albsoil,         &
-    snow_tile, lw_down, cos_zenith_angle, sw_down_4band, ls_rain,    &
-    ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq, z1_uv, rho_water,  &
-    canopy, fland, co2_mmr, sthu, canht_ft, lai_ft, dzsoil_layers,   &
-    ftl_tile, fqw_tile, tstar_tile, u_s, u_s_std_tile, cd_tile,      &
-    ch_tile, radnet_tile, fraca, resfs, resft, z0h_tile, z0m_tile,   &
-    recip_l_mo_tile, epot_tile, timestep_number )
+  CALL cable_explicit_setup(                                                  &
+    t_i_length, t_j_length, land_pts, ntiles, npft, sm_levels, dim_cs1,       &
+    dim_cs2, INT(timestep), timestep_number,                                  &
+    land_index, tile_pts, tile_index,                                         &
+    co2_mmr, rho_water,                                                       &
+    latitude, longitude, dzsoil_layers, b, hcon, satcon, sathh, smvcst_levs,  &
+    smvcwt_levs, smvccl_levs, albsoil, fland, cos_zenith_angle, sw_down_4band, lw_down, &
+    ls_rain, ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq, z1_uv, snow_tile,  &
+    tile_frac, canht_ft, lai_ft, canopy, sthu,                                &
+    ftl_tile, fqw_tile, tstar_tile, z0h_tile, z0m_tile, cd_tile, ch_tile,     &
+    u_s_std_tile, u_s, radnet_tile, resfs, resft, fraca, recip_l_mo_tile,     &
+    epot_tile, gs, npp, npp_ft, gpp, gpp_ft, resp_s, resp_s_tot, resp_p,      &
+    resp_p_ft, g_leaf )
 
-  CALL cable_explicit_driver(                                        &
+  CALL cable_explicit_driver(                                       &
              cable% mp% row_length, cable% mp% rows,                &
              cable% mp% land_pts, cable% mp% ntiles,                &
              cable% mp% npft, cable% mp% sm_levels,                 &
+             cable% um% dim_cs1, cable% um% dim_cs2,                &
              cable% mp% timestep_width, cable% mp% latitude,        &
              cable% mp% longitude, cable% um% land_index,           &
              cable% ppar% tile_frac, cable% um% tile_pts,           &
@@ -1182,8 +1210,12 @@ END IF
              cable% um% FRACA, cable% um% rESFS,                    &
              cable% um% RESFT, cable% um% Z0H_TILE,                 &
              cable% um% Z0M_TILE, cable% um% RECIP_L_MO_TILE,       &
-             cable% um% EPOT_TILE, 1,                               &
-             cable% mp% timestep_number, 1 )
+             cable% um% EPOT_TILE,                                  &
+             cable% um% GS, cable% um% NPP, cable% um% NPP_FT,      &
+             cable% um% GPP, cable% um% GPP_FT, cable% um% RESP_S,  &
+             cable% um% RESP_S_TOT, cable% um% RESP_P,              &
+             cable% um% RESP_P_FT, cable% um% G_LEAF,               &
+             1, cable% mp% timestep_number, 1 )
 
 
 !-----------------------------------------------------------------------

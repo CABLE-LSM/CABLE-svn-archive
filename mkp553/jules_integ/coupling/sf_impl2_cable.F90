@@ -46,7 +46,9 @@ SUBROUTINE sf_impl2_cable (                                       &
  tstar,tstar_land,tstar_sice,le_tile,radnet_tile,e_sea,h_sea,     &
  taux_1,tauy_1,taux_land_star,tauy_land_star,taux_ssi_star,       &
  tauy_ssi_star,ecan_tile,ei,ei_sice,esoil,ext,snowmelt,melt_tile, &
- rhokh_mix,error                                                  &
+ rhokh_mix,error,                                                 &
+! Extra variables required for CABLE
+ ls_rain, conv_rain, ls_snow, conv_snow                           &
  )
 
 USE csigma,                   ONLY: &
@@ -561,6 +563,19 @@ REAL, INTENT(OUT) ::                                              &
 INTEGER, INTENT(OUT) ::                                           &
  error          ! OUT 0 - AOK;
 !                     !     1 to 7  - bad grid definition detected;
+
+!=================================================================
+! Extra arguments required by CABLE
+!
+! TODO: Refine INTENTs?
+!=================================================================
+REAL, INTENT(INOUT) ::                                            &
+ ls_rain(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),    &
+ conv_rain(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),  &
+ ls_snow(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),    &
+ conv_snow(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
+
+
 !--------------------------------------------------------------------
 !  Workspace :-
 !--------------------------------------------------------------------
@@ -757,11 +772,11 @@ IF ( .NOT. l_correct ) THEN
   END DO
 
   CALL cable_implicit_setup(                                                  &
-    ls_rain, conv_rain, ls_snow, conv_snow, timestep_width, ftl_1, ftl_tile,  &
-    fqw_1, fqw_tile, tstar_tile, surf_ht_flux_land,          &
-    ecan_tile, esoil_tile, ei_tile, radnet_tile, sf_diag%t1p5m_tile, &
-    sf_diag%q1p5m_tile, fland, melt_tile, esp_s, resp_s_tot, resp_s_tile, resp_p,        &
-    resp_p_ft, g_leaf, sub_surf_roff, surf_roff, tot_tfall, lying_snow )
+    INT(timestep),                                                            &
+    ls_rain, conv_rain, ls_snow, conv_snow, dtl1_1, dqw1_1, ftl_1, ftl_tile,  &
+    fqw_1, fqw_tile, tstar_tile, surf_ht_flux_land, ecan_tile, esoil_tile,    &
+    ei_tile, radnet_tile, sf_diag%t1p5m_tile, sf_diag%q1p5m_tile, fland,      &
+    melt_tile )
 
   CALL cable_implicit_driver(                                                 &
     cable% um% LS_RAIN, cable% um% CONV_RAIN,                                 &
@@ -772,16 +787,7 @@ IF ( .NOT. l_correct ) THEN
     cable% im% ECAN_TILE, cable% im% ESOIL_TILE,                              &
     cable% im% EI_TILE, cable% um% RADNET_TILE,                               &
     cable% im% T1P5M_TILE, cable% im% Q1P5M_TILE,                             &
-    cable% um% CANOPY_GB, cable% um% Fland,                                   &
-    cable% im% MELT_TILE, cable% um% DIM_CS1,                                 &
-    cable% um% DIM_CS2, cable% um% NPP,                                       &
-    cable% um% NPP_FT, cable% um% GPP,                                        &
-    cable% um% GPP_FT,cable% um% RESP_S,                                      &
-    cable% um% RESP_S_TOT,cable% um% RESP_S_TILE,                             &
-    cable% um% RESP_P,cable% um% RESP_P_FT,                                   &
-    cable% um% G_LEAF,                                                        &
-    cable% hyd% sub_surf_roff, cable% hyd% surf_roff,                         &
-    cable% hyd% tot_tfall, cable% hyd% LYING_SNOW                             &
+    cable% um% FLAND, cable% im% MELT_TILE                                    &
   )
 
 

@@ -58,7 +58,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       DTL_1,    & ! IN Level 1 increment to T field 
       DQW_1       ! IN Level 1 increment to q field 
 
-   integer :: timestep
+   INTEGER :: timestep
 
    REAL, DIMENSION(um1%land_pts) ::                                           &
       FLAND       ! IN Land fraction on land tiles
