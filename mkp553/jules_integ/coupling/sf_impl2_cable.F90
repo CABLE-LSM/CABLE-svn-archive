@@ -570,10 +570,10 @@ INTEGER, INTENT(OUT) ::                                           &
 ! TODO: Refine INTENTs?
 !=================================================================
 REAL, INTENT(INOUT) ::                                            &
- ls_rain(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),    &
- conv_rain(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),  &
- ls_snow(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),    &
- conv_snow(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
+ ls_rain(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),    &
+ conv_rain(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),  &
+ ls_snow(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),    &
+ conv_snow(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end)
 
 
 !--------------------------------------------------------------------

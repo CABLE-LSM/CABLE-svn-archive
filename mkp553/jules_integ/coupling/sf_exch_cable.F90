@@ -63,7 +63,6 @@ USE theta_field_sizes, ONLY : t_i_length,t_j_length
 USE atm_step_local, ONLY : dim_cs1, dim_cs2
 USE trignometric_mod, ONLY : latitude => true_latitude,           &
                              longitude => true_longitude
-USE
 #else
 USE ancil_info, ONLY : dim_cs1, dim_cs2
 USE model_grid_mod, ONLY : latitude, longitude
