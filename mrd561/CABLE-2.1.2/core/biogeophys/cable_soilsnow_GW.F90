@@ -1549,7 +1549,9 @@ END SUBROUTINE remove_trans
     !MD DEBUG VARS
     INTEGER :: imp,ims,k_drain
 
-    drainmod(:) = 1._r_2 - veg%vlai(:) / 8._r_2
+    drainmod(:) = 1._r_2
+    where (veg%iveg .eq. 2) drainmod(:) = 0.1
+    !drainmod(:) = max(1._r_2 - veg%vlai(:)**3.0 / 8._r_2,0.1)
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
