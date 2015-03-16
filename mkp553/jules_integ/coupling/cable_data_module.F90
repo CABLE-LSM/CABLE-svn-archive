@@ -258,7 +258,7 @@ module cable_data_mod
 !------------------------------------------------------------------------------
 
    type hyd_type
-      real, dimension(:), pointer :: &                                                               &
+      real, dimension(:), pointer :: &
          sub_surf_roff, &
          surf_roff, &
          tot_tfall, &
