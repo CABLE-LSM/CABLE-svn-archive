@@ -319,10 +319,20 @@ CONTAINS
 !=============================================================================
   SUBROUTINE cable_allocate_ptrs(row_length, rows, land_pts, ntiles, sm_levels)
 
+    USE ereport_mod, ONLY : ereport
+
     INTEGER, INTENT(IN) ::                                                    &
       row_length, rows, land_pts, ntiles, sm_levels
 
+    INTEGER :: i
+    REAL :: smcl_layers(6), tsoil_layers(6)
+
 !-----------------------------------------------------------------------------
+
+    IF( sm_levels > 6 ) THEN
+      CALL ereport("cable_allocate_ptrs", 101,                                &
+                   "Only sm_levels <= 6 is currently supported with CABLE")
+    END IF
 
     ALLOCATE( cable% tmp% l_tile_pts(land_pts,ntiles))
     cable% tmp% l_tile_pts = .FALSE.
@@ -334,19 +344,43 @@ CONTAINS
     ALLOCATE(cable% forcing% ShortWave(row_length, rows, 4))
 
     ALLOCATE(cable% cable% snow_rho1l(land_pts, ntiles))
+    cable% cable% snow_rho1l(:,:) = 140.0
+
     ALLOCATE(cable% cable% snow_age(land_pts, ntiles))
+    cable% cable% snow_age(:,:) = 0.0
+
     ALLOCATE(cable% cable% snow_flg3l(land_pts, ntiles))
+    cable% cable% snow_flg3l(:,:) = 0
+
     ALLOCATE(cable% cable% snow_rho3l(land_pts, ntiles, 3))
+    cable% cable% snow_rho3l(:,:,:) = 140.0
+
     ALLOCATE(cable% cable% snow_depth3l(land_pts, ntiles, 3))
+    cable% cable% snow_depth3l(:,:,:) = 0.0
+
     ALLOCATE(cable% cable% snow_tmp3l(land_pts, ntiles, 3))
+    cable% cable% snow_tmp3l(:,:,:) = 273.1
+
     ALLOCATE(cable% cable% snow_mass3l(land_pts, ntiles, 3))
+    cable% cable% snow_mass3l(:,:,:) = 0.0
 
     ALLOCATE(cable% cable% snow_cond(land_pts, ntiles, 3))
     cable% cable% snow_cond = -huge(1.0)
 
     ALLOCATE(cable% cable% smcl_tile(land_pts, ntiles, sm_levels))
+    smcl_layers(:) = (/ 7.475, 19.78, 52.72, 141.5, 386.5, 1111.0 /)
+    DO i = 1,sm_levels
+      cable% cable% smcl_tile(:,:,i) = smcl_layers(i)
+    END DO
+
     ALLOCATE(cable% cable% sthf_tile(land_pts, ntiles, sm_levels))
+    cable% cable% sthf_tile(:,:,:) = 0.0
+
     ALLOCATE(cable% cable% tsoil_tile(land_pts, ntiles, sm_levels))
+    tsoil_layers(:) = (/ 277.7, 277.8, 278.0, 278.6, 280.1, 283.6 /)
+    DO i = 1,sm_levels
+      cable% cable% tsoil_tile(:,:,i) = tsoil_layers(i)
+    END DO
 
     ALLOCATE(cable% cable% sthu_tile(land_pts, ntiles, sm_levels))
     cable% cable% sthu_tile = -huge(1.0)

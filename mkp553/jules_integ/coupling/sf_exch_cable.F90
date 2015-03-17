@@ -1699,6 +1699,8 @@ IF (sf_diag%suv10m_n) THEN
   END DO
 END IF
 
+v_s_std(:,:) = u_s_std_tile(:,:)
+
 ! Land tiles
 IF (sf_diag%su10 .OR. sf_diag%sv10 .OR. sf_diag%sq1p5 .OR.        &
     sf_diag%st1p5 .OR. sf_diag%suv10m_n .OR.                      &

@@ -526,7 +526,7 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
      
    ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
    
-   dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
+   dels_ssdn(:,:) = dels
    ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
    
    WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )
