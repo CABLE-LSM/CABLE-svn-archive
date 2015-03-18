@@ -2035,7 +2035,7 @@ CONTAINS
      ! SoilIce: av.layer soil moisture [kg/m^2]
     IF(output%soil .OR. output%SoilIce) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%SoilIce = out%SoilIce + REAL(ssnow%wb, 4)
+       out%SoilIce = out%SoilIce + REAL(ssnow%wbice, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%SoilIce = out%SoilIce / REAL(output%interval, 4)
