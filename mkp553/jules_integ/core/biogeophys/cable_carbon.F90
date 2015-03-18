@@ -98,6 +98,14 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
    SELECT CASE (mvtype)
    
+      CASE (9)      ! Standard JULES types
+
+         rw   = (/ 8.7, 16.0, 15.1, 10.4, 12.5, 0.001, 9.0, 5.8, 0.001 /)
+
+         tfcl = (/ 0.345, 0.42, 0.73, 2.4, 0.31, 0.9500, 2.4, 0.55, 0.9500 /)
+
+         tvclst = (/ 278.0, 235.0, 235.0, 278.0, 278.0, 268.0, 278.0, 278.0, 278.0 /)
+
       CASE (13)     ! CASA vegetation types
       
          rw   = (/ 16., 8.7, 12.5, 16., 18., 7.5,                              &
@@ -146,8 +154,7 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
       
       CASE DEFAULT
         
-         PRINT *, 'Error! Dimension not compatible with CASA                   &
-                   or CSIRO or IGBP types!'
+         PRINT *, 'Error! Dimension not compatible with CASA, CSIRO or IGBP types!'
          PRINT *, 'Dimension =', mvtype
          PRINT *, 'At the rw section.'
          STOP

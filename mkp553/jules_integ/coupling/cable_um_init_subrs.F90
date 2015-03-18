@@ -287,37 +287,44 @@ SUBROUTINE clobber_height_lai( um_htveg, um_lai )
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
-   INTEGER :: i,j,n
+   INTEGER :: i,j,n,tree_max
+
+! Configure tree_max for known configurations, otherwise assume all vegetated types are trees
+   IF( um1%ntiles == 17 ) THEN
+     tree_max = 4
+   ELSE IF( um1%ntiles == 9 ) THEN
+     tree_max = 2
+   ELSE
+     tree_max = um1%npft
+   END IF
     
    DO N=1,um1%NTILES
       DO J=1,um1%TILE_PTS(N)
          
          i = um1%TILE_INDEX(j,N)  ! It must be landpt index
 
-         IF( um1%TILE_FRAC(i,N) .gt. 0.0 ) THEN
+         IF( um1%TILE_FRAC(i,N) > 0.0 ) THEN
             
-            ! hard-wired vegetation type numbers need to be removed
-            IF(N < 5 ) THEN ! rml changed 4 to 5
-               ! trees
-               kblum_veg%IVEGT(i,N) = N
-               kblum_veg%LAIFT(i,N) = max(0.01,um_lai(i,N)) 
-               kblum_veg%HTVEG(i,N) = max(1.,um_htveg(i,N)) 
-            ELSE IF(N > 4 .AND. N < 14 ) THEN !rml changed 3 to 4
-               ! shrubs/grass
-               kblum_veg%IVEGT(i,N) = N
-               kblum_veg%LAIFT(i,N) = max(0.01, um_lai(i,N)) 
-               kblum_veg%HTVEG(i,N) = max(0.1, um_htveg(i,N)) 
-             ELSE IF(N > 13 ) THEN
+            kblum_veg%IVEGT(i,N) = N
+
+            IF( N <= um1%npft ) THEN
+               kblum_veg%LAIFT(i,N) = max(0.01, um_lai(i,N))
+
+               IF( N <= tree_max ) THEN
+                 kblum_veg%HTVEG(i,N) = max(1.0, um_htveg(i,N))
+               ELSE
+                 kblum_veg%HTVEG(i,N) = max(0.1, um_htveg(i,N))
+               END IF
+            ELSE
                ! non-vegetated
-               kblum_veg%IVEGT(i,N) = N
-               kblum_veg%LAIFT(i,N) = 0. 
-               kblum_veg%HTVEG(i,N) = 0.
-            ENDIF
+               kblum_veg%LAIFT(i,N) = 0.0
+               kblum_veg%HTVEG(i,N) = 0.0
+            END IF
 
-         ENDIF
+         END IF
 
-      ENDDO
-   ENDDO
+      END DO
+   END DO
   
    veg%iveg   = PACK(kblum_veg%ivegt, um1%L_TILE_PTS)
    veg%vlai   = PACK(kblum_veg%laift, um1%L_TILE_PTS)
