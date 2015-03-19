@@ -5,7 +5,7 @@
 !! vegetation parameters in def_veg_params.txt or for vbeta=1 veg_params_vbeta1.txt
 !! vbeta=1 recommended but should be tested for your applications
 !
-  filename%veg     = '/projects/access/CABLE-AUX/core/biogeophys/veg_params_vbeta1.txt' 
+  filename%veg     = '/home/599/bep599/Ticket2_CABLE-AUX/core/biogeophys/veg_params_vbeta1.txt' 
 !
 !! or checkout to your own area
 ! filename%veg     = '~/CABLE-AUX/core/biogeophys/def_veg_params.txt' !relative to your home dir
@@ -67,6 +67,6 @@
   l_laiFeedbk   = .TRUE.  ! using prognostic LAI
   l_vcmaxFeedbk = .TRUE.  ! using prognostic Vcmax
 ! filenames for CASA-CNP input files
-  casafile%cnpbiome='~/CABLE-AUX/core/biogeochem/pftlookup_csiro_v16_17tiles.csv' ! biome specific BGC parameters
+  casafile%cnpbiome='/home/599/bep599/Ticket2_CABLE-AUX/core/biogeochem/pftlookup_csiro_v16_17tiles.csv' ! biome specific BGC parameters
   casafile%phen='~/CABLE-AUX/core/biogeochem/modis_phenology_csiro.txt' ! phenology by latitude (modis derived)
 &end
