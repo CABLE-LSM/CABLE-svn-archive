@@ -238,6 +238,20 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
+   ! Vars for standard for quasi-bitwise reproducability b/n runs
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   CHARACTER(len=30), PARAMETER ::                                             &
+      Ftrunk_sumbal  = ".trunk_sumbal",                                        &
+      Fnew_sumbal    = "new_sumbal"
+
+   DOUBLE PRECISION, save ::                                                         &
+      trunk_sumbal = 0.0, & !
+      new_sumbal = 0.0
+
+   INTEGER :: nkend=0
+   INTEGER :: ioerror=0
+
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -273,6 +287,16 @@ SUBROUTINE mpidrv_master (comm)
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
+
+   ! Open, read and close the consistency check file.
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   IF(cable_user%consistency_check) THEN 
+      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
+         IF(ioerror==0) then
+            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+         ENDIF
+      CLOSE(11)
+   ENDIF
 
    ! Open log file:
    OPEN(logn,FILE=filename%log)
@@ -501,6 +525,47 @@ SUBROUTINE mpidrv_master (comm)
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
+         !---------------------------------------------------------------------!
+         ! Check this run against standard for quasi-bitwise reproducability   !  
+         ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
+         !---------------------------------------------------------------------!
+         IF(cable_user%consistency_check) THEN 
+            
+            new_sumbal = new_sumbal + SUM(canopy%fe) + SUM(canopy%fh)                &
+                          + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+           
+            if(ktau==(kend-1)) then 
+               
+               nkend = nkend+1
+               IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
+         
+                  print *, ""
+                  print *, &
+                  "NB. Offline-papallel runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows this version reproduces the trunk sumbal"
+               
+               ELSE
+         
+                  print *, ""
+                  print *, &
+                  "NB. Offline-papallel runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows in this version new_sumbal != trunk sumbal"
+                  print *, "The difference is: ", new_sumbal - trunk_sumbal
+                  print *, &
+                  "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+                        
+                  OPEN( 12, FILE = Fnew_sumbal )
+                     WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
+                  CLOSE(12)
+               
+               ENDIF   
+            
+            ENDIF   
+        
+         ENDIF
+
        END DO ! END Do loop over timestep ktau
 
 
