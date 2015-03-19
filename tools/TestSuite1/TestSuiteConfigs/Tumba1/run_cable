@@ -1,0 +1,12 @@
+#!/bin/bash
+#PBS -l ncpus=1
+#PBS -l mem=6gb
+#PBS -l walltime=10:00
+#PBS -j oe
+#PBS -q express
+#PBS -lother=gdata1
+
+module load netcdf
+cd $PBS_O_WORKDIR
+ulimit -s 65536
+./cable
