@@ -502,8 +502,6 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
   fwps(:)     =  casamet%moistavg(:)/soil%ssat(:)
   tsavg(:)    =  casamet%tsoilavg(:) 
 
-<<<<<<< .working
-=======
   ! Custom soil respiration - see Ticket #42
   tsoil(:)    =  tsavg(:)-TKzeroC !tsoil in C
   strf(:)     = 1.0
