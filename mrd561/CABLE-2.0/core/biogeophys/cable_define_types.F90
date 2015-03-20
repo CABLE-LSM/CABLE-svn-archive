@@ -133,9 +133,22 @@ MODULE cable_def_types_mod
          clappB, & !C and H B [none]
          Fclay,  & !fraction of soil that is clay [frac]
          Fsand,  & !fraction of soil that is sand [frac]
+         Fsilt,  & !fraction of soil that is silt [frac]
+         Forg,   & !fration of soil made of organic soils [frac]
          densoil,& !soil density  [kg/m3]
          watsat, & !volumetric water content at saturation [mm3/mm3]
-         watr      !residual water content of the soil [mm3/mm3]
+         watr,   & !residual water content of the soil [mm3/mm3]
+         fldcap, & !field capcacity (hk = 1 mm/day)
+         wiltp     ! wilting point (hk = 0.02 mm/day)
+
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+         slope,  &  !mean slope of grid cell
+         slope_std, & !stddev of grid cell slope
+         elev,      & !mean elevation of gridcell
+         elev_std,  & !stddev elev of grid cell
+         topo_ind,  &
+         topo_ind_sig
+
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
          GWsmpsat,  &  !head in the aquifer [mm]
@@ -233,7 +246,6 @@ MODULE cable_def_types_mod
          wblf,    & !
          wbfice     !
 
-
       !MD variables for the revised soil moisture + GW scheme
       REAL(r_2), DIMENSION(:), POINTER   ::                                     &
          GWwb,    &  ! water content in aquifer [mm3/mm3]
@@ -262,8 +274,6 @@ MODULE cable_def_types_mod
          wmtot         !water mass [mm] liq+ice ->total
          
          
-
-
    END TYPE soil_snow_type
 
 ! .............................................................................
@@ -333,7 +343,6 @@ MODULE cable_def_types_mod
          fnpp,    & ! npp flux
          fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
-         gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
          wetfac_cs,&! 
          fevw,    & ! lat heat fl wet canopy (W/m2)
@@ -647,7 +656,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% albsoil(mp, nrb) )  
    allocate( var% pwb_min(mp) )  
    allocate( var% albsoilf(mp) )  
-
+   
    !MD
    !Aquifer properties
    allocate( var%GWhksat(mp) )
@@ -655,6 +664,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%GWclappB(mp) )
    allocate( var%GWwatsat(mp) )
    allocate( var%GWwatr(mp) )
+   var%GWwatr(:) = 0.005
    allocate( var%GWz(mp) )
    allocate( var%GWdz(mp) )
    allocate( var%GWdensoil(mp) )
@@ -664,9 +674,21 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%clappB(mp,ms) )
    allocate( var%watsat(mp,ms) )
    allocate( var%watr(mp,ms) )
+   var%watr(:,:) = 0.005
+   allocate( var%fldcap(mp,ms) )
+   allocate( var%wiltp(mp,ms) )
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
-   allocate( var%densoil(mp,ms) )   
+   allocate( var%Fsilt(mp,ms) )
+   allocate( var%Forg(mp,ms) )
+   allocate( var%densoil(mp,ms) )
+
+   allocate( var%elev(mp) )
+   allocate( var%elev_std(mp) )
+   allocate( var%slope(mp) )
+   allocate( var%slope_std(mp) )
+   allocate( var%topo_ind(mp) )
+   allocate( var%topo_ind_sig(mp) )
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -677,10 +699,10 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    TYPE(soil_snow_type), INTENT(inout) :: var
    INTEGER, INTENT(in) :: mp
   
-   ALLOCATE ( var % iantrct(mp) )
-   ALLOCATE ( var % pudsto(mp) )
-   ALLOCATE ( var % pudsmx(mp) )
-   ALLOCATE ( var % dtmlt(mp,3) )
+   ALLOCATE( var % iantrct(mp) )
+   ALLOCATE( var % pudsto(mp) )
+   ALLOCATE( var % pudsmx(mp) )
+   ALLOCATE( var % dtmlt(mp,3) )
    ALLOCATE( var% albsoilsn(mp,nrb) ) 
    ALLOCATE( var% cls(mp) )     
    ALLOCATE( var% dfn_dtg(mp) ) 
@@ -743,7 +765,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%qasrf(mp) )  
    ALLOCATE( var%qfsrf(mp) )  
    ALLOCATE( var%qssrf(mp) )  
-
+   
    !MD
    !Aquifer variables
    ALLOCATE( var%GWwb(mp) )
@@ -770,7 +792,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmtot(mp,ms) )
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
-   var%GWwb = 0.3_r_2   
+   var%GWwb = 0.45_r_2
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -804,8 +826,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
-   ALLOCATE( var%refl(mp,2) ) !jhan:swb?
-   ALLOCATE( var%taul(mp,2) ) 
+   ALLOCATE( var%refl(mp,3) ) !jhan:swb?
+   ALLOCATE( var%taul(mp,3) ) !MDeck->cable_parameters.F90 tries to access taul(:,3)
    ALLOCATE( var%vlaimax(mp) ) 
 
 END SUBROUTINE alloc_veg_parameter_type
@@ -817,8 +839,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    TYPE(canopy_type), INTENT(inout) :: var
    INTEGER, INTENT(in) :: mp
    
-   ALLOCATE ( var % fess(mp) )
-   ALLOCATE ( var % fesp(mp) )
+   ALLOCATE( var % fess(mp) )
+   ALLOCATE( var % fesp(mp) )
    ALLOCATE( var% cansto(mp) )  
    ALLOCATE( var% cduv(mp) )   
    ALLOCATE( var% delwc(mp) )  
@@ -1111,9 +1133,19 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%clappB )
    DEALLOCATE( var%watsat )
    DEALLOCATE( var%watr )
+   DEALLOCATE( var%fldcap )
+   DEALLOCATE( var%wiltp )
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
-   DEALLOCATE( var%densoil )     
+   DEALLOCATE( var%Fsilt )
+   DEALLOCATE( var%Forg  )
+   DEALLOCATE( var%densoil )   
+   DEALLOCATE( var%elev )
+   DEALLOCATE( var%elev_std )
+   DEALLOCATE( var%slope )
+   DEALLOCATE( var%slope_std )
+   DEALLOCATE( var%topo_ind )
+   DEALLOCATE( var%topo_ind_sig )
    
 END SUBROUTINE dealloc_soil_parameter_type
  
@@ -1189,6 +1221,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%qasrf )  
    DEALLOCATE( var%qfsrf )  
    DEALLOCATE( var%qssrf )  
+   
    !MD
    !Aquifer variables
    DEALLOCATE( var%GWwb )
@@ -1212,7 +1245,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wbliq )
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
-   DEALLOCATE( var%wmtot )   
+   DEALLOCATE( var%wmtot )
    
 END SUBROUTINE dealloc_soil_snow_type
    

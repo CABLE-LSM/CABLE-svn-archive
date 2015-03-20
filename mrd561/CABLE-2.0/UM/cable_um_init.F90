@@ -36,6 +36,8 @@ MODULE cable_um_init_mod
 
 CONTAINS
 
+!need to pass in the topo_index
+
 SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_pts, tile_index,     &
@@ -48,7 +50,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,&
                    CO2_MMR, sthu_tile, smcl_tile, smgw_tile, sthf_tile, sthu,  &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
-                              dzsoil )                         
+                              dzsoil, ti_mean,ti_sig )                         
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
    
@@ -168,6 +170,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
   
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             & 
       sin_theta_latitude
+      
+   REAL, INTENT(IN), DIMENSION(land_pts) :: ti_mean,ti_sig
 
    !------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM cable_explicit_driver() -------------------------
@@ -248,7 +252,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
-                            dzsoil ) 
+                            dzsoil,ti_mean,ti_sig ) 
         
       !--- initialize roughness
       CALL initialize_roughness( z1_tq, z1_uv, kblum_veg%htveg ) 

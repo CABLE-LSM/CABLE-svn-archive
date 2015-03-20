@@ -190,7 +190,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
          !mrd561
-         soil%GWdz = 30.0                          !30 m thick aquifer
+         soil%GWdz = 20.0                          !20 m thick aquifer
 
 
          !-------------------------------------------------------------------
@@ -542,7 +542,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                                 snow_tile, snow_rho1l, snage_tile, isnow_flg3l,&
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
-                                sin_theta_latitude ) 
+                                sin_theta_latitude,ti_mean,ti_sig ) 
 
    USE cable_def_types_mod,  ONLY : mp, msn
    USE cable_data_module,   ONLY : PHYS
@@ -581,12 +581,16 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: sin_theta_latitude
    
+   REAL, INTENT(IN), DIMENSION(um1%land_pts) :: ti_mean,                       &
+                                                ti_sig
+   
+   
    INTEGER :: i,j,k,L,n
    REAL  :: zsetot, max_snow_depth=50000.
    REAL, ALLOCATABLE:: fwork(:,:,:), sfact(:), fvar(:), rtemp(:)
    REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
-   LOGICAL :: first_call = .TRUE.
+   LOGICAL :: first_call = .TRUE.  !why no save?
    LOGICAL :: false_variable
 
       false_variable = .FALSE.
@@ -690,23 +694,17 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
 
 
          !mrd561
+         !currently not saving GWwb.
+         !Each restart initialize to the eq water content based on wtd
          ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
+         
          call iterative_wtd(ssnow,soil,veg,false_variable,first_call)
-         !ssnow%wtd(:)  = 5000.0
-         !ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
-         !ensure that we have reasonable values in case 
-         !starting from a non-GW simulation
-         !where (ssnow%GWwb(:) .eq. 0.0 ) &
-         !       ssnow%GWwb(:) = 0.4
-
-         !where (ssnow%GWwb(:) .lt. 0.01) & 
-         !       ssnow%GWwb(:)  = 0.01
-
-         !where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
-         !       ssnow%GWwb(:) = soil%GWwatsat
 
          call calc_equilibrium_water_content(ssnow,soil)
          ssnow%GWwb(:) = ssnow%GWwbeq(:)
+         
+         soil%topo_ind(:)    = pack(ti_mean(:),um1%k_tile_pts)
+         soil%topo_ind_sd(:) = pack(ti_sig(:) ,um1%k_tile_pts)
 
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
