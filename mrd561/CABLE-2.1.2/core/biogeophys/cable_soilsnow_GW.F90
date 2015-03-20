@@ -1550,7 +1550,8 @@ END SUBROUTINE remove_trans
     INTEGER :: imp,ims,k_drain
 
     drainmod(:) = 1._r_2
-    where (veg%iveg .eq. 2) drainmod(:) = 0.1
+
+    !where (veg%iveg .eq. 2) drainmod(:) = 0.1
     !drainmod(:) = max(1._r_2 - veg%vlai(:)**3.0 / 8._r_2,0.1)
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
@@ -1672,9 +1673,13 @@ END SUBROUTINE remove_trans
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
 
-       ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+!       ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+!                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
+
+       ssnow%qhz(i)  = soil%hksat(i,ms)/soil%topo_ind(i) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
 
+ 
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
        do k=ms-1,1,-1
@@ -2245,9 +2250,6 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))! - satfrac*soil%watsat(i,1))/(1.-satfrac)
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
-       wb_lin = ((ssnow%wb(i,1)-ssnow%wbice(i,1))-soil%wiltp(i,1))/(soil%fldcap(i,1)-soil%wiltp(i,1))
-       wb_lin = max(0._r_2, min(1._r_2, wb_lin) )
-
        !Sakguchi and Zeng 2009
        if (wb_unsat .ge. 0.5*soil%fldcap(i,1)) then
           xx = 1.
@@ -2257,7 +2259,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        if (wb_unsat .lt. soil%wiltp(i,1)) xx = 0.
               !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
 
-       ssnow%wetfac(i) = satfrac*wb_lin + (1. - (satfrac*wb_lin))*xx
+       ssnow%wetfac(i) = satfrac + (1. - satfrac)*xx
 
     end do
 

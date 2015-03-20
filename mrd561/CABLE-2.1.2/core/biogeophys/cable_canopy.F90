@@ -335,7 +335,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       ELSE !by default assumes Humidity Deficit Method
       
-         dq = ssnow%qstss - met%qv
+         dq = ssnow%qstss*exp(-9.81*ssnow%smp(:,1)/1000.0/ssnow%tss/461.4) - met%qv
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -360,7 +360,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       ELSE !by default assumes Humidity Deficit Method
       
-         dq = ssnow%qstss - met%qvair
+         dq = ssnow%qstss*exp(-9.81*ssnow%smp(:,1)/1000.0/ssnow%tss/461.4) - met%qvair
          
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           

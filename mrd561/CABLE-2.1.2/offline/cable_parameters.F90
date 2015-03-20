@@ -1455,10 +1455,10 @@ CONTAINS
     psi_o(5)    = -83000._r_2
     psi_o(6:17) = -74000._r_2
 
-    psi_c(1:3)  = -255000._r_2
-    psi_c(4)    = -224000._r_2
-    psi_c(5)    = -428000._r_2
-    psi_c(6:17) = -275000._r_2
+    psi_c(1:3)  = -2550000._r_2
+    psi_c(4)    = -2240000._r_2
+    psi_c(5)    = -4280000._r_2
+    psi_c(6:17) = -2750000._r_2
 
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations 
