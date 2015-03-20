@@ -2180,6 +2180,72 @@ SUBROUTINE calc_srf_wet_fraction_gw(ssnow,soil)
 END SUBROUTINE calc_srf_wet_fraction_gw
 
 
+SUBROUTINE calc_srf_wet_fraction_gw(ssnow,soil)
+   USE cable_def_types_mod
+   USE cable_common_module
+
+
+  IMPLICIT NONE
+    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
+    TYPE(soil_parameter_type), INTENT(IN)    :: soil ! soil parameters
+
+    !local variables
+    REAL(r_2), DIMENSION(mp)           :: icef
+    REAL(r_2)                          :: satfrac,wtd_meters,fice,xx
+    REAL(r_2)                          :: dzmm_one,liqmass,icemass,totmass
+    INTEGER                            :: i
+    REAL(r_2), parameter               :: pi=3.1415926535898
+    REAL(r_2)                          :: wb_unsat,wb_lin
+    LOGICAL, SAVE :: first_call = .true.
+
+    dzmm_one  = 1000._r_2 * real(soil%zse(1),r_2)
+
+    do i = 1,mp
+       icemass  = ssnow%wbice(i,1) * dzmm_one * dri
+       liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm_one
+       totmass  = max(liqmass+icemass,real(1e-2,r_2))
+       icef(i)     = max(0._r_2,min(1._r_2,icemass / totmass))
+    end do
+    !srf frozen fraction.  should be based on topography
+
+    ! Saturated fraction
+   do i = 1,mp
+       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+       fice = min(1._r_2,max(0._r_2,fice))
+
+       if (.not. first_call) then
+          wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
+       else
+          wtd_meters = 2.0
+       end if
+                             
+       satfrac = min(1._r_2,max(0._r_2,gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)))
+
+       wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
+       wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
+
+       !Sakguchi and Zeng 2009
+       if (wb_unsat .ge. 0.5*soil%fldcap(i,1)) then
+          xx = 1.
+       else
+          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
+       end if
+       if (wb_unsat .lt. soil%wiltp(i,1)) xx = 0.
+              !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
+
+       ssnow%wetfac(i) = satfrac + (1. - (satfrac))*xx
+
+    end do
+
+
+    first_call = .false.
+
+
+
+END SUBROUTINE calc_srf_wet_fraction_gw
+
+
+
 
     
 END MODULE cable_canopy_module
