@@ -1503,7 +1503,7 @@ END SUBROUTINE remove_trans
     REAL(r_2), DIMENSION(mp,ms)         :: dzmm_mp
     REAL(r_2), DIMENSION(0:ms+1)        :: zimm
     REAL(r_2), DIMENSION(ms)            :: zmm
-    REAL(r_2), DIMENSION(mp)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm
+    REAL(r_2), DIMENSION(mp)            :: GWzimm,xs,zaq,fice_avg,s_mid,GWdzmm,sm_tot
     REAL(r_2), DIMENSION(mp)            :: xs1,GWmsliq!xsi    !mass (mm) of liquid over/under saturation, mass of aquifer water
     REAL(r_2)                           :: xsi
     REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
