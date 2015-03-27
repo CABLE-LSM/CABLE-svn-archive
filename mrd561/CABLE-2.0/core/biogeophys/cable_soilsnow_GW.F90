@@ -1543,9 +1543,6 @@ END SUBROUTINE remove_trans
 
     drainmod(:) = 1._r_2
 
-    !where (veg%iveg .eq. 2) drainmod(:) = 0.1
-    !drainmod(:) = max(1._r_2 - veg%vlai(:)**3.0 / 8._r_2,0.1)
-
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
     dzmm    = 1000.0_r_2 * real(soil%zse(:),r_2)
@@ -1665,11 +1662,11 @@ END SUBROUTINE remove_trans
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
 
-!       ssnow%qhz(i)  = soil%hksat(i,ms)*tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
-!                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
-
-       ssnow%qhz(i)  = soil%hksat(i,ms)/soil%topo_ind(i) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
+
+!       ssnow%qhz(i)  = soil%hksat(i,ms)/soil%topo_ind(i) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+!                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
 
  
        !identify first no frozen layer.  drinage from that layer and below
@@ -2247,7 +2244,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        wb_lin = max(0._r_2, min(1._r_2, wb_lin) )
 
        !Sakguchi and Zeng 2009
-       if (wb_unsat .ge. 0.5*soil%fldcap(i,1)) then
+       if (wb_unsat .ge. soil%fldcap(i,1)) then
           xx = 1.
        else
           xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
