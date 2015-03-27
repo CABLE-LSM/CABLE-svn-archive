@@ -73,10 +73,12 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
+    ! must be available outside this module
+
+   PUBLIC soil_snow_gw,calc_srf_wet_fraction,calc_equilibrium_water_content ,iterative_wtd
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
-   PRIVATE trimb,snow_accum, stempv,calc_equilibrium_water_content
-   PRIVATE soilfreeze, remove_trans,iterative_wtd,simple_wtd
+   PRIVATE trimb,snow_accum, stempv
+   PRIVATE soilfreeze, remove_trans,simple_wtd
    PRIVATE smoistgw, ovrlndflx
 
 CONTAINS
@@ -1334,14 +1336,12 @@ END SUBROUTINE remove_trans
   ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
   ! water table depth
   !  
-  SUBROUTINE iterative_wtd (ssnow, soil, veg, ktau, md_prin)
+  SUBROUTINE iterative_wtd (ssnow,soil,veg,false_variable,first_call)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
   TYPE (veg_parameter_type), INTENT(IN)     :: veg
-  INTEGER, INTENT(IN)                       :: ktau  ! integration step number
-  LOGICAL, INTENT(IN)                       :: md_prin  !print info?
-
+  LOGICAL                                   :: false_variable,first_call
  
   !Local vars 
   REAL(r_2), DIMENSION(mp,ms)   :: dzmm_mp,tmp_def
@@ -1354,7 +1354,6 @@ END SUBROUTINE remove_trans
   REAL(r_2), DIMENSION(mp)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   INTEGER :: k,i,wttd,jlp
   LOGICAL :: empwtd
-   
 
   empwtd = .false.
 
@@ -1390,7 +1389,6 @@ END SUBROUTINE remove_trans
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
   else
 
-     if (md_prin) write(*,*) 'start wtd iterations'
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
 
      do i=1,mp
@@ -1487,7 +1485,6 @@ END SUBROUTINE remove_trans
   where (ssnow%wtd(:) .gt. wtd_max) ssnow%wtd(:) = wtd_max
   where (ssnow%wtd(:) .lt. wtd_min) ssnow%wtd(:) = wtd_min
 
-  if (md_prin) write(*,*) 'done iterating for wtd'
 
   END SUBROUTINE iterative_wtd
 
@@ -1911,10 +1908,11 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3 
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0 
-   LOGICAL :: prin,md_prin
+   LOGICAL :: prin,md_prin,first_call,false_var
    REAL(r_2) :: wb_lake_T, rnof2_T, ratio
 
-   
+   false_var = .FALSE.
+   first_call = .FALSE.
    prin = .FALSE.
    md_prin = .false.
    
@@ -2056,7 +2054,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin)  
+   CALL iterative_wtd (ssnow, soil, veg,false_var,first_call)  
    !CALL simple_wtd(ssnow, soil, veg, ktau, md_prin)
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?

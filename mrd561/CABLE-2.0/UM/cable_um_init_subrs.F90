@@ -126,7 +126,7 @@ CONTAINS
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
-                            dzsoil ) 
+                            dzsoil,ti_mean,ti_sig ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
@@ -150,11 +150,15 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       tsoil_tile
 
    REAL, INTENT(IN), DIMENSION(um1%sm_levels) :: dzsoil
-
+   
+   REAL, INTENT(IN), DIMENSION(um1%land_pts) :: ti_mean,                       &
+                                                ti_sig
+   
+ 
    !___defs 1st call to CABLE in this run
    LOGICAL, SAVE :: first_call= .TRUE.
    INTEGER :: i,j,k,L,n
-   REAL, ALLOCATABLE :: tempvar(:), tempvar2(:)
+   REAL, ALLOCATABLE :: tempvar(:), tempvar2(:),fwork(:,:)
    LOGICAL, PARAMETER :: skip =.TRUE. 
 
       IF( first_call ) THEN 
@@ -227,7 +231,17 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          CALL um2cable_lp( smvcwt, soilin%swilt, soil%swilt, soil%isoilm)
          CALL um2cable_lp( smvccl, soilin%sfc, soil%sfc, soil%isoilm)
    
-    
+         ALLOCATE( fwork(um1%land_pts,um1%ntiles) )
+         fwork(:,:) = 100.
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = ti_mean(i)
+            end do
+         end do
+         soil%topo_ind(:) = pack(fwork(:,:),um1%l_tile_pts) 
+         deallocate(fwork) 
+ 
             
          !--- (re)set values for CABLE
          soil%ibp2    =  NINT(soil%bch)+2
@@ -542,7 +556,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                                 snow_tile, snow_rho1l, snage_tile, isnow_flg3l,&
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
-                                sin_theta_latitude,ti_mean,ti_sig ) 
+                                sin_theta_latitude  ) 
 
    USE cable_def_types_mod,  ONLY : mp, msn
    USE cable_data_module,   ONLY : PHYS
@@ -580,11 +594,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: fland 
    
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: sin_theta_latitude
-   
-   REAL, INTENT(IN), DIMENSION(um1%land_pts) :: ti_mean,                       &
-                                                ti_sig
-   
-   
+  
    INTEGER :: i,j,k,L,n
    REAL  :: zsetot, max_snow_depth=50000.
    REAL, ALLOCATABLE:: fwork(:,:,:), sfact(:), fvar(:), rtemp(:)
@@ -592,6 +602,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    LOGICAL :: skip =.TRUE. 
    LOGICAL :: first_call = .TRUE.  !why no save?
    LOGICAL :: false_variable
+   
 
       false_variable = .FALSE.
 
@@ -689,10 +700,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
             ! lakes: removed hard-wired number in future version
             WHERE( veg%iveg == 16 ) ssnow%wb(:,J) = 0.95*soil%ssat
          ENDDO
-         
          DEALLOCATE( fwork )
-
-
          !mrd561
          !currently not saving GWwb.
          !Each restart initialize to the eq water content based on wtd
@@ -702,9 +710,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
 
          call calc_equilibrium_water_content(ssnow,soil)
          ssnow%GWwb(:) = ssnow%GWwbeq(:)
-         
-         soil%topo_ind(:)    = pack(ti_mean(:),um1%k_tile_pts)
-         soil%topo_ind_sd(:) = pack(ti_sig(:) ,um1%k_tile_pts)
 
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &

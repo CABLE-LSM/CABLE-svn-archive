@@ -2225,7 +2225,7 @@ SUBROUTINE calc_srf_wet_fraction_gw(ssnow,soil)
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
        !Sakguchi and Zeng 2009
-       if (wb_unsat .ge. 0.5*soil%fldcap(i,1)) then
+       if (wb_unsat .ge. soil%fldcap(i,1)) then
           xx = 1.
        else
           xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
