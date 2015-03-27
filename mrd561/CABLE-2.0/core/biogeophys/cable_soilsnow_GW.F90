@@ -2205,13 +2205,15 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
 
 END SUBROUTINE calc_equilibrium_water_content
 
-SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
+SUBROUTINE calc_srf_wet_fraction(ssnow,soil,first_call)
 
   IMPLICIT NONE
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(IN)    :: soil ! soil parameters
 
+
     !local variables
+    LOGICAL, SAVE                      :: first_call = .TRUE.
     REAL(r_2), DIMENSION(mp)           :: icef
     REAL(r_2)                          :: satfrac,wtd_meters,fice,xx
     REAL(r_2)                          :: dzmm_one,liqmass,icemass,totmass
@@ -2233,8 +2235,11 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        fice = min(1._r_2,max(0._r_2,fice))
 
        !Saturated fraction
-       wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
-                             
+       if (first_call) then
+          wtd_meters = 2.0
+       else
+          wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
+       end if                   
        satfrac = min(1._r_2,max(0._r_2,gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)))
 
        wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))! - satfrac*soil%watsat(i,1))/(1.-satfrac)
@@ -2255,6 +2260,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        ssnow%wetfac(i) = satfrac*wb_lin + (1. - (satfrac*wb_lin))*xx
 
     end do
+
+    first_call = .FALSE.
 
 
 
