@@ -2205,7 +2205,7 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
 
 END SUBROUTINE calc_equilibrium_water_content
 
-SUBROUTINE calc_srf_wet_fraction(ssnow,soil,first_call)
+SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
   IMPLICIT NONE
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables

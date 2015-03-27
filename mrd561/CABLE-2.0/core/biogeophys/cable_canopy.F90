@@ -35,6 +35,7 @@
 MODULE cable_canopy_module
    
    USE cable_data_module, ONLY : icanopy_type, point2constants 
+   USE cable_soilsnow_GW_module, ONLY: calc_srf_wet_fraction_gw
    
    IMPLICIT NONE
    
