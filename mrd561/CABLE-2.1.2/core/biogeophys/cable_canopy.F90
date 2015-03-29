@@ -121,7 +121,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    REAL  :: rt_min
 
-   INTEGER :: j
+   INTEGER :: j,i
    
    INTEGER, SAVE :: call_number =0
    
@@ -335,7 +335,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       ELSE !by default assumes Humidity Deficit Method
       
-         dq = ssnow%qstss*exp(-9.81*ssnow%smp(:,1)/1000.0/ssnow%tss/461.4) - met%qv
+         if (cable_user%gw_model) then 
+            do i=1,mp
+               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               else
+                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+               end if
+            end do
+
+         else
+            dq = ssnow%qstss - met%qvair
+         end if
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -359,8 +370,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          ssnow%potev =  Penman_Monteith(canopy%ga) 
       
       ELSE !by default assumes Humidity Deficit Method
-      
-         dq = ssnow%qstss*exp(-9.81*ssnow%smp(:,1)/1000.0/ssnow%tss/461.4) - met%qvair
+         if (cable_user%gw_model) then 
+            do i=1,mp
+               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               else
+                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+               end if
+            end do
+         else
+            dq = ssnow%qstss - met%qvair
+
+         end if
          
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
