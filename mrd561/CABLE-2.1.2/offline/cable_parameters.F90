@@ -127,6 +127,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
+  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inBI
 
 CONTAINS
 
@@ -459,6 +460,7 @@ CONTAINS
     ALLOCATE(    inGWWatr(nlon, nlat) )
     ALLOCATE(       inORG(nlon, nlat) )
     ALLOCATE(       inTI (nlon, nlat) )
+    ALLOCATE(       inBI (nlon, nlat) )
 
     ! 1
     ok = NF90_INQ_VARID(ncid, 'swilt', fieldID)
@@ -595,7 +597,17 @@ CONTAINS
       write(logn,*) 'Set the topo index to constant due to read error'
       inTI(:,:) = 500.0
     END IF
+ 
+    ok = NF90_INQ_VARID(ncid, 'basin_index', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inBI)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      write(logn,*) 'Set the basin index to constant due to read error'
+      inBI(:,:) = 1
+    END IF
     
+   
 ! Use this code if need to process original UM file soil fields into CABLE 
 ! offline format
 !    ! 1
@@ -1174,6 +1186,10 @@ CONTAINS
                                     inTI(landpt(e)%ilon,landpt(e)%ilat)
 
 
+      soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+                                    inBI(landpt(e)%ilon,landpt(e)%ilat)
+
+
       ENDIF
 
 ! offline only below
@@ -1308,6 +1324,7 @@ CONTAINS
     if (allocated(inSlopeSTD)) deallocate(inSlopeSTD)
     if (allocated(inORG     )) deallocate(inORG)
     if (allocated(inTI      )) deallocate(inTI)
+    if (allocated(inTI      )) deallocate(inBI)
 
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
@@ -1533,6 +1550,7 @@ CONTAINS
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
+    soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
     ! owetfac introduced by EAK apr2009
