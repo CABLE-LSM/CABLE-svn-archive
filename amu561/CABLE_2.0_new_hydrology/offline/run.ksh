@@ -121,7 +121,9 @@ run_run()
 
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then
-      ./cable ${fsites[$1]} ${fpoolsites[$1]}
+        #create new namelist
+	./create_cable-nml.sh -y 0 -e true -g false   #Added Anna 29/3/15
+	./cable ${fsites[$1]} ${fpoolsites[$1]}
    else
       ./cable       
    fi
