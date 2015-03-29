@@ -148,6 +148,9 @@ MODULE cable_def_types_mod
          elev_std,  & !stddev elev of grid cell
          topo_ind
 
+      INTEGER, DIMENSION(:), POINTER ::                                        &
+        basin_ind   !index of the basin (i.e. amazon=1, mississipii=x)
+
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
          GWsmpsat,  &  !head in the aquifer [mm]
@@ -687,6 +690,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%slope(mp) )
    allocate( var%slope_std(mp) )
    allocate( var%topo_ind(mp) )
+   allocate( var%basin_ind(mp) )
 
 END SUBROUTINE alloc_soil_parameter_type
  
@@ -1143,6 +1147,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%slope )
    DEALLOCATE( var%slope_std )
    DEALLOCATE( var%topo_ind )
+   DEALLOCATE( var%basin_ind )
    
 END SUBROUTINE dealloc_soil_parameter_type
  
