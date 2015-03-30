@@ -184,7 +184,9 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
       emair, &    ! air emissivity
       flpwb, &    ! black-body long-wave radiation
       flwv, &     ! vegetation long-wave radiation (isothermal)
-      xx1,tssp    ! 
+      xx1,tssp, & ! 
+      dummy, &
+      dummy2
       
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
    
@@ -215,7 +217,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    END WHERE
 
    ! Define fraction of SW beam tranmitted through canopy:
-   dummy2 = MIN(rad%extkb * canopy%vlaiw,30)
+   dummy2 = MIN(rad%extkb * canopy%vlaiw,30.)
    dummy = EXP(-dummy2)
    rad%transb = REAL(dummy)
 

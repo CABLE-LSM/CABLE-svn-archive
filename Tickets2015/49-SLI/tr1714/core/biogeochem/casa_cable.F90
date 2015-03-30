@@ -139,7 +139,6 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%moist = casamet%moist + ssnow%wb
          casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + canopy%frday*dels
-                                       canopy%frday*dels
       ENDIF
 
 

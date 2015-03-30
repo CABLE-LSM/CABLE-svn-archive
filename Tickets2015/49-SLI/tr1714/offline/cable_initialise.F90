@@ -47,7 +47,7 @@ MODULE cable_init_module
                                  soiltype_metfile
    USE cable_read_module
    USE netcdf
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename, cable_user
 
    IMPLICIT NONE
    

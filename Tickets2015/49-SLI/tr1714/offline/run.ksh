@@ -72,7 +72,7 @@ site_name()
          (( i = i + 1 ))
       fi   
    done 
-   integer isites=i/3
+   integer isites=i/2
    
    i=0
    exec < fsites.txt
@@ -121,7 +121,7 @@ run_run()
 
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then
-      ./cable ${fsites[$1]} ${fpoolsites[$1]}
+      ./cable ${fsites[$1]}
    else
       ./cable       
    fi
@@ -135,6 +135,7 @@ run_run()
       		
       # CABLE output + restart if applicable
       mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$1]}
+      mv *.out fort.* out/${sites[$1]}
       cp cable.nml  out/${sites[$1]}
       # pools for CASA-CNP
       if [[ -e poolcnpOut.csv ]]; then
