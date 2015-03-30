@@ -87,7 +87,7 @@ MODULE casaparm
   INTEGER, PARAMETER :: PLAB    = 1
   INTEGER, PARAMETER :: PSORB   = 2
   INTEGER, PARAMETER :: POCC    = 3
-  INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable
+  INTEGER, PARAMETER :: LALLOC  = 2      !=0 constant; 1 variable; 2 following Litton
   REAL(r_2), PARAMETER :: z30=0.3
   REAL(r_2), PARAMETER :: R0=0.3
   REAL(r_2), PARAMETER :: S0=0.3
@@ -188,6 +188,7 @@ MODULE casavariable
   TYPE casa_flux
     REAL(r_2), DIMENSION(:),POINTER :: Cgpp,          &
                                        Cnpp,          &
+									   stemnpp,       &
                                        Crp,           &
                                        Crgplant,      &
                                        Nminfix,       &
@@ -259,10 +260,30 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:), POINTER   :: lat,      &
                                           lon,      &
                                           areacell
+    ! added yp wang 5/nov/2012
+    REAL(r_2), DIMENSION(:,:), POINTER :: Tairkspin,&
+                                          cgppspin,&
+                                          crmplantspin_1,&
+                                          crmplantspin_2,&
+                                          crmplantspin_3,&
+                                          Tsoilspin_1,&
+                                          Tsoilspin_2,&
+                                          Tsoilspin_3,&
+                                          Tsoilspin_4,&
+                                          Tsoilspin_5,&
+                                          Tsoilspin_6,&
+                                          moistspin_1,&
+                                          moistspin_2,&
+                                          moistspin_3,&
+                                          moistspin_4,&
+                                          moistspin_5,&
+                                          moistspin_6
+
   END TYPE casa_met
 
   TYPE casa_balance
     REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,             &
+            FCrmleafyear,FCrmwoodyear,FCrmrootyear,FCrgrowyear,               &
             FCrpyear, FCrsyear,FCneeyear,                                     &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear
@@ -293,8 +314,13 @@ MODULE casavariable
     CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes
     CHARACTER(LEN=99) :: cnpmetin      ! met file for spin up 
     CHARACTER(LEN=99) :: cnpmetout     ! met file for spin up 
+! added yp wang
+    CHARACTER(LEN=99) :: cnpspin       ! input file for spin up
+    CHARACTER(LEN=99) :: dump_cnpspin  ! name of dump file for spinning casa-cnp
+ 
     CHARACTER(LEN=99) :: phen        ! leaf phenology datafile
     CHARACTER(LEN=99) :: cnpflux     ! modelled mean yearly CNP fluxes
+    CHARACTER(LEN=99) :: c2cdumppath ! cable2casa dump for casa spinup
   END TYPE casafiles_type
   TYPE(casafiles_type) :: casafile
 
@@ -386,6 +412,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
 
   ALLOCATE(casaflux%Cgpp(arraysize),                     &
            casaflux%Cnpp(arraysize),                     &
+           casaflux%stemnpp(arraysize),                  &
            casaflux%Crp(arraysize),                      &
            casaflux%Crgplant(arraysize),                 &
            casaflux%Nminfix(arraysize),                  &
@@ -457,11 +484,32 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casamet%isorder(arraysize),             &
            casamet%lat(arraysize),                 &
            casamet%lon(arraysize),                 &
-           casamet%areacell(arraysize))
+           casamet%areacell(arraysize),             &
+           casamet%Tairkspin(arraysize,mdyear),     &
+           casamet%cgppspin(arraysize,mdyear),      &
+           casamet%crmplantspin_1(arraysize,mdyear),&
+           casamet%crmplantspin_2(arraysize,mdyear),&
+           casamet%crmplantspin_3(arraysize,mdyear),&
+           casamet%Tsoilspin_1(arraysize,mdyear),   &
+           casamet%Tsoilspin_2(arraysize,mdyear),   &
+           casamet%Tsoilspin_3(arraysize,mdyear),   &
+           casamet%Tsoilspin_4(arraysize,mdyear),   &
+           casamet%Tsoilspin_5(arraysize,mdyear),   &
+           casamet%Tsoilspin_6(arraysize,mdyear),   &
+           casamet%moistspin_1(arraysize,mdyear),   &
+           casamet%moistspin_2(arraysize,mdyear),   &
+           casamet%moistspin_3(arraysize,mdyear),   &
+           casamet%moistspin_4(arraysize,mdyear),   &
+           casamet%moistspin_5(arraysize,mdyear),   &
+           casamet%moistspin_6(arraysize,mdyear))
 
   ALLOCATE(casabal%FCgppyear(arraysize),           &
            casabal%FCnppyear(arraysize),           &
            casabal%FCrpyear(arraysize),            &
+           casabal%FCrmleafyear(arraysize),        &
+           casabal%FCrmwoodyear(arraysize),        &
+           casabal%FCrmrootyear(arraysize),        &
+           casabal%FCrgrowyear(arraysize),         &
            casabal%FCrsyear(arraysize),            &
            casabal%FCneeyear(arraysize),           &
            casabal%FNdepyear(arraysize),           &

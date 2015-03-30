@@ -39,6 +39,7 @@ module cable_data_module
       capp   = 1004.64, & ! air spec. heat (J/kg/K)
       hl = 2.5014e6, & ! air spec. heat (J/kg/K)
       hlf = 0.334e6, & ! latent heat of fusion
+      hls = 2.8350e6, & ! latent heat of sublimation (J/kg)
       !hl = 2.5104e6, & ! air spec. heat (J/kg/K)
       !hlf = 0.335e6, & ! latent heat of fusion
       dheat  = 21.5E-6, & ! molecular diffusivity for heat
@@ -241,7 +242,7 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF
+         CAPP, TFRZ, HL, HLF, HLS
    END TYPE issnow_type
 
 
@@ -432,6 +433,7 @@ SUBROUTINE ssnow_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
+   C%HLS   => PHYS%HLS
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr 
 

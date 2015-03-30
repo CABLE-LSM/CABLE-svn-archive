@@ -50,6 +50,8 @@ MODULE cable_input_module
    USE casadimension,     ONLY: icycle
    USE casavariable
    USE phenvariable
+   USE POP_Types,               Only: POP_TYPE
+   USE POPModule,               Only: alloc_POP
    USE cable_param_module
    USE cable_checks_module,     ONLY: ranges, rh_sh
    USE cable_radiation_module,  ONLY: sinbet
@@ -57,13 +59,22 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR
 
    IMPLICIT NONE
    
    PRIVATE
    PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,      &
-        allocate_cable_vars, get_met_data
+       allocate_cable_vars, get_met_data, &
+       ncid_met,        &
+       ncid_rain,       &
+       ncid_snow,       &
+       ncid_lw,         &
+       ncid_sw,         &
+       ncid_ps,         &
+       ncid_qa,         &
+       ncid_ta,         &
+       ncid_wd
 
    INTEGER                      ::                                        & 
         ncid_met,        & ! met data netcdf file ID
@@ -282,11 +293,15 @@ END SUBROUTINE get_default_lai
 !
 !==============================================================================
 
-SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
+SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
+   USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
+                                   HANDLE_ERR
+   IMPLICIT NONE
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
    REAL, INTENT(IN) :: TFRZ 
+   INTEGER, INTENT(INOUT)      :: koffset ! offset between met file and desired period
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
    LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
    
@@ -313,7 +328,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         isoil_dims,             & ! number of dims of isoil var if in met file
         tsmin,tsdoy,tsyear,     & ! temporary variables
         x,y,i,j,                & ! do loop counters
-        tempmonth
+        tempmonth,				&
+        ssod, &
+        nsod, &
+        LOY, &
+        iday,&
+        imin,&
+        isec,&
+        ishod, &
+        dnsec  = 0,&
+        ntstp
    INTEGER,DIMENSION(1)        ::                                         &
         timedimID,              & ! time dimension ID number
         data1i                    ! temp variable for netcdf reading
@@ -329,11 +353,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
    CHARACTER(LEN=10)                :: todaydate, nowtime ! used to timestamp log file
    REAL(4),DIMENSION(1)             :: data1 ! temp variable for netcdf reading
    REAL(4),DIMENSION(1,1)           :: data2 ! temp variable for netcdf reading
-   REAL(4),POINTER,DIMENSION(:)     :: temparray1 ! temp read in variable
-   REAL(4),POINTER,DIMENSION(:,:)   ::                                         &
+   REAL(4), DIMENSION(:),     ALLOCATABLE :: temparray1  ! temp read in variable
+   REAL(4), DIMENSION(:,:),   ALLOCATABLE :: &
         tempPrecip2,            & ! used for spinup adj
         temparray2                ! temp read in variable
-   REAL(4),POINTER,DIMENSION(:,:,:) :: tempPrecip3 ! used for spinup adj
+   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
         all_met     ! ALL required met in met file (no synthesis)?
 
@@ -357,13 +381,45 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
   IF (ncciy > 0) THEN
     WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
     ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'rainf'
+          CALL handle_err( ok )
+       ENDIF
     ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'snow'
+          CALL handle_err( ok )
+       ENDIF
     ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'lw'
+          CALL handle_err( ok )
+       ENDIF
     ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'sw'
+          CALL handle_err( ok )
+       ENDIF
     ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'ps'
+          CALL handle_err( ok )
+       ENDIF
     ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'qa'
+          CALL handle_err( ok )
+       ENDIF
     ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'ta'
+          CALL handle_err( ok )
+       ENDIF
     ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+       IF (ok /= NF90_NOERR) THEN
+          PRINT*,'wind',ncid_wd
+          CALL handle_err( ok )
+       ENDIF
     ncid_met = ncid_rain
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
@@ -441,6 +497,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Needed since r_1 will be double precision with -r8:
     lon_all = REAL(temparray2)
+    DEALLOCATE(temparray2)
 
     ! Check for "mask" variable or "land" variable to tell grid type
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
@@ -625,6 +682,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     WRITE(logn,'(1X,A29,I8,A3,F10.3,A5)') 'Number of time steps in run: ',&
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
 
+
+    ! CLN READJUST kend referring to Set START & END
+    ! if kend > # days in selected episode
+
+
     !********* gswp input file has bug in timevar **************
     IF (ncciy > 0) THEN
       PRINT *, 'original timevar(kend) = ', timevar(kend)
@@ -650,6 +712,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
 
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
+    !!CLN CRITICAL! From my point of view, the information in the file is correct...
+    !!CLN WHY DO the input files all have bugs???
     IF (timevar(1) == 0.0) THEN
       READ(timeunits(29:30),*) tsmin
       IF (tsmin*60.0 >= dels) THEN
@@ -692,187 +756,48 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     READ(timeunits(23:24),*) sdoytmp ! integer day of that month
     READ(timeunits(26:27),*) shod  ! starting hour of day 
     ! Decide day-of-year for non-leap year:
-    SELECT CASE(smoy)
-    CASE(1) ! Jan
-       sdoy=sdoytmp
-    CASE(2) ! Feb
-       sdoy=sdoytmp+lastday(1)
-    CASE(3) ! Mar
-       sdoy=sdoytmp+lastday(2)
-    CASE(4)
-       sdoy=sdoytmp+lastday(3)
-    CASE(5)
-       sdoy=sdoytmp+lastday(4)
-    CASE(6)
-       sdoy=sdoytmp+lastday(5)
-    CASE(7)
-       sdoy=sdoytmp+lastday(6)
-    CASE(8)
-       sdoy=sdoytmp+lastday(7)
-    CASE(9)
-       sdoy=sdoytmp+lastday(8)
-    CASE(10)
-       sdoy=sdoytmp+lastday(9)
-    CASE(11)
-       sdoy=sdoytmp+lastday(10)
-    CASE(12) 
-       sdoy=sdoytmp+lastday(11)
-    CASE DEFAULT
-       CALL abort('Could not interpret month in "time" units from ' &
-            //TRIM(filename%met)// '(SUBROUTINE open_met_file)')
-    END SELECT
-    IF(leaps) THEN ! If we're using leap year timing:
-       ! If start year is a leap year and start month > Feb, add a day:
-       IF( ( ( MOD( syear,4 ) == 0 .AND. MOD( syear, 100 ) /=0 ) .OR.          & 
-           ( MOD( syear, 4 ) == 0 .AND. MOD( syear, 400 ) == 0 ) )             &
-           .AND. smoy > 2 ) sdoy = sdoy + 1
-                 
+    CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
        ! Number of days between start position and 1st timestep:
-       jump_days = INT((timevar(1)/3600.0 + shod)/24.0)
-       ! Cycle through days to find leap year inclusive starting date:
-       DO i=1,jump_days
-          sdoy = sdoy + 1
-          IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-               (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
-             ! Set month of year for leap year:
-             SELECT CASE(sdoy)
-             CASE(1) ! Jan
-                smoy = 1
-             CASE(32) ! Feb
-                smoy = 2
-             CASE(61) ! Mar
-                smoy = 3
-             CASE(92)
-                smoy = 4
-             CASE(122)
-                smoy = 5
-             CASE(153)
-                smoy = 6
-             CASE(183)
-                smoy = 7
-             CASE(214)
-                smoy = 8
-             CASE(245)
-                smoy = 9
-             CASE(275)
-                smoy = 10
-             CASE(306)
-                smoy = 11
-             CASE(336) 
-                smoy = 12
-             CASE(367)! end of year; increment
+    sdoy = sdoy + INT((timevar(1)/3600.0 + shod)/24.0)
+    nsod = MOD(INT((timevar(1) + shod*3600)),86400)
+
+    DO
+       LOY = 365
+       IF ( IS_LEAPYEAR( syear ) ) LOY = 366
+       IF ( sdoy .GT. LOY ) THEN
+          sdoy  = sdoy - LOY
                 syear = syear + 1 
-                smoy = 1
-                sdoy = 1
-             END SELECT
-          ELSE 
-             ! Set month of year for non-leap year:
-             SELECT CASE(sdoy)
-             CASE(1) ! Jan
-                smoy = 1
-             CASE(32) ! Feb
-                smoy = 2
-             CASE(60) ! Mar
-                smoy = 3
-             CASE(91)
-                smoy = 4
-             CASE(121)
-                smoy = 5
-             CASE(152)
-                smoy = 6
-             CASE(182)
-                smoy = 7
-             CASE(213)
-                smoy = 8
-             CASE(244)
-                smoy = 9
-             CASE(274)
-                smoy = 10
-             CASE(305)
-                smoy = 11
-             CASE(335) 
-                smoy = 12
-             CASE(366) ! end of year; increment
-                syear = syear + 1 
-                smoy = 1
-                sdoy = 1
-             END SELECT
+        ELSE 
+          EXIT
           END IF
        END DO
-       ! Update starting hour-of-day for first time step's value
-       shod = MOD(REAL(timevar(1)/3600.0 + shod),24.0)
-    ELSE ! If not using leap year timing,
-       ! simply update starting times for first value of "time":
-       tshod = MOD(REAL(timevar(1)/3600.0 + shod),24.0)
-       tsdoy = MOD(INT((timevar(1)/3600.0 + shod)/24.0) + sdoy, 365)
-       tsyear = INT(REAL(INT((timevar(1)/3600.0+shod)/24.0)+sdoy)/365.0)+syear
-       shod=tshod  ! real valued
-       sdoy=tsdoy  ! integer valued
-       syear=tsyear ! integer valued
-       ! Set moy:
-       SELECT CASE(sdoy)
-       CASE(1:31) ! Jan
-          smoy = 1
-       CASE(32:59) ! Feb
-          smoy = 2
-       CASE(60:90) ! Mar
-          smoy = 3
-       CASE(91:120)
-          smoy = 4
-       CASE(121:151)
-          smoy = 5
-       CASE(152:181)
-          smoy = 6
-       CASE(182:212)
-          smoy = 7
-       CASE(213:243)
-          smoy = 8
-       CASE(244:273)
-          smoy = 9
-       CASE(274:304)
-          smoy = 10
-       CASE(305:334)
-          smoy = 11
-       CASE(335:365) 
-          smoy = 12
-       END SELECT
-    END IF
+
+
+    CALL DOYSOD2YMDHMS( syear, sdoy, nsod, smoy, iday, ishod, imin, isec )
+    shod = REAL(ishod) + REAL(imin)/60. + REAL(isec)/3600.
+    ! Cycle through days to find leap year inclusive starting date:
     ! Now all start time variables established, report to log file:
     WRITE(logn,'(1X,A12,F5.2,A14,I3,A14,I4,2X,A3,1X,A4)') &
          'Run begins: ',shod,' hour-of-day, ',sdoy, ' day-of-year, ',&
          syear, time_coord, 'time'
     ! Determine ending time of run...
     IF(leaps) THEN ! If we're using leap year timing...
-       ! Number of days between beginning and end of run:
-       jump_days = INT(((timevar(kend)-timevar(1))/3600.0 + shod)/24.0)
-!       jump_days = INT(((timevar(kend)-timevar(1)+dels)/3600.0 + shod)/24.0)
-       ! initialise:
-       ehod = shod
-       edoy = sdoy
        eyear = syear
-       ! Cycle through days to find leap year inclusive ending date:
-       DO i=1,jump_days
-          edoy = edoy + 1
-          IF((MOD(eyear,4)==0.AND.MOD(eyear,100)/=0).OR. & 
-               (MOD(eyear,4)==0.AND.MOD(eyear,400)==0)) THEN
-             ! Set moy for leap year:
-             SELECT CASE(edoy)
-             CASE(367)! end of year; increment
+       edoy  = sdoy + INT(((timevar(kend)-timevar(1))/3600.0 + shod)/24.0)
+       ehod  = MOD(((timevar(kend)-timevar(1)/3600.) + shod),24._r_2)
+
+       DO
+          LOY = 365
+          IF ( IS_LEAPYEAR( eyear ) ) LOY = 366
+          IF ( edoy .GT. LOY ) THEN
+             edoy  = edoy - LOY
                 eyear = eyear + 1 
-                edoy = 1
-             END SELECT
           ELSE 
-             ! Set moy for non-leap year:
-             SELECT CASE(edoy)
-             CASE(366) ! end of year; increment
-                eyear = eyear + 1 
-                edoy = 1
-             END SELECT
+             EXIT
           END IF
        END DO
-       ! Update starting hour-of-day fot first time step's value
-       ehod = MOD(REAL((timevar(kend)-timevar(1))/3600.0 + shod),24.0)
-!       ehod = MOD(REAL((timevar(kend)-timevar(1)+dels)/3600.0 + shod),24.0)
+
+
     ELSE ! if not using leap year timing
        ! Update shod, sdoy, syear for first "time" value:
        ehod = MOD(REAL((timevar(kend)-timevar(1))/3600.0 + shod),24.0)
@@ -886,6 +811,39 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 !       eyear = INT(REAL(INT(((timevar(kend)-timevar(1)+dels) &
 !            /3600.0+shod)/24.0)+sdoy)/365.0)+syear
     END IF
+    ! IF A CERTAIN PERIODE IS DESIRED AND WE ARE NOT RUNNING ON GSWP DATA
+    ! RECALCULATE STARTING AND ENDING INDICES
+    IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0) THEN
+       IF ( syear.GT.CABLE_USER%YEARSTART .OR. eyear.LE.CABLE_USER%YEAREND .OR. &
+            ( syear.EQ.CABLE_USER%YEARSTART .AND. sdoy.gt.1 ) ) THEN
+          WRITE(*,*) "Chosen periode doesn't match dataset period!"
+          WRITE(*,*) "Chosen periode: ",CABLE_USER%YEARSTART,1,CABLE_USER%YEAREND,365
+          WRITE(*,*) "Data   periode: ",syear,sdoy, eyear,edoy
+          WRITE(*,*) "For using the metfile's time set CABLE_USER%YEARSTART = 0 !"
+          STOP
+       ENDIF
+
+       ! Find real kstart!
+       dnsec = 0
+       DO y = syear, CABLE_USER%YEARSTART-1
+          LOY = 365
+          IF ( IS_LEAPYEAR( y ) ) LOY = 366
+          IF ( y .EQ. syear ) THEN
+             dnsec = ( LOY - sdoy ) * 86400 + (24 - shod) * 3600
+          ELSE
+             dnsec = dnsec + LOY * 86400
+          ENDIF
+       END DO
+       koffset = INT(REAL(dnsec)/REAL(dels)) - 1
+       ! Find real kend
+       kend = 0
+       DO y = CABLE_USER%YEARSTART, CABLE_USER%YEAREND
+          LOY = 365
+          IF ( IS_LEAPYEAR( y ) ) LOY = 366
+          kend = kend + INT( REAL(LOY) * 86400./REAL(dels) )
+       END DO
+    ENDIF
+
     ! Report finishing time to log file:
     WRITE(logn,'(1X,A12,F5.2,A14,I3,A14,I4,2X,A3,1X,A4)') 'Run ends:   ',&
          ehod,' hour-of-day, ',edoy, &
@@ -986,7 +944,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
     ! Multiply acceptable Rainf ranges by time step size:
-    ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
+    !ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
     ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
@@ -1237,6 +1195,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                   //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
              ! Needed since r_1 will be double precision with -r8:
              avPrecip = REAL(temparray1)
+             DEALLOCATE(temparray1)
           END IF
           ! Now find average precip from met data, and create rescaling
           ! factor for spinup:
@@ -1245,9 +1204,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              IF(metGrid=='mask') THEN
                 ! Allocate space for temporary precip variable:
                 ALLOCATE(tempPrecip3(1,1,kend))
-                ! Get rainfall data for this grid cell:
+                ! Get all data for this grid cell:
                 ok= NF90_GET_VAR(ncid_met,id%Rainf,tempPrecip3, &
-                     start=(/land_x(i),land_y(i),1/),count=(/1,1,kend/))
+                     start=(/land_x(i),land_y(i),1+koffset/),count=(/1,1,kend/))
                 IF(ok /= NF90_NOERR) CALL nc_abort &
                      (ok,'Error reading Rainf in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1257,7 +1216,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 ! Get snowfall data for this grid cell:
                 IF(exists%Snowf) THEN
                    ok= NF90_GET_VAR(ncid_met,id%Snowf,tempPrecip3, &
-                        start=(/land_x(i),land_y(i),1/),count=(/1,1,kend/))
+                        start=(/land_x(i),land_y(i),1+koffset/),count=(/1,1,kend/))
                    IF(ok /= NF90_NOERR) CALL nc_abort &
                         (ok,'Error reading Snowf in met data file ' &
                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1272,7 +1231,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 ALLOCATE(tempPrecip2(1,kend))
                 ! Get rainfall data for this land grid cell:
                 ok= NF90_GET_VAR(ncid_met,id%Rainf,tempPrecip2, &
-                     start=(/i,1/),count=(/1,kend/))
+                     start=(/i,1+koffset/),count=(/1,kend/))
                 IF(ok /= NF90_NOERR) CALL nc_abort &
                      (ok,'Error reading Rainf in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1280,7 +1239,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 PrecipTot = REAL(SUM(SUM(tempPrecip2,2)))*convert%Rainf 
                 IF(exists%Snowf) THEN
                    ok= NF90_GET_VAR(ncid_met,id%Snowf,tempPrecip2, &
-                        start=(/i,1/),count=(/1,kend/))
+                        start=(/i,1+koffset/),count=(/1,kend/))
                    IF(ok /= NF90_NOERR) CALL nc_abort &
                         (ok,'Error reading Snowf in met data file ' &
                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1380,6 +1339,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              END DO
           END IF
        END IF
+    ELSE
+       NULLIFY(vegtype_metfile)
     END IF
 
     ! Look for soil type:
@@ -1436,10 +1397,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              END DO
           END IF
        END IF
+    ELSE
+       NULLIFY(soiltype_metfile)
     END IF
-    ! Deallocate read in arrays:
-    IF(ASSOCIATED(temparray1)) DEALLOCATE(temparray1)
-    IF(ASSOCIATED(temparray2)) DEALLOCATE(temparray2)
     
     ! Report finding met variables to log file:
     IF(all_met) THEN
@@ -1474,7 +1434,7 @@ END SUBROUTINE open_met_file
 !==============================================================================
 
 SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
-                        veg,kend,dels, TFRZ, ktau) 
+       veg,kend,dels, TFRZ, ktau, kstart )
    ! Precision changes from REAL(4) to r_1 enable running with -r8
 
 
@@ -1482,12 +1442,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    LOGICAL, INTENT(IN)                    ::                                   &
         spinup,         & ! are we performing a spinup?
         spinConv          ! has model spinup converged?
-   TYPE(met_type),INTENT(OUT)             :: met ! meteorological data
+   TYPE(met_type),             INTENT(INOUT) :: met     ! meteorological data
    TYPE (soil_parameter_type),INTENT(IN)  :: soil 
    TYPE (radiation_type),INTENT(IN)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
    INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
-                                        kend    ! total number of timesteps in run
+                                        kend, & ! total number of timesteps in run
+                                        kstart  ! starting timestep
    REAL,INTENT(IN)                   :: dels ! time step size
    REAL, INTENT(IN) :: TFRZ 
    
@@ -1506,7 +1467,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        ! First set timing variables:
        ! All timing details below are initially written to the first patch
        ! of each gridcell, then dumped to all patches for the gridcell.
-       IF(ktau==1) THEN ! initialise...
+       IF(ktau==kstart) THEN ! initialise...
           SELECT CASE(time_coord)
           CASE('LOC')! i.e. use local time by default
              ! hour-of-day = starting hod 
@@ -2227,6 +2188,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       CALL abort('Unrecognised grid type')
     END IF ! grid type
 
+    if ((.not. exists%Snowf) .or. all(met%precip_sn == 0.0)) then ! honour snowf input
     DO i=1,mland ! over all land points/grid cells
       ! Set solid precip based on temp
       met%precip_sn(landpt(i)%cstart:landpt(i)%cend) = 0.0 ! (EK nov2007)
@@ -2234,6 +2196,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
            met%precip_sn(landpt(i)%cstart:landpt(i)%cend) &
            = met%precip(landpt(i)%cstart) ! (EK nov2007)
     END DO ! 1, mland over all land grid points
+    endif
 
     ! Set cosine of zenith angle (provided by GCM when online):
     met%coszen = sinbet(met%doy, rad%latitude, met%hod)
@@ -2282,7 +2245,6 @@ SUBROUTINE close_met_file
   IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
        //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
   ! Clear lat_all and lon_all variables
-  DEALLOCATE(lat_all,lon_all)
   
 END SUBROUTINE close_met_file
 
@@ -2318,10 +2280,9 @@ END SUBROUTINE close_met_file
 !
 !==============================================================================
 
-SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
-                           soil,canopy,rough,rad,sum_flux,                     &
-                           bal,logn,vegparmnew,casabiome,casapool,             &
-                           casaflux,casamet,casabal,phen, EMSOIL,TFRZ)
+SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
+       sum_flux,bal,logn,vegparmnew,casabiome,casapool,    &
+       casaflux,casamet,casabal,phen,POP,spinup,EMSOIL,TFRZ)
    ! Input variables not listed:
    !   filename%type  - via cable_IO_vars_module
    !   exists%type    - via cable_IO_vars_module
@@ -2330,6 +2291,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    !   (determined here or from sub get_default_params <- countPatch)
    !   landpt%type    - via cable_IO_vars_module (nap,cstart,cend,ilon,ilat)
    !   max_vegpatches - via cable_IO_vars_module
+
+   USE POPmodule, ONLY: POP_INIT, alloc_POP
 
    IMPLICIT NONE
     
@@ -2351,18 +2314,27 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    TYPE (casa_met)    , INTENT(OUT)        :: casamet
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
+    TYPE( POP_TYPE ), INTENT(INOUT)         :: POP
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
-   LOGICAL,INTENT(IN)                      :: vegparmnew  ! are we using the new format?
+   LOGICAL,INTENT(IN)                      :: &
+         vegparmnew, &  ! are we using the new format?
+         spinup         ! for POP (initialize pop)
    REAL, INTENT(IN) :: TFRZ, EMSOIL 
 
    ! Local variables
    REAL,POINTER,DIMENSION(:)          :: pfractmp ! temp store of patch fraction
    LOGICAL                                 :: completeSet ! was a complete parameter set found?
+    LOGICAL                            :: EXRST = .FALSE. ! does a RunIden restart file exist?
    INTEGER                            ::                                  &
         mp_restart,        & ! total number of patches in restart file
         mpID,              &
         napID,             &
         i                    ! do loop variables
+    CHARACTER :: frst_in*100, CYEAR*4
+
+    INTEGER   :: IOS
+    CHARACTER :: TACC*20
+    INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
 
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))
@@ -2376,23 +2348,36 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     ! Those variables found in the met file will again overwrite existing ones.
 
     CALL get_default_params(logn,vegparmnew)
-
     CALL allocate_cable_vars(air,bgc,canopy,met,bal,rad,rough,soil,ssnow, &
             sum_flux,veg,mp)
     WRITE(logn,*) ' CABLE variables allocated with ', mp, ' patch(es).'
-    IF (icycle > 0) THEN
+
+    IF (icycle > 0 .OR. CABLE_USER%CASA_DUMP_WRITE ) &
       CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
+    IF (icycle > 0) THEN
       CALL alloc_phenvariable(phen,mp)
+       IF ( CABLE_USER%CALL_POP ) CALL alloc_POP(POP,mp)
     ENDIF
 
     ! Write parameter values to CABLE's parameter variables:
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
             rad,logn,vegparmnew,smoy, TFRZ)
+
+    ! Zero out lai where there is no vegetation acc. to veg. index
+    WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+
     IF (icycle > 0) THEN
       CALL write_cnp_params(veg,casaflux,casamet)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
-      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen,met)
+      IF ( CABLE_USER%CALL_POP ) THEN
+         IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
+            CALL POP_init( POP, veg%disturbance_interval )
+         ELSE
+            CALL POP_IO( POP, casamet, cable_user%YearStart, "READ" , .TRUE.)
+         END IF
+      END IF
     ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done
@@ -2403,21 +2388,29 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 !    ! load default LAI values from global data:
 !    CALL get_default_lai
 
-    ! Look for restart file (which will have parameters):
-    ok = NF90_OPEN(filename%restart_in,0,ncid_rin) ! open restart file
-    IF (ok /= NF90_NOERR) THEN
-      ! With no restart file, use default parameters already loaded
-      WRITE(logn,*) ' Could not find restart file ', TRIM(filename%restart_in)
-      WRITE(logn,*) ' Pre-loaded default initialisations are used.'
-      WRITE(*,*)    ' Could not find restart file ', TRIM(filename%restart_in)
-      WRITE(*,*)    ' Pre-loaded default initialisations are used.'
+    ! Look for explicit restart file (which will have parameters):
+    IF ( TRIM(filename%restart_in) .EQ. '' ) filename%restart_in = './'
+    frst_in = filename%restart_in
+    ok = NF90_OPEN(TRIM(frst_in),NF90_NOWRITE,ncid_rin)
+    IF ( ok == NF90_NOERR ) EXRST = .TRUE.
 
-    ELSE
-      ! Restart file exists, parameters and init will be loaded from it.
+    ! If not an explicit rstfile, search for RunIden_YEAR...nc
+    ! use (filename%restart_in) as path
+    IF ( .NOT. EXRST .AND. CABLE_USER%YEARSTART .GT. 0 ) THEN
+       WRITE( CYEAR,FMT="(I4)" ) CurYear
+       frst_in = TRIM(filename%restart_in)//'/'//TRIM(cable_user%RunIden)//&
+            '_'//CYEAR//'_cable_rst.nc'
+       INQUIRE( FILE=TRIM( frst_in ), EXIST=EXRST )
+    ENDIF
+
+    IF ( EXRST ) THEN
+       ok = NF90_OPEN(TRIM(frst_in),NF90_NOWRITE,ncid_rin) ! open restart file
+       IF (ok /= NF90_NOERR) CALL HANDLE_ERR(ok)
+      ! Any restart file exists, parameters and init will be loaded from it.
       WRITE(logn,*) ' Overwriting initialisations with values in ', &
-                    'restart file: ', TRIM(filename%restart_in)
+            'restart file: ', TRIM(frst_in)
       WRITE(*,*)    ' Overwriting initialisations with values in ', &
-                    'restart file: ', TRIM(filename%restart_in)
+            'restart file: ', TRIM(frst_in)
      
       ! Check total number of patches in restart file:
       ok = NF90_INQ_DIMID(ncid_rin,'mp',mpID)
@@ -2425,17 +2418,17 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
         ok = NF90_INQ_DIMID(ncid_rin,'mp_patch',mpID)
         IF(ok /= NF90_NOERR)  CALL nc_abort &
            (ok,'Error finding mp or mp_patch dimension in restart file ' &
-           //TRIM(filename%restart_in)//' (SUBROUTINE load_parameters) ' &
+               //TRIM(frst_in)//' (SUBROUTINE load_parameters) ' &
            //'Recommend running without restart file.')
       END IF
       ok = NF90_INQUIRE_DIMENSION(ncid_rin,mpID,len=mp_restart)
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error finding total number of patches in restart file ' &
-           //TRIM(filename%restart_in)//' (SUBROUTINE load_parameters) ' &
+            //TRIM(frst_in)//' (SUBROUTINE load_parameters) ' &
            //'Recommend running without restart file.')
       ! Check that mp_restart = mp from default/met values
       IF(mp_restart /= mp) CALL abort('Number of patches in '// &
-           'restart file '//TRIM(filename%restart_in)//' does not equal '// &
+            'restart file '//TRIM(frst_in)//' does not equal '// &
            'to number in default/met file settings. (SUB load_parameters) ' &
            //'Recommend running without restart file.')
 
@@ -2443,6 +2436,14 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL get_restart_data(logn,ssnow,canopy,rough,bgc,bal,veg, &
                             soil,rad,vegparmnew, EMSOIL )
 
+    ELSE
+       ! With no restart file, use default parameters already loaded
+       WRITE(logn,*) ' Could neither find restart file ', TRIM(filename%restart_in)
+       WRITE(logn,*) ' nor ', TRIM(frst_in)
+       WRITE(logn,*) ' Pre-loaded default initialisations are used.'
+       WRITE(*,*)    ' Could neither find restart file ', TRIM(filename%restart_in)
+       WRITE(*,*)    ' nor ', TRIM(frst_in)
+       WRITE(*,*)    ' Pre-loaded default initialisations are used.'
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
