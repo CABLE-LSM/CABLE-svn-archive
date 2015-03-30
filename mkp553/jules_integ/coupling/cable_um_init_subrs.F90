@@ -760,40 +760,30 @@ SUBROUTINE update_kblum_radiation( cos_zenith_angle, surf_down_sw )
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: cos_zenith_angle
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows, 4) :: surf_down_sw 
 
-      ! jhan: JULES standalone hack: we are going to use spitter so we want 
-      ! same %fsd as seen offline
-      !kblum_rad%SW_DOWN_DIR = ( surf_down_sw(:,:,1)                            &
-      !                  + surf_down_sw(:,:,3) )                                &
-      !                  * cos_zenith_angle(:,:)
+   REAL :: sw_down(um1%row_length, um1%rows)
 
-      !kblum_rad%SW_DOWN_DIF = ( surf_down_sw(:,:,2)                            & 
-      !                        + surf_down_sw(:,:,4) )                          &
-      !                        *cos_zenith_angle(:,:)
-      ! jhan: JULES standalone hack: we are going to use spitter so we want 
-      ! same %fsd as seen offline
-      kblum_rad%SW_DOWN_VIS = 0.5 * surf_down_sw(:,:,1) 
-      !kblum_rad%SW_DOWN_VIS = (surf_down_sw(:,:,1)                             & 
-      !                        + surf_down_sw(:,:,2) )                          &
-      !                        * cos_zenith_angle(:,:)
+      sw_down = SUM(surf_down_sw, 3)
 
-      ! jhan: JULES standalone hack: we are going to use spitter so we want 
-      ! same %fsd as seen offline
-      kblum_rad%SW_DOWN_NIR = 0.5 * surf_down_sw(:,:,1)
-      !kblum_rad%SW_DOWN_NIR = ( surf_down_sw(:,:,3)                            &
-      !                        + surf_down_sw(:,:,4) )                          &
-      !                        *cos_zenith_angle(:,:)
-      ! 
+      kblum_rad%SW_DOWN_DIR = ( surf_down_sw(:,:,1) + surf_down_sw(:,:,3) )    &
+                            * cos_zenith_angle(:,:)
+
+      kblum_rad%SW_DOWN_DIF = ( surf_down_sw(:,:,2) + surf_down_sw(:,:,4) )    &
+                            * cos_zenith_angle(:,:)
+
+      kblum_rad%SW_DOWN_VIS = (surf_down_sw(:,:,1) + surf_down_sw(:,:,2) )     &
+                            * cos_zenith_angle(:,:)
+
+      kblum_rad%SW_DOWN_NIR = ( surf_down_sw(:,:,3) + surf_down_sw(:,:,4) )    &
+                            * cos_zenith_angle(:,:)
+
       !! fbeam for VIS
-      !kblum_rad%FBEAM(:,:,1) = surf_down_sw(:,:,1)                             &
-      !                        * cos_zenith_angle(:,:)                          &
-      !                           / max( 0.1, kblum_rad%SW_DOWN_VIS )
+      kblum_rad%FBEAM(:,:,1) = surf_down_sw(:,:,1) * cos_zenith_angle(:,:)     &
+                             / MAX( 0.1, kblum_rad%SW_DOWN_VIS )
       !! fbeam for NIR
-      !kblum_rad%FBEAM(:,:,2) = surf_down_sw(:,:,3)                             &
-      !                        * cos_zenith_angle(:,:)                          &
-      !                        / max( 0.1, kblum_rad%SW_DOWN_NIR )
+      kblum_rad%FBEAM(:,:,2) = surf_down_sw(:,:,3) * cos_zenith_angle(:,:)     &
+                             / MAX( 0.1, kblum_rad%SW_DOWN_NIR )
       !!---fbeam for all solar 
-      !kblum_rad%FBEAM(:,:,3) = kblum_rad%SW_DOWN_DIR /                         &
-      !                        MAX( 0.1, SW_DOWN )
+      kblum_rad%FBEAM(:,:,3) = kblum_rad%SW_DOWN_DIR / MAX( 0.1, SW_DOWN )
        
 END SUBROUTINE Update_kblum_radiation
 
@@ -814,11 +804,9 @@ SUBROUTINE  um2cable_met_rad( cos_zenith_angle)
       
       !--- CABLE radiation type forcings
       !--- kblum_rad% vars are computed in subroutine update_kblum_radiation 
-      ! jhan: JULES standalone hack: we are going to use spitter so we want 
-      ! same %fsd as seen offline
-      !CALL um2cable_rr( kblum_rad%FBEAM(:,:,1), rad%fbeam(:,1))
-      !CALL um2cable_rr( kblum_rad%FBEAM(:,:,2), rad%fbeam(:,2))
-      !CALL um2cable_rr( kblum_rad%FBEAM(:,:,3), rad%fbeam(:,3))
+      CALL um2cable_rr( kblum_rad%FBEAM(:,:,1), rad%fbeam(:,1))
+      CALL um2cable_rr( kblum_rad%FBEAM(:,:,2), rad%fbeam(:,2))
+      CALL um2cable_rr( kblum_rad%FBEAM(:,:,3), rad%fbeam(:,3))
 
 END SUBROUTINE  um2cable_met_rad
 
