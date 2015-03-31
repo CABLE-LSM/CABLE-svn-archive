@@ -35,7 +35,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
                                   land_index, tile_frac,  tile_pts, tile_index,&
                                   bexp, hcon, satcon, sathh, smvcst,           &
-                                  smvcwt,  smvccl, albsoil, snow_tile,         &
+                                  smvcwt,  smvccl, albsoil, ti_mean,ti_sig,    &
+                                  snow_tile,                                   &
                                   snow_rho1l, snage_tile, isnow_flg3l,         &
                                   snow_rho3l, snow_cond, snow_depth3l,         &
                                   snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
@@ -114,7 +115,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       smvcwt,  &
       smvccl,  &
       albsoil, &
-      fland 
+      fland ,  &
+      ti_mean, &
+      ti_sig
    
    REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
       sw_down,          & 
@@ -174,7 +177,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    
    REAL, INTENT(IN) :: co2_mmr
-
+      
    !___true IF vegetation (tile) fraction is greater than 0
    LOGICAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) :: L_tile_pts
   
@@ -287,7 +290,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sm_levels, itimestep, latitude, longitude,          &
                            land_index, tile_frac, tile_pts, tile_index,        &
                            bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
-                           smvccl, albsoil, snow_tile, snow_rho1l,             &
+                           smvccl, albsoil, ti_mean, ti_sig, snow_tile,        &
+                           snow_rho1l,                                         &
                            snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
                            snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
