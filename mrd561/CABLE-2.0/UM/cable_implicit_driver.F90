@@ -181,7 +181,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       RESP_P_FT,     &
       RESP_P_FT_old, &
       G_LEAF
-
+ 
    REAL ::                                                                     &
       RESP_S(um1%LAND_PTS,DIM_CS1),     &
       RESP_S_old(um1%LAND_PTS,DIM_CS1), &

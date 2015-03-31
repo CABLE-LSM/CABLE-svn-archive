@@ -42,7 +42,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_pts, tile_index,     &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
-                              smvccl, albsoil, snow_tile, snow_rho1l,          &
+                              smvccl, albsoil, ti_mean,ti_sig, snow_tile,      &
+                              snow_rho1l,                                      &
                               snage_tile, isnow_flg3l, snow_rho3l, snow_cond,  &
                               snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
                               lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
@@ -50,7 +51,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,&
                    CO2_MMR, sthu_tile, smcl_tile, smgw_tile, sthf_tile, sthu,  &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
-                              dzsoil, ti_mean,ti_sig )                         
+                              dzsoil )                         
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
    
@@ -105,7 +106,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       smvcwt, &   !
       smvccl, &   !
       albsoil,&   !
-      fland       !
+      fland, &    !
+      ti_mean, &
+      ti_sig
        
    REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                          &
       sw_down, &        !
@@ -171,8 +174,6 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             & 
       sin_theta_latitude
       
-   REAL, INTENT(IN), DIMENSION(land_pts) :: ti_mean,ti_sig
-
    !------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM cable_explicit_driver() -------------------------
    !------------------------------------------------------------------------- 
