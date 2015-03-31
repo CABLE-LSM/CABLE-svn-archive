@@ -900,6 +900,7 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing global detail to '   &
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
 
+
     ! Determine output aggregation details:
     IF(output%averaging(1:4) == 'user') THEN
        ! User-specified aggregation interval for output:
@@ -1092,7 +1093,7 @@ CONTAINS
               'FrcClay', REAL(soil%FClay, 4), ranges%FrcClay, patchout%FrcClay, 'soil')          
     IF(output%params .OR. output%ClappB) CALL write_ovar (ncid_out, opid%ClappB, &
               'ClappB', REAL(soil%clappB, 4), ranges%ClappB, patchout%ClappB, 'soil')    
-              
+             
   END SUBROUTINE open_output_file
   !=============================================================================
   SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
@@ -1850,8 +1851,6 @@ CONTAINS
        END IF
     END IF
     
-    
-    
     !MD Write the hydrology output data from the groundwater module calculations
     !water table depth
     IF(output%soil .OR. output%WatTable) THEN
@@ -1950,7 +1949,7 @@ CONTAINS
           ! Reset temporary output variable:
           out%SoilMatPot = 0.0
        END IF
-    END IF     
+    END IF 
     ! equilibrium soil matric potential
     IF(output%soil .or. output%EqSoilMatPot) THEN
        !write(*,*) 'EQ smp'    !MDeck
@@ -1997,7 +1996,8 @@ CONTAINS
        END IF
     END IF      
    
-    !write(*,*) ' at end of write_output '    !MDeck
+    
+  !write(*,*) ' at end of write_output '    !MDeck
  
   END SUBROUTINE write_output
   !=============================================================================

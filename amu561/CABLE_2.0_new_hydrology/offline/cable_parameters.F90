@@ -730,7 +730,9 @@ CONTAINS
     inSlopeSTD(:,:) = 0.0
 
     IF (cable_user%GW_MODEL) THEN
-       ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+      ! ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+       ok = NF90_OPEN(trim(filename%met),NF90_NOWRITE,ncid_elev) !Anna changed filename%gw_elev to filename%met
+  
 
        ok = NF90_INQ_VARID(ncid_elev, 'elevation', fieldID)
        IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation variables for SSGW'
@@ -1532,6 +1534,8 @@ CONTAINS
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
+    WHERE(soil%ssat > 0. ) soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
+
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
