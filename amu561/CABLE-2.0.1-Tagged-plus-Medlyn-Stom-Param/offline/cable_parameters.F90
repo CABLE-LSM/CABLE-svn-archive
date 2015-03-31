@@ -1142,6 +1142,10 @@ CONTAINS
     END IF
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
+   
+    !Parameter fix: ticket #66
+    WHERE(soil%ssat > 0. ) soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
+
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 

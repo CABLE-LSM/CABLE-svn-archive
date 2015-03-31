@@ -2,11 +2,63 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg raij
+   set -A kh vayu cher burn shin jigg raij squa bliz mael
 }
 
 
-## jiggle
+## blizzard.ccrc.unsw.edu.au
+host_bliz()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.2.1//lib/'
+   export NCMOD='/share/apps/netcdf/intel/4.2.1/include/Intel'
+   export FC='ifort'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+## maelstrom.ccrc.unsw.edu.au
+host_mael()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.2.1//lib/'
+   export NCMOD='/share/apps/netcdf/intel/4.2.1/include/Intel'
+   export FC='ifort'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+
+##squall.ccrc.unsw.edu.au
+host_squa()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.2.1//lib/'
+   export NCMOD='/share/apps/netcdf/intel/4.2.1/include/Intel'
+   export FC='ifort'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+# jiggle
 host_jigg()
 {
    export NCDIR='/usr/local/lib'
