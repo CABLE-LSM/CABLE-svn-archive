@@ -928,7 +928,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF(metunits%Rainf(1:8)=='kg/m^2/s'.OR.metunits%Rainf(1:10)== &
+    IF(metunits%Rainf(1:8)=='kg/m^2/s'.OR.metunits%Rainf(1:6)=='kg/m2s'.OR.metunits%Rainf(1:10)== &
          'kgm^-2s^-1'.OR.metunits%Rainf(1:4)=='mm/s'.OR. &
          metunits%Rainf(1:6)=='mms^-1'.OR. &
          metunits%Rainf(1:7)=='kg/m^2s') THEN
@@ -967,7 +967,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Wind units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF(metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms') THEN
+    IF (metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms'.AND.metunits%Wind(1:5)/='m s-1') THEN
        WRITE(*,*) metunits%Wind
        CALL abort('Unknown units for Wind'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
