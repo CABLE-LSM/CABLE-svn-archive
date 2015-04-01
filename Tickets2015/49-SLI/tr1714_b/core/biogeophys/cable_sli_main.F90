@@ -182,6 +182,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   endif
 
   ! Met data above soil:
+ 
   vmet(:)%Ta    = real(met%Tvair-273.16,r_2)
   vmet(:)%Da    = real(met%dva,r_2)
   write(55,*) ssoil%rtsoil
@@ -193,7 +194,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   vmet(:)%Rn    = canopy%fns
   Etrans(:)     = max(canopy%fevc/air%rlam/thousand, zero) ! m s-1
   h0(:) = ssoil%h0
-
+ 
 
   ! Initialisations:
   if (first) then
@@ -280,7 +281,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
      !phi(:,1) = max((phie -par(:,1)%he*Ksat(:,1)), (one+e5)*phie)+(h0(:)-hice(:))*Ksat(:,1)
      phi(:,1) = (one+e5)*phie + (h0(:)-hice(:))*Ksat(:,1)
   endwhere
-
+  var(:,:)%phi = phi
 
 
   ! ----------------------------------------------------------------
@@ -416,14 +417,16 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
   ! calculate base flow (topmodel)
   !qb = alpha * par(:,ms)%Ke*exp(-(par(:,ms)%zeta*zdelta))
   qex(:,ms) =  qex(:,ms) !+qb
-
-
-
-
+  !  write(*,*) vmet, SEB_only
+ ! stop
+ 
   if (SEB_only.eq.1) then
 
      do kk=1, mp
-     call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
+     !call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:)) 
+      do i=1, 1
+                    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
+      end do
      CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk),  1, dx(kk,:), &
                       h0(kk), hice(kk), S(kk,:), Tsoil(kk,:), &
                       Tsurface(kk), G0(kk), lE(kk),  &
@@ -436,8 +439,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
        canopy%fhs = canopy%fns - canopy%ga - canopy%fes
        ssoil%tss       = real(Tsurface(:)) + 273.16
        !write(*,"(a10, 100f16.6)") "sli_main SEB", canopy%fhs, canopy%fes, ssoil%rtsoil, vmet(1)%Ta
-  else
-
+  else 
+    
      call solve(ti, tf, ktau, mp, qprec(:),qprec_snow(:), ms,  dx(:,:), &
            h0(:), S(:,:), thetai(:,:), Jsensible(:,:), Tsoil(:,:), evap(:), &
            evap_pot(:), runoff(:), infil(:), drn(:), discharge(:), qh(:,:), &
@@ -450,7 +453,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
            deltaTa=deltaTa(:), lE_old=lE_old(:), &
            dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
            doadvection=advection)
-
 
   H(:)      = H(:)/(tf-ti)
   lE(:)     = lE(:)/(tf-ti)
@@ -560,7 +562,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssoil, met, canopy, air, rad, SEB_only)
 
      ssoil%smelt(kk) = vsnow(kk)%Qmelt*thousand/dt ! amount of melted snow leaving bottom of snow pack (mm/dt)
      ssoil%nsnow(kk) = vsnow(kk)%nsnow
-     ssoil%ssdnn(kk) = ssoil%snowd(kk)/sum(ssoil%sdepth(kk,1:nsnow_max))
+     if (sum(ssoil%sdepth(kk,1:nsnow_max)).gt.zero) then
+        ssoil%ssdnn(kk) = ssoil%snowd(kk)/sum(ssoil%sdepth(kk,1:nsnow_max))
+     endif
   enddo
 
 

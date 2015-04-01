@@ -367,6 +367,7 @@ REAL(r_2) :: Tqw, dtqwdtb
                    call hyofh(hmin, par(1)%lam, par(1)%eta, par(1)%Ke, par(1)%he, &
                      Kmin, Khmin, phimin) ! get phi at hmin
                    E_liq = ((var(1)%phi-phimin)/(half*dx(1))-var(1)%K)*thousand*var(1)%lambdav
+                  
                    lE0 = min(Epot,E_vap+ E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
                    if (Epot.gt.(E_vap+ E_liq)) dEdTs = zero
                    Tsurface = (-half*dx(1)*lE0 + half*dx(1)*vmet%Rn + &
@@ -1858,7 +1859,7 @@ END SUBROUTINE SEB_FR
 
   ! For debug: remove elemental pure
   ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
-    !SUBROUTINE hyofS(S, Tsoil, parin, var)
+  !  SUBROUTINE hyofS(S, Tsoil, parin, var)
 
     IMPLICIT NONE
 
@@ -1911,6 +1912,7 @@ END SUBROUTINE SEB_FR
        ! var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
        var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/(parin%thre-var%thetai)
        if (S.lt.one) var%phi = var%phie
+     !  var%phi = var%phie
        var%phiS = zero
        ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
        !      (parin%eta-one/parin%lam)/(parin%thre)
@@ -1959,7 +1961,7 @@ END SUBROUTINE SEB_FR
        !MC otherwise undefined
        var%KT   = zero
     endif
-
+ 
     !  variables required for vapour phase transfer
     theta  =  S*(parin%thre) + (parin%the - parin%thre)
 
@@ -2049,8 +2051,7 @@ END SUBROUTINE SEB_FR
        var%csoileff = var%csoil
     endif
     !var%kth = 0.3 !test vh!
-
-
+   
   END SUBROUTINE hyofS
 
   !**********************************************************************************************************************
