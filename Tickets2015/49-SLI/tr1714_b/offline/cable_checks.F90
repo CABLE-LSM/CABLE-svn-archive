@@ -26,7 +26,8 @@
 ! History: Small change to energy balance equation relative to 1.4b
 !          Additional variables from 1.4b for range checking
 !
-!
+! March 2014: Modifications to ebal (new ebal equations work for both default and canopy_vh)
+! and wbal (new wbal for sli) ! (Vanessa Haverd)
 !==============================================================================
 
 MODULE cable_checks_module
@@ -39,6 +40,7 @@ MODULE cable_checks_module
 !
    USE cable_radiation_module, ONLY: sinbet
    USE cable_def_types_mod
+  USE cable_common_module, ONLY: cable_user
 
    IMPLICIT NONE
 
@@ -63,27 +65,27 @@ MODULE cable_checks_module
            timestp,                            &      
            ! possible forcing variables for CABLE
            SWdown = (/0.0,1360.0/),            & ! W/m^2
-           LWdown = (/0.0,750.0/),             & ! W/m^2
-           Rainf = (/0.0,0.03/),               & ! mm/s
-           Snowf = (/0.0,0.0085/),             & ! mm/s
+          LWdown = (/0.0,950.0/),             & ! W/m^2
+          Rainf = (/0.0,0.1/),               & ! mm/s
+          Snowf = (/0.0,0.1/),             & ! mm/s
            PSurf = (/500.0,1100.0/),           & ! mbar/hPa
            Tair = (/200.0,333.0/),             & ! K
-           Qair = (/0.0,0.04/),                & ! g/g
+          Qair = (/0.0,0.1/),                & ! g/g
            CO2air = (/160.0,2000.0/),          & ! ppmv   
            Wind = (/0.0,75.0/),                & ! m/s
            Wind_N = (/-75.0,75.0/),            & ! m/s
            Wind_E = (/-75.0,75.0/),            & ! m/s
            ! possible output variables
-           Qh = (/-1000.0,1000.0/),            & ! W/m^2
-           Qle = (/-1000.0,1000.0/),           & ! W/m^2
-           Qg = (/-1000.0,1000.0/),            & ! W/m^2   
+          Qh = (/-2000.0,2000.0/),            & ! W/m^2
+          Qle = (/-2500.0,2500.0/),           & ! W/m^2
+          Qg = (/-2000.0,2000.0/),            & ! W/m^2
            SWnet = (/0.0,1350.0/),             & ! W/m^2 (YP oct07)
            ! SWnet = (/0.0,1250.0/),            & ! W/m^2
            LWnet = (/-500.0,510.0/),           & ! W/m^2 
            Rnet = (/-500.0,1250.0/),           & ! W/m^2 
-           Evap = (/-0.0003,0.00035/),         &      
-           Ewater = (/-0.0003,0.0003/),        &
-           ESoil = (/-0.0003,0.0003/),         &
+          Evap = (/-0.0015,0.0015/),         &
+          Ewater = (/-0.0005,0.0005/),        &
+          ESoil = (/-0.0015,0.0015/),         &
            TVeg = (/-0.0003,0.0003/),          &
            ECanop = (/-0.0003,0.0003/),        &
            PotEvap = (/-0.0006,0.0006/),       &
@@ -95,8 +97,8 @@ MODULE cable_checks_module
            VegT = (/213.0,333.0/),             &
            SoilTemp = (/213.0,343.0/),         &
            SoilMoist = (/0.0,2000.0/),         &
-           Qs = (/0.0,5.0/),                   &
-           Qsb = (/0.0,5.0/),                  &
+          Qs = (/0.0,15.0/),                   &
+          Qsb = (/0.0,15.0/),                  &
            DelSoilMoist  = (/-2000.0,2000.0/), & 
            DelSWE  = (/-2000.0,2000.0/),       &
            DelIntercept = (/-100.0,100.0/),    &
@@ -210,6 +212,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       ALLOCATE( bwb(mp,ms,2) )
       ! initial vlaue of soil moisture
       bwb(:,:,1)=ssnow%wb
+       bwb(:,:,2)=ssnow%wb
+       delwb(:) = 0.
    ELSE
       ! Calculate change in soil moisture b/w timesteps:
       IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
@@ -243,7 +247,14 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
 !        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
-        - (canopy%fevw+MIN(canopy%fevc,0.0))*dels/air%rlam)
+        - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
+
+   IF (cable_user%soil_struc=='sli') then  !! vh March 2014 !!
+      bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &  ! delwcol includes change in soil water, pond and snowpack
+                  - ssnow%evap - canopy%fevc*dels/air%rlam, r_2)
+
+   END IF
+
 
    bal%wbal_tot = 0. 
    IF(ktau>10) THEN
@@ -279,6 +290,7 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
 
    ! Input arguments
    REAL,INTENT(IN)              :: dels   ! time step size
+    Integer, INTENT(IN)              :: ktau   ! time step size
    TYPE (canopy_type),INTENT(IN)     :: canopy ! canopy variable data
    TYPE(met_type),INTENT(IN)         :: met    ! met data
    TYPE(radiation_type),INTENT(IN)   :: rad    ! met data
@@ -290,35 +302,28 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
       EMSOIL     !leaf emissivity
 
      
- 
-   ! SW absorbed + LW absorbed - (LH+SH+ghflux) should = 0
-   !bal%ebal = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs         &
-   bal%ebal_cncheck = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs &
-        +met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)                     &
-        -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
-        !& -rad%flws*rad%transd -canopy%fev-canopy%fes * ssnow%cls &
-        * ssnow%cls -canopy%fh -canopy%ga                ! removed bug (EK 1jul08)
-   ! Add to cumulative balance:
-   !bal%ebal_tot = bal%ebal_tot + bal%ebal
-   bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
+    bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  & !! vh !! March 2014
+         - (emsoil*sboltz*rad%transd*ssnow%otss**4) - &
+         (emleaf*sboltz*(1-rad%transd)*canopy%tv**4) &
+         - canopy%fnv - canopy%fns
 
+    !  soil energy balance
+    bal%EbalSoil =canopy%fns -canopy%fes*ssnow%cls &
+         & -canopy%fhs -canopy%ga
       
+    ! canopy energy balance
+    bal%Ebalveg = canopy%fnv - canopy%fev -canopy%fhv
 
-!   Atmosphere and radiation code in the global model can 'see' only fluxes, surface 
-!   temperature and albedo from CABLE. Those variables as calculated at the end of the given 
-!   time step need to be used for the evaluation of the SEB
-!   
-   !bal%ebal_cncheck = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))*met%fsd(:,2)  &
-   bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))       &
-        *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)        &
-        -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
-        * ssnow%cls-canopy%fh                 
+    ! soil + canopy energy balance
+    ! SW absorbed + LW absorbed - (LH+SH+ghflux) should = 0
+    bal%Ebal = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs &  !! vh !! March 2014
+         & +met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd) &
+          -rad%flws*rad%transd &
+         & -canopy%fev-canopy%fes*ssnow%cls &
+         & -canopy%fh -canopy%ga
+    ! Add to cumulative balance:
    bal%ebal_tot = bal%ebal_tot + bal%ebal
-  
-      
-   !bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
-!    print 11,bal%ebal_cncheck,bal%ebal_tot_cncheck,bal%ebal,bal%ebal_tot
-!11  format(1x,'Ebal_cncheck, Ebal',f6.1,f8.0,2x,f6.1,f8.0)
+    bal%RadbalSum = bal%RadbalSum + bal%Radbal
     
 END SUBROUTINE energy_balance
 
