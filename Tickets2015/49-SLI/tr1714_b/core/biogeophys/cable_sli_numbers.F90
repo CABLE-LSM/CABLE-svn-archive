@@ -95,7 +95,8 @@ MODULE sli_numbers
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
   ! 16: Loetschental
   ! 0=normal run
-  INTEGER(i_d) :: experiment = 16
+
+  INTEGER(i_d) :: experiment = 0
 
   ! define types
   TYPE vars_met
