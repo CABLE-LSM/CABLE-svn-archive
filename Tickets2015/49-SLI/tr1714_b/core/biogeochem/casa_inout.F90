@@ -925,6 +925,7 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
   totNPP =0.0
   nout=104
   xyear=1.0/FLOAT(myear)
+  WRITE(70,*) "xyear",xyear,myear
   casabal%FCgppyear=casabal%FCgppyear * xyear
   casabal%FCnppyear=casabal%FCnppyear * xyear
   casabal%FCrmleafyear=casabal%FCrmleafyear * xyear
@@ -1013,6 +1014,8 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
   INTEGER n
   casaflux%Crp = 0.0
   casabal%FCgppyear = casabal%FCgppyear + casaflux%Cgpp   * deltpool
+  write(68,*)  casabal%FCgppyear, casaflux%Cgpp, deltpool
+  write(69,*)  casabal%FCgppyear, casaflux%Cgpp, deltpool
   casabal%FCrpyear  = casabal%FCrpyear  + casaflux%Crp    * deltpool
   casabal%FCrmleafyear(:)  = casabal%FCrmleafyear(:)  + casaflux%Crmplant(:,leaf)    * deltpool
   casabal%FCrmwoodyear(:)  = casabal%FCrmwoodyear(:)  + casaflux%Crmplant(:,wood)    * deltpool
@@ -1083,6 +1086,8 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   REAL(r_2),    DIMENSION(mp) :: xklitter,xksoil,xkNlimiting
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
+
+  WRITE(68,*)"bgc", idoy
 
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
@@ -1928,6 +1933,7 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
   IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
   IF ( FINAL ) THEN
+     write(*,*) FILE_ID
      ! Close NetCDF file:
      STATUS = NF90_close(FILE_ID)
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)

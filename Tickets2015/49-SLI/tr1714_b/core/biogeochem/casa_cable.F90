@@ -32,7 +32,7 @@
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     pop, spinConv, spinup, ktauday, idoy, dump_read,   &
+                     pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &
                      dump_write, gpp_ann )
 
    USE cable_def_types_mod
@@ -52,7 +52,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER,      INTENT(IN) :: kstart ! starting value of ktau
    INTEGER,      INTENT(IN) :: kend ! total # timesteps in run
    
-   INTEGER,      INTENT(IN)                  :: idoy ! day of year (1-365)
+   INTEGER,      INTENT(IN)                  :: idoy ,LOY ! day of year (1-365) , Length oy
    INTEGER,      INTENT(IN)                  :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
    logical,      INTENT(IN) :: dump_read, dump_write 
@@ -84,7 +84,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    CHARACTER                                 :: ncfile*99
    ! FOR POP DIAGNOSTICS
    integer(i4b) :: out_dens, out_cmass, out_height,out_dens_patch, out_cmass_patch, out_height_patch, out_basalarea
-   integer(i4b) :: out_biomasslossstress , out_growth, k_output,LOY
+   integer(i4b) :: out_biomasslossstress , out_growth, k_output
    CHARACTER(len=1000) :: string1, string2
    CHARACTER(len=9) :: fmt
    
@@ -102,32 +102,25 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 !!!!!!!!!!!!!!!!! temp POP diagnostics
 
-!   Es ufert aus .... Hier LOY
-
    !    phen%phase = 2
 
-   if ( .NOT. dump_read ) then
-   ! Lest 13may13: will require loop when prog resp are init nonzero
-   ! need for mk3l ?
-   IF( .NOT. cable_runtime%UM ) THEN
-      if(ktau == kstart) then
+   IF ( .NOT. dump_read ) THEN
+      IF(ktau == kstart) THEN
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
          casaflux%cgpp  = 0.0
          ! add initializations (BP jul2010)
-         !! Les 10jan13 - init cnpp ?
-         !casaflux%cnpp  = 0.0
          casaflux%Crsoil   = 0.0
          casaflux%crgplant = 0.0
          casaflux%crmplant = 0.0
-         ! Lest 13may13 ---
          casaflux%clabloss = 0.0
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
+		 
       ENDIF
-   ENDIF
-      IF(mod(ktau,ktauday)==1) THEN
+
+      IF(MOD(ktau,ktauday)==1) THEN
          casamet%tairk = met%tk
          casamet%tsoil = ssnow%tgg
          casamet%moist = ssnow%wb
@@ -141,9 +134,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + canopy%frday*dels
       ENDIF
 
-
-      ! Hier auch LOY
-      IF(MOD(ktau,ktauday*365)==1) THEN !WRONG ON LEAP_YEARS
+      IF(MOD(ktau,ktauday*LOY)==1) THEN
          StemNPP(:,1) = casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
       ELSE
          StemNPP(:,1) = StemNPP(:,1) + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
@@ -155,6 +146,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%moist=casamet%moist/FLOAT(ktauday)
    
          IF ( icycle .GT. 0 ) THEN
+            IF (cable_user%CALL_POP)  casabiome%plantrate(2,2) = 0.0
 
             CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
@@ -164,21 +156,35 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 
 
-            IF(MOD((ktau-kstart+1),ktauday*365)==0) THEN
-               StemNPP(:,1) = StemNPP(:,1)/float(ktauday*365)
+            IF(MOD((ktau-kstart+1),ktauday*LOY)==0) THEN
+               StemNPP(:,1) = StemNPP(:,1)/float(ktauday*LOY)
                StemNPP(:,2) = 0.0
+               IF (cable_user%CALL_POP) THEN
 
-               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
+                  CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
                          real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
-               !! need to define STEMNPP as casaflux%fcnpp * casaflux%fracCalloc(:,2), aggregated annualy
-               !! it_pop needs to be defined as a counter for calls to POP (1 per year)
+
+                  casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+                  + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
+
+
+                  casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+                  -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
+              	   
+               ENDIF
+           
             ENDIF
+               
          ENDIF
    
          IF( (.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
             IF ( dump_write )  THEN
                !CLN CHECK FOR LEAP YEAR
-               WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(365*ktauday))
+               WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
                                  kend/ktauday )
@@ -187,66 +193,80 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
       ENDIF  
 
-   ELSE 
+   ELSE ! dump_read
 
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN 
+
+         IF (cable_user%CALL_POP)  casabiome%plantrate(2,2) = 0.0
+       
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
               casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
               cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
               pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
-
-         !write(*,*) ktau/ktauday,365, MOD(ktau/ktauday,365)
-         IF(MOD(ktau/ktauday,365)==1) THEN
+        
+          IF(MOD(ktau/ktauday,LOY)==1) THEN
             casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
          ELSE
             casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 
          ENDIF
 
-         IF(MOD((ktau-kstart+1)/ktauday,365)==0) THEN
+          IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN
             StemNPP(:,1) = casaflux%stemnpp ! (assumes 70% of wood NPP is allocated above ground & static alloc)
             StemNPP(:,2) = 0.0
-
-            CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
+   
+            IF (cable_user%CALL_POP) THEN
+               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
                   real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
              
-             
-            if (pop%it_pop.eq.1) then
-                
-               open (unit=out_growth,file="out_growth.out",status="replace",position="rewind")
-               open (unit=out_basalarea,file="basalarea.out",status="replace",position="rewind")
-               open (unit=out_biomasslossstress,file="biomasslossstress.out",status="replace",position="rewind")
-               open (unit=out_dens,file="density.out",status="replace",position="rewind")
-               open (unit=out_cmass,file="cmass.out",status="replace",position="rewind")
-               open (unit=out_height,file="height.out",status="replace",position="rewind")
-                
-                
-               open (unit=out_dens_patch,file="density_patch.out",status="replace",position="rewind")
-               open (unit=out_cmass_patch,file="cmass_patch.out",status="replace",position="rewind")
-               open (unit=out_height_patch,file="height_patch.out",status="replace",position="rewind")
-               ! output file headers
+                  casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+                  + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
 
-               string2 =  '% Year '//'Cohort1'//' '//'Cohort2'//' '// &
+                  casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
+			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+                  -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
+
+                  write(*,*) veg%disturbance_interval(:,1)
+                           
+               if (pop%it_pop.eq.1) then
+                
+                  open (unit=out_growth,file="out_growth.out",status="replace",position="rewind")
+                  open (unit=out_basalarea,file="basalarea.out",status="replace",position="rewind")
+                  open (unit=out_biomasslossstress,file="biomasslossstress.out",status="replace",position="rewind")
+                  open (unit=out_dens,file="density.out",status="replace",position="rewind")
+                  open (unit=out_cmass,file="cmass.out",status="replace",position="rewind")
+                  open (unit=out_height,file="height.out",status="replace",position="rewind")
+                
+                
+                  open (unit=out_dens_patch,file="density_patch.out",status="replace",position="rewind")
+                  open (unit=out_cmass_patch,file="cmass_patch.out",status="replace",position="rewind")
+                  open (unit=out_height_patch,file="height_patch.out",status="replace",position="rewind")
+                  ! output file headers
+
+                  string2 =  '% Year '//'Cohort1'//' '//'Cohort2'//' '// &
                      'Cohort3'//' '//'Cohort4'//' '// &
                      'Cohort5'//' '//'Cohort6'//' '// &
                      'Cohort7'//' '//'Cohort8'//' '// &
                      'Cohort9'//' '//'Cohort10'//' '// &
                      'rest'
                 
-               WRITE(out_dens_patch,"(a)") trim(string2)
-               WRITE(out_cmass_patch,"(a)") trim(string2)
-               write(out_height_patch,"(a)") '% Year   trim(string1) '
-               string1 =  '% Year '//trim(pop%pop_grid(1)%bin_labels(1))//' '//trim(pop%pop_grid(1)%bin_labels(2))//' '// &
+                  WRITE(out_dens_patch,"(a)") trim(string2)
+                  WRITE(out_cmass_patch,"(a)") trim(string2)
+                  write(out_height_patch,"(a)") '% Year   trim(string1) '
+                  string1 =  '% Year '//trim(pop%pop_grid(1)%bin_labels(1))//' '//trim(pop%pop_grid(1)%bin_labels(2))//' '// &
                      trim(pop%pop_grid(1)%bin_labels(3))//' '//trim(pop%pop_grid(1)%bin_labels(4))//' '// &
                      trim(pop%pop_grid(1)%bin_labels(5))//' '//trim(pop%pop_grid(1)%bin_labels(6))//' '// &
                      trim(pop%pop_grid(1)%bin_labels(7))//' '//trim(pop%pop_grid(1)%bin_labels(8))//' '// &
                      trim(pop%pop_grid(1)%bin_labels(9))//' '//trim(pop%pop_grid(1)%bin_labels(10))//' '// &
                      trim(pop%pop_grid(1)%bin_labels(11))//' '//trim(pop%pop_grid(1)%bin_labels(12)) 
                 
-               WRITE(out_dens,"(a)") trim(string1)
-               WRITE(out_cmass,"(a)") trim(string1)
-               write(out_height,"(a)") '% Year   Mean_Height     Max_height'
-            endif
+                  WRITE(out_dens,"(a)") trim(string1)
+                  WRITE(out_cmass,"(a)") trim(string1)
+                  write(out_height,"(a)") '% Year   Mean_Height     Max_height'
+               endif
              
             do k_output = 1,1
                WRITE(out_growth,"(i5, 100e16.6)") pop%it_pop, pop%pop_grid(k_output)%growth
@@ -264,13 +284,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                         pop%pop_grid(1)%patch(k_output)%Layer(1)%density, &
                         pop%pop_grid(1)%patch(k_output)%Layer(1)%biomass
                enddo
-            ENDIF
+            endif
 
-         ENDIF
+         endif
 
-       ENDIF
+      ENDIF
 
-    ENDIF
+   ENDIF
+
+   ENDIF
 
 END SUBROUTINE bgcdriver
 
