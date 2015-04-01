@@ -14,7 +14,7 @@
 #==============================================================================
 
 
-out='Outputs/New_hydrology_with_gw'
+out='Outputs/New_hydrology_no_gw'
 #out='Outputs/Leuning_standard'
 #out='Outputs/Leuning_nonlinextrap'
 #out='Outputs/Medlyn_standard'
@@ -125,7 +125,7 @@ run_run()
 
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then
-      ./create_cable-nml.sh -e true -g true   #current ops: spinup true, gw true
+      ./create_cable-nml.sh -e true -g false   #current ops: spinup true, gw false
       ./cable ${fsites[$1]} ${fpoolsites[$1]}
    else
       ./cable       
