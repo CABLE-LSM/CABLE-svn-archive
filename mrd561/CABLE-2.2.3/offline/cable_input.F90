@@ -400,6 +400,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ncid_qa = ncid_met
        ncid_ta = ncid_met
        ncid_wd = ncid_met
+       if (cable_user%GSWP3) then
+          ok = NF90_OPEN(gswpfile%mask,0,ncid_mask)
+          if (ok .ne. NF90_NOERR) then
+             CALL nc_abort(ok, "Error opening GSWP3 mask file")
+          end if
+          LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
+          LON1D = .true.  
+       else
+          ncid_mask = ncid_rain
+       end if
     END IF
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)

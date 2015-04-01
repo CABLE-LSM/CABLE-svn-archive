@@ -1035,8 +1035,8 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    !given amount of supercooled, what should the temperature be?
    !this allows to thaw/freeze for all temps < TFRZ
    !not yet tested.  code needs validation
-   iceF = ssnow%wbice(:,:) /ssnow%wb(:,:)
-   Tice = -0.5*((soil%watsat/ssnow%wb)**4.0) * log(1.-iceF*exp(1.-ssnow%wb/soil%watsat))+ 273.16
+   !iceF = ssnow%wbice(:,:) /ssnow%wb(:,:)
+   !Tice = -0.5*((soil%watsat/ssnow%wb)**4.0) * log(1.-iceF*exp(1.-ssnow%wb/soil%watsat))+ 273.16
 
 
    Tice = C%TFRZ
