@@ -934,6 +934,9 @@ CONTAINS
          case(12)
             soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
                          0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
+       case(13)
+          soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,  &
+               0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
       
       end select
  
@@ -1134,13 +1137,17 @@ CONTAINS
             soil%css(h)     =  soilin%css(soil%isoilm(h))
           END IF
           rad%latitude(h) = latitude(e)
-          IF(hide%Ticket49Bug4) &
-             rad%longitude(h) = longitude(e)
+            IF(hide%Ticket49Bug4) &
+               rad%longitude(h) = longitude(e)
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
-
+    
+    !jhan: this was from VH version - but 2001 not defined anywhere? 
+    !write(2001,"(1000f8.2)") MINVAL(defaultLAI(:,:),2)/MAXVAL(defaultLAI(:,:),2)
+    !write(2001,"(1000f8.2)") MAXVAL(defaultLAI(:,:),2)
+    
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
