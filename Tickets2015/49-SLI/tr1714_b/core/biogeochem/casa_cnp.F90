@@ -332,11 +332,10 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen,gpp_ann)
        casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
        casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
        casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
-  ENDWHERE
+    ENDWHERE
 
-    endif
-
-  ENDWHERE
+   ENDWHERE
+   endif
  ! normalization the allocation fraction to ensure they sum up to 1
   totfracCalloc(:) = sum(casaflux%fracCalloc(:,:),2)
   casaflux%fracCalloc(:,leaf) = casaflux%fracCalloc(:,leaf)/totfracCalloc(:)

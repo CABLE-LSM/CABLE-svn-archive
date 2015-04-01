@@ -669,7 +669,6 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen,met)
   IF (initcasa==1) THEN
     OPEN(99,file=casafile%cnpipool)
 
-  IF ( initcasa .EQ. 1 ) THEN
      casabal%sumcbal = 0.0 !!vh!!
      casabal%sumnbal = 0.0 !!vh!!
      casabal%sumpbal = 0.0 !!vh!!
