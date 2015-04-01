@@ -88,9 +88,9 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
   ! PATCH STRUCTURE
   ! 3 dim arrays (mp,npatch2d,t)
   CHARACTER(len=40),DIMENSION( 1) :: AI5
-  CHARACTER(len=40),DIMENSION(10) :: AR5
+  CHARACTER(len=40),DIMENSION( 8) :: AR5
   ! 4 dim arrays (mp,npatch2d,ndisturb,t)
-  CHARACTER(len=40),DIMENSION( 5) :: AI7
+  CHARACTER(len=40),DIMENSION( 4) :: AI7
   CHARACTER(len=40),DIMENSION( 1) :: AR7
 
   ! LAYER STRUCTURE
@@ -147,20 +147,17 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
 
   AR5(1) = 'patch_freq'
   AR5(2) = 'patch_freq_old'
-  AR5(3) = 'patch_freq_old2'
-  AR5(4) = 'patch_factor_recruit'
-  AR5(5) = 'patch_biomass'
-  AR5(6) = 'patch_biomass_old'
-  AR5(7) = 'patch_biomass_old2'
-  AR5(8) = 'patch_stress_mortality'
-  AR5(9) = 'patch_fire_mortality'
-  AR5(10) = 'patch_growth'
+  AR5(3) = 'patch_factor_recruit'
+  AR5(4) = 'patch_biomass'
+  AR5(5) = 'patch_biomass_old'
+  AR5(6) = 'patch_stress_mortality'
+  AR5(7) = 'patch_fire_mortality'
+  AR5(8) = 'patch_growth'
 
   AI7(1) = 'patch_disturbance_interval'
   AI7(2) = 'patch_first_disturbance_year'
   AI7(3) = 'patch_age'
-  AI7(4) = 'patch_age_old'
-  AI7(5) = 'patch_ranked_age_unique'
+  AI7(4) = 'patch_ranked_age_unique'
 
   AR7(1) = 'patch_freq_ranked_age_unique'
 
@@ -417,28 +414,23 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 2), POP%pop_grid(m)%freq_old,        &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 3), POP%pop_grid(m)%freq_old2,       &
+
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 3), POP%pop_grid(m)%patch(:)%factor_recruit,  &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 4), POP%pop_grid(m)%patch(:)%factor_recruit,  &
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 4), POP%pop_grid(m)%patch(:)%biomass,         &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 5), POP%pop_grid(m)%patch(:)%biomass,         &
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 5), POP%pop_grid(m)%patch(:)%biomass_old,     &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 6), POP%pop_grid(m)%patch(:)%biomass_old,     &
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 6), POP%pop_grid(m)%patch(:)%stress_mortality,&
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 7), POP%pop_grid(m)%patch(:)%biomass_old2,    &
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 7), POP%pop_grid(m)%patch(:)%fire_mortality,  &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 8), POP%pop_grid(m)%patch(:)%stress_mortality,&
-             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 9), POP%pop_grid(m)%patch(:)%fire_mortality,  &
-             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5(10), POP%pop_grid(m)%patch(:)%growth,          &
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 8), POP%pop_grid(m)%patch(:)%growth,          &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -461,10 +453,10 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
            STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 3), POP%pop_grid(m)%patch(p)%age,&
                 start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
            IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-           STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 4), POP%pop_grid(m)%patch(p)%age_old,&
-                start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
-           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-           STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 5), POP%pop_grid(m)%ranked_age_unique(p,:),&
+!           STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 4), POP%pop_grid(m)%patch(p)%age_old,&
+!                start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
+!           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+           STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 4), POP%pop_grid(m)%ranked_age_unique(p,:),&
                 start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
            IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -743,14 +735,12 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
            SELECT CASE ( i )
            CASE( 1); POP%pop_grid(m)%freq                      = R2(m,:)
            CASE( 2); POP%pop_grid(m)%freq_old                  = R2(m,:)
-           CASE( 3); POP%pop_grid(m)%freq_old2                 = R2(m,:)
-           CASE( 4); POP%pop_grid(m)%patch(:)%factor_recruit   = R2(m,:)
-           CASE( 5); POP%pop_grid(m)%patch(:)%biomass          = R2(m,:)
-           CASE( 6); POP%pop_grid(m)%patch(:)%biomass_old      = R2(m,:)
-           CASE( 7); POP%pop_grid(m)%patch(:)%biomass_old2     = R2(m,:)
-           CASE( 8); POP%pop_grid(m)%patch(:)%stress_mortality = R2(m,:)
-           CASE( 9); POP%pop_grid(m)%patch(:)%fire_mortality   = R2(m,:)
-           CASE(10); POP%pop_grid(m)%patch(:)%growth           = R2(m,:)
+           CASE( 3); POP%pop_grid(m)%patch(:)%factor_recruit   = R2(m,:)
+           CASE( 4); POP%pop_grid(m)%patch(:)%biomass          = R2(m,:)
+           CASE( 5); POP%pop_grid(m)%patch(:)%biomass_old      = R2(m,:)
+           CASE( 6); POP%pop_grid(m)%patch(:)%stress_mortality = R2(m,:)
+           CASE( 7); POP%pop_grid(m)%patch(:)%fire_mortality   = R2(m,:)
+           CASE( 8); POP%pop_grid(m)%patch(:)%growth           = R2(m,:)
            CASE default; STOP "Parameter not assigned in pop_io.F90!"
            END SELECT
         END DO
@@ -794,8 +784,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CLOSE_FILE )
               CASE( 1); POP%pop_grid(m)%patch(p)%disturbance_interval   = I3(m,p,:)
               CASE( 2); POP%pop_grid(m)%patch(p)%first_disturbance_year = I3(m,p,:)
               CASE( 3); POP%pop_grid(m)%patch(p)%age                    = I3(m,p,:)
-              CASE( 4); POP%pop_grid(m)%patch(p)%age_old                = I3(m,p,:)
-              CASE( 5); POP%pop_grid(m)%ranked_age_unique(p,:)          = I3(m,p,:)
+              CASE( 4); POP%pop_grid(m)%ranked_age_unique(p,:)          = I3(m,p,:)
               CASE default; STOP "Parameter not assigned in pop_io.F90!"
               END SELECT
            END DO
