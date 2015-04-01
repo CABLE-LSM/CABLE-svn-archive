@@ -234,6 +234,7 @@ MODULE cable_def_types_mod
 
      ! Additional SLI variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: S         ! moisture content relative to sat value    (edit vh 23/01/08)
+     REAL(r_2), DIMENSION(:,:), POINTER :: Tsoil         !     Tsoil (deg C)
      REAL(r_2), DIMENSION(:),   POINTER :: SL        ! litter moisture content relative to sat value (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:),   POINTER :: TL        ! litter temperature in K     (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:),   POINTER :: h0        ! pond height in m            (edit vh 23/01/08)
@@ -769,6 +770,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     ALLOCATE ( var % S(mp,ms) )
+    ALLOCATE ( var % Tsoil(mp,ms) )
     ALLOCATE ( var % SL(mp) )
     ALLOCATE ( var % TL(mp) )
     ALLOCATE ( var % h0(mp) )
@@ -1249,6 +1251,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
+    DEALLOCATE ( var % Tsoil )
     DEALLOCATE ( var % SL )
     DEALLOCATE ( var % TL )
     DEALLOCATE ( var % h0)
