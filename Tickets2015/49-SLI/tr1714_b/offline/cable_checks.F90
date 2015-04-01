@@ -285,7 +285,7 @@ END SUBROUTINE mass_balance
 !
 !==============================================================================
 
-SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
+SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                    &
                              SBOLTZ,EMLEAF, EMSOIL )
 
    ! Input arguments
