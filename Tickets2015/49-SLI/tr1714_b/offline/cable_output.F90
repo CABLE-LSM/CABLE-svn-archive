@@ -463,7 +463,7 @@ CONTAINS
             'Net radiation absorbed by ground', patchout%RnetSoil, 'dummy',    &
             xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%RnetSoil(mp))
-       out%Rnet = 0.0 ! initialise
+       out%RnetSoil = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%carbon .OR. output%NEE) THEN
        CALL define_ovar(ncid_out, ovid%NEE, 'NEE', 'umol/m^2/s',               &

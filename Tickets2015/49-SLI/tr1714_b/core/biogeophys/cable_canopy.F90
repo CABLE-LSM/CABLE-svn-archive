@@ -267,7 +267,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                         (rad%extkb(j)+0.5*rough%coexp(j))
             
             gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
-                        (1.0-EXP(max(-0.5*rough%coexp(j)*canopy%vlaiw(j),1.e-12))) &
+                        (1.0-EXP(-max(0.5*rough%coexp(j)*canopy%vlaiw(j),1.e-12))) &
                         - gbhu(j,1)
          ENDIF 
       
@@ -1743,12 +1743,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             an_y(i,2) = anx(i,2)
             
             ! save last values calculated for ssnow%evapfbl
-            oldevapfbl(i,1) = ssnow%evapfbl(i,1)
-            oldevapfbl(i,2) = ssnow%evapfbl(i,2)
-            oldevapfbl(i,3) = ssnow%evapfbl(i,3)
-            oldevapfbl(i,4) = ssnow%evapfbl(i,4)
-            oldevapfbl(i,5) = ssnow%evapfbl(i,5)
-            oldevapfbl(i,6) = ssnow%evapfbl(i,6)
+            oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
          ENDIF
           
