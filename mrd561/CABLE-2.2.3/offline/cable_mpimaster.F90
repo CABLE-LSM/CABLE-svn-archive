@@ -142,7 +142,8 @@ SUBROUTINE mpidrv_master (comm)
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
-                                   report_version_no, wiltParam, satuParam
+                                   report_version_no, wiltParam, satuParam,    &
+                                   gw_params
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -263,7 +264,8 @@ SUBROUTINE mpidrv_master (comm)
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
-                  cable_user           ! additional USER switches 
+                  cable_user,       &    ! additional USER switches 
+                  gw_params
 
    ! END header
 
@@ -284,7 +286,7 @@ SUBROUTINE mpidrv_master (comm)
     
     
    cable_runtime%offline = .TRUE.
-   
+   cable_runtime%run_gw_model = cable_user%GW_MODEL 
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
@@ -302,7 +304,7 @@ SUBROUTINE mpidrv_master (comm)
       
       PRINT *, 'Looking for global offline run info.'
       
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+      IF (ncciy < 0) THEN
          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
          PRINT *, 'Please check input in namelist file.'
 
@@ -312,7 +314,7 @@ SUBROUTINE mpidrv_master (comm)
          STOP
       ELSE
          
-         CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing .and. .not.cable_user%GSWP3) CALL prepareFiles(ncciy)
       
       ENDIF
    
@@ -407,7 +409,7 @@ SUBROUTINE mpidrv_master (comm)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -427,14 +429,15 @@ SUBROUTINE mpidrv_master (comm)
 
       canopy%oldcansto=canopy%cansto
 
-      imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)
+!      imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)  !imes%fsd is not yet set.
 
       ! MPI: flip ktau_gl
       !tmp_kgl = ktau_gl
       ktau_gl = iktau
-
       CALL get_met_data( spinup, spinConv, imet, soil,                    &
                          rad, iveg, kend, dels, C%TFRZ, iktau )
+
+      imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)
 
       ! MPI: scatter input data to the workers
       CALL master_send_input (icomm, inp_ts, iktau)
@@ -443,6 +446,11 @@ SUBROUTINE mpidrv_master (comm)
 
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
+         
+         if (mod(ktau,50) .eq. 0) then
+            write(*,*)    "Progess -- ",real(ktau)/real(kend)*100.0,"%"
+            write(logn,*) "Progess -- ",real(ktau)/real(kend)*100.0,"%"
+         end if
 
 !         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
@@ -2172,6 +2180,98 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (rad%longitude(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
+!mrd need to add parameters here...
+!2D
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watsat(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%smpsat(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%hksat(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%clappB(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watr(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+!1D
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatsat(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWsmpsat(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWhksat(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWclappB(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatr(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWz(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%topo_ind(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%basin_ind(off), displs(bidx), ierr)
+  blen(bidx) = ilen
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
@@ -3825,6 +3925,30 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
+
+!mrd GW 2D
+     midx = midx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%smp(off,1), maddr(midx), ierr) ! 12
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+     midx = midx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%zq(off,1), maddr(midx), ierr) ! 12
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+     midx = midx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%wbeq(off,1), maddr(midx), ierr) ! 12
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+
      ! MPI: sanity check
      IF (midx /= nmat) THEN
         WRITE (*,*) 'master: outtype invalid nmat ',midx,' constant, fix it!'
@@ -4641,6 +4765,40 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! LOGICAL
      CALL MPI_Get_address (veg%deciduous(off), vaddr(vidx), ierr) ! 163
      blen(vidx) = cnt * extl
+
+!mrd GW 1D
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%GWwb(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%wtd(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%GWwbeq(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%GWzq(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%GWsmp(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+
+
+
+
+
+
      
      ! MPI: sanity check
      IF (vidx /= nvec) THEN

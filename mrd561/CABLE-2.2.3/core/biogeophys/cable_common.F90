@@ -50,6 +50,8 @@ MODULE cable_common_module
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
+      !MD
+      LOGICAL :: run_gw_model = .FALSE.
    END TYPE kbl_internal_switches 
 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
@@ -81,7 +83,12 @@ MODULE cable_common_module
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE.!
+     !MD
+      LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: alt_forcing = .FALSE.
 
+     !using GSWP3 forcing?
+     LOGICAL :: GSWP3 = .FALSE.
 
    END TYPE kbl_user_switches
 
@@ -101,7 +108,8 @@ MODULE cable_common_module
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
       inits,      & ! name of file for initialisations
-      soilIGBP      ! name of file for IGBP soil map
+      soilIGBP,   & ! name of file for IGBP soil map
+      gw_elev       !name of file for gw/elevation data
 
    END TYPE filenames_type
 
@@ -113,7 +121,6 @@ MODULE cable_common_module
    
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam=0.5, satuParam=0.8
-
 
    ! soil parameters read from file(filename%soil def. in cable.nml)
    ! & veg parameters read from file(filename%veg def. in cable.nml)
@@ -184,6 +191,21 @@ MODULE cable_common_module
 
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
+
+   TYPE gw_parameters_type
+
+      REAL ::                   &
+        MaxSatFraction=0.7,     & !maximum fraction of cell that is saturated [qsrf]
+        MaxHorzDrainRate=100.0, & !anisintropy [qsub]
+        EfoldHorzDrainRate=0.5, & !qsub(wtd)
+        EfoldMaxSatFrac=0.5,    & !sat frac srf (wtd)
+        hkrz=0.2,               & !hksat variation with z
+        zdepth=1.0,             & !level where hksat(z) = hksat(no z)
+        frozen_frac=0.2  !ice fraction to determine first non-frozen layer for qsub
+
+   END TYPE gw_parameters_type
+
+   TYPE(gw_parameters_type), SAVE :: gw_params
       
 CONTAINS
 

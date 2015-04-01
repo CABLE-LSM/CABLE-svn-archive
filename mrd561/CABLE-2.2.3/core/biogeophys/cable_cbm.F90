@@ -33,7 +33,7 @@
 !
 ! ==============================================================================
 
-!#define NO_CASA_YET 1
+#define NO_CASA_YET 1
 
 MODULE cable_cbm_module
    
@@ -54,6 +54,9 @@ CONTAINS
    USE cable_common_module
    USE cable_carbon_module
    USE cable_soil_snow_module
+   !MD
+   USE cable_soil_snow_gw_module
+   
    USE cable_def_types_mod
    USE cable_roughness_module
    USE cable_radiation_module
@@ -62,6 +65,7 @@ CONTAINS
    USE casadimension,     only : icycle ! used in casa_cnp
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants 
+ 
    
    !ptrs to local constants 
    TYPE( icbm_type ) :: C
@@ -106,7 +110,6 @@ CONTAINS
       call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
 
-
    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
    IF( cable_runtime%um ) THEN
@@ -118,7 +121,7 @@ CONTAINS
    ELSE
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
    ENDIf
-    
+
    ! Calculate canopy variables:
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
@@ -130,11 +133,36 @@ CONTAINS
    IF( cable_runtime%um ) THEN
       
      IF( cable_runtime%um_implicit ) THEN
-         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
-      ENDIF
+
+        !switch to use soil_snow or soil_snow_gw goes here
+        !here only cable_user%gw_model is set
+        !cable_runtime%run_gw_model is not 
+        IF (cable_user%gw_model) then
+
+           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+
+        ELSE
+
+           CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+        END IF
+
+     ENDIF
 
    ELSE
-      call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+      !switch to use soil_snow or soil_snow_gw goes here
+      !here both cable_user%gw_model and cable_runtime%run_gw_model will work
+      IF (cable_user%gw_model) then
+
+         CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+
+      ELSE
+
+         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+      END IF
+
    ENDIF
 
    ssnow%deltss = ssnow%tss-ssnow%otss
@@ -165,6 +193,7 @@ CONTAINS
    ! Calculate net radiation absorbed by soil + veg
    canopy%rnet = canopy%fns + canopy%fnv
 
+   !write(*,*) 'rad%trad'
    ! Calculate radiative/skin temperature:
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25
@@ -187,7 +216,6 @@ CONTAINS
       canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
 
    ENDIF
-
   
 END SUBROUTINE cbm
 

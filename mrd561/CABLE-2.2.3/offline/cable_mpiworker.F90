@@ -111,7 +111,7 @@ CONTAINS
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename,                    & 
-                                   redistrb, wiltParam, satuParam
+                                   redistrb, wiltParam, satuParam,gw_params
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -227,7 +227,8 @@ CONTAINS
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
-                  cable_user           ! additional USER switches 
+                  cable_user,       &   ! additional USER switches 
+                  gw_params
 
    ! END header
 
@@ -243,7 +244,9 @@ CONTAINS
 
     
    cable_runtime%offline = .TRUE.
-   
+   cable_runtime%run_gw_model = cable_user%GW_MODEL
+
+
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
@@ -402,7 +405,6 @@ CONTAINS
 
          ! MPI: receive input data for this step from the master
          CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
-
          ! MPI: some fields need explicit init, because we don't transfer
          ! them for better performance
          ! in the serial version this is done in get_met_data
@@ -1857,6 +1859,90 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (rad%longitude, displs(bidx), ierr)
   blen(bidx) = r1len
+
+
+!mrd add new GW parameters here
+!2D
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watsat, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%smpsat, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%hksat, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%clappB, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watr, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+!1d
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatsat, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWsmpsat, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWhksat, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWclappB, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatr, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWz, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev_std, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope_std, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%topo_ind, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%basin_ind, displs(bidx), ierr)
+  blen(bidx) = ilen
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%wtd, displs(bidx), ierr)
+  blen(bidx) = r2len
 
 
 
@@ -3314,6 +3400,19 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Get_address (veg%froot(off,1), displs(bidx), ierr)
   blocks(bidx) = r1len * ms
 
+!mrd GW 2D
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%smp(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * ms
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%zq(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * ms
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%wbeq(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * ms
+
 
 
   ! ------------- 1D arrays -------------
@@ -4752,6 +4851,29 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   bidx = bidx + 1
   CALL MPI_Get_address (veg%deciduous(off), displs(bidx), ierr)
   blocks(bidx) = llen
+
+
+!mrd 1D GW
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWwbeq(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWzq(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWsmp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN

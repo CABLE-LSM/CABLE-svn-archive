@@ -94,7 +94,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    USE cable_common_module, ONLY : cable_runtime, cable_user, filename,        &
                                    cable_user, knode_gl, redistrb, wiltParam,  &
                                    satuParam, l_casacnp, l_laiFeedbk,          &
-                                   l_vcmaxFeedbk
+                                   l_vcmaxFeedbk,gw_params
    USE casavariable, ONLY : casafile
    USE casadimension, ONLY : icycle
 
@@ -104,7 +104,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    
    !--- namelist for CABLE runtime vars, files, switches 
    NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,   &
-                  casafile, cable_user, redistrb, wiltParam, satuParam
+                  casafile, cable_user, redistrb, wiltParam, satuParam,gw_params
 
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
@@ -149,6 +149,16 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                          cable_user%l_new_roughness_soil)
       CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
                          cable_user%l_new_roughness_soil)
+
+      !mrd561
+      CALL check_nmlvar('cable_user%GW_MODEL', cable_user%GW_MODEL)
+
+      CALL check_nmlvar('gw_params%MaxSatFraction', gw_params%MaxSatFraction)
+
+      CALL check_nmlvar('gw_params%MaxHorzDrainRate', gw_params%MaxHorzDrainRate)
+      CALL check_nmlvar('gw_params%EfoldHorzDrainRate', gw_params%EfoldHorzDrainRate)
+      CALL check_nmlvar('gw_params%EfoldMaxSatFrac', gw_params%EfoldMaxSatFrac)
+
 
 END SUBROUTINE cable_um_runtime_vars
 

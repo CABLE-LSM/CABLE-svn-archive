@@ -2,19 +2,26 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz mael r r90 r94 r377 r373
+   set -A kh vayu cher burn shin squa bliz  mael mons ccrc typh raij
 }
 
 
-## 
-host_r373()
+host_ccrc()
 {
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
+   export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
+   export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   export CFLAGS='-O3 -fp-model source -ftrapuv -xhost '   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -debug -g -ftrapuv -CB -check bounds -diag-enable warn'
+# -diag-enable sc2 -diag-enable sc-single-file
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O3'
+   if [[ $1 = 'debug' ]]; then
+      export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O0 -traceback -debug -g -ftrapuv -diag-enable warn'
+# -diag-enable sc2 -diag-enable sc-single-file
+   fi
    build_build
    cd ../
    build_status
@@ -22,54 +29,41 @@ host_r373()
 
 
 
-
-## 
-host_r377()
+host_bliz()
 {
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   #export CFLAGS='-O3 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -fp-model source -ftrapuv -ipo -xhost'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib'
    build_build
    cd ../
    build_status
 }
 
 
-
-
-## 
-host_r94()
+host_mons()
 {
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -fp-model source -shared-intel -xhost -ipo'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O3'
    build_build
    cd ../
    build_status
 }
 
-
-
-
-## 
-host_r90()
-{
-   export NCDIR='/'
-   export NCMOD='/'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
 
 
 
@@ -78,23 +72,13 @@ host_mael()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O2 -fp-model source -ftrapuv  -xhost '   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-host_bliz()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib -O2'
    build_build
    cd ../
    build_status
@@ -106,13 +90,35 @@ host_squa()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=mpif90
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -xhost -ipo -ftrapuv  -fpmodel source'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+   fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib'
    build_build
    cd ../
    build_status
 }
+
+host_typh()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export FC=mpif90
+   #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+   export CFLAGS='-O3 -shared-intel -xhost -ipo -ftrapuv  -fp-model source'   #-traceback
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium'
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib'
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 
@@ -182,9 +188,8 @@ host_vayu()
 }
 
 
-
-## vayu.nci.org.au
-host_r()
+## raijin.nci.org.au
+host_raij()
 {
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
@@ -193,7 +198,7 @@ host_r()
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise'
    fi
-   export LDFLAGS='-L'$NCDIR''
+   export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
@@ -304,20 +309,20 @@ clean_build()
 {
       print '\ncleaning up\n'
       rm -fr .mpitmp
-      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
-      read dummy 
+      #print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      #read dummy 
 }
 
 
 set_up_CABLE_AUX()
 {
-      print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
-      print "\tcontains configuration and data essential to using CABLE."
-      print "\tNCI account holders can have this set up for you now (anywhere)."
-      print "\tOthers will have to use the tarball available for download at ..."
-      print "\n\tDo you want to run set up this directory now? y/[n]"
+      #print "\n\tYou do not have a ~/CABLE-AUX/ directory. This directory"
+      #print "\tcontains configuration and data essential to using CABLE."
+      #print "\tNCI account holders can have this set up for you now (anywhere)."
+      #print "\tOthers will have to use the tarball available for download at ..."
+      #print "\n\tDo you want to run set up this directory now? y/[n]"
       
-      read setup_CABLE_AUX
+      #read setup_CABLE_AUX
       if [[ $setup_CABLE_AUX = 'y' ]]; then
          print "\n\tPlease enter your NCI user ID"
          read NCI_USERID 
@@ -401,7 +406,7 @@ do_i_no_u()
 build_status()
 {
    if [[ -f .mpitmp/cable-mpi ]]; then
-   	mv .mpitmp/cable-mpi .
+   	mv .mpitmp/cable-mpi "./cable-mpi-r${CABLE_REV}"
    	print '\nBUILD OK\n'
    else
       print '\nOooops. Something went wrong\n'        
@@ -433,11 +438,11 @@ build_build()
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
-   if [[ $CABLE_REV="" ]]; then
-      echo "this is not an svn checkout"
-      CABLE_REV=0
-      echo "setting CABLE revision number to " $CABLE_REV 
-   fi         
+   #if [[ $CABLE_REV="" ]]; then
+   #   echo "this is not an svn checkout"
+   #   CABLE_REV=0
+   #   echo "setting CABLE revision number to " $CABLE_REV 
+   #fi         
    print $CABLE_REV > ~/.cable_rev
    # get SVN status 
    CABLE_STAT=`svn status`
@@ -489,7 +494,7 @@ fi
    
 known_hosts
 
-HOST_MACH=`uname -n | cut -c 1`
+HOST_MACH=`uname -n | cut -c 1-4`
 
 do_i_no_u $1
 
