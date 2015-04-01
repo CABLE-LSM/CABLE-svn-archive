@@ -1222,8 +1222,8 @@ CONTAINS
                 ELSE
                    Psurvival_s = 0.0
                 ENDIF
-                Psurvival_s = MIN(Psurvival_s,1.)
-                Psurvival_s = MAX(Psurvival_s,1e-3)
+                Psurvival_s = MIN(Psurvival_s,1._dp)
+                Psurvival_s = MAX(Psurvival_s,1e-3_dp)
                 Psurvival = Psurvival_s
 
                 IF (PRESENT(frac_intensity1)) THEN
@@ -1239,8 +1239,8 @@ CONTAINS
                    ELSE
                       Psurvival_s = 0.0
                    ENDIF
-                   Psurvival_s = MIN(Psurvival_s,1.)
-                   Psurvival_s = MAX(Psurvival_s,1e-3)
+                   Psurvival_s = MIN(Psurvival_s,1._dp)
+                   Psurvival_s = MAX(Psurvival_s,1e-3_dp)
                    Psurvival = Psurvival_s*(1.-frac_intensity1(j)) + Psurvival*frac_intensity1(j)
                 ENDIF
 
