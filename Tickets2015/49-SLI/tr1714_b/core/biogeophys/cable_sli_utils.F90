@@ -1881,7 +1881,7 @@ CONTAINS
 
     REAL(r_2),    INTENT(IN)    :: S
     REAL(r_2),    INTENT(IN)    :: Tsoil
-    TYPE(params), INTENT(INOUT)    :: parin
+    TYPE(params), INTENT(IN)    :: parin
     TYPE(vars),   INTENT(INOUT) :: var
     ! Get soil water variables from S.
     ! Definitions of arguments:
@@ -1901,11 +1901,9 @@ CONTAINS
     var%lambdav   = rlambda       ! latent heat of vaporisation
     var%lambdav   = 1.91846e6_r_2*((Tsoil+Tzero)/((Tsoil+Tzero)-33.91_r_2))**2  ! Henderson-Sellers, QJRMS, 1984
     var%lambdaf   = lambdaf        ! latent heat of fusion
-    !var%Tfrz      = Tfrz(S,parin%he,one/parin%lam)
-    var%Tfrz      = Tfrz(S,parin%he,one/parin%zeta*0.2)
+    var%Tfrz      = Tfrz(S,parin%he,one/parin%lam)
 
     if (Tsoil < var%Tfrz) then ! ice
-       parin%lam = parin%zeta*5.0 
        thetal_max    = thetalmax(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
        var%dthetaldT = dthetalmaxdT(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
        var%iice   = 1
@@ -1942,7 +1940,6 @@ CONTAINS
             (parin%eta-one/parin%lam)/(parin%thre-var%thetai)
        var%rh   = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
     else ! no ice
-       parin%lam = parin%zeta
        var%he     = parin%he
        var%phie   = parin%phie
        var%Ksat   = parin%Ke
@@ -2608,7 +2605,6 @@ CONTAINS
        par(:,i)%clay       = real(soil%clay(index),r_2)
        par(:,i)%zeta       = real(soil%zeta(index),r_2)
        par(:,i)%fsatmax    = real(soil%fsatmax(index),r_2)
-       par(:,i)%zeta       =  par(:,i)%lam ! test noliq!
     enddo
 
   END SUBROUTINE setpar
@@ -2686,7 +2682,6 @@ CONTAINS
     par%kd         = zero ! not used
     par%zeta       = zero ! not used - force-restore
     par%fsatmax    = zero ! not used - force-restore
-
 
   END SUBROUTINE setpar_Loetsch
 
@@ -2871,16 +2866,15 @@ CONTAINS
     IMPLICIT NONE
 
     real(r_2), intent(in) :: Tin,S,he,b,thre,the
-    real(r_2)             :: dthetaldh, h, psi, PI, T, thetalmax, bb
+    real(r_2)             :: dthetaldh, h, psi, PI, T, thetalmax
 
-    bb = 1.0*b ! TEST
     T = min(Tfrz(S,he,b),Tin)
     PI  = -csol*Rgas*(T+Tzero)/gravity ! osmotic potential (m)
     psi = lambdaf*T/(gravity*(T+Tzero))! total matric potential in presence of ice
     h   = psi-PI       ! moisture potential in presence of ice
 
-    thetalmax = thre*(h/he)**(-one/bb) + (the-thre)
-    dthetaldh = -thetalmax/bb/h
+    thetalmax = thre*(h/he)**(-one/b) + (the-thre)
+    dthetaldh = -thetalmax/b/h
 
     dthetalmaxdT = dthetaldh*(lambdaf/(T+Tzero)/gravity-lambdaf*T/gravity/(T+Tzero)**2+csol*Rgas/gravity)
 
@@ -2896,14 +2890,13 @@ CONTAINS
     IMPLICIT NONE
 
     real(r_2), INTENT(in) :: Tin,S,he,b,thre,the
-    real(r_2)             :: dthetaldh, h, theta, T, bb
+    real(r_2)             :: dthetaldh, h, theta, T
 
-    bb = 1.0*b ! TEST
     T     = min(Tfrz(S,he,b),Tin)
-    h     = he * S**(-bb)
+    h     = he * S**(-b)
     theta = S*thre + (the-thre)
 
-    dthetaldh = -theta/bb/h
+    dthetaldh = -theta/b/h
 
     dthetalmaxdTh = dthetaldh*(lambdaf/(T+Tzero)/gravity-lambdaf*T/gravity/(T+Tzero)**2+csol*Rgas/gravity)
 
@@ -3229,16 +3222,14 @@ CONTAINS
     IMPLICIT NONE
 
     real(r_2), intent(in) :: S, he, b
-    real(r_2)             :: bb
 
-    bb = 1.0*b !TEST
     if (csol > e3) then
-       Tfrz = (gravity*he - (min(S,one))**bb * (lambdaf + two*csol*Rgas*Tzero) + &
-            sqrt(gravity**2 * he**2 - two*gravity*he*lambdaf*(min(S,one))**bb + &
-            lambdaf*(min(S,one))**(two*bb)*(lambdaf + four*csol*Rgas*Tzero)))/ &
-            (two*csol*Rgas*(min(S,one))**bb)
+       Tfrz = (gravity*he - (min(S,one))**b * (lambdaf + two*csol*Rgas*Tzero) + &
+            sqrt(gravity**2 * he**2 - two*gravity*he*lambdaf*(min(S,one))**b + &
+            lambdaf*(min(S,one))**(two*b)*(lambdaf + four*csol*Rgas*Tzero)))/ &
+            (two*csol*Rgas*(min(S,one))**b)
     else
-       Tfrz = (gravity*he*Tzero) / (-(gravity*he) + lambdaf*(S)**bb)
+       Tfrz = (gravity*he*Tzero) / (-(gravity*he) + lambdaf*(S)**b)
     endif
 
   END FUNCTION Tfrz
@@ -3373,15 +3364,14 @@ CONTAINS
     IMPLICIT NONE
 
     real(r_2), intent(in) :: Tin, S, he, b, thre, the
-    real(r_2)             :: PI, psi, h, T, bb
+    real(r_2)             :: PI, psi, h, T
 
-    bb = 1.0*b ! TEST
     T   = min(Tfrz(min(S,one),he,b),Tin)
     PI  = -csol *Rgas *(T+Tzero)/gravity ! osmotic potential (m)
     psi = lambdaf*T/(gravity*(T+Tzero))  ! matric potential in presence of ice
     h   = psi-PI                         ! moisture potential in presence of ice
 
-    thetalmax = thre*(h/he)**(-1/bb) + (the-thre)
+    thetalmax = thre*(h/he)**(-1/b) + (the-thre)
     if (S > one) thetalmax = S * thetalmax
 
   END FUNCTION thetalmax
@@ -3395,17 +3385,16 @@ CONTAINS
     IMPLICIT NONE
 
     real(r_2), intent(in) :: thetal,S,he,b,thre,the,Tin
-    real(r_2)             :: PI, psi, h, T, Tfreezing, bb
+    real(r_2)             :: PI, psi, h, T, Tfreezing
 
     !integer(i_d) :: k
 
-    bb = 1.0*b ! TEST
     T = Tin
     !do k=1,20
     Tfreezing  = Tfrz(S,he,b)
     T          = min(Tfreezing,T)
     PI         = -csol *Rgas *(T+Tzero)/gravity                ! osmotic potential (m)
-    h          = he*(max((thetal-(the-thre)),0.01_r_2)/thre)**(-bb) ! moisture potential in presence of ice
+    h          = he*(max((thetal-(the-thre)),0.01_r_2)/thre)**(-b) ! moisture potential in presence of ice
     psi        = h + PI
     Tthetalmax = psi*(gravity*(T+Tzero)) / lambdaf
     !T = T + 0.1*(Tthetalmax-T)

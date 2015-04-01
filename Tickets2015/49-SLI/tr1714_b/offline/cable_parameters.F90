@@ -1231,6 +1231,7 @@ CONTAINS
          ssnow%snowliq(:,:) = 0.0
          ssnow%Tsurface = 25.0
          ssnow%nsnow = 0
+         ssnow%Tsoil = ssnow%tgg - 273.15
       END IF
 
       IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN

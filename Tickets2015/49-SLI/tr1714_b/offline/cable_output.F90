@@ -1875,7 +1875,7 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID
-    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     CHARACTER         :: FRST_OUT*100, CYEAR*4
 
@@ -2255,6 +2255,9 @@ CONTAINS
        CALL define_ovar(ncid_restart,SID,'S','-',&
             'Fractional soil moisture content relative to saturated value', &
             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,TsoilID,'Tsoil','degC',&
+            'Tsoil', &
+            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,snowliqID,'snowliq','mm',&
             'liquid water content of snowpack', &
             .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
@@ -2509,6 +2512,8 @@ CONTAINS
        ! Write SLI variables:
        CALL write_ovar (ncid_restart,SID,'S',REAL(ssnow%S,4), &
             (/0.0,1.5/),.TRUE.,'soil',.TRUE.)
+       CALL write_ovar (ncid_restart,TsoilID,'Tsoil',REAL(ssnow%Tsoil,4), &
+            (/-100.0,100.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,snowliqID,'snowliq',REAL(ssnow%snowliq,4), &
             (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
        CALL write_ovar (ncid_restart,scondsID,'sconds',REAL(ssnow%sconds,4), &
