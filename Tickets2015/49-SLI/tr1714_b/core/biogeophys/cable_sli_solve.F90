@@ -1455,10 +1455,10 @@ CONTAINS
                       write(*,*) "RHS: ", RHS_h(kk,1:n)
                       write(*,*) "LHS-RHS: ", LHS_h(kk,1:n)-RHS_h(kk,1:n)
                       write(*,*) "LHS/RHS-1: ", abs(LHS_h(kk,1:n)/RHS_h(kk,1:n))-one
-                      write(*,*) "irec, nsteps:" , irec, nsteps
+                      write(*,*) "irec,kk, nsteps:" , irec,kk, nsteps(kk)
                       write(*,*) "S 1 ", S(kk,1)
                       write(*,*) "ice 1: ", var(kk,1)%thetai, var(kk,1)%iice, var(kk,1)%isat
-                      write(*,*) "ns: ", ns
+                      write(*,*) "ns: ", ns(kk)
                       write(*,*) cch(kk,1)*dy(kk,1) +ddh(kk,1)*de(kk,1) + eeh(kk,1)*dy(kk,2) + ffh(kk,1)*de(kk,2)
                       write(*,*) ggh(kk,1), -(qh(kk,0) - qh(kk,1))/sig(kk)
                       write(*,*) "dy, de", dy(kk,1), de(kk,1)
