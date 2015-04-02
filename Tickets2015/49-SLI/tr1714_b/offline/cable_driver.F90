@@ -523,9 +523,9 @@ PROGRAM cable_offline_driver
                      IF ( MOD ((ktau+koffset),ktauday*CABLE_USER%CASA_OUT_FREQ)&
                           == 0 .OR. ktau .EQ. kend) THEN
                         ctime = ctime +1
-                        CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal,&
-                              casaflux, CASAONLY, ctime,                       &
-                              ( ktau.EQ.kend .AND. YYYY .EQ.                   &
+                       !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
+                       CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
+                            CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &
                               cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
                      ENDIF
                   END IF

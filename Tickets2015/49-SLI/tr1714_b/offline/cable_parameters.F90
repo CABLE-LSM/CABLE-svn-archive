@@ -1374,6 +1374,7 @@ CONTAINS
     bal%drybal = 0.0
     bal%wetbal = 0.0
     bal%wbtot0 = 0.0 
+    bal%RadbalSum = 0.0  
     DO j=1, ms
        bal%wbtot0 = bal%wbtot0 + REAL(ssnow%wb(:, j)) * soil%zse(j)       &
                     * 1000.0
