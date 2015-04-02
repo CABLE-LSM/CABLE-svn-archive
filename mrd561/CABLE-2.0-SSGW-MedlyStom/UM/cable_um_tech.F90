@@ -93,7 +93,7 @@ CONTAINS
 SUBROUTINE cable_um_runtime_vars(runtime_vars_file) 
    USE cable_common_module, ONLY : cable_runtime, cable_user, filename,        &
                                    cable_user, knode_gl, redistrb, wiltParam,  &
-                                   satuParam, myhome, gw_params
+                                   satuParam
 
 
    CHARACTER(LEN=*), INTENT(IN) :: runtime_vars_file
@@ -221,7 +221,11 @@ SUBROUTINE dealloc_vegin_soilin()
       DEALLOCATE(vegin%csoil)
       DEALLOCATE(vegin%ratecp)
       DEALLOCATE(vegin%ratecs)
-     
+      DEALLOCATE(vegin%g0c3)
+      DEALLOCATE(vegin%g0c4)
+      DEALLOCATE(vegin%g1c3)
+      DEALLOCATE(vegin%g1c4)     
+ 
       DEALLOCATE(soilin%silt)
       DEALLOCATE(soilin%clay)
       DEALLOCATE(soilin%sand)

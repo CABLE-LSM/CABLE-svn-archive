@@ -37,10 +37,6 @@ MODULE cable_common_module
    !---total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
    
-   ! set from environment variable $HOME
-   CHARACTER(LEN=200) ::                                                       & 
-      myhome
-   
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
@@ -54,25 +50,35 @@ MODULE cable_common_module
 
    !---CABLE runtime switches def in this type
    TYPE kbl_user_switches
-      
+      !jhan: this is redundant now we all use filename%veg?
       CHARACTER(LEN=200) ::                                                    &
-         VEG_PARS_FILE,       & ! 
-         LEAF_RESPIRATION,    & !
-         FWSOIL_SWITCH          !
+         VEG_PARS_FILE  ! 
       
-   CHARACTER(LEN=20) :: DIAG_SOIL_RESP !
-   CHARACTER(LEN=5) :: RUN_DIAG_LEVEL  !
-   CHARACTER(LEN=3) :: SSNOW_POTEV     !
-   LOGICAL ::                                                               &
-      INITIALIZE_MAPPING = .FALSE., & ! 
-      CONSISTENCY_CHECK = .FALSE.,  & !
-      CASA_DUMP_READ = .FALSE.,     & !
-      CASA_DUMP_WRITE = .FALSE.,    & !
-      CABLE_RUNTIME_COUPLED  = .FALSE.!
+      CHARACTER(LEN=20) ::                                                     &
+         FWSOIL_SWITCH     !
+
+      ! Ticket #56
+      CHARACTER(LEN=20) ::                                                     &
+         GS_SWITCH
+      
+      CHARACTER(LEN=5) ::                                                      &
+         RUN_DIAG_LEVEL  !
+      
+      CHARACTER(LEN=3) ::                                                      &
+         SSNOW_POTEV,      & !
+         DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
+         LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
    !MD
    LOGICAL :: GW_MODEL = .FALSE.
    LOGICAL :: alt_forcing = .FALSE.
    LOGICAL :: GSWP3 = .FALSE.
+
+      LOGICAL ::                                                               &
+         INITIALIZE_MAPPING = .FALSE., & ! 
+         CONSISTENCY_CHECK = .FALSE.,  & !
+         CASA_DUMP_READ = .FALSE.,     & !
+         CASA_DUMP_WRITE = .FALSE.,    & !
+         CABLE_RUNTIME_COUPLED  = .FALSE.!
 
 
    END TYPE kbl_user_switches
@@ -82,7 +88,7 @@ MODULE cable_common_module
    ! external files read/written by CABLE
    TYPE filenames_type
 
-   CHARACTER(LEN=99) ::                                                        &
+   CHARACTER(LEN=500) ::                                                        &
       met,        & ! name of file for CABLE input
       out,        & ! name of file for CABLE output
       log,        & ! name of file for execution log
@@ -152,7 +158,12 @@ MODULE cable_common_module
          extkn,      & ! 
          tminvj,     & !
          tmaxvj,     & !
-         vbeta         !
+         vbeta,      & !
+         g0c3,       & !  Ticket #56
+         g0c4,       & !  Ticket #56 
+         g1c3,       & !  Ticket #56 
+         g1c4          !  Ticket #56
+
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -221,6 +232,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
    OPEN(40,FILE=filename%veg,STATUS='old',ACTION='READ',IOSTAT=ioerror)
       
       IF(ioerror/=0) then 
+         PRINT *, ioerror
          STOP 'CABLE_log: Cannot open veg type definitions.'
       ENDIF
      
@@ -265,7 +277,10 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
-         veg_desc( mvtype ) )
+         veg_desc( mvtype ) ,                                               &
+         vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),             & ! Ticket #56
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) )             ! Ticket #56
+
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -296,6 +311,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
+            READ(40,*) vegin%g0c3(jveg), vegin%g0c4(jveg),     & ! Ticket #56
+                       vegin%g1c3(jveg),vegin%g1c4(jveg) ! Ticket #56
+
 
          END DO
 
@@ -350,6 +368,11 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl(2,:) = 0.425
          vegin%refl(3,:) = 0.0
 
+         READ(40,*) vegin%g0c3 ! Ticket #56
+         READ(40,*) vegin%g0c4 ! Ticket #56
+         READ(40,*) vegin%g1c3 ! Ticket #56
+         READ(40,*) vegin%g1c4 ! Ticket #56 
+
       ENDIF
 
       WRITE(6,*)'CABLE_log:Closing veg params file: ',trim(filename%veg)
@@ -398,6 +421,52 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
    CLOSE(40)
 
 END SUBROUTINE get_type_parameters
+
+
+! get svn revision number and status
+SUBROUTINE report_version_no( logn )
+   INTEGER, INTENT(IN) :: logn
+   ! set from environment variable $HOME
+   CHARACTER(LEN=200) ::                                                       & 
+      myhome,       & ! $HOME (POSIX) environment/shell variable
+      fcablerev,    & ! recorded svn revision number at build time
+      icable_status   ! recorded svn STATUS at build time (ONLY 200 chars of it)
+
+   
+   INTEGER :: icable_rev, ioerror
+    
+   CALL getenv("HOME", myhome) 
+   fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
+   OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)
+
+      IF(ioerror/=0) then 
+         PRINT *, "We'll keep running but the generated revision number "     
+         PRINT *, " in the log & file will be meaningless."     
+      ENDIF
+      
+      ! get svn revision number (see WRITE comments)
+      READ(440,*) icable_rev
+       
+      WRITE(logn,*) ''
+      WRITE(logn,*) 'Revision nuber: ', icable_rev
+      WRITE(logn,*) ''
+      WRITE(logn,*)'This is the latest revision of you workin copy as sourced ' 
+      WRITE(logn,*)'by the SVN INFO command at build time. Please note that the' 
+      WRITE(logn,*)'accuracy of this number is dependent on how recently you ' 
+      WRITE(logn,*)'used SVN UPDATE.'
+   
+      ! get svn status (see WRITE comments)
+      ! (jhan: make this output prettier & not limitted to 200 chars) 
+      WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
+      WRITE(logn,*)'local changes: '
+      READ(440,'(A)',IOSTAT=ioerror) icable_status
+      WRITE(logn,*) TRIM(icable_status)
+      WRITE(logn,*) ''
+   
+   CLOSE(440)
+
+END SUBROUTINE report_version_no
+
 
 
 END MODULE cable_common_module
