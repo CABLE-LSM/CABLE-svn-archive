@@ -1122,8 +1122,6 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
-
   call casa_delsoil(veg,casapool,casaflux,casamet)
 
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
