@@ -237,6 +237,7 @@ PROGRAM cable_offline_driver
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
 
+   INTEGER :: nkend=0
    INTEGER :: ioerror
 
    ! END header
@@ -585,6 +586,43 @@ PROGRAM cable_offline_driver
                           canopy%fe + canopy%fh )
                ENDIF
               ENDIF
+         ! Check this run against standard for quasi-bitwise reproducability
+         ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+         IF(cable_user%consistency_check) THEN 
+            
+            new_sumbal = new_sumbal + SUM(bal%wbal_tot) + SUM(bal%ebal_tot)          &
+                             + SUM(bal%ebal_tot_cncheck)
+  
+            IF( ktau == kend ) THEN
+               nkend = nkend+1
+               IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
+
+                  print *, ""
+                  print *, &
+                  "NB. Offline-serial runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows this version reproduces the trunk sumbal"
+               
+               ELSE
+
+                  print *, ""
+                  print *, &
+                  "NB. Offline-serial runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows in this version new_sumbal != trunk sumbal"
+                  print *, &
+                  "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+                        
+                  OPEN( 12, FILE = Fnew_sumbal )
+                     WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+                  CLOSE(12)
+               
+               ENDIF   
+            ENDIF   
+            
+         ENDIF
+
+         
             END DO ! END Do loop over timestep ktau
 
             !jhan this is insufficient testing. condition for
