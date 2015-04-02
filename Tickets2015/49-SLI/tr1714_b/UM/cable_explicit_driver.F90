@@ -133,8 +133,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       sw_down,          & 
       cos_zenith_angle
    
+   REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                             &
+      latitude
+   
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
-      latitude,   &
       longitude,  &
       lw_down,    &
       ls_rain,    &
@@ -286,6 +288,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
+   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
+   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
+
 
    ! Vars for standard for quasi-bitwise reproducability b/n runs
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
@@ -321,6 +326,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- internal FLAGS def. specific call of CABLE from UM
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
+   
+   !--- UM7.3 latitude is not passed correctly. hack 
+   IF(first_cable_call) latitude = sin_theta_latitude
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
@@ -382,19 +390,19 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg )
 
-
-
    !---------------------------------------------------------------------!
    ! Check this run against standard for quasi-bitwise reproducability   !  
    ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
    !---------------------------------------------------------------------!
    IF(cable_user%consistency_check) THEN 
          
-      new_sumbal = new_sumbal + ( SUM(canopy%fe) + SUM(canopy%fh)              &
+      IF( knode_gl==1 ) &
+         new_sumbal = new_sumbal + ( SUM(canopy%fe) + SUM(canopy%fh)           &
                     + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1)) )
      
-      if(knode_gl==1 .and. ktau_gl==kend_gl) then 
-         IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
+      IF( knode_gl==1 .and. ktau_gl==kend_gl ) then 
+         
+         IF( abs(new_sumbal-trunk_sumbal) < 1.e-7 ) THEN
    
             print *, ""
             print *, &
@@ -410,11 +418,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
             "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
                   
             OPEN( 12, FILE = Fnew_sumbal )
-               WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+               WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
             CLOSE(12)
          
          ENDIF   
+      
       ENDIF   
+   
    ENDIF
 
 
@@ -437,7 +447,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    ! dump bitwise reproducible testing data
    IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+      call cable_diag( iDiagZero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
                           "FLUXES", canopy%fe + canopy%fh )
                 
 
