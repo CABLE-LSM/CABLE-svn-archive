@@ -643,36 +643,6 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
       ENDIF
     ENDIF
 
-!    canopy%fnee = canopy%fpn + canopy%frs + canopy%frp 
-!!   For prognostic Vcmax, and NEE should include clabloss under nutrient limitation
-!!   Q.Zhang 12/09/2011
-!    canopy%fnee(:) = canopy%fnee(:) + casaflux%clabloss(:)/86400.0
-!    ! Q.Zhang 08/06/2011. return NEE from casaflux when N/NP mode is activated.
-!    ! NPP of CABLE's output is "potential" NPP, not "real" C input to casacnp
-!    ! To derive nutrient limited NPP from CABLE's standard output, use NEE+Crsoil
-!!    if (icycle>1) then
-!!     canopy%fnee = (casaflux%Crsoil-casaflux%cnpp)/86400.0
-!!    else
-!!     canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
-!!    end if
-
-!    write(*,101) ktau,casaflux%Crsoil(:)
-!    write(*,101) ktau,dels,veg%vlai,veg%vcmax*1.0e6,casaflux%cgpp,canopy%fpn*1.0e6/12.0,canopy%frp*1.0e6/12.0,canopy%frs*1.0e6/12.0,canopy%fnee*1.0e6/12.0
-!101  format(i6,2x,100(f12.5,2x))
-!    if(ktau==kend) then
-!       PRINT *, 'carbon fluxes'
-!       PRINT *, 'sumpn', sum_flux%sumpn
-!       PRINT *, 'sumrd', sum_flux%sumrd
-!       PRINT *, 'sumrp', sum_flux%sumrp
-!       PRINT *, 'sumrs', sum_flux%sumrs
-!       PRINT *, 'npp', sum_flux%sumpn+sum_flux%sumrp
-!       PRINT *, 'nee', sum_flux%sumpn+sum_flux%sumrp+sum_flux%sumrs
-!     !  PRINT *, 'carbon pools', leaf,wood,froot
-!     !  PRINT *,  casapool%cplant(1,2),casaflux%crmplant(1,wood),casaflux%Crsoil(1)
-!     !  PRINT *, 'respiration rate'
-!     !  PRINT *,  casabiome%rmplant(1,2)*365.0
-!    endif
-
 END SUBROUTINE sumcflux
 
   SUBROUTINE totcnppools(kloop,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
@@ -819,7 +789,6 @@ END SUBROUTINE sumcflux
   casabal%sumnbal(:)   = 0.0
   casabal%sumpbal(:)   = 0.0
 
-!  write(517,*),'before analyticpool:casaflux%klitter(39:40,1:3),casa%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,1:3),casa%csoil%(39:40,1:3)',casaflux%klitter(39:40,1:3),casaflux%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,:),casapool%csoil(39:40,:)
   do npt=1,mp
   if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) THEN
     casaflux%fromLtoS(npt,mic,metb)   = 0.45
