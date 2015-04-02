@@ -50,7 +50,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    !      MRR draft paper "Simplified expressions...", dec-92
    ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_user
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
 
@@ -61,9 +61,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =C%CCD*LAI; working variable 
-      dh,      & ! d/h where d is zero-plane displacement
-      hmax       ! maximum height of canopy from
-                                    ! tiles belonging to the same grid
+      dh         ! d/h where d is zero-plane displacement
    
    CALL point2constants( C ) 
    

@@ -821,7 +821,7 @@ SUBROUTINE Latent_heat_flux()
          ! E.Kowalczyk 2014 - reduces the soil evaporation
          flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
         ENDIF
-         fupper_limit(j) = MAX( 0._r_2,                                        &
+        fupper_limit(j) = MAX( 0.,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
 
@@ -2135,7 +2135,7 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
    REAL, DIMENSION(mp) :: rwater ! soil water availability
 
    rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
   
    fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
@@ -2155,7 +2155,7 @@ SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
    INTEGER :: j
 
    rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(0.0,MIN(1.0_r_2,ssnow%wb -                   &
+            SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
 
    fwsoil = 1.

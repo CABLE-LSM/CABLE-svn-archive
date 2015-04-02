@@ -164,10 +164,8 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, soil_snow_type,         &
-                                   air_type, mp, mf, r_2
+                                   air_type, mp, mf
                                        
-   USE cable_common_module, only : cable_runtime, cable_user
-
    TYPE (canopy_type),   INTENT(IN) :: canopy
    TYPE (air_type),      INTENT(IN) :: air
    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
@@ -183,7 +181,6 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
       emair, &    ! air emissivity
       flpwb, &    ! black-body long-wave radiation
       flwv, &     ! vegetation long-wave radiation (isothermal)
-      xx1,tssp, & ! 
       dummy, dummy2
       
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
@@ -192,8 +189,6 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    INTEGER, SAVE :: call_number =0
    
-   REAL s1,s2,s3,step
-
    call_number = call_number + 1
 
    ! Define vegetation mask:
@@ -351,7 +346,6 @@ END SUBROUTINE radiation
 SUBROUTINE calc_rhoch(veg,c1,rhoch) 
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
-   USE cable_common_module, only : cable_runtime   
 
    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
    REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch

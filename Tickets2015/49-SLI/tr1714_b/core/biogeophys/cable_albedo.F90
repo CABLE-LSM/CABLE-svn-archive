@@ -171,7 +171,6 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
       alvo  = 0.95,  &  ! albedo for vis. on a new snow
       !aliro = 0.70      ! albedo for near-infr. on a new snow
       aliro = 0.80 ! test vh!
-   INTEGER :: k,i,j,l,l1,l2
 
    soil%albsoilf = soil%albsoil(:,1)
 
@@ -350,8 +349,6 @@ END SUBROUTINE surface_albedosn
     REAL, PARAMETER ::                                                          &
          alvo  = 0.95,  &  ! albedo for vis. on a new snow
          aliro = 0.70      ! albedo for near-infr. on a new snow
-        !  aliro = 0.75 ! test vh!
-    INTEGER :: k,i,j,l,l1,l2
 
     soil%albsoilf = soil%albsoil(:,1)
 
@@ -525,7 +522,7 @@ SUBROUTINE soilcol_albedo(ssnow, soil)
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
 
    ! Local Variables 
-   INTEGER   :: ib, ic
+   INTEGER   :: ib
    REAL(r_2), DIMENSION(mp)      :: inc
    REAL(r_2), DIMENSION(mp, nrb) :: albsod,          & ! soil albedo (direct)
                                     albsoi             ! soil albedo (indirect)
@@ -555,11 +552,11 @@ SUBROUTINE soilcol_albedo(ssnow, soil)
    albdry = RESHAPE( albdry1D, (/20, nrb/) ) 
 
    DO ib = 1,2 ! Number of wavebands (vis, nir)
-      inc = MAX(0.11-0.40*ssnow%wb(:,1), 0.)
+      inc = MAX(0.11-0.40*ssnow%wb(:,1), 0._r_2)
       albsod(:,ib) = MIN(albsat(INT(soil%soilcol),ib)+inc, albdry(INT(soil%soilcol),ib))
       albsoi(:,ib) = albsod(:,ib)
    END DO
-   ssnow%albsoilsn = 0.5*(albsod + albsoi)
+   ssnow%albsoilsn = real(0.5*(albsod + albsoi))
 
 END SUBROUTINE soilcol_albedo
 
