@@ -14,9 +14,27 @@
 #==============================================================================
 
 
+out='./../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_with_gw'
+#out='../../Outputs/CABLE_2.0_new_hydrology/Leuning_standard_with_gw'
+#out='../../Outputs/CABLE_2.0_new_hydrology/Leuning_nonlinextrap_with_gw'
+
+#model options 
+gw_opt="TRUE"   #use groundwater?
+spin_opt="TRUE" #spin up model?
+veg_file="g1_files/def_veg_params_medlyn_mean.txt"
+
+#check if directory exists, it not create
+if [[ -d $out ]]; then
+   echo  "output directory exists"
+else
+    mkdir -p $out
+fi
+
+
+
 book_keeping()
 {      
-   if [[ -d out.9 ]]; then
+   if [[ -d $out.9 ]]; then
       print "\n\ntime to organize your out/ directory"
       exit
    fi 
@@ -24,22 +42,22 @@ book_keeping()
    i=8; ((j=i+1)); k=0;
    while [ $k -lt 8 ]
       do 
-         if [[ -d out.$i ]]; then
-            mv out.$i out.$j
+         if [[ -d $out.$i ]]; then
+            mv $out.$i $out.$j
          fi 
          ((j = j - 1)) 
          ((i = i - 1)) 
          ((k = k + 1)) 
       done
 
-   if [[ -d out ]]; then
-      mv out out.1
+   if [[ -d $out ]]; then
+      mv $out $out.1
    fi      
-   mkdir out
+   mkdir $out
 
    HOST_MACH=`uname -n | cut -c 1-4`
    
-   if [[ $HOST_MACH = 'raij' ]]; then
+   if [[ $HOST_MACH = 'vayu' ]]; then
    
       if [[ ! -e cable.nml ]]; then
          ln -s $CABLE_AUX/CABLE-AUX/offline/cable.nml .
@@ -60,7 +78,7 @@ book_keeping()
 site_name()
 {
    integer i=0
-   exec < sites.txt
+   exec < ./../../Inputs/sites.txt
    
    while read line
    do
@@ -115,12 +133,15 @@ run_run()
    # remove any trace of previous runs
    tidy
 
-   mkdir out/${sites[$1]}
+   mkdir $out/${sites[$1]}
+ 
 
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then
+      ./create_cable-nml.sh -e $spin_opt -g $gw_opt -v $veg_file  #create namelist with options above
       ./cable ${fsites[$1]} ${fpoolsites[$1]}
    else
+       echo "bypassing namelist arg"
       ./cable       
    fi
 
@@ -132,8 +153,8 @@ run_run()
       print '\n*** CABLE RUN (appears) SUCCESSFULL ***\n'
       		
       # CABLE output + restart if applicable
-      mv log_cable.txt out_cable.nc restart_out.nc out/${sites[$1]}
-      cp cable.nml  out/${sites[$1]}
+      mv log_cable.txt out_cable.nc restart_out.nc $out/${sites[$1]}
+      cp cable.nml  $out/${sites[$1]}
       # pools for CASA-CNP
       if [[ -e poolcnpOut.csv ]]; then
          mv poolcnpOut.csv cnpfluxOut.csv out/${sites[$1]}
