@@ -553,12 +553,14 @@ PROGRAM cable_offline_driver
                
                ! dump bitwise reproducible testing data
                IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
+                 IF (.NOT.CASAONLY) THEN
+                   write(*,*) 'before diags'
                   IF((.NOT.spinup).OR.(spinup.AND.spinConv))                   &
                   call cable_diag( 1, "FLUXES", mp, kend, ktau,                &
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
                ENDIF
-                
+              ENDIF
             END DO ! END Do loop over timestep ktau
 
             !jhan this is insufficient testing. condition for
@@ -656,7 +658,7 @@ PROGRAM cable_offline_driver
                   RYEAR = YYYY
                END if
                IF ( cable_user%CALL_POP ) then
-                  CALL POP_IO( pop, casamet, RYEAR, 'WRITE', &
+                 CALL POP_IO( pop, casamet, RYEAR, 'WRITE_EPI', &
                       (YYYY.EQ.CABLE_USER%YearEnd .AND. RRRR.EQ.NRRRR) )
                   CALL GLOBFOR_OUT(mp, pop, casapool, veg, rad, cleaf_max,     &
                                     npp_ann, gpp_ann, stemnpp_ann,             &
@@ -689,6 +691,14 @@ PROGRAM cable_offline_driver
            rad, rough, soil, ssnow,                                            &
            sum_flux, veg )
    ENDIF
+
+  IF ( cable_user%CALL_POP ) THEN
+     IF ( spinup ) THEN
+        CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_INI', .TRUE.)
+     ELSE
+        CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_RST', .TRUE.)
+     ENDIF
+  ENDIF
 
    IF ( TRIM(cable_user%MetType) .NE. "gswp" ) CALL close_met_file
 

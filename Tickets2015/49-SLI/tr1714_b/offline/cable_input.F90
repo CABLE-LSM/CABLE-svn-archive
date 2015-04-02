@@ -933,6 +933,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
          metunits%Rainf(1:6)=='mms^-1'.OR. &
          metunits%Rainf(1:7)=='kg/m^2s') THEN
        ! Change from mm/s to mm/time step:
+       write(*,*) 'Rainfall Units', metunits%Rainf
        convert%Rainf = dels
     ELSE IF(metunits%Rainf(1:4)=='mm/h'.OR.metunits%Rainf(1:6)== &
          'mmh^-1') THEN
@@ -944,7 +945,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
     ! Multiply acceptable Rainf ranges by time step size:
-    !ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
+    !ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels ! vh ! why has this been commented out?
+    ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
     ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
@@ -2214,14 +2216,19 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             CALL abort('LWdown out of specified ranges!')
        IF(ANY(met%qv<ranges%Qair(1)).OR.ANY(met%qv>ranges%Qair(2))) &
             CALL abort('Qair out of specified ranges!')
-       IF(ANY(met%precip<ranges%Rainf(1)).OR.ANY(met%precip>ranges%Rainf(2))) &
+       write(*,*) "Checking Ranges in get_met_data", maxval(met%precip)
+       IF(ANY(met%precip<ranges%Rainf(1)).OR.ANY(met%precip>ranges%Rainf(2))) then
+            write(*,*) "min, max Rainf", minval(met%precip), maxval(met%precip), ranges%Rainf(2)
             CALL abort('Rainf out of specified ranges!')
+       ENDIF
        IF(ANY(met%ua<ranges%Wind(1)).OR.ANY(met%ua>ranges%Wind(2))) &
             CALL abort('Wind out of specified ranges!')
        IF(ANY(met%tk<ranges%Tair(1)).OR.ANY(met%tk>ranges%Tair(2))) &
             CALL abort('Tair out of specified ranges!')
-       IF(ANY(met%pmb<ranges%PSurf(1)).OR.ANY(met%pmb>ranges%PSurf(2))) &
+       IF(ANY(met%pmb<ranges%PSurf(1)).OR.ANY(met%pmb>ranges%PSurf(2))) & then
+          write(*,*) "min, max Psurf", minval(met%pmb), maxval(met%pmb),ranges%Psurf(1), ranges%Psurf(2)
             CALL abort('PSurf out of specified ranges!')
+       endif
     END IF
   
 END SUBROUTINE get_met_data
