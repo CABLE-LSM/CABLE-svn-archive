@@ -1662,11 +1662,8 @@ END SUBROUTINE remove_trans
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
 
-       ssnow%qhz(i)  = tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = max(soil%slope(i),1e-5) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
-
-!       ssnow%qhz(i)  = soil%hksat(i,ms)/soil%topo_ind(i) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
-!                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
 
  
        !identify first no frozen layer.  drinage from that layer and below

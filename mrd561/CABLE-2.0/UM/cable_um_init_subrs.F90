@@ -239,7 +239,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
               fwork(i,n) = ti_mean(i)
             end do
          end do
-         soil%topo_ind(:) = pack(fwork(:,:),um1%l_tile_pts) 
+         soil%slope(:) = pack(fwork(:,:),um1%l_tile_pts) 
          deallocate(fwork) 
  
             
