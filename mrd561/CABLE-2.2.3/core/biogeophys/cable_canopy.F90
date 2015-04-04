@@ -320,12 +320,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
           
       ENDDO 
      
-
-      ! Calculate net rad to soil:
-!      canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
-!            C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
-
-
       ! Saturation specific humidity at soil/snow surface temperature:
       
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
