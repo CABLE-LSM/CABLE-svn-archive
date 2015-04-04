@@ -1393,8 +1393,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
-   
-      !IF (.not.cable_runtime%run_gw_model) THEN
 
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
@@ -1408,11 +1406,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ENDIF
 
       ELSE
-      
-      !  CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
-      !   call fwsoil_mass_calc_std(fwsoil, soil, ssnow, veg)
-          
-      !END IF
 
    ENDIF
 
