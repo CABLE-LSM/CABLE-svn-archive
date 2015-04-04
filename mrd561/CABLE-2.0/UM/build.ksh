@@ -213,7 +213,7 @@ build_build()
       cable_um_tech.o cable_um_init_subrs.o cable_um_init.o cable_soilsnow_GW.o
 
    if [[ -f libcable-2.0.a ]]; then
-      print '\nLibrary build successful. Copying libcable.a to ' $libroot
+      print '\nLibrary build successful. Copying libcable-2.0.a to ' $libroot
    else
       print '\nBuild failed\n'
       exit
@@ -255,7 +255,7 @@ if [[ $1 = 'clean' ]]; then
 fi
    
 export libroot=$CABLE_AUX'/CABLE-AUX/UM'
-export libpath=$libroot'/libcable.a'
+export libpath=$libroot'/libcable-2.0.a'
 
 known_hosts
 
