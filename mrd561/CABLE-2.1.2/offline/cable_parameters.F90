@@ -1490,6 +1490,11 @@ CONTAINS
 
     IF (cable_user%GW_MODEL) then
 
+       !first ensure that topo_ind isn't missing
+       !hack to fix bad prerpoc in srf data
+       where (soil%topo_ind .gt. 10) soil%topo_ind = 10
+       where (soil%topo_ind .lt. 1e-4) soil%topo_ind = 1e-4
+
        DO klev=1,ms
           soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
           soil%smpsat(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Fsand(:,klev)*100.0)
