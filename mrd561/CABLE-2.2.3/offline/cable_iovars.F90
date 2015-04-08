@@ -341,7 +341,9 @@ MODULE cable_IO_vars_module
          fldcap=.FALSE.,      & !field cap including org frac [mm3/mm3]
          wiltp=.FALSE.,       & !wilt point including org frac [mm3/mm3]
          Forg=.FALSE.,        & !ogranic frac in soil   [-]
-         SoilIce=.FALSE.        !volumetric soil ice [mm3/mm3]
+         SoilIce=.FALSE.,     & !volumetric soil ice [mm3/mm3]
+         VISalbedo=.FALSE.,   & !albedo visible band [-]
+         NIRalbedo=.FALSE.      !albedo nir band [-]
    
    END TYPE output_inclusion_type
 
