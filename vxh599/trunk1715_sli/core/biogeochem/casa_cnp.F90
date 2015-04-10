@@ -1016,6 +1016,7 @@ CONTAINS
                   + casaflux%fromLtoCO2(nland,nL)  &
                   * casaflux%klitter(nland,nL) &
                   * casapool%clitter(nland,nL)
+
           ENDDO
 
           DO nS=1,msoil
@@ -1032,13 +1033,15 @@ CONTAINS
                         * casaflux%ksoil(nland,nSS) &
                         * casapool%csoil(nland,nSS)
                 ENDIF
+
              ENDDO
              casaflux%fluxCtoCO2(nland) = casaflux%fluxCtoCO2(nland)  &
                   + casaflux%fromStoCO2(nland,nS) &
                   * casaflux%ksoil(nland,nS) &
                   * casapool%csoil(nland,nS)
-          ENDDO
 
+
+          ENDDO
           IF(icycle>1) THEN
              DO j=1,mlitter
                 casaflux%Nlittermin(nland) = casaflux%Nlittermin(nland) &
@@ -1174,6 +1177,7 @@ CONTAINS
           casapool%dClitterdt(nland,:) =  casaflux%fluxCtolitter(nland,:) - casaflux%klitter(nland,:) * casapool%clitter(nland,:)
           casapool%dCsoildt(nland,:)   =  casaflux%fluxCtosoil(nland,:)   - casaflux%ksoil(nland,:)   * casapool%csoil(nland,:)
           casaflux%Crsoil(nland)       =  casaflux%fluxCtoCO2(nland)
+
           IF(icycle > 1) THEN
              casapool%dNlitterdt(nland,:) =  casaflux%fluxNtolitter(nland,:)  &
                   - casaflux%klitter(nland,:) &

@@ -363,7 +363,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
 
   IF ( allATonce ) THEN
      DO idoy=1,mdyear
-
+         write(*,*) "test1"
         CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
          write(*,*) "before get_var", ms
         CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
@@ -512,6 +512,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset
+
+ 
 
 END SUBROUTINE write_casa_dump
 
