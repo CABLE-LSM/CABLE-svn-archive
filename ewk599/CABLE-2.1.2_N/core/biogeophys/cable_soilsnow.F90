@@ -985,60 +985,56 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
    !---  glacier formation
    rnof5= 0.
+   xxx = 0.
 
    IF (nglacier == 2) THEN
       
       smelt1(:,:)=0.
-      WHERE( ssnow%snowd > max_glacier_snowd )
+      xxx = met%fsd(:,1)+met%fsd(:,2)
+      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag .eq. 0 .and. xxx .gt. 560. )
 
-         rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) ! run60
-
+            rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) 
          !---- change local tg to account for energy - clearly not best method
-         WHERE( ssnow%isflag == 0 )
-            rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) ! run60
-            smasstot = 0.0
+            WHERE( xxx .le. 700. )  rnof5 = 6.6e-3*xxx - 3.6
             ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * C%HLF                    &
                              / REAL( ssnow%gammzz(:,1) )
             ssnow%snowd = ssnow%snowd - rnof5
-         ELSEWHERE
-            smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
-         END WHERE
-
       END WHERE
 
-     DO k = 1, 3
+      DO k = 1, 3
 !     Greenland         
-      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. ssnow%iantrct .eq. 0.0 )
-         WHERE( ssnow%tggsn(:,1) .lt. C%TFRZ - 3.0) rnof5 = 0.5*rnof5  
-         WHERE( ssnow%tggsn(:,1) .lt. C%TFRZ - 6.0) rnof5 = 1.e-1*rnof5  
-         WHERE( ssnow%tggsn(:,1) .lt. C%TFRZ - 10.0) rnof5 = 1.e-2*rnof5  
+       WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. ssnow%iantrct .eq. 0. .and. xxx .gt. 560. )
+            rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) ! run60
+            smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
+            WHERE( xxx .le. 700. )  rnof5 = 6.6e-3*xxx - 3.6
+            WHERE( xxx .gt. 700. .and. rnof5 .eq. 1.0 )  rnof5 = 1.5
             sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
-            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,            &
+            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,  &
                           0.3 * ssnow%smass(:,k) )
             ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
 
-      END WHERE
+       END WHERE
 ! Antarctic
-      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. ssnow%iantrct .eq. 1.0 )
-         WHERE( ssnow%tggsn(:,1) .lt. C%TFRZ-10. ) rnof5 = 0.5*rnof5
-         WHERE( ssnow%tggsn(:,1) .lt. C%TFRZ-15. ) rnof5 = 0.5*rnof5
-         WHERE( ssnow%tggsn(:,1) .lt. C%TFRZ-25. ) rnof5 = 0.1*rnof5
+      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. ssnow%iantrct .eq. 1. .and. xxx .gt. 460. )
+            rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) ! run60
+            smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
+            WHERE( xxx .le. 600. )  rnof5 = 0.3*(4.0e-3*xxx - 1.4)
+            WHERE( xxx .gt. 600 .and. xxx .le. 700. )  rnof5 = 6.6e-3*xxx - 3.6
             sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
-            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,            &
+            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,  &
                           0.3 * ssnow%smass(:,k) )
             ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
-      END WHERE
+       END WHERE
 
       END DO
    
-      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 )
+      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. xxx .gt. 210. )
             rnof5 = smelt1(:,1) + smelt1(:,2) + smelt1(:,3)
             ssnow%snowd = ssnow%snowd - rnof5
       END WHERE
    
-   END IF
+   END IF ! IF (nglacier == 2) 
 
-!  Rescale drainage to remove water added to lakes (wb_lake) 
    ssnow%sinfil = 0.0
    WHERE( veg%iveg == 16 )
       ssnow%sinfil  = MIN( ssnow%rnof1, ssnow%wb_lake ) ! water that can be extracted from the rnof1
@@ -1859,15 +1855,11 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    weting = totwet + max(0.,ssnow%pudsto - canopy%fesp/C%HL*dels) 
    xxx=soil%ssat - ssnow%wb(:,1)
   
-   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*rhowat, weting) !soil capacity
+   sinfil1 = MIN( 0.8*xxx*soil%zse(1)*rhowat, weting) !soil capacity
    xxx=max(0.0,soil%ssat - ssnow%wb(:,2))
-   !sinfil2 = MIN( 0.95*xxx*soil%zse(2)*rhowat, weting - sinfil1) !soil capacity
    sinfil2 = 0.0
-   where (ssnow%tgg(:,2).gt.C%TFRZ) sinfil2 = MIN(0.75*xxx*soil%zse(2)*rhowat,weting - sinfil1) !soil capacity
+   where (ssnow%tgg(:,2).gt.C%TFRZ) sinfil2 = MIN(0.3*xxx*soil%zse(2)*rhowat,weting - sinfil1) 
    sinfil3 = 0.0
-   xxx=max(0.0,soil%sfc - ssnow%wb(:,3))
-   !sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
-   where (ssnow%tgg(:,3).gt.C%TFRZ) sinfil3 = MIN(0.55*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
    
    ! net water flux to the soil
    ssnow%fwtop1 = sinfil1 / dels - canopy%segg          
