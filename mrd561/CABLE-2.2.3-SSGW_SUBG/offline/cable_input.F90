@@ -1808,7 +1808,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
     IF(metGrid=='mask') THEN
       ! N.B. not for GSWP runs, therefore only one met file here.
-      !Mdeck:  unless using gswp3 forcing
+      ! Mdeck:  unless using gswp3 forcing
       ! Also, xdimsize and ydimsize are passed from io_variables.
 
       ALLOCATE(tmpDat2(xdimsize,ydimsize))
@@ -2081,6 +2081,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         END IF
       ELSE 
         ! If not in met file, use default LAI value:
+        !incorrect, defaultLAI(mp,month)
+        ! not defaultLAI(mland,month)
         DO i=1,mland ! over all land points/grid cells
           veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
                defaultLAI(i,met%moy(landpt(i)%cstart))

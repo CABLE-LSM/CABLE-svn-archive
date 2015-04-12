@@ -296,9 +296,16 @@ CONTAINS
 
     ok = NF90_GET_VAR(ncid, varID, inVeg)
     IF (ok /= NF90_NOERR) THEN
-       ok = NF90_GET_VAR(ncid, varID, idummy)
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+       if (npatch .eq. 1) then
+          ok = NF90_GET_VAR(ncid, varID, idummy)
+          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+          do kk=1,npatch
+             inVeg(:, :,kk) = idummy(:,:) ! npatch=1 in 1x1 degree input
+          end do
+       else
+          ok = NF90_GET_VAR(ncid, varID, inVeg)
+          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+       end if
     END IF
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
