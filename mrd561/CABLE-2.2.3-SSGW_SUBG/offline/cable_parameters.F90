@@ -121,13 +121,20 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWWatr
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inWatr
 
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElev
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElevSTD
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inElev
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inSlope
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inElevSTD
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inSlopeSTD
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inArea3d
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inDist
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inBI
+
+
+  interface get_elevation
+    module procedure   get_gw_elev, get_tiled_gw_elev
+  end interface
 
 CONTAINS
 
@@ -156,6 +163,12 @@ CONTAINS
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*) 
     CALL read_gridinfo(nlon,nlat,npatch)
+
+    if (cable_user%cable_user%twod_subgrid) then
+       call get_elev(logn,nlon,nlat,npatch)
+    elseif (cable_user%GW_model) then
+       call get_elev(logn,nlon,nlat,1)
+    end if
 
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
@@ -722,69 +735,179 @@ CONTAINS
     inALB(:, :, 1, 2) = dummy2(:, :)
     inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
-
-    !always allocate and initialize to 0
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
-    allocate(inElev(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElev ')
-    inElev(:,:) = 0.0
-
-    allocate(inElevSTD(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElevSTD ')
-    inElevSTD(:,:) = 0.0
-
-    allocate(inSlope(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlope ')
-    inSlope(:,:) = 0.0
-
-    allocate(inSlopeSTD(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
-    inSlopeSTD(:,:) = 0.0
-
-    IF (cable_user%GW_MODEL) THEN
-       ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
-
-       ok = NF90_INQ_VARID(ncid_elev, 'elevation', fieldID)
-       IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation variables for SSGW'
-       ok = NF90_GET_VAR(ncid_elev, fieldID, inElev)
-       IF (ok /= NF90_NOERR) THEN
-          inElev = 0.0
-          WRITE(logn, *) 'Could not read elevation data for SSGW, set to 0.0'
-       END IF
-
-       ok = NF90_INQ_VARID(ncid_elev, 'elevation_std', fieldID)
-       IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation stddev SSGW'
-       ok = NF90_GET_VAR(ncid_elev, fieldID, inElevSTD)
-       IF (ok /= NF90_NOERR) THEN
-          inElevSTD = 0.0
-          WRITE(logn, *) 'Could not read elevation data for SSGW, set to 0.0'
-       END IF
-
-       ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
-       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope'
-       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlope)
-       IF (ok /= NF90_NOERR) THEN
-          inSlope = 0.0
-          WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
-       END IF
-
-       ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)
-       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
-       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
-       IF (ok /= NF90_NOERR) THEN
-          inSlopeSTD = 0.0
-          WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
-       END IF
-
-       ok = NF90_CLOSE(ncid_elev)
-
-    ENDIF  !running gw model
- 
     DEALLOCATE(in2alb, sfact, dummy2)
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
 
   END SUBROUTINE spatialSoil
-  !=============================================================================
+
+
+  SUBROUTINE get_gw_elev(logn,nlon,nlat)
+    integer, intent(in) :: logn,      &
+                           nlon,      &
+                           nlat
+
+    integer :: ncid_elv, ok, ok2, elevID
+    real, allocatable(:,:) :: dummy2
+   
+    allocate(dummy2(nlon,nlat))
+
+    ok = NF90_OPEN(filename%gw_elev,0,ncid_elv)
+    IF (ok /= NF90_NOERR) CALL nc_abort &
+        (ok,'Error opening netcdf elevation forcing file'//TRIM(filename%gw_elev)// &
+        ' (SUBROUTINE open_met_file)')
+    !always allocate and initialize to 0
+    allocate(inElev(nlon,nlat,1),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElev ')
+    inElev(:,:,:) = 0.0
+
+    allocate(inElevSTD(nlon,nlat,1),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElevSTD ')
+    inElevSTD(:,:,:) = 0.0
+
+    allocate(inSlope(nlon,nlat,1),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlope ')
+    inSlope(:,:,:) = 0.0
+
+    allocate(inSlopeSTD(nlon,nlat,1),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
+    inSlopeSTD(:,:,:) = 0.0
+
+    ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+
+    ok = NF90_INQ_VARID(ncid_elev, 'elevation', fieldID)
+    IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation variables for SSGW'
+    ok = NF90_GET_VAR(ncid_elev, fieldID, dummy2)
+    inElev(:,:,1) = dummy2
+    IF (ok /= NF90_NOERR) THEN
+       inElev = 0.0
+       WRITE(logn, *) 'Could not read elevation data for SSGW, set to 0.0'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_elev, 'elevation_std', fieldID)
+    IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation stddev SSGW'
+    ok = NF90_GET_VAR(ncid_elev, fieldID, dummy2)
+    inElevSTD(:,:,1) = dummy2
+    IF (ok /= NF90_NOERR) THEN
+       inElevSTD = 0.0
+       WRITE(logn, *) 'Could not read elevation data for SSGW, set to 0.0'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
+    IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope'
+    ok = NF90_GET_VAR(ncid_elev, fieldID, dummy2)
+    inSlope(:,:,1) = dummy2
+    IF (ok /= NF90_NOERR) THEN
+       inSlope = 0.0
+       WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)
+    IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
+    ok = NF90_GET_VAR(ncid_elev, fieldID, dumm2)
+    inSlopeSTD(:,:,1) = dummy2(:,:)
+    IF (ok /= NF90_NOERR) THEN
+       inSlopeSTD = 0.0
+       WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
+    END IF
+
+    ok = NF90_CLOSE(ncid_elev)
+
+ 
+    DEALLOCATE(dummy2)
+
+  END SUBROUTINE get_gw_elev
+!=============================================================================
+
+!=============================================================================
+   SUBROUTINE get_tiled_gw_elev(logn,nlon,nlat,npatch)
+ 
+     implicit none
+     integer, intent(in) :: logn, &
+                            nlon, &
+                            nlat, &
+                            npatch
+
+     integer :: ncid_elv, ok, ok2, elevID
+ 
+     allocate(inElev(nlon,nlat,npatch))
+     allocate(inDist(nlon,nlat,npatch))
+     allocate(inArea3d(nlon,nlat,npatch))
+     allocate(inElevSTD(nlon,nlat,npatch))
+     allocate(inSlope(nlon,nlat,npatch))
+     allocate(inSlopeSTD(nlon,nlat,npatch))
+
+      ok = NF90_OPEN(filename%gw_elev,0,ncid_elv)
+      IF (ok /= NF90_NOERR) CALL nc_abort &
+          (ok,'Error opening netcdf elevation forcing file'//TRIM(filename%gw_elev)// &
+          ' (SUBROUTINE open_met_file)')
+ 
+      ok = NF90_INQ_VARID(ncid_elv, 'elevation', elevID) ! check for elevation
+      IF(ok .eq. NF90_NOERR) THEN
+        ok2 = NF90_GET_VAR(ncid_elv,elevID,inElev)
+        !IF(ok2 /= NF90_NOERR) CALL nc_abort &
+        !     (ok2,'Error reading elevation variable in ')
+        ! do i=1,mland
+        !    ib = landpt%cstart(i)
+        !    ie = landpt%cend(i)
+        !    soil%elevation(ib:ie) = rtmp3D(land_x(i),land_y(i),:)
+        ! end do
+        ! rtmp3D = 0.0
+      END IF
+ 
+    ok = NF90_INQ_VARID(ncid_elev, 'elevation_std', fieldID)
+    IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation stddev SSGW'
+    ok = NF90_GET_VAR(ncid_elev, fieldID, inElevSTD)
+    IF (ok /= NF90_NOERR) THEN
+       inElevSTD = 0.0
+       WRITE(logn, *) 'Could not read elevation data for SSGW, set to 0.0'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
+    IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope'
+    ok = NF90_GET_VAR(ncid_elev, fieldID, inSlope)
+    IF (ok /= NF90_NOERR) THEN
+       inSlope = 0.0
+       WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)
+    IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
+    ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
+    IF (ok /= NF90_NOERR) THEN
+       inSlopeSTD = 0.0
+       WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
+    END IF
+
+      ok = NF90_INQ_VARID(ncid_elv, 'distance', elevID) ! check for elevation
+      IF(ok .eq. NF90_NOERR) THEN
+        ok2 = NF90_GET_VAR(ncid_elv,elevID,inDist)
+      END IF
+ 
+      ok = NF90_INQ_VARID(ncid_elv, 'area', elevID) ! check for elevation
+      IF(ok .eq. NF90_NOERR) THEN
+        ok2 = NF90_GET_VAR(ncid_elv,elevID,inArea3d)
+      END IF
+ 
+      ok = NF90_INQ_VARID(ncid_elv, 'iveg', elevID) ! check for elevation
+      IF(ok .eq. NF90_NOERR) THEN
+        ok2 = NF90_GET_VAR(ncid_elv,elevID,inVeg)
+      END IF
+ 
+      ok = NF90_INQ_VARID(ncid_elv, 'patchfrac', elevID) ! check for elevation
+      IF(ok .eq. NF90_NOERR) THEN
+        ok2 = NF90_GET_VAR(ncid_elv,elevID,inPFrac)
+      END IF
+ 
+      !done with th elevation file so close if
+      ok=NF90_CLOSE(ncid_elv)
+      IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing elev data file ' &
+          //TRIM(filename%gw_elev)//' (SUBROUTINE get_tiled_gw_elev)')
+ 
+ 
+   END SUBROUTINE get_tiled_gw_elev
+
+!=============================================================================
+
   SUBROUTINE NSflip(nlon, nlat, invar)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
@@ -1170,24 +1293,44 @@ CONTAINS
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
          !inswilt(landpt(e)%ilon, landpt(e)%ilat)
 
-      soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
-                                    inElev(landpt(e)%ilon,landpt(e)%ilat)
 
-      soil%elev_std(landpt(e)%cstart:landpt(e)%cend) =                        &
-                                    inElevSTD(landpt(e)%ilon,landpt(e)%ilat)
+      if (cable_user%twod_subgrid) then
+          !These are now done above
+          !veg%iveg(landpt(e)%cstart:landpt(e)%cend) =                       &
+          !                    inVeg(landpt(e)%ilon, landpt(e)%ilat,1:landpt(e)%nap)
+          !patch(landpt(e)%cstart:landpt(e)%cend)%frac =                     &
+          !                  inPFrac(landpt(e)%ilon, landpt(e)%ilat,1:landpt(e)%nap)    
+                            
+          soil%elev(landpt(e)%cstart:landpt(e)%cend) =                 &
+                            inElev(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap)
+                            
+          soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
+                                       inSlope(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap)
 
-      soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
-                                    inSlope(landpt(e)%ilon,landpt(e)%ilat)
+          soil%distance(landpt(e)%cstart:landpt(e)%cend) =                  &
+                            inDist(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap)
+                            
+          soil%area(landpt(e)%cstart:landpt(e)%cend) =                      &
+                      inArea3d(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap)  
+                            
+      else
 
-      soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat)
+         soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
+                                       inElev(landpt(e)%ilon,landpt(e)%ilat,1)
 
-      soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    inTI(landpt(e)%ilon,landpt(e)%ilat)
+         soil%elev_std(landpt(e)%cstart:landpt(e)%cend) =                        &
+                                       inElevSTD(landpt(e)%ilon,landpt(e)%ilat,1)
 
+         soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
+                                       inSlope(landpt(e)%ilon,landpt(e)%ilat,1)
 
-      soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    inBI(landpt(e)%ilon,landpt(e)%ilat)
+         soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
+                                       inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat,1)
+
+       end if
+
+       soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+                                       inTI(landpt(e)%ilon,landpt(e)%ilat,1)
 
 
       ENDIF
@@ -1294,7 +1437,6 @@ CONTAINS
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = min(ssnow%albsoilsn,0.2)
-
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
@@ -1326,6 +1468,9 @@ CONTAINS
     if (allocated(inTI      )) deallocate(inTI)
     if (allocated(inTI      )) deallocate(inBI)
 
+    if (allocated(inDist    )) deallocate(inDist)
+    if (allocated(inArea3d  )) deallocate(inArea3d)
+        
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
