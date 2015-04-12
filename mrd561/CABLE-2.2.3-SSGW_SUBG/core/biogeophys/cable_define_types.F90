@@ -146,7 +146,9 @@ MODULE cable_def_types_mod
          slope_std, & !stddev of grid cell slope
          elev,      & !mean elevation of gridcell
          elev_std,  & !stddev elev of grid cell
-         topo_ind
+         topo_ind,  & !topographc index
+         distance,  & !distance between subgrid tiles
+         area         !area of subgrid tiles
 
       INTEGER, DIMENSION(:), POINTER ::                                        &
         basin_ind   !index of the basin (i.e. amazon=1, mississipii=x)
@@ -274,6 +276,11 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
+
+      real(r_2), dimension(:), pointer :                                       &
+         qsrf_store, &    !surface runoff storage
+         qsrf_flow,  &    !surface runoff flow
+         qsrf_gen        !surface runoff generation
          
          
    END TYPE soil_snow_type
@@ -692,6 +699,10 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%topo_ind(mp) )
    allocate( var%basin_ind(mp) )
 
+   allocate( var%distance(mp) )
+   allocate( var%area(mp) )
+
+
 END SUBROUTINE alloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -792,6 +803,11 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmliq(mp,ms) )
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
+   !subgrid sm transfer
+   allocate( var%qsrf_store(mp) )
+   allocate( var%qsrf_flow(mp) ) 
+   allocate( var%qsrf_gen(mp) )
+
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
    var%GWwb = 0.45_r_2
@@ -1148,7 +1164,9 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%slope_std )
    DEALLOCATE( var%topo_ind )
    DEALLOCATE( var%basin_ind )
-   
+   deallocate( var%distance )
+   deallocate( var%area )
+ 
 END SUBROUTINE dealloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -1248,6 +1266,9 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
+   deallocate( var%qsrf_store )
+   deallocate( var%qsrf_flow ) 
+   deallocate( var%qsrf_gen )
    
 END SUBROUTINE dealloc_soil_snow_type
    
