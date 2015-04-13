@@ -676,6 +676,9 @@ PROGRAM cable_offline_driver
               IF ( YYYY .EQ. CABLE_USER%YearEnd .AND. &
                    NRRRR .GT. 1 ) DEALLOCATE ( GSWP_MID )
            ENDIF
+        ! re-initalise annual flux sums
+        casabal%FCgppyear=0.0;casabal%FCrpyear=0.0
+        casabal%FCnppyear=0;casabal%FCrsyear=0.0;casabal%FCneeyear=0.0
 
         END DO YEAR
 
@@ -691,7 +694,7 @@ PROGRAM cable_offline_driver
   ENDIF
 
   IF ( cable_user%CALL_POP ) THEN
-     IF ( spinup ) THEN
+     IF ( CASAONLY ) THEN
         CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_INI', .TRUE.)
      ELSE
         CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_RST', .TRUE.)

@@ -2299,7 +2299,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
    !   landpt%type    - via cable_IO_vars_module (nap,cstart,cend,ilon,ilat)
    !   max_vegpatches - via cable_IO_vars_module
 
-   USE POPmodule, ONLY: POP_INIT, alloc_POP
+   USE POPmodule, ONLY: POP_INIT
 
    IMPLICIT NONE
     
@@ -2363,7 +2363,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
       CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
     IF (icycle > 0) THEN
       CALL alloc_phenvariable(phen,mp)
-       IF ( CABLE_USER%CALL_POP ) CALL alloc_POP(POP,mp)
+    !   IF ( CABLE_USER%CALL_POP ) CALL alloc_POP(POP,mp)
     ENDIF
 
     ! Write parameter values to CABLE's parameter variables:
@@ -2377,12 +2377,15 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
       CALL write_cnp_params(veg,casaflux,casamet)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
-      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen,met)
+
+     ! CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen,met)
+      CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
       IF ( CABLE_USER%CALL_POP ) THEN
          IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
-            CALL POP_init( POP, veg%disturbance_interval )
+            CALL POP_init( POP, veg%disturbance_interval, mp )
          ELSE
-            CALL POP_IO( POP, casamet, cable_user%YearStart, "READ" , .TRUE.)
+            CALL POP_init( POP, veg%disturbance_interval, mp )
+            CALL POP_IO( POP, casamet, cable_user%YearStart, "READ_rst" , .TRUE.)
          END IF
       END IF
     ENDIF
