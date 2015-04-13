@@ -175,16 +175,16 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                  CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
                       real(veg%disturbance_intensity,dp), real(casamet%glai, dp), 1.0 )
 
+
                  casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
-                      pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
-                      pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                      + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum 
 
-
-                 casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
-                      pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
-                      pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                      -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
+                 casapool%Cplant(:,2) = casapool%Cplant(:,2) -  &
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum 
 
 
               ENDIF
@@ -238,20 +238,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
                       real(veg%disturbance_intensity,dp), real(casamet%glai, dp), 1.0 )
 
-
               casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
-                   pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
-                   pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                   + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
 
-
-              casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
-                   pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
-                   pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                   -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
-
-              write(*,*) veg%disturbance_interval(:,1)
-
+                 casapool%Cplant(:,2) = casapool%Cplant(:,2) -  &
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
 
 
               if (pop%it_pop.eq.1) then

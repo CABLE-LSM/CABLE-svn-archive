@@ -459,6 +459,9 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
     casaflux%Cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:) 
   ENDWHERE
 
+! test vh!
+! casaflux%Cnpp(:) = 0.5*casaflux%Cgpp(:)
+
 !  write(57,*) 'rplant', casaflux%cgpp(243),casaflux%crmplant(243,:),casamet%tsoilavg(243),casamet%tairk(243)
 !$$$$$$$$$$$$$$$$$$$$$$
 !    WHERE(casaflux%Cnpp < 0.0)
