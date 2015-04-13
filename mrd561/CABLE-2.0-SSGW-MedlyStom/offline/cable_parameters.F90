@@ -430,7 +430,7 @@ CONTAINS
     REAL, DIMENSION(:,:),     ALLOCATABLE :: sfact, dummy2
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
     
-    integer :: ok2, ncid_elev
+    integer :: ok2, ncid_elev,nx,ny
 
     ok = NF90_OPEN(filename%type, 0, ncid)
 
@@ -711,26 +711,53 @@ CONTAINS
     inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
 
-    !always allocate and initialize to 0
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
-    allocate(inElev(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElev ')
-    inElev(:,:) = 0.0
-
-    allocate(inElevSTD(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElevSTD ')
-    inElevSTD(:,:) = 0.0
-
-    allocate(inSlope(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlope ')
-    inSlope(:,:) = 0.0
-
-    allocate(inSlopeSTD(nlon,nlat),stat=ok2)
-    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
-    inSlopeSTD(:,:) = 0.0
-
     IF (cable_user%GW_MODEL) THEN
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+       !get the dimension sizes of the variables
+
+       ok = NF90_INQ_DIMID(ncid_elev,'x', xdimID)
+       IF(ok/=NF90_NOERR) THEN ! if failed
+       ! Try 'lon' instead of x
+       ok = NF90_INQ_DIMID(ncid_elev,'lon', xdimID)
+       IF(ok/=NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding x dimension in '&
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
+       ok = NF90_INQUIRE_DIMENSION(ncid_elev,xdimID,len=nx)
+       IF(ok/=NF90_NOERR) CALL nc_abort &
+         (ok,'Error determining size of x dimension in ' &
+         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
+       ! Find size of 'y' dimension:
+       ok = NF90_INQ_DIMID(ncid_elev,'y', ydimID)
+       IF(ok/=NF90_NOERR) THEN ! if failed
+          ! Try 'lat' instead of y
+          ok = NF90_INQ_DIMID(ncid_elev,'lat', ydimID)
+          IF(ok/=NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding y dimension in ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
+       ok = NF90_INQUIRE_DIMENSION(ncid_elev,ydimID,len=ny)
+       IF(ok/=NF90_NOERR) CALL nc_abort &
+         (ok,'Error determining size of y dimension in ' &
+         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
+       !always allocate and initialize to 0
+       allocate(inElev(nx,ny),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElev ')
+       inElev(:,:) = 0.0
+
+       allocate(inElevSTD(nx,ny),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inElevSTD ')
+       inElevSTD(:,:) = 0.0
+
+       allocate(inSlope(nx,ny),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlope ')
+       inSlope(:,:) = 0.0
+
+       allocate(inSlopeSTD(nx,ny),stat=ok2)
+       if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
+       inSlopeSTD(:,:) = 0.0
 
        ok = NF90_INQ_VARID(ncid_elev, 'elevation', fieldID)
        IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation variables for SSGW'
