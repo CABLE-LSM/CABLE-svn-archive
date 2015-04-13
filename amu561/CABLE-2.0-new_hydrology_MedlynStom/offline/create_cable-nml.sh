@@ -136,8 +136,8 @@ if [ -z $soilfile ]; then
 fi
 
 if [ -z $AVGflag ]; then
-  AVGflag='daily'
-  echo "Setting the output averaging flag to daily"
+  AVGflag='all'
+  echo "Setting the output averaging flag to all"
 fi
 
 if [ -z $ALTFORCEflag ]; then   #default to no spinup
@@ -160,7 +160,7 @@ cat > cable.nml << EOF
    filename%type    = "./../../Inputs/gridinfo_CSIRO_1x1.nc"
    filename%veg    = "./../../Inputs/$vegfile"
    filename%soil    = "./../../Inputs/$soilfile"
-   !filename%gw_elev = "$metfile"    !Anna commented out 30/3/15
+   filename%gw_elev = "$metfile"
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
    spinup = .${eqflag}.  ! do we spin up the model?
@@ -214,7 +214,7 @@ cat > cable.nml << EOF
                                                 ! 2. medlyn
    cable_user%FWSOIL_SWITCH = 'standard'        ! choices are: 
                                                  ! 1. standard 
-                                                 ! 2. non-linear extrapolation 
+                                                 ! 2. nonlinear 
                                                  ! 3. Lai and Ktaul 2000 
    cable_user%DIAG_SOIL_RESP = 'ON ' 
    cable_user%LEAF_RESPIRATION = 'ON ' 
