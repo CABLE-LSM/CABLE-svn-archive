@@ -715,32 +715,32 @@ CONTAINS
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
        !get the dimension sizes of the variables
 
-       ok = NF90_INQ_DIMID(ncid_elev,'x', xdimID)
+       ok = NF90_INQ_DIMID(ncid_elev,'x', xID)
        IF(ok/=NF90_NOERR) THEN ! if failed
        ! Try 'lon' instead of x
-       ok = NF90_INQ_DIMID(ncid_elev,'lon', xdimID)
+       ok = NF90_INQ_DIMID(ncid_elev,'lon', xID)
        IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding x dimension in '&
-            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+            //TRIM(filename%gw_elev)//' (SUBROUTINE open_met_file)')
        END IF
-       ok = NF90_INQUIRE_DIMENSION(ncid_elev,xdimID,len=nx)
+       ok = NF90_INQUIRE_DIMENSION(ncid_elev,xID,len=nx)
        IF(ok/=NF90_NOERR) CALL nc_abort &
          (ok,'Error determining size of x dimension in ' &
-         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+         //TRIM(filename%gw_elev)//' (SUBROUTINE open_met_file)')
 
        ! Find size of 'y' dimension:
-       ok = NF90_INQ_DIMID(ncid_elev,'y', ydimID)
+       ok = NF90_INQ_DIMID(ncid_elev,'y', yID)
        IF(ok/=NF90_NOERR) THEN ! if failed
           ! Try 'lat' instead of y
-          ok = NF90_INQ_DIMID(ncid_elev,'lat', ydimID)
+          ok = NF90_INQ_DIMID(ncid_elev,'lat', yID)
           IF(ok/=NF90_NOERR) CALL nc_abort &
             (ok,'Error finding y dimension in ' &
-            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+            //TRIM(filename%gw_elev)//' (SUBROUTINE open_met_file)')
        END IF
-       ok = NF90_INQUIRE_DIMENSION(ncid_elev,ydimID,len=ny)
+       ok = NF90_INQUIRE_DIMENSION(ncid_elev,yID,len=ny)
        IF(ok/=NF90_NOERR) CALL nc_abort &
          (ok,'Error determining size of y dimension in ' &
-         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+         //TRIM(filename%gw_elev)//' (SUBROUTINE open_met_file)')
 
        !always allocate and initialize to 0
        allocate(inElev(nx,ny),stat=ok2)
