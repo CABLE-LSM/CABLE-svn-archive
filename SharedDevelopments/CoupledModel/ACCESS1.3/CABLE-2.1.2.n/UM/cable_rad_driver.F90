@@ -35,7 +35,8 @@ SUBROUTINE cable_rad_driver(                                                   &
                              SNOW_TILE, SNOW_TMP3L, SNOW_RHO1L, TSOIL_TILE,    &
                              ISNOW_FLG3L, ALBSOIL,                             &
                              ! OUT
-                             LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
+!                             LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
+                             LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE, surfsw_g ) 
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_albedo_module, ONLY : surface_albedo
@@ -54,7 +55,8 @@ SUBROUTINE cable_rad_driver(                                                   &
    REAL, DIMENSION(um1%row_length,um1%rows) ::                                 &
       LAND_ALB_CABLE,      & ! Land albedo calculated by Cable
       SW_DOWN,             & ! Surface downward SW radiation (W/m2).
-      cos_zenith_angle
+      cos_zenith_angle,    &
+      surfsw_g
 
    REAL, DIMENSION(um1%row_length,um1%rows,4) ::                               &
       LAND_ALBEDO_CABLE, & ! Land albedo calculated by Cable NIR/VIS/Beam/Diffuse
@@ -63,7 +65,8 @@ SUBROUTINE cable_rad_driver(                                                   &
    REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
       LAND_ALB_CABLE_TILE,  & ! Land albedo calculated by Cable
       SNOW_TILE,            & ! IN Lying snow on tiles (kg/m2) 
-      SNOW_RHO1L             ! snow cover in the ice tile.
+      SNOW_RHO1L,           &  ! snow cover in the ice tile.
+      surfsw_l
    
    REAL, DIMENSION( um1%LAND_PTS, um1%NTILES, 4 ) ::                           &
       ALB_TILE    ! Land albedo calculated by Cable
@@ -78,8 +81,7 @@ SUBROUTINE cable_rad_driver(                                                   &
    REAL :: miss = 0.0
    LOGICAL :: skip =.TRUE. 
    
-   REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
-
+   REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp),surfsw_t(mp)
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
@@ -130,9 +132,13 @@ SUBROUTINE cable_rad_driver(                                                   &
       rad_albedo_tot = met_fsd_tot_rel  * rad_vis                              &
                        + ( 1.- met_fsd_tot_rel ) * rad_nir
 
+      surfsw_t = met%fsd(:,1)*rad_vis + met%fsd(:,2)*rad_nir
+
       LAND_ALBEDO_CABLE =0.
       LAND_ALB_CABLE =0.
       LAND_ALB_CABLE_TILE = UNPACK( rad_albedo_tot, um1%L_TILE_PTS, miss )
+      surfsw_l = UNPACK( surfsw_t , um1%L_TILE_PTS, miss )
+      surfsw_g = 0.0
 
       DO N=1,um1%NTILES
          DO K=1,um1%TILE_PTS(N)
@@ -157,8 +163,21 @@ SUBROUTINE cable_rad_driver(                                                   &
                                        um1%TILE_FRAC(L,N)*ALB_TILE(L,N,4)
             LAND_ALB_CABLE(I,J) = LAND_ALB_CABLE(I,J) +                        &
                                 um1%TILE_FRAC(L,N)*LAND_ALB_CABLE_TILE(L,N)
+            surfsw_g(I,J) = surfsw_g(I,J) +                                    &
+                                um1%TILE_FRAC(L,N)*surfsw_l(L,N)
          ENDDO
       ENDDO
+!         DO L=1,um1%LAND_PTS
+!            J=(um1%LAND_INDEX(L)-1)/um1%ROW_LENGTH + 1
+!            I = um1%LAND_INDEX(L) - (J-1)*um1%ROW_LENGTH
+           !print *,'eak_rad_drive',L,i,j,surfsw_g(I,J),LAND_ALB_CABLE(I,J),sw_down(i,j), &
+           !            LAND_ALBEDO_CABLE(I,J,1)+LAND_ALBEDO_CABLE(I,J,2), &
+           !            LAND_ALBEDO_CABLE(I,J,3)+LAND_ALBEDO_CABLE(I,J,4)
+!           print *,'eak_surfsw_g',surfsw_g
+!           print *,'eak_sw_down',sw_down
+!           print *,'eak_LAND_ALB_CABLE',LAND_ALB_CABLE       
+!           print *,'eakrad_drive'
+!         enddo
 
       cable_runtime%um_radiation= .FALSE.
 

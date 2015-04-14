@@ -561,7 +561,8 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
    
    dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
    ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
-   
+   ssnow%sconds(:,1) = 0.2
+
    WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )
       
       ssnow%ssdn(:,1) = MIN( max_ssdn, MAX( 120.0, ssnow%ssdn(:,1) + dels      &
@@ -590,7 +591,6 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
       ssnow%ssdn(:,3) = ssnow%ssdn(:,1)
     
    END WHERE
-  
 
    WHERE (ssnow%isflag == 1)
       
@@ -666,7 +666,7 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
    REAL, DIMENSION(mp,0:3) :: smelt1
 
    snowmlt= 0.0
-   smelt1 = 0.0
+   smelt1(:,:) = 0.0
     
    DO j=1,mp  
       
@@ -701,17 +701,13 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
          sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
        
          ! snow melt refreezing
-         snowflx = smelt1(:,k-1) * C%HLF / dels
+         ssnow%tggsn(:,k) = ssnow%tggsn(:,k) + 0.5*smelt1(:,k-1) * C%HLF /sgamm
 
-         ssnow%tggsn(:,k) = ssnow%tggsn(:,k) + ( snowflx * dels +              &
-                            smelt1(:,k-1)*cswat *( C%TFRZ-ssnow%tggsn(:,k) ) ) &
-                            / ( sgamm + cswat*smelt1(:,k-1) )
-         
          ! increase density due to snowmelt
          osm = ssnow%smass(:,k)
-         ssnow%smass(:,k) = ssnow%smass(:,k) + smelt1(:,k-1)
+         ssnow%smass(:,k) = ssnow%smass(:,k) + 0.5*smelt1(:,k-1)
          ssnow%ssdn(:,k) = MAX( 120.0, MIN( ssnow%ssdn(:,k) * osm /            &
-                           ssnow%smass(:,k) + rhowat * ( 1.0 - osm /           &
+                           ssnow%smass(:,k) + 0.5*rhowat * ( 1.0 - osm /           &
                            ssnow%smass(:,k)), max_ssdn ) )
 
          ! permanent ice: fix hard-wired number in next version
@@ -720,21 +716,23 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
 
          ssnow%sdepth(:,k) = ssnow%smass(:,k) / ssnow%ssdn(:,k)
          
-         sgamm = ssnow%smass(:,k) * cgsnow
+!         sgamm = ssnow%smass(:,k) * cgsnow
         
-         smelt1(:,k-1) = 0.0
-         smelt1(:,k) = 0.0
+         !smelt1(:,k-1) = 0.0
+         smelt1(:,k-1) =0.5*smelt1(:,k-1) 
+         !smelt1(:,k) = 0.0
          
          ! snow melting
          WHERE (ssnow%tggsn(:,k) > C%TFRZ)
            
+            sgamm = ssnow%smass(:,k) * cgsnow
             snowflx = ( ssnow%tggsn(:,k) - C%TFRZ ) * sgamm
            
             smelt1(:,k) = MIN( snowflx / C%HLF, 0.6 * ssnow%smass(:,k) )
             
             ssnow%dtmlt(:,k) = ssnow%dtmlt(:,k) + smelt1(:,k) * C%HLF / sgamm
             
-            osm = ssnow%smass(:,k)
+            !osm = ssnow%smass(:,k)
             
             ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
 
@@ -774,34 +772,33 @@ USE cable_common_module
       osm,     & !
       sgamm,   & !
       snowmlt, & !
-      xxx        !
+      xxx 
 
    INTEGER             :: k
 
    WHERE (canopy%precis > 0.0 .and. ssnow%isflag == 0)
       ! accumulate solid part
       ssnow%snowd = MAX( ssnow%snowd + met%precip_sn, 0.0 ) 
-      
       canopy%precis = canopy%precis - met%precip_sn
       
       ssnow%ssdn(:,1) = MAX( 120.0, ssnow%ssdn(:,1)                            &
-                        * ssnow%osnowd / MAX( 0.01, ssnow%snowd )              &
-                        + 120.0 * met%precip_sn / MAX( 0.01, ssnow%snowd ) )
-      
+                        * ssnow%osnowd / MAX( 1.0, ssnow%snowd )              &
+                        + 120.0 * met%precip_sn / MAX( 1.0, ssnow%snowd ) )
       ssnow%ssdnn = ssnow%ssdn(:,1)
       
       WHERE( canopy%precis > 0.0 .AND. ssnow%tgg(:,1) < C%TFRZ )
-         
+        
+         xxx = ssnow%snowd 
          ssnow%snowd = MAX(ssnow%snowd + canopy%precis, 0.0)
         
          ssnow%tgg(:,1) = ssnow%tgg(:,1) + canopy%precis * C%HLF               &
                           / ( REAL( ssnow%gammzz(:,1) ) + cswat *canopy%precis )  
          ! change density due to water being added 
          ssnow%ssdn(:,1) = MIN( max_ssdn, MAX( 120.0, ssnow%ssdn(:,1)          &
-                           * ssnow%osnowd / MAX( 0.01, ssnow%snowd ) + rhowat  &
-                           * canopy%precis / MAX( 0.01, ssnow%snowd )  ) )
+                           * xxx / MAX( 1.0, ssnow%snowd ) + 0.5*rhowat  &
+                           * canopy%precis / MAX( 5.0, ssnow%snowd )  ) )
 
-         ! permanent ice: fix hard-wired number in next version
+        ! permanent ice: fix hard-wired number in next version
          WHERE( soil%isoilm /= 9 )                                             &
             ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
 
@@ -827,65 +824,77 @@ USE cable_common_module
 
       ssnow%sdepth(:,1) = MAX( 0.02, ssnow%smass(:,1) / ssnow%ssdn(:,1) )
 
-      ! add liquid precip
+      ! add liquid precip to the top two layers
       WHERE( canopy%precis > 0.0 )
         
          ssnow%snowd = MAX( ssnow%snowd + canopy%precis, 0.0 )
          sgamm = ssnow%ssdn(:,1) * cgsnow * ssnow%sdepth(:,1)
          osm = ssnow%smass(:,1)
-         
-         ssnow%tggsn(:,1) = ssnow%tggsn(:,1) + canopy%precis * C%HLF           &
-                            * osm / (sgamm * ssnow%osnowd )
-         ssnow%smass(:,1) = ssnow%smass(:,1) + canopy%precis                   &
-                            * osm/ssnow%osnowd
-
-         ssnow%ssdn(:,1) = MAX( 120.0, MIN( ssnow%ssdn(:,1) * osm /            &
-                           ssnow%smass(:,1) +  rhowat *                        &
-                           ( 1.0 - osm / ssnow%smass(:,1) ), max_ssdn ) )
-
-         ! permanent ice: fix hard-wired number in next version
-         WHERE( soil%isoilm /= 9 )                                             &
-            ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
-
+         xxx = min(1.0,canopy%precis) 
+         ssnow%tggsn(:,1) = ssnow%tggsn(:,1) + xxx * C%HLF / sgamm 
+         ssnow%smass(:,1) = ssnow%smass(:,1) + xxx 
+         ssnow%ssdn(:,1) = MAX( 120.0, MIN( (ssnow%ssdn(:,1) * osm             &
+                           +  rhowat * xxx ) / (osm+xxx), max_ssdn) )
+         WHERE( soil%isoilm /= 9 ) ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
          ssnow%sdepth(:,1) = ssnow%smass(:,1)/ssnow%ssdn(:,1)
 
-         !layer 2
+         ! the rest of the liquid precip gioes to layer 2
+         canopy%precis = canopy%precis - xxx  ! remaining liquid precip
          sgamm = ssnow%ssdn(:,2) * cgsnow * ssnow%sdepth(:,2)
          osm = ssnow%smass(:,2)
-         ssnow%tggsn(:,2) = ssnow%tggsn(:,2) + canopy%precis * C%HLF           &
-                            * osm / ( sgamm * ssnow%osnowd )
-         ssnow%smass(:,2) = ssnow%smass(:,2) + canopy%precis                   &
-                            * osm / ssnow%osnowd
-         ssnow%ssdn(:,2) = MAX( 120.0, MIN( ssnow%ssdn(:,2) * osm /            &
-                           ssnow%smass(:,2) + rhowat *                         &
-                           ( 1.0 - osm / ssnow%smass(:,2) ), max_ssdn ) )
-
-         ! permanent ice: fix hard-wired number in next version
-         WHERE( soil%isoilm /= 9 )                                             &
-            ssnow%ssdn(:,2) = MIN( 450.0, ssnow%ssdn(:,2) )
-
+         ssnow%tggsn(:,2) = ssnow%tggsn(:,2) + canopy%precis * C%HLF / sgamm 
+         ssnow%smass(:,2) = ssnow%smass(:,2) + canopy%precis
+         ssnow%ssdn(:,2) = MAX( 120.0, MIN( (ssnow%ssdn(:,2) * osm             &
+                      + rhowat*canopy%precis) / (osm+canopy%precis),max_ssdn) )
+         WHERE( soil%isoilm /= 9 ) ssnow%ssdn(:,2) = MIN( 450.0, ssnow%ssdn(:,2) )
          ssnow%sdepth(:,2) = ssnow%smass(:,2) / ssnow%ssdn(:,2)
 
-         !layer 3        
-         sgamm = ssnow%ssdn(:,3) * cgsnow * ssnow%sdepth(:,3)
-         osm = ssnow%smass(:,3)
-         ssnow%tggsn(:,3) = ssnow%tggsn(:,3) + canopy%precis * C%HLF           &
-                            * osm / ( sgamm * ssnow%osnowd )
-         ssnow%smass(:,3) = ssnow%smass(:,3) + canopy%precis                   &
-                            * osm / ssnow%osnowd
-        ssnow%ssdn(:,3) = MAX( 120.0, MIN( ssnow%ssdn(:,3) * osm /             &
-                          ssnow%smass(:,3) + rhowat *                          &
-                          ( 1.0 - osm / ssnow%smass(:,3) ), max_ssdn ) )
+         canopy%precis = 0.0
+
+      END WHERE
+        ! ssnow%tggsn(:,1) = ssnow%tggsn(:,1) + canopy%precis * C%HLF           &
+        !                    * osm / (sgamm * ssnow%osnowd )
+        ! ssnow%smass(:,1) = ssnow%smass(:,1) + canopy%precis                   &
+        !                   * osm/ssnow%osnowd
+        ! ssnow%ssdn(:,1) = MAX( 120.0, MIN( ssnow%ssdn(:,1) * osm /            &
+        !                   ssnow%smass(:,1) +  0.5*rhowat *                        &
+        !                   ( 1.0 - osm / ssnow%smass(:,1) ), max_ssdn ) )
+
+        ! permanent ice: fix hard-wired number in next version
+         !ssnow%ssdn(:,1) = MAX( 120.0, MIN( ssnow%ssdn(:,1) * osm              &
+         !                  + rhowat * canopy%precis ) / (osm+canopy%precis)) 
+         !ssnow%tggsn(:,2) = ssnow%tggsn(:,2) + canopy%precis * C%HLF           &
+         !                   * osm / ( sgamm * ssnow%osnowd )
+         !ssnow%smass(:,2) = ssnow%smass(:,2) + canopy%precis                   &
+         !                   * osm / ssnow%osnowd
+         !ssnow%ssdn(:,2) = MAX( 120.0, MIN( ssnow%ssdn(:,2) * osm /            &
+         !                  ssnow%smass(:,2) + 0.5*rhowat *                         &
+         !                  ( 1.0 - osm / ssnow%smass(:,2) ), max_ssdn ) )
 
          ! permanent ice: fix hard-wired number in next version
-         WHERE( soil%isoilm /= 9 )                                             &
-            ssnow%ssdn(:,3) = MIN(450.0,ssnow%ssdn(:,3))
+         !WHERE( soil%isoilm /= 9 ) ssnow%ssdn(:,2) = MIN( 450.0, ssnow%ssdn(:,2) )
+         !ssnow%sdepth(:,2) = ssnow%smass(:,2) / ssnow%ssdn(:,2)
 
-         ssnow%sdepth(:,3) = ssnow%smass(:,3) / ssnow%ssdn(:,3)
-
-         canopy%precis = 0.0
+         !layer 3        
+         !sgamm = ssnow%ssdn(:,3) * cgsnow * ssnow%sdepth(:,3)
+         !osm = ssnow%smass(:,3)
+         !ssnow%tggsn(:,3) = ssnow%tggsn(:,3) + canopy%precis * C%HLF           &
+         !                   * osm / ( sgamm * ssnow%osnowd )
+         !ssnow%smass(:,3) = ssnow%smass(:,3) + canopy%precis                   &
+         !                   * osm / ssnow%osnowd
+        !ssnow%ssdn(:,3) = MAX( 120.0, MIN( ssnow%ssdn(:,3) * osm /             &
+         !                 ssnow%smass(:,3) + 0.5*rhowat *                          &
+         !                 ( 1.0 - osm / ssnow%smass(:,3) ), max_ssdn ) )
+!
+!         ! permanent ice: fix hard-wired number in next version
+!         WHERE( soil%isoilm /= 9 )                                             &
+!            ssnow%ssdn(:,3) = MIN(450.0,ssnow%ssdn(:,3))
+!
+!         ssnow%sdepth(:,3) = ssnow%smass(:,3) / ssnow%ssdn(:,3)
+!
+         !canopy%precis = 0.0
       
-      END WHERE
+!      END WHERE
    
    END WHERE
 
@@ -976,43 +985,56 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
    !---  glacier formation
    rnof5= 0.
+   xxx = 0.
 
    IF (nglacier == 2) THEN
       
-      smelt1=0.
-      WHERE( ssnow%snowd > max_glacier_snowd )
+      smelt1(:,:)=0.
+      xxx = met%fsd(:,1)+met%fsd(:,2)
+      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag .eq. 0 .and. xxx .gt. 560. )
 
-         rnof5 = MIN( 0.1, ssnow%snowd - max_glacier_snowd )
-
+            rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) 
          !---- change local tg to account for energy - clearly not best method
-         WHERE( ssnow%isflag == 0 )
-            smasstot = 0.0
+            WHERE( xxx .le. 700. )  rnof5 = 6.6e-3*xxx - 3.6
             ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * C%HLF                    &
                              / REAL( ssnow%gammzz(:,1) )
             ssnow%snowd = ssnow%snowd - rnof5
-         ELSEWHERE
-            smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
-         END WHERE
-
       END WHERE
 
       DO k = 1, 3
-         
-         WHERE( ssnow%snowd > max_glacier_snowd  .AND.  ssnow%isflag > 0 )
+!     Greenland         
+       WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. ssnow%iantrct .eq. 0. .and. xxx .gt. 560. )
+            rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) ! run60
+            smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
+            WHERE( xxx .le. 700. )  rnof5 = 6.6e-3*xxx - 3.6
+            WHERE( xxx .gt. 700. .and. rnof5 .eq. 1.0 )  rnof5 = 1.5
             sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
-            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,            &
-                          0.2 * ssnow%smass(:,k) )
+            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,  &
+                          0.3 * ssnow%smass(:,k) )
             ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
-            ssnow%snowd = ssnow%snowd - smelt1(:,k)
-         END WHERE
-      
+
+       END WHERE
+! Antarctic
+      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. ssnow%iantrct .eq. 1. .and. xxx .gt. 460. )
+            rnof5 = MIN( 1.0, ssnow%snowd - max_glacier_snowd ) ! run60
+            smasstot = ssnow%smass(:,1) + ssnow%smass(:,2) + ssnow%smass(:,3)
+            WHERE( xxx .le. 600. )  rnof5 = 0.3*(4.0e-3*xxx - 1.4)
+            WHERE( xxx .gt. 600 .and. xxx .le. 700. )  rnof5 = 6.6e-3*xxx - 3.6
+            sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
+            smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,  &
+                          0.3 * ssnow%smass(:,k) )
+            ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
+       END WHERE
+
       END DO
    
-      WHERE( ssnow%isflag > 0 ) rnof5 = smelt1(:,1) + smelt1(:,2) + smelt1(:,3)
+      WHERE( ssnow%snowd > max_glacier_snowd .and. ssnow%isflag > 0 .and. xxx .gt. 210. )
+            rnof5 = smelt1(:,1) + smelt1(:,2) + smelt1(:,3)
+            ssnow%snowd = ssnow%snowd - rnof5
+      END WHERE
    
-   END IF
+   END IF ! IF (nglacier == 2) 
 
-!  Rescale drainage to remove water added to lakes (wb_lake) 
    ssnow%sinfil = 0.0
    WHERE( veg%iveg == 16 )
       ssnow%sinfil  = MIN( ssnow%rnof1, ssnow%wb_lake ) ! water that can be extracted from the rnof1
@@ -1139,11 +1161,14 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
    xx = 0. 
     
    WHERE(ssnow%isflag == 0)
-      xx = MAX( 0., ssnow%snowd / ssnow%ssdnn )
-      ccnsw(:,1) = ( ccnsw(:,1) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + xx ) &
-                   ) + 0.2
+      xx = MIN(1.,MAX( 0., 5.*ssnow%snowd / ssnow%ssdnn ))
+      ccnsw(:,1) = ccnsw(:,1) *  soil%zse(1) / ( soil%zse(1) + xx ) &
+                    + 0.2 * xx / ( soil%zse(1) + xx )
    END WHERE
     
+!   if( ssnow%snowd(1) .gt. 0.0001) print 9,ccnsw(:,1),ssnow%sconds(:,1),xx, &
+!       ssnow%wb(:,1),ssnow%wbice(:,1)
+!9   format(1x,'ccnsw',10f8.5)
    DO k = 3, ms
       
       WHERE (ssnow%isflag == 0)
@@ -1151,7 +1176,6 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
                       ccnsw(:,k) )
       END WHERE
    END DO
-
    k = 1
    WHERE( ssnow%isflag == 0 )
       coeff(:,2) = 2.0 / ( ( soil%zse(1) + xx ) / ccnsw(:,1) + soil%zse(2) /   &
@@ -1387,7 +1411,7 @@ SUBROUTINE snowcheck(dels, ssnow, soil, met )
             ssnow%ssdnn(j) = ( ssnow%ssdn(j,1) * ssnow%smass(j,1) +            &
                               ssnow%ssdn(j,2) * ssnow%smass(j,2) +             &
                               ssnow%ssdn(j,3) * ssnow%smass(j,3) )             &
-                              / ssnow%snowd(j)
+                              / max(1.0,ssnow%snowd(j))
          
          ENDIF 
          
@@ -1461,6 +1485,7 @@ SUBROUTINE snowl_adjust(dels, ssnow, canopy )
          ssnow%ssdn(:,1) = REAL( MAX( 120.0_r_2, MIN( REAL( max_ssdn,r_2 ),    &
                            ssnow%ssdn(:,1) * osm / ssnow%smass(:,1)            &
                            + ssnow%ssdn(:,2) * excm / ssnow%smass(:,1) ) ) )
+
 
          ssnow%tggsn(:,1) = REAL( ssnow%tggsn(:,1) * osm / ssnow%smass(:,1)   &
                           + ssnow%tggsn(:,2) * excm / ssnow%smass(:,1) )
@@ -1830,11 +1855,11 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    weting = totwet + max(0.,ssnow%pudsto - canopy%fesp/C%HL*dels) 
    xxx=soil%ssat - ssnow%wb(:,1)
   
-   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*rhowat, weting) !soil capacity
-   xxx=soil%ssat - ssnow%wb(:,2)
-   sinfil2 = MIN( 0.95*xxx*soil%zse(2)*rhowat, weting - sinfil1) !soil capacity
-   xxx=soil%ssat - ssnow%wb(:,3)
-   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
+   sinfil1 = MIN( 0.8*xxx*soil%zse(1)*rhowat, weting) !soil capacity
+   xxx=max(0.0,soil%ssat - ssnow%wb(:,2))
+   sinfil2 = 0.0
+   where (ssnow%tgg(:,2).gt.C%TFRZ) sinfil2 = MIN(0.3*xxx*soil%zse(2)*rhowat,weting - sinfil1) 
+   sinfil3 = 0.0
    
    ! net water flux to the soil
    ssnow%fwtop1 = sinfil1 / dels - canopy%segg          
