@@ -657,10 +657,15 @@ PROGRAM cable_offline_driver
                  RYEAR = YYYY
               END if
               IF ( cable_user%CALL_POP ) then
-                 CALL POP_IO( pop, casamet, RYEAR, 'WRITE_EPI', &
+
+                 IF (TRIM(cable_user%POP_out).eq.'epi') THEN
+                    CALL POP_IO( pop, casamet, RYEAR, 'WRITE_EPI', &
                       (YYYY.EQ.CABLE_USER%YearEnd .AND. RRRR.EQ.NRRRR) )
-                 CALL GLOBFOR_OUT(mp, pop, casapool, veg, rad, cleaf_max, npp_ann, gpp_ann, stemnpp_ann, &
+                    CALL GLOBFOR_OUT(mp, pop, casapool, veg, rad, cleaf_max, npp_ann, gpp_ann, stemnpp_ann, &
                       leafnpp_ann )
+
+                 ENDIF
+                 
               endif
               cleaf_max = 0.0
               npp_ann = 0.0

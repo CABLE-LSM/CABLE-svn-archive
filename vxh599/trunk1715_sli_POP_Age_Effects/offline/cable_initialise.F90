@@ -502,6 +502,9 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 !         max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'patchfrac',dummy,patch(:)%frac,filename%restart_in,  &
                 max_vegpatches,'def',from_restart,mp)
+
+
+
    
 !    DO i=1, mland
 !    DO jj = landpt(i)%cstart, landpt(i)%cend

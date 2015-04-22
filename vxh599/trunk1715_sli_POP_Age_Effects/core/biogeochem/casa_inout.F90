@@ -700,13 +700,15 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
                  READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                    casamet%glai(npt),slaz,phen%phase(npt) , &
                    casapool%clabile(npt) ,casapool%cplant(npt,:) ,  &
-                   casapool%clitter(npt,:),casapool%csoil(npt,:)
+                   casapool%clitter(npt,:),casapool%csoil(npt,:), &
+                   casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt)
 
               CASE(2)
                  READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                    casamet%glai(npt),slaz,phen%phase(npt), &
                    casapool%clabile(npt),casapool%cplant(npt,:),   &
                    casapool%clitter(npt,:),casapool%csoil(npt,:),       &
+                   casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt), &
                    casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
                    casapool%nsoil(npt,:),casapool%nsoilmin(npt)
               CASE(3)
@@ -714,6 +716,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
                    casamet%glai(npt),slaz,phen%phase(npt), &
                    casapool%clabile(npt),casapool%cplant(npt,:),   &
                    casapool%clitter(npt,:),casapool%csoil(npt,:),       &
+                   casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt), &
                    casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
                    casapool%nsoil(npt,:),casapool%nsoilmin(npt),        &
                    casapool%pplant(npt,:),casapool%plitter(npt,:),      &
@@ -733,6 +736,10 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
         ELSE
            WRITE(*,*)'No valid restart file for casa_init found.'
            WRITE(*,*)'Using input from readbiome.!!!'
+           WRITE(*,*) 'initialising frac_sapwood=1 and sapwood_area = 0)'
+           casaflux%frac_sapwood(:) = 1.0
+           casaflux%sapwood_area(:) = 0.0
+
      ENDIF  ! IF (EXRST)
 
   ENDIF 
@@ -925,6 +932,7 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
         casamet%areacell(npt)*(1.0e-9),casamet%glai(npt),       &
         casabiome%sla(veg%iveg(npt)), phen%phase(npt), casapool%clabile(npt), &
         casapool%cplant(npt,:),casapool%clitter(npt,:),casapool%csoil(npt,:), &
+        casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt), &
         casapool%nplant(npt,:),casapool%nlitter(npt,:),casapool%nsoil(npt,:), &
         casapool%nsoilmin(npt),casapool%pplant(npt,:),          &
         casapool%plitter(npt,:), casapool%psoil(npt,:),         &
@@ -1031,8 +1039,8 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
       totNPP = totNPP+casabal%Fcnppyear(npt)* casamet%areacell(npt)
     ENDDO
 
-    print *, 'totGPP global = ', totGPP*(1.0e-15),  casamet%areacell
-    print *, 'totNPP global = ', totNPP*(1.0e-15),  casamet%areacell
+    print *, 'totGPP global = ', totGPP*(1.0e-15)
+    print *, 'totNPP global = ', totNPP*(1.0e-15)
   CLOSE(nout)
 92    format(5(i6,',',2x),100(f15.6,',',2x))
 END SUBROUTINE casa_fluxout
@@ -1134,7 +1142,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
 !  write(77,701)  npt, casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%fracCalloc(npt,:)
 
-  call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
+  !call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                        casamet,phen)
@@ -1145,6 +1153,8 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                        casaflux,casamet)
 
   call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
+
+ call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
 !  write(*,991)casaflux%cgpp(2058),casaflux%cnpp(2058),casaflux%fracClabile(2058), &
 !            casaflux%fracCalloc(2058,:),casaflux%crmplant(2058,:),casaflux%crgplant(2058), casapool%Nsoilmin(2058), &

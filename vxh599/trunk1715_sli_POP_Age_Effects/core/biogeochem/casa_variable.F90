@@ -87,7 +87,7 @@ MODULE casaparm
   INTEGER, PARAMETER :: PLAB    = 1
   INTEGER, PARAMETER :: PSORB   = 2
   INTEGER, PARAMETER :: POCC    = 3
-  INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable
+  INTEGER, PARAMETER :: LALLOC  = 3      !=0 constant; 1 variable; 2 Wolf; 3 target LAtoSA
   REAL(r_2), PARAMETER :: z30=0.3
   REAL(r_2), PARAMETER :: R0=0.3
   REAL(r_2), PARAMETER :: S0=0.3
@@ -209,7 +209,9 @@ MODULE casavariable
                                        Clabloss,      &
                                        fracClabile, &
 ! added vh
-				       stemnpp
+				       stemnpp, &
+                                       frac_sapwood, &
+                                       sapwood_area
     REAL(r_2), DIMENSION(:,:),POINTER :: fracCalloc,  &
                                        fracNalloc,    &
                                        fracPalloc,    &
@@ -490,7 +492,9 @@ write(*,*) "in alloc_casa"
            casaflux%fromStoS(arraysize,msoil,msoil),     &
            casaflux%fromLtoCO2(arraysize,mlitter),       &
            casaflux%fromStoCO2(arraysize,msoil), &
- 	   casaflux%stemnpp(arraysize))					                  
+ 	   casaflux%stemnpp(arraysize)	, &
+           casaflux%frac_sapwood(arraysize), &
+           casaflux%sapwood_area(arraysize))		                  
 
   ALLOCATE(casaflux%FluxCtolitter(arraysize,mlitter),    &
            casaflux%FluxNtolitter(arraysize,mlitter),    &

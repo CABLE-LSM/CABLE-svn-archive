@@ -315,7 +315,7 @@ MODULE cable_def_types_mod
      ! Additional POP veg param
      INTEGER, DIMENSION(:,:), POINTER ::  disturbance_interval
      REAL(r_2), DIMENSION(:,:), POINTER ::  disturbance_intensity
-
+     REAL(r_2), DIMENSION(:),  POINTER :: KClump
    END TYPE veg_parameter_type
 
 ! .............................................................................
@@ -843,6 +843,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
     ALLOCATE ( var % a1c3(mp) )
     ALLOCATE ( var % disturbance_interval(mp,2) )
     ALLOCATE ( var % disturbance_intensity(mp,2) )
+    ALLOCATE ( var % KClump(mp) )
     !END IF
     ! Allocate variables for canopy_vh model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN

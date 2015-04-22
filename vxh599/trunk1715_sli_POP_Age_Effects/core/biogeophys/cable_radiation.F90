@@ -156,7 +156,9 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    WHERE(rad%fbeam(:,1) < 1.0e-3 )
       rad%extkb=1.0e5         ! keep cexpkbm within real*4 range (BP jul2010)
    END WHERE
-   
+ ! vh !
+rad%extkb = rad%extkb*veg%KClump
+ rad%extkd = rad%extkd*veg%KClump 
 END SUBROUTINE init_radiation
 
 ! ------------------------------------------------------------------------------

@@ -2489,7 +2489,9 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
     ! Write per-site parameter values to log file if requested:
     CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
          casamet,casapool,casaflux,phen,vegparmnew,verbose)
-
+   
+! temp init vh!
+veg%KClump = 1.0
   
 END SUBROUTINE load_parameters
  
