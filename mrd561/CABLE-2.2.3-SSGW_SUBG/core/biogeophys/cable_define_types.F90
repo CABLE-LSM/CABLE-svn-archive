@@ -277,7 +277,7 @@ MODULE cable_def_types_mod
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
 
-      real(r_2), dimension(:), pointer :                                       &
+      real(r_2), dimension(:), pointer ::                                       &
          qsrf_store, &    !surface runoff storage
          qsrf_flow,  &    !surface runoff flow
          qsrf_gen        !surface runoff generation

@@ -2272,6 +2272,17 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%qsrf_store(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%qsrf_flow(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%qsrf_gen(off), displs(bidx), ierr)
+  blen(bidx) = r2len
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
@@ -4793,13 +4804,19 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (ssnow%GWsmp(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
 
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%qsrf_store(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
 
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%qsrf_flow(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
+ 
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%qsrf_gen(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
+ 
 
-
-
-
-
-     
      ! MPI: sanity check
      IF (vidx /= nvec) THEN
         WRITE (*,*) 'master: outtype invalid nvec ',vidx,' constant, fix it!'

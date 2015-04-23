@@ -35,7 +35,7 @@ MODULE cable_soil_snow_gw_module
    
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp           
+                             balances_type, r_2, ms, mp,mland
    USE cable_data_module, ONLY : issnow_type, point2constants
 
    USE cable_common_module, ONLY : gw_params
@@ -1026,6 +1026,8 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    !Tice = Tt - Tliq
    !a=2 b=4
    !calculate the fraction of wb that should be supercooled
+   write(*,*) minval(soil%watsat(:,:))
+   write(*,*) minloc(soil%watsat(:,:))
    where (ssnow%tgg .le. C%TFRZ)
       frozen_limit(:,:) = (1. - exp(-2.*(ssnow%wb(:,:)/soil%watsat(:,:))**4.0 *&
                        (ssnow%tgg(:,:)-273.16)))/exp(1. - ssnow%wb(:,:)/soil%watsat(:,:))
@@ -1281,6 +1283,11 @@ END SUBROUTINE remove_trans
       ssnow%rnof1 = ssnow%rnof1 + rnof5/dels   !include this runoff in suface runoff term
    
    END IF
+
+   if (cable_user%twod_subgrid) then
+      ssnow%qsrf_gen(:) = ssnow%rnof1 
+      ssnow%rnof1  = 0.0
+   end if
 
   END SUBROUTINE ovrlndflx
 
@@ -1666,7 +1673,7 @@ END SUBROUTINE remove_trans
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = snow%hk(i,ms) * tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = ssnow%hk(i,ms) * tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
  
        !identify first no frozen layer.  drinage from that layer and below
@@ -1698,6 +1705,10 @@ END SUBROUTINE remove_trans
        end do
 
     end do  
+
+    if (cable_user%twod_subgrid) then
+       qhlev(:,:) = 0._r_2
+    end if
 
 
     rt(:,:) = 0._r_2; at(:,:) = 0._r_2     !ensure input to tridiag is valid
@@ -2258,80 +2269,108 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
   
   real(r_2) :: def, theta, ani,f, slope  !ani = anisotopic factor (2e3 for chen kumar 2001)
 
-  logical :: verbose_debug
+  logical :: verbose_debug, run_section
 
   verbose_debug = .false.
   ani = 2.0e3
   f = 1. / sum(soil%zse)
+
+  run_section = .false.
   
+  if (run_section) then
   do i=1,mland
   
     ib = landpt(i)%cstart
     ie = landpt(i)%cend
-    do ii=ib+1,ie
+    do ii=ib,ie
     
       !slope = (soil%elevation(ii) - soil%elevation(ii-1)) / (soil%distance(ii)-soil%distance(ii-1))
-      def   = sum((soil%watsat(ii,:)-(ssnow%wbliq(ii,:)+dri*ssnow%wbice(ii,:))))!*soil%zse(:))
-      def   = def + (soil%GWwatsat(ii) - ssnow%GWwb(ii))!*soil%GWdz(ii)
-      q_tot(ii) = ani*soil%hksat(ii,ms)*sin(soil%slope(ii))/soil%distance(ii)*def*soil%area(ii)
+      def = 0.0
+      do k=1,ms
+         def = def + max((soil%watsat(ii,k)-ssnow%wb(ii,k)),0.0)
+      end do
+      def = def + max((soil%GWwatsat(ii)-ssnow%GWwb(ii)),0.0)
+
+      q_tot(ii) = ssnow%qhz(ii)!ani*soil%hksat(ii,ms)*sin(max(soil%slope(ii),1e-3))*exp(-def)/soil%distance(ii)
       ! sin(slope)*(exp(-f*sum(soil%zse)*cos(slope)) - exp(-f*def*cos(slope)))
 
-    end do
+    !end do
     
-    ii = ib
-    !slope = (soil%elevation(ii+1) - soil%elevation(ii)) / (soil%distance(ii+1)-soil%distance(ii))
-    def   = sum(max(soil%watsat(ii,:)-(ssnow%wbliq(ii,:)+dri*ssnow%wbice(ii,:)),0.))!*soil%zse(:))
-    def   = def + (soil%GWwatsat(ii) - ssnow%GWwb(ii))!*soil%GWdz(ii)
-    q_tot(ii) = ani*soil%hksat(ii,ms)*sin(soil%slope(ii))/soil%distance(ii)*def*soil%area(ii)
+    !ii = ib
+    !!slope = (soil%elevation(ii+1) - soil%elevation(ii)) / (soil%distance(ii+1)-soil%distance(ii))
+    !def   = sum(max(soil%watsat(ii,:)-(ssnow%wbliq(ii,:)+dri*ssnow%wbice(ii,:)),0.))!*soil%zse(:))
+    !def   = def + (soil%GWwatsat(ii) - ssnow%GWwb(ii))!*soil%GWdz(ii)
+    !q_tot(ii) = ani*soil%hksat(ii,ms)*sin(soil%slope(ii))/soil%distance(ii)*def*soil%area(ii)
     !sin(slope)* (exp(-f*sum(soil%zse)*cos(slope)) - exp(-f*def*cos(slope)))
  
       if (ii .eq. 388 .and. verbose_debug) then
          write(*,*) soil%hksat(ii,ms)
          write(*,*) slope
-         write(*,*) sin(soil%slope(ii))
+         write(*,*) sin(min(soil%slope(ii),1.0))
          write(*,*) sum(soil%zse)
          write(*,*) cos(slope)
-         write(*,*) exp(-f*sum(soil%zse)*cos(slope))
+         write(*,*) exp(-f*sum(soil%zse)*cos(min(soil%slope(ii),1.0)))
          write(*,*) 'def is ',def
-         write(*,*) exp(-f*def*cos(slope))
+         write(*,*) exp(-f*def*cos(min(soil%slope(ii),1.0)))
          write(*,*) soil%area(ii)
        end if
+
+    end do
 
   end do
   
   wb_avg(:) = 0.
-  do i=1,mland
-    ib = landpt(i)%cstart
-    ie = landpt(i)%cend
-    do ii=ib,ie
-      wb_avg(ii) =max( 1e-6, &
-                     sum( max(ssnow%wbliq(ii,:) - 0.2*soil%sfc(ii),0.)*soil%zse(:)*1000.0*ssnow%fracice(ii,:) ) + &
-                        (ssnow%GWwb(ii) - 0.2*soil%sfc(ii))*soil%GWdz(ii)*1000.0*ssnow%fracice(ii,ms)    )
-    end do
-  end do
-         
-  q_lev(:,:) = 0.
-  do i=1,mland
-    ib = landpt(i)%cstart
-    ie = landpt(i)%cend
-    do ii=ib,ie
-      q_lev(ii,1:ms) = q_tot(ii) * max(ssnow%wb(ii,:) - 0.2*soil%sfc(ii),0.)*soil%zse(:)*1000.0*ssnow%fracice(ii,:) / wb_avg(ii)
-      q_lev(ii,ms+1) = q_tot(ii) * max(ssnow%GWwb(ii) - 0.2*soil%sfc(ii),0.)*soil%GWdz(ii)*1000.0*ssnow%fracice(ii,ms) / wb_avg(ii)
-    end do
-  end do
-
-    
   do k=1,ms
     do i=1,mland
       ib = landpt(i)%cstart
       ie = landpt(i)%cend
       do ii=ib,ie
-        if (ii .lt. ie) then
-          ssnow%wbliq(ii,k) = ssnow%wbliq(ii,k) + (q_lev(ii+1,k) - q_lev(ii,k))*dels / (soil%zse(k)*1000.0) / soil%area(ii)   !mm^3
-        else
-          ssnow%wbliq(ii,k) = ssnow%wbliq(ii,k) - q_lev(ii,k)*dels / (soil%zse(k)*1000.0) / soil%area(ii)
-        end if
-      end do  !ib,ie
+        wb_avg(ii) = wb_avg(ii) + max(0._r_2, (ssnow%wbliq(ii,k)-&
+                       0.2*soil%fldcap(ii,k)))*soil%zse(k)*1000.0
+      end do
+    end do
+  end do
+
+  do i = 1,mland
+    ib = landpt(i)%cstart
+    ie = landpt(i)%cend
+    do ii=ib,ie
+       wb_avg(ii) = wb_avg(ii) + max(0._r_2, (ssnow%GWwb(ii) -&
+                      0.2*soil%fldcap(ii,ms))*1000.0*soil%GWdz(ii)*ssnow%fracice(ii,ms) )
+    end do
+  end do
+         
+  q_lev(:,:) = 0.
+  do k=1,ms
+    do i=1,mland
+      ib = landpt(i)%cstart
+      ie = landpt(i)%cend
+      do ii=ib,ie
+        q_lev(ii,k) = q_tot(ii) * max(ssnow%wbliq(ii,k) - &
+                       0.2*soil%fldcap(ii,k),0.)*soil%zse(k)*1000.0 / max(wb_avg(ii),1.0e-4)
+      end do
+    end do
+  end do
+
+  k=ms+1
+  do i=1,mland
+    ib = landpt(i)%cstart
+    ie = landpt(i)%cend
+    do ii=ib,ie
+      q_lev(ii,k) = q_tot(ii) * max(ssnow%GWwb(ii) - &
+                    0.2*soil%fldcap(ii,k-1),0.)*soil%GWdz(ii)*1000.0*ssnow%fracice(ii,k-1) / max(wb_avg(ii),1.0e-4)
+    end do
+  end do
+    
+    
+  do k=1,ms
+    do i=1,mland
+      ib = landpt(i)%cstart
+      ie = landpt(i)%cend
+      do ii=ib,ie-1
+          ssnow%wbliq(ii,k) = ssnow%wbliq(ii,k) + (q_lev(ii+1,k) - q_lev(ii,k))*dels / (soil%zse(k)*1000.0)   !mm^3
+      end do
+      ssnow%wbliq(ie,k) = ssnow%wbliq(ie,k) - q_lev(ie,k)*dels / (soil%zse(k)*1000.0) 
     end do  !mland
   end do  !ms
   
@@ -2341,9 +2380,9 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
       ie = landpt(i)%cend
       do ii=ib,ie
         if (ii .lt. ie) then
-          ssnow%GWwb(ii) = ssnow%GWwb(ii) + (q_lev(ii+1,k) - q_lev(ii,k))*dels / (soil%GWdz(ii)*1000.0) / soil%area(ii)   !mm^3
+          ssnow%GWwb(ii) = ssnow%GWwb(ii) + (q_lev(ii+1,k) - q_lev(ii,k))*dels / (soil%GWdz(ii)*1000.0)  !mm^3
         else
-          ssnow%GWwb(ii) = ssnow%GWwb(ii) - q_lev(ii,k)*dels / (soil%GWdz(ii)*1000.0) / soil%area(ii)
+          ssnow%GWwb(ii) = ssnow%GWwb(ii) - q_lev(ii,k)*dels / (soil%GWdz(ii)*1000.0)
         end if
       end do  !ib,ie
     end do  !mland
@@ -2357,7 +2396,7 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
     ie = landpt(i)%cend
     !do ii=ib,ie 
     ii = ib
-       ssnow%rnof2(ii) = sum(q_lev(ii,:))/soil%area(ii)
+       ssnow%rnof2(ii) = sum(q_lev(ii,:))
     do ii=ib+1,ie
        ssnow%rnof2(ii) = 0.0
     end do
@@ -2398,6 +2437,14 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
   !  ssnow%qsrf_store(i) = qsrf_store_n(i) / soil%area(i)
   !  ssnow%qsrf_flow(i)  = qsrf_flow_n(i) / soil%area(i)
   !end do
+
+  else
+     ssnow%qsrf_store(:) = 0.0
+     ssnow%qsrf_flow(:) = 0.0
+     ssnow%qsrf_gen(:) = 0.0
+     ssnow%rnof1(:) = 0.0
+     ssnow%rnof2(:) = 0.0
+  end if
   
   
   

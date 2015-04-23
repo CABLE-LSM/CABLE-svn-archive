@@ -1207,20 +1207,29 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
    REAL,INTENT(IN), DIMENSION(:) :: cansat ! max canopy intercept. (mm)
 
    !local variables
-   REAL, DIMENSION(mp)  :: lower_limit, upper_limit,ftemp
-   
-   INTEGER :: j
+   REAL, DIMENSION(mp)  :: lower_limit, upper_limit,fftemp
+   REAL :: tmp1,tmp2,tmp3 
+   INTEGER :: j,i
 
    ! Rainfall variable is limited so canopy interception is limited,
    ! used to stabilise latent fluxes.
    ! to avoid excessive direct canopy evaporation (EK nov2007, snow scheme)
-   upper_limit = 4.0 * MIN(dels,1800.0) / (60.0 * 1440.0 ) 
-   ftemp =MIN(met%precip-met%precip_sn, upper_limit )
+   do i=1,mp
+   upper_limit(i) = 4.0 * MIN(dels,1800.0) / (60.0 * 1440.0 ) 
+   tmp1 = met%precip(i)-met%precip_sn(i)
+   tmp2 = min(tmp1,upper_limit(i))
+   fftemp(i) =tmp2!MIN(met%precip(i)-met%precip_sn(i), upper_limit(i) )
    ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
-   lower_limit = cansat - canopy%cansto
-   upper_limit = max(lower_limit, 0.0) 
-   canopy%wcint = MERGE( MIN( upper_limit, ftemp ), 0.0,                       &
-                  ftemp > 0.0  .AND. met%tk > C%tfrz)  !EAK, 09/10
+   lower_limit(i) = cansat(i) - canopy%cansto(i)
+   upper_limit(i) = max(lower_limit(i), 0.0) 
+   !canopy%wcint = MERGE( MIN( upper_limit, ftemp ), 0.0,                       &
+   !               ftemp > 0.0  .AND. met%tk > C%tfrz)  !EAK, 09/10
+   if (fftemp(i) .gt. 0.0 .and. met%tk(i) .gt. C%tfrz) then
+      canopy%wcint(i) = min(upper_limit(i),fftemp(i))
+   else
+      canopy%wcint(i) = 0.0
+   end if
+   end do
 
    ! Define canopy throughfall (100% of precip if temp < 0C, see above):
    canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn ,          &

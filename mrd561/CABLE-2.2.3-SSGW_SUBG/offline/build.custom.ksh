@@ -183,11 +183,13 @@ host_raij()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='ifort'
-   export CFLAGS='-O2 -fp-model precise '
+   export CFLAGS='-O2 -fp-model precise -mcmodel=medium -shared-intel -ipo -parallel -fpe0'
+   export LDFLAGS='-L'$NCDIR' -O2 -parallel '
+
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise'
+      export CFLAGS='-O0 -traceback -g -fp-model precise -mcmodel=medium -check  -fpe0 -parallel '
+      export LDFLAGS='-L'$NCDIR' -O0 -parallel '
    fi
-   export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
