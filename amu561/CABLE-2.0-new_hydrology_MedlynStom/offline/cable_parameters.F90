@@ -763,6 +763,10 @@ CONTAINS
        ok = NF90_INQ_VARID(ncid_elev, 'elevation', fieldID)
        IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation variables for SSGW'
        ok = NF90_GET_VAR(ncid_elev, fieldID, inElev)
+
+       print *, "PRINTING ELEV inElev"
+       print *, inElev
+
        IF (ok /= NF90_NOERR) THEN
           inElev = 0.0
           WRITE(logn, *) 'Could not read elevation data for SSGW, set to 0.0'
@@ -773,12 +777,16 @@ CONTAINS
        ok = NF90_GET_VAR(ncid_elev, fieldID, inElevSTD)
        IF (ok /= NF90_NOERR) THEN
           inElevSTD = 0.0
-          WRITE(logn, *) 'Could not read elevation data for SSGW, set to 0.0'
+          WRITE(logn, *) 'Could not read elevation std data for SSGW, set to 0.0'
        END IF
 
        ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
        IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope'
        ok = NF90_GET_VAR(ncid_elev, fieldID, inSlope)
+       
+       print *, "PRINTING SLOPE inSlope:"
+       print *, inSlope
+
        IF (ok /= NF90_NOERR) THEN
           inSlope = 0.0
           WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
@@ -1095,6 +1103,7 @@ CONTAINS
                                         inLAI(landpt(e)%ilon,landpt(e)%ilat,is)
       END DO
 
+
       ! Set IGBP soil texture values, Q.Zhang @ 12/20/2010.
       IF (soilparmnew) THEN
   
@@ -1185,24 +1194,29 @@ CONTAINS
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
          !inswilt(landpt(e)%ilon, landpt(e)%ilat)
-
+    !Anna temporary fix to read in Elev
+    IF (cable_user%GW_MODEL) then
       soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
-                                    inElev(landpt(e)%ilon,landpt(e)%ilat)
+                                    inElev(1,1)    !Anna (landpt(e)%ilon,landpt(e)%ilat)
+                                
+    print *, "printing soil elev and slope (inElev, soil%elev, soil%slope):"
+    print *, inElev
+    print *, soil%elev
 
       soil%elev_std(landpt(e)%cstart:landpt(e)%cend) =                        &
                                     inElevSTD(landpt(e)%ilon,landpt(e)%ilat)
 
       soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
-                                    inSlope(landpt(e)%ilon,landpt(e)%ilat)
-
+                                    inSlope(1,1)  !Anna (landpt(e)%ilon,landpt(e)%ilat)
+    print *, soil%slope
       soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat)
 
       soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inTI(landpt(e)%ilon,landpt(e)%ilat)
+    END IF
 
-
-      ENDIF
+ENDIF
 
 ! offline only below
        ! If user defined veg types are present in the met file then use them. 

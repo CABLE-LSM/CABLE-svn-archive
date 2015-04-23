@@ -230,7 +230,7 @@ cat > cable.nml << EOF
    cable_user%GSWP3       = .FALSE.
    gw_params%EfoldMaxSatFrac = 6.0
    gw_params%MaxHorzDrainRate = 0.01
-   gw_params%MaxSatFraction = 0.3
+   gw_params%MaxSatFraction = 0.0  !Changed Anna
    gw_params%EfoldHorzDrainRate = 1.0
 &end
 

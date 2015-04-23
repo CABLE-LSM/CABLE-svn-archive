@@ -124,7 +124,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    REAL  :: rt_min
 
-   INTEGER :: j
+   INTEGER ::                                                                  &
+      j,    &
+      i
    
    INTEGER, SAVE :: call_number =0
    
@@ -310,14 +312,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          
          ENDIF
 
-         if (.not. cable_user%GW_MODEL) then
-            canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
-               C%SBOLTZ*canopy%tv(j)**4 - C%EMSOIL*C%SBOLTZ* tss4(j)
-         else
-            canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
-               C%SBOLTZ*canopy%tv(j)**4 - &
-               (C%EMSOIL+ (1.-C%EMSOIL)*ssnow%wb(j,1)/soil%watsat(j,1))*C%SBOLTZ* tss4(j)
-         end if         
+         canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
+            C%SBOLTZ*canopy%tv(j)**4 - C%EMSOIL*C%SBOLTZ* tss4(j)
           
       ENDDO 
      
@@ -337,7 +333,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       ELSE !by default assumes Humidity Deficit Method
       
-         dq = ssnow%qstss - met%qv
+         if (cable_user%gw_model) then 
+            do i=1,mp
+               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               else
+                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+               end if
+            end do
+
+         else
+            dq = ssnow%qstss - met%qvair
+         end if
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -360,8 +367,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          ssnow%potev =  Penman_Monteith(canopy%ga) 
       
       ELSE !by default assumes Humidity Deficit Method
-      
-         dq = ssnow%qstss - met%qvair
+         if (cable_user%gw_model) then 
+            do i=1,mp
+               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               else
+                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+               end if
+            end do
+         else
+            dq = ssnow%qstss - met%qvair
+
+         end if      
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -1365,7 +1382,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
-      ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+      ELSEIf (cable_user%FWSOIL_SWITCH == 'nonlinear') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
       ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN

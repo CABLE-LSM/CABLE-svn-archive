@@ -15,13 +15,15 @@
 
 
 #out='./../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw'
-out='../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_with_gw_slope_0deg'
+out='../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw_def_soil'
 #out='../../Outputs/CABLE_2.0_new_hydrology/Leuning_nonlinextrap_with_gw'
 
 #model options 
-gw_opt="TRUE"   #use groundwater?
+gw_opt="FALSE"   #use groundwater?
 spin_opt="TRUE" #spin up model?
 veg_file="g1_files/def_veg_params_medlyn_mean.txt"
+
+site_file="sites_0deg.txt"
 
 
 #check if directory exists, it not create
@@ -79,8 +81,10 @@ book_keeping()
 site_name()
 {
    integer i=0
-   exec < ./../../Inputs/sites.txt
+   exec < ./../../Inputs/${site_file}
    
+    echo $site_file
+
    while read line
    do
    	fchar=`echo "$line" | cut -c 1`  
@@ -98,9 +102,12 @@ site_name()
       read sites[i]	
       read fsites[i]	
       read fpoolsites[i]	
+      echo "PRINTING HERE"
       print "\n\t${sites[i]}"
+      print "\n\t${fsites[i]}"
       (( i = i + 1 ))
-   done 
+  done 
+
    rm -f fsites.txt
 } 
 
@@ -135,7 +142,7 @@ run_run()
    tidy
 
    mkdir $out/${sites[$1]}
- 
+
 
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then

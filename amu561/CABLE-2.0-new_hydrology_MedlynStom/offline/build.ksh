@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg squa
+   set -A kh vayu cher burn shin jigg squa mael
 }
 
 
@@ -22,6 +22,23 @@ host_squa()
    cd ../
    build_status
 }
+
+ host_mael()
+ {
+    export NCDIR='/share/apps/netcdf/intel/4.2.1//lib/'
+    export NCMOD='/share/apps/netcdf/intel/4.2.1/include/Intel'
+    export FC='ifort'
+    export CFLAGS='-O2 -fp-model precise'
+    if [[ $1 = 'debug' ]]; then
+       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+    fi
+    export LDFLAGS='-L'$NCDIR' -O2'
+    export LD='-lnetcdf -lnetcdff'
+    build_build
+    cd ../
+    build_status
+ }
+
 
 
 ## jiggle
