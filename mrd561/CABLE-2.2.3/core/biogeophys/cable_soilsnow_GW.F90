@@ -1557,13 +1557,8 @@ END SUBROUTINE remove_trans
     dzmm_mp = spread(dzmm,1,mp)
     zimm(0) = 0._r_2
 
-    do k=1,ms
-       zimm(k) = zimm(k-1) + dzmm(k)
-    end do
-
-    do k=1,ms
-       zmm(k)  = zimm(k-1) + 0.5_r_2*dzmm(k)
-    end do 
+    zimm(1:ms) = zimm(0:(ms-1)) + dzmm(1:ms)
+    zmm(1:ms)  = zimm(0:(ms-1)) + 0.5_r_2*dzmm(1:ms)
 
     GWdzmm(:) = real(soil%GWdz(:),r_2)*1000._r_2
     GWzimm(:) = zimm(ms)+GWdzmm(:)
@@ -1576,24 +1571,20 @@ END SUBROUTINE remove_trans
     !equilibrium water content
     CALL calc_equilibrium_water_content(ssnow,soil)
 
-    !if (ktau .le. 1) then
-    !   ssnow%wbliq = ssnow%wbeq
-    !   ssnow%wb    = ssnow%wbliq
-    !   ssnow%GWwb  = ssnow%GWwbeq
-    !end if
-
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
     do k=1,ms
        do i=1,mp
           ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2))
           ssnow%fracice(i,k) = (exp(-3._r_2*(1._r_2-ssnow%icefrac(i,k)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
-          ssnow%fracice(i,k) = max(min(ssnow%fracice(i,k),1.0_r_2),0.0_r_2)
        end do
     end do
+
+    ssnow%fracice(:,:) = max( min( ssnow%fracice, 1._r_2), 0._r_2)
+
     do i=1,mp
        fice_avg(i)  = sum(ssnow%fracice(i,2:ms)*dzmm(2:ms)) / sum(dzmm(2:ms))
-       fice_avg(i)  = min(fice_avg(i),1._r_2)
     end do
+    fice_avg(:) = min(fice_avg,1._r_2)
        
     do k=1,ms-1
        kk=k+1
