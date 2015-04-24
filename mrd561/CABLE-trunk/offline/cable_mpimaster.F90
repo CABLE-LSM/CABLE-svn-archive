@@ -324,7 +324,7 @@ SUBROUTINE mpidrv_master (comm)
       STOP 'casaCNP must use new soil parameters'
 
    ! Check for gswp run
-   IF (ncciy /= 0) THEN
+   IF (ncciy /= 0 .and. .not.cable_user%GSWP3) THEN
       
       PRINT *, 'Looking for global offline run info.'
       

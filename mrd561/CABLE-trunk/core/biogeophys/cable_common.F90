@@ -91,6 +91,12 @@ MODULE cable_common_module
 
 	     ! Switch for customized soil respiration - see Ticket #42
          SRF = .FALSE.
+
+      !clm style forcing
+      LOGICAL :: alt_forcing = .FALSE.
+      !using GSWP3 forcing?
+      LOGICAL :: GSWP3 = .FALSE.
+
          
    END TYPE kbl_user_switches
 

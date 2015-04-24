@@ -255,6 +255,13 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLon)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable longitude.')
+    !ensure this longitude is -180->180
+    !as for GSWP3 it is 0-360
+    !cable ensures lon is -180-180 at line 670 in cable_input.F90
+    !why not remove both of these?
+    WHERE (inLON > 180.0)
+       inLON = inLON - 360.0
+    ENDWHERE
 
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
