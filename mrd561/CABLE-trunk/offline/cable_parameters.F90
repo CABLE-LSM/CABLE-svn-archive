@@ -907,8 +907,13 @@ CONTAINS
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
 
-    rough%za_uv = 40.0 ! lowest atm. model layer/reference height
-    rough%za_tq = 40.0
+    if (.not.cable_user%GSWP3) then
+       rough%za_uv = 40.0 ! lowest atm. model layer/reference height
+       rough%za_tq = 40.0
+    else
+       rough%za_uv = 2.0 ! lowest atm. model layer/reference height
+       rough%za_tq = 2.0
+    end if
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
