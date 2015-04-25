@@ -847,7 +847,7 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin, calcsoilalbedo
+    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,cable_user
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1217,6 +1217,7 @@ CONTAINS
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
+    USE cable_common_module, ONLY : cable_user
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
