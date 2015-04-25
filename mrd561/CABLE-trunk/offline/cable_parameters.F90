@@ -910,9 +910,6 @@ CONTAINS
     if (.not.cable_user%GSWP3) then
        rough%za_uv = 40.0 ! lowest atm. model layer/reference height
        rough%za_tq = 40.0
-    else
-       rough%za_uv = 2.0 ! lowest atm. model layer/reference height
-       rough%za_tq = 2.0
     end if
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
@@ -1265,6 +1262,12 @@ CONTAINS
     END WHERE
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
+
+    if (cable_user%alt_forcing .or. cable_user%GSWP3) then 
+       rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
+       rough%za_tq = 2.0 + veg%hc
+    end if
+
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
