@@ -1263,7 +1263,7 @@ CONTAINS
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
 
-    if (cable_user%alt_forcing .or. cable_user%GSWP3) then 
+    if (cable_user%GSWP3) then 
        rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
        rough%za_tq = 2.0 + veg%hc
     end if
