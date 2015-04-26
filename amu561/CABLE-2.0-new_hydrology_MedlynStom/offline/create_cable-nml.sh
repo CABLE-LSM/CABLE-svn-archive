@@ -157,7 +157,7 @@ cat > cable.nml << EOF
    filename%log = "$logfile"
    filename%restart_in  = "$restart_infile" 
    filename%restart_out = "$restart_outfile"
-   filename%type    = "./../../Inputs/gridinfo_CSIRO_1x1.nc"
+   filename%type    = "./../../Inputs/CABLE_GSWP3_HGSD_DRT_Surface_Data.nc"
    filename%veg    = "./../../Inputs/$vegfile"
    filename%soil    = "./../../Inputs/$soilfile"
    filename%gw_elev = "$metfile"

@@ -2,8 +2,14 @@
 
 cd /srv/ccrc/data45/z3509830/CABLE_runs/Inputs/
 
-IN_DIR="PLUMBER_sites_slope_gtopo_lai_ts"
-in_file="sites_gtopo_lai_ts.txt"
+DIRS=`find . -maxdepth 1 -path "./PLUMBER_sites_slope_*"`
+
+
+for IN_DIR in $DIRS
+do
+
+
+    in_file="./Site_files/"${IN_DIR}".txt"
 
 
 
@@ -91,3 +97,5 @@ UniMich
 # CNP pools size - etc 
 #data/surface_data/poolcnpInHyytiala.csv
 EOF
+
+done
