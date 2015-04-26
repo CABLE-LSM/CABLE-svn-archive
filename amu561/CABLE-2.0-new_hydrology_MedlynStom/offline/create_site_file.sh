@@ -2,7 +2,7 @@
 
 cd /srv/ccrc/data45/z3509830/CABLE_runs/Inputs/
 
-DIRS=`find . -maxdepth 1 -path "./PLUMBER_sites_slope_*"`
+DIRS=`find * -maxdepth 1 -type d -path "PLUMBER_sites_slope_*"`
 
 
 for IN_DIR in $DIRS

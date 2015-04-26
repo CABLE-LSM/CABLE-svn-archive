@@ -45,7 +45,7 @@ do
 echo $D
 
 out_options=`echo $D | cut -d'_' -f 3-8`       #extracts slope, isoil and lai info from path
-out='../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/${gc_opt}_${drought_fun}_${gw_flag}_${out_options}'
+out="../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/"$gc_opt"_"$drought_fun"_"$gw_flag"_"$out_options
 
 #model options 
 gw_opt=$gw   #use groundwater?
