@@ -159,6 +159,7 @@ CONTAINS
       CALL spatialSoil(nlon, nlat, npatch, logn)
     ENDIF
 
+!    print*,'finish spatialSoil'
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
 
@@ -825,6 +826,7 @@ CONTAINS
        inALB(:, :, kk, 1) = sfact(:, :) * dummy2(:, :)
     end do
 
+
     DEALLOCATE(in2alb, sfact, dummy2)
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
 
@@ -875,21 +877,23 @@ CONTAINS
     REAL :: lon2, distance, newLength, rdum
     INTEGER :: ii, jj, kk, tt, ncount, idum
 
+!print*,'start of countPatch'
     ! range of longitudes from input file (inLon) should be -180 to 180,
     ! and longitude(:) has already been converted to -180 to 180 for CABLE.
     landpt(:)%ilon = -999
     landpt(:)%ilat = -999
     ncount = 0
-!    print*,'inLon,inLat,inVeg',inLon(1),inLat(13),inVeg(1,13,:)
+    !print*,'inLon,inLat,inVeg',inLon(1),inLat(13),inVeg(1,13,:)
     DO kk = 1, mland
       distance = 3.0 ! initialise, units are degrees
+      !print*,'loop land',kk
       DO jj = 1, nlat
       DO ii = 1, nlon
         IF (ANY(inVeg(ii,jj, :) > 0)) THEN
           newLength = SQRT((inLon(ii) - longitude(kk))**2                      &
                            + (inLat(jj) -  latitude(kk))**2)
           IF (newLength < distance) THEN
-            !print*,'ii,jj,longitude(kk),latitude(kk)',ii,jj,longitude(kk),latitude(kk)
+            !print*,'ii,jj,longitude(kk),latitude(kk)',inLon(ii),inLat(jj),longitude(kk),latitude(kk)
             distance = newLength
             landpt(kk)%ilon = ii
             landpt(kk)%ilat = jj
@@ -897,6 +901,7 @@ CONTAINS
         END IF
       END DO
       END DO
+      !print*,'end first loop'
       IF (landpt(kk)%ilon < -900 .OR. landpt(kk)%ilat < -900) THEN
         PRINT *, 'Land point ', kk, ' cannot find the nearest grid!'
         PRINT *, 'lon, lat = ', longitude(kk), latitude(kk)
@@ -908,6 +913,7 @@ CONTAINS
       landpt(kk)%nap = 0
       landpt(kk)%cstart = ncount + 1
       IF (ASSOCIATED(vegtype_metfile)) THEN
+        !print*,'associated vegtype_metfile'
         DO tt = 1, nmetpatches
           IF (vegtype_metfile(kk,tt) > 0) THEN
              ncount = ncount + 1
@@ -928,16 +934,20 @@ CONTAINS
         END IF
         landpt(kk)%cend = ncount
       ELSE
+        !print*,'not associated vegtype_metfile'
         ! assume nmetpatches to be 1
         IF (nmetpatches == 1) THEN
+          !print*,'nmetpatches=1'
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
         ELSE IF (nmetpatches == 17) THEN
+          !print*,'nmetpatches=17'
           if(landpt(kk)%ilon .eq. 1 .and. landpt(kk)%ilat .eq. 13)then
           !print*,'inPFrac,nap',inPFrac(1,13,:),landpt(kk)%nap
           end if
           DO tt = 1, nmetpatches
+             !print*,'tt',tt
              IF (inPFrac(landpt(kk)%ilon,landpt(kk)%ilat,tt) > 0.0) THEN
                 ncount = ncount + 1
                 landpt(kk)%nap = landpt(kk)%nap + 1
@@ -969,6 +979,7 @@ CONTAINS
         END IF
       END IF
     END DO
+    !print*,'here3'
     IF (ncount > mland * nmetpatches) THEN
       PRINT *, ncount, ' should not be greater than mland*nmetpatches.'
       PRINT *, 'mland, nmetpatches = ', mland, nmetpatches
@@ -981,6 +992,7 @@ CONTAINS
     END IF  
     DEALLOCATE(inLon, inLat)
 
+    !print*,'here3'
     ! Set the maximum number of active patches to that read from met file:
     max_vegpatches = MAXVAL(landpt(:)%nap)
     IF (max_vegpatches /= nmetpatches) THEN
@@ -1447,6 +1459,7 @@ CONTAINS
     END IF
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
+    where(soil%ssat > 0.)soil%pwb_min = (soil%swilt/soil%ssat) **soil%ibp2
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 

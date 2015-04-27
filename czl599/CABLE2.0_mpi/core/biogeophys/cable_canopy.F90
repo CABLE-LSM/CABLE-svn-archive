@@ -1669,7 +1669,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          IF( SUM(ABS( (ecy(i,:) - ecx(i,:)) )) > 1.0e-6 ) THEN
             
             IF( ABS( canopy%fevc(i) - ( SUM( oldevapfbl(i,:)) * air%rlam(i)    &
-                /dels ) ) > 1.0e-4 ) THEN
+                /dels ) ) > 1.0e-1 ) THEN
                
                PRINT *, 'Error! oldevapfbl not right.', ktau_gl, i
                PRINT *, 'abs_deltlf, deltlfy = ', abs_deltlf, deltlfy

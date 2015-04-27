@@ -110,7 +110,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind, &
+         lai
 
        LOGICAL         :: l_gpcc    ! added by ypwang following Chris Lu on 30/oct/2012
        LOGICAL         :: l_gswp    ! added by ypwang following Chris Lu on 30/oct/2012

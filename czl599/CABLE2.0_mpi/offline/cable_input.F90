@@ -69,12 +69,14 @@ MODULE cable_input_module
         ncid_met,        & ! met data netcdf file ID
         ncid_rain,       & ! following are netcdf file IDs for gswp run
         ncid_snow,       &
+        ncid_lai,       &
         ncid_lw,         &   
         ncid_sw,         &
         ncid_ps,         &
         ncid_qa,         &
         ncid_ta,         &
         ncid_wd,         &    
+        ncid_temp,       &    
         ok                 ! netcdf error status
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
@@ -282,13 +284,14 @@ END SUBROUTINE get_default_lai
 !
 !==============================================================================
 
-SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
+SUBROUTINE open_met_file(dels,kend,spinup, TFRZ, ACCESS_format)
 
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
    REAL, INTENT(IN) :: TFRZ 
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
    LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
+   LOGICAL, INTENT(IN) :: ACCESS_format
    
    ! Local variables
    INTEGER                     ::                                         &
@@ -318,6 +321,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         timedimID,              & ! time dimension ID number
         data1i                    ! temp variable for netcdf reading
    INTEGER,DIMENSION(4)        :: laidimids ! for checking lai variable
+   INTEGER                     :: laitimedimID
+   INTEGER                     :: laipatchdimID
    INTEGER,DIMENSION(1,1)      :: data2i ! temp variable for netcdf reading
    INTEGER,POINTER,DIMENSION(:)     ::land_xtmp,land_ytmp ! temp indicies
    REAL,POINTER, DIMENSION(:)  :: lat_temp, lon_temp ! lat and lon
@@ -358,8 +363,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
   IF (ncciy > 0) THEN
     WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
     ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+    ok = NF90_OPEN(gswpfile%lai,0,ncid_lai)
     IF (.NOT. gswpfile%l_ncar) THEN
        ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
+!       print*,trim(gswpfile%SWdown)
        ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
        ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
        ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
@@ -591,7 +598,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF (L_mask) THEN
        ! Allocate "mask" variable:
        ALLOCATE(mask(xdimsize,ydimsize))
-       print*,xdimsize,ydimsize
+!       print*,xdimsize,ydimsize
        metGrid='mask' ! Use mask system
        ! Get mask values from file:
        ok= NF90_GET_VAR(ncid_met,maskID,mask)
@@ -651,17 +658,20 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQUIRE_DIMENSION(ncid_met,patchdimID,len=nmetpatches)
     END IF
     ! ACCESS has all patches in each grid
-    IF(gswpfile%l_ncar) THEN
+    IF(gswpfile%l_ncar .and. ACCESS_format) THEN
        nmetpatches = 17
     END IF
-     print*,nmetpatches
+     !print*,nmetpatches
 
     ! Check if monthly dimension exists for LAI info
+    ncid_temp=ncid_met
+    ncid_met=ncid_lai
     ok = NF90_INQ_DIMID(ncid_met,'monthly', monthlydimID)
     IF(ok==NF90_NOERR) THEN ! if found
        ok = NF90_INQUIRE_DIMENSION(ncid_met,monthlydimID,len=tempmonth)
        IF(tempmonth/=12) CALL abort ('Number of months in met file /= 12.')
     END IF
+    ncid_met=ncid_temp
 
     ! Set longitudes to be [-180,180]:
     WHERE(longitude>180.0) 
@@ -702,11 +712,13 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Set time step size:
     dels = REAL(timevar(2) - timevar(1))
+
+!    print*,timevar(2),timevar(1)
     !********* NCAR input file has poor precision in timevar **************  
     IF (ncciy > 0 .AND. gswpfile%l_ncar) THEN  
       PRINT *, 'original time step size = ', dels, ' days'  
       PRINT *, 'which is wrong due to precision problem, changed to 3600 s'  
-      dels = 3600.0  
+      dels = 3600.0 * nint (dels * 24)
       ! save year number before changes  
       syear = timevar(1) / 365  
       ! change timevar units from days to seconds  
@@ -743,6 +755,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding time variable units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    
+!    print*,timeunits
    
     ! ************ fixing NCAR met file time attribute ***********  
     IF (ncciy > 0 .AND. gswpfile%l_ncar) THEN  
@@ -1004,21 +1018,26 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
    ! option was added by Chris Lu to allow for different variable names between GPCC and GSWP forcings
    ! added by ypwang 30/oct/2012 
     IF(gswpfile%l_gpcc)THEN
+!       print*,'gpcc'
        ok = NF90_INQ_VARID(ncid_met,'dswrf',id%SWdown)
     ELSE IF(gswpfile%l_ncar)THEN
+!       print*,'ncar'
        ok = NF90_INQ_VARID(ncid_met,'FSDS',id%SWdown)
     ELSE
+!       print*,'other'
        ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
     END IF
-
+!    call system('ncdump -h GPCC/gpcclai4cable_3hr_1979-19791x1.nc')
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Get SWdown units and check okay:
+!    print*,'here1'
     ok = NF90_GET_ATT(ncid_met,id%SWdown,'units',metunits%SWdown)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+!    print*,'here2'
     IF(metunits%SWdown(1:4)/='W/m2'.AND.metunits%SWdown(1:5) &
          /='W/m^2'.AND.metunits%SWdown(1:5)/='Wm^-2' &
          .AND.metunits%SWdown(1:4)/='Wm-2') THEN
@@ -1328,6 +1347,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             'Assumed to be contained in Rainf variable'
     END IF
     ! Look for LAI - - - - - - - - - - - - - - - - - - - - - - - - -
+    ncid_met=ncid_lai
     ok = NF90_INQ_VARID(ncid_met,'LAI',id%LAI)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LAI = .TRUE. ! LAI is present in met file
@@ -1336,30 +1356,70 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok=NF90_INQUIRE_VARIABLE(ncid_met,id%LAI, &
             ndims=lai_dims,dimids=laidimids)
        ! If any of LAI's dimensions are the time dimension
-       IF(ANY(laidimids==timedimID(1))) THEN
+       print*,'laidimids',laidimids
+       print*,'timdimID',timedimID(1)
+       ok = NF90_INQ_DIMID(ncid_met,'time', laitimedimID)
+!       IF(ANY(laidimids==timedimID(1))) THEN
+       IF(ok == NF90_NOERR)THEN
           exists%LAI_T = .TRUE. ! i.e. time varying LAI
           WRITE(logn,*) 'LAI found in met file - time dependent;'
        ELSE
           exists%LAI_T = .FALSE. ! i.e. not time varying LAI
        END IF
-       IF(ANY(laidimids==monthlydimID)) THEN
+       ok = NF90_INQUIRE_DIMENSION(ncid_met,laitimedimID,len=kend)
+!       IF(ANY(laidimids==monthlydimID)) THEN
+       IF(kend==12) THEN
           exists%LAI_M = .TRUE. ! i.e. time varying LAI, but monthly only
           WRITE(logn,*) 'LAI found in met file - monthly values;'
        ELSE
           exists%LAI_M = .FALSE.
        END IF
-       IF(ANY(laidimids==patchdimID)) THEN
+!       IF(ANY(laidimids==patchdimID)) THEN
+       ok = NF90_INQ_DIMID(ncid_met,'patch', laipatchdimID)
+       IF(ok == NF90_NOERR)THEN
           exists%LAI_P = .TRUE. ! i.e. patch varying LAI
           WRITE(logn,*) 'LAI found in met file - patch-specific values'
        ELSE
           exists%LAI_P = .FALSE. ! i.e. not patch varying LAI
        END IF
     ELSE
-       exists%LAI = .FALSE. ! LAI is not present in met file
-       ! Report to log file
-       WRITE(logn,*) 'LAI not present in met file; ', &
-            'Will use MODIS coarse grid monthly LAI'
+       ncid_met=ncid_snow
+       ok = NF90_INQ_VARID(ncid_met,'LAI',id%LAI)
+       IF(ok == NF90_NOERR)THEN
+          exists%LAI = .TRUE. ! LAI is present in met file
+          ncid_lai=ncid_met
+          ! LAI will be read in which ever land grid is used
+          ! Check dimension of LAI variable:
+          ok=NF90_INQUIRE_VARIABLE(ncid_met,id%LAI, &
+               ndims=lai_dims,dimids=laidimids)
+          ! If any of LAI's dimensions are the time dimension
+          IF(ANY(laidimids==timedimID(1))) THEN
+             exists%LAI_T = .TRUE. ! i.e. time varying LAI
+             WRITE(logn,*) 'LAI found in met file - time dependent;'
+          ELSE
+             exists%LAI_T = .FALSE. ! i.e. not time varying LAI
+          END IF
+          IF(ANY(laidimids==monthlydimID)) THEN
+             exists%LAI_M = .TRUE. ! i.e. time varying LAI, but monthly only
+             WRITE(logn,*) 'LAI found in met file - monthly values;'
+          ELSE
+             exists%LAI_M = .FALSE.
+          END IF
+          IF(ANY(laidimids==patchdimID)) THEN
+             exists%LAI_P = .TRUE. ! i.e. patch varying LAI
+             WRITE(logn,*) 'LAI found in met file - patch-specific values'
+          ELSE
+             exists%LAI_P = .FALSE. ! i.e. not patch varying LAI
+          END IF
+       ELSE
+          exists%LAI = .FALSE. ! LAI is not present in met file
+          ! Report to log file
+          WRITE(logn,*) 'LAI not present in met file; ', &
+               'Will use MODIS coarse grid monthly LAI'
+       END IF
     END IF
+!    print*,'exists%LAI',exists%LAI,exists%LAI_T,exists%LAI_M,exists%LAI_P
+    ncid_met=ncid_snow
     ! If a spinup is to be performed:
     IF(spinup) THEN
        ! Look for avPrecip variable (time invariant - used for spinup):
@@ -1670,6 +1730,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    REAL(KIND=4),DIMENSION(1,1)            :: data2 ! " "
    REAL(KIND=4),DIMENSION(1)              :: data1 ! " "
    INTEGER                           :: i,j ! do loop counter
+   INTEGER                           :: ncid_temp
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:)       :: tmpDat1
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)     :: tmpDat2, tmpDat2x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:)   :: tmpDat3, tmpDat3x
@@ -1979,6 +2040,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%ua(landpt(i)%cstart:landpt(i)%cend) = &  
                REAL(tmpDat3(land_x(i),land_y(i),1))  
         ENDDO  
+!        print*,'ua=',sum(met%ua)/mland,maxval(met%ua)
        ELSE  
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
@@ -2091,6 +2153,9 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -
+      !print*,'here1',ncid_met,ncid_lai
+      ncid_temp=ncid_met
+      ncid_met=ncid_lai
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
           IF(exists%LAI_P) THEN ! i.e. patch dependent LAI
@@ -2106,6 +2171,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
               ENDDO
             ENDDO
           ELSE ! i.e. patch independent LAI
+            !print*,'here',ncid_met
             ok= NF90_GET_VAR(ncid_met,id%LAI,tmpDat3, &
                  start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
             IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -2172,6 +2238,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                defaultLAI(i,met%moy(landpt(i)%cstart))
         ENDDO
       END IF
+      ncid_met=ncid_temp
 
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
@@ -2363,6 +2430,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get LAI data, if it exists, for land-only grid:- - - - - - - - -
+      ncid_temp=ncid_met
+      ncid_met=ncid_lai
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
           IF(exists%LAI_P) THEN ! i.e. patch dependent LAI
@@ -2444,6 +2513,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                defaultLAI(i,met%moy(landpt(i)%cstart))
         ENDDO
       END IF
+      ncid_met=ncid_temp
       DEALLOCATE(tmpDat1, tmpDat2, tmpDat3, tmpDat2x)
 
     ELSE
@@ -2599,6 +2669,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     ! Those variables found in the met file will again overwrite existing ones.
 
     CALL get_default_params(logn,vegparmnew)
+
 
     CALL allocate_cable_vars(air,bgc,canopy,met,bal,rad,rough,soil,ssnow, &
             sum_flux,veg,mp)

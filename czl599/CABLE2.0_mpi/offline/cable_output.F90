@@ -1318,6 +1318,7 @@ CONTAINS
     IF(output%met .OR. output%Wind) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%Wind = out%Wind + REAL(met%ua, 4)
+       !print*,'write wind ua',sum(met%ua)/mp,maxval(met%ua)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Wind = out%Wind/REAL(output%interval, 4)
@@ -1325,6 +1326,7 @@ CONTAINS
           CALL write_ovar(out_timestep, ncid_out, ovid%Wind, 'Wind', out%Wind, &
                           ranges%Wind, patchout%Wind, 'ALMA', met)
           ! Reset temporary output variable:
+          !print*,'write wind',sum(out%Wind)/mp,maxval(out%Wind)
           out%Wind = 0.0
        END IF
     END IF

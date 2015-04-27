@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
+   set -A kh vayu cher burn shin pear
 }
 
 
@@ -39,6 +39,22 @@ host_shin()
    build_status
 }
 
+## pearcey.hpsc.csiro.au 
+host_pear()
+{
+   . /apps/modules/Modules/default/init/ksh
+   module add netcdf/4.3.2 openmpi/1.6.5
+
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   export FC='mpif90'
+   export CFLAGS='-O2 -fp-model precise '
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ## burnet.hpsc.csiro.au 
 host_burn()

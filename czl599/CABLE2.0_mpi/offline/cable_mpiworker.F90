@@ -180,6 +180,7 @@ CONTAINS
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
+      ACCESS_format = .FALSE.,    & ! TRUE: grid info file use ACCESS format
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
       l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
@@ -217,6 +218,7 @@ CONTAINS
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  ACCESS_format,    &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &

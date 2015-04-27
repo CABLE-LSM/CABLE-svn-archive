@@ -212,6 +212,7 @@ SUBROUTINE mpidrv_master (comm)
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
+      ACCESS_format = .TRUE.,    & ! TRUE: grid info file use ACCESS format
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
       l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
@@ -258,6 +259,7 @@ SUBROUTINE mpidrv_master (comm)
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  ACCESS_format,    &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
@@ -307,7 +309,7 @@ SUBROUTINE mpidrv_master (comm)
     IF (gswpfile%l_gpcc)THEN
        gswpfile%l_ncar  = .FALSE.
        gswpfile%l_gswp  = .FALSE.
-       IF (ncciy < 1901 .OR. ncciy > 2010) THEN
+       IF (ncciy < 1901 .OR. ncciy > 2013) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
@@ -342,7 +344,7 @@ SUBROUTINE mpidrv_master (comm)
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, C%TFRZ )
+   CALL open_met_file( dels, kend, spinup, C%TFRZ ,ACCESS_format)
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -473,7 +475,9 @@ SUBROUTINE mpidrv_master (comm)
    ! MPI: mostly original serial code follows...
 
    ! Open output file:
+   print*,'opening output'
    CALL open_output_file( dels, soil, veg, bgc, rough )
+   print*,'finsh opening output'
  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
@@ -566,6 +570,7 @@ SUBROUTINE mpidrv_master (comm)
          ! MPI: TODO: pull mass and energy balance calculation from write_output
          ! and refactor into worker code
          ktau_gl = oktau
+!         write(517,*),ktau,canopy%frp(14393),canopy%frday(14393),met%fsd(14393,:),rad%qcan(14393,:,:)
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
