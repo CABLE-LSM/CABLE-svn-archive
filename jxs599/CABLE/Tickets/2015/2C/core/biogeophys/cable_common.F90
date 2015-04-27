@@ -41,6 +41,8 @@ MODULE cable_common_module
    CHARACTER(LEN=200) ::                                                       & 
       myhome
 
+   ! switch to calc sil albedo using soil colour - Ticket #27
+   LOGICAL :: calcsoilalbedo = .FALSE. 
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
@@ -71,18 +73,25 @@ MODULE cable_common_module
          DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
          LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
 
+      ! Custom soil respiration - see Ticket #42
+      CHARACTER(LEN=10) ::                                                     &
+         SMRF_NAME,   & ! Soil Moist Respiration Function
+         STRF_NAME      ! Soil Temp Respiration Function
+
       LOGICAL ::                                                               &
          INITIALIZE_MAPPING = .FALSE., & ! 
          CONSISTENCY_CHECK = .FALSE.,  & !
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED = .FALSE., & !
+         CABLE_RUNTIME_COUPLED = .TRUE., & !
          ! L.Stevens - Test Switches
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
-         L_NEW_REDUCE_SOILEVP  = .FALSE.!
+         L_NEW_REDUCE_SOILEVP  = .FALSE., & !
 
-
+	     ! Switch for customized soil respiration - see Ticket #42
+         SRF = .FALSE.
+         
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user
@@ -100,6 +109,7 @@ MODULE cable_common_module
       type,       & ! file for default veg/soil type
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
+      soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
       inits,      & ! name of file for initialisations
       soilIGBP      ! name of file for IGBP soil map
 

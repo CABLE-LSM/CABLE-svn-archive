@@ -497,9 +497,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
                       ( LOG( (zscl(j) - rough%disp(j)) /                       &
                       MAX( rough%zruffs(j)-rough%disp(j),                      &
-                      rough%z0soilsn(j) ) ) - psis1( (zscl(j)-rough%disp(j))   &
+                      rough%z0soilsn(j) ) ) - psis( (zscl(j)-rough%disp(j))    &
                       / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )         &
-                      + psis1( (rough%zruffs(j) - rough%disp(j) )              &
+                      + psis( (rough%zruffs(j) - rough%disp(j) )               &
                       / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )      &
                       / C%VONK
 
@@ -551,16 +551,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%spill=max(0.0, canopy%cansto-cansat)
 
    ! Move excess canopy water to throughfall:
+   ! %through is /dels in UM app. (unpacked in hyd driver) for STASH output  
    canopy%through = canopy%through + canopy%spill
    
    ! Initialise 'throughfall to soil' as 'throughfall from canopy'; 
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
 
-   ! this change of units does not affect next timestep as canopy%through is
-   ! re-calc in surf_wetness_fact routine
-   canopy%through = canopy%through / dels   ! change units for stash output
-   
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
    
@@ -1002,45 +999,6 @@ ELEMENTAL FUNCTION psis(zeta) RESULT(r)
    r   = z*stable + (1.0-z)*unstable
 
 END FUNCTION psis
-
-! -----------------------------------------------------------------------------
-
-FUNCTION psis1(zeta) RESULT(r)
-   ! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
-   ! computes integrated stability function psis(z/l) (z/l=zeta)
-   ! for scalars, using the businger-dyer form for unstable cases
-   ! and the webb form for stable cases. see paulson (1970).
-   REAL, INTENT(IN)     :: zeta
-   
-   REAL, PARAMETER      :: gu = 16.0
-   REAL, PARAMETER      :: gs = 5.0
-   REAL, PARAMETER      :: a = 1.0
-   REAL, PARAMETER      :: b = 0.667
-   REAL, PARAMETER      :: c = 5.0
-   REAL, PARAMETER      :: d = 0.35
- 
-   REAL                 :: r
-   REAL                 :: stable
-   REAL                 :: unstable
-   REAL                 :: stzeta
- 
-   REAL                 :: z
-   REAL                 :: y
-   !REAL                 :: stable
-   !REAL                 :: unstable
- 
-   z      = 0.5 + sign(0.5,zeta)    ! z=1 in stable, 0 in unstable 
-   
-   ! Beljaars and Holtslag (1991) for stable
-   stzeta = max(0.,zeta)
-   stable = -(1.+2./3.*a*stzeta)**(3./2.) -  &
-             b*(stzeta-c/d)*exp(-d*stzeta) - b*c/d + 1.
- 
-   y      = (1.0 + gu*abs(zeta))**0.5
-   unstable = 2.0 * alog((1+y)*0.5)
-   r   = z*stable + (1.0-z)*unstable
-
-END FUNCTION psis1
 
 ! -----------------------------------------------------------------------------
 
