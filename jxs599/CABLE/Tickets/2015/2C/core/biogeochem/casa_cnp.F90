@@ -558,27 +558,10 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
       ELSE IF (trim(cable_user%STRF_NAME)=='PnET-CN') THEN
         strf(npt)=0.68*exp(0.1*(tsoil(npt)-7.1))/12.64
       END IF
-      xksoil(npt) = xkoptsoil(veg%iveg(npt))*strf(npt)*smrf(npt)
+      xksoil(npt) = casabiome%xkoptsoil(veg%iveg(npt))*strf(npt)*smrf(npt)
     END IF
   END IF
   END DO
-!  WHERE(casamet%iveg2/=icewater)  
-!!    ! Kirschbaum function
-!!    xktemp(:) = exp(xkalpha + xkbeta*(tsavg(:)-TKzeroC) &
-!!              * (1.0-0.5*(tsavg(:)-TKzeroc)/xktoptc))
-!    ! add by ypwang on 3/april/2009
-!!    xktemp(:) = xkoptcoeff(veg%iveg(:))*exp(xkbeta*(tsavg(:)-TKzeroC-xktoptc))
-!    xktemp(:)  = q10soil**(0.1*(tsavg(:)-TKzeroC-35.0))
-!    xkwater(:) = ((fwps(:)-wfpscoefb)/(wfpscoefa-wfpscoefb))**wfpscoefe    &
-!               * ((fwps(:)-wfpscoefc)/(wfpscoefa-wfpscoefc))**wfpscoefd
-!    WHERE(veg%iveg==12)
-!      xkwater(:)=1.0
-!    ENDWHERE
-!    xklitter(:) = xkoptlitter(veg%iveg(:)) * xktemp(:) * xkwater(:)
-!    xksoil(:)   = xkoptsoil(veg%iveg(:))   * xktemp(:) * xkwater(:)
-!  ENDWHERE
-!  print *, 'xratesoil', mp, casamet%moistavg(:),soil%ssat(:),casamet%tsoilavg(:),xklitter(:),tsavg(:),xksoil(:)
-
 END SUBROUTINE casa_xratesoil
 
 SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
