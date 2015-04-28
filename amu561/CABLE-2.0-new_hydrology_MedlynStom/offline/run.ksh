@@ -15,7 +15,7 @@
 
 
 #out='./../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw'
-out='../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw_def_soil'
+out='../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw_gswp_soil'
 #out='../../Outputs/CABLE_2.0_new_hydrology/Leuning_nonlinextrap_with_gw'
 
 #model options 

@@ -162,7 +162,7 @@ cat > cable.nml << EOF
    filename%soil    = "./../../Inputs/$soilfile"
    filename%gw_elev = "$metfile"
    vegparmnew = .TRUE.  ! using new format when true
-   soilparmnew = .TRUE.  ! using new format when true
+   soilparmnew = .FALSE.  ! using new format when true     !Anna changed to FALSE
    spinup = .${eqflag}.  ! do we spin up the model?
    delsoilM = 0.001   ! allowed variation in soil moisture for spin up
    delsoilT = 0.01    ! allowed variation in soil temperature for spin up
