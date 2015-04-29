@@ -159,8 +159,9 @@ CONTAINS
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
       WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
-      CALL spatialSoil(nlon, nlat, logn)
     ENDIF
+    CALL spatialSoil(nlon, nlat, logn)   !Anna moved from inside above if loop
+
 
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
@@ -437,6 +438,19 @@ CONTAINS
     ALLOCATE(    in2alb(nlon, nlat) ) ! local
     ALLOCATE(    dummy2(nlon, nlat) ) ! local
     ALLOCATE(     sfact(nlon, nlat) ) ! local
+
+    !MD Aquifer properties
+    ALLOCATE(    inGWssat(nlon, nlat) )
+    ALLOCATE(     inGWbch(nlon, nlat) )
+    ALLOCATE(    inGWhyds(nlon, nlat) )
+    ALLOCATE(    inGWsucs(nlon, nlat) )
+    ALLOCATE( inGWrhosoil(nlon, nlat) )
+    ALLOCATE(    inGWWatr(nlon, nlat) )
+    ALLOCATE(       inORG(nlon, nlat) )
+    ALLOCATE(       inTI (nlon, nlat) )
+
+
+iF(soilparmnew) THEN   !Only read in soil parameters if soilparmnew=TRUE   !Added Anna
     ALLOCATE(   inswilt(nlon, nlat) )
     ALLOCATE(     insfc(nlon, nlat) )
     ALLOCATE(    inssat(nlon, nlat) )
@@ -450,15 +464,7 @@ CONTAINS
     ALLOCATE(    insilt(nlon, nlat) )
     ALLOCATE(    insand(nlon, nlat) )
     
-    !MD Aquifer properties
-    ALLOCATE(    inGWssat(nlon, nlat) )
-    ALLOCATE(     inGWbch(nlon, nlat) )
-    ALLOCATE(    inGWhyds(nlon, nlat) )
-    ALLOCATE(    inGWsucs(nlon, nlat) )
-    ALLOCATE( inGWrhosoil(nlon, nlat) )
-    ALLOCATE(    inGWWatr(nlon, nlat) )
-    ALLOCATE(       inORG(nlon, nlat) )
-    ALLOCATE(       inTI (nlon, nlat) )
+
 
     ! 1
     ok = NF90_INQ_VARID(ncid, 'swilt', fieldID)
@@ -520,14 +526,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable sand.')
     ok = NF90_GET_VAR(ncid, fieldID, insand)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable sand.')
-    ! 13 UM albedo
-    ok = NF90_INQ_VARID(ncid, 'albedo2', fieldID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable UM albedo')
-    ok = NF90_GET_VAR(ncid, fieldID, in2alb)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
-    
-    !MD try to read aquifer properties from the file
-    ! if they don't exist set aquifer properties to the same as the soil
+
     ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
@@ -535,16 +534,8 @@ CONTAINS
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWssat(:,:) = inssat(:,:)
     END IF
-    
-    ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
-    IF (ok .eq. NF90_NOERR) then
-      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
-    end if
-    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-      inGWWatr(:,:) = 0.05
-    END IF    
-    
-    ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
+
+ ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
     end if
@@ -574,8 +565,30 @@ CONTAINS
     end if
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWrhosoil(:,:) = inrhosoil(:,:)
+    END IF
+
+END IF !soilparmnew   !added Anna
+
+
+
+    ! 13 UM albedo
+    ok = NF90_INQ_VARID(ncid, 'albedo2', fieldID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable UM albedo')
+    ok = NF90_GET_VAR(ncid, fieldID, in2alb)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
+    
+    !MD try to read aquifer properties from the file
+    ! if they don't exist set aquifer properties to the same as the soil
+    
+    ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWWatr(:,:) = 0.05
     END IF    
-  
+    
+   
     ok = NF90_INQ_VARID(ncid, 'organic', fieldID)
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inORG)       
@@ -587,6 +600,7 @@ CONTAINS
       write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE '
     END IF    
 
+    
     ok = NF90_INQ_VARID(ncid, 'topo_index', fieldID)
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inTI)
@@ -711,7 +725,7 @@ CONTAINS
     inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
 
-    IF (cable_user%GW_MODEL) THEN
+    IF ``(cable_user%GW_MODEL) THEN
         filename%gw_elev = filename%met     !Changed Anna
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
        !get the dimension sizes of the variables
@@ -1103,7 +1117,6 @@ CONTAINS
                                         inLAI(landpt(e)%ilon,landpt(e)%ilat,is)
       END DO
 
-
       ! Set IGBP soil texture values, Q.Zhang @ 12/20/2010.
       IF (soilparmnew) THEN
   
@@ -1194,32 +1207,35 @@ CONTAINS
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
          !inswilt(landpt(e)%ilon, landpt(e)%ilat)
-    !Anna temporary fix to read in Elev
-    IF (cable_user%GW_MODEL) then
-      soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
-                                    inElev(1,1)    !Anna (landpt(e)%ilon,landpt(e)%ilat)
-                                
-    print *, "printing soil elev and slope (inElev, soil%elev, soil%slope):"
+
+
+      ENDIF
+
+    IF (cable_user%GW_MODEL) THEN
+    !Anna moved from above if loop
+    soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
+    inElev(1,1)    !Anna (landpt(e)%ilon,landpt(e)%ilat)
+    print *, "printing soil elev and (inElev, soil%elev, soil%slope):"
     print *, inElev
     print *, soil%elev
 
-      soil%elev_std(landpt(e)%cstart:landpt(e)%cend) =                        &
-                                    inElevSTD(landpt(e)%ilon,landpt(e)%ilat)
+    soil%elev_std(landpt(e)%cstart:landpt(e)%cend) =                        &
+    inElevSTD(landpt(e)%ilon,landpt(e)%ilat)
 
-      soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
-                                    inSlope(1,1)  !Anna (landpt(e)%ilon,landpt(e)%ilat)
+    soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
+    inSlope(1,1)  !Anna (landpt(e)%ilon,landpt(e)%ilat)
     print *, soil%slope
-      soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat)
+    soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
+    inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat)
 
-      soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    inTI(landpt(e)%ilon,landpt(e)%ilat)
-    END IF
+    soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+    inTI(landpt(e)%ilon,landpt(e)%ilat)
+    END IF !gw model
 
-ENDIF
+
 
 ! offline only below
-       ! If user defined veg types are present in the met file then use them. 
+       ! If user defined veg types are present in the met file then use them.
        ! This means that if met file just has veg type and no other parameters,
        ! the other veg parameters will be chosen as a function of this type:
        ! N.B. for offline run only
@@ -1317,6 +1333,8 @@ ENDIF
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
             soil%GWwatr(h)    = 0.001!0.1*soil%swilt(h)!soilin%hyds(soil%isoilm(h))
+
+
 
           END IF
           rad%latitude(h) = latitude(e)

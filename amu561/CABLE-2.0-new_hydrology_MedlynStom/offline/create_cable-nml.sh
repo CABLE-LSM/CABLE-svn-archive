@@ -157,12 +157,12 @@ cat > cable.nml << EOF
    filename%log = "$logfile"
    filename%restart_in  = "$restart_infile" 
    filename%restart_out = "$restart_outfile"
-   filename%type    = "./../../Inputs/CABLE_GSWP3_HGSD_DRT_Surface_Data.nc"
+   filename%type    = "./../../Inputs/gridinfo_CSIRO_1x1.nc"
    filename%veg    = "./../../Inputs/$vegfile"
    filename%soil    = "./../../Inputs/$soilfile"
    filename%gw_elev = "$metfile"
    vegparmnew = .TRUE.  ! using new format when true
-   soilparmnew = .FALSE.  ! using new format when true     !Anna changed to FALSE
+   soilparmnew = .FALSE.  ! using new format when true           !Anna changed to FALSE
    spinup = .${eqflag}.  ! do we spin up the model?
    delsoilM = 0.001   ! allowed variation in soil moisture for spin up
    delsoilT = 0.01    ! allowed variation in soil temperature for spin up
@@ -209,7 +209,7 @@ cat > cable.nml << EOF
    redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    wiltParam = 0.5
    satuParam = 0.8
-   cable_user%GS_SWITCH = 'leuning'             ! choices are:
+   cable_user%GS_SWITCH = 'medlyn'             ! choices are:
                                                 ! 1. leuning
                                                 ! 2. medlyn
    cable_user%FWSOIL_SWITCH = 'standard'        ! choices are: 
