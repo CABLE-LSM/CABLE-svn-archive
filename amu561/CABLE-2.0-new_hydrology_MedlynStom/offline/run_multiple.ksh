@@ -22,10 +22,10 @@ cd ../CABLE_2.0_new_hydrology_plus_MedlynStom/offline
 
 
 #Set gc_opt option (Leuning/Medlyn) and GW option (TRUE/FALSE)
-gc_opt="Medlyn2"
+gc_opt="Leuning"
 
 gw="FALSE"
-gw_flag="gw"
+gw_flag="no_gw"
 
 drought_fun="standard"
 

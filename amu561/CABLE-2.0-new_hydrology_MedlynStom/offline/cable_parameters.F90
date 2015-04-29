@@ -725,7 +725,7 @@ END IF !soilparmnew   !added Anna
     inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
 
-    IF ``(cable_user%GW_MODEL) THEN
+    IF (cable_user%GW_MODEL) THEN
         filename%gw_elev = filename%met     !Changed Anna
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
        !get the dimension sizes of the variables

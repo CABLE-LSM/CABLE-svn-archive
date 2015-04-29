@@ -209,7 +209,7 @@ cat > cable.nml << EOF
    redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    wiltParam = 0.5
    satuParam = 0.8
-   cable_user%GS_SWITCH = 'medlyn'             ! choices are:
+   cable_user%GS_SWITCH = 'leuning'             ! choices are:
                                                 ! 1. leuning
                                                 ! 2. medlyn
    cable_user%FWSOIL_SWITCH = 'standard'        ! choices are: 
