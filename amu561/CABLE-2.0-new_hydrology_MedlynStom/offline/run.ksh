@@ -15,7 +15,7 @@
 
 
 #out='./../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw'
-out='../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw_gswp_soil'
+out='../../Outputs/CABLE_2.0_new_hydrology_plus_MedlynStom/Leuning_standard_no_gw_gswp_soil_lai'
 #out='../../Outputs/CABLE_2.0_new_hydrology/Leuning_nonlinextrap_with_gw'
 
 #model options 
@@ -23,7 +23,7 @@ gw_opt="FALSE"   #use groundwater?
 spin_opt="TRUE" #spin up model?
 veg_file="g1_files/def_veg_params_medlyn_mean.txt"
 
-site_file="sites_0deg.txt"
+site_file="sites_0deg_lai_ts.txt"
 
 
 #check if directory exists, it not create
