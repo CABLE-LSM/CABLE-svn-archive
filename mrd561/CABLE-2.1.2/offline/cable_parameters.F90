@@ -105,9 +105,9 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inrhosoil
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: incss
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: incnsd
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inclay
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inclay
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: insilt
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: insand
   
   !MD temp vars for reading in aquifer properties
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch
@@ -125,7 +125,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElevSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
-  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
+  REAL,    DIMENSION(:, :, :),     ALLOCATABLE :: inORG
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inBI
 
@@ -447,9 +447,9 @@ CONTAINS
     ALLOCATE( inrhosoil(nlon, nlat) )
     ALLOCATE(     incss(nlon, nlat) )
     ALLOCATE(    incnsd(nlon, nlat) )
-    ALLOCATE(    inclay(nlon, nlat) )
-    ALLOCATE(    insilt(nlon, nlat) )
-    ALLOCATE(    insand(nlon, nlat) )
+    ALLOCATE(    inclay(nlon, nlat, nhorz) )
+    ALLOCATE(    insilt(nlon, nlat, nhorz) )
+    ALLOCATE(    insand(nlon, nlat, nhorz) )
     
     !MD Aquifer properties
     ALLOCATE(    inGWssat(nlon, nlat) )
@@ -458,7 +458,7 @@ CONTAINS
     ALLOCATE(    inGWsucs(nlon, nlat) )
     ALLOCATE( inGWrhosoil(nlon, nlat) )
     ALLOCATE(    inGWWatr(nlon, nlat) )
-    ALLOCATE(       inORG(nlon, nlat) )
+    ALLOCATE(       inORG(nlon, nlat, nhorz) )
     ALLOCATE(       inTI (nlon, nlat) )
     ALLOCATE(       inBI (nlon, nlat) )
 
@@ -510,23 +510,56 @@ CONTAINS
     ! 10
     ok = NF90_INQ_VARID(ncid, 'clay', fieldID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable clay.')
-    ok = NF90_GET_VAR(ncid, fieldID, inclay)
+    ok = NF90_GET_VAR(ncid, fieldID, dummy2)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable clay.')
+    inclay(:,:,1) = dummy2
     ! 11
     ok = NF90_INQ_VARID(ncid, 'silt', fieldID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable silt.')
-    ok = NF90_GET_VAR(ncid, fieldID, insilt)
+    ok = NF90_GET_VAR(ncid, fieldID, dummy2)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable silt.')
+    insilt(:,:,1) = dummy2
     ! 12
     ok = NF90_INQ_VARID(ncid, 'sand', fieldID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable sand.')
-    ok = NF90_GET_VAR(ncid, fieldID, insand)
+    ok = NF90_GET_VAR(ncid, fieldID, dummy2)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable sand.')
+    insand(:,:,1) = dummy2
     ! 13 UM albedo
     ok = NF90_INQ_VARID(ncid, 'albedo2', fieldID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable UM albedo')
     ok = NF90_GET_VAR(ncid, fieldID, in2alb)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
+
+    !try to read second horizon soil properties.  if they don't exist then set
+    !deep layers equal to upper
+    ok = NF90_INQ_VARID(ncid, 'sand2', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, dummy2)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      insand(:,:,2) = insand(:,:,1)
+    else
+      insand(:,:,2) = dummy2
+    END IF
+    ok = NF90_INQ_VARID(ncid, 'clay2', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, dummy2)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inclay(:,:,2) = inclay(:,:,1)
+    else
+      inclay(:,:,2) = dummy2
+    END IF
+    ok = NF90_INQ_VARID(ncid, 'silt2', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, dummy2)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      insilt(:,:,2) = insilt(:,:,1)
+    else
+      insilt(:,:,2) = dummy2
+    END IF
     
     !MD try to read aquifer properties from the file
     ! if they don't exist set aquifer properties to the same as the soil
@@ -580,13 +613,28 @@ CONTAINS
   
     ok = NF90_INQ_VARID(ncid, 'organic', fieldID)
     IF (ok .eq. NF90_NOERR) then
-      ok2 = NF90_GET_VAR(ncid, fieldID, inORG)       
+      ok2 = NF90_GET_VAR(ncid, fieldID, dummy2)       
       write(logn,*) 'READ FORG FROM THE DATA FILE, yeidling '
-      write(logn,*) 'A maximum value of ',maxval(inORG),' and min val of',minval(inORG)
+      write(logn,*) 'A maximum value of ',maxval(dummy2),' and min val of',minval(dummy2)
     end if
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-      inORG(:,:) = 0.0
+      inORG(:,:,1) = 0.0
       write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE '
+    ELSE
+      inORG(:,:,1) = dummy2
+    END IF    
+
+    ok = NF90_INQ_VARID(ncid, 'organic2', fieldID)
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, dummy2)       
+      write(logn,*) 'READ FORG2 FROM THE DATA FILE, yeidling '
+      write(logn,*) 'A maximum value of ',maxval(dummy2),' and min val of',minval(dummy2)
+    end if
+    IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inORG(:,:,2) = 0.0
+      write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE '
+    ELSE
+      inORG(:,:,2) = dummy2
     END IF    
 
     ok = NF90_INQ_VARID(ncid, 'topo_index', fieldID)
@@ -1103,17 +1151,8 @@ CONTAINS
                                           
       !MD
       !possibly heterogeneous soil properties
+      !use two horizons
       DO klev=1,ms
-        !soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        !  0.0070556*10.0**(-0.884 - 1.53*insand(landpt(e)%ilon,landpt(e)%ilat))
-        !soil%smpat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        !  10.0**(1.88 - 1.31*insand(landpt(e)%ilon,landpt(e)%ilat)) 
-        !soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        ! 2.91 + 15.9*inclay(landpt(e)%ilon,landpt(e)%ilat) 
-        !soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        ! 0.489 - 0.126*insand(landpt(e)%ilon,landpt(e)%ilat) 
-        !soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        !  0.02 + 0.018*inclay(landpt(e)%ilon,landpt(e)%ilat) 
 
         soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
          abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
@@ -1123,52 +1162,63 @@ CONTAINS
                                          
         soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
               inbch(landpt(e)%ilon, landpt(e)%ilat)                       
-                                         
+        
+        if (klev .le. 3) then                                 
         soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-            inclay(landpt(e)%ilon, landpt(e)%ilat)                      
+            inclay(landpt(e)%ilon, landpt(e)%ilat,1)                      
                                          
         soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-            insand(landpt(e)%ilon, landpt(e)%ilat)                       
+            insand(landpt(e)%ilon, landpt(e)%ilat,1)                       
 
         soil%Fsilt(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-            insilt(landpt(e)%ilon, landpt(e)%ilat)
+            insilt(landpt(e)%ilon, landpt(e)%ilat,1)
+
+        soil%Forg(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+           inORG(landpt(e)%ilon, landpt(e)%ilat,1)
+
+        else
+        soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+            inclay(landpt(e)%ilon, landpt(e)%ilat,2)                      
+                                         
+        soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+            insand(landpt(e)%ilon, landpt(e)%ilat,2)                       
+
+        soil%Fsilt(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+            insilt(landpt(e)%ilon, landpt(e)%ilat,2)
+
+        soil%Forg(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+           inORG(landpt(e)%ilon, landpt(e)%ilat,2)
+
+        end if
                                          
         soil%densoil(landpt(e)%cstart:landpt(e)%cend,klev) =                  &
            inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
 
-        soil%Forg(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-           inORG(landpt(e)%ilon, landpt(e)%ilat)
                                          
         soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01!0.1 *              !&
-             !inswilt(landpt(e)%ilon, landpt(e)%ilat)
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01
+
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
          soil%smpsat(landpt(e)%cstart:landpt(e)%cend,ms)
-      !       abs(insucs(landpt(e)%ilon, landpt(e)%ilat)*1000.0)  !convert to mm
                                          
       soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
           soil%hksat(landpt(e)%cstart:landpt(e)%cend,ms)
-      !      inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
                                          
       soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
           soil%clappB(landpt(e)%cstart:landpt(e)%cend,ms)
-      !        inbch(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
       soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
          soil%densoil(landpt(e)%cstart:landpt(e)%cend,ms)
-      !     inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
          soil%watsat(landpt(e)%cstart:landpt(e)%cend,ms)
-      !       inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
-         !inswilt(landpt(e)%ilon, landpt(e)%ilat)
 
       soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
                                     inElev(landpt(e)%ilon,landpt(e)%ilat)
@@ -1287,7 +1337,14 @@ CONTAINS
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
             soil%GWwatr(h)    = 0.001!0.1*soil%swilt(h)!soilin%hyds(soil%isoilm(h))
-
+            !dummy values for now.
+            soil%slope(h)     = 2.0*3.14159/180.0
+            soil%elev(h)      = 100.0
+            soil%slope_std(H) = 0.0
+            soil%elev_std(h)  = 0.0
+            soil%topo_ind(h)  = 1.0/soil%slope(h)
+            soil%basin_ind(h) = 1
+            
           END IF
           rad%latitude(h) = latitude(e)
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
@@ -1492,7 +1549,7 @@ CONTAINS
 
        !first ensure that topo_ind isn't missing
        !hack to fix bad prerpoc in srf data
-       where (soil%topo_ind .gt. 10) soil%topo_ind = 10
+       where (soil%topo_ind .gt. 100.0) soil%topo_ind = 100.0
        where (soil%topo_ind .lt. 1e-4) soil%topo_ind = 1e-4
 
        DO klev=1,ms

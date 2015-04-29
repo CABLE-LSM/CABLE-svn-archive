@@ -338,7 +338,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          if (cable_user%gw_model) then 
             do i=1,mp
                if (ssnow%qstss(i) .gt. met%qvair(i)) then 
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  !dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*(ssnow%smp(i,1)-500.0*soil%zse(1))/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
@@ -373,6 +374,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          if (cable_user%gw_model) then 
             do i=1,mp
                if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+                  !dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*(ssnow%smp(i,1)-500.0*soil%zse(1))/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                   dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)

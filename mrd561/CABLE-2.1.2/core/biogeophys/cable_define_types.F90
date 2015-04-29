@@ -54,7 +54,8 @@ MODULE cable_def_types_mod
       msn = 3,       & ! max # snow layers
       swb = 2,       & ! # shortwave bands 
       niter = 4,     & ! number of iterations for za/L
-      ms = 6           ! # soil layers
+      ms = 6,        & ! # soil layers
+      nhorz = 2        !number of soil horizons
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
