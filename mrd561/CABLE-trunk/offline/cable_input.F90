@@ -790,22 +790,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
     !MDeck
-    IF (cable_user%alt_forcing) THEN
-       !write(*,*) 'reading time units'
-       READ(timeunits(12:15),*) syear
-       !write(*,*) 'read year'
-       READ(timeunits(17:18),*) smoy ! integer month
-       !write(*,*) 'read month'
-       READ(timeunits(20:21),*) sdoytmp ! integer day of that month
-       !write(*,*) 'read day'
-       READ(timeunits(23:24),*) shod  ! starting hour of day 
-       !write(*,*) 'read hour'
-    ELSEIF (.not.cable_user%GSWP3) then
+    IF (.not.cable_user%GSWP3) then
        READ(timeunits(15:18),*) syear
        READ(timeunits(20:21),*) smoy ! integer month
        READ(timeunits(23:24),*) sdoytmp ! integer day of that month
        READ(timeunits(26:27),*) shod  ! starting hour of day 
-    ELSE
+    ELSE !GSWP3.  assume run starts on Jan 1st every year
        syear=ncciy
        smoy=1
        sdoytmp=1
