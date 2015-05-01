@@ -805,7 +805,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        READ(timeunits(20:21),*) smoy ! integer month
        READ(timeunits(23:24),*) sdoytmp ! integer day of that month
        READ(timeunits(26:27),*) shod  ! starting hour of day 
-    ELSE
+    ELSE  !hack.  assume runs start at start of the year
        syear=ncciy
        smoy=1
        sdoytmp=1
@@ -2084,8 +2084,9 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         !incorrect, defaultLAI(mp,month)
         ! not defaultLAI(mland,month)
         DO i=1,mland ! over all land points/grid cells
-          veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
-               defaultLAI(i,met%moy(landpt(i)%cstart))
+                  !defaultLAI is (mp,month) as read in in cable_parameters
+          veg%vlai(landpt(i)%cstart:landpt(i)%cend) = &
+               defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
         ENDDO
       END IF
 
