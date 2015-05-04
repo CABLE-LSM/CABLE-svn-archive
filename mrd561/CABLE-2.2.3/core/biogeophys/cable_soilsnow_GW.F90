@@ -1049,50 +1049,26 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
       liq_mass = ssnow%wbliq(:,k)*real(soil%zse(k)*C%denliq,r_2)
       tot_mass = liq_mass + ice_mass
       
-!      WHERE (ssnow%tgg(:,k) < C%TFRZ)! &
-          !& .AND. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
-
-         where (ssnow%tgg(:,k) .lt. Tice(:,k) .and. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
+      WHERE (ssnow%tgg(:,k) .lt. Tice(:,k) .and. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
          
-            sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit(:,k) * ssnow%wb(:,k) -      &
-                         ssnow%wbice(:,k) ) ) * soil%zse(k) * C%denice,             &
-                         ( Tice(:,k) - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
-            ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
-                               * 1000.0), frozen_limit(:,k) * ssnow%wb(:,k) )
-            xx = soil%css * soil%rhosoil
-            ssnow%gammzz(:,k) = MAX(                                              &
-                REAL((1.0 - soil%watsat(:,k)) * soil%css * soil%rhosoil ,r_2)            &
-                + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
-                + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),              &
-                REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
+         sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit(:,k) * ssnow%wb(:,k) -      &
+                      ssnow%wbice(:,k) ) ) * soil%zse(k) * C%denice,             &
+                      ( Tice(:,k) - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
+         ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
+                            * 1000.0), frozen_limit(:,k) * ssnow%wb(:,k) )
+         xx = soil%css * soil%rhosoil
+         ssnow%gammzz(:,k) = MAX(                                              &
+             REAL((1.0 - soil%watsat(:,k)) * soil%css * soil%rhosoil ,r_2)            &
+             + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
+             + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),              &
+             REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
 
-            WHERE (k == 1 .AND. ssnow%isflag == 0)
-               ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
-            END WHERE
-            ssnow%tgg(:,k) = ssnow%tgg(:,k) + REAL(sicefreeze)                    &
+         WHERE (k == 1 .AND. ssnow%isflag == 0)
+            ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
+         END WHERE
+         ssnow%tgg(:,k) = ssnow%tgg(:,k) + REAL(sicefreeze)                    &
                              * C%HLF / REAL(ssnow%gammzz(:,k) )
 
-!         elsewhere (ssnow%tgg(:,k) .gt. Tice(:,k) .and. ssnow%wbice(:,k) - frozen_limit(:,k) * ssnow%wb(:,k)  > .001)
-!
-!            sicemelt = MIN( (ssnow%wbice(:,k)-frozen_limit(:,k) * ssnow%wb(:,k)) * soil%zse(k) * C%denice,&
-!                       ( ssnow%tgg(:,k) - Tice(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
-!
-!            ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
-!                               / (soil%zse(k) * C%denice) )
-!            xx = soil%css * soil%rhosoil
-!            ssnow%gammzz(:,k) = MAX(                                              &
-!                 REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
-!                 + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat*rhowat,r_2)   &
-!                 + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),            &
-!                  REAL(xx,r_2) ) * REAL(soil%zse(k),r_2)
-!            WHERE (k == 1 .AND. ssnow%isflag == 0)
-!               ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
-!            END WHERE
-!            ssnow%tgg(:,k) = ssnow%tgg(:,k) - REAL(sicemelt)                     &
-!                             * C%HLF / REAL(ssnow%gammzz(:,k))
-!         endwhere
-
-      
       ELSEWHERE( ssnow%tgg(:,k) > C%TFRZ .AND. ssnow%wbice(:,k) > 0. )
          
          sicemelt = MIN( ssnow%wbice(:,k) * soil%zse(k) * C%denice,              &
@@ -2210,7 +2186,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
                              
        satfrac = min(1._r_2,max(0._r_2,gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)))
 
-       wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))! - satfrac*soil%watsat(i,1))/(1.-satfrac)
+       wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
        !Sakguchi and Zeng 2009
