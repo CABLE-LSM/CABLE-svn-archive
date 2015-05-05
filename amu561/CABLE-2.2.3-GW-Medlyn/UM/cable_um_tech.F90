@@ -274,7 +274,11 @@ SUBROUTINE dealloc_vegin_soilin()
       DEALLOCATE(vegin%csoil)
       DEALLOCATE(vegin%ratecp)
       DEALLOCATE(vegin%ratecs)
-     
+      DEALLOCATE(vegin%g0c3)
+      DEALLOCATE(vegin%g0c4)
+      DEALLOCATE(vegin%g1c3)
+      DEALLOCATE(vegin%g1c4)     
+ 
       DEALLOCATE(soilin%silt)
       DEALLOCATE(soilin%clay)
       DEALLOCATE(soilin%sand)
