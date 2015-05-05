@@ -1868,7 +1868,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
 
                ! Rubisco limited:
                ! Ticket #56, xleuingz replaced with gs_coeffz
-               coef2z(i,j) = gswminz(i,j) / C%RGSWC + gs_coeffz(i,j) *           &
+               coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) *           &
                              ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
 
                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
@@ -1929,7 +1929,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    
                ! RuBP limited:
                ! Ticket #56, all instances of xleuningz replaced with gs_coeffz
-               coef2z(i,j) = gswminz(i,j) / C%RGSWC + gs_coeffz(i,j)             &
+               coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j)             &
                              * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
    
                coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeffz(i,j) ) *            &
@@ -1987,7 +1987,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                ! Ticket #56, repalce all xleuningz with gs_coeffz
                coef2z(i,j) = gs_coeffz(i,j)
                
-               coef1z(i,j) = gswminz(i,j)/C%RGSWC + gs_coeffz(i,j)               &
+               coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + gs_coeffz(i,j)               &
                              * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
                              + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
                              * csxz(i,j) * effc4 * vcmxt4z(i,j)  
