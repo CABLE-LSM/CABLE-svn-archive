@@ -142,8 +142,9 @@ MODULE cable_IO_vars_module
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
           !MD
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
-          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp
-   
+          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp,  & 
+          g0c3,g0c4,g1c3,g1c4 ! Ticket #56
+
    END TYPE parID_type
   
    ! =============== Logical  variables ============================
@@ -251,7 +252,11 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
-         
+         cancd = .FALSE., & ! jtk561, canopy conductance (m/s)
+         gswx_1 = .FALSE., & ! jtk561, sunlit cond (dunno units)
+         gswx_2 = .FALSE., & ! jtk561, shaded cond (dunno units)
+         gswmin_1 = .FALSE., & ! jtk561, min sunlit cond
+         gswmin_2 = .FALSE., & ! jtk561, min shaded cond 
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
@@ -297,6 +302,10 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at 
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
+         g0c3 = .FALSE.,      & ! Ticket #56      
+         g0c4 = .FALSE.,      & ! Ticket #56
+         g1c3 = .FALSE.,      & ! Ticket #56
+         g1c4 = .FALSE.,      & ! Ticket #56
          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}

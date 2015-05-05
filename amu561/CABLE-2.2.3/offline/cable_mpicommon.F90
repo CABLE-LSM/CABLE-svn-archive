@@ -58,7 +58,8 @@ MODULE cable_mpicommon
   !GWwb, wtd                                   ---> +2 new variables
            !in master.  in worker
   !added topo_ind, slope,slope_std,elev,elev_std
-  INTEGER, PARAMETER :: nparam =303! 302! 301!297 !283
+  ! Ticket #56, we've added 4 extra new params for the Medlyns Stom Cond model
+  INTEGER, PARAMETER :: nparam =307! 302! 301!297 !283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1

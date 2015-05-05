@@ -140,6 +140,7 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
+ ! Ticket #56, removing myhome, apparently a "harmless bug"
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
                                    report_version_no, wiltParam, satuParam,    &
@@ -364,6 +365,10 @@ SUBROUTINE mpidrv_master (comm)
    ! workers
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
+
+   CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+
 
    ! MPI: casa parameters scattered only if cnp module is active
    IF (icycle>0) THEN
@@ -1354,6 +1359,25 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
+
+  ! Ticket #56, adding veg parms for Medlyn model
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c3(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c4(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c4(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+  ! Ticket #56, finish adding new veg parms 
+
 
   ! ----------- bgc --------------
 
@@ -2375,8 +2399,8 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: rank, off, cnt
 
-  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
-  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+  !CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+  !CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   ntyp = ncasaparam
 
