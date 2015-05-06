@@ -31,7 +31,7 @@ host_jigg()
    export NCDIR='/usr/local/lib'
    export NCMOD='/usr/local/include'
    export FC=gfortran
-   export CFLAGS='-O2 -x f95-cpp-input'
+   export CFLAGS='-O2 -x f95-cpp-input -fdefault-integer-8 -fdefault-real-8 '
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/usr/local/lib -O2'
    build_build

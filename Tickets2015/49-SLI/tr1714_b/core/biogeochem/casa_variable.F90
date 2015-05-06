@@ -289,7 +289,6 @@ MODULE casavariable
   TYPE casa_balance
     REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,                 &
             FCrmleafyear,FCrmwoodyear,FCrmrootyear,FCrgrowyear,               &
-            FCrmleafyear,FCrmwoodyear,FCrmrootyear,FCrgrowyear,               &
             FCrpyear, FCrsyear,FCneeyear,                                     &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear

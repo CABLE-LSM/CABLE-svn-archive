@@ -45,13 +45,17 @@ MODULE cable_diag_module
       MODULE PROCEDURE cable_diag1
    END INTERFACE cable_diag
    
-  interface put_var_nc
-     module procedure put_var_ncr1, put_var_ncr2, put_var_ncr3
-  end interface put_var_nc
+   interface put_var_nc
+      module procedure put_var_ncr1, put_var_ncr2, put_var_ncr3
+   end interface put_var_nc
 
-  interface get_var_nc
-     module procedure get_var_ncr2, get_var_ncr3
-  end interface get_var_nc
+   interface get_var_nc
+      module procedure get_var_ncr2, get_var_ncr3
+   end interface get_var_nc
+
+   interface  def_vars
+      module procedure def_vars_real, def_vars_double
+   End interface  def_vars
 
 CONTAINS
 
@@ -174,8 +178,7 @@ END SUBROUTINE cable_diag_data1
 
 
 
-
-  subroutine def_vars(nv, ncid,  xtype, dimID, var_name,varID )
+  subroutine def_vars_real(nv, ncid,  xtype, dimID, var_name,varID )
     use netcdf
     implicit none
     integer, intent(in) :: nv, ncid, xtype
@@ -221,7 +224,56 @@ END SUBROUTINE cable_diag_data1
 
 
     return
-  end subroutine def_vars
+  end subroutine def_vars_real
+
+
+  subroutine def_vars_double(nv, ncid,  xtype, dimID, var_name,varID )
+    use netcdf
+    implicit none
+    integer, intent(in) :: nv, ncid, xtype
+    integer, dimension(:), intent(in) :: dimID
+    integer, dimension(:), intent(inout) :: varID
+    character(len=*), dimension(:), intent(in) :: var_name
+    integer :: j, ncok
+
+    ! lat
+    ncok = NF90_DEF_VAR( ncid, trim(var_name(1)), xtype, &
+         (/ dimID(1) /), varID(1))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(1))
+
+    ! lon
+    ncok = NF90_DEF_VAR(ncid, trim(var_name(2)), xtype, &
+         (/ dimID(1) /), varID(2))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(2))
+
+    ! tairk
+    ncok = NF90_DEF_VAR(ncid, trim(var_name(3)), xtype, &
+         (/ dimID(1), dimID(3) /), varID(3))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(3))
+
+    !tsoil
+    ncok = NF90_DEF_VAR(ncid, trim(var_name(4)), xtype, &
+         (/ dimID(1), dimID(2),dimID(3)/), varID(4))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(4))
+
+    ! moist
+    ncok = NF90_DEF_VAR(ncid, trim(var_name(5)), xtype, &
+         (/ dimID(1), dimID(2),dimID(3)/), varID(5))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(5))
+
+    !cgpp
+    ncok = NF90_DEF_VAR(ncid, trim(var_name(6)), xtype, &
+         (/ dimID(1), dimID(3)/), varID(6))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(6))
+
+    !crmplant
+    ncok = NF90_DEF_VAR(ncid, trim(var_name(7)), xtype, &
+         (/ dimID(1), dimID(2),dimID(3)/), varID(7))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(7))
+
+
+    return
+  end subroutine def_vars_double
 
   subroutine def_var_atts( ncfile_in, ncid, varID )
     use netcdf
