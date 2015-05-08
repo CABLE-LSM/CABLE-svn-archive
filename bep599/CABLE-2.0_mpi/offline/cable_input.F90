@@ -364,7 +364,7 @@ SUBROUTINE open_met_file(dels,kend,spinup,kstart,TFRZ)
     IF (ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error opening netcdf met forcing file '// &
          TRIM(globalMetfile%rainf)//' (SUBROUTINE open_met_file)')
-    IF (globalMetfile%l_gswp) THEN
+    IF (globalMetfile%l_gswp .OR. globalMetfile%l_ncar) THEN
       ok = NF90_OPEN(globalMetfile%snowf,0,ncid_snow)
       IF (ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error opening netcdf met forcing file '// &
@@ -446,7 +446,8 @@ SUBROUTINE open_met_file(dels,kend,spinup,kstart,TFRZ)
     ALLOCATE(temparray2(xdimsize,ydimsize))
     ! Get latitude values for entire region:
     ok= NF90_GET_VAR(ncid_met,latitudeID,temparray2)
-    IF(ok /= NF90_NOERR) THEN
+    IF(ok /= NF90_NOERR .OR. globalMetfile%l_ncar) THEN
+       ! NCAR file not showing error when using 2D array to read 1D data
        ALLOCATE(temparray1(ydimsize))
        ok= NF90_GET_VAR(ncid_met,latitudeID,temparray1)
        IF(ok /= NF90_NOERR) THEN
@@ -476,7 +477,8 @@ SUBROUTINE open_met_file(dels,kend,spinup,kstart,TFRZ)
     ALLOCATE(lon_all(xdimsize,ydimsize))
     ! Get longitude values for entire region:
     ok= NF90_GET_VAR(ncid_met,longitudeID,temparray2)
-    IF(ok /= NF90_NOERR) THEN
+    IF(ok /= NF90_NOERR .OR. globalMetfile%l_ncar) THEN
+       ! NCAR file not showing error when using 2D array to read 1D data
        ALLOCATE(temparray1(xdimsize))
        ok= NF90_GET_VAR(ncid_met,longitudeID,temparray1)
        IF(ok /= NF90_NOERR) THEN 
