@@ -197,7 +197,7 @@ CONTAINS
     INTEGER, INTENT(OUT) :: npatch
 
     ! local variables
-    INTEGER :: ncid, ok
+    INTEGER :: ncid, ncndepid, ok
     INTEGER :: xID, yID, pID, sID, tID, bID, ppID, plID, psID
     INTEGER :: varID
     INTEGER :: nslayer, ntime, nband, ppool, lpool, spool
@@ -210,7 +210,12 @@ CONTAINS
 
     ok = NF90_OPEN(filename%type, 0, ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file ' &
-                                            //filename%type)
+                                            //trim(filename%type))
+    IF(casafile%l_ndep) then
+      ok = NF90_OPEN(casafile%ndep, 0, ncndepid)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening Ndep file.' &
+                                           //trim(casafile%ndep))
+    ENDIF
 
     ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
     IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
@@ -449,6 +454,13 @@ CONTAINS
       ok = NF90_GET_VAR(ncid, varID, inNdep)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Ndep.')
 
+      IF (casafile%l_ndep)THEN
+        ok = NF90_INQ_VARID(ncndepid, 'N_total_deposition', varID)
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding data in Ndep file')
+        ok = NF90_GET_VAR(ncndepid, varID, inNdep)
+        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading data in Ndep file')
+      END IF
+
       ok = NF90_INQ_VARID(ncid, 'Nfix', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Nfix.')
       ok = NF90_GET_VAR(ncid, varID, inNfix)
@@ -562,6 +574,11 @@ CONTAINS
 
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
+
+    IF(casafile%l_ndep) THEN
+      ok = NF90_CLOSE(ncndepid)
+      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing Ndep file.')
+    ENDIF
 
   END SUBROUTINE read_gridinfo
   !============================================================================
