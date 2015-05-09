@@ -127,7 +127,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
-  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inBI
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inBI
 
 CONTAINS
 
@@ -209,7 +209,7 @@ CONTAINS
     INTEGER :: ii, jj, kk
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
-    REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
+    REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2,r3dum2tmp
 
     ok = NF90_OPEN(filename%type, 0, ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
@@ -324,6 +324,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable SnowDepth.')
     ok = NF90_GET_VAR(ncid,varID,r3dum2)
+
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable SnowDepth.')
     DO kk = 1, ntime
@@ -527,7 +528,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable UM albedo')
     ok = NF90_GET_VAR(ncid, fieldID, in2alb)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
-    
+   
     !MD try to read aquifer properties from the file
     ! if they don't exist set aquifer properties to the same as the soil
     ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
@@ -577,7 +578,7 @@ CONTAINS
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWrhosoil(:,:) = inrhosoil(:,:)
     END IF    
-  
+ 
     ok = NF90_INQ_VARID(ncid, 'organic', fieldID)
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inORG)       
@@ -597,7 +598,7 @@ CONTAINS
       write(logn,*) 'Set the topo index to constant due to read error'
       inTI(:,:) = 500.0
     END IF
- 
+
     ok = NF90_INQ_VARID(ncid, 'basin_index', fieldID)
     IF (ok .eq. NF90_NOERR) then
       ok2 = NF90_GET_VAR(ncid, fieldID, inBI)
@@ -743,7 +744,7 @@ CONTAINS
 
     IF (cable_user%GW_MODEL) THEN
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
-
+      
        ok = NF90_INQ_VARID(ncid_elev, 'elevation', fieldID)
        IF (ok /= NF90_NOERR) WRITE(logn, *) 'Could not read elevation variables for SSGW'
        ok = NF90_GET_VAR(ncid_elev, fieldID, inElev)
@@ -1185,9 +1186,8 @@ CONTAINS
       soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inTI(landpt(e)%ilon,landpt(e)%ilat)
 
-
-      soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    inBI(landpt(e)%ilon,landpt(e)%ilat)
+      !soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+      !                              int(inBI(landpt(e)%ilon,landpt(e)%ilat))
 
 
       ENDIF
@@ -1294,14 +1294,11 @@ CONTAINS
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = min(ssnow%albsoilsn,0.2)
-
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
     IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
            CALL abort('Albedo nuts')
-
-    WRITE(logn, *)
 
     if (cable_user%alt_forcing .or. cable_user%GSWP3) then
        rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
@@ -1509,11 +1506,11 @@ CONTAINS
        soil%Forg = max(0._r_2,soil%Forg)
        soil%Forg = min(1._r_2,soil%Forg)
 
-       WHERE (soil%Forg .ge. 0.5)
-          perc_frac = (1.-perc_lim)**(-perc_beta) * (soil%Forg -perc_lim)**perc_beta
-       ELSEWHERE (soil%Forg .lt. 0.5)
-          perc_frac = 0.0
-       ENDWHERE
+       !WHERE (soil%Forg .ge. 0.5)
+       !   perc_frac = (1.-perc_lim)**(-perc_beta) * (soil%Forg -perc_lim)**perc_beta
+       !ELSEWHERE (soil%Forg .lt. 0.5)
+       !   perc_frac = 0.0
+       !ENDWHERE
 
        DO klev=1,3  !0-23.3 cm, data really is to 30cm
           !soil%hksat(:,klev ) = (1.-perc_frac(:,klev))*((1.-soil%Forg(:,klev))/soil%hksat(:,klev) + &
@@ -1534,8 +1531,7 @@ CONTAINS
     DO i=1,mp
        psi_tmp(i,:) = -psi_c(veg%iveg(i))
     END DO
-    soil%wiltp = soil%watsat * (psi_tmp/soil%smpsat)**(-1.0/soil%clappB)
-
+    soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
     
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
@@ -1551,6 +1547,7 @@ CONTAINS
     soil%ibp2   = NINT(soil%bch) + 2
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
+
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
     ! owetfac introduced by EAK apr2009
