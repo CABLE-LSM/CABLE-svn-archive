@@ -1525,7 +1525,10 @@ END SUBROUTINE remove_trans
     !MD DEBUG VARS
     INTEGER :: imp,ims,k_drain
 
-    drainmod(:) = 1._r_2  !parameter to modify qhrz params by basin
+    drainmod(:) = 1._r_2  !parameter to modify qhrz params by basin or veg type
+    where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
+    drainmod(:) = (1._r_2 + soil%FOrg(:,1))*drainmod(:)
+
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
@@ -1557,10 +1560,10 @@ END SUBROUTINE remove_trans
 
     ssnow%fracice(:,:) = max( min( ssnow%fracice, 1._r_2), 0._r_2)
 
-    do i=1,mp
-       fice_avg(i)  = sum(ssnow%fracice(i,2:ms)*dzmm(2:ms)) / sum(dzmm(2:ms))
-    end do
-    fice_avg(:) = min(fice_avg,1._r_2)
+    !do i=1,mp
+    !   fice_avg(i)  = sum(ssnow%fracice(i,2:ms)*dzmm(2:ms)) / sum(dzmm(2:ms))
+    !end do
+    fice_avg(:) = minval(ssnow%icefrac(i,2:ms))
        
     do k=1,ms-1
        kk=k+1
@@ -1633,8 +1636,8 @@ END SUBROUTINE remove_trans
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = ssnow%hk(i,ms) * tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
-                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
+       ssnow%qhz(i)  = ssnow%hk(i,1) * tan(soil%slope(i)) * drainmod(i)*gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
  
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
@@ -2190,15 +2193,15 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
        !Sakguchi and Zeng 2009
-       if (wb_unsat .ge. soil%fldcap(i,1)) then
+       if (wb_unsat .ge. 0.5*soil%fldcap(i,1)) then
           xx = 1.
        else
-          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(soil%fldcap(i,1))))**2.0
+          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
        end if
-       if (wb_unsat .lt. soil%wiltp(i,1)) xx = 0.
+       if (wb_unsat .lt. 0.25*soil%wiltp(i,1)) xx = 0.
               !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
 
-       ssnow%wetfac(i) = satfrac + (1. - satfrac)*xx
+       ssnow%wetfac(i) = max(0.0,min(1.0,satfrac*wb_unsat + (1. - satfrac)*xx))
 
     end do
 
