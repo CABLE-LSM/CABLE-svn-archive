@@ -344,7 +344,7 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
 
    tmp1(:) = 3.22 - 0.046 * (met%tk(:)-C%TFRZ)
    tmp2(:) = 0.1 * (met%tk(:)-C%TFRZ-20.0)
-   tmp3(:) = tmp1(:) ** tmp2(:)
+   tmp3(:) = max(tmp1(:),0.1) ** tmp2(:)
 
    canopy%frp  = veg%rp20 * tmp3 * poolcoef1  / sec_per_year 
    canopy%frpw = veg%rp20 * tmp3 * poolcoef1w / sec_per_year
