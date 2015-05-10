@@ -76,7 +76,7 @@ MODULE cable_soil_snow_gw_module
    PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv,calc_equilibrium_water_content
-   PRIVATE soilfreeze, remove_trans,iterative_wtd,simple_wtd
+   PRIVATE GWsoilfreeze, remove_trans,iterative_wtd,simple_wtd
    PRIVATE smoistgw, ovrlndflx
 
 CONTAINS
@@ -1009,7 +1009,7 @@ END SUBROUTINE snowl_adjust
 
 ! -----------------------------------------------------------------------------
 
-SUBROUTINE soilfreeze(dels, soil, ssnow)
+SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
    USE cable_common_module
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
@@ -1018,29 +1018,15 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    REAL(r_2), DIMENSION(mp)           :: sicemelt
    REAL, DIMENSION(mp)                :: xx, ice_mass,liq_mass,tot_mass
    INTEGER k
-   REAL(r_2),DIMENSION(mp,ms) :: frozen_limit,iceF,Tice  !Decker and Zeng 2009
+   REAL(r_2),DIMENSION(mp,ms) :: frozen_limit,iceF  !Decker and Zeng 2009
 
-   !Tice = Tt* ( 1 - exp(-a*(Tt/Ts)**b * (T-Tfrz)))/*exp(1-Tt/Ts))
-   !Tice = frozen_limit *Tliq
-   !Tt = Tice + Tliq
-   !Tice = Tt - Tliq
-   !a=2 b=4
-   !calculate the fraction of wb that should be supercooled
    where (ssnow%tgg .le. C%TFRZ)
       frozen_limit(:,:) = (1. - exp(-2.*(ssnow%wb(:,:)/soil%watsat(:,:))**4.0 *&
                        (ssnow%tgg(:,:)-273.16)))/exp(1. - ssnow%wb(:,:)/soil%watsat(:,:))
+      frozen_limit(:,:) = max(0.5,frozen_limit(:,:))
    elsewhere (ssnow%tgg .gt. C%TFRZ)
       frozen_limit(:,:) = 0.
    endwhere
-   !given amount of supercooled, what should the temperature be?
-   !this allows to thaw/freeze for all temps < TFRZ
-   !not yet tested.  code needs validation
-   !iceF = ssnow%wbice(:,:) /ssnow%wb(:,:)
-   !Tice = -0.5*((soil%watsat/ssnow%wb)**4.0) * log(1.-iceF*exp(1.-ssnow%wb/soil%watsat))+ 273.16
-
-
-   Tice = C%TFRZ
-
 
    xx = 0.
    DO k = 1, ms
@@ -1049,11 +1035,11 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
       liq_mass = ssnow%wbliq(:,k)*real(soil%zse(k)*C%denliq,r_2)
       tot_mass = liq_mass + ice_mass
       
-      WHERE (ssnow%tgg(:,k) .lt. Tice(:,k) .and. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
+      WHERE (ssnow%tgg(:,k) .lt. C%TFRZ .and. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
          
          sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit(:,k) * ssnow%wb(:,k) -      &
                       ssnow%wbice(:,k) ) ) * soil%zse(k) * C%denice,             &
-                      ( Tice(:,k) - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
+                      ( C%TFRZ - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
          ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
                             * 1000.0), frozen_limit(:,k) * ssnow%wb(:,k) )
          xx = soil%css * soil%rhosoil
@@ -1098,7 +1084,7 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
     
    END DO
 
-END SUBROUTINE soilfreeze
+END SUBROUTINE GWsoilfreeze
 
 !-----------------------------------------------------------------------------------------
 
@@ -1998,7 +1984,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL remove_trans(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer
 
-   CALL  soilfreeze(dels, soil, ssnow)
+   CALL  GWsoilfreeze(dels, soil, ssnow)
 
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
