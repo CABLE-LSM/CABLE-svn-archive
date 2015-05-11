@@ -61,27 +61,27 @@ MODULE POP_Constants
 
   USE TYPEdef, ONLY: dp, i4b
 
-  REAL(dp),PARAMETER:: FULTON_ALPHA= 5.6! recruitment scalar alpha in Fulton (1991)
-  REAL(dp),PARAMETER:: DENSINDIV_MAX=2  !  Maximum density of individuals within a cohort indiv/m2
-  REAL(dp),PARAMETER:: DENSINDIV_MIN=1e-12 !
-  REAL(dp),PARAMETER:: Kbiometric=50.0 ! Constant in height-diameter relationship
-  REAL(dp),PARAMETER:: WD= 300.0 ! Wood density kgC/m3
-  REAL(dp),PARAMETER:: GROWTH_EFFICIENCY_MIN=0.015 ! threshold growth efficiency for enhanced mortality
-  REAL(dp),PARAMETER:: Pmort=5.0 ! exponent in mortality formula
-  REAL(dp),PARAMETER:: MORT_MAX=0.3 ! upper asymptote for enhanced mortality
-  REAL(dp),PARAMETER:: THETA_recruit=0.95 ! shape parameter in recruitment equation
-  REAL(dp),PARAMETER:: CMASS_STEM_INIT= 1e-6 ! initial biomass kgC/m2
-  REAL(dp),PARAMETER:: POWERbiomass=0.75 ! exponent for biomass in proportion to which cohorts preempt resources
-  REAL(dp),PARAMETER:: POWERGrowthEfficiency = 0.75
-  REAL(dp),PARAMETER:: CrowdingFactor = 0.0128
-  REAL(dp),PARAMETER:: ALPHA_CPC = 10.0
-  REAL(dp),PARAMETER:: k_allom1 = 200.0 ! crown area =  k_allom1 * diam ** k_rp
-  REAL(dp),PARAMETER:: k_rp = 1.67  ! constant in crown area relation to tree diameter
+  REAL,PARAMETER:: FULTON_ALPHA= 5.6! recruitment scalar alpha in Fulton (1991)
+  REAL,PARAMETER:: DENSINDIV_MAX=2  !  Maximum density of individuals within a cohort indiv/m2
+  REAL,PARAMETER:: DENSINDIV_MIN=1e-12 !
+  REAL,PARAMETER:: Kbiometric=50.0 ! Constant in height-diameter relationship
+  REAL,PARAMETER:: WD= 300.0 ! Wood density kgC/m3
+  REAL,PARAMETER:: GROWTH_EFFICIENCY_MIN=0.015 ! threshold growth efficiency for enhanced mortality
+  REAL,PARAMETER:: Pmort=5.0 ! exponent in mortality formula
+  REAL,PARAMETER:: MORT_MAX=0.3 ! upper asymptote for enhanced mortality
+  REAL,PARAMETER:: THETA_recruit=0.95 ! shape parameter in recruitment equation
+  REAL,PARAMETER:: CMASS_STEM_INIT= 1e-6 ! initial biomass kgC/m2
+  REAL,PARAMETER:: POWERbiomass=0.75 ! exponent for biomass in proportion to which cohorts preempt resources
+  REAL,PARAMETER:: POWERGrowthEfficiency = 0.75
+  REAL,PARAMETER:: CrowdingFactor = 0.0128
+  REAL,PARAMETER:: ALPHA_CPC = 10.0
+  REAL,PARAMETER:: k_allom1 = 200.0 ! crown area =  k_allom1 * diam ** k_rp
+  REAL,PARAMETER:: k_rp = 1.67  ! constant in crown area relation to tree diameter
 
-  REAL(dp),PARAMETER:: Q=7.0 ! governs rate of increase of mortality with age (2=exponential)
-  REAL(dp),PARAMETER:: F_MORT=0.0001 ! proportion of cohort surviving to age Amax
-  REAL(dp),PARAMETER:: AMAX=250.0 ! age to which proportion F of cohort will survive in absence of resource stress
-  REAL(dp),PARAMETER:: EPS=1e-12
+  REAL,PARAMETER:: Q=7.0 ! governs rate of increase of mortality with age (2=exponential)
+  REAL,PARAMETER:: F_MORT=0.0001 ! proportion of cohort surviving to age Amax
+  REAL,PARAMETER:: AMAX=250.0 ! age to which proportion F of cohort will survive in absence of resource stress
+  REAL,PARAMETER:: EPS=1e-12
   INTEGER(i4b),PARAMETER :: NLAYER = 1 ! number of vertical veg layers (1 is currently the only option)
   INTEGER(i4b),PARAMETER :: NCOHORT_MAX = 20 ! maximum number of cohorts
   INTEGER(i4b),PARAMETER :: NDISTURB=1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
@@ -92,11 +92,11 @@ MODULE POP_Constants
   INTEGER(i4b),PARAMETER :: NPATCH1D=(NAGE_MAX*PATCH_REPS)
   INTEGER(i4b),PARAMETER :: NPATCH2D= NPATCH ! number of patches to be simulated, including those correponding to a1>a2
   INTEGER(i4b),PARAMETER ::  HEIGHT_BINS=12 ! number of height categories to keep track of for diagnostics
-  REAL(dp),PARAMETER:: BIN_POWER=1.4 ! bins have muscles
+  REAL,PARAMETER:: BIN_POWER=1.4 ! bins have muscles
   ! Time base factor (to be multiplied by mean dist interval to give TIMEBASE)
   ! for sampling disturbance probabilities from Poisson distribution
   INTEGER(i4b),PARAMETER :: TIMEBASE_FACTOR=50
-  REAL(dp),PARAMETER:: PI=3.14159265358979323846264
+  REAL,PARAMETER:: PI=3.14159265358979323846264
   INTEGER(i4b),PARAMETER :: ALLOM_SWITCH = 0 ! 0 == default; 1 = top-end allometry (requires precip as input to POPSTEP)
   ! 0 == binnned max height variable; 1 = continuous (needs lots of memory); 2 = binned by integer heights
   INTEGER(i4b),PARAMETER :: MAX_HEIGHT_SWITCH = 2
@@ -112,69 +112,69 @@ MODULE POP_Types
 
 
   TYPE Cohort
-     INTEGER(i4b) :: id
-     INTEGER(i4b) :: age ! cohort age
-     REAL(dp)     :: biomass ! cohort biomass
-     REAL(dp)     :: density ! landscape tree density (weighted mean over patches)
-     REAL(dp)     :: frac_resource_uptake
-     REAL(dp)     :: height
-     REAL(dp)     :: diameter
+     INTEGER :: id
+     INTEGER :: age ! cohort age
+     REAL     :: biomass ! cohort biomass
+     REAL     :: density ! landscape tree density (weighted mean over patches)
+     REAL     :: frac_resource_uptake
+     REAL     :: height
+     REAL     :: diameter
 
   END TYPE Cohort
 
   TYPE Layer
      TYPE (Cohort), DIMENSION(NCOHORT_MAX) :: Cohort
-     INTEGER(i4b) :: ncohort ! number of cohorts with density >0
-     REAL(dp)    :: biomass ! layer biomass
-     REAL(dp)    :: density ! layer tree density
-     REAL(dp)     :: hmean ! layer mean tree height (weighted mean over patches)
-     REAL(dp)     :: hmax  ! layer max tree height
+     INTEGER :: ncohort ! number of cohorts with density >0
+     REAL    :: biomass ! layer biomass
+     REAL    :: density ! layer tree density
+     REAL     :: hmean ! layer mean tree height (weighted mean over patches)
+     REAL     :: hmax  ! layer max tree height
   END TYPE Layer
 
   TYPE Patch
      TYPE (Layer), DIMENSION(NLAYER) :: Layer
-     REAL(dp)     :: factor_recruit
-     REAL(dp) :: biomass ! total biomass in patch
-     REAL(dp) :: biomass_old ! total biomass in patch
-     REAL(dp) :: stress_mortality ! biomass lost in each patch due to stress
-     REAL(dp) :: fire_mortality ! biomass lost in each patch due partial fire disturbance
-     REAL(dp) :: crowding_mortality ! biomass lost to crowding mortality
-     REAL(dp) :: cpc
-     REAL(dp) :: mortality !
-     REAL(dp) :: growth ! biomass growth in each patch due to stem increment
-     INTEGER(i4b) :: disturbance_interval(NDISTURB)  ! prescribed disturbance(s) interval for this patch
-     INTEGER(i4b) :: first_disturbance_year(NDISTURB)
-     INTEGER(i4b) :: age(NDISTURB) ! number of years since last disturbance(s)
-     INTEGER(i4b) :: id
+     REAL     :: factor_recruit
+     REAL :: biomass ! total biomass in patch
+     REAL :: biomass_old ! total biomass in patch
+     REAL :: stress_mortality ! biomass lost in each patch due to stress
+     REAL :: fire_mortality ! biomass lost in each patch due partial fire disturbance
+     REAL :: crowding_mortality ! biomass lost to crowding mortality
+     REAL :: cpc
+     REAL :: mortality !
+     REAL :: growth ! biomass growth in each patch due to stem increment
+     INTEGER :: disturbance_interval(NDISTURB)  ! prescribed disturbance(s) interval for this patch
+     INTEGER :: first_disturbance_year(NDISTURB)
+     INTEGER :: age(NDISTURB) ! number of years since last disturbance(s)
+     INTEGER :: id
   END TYPE Patch
 
   TYPE Landscape
      TYPE (Patch), DIMENSION(NPATCH2D) :: patch
-     REAL(dp), DIMENSION(NPATCH2D)     :: freq ! patch weighting
-     REAL(dp), DIMENSION(NPATCH2D)     :: freq_old ! patch weighting (previous time-step)
-     REAL(dp), DIMENSION(NPATCH2D,NDISTURB)     :: freq_ranked_age_unique ! unique age weighting
+     REAL, DIMENSION(NPATCH2D)     :: freq ! patch weighting
+     REAL, DIMENSION(NPATCH2D)     :: freq_old ! patch weighting (previous time-step)
+     REAL, DIMENSION(NPATCH2D,NDISTURB)     :: freq_ranked_age_unique ! unique age weighting
      INTEGER(i4b), DIMENSION(NPATCH2D, NDISTURB)     :: ranked_age_unique ! unique age
      INTEGER(i4b), DIMENSION(NDISTURB)     :: n_age ! number of unique ages
-     REAL(dp), DIMENSION(NLAYER)     :: biomass ! landscape stem biomass (weighted mean over patches)
-     REAL(dp), DIMENSION(NLAYER)     :: density ! landscape tree density (weighted mean over patches)
-     REAL(dp), DIMENSION(NLAYER)     :: hmean ! landscape mean treen height (weighted mean over patches)
-     REAL(dp), DIMENSION(NLAYER)     :: hmax  ! landscape max tree height
-     REAL(dp), DIMENSION(HEIGHT_BINS)     :: cmass_stem_bin ! biomass by height bin
-     REAL(dp), DIMENSION(HEIGHT_BINS)     :: densindiv_bin ! density by height bin
-     REAL(dp), DIMENSION(HEIGHT_BINS)     :: height_bin ! mean height in each bin
-     REAL(dp), DIMENSION(HEIGHT_BINS)     :: diameter_bin ! mean diameter in each bin
+     REAL, DIMENSION(NLAYER)     :: biomass ! landscape stem biomass (weighted mean over patches)
+     REAL, DIMENSION(NLAYER)     :: density ! landscape tree density (weighted mean over patches)
+     REAL, DIMENSION(NLAYER)     :: hmean ! landscape mean treen height (weighted mean over patches)
+     REAL, DIMENSION(NLAYER)     :: hmax  ! landscape max tree height
+     REAL, DIMENSION(HEIGHT_BINS)     :: cmass_stem_bin ! biomass by height bin
+     REAL, DIMENSION(HEIGHT_BINS)     :: densindiv_bin ! density by height bin
+     REAL, DIMENSION(HEIGHT_BINS)     :: height_bin ! mean height in each bin
+     REAL, DIMENSION(HEIGHT_BINS)     :: diameter_bin ! mean diameter in each bin
      CHARACTER(100), DIMENSION(HEIGHT_BINS) :: bin_labels ! text strings for bin bounds
-     REAL(dp) :: cmass_sum ! landscape biomass
-     REAL(dp) :: densindiv ! landscape density of individuals
-     REAL(dp) :: height_mean
-     REAL(dp) :: height_max
-     REAL(dp) :: basal_area
-     REAL(dp) :: stress_mortality ! (kg C m-2 y-1)
-     REAL(dp) :: fire_mortality ! (kg C m-2 y-1)
-     REAL(dp) :: growth
-     REAL(dp) :: crown_cover
-     REAL(dp) :: crown_area
-     REAL(dp) :: crown_volume
+     REAL :: cmass_sum ! landscape biomass
+     REAL :: densindiv ! landscape density of individuals
+     REAL :: height_mean
+     REAL :: height_max
+     REAL :: basal_area
+     REAL :: stress_mortality ! (kg C m-2 y-1)
+     REAL :: fire_mortality ! (kg C m-2 y-1)
+     REAL :: growth
+     REAL :: crown_cover
+     REAL :: crown_area
+     REAL :: crown_volume
      INTEGER(i4b) :: npatch_active
   END TYPE Landscape
 
@@ -282,11 +282,11 @@ CONTAINS
     INTEGER(i4b):: patch_disturbance_interval2(NPATCH1D,NPATCH1D)
     INTEGER(i4b):: patch_first_disturbance_year2(NPATCH1D,NPATCH1D)
     INTEGER(i4b):: Poisson_age(1000),Poisson_freq(1000)
-    REAL(dp):: Poisson_weight(1000), CumPoisson_weight(1000)
+    REAL:: Poisson_weight(1000), CumPoisson_weight(1000)
     INTEGER(i4b):: disturbances_per_timebase, timebase
     INTEGER:: i_min, i_max, age_sample(2,NAGE_MAX), tmp(NAGE_MAX)
     INTEGER:: age_tmp, tmp_unique(NAGE_MAX), n_age, np
-    REAL(dp):: disturbance_freq, tmp1
+    REAL:: disturbance_freq, tmp1
 
     np = SIZE(pop%pop_grid)
 
@@ -296,7 +296,7 @@ CONTAINS
        DO p = 1,1000
           Poisson_age(p) = p
           Poisson_weight(p) = Exponential(disturbance_freq,p)
-          CumPoisson_weight(p) = CumExponential(disturbance_freq,REAL(p,dp))
+          CumPoisson_weight(p) = CumExponential(disturbance_freq,REAL(p))
        ENDDO
        ! sample ages with equally spaced cumulative probabilities
        DO k =1,NAGE_MAX
@@ -368,11 +368,11 @@ CONTAINS
     INTEGER(i4b):: patch_disturbance_interval2(NPATCH1D,NPATCH1D)
     INTEGER(i4b):: patch_first_disturbance_year2(NPATCH1D,NPATCH1D)
     INTEGER(i4b):: Poisson_age(1000),Poisson_freq(1000)
-    REAL(dp):: Poisson_weight(1000), CumPoisson_weight(1000)
+    REAL:: Poisson_weight(1000), CumPoisson_weight(1000)
     INTEGER(i4b):: disturbances_per_timebase, timebase
     INTEGER:: i_min, i_max, age_sample(2,NAGE_MAX), tmp(NAGE_MAX)
     INTEGER:: age_tmp, tmp_unique(NAGE_MAX), n_age, np
-    REAL(dp):: disturbance_freq, tmp1
+    REAL:: disturbance_freq, tmp1
     INTEGER:: tmp2
 
     np = SIZE(POP%pop_grid)
@@ -385,7 +385,7 @@ CONTAINS
           DO p = 1,1000
              Poisson_age(p) = p
              Poisson_weight(p) = Exponential(disturbance_freq,p)
-             CumPoisson_weight(p) = CumExponential(disturbance_freq,REAL(p,dp))
+             CumPoisson_weight(p) = CumExponential(disturbance_freq,REAL(p))
           ENDDO
           ! sample ages with equally spaced cumulative probabilities
           DO k =1,NAGE_MAX
@@ -487,11 +487,11 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
-    REAL(dp), INTENT(IN) :: StemNPP(:,:)
-    REAL(dp), INTENT(IN) :: disturbance_intensity(:,:)
+    REAL, INTENT(IN) :: StemNPP(:,:)
+    REAL, INTENT(IN) :: disturbance_intensity(:,:)
     INTEGER(i4b), INTENT(IN) ::  disturbance_interval(:,:)
-    REAL(dp), INTENT(IN) ::  LAI(:)
-    REAL(dp), INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
+    REAL, INTENT(IN) ::  LAI(:)
+    REAL, INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
     INTEGER(i4b) :: idisturb, it
 
     pop%it_pop = pop%it_pop + 1
@@ -554,19 +554,19 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE( POP_TYPE ), INTENT(INOUT) :: pop
-    REAL(dp), INTENT(IN)            :: StemNPP(:,:)
+    REAL, INTENT(IN)            :: StemNPP(:,:)
     INTEGER(i4b), INTENT(IN)        ::  disturbance_interval(:,:)
-    REAL(dp), INTENT(IN), OPTIONAL  :: precip(:)
+    REAL, INTENT(IN), OPTIONAL  :: precip(:)
     INTEGER(i4b), INTENT(IN)        :: it
 
-    REAL(dp) :: f, mu, densindiv, cmass
-    REAL(dp) :: tmp, cmass_stem_sum,cmass_stem_inc
+    REAL :: f, mu, densindiv, cmass
+    REAL :: tmp, cmass_stem_sum,cmass_stem_inc
     INTEGER(i4b) :: j, k,c, ncohort
     INTEGER(i4b) :: ivec(NCOHORT_MAX), nc, tmp1(NPATCH2D), tmp2(NPATCH2D), np, idisturb
-    REAL(dp) :: growth_efficiency,cmass_stem
-    REAL(dp) :: mort, mort_bg, fire_mort
-    REAL(dp) :: s2, cpc, crown_area
-    REAL(dp) :: mort_cpc
+    REAL :: growth_efficiency,cmass_stem
+    REAL :: mort, mort_bg, fire_mort
+    REAL :: s2, cpc, crown_area
+    REAL :: mort_cpc
 
 
     idisturb = 1
@@ -734,17 +734,17 @@ CONTAINS
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
     INTEGER(i4b), INTENT(IN) ::  disturbance_interval(:,:), idisturb, it
     INTEGER(i4b) :: g, i,j,k,ct,lastct,agecopy,idcopy
-    REAL(dp), ALLOCATABLE :: midpoint(:)
+    REAL, ALLOCATABLE :: midpoint(:)
     INTEGER(i4b), ALLOCATABLE :: ranked_age(:), ranked_age_init(:)
     INTEGER(i4b) ::  tmp_count, tmp_i, age_tmp
     INTEGER(i4b), ALLOCATABLE :: ranked_age_unique_id(:), ranked_age_id(:), counter(:)
-    REAL(dp), ALLOCATABLE :: tmp(:), freq_tmp(:), freq_tmp1(:)
-    REAL(dp) :: p,cump,lastcump, freq, tmp1
+    REAL, ALLOCATABLE :: tmp(:), freq_tmp(:), freq_tmp1(:)
+    REAL :: p,cump,lastcump, freq, tmp1
     INTEGER(i4b) :: n_age ! number of unique ages
     INTEGER(i4b) :: npatch_active ! number of active patches
-    REAL(dp):: disturbance_freq
+    REAL:: disturbance_freq
     INTEGER(i4b) :: i_max, age_max, Poisson_age(1000), np
-    REAL(dp):: Poisson_weight(1000), CumPoisson_weight(1000)
+    REAL:: Poisson_weight(1000), CumPoisson_weight(1000)
     INTEGER(i4b), ALLOCATABLE :: bound(:,:), unique_age(:)
 
     !Fills array freq with weights (frequencies across landscape) for each unique age
@@ -804,7 +804,7 @@ CONTAINS
        disturbance_freq=1.0/REAL(disturbance_interval(g,idisturb))
        DO i =1,1000
           Poisson_age(i) = i
-          CumPoisson_weight(i) = CumExponential(disturbance_freq,REAL(i,dp))
+          CumPoisson_weight(i) = CumExponential(disturbance_freq,REAL(i))
        ENDDO
 
 
@@ -839,7 +839,7 @@ CONTAINS
        ! calculate weighting for each unique age
        DO i=1,n_age
           DO j = bound(i,1),bound(i,2)
-             freq_tmp(i) = freq_tmp(i) + REALExponential(disturbance_freq,REAL(j,dp))
+             freq_tmp(i) = freq_tmp(i) + REALExponential(disturbance_freq,REAL(j))
           ENDDO
        ENDDO
 
@@ -859,7 +859,7 @@ CONTAINS
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
     INTEGER(i4b) :: n1, n2, g, REPCOUNT, tmp1(NPATCH1D), np
-    REAL(dp) ::  tmp2(NPATCH1D), tmp3(NPATCH1D)
+    REAL ::  tmp2(NPATCH1D), tmp3(NPATCH1D)
 
     np = SIZE(Pop%pop_grid)
     DO g=1,np
@@ -924,22 +924,22 @@ CONTAINS
     ! Gets diagnostic data for current landscape structure
     IMPLICIT NONE
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
-    REAL(dp), INTENT(IN) ::  LAI(:)
-    REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
+    REAL, INTENT(IN) ::  LAI(:)
+    REAL, INTENT(IN), OPTIONAL :: precip(:)
     INTEGER(i4b), INTENT(IN) :: it
     INTEGER(i4b) :: P, g,i,j,ct, ct_highres
-    REAL(dp) :: limits(HEIGHT_BINS+1)
-    REAL(dp) :: ht, htmax, cmass_stem,densindiv, freq, freq_old
+    REAL :: limits(HEIGHT_BINS+1)
+    REAL :: ht, htmax, cmass_stem,densindiv, freq, freq_old
     CHARACTER(len=12) :: string1, string2
     CHARACTER(len=9) :: fmt
     INTEGER(i4b) :: npatch_active  ! number of active patches
     INTEGER(i4b) :: np, i_height
-    REAL(dp) :: diam,basal, cump
-    REAL(dp) :: patch_crown_area(NPATCH2D), patch_crown_cover(NPATCH2D)
-    REAL(dp), ALLOCATABLE :: height_list(:), height_list_weight(:)
-    REAL(dp) :: height_copy, weight_copy, Pwc, FAVD
+    REAL :: diam,basal, cump
+    REAL :: patch_crown_area(NPATCH2D), patch_crown_cover(NPATCH2D)
+    REAL, ALLOCATABLE :: height_list(:), height_list_weight(:)
+    REAL :: height_copy, weight_copy, Pwc, FAVD
     INTEGER(i4b), PARAMETER :: HEIGHT_BINS_highres=100 ! bins for assessing height_max
-    REAL(dp), ALLOCATABLE :: limits_highres(:), DENSINDIV_HIGHRES(:)
+    REAL, ALLOCATABLE :: limits_highres(:), DENSINDIV_HIGHRES(:)
 
 
     fmt = '(f5.1)'
@@ -1182,12 +1182,12 @@ CONTAINS
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
     INTEGER(i4b), INTENT(IN) :: it, idisturb
-    REAL(dp), INTENT(IN) :: intensity(:,:)
-    REAL(dp), INTENT(IN), OPTIONAL :: precip(:), frac_intensity1(:)
+    REAL, INTENT(IN) :: intensity(:,:)
+    REAL, INTENT(IN), OPTIONAL :: precip(:), frac_intensity1(:)
     INTEGER(i4b) :: j, k, i, g, c, nc, np
     INTEGER(i4b) ::  ivec(NCOHORT_MAX)
-    REAL(dp) :: ht, diam
-    REAL(dp) :: Psurvival_l, Psurvival_s, Psurvival, char_height
+    REAL :: ht, diam
+    REAL :: Psurvival_l, Psurvival_s, Psurvival, char_height
 
     np = SIZE(Pop%pop_grid)
 
@@ -1298,7 +1298,7 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
-    REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
+    REAL, INTENT(IN), OPTIONAL :: precip(:)
     INTEGER(i4b), INTENT(IN) :: it,idisturb
     INTEGER(i4b) :: j, k, np, nc
 
@@ -1367,11 +1367,11 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
-    REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
-    REAL(dp) :: f, mu, densindiv, cmass, ht
-    REAL(dp) :: tmp, cmass_stem_sum,cmass_stem_inc
+    REAL, INTENT(IN), OPTIONAL :: precip(:)
+    REAL :: f, mu, densindiv, cmass, ht
+    REAL :: tmp, cmass_stem_sum,cmass_stem_inc
     INTEGER(i4b) :: j, k,c, ncohort, np
-    REAL(dp) :: diam,basal
+    REAL :: diam,basal
 
     np = SIZE(Pop%pop_grid)
 
@@ -1426,12 +1426,12 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
-    REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
+    REAL, INTENT(IN), OPTIONAL :: precip(:)
     INTEGER(i4b), INTENT(IN) :: index, grid_index
-    REAL(dp) :: f, mu, densindiv, cmass, ht
-    REAL(dp) :: tmp, cmass_stem_sum,cmass_stem_inc
+    REAL :: f, mu, densindiv, cmass, ht
+    REAL :: tmp, cmass_stem_sum,cmass_stem_inc
     INTEGER(i4b) :: j, k,c, ncohort, np
-    REAL(dp) :: diam,basal
+    REAL :: diam,basal
 
     np = SIZE(Pop%pop_grid)
     DO j=grid_index,grid_index
@@ -1484,12 +1484,12 @@ CONTAINS
   ! Use to determine average age (x, years) of patches with a given random disturbance
   ! frequency lambda (disturbances per year)
 
-  REAL(dp) FUNCTION Exponential(lambda, x)
+  REAL FUNCTION Exponential(lambda, x)
 
     IMPLICIT NONE
 
     INTEGER(i4b), INTENT(IN) :: x
-    REAL(dp), INTENT(IN) ::  lambda
+    REAL, INTENT(IN) ::  lambda
 
     IF (x.LT.0) THEN ! Shouldn't happen but ...
        Exponential=0.0
@@ -1507,12 +1507,12 @@ CONTAINS
   ! Use to determine average age (x, years) of patches with a given random disturbance
   ! frequency lambda (disturbances per year)
 
-  REAL(dp) FUNCTION REALExponential(lambda, x)
+  REAL FUNCTION REALExponential(lambda, x)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) ::  x
-    REAL(dp), INTENT(IN) ::  lambda
+    REAL, INTENT(IN) ::  x
+    REAL, INTENT(IN) ::  lambda
 
     IF (x.LT.0) THEN ! Shouldn't happen but ...
        REALExponential=0.0
@@ -1523,12 +1523,12 @@ CONTAINS
   END FUNCTION REALExponential
 
   !*******************************************************************************
-  REAL(dp) FUNCTION CumExponential(lambda, x)
+  REAL FUNCTION CumExponential(lambda, x)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: x
-    REAL(dp), INTENT(IN) ::  lambda
+    REAL, INTENT(IN) :: x
+    REAL, INTENT(IN) ::  lambda
 
     IF (x.LT.0) THEN ! Shouldn't happen but ...
        CumExponential=0.0
@@ -1540,13 +1540,13 @@ CONTAINS
 
   !*******************************************************************************
 
-  REAL(dp)  FUNCTION Factorial(n)
+  REAL  FUNCTION Factorial(n)
 
     IMPLICIT NONE
 
     INTEGER , INTENT(IN) :: n
     INTEGER :: i
-    REAL(dp) :: Ans
+    REAL :: Ans
 
     Ans = 1
     DO i = 1, n
@@ -1572,21 +1572,21 @@ CONTAINS
   ! biomass = tree stem C biomass across patch (kgC/m2)
   ! density = tree density (indiv/m2)
 
-  REAL(dp) FUNCTION GetHeight(precip,biomass,density)
+  REAL FUNCTION GetHeight(precip,biomass,density)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: precip
-    REAL(dp), INTENT(IN) :: biomass
-    REAL(dp), INTENT(IN) :: density
+    REAL, INTENT(IN) :: precip
+    REAL, INTENT(IN) :: biomass
+    REAL, INTENT(IN) :: density
 
-    REAL(dp),PARAMETER:: THETA=0.99 ! Shape parameter, should be slightly <1
-    REAL(dp),PARAMETER:: HMIN=0.001 ! min bound for tree height
-    REAL(dp),PARAMETER:: HMAX=100 ! max bound for tree height
-    REAL(dp),PARAMETER:: EPS=0.01 ! precision of the root
+    REAL,PARAMETER:: THETA=0.99 ! Shape parameter, should be slightly <1
+    REAL,PARAMETER:: HMIN=0.001 ! min bound for tree height
+    REAL,PARAMETER:: HMAX=100 ! max bound for tree height
+    REAL,PARAMETER:: EPS=0.01 ! precision of the root
     INTEGER(i4b), PARAMETER :: MAXTRIES=25
 
-    REAL(dp) :: alpha,beta,delta,rh,st,x1,x2,rtbis,dx,fmid,xmid,lhs,rhs
+    REAL :: alpha,beta,delta,rh,st,x1,x2,rtbis,dx,fmid,xmid,lhs,rhs
     INTEGER(i4b) :: b
 
     alpha=4.05*EXP(-0.00032*precip)
@@ -1633,13 +1633,13 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: height
-    REAL(dp), INTENT(IN) :: biomass
-    REAL(dp), INTENT(IN) :: density
-    REAL(dp), INTENT(OUT) :: diam
-    REAL(dp), INTENT(OUT) :: basal
+    REAL, INTENT(IN) :: height
+    REAL, INTENT(IN) :: biomass
+    REAL, INTENT(IN) :: density
+    REAL, INTENT(OUT) :: diam
+    REAL, INTENT(OUT) :: basal
 
-    REAL(dp) :: delta,rh
+    REAL :: delta,rh
 
     delta=2.0*SQRT(biomass/density/WD/PI)
     rh=1.0/SQRT(height)

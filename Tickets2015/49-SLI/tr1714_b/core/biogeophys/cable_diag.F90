@@ -54,7 +54,7 @@ MODULE cable_diag_module
    end interface get_var_nc
 
    interface  def_vars
-      module procedure def_vars_real, def_vars_double
+      module procedure def_vars_real!, def_vars_double
    End interface  def_vars
 
 CONTAINS

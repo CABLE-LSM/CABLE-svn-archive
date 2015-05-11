@@ -29,6 +29,14 @@
 # ==============================================================================
 ##########################################################################
                
+NCDIR=/usr/lib
+NCMOD=/usr/include
+FC=/usr/local/bin/gfortran
+CFLAGS=-O2 -x f95-cpp-input -ffree-form -ffree-line-length-0 -fdefault-real-8
+#CFLAGS=-O2 -x f95-cpp-input -ffree-form -ffree-line-length-0 -fdefault-integer-8 -fdefault-real-8
+LD=-lnetcdf -lnetcdff
+LDFLAGS=-L/usr/lib -O2
+
 # these are all the files we are compiling
 LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_abort.F90 casa_variable.F90 cable_parameters.F90 cable_soilsnow.F90 \

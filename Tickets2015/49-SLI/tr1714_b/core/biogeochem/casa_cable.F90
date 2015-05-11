@@ -71,7 +71,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
 
    INTEGER                                   :: it, nit
-   REAL(dp)                               :: StemNPP(mp,2)
+   REAL                               :: StemNPP(mp,2)
    CHARACTER                                 :: cyear*4
    CHARACTER                                 :: ncfile*99
    ! FOR POP DIAGNOSTICS
@@ -153,8 +153,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                StemNPP(:,2) = 0.0
                IF (cable_user%CALL_POP) THEN
 
-                  CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
-                         real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
+                  CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval), &
+                         real(veg%disturbance_intensity), real(casamet%glai) )
 
                   casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
 			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
@@ -208,8 +208,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
             StemNPP(:,2) = 0.0
    
             IF (cable_user%CALL_POP) THEN
-               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
-                  real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
+               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval), &
+                  real(veg%disturbance_intensity), real(casamet%glai) )
              
                   casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
 			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &

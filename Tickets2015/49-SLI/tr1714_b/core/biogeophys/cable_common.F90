@@ -128,7 +128,7 @@ MODULE cable_common_module
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE., & !
 
-	     ! Switch for customized soil respiration - see Ticket #42
+      ! Switch for customized soil respiration - see Ticket #42
          SRF = .FALSE.
          
    END TYPE kbl_user_switches
@@ -245,6 +245,8 @@ MODULE cable_common_module
 
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
+   
+   
       
 CONTAINS
 
@@ -471,7 +473,7 @@ END SUBROUTINE get_type_parameters
 
   SUBROUTINE HANDLE_ERR( status )
     use netcdf
-    INTEGER, INTENT(IN) :: status
+    INTEGER*4 :: status
     IF(status /= NF90_noerr) THEN
        PRINT*,"netCDF error:"
        PRINT*, TRIM(NF90_strerror(status))
