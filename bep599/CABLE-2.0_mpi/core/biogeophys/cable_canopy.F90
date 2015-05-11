@@ -1311,9 +1311,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       temp2
 
    REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
-!   REAL, DIMENSION(:,:), POINTER :: rootexw  ! fraction of transpiration taken from a soil layer   ! to be done in cable_define_types
-   REAL, DIMENSION(mp)           :: fwsoilx 
-   REAL, DIMENSION(mp,ms)        :: rootexwx
+   
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
    INTEGER :: i, j, k, kk  ! iteration count
@@ -1322,27 +1320,22 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
    ALLOCATE( gswmin(mp,mf ))
-!   ALLOCATE( rootexw(mp,ms))     ! to be done in cable_define_types
 
    ! Soil water limitation on stomatal conductance:
-!   IF( iter ==1) THEN
+   IF( iter ==1) THEN
    
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
-         canopy%rootexw(:,:) = veg%froot(:,:)
       ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
-         canopy%rootexw(:,:) = veg%froot(:,:)
       ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
-         CALL fwsoil_calc_Li2006(fwsoilx, rootexwx, soil, ssnow, veg) 
          CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
-         canopy%rootexw(:,:) = rootexwx(:,:) * SPREAD(fwsoil(:)/fwsoilx(:), 2, ms)
       ELSE
          STOP 'fwsoil_switch failed.'
       ENDIF
 
-!   ENDIF
+   ENDIF
 
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
@@ -1351,7 +1344,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 !   lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
    gsw_term = SPREAD(veg%gswmin,2,mf)
    lower_limit2 = rad%scalex * gsw_term
-   gswmin = max(1.e-6,lower_limit2)*SPREAD(fwsoil,2,mf)
+   gswmin = max(1.e-6,lower_limit2)
          
 
    gw = 1.0e-3 ! default values of conductance
@@ -1493,8 +1486,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     
 !            rdx(i,1) = (C%cfrd3*vcmxt3(i,1) + C%cfrd4*vcmxt4(i,1))
 !            rdx(i,2) = (C%cfrd3*vcmxt3(i,2) + C%cfrd4*vcmxt4(i,2))
-            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))*fwsoil(i)
-            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))*fwsoil(i)
+            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
             
 !            xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
 !                          * ( ( 1.0 - veg%frac4(i) ) * C%A1C3 / ( 1.0 + dsx(i) &
@@ -1520,7 +1513,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
                            xleuning(:,:), rad%fvlai(:,:),                      &
                            SPREAD( abs_deltlf, 2, mf ),                        &
-                           anx(:,:) )
+                           anx(:,:), fwsoil(:) )
 
       DO i=1,mp
          
@@ -1534,7 +1527,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                               gbhu(i,kk) + gbhf(i,kk) )
                   csx(i,kk) = MAX( 1.0e-4, csx(i,kk) )
 
-                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk) +     &
+                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
                                       MAX( 0.0, C%RGSWC * xleuning(i,kk) *     &
                                       anx(i,kk) ) )
 
@@ -1567,21 +1560,12 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            / air%rlam(i)
 
                DO kk = 1,ms
-                  ssnow%evapfbl(i,kk) = MIN( evapfb(i) * canopy%rootexw(i,kk), &
-                                        MAX( 0.0, REAL( ssnow%wb(i,kk) ) -    &
-                                        1.1 * soil%swilt(i) ) *               &
+                  
+                  ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                                        MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                        1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
-!                 IF (cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
-!                   ssnow%evapfbl(i,kk) = MIN( evapfb(i) * rootexw(i,kk),       &
-!                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -    &
-!                                         1.1 * soil%swilt(i) ) *               &
-!                                         soil%zse(kk) * 1000.0 )
-!                 ELSE 
-!                   ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),     &
-!                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -    &
-!                                         1.1 * soil%swilt(i) ) *               &
-!                                         soil%zse(kk) * 1000.0 )
-!                 ENDIF
+
                ENDDO
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
@@ -1716,7 +1700,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%evapfbl = ssnow%evapfbl
    
    DEALLOCATE( gswmin )
-!   DEALLOCATE( rootexw )     ! to be done in cable_define_types
 
 END SUBROUTINE dryLeaf
 
@@ -1724,7 +1707,7 @@ END SUBROUTINE dryLeaf
 
 SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                            rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
-                           vx4z, xleuningz, vlaiz, deltlfz, anxz )
+                           vx4z, xleuningz, vlaiz, deltlfz, anxz, fwsoilz )
    USE cable_def_types_mod, only : mp, mf, r_2
    
    REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
@@ -1749,6 +1732,8 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
       coef0z,coef1z,coef2z, ciz,delcxz,                                        &
       anrubiscoz,anrubpz,ansinkz
 
+   REAL, DIMENSION(mp) :: fwsoilz  
+ 
    REAL, PARAMETER  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see
                                        ! Bonan,LSM version 1.0, p106)
 
@@ -1764,12 +1749,12 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
             IF( vlaiz(i,j) .GT. C%LAI_THRESH .AND. deltlfz(i,j) .GT. 0.1) THEN
 
                ! Rubisco limited:
-               coef2z(i,j) = gswminz(i,j) / C%RGSWC + xleuningz(i,j) * &
+               coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + xleuningz(i,j) * &
                              ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
 
                coef1z(i,j) = (1.0-csxz(i,j)*xleuningz(i,j)) *                  &
                              (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
-                             + (gswminz(i,j)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
+                             + (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
                              - xleuningz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
                              + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
                
@@ -1777,7 +1762,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                coef0z(i,j) = -(1.0-csxz(i,j)*xleuningz(i,j)) *                 &    
                              (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
                              + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
-                             -( gswminz(i,j)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
+                             -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
 
                ! kdcorbin,09/10 - new calculations
                IF( ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
@@ -1824,20 +1809,20 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                ENDIF
    
                ! RuBP limited:
-               coef2z(i,j) = gswminz(i,j) / C%RGSWC + xleuningz(i,j) &
+               coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + xleuningz(i,j) &
                              * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
    
                coef1z(i,j) = ( 1.0 - csxz(i,j) * xleuningz(i,j) ) *            &
                              ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
-                             + ( gswminz(i,j) / C%RGSWC ) *          &
+                             + ( gswminz(i,j)*fwsoilz(i) / C%RGSWC ) *          &
                              ( cx2z(i,j) - csxz(i,j) ) - xleuningz(i,j)        &
                              * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
                              ( rdxz(i,j) - vx4z(i,j) ) )                          
                              
-               coef0z(i,j) = -(1.0-csxz(i,j)*xleuningz(i,j)) *   &
+                             coef0z(i,j) = -(1.0-csxz(i,j)*xleuningz(i,j)) *   &
                              (vx3z(i,j)*cx2z(i,j)/2.0                          &
                              + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
-                         - (gswminz(i,j)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
+                         - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
    
    
                !kdcorbin, 09/10 - new calculations
@@ -1881,14 +1866,14 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                ! Sink limited:
                coef2z(i,j) = xleuningz(i,j)
                
-               coef1z(i,j) = gswminz(i,j)/C%RGSWC + xleuningz(i,j)   &
+               coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + xleuningz(i,j)   &
                              * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
                              + effc4 * vcmxt4z(i,j) - xleuningz(i,j)           &
                              * csxz(i,j) * effc4 * vcmxt4z(i,j)  
                                             
-               coef0z(i,j) = -( gswminz(i,j)/C%RGSWC )*csxz(i,j)*effc4 &
+               coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC )*csxz(i,j)*effc4 &
                              * vcmxt4z(i,j) + ( rdxz(i,j)                      &
-                           - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)/C%RGSWC
+                           - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
           
                ! no solution, give it a huge number
                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
@@ -2118,41 +2103,6 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
 END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
-SUBROUTINE fwsoil_calc_Li2006(fwsoil, rootexw, soil, ssnow, veg)
-   USE cable_def_types_mod
-   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil    ! soil water modifier of stom. cond
-   REAL, INTENT(OUT), DIMENSION(:,:) :: rootexw   ! fraction of T extracted from a soil layer
-   INTEGER   :: ns
-   REAL, parameter ::rootgamma = 0.5    ! alpha's exponent (see LI et al. 2006) 
-   !-- local level dependent rwater
-   REAL, DIMENSION(mp,ms)  :: dwlayer,rootalp1,rootalp2,rootalpha
-   REAL, DIMENSION(mp)     :: dwwilt,dwsfc                   
-
-
-   fwsoil(:)    = 0.0
-   rootexw(:,:) = 0.0
-
-   dwwilt(:)   = (soil%swilt(:)/soil%ssat(:))**(-soil%bch(:))
-   dwsfc(:)    = (soil%sfc(:)/soil%ssat(:))**(-soil%bch(:))
-   DO ns=1,ms
-      dwlayer(:,ns)    = (ssnow%wb(:,ns)/soil%ssat(:))**(-soil%bch(:))
-      rootalp1(:,ns)   = min(1.0,max(1.0e-4,(dwlayer(:,ns)-dwwilt(:))/(dwsfc(:)-dwwilt(:))))
-      rootalp2(:,ns)   = min(1.0,max(1.0e-4,(ssnow%wb(:,ns)-soil%swilt(:))/(soil%sfc(:)-soil%swilt(:))))
-      rootalpha(:,ns)  = (rootalp1(:,ns)*rootalp2(:,ns)) **(rootgamma)
-      rootexw(:,ns)    = veg%froot(:,ns) * rootalpha(:,ns)
-      fwsoil(:)        = fwsoil(:)       + rootexw(:,ns)
-   ENDDO
-
-   do ns=1,ms
-      rootexw(:,ns) = rootexw(:,ns)/fwsoil(:)   ! normalized to 1.0
-   enddo
-
-   fwsoil(:) = sum(rootexw(:,:),2)
-   
-END SUBROUTINE fwsoil_calc_Li2006
 
     
 END MODULE cable_canopy_module

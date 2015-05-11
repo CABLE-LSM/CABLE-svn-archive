@@ -45,8 +45,7 @@ MODULE cable_mpicommon
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
-  !INTEGER, PARAMETER :: nparam = 293   ! changed ypw to add 10 variables to veg%
-  INTEGER, PARAMETER :: nparam = 294   ! added canopy%rootexw (May 2015)
+  INTEGER, PARAMETER :: nparam = 293   ! changed ypw to add 10 variables to veg%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1

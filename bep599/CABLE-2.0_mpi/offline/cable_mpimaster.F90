@@ -1753,12 +1753,6 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   !blen(bidx) = ms * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (canopy%rootexw(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
   CALL MPI_Get_address (canopy%epot(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
