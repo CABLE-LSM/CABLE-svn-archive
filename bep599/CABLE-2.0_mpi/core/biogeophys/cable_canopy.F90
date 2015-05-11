@@ -1311,7 +1311,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       temp2
 
    REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
-   
+   REAL, DIMENSION(:,:), POINTER :: rootexw  ! fraction of transpiration taken from a soil layer
+   REAL, DIMENSION(mp)           :: fwsoilx 
+   REAL, DIMENSION(mp,ms)        :: rootexwx
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
    INTEGER :: i, j, k, kk  ! iteration count
@@ -1320,9 +1322,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
    ALLOCATE( gswmin(mp,mf ))
+   ALLOCATE( rootexw(mp,ms))
 
    ! Soil water limitation on stomatal conductance:
-   IF( iter ==1) THEN
+!   IF( iter ==1) THEN
    
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
@@ -1330,12 +1333,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
       ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+         CALL fwsoil_calc_Li2006(fwsoilx, rootexwx, soil, ssnow, veg) 
          CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+         rootexw(:,:) = rootexwx(:,:) * SPREAD(fwsoil(:)/fwsoilx(:), 2, ms)
       ELSE
          STOP 'fwsoil_switch failed.'
       ENDIF
 
-   ENDIF
+!   ENDIF
 
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
@@ -1560,12 +1565,17 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            / air%rlam(i)
 
                DO kk = 1,ms
-                  
-                  ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
-                                        MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                        1.1 * soil%swilt(i) ) *                &
-                                        soil%zse(kk) * 1000.0 )
-
+                 IF (cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+                   ssnow%evapfbl(i,kk) = MIN( evapfb(i) * rootexw(i,kk),       &
+                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -    &
+                                         1.1 * soil%swilt(i) ) *               &
+                                         soil%zse(kk) * 1000.0 )
+                 ELSE 
+                   ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),     &
+                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -    &
+                                         1.1 * soil%swilt(i) ) *               &
+                                         soil%zse(kk) * 1000.0 )
+                 ENDIF
                ENDDO
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
@@ -1700,6 +1710,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%evapfbl = ssnow%evapfbl
    
    DEALLOCATE( gswmin )
+   DEALLOCATE( rootexw )
 
 END SUBROUTINE dryLeaf
 
@@ -2103,6 +2114,41 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
 END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
+SUBROUTINE fwsoil_calc_Li2006(fwsoil, rootexw, soil, ssnow, veg)
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil    ! soil water modifier of stom. cond
+   REAL, INTENT(OUT), DIMENSION(:,:) :: rootexw   ! fraction of T extracted from a soil layer
+   INTEGER   :: ns
+   REAL, parameter ::rootgamma = 0.5    ! alpha's exponent (see LI et al. 2006) 
+   !-- local level dependent rwater
+   REAL, DIMENSION(mp,ms)  :: dwlayer,rootalp1,rootalp2,rootalpha
+   REAL, DIMENSION(mp)     :: dwwilt,dwsfc                   
+
+
+   fwsoil(:)    = 0.0
+   rootexw(:,:) = 0.0
+
+   dwwilt(:)   = (soil%swilt(:)/soil%ssat(:))**(-soil%bch(:))
+   dwsfc(:)    = (soil%sfc(:)/soil%ssat(:))**(-soil%bch(:))
+   DO ns=1,ms
+      dwlayer(:,ns)    = (ssnow%wb(:,ns)/soil%ssat(:))**(-soil%bch(:))
+      rootalp1(:,ns)   = min(1.0,max(1.0e-4,(dwlayer(:,ns)-dwwilt(:))/(dwsfc(:)-dwwilt(:))))
+      rootalp2(:,ns)   = min(1.0,max(1.0e-4,(ssnow%wb(:,ns)-soil%swilt(:))/(soil%sfc(:)-soil%swilt(:))))
+      rootalpha(:,ns)  = (rootalp1(:,ns)*rootalp2(:,ns)) **(rootgamma)
+      rootexw(:,ns)    = veg%froot(:,ns) * rootalpha(:,ns)
+      fwsoil(:)        = fwsoil(:)       + rootexw(:,ns)
+   ENDDO
+
+   do ns=1,ms
+      rootexw(:,ns) = rootexw(:,ns)/max(1.0,fwsoil(:))
+   enddo
+
+   fwsoil(:) = sum(rootexw(:,:),2)
+   
+END SUBROUTINE fwsoil_calc_Li2006
 
     
 END MODULE cable_canopy_module
