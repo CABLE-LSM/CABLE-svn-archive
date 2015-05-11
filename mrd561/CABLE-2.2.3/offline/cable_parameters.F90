@@ -124,6 +124,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElev
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElevSTD
+  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
@@ -425,7 +426,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: logn ! log file unit number
 
     ! local variables
-    INTEGER :: ncid, ok, ii, jj
+    INTEGER :: ncid, ok, ii, jj,kk
     INTEGER :: xID, yID, fieldID
     INTEGER :: xlon, xlat
     REAL, DIMENSION(:,:,:,:), ALLOCATABLE :: indummy
@@ -433,6 +434,17 @@ CONTAINS
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
     
     integer :: ok2, ncid_elev
+    !teribble hacky just to test....
+    REAL, DIMENSION(20,2)  :: SoilAlbedoColors 
+
+    SoilAlbedoColors(:,1) = &
+                           (/0.36,0.34,0.32,0.31,0.3,0.29,0.28,&
+                             0.27,0.26,0.25,0.24,0.23,0.22,0.2,&
+                             0.18,0.16,0.14,0.12,0.1,0.08      /)
+   SoilAlbedoColors(:,2) = &
+                           (/0.61,0.57,0.53,0.51,0.49,0.48,0.45,&
+                             0.43,0.41,0.39,0.37,0.35,0.33,0.31,&
+                             0.29,0.27,0.25,0.23,0.21,0.16      /)
 
     ok = NF90_OPEN(filename%type, 0, ncid)
 
@@ -742,6 +754,10 @@ CONTAINS
     if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
     inSlopeSTD(:,:) = 0.0
 
+    allocate(inSoilColor(nlon,nlat),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
+    inSoilColor(:,:) = 0.0
+
     IF (cable_user%GW_MODEL) THEN
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
       
@@ -777,6 +793,23 @@ CONTAINS
           WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
        END IF
 
+       ok = NF90_INQ_VARID(ncid_elev, 'soil_color', fieldID)
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable soil color'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inSoilColor)
+       IF (ok /= NF90_NOERR) THEN
+          inSoilColor = -999
+          WRITE(logn, *) 'Could not read soil data for SSGW, will use defulat Albedo'
+       END IF
+       !use soil color to replace inALB
+       do ii = 1,nlon
+          do jj=1,nlat
+             if (inSoilColor(ii,jj) .gt. 0 .and. inSoilColor(ii,jj) .lt. 21) then
+                do kk=1,nrb
+                   inALB(ii,jj,:,kk) = SoilAlbedoColors(inSoilColor(ii,jj),kk)
+                end do
+             end if
+          end do
+       end do
        ok = NF90_CLOSE(ncid_elev)
 
     ENDIF  !running gw model
@@ -1325,6 +1358,7 @@ CONTAINS
 
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
+    if (allocated(inSoilColor)) deallocate(inSoilColor)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
 !    IF(ASSOCIATED(vegtype_metfile)) DEALLOCATE(vegtype_metfile)
