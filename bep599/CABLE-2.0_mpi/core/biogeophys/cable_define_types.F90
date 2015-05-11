@@ -322,6 +322,7 @@ MODULE cable_def_types_mod
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
+         rootexw, & ! fraction of transpiration taken from a soil layer
          gswx,    & ! stom cond for water
          zetar      ! stability correction
 
@@ -780,7 +781,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% rghlai(mp) ) 
    ALLOCATE( var% vlaiw(mp) ) 
    ALLOCATE( var% fwet(mp) )   
-   ALLOCATE ( var % evapfbl(mp,ms) )
+   ALLOCATE( var% evapfbl(mp,ms) )
+   ALLOCATE( var% rootexw(mp,ms) )
    ALLOCATE( var% epot(mp) )   
    ALLOCATE( var% fnpp(mp) )   
    ALLOCATE( var% fevw_pot(mp) )  
@@ -1187,7 +1189,8 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% rghlai ) 
    DEALLOCATE( var% vlaiw ) 
    DEALLOCATE( var% fwet )   
-   DEALLOCATE ( var % evapfbl )
+   DEALLOCATE( var% evapfbl )
+   DEALLOCATE( var% rootexw )
    DEALLOCATE( var% epot )   
    DEALLOCATE( var% fnpp )   
    DEALLOCATE( var% fevw_pot )  
