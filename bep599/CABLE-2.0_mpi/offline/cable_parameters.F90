@@ -1465,7 +1465,7 @@ CONTAINS
   IF (icycle==1) THEN
     casapool%nplant(:,:) = casapool%cplant(:,:) * casapool%rationcplant(:,:)
     casapool%Nsoil(:,:)  = casapool%ratioNCsoil(:,:) * casapool%Csoil(:,:)
-    casapool%Psoil(:,:)  = casapool%ratioPCsoil(:,:) * casapool%Csoil(:,:)
+    casapool%Psoil(:,:)  = casapool%Nsoil(:,:)/casapool%ratioNPsoil(:,:)
     casapool%Nsoilmin(:) = 2.5
   ENDIF
 
