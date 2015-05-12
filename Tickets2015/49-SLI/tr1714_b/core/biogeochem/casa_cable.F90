@@ -293,7 +293,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
       USE cable_def_types_mod,   ONLY : r_2,ms,mp
       USE casadimension,         ONLY : mplant,mdyear
       USE casavariable,          ONLY : casa_met, casa_flux
-      USE cable_diag_module,     ONLY : get_var_ncr2, &
+      USE cable_popncdf_module,     ONLY : get_var_ncr2, &
                                         get_var_ncr3, stderr_nc
 
       IMPLICIT NONE
@@ -388,7 +388,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
   USE netcdf
   USE cable_def_types_mod,   ONLY : r_2,ms,mp
   USE cable_common_module,   ONLY : kend_gl
-  USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
+  USE cable_popncdf_module,     ONLY : def_dims, def_vars, def_var_atts, &
        put_var_ncr1, put_var_ncr2,       &
        put_var_ncr3, stderr_nc
   USE casavariable,          ONLY : CASA_MET, CASA_FLUX
@@ -444,7 +444,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
   !local only
   INTEGER :: ncok      !ncdf return status
-
+  real*4, parameter :: fr4=9.0 
+  integer, parameter :: ur4=kind(fr4) 
+  !integer, parameter :: ur4=selected_real_kind(fr4) 
   ! END header
 
   dim_len(1)        = mp
@@ -466,8 +468,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
      ncok = nf90_enddef(ncid)
 
-     CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
-     CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
+     CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat,ur4)  )
+     CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon,ur4)  )
 
   ENDIF
 

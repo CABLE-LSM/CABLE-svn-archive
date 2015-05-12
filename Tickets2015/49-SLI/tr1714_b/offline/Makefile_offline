@@ -53,7 +53,7 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 PROG = cable
 
 # from the compiled object files 
-OBJS	= ${LSRC:.F90=.o} 
+OBJS	= ${LSRC:.F90=.o} cable_pop_ncdf.o 
 
 #compiler switches and flags
 CINC = -I$(NCMOD)
