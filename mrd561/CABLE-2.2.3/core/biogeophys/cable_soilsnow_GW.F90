@@ -1534,8 +1534,8 @@ END SUBROUTINE remove_trans
     INTEGER :: imp,ims,k_drain
 
     drainmod(:) = 1._r_2  !parameter to modify qhrz params by basin or veg type
-    where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
-    drainmod(:) = (1._r_2 + soil%FOrg(:,1))*drainmod(:)
+    !where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
+    !drainmod(:) = (1._r_2 + soil%FOrg(:,1))*drainmod(:)
 
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
@@ -1644,7 +1644,7 @@ END SUBROUTINE remove_trans
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = ssnow%hk(i,1) * tan(soil%slope(i)) * drainmod(i)*gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = tan(soil%slope(i)) * drainmod(i)*gw_params%MaxHorzDrainRate* &!(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
  
        !identify first no frozen layer.  drinage from that layer and below
@@ -2200,7 +2200,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
 
        satfrac = 0.0
-       slopeSTDmm = max(1.0e3*soil%slope_std(i),100.0) ! ensure some variability
+       slopeSTDmm = max(1.0e3*soil%slope_std(i),1e-4) ! ensure some variability
        if (ssnow%wb(i,1) .gt. (ssnow%wbice(i,1)+1e-6)) then
           j = 0
           do while(j .le. max_iter)
