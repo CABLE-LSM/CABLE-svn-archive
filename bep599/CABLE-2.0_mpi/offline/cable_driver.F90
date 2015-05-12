@@ -502,7 +502,7 @@ PROGRAM cable_offline_driver
                            rad, rough, soil, ssnow,                            &
                            sum_flux, veg )
 
-   WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+   !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
 
    ! Close log file
    CLOSE(logn)

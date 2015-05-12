@@ -366,7 +366,7 @@ CONTAINS
       ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)  
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &  
                                         'Error finding variable patchfrac.')
-      ok = NF90_GET_VAR(ncid, varID, inPFrac)
+      ok = NF90_GET_VAR(ncid, varID, rdummy)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
                                         'Error reading variable patchfrac.')
       inPFrac(:, :, 1) = rdummy(:, :)
