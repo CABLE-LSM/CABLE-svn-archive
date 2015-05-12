@@ -262,8 +262,8 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
 
       print *, 'yp wang: calling ncdf_dump'
-      print *, 'latitude= ', patch(:)%latitude
-      print *, 'longitude= ', patch(:)%longitude
+!      print *, 'latitude= ', patch(:)%latitude
+!      print *, 'longitude= ', patch(:)%longitude
       print *, 'filename= ', ncfile
       print *, 'constants= ', mp,ms,mplant,mdyear,ncid
 
@@ -274,43 +274,43 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
          ! create netCDF dataset: enter define mode
       ncok = nf90_create(path = ncfile, cmode = nf90_clobber, ncid = ncid)
 
-      print *, 'ncok =', ncok
+!      print *, 'ncok =', ncok
 
 !      ncok = nf90_create(path = 'dump_casamet.nc', cmode = nf90_noclobber, ncid = ncid)
       if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', ncfile)
 !      if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', 'dump_casamet.nc')
 
-      print *, 'here 1' ,ncid
+!      print *, 'here 1' ,ncid
 
       ! define dimensions: from name and length
 !      write(89,*) 'defining dims'
       call def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
-      print *, 'here 2',varID,num_dims
+!      print *, 'here 2',varID,num_dims
       ! define variables: from name, type, dims
 !      write(89,*) 'defining vars'
       call def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
 
-      print *, 'here 3',varID,num_vars
+!      print *, 'here 3',varID,num_vars
       ! define variable attributes
 !      write(89,*) 'defining attribution'
       call def_var_atts(ncfile, ncid, varID )
 !      call def_var_atts('dump_casamet.nc', ncid, varID )
 
-      print *, 'here 4', varID
+!      print *, 'here 4', varID
       ncok = nf90_enddef(ncid)
 
-      print *, 'here 5', var_name(1), size(patch(:)%latitude)
+!      print *, 'here 5', var_name(1), size(patch(:)%latitude)
 !      write(89,*) 'writing latitude'
       call put_var_nc(ncid, var_name(1), patch(:)%latitude )
 
-      print *, 'here 6',var_name(2) , size(patch(:)%longitude)
+!      print *, 'here 6',var_name(2) , size(patch(:)%longitude)
 !      write(89,*) 'writing longitude'
       call put_var_nc(ncid, var_name(2), patch(:)%longitude )
 
       write(*,901)  mdyear 
 901   format(' yp wang at ncdf_dump', I6)
-      write(*,*) casamet%cgppspin(10,:)
+!      write(*,*) casamet%cgppspin(10,:)
 
       do i=1,mdyear
          tairk(:)      = casamet%Tairkspin(:,i)
@@ -450,20 +450,20 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
   ! first initialize 
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf) 
-  npleafx = 14.2 
+  npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf) 
 
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater & 
         .AND. casamet%glai(np)>casabiome%glaimin(ivt)  &
         .AND. casapool%cplant(np,leaf)>0.0) THEN
-!      ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
-!                        MAX(casabiome%ratioNCplantmin(ivt,leaf), &
-!                            casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
-      ! new equation for ncleafx, added by YPW Apr 2013
-      ncleafx(np) = (casapool%nplant(np,leaf)/casapool%cplant(np,leaf)) &
-                  * veg%extkn(np) * casamet%glai(np) &
-                  / (1.0 - exp(-veg%extkn(np)*casamet%glai(np)))
+      ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
+                        MAX(casabiome%ratioNCplantmin(ivt,leaf), &
+                            casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
+!      ! new equation for ncleafx, added by YPW Apr 2013
+!      ncleafx(np) = (casapool%nplant(np,leaf)/casapool%cplant(np,leaf)) &
+!                  * veg%extkn(np) * casamet%glai(np) &
+!                  / (1.0 - exp(-veg%extkn(np)*casamet%glai(np)))
 
       IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
         npleafx(np) = MIN(30.0,MAX(8.0,casapool%nplant(np,leaf) &
@@ -1135,8 +1135,8 @@ END SUBROUTINE spincasacnp
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-            casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-            casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
+            casapool%plitter(npt,:)= casapool%Nlitter(npt,:) / casapool%ratioNPlitter(npt,:)
+            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)   / casapool%ratioNPsoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
@@ -1150,15 +1150,15 @@ END SUBROUTINE spincasacnp
           casapool%psoil(npt,mic)   = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb)   &
                                      +casaflux%fromLtoS(npt,mic,str) *casaflux%klitter(npt,str)*casapool%clitter(npt,str)  &
                                      +casaflux%fromLtoS(npt,mic,cwd) *casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) ) &
-                                   * casapool%ratioPCsoil(npt,mic)/casaflux%ksoil(npt,mic)
+                                   * (casapool%ratioNCsoil(npt,mic)/casapool%ratioNPsoil(npt,mic))/casaflux%ksoil(npt,mic)
           casapool%psoil(npt,slow)  = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
                                      + casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str) &
                                      + casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) &
                                      + casaflux%fromStoS(npt,slow,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)  ) &
-                                   * casapool%ratioPCsoil(npt,slow)/casaflux%ksoil(npt,slow)
+                                   * (casapool%ratioNCsoil(npt,slow)/casapool%ratioNPsoil(npt,slow))/casaflux%ksoil(npt,slow)
           casapool%psoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
                                      +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
-                                   * casapool%ratioPCsoil(npt,pass)/casaflux%ksoil(npt,pass)
+                                   * (casapool%ratioNCsoil(npt,pass)/casapool%ratioNPsoil(npt,pass))/casaflux%ksoil(npt,pass)
           ! assign the mineral pools
           casapool%psoillab(npt)      = avgpsoillab(npt)
           casapool%psoilsorb(npt)     = avgPsoilsorb(npt)

@@ -202,13 +202,19 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
          xratioNPfrootmin,xratioNPfrootmax,                    &
          casabiome%ftransPPtoL(nv,leaf), casabiome%ftransPPtoL(nv,wood), &
          casabiome%ftransPPtoL(nv,froot)
-    casabiome%ratioPcplantmin(nv,leaf)  = 1.0/(xratioNPleafmax*ratioCNplant(nv,leaf))
-    casabiome%ratioPcplantmax(nv,leaf)  = 1.0/(xratioNPleafmin*ratioCNplant(nv,leaf))
-    casabiome%ratioPcplantmin(nv,wood)  = 1.0/(xratioNPwoodmax*ratioCNplant(nv,wood))
-    casabiome%ratioPcplantmax(nv,wood)  = 1.0/(xratioNPwoodmin*ratioCNplant(nv,wood))
-    casabiome%ratioPcplantmin(nv,froot) = 1.0/(xratioNPfrootmax*ratioCNplant(nv,froot))
-    casabiome%ratioPcplantmax(nv,froot) = 1.0/(xratioNPfrootmin*ratioCNplant(nv,froot))
+!    casabiome%ratioPcplantmin(nv,leaf)  = 1.0/(xratioNPleafmax*ratioCNplant(nv,leaf))
+!    casabiome%ratioPcplantmax(nv,leaf)  = 1.0/(xratioNPleafmin*ratioCNplant(nv,leaf))
+!    casabiome%ratioPcplantmin(nv,wood)  = 1.0/(xratioNPwoodmax*ratioCNplant(nv,wood))
+!    casabiome%ratioPcplantmax(nv,wood)  = 1.0/(xratioNPwoodmin*ratioCNplant(nv,wood))
+!    casabiome%ratioPcplantmin(nv,froot) = 1.0/(xratioNPfrootmax*ratioCNplant(nv,froot))
+!    casabiome%ratioPcplantmax(nv,froot) = 1.0/(xratioNPfrootmin*ratioCNplant(nv,froot))
 !     PRINT *, 'nv8',nv8
+    casabiome%ratioNPplantmin(nv,leaf)  = xratioNPleafmin
+    casabiome%ratioNPplantmax(nv,leaf)  = xratioNPleafmax
+    casabiome%ratioNPplantmin(nv,wood)  = xratioNPwoodmin
+    casabiome%ratioNPplantmax(nv,wood)  = xratioNPwoodmax
+    casabiome%ratioNPplantmin(nv,froot) = xratioNPfrootmin
+    casabiome%ratioNPplantmax(nv,froot) = xratioNPfrootmax
   ENDDO
 
   READ(101,*)
@@ -357,7 +363,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%pplant(npt,froot)= xpfroot(iv1) 
     casapool%plitter(npt,metb) = xpmet(iv1)
 !    casapool%plitter(npt,str) = xpstr(iv1)
-    casapool%plitter(npt,str) = cstr(iv1)*ratioPCstrfix
+!    casapool%plitter(npt,str) = cstr(iv1)*ratioPCstrfix
+    casapool%plitter(npt,str) = casapool%nlitter(npt,str)/ratioNPstrfix
     casapool%psoil(npt,mic)   = xpmic(iv1)
     casapool%psoil(npt,slow)  = xpslow(iv1)
     casapool%psoil(npt,pass)  = xppass(iv1)
@@ -370,25 +377,29 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 !   we used the spatially explicit estimate N fixation by Wang and Houlton (GRL)
 !    casaflux%Nminfix(npt)     = xnfixrate(iv1)/365.0  
 
-    casapool%rationcplant(npt,:)  = 1.0/ratioCNplant(iv1,:)
-    casapool%ratiopcplant(npt,:)  = casabiome%ratioPcplantmax(iv1,:)
-    casapool%rationclitter(npt,:) = casapool%nlitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
-    casapool%ratiopclitter(npt,:) = casapool%plitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
+    casapool%ratioNCplant(npt,:)  = 1.0/ratioCNplant(iv1,:)
+!    casapool%ratiopcplant(npt,:)  = casabiome%ratioPcplantmax(iv1,:)
+    casapool%ratioNClitter(npt,:) = casapool%nlitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
+!    casapool%ratiopclitter(npt,:) = casapool%plitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
+    casapool%ratioNPplant(npt,:)  = casabiome%ratioNPplantmin(iv1,:)
+    casapool%ratioNPlitter(npt,:) = casapool%nlitter(npt,:)/(casapool%plitter(npt,:)+1.0e-10)
     casapool%ratioNCsoil(npt,:)   = 1.0/ratioCNsoil(iv1,:)
-    casapool%ratioPCsoil(npt,:)   = 1.0/(ratioCNsoil(iv1,:)*ratioNPsoil(iso,:))
+!    casapool%ratioPCsoil(npt,:)   = 1.0/(ratioCNsoil(iv1,:)*ratioNPsoil(iso,:))
     casapool%ratioNCsoilmin(npt,:)   = 1.0/ratioCNsoilmax(iv1,:)
     casapool%ratioNCsoilmax(npt,:)   = 1.0/ratioCNsoilmin(iv1,:)
     casapool%ratioNCsoilnew(npt,:)   = casapool%ratioNCsoilmax(npt,:)
+    casapool%ratioNPsoil(npt,:)   = ratioNPsoil(iso,:)
 
   ENDDO
 
-  IF (icycle==1) THEN
-    casapool%nplant(:,:)  = casapool%cplant(:,:) * casapool%rationcplant(:,:)
-  ELSE
+  IF (icycle<2) THEN
+    casapool%Nplant(:,:)  = casapool%Cplant(:,:) * casapool%ratioNCplant(:,:)
     casapool%Nsoil(:,:)   = casapool%ratioNCsoil(:,:) * casapool%Csoil(:,:)
-    casapool%Psoil(:,:)   = casapool%ratioPCsoil(:,:) * casapool%Csoil(:,:)
-    casapool%psoilsorb(:) = casaflux%psorbmax(:) * casapool%psoillab(:) &
-                            /(casaflux%kmlabp(:)+casapool%psoillab(:))
+  ENDIF
+  IF (icycle<3) THEN
+    casapool%Psoil(:,:)   = casapool%Nsoil(:,:) / casapool%ratioNPsoil(:,:)
+    casapool%Psoilsorb(:) = casaflux%Psorbmax(:) * casapool%Psoillab(:) &
+                            /(casaflux%kmlabP(:)+casapool%Psoillab(:))
   ENDIF 
       
 !  DO npt=1,mp
@@ -732,6 +743,14 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
   ENDIF 
 !92  format(5(i6,3x),5(f15.6,3x),i6,3x,100(f15.6,3x))
 
+  if(initcasa==0) then 
+     nyearz = 1 
+     do npt=1,mp 
+        casamet%lon(npt) = patch(npt)%longitude 
+        casamet%lat(npt) = patch(npt)%latitude 
+     enddo 
+  endif
+
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
 !  casapool%clabile    = 0.0    
   ! check pool sizes
@@ -749,7 +768,7 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
   IF (icycle==1) THEN
     casapool%nplant(:,:) = casapool%cplant(:,:) * casapool%rationcplant(:,:)
     casapool%Nsoil(:,:)  = casapool%ratioNCsoil(:,:) * casapool%Csoil(:,:)
-    casapool%Psoil(:,:)  = casapool%ratioPCsoil(:,:) * casapool%Csoil(:,:)
+    casapool%Psoil(:,:)  = casapool%Nsoil(:,:) / casapool%ratioNPsoil(:,:)
     casapool%Nsoilmin(:) = 2.5
   ENDIF 
     
@@ -811,7 +830,7 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
   TYPE (phen_variable),   INTENT(INOUT) :: phen
 
   ! local variables
-  INTEGER :: ncid, ncok, poolP, plantID
+  INTEGER :: ncid, ncok, poolP, plantID, npt
 
   LOGICAL ::                                                                  &
        from_restart = .TRUE., & ! insist variables/params load
@@ -864,6 +883,13 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
   IF(ncok/=NF90_NOERR) CALL nc_abort(ncok,'Error closing restart file '     &
         //TRIM(filename%restart_in)// '(SUBROUTINE get_casa_restart)')
 
+  if(initcasa==0) then
+     do npt=1,mp 
+        casamet%lon(npt) = patch(npt)%longitude 
+        casamet%lat(npt) = patch(npt)%latitude 
+     enddo   
+  endif
+
   ! check pool sizes
   casapool%cplant     = MAX(0.0,casapool%cplant)
   casapool%clitter    = MAX(0.0,casapool%clitter)
@@ -879,7 +905,7 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
   IF (icycle==1) THEN
     casapool%nplant(:,:) = casapool%cplant(:,:) * casapool%rationcplant(:,:)
     casapool%Nsoil(:,:)  = casapool%ratioNCsoil(:,:) * casapool%Csoil(:,:)
-    casapool%Psoil(:,:)  = casapool%ratioPCsoil(:,:) * casapool%Csoil(:,:)
+    casapool%Psoil(:,:)  = casapool%Nsoil(:,:) / casapool%ratioNPsoil(:,:)
     casapool%Nsoilmin(:) = 2.5
   ENDIF
 
@@ -1034,22 +1060,19 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
 
     IF (icycle<3) THEN
       casabal%sumpbal(npt)   = 0.0
-      casapool%pplant(npt,:) = casapool%ratioPCplant(npt,:)  &
-                             / casapool%ratioNCplant(npt,:)  &
-                             * casapool%Nplant(npt,:)
-      casapool%plitter(npt,:)= casapool%ratioPClitter(npt,:) &
-                             / casapool%ratioNClitter(npt,:) &
-                             * casapool%Nlitter(npt,:)
-      casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)   &
-                             / casapool%ratioNCsoil(npt,:)   &
-                             * casapool%Nsoil(npt,:)
-      casapool%psoillab(npt) = totpsoil(npt) *fracpLab(nso)
-      casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
+      casapool%Pplant(npt,:) = casapool%Nplant(npt,:)  &
+                             / casapool%ratioNPplant(npt,:)
+      casapool%Plitter(npt,:)= casapool%Nlitter(npt,:) &
+                             / casapool%ratioNPlitter(npt,:)
+      casapool%Psoil(npt,:)  = casapool%Nsoil(npt,:)   &
+                             / casapool%ratioNPsoil(npt,:)
+      casapool%Psoillab(npt) = totpsoil(npt) *fracpLab(nso)
+      casapool%Psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                 /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
-      casapool%psoilocc(npt) = totpsoil(npt) *fracPocc(nso)
+      casapool%Psoilocc(npt) = totpsoil(npt) *fracPocc(nso)
       if(casamet%iveg2(npt)==grass) then
-         casapool%pplant(npt,wood) = 0.0
-         casapool%plitter(npt,cwd) = 0.0
+         casapool%Pplant(npt,wood) = 0.0
+         casapool%Plitter(npt,cwd) = 0.0
       endif
     ENDIF
    else
