@@ -1188,29 +1188,9 @@ END SUBROUTINE remove_trans
       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
-      satfrac(i) = 0.0
       slopeSTDmm = max(1.0e3*soil%slope_std(i),100.0) ! ensure some variability
-      if (ssnow%wb(i,1) .gt. (ssnow%wbice(i,1)+1e-6)) then
-        j = 0
-        do while(j .le. max_iter)
-           funcval = 0.5*satfrac(i)*(1.0_r_2+erf(satfrac(i)/(slopeSTDmm*sqrt(2.0)))) &
-                 +slopeSTDmm/sqrt(2.0*pi)*exp(-satfrac(i)**2/(2.0*slopeSTDmm**2)) &
-                 -(ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm
-           derv = 0.5*(1.0_r_2+erf(satfrac(i)/(slopeSTDmm*sqrt(2.0))))
-           func_step = funcval/derv 
-           satfrac(i) = satfrac(i) - func_step
-           if (abs(func_step) .lt. 1e-6) then
-              j = max_iter+1
-           else
-              j = j + 1
-           end if
-        end do
-        satfrac(i) = 0.5*(1._r_2+erf(satfrac(i)/(slopeSTDmm*sqrt(2.0)))) 
-      else
-        satfrac(i) = 0._r_2
-     end if
-     satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
-
+      satfrac(i) = 1._r_2 - erf( (ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm / (4.0*slopeSTDmm*sqrt(2.0)) )
+      satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
    end do
 
    do i=1,mp
@@ -2196,30 +2176,9 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        !Saturated fraction
        wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
                              
-       satfrac = min(1._r_2,max(0._r_2,gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)))
-
-
-       satfrac = 0.0
-       slopeSTDmm = max(1.0e3*soil%slope_std(i),1e-4) ! ensure some variability
-       if (ssnow%wb(i,1) .gt. (ssnow%wbice(i,1)+1e-6)) then
-          j = 0
-          do while(j .le. max_iter)
-             funcval = 0.5*satfrac*(1.0_r_2+erf(satfrac/(slopeSTDmm*sqrt(2.0)))) &
-                   +slopeSTDmm/sqrt(2.0*pi)*exp(-satfrac**2/(2.0*slopeSTDmm**2)) &
-                   -(ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm_one
-             derv = 0.5*(1.0_r_2+erf(satfrac/(slopeSTDmm*sqrt(2.0))))
-             func_step = funcval / derv 
-             satfrac = satfrac - func_step
-             if (abs(func_step) .lt. 1e-6) then
-                j = max_iter+1
-             else
-                j = j + 1
-             end if
-          enddo
-          satfrac = 0.5*(1._r_2+erf(satfrac/(slopeSTDmm*sqrt(2.0))))
-       else
-          satfrac = 0._r_2
-       end if
+       slopeSTDmm = max(1.0e3*soil%slope_std(i),100.0) ! ensure some variability
+       satfrac(i) = 1._r_2 - erf( (ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm_one / (4.0*slopeSTDmm*sqrt(2.0)) )
+       satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
 
        wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
