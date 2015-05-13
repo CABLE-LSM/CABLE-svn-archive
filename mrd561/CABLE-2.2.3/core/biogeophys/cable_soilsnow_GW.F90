@@ -1163,12 +1163,11 @@ END SUBROUTINE remove_trans
     REAL, DIMENSION(mp,0:3)            :: smelt1                   !snow melt
     REAL(r_2), DIMENSION(mp)           :: icef,efpor               !tmp vars, fraction of ice in gridcell
     REAL(r_2)                          :: tmpa,tmpb,qinmax         !tmp vars, maximum infiltration [mm/s]
-    REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters       !saturated fraction of cell, wtd in m
+    REAL(r_2), DIMENSION(mp)           :: satfrac       !saturated fraction of cell, wtd in m
     REAL(r_2)                          :: liqmass,icemass,totmass  !liquid mass,ice mass, total mass [mm]
     REAL(r_2), parameter               :: pi=3.1415926535898
-    INTEGER,   parameter               :: max_iter = 10
-    REAL(r_2)                          :: fice,func_step
-    REAL(r_2)                          :: dzmm,funcval,derv,slopeSTDmm
+    REAL(r_2)                          :: fice
+    REAL(r_2)                          :: dzmm,slopeSTDmm
     logical                            :: prinall = .false.  !for debugging
     
    if (md_prin) write(*,*) 'inside ovrlndflux '   !MDeck
@@ -1188,8 +1187,8 @@ END SUBROUTINE remove_trans
       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
-      slopeSTDmm = max(1.0e3*soil%slope_std(i),100.0) ! ensure some variability
-      satfrac(i) = 1._r_2 - erf( (ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm / (4.0*slopeSTDmm*sqrt(2.0)) )
+      slopeSTDmm = max(sqrt(1.0e3*soil%slope_std(i)),1e-2) ! ensure some variability
+      satfrac(i) = 1._r_2 - erf( sqrt((ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm) / (4.0*slopeSTDmm*sqrt(2.0)) )
       satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
    end do
 
@@ -2153,7 +2152,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
     !local variables
     REAL(r_2), DIMENSION(mp)           :: icef
-    REAL(r_2)                          :: satfrac,wtd_meters,fice,xx
+    REAL(r_2)                          :: satfrac,fice,xx
     REAL(r_2)                          :: dzmm_one,liqmass,icemass,totmass
     INTEGER                            :: i,j
     REAL(r_2), parameter               :: pi=3.1415926535898
@@ -2174,11 +2173,9 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        fice = min(1._r_2,max(0._r_2,fice))
 
        !Saturated fraction
-       wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
-                             
-       slopeSTDmm = max(1.0e3*soil%slope_std(i),100.0) ! ensure some variability
-       satfrac(i) = 1._r_2 - erf( (ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm_one / (4.0*slopeSTDmm*sqrt(2.0)) )
-       satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
+       slopeSTDmm = max(sqrt(1.0e3*soil%slope_std(i)),1e-2) ! ensure some variability
+       satfrac    = 1._r_2 - erf( sqrt((ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm_one) / (4.0*slopeSTDmm*sqrt(2.0)) )
+       satfrac = fice + (1._r_2-fice)*satfrac
 
        wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
