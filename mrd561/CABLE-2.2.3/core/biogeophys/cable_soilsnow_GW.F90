@@ -1187,9 +1187,11 @@ END SUBROUTINE remove_trans
       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
-      slopeSTDmm = max(sqrt(1.0e3*soil%slope_std(i)),1e-2) ! ensure some variability
-      satfrac(i) = 1._r_2 - erf( sqrt((ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm) / (4.0*slopeSTDmm*sqrt(2.0)) )
-      satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
+       slopeSTDmm = sqrt(max(1.0e4*soil%slope_std(i),1e-2)) ! ensure some variability
+       satfrac(i)    = 1._r_2 - erf( sqrt(max(0.01,(ssnow%wb(i,1)-ssnow%wbice(i,1))/soil%watsat(i,1))) / (slopeSTDmm*sqrt(2.0)) )
+       satfrac(i)    = 1._r_2 - erf( (ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm / (slopeSTDmm*sqrt(32.0)) )
+       satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
+
    end do
 
    do i=1,mp
@@ -1562,7 +1564,7 @@ END SUBROUTINE remove_trans
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
 
           s2(i) = soil%hksat(i,k)*s1(i)**(2._r_2*soil%clappB(i,k)+2._r_2)
-          ssnow%hk(i,k)    = (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
+          ssnow%hk(i,k)    =  (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
                               exp(-gw_params%hkrz*(zimm(k)/1000.0_r_2-gw_params%zdepth))
           ssnow%dhkdw(i,k) = (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))* &
                              (2._r_2*soil%clappB(i,k)+3._r_2)*s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*&
@@ -2173,8 +2175,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        fice = min(1._r_2,max(0._r_2,fice))
 
        !Saturated fraction
-       slopeSTDmm = max(sqrt(1.0e3*soil%slope_std(i)),1e-2) ! ensure some variability
-       satfrac    = 1._r_2 - erf( sqrt((ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm_one) / (4.0*slopeSTDmm*sqrt(2.0)) )
+       slopeSTDmm = sqrt(max(1.0e4*soil%slope_std(i),1e-2)) ! ensure some variability
+       satfrac    = 1._r_2 - erf( sqrt(max(0.01,(ssnow%wb(i,1)-ssnow%wbice(i,1))/soil%watsat(i,1))) / (slopeSTDmm*sqrt(2.0)) )
        satfrac = fice + (1._r_2-fice)*satfrac
 
        wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
