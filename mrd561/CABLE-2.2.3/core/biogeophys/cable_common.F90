@@ -196,12 +196,12 @@ MODULE cable_common_module
 
       REAL ::                   &
         MaxSatFraction=0.7,     & !maximum fraction of cell that is saturated [qsrf]
-        MaxHorzDrainRate=100.0, & !anisintropy [qsub]
-        EfoldHorzDrainRate=0.5, & !qsub(wtd)
-        EfoldMaxSatFrac=0.5,    & !sat frac srf (wtd)
-        hkrz=0.2,               & !hksat variation with z
+        MaxHorzDrainRate=1e-3, & !anisintropy [qsub]
+        EfoldHorzDrainRate=2.5, & !qsub(wtd)
+        EfoldMaxSatFrac=4.0,    & !sat frac srf (wtd)
+        hkrz=0.5,               & !hksat variation with z
         zdepth=1.0,             & !level where hksat(z) = hksat(no z)
-        frozen_frac=0.2  !ice fraction to determine first non-frozen layer for qsub
+        frozen_frac=0.05  !ice fraction to determine first non-frozen layer for qsub
 
    END TYPE gw_parameters_type
 
