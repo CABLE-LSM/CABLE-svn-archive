@@ -194,7 +194,8 @@ MODULE cable_checks_module
            Watr = (/0.0,0.5/),                 &
            GWWatr = (/0.0,0.5/),               &
            Qinfl = (/0.0,1e10/),               &
-           GWwb  = (/0.0,0.99/)
+           GWwb  = (/0.0,0.99/),               &
+           SatFrac = (/0.0,1.0/)
            
            
            

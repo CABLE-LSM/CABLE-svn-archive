@@ -258,8 +258,8 @@ MODULE cable_def_types_mod
          GWsmp,   &  ! aquifer soil matric potential [mm]
          GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
          GWzq,    &  ! equilibrium aquifer smp   [mm]
-         qhz         ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
-     
+         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
+         satfrac
      
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
@@ -274,7 +274,6 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
-         
          
    END TYPE soil_snow_type
 
@@ -779,6 +778,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWwbeq(mp) )
    ALLOCATE( var%GWzq(mp) )
    ALLOCATE( var%qhz(mp) )
+   ALLOCATE( var%satfrac(mp) )
    !soil moisture variables
    ALLOCATE( var%wbeq(mp,ms) )
    ALLOCATE( var%zq(mp,ms) )
@@ -1235,6 +1235,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%GWwbeq )
    DEALLOCATE( var%GWzq )
    DEALLOCATE( var%qhz )
+   DEALLOCATE( var%satfrac )
    !soil moisture variables
    DEALLOCATE( var%wbeq )
    DEALLOCATE( var%zq )
