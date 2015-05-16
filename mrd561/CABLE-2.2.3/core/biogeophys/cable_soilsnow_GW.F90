@@ -1163,15 +1163,13 @@ END SUBROUTINE remove_trans
     REAL, DIMENSION(mp,0:3)            :: smelt1                   !snow melt
     REAL(r_2), DIMENSION(mp)           :: icef,efpor               !tmp vars, fraction of ice in gridcell
     REAL(r_2)                          :: tmpa,tmpb,qinmax         !tmp vars, maximum infiltration [mm/s]
-    REAL(r_2), DIMENSION(mp)           :: satfrac       !saturated fraction of cell, wtd in m
+    REAL(r_2), DIMENSION(mp)           :: satfrac_liqice,S       !saturated fraction of cell, wtd in m
     REAL(r_2)                          :: liqmass,icemass,totmass  !liquid mass,ice mass, total mass [mm]
     REAL(r_2), parameter               :: pi=3.1415926535898
     REAL(r_2)                          :: fice
     REAL(r_2)                          :: dzmm,slopeSTDmm
     logical                            :: prinall = .false.  !for debugging
     
-   if (md_prin) write(*,*) 'inside ovrlndflux '   !MDeck
-
    !For now assume there is no puddle
    dzmm = 1000._r_2 * soil%zse(1)
 
@@ -1182,26 +1180,29 @@ END SUBROUTINE remove_trans
       totmass  = max(liqmass+icemass,real(1e-2,r_2))
       icef(i)     = max(0._r_2,min(1._r_2,icemass / totmass))
    end do
+   S(:) = 0._r_2
+   do k=1,2
+     S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/max(0.001,soil%watsat(:,k)-soil%watr(:,k)) ) )
+   end do
+   S(:) = S(:)/2._r_2
    !srf frozen fraction.  should be based on topography
    do i = 1,mp
       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
-       slopeSTDmm = sqrt(max(1.0e4*soil%slope_std(i),1e-2)) ! ensure some variability
-       satfrac(i)    = 1._r_2 - erf( sqrt(max(0.01,(ssnow%wb(i,1)-ssnow%wbice(i,1))/soil%watsat(i,1))) / (slopeSTDmm*sqrt(2.0)) )
-       satfrac(i)    = 1._r_2 - erf( (ssnow%wb(i,1)-ssnow%wbice(i,1))*dzmm / (slopeSTDmm*sqrt(32.0)) )
-       satfrac(i) = fice + (1._r_2-fice)*satfrac(i)
-
+       slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-2)) ! ensure some variability
+       ssnow%satfrac(i)    = 1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) )
+       satfrac_liqice(i)   = fice + (1._r_2-fice)*ssnow%satfrac(i)
    end do
 
    do i=1,mp
       tmpa = ssnow%wbliq(i,1) / efpor(i)
-      tmpb = max( (tmpa-satfrac(i))/max(0.01_r_2,(1._r_2-satfrac(i))), 0._r_2)
+      tmpb = max( (tmpa-satfrac_liqice(i))/max(0.01_r_2,(1._r_2-satfrac_liqice(i))), 0._r_2)
       tmpa = -2._r_2*soil%clappB(i,1)*soil%smpsat(i,1)/dzmm
       qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*soil%hksat(i,1)
 
-      ssnow%rnof1(i) = satfrac(i) * ssnow%fwtop(i) + &
-                         (1._r_2-satfrac(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
+      ssnow%rnof1(i) = satfrac_liqice(i) * ssnow%fwtop(i) + &
+                         (1._r_2-satfrac_liqice(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
 
       ssnow%fwtop(i) = ssnow%fwtop(i) - ssnow%rnof1(i)
 
@@ -1565,7 +1566,7 @@ END SUBROUTINE remove_trans
 
           s2(i) = soil%hksat(i,k)*s1(i)**(2._r_2*soil%clappB(i,k)+2._r_2)
           ssnow%hk(i,k)    =  (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
-                              exp(-gw_params%hkrz*(zimm(k)/1000.0_r_2-gw_params%zdepth))
+                               exp(-gw_params%hkrz*(zimm(k)/1000.0_r_2-gw_params%zdepth)) 
           ssnow%dhkdw(i,k) = (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))* &
                              (2._r_2*soil%clappB(i,k)+3._r_2)*s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*&
                              exp(-gw_params%hkrz*(zimm(k)/1000.0_r_2-gw_params%zdepth))
@@ -1609,8 +1610,8 @@ END SUBROUTINE remove_trans
        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
        s2(i)    = soil%GWhksat(i)*s_mid(i)**(2._r_2*soil%clappB(i,ms)+2._r_2)
 
-       ssnow%GWhk(i)     = s_mid(i)*s2(i)*(1._r_2-ssnow%fracice(i,ms))*&
-                           exp(-gw_params%hkrz*(zimm(ms)/1000._r_2-gw_params%zdepth))
+       ssnow%GWhk(i)     =s_mid(i)*s2(i)*(1._r_2-ssnow%fracice(i,ms))*&
+                          exp(-gw_params%hkrz*(zimm(ms)/1000._r_2-gw_params%zdepth))
 
        ssnow%GWdhkdw(i)  = (1._r_2-ssnow%fracice(i,ms))* (2._r_2*soil%clappB(i,ms)+3._r_2)*&
                            s2(i)*0.5_r_2/(soil%GWwatsat(i)-soil%GWwatr(i))*&
@@ -2153,10 +2154,10 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     TYPE(soil_parameter_type), INTENT(IN)    :: soil ! soil parameters
 
     !local variables
-    REAL(r_2), DIMENSION(mp)           :: icef
-    REAL(r_2)                          :: satfrac,fice,xx
+    REAL(r_2), DIMENSION(mp)           :: icef,satfrac_liqice,S
+    REAL(r_2)                          :: fice,xx
     REAL(r_2)                          :: dzmm_one,liqmass,icemass,totmass
-    INTEGER                            :: i,j
+    INTEGER                            :: i,j,k
     REAL(r_2), parameter               :: pi=3.1415926535898
     INTEGER,   parameter               :: max_iter = 10
     REAL(r_2)                          :: wb_unsat,wb_lin,funcval,derv,slopeSTDmm,func_step
@@ -2168,33 +2169,37 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm_one
        totmass  = max(liqmass+icemass,real(1e-2,r_2))
        icef(i)     = max(0._r_2,min(1._r_2,icemass / totmass))
-    end do
-    !srf frozen fraction.  should be based on topography
-    do i = 1,mp
-       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
-       fice = min(1._r_2,max(0._r_2,fice))
+   end do
 
-       !Saturated fraction
-       slopeSTDmm = sqrt(max(1.0e4*soil%slope_std(i),1e-2)) ! ensure some variability
-       satfrac    = 1._r_2 - erf( sqrt(max(0.01,(ssnow%wb(i,1)-ssnow%wbice(i,1))/soil%watsat(i,1))) / (slopeSTDmm*sqrt(2.0)) )
-       satfrac = fice + (1._r_2-fice)*satfrac
+   S(:) = 0._r_2
+   do k=1,2
+      S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/max(0.001,soil%watsat(:,k)-soil%watr(:,k)) ) )
+   end do
+   S(:) = S(:)/2._r_2
+   !srf frozen fraction.  should be based on topography
+   do i = 1,mp
+      fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+      fice = min(1._r_2,max(0._r_2,fice))
 
-       wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
-       wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
+      !Saturated fraction
+      slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-2)) ! ensure some variability
+      ssnow%satfrac(i)    = 1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) )
+      satfrac_liqice(i) = fice + (1._r_2-fice)*ssnow%satfrac(i)
 
-       !Sakguchi and Zeng 2009
-       if (wb_unsat .ge. soil%fldcap(i,1)) then
-          xx = 1.
-       else
-          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
-       end if
-       if (wb_unsat .lt. 0.25*soil%wiltp(i,1)) xx = 0.
-              !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
+      wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
+      wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
-       ssnow%wetfac(i) = max(0.0,min(1.0,satfrac + (1. - satfrac)*xx))
+      !Sakguchi and Zeng 2009
+      if (wb_unsat .ge. soil%fldcap(i,1)) then
+         xx = 1.
+      else
+         xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
+      end if
+      if (wb_unsat .lt. 0.25*soil%wiltp(i,1)) xx = 0.
 
-    end do
+      ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) + (1. - satfrac_liqice(i))*xx))
 
+   end do
 
 
 END SUBROUTINE calc_srf_wet_fraction
