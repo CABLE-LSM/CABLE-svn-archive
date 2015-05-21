@@ -109,7 +109,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casaflux%clabloss = 0.0
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
-		 
+
       ENDIF
 
       IF(MOD(ktau,ktauday)==1) THEN
@@ -157,16 +157,16 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                          real(veg%disturbance_intensity), real(casamet%glai) )
 
                   casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
-			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
                                 pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
                   + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
 
 
                   casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
-			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
                                 pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
                   -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
-              	   
+
                ENDIF
            
             ENDIF
@@ -211,15 +211,21 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval), &
                   real(veg%disturbance_intensity), real(casamet%glai) )
              
-                  casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
-			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
-                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                  + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
+                  casapool%CLitter(:,3) = casapool%CLitter(:,3) +              &
+                                          pop%pop_grid(:)%fire_mortality /     &
+                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+                              pop%pop_grid(:)%stress_mortality /               &
+                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2)   &
+                              + (1./veg%disturbance_interval(:,1)) *           &
+                              casapool%Cplant(:,2)
 
-                  casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
-			        pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
-                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                  -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
+                  casapool%Cplant(:,2) = casapool%Cplant(:,2) -                &
+                                         pop%pop_grid(:)%fire_mortality /      & 
+                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+                              pop%pop_grid(:)%stress_mortality /               &
+                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2)   &
+                              - (1./veg%disturbance_interval(:,1))   *         &
+                              casapool%Cplant(:,2) 
 
                   write(*,*) veg%disturbance_interval(:,1)
                            
@@ -300,15 +306,15 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
 
       TYPE (casa_flux), INTENT(INOUT) :: casaflux
       TYPE (casa_met), INTENT(inout)  :: casamet
-      INTEGER, INTENT(in)             :: kend, ncall
+      INTEGER*4                       :: kend, ncall
       CHARACTER(len=*), INTENT(in)    :: ncfile
       LOGICAL, INTENT(in)             :: allATonce
 
       !netcdf IDs/ names
       INTEGER, PARAMETER :: num_vars=7 
       INTEGER, PARAMETER :: num_dims=3 
-      INTEGER, SAVE                        :: ncrid  ! netcdf file ID
-      INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
+      INTEGER*4, SAVE                        :: ncrid  ! netcdf file ID
+      INTEGER*4 , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
 
       !vars 
       CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
@@ -324,7 +330,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
       REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
       REAL(r_2), DIMENSION(mp,mplant) :: crmplant
-      INTEGER :: ncok,  idoy
+      INTEGER*4 :: ncok,  idoy
 
       IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
@@ -396,7 +402,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
   IMPLICIT NONE
      
-  INTEGER, INTENT(in) :: &
+  INTEGER*4 :: &
        n_call, &         ! this timestep #
        kend              ! final timestep of run
 
@@ -406,9 +412,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
   !netcdf IDs/ names
   CHARACTER(len=*)   :: ncfile
-  INTEGER, PARAMETER :: num_vars=7
-  INTEGER, PARAMETER :: num_dims=3
-  INTEGER, SAVE :: ncid       ! netcdf file ID
+  INTEGER*4, PARAMETER :: num_vars=7
+  INTEGER*4, PARAMETER :: num_dims=3
+  INTEGER*4, SAVE :: ncid       ! netcdf file ID
 
   !vars
   CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
@@ -420,7 +426,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
        "cgpp         ", &
        "crmplant     " /)
 
-  INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
+  INTEGER*4, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
 
   !dims
   CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
@@ -428,14 +434,14 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
        "soil", &
        "time" /)
 
-  INTEGER, PARAMETER :: soil_dim = 6
+  INTEGER*4, PARAMETER :: soil_dim = 6
 
-  INTEGER, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /)
+  INTEGER*4, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /)
 
-  INTEGER, DIMENSION(num_dims)  :: &
+  INTEGER*4, DIMENSION(num_dims)  :: &
        dimID   ! (1) x, (2) y, (3) time
 
-  INTEGER, DIMENSION(num_dims)  :: &
+  INTEGER*4, DIMENSION(num_dims)  :: &
                                 !x,y generally lat/lon BUT for single site = 1,1
        dim_len = (/-1,soil_dim,-1/)  ! (1) x, (2) y, (3) soil, (4) time [re-set]
 
@@ -443,9 +449,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
   TYPE(CASA_FLUX) :: CASAFLUX
 
   !local only
-  INTEGER :: ncok      !ncdf return status
-  real*4, parameter :: fr4=9.0 
-  integer, parameter :: ur4=kind(fr4) 
+  INTEGER*4 :: ncok      !ncdf return status
+  integer*4, parameter :: fr4=9 
+  integer*4, parameter :: ur4=kind(fr4) 
   !integer, parameter :: ur4=selected_real_kind(fr4) 
   ! END header
 

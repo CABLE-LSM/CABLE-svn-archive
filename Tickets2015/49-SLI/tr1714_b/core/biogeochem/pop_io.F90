@@ -264,7 +264,8 @@ np = mp
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
         ! Define variables
-        STATUS = NF90_def_var(FILE_ID,'Time' ,NF90_INT,(/t_ID/),VIDtime )
+        STATUS = NF90_def_var(1,'Time' ,NF90_INT,(/1/),VIDtime )
+        !STATUS = NF90_def_var(FILE_ID,'Time' ,NF90_INT,(/t_ID/),VIDtime )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
         DO i = 1, SIZE(AR0)

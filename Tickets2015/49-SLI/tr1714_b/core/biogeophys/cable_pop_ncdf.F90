@@ -199,16 +199,17 @@ CONTAINS
     use netcdf
     use cable_def_types_mod, only : mp
     implicit none
-    character(len=*), intent(in) ::  var_name
-    real, dimension(:),intent(in) :: var
-    integer, intent(in) :: ncid
-    integer :: ncok, varID,j
+    character(len=*) ::  var_name
+    real*4, dimension(:) :: var
+    integer*4 :: ncid,mp4
+    integer*4 :: ncok, varID,j
 
+    mp4=int(mp)
     ncok = NF90_INQ_VARID(ncid, var_name, varId )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'inquire var ', var_name)
 
     ncok = NF90_PUT_VAR(ncid, varId, var, start=(/1/), &
-         count=(/mp/) )
+         count=(/mp4/) )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'putting var ', var_name)
 
   end subroutine put_var_ncr1
@@ -220,14 +221,15 @@ CONTAINS
     implicit none
     character(len=*), intent(in) ::  var_name
     real(r_2), dimension(:),intent(in) :: var
-    integer, intent(in) :: ncid, n_call
-    integer :: ncok, varID
+    integer*4 :: ncid, n_call, mp4
+    integer*4 :: ncok, varID
 
+    mp4=int(mp)
     ncok = NF90_INQ_VARID(ncid, var_name, varId )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'inquire var ', var_name)
 
     ncok = NF90_PUT_VAR(ncid, varId, var, start=(/1,n_call /), &
-         count=(/mp,1/) )
+         count=(/mp4,1/) )
 
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'putting var ', var_name)
 
@@ -240,14 +242,15 @@ CONTAINS
     implicit none
     character(len=*), intent(in) :: var_name
     real(r_2), dimension(:,:),intent(in) :: var
-    integer, intent(in) :: ncid, n_call, nl
-    integer :: ncok, varID
+    integer*4 :: ncid, n_call, nl
+    integer*4 :: ncok, varID, mp4
 
+    mp4=int(mp)
     ncok = NF90_INQ_VARID( ncid, var_name, varId )
     IF( ncok /= nf90_noerr ) call stderr_nc(ncok,'inquire var ', var_name )
 
     ncok = NF90_PUT_VAR(ncid, varId, var, start=(/1,1,n_call /), &
-         count=(/mp,nl,1/))
+         count=(/mp4,nl,1/))
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'putting var ', var_name)
 
     return
@@ -261,16 +264,17 @@ CONTAINS
     implicit none
     character(len=*), intent(in) :: var_name
     real(r_2), dimension(:),intent(out) :: var
-    integer, intent(in) :: ncid
-    integer :: ncok, varID, n_call
+    integer*4 :: ncid
+    integer*4 :: ncok, varID, n_call, mp4
     real, dimension(mp) :: temp
 
     temp = 0.
+    mp4=int(mp)
 
     ncok = NF90_INQ_VARID(ncid, var_name, varId )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'inquire var ', var_name)
     ncok = NF90_GET_VAR(ncid, varId, temp, start=(/1,n_call/), &
-         count=(/mp,1/) )
+         count=(/mp4,1/) )
 
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'getting var ', var_name)
 
@@ -283,15 +287,16 @@ CONTAINS
     implicit none
     character(len=*), intent(in) :: var_name
     real(r_2), dimension(:,:),intent(out) :: var
-    integer, intent(in) :: ncid, n_call, nl
+    integer :: ncid, n_call, nl, mp4
     integer :: ncok, varID
     real, dimension(mp,1:nl) :: temp
 
+    mp4=int(mp)
     ncok = NF90_INQ_VARID(ncid, var_name, varId )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'inquire var ', var_name)
 
     ncok = NF90_GET_VAR(ncid, varId, temp, start=(/1,1,n_call /), &
-         count=(/mp, nl, 1/))
+         count=(/mp4, nl, 1/))
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'putting var ', var_name)
     var = real( temp, r_2 )
   end subroutine get_var_ncr3

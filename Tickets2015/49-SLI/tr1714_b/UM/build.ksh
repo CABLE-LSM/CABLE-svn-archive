@@ -202,14 +202,18 @@ build_build()
    /bin/cp -p $CASA/*90 ./.tmp
    /bin/cp -p $OFL/*90 ./.tmp
    
-   print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
-   print "\ttechnical reasons. Implementation is not officially available with" 
-   print "\tthe release of CABLE 2.0\n"
+   #print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
+   #print "\ttechnical reasons. Implementation is not officially available with" 
+   #print "\tthe release of CABLE 2.0\n"
     
    /bin/cp -p Makefile_CABLE-UM ./.tmp
    
    cd .tmp/
    
+   ifort -c -I$NCMOD cable_define_types.F90   
+   ifort -c -I$NCMOD cable_pop_ncdf.F90   
+   ifort -c -I$NCMOD pop_io.F90   
+   ifort -c -I$NCMOD casa_inout.F90   
    make -f Makefile_CABLE-UM
 
    if [[ -f cable_explicit_driver.o ]]; then

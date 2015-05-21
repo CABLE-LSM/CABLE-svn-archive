@@ -112,7 +112,7 @@ host_raij()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O2 -fp-model precise -i8 -r8'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    fi
@@ -348,14 +348,20 @@ build_build()
    /bin/cp -p $DRV/*90 ./.tmp
    /bin/cp -p $CASA/*90 ./.tmp
    
-   print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
-   print "\ttechnical reasons. Implementation is not officially available with" 
-   print "\tthe release of CABLE 2.0\n"
+   #print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
+   #print "\ttechnical reasons. Implementation is not officially available with" 
+   #print "\tthe release of CABLE 2.0\n"
     
    /bin/cp -p Makefile_offline  ./.tmp
    
   cd .tmp/
    
+   ifort -c -I$NCMOD cable_define_types.F90   
+   ifort -c -I$NCMOD cable_pop_ncdf.F90   
+   ifort -c -I$NCMOD pop_io.F90   
+   ifort -c -I$NCMOD casa_variable.F90   
+   ifort -c -I$NCMOD casa_cnp.F90   
+   ifort -c -I$NCMOD casa_inout.F90   
    make -f Makefile_offline
 }
 

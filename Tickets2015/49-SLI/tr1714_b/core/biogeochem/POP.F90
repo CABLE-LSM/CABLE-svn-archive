@@ -82,24 +82,24 @@ MODULE POP_Constants
   REAL,PARAMETER:: F_MORT=0.0001 ! proportion of cohort surviving to age Amax
   REAL,PARAMETER:: AMAX=250.0 ! age to which proportion F of cohort will survive in absence of resource stress
   REAL,PARAMETER:: EPS=1e-12
-  INTEGER(i4b),PARAMETER :: NLAYER = 1 ! number of vertical veg layers (1 is currently the only option)
-  INTEGER(i4b),PARAMETER :: NCOHORT_MAX = 20 ! maximum number of cohorts
-  INTEGER(i4b),PARAMETER :: NDISTURB=1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
-  INTEGER(i4b),PARAMETER :: PATCH_REPS=7 ! higher number reduces 'noise'
-  INTEGER(i4b),PARAMETER :: NAGE_MAX = 6 ! number of maxium ages
+  INTEGER,PARAMETER :: NLAYER = 1 ! number of vertical veg layers (1 is currently the only option)
+  INTEGER,PARAMETER :: NCOHORT_MAX = 20 ! maximum number of cohorts
+  INTEGER,PARAMETER :: NDISTURB=1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
+  INTEGER,PARAMETER :: PATCH_REPS=7 ! higher number reduces 'noise'
+  INTEGER,PARAMETER :: NAGE_MAX = 6 ! number of maxium ages
   ! number of patches with different disturbance intervals to simulate
-  INTEGER(i4b),PARAMETER :: NPATCH=(NAGE_MAX*PATCH_REPS)**NDISTURB
-  INTEGER(i4b),PARAMETER :: NPATCH1D=(NAGE_MAX*PATCH_REPS)
-  INTEGER(i4b),PARAMETER :: NPATCH2D= NPATCH ! number of patches to be simulated, including those correponding to a1>a2
-  INTEGER(i4b),PARAMETER ::  HEIGHT_BINS=12 ! number of height categories to keep track of for diagnostics
+  INTEGER,PARAMETER :: NPATCH=(NAGE_MAX*PATCH_REPS)**NDISTURB
+  INTEGER,PARAMETER :: NPATCH1D=(NAGE_MAX*PATCH_REPS)
+  INTEGER,PARAMETER :: NPATCH2D= NPATCH ! number of patches to be simulated, including those correponding to a1>a2
+  INTEGER,PARAMETER ::  HEIGHT_BINS=12 ! number of height categories to keep track of for diagnostics
   REAL,PARAMETER:: BIN_POWER=1.4 ! bins have muscles
   ! Time base factor (to be multiplied by mean dist interval to give TIMEBASE)
   ! for sampling disturbance probabilities from Poisson distribution
-  INTEGER(i4b),PARAMETER :: TIMEBASE_FACTOR=50
+  INTEGER,PARAMETER :: TIMEBASE_FACTOR=50
   REAL,PARAMETER:: PI=3.14159265358979323846264
-  INTEGER(i4b),PARAMETER :: ALLOM_SWITCH = 0 ! 0 == default; 1 = top-end allometry (requires precip as input to POPSTEP)
+  INTEGER,PARAMETER :: ALLOM_SWITCH = 0 ! 0 == default; 1 = top-end allometry (requires precip as input to POPSTEP)
   ! 0 == binnned max height variable; 1 = continuous (needs lots of memory); 2 = binned by integer heights
-  INTEGER(i4b),PARAMETER :: MAX_HEIGHT_SWITCH = 2
+  INTEGER,PARAMETER :: MAX_HEIGHT_SWITCH = 2
 
 END MODULE POP_Constants
 
@@ -153,8 +153,8 @@ MODULE POP_Types
      REAL, DIMENSION(NPATCH2D)     :: freq ! patch weighting
      REAL, DIMENSION(NPATCH2D)     :: freq_old ! patch weighting (previous time-step)
      REAL, DIMENSION(NPATCH2D,NDISTURB)     :: freq_ranked_age_unique ! unique age weighting
-     INTEGER(i4b), DIMENSION(NPATCH2D, NDISTURB)     :: ranked_age_unique ! unique age
-     INTEGER(i4b), DIMENSION(NDISTURB)     :: n_age ! number of unique ages
+     INTEGER, DIMENSION(NPATCH2D, NDISTURB)     :: ranked_age_unique ! unique age
+     INTEGER, DIMENSION(NDISTURB)     :: n_age ! number of unique ages
      REAL, DIMENSION(NLAYER)     :: biomass ! landscape stem biomass (weighted mean over patches)
      REAL, DIMENSION(NLAYER)     :: density ! landscape tree density (weighted mean over patches)
      REAL, DIMENSION(NLAYER)     :: hmean ! landscape mean treen height (weighted mean over patches)
@@ -175,7 +175,7 @@ MODULE POP_Types
      REAL :: crown_cover
      REAL :: crown_area
      REAL :: crown_volume
-     INTEGER(i4b) :: npatch_active
+     INTEGER :: npatch_active
   END TYPE Landscape
 
   TYPE POP_TYPE
@@ -274,16 +274,16 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
-    INTEGER(i4b), INTENT(IN) ::  mean_disturbance_interval(:,:)
-    INTEGER(i4b) :: j, k, g, ipatch, idist, p, c, n, i
-    INTEGER(i4b) :: disturbance_interval
-    INTEGER(i4b):: patch_disturbance_interval1(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: patch_first_disturbance_year1(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: patch_disturbance_interval2(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: patch_first_disturbance_year2(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: Poisson_age(1000),Poisson_freq(1000)
+    INTEGER, INTENT(IN) ::  mean_disturbance_interval(:,:)
+    INTEGER :: j, k, g, ipatch, idist, p, c, n, i
+    INTEGER :: disturbance_interval
+    INTEGER:: patch_disturbance_interval1(NPATCH1D,NPATCH1D)
+    INTEGER:: patch_first_disturbance_year1(NPATCH1D,NPATCH1D)
+    INTEGER:: patch_disturbance_interval2(NPATCH1D,NPATCH1D)
+    INTEGER:: patch_first_disturbance_year2(NPATCH1D,NPATCH1D)
+    INTEGER:: Poisson_age(1000),Poisson_freq(1000)
     REAL:: Poisson_weight(1000), CumPoisson_weight(1000)
-    INTEGER(i4b):: disturbances_per_timebase, timebase
+    INTEGER:: disturbances_per_timebase, timebase
     INTEGER:: i_min, i_max, age_sample(2,NAGE_MAX), tmp(NAGE_MAX)
     INTEGER:: age_tmp, tmp_unique(NAGE_MAX), n_age, np
     REAL:: disturbance_freq, tmp1
@@ -360,16 +360,16 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
-    INTEGER(i4b), INTENT(IN) ::  mean_disturbance_interval(:,:)
-    INTEGER(i4b) :: j, k, g, ipatch, idist, p, c, n, i
-    INTEGER(i4b) :: disturbance_interval
-    INTEGER(i4b):: patch_disturbance_interval1(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: patch_first_disturbance_year1(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: patch_disturbance_interval2(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: patch_first_disturbance_year2(NPATCH1D,NPATCH1D)
-    INTEGER(i4b):: Poisson_age(1000),Poisson_freq(1000)
+    INTEGER, INTENT(IN) ::  mean_disturbance_interval(:,:)
+    INTEGER :: j, k, g, ipatch, idist, p, c, n, i
+    INTEGER :: disturbance_interval
+    INTEGER:: patch_disturbance_interval1(NPATCH1D,NPATCH1D)
+    INTEGER:: patch_first_disturbance_year1(NPATCH1D,NPATCH1D)
+    INTEGER:: patch_disturbance_interval2(NPATCH1D,NPATCH1D)
+    INTEGER:: patch_first_disturbance_year2(NPATCH1D,NPATCH1D)
+    INTEGER:: Poisson_age(1000),Poisson_freq(1000)
     REAL:: Poisson_weight(1000), CumPoisson_weight(1000)
-    INTEGER(i4b):: disturbances_per_timebase, timebase
+    INTEGER:: disturbances_per_timebase, timebase
     INTEGER:: i_min, i_max, age_sample(2,NAGE_MAX), tmp(NAGE_MAX)
     INTEGER:: age_tmp, tmp_unique(NAGE_MAX), n_age, np
     REAL:: disturbance_freq, tmp1
@@ -489,10 +489,10 @@ CONTAINS
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
     REAL, INTENT(IN) :: StemNPP(:,:)
     REAL, INTENT(IN) :: disturbance_intensity(:,:)
-    INTEGER(i4b), INTENT(IN) ::  disturbance_interval(:,:)
+    INTEGER, INTENT(IN) ::  disturbance_interval(:,:)
     REAL, INTENT(IN) ::  LAI(:)
     REAL, INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
-    INTEGER(i4b) :: idisturb, it
+    INTEGER :: idisturb, it
 
     pop%it_pop = pop%it_pop + 1
 
@@ -555,14 +555,14 @@ CONTAINS
 
     TYPE( POP_TYPE ), INTENT(INOUT) :: pop
     REAL, INTENT(IN)            :: StemNPP(:,:)
-    INTEGER(i4b), INTENT(IN)        ::  disturbance_interval(:,:)
+    INTEGER        ::  disturbance_interval(:,:)
     REAL, INTENT(IN), OPTIONAL  :: precip(:)
-    INTEGER(i4b), INTENT(IN)        :: it
+    INTEGER, INTENT(IN)        :: it
 
     REAL :: f, mu, densindiv, cmass
     REAL :: tmp, cmass_stem_sum,cmass_stem_inc
-    INTEGER(i4b) :: j, k,c, ncohort
-    INTEGER(i4b) :: ivec(NCOHORT_MAX), nc, tmp1(NPATCH2D), tmp2(NPATCH2D), np, idisturb
+    INTEGER :: j, k,c, ncohort
+    INTEGER :: ivec(NCOHORT_MAX), nc, tmp1(NPATCH2D), tmp2(NPATCH2D), np, idisturb
     REAL :: growth_efficiency,cmass_stem
     REAL :: mort, mort_bg, fire_mort
     REAL :: s2, cpc, crown_area
@@ -732,20 +732,20 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
-    INTEGER(i4b), INTENT(IN) ::  disturbance_interval(:,:), idisturb, it
-    INTEGER(i4b) :: g, i,j,k,ct,lastct,agecopy,idcopy
+    INTEGER ::  disturbance_interval(:,:), idisturb, it
+    INTEGER :: g, i,j,k,ct,lastct,agecopy,idcopy
     REAL, ALLOCATABLE :: midpoint(:)
-    INTEGER(i4b), ALLOCATABLE :: ranked_age(:), ranked_age_init(:)
-    INTEGER(i4b) ::  tmp_count, tmp_i, age_tmp
-    INTEGER(i4b), ALLOCATABLE :: ranked_age_unique_id(:), ranked_age_id(:), counter(:)
+    INTEGER, ALLOCATABLE :: ranked_age(:), ranked_age_init(:)
+    INTEGER ::  tmp_count, tmp_i, age_tmp
+    INTEGER, ALLOCATABLE :: ranked_age_unique_id(:), ranked_age_id(:), counter(:)
     REAL, ALLOCATABLE :: tmp(:), freq_tmp(:), freq_tmp1(:)
     REAL :: p,cump,lastcump, freq, tmp1
-    INTEGER(i4b) :: n_age ! number of unique ages
-    INTEGER(i4b) :: npatch_active ! number of active patches
+    INTEGER :: n_age ! number of unique ages
+    INTEGER :: npatch_active ! number of active patches
     REAL:: disturbance_freq
-    INTEGER(i4b) :: i_max, age_max, Poisson_age(1000), np
+    INTEGER :: i_max, age_max, Poisson_age(1000), np
     REAL:: Poisson_weight(1000), CumPoisson_weight(1000)
-    INTEGER(i4b), ALLOCATABLE :: bound(:,:), unique_age(:)
+    INTEGER, ALLOCATABLE :: bound(:,:), unique_age(:)
 
     !Fills array freq with weights (frequencies across landscape) for each unique age
     ! given specified mean disturbance interval
@@ -858,7 +858,7 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
-    INTEGER(i4b) :: n1, n2, g, REPCOUNT, tmp1(NPATCH1D), np
+    INTEGER :: n1, n2, g, REPCOUNT, tmp1(NPATCH1D), np
     REAL ::  tmp2(NPATCH1D), tmp3(NPATCH1D)
 
     np = SIZE(Pop%pop_grid)
@@ -926,19 +926,19 @@ CONTAINS
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
     REAL, INTENT(IN) ::  LAI(:)
     REAL, INTENT(IN), OPTIONAL :: precip(:)
-    INTEGER(i4b), INTENT(IN) :: it
-    INTEGER(i4b) :: P, g,i,j,ct, ct_highres
+    INTEGER, INTENT(IN) :: it
+    INTEGER :: P, g,i,j,ct, ct_highres
     REAL :: limits(HEIGHT_BINS+1)
     REAL :: ht, htmax, cmass_stem,densindiv, freq, freq_old
     CHARACTER(len=12) :: string1, string2
     CHARACTER(len=9) :: fmt
-    INTEGER(i4b) :: npatch_active  ! number of active patches
-    INTEGER(i4b) :: np, i_height
+    INTEGER :: npatch_active  ! number of active patches
+    INTEGER :: np, i_height
     REAL :: diam,basal, cump
     REAL :: patch_crown_area(NPATCH2D), patch_crown_cover(NPATCH2D)
     REAL, ALLOCATABLE :: height_list(:), height_list_weight(:)
     REAL :: height_copy, weight_copy, Pwc, FAVD
-    INTEGER(i4b), PARAMETER :: HEIGHT_BINS_highres=100 ! bins for assessing height_max
+    INTEGER, PARAMETER :: HEIGHT_BINS_highres=100 ! bins for assessing height_max
     REAL, ALLOCATABLE :: limits_highres(:), DENSINDIV_HIGHRES(:)
 
 
@@ -1181,11 +1181,11 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
-    INTEGER(i4b), INTENT(IN) :: it, idisturb
+    INTEGER, INTENT(IN) :: it, idisturb
     REAL, INTENT(IN) :: intensity(:,:)
     REAL, INTENT(IN), OPTIONAL :: precip(:), frac_intensity1(:)
-    INTEGER(i4b) :: j, k, i, g, c, nc, np
-    INTEGER(i4b) ::  ivec(NCOHORT_MAX)
+    INTEGER :: j, k, i, g, c, nc, np
+    INTEGER ::  ivec(NCOHORT_MAX)
     REAL :: ht, diam
     REAL :: Psurvival_l, Psurvival_s, Psurvival, char_height
 
@@ -1299,8 +1299,8 @@ CONTAINS
 
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
     REAL, INTENT(IN), OPTIONAL :: precip(:)
-    INTEGER(i4b), INTENT(IN) :: it,idisturb
-    INTEGER(i4b) :: j, k, np, nc
+    INTEGER, INTENT(IN) :: it,idisturb
+    INTEGER :: j, k, np, nc
 
     np = SIZE(Pop%pop_grid)
     ! Kills all biomass in patch when prescribed disturbance interval is reached
@@ -1370,7 +1370,7 @@ CONTAINS
     REAL, INTENT(IN), OPTIONAL :: precip(:)
     REAL :: f, mu, densindiv, cmass, ht
     REAL :: tmp, cmass_stem_sum,cmass_stem_inc
-    INTEGER(i4b) :: j, k,c, ncohort, np
+    INTEGER :: j, k,c, ncohort, np
     REAL :: diam,basal
 
     np = SIZE(Pop%pop_grid)
@@ -1427,10 +1427,10 @@ CONTAINS
 
     TYPE(POP_TYPE), INTENT(INOUT)  :: POP
     REAL, INTENT(IN), OPTIONAL :: precip(:)
-    INTEGER(i4b), INTENT(IN) :: index, grid_index
+    INTEGER, INTENT(IN) :: index, grid_index
     REAL :: f, mu, densindiv, cmass, ht
     REAL :: tmp, cmass_stem_sum,cmass_stem_inc
-    INTEGER(i4b) :: j, k,c, ncohort, np
+    INTEGER :: j, k,c, ncohort, np
     REAL :: diam,basal
 
     np = SIZE(Pop%pop_grid)
@@ -1488,7 +1488,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i4b), INTENT(IN) :: x
+    INTEGER, INTENT(IN) :: x
     REAL, INTENT(IN) ::  lambda
 
     IF (x.LT.0) THEN ! Shouldn't happen but ...
@@ -1584,10 +1584,10 @@ CONTAINS
     REAL,PARAMETER:: HMIN=0.001 ! min bound for tree height
     REAL,PARAMETER:: HMAX=100 ! max bound for tree height
     REAL,PARAMETER:: EPS=0.01 ! precision of the root
-    INTEGER(i4b), PARAMETER :: MAXTRIES=25
+    INTEGER, PARAMETER :: MAXTRIES=25
 
     REAL :: alpha,beta,delta,rh,st,x1,x2,rtbis,dx,fmid,xmid,lhs,rhs
-    INTEGER(i4b) :: b
+    INTEGER :: b
 
     alpha=4.05*EXP(-0.00032*precip)
     beta=5.4*EXP(0.0014*precip)
@@ -1658,12 +1658,12 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i4b), INTENT(IN) ::  disturbance_interval(:,:)
+    INTEGER, INTENT(IN) ::  disturbance_interval(:,:)
     TYPE( POP_TYPE )        , INTENT(INOUT) :: POP
 
     POP%it_pop = 0
     CALL ZeroPOP(pop)
-    CALL InitPOP1D_Poisson(pop,INT(disturbance_interval,i4b))
+    CALL InitPOP1D_Poisson(pop,INT(disturbance_interval))
 
   END SUBROUTINE POP_init
 
