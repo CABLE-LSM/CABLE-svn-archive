@@ -128,7 +128,7 @@ MODULE cable_common_module
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE., & !
 
-      ! Switch for customized soil respiration - see Ticket #42
+	     ! Switch for customized soil respiration - see Ticket #42
          SRF = .FALSE.
          
    END TYPE kbl_user_switches
@@ -245,8 +245,6 @@ MODULE cable_common_module
 
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
-   
-   
       
 CONTAINS
 

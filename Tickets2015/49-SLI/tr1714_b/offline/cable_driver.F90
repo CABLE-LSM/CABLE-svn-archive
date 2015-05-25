@@ -59,6 +59,7 @@
 !              poolcnpOut.csv -- from CASA-CNP
 !==============================================================================
 
+#define UM_BUILD YES
 PROGRAM cable_offline_driver
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
@@ -544,9 +545,11 @@ PROGRAM cable_offline_driver
                           == 0 .OR. ktau .EQ. kend) THEN
                         ctime = ctime +1
                        !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
+#                 ifndef UM_BUILD 
                        CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
                             CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &
                               cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
+#                 endif
                      ENDIF
                   END IF
                ENDIF
@@ -694,7 +697,9 @@ PROGRAM cable_offline_driver
                   CALL casa_poolout( ktau, veg, soil, casabiome,               &
                       casapool, casaflux, casamet, casabal, phen )
                   CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+#                 ifndef UM_BUILD 
                   CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
+#                 endif
   
                END IF
 

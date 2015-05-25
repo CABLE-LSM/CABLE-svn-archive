@@ -22,6 +22,7 @@
 !
 ! ==============================================================================
 
+#     define UM_BUILD YES 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
                      pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &
@@ -71,7 +72,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
 
    INTEGER                                   :: it, nit
-   REAL                               :: StemNPP(mp,2)
+   REAL(dp)                               :: StemNPP(mp,2)
    CHARACTER                                 :: cyear*4
    CHARACTER                                 :: ncfile*99
    ! FOR POP DIAGNOSTICS
@@ -153,17 +154,17 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                StemNPP(:,2) = 0.0
                IF (cable_user%CALL_POP) THEN
 
-                  CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval), &
-                         real(veg%disturbance_intensity), real(casamet%glai) )
+                  CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
+                         real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
 
                   casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
-pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
                                 pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
                   + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
 
 
                   casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
-pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
                                 pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
                   -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
 
@@ -208,24 +209,18 @@ pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - 
             StemNPP(:,2) = 0.0
    
             IF (cable_user%CALL_POP) THEN
-               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval), &
-                  real(veg%disturbance_intensity), real(casamet%glai) )
+               CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
+                  real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
              
-                  casapool%CLitter(:,3) = casapool%CLitter(:,3) +              &
-                                          pop%pop_grid(:)%fire_mortality /     &
-                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
-                              pop%pop_grid(:)%stress_mortality /               &
-                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2)   &
-                              + (1./veg%disturbance_interval(:,1)) *           &
-                              casapool%Cplant(:,2)
+                  casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
+                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+                  + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
 
-                  casapool%Cplant(:,2) = casapool%Cplant(:,2) -                &
-                                         pop%pop_grid(:)%fire_mortality /      & 
-                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
-                              pop%pop_grid(:)%stress_mortality /               &
-                              pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2)   &
-                              - (1./veg%disturbance_interval(:,1))   *         &
-                              casapool%Cplant(:,2) 
+                  casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
+                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
+                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
+                  -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
 
                   write(*,*) veg%disturbance_interval(:,1)
                            
@@ -299,22 +294,23 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
       USE cable_def_types_mod,   ONLY : r_2,ms,mp
       USE casadimension,         ONLY : mplant,mdyear
       USE casavariable,          ONLY : casa_met, casa_flux
-      USE cable_popncdf_module,     ONLY : get_var_ncr2, &
+#     ifndef UM_BUILD            
+      USE cable_diag_module,     ONLY : get_var_ncr2, &
                                         get_var_ncr3, stderr_nc
-
+#     endif
       IMPLICIT NONE
 
       TYPE (casa_flux), INTENT(INOUT) :: casaflux
       TYPE (casa_met), INTENT(inout)  :: casamet
-      INTEGER*4                       :: kend, ncall
+      INTEGER, INTENT(in)             :: kend, ncall
       CHARACTER(len=*), INTENT(in)    :: ncfile
       LOGICAL, INTENT(in)             :: allATonce
 
       !netcdf IDs/ names
       INTEGER, PARAMETER :: num_vars=7 
       INTEGER, PARAMETER :: num_dims=3 
-      INTEGER*4, SAVE                        :: ncrid  ! netcdf file ID
-      INTEGER*4 , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
+      INTEGER, SAVE                        :: ncrid  ! netcdf file ID
+      INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
 
       !vars 
       CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
@@ -330,13 +326,14 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
       REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
       REAL(r_2), DIMENSION(mp,mplant) :: crmplant
-      INTEGER*4 :: ncok,  idoy
+      INTEGER :: ncok,  idoy
 
+#     ifndef UM_BUILD            
       IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
       ENDIF
-
+#     endif
       IF ( allATonce ) THEN
          DO idoy=1,mdyear
             
@@ -381,11 +378,12 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
 
       ENDIF
 
+#     ifndef UM_BUILD            
       IF ( allATonce .OR. ncall .EQ. kend ) THEN
          ncok = NF90_CLOSE(ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'closing ', ncfile)
       ENDIF
-
+#     endif
    END SUBROUTINE read_casa_dump
 
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
@@ -394,15 +392,17 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
   USE netcdf
   USE cable_def_types_mod,   ONLY : r_2,ms,mp
   USE cable_common_module,   ONLY : kend_gl
-  USE cable_popncdf_module,     ONLY : def_dims, def_vars, def_var_atts, &
+#     ifndef UM_BUILD            
+  USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
        put_var_ncr1, put_var_ncr2,       &
        put_var_ncr3, stderr_nc
+#     endif
   USE casavariable,          ONLY : CASA_MET, CASA_FLUX
   USE casadimension,         ONLY : mplant
 
   IMPLICIT NONE
      
-  INTEGER*4 :: &
+  INTEGER, INTENT(in) :: &
        n_call, &         ! this timestep #
        kend              ! final timestep of run
 
@@ -412,9 +412,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
   !netcdf IDs/ names
   CHARACTER(len=*)   :: ncfile
-  INTEGER*4, PARAMETER :: num_vars=7
-  INTEGER*4, PARAMETER :: num_dims=3
-  INTEGER*4, SAVE :: ncid       ! netcdf file ID
+  INTEGER, PARAMETER :: num_vars=7
+  INTEGER, PARAMETER :: num_dims=3
+  INTEGER, SAVE :: ncid       ! netcdf file ID
 
   !vars
   CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
@@ -426,7 +426,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
        "cgpp         ", &
        "crmplant     " /)
 
-  INTEGER*4, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
+  INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
 
   !dims
   CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
@@ -434,14 +434,14 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
        "soil", &
        "time" /)
 
-  INTEGER*4, PARAMETER :: soil_dim = 6
+  INTEGER, PARAMETER :: soil_dim = 6
 
-  INTEGER*4, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /)
+  INTEGER, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /)
 
-  INTEGER*4, DIMENSION(num_dims)  :: &
+  INTEGER, DIMENSION(num_dims)  :: &
        dimID   ! (1) x, (2) y, (3) time
 
-  INTEGER*4, DIMENSION(num_dims)  :: &
+  INTEGER, DIMENSION(num_dims)  :: &
                                 !x,y generally lat/lon BUT for single site = 1,1
        dim_len = (/-1,soil_dim,-1/)  ! (1) x, (2) y, (3) soil, (4) time [re-set]
 
@@ -449,12 +449,11 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
   TYPE(CASA_FLUX) :: CASAFLUX
 
   !local only
-  INTEGER*4 :: ncok      !ncdf return status
-  integer*4, parameter :: fr4=9 
-  integer*4, parameter :: ur4=kind(fr4) 
-  !integer, parameter :: ur4=selected_real_kind(fr4) 
-  ! END header
+  INTEGER :: ncok      !ncdf return status
 
+  ! END header
+#define UM_BUILD YES  
+#ifndef UM_BUILD 
   dim_len(1)        = mp
   dim_len(num_dims) = kend
 
@@ -464,7 +463,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
      IF (ncok /= nf90_noerr) CALL stderr_nc(ncok,'ncdf creating ', ncfile)
 
      ! define dimensions: from name and length
-     CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
+     !CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
      ! define variables: from name, type, dims
      CALL def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
@@ -474,8 +473,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
      ncok = nf90_enddef(ncid)
 
-     CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat,ur4)  )
-     CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon,ur4)  )
+     CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
+     CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
 
   ENDIF
 
@@ -487,7 +486,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset
-
+#endif
 END SUBROUTINE write_casa_dump
 
  SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet)
