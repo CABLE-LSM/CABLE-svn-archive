@@ -147,26 +147,31 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
 
+            IF(MOD(ktau/ktauday,LOY)==1) THEN
+              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+            ELSE
+              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+            ENDIF
+        
+           IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN
 
-
-            IF(MOD((ktau-kstart+1),ktauday*LOY)==0) THEN
-               StemNPP(:,1) = StemNPP(:,1)/float(ktauday*LOY)
+              StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
                StemNPP(:,2) = 0.0
                IF (cable_user%CALL_POP) THEN
 
                   CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
-                         real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
+                      real(veg%disturbance_intensity,dp), real(casamet%glai, dp), 1.0 )
+
 
                   casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
-                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
-                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                  + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
-
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum 
 
                   casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
-                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
-                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                  -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum 
 
                ENDIF
            
@@ -209,20 +214,20 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
             StemNPP(:,2) = 0.0
    
             IF (cable_user%CALL_POP) THEN
+              
                CALL POPStep(pop, StemNPP/1000., int(veg%disturbance_interval, i4b), &
-                  real(veg%disturbance_intensity,dp), real(casamet%glai, dp) )
+                      real(veg%disturbance_intensity,dp), real(casamet%glai, dp), 1.0 )
              
                   casapool%CLitter(:,3) = casapool%CLitter(:,3) + &
-                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) + &
-                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                  + (1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2)
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
 
                   casapool%Cplant(:,2) = casapool%Cplant(:,2) - &
-                  pop%pop_grid(:)%fire_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) - &
-                                pop%pop_grid(:)%stress_mortality/pop%pop_grid(:)%cmass_sum*casapool%Cplant(:,2) &
-                  -(1./veg%disturbance_interval(:,1))*casapool%Cplant(:,2) 
+                      (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                      + POP%pop_grid(:)%fire_mortality  ) * &
+                      casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
 
-                  write(*,*) veg%disturbance_interval(:,1)
                            
                if (pop%it_pop.eq.1) then
                 
@@ -863,8 +868,11 @@ END SUBROUTINE sumcflux
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-            casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-            casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
+           casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
+            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
+
+          ! casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
+          ! casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
@@ -878,15 +886,15 @@ END SUBROUTINE sumcflux
           casapool%psoil(npt,mic)   = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb)   &
                                      +casaflux%fromLtoS(npt,mic,str) *casaflux%klitter(npt,str)*casapool%clitter(npt,str)  &
                                      +casaflux%fromLtoS(npt,mic,cwd) *casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) ) &
-                                   * casapool%ratioPCsoil(npt,mic)/casaflux%ksoil(npt,mic)
+                                   * (casapool%ratioNCsoil(npt,mic)/casapool%ratioNPsoil(npt,mic))/casaflux%ksoil(npt,mic)
           casapool%psoil(npt,slow)  = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
                                      + casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str) &
                                      + casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) &
                                      + casaflux%fromStoS(npt,slow,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)  ) &
-                                   * casapool%ratioPCsoil(npt,slow)/casaflux%ksoil(npt,slow)
+                                   * (casapool%ratioNCsoil(npt,slow)/casapool%ratioNPsoil(npt,slow))/casaflux%ksoil(npt,slow)
           casapool%psoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
                                      +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
-                                   * casapool%ratioPCsoil(npt,pass)/casaflux%ksoil(npt,pass)
+                                   *  (casapool%ratioNCsoil(npt,pass)/casapool%ratioNPsoil(npt,pass))/casaflux%ksoil(npt,pass)         
           ! assign the mineral pools
           casapool%psoillab(npt)      = avgpsoillab(npt)
           casapool%psoilsorb(npt)     = avgPsoilsorb(npt)

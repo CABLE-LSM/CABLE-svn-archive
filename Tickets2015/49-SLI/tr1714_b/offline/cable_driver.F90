@@ -86,9 +86,7 @@ PROGRAM cable_offline_driver
                                    write_output,close_output_file
    USE cable_write_module,   ONLY: nullify_write
    USE cable_cbm_module
-   
    USE cable_diag_module
-   
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
@@ -287,7 +285,7 @@ PROGRAM cable_offline_driver
    ENDIF
 
    IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
-      leaps = .TRUE.
+      leaps = .FALSE.
       WRITE(*,*)   "gswp data doesn't have leap years!!! leaps -> .FALSE."
       WRITE(logn,*)"gswp data doesn't have leap years!!! leaps -> .FALSE."
    ENDIF
@@ -347,20 +345,16 @@ PROGRAM cable_offline_driver
             ! Check for gswp run
             IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
                ncciy = CurYear
-               PRINT *, 'Looking for global offline run info.'
       
                IF (ncciy < 1986 .OR. ncciy > 1995) THEN
                   PRINT *, 'Year ', ncciy, ' outside range of dataset!'
                   STOP 'Please check input in namelist file.'
-               ELSE
-         
+               ELSE IF ( RRRR .EQ. 1 ) THEN
+                 PRINT *, 'Looking for global offline run info.'
                   CALL prepareFiles(ncciy)
-      
                ENDIF
                IF ( RRRR .EQ. 1 ) THEN
-                  PRINT*,"kend"
                   CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
-                  PRINT*,"kend",kend
                   IF ( NRRRR .GT. 1 ) THEN
                      GSWP_MID(1,YYYY) = ncid_rain
                      GSWP_MID(2,YYYY) = ncid_snow
@@ -485,7 +479,7 @@ PROGRAM cable_offline_driver
               
 
 
-               IF ( .NOT. CASAONLY ) THEN
+              IF ( .NOT. CASAONLY ) THEN
    
                   ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
                   IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
@@ -513,9 +507,11 @@ PROGRAM cable_offline_driver
                  casa_it = NINT( REAL(ktau / ktauday) )
                  CALL read_casa_dump( ncfile, casamet, casaflux, casa_it, kend, .FALSE. )
               ENDIF
+
               !jhan this is insufficient testing. condition for
               !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
               IF(icycle >0 .OR.  CABLE_USER%CASA_DUMP_WRITE ) THEN
+
                  call bgcdriver( ktau, kstart, kend, dels, met,                &
                       ssnow, canopy, veg, soil, casabiome,                     &
                       casapool, casaflux, casamet, casabal,                    &
@@ -537,22 +533,23 @@ PROGRAM cable_offline_driver
                   WHERE (cleaf_max.lt.casapool%cplant(:,1))
                      cleaf_max = casapool%cplant(:,1)
                   ENDWHERE
-               ENDIF
+              ENDIF
+
                ! WRITE CASA OUTPUT
                IF(icycle >0) THEN
-                  IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
+                ! IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
                      IF ( MOD ((ktau+koffset),ktauday*CABLE_USER%CASA_OUT_FREQ)&
                           == 0 .OR. ktau .EQ. kend) THEN
                         ctime = ctime +1
-                       !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
-#                 ifndef UM_BUILD 
-                       CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
+                        !!vh!! commented out because undefined elements of casaflux are causing netcdf errors
+#                       ifndef UM_BUILD 
+                        CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
                             CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &
                               cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
-#                 endif
+#                       endif
                      ENDIF
-                  END IF
-               ENDIF
+                ! END IF
+               END IF
 
                IF ( .NOT. CASAONLY ) THEN
                   ! sumcflux is pulled out of subroutine cbm
@@ -574,16 +571,18 @@ PROGRAM cable_offline_driver
                          C%EMLEAF, C%EMSOIL )
                ENDIF
                
+              !ENDIF
                ! dump bitwise reproducible testing data
                IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
                  IF (.NOT.CASAONLY) THEN
                    write(*,*) 'before diags'
-                  IF((.NOT.spinup).OR.(spinup.AND.spinConv))                   &
-               call cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,                   &
+                   IF((.NOT.spinup).OR.(spinup.AND.spinConv))                   &
+                     call cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,                   &
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
-               ENDIF
-              ENDIF
+                  ENDIF
+                ENDIF
+
          ! Check this run against standard for quasi-bitwise reproducability
          ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
          IF(cable_user%consistency_check) THEN 
@@ -741,6 +740,9 @@ PROGRAM cable_offline_driver
                IF ( YYYY .EQ. CABLE_USER%YearEnd .AND. &
                     NRRRR .GT. 1 ) DEALLOCATE ( GSWP_MID )
             ENDIF
+        ! re-initalise annual flux sums
+        casabal%FCgppyear=0.0;casabal%FCrpyear=0.0
+        casabal%FCnppyear=0;casabal%FCrsyear=0.0;casabal%FCneeyear=0.0
 
          END DO YEAR
  
@@ -756,7 +758,7 @@ PROGRAM cable_offline_driver
    ENDIF
 
   IF ( cable_user%CALL_POP ) THEN
-     IF ( spinup ) THEN
+     IF ( CASAONLY ) THEN
         CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_INI', .TRUE.)
      ELSE
         CALL POP_IO( pop, casamet, RYEAR-1, 'WRITE_RST', .TRUE.)

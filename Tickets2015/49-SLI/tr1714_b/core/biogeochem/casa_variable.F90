@@ -58,7 +58,7 @@ MODULE casaparm
   USE casadimension
 
   IMPLICIT NONE
-  INTEGER, PARAMETER :: initcasa= 0   ! =0 spin; 1 restart file
+  INTEGER, PARAMETER :: initcasa= 1   ! =0 spin; 1 restart file
   INTEGER, PARAMETER :: iceland  = 17 !=13 for casa vegtype =15 for IGBP vegtype
   INTEGER, PARAMETER :: cropland = 9  ! 12 and 14 for IGBP vegtype 
   INTEGER, PARAMETER :: croplnd2 =10  ! ditto
@@ -79,14 +79,14 @@ MODULE casaparm
   INTEGER, PARAMETER :: PLAB    = 1
   INTEGER, PARAMETER :: PSORB   = 2
   INTEGER, PARAMETER :: POCC    = 3
-  INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable; 2 following Litton
+  INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable
   REAL(r_2), PARAMETER :: z30=0.3
   REAL(r_2), PARAMETER :: R0=0.3
   REAL(r_2), PARAMETER :: S0=0.3
   REAL(r_2), PARAMETER :: fixed_stem=1.0/3.0
   REAL(r_2), PARAMETER :: Q10alloc=2.0
   REAL(r_2), PARAMETER :: ratioNCstrfix = 1.0/150.0
-  REAL(r_2), PARAMETER :: ratioPCstrfix = ratioNCstrfix/25.0
+  REAL(r_2), PARAMETER :: ratioNPstrfix = 25.0                  
   REAL(r_2), PARAMETER :: fracCbiomass = 0.50
   REAL(r_2), PARAMETER :: tsoilrefc=25.0
   REAL(r_2), PARAMETER :: tkzeroc=273.15
@@ -141,8 +141,8 @@ MODULE casavariable
                                        fraclabile,      &
                                        ratioNCplantmin, &
                                        ratioNCplantmax, &
-                                       ratioPCplantmin, &
-                                       ratioPCplantmax, &
+                                       ratioNPplantmin, &
+                                       ratioNPplantmax, &
                                        fracLigninplant, &
                                        ftransNPtoL,     &
                                        ftransPPtoL,     &
@@ -160,7 +160,7 @@ MODULE casavariable
                                        dNplantdt,     &
                                        dPplantdt,     &
                                        ratioNCplant,  &
-                                       ratioPCplant
+                                       ratioNPplant
     REAL(r_2), DIMENSION(:),POINTER :: Nsoilmin,      &
                                        Psoillab,      &
                                        Psoilsorb,     &
@@ -176,7 +176,7 @@ MODULE casavariable
                                        dNlitterdt,    &
                                        dPlitterdt,    &
                                        ratioNClitter, &
-                                       ratioPClitter
+                                       ratioNPlitter
     REAL(r_2), DIMENSION(:,:),POINTER :: Csoil,       &
                                        Nsoil,         &
                                        Psoil,         &
@@ -185,7 +185,7 @@ MODULE casavariable
                                        dPsoildt,      &
                                        ratioNCsoil,   &
                                        ratioNCsoilnew,&
-                                       ratioPCsoil,   &
+                                       ratioNPsoil,   &
                                        ratioNCsoilmin,&
                                        ratioNCsoilmax
   END TYPE casa_pool
@@ -193,14 +193,14 @@ MODULE casavariable
   TYPE casa_flux
     REAL(r_2), DIMENSION(:),POINTER :: Cgpp,          &
                                        Cnpp,          &
-									   stemnpp,       &
                                        Crp,           &
                                        Crgplant,      &
                                        Nminfix,       &
                                        Nminuptake,    &
                                        Plabuptake,    &
                                        Clabloss,      &
-                                       fracClabile
+                                       fracClabile, &
+                 				       stemnpp
     REAL(r_2), DIMENSION(:,:),POINTER :: fracCalloc,  &
                                        fracNalloc,    &
                                        fracPalloc,    &
@@ -319,12 +319,15 @@ MODULE casavariable
     CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes
     CHARACTER(LEN=99) :: cnpmetin      ! met file for spin up 
     CHARACTER(LEN=99) :: cnpmetout     ! met file for spin up 
+    CHARACTER(LEN=99) :: ndep          ! N deposition input file   
 ! added yp wang
     CHARACTER(LEN=99) :: cnpspin       ! input file for spin up
     CHARACTER(LEN=99) :: dump_cnpspin  ! name of dump file for spinning casa-cnp
  
     CHARACTER(LEN=99) :: phen        ! leaf phenology datafile
     CHARACTER(LEN=99) :: cnpflux     ! modelled mean yearly CNP fluxes
+    LOGICAL           :: l_ndep
+! added vh
     CHARACTER(LEN=99) :: c2cdumppath ! cable2casa dump for casa spinup
   END TYPE casafiles_type
   TYPE(casafiles_type) :: casafile
@@ -344,7 +347,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
   INTEGER,             INTENT(IN) :: arraysize
 !  INTEGER,        INTENT(IN) :: mvt
 !  INTEGER :: mvt
-
+write(*,*) "in alloc_casa"
 !  mvt = mvtype
   ALLOCATE(casabiome%ivt2(mvtype),                   &
            casabiome%xkleafcoldmax(mvtype),          &
@@ -382,8 +385,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%fraclabile(mvtype,mplant),      &
            casabiome%ratioNCplantmin(mvtype,mplant), &
            casabiome%ratioNCplantmax(mvtype,mplant), &
-           casabiome%ratioPCplantmin(mvtype,mplant), &
-           casabiome%ratioPCplantmax(mvtype,mplant), &
+           casabiome%ratioNPplantmin(mvtype,mplant), &
+           casabiome%ratioNPplantmax(mvtype,mplant), &
            casabiome%fracLigninplant(mvtype,mplant), &
            casabiome%ftransNPtoL(mvtype,mplant),     &
            casabiome%ftransPPtoL(mvtype,mplant),     &
@@ -399,7 +402,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNplantdt(arraysize,mplant),      &
            casapool%dPplantdt(arraysize,mplant),      &
            casapool%ratioNCplant(arraysize,mplant),   &
-           casapool%ratioPCplant(arraysize,mplant),   &
+           casapool%ratioNPplant(arraysize,mplant),   &
            casapool%Nsoilmin(arraysize),              &
            casapool%Psoillab(arraysize),              &
            casapool%Psoilsorb(arraysize),             &
@@ -415,7 +418,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNlitterdt(arraysize,mlitter),    &
            casapool%dPlitterdt(arraysize,mlitter),    &
            casapool%ratioNClitter(arraysize,mlitter), &
-           casapool%ratioPClitter(arraysize,mlitter), &
+           casapool%ratioNPlitter(arraysize,mlitter), &
            casapool%Csoil(arraysize,msoil),           &
            casapool%Nsoil(arraysize,msoil),           &
            casapool%Psoil(arraysize,msoil),           &
@@ -423,14 +426,13 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dNsoildt(arraysize,msoil),        &
            casapool%dPsoildt(arraysize,msoil),        &
            casapool%ratioNCsoil(arraysize,msoil),     &
-           casapool%ratioPCsoil(arraysize,msoil),     &
+           casapool%ratioNPsoil(arraysize,msoil),     &
            casapool%ratioNCsoilnew(arraysize,msoil),  &
            casapool%ratioNCsoilmin(arraysize,msoil),  &
            casapool%ratioNCsoilmax(arraysize,msoil))
 
   ALLOCATE(casaflux%Cgpp(arraysize),                     &
            casaflux%Cnpp(arraysize),                     &
-           casaflux%stemnpp(arraysize),                  &
            casaflux%Crp(arraysize),                      &
            casaflux%Crgplant(arraysize),                 &
            casaflux%Nminfix(arraysize),                  &
@@ -476,7 +478,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casaflux%fromLtoS(arraysize,msoil,mlitter),   &
            casaflux%fromStoS(arraysize,msoil,msoil),     &
            casaflux%fromLtoCO2(arraysize,mlitter),       &
-           casaflux%fromStoCO2(arraysize,msoil))
+           casaflux%fromStoCO2(arraysize,msoil), &
+ 	       casaflux%stemnpp(arraysize))					                  
 
   ALLOCATE(casaflux%FluxCtolitter(arraysize,mlitter),    &
            casaflux%FluxNtolitter(arraysize,mlitter),    &
@@ -503,6 +506,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casamet%lat(arraysize),                 &
            casamet%lon(arraysize),                 &
            casamet%areacell(arraysize),             &
+
            casamet%Tairkspin(arraysize,mdyear),     &
            casamet%cgppspin(arraysize,mdyear),      &
            casamet%crmplantspin_1(arraysize,mdyear),&

@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg nXXX raij
+   set -A kh vayu cher pear shin jigg nXXX raij
 }
 
 
@@ -54,17 +54,21 @@ host_shin()
    build_status
 }
 
+ #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+#export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
 
-## burnet.hpsc.csiro.au 
-host_burn()
+
+## pearcey.hpsc.csiro.au 
+host_pear()
 {
+   . /apps/modules/Modules/default/init/ksh
+   module add netcdf/3.6.3 openmpi/1.6.5
+
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
-   #vanessa's test options
+   export FC='mpif90'
+   export CFLAGS='-O0 -fp-model precise -g -debug -traceback '
    #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
-   #export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
