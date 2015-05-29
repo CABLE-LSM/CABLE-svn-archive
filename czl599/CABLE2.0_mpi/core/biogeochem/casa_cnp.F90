@@ -481,7 +481,7 @@ END SUBROUTINE casa_rplant
 
 
 SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
-                           casamet,phen)
+                           casamet,casaflux,phen)
 ! use xleafcold and xleafdry to account for
 ! cold and drought stress on death rate of leaf
 ! inputs:
@@ -500,6 +500,7 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_met),              INTENT(INOUT) :: casamet
+  TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (phen_variable),         INTENT(INOUT) :: phen
 
   ! local variables
@@ -535,6 +536,8 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
     IF (phen%phase(npt)==1) xkleaf(npt)= 0.0
   END IF
   END DO
+  casaflux%xkleafdry  = xkleafdry
+  casaflux%xkleafcold = xkleafcold
 
 !  WHERE(casamet%iveg2/=icewater) 
 !  !    following the formulation of Arora (2005) on the 
@@ -560,7 +563,7 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
 END SUBROUTINE casa_xrateplant
 
 
-SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
+SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome,casaflux)
 !  to account for cold and drought stress on death rate of leaf: xleafcold,xleafdry
 !  to account for effects of T and W on litter decomposition: xk, xksurf
 !  inputs:
@@ -576,6 +579,7 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
+  TYPE (casa_flux),             INTENT(INOUT) :: casaflux
 
   ! local variables
   INTEGER nland,np         
@@ -610,6 +614,8 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
     xksoil(npt)   = casabiome%xkoptsoil(veg%iveg(npt))   * xktemp(npt) * xkwater(npt)
   END IF
   END DO
+  casaflux%xktemp  = xktemp
+  casaflux%xkwater = xkwater
 !  WHERE(casamet%iveg2/=icewater)  
 !!    ! Kirschbaum function
 !!    xktemp(:) = exp(xkalpha + xkbeta*(tsavg(:)-TKzeroC) &
@@ -685,7 +691,11 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
     if(casamet%glai(npt).le.casabiome%glaimin(veg%iveg(npt))) casaflux%kplant(npt,leaf) = 0.0
   ENDDO
   ! end change
+  casaflux%fromLeaftoL   =  casaflux%fromPtoL(:,:,leaf)
+  casaflux%fromWoodtoL   =  casaflux%fromPtoL(:,:,wood)
+  casaflux%fromRoottoL   =  casaflux%fromPtoL(:,:,froot)
 
+!  print*,'fromPtoL',casaflux%fromPtoL(18501,:,leaf)
 END SUBROUTINE casa_coeffplant
 
 SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
@@ -789,6 +799,14 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
       casaflux%fromStoCO2(nland,:) = -casaflux%fromStoCO2(nland,:)
     ENDIF   
   ENDDO   ! "nland"
+
+  casaflux%fromMettoS   = casaflux%fromLtoS(:,:,metb)
+  casaflux%fromStrtoS   = casaflux%fromLtoS(:,:,str)
+  casaflux%fromCWDtoS   = casaflux%fromLtoS(:,:,cwd)
+  casaflux%fromSOMtoSOM(:,1:2) = casaflux%fromStoS(:,slow:pass,mic)
+  casaflux%fromSOMtoSOM(:,3)   = casaflux%fromStoS(:,pass,slow)
+  
+  !print*,'fromLtoS',veg%iveg(18501),casaflux%fromLtoS(18501,:,metb)
 
 END SUBROUTINE casa_coeffsoil
 

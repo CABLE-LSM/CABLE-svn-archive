@@ -46,7 +46,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 293    ! add 10 vairable to veg%
+   INTEGER, PARAMETER :: nparam = 293    ! add 10 vairable to veg%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -58,7 +58,9 @@ MODULE cable_mpicommon
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
 !  INTEGER, PARAMETER :: ncasaparam = 179
 !  INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
-  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
+!  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
+!  INTEGER, PARAMETER :: ncasaparam = 200      ! changed chris Lu to add 4 new variables xkwater,xktemp,xkleafdry,xkleafcold in casaflux%
+  INTEGER, PARAMETER :: ncasaparam = 207      ! changed chris Lu to add 7 new variables for traceability analysis in casaflux%
 
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
@@ -106,9 +108,12 @@ MODULE cable_mpicommon
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
 !  INTEGER, PARAMETER :: ncasa_mat = 15
-  INTEGER, PARAMETER :: ncasa_mat = 32    ! changed  ypw 27-bov-2012 17 new variables added for casa spinup
+!  INTEGER, PARAMETER :: ncasa_mat = 32    ! changed  ypw 27-bov-2012 17 new variables added for casa spinup
+!  INTEGER, PARAMETER :: ncasa_mat = 35    ! 3 new variables kplant, klitter and ksoil added for casa output
+  INTEGER, PARAMETER :: ncasa_mat = 43    ! 8 new variables for traceability analysis added for casa output
 !  INTEGER, PARAMETER :: ncasa_vec = 27
-  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+!  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+  INTEGER, PARAMETER :: ncasa_vec = 36    ! 4 new variables added xkwater xktemp xkleafdry xkleafcold for traceability study
 
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run

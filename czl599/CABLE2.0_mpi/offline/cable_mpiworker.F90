@@ -142,6 +142,7 @@ CONTAINS
       kend,       &  ! no. of time steps in run
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
+!      rank,       &  ! rank of worker
       nyear          ! year counter for CASA-CNP
 
    REAL :: dels                        ! time step size in seconds
@@ -243,6 +244,7 @@ CONTAINS
       CALL GETARG(2, casafile%cnpipool)
    ENDIF
 
+!   CALL MPI_Comm_rank (comm, rank, ierr)
     
    cable_runtime%offline = .TRUE.
    
@@ -378,7 +380,7 @@ CONTAINS
       
       ! time step loop over ktau
       DO ktau=kstart, kend 
-         
+!         print*,'rank,ktau',rank,ktau 
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1
          
@@ -445,9 +447,17 @@ CONTAINS
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
 
+!         print*,'worker here1',ktau
          ! MPI: send the results back to the master
          CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
 
+!         print*,'worker here2',ktau
+!         print*,'worker ',ktau,ktauday,kstart
+         IF(.not. spincasa .and. mod((ktau-kstart+1),ktauday)==0)THEN
+            CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+!            print*,'sent casa variable in worker'
+         END IF
+!         print*,'worker here3',ktau
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
          ! MPI: writing done only by the master
@@ -455,6 +465,7 @@ CONTAINS
          !   CALL write_output( dels, ktau, met, canopy, ssnow,                    &
          !                      rad, bal, air, soil, veg, C%SBOLTZ, &
          !                      C%EMLEAF, C%EMSOIL )
+
    
        END DO ! END Do loop over timestep ktau
 
@@ -529,7 +540,9 @@ CONTAINS
    IF (icycle > 0) THEN
 
       ! MPI: send casa results back to the master
-      CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+      IF(spincasa)THEN
+         CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+      END IF
       ! MPI: output file written by master only
       !CALL casa_poolout( ktau, veg, soil, casabiome,                           &
       !                   casapool, casaflux, casamet, casabal, phen )
@@ -2505,6 +2518,22 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xktemp, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkwater, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkleafcold, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkleafdry, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casaflux%kmlabP, displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -2536,6 +2565,34 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%fromStoCO2, displs(bidx), ierr)
+  blen(bidx) = msoil * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromLeaftoL, displs(bidx), ierr)
+  blen(bidx) = mlitter * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromWoodtoL, displs(bidx), ierr)
+  blen(bidx) = mlitter * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromRoottoL, displs(bidx), ierr)
+  blen(bidx) = mlitter * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromMettoS, displs(bidx), ierr)
+  blen(bidx) = msoil * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromStrtoS, displs(bidx), ierr)
+  blen(bidx) = msoil * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromCWDtoS, displs(bidx), ierr)
+  blen(bidx) = msoil * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromSOMtoSOM, displs(bidx), ierr)
   blen(bidx) = msoil * r2len
 
   bidx = bidx + 1
@@ -5285,6 +5342,52 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * mdyear
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromLeaftoL(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mlitter
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromWoodtoL(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mlitter
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromRoottoL(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mlitter
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromMettoS(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromStrtoS(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromCWDtoS(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fromSOMtoSOM(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracCalloc(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%kplant(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%klitter(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mlitter
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%ksoil(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+
+
   ! ------------- 1D vectors -------------
 
   bidx = bidx + 1
@@ -5416,6 +5519,23 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   bidx = bidx + 1
   CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
   blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xktemp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkwater(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkleafcold(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkleafdry(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN

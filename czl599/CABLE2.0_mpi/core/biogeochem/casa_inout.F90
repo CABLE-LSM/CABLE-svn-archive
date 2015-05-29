@@ -1122,7 +1122,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
-                       casamet,phen)
+                       casamet,casaflux,phen)
 
 !  write(77,701)  npt, casaflux%kplant(npt,:)
 
@@ -1136,7 +1136,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 !            casaflux%cgpp(2058)-casaflux%cnpp(2058)-casaflux%fracClabile(2058)*casaflux%cgpp(2058)-sum(casaflux%crmplant(2058,:))-casaflux%crgplant(2058)
 !991  format('point 2058',20(f10.4,2x))
 
-  call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
+  call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome,casaflux)
   call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
   IF (icycle>1) THEN

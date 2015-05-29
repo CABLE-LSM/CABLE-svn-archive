@@ -239,6 +239,10 @@ MODULE casavariable
                                        kplab,       &
                                        kpsorb,      &
                                        kpocc,       &
+                                       xktemp,      &
+                                       xkwater,     &
+                                       xkleafdry,   &
+                                       xkleafcold,  &
                                        kmlabp,      &
                                        Psorbmax
     REAL(r_2), DIMENSION(:,:),POINTER    :: klitter
@@ -247,6 +251,13 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:,:,:),POINTER  :: fromStoS
     REAL(r_2), DIMENSION(:,:),POINTER    :: fromLtoCO2
     REAL(r_2), DIMENSION(:,:),POINTER    :: fromStoCO2
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromLeaftoL
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromWoodtoL
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromRoottoL
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromMettoS
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromStrtoS
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromCWDtoS
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromSOMtoSOM
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxCtolitter
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxNtolitter
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxPtolitter
@@ -477,11 +488,22 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casaflux%kpsorb(arraysize),                   &
            casaflux%kpocc(arraysize),                    &
            casaflux%kmlabP(arraysize),                   &
+           casaflux%xktemp(arraysize),                   &
+           casaflux%xkwater(arraysize),                  &
+           casaflux%xkleafcold(arraysize),               &
+           casaflux%xkleafdry(arraysize),                &
            casaflux%Psorbmax(arraysize),                 &
            casaflux%klitter(arraysize,mlitter),          &
            casaflux%ksoil(arraysize,msoil),              &
            casaflux%fromLtoS(arraysize,msoil,mlitter),   &
            casaflux%fromStoS(arraysize,msoil,msoil),     &
+           casaflux%fromLeaftoL(arraysize,mlitter),      &
+           casaflux%fromWoodtoL(arraysize,mlitter),      &
+           casaflux%fromRoottoL(arraysize,mlitter),      &
+           casaflux%fromMettoS(arraysize,msoil),         &
+           casaflux%fromStrtoS(arraysize,msoil),         &
+           casaflux%fromCWDtoS(arraysize,msoil),         &
+           casaflux%fromSOMtoSOM(arraysize,msoil),       &
            casaflux%fromLtoCO2(arraysize,mlitter),       &
            casaflux%fromStoCO2(arraysize,msoil))
 
