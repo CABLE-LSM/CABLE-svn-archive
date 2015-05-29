@@ -46,6 +46,7 @@ MODULE cable_output_module
 
   USE cable_abort_module, ONLY: abort, nc_abort
   USE cable_def_types_mod
+  USE casavariable
   USE cable_IO_vars_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
@@ -64,7 +65,10 @@ MODULE cable_output_module
                     Qsb, Evap, BaresoilT, SWE, SnowT,                          &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
+                    Cplant, Csoil, Clitter, Nplant, Nlitter, Nsoil,fracCalloc, &
+                    kplant, klitter, ksoil, xktemp, xkwater,xkleafcold,xkleafdry,&
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
+                    fromLeaftoL,fromWoodtoL,fromRoottoL,fromMettoS,fromStrtoS,fromCWDtoS,fromSOMtoSOM,&
                     HVeg, HSoil, Rnet, tvar,                                   &
                     drybal,wetbal,visAbs,NIRabs,LWcanopy,LWsoil,oLWsoil,       &
                     ESoilMod,delwc,delSWE,delwb,through,dew,CanWbal,Ecan2,CanT
@@ -194,6 +198,46 @@ MODULE cable_output_module
                                                     ! [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: CanT     ! within-canopy temperature
                                                     ! [K]
+
+    ! casa 2d variable
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Cplant    ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Csoil     ! 59 soil carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Clitter   ! 59 litter carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nplant    ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nlitter   ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nsoil     ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fromLeaftoL
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fromWoodtoL
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fromRoottoL
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fromMettoS
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fromStrtoS
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fromCWDtoS
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fromSOMtoSOM
+
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fracCalloc    ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: kplant    ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: ksoil     ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: klitter   ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    ! casa 1d variable
+    REAL(KIND=4), POINTER, DIMENSION(:) :: xkwater   ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: xktemp    ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: xkleafdry ! 59 plant carbon pool
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: xkleafcold! 59 plant carbon pool
+                                                     ! [gC/m2]
+    
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -211,7 +255,8 @@ CONTAINS
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
 
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
-                    plantcarbID, tID, landID, patchID ! dimension IDs
+                    plantcarbID, tID, landID, patchID, plantcasaID, soilcasaID, &
+                    littercasaID ! dimension IDs
     INTEGER :: latID, lonID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
@@ -257,6 +302,18 @@ CONTAINS
     ok = NF90_DEF_DIM(ncid_out,'plant_carbon_pools',ncp,plantcarbID) 
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
            (ok,'Error defining plant carbon pool dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ok = NF90_DEF_DIM(ncid_out,'plant_casa_pools',mplant,plantcasaID)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+             (ok,'Error defining plant casa pool dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ok = NF90_DEF_DIM(ncid_out,'litter_casa_pools',mlitter,littercasaID)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok,'Error defining litter casa pool dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ok = NF90_DEF_DIM(ncid_out,'soil_casa_pool',msoil,soilcasaID)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+              (ok,'Error defining soil casa pool dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
     ok = NF90_DEF_DIM(ncid_out, 'time', NF90_UNLIMITED, tID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -760,6 +817,170 @@ CONTAINS
        ALLOCATE(out%NPP(mp))
        out%NPP = 0.0 ! initialise
     END IF
+    IF(output%casacnp .OR. output%xktemp) THEN
+       CALL define_ovar(ncid_out, ovid%xktemp, 'xktemp', 'unitless',               &
+                        'Temperature limitation on soil/litter decomposition rate', patchout%xktemp,           &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%xktemp(mp))
+       out%xktemp = 0.0 ! initialise
+    END IF
+    IF(output%casacnp .OR. output%xkwater) THEN
+       CALL define_ovar(ncid_out, ovid%xkwater, 'xkwater', 'unitless',               &
+                        'water limitation on soil/litter decomposition rate', patchout%xkwater,           &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%xkwater(mp))
+       out%xkwater = 0.0 ! initialise
+    END IF
+    IF(output%casacnp .OR. output%xkleafcold) THEN
+       CALL define_ovar(ncid_out, ovid%xkleafcold, 'xkleafcold', 'unitless',               &
+                        'Temperature limitation on leaf decomposition rate', patchout%xkleafcold,       &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%xkleafcold(mp))
+       out%xkleafcold = 0.0 ! initialise
+    END IF
+    IF(output%casacnp .OR. output%xkleafdry) THEN
+       CALL define_ovar(ncid_out, ovid%xkleafdry, 'xkleafdry', 'unitless',               &
+                        'water limitation on leaf decomposition rate', patchout%xkleafdry,           &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%xkleafdry(mp))
+       out%xkleafdry = 0.0 ! initialise
+    END IF
+
+   IF(output%casacnp .OR. output%Cplant) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%Cplant, 'Cplant', 'gC/m2',              &
+                        'Plant carbon pool', patchout%Cplant,                  &
+                        'plantcasa', xID, yID, zID, landID, patchID, plantcasaID, tID)
+       ALLOCATE(out%Cplant(mp,mplant))
+       out%Cplant = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%Csoil) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%Csoil, 'Csoil', 'gC/m2',              &
+                        'Soil carbon pool', patchout%Csoil,                  &
+                        'soilcasa', xID, yID, zID, landID, patchID, soilcasaID, tID)
+       ALLOCATE(out%Csoil(mp,msoil))
+       out%Csoil = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%Clitter) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%Clitter, 'Clitter', 'gC/m2',             &
+                        'Litter carbon pool', patchout%Clitter,                 &
+                        'littercasa', xID, yID, zID, landID, patchID, littercasaID, tID)
+       ALLOCATE(out%Clitter(mp,mlitter))
+       out%Clitter = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%Nplant) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%Nplant, 'Nplant', 'gN/m2',              &
+                        'Plant nitrogen pool', patchout%Nplant,                  &
+                        'plantcasa', xID, yID, zID, landID, patchID, plantcasaID, tID)
+       ALLOCATE(out%Nplant(mp,mplant))
+       out%Nplant = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%Nsoil) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%Nsoil, 'Nsoil', 'gN/m2',              &
+                        'Soil Nitrogen pool', patchout%Nsoil,                  &
+                        'soilcasa', xID, yID, zID, landID, patchID, soilcasaID, tID)
+       ALLOCATE(out%Nsoil(mp,msoil))
+       out%Nsoil = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%Nlitter) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%Nlitter, 'Nlitter', 'gN/m2',              &
+                        'Litter Nitrogen pool', patchout%Nlitter,                 &
+                        'littercasa', xID, yID, zID, landID, patchID, littercasaID, tID)
+       ALLOCATE(out%Nlitter(mp,mlitter))
+       out%Nlitter = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fromLeaftoL) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fromLeaftoL, 'fromLeaftoL', 'unitless',              &
+                        'Transfer coefficient from leaf to litter', patchout%fromLeaftoL,                &
+                        'littercasa', xID, yID, zID, landID, patchID, littercasaID, tID)
+       ALLOCATE(out%fromLeaftoL(mp,mlitter))
+       out%fromLeaftoL = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fromWoodtoL) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fromWoodtoL, 'fromWoodtoL', 'unitless',              &
+                        'Transfer coefficient from wood to litter', patchout%fromWoodtoL,                &
+                        'littercasa', xID, yID, zID, landID, patchID, littercasaID, tID)
+       ALLOCATE(out%fromWoodtoL(mp,mlitter))
+       out%fromWoodtoL = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fromRoottoL) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fromRoottoL, 'fromRoottoL', 'unitless',              &
+                        'Transfer coefficient from root to litter', patchout%fromRoottoL,                &
+                        'littercasa', xID, yID, zID, landID, patchID, littercasaID, tID)
+       ALLOCATE(out%fromRoottoL(mp,mlitter))
+       out%fromRoottoL = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fromMettoS) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fromMettoS, 'fromMettoS', 'unitless',              &
+                        'Transfer coefficient from metabolic to soil', patchout%fromMettoS,                &
+                        'soilcasa', xID, yID, zID, landID, patchID, soilcasaID, tID)
+       ALLOCATE(out%fromMettoS(mp,msoil))
+       out%fromMettoS = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fromStrtoS) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fromStrtoS, 'fromStrtoS', 'unitless',              &
+                        'Transfer coefficient from structure to soil', patchout%fromStrtoS,                &
+                        'soilcasa', xID, yID, zID, landID, patchID, soilcasaID, tID)
+       ALLOCATE(out%fromStrtoS(mp,msoil))
+       out%fromStrtoS = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fromCWDtoS) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fromCWDtoS, 'fromCWDtoS', 'unitless',              &
+                        'Transfer coefficient from CWD to soil', patchout%fromCWDtoS,                &
+                        'soilcasa', xID, yID, zID, landID, patchID, soilcasaID, tID)
+       ALLOCATE(out%fromCWDtoS(mp,msoil))
+       out%fromCWDtoS = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fromSOMtoSOM) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fromSOMtoSOM, 'fromSOMtoSOM', 'unitless',              &
+                        'Transfer coefficient from SOM to soil', patchout%fromSOMtoSOM,                &
+                        'soilcasa', xID, yID, zID, landID, patchID, soilcasaID, tID)
+       ALLOCATE(out%fromSOMtoSOM(mp,msoil))
+       out%fromSOMtoSOM = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%fracCalloc) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%fracCalloc, 'fracCalloc', '1/day',              &
+                        'Plant turnover rate', patchout%fracCalloc,                &
+                        'plantcasa', xID, yID, zID, landID, patchID, plantcasaID, tID)
+       ALLOCATE(out%fracCalloc(mp,mplant))
+       out%fracCalloc = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%kplant) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%kplant, 'kplant', '1/day',              &
+                        'Plant turnover rate', patchout%kplant,                &
+                        'plantcasa', xID, yID, zID, landID, patchID, plantcasaID, tID)
+       ALLOCATE(out%kplant(mp,mplant))
+       out%kplant = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%ksoil) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%ksoil, 'ksoil', '1/day',              &
+                        'soil decomposition rate', patchout%ksoil,                  &
+                        'soilcasa', xID, yID, zID, landID, patchID, soilcasaID, tID)
+       ALLOCATE(out%ksoil(mp,msoil))
+       out%ksoil = 0.0 ! initialise
+    END IF
+
+    IF(output%casacnp .OR. output%klitter) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
+       CALL define_ovar(ncid_out, ovid%klitter, 'klitter', '1/day',              &
+                        'litter decomposition rate', patchout%klitter,                  &
+                        'littercasa', xID, yID, zID, landID, patchID, littercasaID, tID)
+       ALLOCATE(out%klitter(mp,mlitter))
+       out%klitter = 0.0 ! initialise
+    END IF
 
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
@@ -1075,7 +1296,7 @@ CONTAINS
   END SUBROUTINE open_output_file
   !=============================================================================
   SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
-                          rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
+                          rad, casapool, casaflux, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
     ! energy and mass balance routines. This subroutine is called 
     ! each timestep, but may only write to the output file periodically,
@@ -1089,6 +1310,8 @@ CONTAINS
     TYPE(soil_snow_type), INTENT(IN)   :: ssnow ! soil data
     TYPE(soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE(radiation_type), INTENT(IN)  :: rad   ! radiation data
+    TYPE(casa_pool), INTENT(IN) :: casapool ! casa pool
+    TYPE(casa_flux), INTENT(IN) :: casaflux ! casa flux
     TYPE(air_type), INTENT(IN)        :: air
     TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
     TYPE(balances_type), INTENT(INOUT) :: bal
@@ -1202,6 +1425,8 @@ CONTAINS
     ! If this time step is an output time step:
     IF(writenow) THEN
        ! Write to temporary time variable:
+!       print*,'timetemp',timetemp
+!       print*,'out_timestep',out_timestep
        timetemp(1) = DBLE(REAL(ktau-backtrack)*dels)
        ! Write time variable for this output time step:
        ok = NF90_PUT_VAR(ncid_out, ovid%tvar, timetemp,                        &
@@ -1999,6 +2224,322 @@ CONTAINS
           out%HeteroResp = 0.0
        END IF
     END IF
+
+    ! Cplant: plant carbon pool for leaf, wood and root [gC/m2]
+    IF(output%casacnp .OR. output%Cplant) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Cplant = out%Cplant + REAL(casapool%cplant, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Cplant = out%Cplant/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Cplant, 'Cplant',   &
+                  out%Cplant, ranges%Cplant, patchout%Cplant, 'plantcasa', met)
+          ! Reset temporary output variable:
+          out%Cplant = 0.0
+       END IF
+    END IF
+
+    ! Csoil: soil carbon pool [gC/m2]
+    IF(output%casacnp .OR. output%Csoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Csoil = out%Csoil + REAL(casapool%csoil, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Csoil = out%Csoil/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Csoil, 'Csoil',   &
+                  out%Csoil, ranges%Csoil, patchout%Csoil, 'soilcasa', met)
+          ! Reset temporary output variable:
+          out%Csoil = 0.0
+       END IF
+    END IF
+
+    ! Clitter: litter carbon pool [gC/m2]
+    IF(output%casacnp .OR. output%Clitter) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Clitter = out%Clitter + REAL(casapool%clitter, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Clitter = out%Clitter/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Clitter, 'Clitter',   &
+                  out%Clitter, ranges%Clitter, patchout%Clitter, 'littercasa', met)
+          ! Reset temporary output variable:
+          out%Clitter = 0.0
+       END IF
+    END IF
+
+    ! Nplant: plant nitrogen pool for leaf, wood and root [gN/m2]
+    IF(output%casacnp .OR. output%Nplant) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Nplant = out%Nplant + REAL(casapool%Nplant, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Nplant = out%Nplant/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Nplant, 'Nplant',   &
+                  out%Nplant, ranges%Nplant, patchout%Nplant, 'plantcasa', met)
+          ! Reset temporary output variable:
+          out%Nplant = 0.0
+       END IF
+    END IF
+
+    ! Nlitter: litter nitrogen pool for met, str and CWD [gN/m2]
+    IF(output%casacnp .OR. output%Nlitter) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Nlitter = out%Nlitter + REAL(casapool%Nlitter, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Nlitter = out%Nlitter/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Nlitter, 'Nlitter',   &
+                  out%Nlitter, ranges%Nlitter, patchout%Nlitter, 'littercasa', met)
+          ! Reset temporary output variable:
+          out%Nlitter = 0.0
+       END IF
+    END IF
+
+    ! Nsoil: soil nitrogen pool for mic, slow and passive [gN/m2]
+    IF(output%casacnp .OR. output%Nsoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Nsoil = out%Nsoil + REAL(casapool%Nsoil, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Nsoil = out%Nsoil/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Nsoil, 'Nsoil',   &
+                  out%Nsoil, ranges%Nsoil, patchout%Nsoil, 'soilcasa', met)
+          ! Reset temporary output variable:
+          out%Nsoil = 0.0
+       END IF
+    END IF
+
+    ! fracCalloc: plant carbon turnover rate for leaf, wood and root [1/day]
+    IF(output%casacnp .OR. output%fracCalloc) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fracCalloc = out%fracCalloc + REAL(casaflux%fracCalloc, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fracCalloc = out%fracCalloc/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fracCalloc, 'fracCalloc',   &
+                  out%fracCalloc, ranges%fracCalloc, patchout%fracCalloc, 'plantcasa', met)
+          ! Reset temporary output variable:
+          out%fracCalloc = 0.0
+       END IF
+    END IF
+
+    ! kplant: plant carbon turnover rate for leaf, wood and root [1/day]
+    IF(output%casacnp .OR. output%kplant) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%kplant = out%kplant + REAL(casaflux%kplant, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%kplant = out%kplant/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%kplant, 'kplant',   &
+                  out%kplant, ranges%kplant, patchout%kplant, 'plantcasa', met)
+          ! Reset temporary output variable:
+          out%kplant = 0.0
+       END IF
+    END IF
+
+    ! ksoil: soil decomposition rate for mic, slow and passive [1/day]
+    IF(output%casacnp .OR. output%ksoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%ksoil = out%ksoil + REAL(casaflux%ksoil, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%ksoil = out%ksoil/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%ksoil, 'ksoil',   &
+                  out%ksoil, ranges%ksoil, patchout%ksoil, 'soilcasa', met)
+          ! Reset temporary output variable:
+          out%ksoil = 0.0
+       END IF
+    END IF
+
+    ! klitter: litter decomposition rate for meta, str and CWD [1/day]
+    IF(output%casacnp .OR. output%klitter) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%klitter = out%klitter + REAL(casaflux%klitter, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%klitter = out%klitter/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%klitter, 'klitter',   &
+                  out%klitter, ranges%klitter, patchout%klitter, 'littercasa', met)
+          ! Reset temporary output variable:
+          out%klitter = 0.0
+       END IF
+    END IF
+
+    ! xktemp: temperature limitation on soil/litter decomposition rate [unitless]
+    IF(output%casacnp .OR. output%xktemp) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%xktemp = out%xktemp + REAL(casaflux%xktemp)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%xktemp = out%xktemp / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%xktemp, 'xktemp', out%xktemp,    &
+                          ranges%xktemp, patchout%xktemp, 'default', met)
+          ! Reset temporary output variable:
+          out%xktemp = 0.0
+       END IF
+    END IF
+
+    ! xkwater: water limitation on soil/litter decomposition rate [unitless]
+    IF(output%casacnp .OR. output%xkwater) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%xkwater = out%xkwater + REAL(casaflux%xkwater)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%xkwater = out%xkwater / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%xkwater, 'xkwater', out%xkwater,    &
+                          ranges%xkwater, patchout%xkwater, 'default', met)
+          ! Reset temporary output variable:
+          out%xkwater = 0.0
+       END IF
+    END IF
+
+    ! xkleafcold: temperature limitation on leaf decomposition rate [unitless]
+    IF(output%casacnp .OR. output%xkleafcold) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%xkleafcold = out%xkleafcold + REAL(casaflux%xkleafcold)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%xkleafcold = out%xkleafcold / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%xkleafcold, 'xkleafcold', out%xkleafcold,    &
+                          ranges%xkleafcold, patchout%xkleafcold, 'default', met)
+          ! Reset temporary output variable:
+          out%xkleafcold = 0.0
+       END IF
+    END IF
+
+    ! xkwater: water limitation on soil/litter decomposition rate [unitless]
+    IF(output%casacnp .OR. output%xkleafdry) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%xkleafdry = out%xkleafdry + REAL(casaflux%xkleafdry)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%xkleafdry = out%xkleafdry / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%xkleafdry, 'xkleafdry', out%xkleafdry,    &
+                          ranges%xkleafdry, patchout%xkleafdry, 'default', met)
+          ! Reset temporary output variable:
+          out%xkleafdry = 0.0
+       END IF
+    END IF
+
+    ! fromLeaftoL: transfer coefficient from Leaf to litter [unitless]
+    IF(output%casacnp .OR. output%fromLeaftoL) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fromLeaftoL = out%fromLeaftoL + REAL(casaflux%fromLeaftoL)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fromLeaftoL = out%fromLeaftoL / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fromLeaftoL, 'fromLeaftoL', out%fromLeaftoL,    &
+                          ranges%fromLeaftoL, patchout%fromLeaftoL, 'littercasa', met)
+          ! Reset temporary output variable:
+          out%fromLeaftoL = 0.0
+       END IF
+    END IF
+
+    ! fromWoodtoL: transfer coefficient from Wood to litter [unitless]
+    IF(output%casacnp .OR. output%fromWoodtoL) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fromWoodtoL = out%fromWoodtoL + REAL(casaflux%fromWoodtoL)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fromWoodtoL = out%fromWoodtoL / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fromWoodtoL, 'fromWoodtoL', out%fromWoodtoL,    &
+                          ranges%fromWoodtoL, patchout%fromWoodtoL, 'littercasa', met)
+          ! Reset temporary output variable:
+          out%fromWoodtoL = 0.0
+       END IF
+    END IF
+
+    ! fromRoottoL: transfer coefficient from Root to litter [unitless]
+    IF(output%casacnp .OR. output%fromRoottoL) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fromRoottoL = out%fromRoottoL + REAL(casaflux%fromRoottoL)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fromRoottoL = out%fromRoottoL / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fromRoottoL, 'fromRoottoL', out%fromRoottoL,    &
+                          ranges%fromRoottoL, patchout%fromRoottoL, 'littercasa', met)
+          ! Reset temporary output variable:
+          out%fromRoottoL = 0.0
+       END IF
+    END IF
+
+    ! fromMettoS: transfer coefficient from Metabolic to Soil [unitless]
+    IF(output%casacnp .OR. output%fromMettoS) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fromMettoS = out%fromMettoS + REAL(casaflux%fromMettoS)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fromMettoS = out%fromMettoS / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fromMettoS, 'fromMettoS', out%fromMettoS,    &
+                          ranges%fromMettoS, patchout%fromMettoS, 'soilcasa', met)
+          ! Reset temporary output variable:
+          out%fromMettoS = 0.0
+       END IF
+    END IF
+
+    ! fromStrtoS: transfer coefficient from Structure to Soil [unitless]
+    IF(output%casacnp .OR. output%fromStrtoS) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fromStrtoS = out%fromStrtoS + REAL(casaflux%fromStrtoS)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fromStrtoS = out%fromStrtoS / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fromStrtoS, 'fromStrtoS', out%fromStrtoS,    &
+                          ranges%fromStrtoS, patchout%fromStrtoS, 'soilcasa', met)
+          ! Reset temporary output variable:
+          out%fromStrtoS = 0.0
+       END IF
+    END IF
+
+    ! fromCWDtoS: transfer coefficient from CWD to Soil [unitless]
+    IF(output%casacnp .OR. output%fromCWDtoS) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fromCWDtoS = out%fromCWDtoS + REAL(casaflux%fromCWDtoS)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fromCWDtoS = out%fromCWDtoS / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fromCWDtoS, 'fromCWDtoL', out%fromCWDtoS,    &
+                          ranges%fromCWDtoS, patchout%fromCWDtoS, 'soilcasa', met)
+          ! Reset temporary output variable:
+          out%fromCWDtoS = 0.0
+       END IF
+    END IF
+
+    ! fromSOMtoSOM: transfer coefficient from soil to Soil [unitless]
+    IF(output%casacnp .OR. output%fromSOMtoSOM) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fromSOMtoSOM = out%fromSOMtoSOM + REAL(casaflux%fromSOMtoSOM)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fromSOMtoSOM = out%fromSOMtoSOM / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fromSOMtoSOM, 'fromSOMtoSOM', out%fromSOMtoSOM,    &
+                          ranges%fromSOMtoSOM, patchout%fromSOMtoSOM, 'soilcasa', met)
+          ! Reset temporary output variable:
+          out%fromSOMtoSOM = 0.0
+       END IF
+    END IF
+
 
   END SUBROUTINE write_output
   !=============================================================================

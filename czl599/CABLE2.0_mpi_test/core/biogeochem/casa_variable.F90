@@ -66,7 +66,7 @@ MODULE casaparm
   USE casadimension
 
   IMPLICIT NONE
-  INTEGER, PARAMETER :: initcasa= 1   ! =0 spin; 1 restart file
+  INTEGER, PARAMETER :: initcasa= 0   ! =0 spin; 1 restart file
   INTEGER, PARAMETER :: iceland  = 17 !=13 for casa vegtype =15 for IGBP vegtype
   INTEGER, PARAMETER :: cropland = 9  ! 12 and 14 for IGBP vegtype 
   INTEGER, PARAMETER :: croplnd2 =10  ! ditto
@@ -120,6 +120,7 @@ MODULE casavariable
                                        glaimax,        &
                                        glaimin,        &
                                        sla,            &
+                                       sla_bottom,     &
                                        ratiofrootleaf, &
                                        kroot,          &
                                        krootlen,       &
@@ -239,6 +240,10 @@ MODULE casavariable
                                        kplab,       &
                                        kpsorb,      &
                                        kpocc,       &
+                                       xktemp,      &
+                                       xkwater,     &
+                                       xkleafdry,   &
+                                       xkleafcold,  &
                                        kmlabp,      &
                                        Psorbmax
     REAL(r_2), DIMENSION(:,:),POINTER    :: klitter
@@ -247,6 +252,13 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:,:,:),POINTER  :: fromStoS
     REAL(r_2), DIMENSION(:,:),POINTER    :: fromLtoCO2
     REAL(r_2), DIMENSION(:,:),POINTER    :: fromStoCO2
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromLeaftoL
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromWoodtoL
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromRoottoL
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromMettoS
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromStrtoS
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromCWDtoS
+    REAL(r_2), DIMENSION(:,:),POINTER    :: fromSOMtoSOM
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxCtolitter
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxNtolitter
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxPtolitter
@@ -362,6 +374,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%glaimax(mvtype),                &
            casabiome%glaimin(mvtype),                &
            casabiome%sla(mvtype),                    &
+           casabiome%sla_bottom(mvtype),             &
            casabiome%ratiofrootleaf(mvtype),         &
            casabiome%kroot(mvtype),                  &
            casabiome%krootlen(mvtype),               &
@@ -477,11 +490,22 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casaflux%kpsorb(arraysize),                   &
            casaflux%kpocc(arraysize),                    &
            casaflux%kmlabP(arraysize),                   &
+           casaflux%xktemp(arraysize),                   &
+           casaflux%xkwater(arraysize),                  &
+           casaflux%xkleafcold(arraysize),               &
+           casaflux%xkleafdry(arraysize),                &
            casaflux%Psorbmax(arraysize),                 &
            casaflux%klitter(arraysize,mlitter),          &
            casaflux%ksoil(arraysize,msoil),              &
            casaflux%fromLtoS(arraysize,msoil,mlitter),   &
            casaflux%fromStoS(arraysize,msoil,msoil),     &
+           casaflux%fromLeaftoL(arraysize,mlitter),      &
+           casaflux%fromWoodtoL(arraysize,mlitter),      &
+           casaflux%fromRoottoL(arraysize,mlitter),      &
+           casaflux%fromMettoS(arraysize,msoil),         &
+           casaflux%fromStrtoS(arraysize,msoil),         &
+           casaflux%fromCWDtoS(arraysize,msoil),         &
+           casaflux%fromSOMtoSOM(arraysize,msoil),       &
            casaflux%fromLtoCO2(arraysize,mlitter),       &
            casaflux%fromStoCO2(arraysize,msoil))
 

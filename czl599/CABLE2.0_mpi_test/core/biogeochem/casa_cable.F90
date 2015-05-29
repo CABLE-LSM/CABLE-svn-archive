@@ -71,7 +71,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 
    !    phen%phase = 2
-   !print*,'ktau,ktauday,dels',ktau,ktauday,dels,canopy%frday,canopy%fpn
+!   print*,'bgcdriver,ktau,ktauday,dels,canopy%frday,canopy%fpn',ktau,ktauday,dels,canopy%frday(10000),canopy%fpn(10000)
    IF ( .NOT. dump_read ) then
       if(ktau == kstart) then
          casamet%tairk  = 0.0
@@ -476,18 +476,24 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
     IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
       IF (ivt/=2) THEN
         veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6
+                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla_bottom(ivt)/exp(veg%extkn(np)*casamet%glai(np)) ) *1.e-6  ! calculate vcmax at canopy top "Canopy_profile"
       ELSE
         IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
           veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
                           + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
-                          * ncleafx(np)/casabiome%sla(ivt) ) *1.e-6          
+                          * ncleafx(np)/casabiome%sla_bottom(ivt)/exp(veg%extkn(np)*casamet%glai(np)) ) *1.e-6          ! calculate vcmax at canopy top "Canopy_profile"
         ELSE
           veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) *1.e-6
+                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla_bottom(ivt)/exp(veg%extkn(np)*casamet%glai(np)) ) *1.e-6   ! calculate vcmax at canopy top "Canopy_profile"
         ENDIF
       ENDIF
     ENDIF
+!    if (np .eq. 10000)then
+!       print*,'iveg',ivt
+!       print*,'original vcmax',( casabiome%nintercept(ivt)  + casabiome%nslope(ivt) * ncleafx(np)/casabiome%sla_bottom(ivt))
+!       print*,'modified vcmax',( casabiome%nintercept(ivt)  + casabiome%nslope(ivt) * ncleafx(np)/casabiome%sla_bottom(ivt)/exp(veg%extkn(np)*casamet%glai(np)) )
+!       print*,'sla_bottom,extkn,lai',casabiome%sla_bottom(ivt),veg%extkn(np),casamet%glai(np)
+!    end if
     !print*,'glai,vcmax,nslope,ncleafx,sla',np,casamet%glai(np),veg%vcmax(np),casabiome%nslope(ivt),ncleafx(np),npleafx(np)
 
 !    veg%vcmax(np) = ( nintercept(ivt)  &

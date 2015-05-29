@@ -979,6 +979,7 @@ CONTAINS
         END IF
       END IF
     END DO
+
     !print*,'here3'
     IF (ncount > mland * nmetpatches) THEN
       PRINT *, ncount, ' should not be greater than mland*nmetpatches.'

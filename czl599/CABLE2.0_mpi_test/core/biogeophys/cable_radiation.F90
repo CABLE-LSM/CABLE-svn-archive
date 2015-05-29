@@ -305,7 +305,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    END DO
     
    rad%qssabs = 0.
-    
+   !print*,'vlaiw',canopy%vlaiw(10000) 
    WHERE (mask) ! i.e. vegetation and sunlight are present
 
       ! Calculate shortwave radiation absorbed by soil:
@@ -338,7 +338,11 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    END WHERE
 
-   rad%scalex(:,2) = (1.0 - cf2n) / veg%extkn - rad%scalex(:,1)
+   WHERE(abs(veg%extkn) .le. 0.0000001)
+      rad%scalex(:,2) = canopy%vlaiw - rad%scalex(:,1)
+   ELSEWHERE
+      rad%scalex(:,2) = (1.0 - cf2n) / veg%extkn - rad%scalex(:,1)
+   ENDWHERE
    
    ! Total energy absorbed by canopy:
    rad%rniso = SUM(rad%qcan, 3)

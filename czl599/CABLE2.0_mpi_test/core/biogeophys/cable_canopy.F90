@@ -1489,6 +1489,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          ENDIF
          
       ENDDO !i=1,mp
+!      print*,'cable_canopy:vcmxt3(i,1:2),rad%scalex(i,1:2),veg%vcmax,tlfx',vcmxt3(10000,1:2),rad%scalex(10000,1:2),veg%vcmax(10000),tlfx(10000)
    
       CALL photosynthesis( csx(:,:),                                           &
                            SPREAD( cx1(:), 2, mf ),                            &

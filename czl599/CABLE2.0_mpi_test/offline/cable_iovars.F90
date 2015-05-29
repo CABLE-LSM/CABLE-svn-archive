@@ -185,6 +185,8 @@ MODULE cable_IO_vars_module
          veg = .FALSE.,       & ! vegetation states
          params = .FALSE.,    & ! input parameters used to produce run
          balances = .FALSE.,  & ! energy and water balances
+         casacnp = .FALSE.,   & ! output casa pool
+         casaflux = .FALSE.,  & ! output casa flux
          restart = .FALSE.,   & ! create restart file?
          ensemble = .FALSE.,  & ! are we creating an ensemble run?
          patch = .FALSE.        ! should patch-specific info be written 
@@ -251,6 +253,28 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
+
+         Cplant  = .FALSE.,   & ! plant carbon pool
+         Csoil   = .FALSE.,   & ! soil carbon pool
+         Clitter = .FALSE.,   & ! litter carbon pool
+         Nplant = .FALSE.,    & ! plant nitrogen pool
+         Nlitter = .FALSE.,   & ! litter nitrogen pool
+         Nsoil = .FALSE.,     & ! soil organic nitrogen pool
+         fromLeaftoL =.FALSE.,&! transfer coeffiecient from leaf to litter
+         fromWoodtoL =.FALSE.,&! transfer coeffiecient from wood to litter
+         fromRoottoL =.FALSE.,&! transfer coeffiecient from root to litter
+         fromMettoS = .FALSE.,&! transfer coeffiecient from metabolic to soil
+         fromStrtoS = .FALSE.,&! transfer coeffiecient from structure to soil
+         fromCWDtoS = .FALSE.,&! transfer coeffiecient from CWD to soil
+         fromSOMtoSOM = .FALSE.,&! transfer coeffiecient from soil to soil
+         fracCalloc = .FALSE.,    & ! plant turnover rate
+         kplant = .FALSE.,    & ! plant turnover rate
+         ksoil = .FALSE.,     & ! soil turnover rate
+         klitter = .FALSE.,   & ! litter turnover rate
+         xktemp = .FALSE.,    & ! Temperature limitation on soil/litter decomposition rate
+         xkwater = .FALSE.,   & ! Water limitation on soil/litter decomposition rate
+         xkleafcold = .FALSE.,& ! Temperature limitation on leaf turnover rate
+         xkleafdry = .FALSE., & ! Water limitation on leaf turnover rate
          
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]

@@ -254,7 +254,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 
   DO nv=1,mvtype
 !    casabiome%sla(nv)             = 0.025 * (leafage(nv)**(-0.5)) ! see eqn A1 of Arora and Boer, GCB, 2005
-    casabiome%sla(nv)             = slax(nv) 
+    casabiome%sla_bottom(nv)             = slax(nv)  !read in SLA at canopy bottom from casa file
 !    casabiome%sla(nv)             = 2.0E-4 * exp(6.15)/((12*leafage(nv))**0.46) ! see eqn 6 of Sitch, GCB, 2003
 !    casabiome%fherbivore(nv)     = deltcasa*xfherbivore(nv)
     casabiome%fraclabile(nv,leaf) = deltcasa*0.6    !1/day
@@ -336,9 +336,15 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     ENDIF 
 
     ! initializing glai in case not reading pool file (eg. during spin)
-    casamet%glai(npt) = MAX(casabiome%glaimin(iv1), &
-                        casabiome%sla(iv1) * casapool%cplant(npt,leaf))
-
+!    casamet%glai(npt) = MAX(casabiome%glaimin(iv1), &
+!                      casabiome%sla(iv1) * casapool%cplant(npt,leaf))
+    IF (abs(veg%extkn(npt)) .le. 0.000001) THEN
+        casamet%glai(npt) = MAX(casabiome%glaimin(iv1), &
+                                casabiome%sla_bottom(iv1) * casapool%cplant(npt,leaf))
+    ELSE
+        casamet%glai(npt) = MAX(casabiome%glaimin(iv1), &
+                            LOG(casabiome%sla_bottom(iv1) * casapool%cplant(npt,leaf)*veg%extkn(npt)+1)/veg%extkn(npt))
+    END IF
     casaflux%fNminloss(npt)   = xfNminloss(iv1) 
     ! comment out by ypw 12/07/2009
     casaflux%fNminleach(npt)  = 10.0*xfNminleach(iv1) * deltcasa
@@ -908,7 +914,7 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
     WRITE(nout,92) ktau,npt,veg%iveg(npt),soil%isoilm(npt),     &
         casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
         casamet%areacell(npt)*(1.0e-9),casamet%glai(npt),       &
-        casabiome%sla(veg%iveg(npt)), phen%phase(npt), casapool%clabile(npt), &
+        casabiome%sla_bottom(veg%iveg(npt)), phen%phase(npt), casapool%clabile(npt), &  ! "Canopy_profile"
         casapool%cplant(npt,:),casapool%clitter(npt,:),casapool%csoil(npt,:), &
         casapool%nplant(npt,:),casapool%nlitter(npt,:),casapool%nsoil(npt,:), &
         casapool%nsoilmin(npt),casapool%pplant(npt,:),          &
@@ -1122,7 +1128,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
-                       casamet,phen)
+                       casamet,casaflux,phen)
 
 !  write(77,701)  npt, casaflux%kplant(npt,:)
 
@@ -1136,7 +1142,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 !            casaflux%cgpp(2058)-casaflux%cnpp(2058)-casaflux%fracClabile(2058)*casaflux%cgpp(2058)-sum(casaflux%crmplant(2058,:))-casaflux%crgplant(2058)
 !991  format('point 2058',20(f10.4,2x))
 
-  call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
+  call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome,casaflux)
   call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
   IF (icycle>1) THEN
