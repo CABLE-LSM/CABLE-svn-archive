@@ -1633,7 +1633,7 @@ SUBROUTINE POP_init(POP, disturbance_interval,np,precip)
 
     CALL alloc_POP(pop,np)
     CALL ZeroPOP(pop)
-    CALL InitPOP1D_Poisson(pop,disturbance_interval)
+    CALL InitPOP2D_Poisson(pop,disturbance_interval)
 
     DO j=1,np
        DO k=1,NPATCH2D

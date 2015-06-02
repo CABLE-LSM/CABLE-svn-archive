@@ -146,7 +146,9 @@ MODULE casavariable
                                        fracLigninplant, &
                                        ftransNPtoL,     &
                                        ftransPPtoL,     &
-                                       litterrate
+                                       litterrate,      &
+                                       ratioPcplantmin, & 
+                                       ratioPcplantmax
     REAL(r_2), DIMENSION(:,:),POINTER :: soilrate
   END TYPE casa_biome
 
@@ -187,7 +189,10 @@ MODULE casavariable
                                        ratioNCsoilnew,&
                                        ratioNPsoil,   &
                                        ratioNCsoilmin,&
-                                       ratioNCsoilmax
+                                       ratioNCsoilmax,&  
+                                       ratioPcsoil,   & 
+                                       ratioPcplant,  & 
+                                       ratioPclitter
   END TYPE casa_pool
 
   TYPE casa_flux
@@ -200,7 +205,7 @@ MODULE casavariable
                                        Plabuptake,    &
                                        Clabloss,      &
                                        fracClabile, &
-                 				       stemnpp
+                                       stemnpp
     REAL(r_2), DIMENSION(:,:),POINTER :: fracCalloc,  &
                                        fracNalloc,    &
                                        fracPalloc,    &
@@ -338,6 +343,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
                               casabal,arraysize)
 !SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
 !                              casabal,arraysize,mvt)
+   use casaparm, ONLY : leaf 
   IMPLICIT NONE
   TYPE (casa_biome)  , INTENT(INOUT) :: casabiome
   TYPE (casa_pool)   , INTENT(INOUT) :: casapool
@@ -391,7 +397,10 @@ write(*,*) "in alloc_casa"
            casabiome%ftransNPtoL(mvtype,mplant),     &
            casabiome%ftransPPtoL(mvtype,mplant),     &
            casabiome%litterrate(mvtype,mlitter),     &
-           casabiome%soilrate(mvtype,msoil))
+           casabiome%soilrate(mvtype,msoil),         &
+           casabiome%ratioPcplantmax(mvtype,leaf),   &
+           casabiome%ratioPcplantmin(mvtype,leaf)    &
+          ) 
 
   ALLOCATE(casapool%Clabile(arraysize),               &
            casapool%dClabiledt(arraysize),            &
@@ -429,7 +438,11 @@ write(*,*) "in alloc_casa"
            casapool%ratioNPsoil(arraysize,msoil),     &
            casapool%ratioNCsoilnew(arraysize,msoil),  &
            casapool%ratioNCsoilmin(arraysize,msoil),  &
-           casapool%ratioNCsoilmax(arraysize,msoil))
+           casapool%ratioNCsoilmax(arraysize,msoil),  &
+           casapool%ratioPcsoil(arraysize,msoil),     &
+           casapool%ratioPcplant(arraysize,mplant),   &
+           casapool%ratioPclitter(arraysize,mlitter)  &
+          ) 
 
   ALLOCATE(casaflux%Cgpp(arraysize),                     &
            casaflux%Cnpp(arraysize),                     &
