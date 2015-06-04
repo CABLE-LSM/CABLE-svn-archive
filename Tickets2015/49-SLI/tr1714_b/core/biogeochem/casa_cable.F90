@@ -457,7 +457,6 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
   INTEGER :: ncok      !ncdf return status
 
   ! END header
-#define UM_BUILD YES  
 #ifndef UM_BUILD 
   dim_len(1)        = mp
   dim_len(num_dims) = kend
