@@ -494,7 +494,7 @@ CONTAINS
 
        ! advective heat flux at air/snow interface
        qadv = rhow*(qprec_snow)*(csice*(min(vmet%Ta,zero))-lambdaf) + &
-            rhow*(qprec)*cswat*(vmet%Ta)
+            rhow*(qprec)*cswat*(max(vmet%Ta,zero))
        Tqw  = merge(vmet%Ta, vsnow%tsn(1), -qevap>zero)
        dTqwdTb = merge(zero,one, -qevap>zero)
        if (vsnow%hliq(vsnow%nsnow)>zero) then

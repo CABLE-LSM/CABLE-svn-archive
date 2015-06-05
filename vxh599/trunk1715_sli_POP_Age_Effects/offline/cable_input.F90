@@ -256,6 +256,7 @@ SUBROUTINE get_default_lai
       END DO
    END IF
 
+
    ! Close netcdf file
    ok = NF90_CLOSE(ncid)
 
@@ -733,7 +734,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! If error getting coordinate field (i.e. it doesn't exist):
     IF(ok /= NF90_NOERR) THEN
        ! Assume default time coordinate:
-       IF(mland_fromfile==1) THEN ! If single site, this is local time
+       IF(mland_fromfile==1.and.(TRIM(cable_user%MetType) .NE. 'gswp')) THEN ! If single site, this is local time
           time_coord = 'LOC' ! 12am is 12am local time, at site/gridcell
        ELSE ! If multiple/global/regional, use GMT
           time_coord = 'GMT' ! 12am is GMT time, local time set by longitude
@@ -748,6 +749,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
             // ' (SUBROUTINE open_met_file)')
     END IF
 
+write(67,*) time_coord
     ! Use internal files to convert "time" variable units (giving the run's 
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
@@ -1489,10 +1491,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
              CALL abort('Unknown time coordinate! ' &
                   //' (SUBROUTINE get_met_data)')
           END SELECT
+  
        ELSE
           ! increment hour-of-day by time step size:
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + dels/3600.0
        END IF
+
+
        ! 
        IF(met%hod(landpt(i)%cstart)<0.0) THEN ! may be -ve since longitude
           ! has range [-180,180]
@@ -1913,6 +1918,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
+ 
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
     ELSE IF(metGrid=='land') THEN
@@ -1947,7 +1953,10 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       DO i=1,mland ! over all land points/grid cells
         met%tk(landpt(i)%cstart:landpt(i)%cend) = &
              REAL(tmpDat2(i,1)) + convert%Tair
+
+   
       ENDDO
+
 
       ! Get PSurf data for land-only grid:- -- - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_ps
@@ -2181,7 +2190,9 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ! If not in met file, use default LAI value:
         DO i=1,mland ! over all land points/grid cells
           veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
-               defaultLAI(i,met%moy(landpt(i)%cstart))
+               defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
+
+
         ENDDO
       END IF
       DEALLOCATE(tmpDat1, tmpDat2, tmpDat3, tmpDat2x)
@@ -2189,6 +2200,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     ELSE
       CALL abort('Unrecognised grid type')
     END IF ! grid type
+
 
     if ((.not. exists%Snowf) .or. all(met%precip_sn == 0.0)) then ! honour snowf input
     DO i=1,mland ! over all land points/grid cells

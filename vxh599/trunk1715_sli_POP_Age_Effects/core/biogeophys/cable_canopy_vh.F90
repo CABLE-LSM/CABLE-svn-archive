@@ -617,7 +617,7 @@ CONTAINS
                alpha1* ((zetar(:,iter)**beta1* (1.0+gamma1*zetar(:,iter)**(1.0-beta1))) &
                - (zeta1**beta1*(1.0+gamma1*zeta1**(1.0-beta1))))))
        endwhere
-       !write(*,*) "ustar", canopy%us, psis( zetar(:,iter) )
+   
        !%%
        ! Turbulent aerodynamic resistance from roughness sublayer depth to reference height,
        ! x=1 if zref+disp>zruffs, 0 otherwise: thus rt1usc = 0 if zref+disp<zruffs

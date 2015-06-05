@@ -811,6 +811,7 @@ CONTAINS
       PRINT *, 'mland, nmetpatches = ', mland, nmetpatches
       STOP
     END IF
+    
     DEALLOCATE(inLon, inLat)
 
     ! Set the maximum number of active patches to that read from met file:
@@ -1140,11 +1141,8 @@ CONTAINS
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
-    
-    !jhan: this was from VH version - but 2001 not defined anywhere? 
-    !write(2001,"(1000f8.2)") MINVAL(defaultLAI(:,:),2)/MAXVAL(defaultLAI(:,:),2)
-    !write(2001,"(1000f8.2)") MAXVAL(defaultLAI(:,:),2)
-    
+ 
+        
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')

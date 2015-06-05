@@ -835,6 +835,7 @@ CONTAINS
                 qadvya(kk,0) = zero
                 qadvTa(kk,0) = zero
 
+
              case (2) ! snow
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
                      h0(kk), Tsoil(kk,:), &
@@ -1779,20 +1780,20 @@ CONTAINS
                    end if
                 end if  ! (.not. again(kk))
                 nsteps(kk)        = nsteps(kk) + 1
-!!$                                if ((irec.eq.106).and.(kk.eq.14206)) then
-!!$                                  write(*,*) 'writing diags', again(kk)
-!!$                                   write(345,"(13i8,1500e16.6)") nsteps, nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, nfac10, &
-!!$                                   nfac11, nfac12, q, qsig, qH, qhsig, &
-!!$                                   dy(kk,0:n), de(kk,0:n), dTsoil, S,thetai, Tsoil, real(var(kk,1)%iice), &
-!!$                                   real(var(kk,1)%isat), &
-!!$                                    h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
-!!$                                     vsnow(kk)%wcol, &
-!!$                                    qadv, qadvsig, qhya, qhyb, qhTa, qhTb, qya, qyb, qTa, qTb, &
-!!$                                     var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
-!!$                                    RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
-!!$                                    real(-var(kk,1:n)%isat+1), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1), vsnow(kk)%hsnow(1)
-!!$                                  if (nsteps(kk).gt.30) STOP
-!!$                                endif
+                                if ((irec.eq.11).and.(kk.eq.1997)) then
+                                  write(*,*) 'writing diags', again(kk), nsteps(kk)
+                                   write(345,"(13i8,1500e16.6)") nsteps, nfac1(kk), nfac2(kk), nfac3(kk), nfac4(kk), nfac5(kk), nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
+                                   nfac11(kk), nfac12(kk), q(kk,:), qsig(kk,:), qH(kk,:), qhsig(kk,:), &
+                                   dy(kk,0:n), de(kk,0:n), dTsoil(kk,:), S(kk,:),thetai(kk,:), Tsoil(kk,:), real(var(kk,1)%iice), &
+                                   real(var(kk,1)%isat), &
+                                    h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
+                                     vsnow(kk)%wcol, &
+                                    qadv(kk,:), qadvsig(kk,:), qhya(kk,:), qhyb(kk,:), qhTa(kk,:), qhTb(kk,:), qya(kk,:), qyb(kk,:), qTa(kk,:), qTb(kk,:), &
+                                     var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
+                                    RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
+                                    real(-var(kk,1:n)%isat+1), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1), vsnow(kk)%hsnow(1)
+                                  if (nsteps(kk).gt.1000) STOP
+                                endif
              end do ! while (iok==0) ----- end get and solve eqns
 
              !----- update unknowns
@@ -2076,7 +2077,7 @@ CONTAINS
                 if (vsnow(kk)%nsnow>0) then
                    vsnow(kk)%Qadv_snow = vsnow(kk)%Qadv_snow + rhow*(qprec_snow(kk))* &
                         (csice*(min(vmet(kk)%Ta,zero))-lambdaf)*dt(kk)
-                   vsnow(kk)%Qadv_rain = vsnow(kk)%Qadv_rain + rhow*(qprec(kk))*cswat*(vmet(kk)%Ta)*dt(kk)
+                   vsnow(kk)%Qadv_rain = vsnow(kk)%Qadv_rain + rhow*(qprec(kk))*cswat*(max(vmet(kk)%Ta,zero))*dt(kk)
 
                    ! update heat flux components
                    Tqw  = merge(vmet(kk)%Ta, vsnow(kk)%tsn(vsnow(kk)%nsnow), -qevap(kk)>zero)

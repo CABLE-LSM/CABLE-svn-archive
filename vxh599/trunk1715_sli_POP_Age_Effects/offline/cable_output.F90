@@ -2537,6 +2537,7 @@ CONTAINS
        ! Write SLI variables:
        CALL write_ovar (ncid_restart,SID,'S',REAL(ssnow%S,4), &
             (/0.0,1.5/),.TRUE.,'soil',.TRUE.)
+        write(*,*) "in create_restart"
         CALL write_ovar (ncid_restart,TsoilID,'Tsoil',REAL(ssnow%Tsoil,4), &
              (/-100.0,100.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,snowliqID,'snowliq',REAL(ssnow%snowliq,4), &
