@@ -1178,7 +1178,7 @@ END SUBROUTINE remove_trans
       icemass  = ssnow%wbice(i,1) * dzmm * dri
       liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm
       totmass  = max(liqmass+icemass,real(1e-2,r_2))
-      icef(i)     = max(0._r_2,min(1._r_2,2._r_2*icemass / totmass))
+      icef(i)     = max(0._r_2,min(1._r_2,1.25_r_2*icemass / totmass))
    end do
    S(:) = 0._r_2
    do k=1,2
@@ -2168,7 +2168,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        icemass  = ssnow%wbice(i,1) * dzmm_one * dri
        liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm_one
        totmass  = max(liqmass+icemass,real(1e-2,r_2))
-       icef(i)     = max(0._r_2,min(1._r_2, 2._r_2*icemass / totmass))
+       icef(i)     = max(0._r_2,min(1._r_2, 1.25_r_2*icemass / totmass))
    end do
 
    S(:) = 0._r_2
