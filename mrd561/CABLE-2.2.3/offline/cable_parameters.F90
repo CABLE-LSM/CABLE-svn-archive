@@ -785,13 +785,14 @@ CONTAINS
           WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
        END IF
 
-       ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)
+       ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)   !slope_std
        IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
        ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
        IF (ok /= NF90_NOERR) THEN
           inSlopeSTD = 0.0
           WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
        END IF
+       where(inSlopeSTD .le. 0.0) inSlopeSTD = 0.3
 
        ok = NF90_INQ_VARID(ncid_elev, 'soil_color', fieldID)
        IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable soil color'
