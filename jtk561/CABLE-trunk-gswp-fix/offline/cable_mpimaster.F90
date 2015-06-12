@@ -712,14 +712,15 @@ SUBROUTINE prepareFiles(ncciy)
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
-  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
-  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
+  CALL renameFiles(logn,gswpfile%rainf,LEN(TRIM(gswpfile%rainf)),ncciy,'rainf')
+  CALL renameFiles(logn,gswpfile%snowf,LEN(TRIM(gswpfile%snowf)),ncciy,'snowf')
+  CALL renameFiles(logn,gswpfile%LWdown,LEN(TRIM(gswpfile%LWdown)),ncciy,'LWdown')
+  CALL renameFiles(logn,gswpfile%SWdown,LEN(TRIM(gswpfile%SWdown)),ncciy,'SWdown')
+  CALL renameFiles(logn,gswpfile%PSurf,LEN(TRIM(gswpfile%PSurf)),ncciy,'PSurf')
+  CALL renameFiles(logn,gswpfile%Qair,LEN(TRIM(gswpfile%Qair)),ncciy,'Qair')
+  CALL renameFiles(logn,gswpfile%Tair,LEN(TRIM(gswpfile%Tair)),ncciy,'Tair')
+  CALL renameFiles(logn,gswpfile%wind,LEN(TRIM(gswpfile%wind)),ncciy,'wind')
+
 
 END SUBROUTINE prepareFiles
 
@@ -733,12 +734,12 @@ SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
   CHARACTER(LEN=*),  INTENT(IN)    :: inName
   INTEGER :: idummy
 
-  READ(inFile(nn:nn+3),'(i4)') idummy
+  READ(inFile(nn-6:nn-3),'(i4)') idummy
   IF (idummy < 1983 .OR. idummy > 1995) THEN
     PRINT *, 'Check position of the year number in input gswp file', inFile
     STOP
   ELSE
-    WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
+    WRITE(inFile(nn-6:nn-3),'(i4.4)') ncciy
     WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
   ENDIF
 
