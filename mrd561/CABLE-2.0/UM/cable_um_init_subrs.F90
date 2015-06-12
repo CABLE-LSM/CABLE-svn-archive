@@ -704,12 +704,14 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          !mrd561
          !currently not saving GWwb.
          !Each restart initialize to the eq water content based on wtd
-         ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
-         
-         call iterative_wtd(ssnow,soil,veg,false_variable,first_call)
 
-         call calc_equilibrium_water_content(ssnow,soil)
-         ssnow%GWwb(:) = ssnow%GWwbeq(:)
+         ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
+         where(ssnow%GWwb .lt. 1e-2)
+            ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
+         endwhere
+         !call iterative_wtd(ssnow,soil,veg,false_variable,first_call)
+         !call calc_equilibrium_water_content(ssnow,soil)
+         !ssnow%GWwb(:) = ssnow%GWwbeq(:)
 
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &

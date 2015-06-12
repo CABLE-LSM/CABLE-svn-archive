@@ -1219,7 +1219,7 @@ END SUBROUTINE remove_trans
       icemass  = ssnow%wbice(i,1) * dzmm * dri
       liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm
       totmass  = max(liqmass+icemass,real(1e-2,r_2))
-      icef(i)     = max(0._r_2,min(1._r_2,icemass / totmass))
+      icef(i)     = max(0._r_2,min(1._r_2,1.25_r_2 * icemass / totmass))
    end do
    !srf frozen fraction.  should be based on topography
    do i = 1,mp
@@ -1366,6 +1366,7 @@ END SUBROUTINE remove_trans
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000._r_2
   end do
+  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   do i=1,mp
@@ -1384,6 +1385,11 @@ END SUBROUTINE remove_trans
         end if
       end do  !mp
   end do  !ms
+  do i=1,mp
+     if (soil%GWwatsat(i) .gt. ssnow%GWwb(i)) then
+        def(i) = def(i) + (soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
+     end if
+  end do
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
@@ -1662,10 +1668,9 @@ END SUBROUTINE remove_trans
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
 
-       ssnow%qhz(i)  = max(soil%slope(i),1e-5) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = max(sin(soil%slope(i)),1e-5) * soil%hksat(i,ms)* gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
 
- 
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
        do k=ms-1,1,-1
@@ -2224,7 +2229,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        icemass  = ssnow%wbice(i,1) * dzmm_one * dri
        liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm_one
        totmass  = max(liqmass+icemass,real(1e-2,r_2))
-       icef(i)     = max(0._r_2,min(1._r_2,icemass / totmass))
+       icef(i)     = max(0._r_2,min(1._r_2, 1.25_r_2 * icemass / totmass))
     end do
     !srf frozen fraction.  should be based on topography
     do i = 1,mp
@@ -2238,6 +2243,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
           wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
        end if                   
        satfrac = min(1._r_2,max(0._r_2,gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)))
+       satfrac = min(1._r_2,max(0._r_2,satfrac*(1._r_2-fice) + fice ) )
 
        wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))! - satfrac*soil%watsat(i,1))/(1.-satfrac)
        wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
