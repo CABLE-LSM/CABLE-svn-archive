@@ -573,8 +573,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user
 
-   USE cable_soil_snow_gw_module, ONLY : calc_equilibrium_water_content,iterative_wtd
-   
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
    !mrd561
@@ -719,9 +717,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          where(ssnow%GWwb .lt. 1e-2)
             ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
          endwhere
-         !call iterative_wtd(ssnow,soil,veg,false_variable,first_call)
-         !call calc_equilibrium_water_content(ssnow,soil)
-         !ssnow%GWwb(:) = ssnow%GWwbeq(:)
 
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
