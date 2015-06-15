@@ -181,12 +181,12 @@ MODULE cable_common_module
 
       REAL ::                                                                  &
         MaxSatFraction       = 0.3,                                            &
-        MaxHorzDrainRate     = 1e-2,                                          &
-        EfoldHorzDrainRate   = 5.0,                                            &
-        EfoldMaxSatFrac      = 1.0,                                            &
-        hkrz                 = 0.3,                                            &
+        MaxHorzDrainRate     = 9e-3,                                          &
+        EfoldHorzDrainRate   = 2.0,                                            &
+        EfoldMaxSatFrac      = 4.0,                                            &
+        hkrz                 = 0.5,                                            &
         zdepth               = 1.0,                                            &
-        frozen_frac          = 0.25
+        frozen_frac          = 0.05
 
    END TYPE gw_parameters_type
 
