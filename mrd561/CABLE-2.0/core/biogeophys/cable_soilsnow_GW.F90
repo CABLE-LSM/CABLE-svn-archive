@@ -73,12 +73,10 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-    ! must be available outside this module
-
-   PUBLIC soil_snow_gw,calc_srf_wet_fraction,calc_equilibrium_water_content ,iterative_wtd
+   PUBLIC soil_snow_gw,calc_srf_wet_fraction ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
-   PRIVATE trimb,snow_accum, stempv
-   PRIVATE soilfreeze, remove_trans,simple_wtd
+   PRIVATE trimb,snow_accum, stempv,calc_equilibrium_water_content
+   PRIVATE GWsoilfreeze, remove_trans,iterative_wtd,simple_wtd
    PRIVATE smoistgw, ovrlndflx
 
 CONTAINS
@@ -1011,7 +1009,7 @@ END SUBROUTINE snowl_adjust
 
 ! -----------------------------------------------------------------------------
 
-SUBROUTINE soilfreeze(dels, soil, ssnow)
+SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
    USE cable_common_module
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
@@ -1020,29 +1018,15 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    REAL(r_2), DIMENSION(mp)           :: sicemelt
    REAL, DIMENSION(mp)                :: xx, ice_mass,liq_mass,tot_mass
    INTEGER k
-   REAL(r_2),DIMENSION(mp,ms) :: frozen_limit,iceF,Tice  !Decker and Zeng 2009
+   REAL(r_2),DIMENSION(mp,ms) :: frozen_limit,iceF  !Decker and Zeng 2009
 
-   !Tice = Tt* ( 1 - exp(-a*(Tt/Ts)**b * (T-Tfrz)))/*exp(1-Tt/Ts))
-   !Tice = frozen_limit *Tliq
-   !Tt = Tice + Tliq
-   !Tice = Tt - Tliq
-   !a=2 b=4
-   !calculate the fraction of wb that should be supercooled
    where (ssnow%tgg .le. C%TFRZ)
       frozen_limit(:,:) = (1. - exp(-2.*(ssnow%wb(:,:)/soil%watsat(:,:))**4.0 *&
                        (ssnow%tgg(:,:)-273.16)))/exp(1. - ssnow%wb(:,:)/soil%watsat(:,:))
+      frozen_limit(:,:) = max(0.5,frozen_limit(:,:))
    elsewhere (ssnow%tgg .gt. C%TFRZ)
       frozen_limit(:,:) = 0.
    endwhere
-   !given amount of supercooled, what should the temperature be?
-   !this allows to thaw/freeze for all temps < TFRZ
-   !not yet tested.  code needs validation
-   iceF = ssnow%wbice(:,:) /ssnow%wb(:,:)
-   Tice = -0.5*((soil%watsat/ssnow%wb)**4.0) * log(1.-iceF*exp(1.-ssnow%wb/soil%watsat))+ 273.16
-
-
-   Tice = C%TFRZ
-
 
    xx = 0.
    DO k = 1, ms
@@ -1051,50 +1035,26 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
       liq_mass = ssnow%wbliq(:,k)*real(soil%zse(k)*C%denliq,r_2)
       tot_mass = liq_mass + ice_mass
       
-!      WHERE (ssnow%tgg(:,k) < C%TFRZ)! &
-          !& .AND. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
-
-         where (ssnow%tgg(:,k) .lt. Tice(:,k) .and. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
+      WHERE (ssnow%tgg(:,k) .lt. C%TFRZ .and. frozen_limit(:,k) * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
          
-            sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit(:,k) * ssnow%wb(:,k) -      &
-                         ssnow%wbice(:,k) ) ) * soil%zse(k) * C%denice,             &
-                         ( Tice(:,k) - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
-            ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
-                               * 1000.0), frozen_limit(:,k) * ssnow%wb(:,k) )
-            xx = soil%css * soil%rhosoil
-            ssnow%gammzz(:,k) = MAX(                                              &
-                REAL((1.0 - soil%watsat(:,k)) * soil%css * soil%rhosoil ,r_2)            &
-                + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
-                + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),              &
-                REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
+         sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit(:,k) * ssnow%wb(:,k) -      &
+                      ssnow%wbice(:,k) ) ) * soil%zse(k) * C%denice,             &
+                      ( C%TFRZ - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
+         ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
+                            * 1000.0), frozen_limit(:,k) * ssnow%wb(:,k) )
+         xx = soil%css * soil%rhosoil
+         ssnow%gammzz(:,k) = MAX(                                              &
+             REAL((1.0 - soil%watsat(:,k)) * soil%css * soil%rhosoil ,r_2)            &
+             + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
+             + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),              &
+             REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
 
-            WHERE (k == 1 .AND. ssnow%isflag == 0)
-               ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
-            END WHERE
-            ssnow%tgg(:,k) = ssnow%tgg(:,k) + REAL(sicefreeze)                    &
+         WHERE (k == 1 .AND. ssnow%isflag == 0)
+            ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
+         END WHERE
+         ssnow%tgg(:,k) = ssnow%tgg(:,k) + REAL(sicefreeze)                    &
                              * C%HLF / REAL(ssnow%gammzz(:,k) )
 
-!         elsewhere (ssnow%tgg(:,k) .gt. Tice(:,k) .and. ssnow%wbice(:,k) - frozen_limit(:,k) * ssnow%wb(:,k)  > .001)
-!
-!            sicemelt = MIN( (ssnow%wbice(:,k)-frozen_limit(:,k) * ssnow%wb(:,k)) * soil%zse(k) * C%denice,&
-!                       ( ssnow%tgg(:,k) - Tice(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
-!
-!            ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
-!                               / (soil%zse(k) * C%denice) )
-!            xx = soil%css * soil%rhosoil
-!            ssnow%gammzz(:,k) = MAX(                                              &
-!                 REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
-!                 + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat*rhowat,r_2)   &
-!                 + ssnow%wbice(:,k) * REAL(csice * C%denice,r_2),            &
-!                  REAL(xx,r_2) ) * REAL(soil%zse(k),r_2)
-!            WHERE (k == 1 .AND. ssnow%isflag == 0)
-!               ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
-!            END WHERE
-!            ssnow%tgg(:,k) = ssnow%tgg(:,k) - REAL(sicemelt)                     &
-!                             * C%HLF / REAL(ssnow%gammzz(:,k))
-!         endwhere
-
-      
       ELSEWHERE( ssnow%tgg(:,k) > C%TFRZ .AND. ssnow%wbice(:,k) > 0. )
          
          sicemelt = MIN( ssnow%wbice(:,k) * soil%zse(k) * C%denice,              &
@@ -1124,7 +1084,7 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
     
    END DO
 
-END SUBROUTINE soilfreeze
+END SUBROUTINE GWsoilfreeze
 
 !-----------------------------------------------------------------------------------------
 
@@ -1196,21 +1156,20 @@ END SUBROUTINE remove_trans
     LOGICAL, INTENT(IN)                      :: md_prin
     INTEGER, PARAMETER                       :: ntest = 0 ! for snow diag prints
     INTEGER, PARAMETER                       :: nglacier = 2 ! 0 original, 1 off, 2 new Eva
-    INTEGER                                  :: k, i
+    INTEGER                                  :: k, i, j
     REAL, DIMENSION(mp)                :: rnof5
     REAL, DIMENSION(mp)                :: sgamm
     REAL, DIMENSION(mp)                :: smasstot
     REAL, DIMENSION(mp,0:3)            :: smelt1                   !snow melt
     REAL(r_2), DIMENSION(mp)           :: icef,efpor               !tmp vars, fraction of ice in gridcell
     REAL(r_2)                          :: tmpa,tmpb,qinmax         !tmp vars, maximum infiltration [mm/s]
-    REAL(r_2), DIMENSION(mp)           :: satfrac,wtd_meters       !saturated fraction of cell, wtd in m
+    REAL(r_2), DIMENSION(mp)           :: satfrac_liqice,S       !saturated fraction of cell, wtd in m
     REAL(r_2)                          :: liqmass,icemass,totmass  !liquid mass,ice mass, total mass [mm]
+    REAL(r_2), parameter               :: pi=3.1415926535898
     REAL(r_2)                          :: fice
-    REAL(r_2)                          :: dzmm
+    REAL(r_2)                          :: dzmm,slopeSTDmm
     logical                            :: prinall = .false.  !for debugging
     
-   if (md_prin) write(*,*) 'inside ovrlndflux '   !MDeck
-
    !For now assume there is no puddle
    dzmm = 1000._r_2 * soil%zse(1)
 
@@ -1219,26 +1178,31 @@ END SUBROUTINE remove_trans
       icemass  = ssnow%wbice(i,1) * dzmm * dri
       liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm
       totmass  = max(liqmass+icemass,real(1e-2,r_2))
-      icef(i)     = max(0._r_2,min(1._r_2,1.25_r_2 * icemass / totmass))
+      icef(i)     = max(0._r_2,min(1._r_2,1.25_r_2*icemass / totmass))
    end do
+   S(:) = 0._r_2
+   do k=1,2
+     S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/max(0.001,soil%watsat(:,k)-soil%watr(:,k)) ) )
+   end do
+   S(:) = S(:)/2._r_2
    !srf frozen fraction.  should be based on topography
    do i = 1,mp
       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
-      wtd_meters(i) = min( max( ssnow%wtd(i) / 1000._r_2 , 0._r_2 )  ,200._r_2)
-      satfrac(i) = fice + (1._r_2-fice) * gw_params%MaxSatFraction*exp(-wtd_meters(i)/gw_params%EfoldMaxSatFrac)
-
+       slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-2)) ! ensure some variability
+       ssnow%satfrac(i)    = 1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) )
+       satfrac_liqice(i)   = fice + (1._r_2-fice)*ssnow%satfrac(i)
    end do
 
    do i=1,mp
       tmpa = ssnow%wbliq(i,1) / efpor(i)
-      tmpb = max( (tmpa-satfrac(i))/max(0.01_r_2,(1._r_2-satfrac(i))), 0._r_2)
+      tmpb = max( (tmpa-satfrac_liqice(i))/max(0.01_r_2,(1._r_2-satfrac_liqice(i))), 0._r_2)
       tmpa = -2._r_2*soil%clappB(i,1)*soil%smpsat(i,1)/dzmm
       qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*soil%hksat(i,1)
 
-      ssnow%rnof1(i) = satfrac(i) * ssnow%fwtop(i) + &
-                         (1._r_2-satfrac(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
+      ssnow%rnof1(i) = satfrac_liqice(i) * ssnow%fwtop(i) + &
+                         (1._r_2-satfrac_liqice(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
 
       ssnow%fwtop(i) = ssnow%fwtop(i) - ssnow%rnof1(i)
 
@@ -1336,12 +1300,14 @@ END SUBROUTINE remove_trans
   ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
   ! water table depth
   !  
-  SUBROUTINE iterative_wtd (ssnow,soil,veg,false_variable,first_call)
+  SUBROUTINE iterative_wtd (ssnow, soil, veg, ktau, md_prin)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
   TYPE (veg_parameter_type), INTENT(IN)     :: veg
-  LOGICAL                                   :: false_variable,first_call
+  INTEGER, INTENT(IN)                       :: ktau  ! integration step number
+  LOGICAL, INTENT(IN)                       :: md_prin  !print info?
+
  
   !Local vars 
   REAL(r_2), DIMENSION(mp,ms)   :: dzmm_mp,tmp_def
@@ -1354,6 +1320,7 @@ END SUBROUTINE remove_trans
   REAL(r_2), DIMENSION(mp)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   INTEGER :: k,i,wttd,jlp
   LOGICAL :: empwtd
+   
 
   empwtd = .false.
 
@@ -1385,16 +1352,16 @@ END SUBROUTINE remove_trans
         end if
       end do  !mp
   end do  !ms
+
   do i=1,mp
-     if (soil%GWwatsat(i) .gt. ssnow%GWwb(i)) then
-        def(i) = def(i) + (soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
-     end if
-  end do
+    def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
+  end do   
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
   else
 
+     if (md_prin) write(*,*) 'start wtd iterations'
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
 
      do i=1,mp
@@ -1491,6 +1458,7 @@ END SUBROUTINE remove_trans
   where (ssnow%wtd(:) .gt. wtd_max) ssnow%wtd(:) = wtd_max
   where (ssnow%wtd(:) .lt. wtd_min) ssnow%wtd(:) = wtd_min
 
+  if (md_prin) write(*,*) 'done iterating for wtd'
 
   END SUBROUTINE iterative_wtd
 
@@ -1547,7 +1515,10 @@ END SUBROUTINE remove_trans
     !MD DEBUG VARS
     INTEGER :: imp,ims,k_drain
 
-    drainmod(:) = 1._r_2
+    drainmod(:) = 1._r_2  !parameter to modify qhrz params by basin or veg type
+    !where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
+    !drainmod(:) = (1._r_2 + soil%FOrg(:,1))*drainmod(:)
+
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
@@ -1555,13 +1526,8 @@ END SUBROUTINE remove_trans
     dzmm_mp = spread(dzmm,1,mp)
     zimm(0) = 0._r_2
 
-    do k=1,ms
-       zimm(k) = zimm(k-1) + dzmm(k)
-    end do
-
-    do k=1,ms
-       zmm(k)  = zimm(k-1) + 0.5_r_2*dzmm(k)
-    end do 
+    zimm(1:ms) = zimm(0:(ms-1)) + dzmm(1:ms)
+    zmm(1:ms)  = zimm(0:(ms-1)) + 0.5_r_2*dzmm(1:ms)
 
     GWdzmm(:) = real(soil%GWdz(:),r_2)*1000._r_2
     GWzimm(:) = zimm(ms)+GWdzmm(:)
@@ -1574,27 +1540,20 @@ END SUBROUTINE remove_trans
     !equilibrium water content
     CALL calc_equilibrium_water_content(ssnow,soil)
 
-    !if (ktau .le. 1) then
-    !   ssnow%wbliq = ssnow%wbeq
-    !   ssnow%wb    = ssnow%wbliq
-    !   ssnow%GWwb  = ssnow%GWwbeq
-    !end if
-
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
     do k=1,ms
        do i=1,mp
           ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2))
-          !ssnow%fracice(i,k) = 10.0**(-6.0*max(min(ssnow%fracice(i,k),1.),0.))
-          !if (ssnow%fracice(i,k) .le. 0.004) ssnow%fracice(i,k) = 0.0
           ssnow%fracice(i,k) = (exp(-3._r_2*(1._r_2-ssnow%icefrac(i,k)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
-          ssnow%fracice(i,k) = max(min(ssnow%fracice(i,k),1.0_r_2),0.0_r_2)
        end do
     end do
-    do i=1,mp
-       fice_avg(i)  = sum(ssnow%fracice(i,2:ms)*dzmm(2:ms)) / sum(dzmm(2:ms))
-       fice_avg(i)  = min(fice_avg(i),1._r_2)
-       !fice_avg(i)  = min(max(fice_avg(i),ssnow%fracice(i,ms)),1._r_2)
-    end do
+
+    ssnow%fracice(:,:) = max( min( ssnow%fracice, 1._r_2), 0._r_2)
+
+    !do i=1,mp
+    !   fice_avg(i)  = sum(ssnow%fracice(i,2:ms)*dzmm(2:ms)) / sum(dzmm(2:ms))
+    !end do
+    fice_avg(:) = minval(ssnow%icefrac(i,2:ms))
        
     do k=1,ms-1
        kk=k+1
@@ -1606,8 +1565,8 @@ END SUBROUTINE remove_trans
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
 
           s2(i) = soil%hksat(i,k)*s1(i)**(2._r_2*soil%clappB(i,k)+2._r_2)
-          ssnow%hk(i,k)    = (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
-                              exp(-gw_params%hkrz*(zimm(k)/1000.0_r_2-gw_params%zdepth))
+          ssnow%hk(i,k)    =  (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))*s1(i)*s2(i)*&
+                               exp(-gw_params%hkrz*(zimm(k)/1000.0_r_2-gw_params%zdepth)) 
           ssnow%dhkdw(i,k) = (1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))* &
                              (2._r_2*soil%clappB(i,k)+3._r_2)*s2(i)*0.5_r_2/(soil%watsat(i,k)-soil%watr(i,k))*&
                              exp(-gw_params%hkrz*(zimm(k)/1000.0_r_2-gw_params%zdepth))
@@ -1651,8 +1610,8 @@ END SUBROUTINE remove_trans
        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
        s2(i)    = soil%GWhksat(i)*s_mid(i)**(2._r_2*soil%clappB(i,ms)+2._r_2)
 
-       ssnow%GWhk(i)     = s_mid(i)*s2(i)*(1._r_2-ssnow%fracice(i,ms))*&
-                           exp(-gw_params%hkrz*(zimm(ms)/1000._r_2-gw_params%zdepth))
+       ssnow%GWhk(i)     =s_mid(i)*s2(i)*(1._r_2-ssnow%fracice(i,ms))*&
+                          exp(-gw_params%hkrz*(zimm(ms)/1000._r_2-gw_params%zdepth))
 
        ssnow%GWdhkdw(i)  = (1._r_2-ssnow%fracice(i,ms))* (2._r_2*soil%clappB(i,ms)+3._r_2)*&
                            s2(i)*0.5_r_2/(soil%GWwatsat(i)-soil%GWwatr(i))*&
@@ -1667,10 +1626,9 @@ END SUBROUTINE remove_trans
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-
-       ssnow%qhz(i)  = max(sin(soil%slope(i)),1e-5) * soil%hksat(i,ms)* gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
-                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
-
+       ssnow%qhz(i)  = tan(soil%slope(i)) * drainmod(i)*gw_params%MaxHorzDrainRate* &!(1._r_2 - fice_avg(i)) * &
+                    exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
+ 
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
        do k=ms-1,1,-1
@@ -1699,23 +1657,6 @@ END SUBROUTINE remove_trans
           ssnow%qhz(i) = ssnow%qhz(i) +qhlev(i,k)
        end do
 
-!      !VIC type subsurf drainage
-!       qhlev(i,:) = 0._r_2
-!       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1.0 -ssnow%fracice(i,ms))
-
-!       do k=k_drain,ms
-!          sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
-!       end do
-!       sm_tot(i) = max(sm_tot(i),0.01_r_2)
-
-!       ssnow%qhz(i) = soil%hksat(i,ms)*gw_params%MaxHorzDrainRate/soil%topo_ind(i) *&
-!                      max(min(sm_tot(i)/(soil%watsat(i,ms)-soil%watr(i,ms)),1._r_2),0.001_r_2)**(2._r_2*soil%clappB(i,ms)+3._r_2)
-
-!      do k=k_drain,ms
-!          qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
-!       end do
-!       qhlev(i,ms+1) = (1.0 -ssnow%fracice(i,ms))*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
-      
     end do  
 
 
@@ -1907,11 +1848,10 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3 
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0 
-   LOGICAL :: prin,md_prin,first_call,false_var
+   LOGICAL :: prin,md_prin
    REAL(r_2) :: wb_lake_T, rnof2_T, ratio
 
-   false_var = .FALSE.
-   first_call = .FALSE.
+   
    prin = .FALSE.
    md_prin = .false.
    
@@ -2048,12 +1988,12 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL remove_trans(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer
 
-   CALL  soilfreeze(dels, soil, ssnow)
+   CALL  GWsoilfreeze(dels, soil, ssnow)
 
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL iterative_wtd (ssnow, soil, veg,false_var,first_call)  
+   CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin)  
    !CALL simple_wtd(ssnow, soil, veg, ktau, md_prin)
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
@@ -2213,15 +2153,14 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(IN)    :: soil ! soil parameters
 
-
     !local variables
-    LOGICAL, SAVE                      :: first_call = .TRUE.
-    REAL(r_2), DIMENSION(mp)           :: icef
-    REAL(r_2)                          :: satfrac,wtd_meters,fice,xx
+    REAL(r_2), DIMENSION(mp)           :: icef,satfrac_liqice,S
+    REAL(r_2)                          :: fice,xx
     REAL(r_2)                          :: dzmm_one,liqmass,icemass,totmass
-    INTEGER                            :: i
+    INTEGER                            :: i,j,k
     REAL(r_2), parameter               :: pi=3.1415926535898
-    REAL(r_2)                          :: wb_unsat,wb_lin
+    INTEGER,   parameter               :: max_iter = 10
+    REAL(r_2)                          :: wb_unsat,wb_lin,funcval,derv,slopeSTDmm,func_step
 
     dzmm_one  = 1000._r_2 * real(soil%zse(1),r_2)
 
@@ -2229,46 +2168,42 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        icemass  = ssnow%wbice(i,1) * dzmm_one * dri
        liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm_one
        totmass  = max(liqmass+icemass,real(1e-2,r_2))
-       icef(i)     = max(0._r_2,min(1._r_2, 1.25_r_2 * icemass / totmass))
-    end do
-    !srf frozen fraction.  should be based on topography
-    do i = 1,mp
-       fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
-       fice = min(1._r_2,max(0._r_2,fice))
+       icef(i)     = max(0._r_2,min(1._r_2, 1.25_r_2*icemass / totmass))
+   end do
 
-       !Saturated fraction
-       if (first_call) then
-          wtd_meters = 2.0
-       else
-          wtd_meters = min(max(ssnow%wtd(i) / 1000._r_2,0._r_2),200._r_2)
-       end if                   
-       satfrac = min(1._r_2,max(0._r_2,gw_params%MaxSatFraction*exp(-wtd_meters/gw_params%EfoldMaxSatFrac)))
-       satfrac = min(1._r_2,max(0._r_2,satfrac*(1._r_2-fice) + fice ) )
+   S(:) = 0._r_2
+   do k=1,2
+      S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/max(0.001,soil%watsat(:,k)-soil%watr(:,k)) ) )
+   end do
+   S(:) = S(:)/2._r_2
+   !srf frozen fraction.  should be based on topography
+   do i = 1,mp
+      fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+      fice = min(1._r_2,max(0._r_2,fice))
 
-       wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))! - satfrac*soil%watsat(i,1))/(1.-satfrac)
-       wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
+      !Saturated fraction
+      slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-2)) ! ensure some variability
+      ssnow%satfrac(i)    = 1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) )
+      satfrac_liqice(i) = fice + (1._r_2-fice)*ssnow%satfrac(i)
 
-       wb_lin = ((ssnow%wb(i,1)-ssnow%wbice(i,1))-soil%wiltp(i,1))/(soil%fldcap(i,1)-soil%wiltp(i,1))
-       wb_lin = max(0._r_2, min(1._r_2, wb_lin) )
+      wb_unsat = (ssnow%wb(i,1)-ssnow%wbice(i,1))
+      wb_unsat = min(soil%watsat(i,1),max(0.,wb_unsat))
 
-       !Sakguchi and Zeng 2009
-       if (wb_unsat .ge. soil%fldcap(i,1)) then
-          xx = 1.
-       else
-          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
-       end if
-       if (wb_unsat .lt. soil%wiltp(i,1)) xx = 0.
-              !ssnow%wetfac(i) = fice + ( 1._r_2 - fice )*satfrac
+      !Sakguchi and Zeng 2009
+      if (wb_unsat .ge. soil%fldcap(i,1)) then
+         xx = 1.
+      else
+         xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
+      end if
+      if (wb_unsat .lt. 0.25*soil%wiltp(i,1)) xx = 0.
 
-       ssnow%wetfac(i) = satfrac*wb_lin + (1. - (satfrac*wb_lin))*xx
+      ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) + (1. - satfrac_liqice(i))*xx))
 
-    end do
-
-    first_call = .FALSE.
-
+   end do
 
 
 END SUBROUTINE calc_srf_wet_fraction
+
 
 
 

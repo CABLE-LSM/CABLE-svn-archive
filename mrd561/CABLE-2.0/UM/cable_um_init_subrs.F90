@@ -242,6 +242,16 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%slope(:) = pack(fwork(:,:),um1%l_tile_pts) 
          deallocate(fwork) 
  
+         ALLOCATE( fwork(um1%land_pts,um1%ntiles) )
+         fwork(:,:) = 0.05
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = ti_sig(i)
+            end do
+         end do
+         soil%slope_std(:) = pack(fwork(:,:),um1%l_tile_pts) 
+         deallocate(fwork) 
             
          !--- (re)set values for CABLE
          soil%ibp2    =  NINT(soil%bch)+2
