@@ -284,11 +284,11 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          !of layer depth
          do k=1,ms
             soil%smpsat(:,k)  = abs(soil%sucs(:))*1000.0  !convert units [m/s] to [mm/s]
-            soil%hksat(:,k)   = soil%hyds(:)*1000.0       !convert units
-            soil%clappB(:,k)  = soil%bch(:)
-            soil%densoil(:,k) = soil%rhosoil(:)
-            soil%watsat(:,k)  = soil%ssat(:)
-            soil%watr(:,k)    = 0.0
+            soil%hksat(:,k)   = max(soil%hyds(:)*1000.0,1e-5)       !convert units
+            soil%clappB(:,k)  = max(soil%bch(:),1.2)
+            soil%densoil(:,k) = max(soil%rhosoil(:),900.0)
+            soil%watsat(:,k)  = max(soil%ssat(:),0.2)
+            soil%watr(:,k)    = 0.01
 
             soil%Fclay(:,k)   = soil%clay(:)
             soil%Fsand(:,k)   = soil%sand(:)
@@ -299,7 +299,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%GWclappB(:)  = soil%bch(:)
          soil%GWdensoil(:) = soil%rhosoil(:)
          soil%GWwatsat(:)  = soil%ssat(:)
-         soil%GWwatr(:)    = 0.0  !const for simplicity for now
+         soil%GWwatr(:)    = 0.01  !const for simplicity for now
           
          first_call= .FALSE.
       ENDIF
@@ -562,7 +562,7 @@ END SUBROUTINE initialize_canopy
 !========================================================================
  
 SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
-                                smgw_tile,                                     &
+                                smgw,                                     &
                                 snow_tile, snow_rho1l, snage_tile, isnow_flg3l,&
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
@@ -576,7 +576,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
    !mrd561
-   REAL, INTENT(IN), DIMENSION(um1%land_pts,um1%ntiles) :: smgw_tile
+   REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smgw
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) ::    &
       sthf_tile, &   !
@@ -603,6 +603,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: sin_theta_latitude
   
+   REAL, DIMENSION(um1%land_pts, um1%ntiles) :: smgw_tile
+
    INTEGER :: i,j,k,L,n
    REAL  :: zsetot, max_snow_depth=50000.
    REAL, ALLOCATABLE:: fwork(:,:,:), sfact(:), fvar(:), rtemp(:)
@@ -709,9 +711,11 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
             WHERE( veg%iveg == 16 ) ssnow%wb(:,J) = 0.95*soil%ssat
          ENDDO
          DEALLOCATE( fwork )
+
          !mrd561
-         !currently not saving GWwb.
-         !Each restart initialize to the eq water content based on wtd
+         DO J=1,um1%ntiles
+            SMGW_TILE(:,J) = SMGW(:)
+         END DO
 
          ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
          where(ssnow%GWwb .lt. 1e-2)

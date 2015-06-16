@@ -36,7 +36,7 @@
 subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
                                   SMCL_TILE,                                   &
-                                  SMGW, SMGW_TILE,                             &
+                                  SMGW,                                        &
                                   timestep, SMVCST,STHF, STHF_TILE,            &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
                                   ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
@@ -121,8 +121,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    !mrd561
    REAL, dimension(um1%land_pts)  ::                             &
       SMGW
-   REAL, dimension(um1%land_pts,um1%ntiles)  ::                             &
-      SMGW_TILE
 
    !___(tiled) soil prognostics: as above 
    REAL, dimension(um1%land_pts,um1%ntiles,um1%sm_levels) ::                &
@@ -193,6 +191,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, POINTER :: TFRZ
    
+
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -234,7 +233,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
            rad, rough, soil, ssnow, sum_flux, veg)
   
         
-      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
+      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,         &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -257,7 +256,7 @@ END SUBROUTINE cable_implicit_driver
 !========================================================================= 
 !========================================================================= 
         
-SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
+SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW, &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -328,8 +327,6 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
    !mrd561
    REAL, DIMENSION(um1%land_pts) ::                                            &
       SMGW
-   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                  &
-      SMGW_TILE
 
    !___flag for 3 layer snow pack
    INTEGER :: ISNOW_FLG3L(um1%LAND_PTS,um1%NTILES)
@@ -397,7 +394,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
 
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
          !--- Local buffer surface FTL, FQL @ prev dt
-         FTL_TILE_old, FQW_TILE_old
+         FTL_TILE_old, FQW_TILE_old,SMGW_TILE
 
    INTEGER:: i_miss = 0
    REAL :: miss = 0.0
@@ -410,7 +407,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
       !--- set UM vars to zero
       TSOIL_CAB = 0.; SMCL_CAB = 0.; TSOIL_TILE = 0.; 
       SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
-      SMGW_TILE = 0.; SMGW = 0.;
+      SMGW = 0.;
 
       DO j = 1,um1%SM_LEVELS
          TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), um1%L_TILE_PTS, miss)

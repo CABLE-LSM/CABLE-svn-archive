@@ -1028,6 +1028,9 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
       frozen_limit(:,:) = 0.
    endwhere
 
+   !allow more freezing for permenant glacier ice regions
+   where ( spread(soil%isoilm,2,ms) .eq. 9 ) frozen_limit(:,:) = 0.95
+
    xx = 0.
    DO k = 1, ms
 
