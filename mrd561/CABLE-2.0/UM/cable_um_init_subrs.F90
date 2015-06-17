@@ -130,8 +130,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
-   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
-                                   soilin, get_type_parameters
+   USE cable_common_module, ONLY :                  &
+                                   soilin
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: &
       bexp, &
@@ -232,7 +232,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          CALL um2cable_lp( smvccl, soilin%sfc, soil%sfc, soil%isoilm)
    
          ALLOCATE( fwork(um1%land_pts,um1%ntiles) )
-         fwork(:,:) = 100.
+         fwork(:,:) = 0.1
          DO n=1,um1%NTILES
            do k=1,um1%TILE_PTS(N)
               i = um1%tile_index(k,n)
@@ -240,9 +240,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
             end do
          end do
          soil%slope(:) = pack(fwork(:,:),um1%l_tile_pts) 
-         deallocate(fwork) 
  
-         ALLOCATE( fwork(um1%land_pts,um1%ntiles) )
          fwork(:,:) = 0.05
          DO n=1,um1%NTILES
            do k=1,um1%TILE_PTS(N)
@@ -312,7 +310,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
           
 SUBROUTINE initialize_veg( canht_ft, lai_ft) 
    USE cable_um_tech_mod
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
+   USE cable_common_module, ONLY : vegin
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
    
@@ -434,7 +432,6 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
    USE cable_data_module,   ONLY : PHYS, OTHER
    USE cable_um_tech_mod,   ONLY : um1, rad, soil, met,                        & 
                                    conv_rain_prevstep, conv_snow_prevstep
-   USE cable_common_module, ONLY : cable_runtime, cable_user
 
    REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
    
@@ -535,7 +532,6 @@ END SUBROUTINE initialize_radiation
           
 SUBROUTINE initialize_canopy(canopy_tile)
    USE cable_um_tech_mod,   ONLY : um1, canopy 
-   USE cable_common_module, ONLY : cable_runtime, cable_user
    
    REAL, INTENT(IN),DIMENSION(um1%land_pts, um1%ntiles) :: canopy_tile
    
@@ -571,7 +567,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    USE cable_def_types_mod,  ONLY : mp, msn
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
-   USE cable_common_module, ONLY : cable_runtime, cable_user
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
@@ -773,7 +768,6 @@ SUBROUTINE initialize_roughness( z1_tq, z1_uv, htveg )
    USE cable_um_tech_mod,   ONLY : um1, rough, veg
    USE cable_common_module, ONLY : ktau_gl
    USE cable_def_types_mod, ONLY : mp
-   USE cable_common_module, ONLY : cable_runtime, cable_user
    
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) ::  z1_tq, z1_uv
    REAL, INTENT(INOUT), DIMENSION(um1%land_pts, um1%ntiles) :: htveg

@@ -179,14 +179,14 @@ MODULE cable_common_module
 !   real, dimension(:,:), pointer,save :: c1, rhoch
    TYPE gw_parameters_type
 
-      REAL ::                                                                  &
-        MaxSatFraction       = 0.3,                                            &
-        MaxHorzDrainRate     = 9e-3,                                          &
-        EfoldHorzDrainRate   = 2.0,                                            &
-        EfoldMaxSatFrac      = 4.0,                                            &
-        hkrz                 = 0.5,                                            &
-        zdepth               = 1.0,                                            &
-        frozen_frac          = 0.05
+      REAL ::                       &
+        MaxSatFraction,             &
+        MaxHorzDrainRate,           &
+        EfoldHorzDrainRate,         &
+        EfoldMaxSatFrac,            &
+        hkrz,                       &
+        zdepth,                     &
+        frozen_frac
 
    END TYPE gw_parameters_type
 
