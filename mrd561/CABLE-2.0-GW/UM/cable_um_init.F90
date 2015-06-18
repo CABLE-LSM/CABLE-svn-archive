@@ -42,14 +42,14 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_pts, tile_index,     &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
-                              smvccl, albsoil, ti_mean,ti_sig, snow_tile,      &
+                              smvccl, albsoil,  snow_tile,      &
                               snow_rho1l,                                      &
                               snage_tile, isnow_flg3l, snow_rho3l, snow_cond,  &
                               snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
                               lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
                               ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,    &
                               z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,&
-                   CO2_MMR, sthu_tile, smcl_tile, smgw, sthf_tile, sthu,  &
+                   CO2_MMR, sthu_tile, smcl_tile, smgw_tile, sthf_tile, sthu,  &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
                               dzsoil )                         
 
@@ -106,9 +106,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       smvcwt, &   !
       smvccl, &   !
       albsoil,&   !
-      fland, &    !
-      ti_mean, &
-      ti_sig
+      fland
        
    REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                          &
       sw_down, &        !
@@ -157,8 +155,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       sthu  !
 
    !mrd561
-   REAL, INTENT(IN), DIMENSION(land_pts) ::                         &
-      smgw  !
+   REAL, INTENT(IN), DIMENSION(land_pts,ntiles) ::                         &
+      smgw_tile  !
 
    REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) ::                 &
       sthu_tile, &   !
@@ -253,14 +251,14 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
-                            dzsoil,ti_mean,ti_sig ) 
+                            dzsoil ) 
         
       !--- initialize roughness
       CALL initialize_roughness( z1_tq, z1_uv, kblum_veg%htveg ) 
        
       !--- initialize soilsnow
       CALL initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,   &
-                               smgw, snow_tile, snow_rho1l, snage_tile,&
+                               smgw_tile, snow_tile, snow_rho1l, snage_tile,&
                                 isnow_flg3l, snow_rho3l, snow_cond,         &
                                 snow_depth3l, snow_mass3l, snow_tmp3l,      &
                                 fland, sin_theta_latitude ) 

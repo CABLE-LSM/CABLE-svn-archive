@@ -126,7 +126,7 @@ CONTAINS
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
-                            dzsoil,ti_mean,ti_sig ) 
+                            dzsoil ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
@@ -151,10 +151,6 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
    REAL, INTENT(IN), DIMENSION(um1%sm_levels) :: dzsoil
    
-   REAL, INTENT(IN), DIMENSION(um1%land_pts) :: ti_mean,                       &
-                                                ti_sig
-   
- 
    !___defs 1st call to CABLE in this run
    LOGICAL, SAVE :: first_call= .TRUE.
    INTEGER :: i,j,k,L,n
@@ -236,7 +232,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          DO n=1,um1%NTILES
            do k=1,um1%TILE_PTS(N)
               i = um1%tile_index(k,n)
-              fwork(i,n) = ti_mean(i)
+              fwork(i,n) = 0.05
             end do
          end do
          soil%slope(:) = pack(fwork(:,:),um1%l_tile_pts) 
@@ -245,7 +241,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          DO n=1,um1%NTILES
            do k=1,um1%TILE_PTS(N)
               i = um1%tile_index(k,n)
-              fwork(i,n) = ti_sig(i)
+              fwork(i,n) = 0.05
             end do
          end do
          soil%slope_std(:) = pack(fwork(:,:),um1%l_tile_pts) 
@@ -558,7 +554,7 @@ END SUBROUTINE initialize_canopy
 !========================================================================
  
 SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
-                                smgw,                                     &
+                                smgw_tile,                                     &
                                 snow_tile, snow_rho1l, snage_tile, isnow_flg3l,&
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
@@ -571,7 +567,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
    !mrd561
-   REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smgw
+   REAL, INTENT(IN), DIMENSION(um1%land_pts,um1%ntiles) :: smgw_tile
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) ::    &
       sthf_tile, &   !
@@ -598,8 +594,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: sin_theta_latitude
   
-   REAL, DIMENSION(um1%land_pts, um1%ntiles) :: smgw_tile
-
    INTEGER :: i,j,k,L,n
    REAL  :: zsetot, max_snow_depth=50000.
    REAL, ALLOCATABLE:: fwork(:,:,:), sfact(:), fvar(:), rtemp(:)
@@ -708,11 +702,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          DEALLOCATE( fwork )
 
          !mrd561
-         DO J=1,um1%ntiles
-            SMGW_TILE(:,J) = SMGW(:)
-         END DO
-
-         ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
+         ssnow%GWwb(:)= PACK(smgw_tile(:,:),um1%l_tile_pts)
          where(ssnow%GWwb .lt. 1e-2)
             ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
          endwhere
