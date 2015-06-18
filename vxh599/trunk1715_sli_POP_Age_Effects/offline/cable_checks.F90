@@ -130,6 +130,7 @@ MODULE cable_checks_module
            c3 = (/0.0,1.0/),                   & ! EK nov07   
            clay = (/0.0,1.0/),                 &
            css = (/700.0,2200.0/),             &
+           LambdaS = (/2100.,2900./),          & ! MC Sep 2014
            rhosoil = (/300.0,3000.0/),         &
            !hyds = (/5.0E-7,8.5E-4/),           &
            hyds = (/5.0E-7,8.5E-3/),           & ! VH ! sep14

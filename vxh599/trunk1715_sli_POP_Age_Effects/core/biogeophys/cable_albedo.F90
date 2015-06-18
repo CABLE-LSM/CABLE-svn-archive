@@ -76,9 +76,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
    IF (.NOT. allocated(c1)) &
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-  CALL surface_albedosn_vh(ssnow, veg, met, soil,dels)
-
-  ! CALL surface_albedosn(ssnow, veg, met, soil)
+   CALL surface_albedosn_vh(ssnow, veg, met, soil,dels)
 
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
@@ -405,8 +403,8 @@ END SUBROUTINE surface_albedosn
           ar3 = .1
           ! snow covered fraction of the grid
          ! snrat = min (1., snr / (snr + .1) )
-         ! snrat = min (1., snr / (snr + .01) )  ! test vh!
-           snrat = 1.
+          !snrat = min (1., snr / (snr + .01) )  ! test vh!
+          snrat = 1.
        END WHERE
 
        dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * dels

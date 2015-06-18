@@ -183,6 +183,7 @@ MODULE cable_common_module
          sucs,    & !
          rhosoil, & !
          css,     & !
+         LambdaS, & !
          c3         !
    
    END TYPE soilin_type
@@ -422,6 +423,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       ALLOCATE ( soilin%swilt(mstype), soilin%sfc(mstype), soilin%ssat(mstype) )
       ALLOCATE ( soilin%bch(mstype), soilin%hyds(mstype), soilin%sucs(mstype) )
       ALLOCATE ( soilin%rhosoil(mstype), soilin%css(mstype) )
+      ALLOCATE ( soilin%LambdaS(mstype) )
      
       DO a = 1,mstype 
          READ(40,'(8X,A70)') soil_desc(a) ! Read description of each soil type
@@ -439,6 +441,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       READ(40,*) soilin%sucs
       READ(40,*) soilin%rhosoil
       READ(40,*) soilin%css
+      READ(40,*) soilin%LambdaS
 
    CLOSE(40)
 
@@ -454,9 +457,13 @@ END SUBROUTINE get_type_parameters
     END IF
   END SUBROUTINE HANDLE_ERR
 
-  FUNCTION IS_LEAPYEAR( YYYY )
+  !MC FUNCTION IS_LEAPYEAR( YYYY )
+  ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
+
     IMPLICIT NONE
-    INTEGER :: YYYY
+
+    !MC INTEGER :: YYYY
+    INTEGER, INTENT(IN) :: YYYY
     LOGICAL :: IS_LEAPYEAR
 
     IS_LEAPYEAR = .FALSE.

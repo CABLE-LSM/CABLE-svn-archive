@@ -929,13 +929,14 @@ CONTAINS
  
       ! parameters that are not spatially dependent
       select case(ms)
-         
-         case(6)
-            soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
-         case(12)
-            soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
-                         0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
-      
+      case(6)
+         soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+      case(12)
+         soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
+              0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
+      case(13)
+         soil%zse = (/.02, 0.05, 0.06, 0.13, 0.30, 0.30, 0.30, &
+              0.30, 0.30, 0.30, 0.30, 0.75, 1.50/)
       end select
  
    ELSE
@@ -1124,6 +1125,7 @@ CONTAINS
           soil%silt(h)    =  soilin%silt(soil%isoilm(h))
           soil%clay(h)    =  soilin%clay(soil%isoilm(h))
           soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+          soil%LambdaS(h) =  soilin%LambdaS(soil%isoilm(h))
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
@@ -1162,14 +1164,14 @@ CONTAINS
 !    IF(ASSOCIATED(vegtype_metfile)) DEALLOCATE(vegtype_metfile)
 !    IF(ASSOCIATED(soiltype_metfile)) DEALLOCATE(soiltype_metfile)
     DEALLOCATE(soilin%silt, soilin%clay, soilin%sand, soilin%swilt,            &
-               soilin%sfc, soilin%ssat, soilin%bch, soilin%hyds, soilin%sucs,  &
-               soilin%rhosoil, soilin%css, vegin%canst1, vegin%dleaf,          &
-               vegin%vcmax, vegin%ejmax, vegin%hc, vegin%xfang, vegin%rp20,    &
-               vegin%rpcoef, vegin%rs20, vegin%shelrb, vegin%frac4,            &
-               vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
-               vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
-               vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
-               vegin%xalbnir, vegin%length, vegin%width )
+         soilin%sfc, soilin%ssat, soilin%bch, soilin%hyds, soilin%sucs,  &
+         soilin%rhosoil, soilin%css, soilin%LambdaS, vegin%canst1, vegin%dleaf, &
+         vegin%vcmax, vegin%ejmax, vegin%hc, vegin%xfang, vegin%rp20,    &
+         vegin%rpcoef, vegin%rs20, vegin%shelrb, vegin%frac4,            &
+         vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
+         vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
+         vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
+         vegin%xalbnir, vegin%length, vegin%width )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous
@@ -1226,8 +1228,6 @@ CONTAINS
          ssnow%snowliq(:,:) = 0.0
          ssnow%Tsurface = 25.0
          ssnow%nsnow = 0
-         ssnow%nsnow_last = 0
-         ssnow%sconds = 0.06
          ssnow%Tsoil = ssnow%tgg - 273.15
       END IF
 
@@ -1238,7 +1238,7 @@ CONTAINS
       END IF
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
-         soil%nhorizons = 2 ! use 2 soil horizons globally
+         soil%nhorizons = 1 ! use 2 soil horizons globally
          soil%clitt = 5.0 ! (tC / ha)
          veg%gamma = 1.e-2
          veg%F10 = 0.85
@@ -1371,25 +1371,28 @@ CONTAINS
     bal%ebal_tot_cncheck = 0.0
     bal%drybal = 0.0
     bal%wetbal = 0.0
-    bal%wbtot0 = 0.0 
+    bal%wbtot0 = 0.0
+    bal%RadbalSum = 0.0
     DO j=1, ms
        bal%wbtot0 = bal%wbtot0 + REAL(ssnow%wb(:, j)) * soil%zse(j)       &
                     * 1000.0
     END DO
     bal%osnowd0 = ssnow%osnowd
 
-   IF(hide%Ticket49Bug6) THEN
-      soil%swilt_vec = SPREAD(soil%swilt,2,ms)
-      soil%ssat_vec = SPREAD(soil%ssat,2,ms)
-      IF(cable_user%SOIL_STRUC=='sli') THEN
-         soil%nhorizons = 2 ! use 2 soil horizons globally
-         soil%sfc_vec = SPREAD(soil%sfc,2,ms)
-
-         ! Arbitrarily set A horiz depth to be first half of the layers
-         soil%ishorizon(:,1:ms/2)  = 1
-         soil%ishorizon(:,ms/2+1:) = 2
-         soil%clitt = 5.0 ! (tC / ha)
-      END IF
+    IF (hide%Ticket49Bug6) THEN
+       soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+       soil%ssat_vec = SPREAD(soil%ssat,2,ms)
+       IF(cable_user%SOIL_STRUC=='sli') THEN
+          soil%sfc_vec = SPREAD(soil%sfc,2,ms)
+          ! Only 1 horizon by default ! MC Sep 2014
+          ! soil%nhorizons = 2 ! use 2 soil horizons globally
+          ! ! Arbitrarily set A horiz depth to be first half of the layers
+          ! soil%ishorizon(:,1:ms/2)  = 1
+          ! soil%ishorizon(:,ms/2+1:) = 2
+          soil%nhorizons = 1 ! use 2 soil horizons globally
+          soil%ishorizon = 1
+          soil%clitt = 5.0 ! (tC / ha)
+       END IF
     END IF
  
   END SUBROUTINE derived_parameters
@@ -1711,12 +1714,15 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
          WRITE(logn, patchfmte2) 'Hydraulic conductivity @ saturation '//     &
                '(m/s): ', soil%hyds(landpt(e)%cstart:(landpt(e)%cstart +      &
                landpt(e)%nap - 1))
-         IF (icycle == 0) THEN
-           WRITE(logn,'(4X, A50, F12.4)')                                     &
-              'Soil carbon rate constant pool 1 (1/year): ', bgc%ratecs(1)
-            WRITE(logn,'(4X, A50, F12.4)')                                    &
-              'Soil carbon rate constant pool 2 (1/year): ', bgc%ratecs(2)
-         ENDIF
+          WRITE(logn, patchfmtr) 'Soil thermal inertia at saturation (m-2 K-1 s-1/2): ', &
+               soil%LambdaS(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap    &
+               - 1))
+          IF (icycle == 0) THEN
+             WRITE(logn,'(4X, A50, F12.4)')                                     &
+                  'Soil carbon rate constant pool 1 (1/year): ', bgc%ratecs(1)
+             WRITE(logn,'(4X, A50, F12.4)')                                    &
+                  'Soil carbon rate constant pool 2 (1/year): ', bgc%ratecs(2)
+          ENDIF
 
          WRITE(logn, patchfmtr) 'Bare soil albedo, vis (-): ',                &
                soil%albsoil(landpt(e)%cstart:(landpt(e)%cstart +              &

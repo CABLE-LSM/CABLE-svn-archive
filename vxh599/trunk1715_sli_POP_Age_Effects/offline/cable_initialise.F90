@@ -424,8 +424,6 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
             max_vegpatches,'def',from_restart,mp)
       CALL readpar(ncid_rin,'nsnow',dummy,ssnow%nsnow,filename%restart_in, &
              max_vegpatches,'def',from_restart,mp)
-      CALL readpar(ncid_rin,'nsnow_last',dummy,ssnow%nsnow_last,filename%restart_in, &
-             max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'Tsurface',dummy,ssnow%Tsurface,filename%restart_in, &
             max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'snowliq',dummy,ssnow%snowliq,filename%restart_in, &
@@ -451,7 +449,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
        DEALLOCATE(var_r2)
        CALL readpar(ncid_rin,'clitt',dummy,soil%clitt,filename%restart_in,           &
             max_vegpatches,'def',from_restart,mp)
-
+       CALL readpar(ncid_rin,'LambdaS',dummy,soil%LambdaS,filename%restart_in,           &
+            max_vegpatches,'def',from_restart,mp)
     ENDIF
    CALL readpar(ncid_rin,'cansto',dummy,canopy%cansto,filename%restart_in,     &
                 max_vegpatches,'def',from_restart,mp)

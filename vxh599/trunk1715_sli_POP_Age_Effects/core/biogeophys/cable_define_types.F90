@@ -56,9 +56,9 @@ MODULE cable_def_types_mod
       swb = 2,       & ! # shortwave bands 
       niter = 4,     & ! number of iterations for za/L
       ms = 12          ! # soil layers
-!      ms = 6          ! # soil layers - standard
-!      ms = 13          ! for Loetschental experiment
-
+      ! ms = 6           ! # soil layers - standard
+      ! ms = 13          ! for Loetschental experiment
+   
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
 ! .............................................................................
@@ -147,6 +147,7 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
      REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
      REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
+     REAL(r_2), DIMENSION(:),   POINTER :: LambdaS   ! thermal inertia at saturation (van de Griend and O'Neill 1986)
 
   END TYPE soil_parameter_type
 
@@ -255,7 +256,6 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:),   POINTER :: TsurfaceFR  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: Ta_daily        ! air temp averaged over last 24h
      INTEGER,   DIMENSION(:),   POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
-     INTEGER,   DIMENSION(:),   POINTER :: nsnow_last ! number of layers in snow-pack (0-nsnow_max)
      REAL(r_2), DIMENSION(:),   POINTER :: Qadv_daily  ! advective heat flux into surface , daily average (W m-2)
      REAL(r_2), DIMENSION(:),   POINTER :: G0_daily  ! conductive heat flux into surface , daily average (W m-2)
      REAL(r_2), DIMENSION(:),   POINTER :: Qevap_daily ! evaporative flux at surface, daily average (m s-1)
@@ -687,6 +687,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var % swilt_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
+   allocate( var%LambdaS(mp) )
    
 
 END SUBROUTINE alloc_soil_parameter_type
@@ -787,7 +788,6 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ALLOCATE ( var % snowliq(mp,3) )
     ALLOCATE ( var % nsteps(mp) )
     ALLOCATE ( var % nsnow(mp) )
-    ALLOCATE ( var % nsnow_last(mp) )
     ALLOCATE ( var % TsurfaceFR(mp) )
     ALLOCATE ( var % Ta_daily(mp,100))
     ALLOCATE ( var % Qadv_daily(mp) )
@@ -1168,6 +1168,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
     IF(ASSOCIATED(var % swilt_vec)) DEALLOCATE ( var % swilt_vec )
     IF(ASSOCIATED(var % ssat_vec)) DEALLOCATE ( var % ssat_vec )
     IF(ASSOCIATED(var % sfc_vec)) DEALLOCATE ( var % sfc_vec )
+    DEALLOCATE( var%LambdaS )  
     !END IF
 
    
@@ -1267,7 +1268,6 @@ SUBROUTINE dealloc_soil_snow_type(var)
     DEALLOCATE (var % snowliq)
     DEALLOCATE (var % nsteps)
     DEALLOCATE (var % nsnow)
-    DEALLOCATE (var % nsnow_last)
     DEALLOCATE ( var % TsurfaceFR )
     DEALLOCATE ( var % Ta_daily )
     DEALLOCATE ( var % G0_daily )

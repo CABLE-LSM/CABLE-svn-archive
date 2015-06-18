@@ -234,10 +234,10 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! satcon in UM is in mm/s; Cable needs m/s
          soil%hyds    =  soil%hyds / 1000.
          if (.not.cable_user%SOIL_STRUC=='sli') then
-         soil%sucs    =  ABS( soil%sucs )
-         soil%sucs    =  MAX(0.106,soil%sucs)
+            soil%sucs =  ABS( soil%sucs )
+            soil%sucs =  MAX(0.106,soil%sucs)
          else
-         where (soil%isoilm /= 9 ) soil%sucs = (-1)* soil%sucs
+            where (soil%isoilm /= 9 ) soil%sucs = (-1)* soil%sucs
          endif
          ! Lestevens - what to do here for sli ?
          !soil%sucs    =  MAX(0.106,soil%sucs)
@@ -263,16 +263,14 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       ENDIF
 
          IF(cable_user%SOIL_STRUC=='sli') THEN
-            soil%nhorizons = 2 ! use 2 soil horizons globally
+            soil%nhorizons = 1 ! use 1 soil horizons globally
+            soil%ishorizon = 1
             soil%clitt     = 5.0 ! (tC / ha)
             soil%zeta      = 0.
             soil%fsatmax   = 0.
             soil%swilt_vec = SPREAD(soil%swilt,2,ms)
             soil%ssat_vec  = SPREAD(soil%ssat,2,ms)
             soil%sfc_vec   = SPREAD(soil%sfc,2,ms)
-            ! Arbitrarily set A horiz depth to be first half of the layers
-            soil%ishorizon(:,1:ms/2)  = 1
-            soil%ishorizon(:,ms/2+1:) = 2
          END IF
 
    END SUBROUTINE initialize_soil
@@ -308,8 +306,8 @@ SUBROUTINE initialize_veg( canht_ft, lai_ft)
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
          veg%gamma = 1.e-2
-         veg%F10 = 0.85
-         veg%ZR = 5.0
+         veg%F10   = 0.85
+         veg%ZR    = 5.0
       END IF
 
       IF(cable_user%CALL_POP) THEN

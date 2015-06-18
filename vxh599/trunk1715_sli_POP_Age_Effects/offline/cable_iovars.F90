@@ -139,10 +139,10 @@ MODULE cable_IO_vars_module
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
           veg_class,soil_class,mvtype,mstype,patchfrac
-     INTEGER :: ishorizon,nhorizons,clitt, &
-          zeta,fsatmax, &
-          gamma,ZR,F10
-   
+     INTEGER :: ishorizon, nhorizons, clitt, &
+          zeta, fsatmax, &
+          gamma, ZR, F10, LambdaS
+
    END TYPE parID_type
   
    ! =============== Logical  variables ============================

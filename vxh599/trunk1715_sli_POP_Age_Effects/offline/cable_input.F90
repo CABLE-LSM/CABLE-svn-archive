@@ -59,7 +59,7 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR
+   USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
 
    IMPLICIT NONE
    
@@ -934,7 +934,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
          metunits%Rainf(1:6)=='mms^-1'.OR. &
          metunits%Rainf(1:7)=='kg/m^2s') THEN
        ! Change from mm/s to mm/time step:
-       write(*,*) 'Rainfall Units', metunits%Rainf
+       ! write(*,*) 'Rainfall Units ', metunits%Rainf
        convert%Rainf = dels
     ELSE IF(metunits%Rainf(1:4)=='mm/h'.OR.metunits%Rainf(1:6)== &
          'mmh^-1') THEN
@@ -970,7 +970,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Wind units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF(metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms'.AND.metunits%Wind(1:5)/='ms-1'.AND.metunits%Wind(1:5)/='m s-1') THEN
+    IF ((metunits%Wind(1:3)/='m/s') .AND. (metunits%Wind(1:2)/='ms') .AND. &
+       (metunits%Wind(1:4)/='ms-1') .AND. (metunits%Wind(1:5)/='m s-1')) THEN
        WRITE(*,*) metunits%Wind
        CALL abort('Unknown units for Wind'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1504,8 +1505,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) - 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + 24.0
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
+          if (is_leapyear(met%year(landpt(i)%cstart))) then
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(0) ! ie Dec previous year
                 met%moy(landpt(i)%cstart) = 12
@@ -1540,8 +1540,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 12
                 met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
                 ! If previous year is a leap year
-                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
+                if (is_leapyear(met%year(landpt(i)%cstart))) then
                    met%doy(landpt(i)%cstart) = 366
                 ELSE
                    met%doy(landpt(i)%cstart) = 365
@@ -1576,8 +1575,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) + 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) - 24.0
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
+          if (is_leapyear(met%year(landpt(i)%cstart))) then
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(32) ! Feb
                 met%moy(landpt(i)%cstart) = 2
@@ -2348,7 +2346,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
         mpID,              &
         napID,             &
         i                    ! do loop variables
-    CHARACTER :: frst_in*100, CYEAR*4
+    ! CHARACTER :: frst_in*100, CYEAR*4
+    CHARACTER :: frst_in*200, CYEAR*4
 
     INTEGER   :: IOS
     CHARACTER :: TACC*20

@@ -50,7 +50,7 @@ MODULE cable_output_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: filename, calcsoilalbedo, CurYear,IS_LEAPYEAR, cable_user
+  USE cable_common_module, ONLY: filename, calcsoilalbedo, CurYear, IS_LEAPYEAR, cable_user
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -173,7 +173,7 @@ MODULE cable_output_module
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
-
+  
 CONTAINS
 
   SUBROUTINE open_output_file(dels, soil, veg, bgc, rough)
@@ -1023,6 +1023,8 @@ CONTAINS
     IF(ktau == 1) THEN
        out_timestep = 0
        out_month = 0
+       !MC assume all met starts at the same year
+       IF ( TRIM(cable_user%MetType) .ne. 'gswp' ) CABLE_USER%YearStart = met%year(1)
     END IF
 
     ! Decide on output averaging regime:
@@ -1050,26 +1052,21 @@ CONTAINS
        IF(ktau >= 365*24*3600/INT(dels)) THEN
          WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
        END IF
-       
        ! LN Inserted for multiyear output
        dday = 0
-       IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
-          DO iy = CABLE_USER%YearStart,MAXVAL(realyear)-1
-             IF ( IS_LEAPYEAR(iy) .AND. leaps ) THEN
-                dday = dday + 366
-             ELSE
-                dday = dday + 365
-             ENDIF
-          END DO
-       ENDIF
+       DO iy = CABLE_USER%YearStart,MAXVAL(realyear)-1
+          IF ( IS_LEAPYEAR(iy) .AND. leaps ) THEN
+             dday = dday + 366
+          ELSE
+             dday = dday + 365
+          ENDIF
+       END DO
        ! LN Inserted for multiyear output
 
        ! Are we using leap year calendar?
-       IF(leaps) THEN
+       IF (leaps) THEN
           ! If currently a leap year:
-          IF(((ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,100)/=0)).OR. &
-               (ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,400)==0)))) THEN
-             
+          if (any(is_leapyear(realyear))) then
              IF(ANY(((lastdayl+dday) * 24 * 3600 / INT(dels)) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
@@ -1098,8 +1095,7 @@ CONTAINS
              END IF
           END IF
        ELSE ! not using leap year timing in this run
-          IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of
-                                                             ! month
+          IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of month
              ! increment output month counter
              out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
              ! write to output file this time step 
@@ -1899,9 +1895,10 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID
-    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, nsnowlastID, TsoilID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
-    CHARACTER         :: FRST_OUT*100, CYEAR*4
+    ! CHARACTER         :: FRST_OUT*100, CYEAR*4
+    CHARACTER         :: FRST_OUT*200, CYEAR*4
 
 
     dummy = 0 ! initialise
@@ -2276,6 +2273,8 @@ CONTAINS
        CALL define_ovar(ncid_restart,rpid%F10,'F10','-', &
             'Fraction of roots in top 10 cm', &
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart, rpid%LambdaS, 'LambdaS', '[J m-2 K-2 s-1/2]', &
+            'Thermal inertia at saturation', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
        ! Variables for SLI:
        CALL define_ovar(ncid_restart,SID,'S','-',&
             'Fractional soil moisture content relative to saturated value', &
@@ -2294,9 +2293,6 @@ CONTAINS
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
         CALL define_ovar(ncid_restart,nsnowID,'nsnow','-',&
              'number of snow layers', &
-             .TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
-        CALL define_ovar(ncid_restart,nsnowlastID,'nsnow_last','-',&
-             'number of snow layers in previous timestep', &
              .TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,TsurfaceID,'Tsurface','degC',&
             'soil or snow surface T', &
@@ -2537,6 +2533,8 @@ CONTAINS
             REAL(veg%ZR,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%F10,'F10', &
             REAL(veg%F10,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart, rpid%LambdaS, 'LambdaS', &
+            REAL(soil%LambdaS,4), (/-99999.0,99999.0/), .TRUE., 'real', .TRUE.)
        ! Write SLI variables:
        CALL write_ovar (ncid_restart,SID,'S',REAL(ssnow%S,4), &
             (/0.0,1.5/),.TRUE.,'soil',.TRUE.)
@@ -2550,8 +2548,6 @@ CONTAINS
        CALL write_ovar (ncid_restart,h0ID,'h0',REAL(ssnow%h0,4), &
             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
         CALL write_ovar (ncid_restart,nsnowID,'nsnow',REAL(ssnow%nsnow,4), &
-             (/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
-        CALL write_ovar (ncid_restart,nsnowlastID,'nsnow_last',REAL(ssnow%nsnow_last,4), &
              (/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
        CALL write_ovar (ncid_restart,TsurfaceID,'Tsurface',REAL(ssnow%Tsurface,4), &
             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)

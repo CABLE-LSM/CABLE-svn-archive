@@ -37,7 +37,7 @@ MODULE physical_constants
 
   REAL,    PARAMETER :: capp   = 1004.64  ! air spec. heat capacity (J/kg/K)
   REAL,    PARAMETER :: dheat  = 21.5E-6  ! molecular diffusivity for heat
-  REAL,    PARAMETER :: grav   = 9.80     ! gravity acceleration (m/s2)
+  REAL,    PARAMETER :: grav   = 9.8086   ! gravity acceleration (m/s2)
   REAL,    PARAMETER :: rgas   = 8.3143   ! universal gas const  (J/mol/K)
   REAL,    PARAMETER :: rmair  = 0.02897  ! molecular wt: dry air (kg/mol)
   REAL,    PARAMETER :: rmh2o  = 0.018016 ! molecular wt: water       (kg/mol)
