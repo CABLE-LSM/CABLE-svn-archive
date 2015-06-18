@@ -749,7 +749,6 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
             // ' (SUBROUTINE open_met_file)')
     END IF
 
-write(67,*) time_coord
     ! Use internal files to convert "time" variable units (giving the run's 
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
@@ -971,7 +970,7 @@ write(67,*) time_coord
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Wind units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF(metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms'.AND.metunits%Wind(1:5)/='ms-1') THEN
+    IF(metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms'.AND.metunits%Wind(1:5)/='ms-1'.AND.metunits%Wind(1:5)/='m s-1') THEN
        WRITE(*,*) metunits%Wind
        CALL abort('Unknown units for Wind'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')

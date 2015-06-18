@@ -743,14 +743,11 @@ CONTAINS
                         vsnow(kk)%hsnow(1:nsnow_max)
 
                 endif
-
-
-                CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
+              
+                 CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
                      Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
                 thetai(kk,1) = var(kk,1)%thetai  ! this is the value of thetaice prior to matrix call
-
-
-
+  
              endif ! iflux==1
 
              ! initialise litter vars
@@ -817,6 +814,7 @@ CONTAINS
              else
                 surface_case(kk) = 1
              endif
+ 
              select case (surface_case(kk))
              case (1) ! no snow
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
@@ -834,8 +832,7 @@ CONTAINS
                 qhTa(kk,0)   = zero
                 qadvya(kk,0) = zero
                 qadvTa(kk,0) = zero
-
-
+      
              case (2) ! snow
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
                      h0(kk), Tsoil(kk,:), &
@@ -854,7 +851,7 @@ CONTAINS
                 qhTa(kk,-vsnow(kk)%nsnow)   = zero
                 qadvya(kk,-vsnow(kk)%nsnow) = zero
                 qadvTa(kk,-vsnow(kk)%nsnow) = zero
-
+              
              case default
                 write(*,*) "solve: illegal surface case."
                 stop
@@ -1780,7 +1777,7 @@ CONTAINS
                    end if
                 end if  ! (.not. again(kk))
                 nsteps(kk)        = nsteps(kk) + 1
-                                if ((irec.eq.11).and.(kk.eq.1997)) then
+                                if ((irec.eq.11).and.(kk.eq.1)) then
                                   write(*,*) 'writing diags', again(kk), nsteps(kk)
                                    write(345,"(13i8,1500e16.6)") nsteps, nfac1(kk), nfac2(kk), nfac3(kk), nfac4(kk), nfac5(kk), nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
                                    nfac11(kk), nfac12(kk), q(kk,:), qsig(kk,:), qH(kk,:), qhsig(kk,:), &
@@ -2196,8 +2193,10 @@ CONTAINS
                       tmp1d1(kk) = 50.0
                    endif
 
-                   vsnow(kk)%dens(1) = (vsnow(kk)%dens(1)*(vsnow(kk)%hsnow(1)-qprec_snow(kk)*dt(kk)) &
+                   if ((vsnow(kk)%hsnow(1)-qprec_snow(kk)*dt(kk)).gt.1.e-3) then                   
+                    vsnow(kk)%dens(1) = (vsnow(kk)%dens(1)*(vsnow(kk)%hsnow(1)-qprec_snow(kk)*dt(kk)) &
                         + tmp1d1(kk)*qprec_snow(kk)*dt(kk))/vsnow(kk)%hsnow(1)
+                   endif
 
                    do i=1,vsnow(kk)%nsnow
                       vsnow(kk)%depth(i) = vsnow(kk)%hsnow(i)/(vsnow(kk)%dens(i)/rhow)

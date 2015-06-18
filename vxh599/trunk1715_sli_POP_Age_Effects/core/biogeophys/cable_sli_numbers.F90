@@ -115,7 +115,7 @@ MODULE sli_numbers
 
   ! define types
   TYPE vars_met
-     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, Rn, Da, cva, civa, phiva
+     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, Rn, Da, cva, civa, phiva, Rnsw
   END TYPE vars_met
 
   TYPE vars

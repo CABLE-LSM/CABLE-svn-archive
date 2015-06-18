@@ -320,7 +320,7 @@ PROGRAM cable_offline_driver
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
               ncciy = CurYear
 
-              IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+              IF (ncciy < 1900 .OR. ncciy > 2015) THEN
                  PRINT *, 'Year ', ncciy, ' outside range of dataset!'
                  STOP 'Please check input in namelist file.'
               ELSE IF ( RRRR .EQ. 1 ) THEN
@@ -451,8 +451,7 @@ PROGRAM cable_offline_driver
               met%ofsd = met%fsd(:,1) + met%fsd(:,2)
               ! Zero out lai where there is no vegetation acc. to veg. index
               WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
-
-
+             
 
               IF ( .NOT. CASAONLY ) THEN
 
@@ -708,7 +707,7 @@ PROGRAM cable_offline_driver
 
   IF ( TRIM(cable_user%MetType) .NE. "gswp" ) CALL close_met_file
 
-  WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+  !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
 
 
   ! Close log file
@@ -750,7 +749,7 @@ SUBROUTINE renameFiles(logn,inFile,ncciy,inName)
 
   nn = INDEX(inFile,'19')
   READ(inFile(nn:nn+3),'(i4)') idummy
-  IF (idummy < 1983 .OR. idummy > 1995) THEN
+  IF (idummy < 1800 .OR. idummy > 2020) THEN
      PRINT *, 'Check position of the year number in input gswp file', inFile
      STOP
   ELSE

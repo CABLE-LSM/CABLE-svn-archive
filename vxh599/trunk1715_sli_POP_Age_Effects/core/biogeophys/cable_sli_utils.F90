@@ -438,6 +438,7 @@ CONTAINS
        qhTb = dGdTsoil + qadvTb
 
     case (2) !dedicated snow layer
+ ! NB Only longwave component of net radiation deriectly affects SEB: sw component is absorbed internally
 
        ! SEB at snow/air interface
        if (vsnow%hliq(1)>zero) then
@@ -452,18 +453,25 @@ CONTAINS
           dGdTsoil = zero
           rhocp1 = rmair*101325/rgas/(vmet%Ta+Tzero)*cpa
           Hpot = rhocp1*(Tsurface - vmet%Ta)/vmet%rrc
-          Gpot = vmet%Rn - Hpot - Epot
+          Gpot = vmet%Rn-vmet%Rnsw - Hpot - Epot
           dEdTs = zero
           qevap = Epot/(rhow*rlambda)
           qTb = zero
-          !     write(*,*) "Epot2", Tsurface, vmet%Ta, Epot, Hpot, vmet%rrc, rhocp1
+
+              !write(*,*) "Epot2", Tsurface, vmet%Ta, Epot, Hpot, vmet%rrc, rhocp1
+
        else
 
-          call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+          call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
                vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
-          !   write(*,*) "Epot1", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
+
+         !    write(*,*) "Epot1", vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+          !     vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
+         !      lambdas, Tsurface, Epot, Hpot, &
+          !     Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
+
 
           if (Tsurface > zero) then ! temperature of frozen surface must be <= zero
              Tsurface = 0.0
@@ -472,9 +480,10 @@ CONTAINS
              dEdTsoil = zero
              dGdTsoil = zero
              Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
-             Gpot = vmet%Rn - Hpot - Epot
+             Gpot = vmet%Rn-vmet%Rnsw - Hpot - Epot
              dEdTs= zero
-             !   write(*,*) "Epot3", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
+
+ !  write(*,*) "Epot3", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
           endif
           qevap = Epot/(rhow*lambdas)
           qTb = -dEdTsoil/(thousand*lambdas)
@@ -504,6 +513,9 @@ CONTAINS
           qadv = qadv + rhow*(-qevap)*cswat*Tqw
           qadvTb = rhow*cswat*(-qevap)*dTqwdTb  +  rhow*cswat*Tqw*qTb
        endif
+
+       ! add sw energy absorption to G0
+       G0 = G0 + vmet%Rnsw
        qh     = qadv + G0
        qhyb   = zero
        qadvyb = zero

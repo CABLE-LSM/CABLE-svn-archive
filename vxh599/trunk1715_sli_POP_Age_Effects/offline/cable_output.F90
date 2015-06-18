@@ -1899,7 +1899,7 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID
-    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, nsnowlastID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     CHARACTER         :: FRST_OUT*100, CYEAR*4
 
@@ -2295,6 +2295,9 @@ CONTAINS
         CALL define_ovar(ncid_restart,nsnowID,'nsnow','-',&
              'number of snow layers', &
              .TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
+        CALL define_ovar(ncid_restart,nsnowlastID,'nsnow_last','-',&
+             'number of snow layers in previous timestep', &
+             .TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,TsurfaceID,'Tsurface','degC',&
             'soil or snow surface T', &
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
@@ -2547,6 +2550,8 @@ CONTAINS
        CALL write_ovar (ncid_restart,h0ID,'h0',REAL(ssnow%h0,4), &
             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
         CALL write_ovar (ncid_restart,nsnowID,'nsnow',REAL(ssnow%nsnow,4), &
+             (/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
+        CALL write_ovar (ncid_restart,nsnowlastID,'nsnow_last',REAL(ssnow%nsnow_last,4), &
              (/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
        CALL write_ovar (ncid_restart,TsurfaceID,'Tsurface',REAL(ssnow%Tsurface,4), &
             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
