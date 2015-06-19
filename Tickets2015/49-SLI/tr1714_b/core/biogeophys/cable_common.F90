@@ -41,12 +41,12 @@ MODULE cable_common_module
          L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
          Ticket46 = .FALSE.,              & !
          !jhan: default should be FALSE, bu set up nml etc
-         Ticket49Bug1 = .true.,           & ! 
-         Ticket49Bug2 = .true.,           & ! 
-         Ticket49Bug3 = .true.,           & ! 
-         Ticket49Bug4 = .true.,           & ! 
-         Ticket49Bug5 = .true.,           & ! 
-         Ticket49Bug6 = .true.              ! 
+         Ticket49Bug1 = .false.,           & ! 
+         Ticket49Bug2 = .false.,           & ! 
+         Ticket49Bug3 = .false.,           & ! 
+         Ticket49Bug4 = .false.,           & ! 
+         Ticket49Bug5 = .false.,           & ! 
+         Ticket49Bug6 = .false.              ! 
 
       END TYPE hide_switches 
 
