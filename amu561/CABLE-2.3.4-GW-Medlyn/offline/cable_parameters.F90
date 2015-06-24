@@ -119,7 +119,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
-  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inBI
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inBI
 
   ! vars intro for Ticket #27 
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
