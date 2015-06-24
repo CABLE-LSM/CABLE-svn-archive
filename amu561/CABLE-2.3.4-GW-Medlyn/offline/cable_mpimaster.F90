@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Offline driver for mpi master in CABLE global run
 !
 ! Contact: Bernard.Pak@csiro.au
@@ -144,7 +136,7 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
                                    report_version_no, wiltParam, satuParam,    &
-                                   gw_params
+                                   calcsoilalbedo, gw_params
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -239,11 +231,26 @@ SUBROUTINE mpidrv_master (comm)
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
+   ! Vars for standard for quasi-bitwise reproducability b/n runs
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   CHARACTER(len=30), PARAMETER ::                                             &
+      Ftrunk_sumbal  = ".trunk_sumbal",                                        &
+      Fnew_sumbal    = "new_sumbal"
+
+   DOUBLE PRECISION, save ::                                                         &
+      trunk_sumbal = 0.0, & !
+      new_sumbal = 0.0
+
+   INTEGER :: nkend=0
+   INTEGER :: ioerror=0
+
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! jhan: use new soil param. method
-                  soilparmnew,      & ! jhan: use new soil param. method
+                  vegparmnew,       & ! use new soil param. method
+                  soilparmnew,      & ! use new soil param. method
+                  calcsoilalbedo,   & ! ! vars intro for Ticket #27 
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
@@ -274,6 +281,16 @@ SUBROUTINE mpidrv_master (comm)
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
+
+   ! Open, read and close the consistency check file.
+   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+   IF(cable_user%consistency_check) THEN 
+      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
+         IF(ioerror==0) then
+            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
+         ENDIF
+      CLOSE(11)
+   ENDIF
 
    ! Open log file:
    OPEN(logn,FILE=filename%log)
@@ -366,9 +383,12 @@ SUBROUTINE mpidrv_master (comm)
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
 
+
+
+   ! MPI: mvtype and mstype send out here instead of inside master_casa_params
+   !      so that old CABLE carbon module can use them. (BP May 2013)
    CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
    CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
-
 
    ! MPI: casa parameters scattered only if cnp module is active
    IF (icycle>0) THEN
@@ -507,6 +527,47 @@ SUBROUTINE mpidrv_master (comm)
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
+         !---------------------------------------------------------------------!
+         ! Check this run against standard for quasi-bitwise reproducability   !  
+         ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
+         !---------------------------------------------------------------------!
+         IF(cable_user%consistency_check) THEN 
+            
+            new_sumbal = new_sumbal + SUM(canopy%fe) + SUM(canopy%fh)                &
+                          + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+           
+            if(ktau==(kend-1)) then 
+               
+               nkend = nkend+1
+               IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
+         
+                  print *, ""
+                  print *, &
+                  "NB. Offline-papallel runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows this version reproduces the trunk sumbal"
+               
+               ELSE
+         
+                  print *, ""
+                  print *, &
+                  "NB. Offline-papallel runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows in this version new_sumbal != trunk sumbal"
+                  print *, "The difference is: ", new_sumbal - trunk_sumbal
+                  print *, &
+                  "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+                        
+                  OPEN( 12, FILE = Fnew_sumbal )
+                     WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
+                  CLOSE(12)
+               
+               ENDIF   
+            
+            ENDIF   
+        
+         ENDIF
+
        END DO ! END Do loop over timestep ktau
 
 
@@ -609,9 +670,10 @@ SUBROUTINE mpidrv_master (comm)
       CALL master_receive (comm, ktau_gl, casa_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
+      print *, 'output BGC pools'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
-
+      print *, 'output BGC fluxes'
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
   
    END IF
@@ -798,6 +860,8 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   USE cable_def_types_mod
   USE cable_IO_vars_module
+  ! switch soil colour albedo calc - Ticket #27
+  USE cable_common_module,  ONLY: calcsoilalbedo
 
   IMPLICIT NONE
 
@@ -862,6 +926,11 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   ! MPI: TODO: free landp_t and patch_t types?
 
   ntyp = nparam
+
+  ! vars intro for Ticket #27 
+  IF (calcsoilalbedo) THEN
+    ntyp = nparam + 1
+  END IF
 
   ALLOCATE (param_ts(wnp))
 
@@ -1349,6 +1418,46 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r1len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (veg%a1gs(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%d0gs(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%alpha(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%convex(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%cfrd(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%gswmin(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%conkc0(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%conko0(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%ekc(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%eko(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (veg%refl(off,1), displs(bidx), ierr)
   CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
   &                             types(bidx), ierr)
@@ -1495,6 +1604,13 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (soil%zshh, displs(bidx), ierr)
   blen(bidx) = (ms + 1) * extr1
+
+  ! vars intro for Ticket #27  
+  IF (calcsoilalbedo) THEN
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%soilcol(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+  END IF
 
   ! ----------- canopy --------------
 
@@ -2399,8 +2515,9 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: rank, off, cnt
 
-  !CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
-  !CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+!  moved to calling before this subroutine (BP May 2013)
+!  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+!  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   ntyp = ncasaparam
 
@@ -2501,6 +2618,60 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Get_address (casabiome%kclabrate, displs(bidx), ierr)
   blen(bidx) = mvtype * extr2
 
+ !===============================================================
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xnpmax, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%q10soil, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkoptlitter, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkoptsoil, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%maxfinelitter, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%maxcwd, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%prodptase, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%costnpup, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkplab, displs(bidx), ierr)
+  blen(bidx) = mso * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkpsorb, displs(bidx), ierr)
+  blen(bidx) = mso * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%xkpocc, displs(bidx), ierr)
+  blen(bidx) = mso * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nintercept, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nslope, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+ 
+!==================================================================
   bidx = bidx + 1
   CALL MPI_Get_address (casabiome%plantrate, displs(bidx), ierr)
   blen(bidx) = mvtype * mplant * extr2
@@ -3143,6 +3314,22 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (casabal%FCnppyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmleafyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmwoodyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrmrootyear(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabal%FCrgrowyear(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
@@ -5111,6 +5298,26 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (casabal%FCnppyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmleafyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmwoodyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrmrootyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrgrowyear(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabal%FCrpyear(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1

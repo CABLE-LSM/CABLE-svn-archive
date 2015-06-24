@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Defines input/output related variables for CABLE offline
 !
 ! Contact: Bernard.Pak@csiro.au
@@ -227,6 +219,8 @@ MODULE cable_IO_vars_module
          ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
          SoilWet = .FALSE.,   & ! 29 total soil wetness [-] 
          Albedo = .FALSE.,    & ! 30 albedo [-] 
+         visAlbedo = .FALSE., & ! vars intro for Ticket #27
+         nirAlbedo = .FALSE., & ! vars intro for Ticket #27 
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
@@ -350,9 +344,9 @@ MODULE cable_IO_vars_module
          fldcap=.FALSE.,      & !field cap including org frac [mm3/mm3]
          wiltp=.FALSE.,       & !wilt point including org frac [mm3/mm3]
          Forg=.FALSE.,        & !ogranic frac in soil   [-]
-         SoilIce=.FALSE.,     & !volumetric soil ice [mm3/mm3]
-         VISalbedo=.FALSE.,   & !albedo visible band [-]
-         NIRalbedo=.FALSE.      !albedo nir band [-]
+         SoilIce=.FALSE.        !volumetric soil ice [mm3/mm3]
+        ! VISalbedo=.FALSE.,   & !albedo visible band [-]
+        ! NIRalbedo=.FALSE.      !albedo nir band [-]
    
    END TYPE output_inclusion_type
 
