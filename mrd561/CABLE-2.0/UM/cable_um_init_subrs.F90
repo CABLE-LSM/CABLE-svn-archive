@@ -707,16 +707,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          ENDDO
          DEALLOCATE( fwork )
 
-         !mrd561
-         DO J=1,um1%ntiles
-            SMGW_TILE(:,J) = SMGW(:)
-         END DO
-
-         ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
-         where(ssnow%GWwb .lt. 1e-2)
-            ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
-         endwhere
-
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
                          ( soil%sfc - soil%swilt) ) )
@@ -757,6 +747,20 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          first_call = .FALSE.
 
       ENDIF ! END: if (first_call)       
+
+      !mrd561
+      DO N=1,um1%NTILES
+         DO K=1,um1%TILE_PTS(N)
+            I= um1%TILE_INDEX(K,N)
+            SMGW_TILE(I,N) = SMGW(I)
+         ENDDO
+      ENDDO
+
+      ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
+      where(ssnow%GWwb .lt. 1e-2)
+         ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
+      endwhere
+
 
 END SUBROUTINE initialize_soilsnow
  
