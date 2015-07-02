@@ -58,7 +58,7 @@ module cable_data_module
       ! Aerodynamic parameters, diffusivities, water density:
       vonk   = 0.40, & ! von Karman constant
       a33    = 1.25, & ! inertial sublayer sw/us
-      csw    = 0.50, & ! canopy sw decay (Weil theory)
+      csw    = 0.05, & ! canopy sw decay (Weil theory)
       ctl    = 0.40, & ! Wagga wheat (RDD 1992, Challenges)
       apol   = 0.70, & ! Polhausen coeff: single-sided plate
       prandt = 0.71, & ! Prandtl number: visc/diffh

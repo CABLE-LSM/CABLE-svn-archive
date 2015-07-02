@@ -1139,17 +1139,6 @@ CONTAINS
       !MD
       !possibly heterogeneous soil properties
       DO klev=1,ms
-        !soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        !  0.0070556*10.0**(-0.884 - 1.53*insand(landpt(e)%ilon,landpt(e)%ilat))
-        !soil%smpat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        !  10.0**(1.88 - 1.31*insand(landpt(e)%ilon,landpt(e)%ilat)) 
-        !soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        ! 2.91 + 15.9*inclay(landpt(e)%ilon,landpt(e)%ilat) 
-        !soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        ! 0.489 - 0.126*insand(landpt(e)%ilon,landpt(e)%ilat) 
-        !soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-        !  0.02 + 0.018*inclay(landpt(e)%ilon,landpt(e)%ilat) 
-
         soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
          abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
                                          
@@ -1177,33 +1166,26 @@ CONTAINS
         soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01!0.1 *              !&
-             !inswilt(landpt(e)%ilon, landpt(e)%ilat)
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01
       END DO
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
          soil%smpsat(landpt(e)%cstart:landpt(e)%cend,ms)
-      !       abs(insucs(landpt(e)%ilon, landpt(e)%ilat)*1000.0)  !convert to mm
                                          
       soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
           soil%hksat(landpt(e)%cstart:landpt(e)%cend,ms)
-      !      inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
                                          
       soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
           soil%clappB(landpt(e)%cstart:landpt(e)%cend,ms)
-      !        inbch(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
       soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
          soil%densoil(landpt(e)%cstart:landpt(e)%cend,ms)
-      !     inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
                                          
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
          soil%watsat(landpt(e)%cstart:landpt(e)%cend,ms)
-      !       inssat(landpt(e)%ilon, landpt(e)%ilat) 
                                          
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
-         !inswilt(landpt(e)%ilon, landpt(e)%ilat)
 
       soil%elev(landpt(e)%cstart:landpt(e)%cend) =                            &
                                     inElev(landpt(e)%ilon,landpt(e)%ilat)
@@ -1312,7 +1294,7 @@ CONTAINS
               soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
               soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
               soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
-              soil%watr(h,klev)    = 0.001!0.1*soil%swilt(h)!soilin%hyds(soil%isoilm(h))
+              soil%watr(h,klev)    = 0.01
             end do
 
             soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
@@ -1320,7 +1302,7 @@ CONTAINS
             soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
-            soil%GWwatr(h)    = 0.001!0.1*soil%swilt(h)!soilin%hyds(soil%isoilm(h))
+            soil%GWwatr(h)    = 0.01
 
           END IF
           rad%latitude(h) = latitude(e)
@@ -1540,7 +1522,7 @@ CONTAINS
        !organic macropores dominates
        soil%Forg = max(0._r_2,soil%Forg)
        soil%Forg = min(1._r_2,soil%Forg)
-
+       !this is how CLM deals with interconnected organic soil fractions
        !WHERE (soil%Forg .ge. 0.5)
        !   perc_frac = (1.-perc_lim)**(-perc_beta) * (soil%Forg -perc_lim)**perc_beta
        !ELSEWHERE (soil%Forg .lt. 0.5)
