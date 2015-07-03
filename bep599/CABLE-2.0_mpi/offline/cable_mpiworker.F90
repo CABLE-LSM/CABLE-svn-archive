@@ -116,7 +116,8 @@ CONTAINS
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
-                                   write_output,close_output_file
+                                   write_output,close_output_file,             &
+                                   write_casa_flux
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
@@ -461,10 +462,10 @@ CONTAINS
 
          ! MPI: send the results back to the master
          CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
-!!!         IF(icycle >0) THEN
-!!!            ! MPI: send casa results back to the master
-!!!            CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
-!!!         ENDIF
+         IF(icycle >0 .AND. (MOD(ktau, ktauday) == 0)) THEN
+            ! MPI: send casa results back to the master
+            CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+         ENDIF
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
@@ -5304,6 +5305,10 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * mdyear
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crmplant(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
   ! ------------- 1D vectors -------------
 
   bidx = bidx + 1
@@ -5338,6 +5343,74 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%psorbmax(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%dClabiledt(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nmindep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nsnet(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminleach(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Pwea(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Pdep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Psnet(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Plabuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Pleach(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Ploss(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
   bidx = bidx + 1

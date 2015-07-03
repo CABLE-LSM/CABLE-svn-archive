@@ -147,7 +147,8 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
-                                   write_output,close_output_file
+                                   write_output,close_output_file,             &
+                                   write_casa_flux
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
@@ -360,7 +361,7 @@ SUBROUTINE mpidrv_master (comm)
 
 !   kend = 48
 !   kend = 96
- 
+
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
    ! load from there, with the met file taking precedence. Otherwise, they'll
@@ -454,7 +455,7 @@ SUBROUTINE mpidrv_master (comm)
    ! MPI: mostly original serial code follows...
 
    ! Open output file:
-   CALL open_output_file( dels, soil, veg, bgc, rough )
+   CALL open_output_file( kend, dels, soil, veg, bgc, rough )
  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
@@ -528,18 +529,16 @@ SUBROUTINE mpidrv_master (comm)
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau-kstart+1, recv_ts)
-!!!         IF (icycle > 0) THEN
-!!!            ! MPI: gather casa results from all the workers
-!!!            CALL master_receive (comm, oktau, casa_out)
-!!!         ENDIF
+         IF (icycle > 0 .AND. (MOD(ktau, ktauday) == 0)) THEN
+            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+            ! MPI: gather casa results from all the workers
+            CALL master_receive (comm, oktau-kstart+1, casa_ts)
+         END IF
 
          ! MPI: scatter input data to the workers
          CALL master_send_input (icomm, inp_ts, iktau-kstart+1)
 
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-!!!         IF (icycle > 0) THEN
-!!!            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-!!!         END IF
          CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
@@ -547,7 +546,7 @@ SUBROUTINE mpidrv_master (comm)
 
 !!!         IF (icycle > 0) THEN
 !!!            ! MPI: gather casa results from all the workers
-!!!            CALL master_receive (comm, ktau_gl, casa_out)
+!!!            CALL master_receive (comm, ktau_gl, casa_ts)
 !!!            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 !!!         END IF
 
@@ -560,7 +559,7 @@ SUBROUTINE mpidrv_master (comm)
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
-!!!            IF (icycle > 0) CALL write_casa_flux( dels, ktau, casabal, casamet)
+            IF (icycle > 0) CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
          END IF
    
       END DO ! END Do loop over timestep ktau
@@ -577,17 +576,17 @@ SUBROUTINE mpidrv_master (comm)
       met%ofsd = met%fsd(:,1) + met%fsd(:,2)
       canopy%oldcansto=canopy%cansto
 
-!      IF (icycle > 0) THEN
-!         ! MPI: gather casa results from all the workers
-!         CALL master_receive (comm, ktau_gl, casa_out)
-!         CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-!      END IF
+      IF (icycle > 0) THEN
+         ! MPI: gather casa results from all the workers
+         CALL master_receive (comm, ktau_gl, casa_ts)
+         CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+      END IF
 
       IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
          CALL write_output( dels, ktau, met, canopy, ssnow,         &
                             rad, bal, air, soil, veg, C%SBOLTZ,     &
                             C%EMLEAF, C%EMSOIL )
-!         IF (icycle > 0) CALL write_casaout( dels, ktau, casabal, casamet)
+         IF (icycle > 0) CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
       END IF
    
       !jhan this is insufficient testing. condition for 
@@ -5144,6 +5143,12 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      &                             types(bidx), ierr)
      blocks(bidx) = 1
 
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crmplant(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+     &                                types(bidx), ierr)
+     blocks(bidx) = 1
+
      last2d = bidx
 
      ! ------------- 1D vectors -------------
@@ -5178,6 +5183,74 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%psorbmax(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casapool%dClabiledt(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nmindep(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nsnet(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminleach(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminloss(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Pwea(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Pdep(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Psnet(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Plabuptake(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Pleach(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Ploss(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1

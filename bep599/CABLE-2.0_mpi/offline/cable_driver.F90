@@ -78,7 +78,8 @@ PROGRAM cable_offline_driver
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
-                                   write_output,close_output_file
+                                   write_output,close_output_file,             &
+                                   write_casa_flux
    USE cable_cbm_module
    
    USE cable_diag_module
@@ -293,7 +294,7 @@ PROGRAM cable_offline_driver
 
    
    ! Open output file:
-   CALL open_output_file( dels, soil, veg, bgc, rough )
+   CALL open_output_file( kend, dels, soil, veg, bgc, rough )
  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
@@ -383,7 +384,8 @@ PROGRAM cable_offline_driver
             CALL write_output( dels, ktau, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
-!!!         IF (icycle > 0) CALL write_casa_flux( dels, ktau, casabal, casamet)
+            IF (icycle > 0 .AND. (MOD(ktau, ktauday) == 0))  &
+               CALL write_casa_flux( dels, ktau, met, casaflux, casapool)
          END IF
    
          ! dump bitwise reproducible testing data

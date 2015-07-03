@@ -51,9 +51,12 @@ MODULE cable_output_module
   USE cable_write_module
   USE netcdf
   USE cable_common_module, ONLY: filename
+  USE casadimension,       ONLY: icycle
+  USE casaparm,            ONLY: LEAF, WOOD, FROOT
   IMPLICIT NONE
   PRIVATE
-  PUBLIC open_output_file, write_output, close_output_file, create_restart
+  PUBLIC open_output_file, write_output, close_output_file, create_restart, &
+         write_casa_flux
   INTEGER :: ncid_out ! output data netcdf file ID
   REAL :: missing_value = -999999.0 ! for netcdf output
   TYPE out_varID_type ! output variable IDs in netcdf file
@@ -64,8 +67,12 @@ MODULE cable_output_module
                     Qsb, Evap, BaresoilT, SWE, SnowT,                          &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
+                    casaGPP, casaNPP, casaLFresp, casaWDresp,                  &
+                    casaRTresp, casaGRresp, casaSLresp, casaNEE,               &
+                    Ndep, Nfix,  Nmin, Nup, Nleach, Nloss,                     &
+                    Pwea, Pdust, Pmin, Pup, Pleach, Ploss,                     &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar,                                   &
+                    HVeg, HSoil, Rnet, tvar, tCASA,                            &
                     drybal,wetbal,visAbs,NIRabs,LWcanopy,LWsoil,oLWsoil,       &
                     ESoilMod,delwc,delSWE,delwb,through,dew,CanWbal,Ecan2,CanT
   END TYPE out_varID_type
@@ -149,6 +156,26 @@ MODULE cable_output_module
                                                       ! respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HeteroResp ! 50 heterotrophic
                                                       ! respiration [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaGPP    ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaNPP    ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaLFresp ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaWDresp ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaRTresp ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaGRresp ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaSLresp ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: casaNEE    ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Ndep       ! [gN/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nfix       ! [gN/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nmin       ! [gN/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nup        ! [gN/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nleach     ! [gN/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nloss      ! [gN/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Pwea       ! [gP/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Pdust      ! [gP/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Pmin       ! [gP/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Pup        ! [gP/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Pleach     ! [gP/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Ploss      ! [gP/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: SnowDepth  ! actual depth of snow in
                                                       ! [m]
     ! Non-Alma variables
@@ -200,9 +227,10 @@ MODULE cable_output_module
 
 CONTAINS
 
-  SUBROUTINE open_output_file(dels, soil, veg, bgc, rough)
+  SUBROUTINE open_output_file(kend, dels, soil, veg, bgc, rough)
     ! Creates netcdf output file, defines all variables 
     ! and writes parameters to it if requested by user.
+    INTEGER, INTENT(IN) :: kend
     REAL, INTENT(IN) :: dels ! time step size
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
@@ -210,12 +238,14 @@ CONTAINS
     TYPE (roughness_type), INTENT(IN)      :: rough
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
 
+    INTEGER :: CASAts
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
-                    plantcarbID, tID, landID, patchID ! dimension IDs
+                    plantcarbID, tID, tCID, landID, patchID ! dimension IDs
     INTEGER :: latID, lonID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
+    CHARACTER(LEN=10) :: outUnit
   
     ! Create output file:
     ok = NF90_CREATE(filename%out, NF90_CLOBBER, ncid_out)
@@ -262,6 +292,15 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                         (ok,'Error defining time dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
+    IF(output%averaging(1:2) == 'mo') THEN
+       CASAts = INT(kend * dels / (30 * 24 * 3600))
+    ELSE
+       CASAts = INT(kend * dels / (24 * 3600))
+    END IF
+    ok = NF90_DEF_DIM(ncid_out, 'tCASA', CASAts, tCID)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+                       (ok,'Error defining tCASA dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
     IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
        (metGrid == 'mask' .AND. output%grid == 'default')) THEN
        ! for land/sea mask type grid:
@@ -291,6 +330,19 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_out, ovid%tvar, 'coordinate', time_coord)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
              (ok, 'Error defining time variable attributes in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ! Define "timeCASA" variable and its attributes:
+    ok = NF90_DEF_VAR(ncid_out, 'timeCASA', NF90_DOUBLE, (/tCID/), ovid%tCASA)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+                        (ok, 'Error defining timeCASA var in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ok = NF90_PUT_ATT(ncid_out, ovid%tCASA, 'units', timeunits)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+             (ok, 'Error defining timeCASA var attributes in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ok = NF90_PUT_ATT(ncid_out, ovid%tCASA, 'coordinate', time_coord)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+             (ok, 'Error defining timeCASA var attributes in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
     ! Define latitude and longitude variable (ALMA):
     ok = NF90_DEF_VAR(ncid_out, 'latitude', NF90_FLOAT, (/xID, yID/), latID)
@@ -760,6 +812,125 @@ CONTAINS
        ALLOCATE(out%NPP(mp))
        out%NPP = 0.0 ! initialise
     END IF
+    IF(output%CASA) THEN
+       IF(output%averaging(1:2) == 'mo') THEN
+          outUnit = 'gC/m^2/mon'
+       ELSE
+          outUnit = 'gC/m^2/day'
+       END IF
+       CALL define_ovar(ncid_out, ovid%casaGPP, 'CASAGPP', outUnit,            &
+                        'Gross primary production', patchout%casaGPP,          &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaGPP(mp))
+       out%casaGPP = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%casaNPP, 'CASANPP', outUnit,            &
+                        'Net primary production', patchout%casaNPP,            &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaNPP(mp))
+       out%casaNPP = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%casaLFresp, 'CASAleafResp', outUnit,    &
+                        'Leaf Respiration', patchout%casaLFresp,               &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaLFresp(mp))
+       out%casaLFresp = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%casaWDresp, 'CASAwoodResp', outUnit,    &
+                        'Wood Respiration', patchout%casaWDresp,               &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaWDresp(mp))
+       out%casaWDresp = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%casaRTresp, 'CASArootResp', outUnit,    &
+                        'Root Respiration', patchout%casaRTresp,               &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaRTresp(mp))
+       out%casaRTresp = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%casaGRresp,'CASAgrowthResp',outUnit,    &
+                        'Growth Respiration', patchout%casaGRresp,             &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaGRresp(mp))
+       out%casaGRresp = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%casaSLresp, 'CASAsoilResp', outUnit,    &
+                        'Soil Respiration', patchout%casaSLresp,               &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaSLresp(mp))
+       out%casaSLresp = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%casaNEE, 'CASANEE', outUnit,            &
+                        'Net ecosystem exchange of CO2', patchout%casaNEE,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%casaNEE(mp))
+       out%casaNEE = 0.0 ! initialise
+
+       IF(output%averaging(1:2) == 'mo') THEN
+          outUnit = 'gN/m^2/mon'
+       ELSE
+          outUnit = 'gN/m^2/day'
+       END IF
+       CALL define_ovar(ncid_out, ovid%Ndep, 'Ndep', outUnit,         &
+                        'Nitrogen Deposition', patchout%Ndep,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Ndep(mp))
+       out%Ndep = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Nfix, 'Nfix', outUnit,         &
+                        'Nitrogen Fixation', patchout%Nfix,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Nfix(mp))
+       out%Nfix = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Nmin, 'Nmin', outUnit,         &
+                        'Nitrogen Net Mineralization', patchout%Nmin,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Nmin(mp))
+       out%Nmin = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Nup, 'Nup', outUnit,         &
+                        'Nitrogen Uptake', patchout%Nup,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Nup(mp))
+       out%Nup = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Nleach, 'Nleach', outUnit,         &
+                        'Nitrogen Leach', patchout%Nleach,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Nleach(mp))
+       out%Nleach = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Nloss, 'Nloss', outUnit,         &
+                        'Nitrogen Loss', patchout%Nloss,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Nloss(mp))
+       out%Nloss = 0.0 ! initialise
+
+       IF(output%averaging(1:2) == 'mo') THEN
+          outUnit = 'gP/m^2/mon'
+       ELSE
+          outUnit = 'gP/m^2/day'
+       END IF
+       CALL define_ovar(ncid_out, ovid%Pwea, 'Pwea', outUnit,         &
+                        'Phosphorus from Weathering', patchout%Pwea,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Pwea(mp))
+       out%Pwea = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Pdust, 'Pdust', outUnit,         &
+                        'Phosphorus from dust', patchout%Pdust,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Pdust(mp))
+       out%Pdust = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Pmin, 'Pmin', outUnit,         &
+                        'Phosphorus Net Mineralization', patchout%Pmin,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Pmin(mp))
+       out%Pmin = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Pup, 'Pup', outUnit,         &
+                        'Phosphorus Uptake', patchout%Pup,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Pup(mp))
+       out%Pup = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Pleach, 'Pleach', outUnit,         &
+                        'Phosphorus Leach', patchout%Pleach,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Pleach(mp))
+       out%Pleach = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%Ploss, 'Ploss', outUnit,         &
+                        'Phosphorus Loss', patchout%Ploss,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Ploss(mp))
+       out%Ploss = 0.0 ! initialise
+    END IF
 
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
@@ -892,6 +1063,17 @@ CONTAINS
     IF(output%params .OR. output%froot) CALL define_ovar(ncid_out, opid%froot, &
                          'froot', '-', 'Fraction of roots in each soil layer', &
                  patchout%froot, soilID, 'soil', xID, yID, zID, landID, patchID)
+!!!    ! CASACNP parameters and pool sizes:
+!!!    IF(output%CASA) THEN
+!!!      CALL define_ovar(ncid_out, opid%sorder, 'sorder', '-', 'Soil Order',     &
+!!!                      patchout%sorder,'integer', xID, yID, zID, landID, patchID)
+!!!      CALL define_ovar(ncid_out, opid%areacell, 'areaCell', 'm2', 'Cell Area', &
+!!!                      patchout%areacell, 'real', xID, yID, zID, landID, patchID)
+!!!      CALL define_ovar(ncid_out, opid%phase, 'phase', '-', 'Phenology phase',  &
+!!!                      patchout%sorder,'integer', xID, yID, zID, landID, patchID)
+!!!
+!!!
+!!!    ENDIF
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -1999,6 +2181,294 @@ CONTAINS
     END IF
 
   END SUBROUTINE write_output
+  !=============================================================================
+  SUBROUTINE write_casa_flux( dels, ktau, met, casaflux, casapool)
+    USE casavariable,        ONLY: casa_pool, casa_flux
+    REAL, INTENT(IN)              :: dels ! time step size
+    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    TYPE(met_type), INTENT(IN)         :: met  ! met data
+    TYPE(casa_flux), INTENT(IN)         :: casaflux    ! flux data from CASACNP module
+    TYPE(casa_pool), INTENT(IN)         :: casapool    ! nutrient pools data
+    ! variables inherited from cable_output_module
+    ! cable_IO_vars_module  -  
+!   INTEGER,DIMENSION(12) ::                                                    &
+!      daysm = (/31,28,31,30,31,30,31,31,30,31,30,31/),                         &
+!      daysml = (/31,29,31,30,31,30,31,31,30,31,30,31/),                        &
+!      lastday = (/31,59,90,120,151,181,212,243,273,304,334,365/),              &
+!      lastdayl = (/31,60,91,121,152,182,213,244,274,305,335,366/)
+!   LOGICAL :: leaps   ! use leap year timing?
+
+    ! local variables
+    REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
+                                        ! value
+    LOGICAL :: writeCASA ! write CASA variables to output file
+    INTEGER, SAVE :: out_tsCASA   ! counter for CASA   time steps
+    INTEGER, SAVE :: out_month ! counter for output month
+    INTEGER, DIMENSION(mp) :: realyear ! fix problem for yr b4 leap yr
+    INTEGER :: backCASA
+    INTEGER :: ktauday
+
+    ! calculate end-of-day step number for CASACNP variables
+    ktauday = INT(24.0*3600.0/dels)
+
+    ! Initialise output time step counter and month counter:
+    IF(ktau == 1) THEN
+       out_tsCASA   = 0
+       out_month    = 0
+    END IF
+
+    ! Output CASA fluxes and pools at daily interval unless specified as monthly
+    IF(output%averaging(1:2) /= 'mo') THEN ! write daily averages to file
+       IF(MOD(ktau, ktauday) == 0) THEN ! end of each day
+          writeCASA = .TRUE.
+          out_tsCASA = out_tsCASA + 1
+          backCASA = ktauday / 2
+       ELSE
+          writeCASA = .FALSE.
+       END IF
+    ELSE ! write monthly averages to file
+       realyear = met%year
+       IF(ktau >= 365*ktauday) THEN
+         WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
+       END IF
+
+       ! Are we using leap year calendar?
+       IF(leaps) THEN
+          ! If currently a leap year:
+          IF(((ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,100)/=0)).OR. &
+               (ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,400)==0)))) THEN
+
+             IF(ANY((lastdayl * ktauday) == ktau)) THEN
+                ! increment output month counter
+                out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
+                ! write to output file this time step 
+                writeCASA = .TRUE.
+                ! increment output time step counter:
+                out_tsCASA  = out_tsCASA  + 1
+                ! set numbr of time steps in output period
+                backCASA  = daysml(out_month) * ktauday / 2
+             ELSE
+                writeCASA = .FALSE.
+             END IF
+          ELSE ! not currently a leap year
+             ! last time step of month
+             IF(ANY((lastday * ktauday) == ktau)) THEN
+                ! increment output month counter
+                out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
+                ! write to output file this time step 
+                writeCASA = .TRUE.
+                ! increment output time step counter:
+                out_tsCASA  = out_tsCASA  + 1
+                ! set numbr of time steps in output period
+                backCASA  = daysm(out_month) * ktauday / 2
+             ELSE
+                writeCASA = .FALSE.
+             END IF
+          END IF
+       ELSE ! not using leap year timing in this run
+          IF(ANY((lastday*ktauday)==ktau)) THEN ! last time step of
+                                                             ! month
+             ! increment output month counter
+             out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
+             ! write to output file this time step 
+             writeCASA = .TRUE.
+             ! increment output time step counter:
+             out_tsCASA  = out_tsCASA  + 1
+             ! set numbr of time steps in output period
+             backCASA  = daysm(out_month) * ktauday / 2
+          ELSE
+             writeCASA = .FALSE.
+          END IF
+       END IF ! using leap year timing or not
+    END IF
+
+    ! If this time step is an output time step:
+    IF(writeCASA) THEN
+       ! Write to temporary time variable:
+       timetemp(1) = DBLE(REAL(ktau-backCASA)*dels)
+       ! Write time variable for this output time step:
+       ok = NF90_PUT_VAR(ncid_out, ovid%tCASA, timetemp,                       &
+                                        start = (/out_tsCASA/), count = (/1/))
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                  &
+                                             'Error writing timeCASA var to '  &
+                        //TRIM(filename%out)// '(SUBROUTINE write_casa_flux)')
+    END IF
+
+    IF((output%CASA) .AND. (MOD(ktau, ktauday) == 0)) THEN
+       ! GPP: gross primary production of C by veg [gC/m^2/day or gC/m^2/mon]
+       ! Add current day's value to total of temporary output variable:
+       out%casaGPP = out%casaGPP + REAL(casaflux%Cgpp)
+       IF(writeCASA) THEN
+          ! Divide accumulated variable by number of accumulated days:
+          out%casaGPP = out%casaGPP/REAL(2 * backCASA / ktauday, 4)
+          ! Write value to file:
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaGPP, 'CASAGPP', out%casaGPP,    &
+               ranges%casaGPP, patchout%casaGPP, 'default', met)
+          ! Reset temporary output variable:
+          out%casaGPP = 0.0
+       END IF
+       ! NPP: net primary production of C by veg [gC/m^2/day or gC/m^2/mon]
+       out%casaNPP = out%casaNPP + REAL(casaflux%Cnpp+casapool%dClabiledt)
+       IF(writeCASA) THEN
+          out%casaNPP = out%casaNPP/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaNPP, 'CASANPP', out%casaNPP,    &
+               ranges%casaNPP, patchout%casaNPP, 'default', met)
+          out%casaNPP = 0.0
+       END IF
+       ! LeafResp: Leaf Respiration [gC/m^2/day or gC/m^2/mon]
+       out%casaLFresp = out%casaLFresp + REAL(casaflux%Crmplant(:,leaf))
+       IF(writeCASA) THEN
+          out%casaLFresp = out%casaLFresp/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaLFresp, 'CASAleafResp', &
+               out%casaLFresp, ranges%casaLFresp, patchout%casaLFresp, 'default', met)
+          out%casaLFresp = 0.0
+       END IF
+       ! WoodResp: Wood Respiration [gC/m^2/day or gC/m^2/mon]
+       out%casaWDresp = out%casaWDresp + REAL(casaflux%Crmplant(:,wood))
+       IF(writeCASA) THEN
+          out%casaWDresp = out%casaWDresp/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaWDresp, 'CASAwoodResp', &
+               out%casaWDresp, ranges%casaWDresp, patchout%casaWDresp, 'default', met)
+          out%casaWDresp = 0.0
+       END IF
+       ! RootResp: Root Respiration [gC/m^2/day or gC/m^2/mon]
+       out%casaRTresp = out%casaRTresp + REAL(casaflux%Crmplant(:,froot))
+       IF(writeCASA) THEN
+          out%casaRTresp = out%casaRTresp/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaRTresp, 'CASArootResp', &
+               out%casaRTresp, ranges%casaRTresp, patchout%casaRTresp, 'default', met)
+          out%casaRTresp = 0.0
+       END IF
+       ! GrowResp: Growth Respiration [gC/m^2/day or gC/m^2/mon]
+       out%casaGRresp = out%casaGRresp + REAL(casaflux%Crgplant)
+       IF(writeCASA) THEN
+          out%casaGRresp = out%casaGRresp/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaGRresp, 'CASAgrowResp', &
+               out%casaGRresp, ranges%casaGRresp, patchout%casaGRresp, 'default', met)
+          out%casaGRresp = 0.0
+       END IF
+       ! SoilResp: Soil Respiration [gC/m^2/day or gC/m^2/mon]
+       out%casaSLresp = out%casaSLresp + REAL(casaflux%Crsoil)
+       IF(writeCASA) THEN
+          out%casaSLresp = out%casaSLresp/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaSLresp, 'CASAsoilResp', &
+               out%casaSLresp, ranges%casaSLresp, patchout%casaSLresp, 'default', met)
+          out%casaSLresp = 0.0
+       END IF
+       ! NEE: Net Ecosystem Exchange [gC/m^2/day or gC/m^2/mon]
+       out%casaNEE = out%casaNEE + REAL(casaflux%Cnpp-casaflux%Crsoil)
+       IF(writeCASA) THEN
+          out%casaNEE = out%casaNEE/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%casaNEE, 'CASANEE', &
+               out%casaNEE, ranges%casaNEE, patchout%casaNEE, 'default', met)
+          out%casaNEE = 0.0
+       END IF
+
+      IF (icycle > 1) THEN
+       ! Ndep: Nitrogen Deposition [gN/m^2/day or gN/m^2/mon]
+       out%Ndep = out%Ndep + REAL(casaflux%Nmindep)
+       IF(writeCASA) THEN
+          out%Ndep = out%Ndep/REAL(2 * backCASA / ktauday, 4) 
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Ndep, 'Ndep', &
+               out%Ndep, ranges%Ndep, patchout%Ndep, 'default', met)
+          out%Ndep = 0.0
+       END IF
+       ! Nfix: Nitrogen Fixation [gN/m^2/day or gN/m^2/mon]
+       out%Nfix = out%Nfix + REAL(casaflux%Nminfix)
+       IF(writeCASA) THEN
+          out%Nfix = out%Nfix/REAL(2 * backCASA / ktauday, 4) 
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nfix, 'Nfix', &
+               out%Nfix, ranges%Nfix, patchout%Nfix, 'default', met)
+          out%Nfix = 0.0
+       END IF
+       ! Nmin: Nitrogen Net Mineralization [gN/m^2/day or gN/m^2/mon]
+       out%Nmin = out%Nmin + REAL(casaflux%Nsnet)
+       IF(writeCASA) THEN
+          out%Nmin = out%Nmin/REAL(2 * backCASA / ktauday, 4) 
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nmin, 'Nmin', &
+               out%Nmin, ranges%Nmin, patchout%Nmin, 'default', met)
+          out%Nmin = 0.0
+       END IF
+       ! Nup: Nitrogen Uptake [gN/m^2/day or gN/m^2/mon]
+       out%Nup = out%Nup + REAL(casaflux%Nminuptake)
+       IF(writeCASA) THEN
+          out%Nup = out%Nup/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nup, 'Nup', &
+               out%Nup, ranges%Nup, patchout%Nup, 'default', met)
+          out%Nup = 0.0
+       END IF
+       ! Nleach: Nitrogen Leach [gN/m^2/day or gN/m^2/mon]
+       out%Nleach = out%Nleach + REAL(casaflux%Nminleach)
+       IF(writeCASA) THEN
+          out%Nleach = out%Nleach/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nleach, 'Nleach', &
+               out%Nleach, ranges%Nleach, patchout%Nleach, 'default', met)
+          out%Nleach = 0.0
+       END IF
+       ! Nloss: Nitrogen Loss [gN/m^2/day or gN/m^2/mon]
+       out%Nloss = out%Nloss + REAL(casaflux%Nminloss)
+       IF(writeCASA) THEN
+          out%Nloss = out%Nloss/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nloss, 'Nloss', &
+               out%Nloss, ranges%Nloss, patchout%Nloss, 'default', met)
+          out%Nloss = 0.0
+       END IF
+      END IF
+
+      IF (icycle > 2) THEN
+       ! Pwea: Phosphorus from Weathering [gP/m^2/day or gP/m^2/mon]
+       out%Pwea = out%Pwea + REAL(casaflux%Pwea)
+       IF(writeCASA) THEN
+          out%Pwea = out%Pwea/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pwea, 'Pwea', &
+               out%Pwea, ranges%Pwea, patchout%Pwea, 'default', met)
+          out%Pwea = 0.0
+       END IF
+       ! Pdust: Phosphorus from Dust [gP/m^2/day or gP/m^2/mon]
+       out%Pdust = out%Pdust + REAL(casaflux%Pdep)
+       IF(writeCASA) THEN
+          out%Pdust = out%Pdust/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pdust, 'Pdust', &
+               out%Pdust, ranges%Pdust, patchout%Pdust, 'default', met)
+          out%Pdust = 0.0
+       END IF
+       ! Pmin: Phosphorus Net Mineralization [gP/m^2/day or gP/m^2/mon]
+       out%Pmin = out%Pmin + REAL(casaflux%Psnet)
+       IF(writeCASA) THEN
+          out%Pmin = out%Pmin/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pmin, 'Pmin', &
+               out%Pmin, ranges%Pmin, patchout%Pmin, 'default', met)
+          out%Pmin = 0.0
+       END IF
+       ! Pup: Phosphorus Uptake [gP/m^2/day or gP/m^2/mon]
+       out%Pup = out%Pup + REAL(casaflux%Plabuptake)
+       IF(writeCASA) THEN
+          out%Pup = out%Pup/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pup, 'Pup', &
+               out%Pup, ranges%Pup, patchout%Pup, 'default', met)
+          out%Pup = 0.0
+       END IF
+       ! Pleach: Phosphorus Leach [gP/m^2/day or gP/m^2/mon]
+       out%Pleach = out%Pleach + REAL(casaflux%Pleach)
+       IF(writeCASA) THEN
+          out%Pleach = out%Pleach/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pleach, 'Pleach', &
+               out%Pleach, ranges%Pleach, patchout%Pleach, 'default', met)
+          out%Pleach = 0.0
+       END IF
+       ! Ploss: Phosphorus Loss [gP/m^2/day or gP/m^2/mon]
+       out%Ploss = out%Ploss + REAL(casaflux%Ploss)
+       IF(writeCASA) THEN
+          out%Ploss = out%Ploss/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Ploss, 'Ploss', &
+               out%Ploss, ranges%Ploss, patchout%Ploss, 'default', met)
+          out%Ploss = 0.0
+       END IF
+      END IF
+
+    END IF
+
+  END SUBROUTINE write_casa_flux
   !=============================================================================
   SUBROUTINE close_output_file(bal, air, bgc, canopy, met,                     &
                                rad, rough, soil, ssnow, sum_flux, veg)

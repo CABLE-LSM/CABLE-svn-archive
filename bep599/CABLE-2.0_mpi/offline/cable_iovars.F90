@@ -189,6 +189,7 @@ MODULE cable_IO_vars_module
          balances = .FALSE.,  & ! energy and water balances
          restart = .FALSE.,   & ! create restart file?
          ensemble = .FALSE.,  & ! are we creating an ensemble run?
+         CASA = .FALSE.,      & ! write CASA flux and pools
          patch = .FALSE.        ! should patch-specific info be written 
                                 ! to output file?
 
@@ -252,6 +253,26 @@ MODULE cable_IO_vars_module
          AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
+         casaGPP = .FALSE.,   &
+         casaNPP = .FALSE.,   &
+         casaLFresp = .FALSE., &
+         casaWDresp = .FALSE., &
+         casaRTresp = .FALSE., &
+         casaGRresp = .FALSE., &
+         casaSLresp = .FALSE., &
+         casaNEE = .FALSE.,   &
+         Ndep    = .FALSE.,   &
+         Nfix    = .FALSE.,   &
+         Nmin    = .FALSE.,   &
+         Nup     = .FALSE.,   &
+         Nleach  = .FALSE.,   &
+         Nloss   = .FALSE.,   &
+         Pwea    = .FALSE.,   &
+         Pdust   = .FALSE.,   &
+         Pmin    = .FALSE.,   &
+         Pup     = .FALSE.,   &
+         Pleach  = .FALSE.,   &
+         Ploss   = .FALSE.,   &
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
          
          !variables
