@@ -384,7 +384,7 @@ PROGRAM cable_offline_driver
             CALL write_output( dels, ktau, met, canopy, ssnow,                 &
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
-            IF (icycle > 0 .AND. (MOD(ktau, ktauday) == 0))  &
+            IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
                CALL write_casa_flux( dels, ktau, met, casaflux, casapool)
          END IF
    

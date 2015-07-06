@@ -462,7 +462,7 @@ CONTAINS
 
          ! MPI: send the results back to the master
          CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
-         IF(icycle >0 .AND. (MOD(ktau, ktauday) == 0)) THEN
+         IF(icycle >0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
             ! MPI: send casa results back to the master
             CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
          ENDIF

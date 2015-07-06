@@ -529,7 +529,7 @@ SUBROUTINE mpidrv_master (comm)
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau-kstart+1, recv_ts)
-         IF (icycle > 0 .AND. (MOD(ktau, ktauday) == 0)) THEN
+         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
             CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
             ! MPI: gather casa results from all the workers
             CALL master_receive (comm, oktau-kstart+1, casa_ts)
@@ -559,7 +559,8 @@ SUBROUTINE mpidrv_master (comm)
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
-            IF (icycle > 0) CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
+            IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
+               CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
          END IF
    
       END DO ! END Do loop over timestep ktau
@@ -576,8 +577,8 @@ SUBROUTINE mpidrv_master (comm)
       met%ofsd = met%fsd(:,1) + met%fsd(:,2)
       canopy%oldcansto=canopy%cansto
 
-      IF (icycle > 0) THEN
-         ! MPI: gather casa results from all the workers
+      IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
+         ! MPI: gather casa results from all the workers for last step
          CALL master_receive (comm, ktau_gl, casa_ts)
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
       END IF
@@ -586,7 +587,8 @@ SUBROUTINE mpidrv_master (comm)
          CALL write_output( dels, ktau, met, canopy, ssnow,         &
                             rad, bal, air, soil, veg, C%SBOLTZ,     &
                             C%EMLEAF, C%EMSOIL )
-         IF (icycle > 0) CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
+         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
+            CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
       END IF
    
       !jhan this is insufficient testing. condition for 
