@@ -117,7 +117,7 @@ CONTAINS
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file,             &
-                                   write_casa_flux
+                                   write_casa_flux, write_casa_params
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
@@ -265,6 +265,9 @@ CONTAINS
       STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
+
+   IF( output%CASA .AND. icycle == 0 )                                      &
+      STOP 'cannot output casaCNP variables when not running casaCNP'
 
    IF( .NOT. spinup )  spinConv = .TRUE.
 

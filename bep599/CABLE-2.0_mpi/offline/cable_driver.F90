@@ -79,7 +79,7 @@ PROGRAM cable_offline_driver
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file,             &
-                                   write_casa_flux
+                                   write_casa_flux,write_casa_params
    USE cable_cbm_module
    
    USE cable_diag_module
@@ -226,6 +226,9 @@ PROGRAM cable_offline_driver
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
+   IF( output%CASA .AND. icycle == 0 )                                      &
+      STOP 'cannot output casaCNP variables when not running casaCNP'
+
    IF( .NOT. spinup )  spinConv = .TRUE.
 
    ! Check for global run
@@ -295,6 +298,8 @@ PROGRAM cable_offline_driver
    
    ! Open output file:
    CALL open_output_file( kend, dels, soil, veg, bgc, rough )
+   if(icycle>0) CALL write_casa_params(veg,casamet,casabiome)
+!   if(icycle>0) CALL write_casa_params(veg,casamet,casabiome,phen)
  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
@@ -385,7 +390,7 @@ PROGRAM cable_offline_driver
                                rad, bal, air, soil, veg, C%SBOLTZ,             &
                                C%EMLEAF, C%EMSOIL )
             IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
-               CALL write_casa_flux( dels, ktau, met, casaflux, casapool)
+              CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
          END IF
    
          ! dump bitwise reproducible testing data

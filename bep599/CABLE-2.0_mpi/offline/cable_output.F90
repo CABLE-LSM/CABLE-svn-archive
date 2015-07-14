@@ -51,12 +51,12 @@ MODULE cable_output_module
   USE cable_write_module
   USE netcdf
   USE cable_common_module, ONLY: filename
-  USE casadimension,       ONLY: icycle
+  USE casadimension,       ONLY: icycle, mplant, mlitter, msoil
   USE casaparm,            ONLY: LEAF, WOOD, FROOT
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart, &
-         write_casa_flux
+         write_casa_flux, write_casa_params
   INTEGER :: ncid_out ! output data netcdf file ID
   REAL :: missing_value = -999999.0 ! for netcdf output
   TYPE out_varID_type ! output variable IDs in netcdf file
@@ -71,6 +71,10 @@ MODULE cable_output_module
                     casaRTresp, casaGRresp, casaSLresp, casaNEE,               &
                     Ndep, Nfix,  Nmin, Nup, Nleach, Nloss,                     &
                     Pwea, Pdust, Pmin, Pup, Pleach, Ploss,                     &
+                    phase, Clab, Cplant, Clitter, Csoil,                       &
+                    Nplant, Nlitter, Nsoil, Nsmin,                             &
+                    Pplant, Plitter, Psoil, Pslab, Pssorb, Psocc,              &
+                    Cbal, Nbal, Pbal,                                          &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar, tCASA,                            &
                     drybal,wetbal,visAbs,NIRabs,LWcanopy,LWsoil,oLWsoil,       &
@@ -156,6 +160,7 @@ MODULE cable_output_module
                                                       ! respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HeteroResp ! 50 heterotrophic
                                                       ! respiration [umol/m2/s]
+    ! CASACNP fluxes
     REAL(KIND=4), POINTER, DIMENSION(:) :: casaGPP    ! [gC/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: casaNPP    ! [gC/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: casaLFresp ! [gC/m2/day]
@@ -176,6 +181,27 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Pup        ! [gP/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Pleach     ! [gP/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ploss      ! [gP/m2/day]
+    ! phenological phase
+    REAL(KIND=4), POINTER, DIMENSION(:) :: phase
+    ! CASACNP nutrient pools
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Clab     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Cplant   ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Clitter  ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Csoil    ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nplant   ! [gN/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nlitter  ! [gN/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nsoil    ! [gN/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Nsmin    ! [gN/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Pplant   ! [gP/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Plitter  ! [gP/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Psoil    ! [gP/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Pslab    ! [gP/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Pssorb   ! [gP/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Psocc    ! [gP/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Cbal     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Nbal     ! [gN/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Pbal     ! [gP/m2]
+
     REAL(KIND=4), POINTER, DIMENSION(:) :: SnowDepth  ! actual depth of snow in
                                                       ! [m]
     ! Non-Alma variables
@@ -240,7 +266,8 @@ CONTAINS
 
     INTEGER :: CASAts
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
-                    plantcarbID, tID, tCID, landID, patchID ! dimension IDs
+                    plantcarbID, tID, tCID, landID, patchID, maskID,      &
+                    mplantID, mlitterID, msoilID  ! dimension IDs
     INTEGER :: latID, lonID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
@@ -262,6 +289,23 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                           (ok, 'Error defining y dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
+    IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
+       (metGrid == 'mask' .AND. output%grid == 'default')) THEN
+       ! for land/sea mask type grid:
+       ! Atmospheric 'z' dim of size 1 to comply with ALMA grid type:
+       ok = NF90_DEF_DIM(ncid_out, 'z', 1, zID)
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+                          (ok, 'Error defining z dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ELSE IF(output%grid == 'land' .OR.                                         &
+            (metGrid == 'land' .AND. output%grid == 'default')) THEN
+       ! For land only compression grid:
+       ok = NF90_DEF_DIM(ncid_out, 'land', mland, landID) ! number of land
+                                                          ! points
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+                       (ok, 'Error defining land dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    END IF
     ! Define patch dimension, whether it's used or not:
     ok = NF90_DEF_DIM(ncid_out, 'patch', max_vegpatches, patchID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -292,32 +336,36 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                         (ok,'Error defining time dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
-    IF(output%averaging(1:2) == 'mo') THEN
-       CASAts = INT(kend * dels / (30 * 24 * 3600))
-    ELSE
-       CASAts = INT(kend * dels / (24 * 3600))
+    IF(icycle > 0 .AND. output%CASA) THEN
+       IF(output%averaging(1:2) == 'mo') THEN
+          CASAts = INT(kend * dels / (30 * 24 * 3600))
+       ELSE
+          CASAts = INT(kend * dels / (24 * 3600))
+       END IF
+       ok = NF90_DEF_DIM(ncid_out, 'tCASA', CASAts, tCID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error defining tCASA '//        &
+                     'dimension in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_DEF_DIM(ncid_out, 'pools_plant', mplant, mplantID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error defining pools_plant '//  &
+                     'dimension in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_DEF_DIM(ncid_out, 'pools_litter', mlitter, mlitterID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error defining pools_litter '// &
+                     'dimension in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_DEF_DIM(ncid_out, 'pools_soil', msoil, msoilID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error defining pools_soil '//   &
+                     'dimension in output file. (SUBROUTINE open_output_file)')
+       ! Define "timeCASA" variable and its attributes:
+       ok = NF90_DEF_VAR(ncid_out, 'timeCASA', NF90_DOUBLE,(/tCID/),ovid%tCASA)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining timeCASA '//    &
+                     'var in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, ovid%tCASA, 'units', timeunits)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining timeCASA '//    &
+                'var attributes in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, ovid%tCASA, 'coordinate', time_coord)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining timeCASA '//    &
+               'var attribute 2 in output file. (SUBROUTINE open_output_file)')
     END IF
-    ok = NF90_DEF_DIM(ncid_out, 'tCASA', CASAts, tCID)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                       (ok,'Error defining tCASA dimension in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
-       (metGrid == 'mask' .AND. output%grid == 'default')) THEN
-       ! for land/sea mask type grid:
-       ! Atmospheric 'z' dim of size 1 to comply with ALMA grid type:
-       ok = NF90_DEF_DIM(ncid_out, 'z', 1, zID)
-       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
-                          (ok, 'Error defining z dimension in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ELSE IF(output%grid == 'land' .OR.                                         &
-            (metGrid == 'land' .AND. output%grid == 'default')) THEN
-       ! For land only compression grid:
-       ok = NF90_DEF_DIM(ncid_out, 'land', mland, landID) ! number of land
-                                                          ! points
-       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
-                       (ok, 'Error defining land dimension in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    END IF
+
     ! Define "time" variable and its attributes:
     ok = NF90_DEF_VAR(ncid_out, 'time', NF90_DOUBLE, (/tID/), ovid%tvar)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -330,36 +378,6 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_out, ovid%tvar, 'coordinate', time_coord)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
              (ok, 'Error defining time variable attributes in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ! Define "timeCASA" variable and its attributes:
-    ok = NF90_DEF_VAR(ncid_out, 'timeCASA', NF90_DOUBLE, (/tCID/), ovid%tCASA)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                        (ok, 'Error defining timeCASA var in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ok = NF90_PUT_ATT(ncid_out, ovid%tCASA, 'units', timeunits)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-             (ok, 'Error defining timeCASA var attributes in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ok = NF90_PUT_ATT(ncid_out, ovid%tCASA, 'coordinate', time_coord)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-             (ok, 'Error defining timeCASA var attributes in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ! Define latitude and longitude variable (ALMA):
-    ok = NF90_DEF_VAR(ncid_out, 'latitude', NF90_FLOAT, (/xID, yID/), latID)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                    (ok, 'Error defining latitude variable in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ok = NF90_PUT_ATT(ncid_out, latID, 'units', 'degrees_north')
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-         (ok, 'Error defining latitude variable attributes in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ok = NF90_DEF_VAR(ncid_out, 'longitude', NF90_FLOAT, (/xID, yID/), lonID)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                   (ok, 'Error defining longitude variable in output file. '// &
-                                                '(SUBROUTINE open_output_file)')
-    ok = NF90_PUT_ATT(ncid_out, lonID, 'units', 'degrees_east')
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-        (ok, 'Error defining longitude variable attributes in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
     ! Write "cordinate variables" to enable reading by GrADS:
     ok = NF90_DEF_VAR(ncid_out, 'x', NF90_FLOAT, (/xID/), xvID)
@@ -388,6 +406,44 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                    (ok, 'Error writing y variables comment in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
+    ! Define latitude and longitude variable:
+    IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
+       (metGrid == 'mask' .AND. output%grid == 'default')) THEN
+       ! for land/sea mask type grid: (ALMA convention)
+       ok = NF90_DEF_VAR(ncid_out, 'latitude', NF90_FLOAT, (/xID, yID/), latID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
+                       'variable in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, latID, 'units', 'degrees_north')
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
+            'variable attributes in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_DEF_VAR(ncid_out, 'longitude', NF90_FLOAT, (/xID, yID/), lonID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
+                       'variable in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, lonID, 'units', 'degrees_east')
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
+            'variable attributes in output file. (SUBROUTINE open_output_file)')
+       ! Add land-sea mask
+       ok = NF90_DEF_VAR(ncid_out, 'mask',NF90_INT, (/xID, yID/), maskID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining mask '//        &
+                       'variable in output file. (SUBROUTINE open_output_file)')
+    ELSE IF(output%grid == 'land' .OR.                                         &
+            (metGrid == 'land' .AND. output%grid == 'default')) THEN
+       ! For land only compression grid:
+       ok = NF90_DEF_VAR(ncid_out, 'latitude', NF90_FLOAT, (/landID/), latID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
+                         'variable in 1D format. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, latID, 'units', 'degrees_north')
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
+              'variable attributes in 1D format. (SUBROUTINE open_output_file)')
+       ok = NF90_DEF_VAR(ncid_out, 'longitude', NF90_FLOAT, (/landID/), lonID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
+                         'variable in 1D format. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, lonID, 'units', 'degrees_east')
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
+              'variable attributes in 1D format. (SUBROUTINE open_output_file)')
+    ELSE
+       STOP 'Error! Unsure about grid type of latitude and longitude'
+    END IF
     !   ! Define fraction of each surface type:
     !   CALL define_ovar(ncid_out,surffracID,'surffrac','-', &
     !       'Fraction of each surface type: vegetated; urban; lake; land ice', &
@@ -812,7 +868,8 @@ CONTAINS
        ALLOCATE(out%NPP(mp))
        out%NPP = 0.0 ! initialise
     END IF
-    IF(output%CASA) THEN
+    IF(icycle > 0 .AND. output%CASA) THEN
+       ! CASACNP fluxes
        IF(output%averaging(1:2) == 'mo') THEN
           outUnit = 'gC/m^2/mon'
        ELSE
@@ -859,78 +916,162 @@ CONTAINS
        ALLOCATE(out%casaNEE(mp))
        out%casaNEE = 0.0 ! initialise
 
-       IF(output%averaging(1:2) == 'mo') THEN
-          outUnit = 'gN/m^2/mon'
-       ELSE
-          outUnit = 'gN/m^2/day'
+       IF(icycle > 1) THEN
+          IF(output%averaging(1:2) == 'mo') THEN
+             outUnit = 'gN/m^2/mon'
+          ELSE
+             outUnit = 'gN/m^2/day'
+          END IF
+          CALL define_ovar(ncid_out, ovid%Ndep, 'Ndep', outUnit,         &
+                           'Nitrogen Deposition', patchout%Ndep,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Ndep(mp))
+          out%Ndep = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Nfix, 'Nfix', outUnit,         &
+                           'Nitrogen Fixation', patchout%Nfix,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Nfix(mp))
+          out%Nfix = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Nmin, 'Nmin', outUnit,         &
+                           'Nitrogen Net Mineralization', patchout%Nmin,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Nmin(mp))
+          out%Nmin = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Nup, 'Nup', outUnit,         &
+                           'Nitrogen Uptake', patchout%Nup,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Nup(mp))
+          out%Nup = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Nleach, 'Nleach', outUnit,         &
+                           'Nitrogen Leach', patchout%Nleach,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Nleach(mp))
+          out%Nleach = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Nloss, 'Nloss', outUnit,         &
+                           'Nitrogen Loss', patchout%Nloss,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Nloss(mp))
+          out%Nloss = 0.0 ! initialise
        END IF
-       CALL define_ovar(ncid_out, ovid%Ndep, 'Ndep', outUnit,         &
-                        'Nitrogen Deposition', patchout%Ndep,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Ndep(mp))
-       out%Ndep = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Nfix, 'Nfix', outUnit,         &
-                        'Nitrogen Fixation', patchout%Nfix,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Nfix(mp))
-       out%Nfix = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Nmin, 'Nmin', outUnit,         &
-                        'Nitrogen Net Mineralization', patchout%Nmin,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Nmin(mp))
-       out%Nmin = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Nup, 'Nup', outUnit,         &
-                        'Nitrogen Uptake', patchout%Nup,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Nup(mp))
-       out%Nup = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Nleach, 'Nleach', outUnit,         &
-                        'Nitrogen Leach', patchout%Nleach,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Nleach(mp))
-       out%Nleach = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Nloss, 'Nloss', outUnit,         &
-                        'Nitrogen Loss', patchout%Nloss,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Nloss(mp))
-       out%Nloss = 0.0 ! initialise
 
-       IF(output%averaging(1:2) == 'mo') THEN
-          outUnit = 'gP/m^2/mon'
-       ELSE
-          outUnit = 'gP/m^2/day'
+       IF(icycle > 2) THEN
+          IF(output%averaging(1:2) == 'mo') THEN
+             outUnit = 'gP/m^2/mon'
+          ELSE
+             outUnit = 'gP/m^2/day'
+          END IF
+          CALL define_ovar(ncid_out, ovid%Pwea, 'Pwea', outUnit,         &
+                           'Phosphorus from Weathering', patchout%Pwea,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Pwea(mp))
+          out%Pwea = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Pdust, 'Pdust', outUnit,         &
+                           'Phosphorus from dust', patchout%Pdust,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Pdust(mp))
+          out%Pdust = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Pmin, 'Pmin', outUnit,         &
+                           'Phosphorus Net Mineralization', patchout%Pmin,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Pmin(mp))
+          out%Pmin = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Pup, 'Pup', outUnit,         &
+                           'Phosphorus Uptake', patchout%Pup,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Pup(mp))
+          out%Pup = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Pleach, 'Pleach', outUnit,         &
+                           'Phosphorus Leach', patchout%Pleach,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Pleach(mp))
+          out%Pleach = 0.0 ! initialise
+          CALL define_ovar(ncid_out, ovid%Ploss, 'Ploss', outUnit,         &
+                           'Phosphorus Loss', patchout%Ploss,     &
+                           'dummy', xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Ploss(mp))
+          out%Ploss = 0.0 ! initialise
        END IF
-       CALL define_ovar(ncid_out, ovid%Pwea, 'Pwea', outUnit,         &
-                        'Phosphorus from Weathering', patchout%Pwea,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Pwea(mp))
-       out%Pwea = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Pdust, 'Pdust', outUnit,         &
-                        'Phosphorus from dust', patchout%Pdust,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Pdust(mp))
-       out%Pdust = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Pmin, 'Pmin', outUnit,         &
-                        'Phosphorus Net Mineralization', patchout%Pmin,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Pmin(mp))
-       out%Pmin = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Pup, 'Pup', outUnit,         &
-                        'Phosphorus Uptake', patchout%Pup,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Pup(mp))
-       out%Pup = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Pleach, 'Pleach', outUnit,         &
-                        'Phosphorus Leach', patchout%Pleach,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Pleach(mp))
-       out%Pleach = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%Ploss, 'Ploss', outUnit,         &
-                        'Phosphorus Loss', patchout%Ploss,     &
-                        'dummy', xID, yID, zID, landID, patchID, tCID)
-       ALLOCATE(out%Ploss(mp))
-       out%Ploss = 0.0 ! initialise
-    END IF
+
+       ! CASACNP state var and pool sizes:
+       CALL define_ovar(ncid_out, ovid%phase, 'phase', '-', 'Phenology phase', &
+                   patchout%phase,'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%phase(mp))
+       CALL define_ovar(ncid_out, ovid%Clab,'Clabile','gC/m2', 'labile C pool',&
+                   patchout%Clab, 'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Clab(mp))
+       CALL define_ovar(ncid_out, ovid%Cplant, 'CASA_Cplant', 'gC/m2', &
+                   'plant C pools', patchout%Cplant, 'cnp',          &
+                   xID, yID, zID, landID, patchID, mplantID, tCID)
+       ALLOCATE(out%Cplant(mp,mplant))
+       CALL define_ovar(ncid_out, ovid%Clitter, 'Clitter', 'gC/m2', &
+                   'litter C pools', patchout%Clitter, 'cnp',          &
+                   xID, yID, zID, landID, patchID, mlitterID, tCID)
+       ALLOCATE(out%Clitter(mp,mlitter))
+       CALL define_ovar(ncid_out, ovid%Csoil, 'CASA_Csoil', 'gC/m2', &
+                   'soil C pools', patchout%Csoil, 'cnp',          &
+                   xID, yID, zID, landID, patchID, msoilID, tCID)
+       ALLOCATE(out%Csoil(mp,msoil))
+       CALL define_ovar(ncid_out, ovid%Nplant, 'Nplant', 'gN/m2', &
+                   'plant N pools', patchout%Nplant, 'cnp',          &
+                   xID, yID, zID, landID, patchID, mplantID, tCID)
+       ALLOCATE(out%Nplant(mp,mplant))
+       CALL define_ovar(ncid_out, ovid%Nlitter, 'Nlitter', 'gN/m2', &
+                   'litter N pools', patchout%Nlitter, 'cnp',          &
+                   xID, yID, zID, landID, patchID, mlitterID, tCID)
+       ALLOCATE(out%Nlitter(mp,mlitter))
+       CALL define_ovar(ncid_out, ovid%Nsoil, 'Nsoil', 'gN/m2', &
+                   'soil N pools', patchout%Nsoil, 'cnp',          &
+                   xID, yID, zID, landID, patchID, msoilID, tCID)
+       ALLOCATE(out%Nsoil(mp,msoil))
+       CALL define_ovar(ncid_out, ovid%Nsmin, 'Nsoilmin', 'gN/m2', &
+                   'mineral N in soil', patchout%Nsmin, 'dummy',          &
+                   xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Nsmin(mp))
+       CALL define_ovar(ncid_out, ovid%Pplant, 'Pplant', 'gP/m2', &
+                   'plant P pools', patchout%Pplant, 'cnp',          &
+                   xID, yID, zID, landID, patchID, mplantID, tCID)
+       ALLOCATE(out%Pplant(mp,mplant))
+       CALL define_ovar(ncid_out, ovid%Plitter, 'Plitter', 'gP/m2', &
+                   'litter P pools', patchout%Plitter, 'cnp',          &
+                   xID, yID, zID, landID, patchID, mlitterID, tCID)
+       ALLOCATE(out%Plitter(mp,mlitter))
+       CALL define_ovar(ncid_out, ovid%Psoil, 'Psoil', 'gP/m2', &
+                   'soil P pools', patchout%Psoil, 'cnp',          &
+                   xID, yID, zID, landID, patchID, msoilID, tCID)
+       ALLOCATE(out%Psoil(mp,msoil))
+       CALL define_ovar(ncid_out, ovid%Pslab, 'Psoillab', 'gP/m2', &
+                   'labile P in soil', patchout%Pslab, 'dummy',          &
+                   xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Pslab(mp))
+       CALL define_ovar(ncid_out, ovid%Pssorb, 'Psoilsorb', 'gP/m2', &
+                   'adsorbed P in soil', patchout%Pssorb, 'dummy',          &
+                   xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Pssorb(mp))
+       CALL define_ovar(ncid_out, ovid%Psocc, 'Psoilocc', 'gP/m2', &
+                   'occluded P in soil', patchout%Psocc, 'dummy',          &
+                   xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Psocc(mp))
+       CALL define_ovar(ncid_out, ovid%Cbal, 'sumCbal', 'gC/m2',  &
+                   'Accumulated C balance', patchout%Cbal, 'dummy', &
+                   xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Cbal(mp))
+       out%Cbal = 0.0
+       IF(icycle > 1) THEN
+          CALL define_ovar(ncid_out, ovid%Nbal, 'sumNbal', 'gN/m2',  &
+                   'Accumulated N balance', patchout%Nbal, 'dummy', &
+                   xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Nbal(mp))
+          out%Nbal = 0.0
+       END IF
+       IF(icycle > 2) THEN
+          CALL define_ovar(ncid_out, ovid%Pbal, 'sumPbal', 'gP/m2',  &
+                   'Accumulated P balance', patchout%Pbal, 'dummy', &
+                   xID, yID, zID, landID, patchID, tCID)
+          ALLOCATE(out%Pbal(mp))
+          out%Pbal = 0.0
+       END IF
+
+    END IF  ! IF(icycle > 0 .AND. output%CASA) 
 
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
@@ -1063,17 +1204,15 @@ CONTAINS
     IF(output%params .OR. output%froot) CALL define_ovar(ncid_out, opid%froot, &
                          'froot', '-', 'Fraction of roots in each soil layer', &
                  patchout%froot, soilID, 'soil', xID, yID, zID, landID, patchID)
-!!!    ! CASACNP parameters and pool sizes:
-!!!    IF(output%CASA) THEN
-!!!      CALL define_ovar(ncid_out, opid%sorder, 'sorder', '-', 'Soil Order',     &
-!!!                      patchout%sorder,'integer', xID, yID, zID, landID, patchID)
-!!!      CALL define_ovar(ncid_out, opid%areacell, 'areaCell', 'm2', 'Cell Area', &
-!!!                      patchout%areacell, 'real', xID, yID, zID, landID, patchID)
-!!!      CALL define_ovar(ncid_out, opid%phase, 'phase', '-', 'Phenology phase',  &
-!!!                      patchout%sorder,'integer', xID, yID, zID, landID, patchID)
-!!!
-!!!
-!!!    ENDIF
+    ! CASACNP parameters:
+    IF(icycle > 0) THEN
+      CALL define_ovar(ncid_out, opid%sorder, 'soilOrder', '-', 'Soil Order',  &
+                  patchout%SoilOrder,'integer', xID, yID, zID, landID, patchID)
+      CALL define_ovar(ncid_out, opid%areacell, 'areaCell', 'm2', 'Cell Area', &
+                  patchout%area, 'real', xID, yID, zID, landID, patchID)
+      CALL define_ovar(ncid_out, opid%sla, 'SLA','m2/gC', 'Specific Leaf Area',&
+                  patchout%sla, 'real', xID, yID, zID, landID, patchID)
+    ENDIF
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -1134,18 +1273,33 @@ CONTAINS
 
     ! End netcdf define mode:
     ok = NF90_ENDDEF(ncid_out)
-    IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error creating output file '       &
-                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+    IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error ending define mode in '    &
+                       //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
 
     ! Write latitude and longitude variables:
-    ok = NF90_PUT_VAR(ncid_out, latID, REAL(lat_all, 4))
-    IF(ok /= NF90_NOERR) CALL nc_abort                                         &
-                                    (ok, 'Error writing latitude variable to ' &
-                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
-    ok = NF90_PUT_VAR(ncid_out, lonID, REAL(lon_all, 4))
-    IF(ok /= NF90_NOERR) CALL nc_abort                                         &
-                                   (ok, 'Error writing longitude variable to ' &
-                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+    IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
+       (metGrid == 'mask' .AND. output%grid == 'default')) THEN
+       ! for land/sea mask type grid:
+       ok = NF90_PUT_VAR(ncid_out, latID, REAL(lat_all, 4))
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing latitude '//      &
+          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_VAR(ncid_out, lonID, REAL(lon_all, 4))
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing longitude '//     &
+          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+       ! Add land-sea mask:
+       ok = NF90_PUT_VAR(ncid_out, maskID, mask)
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing mask '//          &
+          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+    ELSE IF(output%grid == 'land' .OR.                                         &
+            (metGrid == 'land' .AND. output%grid == 'default')) THEN
+       ! For land only compression grid:
+       ok = NF90_PUT_VAR(ncid_out, latID, latitude)
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing 1D latitude '//   &
+          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_VAR(ncid_out, lonID, longitude)
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing 1D longitude '//  &
+          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+    END IF
     ! Write GrADS coordinate variables
     ok = NF90_PUT_VAR(ncid_out, xvID, REAL(lon_all(:, 1), 4))
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
@@ -1256,6 +1410,26 @@ CONTAINS
 
   END SUBROUTINE open_output_file
   !=============================================================================
+
+  SUBROUTINE write_casa_params(veg,casamet,casabiome)
+    USE casavariable,        ONLY: casa_biome, casa_met
+    TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
+    TYPE (casa_biome),         INTENT(IN)  :: casabiome
+    TYPE (casa_met),           INTENT(IN)  :: casamet
+
+    ! local variable
+    REAL, DIMENSION(mp)   :: temp
+
+    CALL write_ovar(ncid_out,opid%sorder,'soilOrder',REAL(casamet%isorder,4),  &
+                    ranges%SoilOrder, patchout%SoilOrder, 'integer')
+    CALL write_ovar(ncid_out,opid%areaCell,'areaCell',REAL(casamet%areacell,4),&
+                    ranges%area, patchout%area, 'real')
+    temp(:) = REAL(casabiome%sla(veg%iveg(:)),4)
+    CALL write_ovar(ncid_out,opid%sla,'SLA',temp,ranges%sla,patchout%sla,'real')
+
+  END SUBROUTINE write_casa_params
+  !=============================================================================
+
   SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
@@ -2182,13 +2356,16 @@ CONTAINS
 
   END SUBROUTINE write_output
   !=============================================================================
-  SUBROUTINE write_casa_flux( dels, ktau, met, casaflux, casapool)
-    USE casavariable,        ONLY: casa_pool, casa_flux
-    REAL, INTENT(IN)              :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
-    TYPE(met_type), INTENT(IN)         :: met  ! met data
-    TYPE(casa_flux), INTENT(IN)         :: casaflux    ! flux data from CASACNP module
-    TYPE(casa_pool), INTENT(IN)         :: casapool    ! nutrient pools data
+  SUBROUTINE write_casa_flux(dels, ktau, met, casaflux, casapool, casabal,phen)
+    USE casavariable,        ONLY: casa_pool, casa_flux, casa_balance
+    USE phenvariable,        ONLY: phen_variable
+    REAL, INTENT(IN)     :: dels ! time step size
+    INTEGER, INTENT(IN)  :: ktau ! timestep number in loop which include spinup
+    TYPE(met_type), INTENT(IN)      :: met      ! met data
+    TYPE(casa_flux), INTENT(IN)     :: casaflux ! flux data from CASACNP module
+    TYPE(casa_pool), INTENT(IN)     :: casapool ! nutrient pools data
+    TYPE(casa_balance), INTENT(IN)  :: casabal
+    TYPE(phen_variable), INTENT(IN) :: phen
     ! variables inherited from cable_output_module
     ! cable_IO_vars_module  -  
 !   INTEGER,DIMENSION(12) ::                                                    &
@@ -2363,6 +2540,74 @@ CONTAINS
                out%casaNEE, ranges%casaNEE, patchout%casaNEE, 'default', met)
           out%casaNEE = 0.0
        END IF
+       ! State var & pool sizes are instant values at end of reporting period.
+       IF(writeCASA) THEN
+          ! phase: phenological phase
+          out%phase = REAL(phen%phase,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%phase,'phase',    &
+               out%phase, ranges%phase, patchout%phase, 'default', met)
+          ! Clab: Labile C pool [gC/m^2]
+          out%Clab = REAL(casapool%Clabile,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Clab, 'Clabile',  &
+               out%Clab, ranges%Clab, patchout%Clab, 'default', met)
+          ! Cplant: plant C pools - leaf, wood, fine roots
+          out%Cplant = REAL(casapool%Cplant,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Cplant, 'CASA_Cplant', &
+               out%Cplant, ranges%Cplant, patchout%Cplant, 'cnp', met)
+          ! Clitter: litter C pools - METB, STR, CWD
+          out%Clitter = REAL(casapool%Clitter,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Clitter, 'Clitter', &
+               out%Clitter, ranges%Clitter, patchout%Clitter, 'cnp', met)
+          ! Csoil: soil C pools - MIC, SLOW, PASS [gC/m^2]
+          out%Csoil = REAL(casapool%Csoil,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Csoil, 'CASA_Csoil', &
+               out%Csoil, ranges%Csoil, patchout%Csoil, 'cnp', met)
+          ! Nplant: plant N pools - leaf, wood, fine roots [gN/m^2]
+          out%Nplant = REAL(casapool%Nplant,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nplant, 'Nplant', &
+               out%Nplant, ranges%Nplant, patchout%Nplant, 'cnp', met)
+          ! Nlitter: litter N pools - METB, STR, CWD
+          out%Nlitter = REAL(casapool%Nlitter,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nlitter, 'Nlitter', &
+               out%Nlitter, ranges%Nlitter, patchout%Nlitter, 'cnp', met)
+          ! Nsoil: soil N pools - MIC, SLOW, PASS
+          out%Nsoil = REAL(casapool%Nsoil,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nsoil, 'Nsoil', &
+               out%Nsoil, ranges%Nsoil, patchout%Nsoil, 'cnp', met)
+          ! Nsoilmin: soil mineral N pool [gN/m^2]
+          out%Nsmin = REAL(casapool%Nsoilmin,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nsmin, 'Nsoilmin',  &
+               out%Nsmin, ranges%Nsmin, patchout%Nsmin, 'default', met)
+          ! Pplant: plant P pools - leaf, wood, fine roots [gP/m^2]
+          out%Pplant = REAL(casapool%Pplant,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pplant, 'Pplant', &
+               out%Pplant, ranges%Pplant, patchout%Pplant, 'cnp', met)
+          ! Plitter: litter P pools - METB, STR, CWD
+          out%Plitter = REAL(casapool%Plitter,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Plitter, 'Plitter', &
+               out%Plitter, ranges%Plitter, patchout%Plitter, 'cnp', met)
+          ! Psoil: soil P pools - MIC, SLOW, PASS
+          out%Psoil = REAL(casapool%Psoil,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Psoil, 'Psoil', &
+               out%Psoil, ranges%Psoil, patchout%Psoil, 'cnp', met)
+          ! Psoillab: soil labile P pool [gP/m^2]
+          out%Pslab = REAL(casapool%Psoillab,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pslab, 'Psoillab',  &
+               out%Pslab, ranges%Pslab, patchout%Pslab, 'default', met)
+          ! Psoilsorb: soil adsorbed P pool [gP/m^2]
+          out%Pssorb = REAL(casapool%Psoilsorb,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pssorb, 'Psoilsorb',  &
+               out%Pssorb, ranges%Pssorb, patchout%Pssorb, 'default', met)
+          ! Psoilocc: soil occluded P pool [gP/m^2]
+          out%Psocc = REAL(casapool%Psoilocc,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Psocc, 'Psoilocc',  &
+               out%Psocc, ranges%Psocc, patchout%Psocc, 'default', met)
+          ! sumCbal: sum of C balance in reporting period [gC/m^2]
+          out%Cbal = REAL(casabal%sumCbal,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Cbal, 'sumCbal',  &
+               out%Cbal, ranges%Cbal, patchout%Cbal, 'default', met)
+          out%Cbal = 0.0
+       END IF
 
       IF (icycle > 1) THEN
        ! Ndep: Nitrogen Deposition [gN/m^2/day or gN/m^2/mon]
@@ -2412,6 +2657,13 @@ CONTAINS
           CALL write_ovar(out_tsCASA, ncid_out, ovid%Nloss, 'Nloss', &
                out%Nloss, ranges%Nloss, patchout%Nloss, 'default', met)
           out%Nloss = 0.0
+       END IF
+       IF(writeCASA) THEN
+          ! sumNbal: sum of N balance in reporting period [gN/m^2]
+          out%Nbal = REAL(casabal%sumNbal,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Nbal, 'sumNbal',  &
+               out%Nbal, ranges%Nbal, patchout%Nbal, 'default', met)
+          out%Nbal = 0.0
        END IF
       END IF
 
@@ -2463,6 +2715,13 @@ CONTAINS
           CALL write_ovar(out_tsCASA, ncid_out, ovid%Ploss, 'Ploss', &
                out%Ploss, ranges%Ploss, patchout%Ploss, 'default', met)
           out%Ploss = 0.0
+       END IF
+       IF(writeCASA) THEN
+          ! sumPbal: sum of P balance in reporting period [gP/m^2]
+          out%Pbal = REAL(casabal%sumPbal,4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Pbal, 'sumPbal',  &
+               out%Pbal, ranges%Pbal, patchout%Pbal, 'default', met)
+          out%Pbal = 0.0
        END IF
       END IF
 

@@ -144,7 +144,7 @@ MODULE cable_IO_vars_module
           ejmax,frac4,hc,lai,rp20,rpcoef,shelrb, vbeta, xalbnir,               &
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
-          veg_class,soil_class,mvtype,mstype,patchfrac
+          veg_class,soil_class,sorder,areacell,sla,mvtype,mstype,patchfrac
    
    END TYPE parID_type
   
@@ -253,7 +253,7 @@ MODULE cable_IO_vars_module
          AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
-         casaGPP = .FALSE.,   &
+         casaGPP = .FALSE.,   & ! CASACNP fluxes
          casaNPP = .FALSE.,   &
          casaLFresp = .FALSE., &
          casaWDresp = .FALSE., &
@@ -273,6 +273,25 @@ MODULE cable_IO_vars_module
          Pup     = .FALSE.,   &
          Pleach  = .FALSE.,   &
          Ploss   = .FALSE.,   &
+         phase   = .FALSE.,   & ! phenological phase
+         Clab    = .FALSE.,   & ! CASACNP pool sizes
+         Cplant  = .FALSE.,   &
+         Clitter = .FALSE.,   &
+         Csoil   = .FALSE.,   &
+         Nplant  = .FALSE.,   &
+         Nlitter = .FALSE.,   &
+         Nsoil   = .FALSE.,   &
+         Nsmin   = .FALSE.,   &
+         Pplant  = .FALSE.,   &
+         Plitter = .FALSE.,   &
+         Psoil   = .FALSE.,   &
+         Pslab   = .FALSE.,   &
+         Pssorb  = .FALSE.,   &
+         Psocc   = .FALSE.,   &
+         Cbal    = .FALSE.,   &
+         Nbal    = .FALSE.,   &
+         Pbal    = .FALSE.,   &
+
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
          
          !variables
@@ -351,6 +370,9 @@ MODULE cable_IO_vars_module
          iveg  = .FALSE.,     & ! vegetation type from global index
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
+         SoilOrder= .FALSE.,  & ! soil order
+         area     = .FALSE.,  & ! area of grid cell [m2]
+         sla      = .FALSE.,  & ! specific leaf area [m2/gC]
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
          za  = .FALSE.          ! something to do with roughness ????
    
