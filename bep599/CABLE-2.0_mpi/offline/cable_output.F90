@@ -263,10 +263,11 @@ CONTAINS
     TYPE (bgc_pool_type), INTENT(IN)       :: bgc
     TYPE (roughness_type), INTENT(IN)      :: rough
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
-
+    INTEGER, POINTER, DIMENSION(:,:) :: nap_tmp  ! temp var for # active patch
+    INTEGER :: ii
     INTEGER :: CASAts
-    INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
-                    plantcarbID, tID, tCID, landID, patchID, maskID,      &
+    INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                    &
+                    plantcarbID, tID, tCID, landID, patchID, maskID, napID, &
                     mplantID, mlitterID, msoilID  ! dimension IDs
     INTEGER :: latID, lonID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
@@ -289,23 +290,23 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                           (ok, 'Error defining y dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
-    IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
-       (metGrid == 'mask' .AND. output%grid == 'default')) THEN
+!    IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
+!       (metGrid == 'mask' .AND. output%grid == 'default')) THEN
        ! for land/sea mask type grid:
        ! Atmospheric 'z' dim of size 1 to comply with ALMA grid type:
        ok = NF90_DEF_DIM(ncid_out, 'z', 1, zID)
        IF (ok /= NF90_NOERR) CALL nc_abort                                     &
                           (ok, 'Error defining z dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
-    ELSE IF(output%grid == 'land' .OR.                                         &
-            (metGrid == 'land' .AND. output%grid == 'default')) THEN
+!    ELSE IF(output%grid == 'land' .OR.                                         &
+!            (metGrid == 'land' .AND. output%grid == 'default')) THEN
        ! For land only compression grid:
        ok = NF90_DEF_DIM(ncid_out, 'land', mland, landID) ! number of land
                                                           ! points
        IF (ok /= NF90_NOERR) CALL nc_abort                                     &
                        (ok, 'Error defining land dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
-    END IF
+!    END IF
     ! Define patch dimension, whether it's used or not:
     ok = NF90_DEF_DIM(ncid_out, 'patch', max_vegpatches, patchID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -410,22 +411,29 @@ CONTAINS
     IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
        (metGrid == 'mask' .AND. output%grid == 'default')) THEN
        ! for land/sea mask type grid: (ALMA convention)
-       ok = NF90_DEF_VAR(ncid_out, 'latitude', NF90_FLOAT, (/xID, yID/), latID)
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
-                       'variable in output file. (SUBROUTINE open_output_file)')
-       ok = NF90_PUT_ATT(ncid_out, latID, 'units', 'degrees_north')
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
-            'variable attributes in output file. (SUBROUTINE open_output_file)')
-       ok = NF90_DEF_VAR(ncid_out, 'longitude', NF90_FLOAT, (/xID, yID/), lonID)
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
-                       'variable in output file. (SUBROUTINE open_output_file)')
-       ok = NF90_PUT_ATT(ncid_out, lonID, 'units', 'degrees_east')
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
-            'variable attributes in output file. (SUBROUTINE open_output_file)')
+!       ok = NF90_DEF_VAR(ncid_out, 'latitude', NF90_FLOAT, (/xID, yID/), latID)
+!       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
+!                       'variable in output file. (SUBROUTINE open_output_file)')
+!       ok = NF90_PUT_ATT(ncid_out, latID, 'units', 'degrees_north')
+!       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
+!                     'attributes in output file. (SUBROUTINE open_output_file)')
+!       ok = NF90_DEF_VAR(ncid_out, 'longitude', NF90_FLOAT, (/xID, yID/), lonID)
+!       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
+!                       'variable in output file. (SUBROUTINE open_output_file)')
+!       ok = NF90_PUT_ATT(ncid_out, lonID, 'units', 'degrees_east')
+!       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
+!                     'attributes in output file. (SUBROUTINE open_output_file)')
        ! Add land-sea mask
        ok = NF90_DEF_VAR(ncid_out, 'mask',NF90_INT, (/xID, yID/), maskID)
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining mask '//        &
                        'variable in output file. (SUBROUTINE open_output_file)')
+       ! number of active patch in each mask grid
+       ok = NF90_DEF_VAR(ncid_out, 'nap', NF90_INT, (/xID, yID/), napID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining nap_mask '//    &
+                       'variable in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, napID, 'long_name', 'number of active patch')
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining nap_mask '//    &
+                      'attribute in output file. (SUBROUTINE open_output_file)')
     ELSE IF(output%grid == 'land' .OR.                                         &
             (metGrid == 'land' .AND. output%grid == 'default')) THEN
        ! For land only compression grid:
@@ -434,13 +442,20 @@ CONTAINS
                          'variable in 1D format. (SUBROUTINE open_output_file)')
        ok = NF90_PUT_ATT(ncid_out, latID, 'units', 'degrees_north')
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining latitude '//    &
-              'variable attributes in 1D format. (SUBROUTINE open_output_file)')
+                       'attributes in 1D format. (SUBROUTINE open_output_file)')
        ok = NF90_DEF_VAR(ncid_out, 'longitude', NF90_FLOAT, (/landID/), lonID)
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
                          'variable in 1D format. (SUBROUTINE open_output_file)')
        ok = NF90_PUT_ATT(ncid_out, lonID, 'units', 'degrees_east')
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining longitude '//   &
-              'variable attributes in 1D format. (SUBROUTINE open_output_file)')
+                       'attributes in 1D format. (SUBROUTINE open_output_file)')
+       ! number of active patch in each land grid
+       ok = NF90_DEF_VAR(ncid_out, 'nap', NF90_INT, (/landID/), napID)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining nap_land '//    &
+                       'variable in output file. (SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, napID, 'long_name', 'number of active patch')
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error defining nap_land '//    &
+                      'attribute in output file. (SUBROUTINE open_output_file)')
     ELSE
        STOP 'Error! Unsure about grid type of latitude and longitude'
     END IF
@@ -1276,20 +1291,30 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error ending define mode in '    &
                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
 
-    ! Write latitude and longitude variables:
+    ! Write latitude and longitude variables, adding mask and nap:
     IF(output%grid == 'mask' .OR. output%grid == 'ALMA' .OR.                   &
        (metGrid == 'mask' .AND. output%grid == 'default')) THEN
-       ! for land/sea mask type grid:
-       ok = NF90_PUT_VAR(ncid_out, latID, REAL(lat_all, 4))
-       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing latitude '//      &
-          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
-       ok = NF90_PUT_VAR(ncid_out, lonID, REAL(lon_all, 4))
-       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing longitude '//     &
-          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+!       ! for land/sea mask type grid:
+!       ok = NF90_PUT_VAR(ncid_out, latID, REAL(lat_all, 4))
+!       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing latitude '//      &
+!          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+!       ok = NF90_PUT_VAR(ncid_out, lonID, REAL(lon_all, 4))
+!       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing longitude '//     &
+!          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
        ! Add land-sea mask:
        ok = NF90_PUT_VAR(ncid_out, maskID, mask)
        IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing mask '//          &
           'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+       ! number of active patch in mask grid
+       ALLOCATE(nap_tmp(xdimsize,ydimsize))
+       nap_tmp = 0
+       DO ii = 1, mland
+          nap_tmp(landpt(ii)%ilon,landpt(ii)%ilat) = landpt(ii)%nap
+       ENDDO
+       ok = NF90_PUT_VAR(ncid_out, napID, nap_tmp)
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing nap_mask '//      &
+          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+       DEALLOCATE(nap_tmp)
     ELSE IF(output%grid == 'land' .OR.                                         &
             (metGrid == 'land' .AND. output%grid == 'default')) THEN
        ! For land only compression grid:
@@ -1298,6 +1323,10 @@ CONTAINS
           'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
        ok = NF90_PUT_VAR(ncid_out, lonID, longitude)
        IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing 1D longitude '//  &
+          'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+       ! number of active patch in land grid
+       ok = NF90_PUT_VAR(ncid_out, napID, landpt(:)%nap)
+       IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing nap_land '//      &
           'variable to '//TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
     END IF
     ! Write GrADS coordinate variables
