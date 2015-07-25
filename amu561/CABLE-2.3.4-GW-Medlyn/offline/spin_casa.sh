@@ -12,15 +12,27 @@
 ## Outputs cnipool file
 
 
+### SET INPUT DIRECTORY
+cd /srv/ccrc/data45/z3509830/CABLE_runs/Rainfall_assymmetry/Inputs/Met_inputs/
+INDIR=`find * -maxdepth 1 -type d -name "STU*"`
+
 ## Some options:
+GWFLAG="TRUE"
 
-GWFLAG="FALSE"
 
+
+cd ./../../CABLE-2.3.4-GW-Medlyn/offline/
+
+for D in $INDIR
+do
+
+echo "Experiment:"
+echo $D
 
 
 ## name of out directory
 
-OUTDIR="testing"
+OUTDIR="${D}_outs"
 
 if [[ -d "./../../Outputs/"$OUTDIR ]]; then
     echo "output directory exists"
@@ -31,22 +43,24 @@ fi
 
 
 #Site met file
-metfile="TumbaFluxnet.1.4_met.nc"
+metfile="Met_inputs/${D}/CABLE_met_input_${D}.nc"
 
 
 
 
 ########## Spin model ###########
-maxD=30
-for ((D=1;D<=$maxD;D++)); #D in 1 2 3
+
+#number of iterations
+maxI=1
+for ((I=1;I<=$maxI;I++)); #I in 1 2 3
 do
 
 echo "PRINTING index:"
-echo $D
+echo $I
 
 ## Set CNPpool file name
-if [[ $D -eq 1 ]]; then
-    pool_file="poolcnpInTumbarumba.csv"
+if [[ $I -eq 1 ]]; then
+    pool_file="poolcnpInStubai.csv"
 else
     pool_file="poolcnpOut_old.csv"
 fi
@@ -155,9 +169,9 @@ if [[ $D -lt $maxD ]]; then
 cp ./../../Outputs/${OUTDIR}/poolcnpOut.csv ./../../Inputs/CASA_ins/poolcnpOut_old.csv
 fi
 
-done
+done # casa iterations
 
-
+done # experiments
 
 
 
