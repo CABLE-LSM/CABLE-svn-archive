@@ -381,6 +381,7 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
        canopy%frpw(:)= casaflux%crmplant(:,wood)/86400.0
        canopy%frpr(:)= casaflux%crmplant(:,froot)/86400.0
     endif
+
     if(ktau == kstart) then
        sum_flux%sumpn  = canopy%fpn*dels
        sum_flux%sumrd  = canopy%frday*dels
@@ -393,6 +394,7 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
     ! canopy%frs set in soilcarb
        sum_flux%sumrs = canopy%frs*dels
     else
+
        sum_flux%sumpn  = sum_flux%sumpn  + canopy%fpn*dels
        sum_flux%sumrd  = sum_flux%sumrd  + canopy%frday*dels
        sum_flux%dsumpn = sum_flux%dsumpn + canopy%fpn*dels
@@ -446,6 +448,8 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
 !     !  PRINT *, 'respiration rate'
 !     !  PRINT *,  casabiome%rmplant(1,2)*365.0
 !    endif
+
+       
 
 END SUBROUTINE sumcflux
 

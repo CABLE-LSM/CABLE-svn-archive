@@ -1271,7 +1271,6 @@ CONTAINS
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
                                          met,air,bal)
-
     ! IF asked to check energy balance:
     IF(check%energy_bal) CALL energy_balance(dels,met,rad,                     &
                                              canopy,bal,ssnow,                 &
@@ -1609,7 +1608,6 @@ CONTAINS
        END IF
     END IF
 
-
     ! Qg: ground heat flux [W/m^2]
     IF(output%flux .OR. output%Qg) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1852,6 +1850,8 @@ CONTAINS
           out%SWnet = 0.0
        END IF
     END IF
+
+
     ! LWnet: net longwave [W/m^2]
     IF(output%radiation .OR. output%LWnet) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2226,7 +2226,8 @@ CONTAINS
           ! Reset temporary output variable:
           out%EqSoilMatPot = 0.0
        END IF
-    END IF  
+    END IF 
+
     ! equilibrium soil water content
     IF(output%soil .or. output%EqSoilMoist) THEN
        !write(*,*) 'EQ soilmoist'    !MDeck
@@ -2271,7 +2272,6 @@ CONTAINS
           out%SoilIce = 0.0
        END IF
     END IF
-   
     !write(*,*) ' at end of write_output '    !MDeck
  
   END SUBROUTINE write_output

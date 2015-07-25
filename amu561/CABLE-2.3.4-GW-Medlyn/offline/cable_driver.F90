@@ -344,23 +344,22 @@ PROGRAM cable_offline_driver
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
-   
+
          !write(*,*) 'start sumcflux'
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
          CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
-
         ! write(*,*) 'done with sumcflux'
    
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
             CALL write_output( dels, ktau, met, canopy, ssnow,                    &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
-   
+         ENDIF
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
             IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
@@ -368,14 +367,16 @@ PROGRAM cable_offline_driver
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
          ENDIF
-   
+       
+
          ! Check this run against standard for quasi-bitwise reproducability
          ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
          IF(cable_user%consistency_check) THEN 
             
             new_sumbal = new_sumbal + SUM(bal%wbal_tot) + SUM(bal%ebal_tot)          &
                              + SUM(bal%ebal_tot_cncheck)
-  
+       
+
             IF( ktau == kend ) THEN
                nkend = nkend+1
 
@@ -425,6 +426,7 @@ PROGRAM cable_offline_driver
          
          ! IF not 1st run through whole dataset:
          IF( INT( ktau_tot/kend ) > 1 ) THEN 
+           
             
             ! evaluate spinup
             IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
@@ -450,7 +452,6 @@ PROGRAM cable_offline_driver
                           '           Change in soil temperature < ',          &
                           delsoilT, ' in any layer over whole run'
             END IF
-
          ELSE ! allocate variables for storage
          
            ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
@@ -471,14 +472,11 @@ PROGRAM cable_offline_driver
    END DO
 
    IF (icycle > 0) THEN
-      
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
-
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
   
    END IF
-
    ! Write restart file if requested:
    IF(output%restart)                                                          &
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &

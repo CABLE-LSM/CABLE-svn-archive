@@ -798,7 +798,6 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   TYPE (casa_met),            INTENT(INOUT) :: casamet
   TYPE (casa_balance),        INTENT(INOUT) :: casabal
   TYPE (phen_variable),       INTENT(INOUT) :: phen
-
   ! local variables
   REAL(r_2), DIMENSION(mso) :: Psorder,pweasoil,xpsoil50
   REAL(r_2), DIMENSION(mso) :: fracPlab,fracPsorb,fracPocc,fracPorg
@@ -826,7 +825,6 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   DATA fracPorg/0.25,0.17,0.08,0.05,0.17,0.17,0.17,0.18,0.36,0.35,0.34,0.12/
   DATA xpsoil50/7.6,4.1,4.2,3.4,4.1,4.1,4.8,4.1,6.9,6.9,6.9,1.7/
 
-  PRINT *, 'Within casa_poolout, mp = ', mp
   nout=103
   OPEN(nout,file=casafile%cnpepool)
   PRINT *, 'Opened file ', casafile%cnpepool
