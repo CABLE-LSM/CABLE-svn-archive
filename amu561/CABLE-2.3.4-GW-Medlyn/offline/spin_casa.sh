@@ -62,11 +62,11 @@ metfile="Met_inputs/${D}/CABLE_met_input_${D}.nc"
 
 
 #Set tolerance for spin-up
-tol=5e-03
+tol=$(echo "scale=6; 0.005" | bc)
 
 #Initialise csoil and allocation variables for spin-up check
-diff_cplant=99999.0 #difference new-old
-diff_csoil=99999.0
+diff_cplant=$(echo "scale=6; 99999.0" | bc)
+diff_csoil=$(echo "scale=6; 99999.0" | bc)
 
 I=1
 
@@ -74,7 +74,7 @@ I=1
 
 
 ######## Run model if tolerance not achieved ########
-while [[$diff_cplant -gt $tol || $diff_csoil -gt $tol]]
+while [[ $(echo "$diff_cplant > $tol" | bc -l) || $(echo "$diff_csoil > $tol" | bc -l) ]]
 do
 
 
@@ -127,7 +127,7 @@ check%mass_bal   = .FALSE.  ! water/mass balance
 verbose = .FALSE. ! write details of every grid cell init and params to log?
 leaps = .false. ! calculate timing with leap years?
 logn = 88      ! log file number - declared in input module
-fixedCO2 = 350.0   ! if not found in met file, in ppmv
+fixedCO2 = 390.0   ! if not found in met file, in ppmv
 spincasainput = .FALSE.    ! input required to spin casacnp offline
 spincasa      = .FALSE.     ! spin casa before running the model if TRUE, and should be set to FALSE
 l_casacnp     = .TRUE.  ! using casaCNP with CABLE
@@ -197,9 +197,9 @@ EOF
 csoil_old=`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${pool_file}`
 csoil_new=`awk -F "\"*,\"*" '{print $15}' ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv`
 
-if [[ $I -eq 1]]
+if [[ $I -eq 1 ]]
 then
-    cplant_old=99999.0
+    cplant_old=99999
 else
     cleaf_old=`awk -F "\"*,\"*" '{print $11}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
     cwood_old=`awk -F "\"*,\"*" '{print $12}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
@@ -210,11 +210,11 @@ fi
 cleaf_new=`awk -F "\"*,\"*" '{print $11}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
 cwood_new=`awk -F "\"*,\"*" '{print $12}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
 croot_new=`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
-cplant_new=$cleaf+$cwood+$croot
+cplant_new=$(echo "$cleaf+$cwood+$croot" | bc -l)
 
 
-diff_cplant=$cplant_new-$cplant_old
-diff_csoil=$csoil_new-$csoil_old
+diff_cplant=$(echo "$cplant_new-$cplant_old" | bc -l)
+diff_csoil=$(echo "$csoil_new-$csoil_old" | bc -l )
 
 
 echo "PLANT C difference:"
@@ -224,20 +224,20 @@ echo $diff_csoil
 
 
 
-$I++
-
 
 ## Copy current pool file to casa inputs for next step
 ## Also rename file from previous iteration so it can be used for checking values
-if [[$I -gt 1]]
+if [[ $I -gt 1 ]]
 then
-mv ./../../Outputs/${OUTDIR}/poolcnpOut_old_${D}.csv ./../../Outputs/${OUTDIR}/poolcnpOut_old_${D}_prev.csv
-mv ./../../Outputs/${OUTDIR}/cnpfluxOut_old_${D}.csv ./../../Outputs/${OUTDIR}/cnpfluxOut_old_${D}_prev.csv
+mv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}_prev.csv
+mv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}_prev.csv
 fi
 
 cp ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv
-cp ./../../Outputs/${OUTDIR}/cpnfluxOut_${D}.csv ./../../Inputs/CASA_ins/cpnfluxOut_old_${D}.csv
+cp ./../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv
 
+
+I=$[I+1]
 
 
 
