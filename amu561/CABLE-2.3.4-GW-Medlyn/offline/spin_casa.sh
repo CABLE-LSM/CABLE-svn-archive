@@ -23,6 +23,8 @@ GWFLAG="TRUE"
 
 cd ./../../CABLE-2.3.4-GW-Medlyn/offline/
 
+
+#Loop through experiments
 for D in $INDIR
 do
 
@@ -51,18 +53,40 @@ metfile="Met_inputs/${D}/CABLE_met_input_${D}.nc"
 ########## Spin model ###########
 
 #number of iterations
-maxI=1
-for ((I=1;I<=$maxI;I++)); #I in 1 2 3
+#maxI=2
+#for ((I=1;I<=$maxI;I++)); #I in 1 2 3
+#do
+
+#echo "PRINTING index:"
+#echo $I
+
+
+#Set tolerance for spin-up
+tol=5e-03
+
+#Initialise csoil and allocation variables for spin-up check
+diff_cplant=99999.0 #difference new-old
+diff_csoil=99999.0
+
+I=1
+
+
+
+
+######## Run model if tolerance not achieved ########
+while [[$diff_cplant -gt $tol || $diff_csoil -gt $tol]]
 do
+
 
 echo "PRINTING index:"
 echo $I
+
 
 ## Set CNPpool file name
 if [[ $I -eq 1 ]]; then
     pool_file="poolcnpInStubai.csv"
 else
-    pool_file="poolcnpOut_old.csv"
+    pool_file="poolcnpOut_old_${D}.csv"
 fi
 
 
@@ -83,23 +107,23 @@ filename%soil    = "./../../Inputs/def_soil_params.txt"
 filename%gw_elev = "./../../Inputs/$metfile"
 vegparmnew = .TRUE.  ! using new format when true
 soilparmnew = .TRUE.  ! using new format when true
-spinup = .TRUE.  ! do we spin up the model?
+spinup = .FALSE.  ! do we spin up the model?
 delsoilM = 0.001   ! allowed variation in soil moisture for spin up
 delsoilT = 0.01    ! allowed variation in soil temperature for spin up
-output%restart = .TRUE.  ! should a restart file be created?
-output%met = .TRUE.  ! input met data
-output%flux = .TRUE.  ! convective, runoff, NEE
-output%soil = .TRUE.  ! soil states
-output%snow = .TRUE.  ! snow states
-output%radiation = .TRUE.  ! net rad, albedo
-output%carbon    = .TRUE.  ! NEE, GPP, NPP, stores
-output%veg       = .TRUE.  ! vegetation states
-output%params    = .TRUE.  ! input parameters used to produce run
-output%balances  = .TRUE.  ! energy and water balances
+output%restart = .FALSE.  ! should a restart file be created?
+output%met = .FALSE.  ! input met data
+output%flux = .FALSE.  ! convective, runoff, NEE
+output%soil = .FALSE.  ! soil states
+output%snow = .FALSE.  ! snow states
+output%radiation = .FALSE.  ! net rad, albedo
+output%carbon    = .FALSE.  ! NEE, GPP, NPP, stores
+output%veg       = .FALSE.  ! vegetation states
+output%params    = .FALSE.  ! input parameters used to produce run
+output%balances  = .FALSE.  ! energy and water balances
 output%averaging = "all"
 check%ranges     = .FALSE.  ! variable ranges, input and output
-check%energy_bal = .TRUE.  ! energy balance
-check%mass_bal   = .TRUE.  ! water/mass balance
+check%energy_bal = .FALSE.  ! energy balance
+check%mass_bal   = .FALSE.  ! water/mass balance
 verbose = .FALSE. ! write details of every grid cell init and params to log?
 leaps = .false. ! calculate timing with leap years?
 logn = 88      ! log file number - declared in input module
@@ -112,11 +136,11 @@ l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax
 icycle = 1   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P
 casafile%cnpipool = "./../../Inputs/CASA_ins/$pool_file"
 casafile%cnpbiome = "./../../Inputs/CASA_ins/pftlookup_csiro_v16_17tiles_Ticket2.csv"
-casafile%cnpepool = "./../../Outputs/${OUTDIR}/poolcnpOut.csv"   ! end of run pool size
+casafile%cnpepool = "./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv"   ! end of run pool size
 casafile%cnpmetout= "./../../Outputs/${OUTDIR}/casa_met_out.nc"  ! output daily met forcing for spinning casacnp
 casafile%cnpmetin = ''          ! list of daily met files for spinning casacnp
 casafile%phen     = "./../../Inputs/CASA_ins/modis_phenology_csiro.txt"
-casafile%cnpflux  ="./../../Outputs/${OUTDIR}/cnpfluxOut.csv"
+casafile%cnpflux  ="./../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv"
 ncciy = 0  ! 0 for not using gswp; 4-digit year input for year of gswp met
 gswpfile%rainf = "gswp/AustMerra3h${year}.nc"
 gswpfile%snowf = "gswp/AustMerra3h${year}.nc"
@@ -165,13 +189,61 @@ EOF
 
 
 
-if [[ $D -lt $maxD ]]; then
-cp ./../../Outputs/${OUTDIR}/poolcnpOut.csv ./../../Inputs/CASA_ins/poolcnpOut_old.csv
+
+
+#Calculate difference in csoil and cplant between current and previous timestep
+
+
+csoil_old=`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${pool_file}`
+csoil_new=`awk -F "\"*,\"*" '{print $15}' ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv`
+
+if [[ $I -eq 1]]
+then
+    cplant_old=99999.0
+else
+    cleaf_old=`awk -F "\"*,\"*" '{print $11}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
+    cwood_old=`awk -F "\"*,\"*" '{print $12}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
+    croot_old=`awk -F "\"*,\"*" '{print $13}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
+    cplant_old=$cleaf_old+$cwood_old+$croot_old
 fi
 
-done # casa iterations
+cleaf_new=`awk -F "\"*,\"*" '{print $11}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
+cwood_new=`awk -F "\"*,\"*" '{print $12}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
+croot_new=`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
+cplant_new=$cleaf+$cwood+$croot
 
-done # experiments
+
+diff_cplant=$cplant_new-$cplant_old
+diff_csoil=$csoil_new-$csoil_old
+
+
+echo "PLANT C difference:"
+echo $diff_cplant
+echo "SOIL C difference:"
+echo $diff_csoil
+
+
+
+$I++
+
+
+## Copy current pool file to casa inputs for next step
+## Also rename file from previous iteration so it can be used for checking values
+if [[$I -gt 1]]
+then
+mv ./../../Outputs/${OUTDIR}/poolcnpOut_old_${D}.csv ./../../Outputs/${OUTDIR}/poolcnpOut_old_${D}_prev.csv
+mv ./../../Outputs/${OUTDIR}/cnpfluxOut_old_${D}.csv ./../../Outputs/${OUTDIR}/cnpfluxOut_old_${D}_prev.csv
+fi
+
+cp ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv
+cp ./../../Outputs/${OUTDIR}/cpnfluxOut_${D}.csv ./../../Inputs/CASA_ins/cpnfluxOut_old_${D}.csv
+
+
+
+
+done # while loop, casa iterations
+
+done # experiments $D
 
 
 
