@@ -14,7 +14,7 @@
 
 ### SET INPUT DIRECTORY
 cd /srv/ccrc/data45/z3509830/CABLE_runs/Rainfall_assymmetry/Inputs/Met_inputs/
-INDIR=`find * -maxdepth 1 -type d -name "STU*"`
+INDIR=`find * -maxdepth 1 -type d -name "STU100*"`
 
 ## Some options:
 GWFLAG="TRUE"
@@ -197,6 +197,7 @@ EOF
 csoil_old=`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${pool_file}`
 csoil_new=`awk -F "\"*,\"*" '{print $15}' ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv`
 
+
 if [[ $I -eq 1 ]]
 then
     cplant_old=99999
@@ -210,11 +211,16 @@ fi
 cleaf_new=`awk -F "\"*,\"*" '{print $11}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
 cwood_new=`awk -F "\"*,\"*" '{print $12}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
 croot_new=`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
-cplant_new=$(echo "$cleaf+$cwood+$croot" | bc -l)
+cplant_new=$(echo "$cleaf_new+$cwood_new+$croot_new" | bc -l)
 
 
 diff_cplant=$(echo "$cplant_new-$cplant_old" | bc -l)
 diff_csoil=$(echo "$csoil_new-$csoil_old" | bc -l )
+
+
+diff_csoil=$(echo "scale=6; a=$diff_csoil/1;if(0>a)a*=-1;a"|bc)
+diff_cplant=$(echo "scale=6; a=$diff_cplant/1;if(0>a)a*=-1;a"|bc)
+
 
 
 echo "PLANT C difference:"
@@ -229,12 +235,12 @@ echo $diff_csoil
 ## Also rename file from previous iteration so it can be used for checking values
 if [[ $I -gt 1 ]]
 then
-mv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}_prev.csv
-mv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}_prev.csv
+cp -rf ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}_prev.csv
+cp -rf ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}_prev.csv
 fi
 
-cp ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv
-cp ./../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv
+cp -rf ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv
+cp -rf ./../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv
 
 
 I=$[I+1]
