@@ -74,7 +74,7 @@ I=1
 
 
 ######## Run model if tolerance not achieved ########
-while [[ $(echo "$diff_cplant > $tol" | bc -l) || $(echo "$diff_csoil > $tol" | bc -l) ]]
+while [[ $(echo "$diff_cplant > $tol" | bc -l) -gt 0 || $(echo "$diff_csoil > $tol" | bc -l) -gt 0 ]]
 do
 
 
