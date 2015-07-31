@@ -157,6 +157,8 @@ SUBROUTINE mpidrv_master (comm)
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
 
+   USE POP_Types,     Only: POP_TYPE
+
    IMPLICIT NONE
 
    ! MPI:
@@ -172,6 +174,7 @@ SUBROUTINE mpidrv_master (comm)
       ktau,       &  ! increment equates to timestep, resets if spinning up
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
       kend,       &  ! no. of time steps in run
+      koffset = 0, &  ! timestep to start at
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
       nyear,      &  ! year counter for CASA-CNP
@@ -203,6 +206,7 @@ SUBROUTINE mpidrv_master (comm)
    TYPE (casa_met)       :: casamet
    TYPE (casa_balance)   :: casabal
    TYPE (phen_variable)  :: phen 
+   TYPE ( POP_TYPE )     :: POP
    
    ! declare vars for switches (default .FALSE.) etc declared thru namelist
    LOGICAL, SAVE           :: &
@@ -324,7 +328,7 @@ SUBROUTINE mpidrv_master (comm)
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, C%TFRZ )
+   CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -334,8 +338,8 @@ SUBROUTINE mpidrv_master (comm)
    CALL load_parameters( met, air, ssnow, veg, bgc,                            &
                          soil, canopy, rough, rad, sum_flux,                   &
                          bal, logn, vegparmnew, casabiome, casapool,           &
-                         casaflux, casamet, casabal, phen, C%EMSOIL,        &
-                         C%TFRZ )
+                         casaflux, casamet, casabal, phen, POP, spinup,        &
+                         C%EMSOIL, C%TFRZ )
 
    ! MPI: above was standard serial code
    ! now it's time to initialize the workers
@@ -370,12 +374,14 @@ SUBROUTINE mpidrv_master (comm)
    CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
    CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
+#ifdef CASA_ENABLED
    ! MPI: casa parameters scattered only if cnp module is active
    IF (icycle>0) THEN
      ! MPI:
      CALL master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
      &                        casabal,phen)
    END IF
+#endif
 
    ! MPI: allocate read ahead buffers for input met and veg data
    CALL alloc_cbm_var (imet, mp)
@@ -391,12 +397,14 @@ SUBROUTINE mpidrv_master (comm)
    ! at the end of every timestep
    CALL master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
+#ifdef CASA_ENABLED
    ! MPI: create type for receiving casa results
    ! only if cnp module is active
    IF (icycle>0) THEN
       CALL master_casa_types (comm, casapool, casaflux, &
                               casamet, casabal, phen)
    END IF
+#endif
 
    ! MPI: create type to send restart data back to the master
    ! only if restart file is to be created
@@ -441,7 +449,7 @@ SUBROUTINE mpidrv_master (comm)
       ktau_gl = iktau
 
       CALL get_met_data( spinup, spinConv, imet, soil,                    &
-                         rad, iveg, kend, dels, C%TFRZ, iktau )
+                         rad, iveg, kend, dels, C%TFRZ, iktau, kstart )
 
       ! MPI: scatter input data to the workers
       CALL master_send_input (icomm, inp_ts, iktau)
@@ -477,7 +485,7 @@ SUBROUTINE mpidrv_master (comm)
          ! Rainfall input may be augmented for spinup purposes:
 !          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
          CALL get_met_data( spinup, spinConv, imet, soil,                    &
-                            rad, iveg, kend, dels, C%TFRZ, iktau ) 
+                            rad, iveg, kend, dels, C%TFRZ, iktau, kstart ) 
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau, recv_ts)
@@ -622,7 +630,7 @@ SUBROUTINE mpidrv_master (comm)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
-                           canopy, rough, rad, bgc, bal )
+                           canopy, rough, rad, bgc, bal, met )
    END IF
 
    ! MPI: cleanup
@@ -2247,6 +2255,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 END SUBROUTINE master_cable_params
 
 
+#ifdef CASA_ENABLED
 ! MPI: creates casa_ts types to broadcast/scatter the default casa parameters
 ! to all the workers
 ! then sends them
@@ -3294,6 +3303,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   RETURN
 
 END SUBROUTINE master_casa_params
+#endif
 
 
 ! MPI: creates inp_t types to send input data to the workers
@@ -4739,6 +4749,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   RETURN
 END SUBROUTINE master_outtypes
 
+#ifdef CASA_ENABLED
 ! MPI: creates handles for receiving casa final results from the workers
 SUBROUTINE master_casa_types (comm, casapool, casaflux, &
                               casamet, casabal, phen)
@@ -5058,6 +5069,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   RETURN
 
 END SUBROUTINE master_casa_types
+#endif
 
 ! MPI: creates datatype handles to receive restart data from workers
 SUBROUTINE master_restart_types (comm, canopy, air)

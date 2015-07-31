@@ -333,12 +333,14 @@ CONTAINS
    CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
    CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
+#ifdef CASA_ENABLED
    ! MPI: casa parameters received only if cnp module is active
    IF (icycle>0) THEN
      ! MPI:
      CALL worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
      &                        casabal,phen)
    END IF
+#endif
 
    ! MPI: create inp_t type to receive input data from the master
    ! at the start of every timestep
@@ -348,12 +350,14 @@ CONTAINS
    ! at the end of every timestep
    CALL worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
+#ifdef CASA_ENABLED
    ! MPI: create type to send casa results back to the master
    ! only if cnp module is active
    IF (icycle>0) THEN
       CALL worker_casa_type (comm, casapool,casaflux, &
                           casamet,casabal, phen)
    END IF
+#endif
 
    ! MPI: create type to send restart data back to the master
    ! only if restart file is to be created
@@ -423,7 +427,7 @@ CONTAINS
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
    
          ! CALL land surface scheme for this timestep, all grid points:
-         CALL cbm( dels, air, bgc, canopy, met,                             &
+         CALL cbm( ktau, dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
    
@@ -1916,6 +1920,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 END SUBROUTINE worker_cable_params
 
 
+#ifdef CASA_ENABLED
 ! MPI: creates param_t type for the worker to receive the default casa
 ! parameters from the master process
 ! then receives them
@@ -2758,6 +2763,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   RETURN
 
 END SUBROUTINE worker_casa_params
+#endif
 
 
 ! MPI: creates inp_t type to receive input data from the master
@@ -4992,6 +4998,7 @@ SUBROUTINE worker_time_update (met, kend, dels)
 
 END SUBROUTINE worker_time_update
 
+#ifdef CASA_ENABLED
 ! creates MPI types for sending casa results back to the master at
 ! the end of the simulation
 !
@@ -5258,6 +5265,7 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   RETURN
 
 END SUBROUTINE worker_casa_type
+#endif
 
 ! MPI: creates restart_t type to send to the master the fields
 ! that are only required for the restart file but not included in the
