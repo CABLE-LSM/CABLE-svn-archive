@@ -145,7 +145,8 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    END WHERE
    
    WHERE(rad%fbeam(:,1) < 1.0e-3 )
-      rad%extkb=1.0e5         ! keep cexpkbm within real*4 range (BP jul2010)
+    !  rad%extkb=1.0e5         ! vh ! suggest higher to avoid sunlit leaves at night
+      rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
    END WHERE
    
 END SUBROUTINE init_radiation

@@ -332,7 +332,6 @@ PROGRAM cable_offline_driver
    SPINon   = .TRUE.
 
    SPINLOOP:DO WHILE ( SPINon )
-
       NREP: DO RRRR = 1, NRRRR
          YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
             CurYear = YYYY
@@ -488,12 +487,24 @@ PROGRAM cable_offline_driver
    
                   ! CALL land surface scheme for this timestep, all grid points:
 
+!!$   PRINT*,"bgc",bgc
+!!$   PRINT*,"canopy",canopy
+!!$   PRINT*,"met",met
+!!$   PRINT*,"bals",bal
+!!$   PRINT*,"bals",bal
+!!$   PRINT*,"rad",rad
+!!$   PRINT*,"rough",rough
+!!$   PRINT*, soil
+!!$   PRINT*,"ssnow",ssnow
+!!$   PRINT*,"sum_flux",sum_flux
+!!$   PRINT*,"veg",veg
+
                   CALL cbm( ktau, dels, air, bgc, canopy, met,                 &
                        bal, rad, rough, soil, ssnow,                           &
                        sum_flux, veg )
-   
 
-                  ssnow%smelt = ssnow%smelt*dels
+
+                   ssnow%smelt = ssnow%smelt*dels
                   ssnow%rnof1 = ssnow%rnof1*dels
                   ssnow%rnof2 = ssnow%rnof2*dels
                   ssnow%runoff = ssnow%runoff*dels
@@ -584,9 +595,12 @@ PROGRAM cable_offline_driver
          ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
          IF(cable_user%consistency_check) THEN 
             
+PRINT*," The sumbal0 ",   new_sumbal
             new_sumbal = new_sumbal + SUM(bal%wbal_tot) + SUM(bal%ebal_tot)          &
                              + SUM(bal%ebal_tot_cncheck)
-  
+PRINT*," The sumbal1 ",   new_sumbal
+PRINT*," The sumbals",   SUM(bal%wbal_tot), SUM(bal%ebal_tot) , SUM(bal%ebal_tot_cncheck)
+stop
             IF( ktau == kend ) THEN
                nkend = nkend+1
 
@@ -617,7 +631,7 @@ PROGRAM cable_offline_driver
             
          ENDIF
 
-         
+
             END DO ! END Do loop over timestep ktau
 
             !jhan this is insufficient testing. condition for
@@ -776,13 +790,13 @@ PROGRAM cable_offline_driver
 
          print *, ""
          print *, &
-         "Internal check shows this version reproduces the trunk sumbal"
+         "Internal check2 shows this version reproduces the trunk sumbal"
       
       ELSE
 
          print *, ""
          print *, &
-         "Internal check shows in this version new_sumbal != trunk sumbal"
+         "Internal check2 shows in this version new_sumbal != trunk sumbal"
          print *, &
          "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
                

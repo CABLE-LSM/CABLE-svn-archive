@@ -1,9 +1,12 @@
 &cable
-   filename%met = '/projects/access/CABLE-AUX/offline/TumbaFluxnet.1.3_met.nc'
-   filename%type    = '/projects/access/CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc'
-   filename%veg    =  '/home/599/jxs599/CABLE-AUX/core/biogeophys/def_veg_params.txt'
-   filename%soil    = '/home/599/jxs599/CABLE-AUX/core/biogeophys/def_soil_params.txt'
-   filename%log = 'log_cable.txt'
+   filename%met = '/home/nie06a/SRC/CABLE/CABLE-AUX/offline/TumbaFluxnet.1.3_met.nc'
+!   filename%type    = '/projects/access/CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc'
+!   filename%veg    =  '/home/599/jxs599/CABLE-AUX/core/biogeophys/def_veg_params.txt'
+!   filename%soil    = '/home/599/jxs599/CABLE-AUX/core/biogeophys/def_soil_params.txt'
+   filename%type    = '/data/nie06a/BURNET_HOME/SLI/surface_data/gridinfo_CSIRO_1x1.nc'
+   filename%veg    =  '/home/nie06a/SRC/CABLE/CABLE-AUX/core/biogeophys/def_veg_params_Ticket2.txt'
+   filename%soil    = '/data/nie06a/BURNET_HOME/SLI/surface_data/def_soil_params.txt'
+  filename%log = 'log_cable.txt'
    filename%out = 'out_cable.nc'
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
@@ -76,7 +79,7 @@
    !cable_user%POP_fromZero        = .T.     ! Start POP from Zero, don't read restart file
    !cable_user%RunIden       = 'globfN01' ! Unique identifier for model Run, will be used in Filenames 
    cable_user%YearStart     = 0         ! YYYY 4 digit year
-   cable_user%YearEnd       = 0         ! YYYY 4 digit year
+   cable_user%YearEnd       = 0       ! YYYY 4 digit year
    !cable_user%MetType       = 'gswp'        ! Either 'gswp' or nothing...
    !cable_user%MetType       = ''        ! Either 'gswp' or nothing...
    !cable_user%CASA_OUT_FREQ = 30        ! casa standard output freq [d]

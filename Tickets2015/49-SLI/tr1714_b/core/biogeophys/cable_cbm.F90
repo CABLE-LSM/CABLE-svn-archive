@@ -122,6 +122,7 @@ CONTAINS
       CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ENDIF
 
+ 
 
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac
