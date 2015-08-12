@@ -1356,9 +1356,9 @@ END SUBROUTINE remove_trans
       end do  !mp
   end do  !ms
 
-  do i=1,mp
-    def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
-  end do   
+  !do i=1,mp
+  !  def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
+  !end do   
 
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
@@ -1542,6 +1542,7 @@ END SUBROUTINE remove_trans
     
     !equilibrium water content
     CALL calc_equilibrium_water_content(ssnow,soil)
+    ssnow%GWwb = ssnow%GWwbeq
 
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
     do k=1,ms

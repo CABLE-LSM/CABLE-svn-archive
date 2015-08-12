@@ -702,9 +702,10 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          DEALLOCATE( fwork )
 
          !mrd561
-         ssnow%GWwb(:)= PACK(smgw_tile(:,:),um1%l_tile_pts)
+         ssnow%GWwbeq(:) = 0.25
+         ssnow%GWwb(:)= 0.25!PACK(smgw_tile(:,:),um1%l_tile_pts)
          where(ssnow%GWwb .lt. 1e-2)
-            ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
+            ssnow%GWwb = 0.25   !temp so not passing junk to iterative_wtd
          endwhere
 
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
