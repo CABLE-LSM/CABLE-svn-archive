@@ -1336,7 +1336,7 @@ END SUBROUTINE remove_trans
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000._r_2
   end do
-  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
+  !zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   do i=1,mp
