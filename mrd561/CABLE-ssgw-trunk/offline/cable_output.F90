@@ -62,8 +62,7 @@ MODULE cable_output_module
                     !MD
                     WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
                     EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,   &
-                    wiltp,SoilIce,SatFrac,                                     &
-                    VISalbedo,NIRalbedo
+                    wiltp,SoilIce,SatFrac
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -175,11 +174,6 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: fldcap        !field capcaicty adj for organic content
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: Forg          !organic carbon frac.soil
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilIce       !SOil Ice volume [mm3/mm3]
-
-    REAL(KIND=4), POINTER, DIMENSION(:) :: VISalbedo
-    REAL(KIND=4), POINTER, DIMENSION(:) :: NIRalbedo
-
-
 
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
@@ -735,22 +729,6 @@ CONTAINS
        ALLOCATE(out%SoilIce(mp,ms))
        out%SoilIce = 0.0 ! initialise
     END IF
-
-    IF(output%radiation .OR. output%VISalbedo) THEN
-       CALL define_ovar(ncid_out, ovid%VISalbedo, 'VISalbedo', '-',                  &
-                        'Surface VIS albedo', patchout%VISalbedo,                     &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%VISalbedo(mp))
-       out%VISalbedo = 0.0 ! initialise
-    END IF    
-
-    IF(output%radiation .OR. output%NIRalbedo) THEN
-       CALL define_ovar(ncid_out, ovid%NIRalbedo, 'NIRalbedo', '-',                  &
-                        'Surface NIR albedo', patchout%NIRalbedo,                     &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%NIRalbedo(mp))
-       out%NIRalbedo = 0.0 ! initialise
-    END IF   
 
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
@@ -1776,34 +1754,6 @@ CONTAINS
            out%nirAlbedo, ranges%nirAlbedo, patchout%nirAlbedo, 'default', met)
            out%nirAlbedo = 0.0
          END IF
-       END IF
-    END IF
-    ! VISalbedo:
-    IF(output%radiation .OR. output%VISalbedo) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%VISalbedo = out%VISalbedo + REAL(rad%albedo(:, 1), 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%VISalbedo = out%VISalbedo / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%VISalbedo, 'VISalbedo',       &
-                     out%VISalbedo, ranges%Albedo, patchout%VISalbedo, 'default', met)
-          ! Reset temporary output variable:
-          out%VISalbedo = 0.0
-       END IF
-    END IF
-    ! NIRalbedo:
-    IF(output%radiation .OR. output%NIRalbedo) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%NIRalbedo = out%NIRalbedo + REAL(rad%albedo(:, 2), 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%NIRalbedo = out%NIRalbedo / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%NIRalbedo, 'NIRalbedo',       &
-                     out%NIRalbedo, ranges%Albedo, patchout%NIRalbedo, 'default', met)
-          ! Reset temporary output variable:
-          out%NIRalbedo = 0.0
        END IF
     END IF
     ! RadT: Radiative surface temperature [K]
