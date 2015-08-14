@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz  mael mons ccrc
+   set -A kh vayu cher burn shin squa bliz  mael mons ccrc raij
 }
 
 
@@ -150,6 +150,24 @@ host_cher()
    cd ../
    build_status
 }
+
+## raijin.nci.org.au
+host_raij()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC='mpif90'
+   export CFLAGS='-O2 -fpe0 -fp-model precise -g -traceback '
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise'
+   fi  
+   export LDFLAGS='-L'$NCDIR'  '
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../ 
+   build_status
+}
+
 
 
 ## vayu.nci.org.au
