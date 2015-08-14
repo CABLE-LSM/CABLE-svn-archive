@@ -82,13 +82,16 @@ MODULE cable_common_module
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE., & !
-     !MD
+      !MD
       LOGICAL :: GW_MODEL = .FALSE.
       LOGICAL :: alt_forcing = .FALSE.
 
          ! Switch for customized soil respiration - see Ticket #42
-         SRF = .FALSE.
+      LOGICAL :: SRF = .FALSE.
          
+      !using GSWP3 forcing?
+      LOGICAL :: GSWP3 = .FALSE.
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user
@@ -108,7 +111,8 @@ MODULE cable_common_module
       soil,       & ! name of file for soil parameters
       soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
       inits,      & ! name of file for initialisations
-      soilIGBP      ! name of file for IGBP soil map
+      soilIGBP,   & ! name of file for IGBP soil map
+      gw_elev       !name of file for gw/elevation data
 
    END TYPE filenames_type
 
@@ -120,7 +124,6 @@ MODULE cable_common_module
    
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam=0.5, satuParam=0.8
-
 
    ! soil parameters read from file(filename%soil def. in cable.nml)
    ! & veg parameters read from file(filename%veg def. in cable.nml)
@@ -204,11 +207,14 @@ MODULE cable_common_module
 
    TYPE gw_parameters_type
 
-      REAL ::                                                             &
-        MaxSatFraction=0.3,                                                &
-        MaxHorzDrainRate=0.0001,                                           &
-        EfoldHorzDrainRate=0.5,                                            &
-        EfoldMaxSatFrac=0.5
+      REAL ::                   &
+        MaxSatFraction=0.7,     & !maximum fraction of cell that is saturated [qsrf]
+        MaxHorzDrainRate=1e-3, & !anisintropy [qsub]
+        EfoldHorzDrainRate=2.5, & !qsub(wtd)
+        EfoldMaxSatFrac=4.0,    & !sat frac srf (wtd)
+        hkrz=0.5,               & !hksat variation with z
+        zdepth=1.0,             & !level where hksat(z) = hksat(no z)
+        frozen_frac=0.05  !ice fraction to determine first non-frozen layer for qsub
 
    END TYPE gw_parameters_type
 

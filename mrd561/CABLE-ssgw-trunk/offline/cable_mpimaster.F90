@@ -331,7 +331,7 @@ SUBROUTINE mpidrv_master (comm)
          STOP
       ELSE
          
-         if (.not.cable_user%alt_forcing) CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing .and. .not.cable_user%GSWP3) CALL prepareFiles(ncciy)
       
       ENDIF
    
@@ -468,7 +468,10 @@ SUBROUTINE mpidrv_master (comm)
 
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
-         write(*,*) ktau
+         if (mod(ktau,50) .eq. 0) then
+            write(*,*)    "Progess -- ",real(ktau)/real(kend)*100.0,"%"
+            write(logn,*) "Progess -- ",real(ktau)/real(kend)*100.0,"%"
+         end if
 
 !         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
@@ -2354,6 +2357,29 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%elev_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%topo_ind(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%basin_ind(off), displs(bidx), ierr)
+  blen(bidx) = ilen
 
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
@@ -2362,7 +2388,6 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)
   blen(bidx) = r2len
-
 
 
   ! MPI: sanity check
@@ -4928,7 +4953,6 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! LOGICAL
      CALL MPI_Get_address (veg%deciduous(off), vaddr(vidx), ierr) ! 163
      blen(vidx) = cnt * extl
-
 !mrd GW 1D
      vidx = vidx + 1
      ! REAL(r_2)
@@ -4956,11 +4980,10 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (ssnow%GWsmp(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
 
-
-
-
-
-
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%satfrac(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
 
      
      ! MPI: sanity check

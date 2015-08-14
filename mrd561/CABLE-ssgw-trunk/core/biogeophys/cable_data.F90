@@ -50,7 +50,7 @@ module cable_data_module
       ! Aerodynamic parameters, diffusivities, water density:
       vonk   = 0.40, & ! von Karman constant
       a33    = 1.25, & ! inertial sublayer sw/us
-      csw    = 0.50, & ! canopy sw decay (Weil theory)
+      csw    = 0.05, & ! canopy sw decay (Weil theory)
       ctl    = 0.40, & ! Wagga wheat (RDD 1992, Challenges)
       apol   = 0.70, & ! Polhausen coeff: single-sided plate
       prandt = 0.71, & ! Prandtl number: visc/diffh
@@ -58,7 +58,7 @@ module cable_data_module
       diffwc = 1.60, & ! diffw/diffc = H2O/CO2 diffusivity
       rhow   = 1000.0, & ! liquid water density   [kg/m3]
       emleaf = 1.0, & ! leaf emissivity
-      emsoil = 1.0, & ! soil emissivity 0.94
+      emsoil = 0.98, & ! soil emissivity
       crd = 0.3,    & ! element drag coefficient
       csd = 0.003,  & ! substrate drag coefficient
       

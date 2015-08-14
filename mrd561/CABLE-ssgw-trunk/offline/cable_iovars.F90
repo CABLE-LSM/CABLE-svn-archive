@@ -102,7 +102,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind, &
+         mask      !GSWP3 has separate mask file
 
    END TYPE gswp_type
    
@@ -133,7 +134,7 @@ MODULE cable_IO_vars_module
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
           !MD
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
-          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr
+          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp
    
    END TYPE parID_type
   
@@ -262,6 +263,7 @@ MODULE cable_IO_vars_module
          GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
          EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
          Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
+         SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)
 
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
@@ -330,7 +332,13 @@ MODULE cable_IO_vars_module
          GWWatSat=.FALSE.,    & ! soil moisture at saturation [mm3/mm3]
          GWSoilMatPotSat=.FALSE.,&! soil matruc potential at saturation [mm]
          GWWatr=.FALSE.,      & ! Aquifer soil moisture residual [mm3/mm3]
-         Watr=.FALSE.           ! soil moisture residual [mm3/mm3]      
+         Watr=.FALSE.,        & ! soil moisture residual [mm3/mm3]      
+         fldcap=.FALSE.,      & !field cap including org frac [mm3/mm3]
+         wiltp=.FALSE.,       & !wilt point including org frac [mm3/mm3]
+         Forg=.FALSE.,        & !ogranic frac in soil   [-]
+         SoilIce=.FALSE.,     & !volumetric soil ice [mm3/mm3]
+         VISalbedo=.FALSE.,   & !albedo visible band [-]
+         NIRalbedo=.FALSE.      !albedo nir band [-]
    
    END TYPE output_inclusion_type
 

@@ -247,7 +247,7 @@ PROGRAM cable_offline_driver
          STOP 'Please check input in namelist file.'
       ELSE
          
-         if (.not.cable_user%alt_forcing) CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing .and. .not. cable_user%GSWP3) CALL prepareFiles(ncciy)
       
       ENDIF
    

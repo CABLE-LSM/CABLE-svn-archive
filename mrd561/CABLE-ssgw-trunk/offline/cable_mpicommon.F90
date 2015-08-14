@@ -49,6 +49,19 @@ MODULE cable_mpicommon
            !in master.  in worker
   INTEGER, PARAMETER :: nparam = 307 !283  +10 from cable-trunk
 
+  !mrd
+  !added parameters:watsat, smpsat, hksat,
+  !clappB,GWwatsat,GWsmpsat,GWhksat,GWclappb 
+  !GWz, GWdz                                   ---> +12 new parameters.  
+      !2D-watsat,smpsat,hksat,clappB,watr
+           !in master.  in worker
+      !1D-GWwatsat,GWsmpsat,GWhsat,GWclappB,GWwatr,GWz,GWdz
+           !in master.  in worker
+  !GWwb, wtd                                   ---> +2 new variables
+           !in master.  in worker
+  !added topo_ind, slope,slope_std,elev,elev_std
+  INTEGER, PARAMETER :: nparam =303! 302! 301!297 !283
+
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 

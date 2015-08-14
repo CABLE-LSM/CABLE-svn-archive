@@ -113,7 +113,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    REAL  :: rt_min
 
-   INTEGER :: j
+   INTEGER :: j,i
    
    INTEGER, SAVE :: call_number =0
    
@@ -306,23 +306,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          
          ENDIF
 
-         if (.not. cable_user%GW_MODEL) then
-            canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
-               C%SBOLTZ*canopy%tv(j)**4 - C%EMSOIL*C%SBOLTZ* tss4(j)
-         else
-            canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
-               C%SBOLTZ*canopy%tv(j)**4 - &
-               (C%EMSOIL+ (1.-C%EMSOIL)*ssnow%wb(j,1)/soil%watsat(j,1))*C%SBOLTZ* tss4(j)
-         end if
+         canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
+            C%SBOLTZ*canopy%tv(j)**4 - C%EMSOIL*C%SBOLTZ* tss4(j)
           
       ENDDO 
      
-
-      ! Calculate net rad to soil:
-!      canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
-!            C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
-
-
       ! Saturation specific humidity at soil/snow surface temperature:
       
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
@@ -334,7 +322,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       ELSE !by default assumes Humidity Deficit Method
       
-         dq = ssnow%qstss - met%qv
+         if (cable_user%gw_model) then 
+            do i=1,mp
+               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               else
+                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+               end if
+            end do
+
+         else
+            dq = ssnow%qstss - met%qvair
+         end if
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
       ENDIF
@@ -358,8 +357,19 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          ssnow%potev =  Penman_Monteith(canopy%ga) 
       
       ELSE !by default assumes Humidity Deficit Method
-      
-         dq = ssnow%qstss - met%qvair
+         if (cable_user%gw_model) then 
+            do i=1,mp
+               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               else
+                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+               end if
+            end do
+         else
+            dq = ssnow%qstss - met%qvair
+
+         end if
+         
          
          ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
           
@@ -432,6 +442,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    canopy%vlaiw(:))*canopy%gswx(:,2)
 
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
+    
     canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
                   rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
     where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
@@ -569,6 +580,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
 
+   ! this change of units does not affect next timestep as canopy%through is
+   ! re-calc in Surf_wetness_fact routine
+   canopy%through = canopy%through / dels   ! change units for stash output
+   
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
    
@@ -1330,8 +1345,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
-   
-      IF (.not.cable_runtime%run_gw_model) THEN
 
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
@@ -1344,12 +1357,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          STOP 'fwsoil_switch failed.'
       ENDIF
 
-      ELSE
-      
-      !  CALL fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
-         call fwsoil_mass_calc_std(fwsoil, soil, ssnow, veg)
-      
-      END IF
 
    ENDIF
 
