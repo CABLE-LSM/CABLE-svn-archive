@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: common modules for MPI wrapper for CABLE
 !
 ! Contact: Bernard.Pak@csiro.au
@@ -45,8 +37,6 @@ MODULE cable_mpicommon
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
-  !INTEGER, PARAMETER :: nparam = 283
-
   !mrd
   !added parameters:watsat, smpsat, hksat,
   !clappB,GWwatsat,GWsmpsat,GWhksat,GWclappb 
@@ -57,7 +47,7 @@ MODULE cable_mpicommon
            !in master.  in worker
   !GWwb, wtd                                   ---> +2 new variables
            !in master.  in worker
-  INTEGER, PARAMETER :: nparam = 297 !283
+  INTEGER, PARAMETER :: nparam = 307 !283  +10 from cable-trunk
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -67,7 +57,9 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: ncasaparam = 68
   !INTEGER, PARAMETER :: ncasaparam = 176
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
-  INTEGER, PARAMETER :: ncasaparam = 179
+!  INTEGER, PARAMETER :: ncasaparam = 179
+!  INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
+  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
 
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
@@ -121,7 +113,8 @@ MODULE cable_mpicommon
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
   INTEGER, PARAMETER :: ncasa_mat = 15
-  INTEGER, PARAMETER :: ncasa_vec = 27
+!  INTEGER, PARAMETER :: ncasa_vec = 27
+  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
 
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run
