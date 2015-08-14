@@ -1026,8 +1026,6 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    !Tice = Tt - Tliq
    !a=2 b=4
    !calculate the fraction of wb that should be supercooled
-   write(*,*) minval(soil%watsat(:,:))
-   write(*,*) minloc(soil%watsat(:,:))
    where (ssnow%tgg .le. C%TFRZ)
       frozen_limit(:,:) = (1. - exp(-2.*(ssnow%wb(:,:)/soil%watsat(:,:))**4.0 *&
                        (ssnow%tgg(:,:)-273.16)))/exp(1. - ssnow%wb(:,:)/soil%watsat(:,:))
@@ -1673,7 +1671,7 @@ END SUBROUTINE remove_trans
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = ssnow%hk(i,ms) * tan(soil%slope(i)) * gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = ssnow%hk(i,ms) *  gw_params%MaxHorzDrainRate*(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate*drainmod(i))))
  
        !identify first no frozen layer.  drinage from that layer and below
@@ -2276,32 +2274,42 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
   f = 1. / sum(soil%zse)
 
   run_section = .false.
-  
+  write(*,*) "timestep number - ",ktau
+  write(*,*) "minval of ssnow%wbliq-",minval(ssnow%wbliq)
+  write(*,*) "minloc of ssnow%wbliq-",minloc(ssnow%wbliq)
+  do k=1,ms
+  do i=1,mp
+     if (ssnow%wbliq(i,k) .lt. 1e-6 .and. ssnow%wbliq(i,k) .lt. 1e-6) then
+        write(*,*) "i-",i," k-",k
+     end if
+  end do
+  end do
+
   if (run_section) then
   do i=1,mland
   
     ib = landpt(i)%cstart
     ie = landpt(i)%cend
-    do ii=ib,ie
-    
-      !slope = (soil%elevation(ii) - soil%elevation(ii-1)) / (soil%distance(ii)-soil%distance(ii-1))
-      def = 0.0
+    do ii=ib,ie-1
+   
+      !slope = (soil%elev(ii+1) - soil%elev(ii)) /0.5*(soil%distance(ii+1)+soil%distance(ii))
+      def = max((soil%GWwatsat(ii)-ssnow%GWwb(ii)),0.0)
       do k=1,ms
          def = def + max((soil%watsat(ii,k)-ssnow%wb(ii,k)),0.0)
       end do
-      def = def + max((soil%GWwatsat(ii)-ssnow%GWwb(ii)),0.0)
 
       q_tot(ii) = ssnow%qhz(ii)!ani*soil%hksat(ii,ms)*sin(max(soil%slope(ii),1e-3))*exp(-def)/soil%distance(ii)
       ! sin(slope)*(exp(-f*sum(soil%zse)*cos(slope)) - exp(-f*def*cos(slope)))
 
-    !end do
+    end do
     
-    !ii = ib
-    !!slope = (soil%elevation(ii+1) - soil%elevation(ii)) / (soil%distance(ii+1)-soil%distance(ii))
+    ii = ie
+    !slope = (soil%elev(ii) - soil%elev(ii-1)) /0.5*(soil%distance(ii)+soil%distance(ii-1))
     !def   = sum(max(soil%watsat(ii,:)-(ssnow%wbliq(ii,:)+dri*ssnow%wbice(ii,:)),0.))!*soil%zse(:))
     !def   = def + (soil%GWwatsat(ii) - ssnow%GWwb(ii))!*soil%GWdz(ii)
     !q_tot(ii) = ani*soil%hksat(ii,ms)*sin(soil%slope(ii))/soil%distance(ii)*def*soil%area(ii)
     !sin(slope)* (exp(-f*sum(soil%zse)*cos(slope)) - exp(-f*def*cos(slope)))
+    q_tot(ii) =  ssnow%qhz(ii)
  
       if (ii .eq. 388 .and. verbose_debug) then
          write(*,*) soil%hksat(ii,ms)
@@ -2315,7 +2323,6 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
          write(*,*) soil%area(ii)
        end if
 
-    end do
 
   end do
   
@@ -2339,6 +2346,7 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
                       0.2*soil%fldcap(ii,ms))*1000.0*soil%GWdz(ii)*ssnow%fracice(ii,ms) )
     end do
   end do
+  wb_avg = max(0.01,wb_avg)
          
   q_lev(:,:) = 0.
   do k=1,ms
@@ -2346,8 +2354,7 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
       ib = landpt(i)%cstart
       ie = landpt(i)%cend
       do ii=ib,ie
-        q_lev(ii,k) = q_tot(ii) * max(ssnow%wbliq(ii,k) - &
-                       0.2*soil%fldcap(ii,k),0.)*soil%zse(k)*1000.0 / max(wb_avg(ii),1.0e-4)
+        q_lev(ii,k) = q_tot(ii)! * max((ssnow%wbliq(ii,k) - 0.2*soil%fldcap(ii,k))*soil%zse(k)*1000.0,0.) / wb_avg(ii)
       end do
     end do
   end do
@@ -2358,10 +2365,9 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
     ie = landpt(i)%cend
     do ii=ib,ie
       q_lev(ii,k) = q_tot(ii) * max(ssnow%GWwb(ii) - &
-                    0.2*soil%fldcap(ii,k-1),0.)*soil%GWdz(ii)*1000.0*ssnow%fracice(ii,k-1) / max(wb_avg(ii),1.0e-4)
+                    0.2*soil%fldcap(ii,k-1),0.)*soil%GWdz(ii)*1000.0*ssnow%fracice(ii,k-1) / wb_avg(ii)
     end do
   end do
-    
     
   do k=1,ms
     do i=1,mland
@@ -2378,29 +2384,26 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
     do i=1,mland
       ib = landpt(i)%cstart
       ie = landpt(i)%cend
-      do ii=ib,ie
-        if (ii .lt. ie) then
-          ssnow%GWwb(ii) = ssnow%GWwb(ii) + (q_lev(ii+1,k) - q_lev(ii,k))*dels / (soil%GWdz(ii)*1000.0)  !mm^3
-        else
-          ssnow%GWwb(ii) = ssnow%GWwb(ii) - q_lev(ii,k)*dels / (soil%GWdz(ii)*1000.0)
-        end if
-      end do  !ib,ie
+      do ii=ib,ie-1
+        ssnow%GWwb(ii) = ssnow%GWwb(ii) + (q_lev(ii+1,k) - q_lev(ii,k))*dels / (soil%GWdz(ii)*1000.0)  !mm^3
+      end do
+      ssnow%GWwb(ii) = ssnow%GWwb(ii) - q_lev(ii,k)*dels / (soil%GWdz(ii)*1000.0)
     end do  !mland
   ! end GW layer
 
   ssnow%wb = ssnow%wbice + ssnow%wbliq
-  
+  ssnow%wmliq = ssnow%wbliq*1000.0*spread(soil%zse,1,mp)
+  ssnow%wmtot = ssnow%wmice + ssnow%wmtot
+ 
   !total subsurface flow from the lowest tile elevation goes to the river
+  ssnow%rnof2(:) = 0.0
   do i=1,mland
     ib = landpt(i)%cstart
     ie = landpt(i)%cend
-    !do ii=ib,ie 
-    ii = ib
-       ssnow%rnof2(ii) = sum(q_lev(ii,:))
-    do ii=ib+1,ie
-       ssnow%rnof2(ii) = 0.0
+    do ii=ib,ie
+       write(*,*) q_lev(ii,:)
     end do
-    !end do
+    ssnow%rnof2(ib) = sum(q_lev(ib,:),dim=1)
   end do
   
   theta = 0.4
@@ -2439,6 +2442,18 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
   !end do
 
   else
+     do i=1,mland
+        ib = landpt(i)%cstart
+        ie = landpt(i)%cend
+        write(*,*) "i-",i," ib-",ib," ie-",ie
+        do ii=ib,ie 
+           write(*,FMT='(7(1X, F6.3))') ssnow%GWwb(ii),ssnow%wbliq(ii,1),ssnow%wbliq(ii,2),&
+                      ssnow%wbliq(ii,3),ssnow%wbliq(ii,4),ssnow%wbliq(ii,5),ssnow%wbliq(ii,6)
+           write(*,FMT='(3(1X,F6.3))') soil%elev(ii),soil%distance(ii),soil%area(ii)
+
+        end do
+     end do
+        
      ssnow%qsrf_store(:) = 0.0
      ssnow%qsrf_flow(:) = 0.0
      ssnow%qsrf_gen(:) = 0.0
