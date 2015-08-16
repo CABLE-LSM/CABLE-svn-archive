@@ -558,7 +558,7 @@ END SUBROUTINE initialize_canopy
 !========================================================================
  
 SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
-                                smgw,                                     &
+                                smgw_tile,                                     &
                                 snow_tile, snow_rho1l, snage_tile, isnow_flg3l,&
                                 snow_rho3l, snow_cond, snow_depth3l,           &
                                 snow_mass3l, snow_tmp3l, fland,                &
@@ -571,7 +571,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
 
    !mrd561
-   REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smgw
+   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles) :: smgw_tile
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) ::    &
       sthf_tile, &   !
@@ -598,7 +598,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    
    REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: sin_theta_latitude
   
-   REAL, DIMENSION(um1%land_pts, um1%ntiles) :: smgw_tile
 
    INTEGER :: i,j,k,L,n
    REAL  :: zsetot, max_snow_depth=50000.
@@ -749,16 +748,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
       ENDIF ! END: if (first_call)       
 
       !mrd561
-      DO N=1,um1%NTILES
-         DO K=1,um1%TILE_PTS(N)
-            I= um1%TILE_INDEX(K,N)
-            SMGW_TILE(I,N) = SMGW(I)
-         ENDDO
-      ENDDO
-
       ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
       where(ssnow%GWwb .lt. 1e-2)
-         ssnow%GWwb = 0.3   !temp so not passing junk to iterative_wtd
+         ssnow%GWwb = 0.3   !temp so not passing junk 
       endwhere
 
 

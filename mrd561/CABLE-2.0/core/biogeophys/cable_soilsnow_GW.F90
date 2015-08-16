@@ -1629,8 +1629,10 @@ END SUBROUTINE remove_trans
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = tan(soil%slope(i)) * drainmod(i)*gw_params%MaxHorzDrainRate* &!(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = max(tan(soil%slope(i)),0.001) * drainmod(i)*gw_params%MaxHorzDrainRate* &!(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
+
+       if (soil%isoilm(i) .eq. 9) ssnow%qhz(i) = 0._r_2
  
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
@@ -1643,7 +1645,7 @@ END SUBROUTINE remove_trans
        k_drain = min(k_drain,4)
 
        qhlev(i,:) = 0._r_2
-       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1.0 -ssnow%fracice(i,ms))
+       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1._r_2 -ssnow%fracice(i,ms))
        do k=k_drain,ms
           sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
        end do
@@ -1652,8 +1654,8 @@ END SUBROUTINE remove_trans
       do k=k_drain,ms
           qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
        end do
-       qhlev(i,ms+1) = (1.0 -ssnow%fracice(i,ms))*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
-      
+       qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
+
        !incase every layer is frozen very dry
        ssnow%qhz(i) = qhlev(i,ms+1)
        do k=k_drain,ms
@@ -1799,7 +1801,7 @@ END SUBROUTINE remove_trans
           end if
        end do  !ms loop
  
-       if (ssnow%GWwb(i) .lt. volwatmin) then
+       if ( (ssnow%GWwb(i) .lt. volwatmin) .and. (soil%isoilm(i) .ne. 9) ) then
           xsi = (volwatmin - ssnow%GWwb(i)) / GWdzmm(i)  !mm
           ssnow%GWwb(i) = volwatmin
           ssnow%qhz(i) = ssnow%qhz(i) - xsi / dels
