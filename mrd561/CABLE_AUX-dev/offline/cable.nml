@@ -65,6 +65,7 @@
                                                  ! 1. NONE
    cable_user%CONSISTENCY_CHECK= .TRUE.      ! TRUE outputs combined fluxes at each timestep for comparisson to A control run 
    cable_user%CASA_DUMP_READ = .FALSE.      ! TRUE reads CASA forcing from netcdf format
+   cable_user%CABLE_RUNTIME_COUPLED = .FALSE.      ! see Ticket 43
    cable_user%CASA_DUMP_WRITE = .FALSE.      ! TRUE outputs CASA forcing in netcdf format
    cable_user%SSNOW_POTEV= 'HDM'      ! Humidity Deficit Method
    cable_user%GW_MODEL = .TRUE.       !True means use the groundwater module, false means use default soil snow scheme
