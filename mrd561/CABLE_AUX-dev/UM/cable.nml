@@ -13,4 +13,17 @@
   cable_user%RUN_DIAG_LEVEL= 'BASIC'        ! choices are: 
                                                 ! 1. BASIC
                                                 ! 1. NONE
+  cable_user%GW_MODEL = .true.
+
+  gw_params%MaxSatFraction     = 900.0
+  gw_params%MaxHorzDrainRate   = 9e-3 
+  gw_params%EfoldHorzDrainRate = 5.0 
+  gw_params%EfoldMaxSatFrac    = 1.0 
+  gw_params%hkrz               = 0.3 
+  gw_params%zdepth             = 1.0 
+  gw_params%frozen_frac        = 0.05
+
+
+
+
 &end

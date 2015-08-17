@@ -23,10 +23,10 @@ fi
 # A dir /short/p66/`whoami`/$RUNID is generally created as a RUN dir for your UMUI job,
 # however in this case we need to create the dir to do some work prior to UM execution
 # IF this dir doesn't already exist, ... 
-if [[ ! -d /short/p66/`whoami`/$RUNID ]]; then
+if [[ ! -d /short/w35/`whoami`/$RUNID ]]; then
    
    # make it  
-   /bin/mkdir /short/p66/`whoami`/$RUNID
+   /bin/mkdir /short/w35/`whoami`/$RUNID
 
 fi
 
@@ -35,18 +35,18 @@ fi
 
 if [[ $TYPE == 'NRUN' ]]; then
 
-   /bin/cp $CABLE_AUX/CABLE-AUX/UM/cable.nml /short/p66/`whoami`/$RUNID
-   /bin/cp /short/p66/`whoami`/$RUNID/cable.nml /short/p66/`whoami`/$RUNID/cable.nml.`date +%d.%m.%y`
+   /bin/cp $CABLE_AUX/CABLE-AUX/UM/cable.nml /short/w35/`whoami`/$RUNID/.
+   /bin/cp /short/w35/`whoami`/$RUNID/cable.nml /short/w35/`whoami`/$RUNID/cable.nml.`date +%d.%m.%y`
 
 fi
 
-if [[ ! -f /short/p66/`whoami`/$RUNID/libcable.a ]]; then
-   /bin/cp $CABLE_AUX/CABLE-AUX/UM/libcable.a 
+if [[ ! -f /short/w35/`whoami`/$RUNID/libcable-2.0.a ]]; then
+   /bin/cp $CABLE_AUX/CABLE-AUX/UM/libcable-2.0.a /short/w35/`whoami`/$RUNID/. 
 fi
 
-if [[ -f /short/p66/`whoami`/$RUNID/libcable.a ]]; then
-   /bin/cp $CABLE_AUX/CABLE-AUX/UM/libcable.a /short/p66/`whoami`/$RUNID
-   /bin/cp /short/p66/`whoami`/$RUNID/libcable.a /short/p66/`whoami`/$RUNID/libcable.a.`date +%d.%m.%y`
+if [[ -f /short/w35/`whoami`/$RUNID/libcable-2.0.a ]]; then
+   /bin/cp $CABLE_AUX/CABLE-AUX/UM/libcable-2.0.a /short/w35/`whoami`/$RUNID
+   /bin/cp /short/w35/`whoami`/$RUNID/libcable-2.0.a /short/w35/`whoami`/$RUNID/libcable-2.0.a.`date +%d.%m.%y`
 fi
 
 
