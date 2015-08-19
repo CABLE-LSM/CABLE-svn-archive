@@ -58,6 +58,7 @@ MODULE cable_write_module
   USE cable_IO_vars_module, ONLY: landpt, patch, max_vegpatches, parID_type,           &
                           metGrid, land_x, land_y, logn, output,               &
                           xdimsize, ydimsize, check, mask
+  USE casadimension,        ONLY: mplant, mlitter, msoil
   USE netcdf
   IMPLICIT NONE
   PRIVATE
@@ -69,7 +70,8 @@ MODULE cable_write_module
          otmp4xyst, otmp4xysnt, otmp4xyrt, otmp4xypct, otmp4xysct, otmp4lpst,  &
          otmp4lpsnt, otmp4lprt, otmp4lpsct, otmp4lppct, otmp4xyps,             &
          otmp4xyppc, otmp4xypsc, otmp5xypst, otmp5xypsnt, otmp5xyprt,          &
-         otmp5xyppct, otmp5xypsct, otmp2lcnp
+         otmp5xyppct, otmp5xypsct, otmp2lcnp, otmp5xypcnpt, otmp4xycnpt,       &
+         otmp4lpcnpt, otmp3lcnpt
   INTERFACE define_ovar
     ! Defines an output variable in the output netcdf file. Units, long name,
     ! variable, dimensions etc are created.
@@ -105,7 +107,7 @@ MODULE cable_write_module
                                             otmp3lsct, otmp3xyp, otmp3xys,     &
                                             otmp3xypc, otmp3xysc, otmp3lps,    &
                                             otmp3lppc, otmp3lpsc, otmp3xysf,   &
-                                            otmp3lpr, otmp3lpsn, otmp3xyr
+                                            otmp3lpr, otmp3lpsn, otmp3xyr, otmp3lcnpt
   REAL, POINTER, DIMENSION(:, :, :, :) :: otmp4xypt, otmp4xyzt,           &
                                                otmp4xyst, otmp4xysnt,          &
                                                otmp4xyrt, otmp4xypct,          &
@@ -113,10 +115,11 @@ MODULE cable_write_module
                                                otmp4lpsnt, otmp4lprt,          &
                                                otmp4lpsct, otmp4lppct,         &
                                                otmp4xyps, otmp4xyppc,          &
-                                               otmp4xypsc, otmp4xypr
+                                               otmp4xypsc, otmp4xypr,          &
+                                               otmp4xycnpt, otmp4lpcnpt
   REAL, POINTER, DIMENSION(:, :, :, :, :) :: otmp5xypst, otmp5xypsnt,     &
                                                   otmp5xyprt, otmp5xyppct,     &
-                                                  otmp5xypsct
+                                                  otmp5xypsct, otmp5xypcnpt
   REAL :: ncmissingr = -1.0e+33
 
 CONTAINS
@@ -286,6 +289,14 @@ CONTAINS
           ! of this dim:
           IF( .NOT. ASSOCIATED(otmp5xypsct))                                   &
                ALLOCATE(otmp5xypsct(xdimsize, ydimsize, max_vegpatches, ncs, 1))
+        ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
+          IF ((mplant /= mlitter) .OR. (mplant /= msoil)) THEN
+            PRINT *, 'Error in allocating CASACNP variable'
+            PRINT *, 'Need to add codes to solve the problem.'
+            STOP
+          ENDIF
+          IF( .NOT. ASSOCIATED(otmp5xypcnpt))                                  &
+           ALLOCATE(otmp5xypcnpt(xdimsize, ydimsize, max_vegpatches, mplant, 1))
         ELSE
           CALL abort('Variable '//vname//                                      &
                       ' defined with unknown dimension switch - '//dimswitch// &
@@ -324,6 +335,14 @@ CONTAINS
           ! of this dim:
           IF( .NOT. ASSOCIATED(otmp4xysct))                                    &
                                 ALLOCATE(otmp4xysct(xdimsize, ydimsize, ncs, 1))
+        ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
+          IF ((mplant /= mlitter) .OR. (mplant /= msoil)) THEN
+            PRINT *, 'Error in allocating CASACNP variable'
+            PRINT *, 'Need to add codes to solve the problem.'
+            STOP
+          ENDIF
+          IF( .NOT. ASSOCIATED(otmp4xycnpt))                                   &
+                            ALLOCATE(otmp4xycnpt(xdimsize, ydimsize, mplant, 1))
         ELSE
           CALL abort('Variable '//vname//                                      &
                       ' defined with unknown dimension switch - '//dimswitch// &
@@ -352,24 +371,32 @@ CONTAINS
         ELSE IF(dimswitch == 'snow') THEN ! other dim is snow
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ASSOCIATED(otmp4xysnt))                                    &
-                             ALLOCATE(otmp4xysnt(mland, max_vegpatches, msn, 1))
+          IF( .NOT. ASSOCIATED(otmp4lpsnt))                                    &
+                             ALLOCATE(otmp4lpsnt(mland, max_vegpatches, msn, 1))
         ELSE IF(dimswitch == 'radiation') THEN ! other dim is radiation bands
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ASSOCIATED(otmp4xyrt))                                     &
-                              ALLOCATE(otmp4xyrt(mland, max_vegpatches, nrb, 1))
+          IF( .NOT. ASSOCIATED(otmp4lprt))                                     &
+                              ALLOCATE(otmp4lprt(mland, max_vegpatches, nrb, 1))
         ELSE IF(dimswitch == 'plantcarbon') THEN ! other dim is plant carbon
                                                  ! pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ASSOCIATED(otmp4xypct))                                    &
-                             ALLOCATE(otmp4xypct(mland, max_vegpatches, ncp, 1))
+          IF( .NOT. ASSOCIATED(otmp4lppct))                                    &
+                             ALLOCATE(otmp4lppct(mland, max_vegpatches, ncp, 1))
         ELSE IF(dimswitch == 'soilcarbon') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
-          IF( .NOT. ASSOCIATED(otmp4xysct))                                    &
-                             ALLOCATE(otmp4xysct(mland, max_vegpatches, ncs, 1))
+          IF( .NOT. ASSOCIATED(otmp4lpsct))                                    &
+                             ALLOCATE(otmp4lpsct(mland, max_vegpatches, ncs, 1))
+        ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
+          IF ((mplant /= mlitter) .OR. (mplant /= msoil)) THEN
+            PRINT *, 'Error in allocating CASACNP variable'
+            PRINT *, 'Need to add codes to solve the problem.'
+            STOP
+          ENDIF
+          IF( .NOT. ASSOCIATED(otmp4lpcnpt))                                   &
+                         ALLOCATE(otmp4lpcnpt(mland, max_vegpatches, mplant, 1))
         ELSE
           CALL abort('Variable '//vname//                                      &
                       ' defined with unknown dimension switch - '//dimswitch// &
@@ -403,6 +430,13 @@ CONTAINS
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
           IF( .NOT. ASSOCIATED(otmp3lsct)) ALLOCATE(otmp3lsct(mland, ncs, 1))
+        ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
+          IF ((mplant /= mlitter) .OR. (mplant /= msoil)) THEN
+            PRINT *, 'Error in allocating CASACNP variable'
+            PRINT *, 'Need to add codes to solve the problem.'
+            STOP
+          ENDIF
+          IF( .NOT. ASSOCIATED(otmp3lcnpt)) ALLOCATE(otmp3lcnpt(mland,mplant,1))
         ELSE
           CALL abort('Variable '//vname//                                      &
                       ' defined with unknown dimension switch - '//dimswitch// &
@@ -1098,6 +1132,38 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp5xypsct(:, :, :, :, 1), 4),  &
                             start = (/1, 1, 1, 1, ktau/),                      &
                          count = (/xdimsize, ydimsize, max_vegpatches, ncs, 1/))
+        ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
+          DO i = 1, mland ! over all land grid points
+            ! First write data for active patches:
+             otmp5xypcnpt(land_x(i), land_y(i), 1:landpt(i)%nap, :, 1)         &
+                                    = var_r2(landpt(i)%cstart:landpt(i)%cend, :)
+             ! Then write data for inactive patches as dummy value:
+             IF(landpt(i)%nap < max_vegpatches) otmp5xypcnpt(land_x(i),        &
+               land_y(i), (landpt(i)%nap + 1):max_vegpatches, :, 1) = ncmissingr
+            IF(check%ranges) THEN  ! Check ranges for active patches:
+              DO j = 1, landpt(i)%nap
+                DO k = 1, ncs
+                  IF((otmp5xypcnpt(land_x(i), land_y(i), j, k, 1) < vrange(1)) &
+                      .OR. (otmp5xypcnpt(land_x(i), land_y(i), j, k, 1) >      &
+                      vrange(2)))                                              &
+                      CALL range_abort(vname//' is out of specified ranges!',  &
+                      ktau, met, otmp5xypcnpt(land_x(i), land_y(i), j, k, 1),  &
+                      vrange, i, land_x(i), land_y(i))
+                END DO
+              END DO
+            END IF
+          END DO
+          ! Fill non-land points with dummy value:
+          DO j = 1, max_vegpatches
+            DO k = 1, ncs
+              ! not land
+              WHERE(mask /= 1) otmp5xypsct(:, :, j, k, 1) = ncmissingr
+            END DO
+          END DO
+          ! Write data to file:
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp5xypcnpt(:, :, :, :, 1), 4), &
+                      start = (/1, 1, 1, 1, ktau/),                            &
+                      count = (/xdimsize, ydimsize, max_vegpatches, mplant, 1/))
         ELSE
           CALL abort('Variable '//vname//                                      &
                      ' defined with unknown dimension switch - '//dimswitch//  &
@@ -1234,6 +1300,31 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4xysct, 4),                  &
                             start = (/1, 1, 1, ktau/),                         &
                     count = (/xdimsize, ydimsize, ncs, 1/)) ! write data to file
+        ELSE IF(dimswitch == 'cnp')THEN ! other dim is CASACNP pools
+          DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (sum over patches & weight by fraction):
+            DO j = 1, ncs
+               otmp4xycnpt(land_x(i), land_y(i), j, 1) = SUM(                  &
+                                  var_r2(landpt(i)%cstart:landpt(i)%cend, j) * &
+                                    patch(landpt(i)%cstart:landpt(i)%cend)%frac)
+            END DO
+            IF(check%ranges) THEN  ! Check ranges:
+              DO j = 1, ncs
+                IF((otmp4xycnpt(land_x(i), land_y(i), j, 1) < vrange(1)) .OR.  &
+                     (otmp4xycnpt(land_x(i), land_y(i), j, 1) > vrange(2)))    &
+                     CALL range_abort(vname//' is out of specified ranges!',   &
+                     ktau, met, otmp4xycnpt(land_x(i), land_y(i), j, 1),       &
+                     vrange, i, land_x(i), land_y(i))
+              END DO
+            END IF
+          END DO
+          ! Fill non-land points with dummy value:
+          DO j = 1, ncs
+            WHERE(mask /= 1) otmp4xycnpt(:, :, j, 1) = ncmissingr ! not land
+          END DO
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4xycnpt, 4),                 &
+                    start = (/1, 1, 1, ktau/),                                 &
+                    count = (/xdimsize, ydimsize, mplant, 1/)) ! write to file
         ELSE
           CALL abort('Variable '//vname//                                      &
                      ' defined with unknown dimension switch - '//dimswitch//  &
@@ -1363,6 +1454,29 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4lpsct(:, :, :, 1), 4),      &
                             start = (/1, 1, 1, ktau/),                         &
                             count = (/mland, max_vegpatches, ncs, 1/))
+        ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
+          DO i = 1, mland ! over all land grid points
+            ! First write data for active patches:
+             otmp4lpcnpt(i, 1:landpt(i)%nap, :, 1) =                           &
+                                      var_r2(landpt(i)%cstart:landpt(i)%cend, :)
+             ! Then write data for inactive patches as dummy value:
+              IF(landpt(i)%nap < max_vegpatches) otmp4lpcnpt(i,                &
+                          (landpt(i)%nap + 1):max_vegpatches, :, 1) = ncmissingr
+            IF(check%ranges) THEN  ! Check ranges for active patches:
+              DO j = 1, landpt(i)%nap
+                DO k = 1, ncs
+                  IF((otmp4lpcnpt(i, j, k, 1) < vrange(1)) .OR.                &
+                       (otmp4lpcnpt(i, j, k, 1) > vrange(2)))                  &
+                       CALL range_abort(vname//' is out of specified ranges!', &
+                       ktau, met, otmp4lpcnpt(i, j, k, 1), vrange, i)
+                END DO
+              END DO
+            END IF
+          END DO
+          ! write data to file
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4lpcnpt(:, :, :, 1), 4),     &
+                            start = (/1, 1, 1, ktau/),                         &
+                            count = (/mland, max_vegpatches, mplant, 1/))
         ELSE
           CALL abort('Variable '//vname//                                      &
                      ' defined with unknown dimension switch - '//dimswitch//  &
@@ -1455,7 +1569,7 @@ CONTAINS
                             count = (/mland, ncp, 1/)) ! write data to file
         ELSE IF(dimswitch == 'soilcarbon') THEN ! other dim is soil carbon pools
           DO i = 1, mland ! over all land grid points
-            ! Write to temporary variable (sum over patches & weight by fraction):
+            ! Write to temporary variable (sum patches & weight by fraction):
             DO j = 1, ncs
                otmp3lsct(i, j, 1) = SUM(                                       &
                                   var_r2(landpt(i)%cstart:landpt(i)%cend, j) * &
@@ -1473,6 +1587,26 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp3lsct, 4),                   &
                             start = (/1, 1, ktau/),                            &
                             count = (/mland, ncs, 1/)) ! write data to file
+        ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
+          DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (sum patches & weight by fraction):
+            DO j = 1, ncs
+               otmp3lcnpt(i, j, 1) = SUM(                                      &
+                                  var_r2(landpt(i)%cstart:landpt(i)%cend, j) * &
+                                    patch(landpt(i)%cstart:landpt(i)%cend)%frac)
+            END DO
+            IF(check%ranges) THEN  ! Check ranges:
+              DO j = 1, ncs
+                IF((otmp3lcnpt(i, j, 1) < vrange(1)) .OR.                      &
+                     (otmp3lcnpt(i, j, 1) > vrange(2)))                        &
+                     CALL range_abort(vname//' is out of specified ranges!',   &
+                     ktau, met, otmp3lcnpt(i, j, 1), vrange, i)
+              END DO
+            END IF
+          END DO
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp3lcnpt, 4),                  &
+                            start = (/1, 1, ktau/),                            &
+                            count = (/mland, mplant, 1/)) ! write data to file
         ELSE
           CALL abort('Variable '//vname//                                      &
                      ' defined with unknown dimension switch - '//dimswitch//  &

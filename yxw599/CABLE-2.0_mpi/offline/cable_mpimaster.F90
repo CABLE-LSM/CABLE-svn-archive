@@ -148,7 +148,7 @@ SUBROUTINE mpidrv_master (comm)
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file,             &
-                                   write_casa_flux
+                                   write_casa_flux, write_casa_params
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
@@ -307,6 +307,9 @@ SUBROUTINE mpidrv_master (comm)
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
+   IF( output%CASA .AND. icycle == 0 )                                      &
+      STOP 'cannot output casaCNP variables when not running casaCNP'
+
    IF( .NOT. spinup )  spinConv = .TRUE.
 
    ! Check for global run
@@ -456,6 +459,7 @@ SUBROUTINE mpidrv_master (comm)
 
    ! Open output file:
    CALL open_output_file( kend, dels, soil, veg, bgc, rough )
+   if(icycle>0) CALL write_casa_params(veg,casamet,casabiome)
  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
@@ -529,7 +533,7 @@ SUBROUTINE mpidrv_master (comm)
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau-kstart+1, recv_ts)
-         IF (icycle > 0 .AND. (MOD(ktau, ktauday) == 0)) THEN
+         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
             CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
             ! MPI: gather casa results from all the workers
             CALL master_receive (comm, oktau-kstart+1, casa_ts)
@@ -559,7 +563,8 @@ SUBROUTINE mpidrv_master (comm)
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
-            IF (icycle > 0) CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
+            IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
+              CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
          END IF
    
       END DO ! END Do loop over timestep ktau
@@ -576,8 +581,8 @@ SUBROUTINE mpidrv_master (comm)
       met%ofsd = met%fsd(:,1) + met%fsd(:,2)
       canopy%oldcansto=canopy%cansto
 
-      IF (icycle > 0) THEN
-         ! MPI: gather casa results from all the workers
+      IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
+         ! MPI: gather casa results from all the workers for last step
          CALL master_receive (comm, ktau_gl, casa_ts)
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
       END IF
@@ -586,7 +591,8 @@ SUBROUTINE mpidrv_master (comm)
          CALL write_output( dels, ktau, met, canopy, ssnow,         &
                             rad, bal, air, soil, veg, C%SBOLTZ,     &
                             C%EMLEAF, C%EMSOIL )
-         IF (icycle > 0) CALL write_casa_flux(dels,ktau,met,casaflux,casapool)
+         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
+            CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
       END IF
    
       !jhan this is insufficient testing. condition for 
