@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: All routines for calculating soil temperature and moisture
 !          and snow calculations
 !
@@ -52,10 +60,9 @@ MODULE cable_soil_snow_module
  
    ! This module contains the following subroutines:
    PUBLIC soil_snow ! must be available outside this module
-   PRIVATE snow_melting, snowcheck, snowl_adjust
+   PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb, smoisturev, snow_accum, stempv
    PRIVATE soilfreeze, remove_trans
-   PUBLIC snowdensity
 
 CONTAINS
 
@@ -546,15 +553,13 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
     
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
+   INTEGER, DIMENSION(mp,3) :: ssnow_isflag_ssdn 
    REAL, DIMENSION(mp) :: ssnow_tgg_min1
-   !MC should be nsnow_max but is mp?
-    INTEGER, DIMENSION(mp,mp) :: ssnow_isflag_ssdn
-    REAL, DIMENSION(mp,mp) :: dels_ssdn, ssnow_tgg_min
+   REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
      
    ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
    
    dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
-   CALL point2constants( C )
    ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
    
    WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )

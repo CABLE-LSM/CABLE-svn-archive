@@ -331,7 +331,6 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          ! Read in parameter values for each vegetation type:
          DO a = 1,mvtype 
             
- PRINT*,"CLN 1"
             READ(40,*) jveg, vegtypetmp, vegnametmp
                  
             IF( jveg .GT. mvtype )                                             &
@@ -339,34 +338,34 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                
             veg_desc(jveg) = vegnametmp 
                
- PRINT*,"CLN 2"
+
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                            vegin%length(jveg), vegin%frac4(jveg)
             ! only refl(1:2) and taul(1:2) used
- PRINT*,"CLN 3"
+
             READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
-  PRINT*,"CLN 4"
+
            READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
-  PRINT*,"CLN 5"
+
            READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
-  PRINT*,"CLN 6"
+
            READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
- PRINT*,"CLN 7"
+
             READ(40,*) vegin%vcmax(jveg), vegin%rp20(jveg),                    &
                        vegin%rpcoef(jveg),                                     &
                        vegin%rs20(jveg)
- PRINT*,"CLN 8"
+
             READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),                 &
                        vegin%vbeta(jveg), vegin%rootbeta(jveg)
- PRINT*,"CLN 9"
+
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
- PRINT*,"CLN 10"
+
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
- PRINT*,"CLN 11"
+
             READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
- PRINT*,"CLN 12"
+
             READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
 
          END DO
@@ -459,7 +458,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       ALLOCATE ( soilin%swilt(mstype), soilin%sfc(mstype), soilin%ssat(mstype) )
       ALLOCATE ( soilin%bch(mstype), soilin%hyds(mstype), soilin%sucs(mstype) )
       ALLOCATE ( soilin%rhosoil(mstype), soilin%css(mstype) )
-     
+      
       DO a = 1,mstype 
          READ(40,'(8X,A70)') soil_desc(a) ! Read description of each soil type
       END DO
@@ -476,7 +475,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       READ(40,*) soilin%sucs
       READ(40,*) soilin%rhosoil
       READ(40,*) soilin%css
-
+     
    CLOSE(40)
 
 END SUBROUTINE get_type_parameters
@@ -491,9 +490,12 @@ END SUBROUTINE get_type_parameters
     END IF
   END SUBROUTINE HANDLE_ERR
 
-  FUNCTION IS_LEAPYEAR( YYYY )
-    IMPLICIT NONE
-    INTEGER :: YYYY
+ 
+    !! vh_js !! FUNCTION IS_LEAPYEAR( YYYY )
+    ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
+
+    !! vh_js !! INTEGER :: YYYY
+    INTEGER, INTENT(IN) :: YYYY
     LOGICAL :: IS_LEAPYEAR
 
     IS_LEAPYEAR = .FALSE.

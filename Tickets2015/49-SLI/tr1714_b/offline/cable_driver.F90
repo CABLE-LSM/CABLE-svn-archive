@@ -228,7 +228,9 @@ PROGRAM cable_offline_driver
 
    DOUBLE PRECISION ::                                                                     &
       trunk_sumbal = 0.0, & !
-      new_sumbal = 0.0
+      new_sumbal = 0.0, &
+      new_sumfpn = 0.0, &
+      new_sumfe = 0.0 
 
    INTEGER :: nkend=0
    INTEGER :: ioerror
@@ -595,12 +597,19 @@ PROGRAM cable_offline_driver
          ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
          IF(cable_user%consistency_check) THEN 
             
-PRINT*," The sumbal0 ",   new_sumbal
-            new_sumbal = new_sumbal + SUM(bal%wbal_tot) + SUM(bal%ebal_tot)          &
-                             + SUM(bal%ebal_tot_cncheck)
-PRINT*," The sumbal1 ",   new_sumbal
-PRINT*," The sumbals",   SUM(bal%wbal_tot), SUM(bal%ebal_tot) , SUM(bal%ebal_tot_cncheck)
-stop
+!PRINT*," The sumbal0 ",   new_sumbal, new_fpn
+            new_sumbal = new_sumbal + SUM(bal%wbal) +  SUM(bal%ebal)   !       &
+                         !    + SUM(bal%ebal_tot_cncheck)
+           new_sumfpn = new_sumfpn + SUM(canopy%fpn)
+           new_sumfe = new_sumfe + SUM(canopy%fe)
+!PRINT*," The sumbal1 ",   new_sumbal, new_sumfpn, new_sumfe, canopy%fpn, canopy%fe
+!write(57,*)  new_sumfpn, canopy%fpn, canopy%fe
+!write(57,*) SUM(bal%ebal_tot)
+!write(*,*) "met", met
+write(57,*)  SUM(bal%wbal), canopy%fevw
+PRINT*," The sumbals", bal%ebal_tot, bal%wbal_tot,  new_sumbal, new_sumfe, new_sumfpn
+!if (ktau==8840) stop
+
             IF( ktau == kend ) THEN
                nkend = nkend+1
 
@@ -779,34 +788,36 @@ stop
    WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
  
    
-   ! Check this run against standard for quasi-bitwise reproducability
-   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-   IF(cable_user%consistency_check) THEN 
-      
-      new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
-                       + SUM(bal%ebal_tot_cncheck)
-  
-      IF( new_sumbal == trunk_sumbal) THEN
-
-         print *, ""
-         print *, &
-         "Internal check2 shows this version reproduces the trunk sumbal"
-      
-      ELSE
-
-         print *, ""
-         print *, &
-         "Internal check2 shows in this version new_sumbal != trunk sumbal"
-         print *, &
-         "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
-               
-         OPEN( 12, FILE = Fnew_sumbal )
-            WRITE( 12, * ) new_sumbal  ! written by previous trunk version
-         CLOSE(12)
-      
-      ENDIF   
-      
-   ENDIF
+!!$   ! Check this run against standard for quasi-bitwise reproducability
+!!$   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+!!$   IF(cable_user%consistency_check) THEN 
+!!$      
+!!$      new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
+!!$                       + SUM(bal%ebal_tot_cncheck)
+!!$
+!!$      new_sumfpn = SUM(canopy%fpn) 
+!!$  
+!!$      IF( new_sumbal == trunk_sumbal) THEN
+!!$
+!!$         print *, ""
+!!$         print *, &
+!!$         "Internal check2 shows this version reproduces the trunk sumbal"
+!!$      
+!!$      ELSE
+!!$
+!!$         print *, ""
+!!$         print *, &
+!!$         "Internal check2 shows in this version new_sumbal != trunk sumbal"
+!!$         print *, &
+!!$         "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+!!$               
+!!$         OPEN( 12, FILE = Fnew_sumbal )
+!!$            WRITE( 12, * ) new_sumbal  ! written by previous trunk version
+!!$         CLOSE(12)
+!!$      
+!!$      ENDIF   
+!!$      
+!!$   ENDIF
 
    ! Close log file
    CLOSE(logn)

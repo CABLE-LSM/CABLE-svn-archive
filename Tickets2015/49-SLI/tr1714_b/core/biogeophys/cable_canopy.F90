@@ -253,20 +253,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             ! Forced convection boundary layer conductance                     
             ! (see Wang & Leuning 1998, AFM):
 
-!!!             !vh! inserted 'max' to avoid floating underflow
-!!!            gbhu(j,1) = gbvtop(j)*(1.0-EXP(-max(canopy%vlaiw(j)                    &
-!!!                        *(0.5*rough%coexp(j)+rad%extkb(j) ),1.e-12))) /            &
-!!!                        (rad%extkb(j)+0.5*rough%coexp(j))
-!!!            
-!!!            gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
-!!!                        (1.0-EXP(-max(0.5*rough%coexp(j)*canopy%vlaiw(j),1.e-12))) &
-!!!CLN03                        - gbhu(j,1)
-            gbhu(j,1) = gbvtop(j)*(1.0-EXP(-canopy%vlaiw(j)                    &
-                        *(0.5*rough%coexp(j)+rad%extkb(j) ))) /                &
+             !vh! inserted 'max' to avoid floating underflow
+            gbhu(j,1) = gbvtop(j)*(1.0-EXP(-max(canopy%vlaiw(j)                    &
+                        *(0.5*rough%coexp(j)+rad%extkb(j) ),1.e-12))) /            &
                         (rad%extkb(j)+0.5*rough%coexp(j))
- 
+            
             gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
-                        (1.0-EXP(-0.5*rough%coexp(j)*canopy%vlaiw(j)))         &
+                        (1.0-EXP(-max(0.5*rough%coexp(j)*canopy%vlaiw(j),1.e-12))) &
                         - gbhu(j,1)
          ENDIF 
       
@@ -427,8 +420,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ! Soil sensible heat:
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-      !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
-      canopy%ga = canopy%fns-canopy%fhs-canopy%fes
+      !! vh_js !! ssnow%cls factor in the line below should be retained: required for energy balance
+!! note this causes a small difference in cumlative latent heat flux (for comparison with trunk), but correction implemented
+!! because of importance for energy balance
+      canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
+     ! canopy%ga = canopy%fns-canopy%fhs-canopy%fes
       
 
 
@@ -844,7 +840,7 @@ SUBROUTINE Latent_heat_flux()
 
    ENDDO 
    
-   ! Evaporation form soil puddle
+   ! Evaporation from soil puddle
    canopy%fesp = min(ssnow%pudsto/dels*air%rlam,max(pwet*ssnow%potev,0.))
    canopy%fes = canopy%fess + canopy%fesp
 
@@ -1582,20 +1578,16 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          ENDIF
          
       ENDDO !i=1,mp
-
- 
-  
    
-      CALL PHOTOSYNTHESIS( CSX(:,:),                                           &
-                           SPREAD( CX1(:), 2, MF ),                            &
-                           SPREAD( CX2(:), 2, MF ),                            &
-                           GSWMIN(:,:), RDX(:,:), VCMXT3(:,:),                 &
-                           VCMXT4(:,:), VX3(:,:), VX4(:,:),                    &
-                           XLEUNING(:,:), RAD%FVLAI(:,:),                      &
-                           SPREAD( ABS_DELTLF, 2, MF ),                        &
-                           ANX(:,:), FWSOIL(:) )
+      CALL photosynthesis( csx(:,:),                                           &
+                           SPREAD( cx1(:), 2, mf ),                            &
+                           SPREAD( cx2(:), 2, mf ),                            &
+                           gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
+                           vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
+                           xleuning(:,:), rad%fvlai(:,:),                      &
+                           SPREAD( abs_deltlf, 2, mf ),                        &
+                           anx(:,:), fwsoil(:) )
 
-       
       DO i=1,mp
          
          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) Then

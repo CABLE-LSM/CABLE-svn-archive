@@ -51,7 +51,7 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR
+   USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
 
    IMPLICIT NONE
    
@@ -725,7 +725,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! If error getting coordinate field (i.e. it doesn't exist):
     IF(ok /= NF90_NOERR) THEN
        ! Assume default time coordinate:
-       IF(mland_fromfile==1) THEN ! If single site, this is local time
+       IF(mland_fromfile==1.and.(TRIM(cable_user%MetType) .NE. 'gswp')) THEN ! If single site, this is local time
           time_coord = 'LOC' ! 12am is 12am local time, at site/gridcell
        ELSE ! If multiple/global/regional, use GMT
           time_coord = 'GMT' ! 12am is GMT time, local time set by longitude
@@ -803,7 +803,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 !       eyear = INT(REAL(INT(((timevar(kend)-timevar(1)+dels) &
 !            /3600.0+shod)/24.0)+sdoy)/365.0)+syear
     END IF
-    ! IF A CERTAIN PERIODE IS DESIRED AND WE ARE NOT RUNNING ON GSWP DATA
+    ! IF A CERTAIN PERIOD IS DESIRED AND WE ARE NOT RUNNING ON GSWP DATA
     ! RECALCULATE STARTING AND ENDING INDICES
     IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0) THEN
        IF ( syear.GT.CABLE_USER%YEARSTART .OR. eyear.LE.CABLE_USER%YEAREND .OR. &
@@ -855,9 +855,10 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF(metunits%SWdown(1:4)/='W/m2'.AND.metunits%SWdown(1:5) &
-         /='W/m^2'.AND.metunits%SWdown(1:5)/='Wm^-2' &
-         .AND.metunits%SWdown(1:4)/='Wm-2') THEN
+  !! vh_js !! fixed bug in logic 
+    IF(.NOT.(metunits%SWdown(1:4)/='W/m2'.OR.metunits%SWdown(1:5) &
+         /='W/m^2'.OR.metunits%SWdown(1:5)/='Wm^-2' &
+         .OR.metunits%SWdown(1:4)/='Wm-2')) THEN
        WRITE(*,*) metunits%SWdown
        CALL abort('Unknown units for SWdown'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -925,8 +926,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
          metunits%Rainf(1:6)=='mms^-1'.OR. &
          metunits%Rainf(1:7)=='kg/m^2s') THEN
        ! Change from mm/s to mm/time step:
-       write(*,*) 'Rainfall Units', metunits%Rainf
-       convert%Rainf = dels
+        convert%Rainf = dels
     ELSE IF(metunits%Rainf(1:4)=='mm/h'.OR.metunits%Rainf(1:6)== &
          'mmh^-1') THEN
        ! Change from mm/h to mm/time step:
@@ -977,9 +977,14 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding LWdown units in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-       IF(metunits%LWdown(1:4)/='W/m2'.AND.metunits%LWdown(1:5) &
-            /='W/m^2'.AND.metunits%LWdown(1:5)/='Wm^-2' &
-            .AND.metunits%LWdown(1:4)/='Wm-2') THEN
+ !! vh_js !! fixed bug in logic
+!!$       IF(metunits%LWdown(1:4)/='W/m2'.AND.metunits%LWdown(1:5) &
+!!$            /='W/m^2'.AND.metunits%LWdown(1:5)/='Wm^-2' &
+!!$            .AND.metunits%LWdown(1:4)/='Wm-2') THEN
+       IF(.NOT.(metunits%LWdown(1:4)/='W/m2'.OR.metunits%LWdown(1:5) &
+            /='W/m^2'.OR.metunits%LWdown(1:5)/='Wm^-2' &
+            .OR.metunits%LWdown(1:4)/='Wm-2')) THEN
+
           WRITE(*,*) metunits%LWdown
           CALL abort('Unknown units for LWdown'// &
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1492,8 +1497,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) - 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + 24.0
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
+          if (is_leapyear(met%year(landpt(i)%cstart))) then
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(0) ! ie Dec previous year
                 met%moy(landpt(i)%cstart) = 12
@@ -1528,8 +1532,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 12
                 met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
                 ! If previous year is a leap year
-                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
+                if (is_leapyear(met%year(landpt(i)%cstart))) then
                    met%doy(landpt(i)%cstart) = 366
                 ELSE
                    met%doy(landpt(i)%cstart) = 365
@@ -1564,8 +1567,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) + 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) - 24.0
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
+           !! vh_js !! use is_leapyear function here instead of multiple conditions
+          if (is_leapyear(met%year(landpt(i)%cstart))) then
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(32) ! Feb
                 met%moy(landpt(i)%cstart) = 2
@@ -2172,8 +2175,11 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ELSE 
         ! If not in met file, use default LAI value:
         DO i=1,mland ! over all land points/grid cells
+         !! vh_js !! corrected indices of defaultLAI
           veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
-               defaultLAI(i,met%moy(landpt(i)%cstart))
+               defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
+
+
         ENDDO
       END IF
       DEALLOCATE(tmpDat1, tmpDat2, tmpDat3, tmpDat2x)
@@ -2329,7 +2335,9 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
         mpID,              &
         napID,             &
         i                    ! do loop variables
-    CHARACTER :: frst_in*100, CYEAR*4
+    !! vh_js !!
+    ! CHARACTER :: frst_in*100, CYEAR*4
+    CHARACTER :: frst_in*200, CYEAR*4
 
     INTEGER   :: IOS
     CHARACTER :: TACC*20

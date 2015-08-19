@@ -921,15 +921,15 @@ CONTAINS
       ! parameters that are not spatially dependent
       select case(ms)
          
-         case(6)
-            soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
-         case(12)
-            soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
-                         0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
-       case(13)
-          soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,  &
-               0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
-      
+      case(6)
+         soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+      case(12)
+         soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
+              0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
+      case(13)
+         soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,  &
+              0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
+         
       end select
  
    ELSE
@@ -1147,11 +1147,8 @@ CONTAINS
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
-    
-    !jhan: this was from VH version - but 2001 not defined anywhere? 
-    !write(2001,"(1000f8.2)") MINVAL(defaultLAI(:,:),2)/MAXVAL(defaultLAI(:,:),2)
-    !write(2001,"(1000f8.2)") MAXVAL(defaultLAI(:,:),2)
-    
+ 
+        
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
@@ -1240,14 +1237,8 @@ CONTAINS
          ssnow%Tsoil = ssnow%tgg - 273.15
       END IF
 
-      IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
-         veg%d0c3 = 1500.
-         veg%a1c3 = 9.0
-         veg%gamma = 1.e-2
-      END IF
-
       IF(cable_user%SOIL_STRUC=='sli') THEN
-         soil%nhorizons = 2 ! use 2 soil horizons globally
+         soil%nhorizons = 1 ! use 2 soil horizons globally
          soil%clitt = 5.0 ! (tC / ha)
          veg%gamma = 1.e-2
          veg%F10 = 0.85
@@ -1387,19 +1378,18 @@ CONTAINS
     END DO
     bal%osnowd0 = ssnow%osnowd
 
-   IF(hide%Ticket49Bug6) THEN
-      soil%swilt_vec = SPREAD(soil%swilt,2,ms)
-      soil%ssat_vec = SPREAD(soil%ssat,2,ms)
-      IF(cable_user%SOIL_STRUC=='sli') THEN
-         soil%nhorizons = 2 ! use 2 soil horizons globally
-         soil%sfc_vec = SPREAD(soil%sfc,2,ms)
-
-         ! Arbitrarily set A horiz depth to be first half of the layers
-         soil%ishorizon(:,1:ms/2)  = 1
-         soil%ishorizon(:,ms/2+1:) = 2
-         soil%clitt = 5.0 ! (tC / ha)
-      END IF
-    END IF
+  !! vh_js !! comment out hide% condition
+   ! IF (hide%Ticket49Bug6) THEN
+       soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+       soil%ssat_vec = SPREAD(soil%ssat,2,ms)
+       IF(cable_user%SOIL_STRUC=='sli') THEN
+          soil%sfc_vec = SPREAD(soil%sfc,2,ms)
+          ! Only 1 horizon by default ! 
+          soil%nhorizons = 1 
+          soil%ishorizon = 1
+          soil%clitt = 5.0 ! (tC / ha)
+       END IF
+   ! END IF
  
   END SUBROUTINE derived_parameters
   !============================================================================

@@ -144,8 +144,9 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       rad%extkb = rad%extkd + 0.001
    END WHERE
    
-   WHERE(rad%fbeam(:,1) < 1.0e-3 )
-    !  rad%extkb=1.0e5         ! vh ! suggest higher to avoid sunlit leaves at night
+   WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
+!! vh_js !!
+    !  rad%extkb=1.0e5         ! vh ! suggest higher to avoid sunlit leaves at night: this change affects cumulative fluxes, so currently commented out for comparison with trunk.
       rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
    END WHERE
    
@@ -157,7 +158,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, soil_snow_type,         &
-                                   air_type, mp, mf
+                                   air_type, mp, mf, r_2
                                        
    TYPE (canopy_type),   INTENT(IN) :: canopy
    TYPE (air_type),      INTENT(IN) :: air
@@ -203,8 +204,11 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    END WHERE
 
    ! Define fraction of SW beam tranmitted through canopy:
-   dummy2 = MIN(rad%extkb * canopy%vlaiw,30.)
+!! vh_js !!
+   dummy2 = MIN(rad%extkb * canopy%vlaiw,30.) ! vh version to avoid floating underflow !
    dummy = EXP(-dummy2)
+  ! dummy2 = -rad%extkb * canopy%vlaiw
+  ! dummy = EXP(dummy2)
    rad%transb = REAL(dummy)
 
    ! Define longwave from vegetation:
@@ -219,19 +223,18 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    rad%gradis = 0.0 ! initialise radiative conductance
    rad%qcan = 0.0   ! initialise radiation absorbed by canopy
    
-   ! vh ! substituted met%tk with met%tvrad below
    WHERE (canopy%vlaiw > C%LAI_THRESH )
 
       ! Define radiative conductance (Leuning et al, 1995), eq. D7:
       rad%gradis(:,1) = ( 4.0 * C%EMLEAF / (C%CAPP * air%rho) ) * flpwb        &
-                        / (met%tvrad) * rad%extkd                              &
+                        / (met%tk) * rad%extkd                              &
                         * ( ( 1.0 - rad%transb * rad%transd ) /                &
                         ( rad%extkb + rad%extkd )                              &
                         + ( rad%transd - rad%transb ) /                        &
                         ( rad%extkb - rad%extkd ) )
       
       rad%gradis(:,2) = ( 8.0 * C%EMLEAF / ( C%CAPP * air%rho ) ) *            &
-                        flpwb / met%tvrad * rad%extkd *                        &
+                        flpwb / met%tk * rad%extkd *                        &
                         ( 1.0 - rad%transd ) / rad%extkd - rad%gradis(:,1)
       
       ! Longwave radiation absorbed by sunlit canopy fraction:
@@ -249,7 +252,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
 
    ! Convert radiative conductance from m/s to mol/m2/s:
    rad%gradis=SPREAD(air%cmolar, 2, mf)*rad%gradis
-   rad%gradis = MAX(1.0e-8,rad%gradis)    ! vh !
+   rad%gradis = MAX(1.0e-3_r_2,rad%gradis)   
 
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and REFLection (ie. NOT black leaves):

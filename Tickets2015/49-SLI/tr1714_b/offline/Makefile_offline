@@ -38,7 +38,7 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_output.F90 casa_cnp.F90 casa_cable.F90 casa_inout.F90 cable_driver.F90 \
 	cable_sli_main.F90 cable_sli_numbers.F90 cable_sli_roots.F90 \
 	cable_sli_solve.F90 cable_sli_utils.F90  \
-	cable_constants.F90 spincasacnp.F90 \
+         spincasacnp.F90 \
 	cable_diag.F90 POP.F90 pop_io.F90 globfor_out.F90
 
 # this is the executable we are building
@@ -129,11 +129,9 @@ pop_io.o: pop_io.F90 POP.o casa_variable.o cable_common.o
 
 globfor_out.o: globfor_out.F90 POP.o
 
-cable_constants.o: cable_constants.F90 cable_define_types.o
-
-cable_sli_main.o: cable_sli_main.F90  cable_define_types.o cable_constants.o cable_sli_numbers.o cable_sli_roots.o cable_sli_solve.o cable_soilsnow.o
+cable_sli_main.o: cable_sli_main.F90  cable_define_types.o cable_sli_numbers.o cable_sli_roots.o cable_sli_solve.o cable_soilsnow.o
  
-cable_sli_numbers.o: cable_sli_numbers.F90  cable_define_types.o  cable_constants.o
+cable_sli_numbers.o: cable_sli_numbers.F90  cable_define_types.o 
 
 cable_sli_roots.o: cable_sli_roots.F90 cable_sli_numbers.o cable_define_types.o
 

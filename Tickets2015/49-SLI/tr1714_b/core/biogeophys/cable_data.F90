@@ -93,8 +93,10 @@ module cable_data_module
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
-      real:: RAD_THRESH = 0.01 
-      real:: LAI_THRESH = 0.01 
+
+!! vh_js !! smaller values 
+      real:: RAD_THRESH = 0.001 
+      real:: LAI_THRESH = 0.001 
    end type other_constants
 
    type photosynthetic_constants
@@ -207,7 +209,7 @@ module cable_data_module
       REAL, POINTER ::                                                         &
          ! physical constants
          CSD, CRD, CCD, CCW_C, USUHM, VONK,                                    &
-         A33, CTL,  ZDLIN, CSW, GRAV   
+         A33, CTL,  ZDLIN, CSW, GRAV , LAI_THRESH  !! vh_js !! added LAI_THRESH here
    END TYPE irough_type
 
 
@@ -396,7 +398,8 @@ SUBROUTINE rough_type_ptr(C)
          C%A33   => PHYS%A33                                                      
          C%CTL   => PHYS%CTL                                                    
          C%ZDLIN => PHYS%ZDLIN                                                    
-         C%GRAV  => PHYS%GRAV                                                   
+         C%GRAV  => PHYS%GRAV   
+         C%LAI_THRESH => OTHER%LAI_THRESH                                                 
 END SUBROUTINE rough_type_ptr 
 
 ! ------------------------------------------------------------------------------

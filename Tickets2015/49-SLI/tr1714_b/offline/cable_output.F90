@@ -58,7 +58,7 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar, RnetSoil, SnowMelt
+                    HVeg, HSoil, Rnet, tvar, CanT, RnetSoil, SnowMelt
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -160,6 +160,8 @@ MODULE cable_output_module
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CanT  ! within-canopy temperature
+                                                 ! [K]
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -584,6 +586,13 @@ CONTAINS
        ALLOCATE(out%VegT(mp))
        out%VegT = 0.0 ! initialise
     END IF
+    IF(output%veg .OR. output%CanT) THEN
+       CALL define_ovar(ncid_out, ovid%CanT, 'CanT', 'K', &
+                        'Within-canopy temperature', patchout%CanT, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%CanT(mp))
+       out%CanT = 0.0 ! initialise
+    END IF
     IF(output%veg .OR. output%CanopInt) THEN
        CALL define_ovar(ncid_out, ovid%CanopInt, 'CanopInt', 'kg/m^2',         &
                         'Canopy intercepted water storage', patchout%CanopInt, &
@@ -1006,6 +1015,8 @@ CONTAINS
     IF(ktau == 1) THEN
        out_timestep = 0
        out_month = 0
+       !! vh_js !! assume all met starts at the same year
+       IF ( TRIM(cable_user%MetType) .ne. 'gswp' ) CABLE_USER%YearStart = met%year(1)
     END IF
 
     ! Decide on output averaging regime:
@@ -1036,23 +1047,19 @@ CONTAINS
        
        ! LN Inserted for multiyear output
        dday = 0
-       IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
-          DO iy = CABLE_USER%YearStart,MAXVAL(realyear)-1
-             IF ( IS_LEAPYEAR(iy) .AND. leaps ) THEN
-                dday = dday + 366
-             ELSE
-                dday = dday + 365
-             ENDIF
-          END DO
-       ENDIF
+       DO iy = CABLE_USER%YearStart,MAXVAL(realyear)-1
+          IF ( IS_LEAPYEAR(iy) .AND. leaps ) THEN
+             dday = dday + 366
+          ELSE
+             dday = dday + 365
+          ENDIF
+       END DO
        ! LN Inserted for multiyear output
 
        ! Are we using leap year calendar?
-       IF(leaps) THEN
+       IF (leaps) THEN
           ! If currently a leap year:
-          IF(((ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,100)/=0)).OR. &
-               (ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,400)==0)))) THEN
-             
+          if (any(is_leapyear(realyear))) then
              IF(ANY(((lastdayl+dday) * 24 * 3600 / INT(dels)) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
@@ -1138,8 +1145,8 @@ CONTAINS
     ! LWdown: downward long-wave radiation [W/m^2]
     IF(output%met .OR. output%LWdown) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%LWdown = out%LWdown + REAL(ssnow%nsteps, 4)  !!vh!! temp overwrite LWdown with nsteps
-       IF(writenow) THEN
+        out%LWdown = out%LWdown + REAL(met%fld, 4)
+        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%LWdown = out%LWdown/REAL(output%interval, 4)
           ! Write value to file:
@@ -1152,7 +1159,7 @@ CONTAINS
     ! Tair: surface air temperature [K]
     IF(output%met .OR. output%Tair) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Tair = out%Tair + REAL(met%tvair, 4) !VH TEST!
+       out%Tair = out%Tair + REAL(met%tk, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Tair = out%Tair/REAL(output%interval, 4)
@@ -1648,6 +1655,20 @@ CONTAINS
           out%VegT = 0.0
        END IF
     END IF
+    ! CanT: within-canopy temperature [K]
+    IF(output%veg .OR. output%CanT) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%CanT = out%CanT + REAL(met%tvair, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%CanT = out%CanT / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%CanT, 'CanT', out%CanT, &
+                          ranges%CanT, patchout%CanT, 'default', met)
+          ! Reset temporary output variable:
+          out%CanT = 0.0
+       END IF
+    END IF
     ! CanopInt: total canopy water storage [kg/m^2]
     IF(output%veg .OR. output%CanopInt) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1869,7 +1890,9 @@ CONTAINS
                     csoilID, tradID, albedoID
     INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
-    CHARACTER         :: FRST_OUT*100, CYEAR*4
+    ! CHARACTER         :: FRST_OUT*100, CYEAR*4
+    CHARACTER         :: FRST_OUT*200, CYEAR*4
+
 
     dummy = 0 ! initialise
 

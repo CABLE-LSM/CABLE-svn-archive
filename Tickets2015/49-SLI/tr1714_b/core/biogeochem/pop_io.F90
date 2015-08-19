@@ -1,6 +1,5 @@
 SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
-
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! POP        : POP structure containing all specific parameter 
   ! casamet    : structure containing met and grid specific parameters from CASA
@@ -27,6 +26,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   LOGICAL,OPTIONAL,INTENT(IN)    :: CF
 
   INTEGER            :: STATUS,i,m,p,l,land_ID,patch_ID,ndis_ID
+  !CRM  INTEGER            :: ndis1_ID,nlay_ID,hgtb_ID,ncoh_ID,t_ID
   INTEGER            :: nlay_ID,hgtb_ID,ncoh_ID,t_ID
   INTEGER            :: nlayer_dim, ndisturb_dim, ndisturb1_dim,land_dim
   INTEGER            :: HEIGHT_BINS_dim,npatch2d_dim,NCOHORT_MAX_dim
@@ -63,6 +63,10 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   !        'patch_biomass','patch_biomass_old','patch_biomass_old2',                &
   !        'patch_stress_mortality','patch_fire_mortality','patch_growth' /)
   !   ! 4 dim arrays (np,npatch2d,ndisturb+1,t)
+  ! !CRM  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AI6 =                           &
+  ! !CRM       (/ 'patch_ranked_age_unique' /)
+  ! !CRM  CHARACTER(len=40),DIMENSION( 1), PARAMETER :: AR6 =                           &
+  ! !CRM       (/ 'patch_freq_ranked_age_unique' /)
   !   ! 4 dim arrays (np,npatch2d,ndisturb,t)
   !   CHARACTER(len=40),DIMENSION( 5), PARAMETER :: AI7 =                           &
   !        (/ 'patch_disturbance_interval','patch_first_disturbance_year',          &
@@ -89,7 +93,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   ! LANDSCAPE STRUCTURE
   ! 2 dim arrays (np,t)
   CHARACTER(len=40),DIMENSION( 1) :: AI1
-  CHARACTER(len=40),DIMENSION(11) :: AR1
+  CHARACTER(len=40),DIMENSION(24) :: AR1
   ! 3 dim arrays (np,nlayer,t)
   CHARACTER(len=40),DIMENSION( 4) :: AR2
   ! 3 dim arrays (np,height_bins,t)
@@ -100,7 +104,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   ! PATCH STRUCTURE
   ! 3 dim arrays (np,npatch2d,t)
   CHARACTER(len=40),DIMENSION( 1) :: AI5
-  CHARACTER(len=40),DIMENSION( 8) :: AR5
+  CHARACTER(len=40),DIMENSION( 24) :: AR5
   ! 4 dim arrays (np,npatch2d,ndisturb,t)
   CHARACTER(len=40),DIMENSION( 4) :: AI7
   CHARACTER(len=40),DIMENSION( 1) :: AR7
@@ -112,7 +116,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
   ! COHORT STRUCTURE
   ! 5 dim arrays (np,npatch2d,nlayer,ncohort_max,t)
-  CHARACTER(len=40),DIMENSION( 5) :: AR9
+  CHARACTER(len=40),DIMENSION( 19) :: AR9
   CHARACTER(len=40),DIMENSION( 2) :: AI9
 
 
@@ -131,17 +135,30 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
   AI1(1) = 'npatch_active'
 
-  AR1(1) = 'cmass_sum'
-  AR1(2) = 'densindiv'
-  AR1(3) = 'height_mean'
-  AR1(4) = 'height_max'
-  AR1(5) = 'basal_area'
-  AR1(6) = 'stress_mortality'
-  AR1(7) = 'fire_mortality'
-  AR1(8) = 'growth'
-  AR1(9) = 'crown_cover'
-  AR1(10) = 'crown_area'
-  AR1(11) = 'crown_volume'
+ AR1(1) = 'cmass_sum'
+ AR1(2) = 'cmass_sum_old'
+ AR1(3) = 'cheartwood_sum'
+ AR1(4) = 'csapwood_sum'
+ AR1(5) = 'csapwood_sum_old'
+ AR1(6) = 'densindiv'
+ AR1(7) = 'height_mean'
+ AR1(8) = 'height_max'
+ AR1(9) = 'basal_area'
+ AR1(10) = 'sapwood_loss'
+ AR1(11) = 'sapwood_area_loss'
+ AR1(12) = 'stress_mortality'
+ AR1(13) = 'crowding_mortality'
+ AR1(14) = 'fire_mortality'
+ AR1(15) = 'cat_mortality'
+ AR1(16) = 'res_mortality'
+ AR1(17) = 'growth'
+ AR1(18) = 'area_growth'
+ AR1(19) = 'crown_cover'
+ AR1(20) = 'crown_area'
+ AR1(21) = 'crown_volume'
+ AR1(22) = 'sapwood_area'
+ AR1(23) = 'sapwood_area_old'
+ AR1(24) = 'Kclump'
 
   AR2(1) = 'biomass'
   AR2(2) = 'density'
@@ -160,12 +177,28 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   AR5(1) = 'patch_freq'
   AR5(2) = 'patch_freq_old'
   AR5(3) = 'patch_factor_recruit'
-  AR5(4) = 'patch_biomass'
-  AR5(5) = 'patch_biomass_old'
-  AR5(6) = 'patch_stress_mortality'
-  AR5(7) = 'patch_fire_mortality'
-  AR5(8) = 'patch_growth'
-
+  AR5(4) ='patch_pgap'
+  AR5(5) ='patch_lai'
+  AR5(6) = 'patch_biomass'
+  AR5(7) = 'patch_biomass_old'
+  AR5(8) ='patch_sapwood'
+  AR5(9) ='patch_heartwood'
+  AR5(10) ='patch_sapwood_old'
+  AR5(11) ='patch_sapwood_area'
+  AR5(12) ='patch_sapwood_area_old'
+  AR5(13) = 'patch_stress_mortality'
+  AR5(14) = 'patch_fire_mortality'
+  AR5(15) ='patch_cat_mortality'
+  AR5(16) ='patch_crowding_mortality'
+  AR5(17) ='patch_cpc'
+  AR5(18) ='patch_sapwood_loss'
+  AR5(19) ='patch_sapwood_area_loss'
+  AR5(20) ='patch_growth'
+  AR5(21) ='patch_area_growth'
+  AR5(22) ='patch_frac_NPP'
+  AR5(23) ='patch_frac_respiration'
+  AR5(24) ='patch_frac_GPP'
+  
   AI7(1) = 'patch_disturbance_interval'
   AI7(2) = 'patch_first_disturbance_year'
   AI7(3) = 'patch_age'
@@ -177,14 +210,29 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   AR8(2) = 'layer_density'
   AR8(3) = 'layer_hmean'
   AR8(4) = 'layer_hmax'
+ 
 
   AI8(1) = 'layer_ncohort'
 
   AR9(1) = 'cohort_biomass'
   AR9(2) = 'cohort_density'
   AR9(3) = 'cohort_frac_resource_uptake'
-  AR9(4) = 'cohort_height'
-  AR9(5) = 'cohort_diameter'
+  AR9(4) = 'cohort_frac_light_uptake'
+  AR9(5) = 'cohort_frac_interception'
+  AR9(6) = 'cohort_frac_respiration'
+  AR9(7) = 'cohort_frac_NPP'
+  AR9(8) = 'cohort_respiration_scalar'
+  AR9(9) = 'cohort_crown_area'
+  AR9(10) = 'cohort_Pgap'
+  AR9(11) = 'cohort_height'
+  AR9(12) = 'cohort_diameter'
+  AR9(13) = 'cohort_sapwood'
+  AR9(14) = 'cohort_heartwood'
+  AR9(15) = 'cohort_sapwood_area'
+  AR9(16) = 'cohort_basal_area'
+  AR9(17) = 'cohort_LAI'
+  AR9(18) = 'cohort_Cleaf'
+  AR9(19) = 'cohort_Croot'
 
   AI9(1) = 'cohort_age'
   AI9(2) = 'cohort_id'
@@ -211,6 +259,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
      WRITE(*,*)  "WRONG ACTION:'",TRIM(ACTION),"' in call to pop_io!"
      STOP -1
   ENDIF
+
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! WRITE POP VALUES TO OUTPUT FILE
@@ -314,8 +363,12 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
                 VIDR9(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         END DO
+
+
       
       ELSE  ! file doesn't already exist
+
+
 
         ! Create NetCDF file:
         STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
@@ -335,6 +388,8 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'NDISTURB'   , NDISTURB   , ndis_ID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+        !CRM     STATUS = NF90_def_dim(FILE_ID, 'NDISTURB+1' , NDISTURB+1 , ndis1_ID)
+        !CRM     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'NLAYER'     , NLAYER     , nlay_ID )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'HEIGHT_BINS', HEIGHT_BINS, hgtb_ID )
@@ -343,7 +398,6 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'time'   ,  NF90_UNLIMITED, t_ID    )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
         ! Define variables
         STATUS = NF90_def_var(FILE_ID,'Time' ,NF90_INT,(/t_ID/),VIDtime )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -364,6 +418,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
            STATUS = NF90_def_var(FILE_ID,TRIM(AR2(i)), NF90_FLOAT,(/land_ID,nlay_ID,t_ID/),VIDR2(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         END DO
+
         DO i = 1, SIZE(AR3)
            STATUS = NF90_def_var(FILE_ID,TRIM(AR3(i)), NF90_FLOAT,(/land_ID,hgtb_ID,t_ID/),VIDR3(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -385,6 +440,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
                 (/land_ID,patch_ID,ndis_ID,t_ID/),VIDI7(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         END DO
+
         DO i = 1, SIZE(AR7)
            STATUS = NF90_def_var(FILE_ID,TRIM(AR7(i)), NF90_FLOAT, &
                 (/land_ID,patch_ID,ndis_ID,t_ID/),VIDR7(i))
@@ -439,34 +495,96 @@ END IF
      STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 1), POP%pop_grid(:)%cmass_sum,          &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 2), POP%pop_grid(:)%densindiv,          &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 2), POP%pop_grid(:)%cmass_sum_old,          &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 3), POP%pop_grid(:)%height_mean,        &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 3), POP%pop_grid(:)%cheartwood_sum,          &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 4), POP%pop_grid(:)%height_max,         &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 4), POP%pop_grid(:)%csapwood_sum,          &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 5), POP%pop_grid(:)%basal_area,         &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 5), POP%pop_grid(:)%csapwood_sum_old,          &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 6), POP%pop_grid(:)%stress_mortality,   &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 6), POP%pop_grid(:)%densindiv,          &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 7), POP%pop_grid(:)%fire_mortality,     &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 7), POP%pop_grid(:)%height_mean,        &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 8), POP%pop_grid(:)%growth,             &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 8), POP%pop_grid(:)%height_max,         &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 9), POP%pop_grid(:)%crown_cover,        &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 9), POP%pop_grid(:)%basal_area,         &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(10), POP%pop_grid(:)%crown_area,         &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 10), POP%pop_grid(:)%sapwood_loss,          &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(11), POP%pop_grid(:)%crown_volume,       &
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 11), POP%pop_grid(:)%sapwood_area_loss,          &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 12), POP%pop_grid(:)%stress_mortality,   &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 13), POP%pop_grid(:)%crowding_mortality,   &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 14), POP%pop_grid(:)%fire_mortality,     &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 15), POP%pop_grid(:)%cat_mortality,     &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 16), POP%pop_grid(:)%res_mortality,     &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 17), POP%pop_grid(:)%growth,             &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+    STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 18), POP%pop_grid(:)%area_growth,             &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1( 19), POP%pop_grid(:)%crown_cover,        &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(20), POP%pop_grid(:)%crown_area,         &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(21), POP%pop_grid(:)%crown_volume,       &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(22), POP%pop_grid(:)%sapwood_area,         &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(23), POP%pop_grid(:)%sapwood_area_old,         &
+          start=(/ 1, CNT /), count=(/ mp, 1 /) )
+     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+     STATUS = NF90_PUT_VAR(FILE_ID, VIDR1(24), POP%pop_grid(:)%KClump,         &
           start=(/ 1, CNT /), count=(/ mp, 1 /) )
      IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -519,23 +637,82 @@ END IF
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 3), POP%pop_grid(m)%patch(:)%factor_recruit,  &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 4), POP%pop_grid(m)%patch(:)%biomass,         &
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 4), POP%pop_grid(m)%patch(:)%pgap,         &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 5), POP%pop_grid(m)%patch(:)%biomass_old,     &
-             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 6), POP%pop_grid(m)%patch(:)%stress_mortality,&
-             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 7), POP%pop_grid(m)%patch(:)%fire_mortality,  &
-             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
-        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 8), POP%pop_grid(m)%patch(:)%growth,          &
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 5), POP%pop_grid(m)%patch(:)%lai,     &
              start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
+
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 6), POP%pop_grid(m)%patch(:)%biomass,         &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 7), POP%pop_grid(m)%patch(:)%biomass_old,     &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 8), POP%pop_grid(m)%patch(:)%sapwood,     &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 9), POP%pop_grid(m)%patch(:)%heartwood,     &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 10), POP%pop_grid(m)%patch(:)%sapwood_old,     &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 11), POP%pop_grid(m)%patch(:)%sapwood_area,     &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 12), POP%pop_grid(m)%patch(:)%sapwood_area_old,     &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+         STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 13), POP%pop_grid(m)%patch(:)%stress_mortality,&
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 14), POP%pop_grid(m)%patch(:)%fire_mortality,  &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 15), POP%pop_grid(m)%patch(:)%cat_mortality,&
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 16), POP%pop_grid(m)%patch(:)%crowding_mortality,  &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 17), POP%pop_grid(m)%patch(:)%cpc,&
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 18), POP%pop_grid(m)%patch(:)%sapwood_loss,  &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 19), POP%pop_grid(m)%patch(:)%sapwood_area_loss,  &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 20), POP%pop_grid(m)%patch(:)%growth,          &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 21), POP%pop_grid(m)%patch(:)%area_growth,          &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 22), POP%pop_grid(m)%patch(:)%frac_NPP,          &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 23), POP%pop_grid(m)%patch(:)%frac_respiration,          &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( 24), POP%pop_grid(m)%patch(:)%frac_light_uptake,          &
+             start=(/ m, 1, CNT /), count=(/ 1, npatch2d, 1 /) )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+
         PAT:DO p = 1, npatch2d
+           !CRM        ! PUT 4D VARS ( mp,npatch2d, ndisturb+1,t )
+           !CRM        STATUS = NF90_PUT_VAR(FILE_ID, VIDI6( 1), POP%pop_grid(m)%ranked_age_unique(p,:),&
+           !CRM             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB+1, 1 /) )
+           !CRM        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+           !CRM        STATUS = NF90_PUT_VAR(FILE_ID, VIDR6( 1), POP%pop_grid(m)%freq_ranked_age_unique(p,:),&
+           !CRM             start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB+1, 1 /) )
+           !CRM        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+ 
            ! PUT 4D VARS ( mp,npatch2d, ndisturb,t )
            STATUS = NF90_PUT_VAR(FILE_ID, VIDI7( 1), POP%pop_grid(m)%patch(p)%disturbance_interval,&
                 start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
@@ -590,10 +767,53 @@ END IF
               STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 3), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_resource_uptake,&
                    start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
               IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 4), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%height,&
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 4), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_light_uptake,&
                    start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
               IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 5), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%diameter,&
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 5), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_interception,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 6), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_respiration,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 7), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_NPP,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 8), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%respiration_scalar,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 9), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%crown_area,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 10), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Pgap,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 11), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%height,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 12), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%diameter,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 13), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%sapwood,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 14), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%heartwood,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 15), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%sapwood_area,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 16), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%basal_area,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 17), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%LAI,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 18), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Cleaf,&
+                   start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
+              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+              STATUS = NF90_PUT_VAR(FILE_ID, VIDR9( 19), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Croot,&
                    start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
               IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -647,6 +867,11 @@ END IF
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=NDISTURB_dim )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+     !CRM   STATUS = NF90_INQ_DIMID( FILE_ID, 'NDISTURB+1', dID )
+     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+     !CRM   STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=NDISTURB1_dim )
+     !CRM   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
      STATUS = NF90_INQ_DIMID( FILE_ID, 'NLAYER', dID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -744,16 +969,29 @@ END IF
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         SELECT CASE ( i )
         CASE( 1); POP%pop_grid(:)%cmass_sum        = R1
-        CASE( 2); POP%pop_grid(:)%densindiv        = R1
-        CASE( 3); POP%pop_grid(:)%height_mean      = R1
-        CASE( 4); POP%pop_grid(:)%height_max       = R1
-        CASE( 5); POP%pop_grid(:)%basal_area       = R1
-        CASE( 6); POP%pop_grid(:)%stress_mortality = R1
-        CASE( 7); POP%pop_grid(:)%fire_mortality   = R1
-        CASE( 8); POP%pop_grid(:)%growth           = R1
-        CASE( 9); POP%pop_grid(:)%crown_cover      = R1
-        CASE(10); POP%pop_grid(:)%crown_area       = R1
-        CASE(11); POP%pop_grid(:)%crown_volume     = R1
+        CASE( 2); POP%pop_grid(:)%cmass_sum_old    = R1
+        CASE( 3); POP%pop_grid(:)%cheartwood_sum    = R1
+        CASE( 4); POP%pop_grid(:)%csapwood_sum    = R1
+        CASE( 5); POP%pop_grid(:)%csapwood_sum_old    = R1
+        CASE( 6); POP%pop_grid(:)%densindiv        = R1
+        CASE( 7); POP%pop_grid(:)%height_mean      = R1
+        CASE( 8); POP%pop_grid(:)%height_max       = R1
+        CASE( 9); POP%pop_grid(:)%basal_area       = R1
+        CASE( 10); POP%pop_grid(:)%sapwood_loss      = R1
+        CASE( 11); POP%pop_grid(:)%sapwood_area_loss      = R1
+        CASE( 12); POP%pop_grid(:)%stress_mortality = R1
+        CASE( 13); POP%pop_grid(:)%crowding_mortality      = R1
+        CASE( 14); POP%pop_grid(:)%fire_mortality   = R1
+        CASE( 15); POP%pop_grid(:)%cat_mortality = R1
+        CASE( 16); POP%pop_grid(:)%res_mortality = R1
+        CASE( 17); POP%pop_grid(:)%growth           = R1
+        CASE( 18); POP%pop_grid(:)%area_growth           = R1
+        CASE( 19); POP%pop_grid(:)%crown_cover      = R1
+        CASE(20); POP%pop_grid(:)%crown_area       = R1
+        CASE(21); POP%pop_grid(:)%crown_volume     = R1
+        CASE( 22); POP%pop_grid(:)%sapwood_area       = R1
+        CASE( 23); POP%pop_grid(:)%sapwood_area_old      = R1
+        CASE( 24); POP%pop_grid(:)%KClump      = R1
         CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
         END SELECT
      END DO
@@ -837,17 +1075,33 @@ END IF
            CASE( 1); POP%pop_grid(m)%freq                      = R2(m,:)
            CASE( 2); POP%pop_grid(m)%freq_old                  = R2(m,:)
            CASE( 3); POP%pop_grid(m)%patch(:)%factor_recruit   = R2(m,:)
-           CASE( 4); POP%pop_grid(m)%patch(:)%biomass          = R2(m,:)
-           CASE( 5); POP%pop_grid(m)%patch(:)%biomass_old      = R2(m,:)
-           CASE( 6); POP%pop_grid(m)%patch(:)%stress_mortality = R2(m,:)
-           CASE( 7); POP%pop_grid(m)%patch(:)%fire_mortality   = R2(m,:)
-           CASE( 8); POP%pop_grid(m)%patch(:)%growth           = R2(m,:)
+           CASE( 4); POP%pop_grid(m)%patch(:)%pgap   = R2(m,:)
+           CASE( 5); POP%pop_grid(m)%patch(:)%lai  = R2(m,:)
+           CASE( 6); POP%pop_grid(m)%patch(:)%biomass          = R2(m,:)
+           CASE( 7); POP%pop_grid(m)%patch(:)%biomass_old      = R2(m,:)
+           CASE( 8); POP%pop_grid(m)%patch(:)%sapwood         = R2(m,:)
+           CASE( 9); POP%pop_grid(m)%patch(:)%heartwood         = R2(m,:)
+           CASE( 10); POP%pop_grid(m)%patch(:)%sapwood_old      = R2(m,:)
+           CASE( 11); POP%pop_grid(m)%patch(:)%sapwood_area        = R2(m,:)
+           CASE( 12); POP%pop_grid(m)%patch(:)%sapwood_area_old      = R2(m,:)
+           CASE( 13); POP%pop_grid(m)%patch(:)%stress_mortality = R2(m,:)
+           CASE( 14); POP%pop_grid(m)%patch(:)%fire_mortality   = R2(m,:)
+           CASE( 15); POP%pop_grid(m)%patch(:)%cat_mortality   = R2(m,:)
+           CASE( 16); POP%pop_grid(m)%patch(:)%crowding_mortality   = R2(m,:)
+           CASE( 17); POP%pop_grid(m)%patch(:)%cpc  = R2(m,:)
+           CASE( 18); POP%pop_grid(m)%patch(:)%sapwood_loss  = R2(m,:)
+           CASE( 19); POP%pop_grid(m)%patch(:)%sapwood_area_loss  = R2(m,:)
+           CASE( 20); POP%pop_grid(m)%patch(:)%growth           = R2(m,:)
+           CASE( 21); POP%pop_grid(m)%patch(:)%area_growth           = R2(m,:)
+           CASE( 22); POP%pop_grid(m)%patch(:)%frac_NPP          = R2(m,:)
+           CASE( 23); POP%pop_grid(m)%patch(:)%frac_respiration          = R2(m,:)
+           CASE( 24); POP%pop_grid(m)%patch(:)%frac_light_uptake          = R2(m,:)
            CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
            END SELECT
         END DO
      END DO
      DEALLOCATE( R2 )
-
+    
      ! GET 3D VARS ( mp,npatch2d,ndisturb )
      ALLOCATE( I3( mp, npatch2d, ndisturb ) )
      DO i = 1, SIZE(AI7)
@@ -958,10 +1212,34 @@ END IF
                  SELECT CASE ( i )
                  CASE( 1); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%biomass = R4(m,p,l,:)
                  CASE( 2); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%density = R4(m,p,l,:)
-                 CASE( 3); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_resource_uptake&
+                 CASE( 3); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_resource_uptake &
                       = R4(m,p,l,:)
-                 CASE( 4); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%height  = R4(m,p,l,:)
-                 CASE( 5); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%diameter= R4(m,p,l,:)
+                 CASE( 4); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_light_uptake &
+                      = R4(m,p,l,:)
+                 CASE( 5); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_interception &
+                      = R4(m,p,l,:)
+                 CASE( 6); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_respiration &
+                      = R4(m,p,l,:)
+                 CASE( 7); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%frac_NPP &
+                      = R4(m,p,l,:)
+                 CASE( 8); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%respiration_scalar &
+                      = R4(m,p,l,:)
+                 CASE( 9); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%crown_area &
+                      = R4(m,p,l,:)
+                 CASE( 10); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Pgap &
+                      = R4(m,p,l,:)
+                 CASE( 11); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%height  = R4(m,p,l,:)
+                 CASE( 12); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%diameter= R4(m,p,l,:)
+                 CASE( 13); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%sapwood= R4(m,p,l,:)
+                 CASE( 14); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%heartwood= R4(m,p,l,:)
+                 CASE( 15); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%sapwood_area= R4(m,p,l,:)
+                 CASE( 16); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%basal_area= R4(m,p,l,:)
+                 CASE( 17); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%LAI= R4(m,p,l,:)
+                 CASE( 18); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Cleaf= R4(m,p,l,:)
+                 CASE( 19); POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Croot= R4(m,p,l,:)
+
+
+
                  CASE default; STOP "Parameter not assigned in pop_bios_io.f90!"
                  END SELECT
               END DO

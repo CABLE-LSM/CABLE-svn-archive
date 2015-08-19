@@ -112,7 +112,7 @@ CONTAINS
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, dels)
    ENDIf
     
-   ssnow%otss_0 = ssnow%otss
+   ssnow%otss_0 = ssnow%otss  ! vh should be beofre call to canpoy?
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
@@ -122,7 +122,9 @@ CONTAINS
       CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ENDIF
 
- 
+   !ssnow%otss_0 = ssnow%otss
+   !ssnow%otss = ssnow%tss
+
 
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac

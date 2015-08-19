@@ -18,7 +18,7 @@
 ! History: Small change to energy balance equation relative to 1.4b
 !          Additional variables from 1.4b for range checking
 !
-! March 2014: Modifications to ebal (new ebal equations work for both default and canopy_vh)
+! March 2014: Modifications to ebal 
 ! and wbal (new wbal for sli) ! (Vanessa Haverd)
 !==============================================================================
 
@@ -112,6 +112,8 @@ MODULE cable_checks_module
            SnowDepth = (/0.0,50.0/),           & ! EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
+           !! vh_js !!
+           CanT = (/213.0,333.0/),      &
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &
@@ -222,9 +224,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
          END DO
       END IF
    END IF
-
-   ! IF(ktau==kend) DEALLOCATE(bwb)
-
+   
    ! net water into soil (precip-(change in canopy water storage) 
    !  - (change in snow depth) - (surface runoff) - (deep drainage)
    !  - (evaporated water from vegetation and soil(excluding fevw, since
@@ -234,9 +234,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
         + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
-!   bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        & 
-!        - ssnow%rnof1-ssnow%rnof2-(canopy%fevw+canopy%fevc                     &
-!        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
+
+
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
         - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
@@ -248,10 +247,11 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
 
    END IF
 
+   !! vh_js !! remove re-initialisation of wbal_tot and IF condition.
+ !  bal%wbal_tot = 0. 
+ !  IF(ktau>10) THEN
 
-   bal%wbal_tot = 0. 
-   IF(ktau>10) THEN
-      ! Add current water imbalance to total imbalance
+   ! Add current water imbalance to total imbalance
       ! (method 1 for water balance):
       bal%wbal_tot = bal%wbal_tot + bal%wbal
     
@@ -260,7 +260,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       bal%rnoff_tot = bal%rnoff_tot + ssnow%rnof1 + ssnow%rnof2
       bal%evap_tot = bal%evap_tot                                              &
            + (canopy%fev+canopy%fes/ssnow%cls) * dels/air%rlam
-   END IF
+ !  ENDIF
 
 END SUBROUTINE mass_balance
 
@@ -293,6 +293,8 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
       SBOLTZ,  & !Stefan-Bolzman constant
       EMLEAF,  & !leaf emissivity
       EMSOIL     !leaf emissivity
+
+!! vh_js !! note changes to this subroutine. Need to use ssnow%otss (not ssnow%tss) in these calculations.
 
     !! vh !! March 2014
     bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  &
