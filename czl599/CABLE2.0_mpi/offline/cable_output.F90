@@ -67,7 +67,7 @@ MODULE cable_output_module
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     Cplant, Csoil, Clitter, Nplant, Nlitter, Nsoil,fracCalloc, &
                     kplant, klitter, ksoil, xktemp, xkwater,xkleafcold,xkleafdry,&
-                    ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
+                    ECanop, TVeg, ESoil, CanopInt, SnowDepth,xkNlimiting,      &
                     fromLeaftoL,fromWoodtoL,fromRoottoL,fromMettoS,fromStrtoS,fromCWDtoS,fromSOMtoSOM,&
                     HVeg, HSoil, Rnet, tvar,                                   &
                     drybal,wetbal,visAbs,NIRabs,LWcanopy,LWsoil,oLWsoil,       &
@@ -229,6 +229,8 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: klitter   ! 59 plant carbon pool
                                                      ! [gC/m2]
     ! casa 1d variable
+    REAL(KIND=4), POINTER, DIMENSION(:) :: xkNlimiting  ! 59 plant carbon pool
+                                                     ! [gC/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: xkwater   ! 59 plant carbon pool
                                                      ! [gC/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: xktemp    ! 59 plant carbon pool
@@ -830,6 +832,13 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%xkwater(mp))
        out%xkwater = 0.0 ! initialise
+    END IF
+    IF(output%casacnp .OR. output%xkNlimiting) THEN
+       CALL define_ovar(ncid_out, ovid%xkNlimiting, 'xkNlimiting', 'unitless',               &
+                        'water limitation on soil/litter decomposition rate', patchout%xkNlimiting,       &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%xkNlimiting(mp))
+       out%xkNlimiting = 0.0 ! initialise
     END IF
     IF(output%casacnp .OR. output%xkleafcold) THEN
        CALL define_ovar(ncid_out, ovid%xkleafcold, 'xkleafcold', 'unitless',               &
@@ -2169,10 +2178,16 @@ CONTAINS
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
+       if(output%averaging(1:2) .ne. 'da')then
+          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
+       end if
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%NPP = out%NPP / REAL(output%interval, 4)
+          if(output%averaging(1:2) == 'da')then
+             out%NPP = REAL(casaflux%Cnpp / 1.201E-5/3600/24, 4)
+          else
+             out%NPP = out%NPP / REAL(output%interval, 4)
+          end if
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%NPP, 'NPP', out%NPP,    &
                           ranges%NPP, patchout%NPP, 'default', met)
@@ -2228,10 +2243,10 @@ CONTAINS
     ! Cplant: plant carbon pool for leaf, wood and root [gC/m2]
     IF(output%casacnp .OR. output%Cplant) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Cplant = out%Cplant + REAL(casapool%cplant, 4)
+!       out%Cplant = out%Cplant + REAL(casapool%cplant, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%Cplant = out%Cplant/REAL(output%interval, 4)
+          out%Cplant = REAL(casapool%cplant,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Cplant, 'Cplant',   &
                   out%Cplant, ranges%Cplant, patchout%Cplant, 'plantcasa', met)
@@ -2243,10 +2258,10 @@ CONTAINS
     ! Csoil: soil carbon pool [gC/m2]
     IF(output%casacnp .OR. output%Csoil) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Csoil = out%Csoil + REAL(casapool%csoil, 4)
+!       out%Csoil = out%Csoil + REAL(casapool%csoil, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%Csoil = out%Csoil/REAL(output%interval, 4)
+          out%Csoil = REAL(casapool%csoil, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Csoil, 'Csoil',   &
                   out%Csoil, ranges%Csoil, patchout%Csoil, 'soilcasa', met)
@@ -2258,10 +2273,10 @@ CONTAINS
     ! Clitter: litter carbon pool [gC/m2]
     IF(output%casacnp .OR. output%Clitter) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Clitter = out%Clitter + REAL(casapool%clitter, 4)
+!      out%Clitter = out%Clitter + REAL(casapool%clitter, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%Clitter = out%Clitter/REAL(output%interval, 4)
+          out%Clitter = REAL(casapool%clitter, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Clitter, 'Clitter',   &
                   out%Clitter, ranges%Clitter, patchout%Clitter, 'littercasa', met)
@@ -2273,10 +2288,10 @@ CONTAINS
     ! Nplant: plant nitrogen pool for leaf, wood and root [gN/m2]
     IF(output%casacnp .OR. output%Nplant) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Nplant = out%Nplant + REAL(casapool%Nplant, 4)
+!       out%Nplant = out%Nplant + REAL(casapool%Nplant, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%Nplant = out%Nplant/REAL(output%interval, 4)
+          out%Nplant = REAL(casapool%Nplant, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Nplant, 'Nplant',   &
                   out%Nplant, ranges%Nplant, patchout%Nplant, 'plantcasa', met)
@@ -2288,10 +2303,10 @@ CONTAINS
     ! Nlitter: litter nitrogen pool for met, str and CWD [gN/m2]
     IF(output%casacnp .OR. output%Nlitter) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Nlitter = out%Nlitter + REAL(casapool%Nlitter, 4)
+!       out%Nlitter = out%Nlitter + REAL(casapool%Nlitter, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%Nlitter = out%Nlitter/REAL(output%interval, 4)
+          out%Nlitter = REAL(casapool%Nlitter, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Nlitter, 'Nlitter',   &
                   out%Nlitter, ranges%Nlitter, patchout%Nlitter, 'littercasa', met)
@@ -2303,10 +2318,10 @@ CONTAINS
     ! Nsoil: soil nitrogen pool for mic, slow and passive [gN/m2]
     IF(output%casacnp .OR. output%Nsoil) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Nsoil = out%Nsoil + REAL(casapool%Nsoil, 4)
+!       out%Nsoil = out%Nsoil + REAL(casapool%Nsoil, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%Nsoil = out%Nsoil/REAL(output%interval, 4)
+          out%Nsoil = REAL(casapool%Nsoil, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Nsoil, 'Nsoil',   &
                   out%Nsoil, ranges%Nsoil, patchout%Nsoil, 'soilcasa', met)
@@ -2318,10 +2333,10 @@ CONTAINS
     ! fracCalloc: plant carbon turnover rate for leaf, wood and root [1/day]
     IF(output%casacnp .OR. output%fracCalloc) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fracCalloc = out%fracCalloc + REAL(casaflux%fracCalloc, 4)
+!       out%fracCalloc = out%fracCalloc + REAL(casaflux%fracCalloc, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fracCalloc = out%fracCalloc/REAL(output%interval, 4)
+          out%fracCalloc = REAL(casaflux%fracCalloc, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fracCalloc, 'fracCalloc',   &
                   out%fracCalloc, ranges%fracCalloc, patchout%fracCalloc, 'plantcasa', met)
@@ -2333,10 +2348,10 @@ CONTAINS
     ! kplant: plant carbon turnover rate for leaf, wood and root [1/day]
     IF(output%casacnp .OR. output%kplant) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%kplant = out%kplant + REAL(casaflux%kplant, 4)
+!       out%kplant = out%kplant + REAL(casaflux%kplant, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%kplant = out%kplant/REAL(output%interval, 4)
+          out%kplant = REAL(casaflux%kplant, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%kplant, 'kplant',   &
                   out%kplant, ranges%kplant, patchout%kplant, 'plantcasa', met)
@@ -2348,10 +2363,10 @@ CONTAINS
     ! ksoil: soil decomposition rate for mic, slow and passive [1/day]
     IF(output%casacnp .OR. output%ksoil) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%ksoil = out%ksoil + REAL(casaflux%ksoil, 4)
+!       out%ksoil = out%ksoil + REAL(casaflux%ksoil, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%ksoil = out%ksoil/REAL(output%interval, 4)
+          out%ksoil = REAL(casaflux%ksoil, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%ksoil, 'ksoil',   &
                   out%ksoil, ranges%ksoil, patchout%ksoil, 'soilcasa', met)
@@ -2363,10 +2378,10 @@ CONTAINS
     ! klitter: litter decomposition rate for meta, str and CWD [1/day]
     IF(output%casacnp .OR. output%klitter) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%klitter = out%klitter + REAL(casaflux%klitter, 4)
+!       out%klitter = out%klitter + REAL(casaflux%klitter, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%klitter = out%klitter/REAL(output%interval, 4)
+          out%klitter = REAL(casaflux%klitter, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%klitter, 'klitter',   &
                   out%klitter, ranges%klitter, patchout%klitter, 'littercasa', met)
@@ -2378,10 +2393,10 @@ CONTAINS
     ! xktemp: temperature limitation on soil/litter decomposition rate [unitless]
     IF(output%casacnp .OR. output%xktemp) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%xktemp = out%xktemp + REAL(casaflux%xktemp)
+!       out%xktemp = out%xktemp + REAL(casaflux%xktemp,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%xktemp = out%xktemp / REAL(output%interval, 4)
+          out%xktemp = REAL(casaflux%xktemp,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%xktemp, 'xktemp', out%xktemp,    &
                           ranges%xktemp, patchout%xktemp, 'default', met)
@@ -2393,10 +2408,10 @@ CONTAINS
     ! xkwater: water limitation on soil/litter decomposition rate [unitless]
     IF(output%casacnp .OR. output%xkwater) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%xkwater = out%xkwater + REAL(casaflux%xkwater)
+!       out%xkwater = out%xkwater + REAL(casaflux%xkwater,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%xkwater = out%xkwater / REAL(output%interval, 4)
+          out%xkwater = REAL(casaflux%xkwater,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%xkwater, 'xkwater', out%xkwater,    &
                           ranges%xkwater, patchout%xkwater, 'default', met)
@@ -2405,13 +2420,28 @@ CONTAINS
        END IF
     END IF
 
+    ! xkwater: water limitation on soil/litter decomposition rate [unitless]
+    IF(output%casacnp .OR. output%xkNlimiting) THEN
+       ! Add current timestep's value to total of temporary output variable:
+!       out%xkNlimiting = out%xkNlimiting + REAL(casaflux%xkNlimiting,4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%xkNlimiting = REAL(casaflux%xkNlimiting,4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%xkNlimiting, 'xkNlimiting', out%xkNlimiting,&
+                          ranges%xkNlimiting, patchout%xkNlimiting, 'default', met)
+          ! Reset temporary output variable:
+          out%xkNlimiting = 0.0
+       END IF
+    END IF
+
     ! xkleafcold: temperature limitation on leaf decomposition rate [unitless]
     IF(output%casacnp .OR. output%xkleafcold) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%xkleafcold = out%xkleafcold + REAL(casaflux%xkleafcold)
+!       out%xkleafcold = out%xkleafcold + REAL(casaflux%xkleafcold,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%xkleafcold = out%xkleafcold / REAL(output%interval, 4)
+          out%xkleafcold = REAL(casaflux%xkleafcold,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%xkleafcold, 'xkleafcold', out%xkleafcold,    &
                           ranges%xkleafcold, patchout%xkleafcold, 'default', met)
@@ -2423,10 +2453,10 @@ CONTAINS
     ! xkwater: water limitation on soil/litter decomposition rate [unitless]
     IF(output%casacnp .OR. output%xkleafdry) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%xkleafdry = out%xkleafdry + REAL(casaflux%xkleafdry)
+!       out%xkleafdry = out%xkleafdry + REAL(casaflux%xkleafdry,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%xkleafdry = out%xkleafdry / REAL(output%interval, 4)
+          out%xkleafdry = REAL(casaflux%xkleafdry,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%xkleafdry, 'xkleafdry', out%xkleafdry,    &
                           ranges%xkleafdry, patchout%xkleafdry, 'default', met)
@@ -2438,10 +2468,10 @@ CONTAINS
     ! fromLeaftoL: transfer coefficient from Leaf to litter [unitless]
     IF(output%casacnp .OR. output%fromLeaftoL) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fromLeaftoL = out%fromLeaftoL + REAL(casaflux%fromLeaftoL)
+!       out%fromLeaftoL = out%fromLeaftoL + REAL(casaflux%fromLeaftoL,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fromLeaftoL = out%fromLeaftoL / REAL(output%interval, 4)
+          out%fromLeaftoL = REAL(casaflux%fromLeaftoL,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fromLeaftoL, 'fromLeaftoL', out%fromLeaftoL,    &
                           ranges%fromLeaftoL, patchout%fromLeaftoL, 'littercasa', met)
@@ -2453,10 +2483,10 @@ CONTAINS
     ! fromWoodtoL: transfer coefficient from Wood to litter [unitless]
     IF(output%casacnp .OR. output%fromWoodtoL) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fromWoodtoL = out%fromWoodtoL + REAL(casaflux%fromWoodtoL)
+!       out%fromWoodtoL = out%fromWoodtoL + REAL(casaflux%fromWoodtoL,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fromWoodtoL = out%fromWoodtoL / REAL(output%interval, 4)
+          out%fromWoodtoL = REAL(casaflux%fromWoodtoL,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fromWoodtoL, 'fromWoodtoL', out%fromWoodtoL,    &
                           ranges%fromWoodtoL, patchout%fromWoodtoL, 'littercasa', met)
@@ -2468,10 +2498,10 @@ CONTAINS
     ! fromRoottoL: transfer coefficient from Root to litter [unitless]
     IF(output%casacnp .OR. output%fromRoottoL) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fromRoottoL = out%fromRoottoL + REAL(casaflux%fromRoottoL)
+!       out%fromRoottoL = out%fromRoottoL + REAL(casaflux%fromRoottoL,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fromRoottoL = out%fromRoottoL / REAL(output%interval, 4)
+          out%fromRoottoL = REAL(casaflux%fromRoottoL,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fromRoottoL, 'fromRoottoL', out%fromRoottoL,    &
                           ranges%fromRoottoL, patchout%fromRoottoL, 'littercasa', met)
@@ -2483,10 +2513,10 @@ CONTAINS
     ! fromMettoS: transfer coefficient from Metabolic to Soil [unitless]
     IF(output%casacnp .OR. output%fromMettoS) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fromMettoS = out%fromMettoS + REAL(casaflux%fromMettoS)
+!       out%fromMettoS = out%fromMettoS + REAL(casaflux%fromMettoS,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fromMettoS = out%fromMettoS / REAL(output%interval, 4)
+          out%fromMettoS = REAL(casaflux%fromMettoS,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fromMettoS, 'fromMettoS', out%fromMettoS,    &
                           ranges%fromMettoS, patchout%fromMettoS, 'soilcasa', met)
@@ -2498,10 +2528,10 @@ CONTAINS
     ! fromStrtoS: transfer coefficient from Structure to Soil [unitless]
     IF(output%casacnp .OR. output%fromStrtoS) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fromStrtoS = out%fromStrtoS + REAL(casaflux%fromStrtoS)
+!       out%fromStrtoS = out%fromStrtoS + REAL(casaflux%fromStrtoS,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fromStrtoS = out%fromStrtoS / REAL(output%interval, 4)
+          out%fromStrtoS = REAL(casaflux%fromStrtoS,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fromStrtoS, 'fromStrtoS', out%fromStrtoS,    &
                           ranges%fromStrtoS, patchout%fromStrtoS, 'soilcasa', met)
@@ -2513,10 +2543,10 @@ CONTAINS
     ! fromCWDtoS: transfer coefficient from CWD to Soil [unitless]
     IF(output%casacnp .OR. output%fromCWDtoS) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fromCWDtoS = out%fromCWDtoS + REAL(casaflux%fromCWDtoS)
+!       out%fromCWDtoS = out%fromCWDtoS + REAL(casaflux%fromCWDtoS,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fromCWDtoS = out%fromCWDtoS / REAL(output%interval, 4)
+          out%fromCWDtoS = REAL(casaflux%fromCWDtoS,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fromCWDtoS, 'fromCWDtoL', out%fromCWDtoS,    &
                           ranges%fromCWDtoS, patchout%fromCWDtoS, 'soilcasa', met)
@@ -2528,10 +2558,10 @@ CONTAINS
     ! fromSOMtoSOM: transfer coefficient from soil to Soil [unitless]
     IF(output%casacnp .OR. output%fromSOMtoSOM) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%fromSOMtoSOM = out%fromSOMtoSOM + REAL(casaflux%fromSOMtoSOM)
+!       out%fromSOMtoSOM = out%fromSOMtoSOM + REAL(casaflux%fromSOMtoSOM,4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%fromSOMtoSOM = out%fromSOMtoSOM / REAL(output%interval, 4)
+          out%fromSOMtoSOM = REAL(casaflux%fromSOMtoSOM,4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%fromSOMtoSOM, 'fromSOMtoSOM', out%fromSOMtoSOM,    &
                           ranges%fromSOMtoSOM, patchout%fromSOMtoSOM, 'soilcasa', met)

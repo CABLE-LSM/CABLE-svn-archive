@@ -49,8 +49,10 @@ PROGRAM mpi_driver
   CALL MPI_Comm_rank (comm, rank, ierr)
 
   IF (rank == 0) THEN
+        WRITE(*,*) 'start to run master'
           CALL mpidrv_master (comm)
   ELSE
+        WRITE(*,*) 'start to run worker'
           CALL mpidrv_worker (comm)
   END IF
 

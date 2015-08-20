@@ -273,6 +273,7 @@ MODULE cable_IO_vars_module
          klitter = .FALSE.,   & ! litter turnover rate
          xktemp = .FALSE.,    & ! Temperature limitation on soil/litter decomposition rate
          xkwater = .FALSE.,   & ! Water limitation on soil/litter decomposition rate
+         xkNlimiting = .FALSE.,   & ! Water limitation on soil/litter decomposition rate
          xkleafcold = .FALSE.,& ! Temperature limitation on leaf turnover rate
          xkleafdry = .FALSE., & ! Water limitation on leaf turnover rate
          

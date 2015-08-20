@@ -43,7 +43,7 @@ host_shin()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   module add netcdf/4.3.2 openmpi/1.6.5
+   module add netcdf/4.3.2 openmpi/1.7.5
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'

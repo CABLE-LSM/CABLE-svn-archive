@@ -1144,6 +1144,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
     DO j=1,mlitter
       casaflux%klitter(:,j) = casaflux%klitter(:,j)* xkNlimiting(:)
     ENDDO
+    casaflux%xkNlimiting = xkNlimiting
     call casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
     IF (icycle >2) call casa_puptake(veg,xkNlimiting,casabiome, &
                                      casapool,casaflux,casamet)

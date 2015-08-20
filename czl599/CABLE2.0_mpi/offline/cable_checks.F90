@@ -136,6 +136,7 @@ MODULE cable_checks_module
            klitter = (/0,1000/),               &
            xktemp = (/0,1/),                   &
            xkwater = (/0,1/),                  &
+           xkNlimiting = (/0,1/),              &
            xkleafcold = (/0,9999/),            &
            xkleafdry = (/0,9999/),             &
            drybal = (/-999999.0,999999.0/),    &

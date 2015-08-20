@@ -488,7 +488,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
         ENDIF
       ENDIF
     ENDIF
-    !print*,'glai,vcmax,nslope,ncleafx,sla',np,casamet%glai(np),veg%vcmax(np),casabiome%nslope(ivt),ncleafx(np),npleafx(np)
+!    print*,'ivt,vcmax,nslope,ncleafx',np,ivt,veg%vcmax(np),casabiome%nslope(ivt),ncleafx(np),npleafx(np)
 
 !    veg%vcmax(np) = ( nintercept(ivt)  &
 !                  + nslope(ivt)*(0.4+8.5/npleafx(np)) &

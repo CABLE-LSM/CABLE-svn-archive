@@ -3095,6 +3095,10 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%xkNlimiting(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casaflux%xkleafcold(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -5502,11 +5506,19 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      blocks(bidx) = r2len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (casaflux%xktemp(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%xkwater(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%xkNlimiting(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1

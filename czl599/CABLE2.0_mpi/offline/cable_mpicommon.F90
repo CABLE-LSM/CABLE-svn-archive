@@ -60,7 +60,7 @@ MODULE cable_mpicommon
 !  INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
 !  INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
 !  INTEGER, PARAMETER :: ncasaparam = 200      ! changed chris Lu to add 4 new variables xkwater,xktemp,xkleafdry,xkleafcold in casaflux%
-  INTEGER, PARAMETER :: ncasaparam = 207      ! changed chris Lu to add 7 new variables for traceability analysis in casaflux%
+  INTEGER, PARAMETER :: ncasaparam = 208      ! changed chris Lu to add 8 new variables for traceability analysis in casaflux%
 
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
@@ -113,7 +113,7 @@ MODULE cable_mpicommon
   INTEGER, PARAMETER :: ncasa_mat = 43    ! 8 new variables for traceability analysis added for casa output
 !  INTEGER, PARAMETER :: ncasa_vec = 27
 !  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
-  INTEGER, PARAMETER :: ncasa_vec = 36    ! 4 new variables added xkwater xktemp xkleafdry xkleafcold for traceability study
+  INTEGER, PARAMETER :: ncasa_vec = 38    ! 6 new variables added Cnpp xkwater xktemp xkleafdry xkleafcold xkNlimiting for traceability study
 
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run
