@@ -1530,8 +1530,6 @@ CONTAINS
        !ENDWHERE
 
        DO klev=1,3  !0-23.3 cm, data really is to 30cm
-          !soil%hksat(:,klev ) = (1.-perc_frac(:,klev))*((1.-soil%Forg(:,klev))/soil%hksat(:,klev) + &
-          !                       (soil%Forg(:,klev)-perc_frac(:,klev))/hksat_organic)**(-1.0)
           soil%hksat(:,klev)  = (1.-soil%Forg(:,klev))*soil%hksat(:,klev) +soil%Forg(:,klev)*hksat_organic
           soil%smpsat(:,klev) = (1.-soil%Forg(:,klev))*soil%smpsat(:,klev) + soil%Forg(:,klev)*smpsat_organic
           soil%clappB(:,klev) = (1.-soil%Forg(:,klev))*soil%clappB(:,klev) +soil%Forg(:,klev)*clappb_organic
