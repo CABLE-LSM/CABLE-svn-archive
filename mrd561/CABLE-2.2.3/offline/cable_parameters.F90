@@ -1031,7 +1031,7 @@ CONTAINS
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
 
     !MD aquifer layers
-    soil%GWdz = 20.0                          !20 m thick aquifer
+    soil%GWdz = 10.0                          !20 m thick aquifer
 
     if (.not.cable_user%GSWP3) then
        rough%za_uv = 40.0 ! lowest atm. model layer/reference height
