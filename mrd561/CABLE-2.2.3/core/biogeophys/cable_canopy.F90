@@ -698,8 +698,8 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
          dq(j) = max( -0.1e-3, dq(j))
    ENDDO 
    
-   ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
-  max(0.,4104.0*max(0.,soil%watsat(:,1)-(ssnow%wb(:,1)-ssnow%wbice(:,1))) - 805.0) )
+   ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
+   
 END FUNCTION Humidity_deficit_method
 
 ! ------------------------------------------------------------------------------

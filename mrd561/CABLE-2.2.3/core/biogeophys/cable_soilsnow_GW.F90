@@ -2197,7 +2197,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
       end if
       if (wb_unsat .lt. 0.25*soil%wiltp(i,1)) xx = 0.
 
-      ssnow%wetfac(i) = 1.0!max(0.0,min(1.0,satfrac_liqice(i) + (1. - satfrac_liqice(i))*xx))
+      ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) + (1. - satfrac_liqice(i))*xx))
 
    end do
 
