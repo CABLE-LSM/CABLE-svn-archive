@@ -1357,12 +1357,16 @@ END SUBROUTINE remove_trans
     def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
   end do   
 
+
+  !initiailize iterations only if first timestep of the run
+  !otherwise use value from previous timestep
+  if (ktau .le. 1) ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
+
   if (empwtd) then
      ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
   else
 
      if (md_prin) write(*,*) 'start wtd iterations'
-     ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
 
      do i=1,mp
 
