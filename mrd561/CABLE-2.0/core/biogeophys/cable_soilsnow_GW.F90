@@ -1322,10 +1322,6 @@ END SUBROUTINE remove_trans
   REAL(r_2)                     :: deffunc,tempa,tempb,derv,calc,tmpc
   REAL(r_2), DIMENSION(mp)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   INTEGER :: k,i,wttd,jlp
-  LOGICAL :: empwtd
-   
-
-  empwtd = .false.
 
   !make code cleaner define these here 
   invB     = 1._r_2/soil%clappB(:,ms)                                !1 over C&H B
@@ -1360,102 +1356,98 @@ END SUBROUTINE remove_trans
     def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
   end do   
 
-  if (empwtd) then
-     ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
-  else
+  if (ktau .le. 1) ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
 
-     if (md_prin) write(*,*) 'start wtd iterations'
-     ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
+  if (md_prin) write(*,*) 'start wtd iterations'
 
-     do i=1,mp
+  do i=1,mp
 
-      if ((veg%iveg(i) .ne. 16) .and. (soil%isoilm(i) .ne. 9)) then      
+    if ((veg%iveg(i) .ne. 16) .and. (soil%isoilm(i) .ne. 9)) then      
 
-       if (defc(i) > def(i)) then                 !iterate tfor wtd
+      if (defc(i) > def(i)) then                 !iterate tfor wtd
 
-         jlp=0
+        jlp=0
 
-         mainloop: DO
+        mainloop: DO
 
-           tempa   = 1.0_r_2
-           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
-           derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
-                                          soil%watsat(i,ms)
+          tempa   = 1.0_r_2
+          tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
+          derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
+                                       soil%watsat(i,ms)
 
-           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
+          if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-           tempa   = 1.0_r_2
-           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-           deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
-                              Nsmpsat(i)/(1-invB(i))* &
-                        (tempa-tempb)) - def(i)
-           calc    = ssnow%wtd(i) - deffunc/derv
+          tempa   = 1.0_r_2
+          tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
+          deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
+                           Nsmpsat(i)/(1-invB(i))* &
+                     (tempa-tempb)) - def(i)
+          calc    = ssnow%wtd(i) - deffunc/derv
 
-           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
+          IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
-             ssnow%wtd(i) = calc
-             EXIT mainloop
+            ssnow%wtd(i) = calc
+            EXIT mainloop
 
-           ELSEIF (jlp .ge. wtd_iter_max) THEN
+          ELSEIF (jlp .ge. wtd_iter_max) THEN
 
-              EXIT mainloop
+            EXIT mainloop
 
-           ELSE
+          ELSE
 
-              jlp=jlp+1
-              ssnow%wtd(i) = calc
+            jlp=jlp+1
+            ssnow%wtd(i) = calc
 
-           END IF
+          END IF
 
-         END DO mainloop  !defc .gt. def
+        END DO mainloop  !defc .gt. def
 
-       elseif (defc(i) .lt. def(i)) then
+      elseif (defc(i) .lt. def(i)) then
 
-         jlp=0
+        jlp=0
 
-         mainloop2: DO
+        mainloop2: DO
 
-           tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
-           tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
-           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
-           derv     = (soil%watsat(i,ms))*(tempa-tempb)
-           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
+          tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
+          tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
+          tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
+          derv     = (soil%watsat(i,ms))*(tempa-tempb)
+          if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-           tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))
-           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
-                      Nsmpsat(i)/(1._r_2-invB(i))*(tempa-tempb))-def(i)
-           calc     = ssnow%wtd(i) - deffunc/derv
+          tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))
+          tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
+          deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
+                     Nsmpsat(i)/(1._r_2-invB(i))*(tempa-tempb))-def(i)
+          calc     = ssnow%wtd(i) - deffunc/derv
 
-           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
+          IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
-             ssnow%wtd(i) = calc
-             EXIT mainloop2
+            ssnow%wtd(i) = calc
+            EXIT mainloop2
 
-           ELSEIF (jlp==wtd_iter_max) THEN
+          ELSEIF (jlp==wtd_iter_max) THEN
 
-             EXIT mainloop2
+            EXIT mainloop2
 
-           ELSE
+          ELSE
 
-             jlp=jlp+1
-             ssnow%wtd(i) = calc
+            jlp=jlp+1
+            ssnow%wtd(i) = calc
 
-           END IF
+          END IF
 
-         END DO mainloop2  !defc .lt. def
+        END DO mainloop2  !defc .lt. def
 
-       else  !water table depth is exactly on bottom boundary
+      else  !water table depth is exactly on bottom boundary
 
-         ssnow%wtd(i) = zimm(ms)
+        ssnow%wtd(i) = zimm(ms)
 
-       endif
+      endif
 
-      endif  !check veg and soils
+    endif  !check veg and soils
 
-     end do   !mp loop
+  end do   !mp loop
 
-  end if  !debug by using empirical wtd
 
   !limit wtd to be within a psecified range
   where (ssnow%wtd(:) .gt. wtd_max) ssnow%wtd(:) = wtd_max
@@ -1519,7 +1511,7 @@ END SUBROUTINE remove_trans
     INTEGER :: imp,ims,k_drain
 
     drainmod(:) = 1._r_2  !parameter to modify qhrz params by basin or veg type
-    !where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
+    where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
     !drainmod(:) = (1._r_2 + soil%FOrg(:,1))*drainmod(:)
 
 
