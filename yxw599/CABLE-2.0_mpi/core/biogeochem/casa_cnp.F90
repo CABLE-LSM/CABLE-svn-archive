@@ -1853,9 +1853,17 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
-!   npt=7451
-!
-!   write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
+   npt=59894
+
+   write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
+               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%Crp(npt),casaflux%Crgplant(npt), &
+               casaflux%crmplant(npt,:),casapool%dClabiledt(npt),casaflux%clabloss(npt),  &
+               sum(casaflux%fracCalloc(npt,:)),casaflux%fracClabile(npt),               & 
+               casaflux%cgpp(npt)-casaflux%cnpp(npt), &
+               sum(casaflux%crmplant(npt,:))+casaflux%crgplant(npt), &
+               casaflux%cgpp(npt)-casaflux%cnpp(npt)-casapool%dClabiledt(npt), &
+               sum(casaflux%crmplant(npt,:))+casaflux%crgplant(npt)+casaflux%clabloss(npt)
+          
 !               casapool%cplant(npt,:),casabal%cplantlast(npt,:),casapool%dcplantdt(npt,:), &
 !               casaflux%kplant(npt,:)*casabal%cplantlast(npt,:),                            &
 !               casaflux%fraccalloc(npt,:), &
