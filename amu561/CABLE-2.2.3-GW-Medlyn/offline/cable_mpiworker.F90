@@ -4896,6 +4896,9 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Get_address (ssnow%GWsmp(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%satfrac(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN

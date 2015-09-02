@@ -218,10 +218,10 @@ MODULE cable_IO_vars_module
          Qg = .FALSE.,        & ! 19 ground heat flux [W/m2]
          SWnet = .FALSE.,     & ! 20 net shortwave [W/m2]
          LWnet = .FALSE.,     & ! 21 net longwave [W/m2]
-         Evap = .FALSE.,      & ! 22 total evapotranspiration [kg/m2/s]
+         Evap = .TRUE.,      & ! 22 total evapotranspiration [kg/m2/s]
          Ewater = .FALSE.,    & ! 23 evap. from surface water storage [kg/m2/s]
-         ESoil = .FALSE.,     & ! 24 bare soil evaporation [kg/m2/s]
-         TVeg = .FALSE.,      & ! 25 vegetation transpiration [kg/m2/s]
+         ESoil = .TRUE.,     & ! 24 bare soil evaporation [kg/m2/s]
+         TVeg = .TRUE.,      & ! 25 vegetation transpiration [kg/m2/s]
          ECanop = .FALSE.,    & ! 26 interception evaporation [kg/m2/s]
          PotEvap = .FALSE.,   & ! 27 potential evapotranspiration [kg/m2/s]
          ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
@@ -229,9 +229,9 @@ MODULE cable_IO_vars_module
          Albedo = .FALSE.,    & ! 30 albedo [-] 
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
-         SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
-         Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
-         Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
+         SoilMoist = .TRUE., & ! 33 av.layer soil moisture [kg/m2]
+         Qs = .TRUE.,        & ! 34 surface runoff [kg/m2/s]
+         Qsb = .TRUE.,       &! 35 subsurface runoff [kg/m2/s]
          DelSoilMoist = .FALSE., & ! 36 change in soilmoisture 
                                    ! (sum layers) [kg/m2]
          DelSWE = .FALSE.,    & ! 37 change in snow water equivalent [kg/m2]
@@ -246,7 +246,7 @@ MODULE cable_IO_vars_module
          NEE  = .FALSE.,      & ! 46 net ecosystem exchange [umol/m2/s]
          NPP  = .FALSE.,      & ! 47 net primary production of C 
                                 ! by veg [umol/m2/s]
-         GPP = .FALSE.,       & ! 48 gross primary production C 
+         GPP = .TRUE.,       & ! 48 gross primary production C 
                                 ! by veg [umol/m2/s]
          AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
@@ -274,10 +274,11 @@ MODULE cable_IO_vars_module
          GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
          EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
          Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
+         SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)
 
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
-         latitude = .FALSE.,  & ! site latitude
+         latitude = .TRUE.,  & ! site latitude
          clay = .FALSE.,      & ! fraction of clay in soil
          css = .FALSE.,       & ! heat capacity of soil minerals [J/kg/C]
          rhosoil = .FALSE.,   & ! soil density [kg/m3]

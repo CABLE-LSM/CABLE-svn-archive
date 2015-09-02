@@ -70,7 +70,7 @@ MODULE cable_output_module
                     !MD
                     WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
                     EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,   &
-                    wiltp,SoilIce,                                             &
+                    wiltp,SoilIce,SatFrac,                                     &
                     VISalbedo,NIRalbedo
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
@@ -175,6 +175,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:)   :: EqGWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]
     REAL(KIND=4), POINTER, DIMENSION(:)   :: GWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]     
     REAL(KIND=4), POINTER, DIMENSION(:)   :: Qinfl         !infiltration rate into first soil layer [mm/s] 
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: SatFrac         !Saturated Fraction of Grid Cell
 
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: wiltp         !wilt pnt inc forg
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: fldcap        !field capcaicty adj for organic content
@@ -741,6 +742,14 @@ CONTAINS
        ALLOCATE(out%EqSoilMoist(mp,ms))
        out%EqSoilMoist = 0.0 ! initialise
     END IF     
+
+    IF(output%soil .OR. output%SatFrac) THEN
+       CALL define_ovar(ncid_out, ovid%SatFrac, 'SatFrac', 'unitless',      &
+                        'Saturated Fraction of Gridcell', patchout%SatFrac,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SatFrac(mp))
+       out%SatFrac = 0.0 ! initialise
+    END IF         
     
     IF(output%soil .OR. output%Qinfl) THEN
        CALL define_ovar(ncid_out, ovid%Qinfl, 'Qinfl', 'mm/s',      &
@@ -2220,6 +2229,25 @@ CONTAINS
                out%Qinfl, ranges%Qinfl, patchout%Qinfl, 'default', met)
           ! Reset temporary output variable:
           out%Qinfl = 0.0
+       END IF
+    END IF      
+    ! infiltration rate
+    IF(output%soil .OR. output%SatFrac) THEN
+       !write(*,*) 'Qinfl'    !MDeck
+       ! Add current timestep's value to total of temporary output variable:
+       out%SatFrac = out%SatFrac + REAL(ssnow%satfrac, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          write(*,*) 'maxval satfrac ',maxval(out%SatFrac(:))
+          write(*,*) 'minval satfrac ',minval(out%SatFrac)
+          write(*,*) 'avg satfrac ',sum(out%SatFrac)/real(size(out%SatFrac,dim=1))
+
+          out%SatFrac = out%SatFrac / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SatFrac, 'SatFrac', &
+               out%SatFrac, ranges%SatFrac, patchout%SatFrac, 'default', met)
+          ! Reset temporary output variable:
+          out%SatFrac = 0.0
        END IF
     END IF      
      ! SoilIce: av.layer soil moisture [kg/m^2]
