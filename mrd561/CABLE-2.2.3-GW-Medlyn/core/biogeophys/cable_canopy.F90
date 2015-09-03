@@ -1873,14 +1873,12 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
 
                ! Rubisco limited:
                ! Ticket #56, xleuingz replaced with gs_coeffz
-               coef2z(i,j) = gswminz(i,j) / C%RGSWC + gs_coeffz(i,j) *
-&
+               coef2z(i,j) = gswminz(i,j) / C%RGSWC + gs_coeffz(i,j) *       &
                              ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
 
                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
                              (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
-                             + (gswminz(i,j)/C%RGSWC)*(cx1z(i,j)-csxz(i,j))
-&
+                             + (gswminz(i,j)/C%RGSWC)*(cx1z(i,j)-csxz(i,j))    &   
                              - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
                              + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
                
@@ -1936,14 +1934,12 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    
                ! RuBP limited:
                ! Ticket #56, all instances of xleuningz repaced with gs_coeffz
-               coef2z(i,j) = gswminz(i,j) / C%RGSWC + gs_coeffz(i,j)
-&
+               coef2z(i,j) = gswminz(i,j) / C%RGSWC + gs_coeffz(i,j)          &
                              * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
    
                coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeffz(i,j) ) *            &
                              ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
-                             + ( gswminz(i,j) / C%RGSWC ) *
-&
+                             + ( gswminz(i,j) / C%RGSWC ) *                    &
                              ( cx2z(i,j) - csxz(i,j) ) - gs_coeffz(i,j)        &
                              * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
                              ( rdxz(i,j) - vx4z(i,j) ) )                          
@@ -1996,14 +1992,12 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                ! Ticket #56, repalce all xleuningz with gs_coeffz
                coef2z(i,j) = gs_coeffz(i,j)
                
-               coef1z(i,j) = gswminz(i,j)/C%RGSWC + gs_coeffz(i,j)
-&
+               coef1z(i,j) = gswminz(i,j)/C%RGSWC + gs_coeffz(i,j)             &
                              * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
                              + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
                              * csxz(i,j) * effc4 * vcmxt4z(i,j)  
                                             
-               coef0z(i,j) = -( gswminz(i,j)/C%RGSWC ) * csxz(i,j) * effc4
-&
+               coef0z(i,j) = -( gswminz(i,j)/C%RGSWC ) * csxz(i,j) * effc4     &
                              * vcmxt4z(i,j) + ( rdxz(i,j)                      &
                              - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)/C%RGSWC
           
