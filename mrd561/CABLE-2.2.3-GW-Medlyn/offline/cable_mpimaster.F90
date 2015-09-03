@@ -1355,6 +1355,32 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
+  ! Ticket #56, adding veg parms for Medlyn model
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c3(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c4(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c4(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c3_map(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3_map(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+  ! Ticket #56, finish adding new veg parms 
+
   ! ----------- bgc --------------
 
   bidx = bidx + 1
