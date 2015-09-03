@@ -46,6 +46,9 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   !INTEGER, PARAMETER :: nparam = 283
+!  INTEGER, PARAMETER :: nparam = 283
+! Ticket #56, we've added 4 extra new params for the Medlyns Stom Cond model
+!   INTEGER, PARAMETER :: nparam = 287
 
   !mrd
   !added parameters:watsat, smpsat, hksat,
@@ -58,7 +61,7 @@ MODULE cable_mpicommon
   !GWwb, wtd                                   ---> +2 new variables
            !in master.  in worker
   !added topo_ind, slope,slope_std,elev,elev_std
-  INTEGER, PARAMETER :: nparam =303! 302! 301!297 !283
+  INTEGER, PARAMETER :: nparam =307 !303! 302! 301!297 !283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
