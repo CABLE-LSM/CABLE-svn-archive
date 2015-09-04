@@ -126,7 +126,7 @@ CONTAINS
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
-                            dzsoil ) 
+                            dzsoil, ti_mean, ti_sig ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
@@ -141,7 +141,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       smvcst, &
       smvcwt, &
       smvccl, &
-      albsoil 
+      albsoil,&
+      ti_mean,&
+      ti_sig 
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%sm_levels) :: sthu
    
@@ -154,7 +156,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    !___defs 1st call to CABLE in this run
    LOGICAL, SAVE :: first_call= .TRUE.
    INTEGER :: i,j,k,L,n
-   REAL, ALLOCATABLE :: tempvar(:), tempvar2(:)
+   REAL, ALLOCATABLE :: tempvar(:), tempvar2(:), fwork(:,:)
    LOGICAL, PARAMETER :: skip =.TRUE. 
 
       IF( first_call ) THEN 
@@ -190,9 +192,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
          !mrd561
-         soil%GWdz = 30.0                          !30 m thick aquifer
-
-
+         soil%GWdz = 20.0                          !20 m thick aquifer
 
          !-------------------------------------------------------------------
          !--- UM met forcing vars needed by CABLE which have UM dimensions
@@ -227,7 +227,28 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          CALL um2cable_lp( smvcst, soilin%ssat, soil%ssat, soil%isoilm)
          CALL um2cable_lp( smvcwt, soilin%swilt, soil%swilt, soil%isoilm)
          CALL um2cable_lp( smvccl, soilin%sfc, soil%sfc, soil%isoilm)
-   
+ 
+         if (allocated(fwork)) deallocate(fwork) 
+         ALLOCATE( fwork(um1%land_pts,um1%ntiles) )
+         fwork(:,:) = 0.1
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = ti_mean(i)
+            end do
+         end do
+         soil%slope(:) = pack(fwork(:,:),um1%l_tile_pts) 
+ 
+         fwork(:,:) = 0.05 
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = ti_sig(i)
+            end do
+         end do
+         soil%slope_std(:) = pack(fwork(:,:),um1%l_tile_pts) 
+         deallocate(fwork) 
+ 
     
             
          !--- (re)set values for CABLE
@@ -764,12 +785,12 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
          !mrd561
          ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
          !ensure that we have reasonable values in case 
-         !starting from a non-GW simulation
+         !starting from terrible GW values from non GW sim
          where (ssnow%GWwb(:) .eq. 0.0 ) &
                 ssnow%GWwb(:) = soil%GWwatsat*0.95
 
-         where (ssnow%GWwb(:) .lt. 0.01) & 
-                ssnow%GWwb(:)  = 0.01
+         where (ssnow%GWwb(:) .lt. 0.08) &   !arbitrary
+                ssnow%GWwb(:)  = 0.08
 
          where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
                 ssnow%GWwb(:) = soil%GWwatsat
@@ -815,7 +836,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
 
       ENDIF ! END: if (first_call)       
 
-!     DO J=1, msn
+!     DO J=1, msn  
       DO J=1, 1
 
          WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) ! lakes: remove hard-wired number in future version
