@@ -161,7 +161,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
          CALL check_nmlvar('gw_params%EfoldMaxSatFrac', gw_params%EfoldMaxSatFrac)
          CALL check_nmlvar('gw_params%hkrz', gw_params%hkrz)
          CALL check_nmlvar('gw_params%zdepth', gw_params%zdepth)
-         CALL check_nmlvar('gw_params%frozen_frac', gw_params%frozen_fac)
+         CALL check_nmlvar('gw_params%frozen_frac', gw_params%frozen_frac)
       end if
 
 
