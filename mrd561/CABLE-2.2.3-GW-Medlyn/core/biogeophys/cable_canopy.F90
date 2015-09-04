@@ -707,6 +707,8 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
    ENDDO 
    
    ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
+   !if I alter resitance here need to incorporate term into derivates around
+   !Line 612
    
 END FUNCTION Humidity_deficit_method
 
