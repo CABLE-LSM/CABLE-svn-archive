@@ -20,7 +20,7 @@ SUBROUTINE subgrid_sm_transfer(dels,ktau,ssnow,soil)
   implicit none
   real, intent(in)                              :: dels
   integer, intent(in)                           :: ktau
-  type(soil_snow_type)          , intent(inout) :: ssnow
+  type(soil_snow_type)     , intent(inout)      :: ssnow
   type(soil_parameter_type), intent(in)         :: soil
   
   !local variables
