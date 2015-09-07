@@ -139,7 +139,7 @@ CONTAINS
         !cable_runtime%run_gw_model is not 
         IF (cable_user%gw_model) then
 
-           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
 
         ELSE
 
