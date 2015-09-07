@@ -1225,7 +1225,9 @@ CONTAINS
       ssnow%wbice(:, :) = 0.0
     END WHERE
 
-   IF(hide%Ticket49Bug5) THEN
+   !IF(hide%Ticket49Bug5) THEN
+
+!! vh_js !! neeed to remove this if to enable the code below
  
       ! SLI specific initialisations:
       IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1250,7 +1252,9 @@ CONTAINS
          veg%disturbance_intensity = 0.
       ENDIF
    
-   ENDIF
+   !ENDIF
+
+   
 
   END SUBROUTINE write_default_params
   !=============================================================================

@@ -38,8 +38,8 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_output.F90 casa_cnp.F90 casa_cable.F90 casa_inout.F90 cable_driver.F90 \
 	cable_sli_main.F90 cable_sli_numbers.F90 cable_sli_roots.F90 \
 	cable_sli_solve.F90 cable_sli_utils.F90  \
-         spincasacnp.F90 \
-	cable_diag.F90 POP.F90 pop_io.F90 globfor_out.F90
+        spincasacnp.F90 \
+	cable_diag.F90 POP.F90 pop_io.F90 globfor_out.F90 cable_plume_mip.F90 cable_weathergenerator.F90
 
 # this is the executable we are building
 PROG = cable
@@ -85,7 +85,7 @@ cable_cbm.o: cable_cbm.F90 cable_carbon.o cable_soilsnow.o cable_canopy.o cable_
 
 cable_checks.o: cable_checks.F90 cable_radiation.o cable_common.o
 
-cable_driver.o: cable_driver.F90 pop_io.o cable_diag.o cable_output.o cable_iovars.o cable_cbm.o casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_common.o cable_data.o cable_sli_main.o globfor_out.o
+cable_driver.o: cable_driver.F90 pop_io.o cable_diag.o cable_output.o cable_iovars.o cable_cbm.o casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_common.o cable_data.o cable_sli_main.o globfor_out.o cable_plume_mip.o
 
 cable_define_types.o: cable_define_types.F90
 
@@ -138,6 +138,10 @@ cable_sli_roots.o: cable_sli_roots.F90 cable_sli_numbers.o cable_define_types.o
 cable_sli_solve.o: cable_sli_solve.F90 cable_sli_numbers.o cable_sli_roots.o cable_sli_utils.o cable_define_types.o
 
 cable_sli_utils.o: cable_sli_utils.F90 cable_sli_numbers.o  cable_define_types.o
+
+cable_plume_mip.o: cable_plume_mip.F90 cable_iovars.o cable_define_types.o cable_checks.o cable_weathergenerator.o
+
+cable_weathergenerator.o: cable_weathergenerator.F90
 
 # make clean option
 clean:

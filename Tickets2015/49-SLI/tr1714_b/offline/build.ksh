@@ -62,7 +62,8 @@ host_shin()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   module add netcdf/3.6.3 openmpi/1.6.5
+   #CLN module add netcdf/3.6.3 openmpi/1.6.5
+   module add netcdf openmpi/1.6.5
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
@@ -227,9 +228,9 @@ host_write()
 clean_build()
 {
       print '\ncleaning up\n'
-      rm -fr .tmp
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy 
+      rm -fr .tmp
 }
 
 

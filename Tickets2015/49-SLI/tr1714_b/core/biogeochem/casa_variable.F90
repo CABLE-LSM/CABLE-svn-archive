@@ -79,7 +79,8 @@ MODULE casaparm
   INTEGER, PARAMETER :: PLAB    = 1
   INTEGER, PARAMETER :: PSORB   = 2
   INTEGER, PARAMETER :: POCC    = 3
-  INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable
+ !! vh_js !! LALLOC moved to bgcdriver to allow for value to be switchable
+  !INTEGER, PARAMETER :: LALLOC  = 0      !=0 constant; 1 variable
   REAL(r_2), PARAMETER :: z30=0.3
   REAL(r_2), PARAMETER :: R0=0.3
   REAL(r_2), PARAMETER :: S0=0.3
@@ -205,7 +206,10 @@ MODULE casavariable
                                        Plabuptake,    &
                                        Clabloss,      &
                                        fracClabile, &
-                                       stemnpp
+!! vh_js !! the 3 variables below are needed for POP coupling to CASA
+                                       stemnpp, &
+                                       frac_sapwood, &
+                                       sapwood_area
     REAL(r_2), DIMENSION(:,:),POINTER :: fracCalloc,  &
                                        fracNalloc,    &
                                        fracPalloc,    &
@@ -492,7 +496,9 @@ write(*,*) "in alloc_casa"
            casaflux%fromStoS(arraysize,msoil,msoil),     &
            casaflux%fromLtoCO2(arraysize,mlitter),       &
            casaflux%fromStoCO2(arraysize,msoil), &
- 	       casaflux%stemnpp(arraysize))					                  
+ 	   casaflux%stemnpp(arraysize)	, &
+           casaflux%frac_sapwood(arraysize), &
+           casaflux%sapwood_area(arraysize))		                  
 
   ALLOCATE(casaflux%FluxCtolitter(arraysize,mlitter),    &
            casaflux%FluxNtolitter(arraysize,mlitter),    &

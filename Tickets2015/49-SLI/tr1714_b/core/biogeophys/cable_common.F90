@@ -338,34 +338,24 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                
             veg_desc(jveg) = vegnametmp 
                
-
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                            vegin%length(jveg), vegin%frac4(jveg)
             ! only refl(1:2) and taul(1:2) used
-
             READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
-
-           READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
-
-           READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
-
-           READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
+            READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
+            READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
+            READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
 
             READ(40,*) vegin%vcmax(jveg), vegin%rp20(jveg),                    &
                        vegin%rpcoef(jveg),                                     &
                        vegin%rs20(jveg)
-
             READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),                 &
                        vegin%vbeta(jveg), vegin%rootbeta(jveg)
-
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
-
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
-
             READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
-
             READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
 
          END DO
@@ -458,7 +448,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       ALLOCATE ( soilin%swilt(mstype), soilin%sfc(mstype), soilin%ssat(mstype) )
       ALLOCATE ( soilin%bch(mstype), soilin%hyds(mstype), soilin%sucs(mstype) )
       ALLOCATE ( soilin%rhosoil(mstype), soilin%css(mstype) )
-      
+     
       DO a = 1,mstype 
          READ(40,'(8X,A70)') soil_desc(a) ! Read description of each soil type
       END DO
@@ -475,100 +465,160 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       READ(40,*) soilin%sucs
       READ(40,*) soilin%rhosoil
       READ(40,*) soilin%css
-     
+
    CLOSE(40)
 
 END SUBROUTINE get_type_parameters
 
-  SUBROUTINE HANDLE_ERR( status )
-    use netcdf
-    INTEGER*4 :: status
-    IF(status /= NF90_noerr) THEN
-       PRINT*,"netCDF error:"
-       PRINT*, TRIM(NF90_strerror(status))
-       STOP "Stopped"
-    END IF
-  END SUBROUTINE HANDLE_ERR
+SUBROUTINE HANDLE_ERR( status, msg )
+  ! LN 06/2013
+  use netcdf
+  INTEGER, INTENT(IN) :: status
+  CHARACTER(LEN=*), INTENT(IN),OPTIONAL :: msg
+  IF(status /= NF90_noerr) THEN
+     WRITE(*,*)"netCDF error:"
+     IF ( PRESENT( msg ) ) WRITE(*,*)msg
+     WRITE(*,*) TRIM(NF90_strerror(status))
+     STOP -1
+  END IF
+END SUBROUTINE HANDLE_ERR
 
- 
-    !! vh_js !! FUNCTION IS_LEAPYEAR( YYYY )
-    ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
+SUBROUTINE GET_UNIT (IUNIT)
+  
+  ! Find an unused unit for intermediate use
+  ! PLEASE, use it ONLY when you OPEN AND CLOSE WITHIN THE SAME CALL
+  ! or there could be interferences with other files!!!
+  ! LN 05/2014
+  
+  IMPLICIT NONE 
+  
+  INTEGER,INTENT(OUT) :: IUNIT
+  INTEGER :: i
+  LOGICAL :: is_open = .FALSE.
+  
+  DO i = 200, 10000
+     INQUIRE ( UNIT=i, OPENED=is_open )
+     IF ( .NOT. is_open ) EXIT
+  END DO
+  IUNIT = i
+  
+END SUBROUTINE GET_UNIT
 
-    !! vh_js !! INTEGER :: YYYY
-    INTEGER, INTENT(IN) :: YYYY
-    LOGICAL :: IS_LEAPYEAR
+ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
+  IMPLICIT NONE
+  INTEGER, INTENT(IN) :: YYYY
+  LOGICAL :: IS_LEAPYEAR
+  
+  IS_LEAPYEAR = .FALSE.
+  IF ( ( ( MOD( YYYY,  4 ) .EQ. 0 .AND. MOD( YYYY, 100 ) .NE. 0 ) .OR. &
+       MOD( YYYY,400 ) .EQ. 0 ) ) IS_LEAPYEAR = .TRUE.
+  
+END FUNCTION IS_LEAPYEAR
 
-    IS_LEAPYEAR = .FALSE.
-    IF ( ( ( MOD( YYYY,  4 ) .EQ. 0 .AND. MOD( YYYY, 100 ) .NE. 0 ) .OR. &
-         MOD( YYYY,400 ) .EQ. 0 ) ) IS_LEAPYEAR = .TRUE.
+FUNCTION LEAP_DAY( YYYY )
+  IMPLICIT NONE
+  INTEGER :: YYYY, LEAP_DAY
 
-  END FUNCTION IS_LEAPYEAR
+  IF ( IS_LEAPYEAR ( YYYY ) ) THEN
+     LEAP_DAY = 1
+  ELSE 
+     LEAP_DAY = 0
+  END IF
+END FUNCTION LEAP_DAY
+     
+SUBROUTINE YMDHMS2DOYSOD( YYYY,MM,DD,HOUR,MINUTE,SECOND,DOY,SOD )
+  
+  ! Compute Day-of-year and second-of-day from given date and time or
+  
+  IMPLICIT NONE
+  
+  INTEGER,INTENT(IN)  :: YYYY,MM,DD,HOUR,MINUTE,SECOND
+  INTEGER,INTENT(OUT) :: DOY,SOD
+  
+  !  LOGICAL :: IS_LEAPYEAR
+  INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+  
+  IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+  
+  IF ( DD .GT. MONTH(MM) .OR. DD .LT. 1 .OR. &
+       MM .GT. 12 .OR. MM .LT. 1 ) THEN
+     WRITE(*,*)"Wrong date entered in YMDHMS2DOYSOD "
+     WRITE(*,*)"DATE : ",YYYY,MM,DD
+     STOP
+  ENDIF
+  DOY = DD
+  IF ( MM .GT. 1 ) DOY = DOY + SUM( MONTH( 1:MM-1 ) )
+  SOD = HOUR * 3600 + MINUTE * 60 + SECOND
+  
+END SUBROUTINE YMDHMS2DOYSOD
 
-  SUBROUTINE YMDHMS2DOYSOD( YYYY,MM,DD,HOUR,MINUTE,SECOND,DOY,SOD )
+SUBROUTINE DOYSOD2YMDHMS( YYYY,DOY,SOD,MM,DD,HOUR,MINUTE,SECOND )
+  
+  ! Compute Day-of-year and second-of-day from given date and time or
+  
+  IMPLICIT NONE
+  
+  INTEGER,INTENT(IN)           :: YYYY,DOY,SOD
+  INTEGER,INTENT(OUT)          :: MM,DD
+  INTEGER,INTENT(OUT),OPTIONAL :: HOUR,MINUTE,SECOND
+  
+  !  LOGICAL :: IS_LEAPYEAR
+  INTEGER :: MON, i
+  INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+  
+  IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+  
+  IF ( SOD .GE. 86400 .OR. SOD .LT. 0 .OR. &
+       DOY .GT. SUM(MONTH) .OR. DOY .LT. 1 ) THEN
+     WRITE(*,*)"Wrong date entered in DOYSOD2YMDHMS "
+     WRITE(*,*)"YYYY DOY SOD : ",YYYY,DOY,SOD
+     STOP
+  ENDIF
+  
+  MON = 0
+  DO i = 1, 12
+     IF ( MON + MONTH(i) .LT. DOY ) THEN
+        MON = MON + MONTH(i)
+     ELSE
+        MM  = i
+        DD  = DOY - MON
+        EXIT
+     ENDIF
+  END DO
+  IF ( PRESENT ( HOUR ) ) HOUR   = INT( REAL(SOD)/3600. )
+  IF ( PRESENT (MINUTE) ) MINUTE = INT( ( REAL(SOD) - REAL(HOUR)*3600.) / 60. )
+  IF ( PRESENT (SECOND) ) SECOND = SOD - HOUR*3600 - MINUTE*60
+  
+END SUBROUTINE DOYSOD2YMDHMS
 
-    ! Compute Day-of-year and second-of-day from given date and time or
-    ! reverse (if REV=.TRUE.)
+SUBROUTINE LAND2XY( xdimsize, landgrid, x, y )
 
-    IMPLICIT NONE
+  ! Convert landgrid to x and y (indices for lat and lon) as
+  ! used in CABLE 
+  ! LN 08/2015
+  
+  IMPLICIT NONE
+  INTEGER, INTENT(IN)  :: xdimsize, landgrid
+  INTEGER, INTENT(OUT) :: x, y
+  
+  y = INT(REAL((landGrid-1))/REAL(xdimsize)) + 1
+  x = landGrid - (y-1) * xdimsize
+  
+END SUBROUTINE LAND2XY
+  
+SUBROUTINE XY2LAND( xdimsize, x, y, landgrid )
 
-    INTEGER,INTENT(IN)  :: YYYY,MM,DD,HOUR,MINUTE,SECOND
-    INTEGER,INTENT(OUT) :: DOY,SOD
+  ! Convert x and y (indices for lat and lon) to landgrid
+  ! as used in CABLE 
+  ! LN 08/2015
+  
+  IMPLICIT NONE
+  INTEGER, INTENT(IN)  :: xdimsize, x, y
+  INTEGER, INTENT(OUT) :: landgrid
 
-    !  LOGICAL :: IS_LEAPYEAR
-    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
-
-    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
-
-    IF ( DD .GT. MONTH(MM) .OR. DD .LT. 1 .OR. &
-         MM .GT. 12 .OR. MM .LT. 1 ) THEN
-       WRITE(*,*)"Wrong date entered in YMDHMS2DOYSOD "
-       WRITE(*,*)"DATE : ",YYYY,MM,DD
-       STOP
-    ENDIF
-    DOY = DD
-    IF ( MM .GT. 1 ) DOY = DOY + SUM( MONTH( 1:MM-1 ) )
-    SOD = HOUR * 3600 + MINUTE * 60 + SECOND
-
-  END SUBROUTINE YMDHMS2DOYSOD
-
-  SUBROUTINE DOYSOD2YMDHMS( YYYY,DOY,SOD,MM,DD,HOUR,MINUTE,SECOND )
-
-    ! Compute Day-of-year and second-of-day from given date and time or
-    ! reverse (if REV=.TRUE.)
-
-    IMPLICIT NONE
-
-    INTEGER,INTENT(IN)  :: YYYY,DOY,SOD
-    INTEGER,INTENT(OUT) :: MM,DD,HOUR,MINUTE,SECOND
-
-    !  LOGICAL :: IS_LEAPYEAR
-    INTEGER :: MON, i
-    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
-
-    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
-
-    IF ( SOD .GE. 86400 .OR. SOD .LT. 0 .OR. &
-         DOY .GT. SUM(MONTH) .OR. DOY .LT. 1 ) THEN
-       WRITE(*,*)"Wrong date entered in DOYSOD2YMDHMS "
-       WRITE(*,*)"DOYSOD : ",DOY,SOD
-       STOP
-    ENDIF
-
-    MON = 0
-    DO i = 1, 12
-       IF ( MON + MONTH(i) .LT. DOY ) THEN
-          MON = MON + MONTH(i)
-       ELSE
-          MM  = i
-          DD  = DOY - MON
-          EXIT
-       ENDIF
-    END DO
-    HOUR   = INT( REAL(SOD)/3600. )
-    MINUTE = INT( ( REAL(SOD) - REAL(HOUR)*3600.) / 60. )
-    SECOND = SOD - HOUR*3600 - MINUTE*60
-
-  END SUBROUTINE DOYSOD2YMDHMS
+  landgrid = x + ( y - 1 ) * xdimsize
+  
+END SUBROUTINE XY2LAND
 
 ! get svn revision number and status
 SUBROUTINE report_version_no( logn )

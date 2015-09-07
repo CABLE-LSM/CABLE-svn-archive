@@ -180,10 +180,13 @@ CONTAINS
 
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
                     plantcarbID, tID, landID, patchID ! dimension IDs
-    INTEGER :: latID, lonID ! time,lat,lon variable ID
+    INTEGER :: latID, lonID, llatvID, llonvID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
+
+
+PRINT*,"timeunits", timeunits
   
     ! Create output file:
     ok = NF90_CREATE(filename%out, NF90_CLOBBER, ncid_out)
@@ -246,6 +249,24 @@ CONTAINS
        IF (ok /= NF90_NOERR) CALL nc_abort                                     &
                        (ok, 'Error defining land dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
+       
+       ok = NF90_DEF_VAR(ncid_out, 'local_lat', NF90_FLOAT, (/landID/), llatvID)
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+                        (ok, 'Error defining land lat variable in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, llatvID, 'units', "degrees_north")
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok, 'Error defining local lat variable attributes in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+       ok = NF90_DEF_VAR(ncid_out, 'local_lon', NF90_FLOAT, (/landID/), llonvID)
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+                        (ok, 'Error defining land lon variable in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, llonvID, 'units', "degrees_east")
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok, 'Error defining local lon variable attributes in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+
     END IF
     ! Define "time" variable and its attributes:
     ok = NF90_DEF_VAR(ncid_out, 'time', NF90_DOUBLE, (/tID/), ovid%tvar)
@@ -862,6 +883,22 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
                                    (ok, 'Error writing longitude variable to ' &
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+
+    IF (output%grid == 'land' .OR. &
+         (metGrid == 'land' .AND. output%grid == 'default'))  THEN
+
+       ok = NF90_PUT_VAR(ncid_out, llatvID, REAL(latitude) )
+       IF(ok /= NF90_NOERR) CALL nc_abort                                         &
+                                   (ok, 'Error writing loc lat variable to ' &
+                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+
+       ok = NF90_PUT_VAR(ncid_out, llonvID, REAL(longitude) )
+       IF(ok /= NF90_NOERR) CALL nc_abort                                         &
+                                   (ok, 'Error writing loc lon variable to ' &
+                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+      
+    ENDIF
+
     ! Write GrADS coordinate variables
     ok = NF90_PUT_VAR(ncid_out, xvID, REAL(lon_all(:, 1), 4))
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &

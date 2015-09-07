@@ -112,7 +112,8 @@ CONTAINS
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, dels)
    ENDIf
     
-   ssnow%otss_0 = ssnow%otss  ! vh should be beofre call to canpoy?
+   !! vh_js !!
+   ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
