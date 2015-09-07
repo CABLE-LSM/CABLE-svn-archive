@@ -165,7 +165,7 @@ CONTAINS
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
       WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
-      CALL spatialSoil(nlon, nlat, logn)
+      CALL spatialSoil(nlon, nlat, npatch, logn)
     ENDIF
 
     ! jtk561 - reading g1_map
@@ -292,9 +292,16 @@ CONTAINS
 
     ok = NF90_GET_VAR(ncid, varID, inVeg)
     IF (ok /= NF90_NOERR) THEN
-       ok = NF90_GET_VAR(ncid, varID, idummy)
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+       if (npatch .eq. 1) then
+          ok = NF90_GET_VAR(ncid, varID, idummy)
+          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+          do kk=1,npatch
+             inVeg(:, :,kk) = idummy(:,:) ! npatch=1 in 1x1 degree input
+          end do
+       else
+          ok = NF90_GET_VAR(ncid, varID, inVeg)
+          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+       end if
     END IF
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
@@ -397,7 +404,7 @@ CONTAINS
 
   END SUBROUTINE read_gridinfo
   !============================================================================
-  SUBROUTINE spatialSoil(nlon, nlat, logn)
+  SUBROUTINE spatialSoil(nlon, nlat, npatch, logn)
   ! Read in spatially-specific soil properties including snow-free albedo
   ! plus soil texture; all these from UM ancilliary file
   !
@@ -431,6 +438,7 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
     INTEGER, INTENT(IN) :: nlat
+    INTEGER, INTENT(IN) :: npatch    
     INTEGER, INTENT(IN) :: logn ! log file unit number
 
     ! local variables
@@ -607,7 +615,7 @@ CONTAINS
     end if
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inORG(:,:) = 0.0
-      write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE '
+      write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE setting to 0.0'
     END IF    
 
     ok = NF90_INQ_VARID(ncid, 'topo_index', fieldID)
@@ -740,9 +748,11 @@ CONTAINS
       in2alb = -1.0
     END WHERE
     dummy2(:, :) = 2.0 * in2alb(:, :) / (1.0 + sfact(:, :))
-    inALB(:, :, 1, 2) = dummy2(:, :)
-    inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
+    do ii=1,npatch
+       inALB(:, :, ii, 2) = dummy2(:, :)
+       inALB(:, :, ii, 1) = sfact(:, :) * dummy2(:, :)
+    end do
 
     !always allocate and initialize to 0
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
