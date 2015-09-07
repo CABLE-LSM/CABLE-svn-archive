@@ -1701,8 +1701,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 12
                 met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
                 ! If previous year is a leap year
-                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
+                IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) .and. leaps) THEN
                    met%doy(landpt(i)%cstart) = 366
                 ELSE
                    met%doy(landpt(i)%cstart) = 365
