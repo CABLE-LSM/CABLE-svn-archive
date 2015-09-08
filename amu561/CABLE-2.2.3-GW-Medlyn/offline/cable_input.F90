@@ -1701,8 +1701,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 12
                 met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
                 ! If previous year is a leap year
-                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
+                IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) .and. leaps) THEN
                    met%doy(landpt(i)%cstart) = 366
                 ELSE
                    met%doy(landpt(i)%cstart) = 365
@@ -2082,8 +2082,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ELSE 
         ! If not in met file, use default LAI value:
         DO i=1,mland ! over all land points/grid cells
-          veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
-               defaultLAI(i,met%moy(landpt(i)%cstart))
+        !incorrect, defaultLAI(mp,month)
+        ! not defaultLAI(mland,month)
+          !veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
+          !     defaultLAI(i,met%moy(landpt(i)%cstart))
+          !defaultLAI is (mp,month) as read in in cable_parameters
+          veg%vlai(landpt(i)%cstart:landpt(i)%cend) = &
+               defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
         ENDDO
       END IF
 
