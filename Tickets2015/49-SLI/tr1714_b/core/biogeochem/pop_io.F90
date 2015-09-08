@@ -14,7 +14,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   USE netcdf
   USE POP_constants
   USE POP_types
-  USE CASAVARIABLE
+  USE CASAVARIABLE, only: casa_met, icycle
   USE CABLE_COMMON_MODULE
 
   IMPLICIT NONE
@@ -30,7 +30,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   INTEGER            :: nlay_ID,hgtb_ID,ncoh_ID,t_ID
   INTEGER            :: nlayer_dim, ndisturb_dim, ndisturb1_dim,land_dim
   INTEGER            :: HEIGHT_BINS_dim,npatch2d_dim,NCOHORT_MAX_dim
-  INTEGER            :: dID, t_dim, tx = -1, ntile
+  INTEGER            :: dID, t_dim, tx = -1, ntile, mp
   CHARACTER(len=3)   :: typ = 'rst'
   CHARACTER          :: dum*9,fname*120, RUNPATH*100
   LOGICAL            :: CLOSE_FILE, EXISTFILE
@@ -129,6 +129,9 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   ! TEMPORARY ARRAYS
   INTEGER, ALLOCATABLE :: I1(:), I2(:,:),I3(:,:,:),I4(:,:,:,:)
   REAL   , ALLOCATABLE :: R1(:), R2(:,:),R3(:,:,:),R4(:,:,:,:)
+
+
+  mp = POP%np
 
   AR0(1) = 'latitude'
   AR0(2) = 'longitude'
@@ -286,6 +289,8 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         ENDIF
 
         INQUIRE( FILE=TRIM( fname ), EXIST=EXISTFILE )
+
+        write(*,*) 'pop_io', fname, typ
 
         IF ( EXISTFILE.and.(typ.ne.'ini').and.(typ.ne.'rst') ) THEN  ! file exists
         STATUS = NF90_open(fname, mode=nf90_write, ncid=FILE_ID)
@@ -472,11 +477,11 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
         ! PUT LAT / LON ( np )
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(1), REAL(casamet%lat(1:mp:ntile)),&
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(1), REAL(casamet%lat(POP%Iwood)),&
              start=(/ 1 /), count=(/ mp /)  )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(2), REAL(casamet%lon(1:mp:ntile)),&
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(2), REAL(casamet%lon(POP%Iwood)),&
              start=(/ 1 /), count=(/ mp /)  )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      END IF ! file exists
@@ -938,7 +943,7 @@ END IF
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR ( FILE_ID, dID, R1 )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     IF ( ANY ( casamet%lat(1:mp:ntile) .NE. R1 ) ) THEN
+     IF ( ANY ( casamet%lat(POP%Iwood) .NE. R1 ) ) THEN
         WRITE(*,*)"INPUT LATs don't match casamet! pop_bios_io.f90" &
              , TRIM(fname)
         STOP
@@ -947,7 +952,7 @@ END IF
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
      STATUS = NF90_GET_VAR ( FILE_ID, dID, R1 )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-     IF ( ANY ( casamet%lon(1:mp:ntile) .NE. R1 ) ) THEN
+     IF ( ANY ( casamet%lon(POP%Iwood) .NE. R1 ) ) THEN
         WRITE(*,*)"INPUT LONs don't match casamet! pop_bios_io.f90" &
              , TRIM(fname)
         STOP

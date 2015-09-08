@@ -1015,7 +1015,6 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
   totNPP =0.0
   nout=104
   xyear=1.0/FLOAT(myear)
-  write(*,*) 'casaflux_out myear', myear, xyear
   casabal%FCgppyear=casabal%FCgppyear * xyear
   casabal%FCnppyear=casabal%FCnppyear * xyear
   casabal%FCrmleafyear=casabal%FCrmleafyear * xyear
@@ -1176,8 +1175,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
-  WRITE(68,*)"bgc", idoy
-
+  
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
   call avgsoil(veg,soil,casamet)

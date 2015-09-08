@@ -70,12 +70,12 @@ MODULE cable_checks_module
            ! possible output variables
           Qh = (/-2000.0,2000.0/),            & ! W/m^2
           Qle = (/-2500.0,2500.0/),           & ! W/m^2
-          Qg = (/-2000.0,2000.0/),            & ! W/m^2
+          Qg = (/-4000.0,4000.0/),            & ! W/m^2
            SWnet = (/0.0,1350.0/),             & ! W/m^2 (YP oct07)
            ! SWnet = (/0.0,1250.0/),            & ! W/m^2
            LWnet = (/-500.0,510.0/),           & ! W/m^2 
            Rnet = (/-500.0,1250.0/),           & ! W/m^2 
-          Evap = (/-0.0015,0.0015/),         &
+          Evap = (/-0.0045,0.0045/),         &  ! note this is also used for snow melt !
           Ewater = (/-0.0005,0.0005/),        &
           ESoil = (/-0.0015,0.0015/),         &
            TVeg = (/-0.0003,0.0003/),          &
@@ -86,8 +86,8 @@ MODULE cable_checks_module
            Albedo = (/0.0,1.0/),               &
            visAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
            nirAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
-           VegT = (/213.0,333.0/),             &
-           SoilTemp = (/213.0,343.0/),         &
+           VegT = (/213.0,353.0/),             &
+           SoilTemp = (/213.0,353.0/),         &
            SoilMoist = (/0.0,2000.0/),         &
           Qs = (/0.0,15.0/),                   &
           Qsb = (/0.0,15.0/),                  &
@@ -98,7 +98,8 @@ MODULE cable_checks_module
            BaresoilT = (/213.0,343.0/),        &
            AvgSurfT = (/213.0,333.0/),         &
            RadT = (/200.0,373.0/),             &
-           SWE = (/0.0,2000.0/),               &
+           !! vh_js !!
+           SWE = (/0.0,4000.0/),               &
            RootMoist = (/0.0,2000.0/),         &
            CanopInt = (/0.0,100.0/),           &
            NEE = (/-70.0,50.0/),               & ! umol/m2/s

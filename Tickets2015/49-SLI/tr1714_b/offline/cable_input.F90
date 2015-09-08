@@ -41,6 +41,7 @@ MODULE cable_input_module
    USE cable_def_types_mod
    USE casadimension,     ONLY: icycle
    USE casavariable
+   USE casaparm, ONLY: forest, shrub
    USE phenvariable
    USE POP_Types,               Only: POP_TYPE
    USE POPModule,               Only: alloc_POP
@@ -2214,10 +2215,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             CALL abort('LWdown out of specified ranges!')
        IF(ANY(met%qv<ranges%Qair(1)).OR.ANY(met%qv>ranges%Qair(2))) &
             CALL abort('Qair out of specified ranges!')
-       write(*,*) "Checking Ranges in get_met_data", maxval(met%precip)
        IF(ANY(met%precip<ranges%Rainf(1)).OR.ANY(met%precip>ranges%Rainf(2))) then
-            write(*,*) "min, max Rainf", minval(met%precip), maxval(met%precip), ranges%Rainf(2)
-            CALL abort('Rainf out of specified ranges!')
+          CALL abort('Rainf out of specified ranges!')
        ENDIF
        IF(ANY(met%ua<ranges%Wind(1)).OR.ANY(met%ua>ranges%Wind(2))) &
             CALL abort('Wind out of specified ranges!')
@@ -2329,12 +2328,12 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
    ! Local variables
    REAL,POINTER,DIMENSION(:)          :: pfractmp ! temp store of patch fraction
    LOGICAL                                 :: completeSet ! was a complete parameter set found?
-    LOGICAL                            :: EXRST = .FALSE. ! does a RunIden restart file exist?
+   LOGICAL                            :: EXRST = .FALSE. ! does a RunIden restart file exist?
    INTEGER                            ::                                  &
         mp_restart,        & ! total number of patches in restart file
         mpID,              &
         napID,             &
-        i                    ! do loop variables
+        i , j                   ! do loop variables
     !! vh_js !!
     ! CHARACTER :: frst_in*100, CYEAR*4
     CHARACTER :: frst_in*200, CYEAR*4
@@ -2342,6 +2341,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
     INTEGER   :: IOS
     CHARACTER :: TACC*20
     INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
+    INTEGER :: mp_POP
+    INTEGER, dimension(:), ALLOCATABLE :: Iwood
 
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))
@@ -2363,8 +2364,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
       CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
     IF (icycle > 0) THEN
       CALL alloc_phenvariable(phen,mp)
-    !   IF ( CABLE_USER%CALL_POP ) CALL alloc_POP(POP,mp)
-    ENDIF
+   ENDIF
 
     ! Write parameter values to CABLE's parameter variables:
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
@@ -2380,10 +2380,24 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
 
       CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
       IF ( CABLE_USER%CALL_POP ) THEN
+      ! evaluate mp_POP and POP_array
+       mp_POP = COUNT(casamet%iveg2==forest)+COUNT(casamet%iveg2==shrub)
+       ALLOCATE(Iwood(mp_POP))
+       j = 1
+       DO i=1,mp
+          IF (casamet%iveg2(i)==forest .OR. casamet%iveg2(i)==forest) THEN
+             Iwood(j) = i
+             j = j+1
+          ENDIF
+       ENDDO
+
+       write(*,*) 'Iwood', Iwood
+
+       
          IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
-            CALL POP_init( POP, veg%disturbance_interval, mp )
+            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
          ELSE
-            CALL POP_init( POP, veg%disturbance_interval, mp )
+            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
             CALL POP_IO( POP, casamet, cable_user%YearStart, "READ_rst" , .TRUE.)
          END IF
       END IF

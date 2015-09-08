@@ -282,6 +282,13 @@ PROGRAM cable_offline_driver
       spincasa                   = .FALSE.
       CABLE_USER%CALL_POP        = .FALSE.
    ENDIF
+   
+   !! vh_js !!
+   IF (icycle.gt.0) THEN
+      l_casacnp = .TRUE.
+   ELSE
+      l_casacnp = .FALSE.
+   ENDIF
 
    IF ( .NOT. spinup ) THEN
       IF ( spincasa ) THEN
@@ -301,7 +308,8 @@ PROGRAM cable_offline_driver
    
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
-    
+
+       
    IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
         STOP 'icycle must be 1 to 3 when using casaCNP'
    !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )       &

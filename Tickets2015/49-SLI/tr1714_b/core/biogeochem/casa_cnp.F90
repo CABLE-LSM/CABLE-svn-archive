@@ -1871,8 +1871,7 @@ SUBROUTINE casa_poolzero(n,ipool,casapool)
      WRITE(57,*) 'plant N pools: ',n,casapool%nplant(n,:)
   CASE(3)
      WRITE(57,*) 'litter carbon pool size negative!!'
-     WRITE(57,*) 'litter C pools: ',n,casapool%clitter(n,:),casapool%dClitterdt(n,:)
-     stop
+     WRITE(57,*) 'litter C pools: ',n,casapool%clitter(n,:)
   CASE(4)
      WRITE(57,*) 'litter nitrogen pool size negative!!'
      WRITE(57,*) 'carbon pool: ',n,casapool%clitter(n,:)

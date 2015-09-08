@@ -225,6 +225,8 @@ MODULE POP_Types
   TYPE POP_TYPE
      TYPE(Landscape), DIMENSION(:), ALLOCATABLE :: pop_grid
      INTEGER                                    :: it_pop
+     INTEGER :: np
+     INTEGER, DIMENSION(:), Allocatable :: Iwood
   END TYPE POP_TYPE
 
 END MODULE POP_Types
@@ -2260,12 +2262,13 @@ CONTAINS
   END SUBROUTINE Williams_Allometry
 
   !*******************************************************************************
-  SUBROUTINE POP_init(POP, disturbance_interval,np,precip)
+  SUBROUTINE POP_init(POP, disturbance_interval,np,Iwood,precip)
     USE POP_types,     ONLY: POP_TYPE
     USE TypeDef,       ONLY: i4b
     IMPLICIT NONE
 
     INTEGER(i4b), INTENT(IN) ::  disturbance_interval(:,:), np
+    INTEGER(i4b), INTENT(IN) :: Iwood(:)
     REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
     TYPE( POP_TYPE )        , INTENT(INOUT) :: POP
     INTEGER(i4b) :: j, k
@@ -2274,6 +2277,8 @@ CONTAINS
 
 
     CALL alloc_POP(pop,np)
+    POP%np = np
+    POP%Iwood = Iwood
     CALL ZeroPOP(pop)
     CALL InitPOP2D_Poisson(pop,INT(disturbance_interval))
 
@@ -2305,6 +2310,7 @@ CONTAINS
 
 
     IF (.NOT.ALLOCATED(POP%POP_Grid)) ALLOCATE (POP%POP_Grid(arraysize))
+    IF (.NOT.ALLOCATED(POP%Iwood)) ALLOCATE (POP%Iwood(arraysize))
 
   END SUBROUTINE alloc_POP
 
