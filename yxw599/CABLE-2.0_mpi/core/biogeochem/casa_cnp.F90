@@ -1853,6 +1853,10 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
+   ! add change in labile carbon pool to NPP 
+   casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
+   ! add the labile C loss to growth respiration
+   casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
    npt=59894
 
    write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
@@ -1860,10 +1864,8 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
                casaflux%crmplant(npt,:),casapool%dClabiledt(npt),casaflux%clabloss(npt),  &
                sum(casaflux%fracCalloc(npt,:)),casaflux%fracClabile(npt),               & 
                casaflux%cgpp(npt)-casaflux%cnpp(npt), &
-               sum(casaflux%crmplant(npt,:))+casaflux%crgplant(npt), &
-               casaflux%cgpp(npt)-casaflux%cnpp(npt)-casapool%dClabiledt(npt), &
-               sum(casaflux%crmplant(npt,:))+casaflux%crgplant(npt)+casaflux%clabloss(npt)
-          
+              sum(casaflux%crmplant(npt,:))+casaflux%crgplant(npt)
+         
 !               casapool%cplant(npt,:),casabal%cplantlast(npt,:),casapool%dcplantdt(npt,:), &
 !               casaflux%kplant(npt,:)*casabal%cplantlast(npt,:),                            &
 !               casaflux%fraccalloc(npt,:), &

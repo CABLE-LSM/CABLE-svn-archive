@@ -2514,7 +2514,8 @@ CONTAINS
           out%casaGPP = 0.0
        END IF
        ! NPP: net primary production of C by veg [gC/m^2/day or gC/m^2/mon]
-       out%casaNPP = out%casaNPP + REAL(casaflux%Cnpp+casapool%dClabiledt)
+       ! NPP include change in labiel C pool size (YPW)
+       out%casaNPP = out%casaNPP + REAL(casaflux%Cnpp)
        IF(writeCASA) THEN
           out%casaNPP = out%casaNPP/REAL(2 * backCASA / ktauday, 4)
           CALL write_ovar(out_tsCASA, ncid_out, ovid%casaNPP, 'CASANPP', out%casaNPP,    &
@@ -2546,6 +2547,7 @@ CONTAINS
           out%casaRTresp = 0.0
        END IF
        ! GrowResp: Growth Respiration [gC/m^2/day or gC/m^2/mon]
+       ! CO2 efflux from Labile C loss is added to growth respiration (temporary solution, should be part of maintenance respiration (YPW)
        out%casaGRresp = out%casaGRresp + REAL(casaflux%Crgplant)
        IF(writeCASA) THEN
           out%casaGRresp = out%casaGRresp/REAL(2 * backCASA / ktauday, 4)

@@ -63,6 +63,10 @@ MODULE cable_common_module
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
       
+      ! switch added for alternative stomatal conductance following ticket #56 of Jatin Kala
+      CHARACTER(LEN=20) ::                                                     &
+             GS_SWITCH     !
+      
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
       
