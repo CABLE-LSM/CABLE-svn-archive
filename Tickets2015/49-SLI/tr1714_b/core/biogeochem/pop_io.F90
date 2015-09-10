@@ -89,6 +89,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
   ! 1 dim arrays (np)
   CHARACTER(len=40),DIMENSION( 2) :: AR0
+  CHARACTER(len=40),DIMENSION( 1) :: AI0
 
   ! LANDSCAPE STRUCTURE
   ! 2 dim arrays (np,t)
@@ -120,7 +121,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   CHARACTER(len=40),DIMENSION( 2) :: AI9
 
 
-  INTEGER, SAVE :: VIDtime, VIDR0(SIZE(AR0)),VIDR1(SIZE(AR1)),VIDI1(SIZE(AI1)), &
+  INTEGER, SAVE :: VIDtime, VIDR0(SIZE(AR0)), VIDI0(SIZE(AI0)),VIDR1(SIZE(AR1)),VIDI1(SIZE(AI1)), &
        VIDR2(SIZE(AR2)),VIDR3(SIZE(AR3)),VIDI4(SIZE(AI4)),VIDR5(SIZE(AR5)),     &
        VIDI5(SIZE(AI5)),VIDI7(SIZE(AI7)),VIDR7(SIZE(AR7)),VIDR8(SIZE(AR8)),     &
        VIDI8(SIZE(AI8)),VIDR9(SIZE(AR9)),VIDI9(SIZE(AI9))
@@ -135,6 +136,8 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
   AR0(1) = 'latitude'
   AR0(2) = 'longitude'
+
+  AI0(1) = 'Iwood'
 
   AI1(1) = 'npatch_active'
 
@@ -310,6 +313,10 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
            STATUS = nf90_inq_varid(FILE_ID,TRIM(AR0(i)),VIDR0(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         END DO
+        DO i = 1, SIZE(AI0)
+           STATUS = nf90_inq_varid(FILE_ID,TRIM(AI0(i)),VIDI0(i))
+           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+        END DO
         DO i = 1, SIZE(AI1)
            STATUS = nf90_inq_varid(FILE_ID,TRIM(AI1(i)),VIDI1(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -411,6 +418,10 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
            STATUS = NF90_def_var(FILE_ID,TRIM(AR0(i)), NF90_FLOAT,(/land_ID/),VIDR0(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         END DO
+        DO i = 1, SIZE(AI0)
+           STATUS = NF90_def_var(FILE_ID,TRIM(AI0(i)), NF90_INT,(/land_ID/),VIDI0(i))
+           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+        END DO
         DO i = 1, SIZE(AI1)
            STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)), NF90_INT  ,(/land_ID,t_ID/),VIDI1(i))
            IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -482,6 +493,11 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
         STATUS = NF90_PUT_VAR(FILE_ID, VIDR0(2), REAL(casamet%lon(POP%Iwood)),&
+             start=(/ 1 /), count=(/ mp /)  )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+        ! PUT Iwood
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDI0(1), POP%Iwood,&
              start=(/ 1 /), count=(/ mp /)  )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
      END IF ! file exists

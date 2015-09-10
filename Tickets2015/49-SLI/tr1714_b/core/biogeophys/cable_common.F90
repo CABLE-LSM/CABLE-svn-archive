@@ -85,8 +85,8 @@ MODULE cable_common_module
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
       
-     CHARACTER(LEN=10):: RunIden  !
-     CHARACTER(LEN=4) :: MetType  !
+     CHARACTER(LEN=10):: RunIden = 'STANDARD'  !
+     CHARACTER(LEN=4) :: MetType = "NA" !
      CHARACTER(LEN=20) :: CANOPY_STRUC !
      CHARACTER(LEN=20) :: SOIL_STRUC !
      CHARACTER(LEN=3)  :: POP_out = 'rst' ! POP output type ('epi' or 'rst')
@@ -506,7 +506,7 @@ END SUBROUTINE GET_UNIT
 
 ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
   IMPLICIT NONE
-  INTEGER, INTENT(IN) :: YYYY
+  INTEGER,INTENT(IN) :: YYYY
   LOGICAL :: IS_LEAPYEAR
   
   IS_LEAPYEAR = .FALSE.

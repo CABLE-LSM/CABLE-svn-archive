@@ -1147,8 +1147,7 @@ CONTAINS
        END DO ! over each veg patch in land point
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
- 
-        
+         
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
@@ -1252,10 +1251,6 @@ CONTAINS
          veg%disturbance_intensity = 0.
       ENDIF
    
-   !ENDIF
-
-   
-
   END SUBROUTINE write_default_params
   !=============================================================================
   SUBROUTINE write_cnp_params(veg, casaflux, casamet)

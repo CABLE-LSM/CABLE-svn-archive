@@ -17,7 +17,7 @@ MODULE CABLE_PLUME_MIP
   TYPE PLUME_MIP_TYPE
      INTEGER  :: mland, NMET, xdimsize, ydimsize, tdimsize
      INTEGER  :: CYEAR, MetStart, MetEnd, CTSTEP, DT, ktau
-     REAL,   DIMENSION(:)  ,ALLOCATABLE :: AVG_LWDN
+     REAL,   DIMENSION(:)  ,ALLOCATABLE :: AVG_LWDN, CO2VALS
      LOGICAL,DIMENSION(:,:),ALLOCATABLE :: LandMask 
      CHARACTER(len=15) :: Run,Forcing,RCP, CO2, NDEP,RCPdir
      CHARACTER(len=200):: BasePath, MetPath, LandMaskFile
@@ -45,6 +45,8 @@ MODULE CABLE_PLUME_MIP
        nextTmin = 11
 
   INTEGER, PRIVATE :: STATUS
+
+  REAL, PRIVATE, PARAMETER :: SecDay = 86400.
 
   CHARACTER(len=6),DIMENSION(9),PARAMETER,PRIVATE  :: &
        PREF = (/ "pr","prsn","rlds","rsds","ps","hurs","tasmax","tasmin","wind" /)
@@ -223,11 +225,11 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
      PLUME%MetPath = TRIM(PLUME%MetPath)//"spinup_data"//"/hist/"
   ELSE
      SELECT CASE(TRIM(PLUME%RCP))
-     CASE ( "hist" ); PLUME%RCPdir = "hist"
+     CASE ( "hist" ); PLUME%RCPdir = "hist"   
      CASE ( "2.6"  ); PLUME%RCPdir = "rcp2p6"
      CASE ( "4.5"  ); PLUME%RCPdir = "rcp4p5"
      CASE ( "6.0"  ); PLUME%RCPdir = "rcp6p0"
-     CASE ( "8.5"  ); PLUME%RCPdir = "rcp8p5"
+     CASE ( "8.5"  ); PLUME%RCPdir = "rcp8p5"  
      END SELECT
      PLUME%MetPath = TRIM(PLUME%MetPath)//TRIM(PLUME%RCPdir)//"/"
   ENDIF
@@ -483,6 +485,68 @@ END FUNCTION FILE_SWITCH
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+SUBROUTINE GET_PLUME_CO2( PLUME, CO2air )
+
+  IMPLICIT NONE
+  
+  TYPE(PLUME_MIP_TYPE) :: PLUME
+  REAL, INTENT(OUT)    :: CO2air
+
+  INTEGER              :: i, iu, f, IOS = 0
+  CHARACTER            :: CO2FILE*200
+
+  IF ( TRIM(PLUME%Run) .EQ. "Spinup" ) THEN
+     ! fixed 1850 value 
+     CO2air = 284.72501
+  ELSE IF ( TRIM(PLUME%CO2) .EQ. "static1990" ) THEN
+     ! fixed 1990 value 
+     CO2air = 353.85501
+  ELSE IF ( TRIM(PLUME%CO2) .EQ. "static2085" ) THEN
+     ! fixed 2085 value 
+     STOP " static 2085 not yet implemented! cable_plume_mip.F90"
+  
+  ELSE 
+     
+     ! In 2006 new file must be opened -> old array discarded
+
+     IF ( ALLOCATED( PLUME%CO2VALS ) .AND. PLUME%CYEAR .EQ. 2006 ) &
+          DEALLOCATE ( PLUME%CO2VALS )      
+
+     ! Read from file if none availale
+
+     IF ( .NOT. ALLOCATED( PLUME%CO2VALS) ) THEN
+        IF ( PLUME%CYEAR .LE. 2005 ) THEN
+           ALLOCATE( PLUME%CO2VALS( 1850:2005 ) )
+           CO2FILE = TRIM(PLUME%BasePath)//"/CO2/co2_1850_2005_hist.dat"
+        ELSE
+           ALLOCATE( PLUME%CO2VALS( 2006:2100 ) )
+           CO2FILE = TRIM(PLUME%BasePath)//"/CO2/co2_2006_2100_"
+           SELECT CASE(TRIM(PLUME%RCP))
+           CASE ( "2.6"  ); CO2FILE = TRIM(CO2FILE)//"rcp2p6.dat"
+           CASE ( "4.5"  ); CO2FILE = TRIM(CO2FILE)//"rcp4p5.dat"
+           CASE ( "6.0"  ); CO2FILE = TRIM(CO2FILE)//"rcp6p0.dat"
+           CASE ( "8.5"  ); CO2FILE = TRIM(CO2FILE)//"rcp8p5.dat"  
+           END SELECT
+        ENDIF
+        
+        ! open CO2 file and read
+
+        CALL GET_UNIT(iu)
+        OPEN (iu, FILE=TRIM(CO2FILE), STATUS="OLD", ACTION="READ")
+        DO WHILE( IOS .EQ. 0 )
+           READ(iu, FMT=*, IOSTAT=IOS)f,PLUME%CO2VALS(f)
+        END DO
+        CLOSE(iu)
+        
+     ENDIF
+
+     CO2air = PLUME%CO2VALS( PLUME%CYEAR ) 
+  ENDIF
+
+END SUBROUTINE GET_PLUME_CO2
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 SUBROUTINE OPEN_PLUME_MET( PLUME )
 
   USE cable_IO_vars_module, ONLY: timeunits
@@ -718,7 +782,7 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
 
   LOGICAL   :: newday                  
   INTEGER   :: i, dY, dM, dD
-  REAL      :: dt
+  REAL      :: dt, CO2air
   CHARACTER :: LMFILE*200
 
   TYPE(WEATHER_GENERATOR_TYPE), SAVE :: WG
@@ -738,25 +802,34 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
   !!!!  this only works with CANBERRA cable_driver, as ktau    !!!!
   !!!!  restarts on Jan 1                                      !!!!
 
-  met%hod (landpt(1)%cstart) = REAL(MOD( (ktau-1) * NINT(dt), 86400) ) / 3600.
-  met%doy (landpt(:)%cstart) = REAL(ktau-1) * dt / 86400 
+  met%hod (landpt(1)%cstart) = REAL(MOD( (ktau-1) * NINT(dt), INT(SecDay)) ) / 3600.
+  met%doy (landpt(:)%cstart) = INT(REAL(ktau-1) * dt / SecDay ) + 1
   met%year(landpt(:)%cstart) = Curyear
 
-  CALL DOYSOD2YMDHMS(CurYear, INT(met%doy(1))+1, INT(met%hod(1)) * 3600, dY, dM, dD )
+  CALL DOYSOD2YMDHMS(CurYear, INT(met%doy(1)), INT(met%hod(1)) * 3600, dY, dM, dD )
 
   met%moy (landpt(:)%cstart) = dM
 
   newday = ( met%hod(landpt(1)%cstart).EQ. 0 ) 
 
-  ! open relevant files if necessary
+  ! Beginning-of-year accounting
+  IF ( ktau .EQ. 1 ) THEN 
 
-  IF ( ktau .EQ. 1 .AND. (FILE_SWITCH( PLUME, 'OPEN' ) .OR. CALL1) ) &
-     CALL OPEN_PLUME_MET( PLUME )
+     ! Update CO2
+     CALL GET_PLUME_CO2( PLUME, CO2air )
+
+     met%ca(:) = CO2air / 1.e+6
+
+     ! Open/close Met-files if necessary
+     IF (FILE_SWITCH( PLUME, 'OPEN' ) .OR. CALL1)  CALL OPEN_PLUME_MET( PLUME )
+
+  ENDIF
 
   ! Now get the Met data for this day
 
   IF ( newday ) THEN
-     CALL PLUME_GET_DAILY_MET( PLUME, (ktau.EQ.kend-((86400./dt)-1) .AND. FILE_SWITCH( PLUME, 'CLOSE' )), islast )
+
+     CALL PLUME_GET_DAILY_MET( PLUME, (ktau.EQ.kend-((SecDay/dt)-1) .AND. FILE_SWITCH( PLUME, 'CLOSE' )), islast )
 
      ! Air pressure assumed to be constant over day
 
@@ -767,20 +840,21 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
      WG%TempMaxDay     = PLUME%MET(  Tmax  )%VAL - 273.15   
      WG%TempMinDayNext = PLUME%MET(NextTmin)%VAL - 273.15   
      WG%TempMaxDayPrev = PLUME%MET(PrevTmax)%VAL - 273.15   
-     WG%SolarMJDay     = PLUME%MET(  swdn  )%VAL * 1.e-6 * 86400. ! ->[MJ/m2/d]
-     WG%PrecipDay      = PLUME%MET(  prec  )%VAL * 86400. / 1000. ! ->[m/d]
-     WG%SnowDay        = PLUME%MET(  snow  )%VAL * 86400. / 1000. ! ->[m/d]
+     WG%SolarMJDay     = PLUME%MET(  swdn  )%VAL * 1.e-6 * SecDay ! ->[MJ/m2/d]
+     WG%PrecipDay      = PLUME%MET(  prec  )%VAL * SecDay / 1000. ! ->[m/d]
+     WG%SnowDay        = PLUME%MET(  snow  )%VAL * SecDay / 1000. ! ->[m/d]
 
      CALL WGEN_DAILY_CONSTANTS( WG, PLUME%mland, INT(met%doy(1))+1 )
      
      ! To get the diurnal cycle for lwdn get whole day and scale with 
      ! LWDN from file later 
+
      PLUME%AVG_LWDN(:) = 0.
-     DO i = 1, NINT(86400./dt) 
+     DO i = 1, NINT(SecDay/dt) 
         CALL WGEN_SUBDIURNAL_MET( WG, PLUME%mland, i-1 )
         PLUME%AVG_LWDN = PLUME%AVG_LWDN + WG%PhiLD
      END DO
-     PLUME%AVG_LWDN = PLUME%AVG_LWDN / (86400./dt)
+     PLUME%AVG_LWDN = PLUME%AVG_LWDN / (SecDay/dt)
         
   END IF
   
@@ -798,6 +872,7 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
   met%tk        = WG%Temp + 273.15
   met%ua        = WG%Wind
   met%coszen    = WG%coszen
+  met%tvrad     = met%tk !!!! Exclamation mark!
   DO i = 1, PLUME%mland
      ! compute qv 
      CALL rh_sh ( PLUME%MET(rhum)%VAL(i), met%tk(i), met%pmb(i), met%qv(i) )
@@ -807,7 +882,7 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
      WRITE(*,*)"Pmax,Tmin, max,Ntmin", PLUME%MET(PrevTmax)%VAL(19), &
           PLUME%MET(Tmin)%VAL(19),PLUME%MET(Tmax)%VAL(19),PLUME%MET(NextTmin)%VAL(19) 
      WRITE(*,*)"#  qv       Precip   snow   LWDin PhiLD  rPhiLD  PhiSD Temp    Wind    coszen"
-     
+    
      
   ENDIF
   
