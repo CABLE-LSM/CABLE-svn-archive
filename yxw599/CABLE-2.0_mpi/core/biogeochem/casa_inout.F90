@@ -831,6 +831,16 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
 
   ! local variables
   INTEGER :: ncid, ncok, poolP, plantID, npt
+  ! added by ypw to reset some points with wrong pool sizes (NaN values)
+  INTEGER  nvt
+  INTEGER, dimension(mp)             :: iveg_avg
+  INTEGER, dimension(mvtype)         :: npt_avg
+  REAL,    dimension(mvtype)         :: avglai,avgclab,avgnsoilmin,avgplab,avgpsorb,avgpocc
+  REAL,    dimension(mvtype,mplant)  :: avgcplant,  avgnplant,  avgpplant
+  REAL,    dimension(mvtype,mlitter) :: avgclitter, avgnlitter, avgplitter
+  REAL,    dimension(mvtype,msoil)   :: avgcsoil,   avgnsoil,   avgpsoil
+  REAL, parameter :: crootmin = 0.01       ! gc m-2
+  REAL, parameter :: crootmax = 100000.0  ! gc m-2
 
   LOGICAL ::                                                                  &
        from_restart = .TRUE., & ! insist variables/params load
@@ -846,6 +856,8 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
         'restart file '//TRIM(filename%restart_in)//                         &
         ' differs from number in CASA_dimension')
 
+  CALL readpar(ncid,'iveg',dummy,iveg_avg,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp)
   CALL readpar(ncid,'LAI',dummy,casamet%glai,filename%restart_in, &
                 max_vegpatches,'cnp',from_restart,mp)
   CALL readpar(ncid,'phase',dummy,phen%phase,filename%restart_in, &
@@ -889,6 +901,98 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
         casamet%lat(npt) = patch(npt)%latitude 
      enddo   
   endif
+  
+ ! npt=26493
+ ! print *, 'pool sizes for 26493 from restart: ', casapool%cplant(npt,:), casapool%nplant(npt,:)
+  ! calculate PFT mean pool sizes
+  !print *, 'calcualting PGT means and assign means to some NaN land points'
+  npt_avg =0
+  avgcplant =0.0; avgclitter=0.0; avgcsoil=0.0; avglai = 0.0; avgclab=0.0
+  avgnplant =0.0; avgnlitter=0.0; avgnsoil=0.0; avgnsoilmin=0.0
+  avgpplant =0.0; avgplitter=0.0; avgpsoil=0.0; avgplab=0.0; avgpsorb=0.0; avgpocc=0.0 
+  avglai    =0.0
+  do npt=1,mp
+     nvt = iveg_avg(npt)
+     if(nvt>0.and.nvt<=mvtype-7) then
+     if(.not.(isnan(casapool%cplant(npt,1)).or.isnan(casapool%cplant(npt,3)) &
+        .or.isnan(casapool%nplant(npt,1)).or.isnan(casapool%nplant(npt,3)) &
+        .or.isnan(casapool%pplant(npt,1)).or.isnan(casapool%pplant(npt,3)))) then
+     if(min(casapool%cplant(npt,1),casapool%cplant(npt,3)) >crootmin ) then
+         npt_avg(nvt) = npt_avg(nvt) +1
+         avgcplant(nvt,:)  = avgcplant(nvt,:)   + casapool%cplant(npt,:)
+         avgnplant(nvt,:)  = avgnplant(nvt,:)   + casapool%nplant(npt,:)
+         avgpplant(nvt,:)  = avgpplant(nvt,:)   + casapool%pplant(npt,:)
+         avgclitter(nvt,:) = avgclitter(nvt,:)  + casapool%clitter(npt,:)
+         avgnlitter(nvt,:) = avgnlitter(nvt,:)  + casapool%nlitter(npt,:)
+         avgplitter(nvt,:) = avgplitter(nvt,:)  + casapool%plitter(npt,:)
+         avgcsoil(nvt,:)   = avgcsoil(nvt,:)    + casapool%csoil(npt,:)
+         avgnsoil(nvt,:)   = avgnsoil(nvt,:)    + casapool%nsoil(npt,:)
+         avgpsoil(nvt,:)   = avgpsoil(nvt,:)    + casapool%psoil(npt,:)
+         avgclab(nvt)      = avgclab(nvt)       + casapool%clabile(npt)
+         avgnsoilmin(nvt)  = avgnsoilmin(nvt)   + casapool%nsoilmin(npt)
+         avgplab(nvt)      = avgplab(nvt)       + casapool%psoillab(npt)
+         avgpsorb(nvt)     = avgpsorb(nvt)      + casapool%psoilsorb(npt)
+         avgpocc(nvt)      = avgpocc(nvt)       + casapool%psoilocc(npt)
+         avglai(nvt)       = avglai(nvt)        + casamet%glai(npt)
+     endif
+     endif
+     endif
+  enddo
+
+!  where (npt_avg>1) 
+     avgcplant  = avgcplant/max(1.0,real(spread(npt_avg,2,mplant)))
+     avgnplant  = avgnplant/max(1.0,real(spread(npt_avg,2,mplant)))
+     avgpplant  = avgpplant/max(1.0,real(spread(npt_avg,2,mplant)))
+     avgclitter = avgclitter/max(1.0,real(spread(npt_avg,2,mlitter)))
+     avgnlitter = avgnlitter/max(1.0,real(spread(npt_avg,2,mlitter)))
+     avgplitter = avgplitter/max(1.0,real(spread(npt_avg,2,mlitter)))
+     avgcsoil   = avgcsoil/max(1.0,real(spread(npt_avg,2,msoil)))
+     avgnsoil   = avgnsoil/max(1.0,real(spread(npt_avg,2,msoil)))
+     avgpsoil   = avgpsoil/max(1.0,real(spread(npt_avg,2,msoil)))
+     avgclab    = avgclab/max(1.0,real(npt_avg))
+     avgnsoilmin  = avgnsoilmin/max(1.0,real(npt_avg))
+     avgplab      = avgplab/max(1.0,real(npt_avg))
+     avgpsorb     = avgpsorb/max(1.0,real(npt_avg))
+     avgpocc      = avgpocc/max(1.0,real(npt_avg))
+     avglai       = avglai/max(1.0,real(npt_avg))
+       
+!  endwhere    
+
+  do npt=1,mp
+     nvt = iveg_avg(npt)
+     if(nvt>0.and.nvt<=mvtype-7) then
+     if(isnan(casapool%cplant(npt,1)).or.isnan(casapool%cplant(npt,3)).or. &
+        isnan(casapool%nplant(npt,1)).or.isnan(casapool%nplant(npt,3)).or. &
+        isnan(casapool%pplant(npt,1)).or.isnan(casapool%pplant(npt,3)).or. &
+        min(casapool%cplant(npt,1),casapool%cplant(npt,3)) <=crootmin) then
+
+    !    print *, 'PFT mean pool sizes used for ', npt, 'vegtype ',nvt, &
+    !   ' before: ', casapool%cplant(npt,:), 'after: ', avgcplant(nvt,:)
+        
+        casapool%cplant(npt,:)  = avgcplant(nvt,:)
+        casapool%nplant(npt,:)  = avgnplant(nvt,:)
+        casapool%pplant(npt,:)  = avgpplant(nvt,:)
+
+        casapool%clitter(npt,:) = avgclitter(nvt,:)
+        casapool%nlitter(npt,:) = avgnlitter(nvt,:)
+        casapool%plitter(npt,:) = avgplitter(nvt,:)
+
+        casapool%csoil(npt,:)   = avgcsoil(nvt,:)
+        casapool%nsoil(npt,:)   = avgnsoil(nvt,:)
+        casapool%psoil(npt,:)   = avgpsoil(nvt,:)
+
+        casapool%clabile(npt)   = avgclab(nvt)
+        casapool%nsoilmin(npt)  = avgnsoilmin(nvt)
+        casapool%psoillab(npt)  = avgplab(nvt)
+        casapool%psoilsorb(npt) = avgpsorb(nvt)
+        casapool%psoilocc(npt)  = avgpocc(nvt)
+
+        casamet%glai(npt)      =  avglai(nvt)
+
+     endif
+     endif
+  enddo
+
 
   ! check pool sizes
   casapool%cplant     = MAX(0.0,casapool%cplant)
@@ -941,6 +1045,12 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
     casabal%FPupyear=0.0;casabal%FPleachyear=0.0;casabal%FPlossyear=0.0
   ENDIF
 
+  npt=26493
+  print *, 'pool sizes for 26493 after: ', casamet%glai(npt),casapool%cplant(npt,:),  &
+            casapool%nplant(npt,:), casapool%pplant(npt,:),                           &
+            casapool%clitter(npt,:), casapool%nlitter(npt,:),casapool%plitter(npt,:), &
+            casapool%csoil(npt,:),   casapool%nsoil(npt,:), casapool%psoil(npt,:),    &
+            casapool%nsoilmin(npt), casapool%psoillab(npt),casapool%psoilsorb(npt), casapool%psoilocc(npt)
 END SUBROUTINE get_casa_restart
 
 
@@ -1432,34 +1542,58 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
+  npt =26493
+
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
   call avgsoil(veg,soil,casamet)
   call casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 
+  print *, 'biogeochem1', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
   call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                        casamet,phen)
+
+  print *, 'biogeochem2', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+
   call casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                        casaflux,casamet)
 
+  print *, 'biogeochem3', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+
   call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
+  print *, 'biogeochem4', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+  print *, 'calling casa_xratesoil ???'
+
   call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
+
+  print *, 'biogeochem5', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+
   call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
+
+  print *, 'biogeochem6', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
   IF (icycle>1) THEN
     call casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
+
+    print *, 'biogeochem7', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+
     DO j=1,mlitter
       casaflux%klitter(:,j) = casaflux%klitter(:,j)* xkNlimiting(:)
     ENDDO
+    print *, 'biogeochem8', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
     call casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
     IF (icycle >2) call casa_puptake(veg,xkNlimiting,casabiome, &
                                      casapool,casaflux,casamet)
   ENDIF 
 
   ! changed by ypwang following Chris Lu on 5/nov/2012
+   write(*,900) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
+               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
+               casaflux%nupland(npt),casaflux%pupland(npt),xkNlimiting(npt),xnplimit(npt),xNPuptake(npt)
+
   call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
@@ -1484,6 +1618,12 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 !  casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
 !  casapool%Psoillab = max(casapool%Psoillab,0.1)
 
-
+    write(*,901) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
+               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
+               casaflux%fracCalloc(npt,:),casaflux%fracClabile(npt),               &
+               casapool%Nsoilmin(npt), casaflux%Nupland(npt),                       &
+               casapool%psoillab(npt), casaflux%Pupland(npt)
+901 format('after delplant: ',3(i6,2x),100(f8.4,2x))
+900 format('before delplant: ',3(i6,2x),100(f8.4,2x))
 END SUBROUTINE biogeochem
 

@@ -459,9 +459,11 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 !      casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
 !    ENDWHERE
   ENDWHERE
-
-!  print *, 'calling rplant',veg%iveg(1),casamet%tairk(1)
-!,tkzeroc,casapool%nplant(1,:),casaflux%crmplant(1,:),casaflux%crgplant(1)
+!  npt = 26493
+!  print *, 'calling rplant', npt,veg%iveg(npt),casamet%tairk(npt), &
+!                            casapool%cplant(npt,:),casapool%nplant(npt,:), &
+!                            casaflux%Cgpp(npt), casaflux%Cnpp(npt), &
+!                            casaflux%crmplant(npt,:),casaflux%crgplant(npt)
 
 END SUBROUTINE casa_rplant
 
@@ -579,6 +581,8 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
 !,tsurfavg  !!, msurfavg
   INTEGER :: npt
 
+  print *, 'within casa_xratesoil'
+
   xklitter(:) = 1.0
   xksoil(:)   = 1.0
   fwps(:)     =  casamet%moistavg(:)/soil%ssat(:)
@@ -612,7 +616,8 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
 !    xklitter(:) = xkoptlitter(veg%iveg(:)) * xktemp(:) * xkwater(:)
 !    xksoil(:)   = xkoptsoil(veg%iveg(:))   * xktemp(:) * xkwater(:)
 !  ENDWHERE
-!  print *, 'xratesoil', mp, casamet%moistavg(:),soil%ssat(:),casamet%tsoilavg(:),xklitter(:),tsavg(:),xksoil(:)
+   npt =26493
+  print *, 'xratesoil', npt, casamet%moistavg(npt),soil%ssat(npt),casamet%tsoilavg(npt),xklitter(npt),tsavg(npt),xksoil(npt)
 
 END SUBROUTINE casa_xratesoil
 
@@ -1253,6 +1258,9 @@ SUBROUTINE avgsoil(veg,soil,casamet)
   ENDDO
   ENDDO
 
+  nland=26493
+  print *, 'avgsoil for point = ', nland, casamet%tsoil(nland,:),casamet%tsoilavg(nland)
+
 END SUBROUTINE avgsoil
 
 SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
@@ -1267,7 +1275,7 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   TYPE (veg_parameter_type),   INTENT(IN) :: veg  ! vegetation parameters
 
   ! local variables
-  INTEGER i,j,k,kk,iv,thepoint,nland
+  INTEGER i,j,k,kk,iv,thepoint,nland,npt
   REAL(r_2), DIMENSION(mp)         :: xFluxNlittermin
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilmin
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilimm
@@ -1329,6 +1337,11 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 
   ! now check if there is sufficient mineral N 
   xFluxNsoilminnet(:) = xFluxNlittermin(:) + xFluxNsoilmin(:) + xFluxNsoilimm(:)
+
+  print *, 'xkN= ', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:), &
+                    casaflux%fromLtoS(npt,:,:),casaflux%fromStoS(npt,:,:),casaflux%klitter(npt,:), &
+                    xFluxNsoilminnet(npt),xFluxNsoilmin(npt), xFluxNsoilimm(npt)
+
 !   PRINT *, 'casamet%iveg2 = ', casamet%iveg2
 !   PRINT *, 'deltpool = ',deltpool
 !   PRINT *, 'xFluxNsoilminnet = ', xFluxNsoilminnet
@@ -1363,6 +1376,8 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
     end where
   ENDWHERE
 
+  xkNlimiting = MIN(1.0,MAX(0.0,xKNlimiting))
+  print *, 'xkN2= ', casapool%Nsoilmin(npt),casapool%clitter(npt,:),xFluxNsoilminnet(npt), xkNlimiting(npt)
 END SUBROUTINE casa_xkN
 
 SUBROUTINE casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
@@ -1695,7 +1710,7 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
       IF(icycle >2) casapool%Pplant(np,:) = casapool%Pplant(np,:) &
                                  +casapool%dPplantdt(np,:)*deltpool
     ENDIF
-!    casamet%glai(np)   = MIN(0.0, casabiome%sla(veg%iveg(np))  &
+!    casamet%lglai(np)   = MIN(0.0, casabiome%sla(veg%iveg(np))  &
 !                                  * casapool%cplant(np,leaf))
     casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
                                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
@@ -1857,14 +1872,14 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
    casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
    ! add the labile C loss to growth respiration
    casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
-   npt=59894
+!   npt=59894
 
-   write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
-               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%Crp(npt),casaflux%Crgplant(npt), &
-               casaflux%crmplant(npt,:),casapool%dClabiledt(npt),casaflux%clabloss(npt),  &
-               sum(casaflux%fracCalloc(npt,:)),casaflux%fracClabile(npt),               & 
-               casaflux%cgpp(npt)-casaflux%cnpp(npt), &
-              sum(casaflux%crmplant(npt,:))+casaflux%crgplant(npt)
+!   write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
+!               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%Crp(npt),casaflux%Crgplant(npt), &
+!               casaflux%crmplant(npt,:),casapool%dClabiledt(npt),casaflux%clabloss(npt),  &
+!               sum(casaflux%fracCalloc(npt,:)),casaflux%fracClabile(npt),               & 
+!               casaflux%cgpp(npt)-casaflux%cnpp(npt), &
+!              sum(casaflux%crmplant(npt,:))+casaflux%crgplant(npt)
          
 !               casapool%cplant(npt,:),casabal%cplantlast(npt,:),casapool%dcplantdt(npt,:), &
 !               casaflux%kplant(npt,:)*casabal%cplantlast(npt,:),                            &
