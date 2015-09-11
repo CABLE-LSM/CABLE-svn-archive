@@ -2001,7 +2001,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin)  
    !CALL simple_wtd(ssnow, soil, veg, ktau, md_prin)
 
-   CALL ovrlndflx (dels, ktau, ssnow, soil, md_prin )         !surface runoff, incorporate ssnow%pudsto?
+   CALL ovrlndflx (dels, ktau, ssnow, soil, veg, md_prin )         !surface runoff, incorporate ssnow%pudsto?
    
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
    !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always
