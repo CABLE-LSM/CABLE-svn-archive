@@ -1148,7 +1148,7 @@ END SUBROUTINE remove_trans
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
   !-------------------------------------------------------------------------
-  SUBROUTINE ovrlndflx (dels, ktau, ssnow, soil,md_prin )
+  SUBROUTINE ovrlndflx (dels, ktau, ssnow, soil,veg, md_prin )
   USE cable_common_module
 
   IMPLICIT NONE
@@ -1156,6 +1156,7 @@ END SUBROUTINE remove_trans
     INTEGER, INTENT(IN)                      :: ktau ! integration step number
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(IN)    :: soil ! soil parameters
+    TYPE(veg_parameter_type) , INTENT(IN)    :: veg  ! veg parameters
     LOGICAL, INTENT(IN)                      :: md_prin
     INTEGER, PARAMETER                       :: ntest = 0 ! for snow diag prints
     INTEGER, PARAMETER                       :: nglacier = 2 ! 0 original, 1 off, 2 new Eva
@@ -1211,6 +1212,11 @@ END SUBROUTINE remove_trans
 
    end do  !mp
 
+  !add back to the lakes to keep saturated instead of drying
+  where (veg%iveg .eq. 16)
+     ssnow%fwtop(:) = ssnow%fwtop(:) + ssnow%rnof1(:)
+     ssnow%rnof1(:) = 0._r_2
+  endwhere
            
    !---  glacier formation
    rnof5= 0.
@@ -1624,7 +1630,9 @@ END SUBROUTINE remove_trans
        ssnow%qhz(i)  = max(tan(soil%slope(i)),0.001) * drainmod(i)*gw_params%MaxHorzDrainRate* &!(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
 
-       if (soil%isoilm(i) .eq. 9) ssnow%qhz(i) = 0._r_2
+       !Keep "lakes" saturated forcing qhz = 0.  runoff only from lakes
+       !overflowing
+       if (soil%isoilm(i) .eq. 9 .or. veg%iveg(i) .eq. 16) ssnow%qhz(i) = 0._r_2
  
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
@@ -2000,17 +2008,6 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL smoistgw (dels,ktau,ssnow,soil,veg,md_prin)               !vertical soil moisture movement. 
   
-   ! lakes: replace hard-wired vegetation number in next version
-   WHERE( veg%iveg .eq. 16 )
-
-      ssnow%sinfil = MIN( ssnow%rnof1, ssnow%wb_lake&
-                   + MAX( 0.,canopy%segg ) )  !segg not in other version.  segg is mm/s?????
-      ssnow%rnof1 = MAX( 0.0, ssnow%rnof1 - ssnow%sinfil )
-      ssnow%wb_lake = ssnow%wb_lake - ssnow%sinfil
-      ssnow%rnof2 = MAX( 0.0, ssnow%rnof2 - ssnow%wb_lake )
-
-   ENDWHERE    
-
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um) THEN
 
