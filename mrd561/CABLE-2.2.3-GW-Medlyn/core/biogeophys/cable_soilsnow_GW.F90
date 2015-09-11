@@ -1028,6 +1028,9 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
       frozen_limit(:,:) = 0.
    endwhere
 
+   !allow more freezing for permenant glacier ice regions
+   where ( spread(soil%isoilm,2,ms) .eq. 9 ) frozen_limit(:,:) = 0.95
+
    xx = 0.
    DO k = 1, ms
 
@@ -1319,10 +1322,6 @@ END SUBROUTINE remove_trans
   REAL(r_2)                     :: deffunc,tempa,tempb,derv,calc,tmpc
   REAL(r_2), DIMENSION(mp)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   INTEGER :: k,i,wttd,jlp
-  LOGICAL :: empwtd
-   
-
-  empwtd = .false.
 
   !make code cleaner define these here 
   invB     = 1._r_2/soil%clappB(:,ms)                                !1 over C&H B
@@ -1357,106 +1356,98 @@ END SUBROUTINE remove_trans
     def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
   end do   
 
-
-  !initiailize iterations only if first timestep of the run
-  !otherwise use value from previous timestep
   if (ktau .le. 1) ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
 
-  if (empwtd) then
-     ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
-  else
+  if (md_prin) write(*,*) 'start wtd iterations'
 
-     if (md_prin) write(*,*) 'start wtd iterations'
+  do i=1,mp
 
-     do i=1,mp
+    if ((veg%iveg(i) .ne. 16) .and. (soil%isoilm(i) .ne. 9)) then      
 
-      if ((veg%iveg(i) .ne. 16) .and. (soil%isoilm(i) .ne. 9)) then      
+      if (defc(i) > def(i)) then                 !iterate tfor wtd
 
-       if (defc(i) > def(i)) then                 !iterate tfor wtd
+        jlp=0
 
-         jlp=0
+        mainloop: DO
 
-         mainloop: DO
+          tempa   = 1.0_r_2
+          tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
+          derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
+                                       soil%watsat(i,ms)
 
-           tempa   = 1.0_r_2
-           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
-           derv    = (soil%watsat(i,ms))*(tempa-tempb) + &
-                                          soil%watsat(i,ms)
+          if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
+          tempa   = 1.0_r_2
+          tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
+          deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
+                           Nsmpsat(i)/(1-invB(i))* &
+                     (tempa-tempb)) - def(i)
+          calc    = ssnow%wtd(i) - deffunc/derv
 
-           tempa   = 1.0_r_2
-           tempb   = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-           deffunc = (soil%watsat(i,ms))*(ssnow%wtd(i) +&
-                              Nsmpsat(i)/(1-invB(i))* &
-                        (tempa-tempb)) - def(i)
-           calc    = ssnow%wtd(i) - deffunc/derv
+          IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
-           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
+            ssnow%wtd(i) = calc
+            EXIT mainloop
 
-             ssnow%wtd(i) = calc
-             EXIT mainloop
+          ELSEIF (jlp .ge. wtd_iter_max) THEN
 
-           ELSEIF (jlp .ge. wtd_iter_max) THEN
+            EXIT mainloop
 
-              EXIT mainloop
+          ELSE
 
-           ELSE
+            jlp=jlp+1
+            ssnow%wtd(i) = calc
 
-              jlp=jlp+1
-              ssnow%wtd(i) = calc
+          END IF
 
-           END IF
+        END DO mainloop  !defc .gt. def
 
-         END DO mainloop  !defc .gt. def
+      elseif (defc(i) .lt. def(i)) then
 
-       elseif (defc(i) .lt. def(i)) then
+        jlp=0
 
-         jlp=0
+        mainloop2: DO
 
-         mainloop2: DO
+          tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
+          tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
+          tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
+          derv     = (soil%watsat(i,ms))*(tempa-tempb)
+          if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-           tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
-           tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
-           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
-           derv     = (soil%watsat(i,ms))*(tempa-tempb)
-           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
+          tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))
+          tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
+          deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
+                     Nsmpsat(i)/(1._r_2-invB(i))*(tempa-tempb))-def(i)
+          calc     = ssnow%wtd(i) - deffunc/derv
 
-           tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))
-           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-           deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
-                      Nsmpsat(i)/(1._r_2-invB(i))*(tempa-tempb))-def(i)
-           calc     = ssnow%wtd(i) - deffunc/derv
+          IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
 
-           IF ((abs(calc-ssnow%wtd(i))) .le. wtd_uncert) THEN
+            ssnow%wtd(i) = calc
+            EXIT mainloop2
 
-             ssnow%wtd(i) = calc
-             EXIT mainloop2
+          ELSEIF (jlp==wtd_iter_max) THEN
 
-           ELSEIF (jlp==wtd_iter_max) THEN
+            EXIT mainloop2
 
-             EXIT mainloop2
+          ELSE
 
-           ELSE
+            jlp=jlp+1
+            ssnow%wtd(i) = calc
 
-             jlp=jlp+1
-             ssnow%wtd(i) = calc
+          END IF
 
-           END IF
+        END DO mainloop2  !defc .lt. def
 
-         END DO mainloop2  !defc .lt. def
+      else  !water table depth is exactly on bottom boundary
 
-       else  !water table depth is exactly on bottom boundary
+        ssnow%wtd(i) = zimm(ms)
 
-         ssnow%wtd(i) = zimm(ms)
+      endif
 
-       endif
+    endif  !check veg and soils
 
-      endif  !check veg and soils
+  end do   !mp loop
 
-     end do   !mp loop
-
-  end if  !debug by using empirical wtd
 
   !limit wtd to be within a psecified range
   where (ssnow%wtd(:) .gt. wtd_max) ssnow%wtd(:) = wtd_max
@@ -1520,7 +1511,7 @@ END SUBROUTINE remove_trans
     INTEGER :: imp,ims,k_drain
 
     drainmod(:) = 1._r_2  !parameter to modify qhrz params by basin or veg type
-    !where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
+    where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
     !drainmod(:) = (1._r_2 + soil%FOrg(:,1))*drainmod(:)
 
 
@@ -1630,8 +1621,10 @@ END SUBROUTINE remove_trans
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = tan(soil%slope(i)) * drainmod(i)*gw_params%MaxHorzDrainRate* &!(1._r_2 - fice_avg(i)) * &
+       ssnow%qhz(i)  = max(tan(soil%slope(i)),0.001) * drainmod(i)*gw_params%MaxHorzDrainRate* &!(1._r_2 - fice_avg(i)) * &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
+
+       if (soil%isoilm(i) .eq. 9) ssnow%qhz(i) = 0._r_2
  
        !identify first no frozen layer.  drinage from that layer and below
        k_drain = ms
@@ -1644,7 +1637,7 @@ END SUBROUTINE remove_trans
        k_drain = min(k_drain,4)
 
        qhlev(i,:) = 0._r_2
-       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1.0 -ssnow%fracice(i,ms))
+       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1._r_2 -ssnow%fracice(i,ms))
        do k=k_drain,ms
           sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
        end do
@@ -1653,8 +1646,8 @@ END SUBROUTINE remove_trans
       do k=k_drain,ms
           qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
        end do
-       qhlev(i,ms+1) = (1.0 -ssnow%fracice(i,ms))*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
-      
+       qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
+
        !incase every layer is frozen very dry
        ssnow%qhz(i) = qhlev(i,ms+1)
        do k=k_drain,ms
@@ -1800,7 +1793,7 @@ END SUBROUTINE remove_trans
           end if
        end do  !ms loop
  
-       if (ssnow%GWwb(i) .lt. volwatmin) then
+       if ( (ssnow%GWwb(i) .lt. volwatmin) .and. (soil%isoilm(i) .ne. 9) ) then
           xsi = (volwatmin - ssnow%GWwb(i)) / GWdzmm(i)  !mm
           ssnow%GWwb(i) = volwatmin
           ssnow%qhz(i) = ssnow%qhz(i) - xsi / dels
@@ -2201,7 +2194,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
       end if
       if (wb_unsat .lt. 0.25*soil%wiltp(i,1)) xx = 0.
 
-      ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) + (1. - satfrac_liqice(i))*xx))
+      ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
+                                   (1. - satfrac_liqice(i))*xx ) )
 
    end do
 
