@@ -239,11 +239,14 @@ PROGRAM cable_offline_driver
    ! load from there, with the met file taking precedence. Otherwise, they'll
    ! be chosen from a coarse global grid of veg and soil types, based on 
    ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
+  
+   print *, "REACHES HEER #1" 
    CALL load_parameters( met, air, ssnow, veg, bgc,                            &
                          soil, canopy, rough, rad, sum_flux,                   &
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
+
 
    !write(*,*) 'loaded params' 
    ! Open output file:
@@ -266,7 +269,7 @@ PROGRAM cable_offline_driver
       ! time step loop over ktau
       DO ktau=kstart, kend 
          !MDeck
-         write(*,*) ' timestep number ',ktau
+   !      write(*,*) ' timestep number ',ktau
 
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1
@@ -277,13 +280,15 @@ PROGRAM cable_offline_driver
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          !write(*,*) 'dels is ',dels
 
+
+
          ktauday=int(24.0*3600.0/dels)
+         
          idoy = mod(ktau/ktauday,365)
          IF(idoy==0) idoy=365
-         
          ! needed for CASA-CNP
          nyear =INT((kend-kstart+1)/(365*ktauday))
-   
+
          canopy%oldcansto=canopy%cansto
    
          ! Get met data and LAI, set time variables.
