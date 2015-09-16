@@ -687,14 +687,16 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
 
   IF (initcasa==1) THEN
     OPEN(99,file=casafile%cnpipool)
-
+print *, "REACHES HERE #1"
     DO npt =1, mp
       SELECT CASE(icycle)
       CASE(1)
+    print *, "ENTERS HERE"
         READ(99,92) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                    casamet%glai(npt),slaz,phen%phase(npt), &
                    casapool%clabile(npt),casapool%cplant(npt,:),  &
                    casapool%clitter(npt,:),casapool%csoil(npt,:)
+                   print *, "REACHES HERE #1.1"
       CASE(2)
         READ(99,92) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                    casamet%glai(npt),slaz,phen%phase(npt), &
@@ -713,6 +715,7 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
                    casapool%psoil(npt,:),casapool%psoillab(npt),        &
                    casapool%psoilsorb(npt),casapool%psoilocc(npt)
       END SELECT 
+      print *, "REACHES HERE #2"
       IF (ABS(patch(npt)%longitude - lonz) > 0.9 .OR. &
           ABS(patch(npt)%latitude  - latz) > 0.9) THEN
         PRINT *, 'patch(npt)%longitude, lonz:', patch(npt)%longitude, lonz

@@ -11,17 +11,18 @@
 ## Spins CASA for determined number of cycles
 ## Outputs cnipool file
 
+run_dir=`pwd`
 
 ### SET INPUT DIRECTORY
 cd /srv/ccrc/data45/z3509830/CABLE_runs/Rainfall_assymmetry/Inputs/Met_inputs/
-INDIR=`find * -maxdepth 1 -type d -name "STU100*"`
+INDIR=`find * -maxdepth 1 -type d -name "STU20*"`
 
 ## Some options:
 GWFLAG="TRUE"
 
 
 
-cd ./../../CABLE-2.3.4-GW-Medlyn/offline/
+cd $run_dir  #./../../CABLE-2.3.4-GW-Medlyn/offline/
 
 
 #Loop through experiments
@@ -68,13 +69,13 @@ tol=$(echo "scale=6; 0.005" | bc)
 diff_cplant=$(echo "scale=6; 99999.0" | bc)
 diff_csoil=$(echo "scale=6; 99999.0" | bc)
 
-I=1
+I=10
 
 
 
 
 ######## Run model if tolerance not achieved ########
-while [[ $(echo "$diff_cplant > $tol" | bc -l) -gt 0 || $(echo "$diff_csoil > $tol" | bc -l) -gt 0 ]]
+while [[ $I -lt 102 ]] ## [[ $(echo "$diff_cplant > $tol" | bc -l) -gt 0 || $(echo "$diff_csoil > $tol" | bc -l) -gt 0 ]]
 do
 
 
@@ -121,7 +122,7 @@ output%veg       = .FALSE.  ! vegetation states
 output%params    = .FALSE.  ! input parameters used to produce run
 output%balances  = .FALSE.  ! energy and water balances
 output%averaging = "all"
-check%ranges     = .FALSE.  ! variable ranges, input and output
+check%ranges     = .TRUE.  ! variable ranges, input and output
 check%energy_bal = .FALSE.  ! energy balance
 check%mass_bal   = .FALSE.  ! water/mass balance
 verbose = .FALSE. ! write details of every grid cell init and params to log?
