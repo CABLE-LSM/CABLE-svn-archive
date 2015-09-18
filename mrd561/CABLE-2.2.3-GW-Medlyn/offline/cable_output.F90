@@ -1987,7 +1987,7 @@ CONTAINS
     
     !MD Write the hydrology output data from the groundwater module calculations
     !water table depth
-    IF(output%soil .OR. output%WatTable) THEN
+    IF((output%soil .OR. output%WatTable) .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'wtd'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%WatTable = out%WatTable + REAL(ssnow%wtd/1000.0, 4)
@@ -2002,7 +2002,7 @@ CONTAINS
        END IF
     END IF    
     !aquifer water content
-    IF(output%soil .OR. output%GWMoist) THEN
+    IF((output%soil .OR. output%GWMoist)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'GWmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
@@ -2023,7 +2023,7 @@ CONTAINS
     END IF      
 
     !aquifer equilibrium water content
-    IF(output%soil .or. output%EqGWMoist) THEN
+    IF((output%soil .or. output%EqGWMoist) .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'EQ-GWmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqGWMoist = out%EqGWMoist + REAL(ssnow%GWwbeq, 4)
@@ -2038,7 +2038,7 @@ CONTAINS
        END IF
     END IF        
     !aquifer soil matric potential
-    IF(output%soil .or. output%GWSoilMatPot) THEN
+    IF((output%soil .or. output%GWSoilMatPot) .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'GW smp'  !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%GWSoilMatPot = out%GWSoilMatPot + REAL(ssnow%GWsmp/1000.0, 4)
@@ -2055,7 +2055,7 @@ CONTAINS
        END IF
     END IF         
     !equilibrium aquifer soil matric potential
-    IF(output%soil .or. output%EqGWSoilMatPot) THEN
+    IF((output%soil .or. output%EqGWSoilMatPot) .and. cable_user%GW_MODEL) THEN
 !       write(*,*) 'EQ-GW smp'   !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqGWSoilMatPot = out%EqGWSoilMatPot + REAL(ssnow%GWzq/1000.0, 4)
@@ -2070,9 +2070,11 @@ CONTAINS
        END IF
     END IF     
     ! soil matric potential
-    IF(output%soil .OR. output%SoilMatPot) THEN
+    IF((output%soil .OR. output%SoilMatPot) .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'smp'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
+       write(*,*) ssnow%smp
+       write(*,*) ssnow%wb
        out%SoilMatPot = out%SoilMatPot + REAL(ssnow%smp/1000.0, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2085,7 +2087,7 @@ CONTAINS
        END IF
     END IF     
     ! equilibrium soil matric potential
-    IF(output%soil .or. output%EqSoilMatPot) THEN
+    IF((output%soil .or. output%EqSoilMatPot)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'EQ smp'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqSoilMatPot = out%EqSoilMatPot + REAL(ssnow%zq/1000.0, 4)
@@ -2100,7 +2102,7 @@ CONTAINS
        END IF
     END IF  
     ! equilibrium soil water content
-    IF(output%soil .or. output%EqSoilMoist) THEN
+    IF((output%soil .or. output%EqSoilMoist)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'EQ soilmoist'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%EqSoilMoist = out%EqSoilMoist + REAL(ssnow%wbeq, 4)
@@ -2130,15 +2132,15 @@ CONTAINS
        END IF
     END IF      
     ! infiltration rate
-    IF(output%soil .OR. output%SatFrac) THEN
+    IF((output%soil .OR. output%SatFrac)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'Qinfl'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%SatFrac = out%SatFrac + REAL(ssnow%satfrac, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          write(*,*) 'maxval satfrac ',maxval(out%SatFrac(:))
-          write(*,*) 'minval satfrac ',minval(out%SatFrac)
-          write(*,*) 'avg satfrac ',sum(out%SatFrac)/real(size(out%SatFrac,dim=1))
+         ! write(*,*) 'maxval satfrac ',maxval(out%SatFrac(:))
+         ! write(*,*) 'minval satfrac ',minval(out%SatFrac)
+         ! write(*,*) 'avg satfrac ',sum(out%SatFrac)/real(size(out%SatFrac,dim=1))
 
           out%SatFrac = out%SatFrac / REAL(output%interval, 4)
           ! Write value to file:
