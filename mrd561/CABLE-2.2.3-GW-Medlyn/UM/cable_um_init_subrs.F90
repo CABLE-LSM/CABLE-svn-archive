@@ -811,20 +811,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
          
          DEALLOCATE( fwork )
 
-
-         !mrd561
-         ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
-         !ensure that we have reasonable values in case 
-         !starting from terrible GW values from non GW sim
-         where (ssnow%GWwb(:) .eq. 0.0 ) &
-                ssnow%GWwb(:) = soil%GWwatsat*0.95
-
-         where (ssnow%GWwb(:) .lt. 0.08) &   !arbitrary
-                ssnow%GWwb(:)  = 0.08
-
-         where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
-                ssnow%GWwb(:) = soil%GWwatsat
-         
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
                          ( soil%sfc - soil%swilt) ) )
@@ -862,9 +848,22 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
         
          DEALLOCATE( fwork )
 
-         first_call = .FALSE.
 
       ENDIF ! END: if (first_call)       
+
+      !mrd561
+      if (first_call) then
+      ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
+      where(ssnow%GWwb .lt. 1e-2)
+         ssnow%GWwb = 0.3   !temp so not passing junk 
+      endwhere
+      where(veg%iveg .eq. 16)
+         ssnow%GWwb = soil%GWwatsat   !temp so not passing junk 
+      endwhere
+
+      end if
+
+      first_call = .FALSE.
 
 !     DO J=1, msn  
       DO J=1, 1
