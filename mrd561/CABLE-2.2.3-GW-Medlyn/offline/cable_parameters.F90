@@ -1392,6 +1392,13 @@ CONTAINS
           end do
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
+             !MDeck
+            do klev=1,ms
+               soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
+               soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+               soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
+            end do
+
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
             soil%ssat(h)    =  soilin%ssat(soil%isoilm(h))
@@ -1618,7 +1625,7 @@ CONTAINS
     !MD aquifer node depth
     soil%GWz = 0.5*soil%GWdz + sum(soil%zse)  !node is halfway through aquifer depth
 
-    IF (cable_user%GW_MODEL) then
+    IF (cable_user%GW_MODEL .and. soilparmnew) then
 
        DO klev=1,ms
           soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
@@ -1654,24 +1661,28 @@ CONTAINS
        END DO
 
        soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 +soil%Fsilt(:,1)*0.265
+       soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
+       !vegetation dependent wilting point
+       DO i=1,mp
+          psi_tmp(i,:) = -psi_c(veg%iveg(i))
+       END DO
+       soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
+       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
+                   + soil%silt * 0.265 ! set dry soil thermal conductivity
+
+    ELSE
+      do klev=1,ms
+       soil%fldcap(:,klev) = soil%sfc(:)
+       soil%wiltp(:,klev)  = soil%swilt(:)
+      end do
 
     END IF
-
-    soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
-    !vegetation dependent wilting point
-    DO i=1,mp
-       psi_tmp(i,:) = -psi_c(veg%iveg(i))
-    END DO
-    soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
     
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
     END IF
-
-      soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
-                   + soil%silt * 0.265 ! set dry soil thermal conductivity
 
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
