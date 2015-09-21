@@ -239,8 +239,6 @@ PROGRAM cable_offline_driver
    ! load from there, with the met file taking precedence. Otherwise, they'll
    ! be chosen from a coarse global grid of veg and soil types, based on 
    ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
-  
-   print *, "REACHES HEER #1" 
    CALL load_parameters( met, air, ssnow, veg, bgc,                            &
                          soil, canopy, rough, rad, sum_flux,                   &
                          bal, logn, vegparmnew, casabiome, casapool,           &

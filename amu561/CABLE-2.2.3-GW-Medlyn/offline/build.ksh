@@ -11,7 +11,10 @@ host_squa()
    export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+  # export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
+  #ll  if [[ $1 = 'debug' ]]; then      
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+  # fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build

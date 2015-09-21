@@ -1333,6 +1333,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
           WRITE(*,*) '  precip will be rescaled to match these values during spinup'
           ! Spinup will modify precip values:
           exists%avPrecip = .TRUE.
+
           ! Get avPrecip units:
           ok = NF90_GET_ATT(ncid_met,id%avPrecip,'units',metunits%avPrecip)
           IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1365,7 +1366,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              avPrecip = REAL(temparray1)
           END IF
 
-          print *, "REACHES HERE #1"
           ! Now find average precip from met data, and create rescaling
           ! factor for spinup:
           ALLOCATE(PrecipScale(mland))
@@ -1440,7 +1440,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     !write(*,*) 'after spinup'
 
-    print *, "REACHES HERE #2"
     ! Look for veg type - - - - - - - - - - - - - - - - -:
     ok = NF90_INQ_VARID(ncid_met,'iveg',id%iveg)
     IF(ok == NF90_NOERR) THEN ! If 'iveg' exists in the met file
@@ -1580,7 +1579,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             ' some synthesised (as above).'
     END IF
   
-   !!=================^^ End met variables search^^=======================
+    !!=================^^ End met variables search^^=======================
 END SUBROUTINE open_met_file
 !==============================================================================
 !
