@@ -253,7 +253,7 @@ PROGRAM cable_offline_driver
 
    !write(*,*) 'loaded params' 
    ! Open output file:
-   CALL open_output_file( dels, soil, veg, bgc, rough )
+   CALL open_output_file(kend, dels, soil, veg, bgc, rough )
    if(icycle>0) CALL write_casa_params(veg,casamet,casabiome)
   
    ssnow%otss_0 = ssnow%tgg(:,1)
@@ -410,19 +410,20 @@ PROGRAM cable_offline_driver
 
    END DO
 
-   IF (icycle > 0) THEN
+   !Code for spinning up? comment out
+   !IF (icycle > 0) THEN
       
     !  CALL casa_poolout( ktau, veg, soil, casabiome,                           &
      !                    casapool, casaflux, casamet, casabal, phen )
 
       !CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
-      print *, 'before ncdf_dump', spinConv, spincasainput
-      if ( spinConv .AND. spincasainput ) then
-           call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
-      endif
+     ! print *, 'before ncdf_dump', spinConv, spincasainput
+     ! if ( spinConv .AND. spincasainput ) then
+     !      call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+    !  endif
 
-   END IF
+   !END IF
 
    ! Write restart file if requested:
    IF(output%restart) THEN
@@ -430,7 +431,7 @@ PROGRAM cable_offline_driver
                            canopy, rough, rad, bgc, bal )
       IF (icycle > 0) THEN
          WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
-         CALL casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
+         CALL casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
                            casabal,phen)
          WRITE(logn, '(A36)') '   Restart file complete and closed.'
       END IF

@@ -652,7 +652,7 @@ SUBROUTINE mpidrv_master (comm)
 
       IF (icycle > 0) THEN
          WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
-         CALL casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
+         CALL casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
                            casabal,phen)
          WRITE(logn, '(A36)') '   Restart file complete and closed.'
       END IF
