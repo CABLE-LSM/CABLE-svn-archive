@@ -122,6 +122,29 @@ MODULE cable_checks_module
            SnowDepth = (/0.0,50.0/),           & ! EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
+          
+           !CASA checks
+           casaGPP    = (/-642.8, 3214.1/),    & ! gC/m2/day or gC/m2/mon
+           casaNPP    = (/-642.8, 2410.6/),    & ! gC/m2/day or gC/m2/mon
+           casaLFresp = (/-1607.0,642.8 /),    & ! gC/m2/day or gC/m2/mon
+           casaWDresp = (/-1607.0,642.8 /),    & ! gC/m2/day or gC/m2/mon
+           casaRTresp = (/-1607.0,642.8 /),    & ! gC/m2/day or gC/m2/mon
+           casaGRresp = (/-1607.0,642.8 /),    & ! gC/m2/day or gC/m2/mon
+           casaSLresp = (/-1607.0,642.8 /),    & ! gC/m2/day or gC/m2/mon
+           casaNEE    = (/-2249.9,1607.0/),    & ! gC/m2/day or gC/m2/mon
+           Ndep   = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
+           Nfix   = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
+           Nmin   = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
+           Nup    = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
+           Nleach = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
+           Nloss  = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
+           Pwea   = (/0.0,2000.0/),            & ! gP/m2/day or gP/m2/mon
+           Pdust  = (/0.0,2000.0/),            & ! gP/m2/day or gP/m2/mon
+           Pmin   = (/0.0,2000.0/),            & ! gP/m2/day or gP/m2/mon
+           Pup    = (/0.0,2000.0/),            & ! gP/m2/day or gP/m2/mon
+           Pleach = (/0.0,2000.0/),            & ! gP/m2/day or gP/m2/mon
+           Ploss  = (/0.0,2000.0/),            & ! gP/m2/day or gP/m2/mon
+           
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &
@@ -179,6 +202,29 @@ MODULE cable_checks_module
            veg_class = (/1.0,20.0/),           &
            soil_class = (/1.0,20.0/),          &
            
+           ! CASA-CNP variables
+           SoilOrder = (/1.0,20.0/),           &
+           area  = (/1.3E9,1.3E10/),           & ! 1x1 degree
+           sla   = (/0.0,0.04/),               &
+           phase = (/0.0,3.0/),                &
+           Clab  = (/0.0,350.0/),              &
+           Cplant= (/0.0,60000.0/),            &
+           Clitter = (/0.0,15000.0/),          &
+           Csoil = (/0.0,200000.0/),           &
+           Nplant= (/0.0,350.0/),              &
+           Nlitter = (/0.0,70.0/),             &
+           Nsoil = (/0.0,11000.0/),            &
+           Nsmin = (/0.0,300.0/),              &
+           Pplant= (/0.0,20.0/),               &
+           Plitter = (/0.0,4.5/),              &
+           Psoil = (/0.0,600.0/),              &
+           Pslab = (/0.0,50.0/),               &
+           Pssorb= (/0.0,450.0/),              &
+           Psocc = (/0.0,400.0/),              &
+           Cbal  = (/-999999.0,999999.0/),     &
+           Nbal  = (/-999999.0,999999.0/),     &
+           Pbal  = (/-999999.0,999999.0/),     &
+
            !MD
            WatTable = (/0.0,1.0e10/),          &
            GWMoist = (/0.0,1.0/),              &

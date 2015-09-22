@@ -116,6 +116,7 @@ CONTAINS
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
+                                   write_casa_flux, write_casa_params,         &
                                    write_output,close_output_file
    USE cable_cbm_module
    
@@ -258,6 +259,10 @@ CONTAINS
       STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
+
+    IF( output%CASA .AND. icycle == 0 )                                      &
+      STOP 'cannot output casaCNP variables when not running casaCNP'
+
 
    ! Open log file:
    ! MPI: worker logs go to the black hole
@@ -447,6 +452,12 @@ CONTAINS
 
          ! MPI: send the results back to the master
          CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
+      
+         IF(icycle >0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
+            ! MPI: send casa results back to the master
+            CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+         ENDIF
+
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:

@@ -148,13 +148,14 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
+                                   write_casa_flux, write_casa_params,         &
                                    write_output,close_output_file
    USE cable_cbm_module
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
+                                  casa_met, casa_balance, mdyear   
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
@@ -298,6 +299,10 @@ SUBROUTINE mpidrv_master (comm)
       STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
+   
+  IF( output%CASA .AND. icycle == 0 )                                      &
+      STOP 'cannot output casaCNP variables when not running casaCNP'
+
 
    ! Check for gswp run
    IF (ncciy /= 0) THEN
@@ -403,7 +408,9 @@ SUBROUTINE mpidrv_master (comm)
 
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
+   if(icycle>0) CALL write_casa_params(veg,casamet,casabiome)
  
+
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
    canopy%fes_cor = 0.
@@ -482,6 +489,12 @@ SUBROUTINE mpidrv_master (comm)
 
          ! MPI: receive this time step's results from the workers
          CALL master_receive (ocomm, oktau, recv_ts)
+         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
+            CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+            ! MPI: gather casa results from all the workers
+            CALL master_receive (comm, oktau, casa_ts)
+         END IF
+
 
          ! MPI: scatter input data to the workers
          CALL master_send_input (icomm, inp_ts, iktau)
@@ -501,7 +514,12 @@ SUBROUTINE mpidrv_master (comm)
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
+         
+         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
+            CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
+         END IF
    
+
        END DO ! END Do loop over timestep ktau
 
 
@@ -515,6 +533,13 @@ SUBROUTINE mpidrv_master (comm)
     CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
     met%ofsd = met%fsd(:,1) + met%fsd(:,2)
     canopy%oldcansto=canopy%cansto
+
+    IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
+         ! MPI: gather casa results from all the workers for last step
+         CALL master_receive (comm, ktau_gl, casa_ts)
+         CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+    END IF
+
     IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,         &
                                rad, bal, air, soil, veg, C%SBOLTZ,     &
@@ -624,6 +649,15 @@ SUBROUTINE mpidrv_master (comm)
 
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
+
+      IF (icycle > 0) THEN
+         WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
+         CALL casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
+                           casabal,phen)
+         WRITE(logn, '(A36)') '   Restart file complete and closed.'
+      END IF
+
+
    END IF
 
    ! MPI: cleanup

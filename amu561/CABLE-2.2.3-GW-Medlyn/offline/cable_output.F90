@@ -68,7 +68,7 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar, tCASA                             &
+                    HVeg, HSoil, Rnet, tvar, tCASA,                            &
                     !Anna casa variables
                     casaGPP, casaNPP, casaLFresp, casaWDresp,                  &
                     casaRTresp, casaGRresp, casaSLresp, casaNEE,               &
@@ -259,7 +259,7 @@ CONTAINS
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
 
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
-                    plantcarbID, tID, landID, patchID, & ! dimension IDs
+                    plantcarbID, tID, tCID, landID, patchID, & ! dimension IDs
                     mplantID, mlitterID, msoilID
    
     INTEGER ::CASAts
