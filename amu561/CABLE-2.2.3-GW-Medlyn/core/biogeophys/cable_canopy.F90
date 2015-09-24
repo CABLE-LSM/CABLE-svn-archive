@@ -1409,8 +1409,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
-      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Ktaul 2000') THEN
-         CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
+         CALL fwsoil_calc_Lai_Katul(fwsoil, soil, ssnow, veg) 
       ELSE
          write(*,*) 'cable fwsoil_swith is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
@@ -2267,8 +2267,8 @@ END SUBROUTINE fwsoil_calc_non_linear
 
 ! ------------------------------------------------------------------------------
 
-! ypw 19/may/2010 soil water uptake efficiency (see Lai and Ktaul 2000)
-SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+! ypw 19/may/2010 soil water uptake efficiency (see Lai and Katul 2000)
+SUBROUTINE fwsoil_calc_Lai_Katul(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
@@ -2297,7 +2297,7 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
    ENDDO
 
-END SUBROUTINE fwsoil_calc_Lai_Ktaul
+END SUBROUTINE fwsoil_calc_Lai_Katul
 
 
     
