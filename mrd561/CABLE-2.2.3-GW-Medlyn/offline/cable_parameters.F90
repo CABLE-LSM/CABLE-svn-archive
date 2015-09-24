@@ -87,7 +87,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:),          ALLOCATABLE :: inLat
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inALB
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inSND
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inLAI
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inLAI
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inArea
   INTEGER, DIMENSION(:, :),       ALLOCATABLE :: inSorder
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inNdep
@@ -214,7 +214,7 @@ CONTAINS
     INTEGER :: ncid, ok
     INTEGER :: xID, yID, pID, sID, tID, bID
     INTEGER :: varID
-    INTEGER :: nslayer, ntime, nband
+    INTEGER :: nslayer, ntime, nband, nlai_dims !number of dimensions for lai
     INTEGER :: ii, jj, kk
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
@@ -265,7 +265,7 @@ CONTAINS
     ALLOCATE( inTGG(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inALB(nlon, nlat, npatch,nband) )
     ALLOCATE( inSND(nlon, nlat, npatch,ntime) )
-    ALLOCATE( inLAI(nlon, nlat, ntime) )
+    ALLOCATE( inLAI(nlon, nlat, npatch, ntime) )
     ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
 
@@ -350,7 +350,19 @@ CONTAINS
     ENDDO
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
-    ok = NF90_GET_VAR(ncid,varID,inLAI)
+    ok = NF90_INQUIRE_VARIABLE(ncid,varID,ndims=nlai_dims)
+    !must test if it is lai per pft of only per grid cell
+    !this assumes if not per pft it is lon,lat,time
+    !if per pft it is lon,lat,pft,time
+    r3dum2(:,:,:) = 0.
+    if (nlai_dims .eq. 3) then
+       ok = NF90_GET_VAR(ncid,varID,r3dum2)
+       do jj=1,npatch
+          inLAI(:,:,jj,:) = r3dum2(:,:,:)
+       end do
+    else
+       ok = NF90_GET_VAR(ncid,varID,inLAI)
+    end if
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable LAI.')
     IF (icycle > 0) THEN
       ! casaCNP parameters
@@ -1010,27 +1022,42 @@ CONTAINS
         END IF
       ELSE
         ! assume nmetpatches to be 1
-        IF (nmetpatches == 1) THEN
+        !Need to check patch config of file from read_gridinfo()
+        IF (npatch .gt. 1) then
+           do tt=1,npatch
+              !either need 1D patchfrac or lat_in(landpt(kk)),lon_ind(landpt(kk))
+              if (inPFrac(landpt(kk)%ilon, landpt(kk)%ilat, tt) .gt. 1e-6) then
+                 ncount = ncount + 1
+                 landpt(kk)%nap = landpt(kk)%nap + 1
+              end if
+           end do
+           landpt(kk)%cend = ncount
+           if (landpt(kk)%cend < landpt(kk)%cstart) then
+              write(*,*) 'Land point ', kk, ' does not have any veg fractions!'
+              write(*,*) 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend
+              stop
+           end if
+        elseif (nmetpatches == 1) THEN
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
         ELSE
-          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1.'
+          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1. because npatch=',npatch
           PRINT *, 'If soil patches exist, add new code.'
           STOP
         END IF
       END IF
     END DO
-    IF (ncount > mland * nmetpatches) THEN
-      PRINT *, ncount, ' should not be greater than mland*nmetpatches.'
-      PRINT *, 'mland, nmetpatches = ', mland, nmetpatches
+    IF ((ncount > mland * nmetpatches) .and. ncount > mland*npatch) THEN
+      PRINT *, ncount, ' should not be greater than mland*nmetpatches and mland*npatch.'
+      PRINT *, 'mland, nmetpatches, npatch = ', mland, nmetpatches,npatch
       STOP
     END IF
     DEALLOCATE(inLon, inLat)
 
     ! Set the maximum number of active patches to that read from met file:
     max_vegpatches = MAXVAL(landpt(:)%nap)
-    IF (max_vegpatches /= nmetpatches) THEN
+    IF ((max_vegpatches /= nmetpatches) .and. (max_vegpatches .ne. npatch)) THEN
       PRINT *, 'Error! Met file claiming to have more active patches than'
       PRINT *, 'it really has. Check met file.'
       STOP
@@ -1038,6 +1065,7 @@ CONTAINS
     IF (npatch < nmetpatches) THEN
       PRINT *, 'Warning! Met file data have more patches than the global file.'
       PRINT *, 'Remember to check final veg type and patch fractions.'
+      write(*,*) 'MORE WARNINGS!!! ALL HANDS ON DECK '
     END IF
 
     ! Write to total # patches - used to allocate all of CABLE's variables:
@@ -1210,9 +1238,11 @@ CONTAINS
       END DO
 
       ! Set default LAI values
-      DO is = 1, 12
-        defaultLAI(landpt(e)%cstart:landpt(e)%cend,is) =                       &
-                                        inLAI(landpt(e)%ilon,landpt(e)%ilat,is)
+      DO is=0,landpt(e)%cend - landpt(e)%cstart
+         DO ir = 1, 12
+            defaultLAI(landpt(e)%cstart + is, ir) =                       &
+                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,is+1,ir)
+         END DO
       END DO
 
       ! Set IGBP soil texture values, Q.Zhang @ 12/20/2010.
