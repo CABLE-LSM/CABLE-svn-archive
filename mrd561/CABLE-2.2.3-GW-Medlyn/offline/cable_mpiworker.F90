@@ -312,6 +312,9 @@ CONTAINS
    CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
    CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
 
+   CALL MPI_Bcast (mvtype, 1, MPI_REAL, 0, comm, ierr)
+   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+
    ! MPI: receive from master starting time fields
    !CALL bcast_start_time (comm)
 

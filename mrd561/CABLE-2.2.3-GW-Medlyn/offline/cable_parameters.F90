@@ -1008,6 +1008,7 @@ CONTAINS
 
       landpt(kk)%nap = 0
       landpt(kk)%cstart = ncount + 1
+
       IF (ASSOCIATED(vegtype_metfile)) THEN
         DO tt = 1, nmetpatches
           IF (vegtype_metfile(kk,tt) > 0) ncount = ncount + 1
@@ -1037,7 +1038,7 @@ CONTAINS
               write(*,*) 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend
               stop
            end if
-        elseif (nmetpatches == 1) THEN
+        elseif (nmetpatches == 1 .and. npatch == 1) THEN
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
@@ -1057,7 +1058,7 @@ CONTAINS
 
     ! Set the maximum number of active patches to that read from met file:
     max_vegpatches = MAXVAL(landpt(:)%nap)
-    IF ((max_vegpatches /= nmetpatches) .and. (max_vegpatches .ne. npatch)) THEN
+    IF ((max_vegpatches /= nmetpatches) .and. (max_vegpatches .gt. npatch)) THEN
       PRINT *, 'Error! Met file claiming to have more active patches than'
       PRINT *, 'it really has. Check met file.'
       STOP
@@ -1120,6 +1121,7 @@ CONTAINS
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
     INTEGER :: klev   !soil layer
+    INTEGER :: kk
 
 !    The following is for the alternate method to calculate froot by Zeng 2001
 !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -1193,23 +1195,28 @@ CONTAINS
       patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
                         inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
       ! Check that patch fractions total to 1
+      !this is done again in the check_parameter_values subroutine
       tmp = 0
       IF (landpt(e)%cstart == landpt(e)%cend) THEN
         patch(landpt(e)%cstart)%frac = 1.0
       ELSE
+        kk = landpt(e)%cstart
         DO is = landpt(e)%cstart, landpt(e)%cend
           tmp = tmp + patch(is)%frac
+          if (patch(is)%frac .eq. maxval(patch(landpt(e)%cstart:landpt(e)%cend)%frac)) then
+            kk = is
+          end if
         END DO
-        IF (ABS(1.0 - tmp) > 0.001) THEN
-          IF ((1.0 - tmp) < -0.001 .OR. (1.0 - tmp) > 0.5) THEN
-            PRINT *, 'Investigate the discrepancy in patch fractions:'
-            PRINT *, 'patch%frac = ',                                          &
-                                     patch(landpt(e)%cstart:landpt(e)%cend)%frac
-            PRINT *, 'landpoint # ', e
-            PRINT *, 'veg types = ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
-            STOP
-          END IF
-          patch(landpt(e)%cstart)%frac = patch(landpt(e)%cstart)%frac + 1.0    &
+        IF (ABS(1.0 - tmp) > 1.e-7) THEN
+          !IF ((1.0 - tmp) < -0.001 .OR. (1.0 - tmp) > 0.5) THEN
+          !  PRINT *, 'Investigate the discrepancy in patch fractions:'
+          !  PRINT *, 'patch%frac = ',                                          &
+          !                           patch(landpt(e)%cstart:landpt(e)%cend)%frac
+          !  PRINT *, 'landpoint # ', e
+          !  PRINT *, 'veg types = ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
+          !  STOP
+          !END IF
+          patch(kk)%frac = patch(kk)%frac + 1.0    &
                                          - tmp
         END IF
       END IF
