@@ -289,6 +289,10 @@ CONTAINS
       inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
     END IF
 
+    !bye bye evergreen broadleaf, hello deciduous evergreeen
+    where (inVeg .eq. 2) inVeg = 4  
+
+
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error finding variable patchfrac.')
@@ -1547,6 +1551,12 @@ CONTAINS
        psi_tmp(i,:) = -psi_c(veg%iveg(i))
     END DO
     soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
+
+    if (cable_user%GW_MODEL) then !so I can leave these in cable_canopy.F90
+       soil%swilt = soil%wiltp(:,1)
+       soil%sfc   = soil%fldcap(:,1)
+    end if
+    
     
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
