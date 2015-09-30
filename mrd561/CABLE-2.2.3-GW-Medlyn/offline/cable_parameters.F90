@@ -1707,6 +1707,9 @@ CONTAINS
        soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
 
+       soil%sfc(:) = soil%fldcap(:,1)
+       soil%swilt(:) = soil%wiltp(:,1)
+
     ELSE
       do klev=1,ms
        soil%fldcap(:,klev) = soil%sfc(:)
