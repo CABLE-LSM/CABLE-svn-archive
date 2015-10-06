@@ -2056,6 +2056,7 @@ END FUNCTION xejmxt3
 
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
+   USE cable_common_module, ONLY : cable_user
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
@@ -2066,10 +2067,12 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
             SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,ssnow%wb -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
    
-   ! Remove vbeta
-   !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
-   fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
-      
+   ! Remove vbeta #56
+   IF(cable_user%GS_SWITCH == 'medlyn') THEN
+      fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+   ELSE   
+      fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
+   ENDIF   
 END SUBROUTINE fwsoil_calc_std 
 
 ! ------------------------------------------------------------------------------
