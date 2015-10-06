@@ -15,6 +15,7 @@ host_raij()
    export NCMOD=$NCDF_ROOT'/include/Intel'
    export FC=ifort
    export CFLAGS='-O2 -g -i8 -r8 -traceback -fp-model precise -ftz -fpe0'
+   #export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
    export CINC='-I$(NCMOD)'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -i8 -r8 -fp-model precise -ftz -fpe0'
@@ -28,20 +29,20 @@ host_raij()
 ## unknown machine, user entering options stdout 
 host_read()
 {
-   print "\n\tWhat is the root path of your NetCDF library" \
+   print "\n\tWhat is the ROOT path of your NetCDF library" \
          "and .mod file. "
    print "\tRemember these have to be created by the same " \
          "Fortran compiler you" 
    print "\twant to use to build CABLE. e.g./usr/local/intel"
    read NCDF_ROOT
    
-   print "\n\tWhat is the path, relative to this root, of " \
+   print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF library." 
    print "\te.g. lib"
    read NCDF_DIR
    export NCDIR=$NCDF_ROOT/$NCDF_DIR
    
-   print "\n\tWhat is the path, relative to this root, of " \
+   print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF .mod file."
    print "\te.g. include"
    read NCDF_MOD
@@ -184,16 +185,20 @@ build_build()
       print '\n\tCABLE library exists at\n' 
       print $libpath 
       print '\nCopying to\n'
-      libpathbu=$libpath'.bu'
+      libpathbu=$libpath'.'`date +%d.%m.%y`
       print $libpathbu'\n' 
       mv $libpath $libpathbu
    fi
   
    CORE="../core/biogeophys"
    DRV="."
+   CASA="../core/biogeochem"
+   OFL="../offline"
    
    /bin/cp -p $CORE/*90 ./.tmp
    /bin/cp -p $DRV/*90 ./.tmp
+   /bin/cp -p $CASA/*90 ./.tmp
+   /bin/cp -p $OFL/*90 ./.tmp
    
    print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
    print "\ttechnical reasons. Implementation is not officially available with" 
@@ -218,7 +223,9 @@ build_build()
       cable_define_types.o cable_data.o cable_diag.o \
       cable_soilsnow.o cable_air.o cable_albedo.o cable_radiation.o  \
       cable_roughness.o cable_carbon.o cable_canopy.o cable_cbm.o    \
-      cable_um_tech.o cable_um_init_subrs.o cable_um_init.o 
+      cable_um_tech.o cable_um_init_subrs.o cable_um_init.o \
+      casa_variable.o casa_cable.o casa_cnp.o casa_inout.o \
+      casa_types.o casa_um_inout.o cable_iovars.o
 
    if [[ -f libcable.a ]]; then
       print '\nLibrary build successful. Copying libcable.a to ' $libroot
