@@ -5,7 +5,7 @@
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
 ! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
+! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
 ! Please contact cable_help@nf.nci.org.au for any questions on 
 ! registration and the Licence.
@@ -43,35 +43,29 @@
 !
 MODULE cable_output_module
 
-   USE cable_abort_module, ONLY: abort, nc_abort
-   USE cable_def_types_mod
-   USE cable_IO_vars_module
-   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
-   USE cable_write_module
-   USE netcdf
-   USE cable_common_module, ONLY: filename, calcsoilalbedo
-   IMPLICIT NONE
-   PRIVATE
-   PUBLIC open_output_file, write_output, close_output_file, create_restart
-   INTEGER :: ncid_out ! output data netcdf file ID
-   REAL :: missing_value = -999999.0 ! for netcdf output
-   
-   TYPE out_varID_type ! output variable IDs in netcdf file
-  
-      INTEGER ::  SWdown, LWdown, Wind, Wind_E, PSurf,                       &
-                  Tair, Qair, Rainf, Snowf, CO2air,                          &
-                  Qle, Qh, Qg, NEE, SWnet,                                   &
-                  LWnet, SoilMoist, SoilTemp, Albedo, Qs,                    &
-                  Qsb, Evap, BaresoilT, SWE, SnowT,                          &
-                  RadT, VegT, Ebal, Wbal, AutoResp,                          &
-                  LeafResp, HeteroResp, GPP, NPP, LAI,                       &
-                  ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                  HVeg, HSoil, Rnet, tvar
 
-      ! Ticket #56 added switch for Belinda Medlyn's model              
-      INTEGER ::  cancd, gswx_1, gswx_2, gswmin_1,  &
-                  gswmin_2
-                  
+  USE cable_abort_module, ONLY: abort, nc_abort
+  USE cable_def_types_mod
+  USE cable_IO_vars_module
+  USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
+  USE cable_write_module
+  USE netcdf
+  USE cable_common_module, ONLY: filename
+  IMPLICIT NONE
+  PRIVATE
+  PUBLIC open_output_file, write_output, close_output_file, create_restart
+  INTEGER :: ncid_out ! output data netcdf file ID
+  REAL :: missing_value = -999999.0 ! for netcdf output
+  TYPE out_varID_type ! output variable IDs in netcdf file
+    INTEGER :: SWdown, LWdown, Wind, Wind_E, PSurf,                       &
+                    Tair, Qair, Rainf, Snowf, CO2air,                          &
+                    Qle, Qh, Qg, NEE, SWnet,                                   &
+                    LWnet, SoilMoist, SoilTemp, Albedo, Qs,                    &
+                    Qsb, Evap, BaresoilT, SWE, SnowT,                          &
+                    RadT, VegT, Ebal, Wbal, AutoResp,                          &
+                    LeafResp, HeteroResp, GPP, NPP, LAI,                       &
+                    ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
+                    HVeg, HSoil, Rnet, tvar
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -114,8 +108,6 @@ MODULE cable_output_module
                                                    ! [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: SoilWet ! 29 total soil wetness [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Albedo  ! 30 albedo [-]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: visAlbedo  ! vars intro for Ticket #27
-    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo  ! vars intro for Ticket #27 
     REAL(KIND=4), POINTER, DIMENSION(:) :: VegT    ! 31 vegetation temperature
                                                    ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilTemp  ! 32 av.layer soil
@@ -166,19 +158,10 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ebal  ! cumulative energy balance
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
-
-      ! Ticket #56 added switch for Belinda Medlyn's model
-      REAL(KIND=4), POINTER, DIMENSION(:) :: cancd ! Canopy cond (m/s) jtk561
-      REAL(KIND=4), POINTER, DIMENSION(:) :: gswx_1 ! sunlit cond (dunno units),jtk561
-      REAL(KIND=4), POINTER, DIMENSION(:) :: gswx_2 ! shaded cond (dunno units), jtk561
-      REAL(KIND=4), POINTER, DIMENSION(:) :: gswmin_1 ! min sunlit cond, jtk561
-      REAL(KIND=4), POINTER, DIMENSION(:) :: gswmin_2 ! min shaded cond, jtk561
-  
-   END TYPE output_temporary_type
-  
-   TYPE(output_temporary_type), SAVE :: out
-  
-   INTEGER :: ok   ! netcdf error status
+                                                 ! [W/m2]
+  END TYPE output_temporary_type
+  TYPE(output_temporary_type), SAVE :: out
+  INTEGER :: ok   ! netcdf error status
 
 CONTAINS
 
@@ -404,86 +387,38 @@ CONTAINS
        ALLOCATE(out%Qh(mp))
        out%Qh = 0.0 ! initialise
     END IF
-   
-   ! Ticket #56 added switch for Belinda Medlyn's model
-   ! == "leuning" for default behaviour
-   IF (cable_user%GS_SWITCH == 'medlyn') THEN       
-      
-      IF(output%flux .OR. output%cancd) THEN
-         CALL define_ovar( ncid_out,ovid%cancd,'cancd', 'm/s^1',               &
-                           'Canopy Conductance',patchout%cancd,'dummy',        &
-                         xID,yID,zID,landID,patchID,tID)
-         ALLOCATE(out%cancd(mp))
-         out%cancd = 0.0 ! initialise
-      END IF
-      
-      IF(output%flux .OR. output%gswx_1) THEN
-         CALL define_ovar( ncid_out,ovid%gswx_1,'gswx_1', 'NA',&
-                           'Sunlit Conductance',patchout%gswx_1,'dummy',      &
-                           xID,yID,zID,landID,patchID,tID)
-         ALLOCATE(out%gswx_1(mp))
-         out%gswx_1 = 0.0 ! initialise
-      END IF
-      
-      IF(output%flux .OR. output%gswx_2) THEN
-         CALL define_ovar( ncid_out,ovid%gswx_2,'gswx_2', 'NA',&
-                           'Shaded Conductance',patchout%gswx_2,'dummy',      &
-                           xID,yID,zID,landID,patchID,tID)
-         ALLOCATE(out%gswx_2(mp))
-         out%gswx_2 = 0.0 ! initialise
-      END IF
-      
-      IF(output%flux .OR. output%gswmin_1) THEN
-         CALL define_ovar( ncid_out,ovid%gswmin_1,'gswmin_1', 'NA',&
-                           'Min Sunlit Conductance',patchout%gswmin_1,'dummy', &
-                           xID,yID,zID,landID,patchID,tID)
-         ALLOCATE(out%gswmin_1(mp))
-         out%gswmin_1 = 0.0 ! initialise
-      END IF
-      
-      IF(output%flux .OR. output%gswmin_2) THEN
-         CALL define_ovar( ncid_out,ovid%gswmin_2,'gswmin_2', 'NA',&
-                           'Min Shaded Conductance',patchout%gswmin_2,'dummy', &
-                           xID,yID,zID,landID,patchID,tID)
-         ALLOCATE(out%gswmin_2(mp))
-         out%gswmin_2 = 0.0 ! initialise
-      END IF
-    
-   END IF ! end modifs jtk561
-
-
     IF(output%flux .OR. output%Qg) THEN
-       CALL define_ovar( ncid_out, ovid%Qg, 'Qg', 'W/m^2',                     &
-                         'Surface ground heat flux', patchout%Qg, 'dummy',     &
-                         xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%Qg, 'Qg', 'W/m^2',                      &
+                        'Surface ground heat flux', patchout%Qg, 'dummy',      &
+                        xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Qg(mp))
        out%Qg = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%Qs) THEN
-       CALL define_ovar( ncid_out, ovid%Qs, 'Qs',                              &
-                         'kg/m^2/s', 'Surface runoff', patchout%Qs, 'dummy',   &
-                         xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%Qs, 'Qs',                               &
+                        'kg/m^2/s', 'Surface runoff', patchout%Qs, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Qs(mp))
        out%Qs = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%Qsb) THEN
-       CALL define_ovar( ncid_out, ovid%Qsb, 'Qsb', 'kg/m^2/s',                &
-                         'Subsurface runoff', patchout%Qsb, 'dummy',           &
-                         xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%Qsb, 'Qsb', 'kg/m^2/s',                 &
+                        'Subsurface runoff', patchout%Qsb, 'dummy',            &
+                        xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Qsb(mp))
        out%Qsb = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%Evap) THEN
-       CALL define_ovar( ncid_out, ovid%Evap,'Evap', 'kg/m^2/s',               &
-                         'Total evapotranspiration', patchout%Evap, 'dummy',   &
-                         xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%Evap,'Evap', 'kg/m^2/s',                &
+                        'Total evapotranspiration', patchout%Evap, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Evap(mp))
        out%Evap = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%ECanop) THEN
-       CALL define_ovar( ncid_out, ovid%Ecanop, 'ECanop', 'kg/m^2/s',          &
-                         'Wet canopy evaporation', patchout%ECanop, 'dummy',   &
-                         xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%Ecanop, 'ECanop', 'kg/m^2/s',           &
+                        'Wet canopy evaporation', patchout%ECanop, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%ECanop(mp))
        out%ECanop = 0.0 ! initialise
     END IF
@@ -597,25 +532,6 @@ CONTAINS
        ALLOCATE(out%Albedo(mp))
        out%Albedo = 0.0 ! initialise
     END IF
-
-	 ! output calc of soil albedo based on colour? - Ticket #27
-     IF (calcsoilalbedo) THEN
-      IF(output%radiation .OR. output%visAlbedo) THEN
-         CALL define_ovar(ncid_out, ovid%visAlbedo, 'visAlbedo', '-',          &
-                        'Surface vis albedo', patchout%visAlbedo,              &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-         ALLOCATE(out%visAlbedo(mp))
-         out%visAlbedo = 0.0 ! initialise
-      END IF
-      IF(output%radiation .OR. output%nirAlbedo) THEN
-         CALL define_ovar(ncid_out, ovid%nirAlbedo, 'nirAlbedo', '-',          &
-                        'Surface nir albedo', patchout%nirAlbedo,              &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-         ALLOCATE(out%nirAlbedo(mp))
-         out%nirAlbedo = 0.0 ! initialise
-      END IF
-    END IF
-
     IF(output%radiation .OR. output%RadT) THEN
        CALL define_ovar(ncid_out, ovid%RadT, 'RadT', 'K',                      &
                         'Radiative surface temperature', patchout%RadT,        &
@@ -771,29 +687,6 @@ CONTAINS
     IF(output%params .OR. output%rp20) CALL define_ovar(ncid_out, opid%rp20,   &
                           'rp20', '-', 'Plant respiration coefficient at 20C', &
                           patchout%rp20, 'real', xID, yID, zID, landID, patchID)
-   ! Ticket #56 added switch for Belinda Medlyn's model
-   ! == "leuning" for default behaviour
-   IF (cable_user%GS_SWITCH == 'medlyn') THEN       
-      IF(output%flux .OR. output%cancd) THEN    
-         IF(output%params .OR. output%g0c3)                                    &
-            CALL define_ovar(ncid_out, opid%g0c3,                              &
-                          'g0c3', '-', 'g0c3 term in Medlyn Stom Cond. Param', &
-                          patchout%g0c3, 'real', xID, yID, zID, landID, patchID)
-         IF(output%params .OR. output%g0c4) 
-            CALL define_ovar(ncid_out, opid%g0c4,                              &
-                          'g0c4', '-', 'g0c4 term in Medlyn Stom Cond. Param', &
-                          patchout%g0c4, 'real', xID, yID, zID, landID, patchID)
-         IF(output%params .OR. output%g1c3)                                    &
-            CALL define_ovar(ncid_out, opid%g1c3,                              &
-                          'g1c3', '-', 'g1c3 term in Medlyn Stom Cond. Param', &
-                          patchout%g1c3, 'real', xID, yID, zID, landID, patchID)
-         IF(output%params .OR. output%g1c4)                                    &
-            CALL define_ovar(ncid_out, opid%g1c4,                              &
-                          'g1c4', '-', 'g1c4 term in Medlyn Stom Cond. Param', &
-                          patchout%g1c4, 'real', xID, yID, zID, landID, patchID)
-      ENDIF
-   ENDIF ! end Ticket #56 
-
     IF(output%params .OR. output%rpcoef) CALL define_ovar(ncid_out,            &
                                                  opid%rpcoef, 'rpcoef', '1/C', &
                                  'Temperature coef nonleaf plant respiration', &
@@ -1330,91 +1223,6 @@ CONTAINS
           out%Qh = 0.0
        END IF
     END IF
-   
-   ! Ticket #56 added switch for Belinda Medlyn's model
-   ! == "leuning" for default behaviour
-   IF (cable_user%GS_SWITCH == 'medlyn') THEN       
-      
-      IF(output%flux .OR. output%cancd) THEN
-         ! Add current timestep's value to total of temporary output variable:
-         out%cancd = out%cancd + REAL(canopy%gswx_T, 4)
-         IF(writenow) THEN
-            ! Divide accumulated variable by number of accumulated time steps:
-            out%cancd = out%cancd / REAL(output%interval, 4)
-            ! Write value to file:
-            CALL write_ovar(out_timestep, ncid_out, ovid%cancd, 'cancd',       &
-                        out%cancd, ranges%cancd, patchout%cancd, 'default', met)
-            ! Reset temporary output variable:
-            out%cancd = 0.0
-         END IF
-      END IF
-    
-      ! gswx_1: sunlit conductance [NA]
-      IF(output%flux .OR. output%gswx_1) THEN
-         ! Add current timestep's value to total of temporary output variable:
-         out%gswx_1 = out%gswx_1 + REAL(canopy%gswx_1, 4)
-         IF(writenow) THEN
-            ! Divide accumulated variable by number of accumulated time steps:
-            out%gswx_1 = out%gswx_1 / REAL(output%interval, 4)
-            ! Write value to file:
-            CALL write_ovar(out_timestep, ncid_out, ovid%gswx_1, 'gswx_1',     &
-                            out%gswx_1, ranges%gswx_1, patchout%gswx_1,        &
-                            'default', met)
-            ! Reset temporary output variable:
-            out%gswx_1 = 0.0
-         END IF
-      END IF
-    
-      ! gswx_2: sunlit conductance [NA]
-      IF(output%flux .OR. output%gswx_2) THEN
-         ! Add current timestep's value to total of temporary output variable:
-         out%gswx_2 = out%gswx_2 + REAL(canopy%gswx_2, 4)
-         IF(writenow) THEN
-            ! Divide accumulated variable by number of accumulated time steps:
-            out%gswx_2 = out%gswx_2 / REAL(output%interval, 4)
-            ! Write value to file:
-            CALL write_ovar( out_timestep, ncid_out, ovid%gswx_2,'gswx_2',     &
-                             out%gswx_2, ranges%gswx_2, patchout%gswx_2,       &
-                             'default', met)
-            ! Reset temporary output variable:
-            out%gswx_2 = 0.0
-         END IF
-      END IF            
-    
-      ! gswmin_1: sunlit conductance [NA]
-      IF(output%flux .OR. output%gswmin_1) THEN
-         ! Add current timestep's value to total of temporary output variable:
-         out%gswmin_1 = out%gswmin_1 + REAL(canopy%gswmin_1, 4)
-         IF(writenow) THEN
-            ! Divide accumulated variable by number of accumulated time steps:
-            out%gswmin_1 = out%gswmin_1 / REAL(output%interval, 4)
-            ! Write value to file:
-            CALL write_ovar( out_timestep, ncid_out, ovid%gswmin_1,'gswmin_1', &
-                             out%gswmin_1, ranges%gswmin_1, patchout%gswmin_1, & 
-                             'default', met)
-            ! Reset temporary output variable:
-            out%gswmin_1 = 0.0
-         END IF
-      END IF
-    
-      ! gswmin_2: sunlit conductance [NA]
-      IF(output%flux .OR. output%gswmin_2) THEN
-         ! Add current timestep's value to total of temporary output variable:
-         out%gswmin_2 = out%gswmin_2 + REAL(canopy%gswmin_2, 4)
-         IF(writenow) THEN
-            ! Divide accumulated variable by number of accumulated time steps:
-            out%gswmin_2 = out%gswmin_2 / REAL(output%interval, 4)
-            ! Write value to file:
-            CALL write_ovar( out_timestep, ncid_out,ovid%gswmin_2,'gswmin_2',  &
-                             out%gswmin_2, ranges%gswmin_2, patchout%gswmin_2, &
-                             'default', met)
-            ! Reset temporary output variable:
-            out%gswmin_2 = 0.0
-         END IF
-      END IF
-   
-   ENDIF !end Ticket #56 mods
-
     ! Qg: ground heat flux [W/m^2]
     IF(output%flux .OR. output%Qg) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1695,32 +1503,14 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        out%Albedo = out%Albedo + REAL((rad%albedo(:, 1) + rad%albedo(:, 2))    &
                                        * 0.5, 4)
-       ! output calc of soil albedo based on colour? - Ticket #27
-       IF (calcsoilalbedo) THEN
-          out%visAlbedo = out%visAlbedo + REAL(rad%albedo(:, 1) , 4)
-          out%nirAlbedo = out%nirAlbedo + REAL(rad%albedo(:, 2) , 4)
-       END IF
-
        IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Albedo = out%Albedo / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Albedo, 'Albedo',        &
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Albedo = out%Albedo / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Albedo, 'Albedo',       &
                      out%Albedo, ranges%Albedo, patchout%Albedo, 'default', met)
-         ! Reset temporary output variable:
-         out%Albedo = 0.0
-
-       	 ! output calc of soil albedo based on colour? - Ticket #27
-         IF (calcsoilalbedo) THEN
-           out%visAlbedo = out%visAlbedo / REAL(output%interval, 4)
-           CALL write_ovar(out_timestep, ncid_out, ovid%visAlbedo, 'visAlbedo',&
-           out%visAlbedo, ranges%visAlbedo, patchout%visAlbedo, 'default', met)
-           out%visAlbedo = 0.0
-           out%nirAlbedo = out%nirAlbedo / REAL(output%interval, 4)
-           CALL write_ovar(out_timestep, ncid_out, ovid%nirAlbedo, 'nirAlbedo',&
-           out%nirAlbedo, ranges%nirAlbedo, patchout%nirAlbedo, 'default', met)
-           out%nirAlbedo = 0.0
-         END IF
+          ! Reset temporary output variable:
+          out%Albedo = 0.0
        END IF
     END IF
     ! RadT: Radiative surface temperature [K]
@@ -1941,8 +1731,6 @@ CONTAINS
   !=============================================================================
   SUBROUTINE create_restart(logn, dels, ktau, soil, veg, ssnow,                      &
                             canopy, rough, rad, bgc, bal)
-   
-      USE cable_common_module, ONLY: cable_user 
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
     ! not be active). It uses CABLE's internal variable names.
@@ -2265,26 +2053,6 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%rp20, 'rp20', '-',                     &
                      'Plant respiration coefficient at 20C', .TRUE., 'real',   &
                      0, 0, 0, mpID, dummy, .TRUE.)
-   ! Ticket #56 added switch for Belinda Medlyn's model
-   ! == "leuning" for default behaviour
-   IF (cable_user%GS_SWITCH == 'medlyn') THEN       
-      IF(output%flux .OR. output%cancd) THEN
-      
-         CALL define_ovar( ncid_restart, rpid%g0c3, 'g0c3', '-',               &
-                           'g0c3 term in Medlyn Stomatal Cond. Param', .TRUE., &  
-                           'real', 0, 0, 0, mpID, dummy, .TRUE.) ! Ticket #56
-         CALL define_ovar( ncid_restart, rpid%g0c4, 'g0c4', '-',               &
-                           'g0c4 term in Medlyn Stomatal Cond. Param', .TRUE., &
-                           'real', 0, 0, 0, mpID, dummy, .TRUE.)  ! Ticket #56
-         CALL define_ovar( ncid_restart, rpid%g1c3, 'g1c3', '-',               &
-                           'g1c3 term in Medlyn Stomatal Cond. Param', .TRUE.,
-                           'real', 0, 0, 0, mpID, dummy, .TRUE.)  ! Ticket #56
-         CALL define_ovar( ncid_restart, rpid%g1c4, 'g1c4', '-',               &
-                           'g1c4 term in Medlyn Stomatal Cond. Param', .TRUE., &
-                           'real', 0, 0, 0, mpID, dummy, .TRUE.) ! Ticket #56
-      ENDIF
-   ENDIF
-
     CALL define_ovar(ncid_restart, rpid%rpcoef, 'rpcoef', '1/C',               &
                      'Temperature coef nonleaf plant respiration', .TRUE.,     &
                      'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -2476,20 +2244,6 @@ CONTAINS
                      ranges%hc, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%rp20, 'rp20', REAL(veg%rp20, 4),       &
                      ranges%rp20, .TRUE., 'real', .TRUE.)
-   ! Ticket #56 added switch for Belinda Medlyn's model
-   ! == "leuning" for default behaviour
-   IF (cable_user%GS_SWITCH == 'medlyn') THEN
-      IF(output%flux .OR. output%cancd) THEN
-         CALL write_ovar (ncid_restart, rpid%g0c3, 'g0c3', REAL(veg%g0c3, 4),  &
-                     ranges%g0c3, .TRUE., 'real', .TRUE.) ! Ticket #56
-         CALL write_ovar (ncid_restart, rpid%g0c4, 'g0c4', REAL(veg%g0c4, 4),  &
-                     ranges%g0c4, .TRUE., 'real', .TRUE.) ! Ticket #56
-         CALL write_ovar (ncid_restart, rpid%g1c3, 'g1c3', REAL(veg%g1c3, 4),  &
-                     ranges%g1c3, .TRUE., 'real', .TRUE.) ! Ticket #56
-         CALL write_ovar (ncid_restart, rpid%g1c4, 'g1c4', REAL(veg%g1c4, 4),  &
-                     ranges%g1c4, .TRUE., 'real', .TRUE.) ! Ticket #56
-       endif
-    endif
     CALL write_ovar (ncid_restart, rpid%rpcoef, 'rpcoef', REAL(veg%rpcoef, 4), &
                      ranges%rpcoef, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%shelrb, 'shelrb', REAL(veg%shelrb, 4), &
