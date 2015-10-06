@@ -35,7 +35,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      spinConv, spinup, ktauday, idoy, dump_read, dump_write )
 
    USE cable_def_types_mod
-   !USE cable_common_module, only: cable_runtime
+   USE cable_common_module, only: cable_runtime
    USE casadimension
    USE casaparm
    USE casavariable
@@ -69,7 +69,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    if ( .NOT. dump_read ) then
    ! Lest 13may13: will require loop when prog resp are init nonzero
    ! need for mk3l ?
-   !IF( cable_runtime%offline .or. cable_runtime%mk3l ) THEN
+   IF( .NOT. cable_runtime%UM ) THEN
       if(ktau == kstart) then
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
@@ -86,7 +86,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
       ENDIF
-   !ENDIF
+   ENDIF
       IF(mod(ktau,ktauday)==1) THEN
          casamet%tairk = met%tk
          casamet%tsoil = ssnow%tgg
@@ -309,7 +309,8 @@ END SUBROUTINE bgcdriver
 !  data xnslope/0.64,0.71,0.70,0.67,0.42,0.40,0.45,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
 !  data xnslope/0.64,0.71,0.70,0.60,0.42,0.40,0.40,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
 ! Q.Zhang: test parameters 13/09/2011
-  data xnslope/1.00,1.00,2.00,1.00,1.00,1.00,1.00,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
+! Modified further in ACCESS-1.4
+  data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
   integer np,ivt
   real, dimension(mp)  :: ncleafx,npleafx  ! local variables
