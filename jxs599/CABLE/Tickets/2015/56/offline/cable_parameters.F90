@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose:       This module file reads default parameter sets and basic
 !                initialisations for CABLE. Parameters values are chosen based
 !                on a global map of vegetation and soil types, currently based
@@ -1053,6 +1045,8 @@ CONTAINS
           veg%rs20(h)     = vegin%rs20(veg%iveg(h))
           veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
           veg%wai(h)      = vegin%wai(veg%iveg(h))
+          veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
+          veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
           veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
           veg%extkn(h)    = vegin%extkn(veg%iveg(h))
           veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
@@ -1061,6 +1055,16 @@ CONTAINS
           veg%g0c4(h)     = vegin%g0c4(veg%iveg(h)) ! Ticket #56
           veg%g1c3(h)     = vegin%g1c3(veg%iveg(h)) ! Ticket #56
           veg%g1c4(h)     = vegin%g1c4(veg%iveg(h)) ! Ticket #56
+          veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
+          veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
+          veg%alpha(h)  = vegin%alpha(veg%iveg(h))
+          veg%convex(h) = vegin%convex(veg%iveg(h))
+          veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
+          veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
+          veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
+          veg%conko0(h) = vegin%conko0(veg%iveg(h))
+          veg%ekc(h)    = vegin%ekc(veg%iveg(h))
+          veg%eko(h)    = vegin%eko(veg%iveg(h))
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
@@ -1112,7 +1116,9 @@ CONTAINS
                vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
-               vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4) 
+               vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4,                 & 
+               vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
+               vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous
@@ -1553,6 +1559,12 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
                - 1))
          WRITE(logn, patchfmtr) 'Modifier for surface albedo in near IR '//   &
                'band: ', veg%xalbnir(landpt(e)%cstart:(landpt(e)%cstart +     &
+               landpt(e)%nap - 1))
+         WRITE(logn, patchfmtr) 'a1 parameter in leaf stomatal model  ',      &
+               veg%a1gs(landpt(e)%cstart:(landpt(e)%cstart +                  &
+               landpt(e)%nap - 1))
+         WRITE(logn, patchfmtr) 'd0 parameter in leaf stomatal model  ',      &
+               veg%d0gs(landpt(e)%cstart:(landpt(e)%cstart +                  &
                landpt(e)%nap - 1))
          IF (icycle == 0) THEN
            WRITE(logn,'(4X, A50, F12.4)')                                     &

@@ -2,9 +2,27 @@
 
 known_hosts()
 {
-   set -A kh vayu raij cher burn shin 
+   set -A kh cher burn shin  raij
 }
 
+## raijin.nci.org.au
+host_raij()
+{
+   module load netcdf
+   module load intel-mpi
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC='mpif90'
+   export CFLAGS='-O0 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ## shine-cl.nexus.csiro.au 
 host_shin()
@@ -46,41 +64,6 @@ host_cher()
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC='mpif90'
    export CFLAGS='-O2 -fp-model precise'
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
-
-## vayu.nci.org.au
-host_vayu()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise' 
-   fi
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
-## raijin
-host_raij()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise'
-   fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build

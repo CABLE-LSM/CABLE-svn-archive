@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Offline driver for CABLE
 !
 ! Contact: Bernard.Pak@csiro.au
@@ -156,7 +148,10 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-   
+
+   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
+   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -196,6 +191,7 @@ PROGRAM cable_offline_driver
       trunk_sumbal = 0.0, & !
       new_sumbal = 0.0
 
+   INTEGER :: nkend=0
    INTEGER :: ioerror
 
    ! END header
@@ -360,11 +356,49 @@ PROGRAM cable_offline_driver
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
             IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
+               call cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,                   &
                                 knode_gl, "FLUXES",                            &
                           canopy%fe + canopy%fh )
          ENDIF
-                
+   
+         ! Check this run against standard for quasi-bitwise reproducability
+         ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
+         IF(cable_user%consistency_check) THEN 
+            
+            new_sumbal = new_sumbal + SUM(bal%wbal_tot) + SUM(bal%ebal_tot)          &
+                             + SUM(bal%ebal_tot_cncheck)
+  
+            IF( ktau == kend ) THEN
+               nkend = nkend+1
+
+               IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
+
+                  print *, ""
+                  print *, &
+                  "NB. Offline-serial runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows this version reproduces the trunk sumbal"
+               
+               ELSE
+
+                  print *, ""
+                  print *, &
+                  "NB. Offline-serial runs spinup cycles:", nkend
+                  print *, &
+                  "Internal check shows in this version new_sumbal != trunk sumbal"
+                  print *, &
+                  "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
+                        
+                  OPEN( 12, FILE = Fnew_sumbal )
+                     WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
+                  CLOSE(12)
+               
+               ENDIF   
+            ENDIF   
+            
+         ENDIF
+
+         
       END DO ! END Do loop over timestep ktau
 
 
@@ -458,35 +492,6 @@ PROGRAM cable_offline_driver
 
    WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
    
-   ! Check this run against standard for quasi-bitwise reproducability
-   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-   IF(cable_user%consistency_check) THEN 
-      
-      new_sumbal = SUM(bal%wbal_tot) + SUM(bal%ebal_tot)                       &
-                       + SUM(bal%ebal_tot_cncheck)
-  
-      IF( new_sumbal == trunk_sumbal) THEN
-
-         print *, ""
-         print *, &
-         "Internal check shows this version reproduces the trunk sumbal"
-      
-      ELSE
-
-         print *, ""
-         print *, &
-         "Internal check shows in this version new_sumbal != trunk sumbal"
-         print *, &
-         "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
-               
-         OPEN( 12, FILE = Fnew_sumbal )
-            WRITE( 12, * ) new_sumbal  ! written by previous trunk version
-         CLOSE(12)
-      
-      ENDIF   
-      
-   ENDIF
-
    ! Close log file
    CLOSE(logn)
 
