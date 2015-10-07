@@ -1322,7 +1322,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ELSE    
       gsw_term = SPREAD(veg%gswmin,2,mf)
       lower_limit2 = rad%scalex * gsw_term
-   ENDDO
+   ENDIF
    gswmin = max(1.e-6,lower_limit2)
    
    gw = 1.0e-3 ! default values of conductance
