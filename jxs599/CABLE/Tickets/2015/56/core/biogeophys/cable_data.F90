@@ -172,6 +172,7 @@ module cable_data_module
          RMH2O, APOL, A33, VONK, ZETA0,                                        &
          ! photosynthetic constants
          RGSWC, GAM0, GAM1, GAM2,RGBWC,TREFK,                                  &
+         gsw03, gsw04,                                                         &
          ! math constants
          PI_C,                                                                 &
          ! other constants
@@ -344,6 +345,9 @@ SUBROUTINE canopy_type_ptr(C)
    C%RGBWC  => PHOTO%RGBWC
    C%GAM1  => PHOTO%GAM1
    C%TREFK => PHOTO%TREFK
+   ! Ticket #56 uses these although trunk deleted them in r 935?
+   C%gsw03  => PHOTO%gsw03
+   C%gsw04  => PHOTO%gsw04
    ! math constants
    C%PI_C  => MATH%PI_C
    
