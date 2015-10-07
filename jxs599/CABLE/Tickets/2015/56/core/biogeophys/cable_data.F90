@@ -110,6 +110,9 @@ module cable_data_module
       real :: toptj  = 20.0
       real :: toptv  = 20.0
       real :: trefk= 298.2  !reference temperature K
+      ! Ticket #56 uses these although trunk deleted them in r 935?
+      real :: gsw03  = 0.01 
+      real :: gsw04  = 0.04 
    end type photosynthetic_constants
 
 
