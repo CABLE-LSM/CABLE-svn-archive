@@ -6,6 +6,9 @@
 #  Created by Anna Ukkola on 1/07/2015.
 #
 
+##### SET SITE !!!!! #####
+
+site="Konza"
 
 
 ## Spins CASA for determined number of cycles
@@ -14,8 +17,8 @@
 run_dir=`pwd`
 
 ### SET INPUT DIRECTORY
-cd /srv/ccrc/data45/z3509830/CABLE_runs/Rainfall_assymmetry/Inputs/Met_inputs/
-INDIR=`find * -maxdepth 1 -type d -name "STU20*"`
+cd /srv/ccrc/data45/z3509830/CABLE_runs/Rainfall_assymmetry/Inputs/Met_inputs/$site
+INDIR=`find * -maxdepth 1 -type d -name "${site}20"`
 
 ## Some options:
 GWFLAG="TRUE"
@@ -23,6 +26,80 @@ GWFLAG="TRUE"
 
 
 cd $run_dir  #./../../CABLE-2.3.4-GW-Medlyn/offline/
+
+
+
+# Create initial pool file #
+cat > create_init_poolfile.R << EOF
+library(raster)
+library(ncdf)
+path <- "/srv/ccrc/data45/z3509830/CABLE_runs/Rainfall_assymmetry"
+
+dir.create(paste(path, "Inputs/CASA_ins", "$site", sep="/"))
+
+#Read site lat/lon
+site_file <- open.ncdf(paste(path, "/Inputs/Met_inputs/${site}/${site}100/${site}100_precip.nc", sep=""))
+lat       <- get.var.ncdf(site_file, "latitude")
+lon       <- get.var.ncdf(site_file, "longitude")
+close.ncdf(site_file)
+
+#Read in global pool file
+pools <- read.csv(file=paste(path, "/Inputs/CASA_ins/cnppool1990_steady.csv", sep="/"), header=FALSE)
+pools <- pools[,1:46]
+
+
+colnames(pools) <- 
+  c("ktau","npt","veg_iveg","soil_isoilm","casamet_isorder","casamet_lat","casamet_lon",
+    "casamet_areacell","casamet_glai","casabiome_sla","phen_phase","casapool_clabile", 
+    "casapool_cplant_leaf",  "casapool_cplant_wood", "casapool_cplant_root",
+    "casapool_clitter_metb", "casapool_clitter_str", "casapool_clitter_cwd", 
+    "casapool_csoil_mic",    "casapool_csoil_slow",  "casapool_csoil_pass",
+    "casapool_nplant_leaf",  "casapool_nplant_wood", "casapool_nplant_root",
+    "casapool_nlitter_metb", "casapool_nlitter_str", "casapool_nlitter_cwd",
+    "casapool_nsoil_mic",    "casapool_nsoil_slow",  "casapool_nsoil_pass",
+    "casapool_nsoilmin",
+    "casapool_pplant_leaf",  "casapool_pplant_wood", "casapool_pplant_root",  
+    "casapool_plitter_metb", "casapool_plitter_str", "casapool_plitter_cdw",
+    "casapool_psoil_mic",    "casapool_psoil_slow",  "casapool_psoil_pass",
+    "casapool_psoillab","casapool_psoilsorb","casapool_psoilocc","casabal_sumcbal","casabal_sumnbal","casabal_sumpbal")
+
+
+#Read in gridinfo file for dimensions
+gridinfo <- raster("/srv/ccrc/data45/z3509830/CABLE_runs/Inputs/gridinfo_CSIRO_1x1.nc", varname="iveg")
+
+
+data_brick <- brick(nrow=nrow(gridinfo), ncol=ncol(gridinfo), xmn=xmin(gridinfo), xmx=xmax(gridinfo), ymn=ymin(gridinfo), ymx=ymax(gridinfo), 
+                    nl=(ncol(pools)), crs='+proj=longlat +datum=WGS84')
+
+#Columns to convert to raster
+lat_lon <- which(colnames(pools)=="casamet_lat" | colnames(pools)=="casamet_lon")
+
+for(k in 1:nlayers(data_brick))
+{
+  data_raster <- raster(nrow=nrow(data_brick), ncol=ncol(data_brick))
+  extent(data_raster) <- extent(data_brick)
+  Cells <- cellFromXY(data_raster, pools[,rev(lat_lon)])
+  data_raster[Cells] <- pools[,k]
+  
+  data_brick[[k]] <- data_raster
+}
+
+
+#Extract site values
+site_values <- extract(data_brick, cbind(lon,lat))
+
+#Replace lat/lon values with actual site coords
+site_values[1,which(grepl("casamet_lon", colnames(site_values)))] <- lon
+site_values[1,which(grepl("casamet_lat", colnames(site_values)))] <- lat
+
+#Write to file
+write.csv(x=site_values, file=paste(path, "/Inputs/CASA_ins/${site}/poolcnp_init_${site}.csv", sep=""))
+
+EOF
+
+
+Rscript create_init_poolfile.R  #source R script to create init pool file
+
 
 
 #Loop through experiments
@@ -37,16 +114,16 @@ echo $D
 
 OUTDIR="${D}_outs"
 
-if [[ -d "./../../Outputs/"$OUTDIR ]]; then
+if [[ -d "./../../Outputs/${site}/${OUTDIR}" ]]; then
     echo "output directory exists"
 else
-    mkdir ./../../Outputs/$OUTDIR
+    mkdir ./../../Outputs/$site/$OUTDIR
 fi
 
 
 
 #Site met file
-metfile="Met_inputs/${D}/CABLE_met_input_${D}.nc"
+metfile="Met_inputs/${site}/${D}/CABLE_met_input_${D}.nc"
 
 
 
@@ -69,7 +146,7 @@ tol=$(echo "scale=6; 0.005" | bc)
 diff_cplant=$(echo "scale=6; 99999.0" | bc)
 diff_csoil=$(echo "scale=6; 99999.0" | bc)
 
-I=10
+I=1
 
 
 
@@ -85,7 +162,7 @@ echo $I
 
 ## Set CNPpool file name
 if [[ $I -eq 1 ]]; then
-    pool_file="poolcnpInStubai.csv"
+    pool_file="poolcnp_init_${site}.csv"
 else
     pool_file="poolcnpOut_old_${D}.csv"
 fi
@@ -98,20 +175,20 @@ fi
 cat > cable.nml << EOF
 &cable
 filename%met = "./../../Inputs/$metfile"
-filename%out = "./../../Outputs/${OUTDIR}/out_cable.nc"
-filename%log = "./../../Outputs/${OUTDIR}/log_cable.txt"
+filename%out = "./../../Outputs/${site}/${OUTDIR}/out_cable.nc"
+filename%log = "./../../Outputs/${site}/${OUTDIR}/log_cable.txt"
 filename%restart_in  = ""
-filename%restart_out = "./../../Outputs/${OUTDIR}/restart_out.nc"
+filename%restart_out = "./../../Outputs/${site}/${OUTDIR}/restart_out.nc"
 filename%type    = "./../../Inputs/gridinfo_CSIRO_1x1.nc"
 filename%veg    = "./../../Inputs/def_veg_params_Ticket2_with_medlyn.txt"
 filename%soil    = "./../../Inputs/def_soil_params.txt"
-filename%gw_elev = "./../../Inputs/$metfile"
+filename%gw_elev = ""
 vegparmnew = .TRUE.  ! using new format when true
 soilparmnew = .TRUE.  ! using new format when true
 spinup = .FALSE.  ! do we spin up the model?
 delsoilM = 0.001   ! allowed variation in soil moisture for spin up
 delsoilT = 0.01    ! allowed variation in soil temperature for spin up
-output%restart = .FALSE.  ! should a restart file be created?
+output%restart = .TRUE.  ! should a restart file be created?
 output%met = .FALSE.  ! input met data
 output%flux = .FALSE.  ! convective, runoff, NEE
 output%soil = .FALSE.  ! soil states
@@ -135,13 +212,13 @@ l_casacnp     = .TRUE.  ! using casaCNP with CABLE
 l_laiFeedbk   = .TRUE.  ! using prognostic LAI
 l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax
 icycle = 1   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P
-casafile%cnpipool = "./../../Inputs/CASA_ins/$pool_file"
+casafile%cnpipool = "./../../Inputs/CASA_ins/${site}/${pool_file}"
 casafile%cnpbiome = "./../../Inputs/CASA_ins/pftlookup_csiro_v16_17tiles_Ticket2.csv"
-casafile%cnpepool = "./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv"   ! end of run pool size
-casafile%cnpmetout= "./../../Outputs/${OUTDIR}/casa_met_out.nc"  ! output daily met forcing for spinning casacnp
-casafile%cnpmetin = ''          ! list of daily met files for spinning casacnp
+casafile%cnpepool = "./../../Outputs/${site}/${OUTDIR}/poololcnpOut_${D}.csv"   ! end of run pool size
+casafile%cnpmetout= ""  ! output daily met forcing for spinning casacnp
+casafile%cnpmetin = ""  ! list of daily met files for spinning casacnp
 casafile%phen     = "./../../Inputs/CASA_ins/modis_phenology_csiro.txt"
-casafile%cnpflux  ="./../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv"
+casafile%cnpflux  ="./../../Outputs/${site}/${OUTDIR}/cnpfluxOut_${D}.csv"
 ncciy = 0  ! 0 for not using gswp; 4-digit year input for year of gswp met
 gswpfile%rainf = "gswp/AustMerra3h${year}.nc"
 gswpfile%snowf = "gswp/AustMerra3h${year}.nc"
@@ -195,24 +272,40 @@ EOF
 #Calculate difference in csoil and cplant between current and previous timestep
 
 
-csoil_old=`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${pool_file}`
-csoil_new=`awk -F "\"*,\"*" '{print $15}' ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv`
+## C-soil ##
+if [[ $I -eq 1 ]]
+then
+    csoil_old=99999
+else
+    cmic_old =`awk -F "\"*,\"*" '{print $19}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    cslow_old=`awk -F "\"*,\"*" '{print $20}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    cpass_old=`awk -F "\"*,\"*" '{print $21}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    csoil_old=$cmic_old+$cslow_old+$cpass_old
+fi
+
+cmic_new =`awk -F "\"*,\"*" '{print $19}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+cslow_new=`awk -F "\"*,\"*" '{print $20}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+cpass_new=`awk -F "\"*,\"*" '{print $21}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+csoil_new=$(echo "$cmic_new+$cslow_new+$cpass_new" | bc -l)
 
 
+## C-plant ##
 if [[ $I -eq 1 ]]
 then
     cplant_old=99999
 else
-    cleaf_old=`awk -F "\"*,\"*" '{print $11}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
-    cwood_old=`awk -F "\"*,\"*" '{print $12}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
-    croot_old=`awk -F "\"*,\"*" '{print $13}' ../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv`
+    cleaf_old =`awk -F "\"*,\"*" '{print $13}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    cwood_old =`awk -F "\"*,\"*" '{print $14}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    croot_old =`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cplant_old=$cleaf_old+$cwood_old+$croot_old
 fi
 
-cleaf_new=`awk -F "\"*,\"*" '{print $11}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
-cwood_new=`awk -F "\"*,\"*" '{print $12}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
-croot_new=`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv`
+cleaf_new =`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+cwood_new =`awk -F "\"*,\"*" '{print $14}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+croot_new =`awk -F "\"*,\"*" '{print $15}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
 cplant_new=$(echo "$cleaf_new+$cwood_new+$croot_new" | bc -l)
+
+
 
 
 diff_cplant=$(echo "$cplant_new-$cplant_old" | bc -l)
@@ -236,12 +329,12 @@ echo $diff_csoil
 ## Also rename file from previous iteration so it can be used for checking values
 if [[ $I -gt 1 ]]
 then
-cp -rf ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}_prev.csv
-cp -rf ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}_prev.csv
+cp -rf ./../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv ./../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}_prev.csv
+cp -rf ./../../Inputs/CASA_ins/${site}/cnpfluxOut_old_${D}.csv ./../../Inputs/CASA_ins/${site}/cnpfluxOut_old_${D}_prev.csv
 fi
 
-cp -rf ./../../Outputs/${OUTDIR}/poolcnpOut_${D}.csv ./../../Inputs/CASA_ins/poolcnpOut_old_${D}.csv
-cp -rf ./../../Outputs/${OUTDIR}/cnpfluxOut_${D}.csv ./../../Inputs/CASA_ins/cnpfluxOut_old_${D}.csv
+cp -rf ./../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv ./../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv
+cp -rf ./../../Outputs/${site}/${OUTDIR}/cnpfluxOut_${D}.csv ./../../Inputs/CASA_ins/${site}/cnpfluxOut_old_${D}.csv
 
 
 I=$[I+1]
