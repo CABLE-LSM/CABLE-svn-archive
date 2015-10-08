@@ -405,7 +405,12 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    CALL readpar(ncid_rin,'rnof2',dummy,ssnow%rnof2,filename%restart_in,        &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'runoff',dummy,ssnow%runoff,filename%restart_in,      &
-                max_vegpatches,'def',from_restart,mp)
+        max_vegpatches,'def',from_restart,mp)
+
+   IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+      CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
+           max_vegpatches,'def',from_restart,mp)
+   ENDIF
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
        CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
@@ -422,8 +427,6 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
             max_vegpatches,'snow',from_restart,mp)
        CALL readpar(ncid_rin,'sconds',dummy,ssnow%sconds,filename%restart_in, &
             max_vegpatches,'snow',from_restart,mp)
-       CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
-            max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'ZR',dummy,veg%ZR, &
             filename%restart_in,max_vegpatches,'def',from_restart,mp)
        CALL readpar(ncid_rin,'F10',dummy,veg%F10, &

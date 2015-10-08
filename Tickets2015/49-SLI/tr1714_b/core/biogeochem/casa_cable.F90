@@ -29,7 +29,7 @@
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
                      pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &
-                     dump_write, gpp_ann )
+                     dump_write, gpp_ann, LALLOC )
 
    USE cable_def_types_mod
    USE cable_common_module, only: cable_runtime
@@ -52,6 +52,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER,      INTENT(IN)                  :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
    logical,      INTENT(IN) :: dump_read, dump_write 
+   INTEGER,      INTENT(IN)                  :: LALLOC
         
    REAL,         INTENT(IN) :: dels ! time setp size (s)
    REAL, DIMENSION(mp)    ,    INTENT(IN) :: gpp_ann
@@ -67,9 +68,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    TYPE (casa_balance),        INTENT(INOUT) :: casabal
    TYPE (phen_variable),       INTENT(INOUT) :: phen
    TYPE(POP_TYPE),             INTENT(INOUT) :: POP
-   !! vh_js !! LALLOC declared and value assigned here instead of in casa_variable
-   INTEGER :: LALLOC 
-
+  
    ! local variables added ypwang 5/nov/2012
    real,      dimension(mp)  :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
    real,      dimension(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
@@ -94,10 +93,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
    !! vh_js !!
     IF (cable_user%CALL_POP) THEN
-       LALLOC = 3 ! POP setting (requires casaflux%sapwood_area)
+      
        Iw = POP%Iwood
-    ELSE
-       LALLOC = 0  ! default setting
+   
     ENDIF
       
    
@@ -146,7 +144,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                 casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
+                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
             IF (cable_user%CALL_POP) THEN ! CALL_POP
 
@@ -186,7 +184,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2) -  &
                           (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
                           + POP%pop_grid(:)%fire_mortality+ POP%pop_grid(:)%res_mortality  ) * &
-                          casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
+                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
                      
                      casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
                      casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)       
@@ -221,7 +219,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
               casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
               cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
+              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
          IF (cable_user%CALL_POP) THEN
 
@@ -247,7 +245,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                ELSEWHERE
                   NPPtoGPP = 0.5
                ENDWHERE
-
+            
                CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
                     real(veg%disturbance_intensity(Iw,:),dp)      ,&
                     LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
@@ -261,7 +259,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                   casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2) -  &
                        (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
                           + POP%pop_grid(:)%fire_mortality+ POP%pop_grid(:)%res_mortality  ) * &
-                          casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
+                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
                   
                   casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
                   casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)       
@@ -444,6 +442,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
 #ifndef UM_BUILD 
   dim_len(1)        = mp
   dim_len(num_dims) = kend
+
 
   IF (n_call == 1) THEN
      ! create netCDF dataset: enter define mode

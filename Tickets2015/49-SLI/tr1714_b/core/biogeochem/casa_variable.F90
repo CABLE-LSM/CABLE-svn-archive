@@ -402,8 +402,11 @@ write(*,*) "in alloc_casa"
            casabiome%ftransPPtoL(mvtype,mplant),     &
            casabiome%litterrate(mvtype,mlitter),     &
            casabiome%soilrate(mvtype,msoil),         &
-           casabiome%ratioPcplantmax(mvtype,leaf),   &
-           casabiome%ratioPcplantmin(mvtype,leaf)    &
+         !  casabiome%ratioPcplantmax(mvtype,leaf),   &
+         !  casabiome%ratioPcplantmin(mvtype,leaf)    &
+         !! vh_js !!
+           casabiome%ratioPcplantmax(mvtype,mplant),   &
+           casabiome%ratioPcplantmin(mvtype,mplant)    &
           ) 
 
   ALLOCATE(casapool%Clabile(arraysize),               &
@@ -496,9 +499,9 @@ write(*,*) "in alloc_casa"
            casaflux%fromStoS(arraysize,msoil,msoil),     &
            casaflux%fromLtoCO2(arraysize,mlitter),       &
            casaflux%fromStoCO2(arraysize,msoil), &
- 	   casaflux%stemnpp(arraysize)	, &
+           casaflux%stemnpp(arraysize), &
            casaflux%frac_sapwood(arraysize), &
-           casaflux%sapwood_area(arraysize))		                  
+           casaflux%sapwood_area(arraysize))               
 
   ALLOCATE(casaflux%FluxCtolitter(arraysize,mlitter),    &
            casaflux%FluxNtolitter(arraysize,mlitter),    &

@@ -1141,7 +1141,7 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal)
 
 END SUBROUTINE casa_cnpflux
 ! changed by yp wang following Chris Lu 5/nov/2012
-SUBROUTINE biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
      casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &

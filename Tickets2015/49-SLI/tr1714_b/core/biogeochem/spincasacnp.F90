@@ -1,5 +1,5 @@
 SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-     casaflux,casamet,casabal,phen,gpp_ann )
+     casaflux,casamet,casabal,phen,gpp_ann,LALLOC )
 
   USE cable_def_types_mod
   USE cable_carbon_module
@@ -16,6 +16,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   INTEGER, INTENT(IN)    :: kend
   INTEGER, INTENT(IN)    :: mloop
   REAL,    INTENT(IN)    :: gpp_ann(mp)
+  INTEGER, INTENT(IN)    :: LALLOC
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
@@ -111,11 +112,11 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
         casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
 
-        CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+        CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
              casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
+             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
         WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
            xkNlimiting = 0.001
@@ -245,11 +246,11 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
            casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
            casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
            casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
-           call biogeochem(ktauy,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+           call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, gpp_ann)
+                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
         ENDDO   ! end of idoy
      ENDDO   ! end of nyear
      !!CLN  close(91)

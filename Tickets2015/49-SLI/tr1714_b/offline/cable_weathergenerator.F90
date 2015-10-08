@@ -377,15 +377,15 @@ PhiLd_Swinbank = 335.97 * (((WG%Temp + 273.16) / 293.0)**6)   ! [W/m2] (Swinbank
  ! Alternate longwave formulation
 WG%PhiLd = epsilon * SBoltz * (WG%Temp + 273.16)**4       ! [W/m2] (Brutsaert)
 WHERE (WG%PhiSd.GT.50.0)
-	adjust_fac = ((1.17)**(WG%SolarNorm))/1.17
+   adjust_fac = ((1.17)**(WG%SolarNorm))/1.17
 ELSEWHERE
-	adjust_fac = 0.9
+   adjust_fac = 0.9
 endwhere
 
 WG%PhiLd = WG%PhiLd /adjust_fac * (1.0 + WG%PhiSd/8000.)       ! adjustment (formulation from Gab Abramowitz)
 
 WHERE ((WG%PhiLd.GT.500.00).OR.(WG%PhiLd.LT.100.00))
-	WG%PhiLd = PhiLd_Swinbank
+   WG%PhiLd = PhiLd_Swinbank
 endwhere
 
 IF (ANY((WG%PhiLd.GT.750.00).OR.(WG%PhiLd.LT.100.00))) THEN

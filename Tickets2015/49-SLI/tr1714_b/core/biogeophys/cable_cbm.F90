@@ -120,13 +120,12 @@ CONTAINS
    IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
       print *, 'CALL define_canopy_vh(ktau,bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)'
    ELSEIF (cable_user%CANOPY_STRUC=='default') THEN
-      CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+      CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
    ENDIF
 
    !ssnow%otss_0 = ssnow%otss
    !ssnow%otss = ssnow%tss
-
-
+ 
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac
 
@@ -143,6 +142,7 @@ CONTAINS
          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
       ENDIF
    ENDIF
+   
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations

@@ -170,7 +170,7 @@ CONTAINS
        fws = zero
        ! distribute extraction according to available water
        !rex(:) = (theta(:)-0.01_r_2)*dx(:)
-       rex(:) = max((theta(:)-thetaw(:))*dx(:),zero)		
+       rex(:) = max((theta(:)-thetaw(:))*dx(:),zero)
        trex = sum(rex(:))
        if (trex > zero) then
           rex(:) = rex(:)/trex

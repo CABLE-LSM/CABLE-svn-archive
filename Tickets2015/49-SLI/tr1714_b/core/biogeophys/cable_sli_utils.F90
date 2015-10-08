@@ -292,7 +292,7 @@ CONTAINS
 
   ! Surface Energy Balance
   SUBROUTINE SEB(n, par, vmet, vsnow, var, qprec, qprec_snow, dx, h0, Tsoil,  &
-       Tsurface, G0, lE0, qsurface, qevap, qliq, qv, &
+       Tsurface, G0, lE0, Epot, qsurface, qevap, qliq, qv, &
        qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
 
     IMPLICIT NONE
@@ -309,7 +309,7 @@ CONTAINS
     REAL(r_2),                       INTENT(IN) :: h0
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: Tsoil
 
-    REAL(r_2),                       INTENT(OUT)           :: Tsurface, G0, lE0 ! SEB (subdiurnal, uses T in top layer)
+    REAL(r_2),                       INTENT(OUT)           :: Tsurface, G0, lE0, Epot ! SEB 
     REAL(r_2),                       INTENT(OUT)           :: qsurface          ! water flux into surface
     REAL(r_2),                       INTENT(OUT)           :: qevap             ! evaporative water flux
     ! liquid and vapour components of water flux from surface into soil
@@ -323,7 +323,7 @@ CONTAINS
 
     ! local variables
     INTEGER(i_d) :: surface_case
-    REAL(r_2) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
+    REAL(r_2) :: Tsurface_pot,  Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     REAL(r_2) :: E_vap, dE_vapdT1, E_liq
     REAL(r_2) :: Kmin, Khmin, phimin
     REAL(r_2) :: Tqw, dtqwdtb, rhocp1
@@ -333,7 +333,7 @@ CONTAINS
     if (vsnow%nsnow>0) surface_case = 2
     select case (surface_case)
     case (1) ! no snow
-       call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+       call potential_evap(vmet%Rn, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
             Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
             Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
 
@@ -345,7 +345,7 @@ CONTAINS
                vmet%cva)*rhow*var(1)%lambdav/vmet%rbw
           dEdTsoil = zero
           dGdTsoil = zero
-          Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
+          Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
           Gpot = vmet%Rn - Hpot - Epot
           dEdTs = zero
        endif
@@ -372,15 +372,15 @@ CONTAINS
           lE0 = min(Epot,E_vap+ E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
           if (Epot.gt.(E_vap+ E_liq)) dEdTs = zero
           Tsurface = (-half*dx(1)*lE0 + half*dx(1)*vmet%Rn + &
-               var(1)%kth*Tsoil(1) + half*dx(1)*(one/vmet%rrc*rhocp)*vmet%Ta) &
-               /(var(1)%kth + half*dx(1)*(one/vmet%rrc*rhocp))
+               var(1)%kth*Tsoil(1) + half*dx(1)*(one/vmet%rbh*rhocp)*vmet%Ta) &
+               /(var(1)%kth + half*dx(1)*(one/vmet%rbh*rhocp))
           G0       = var(1)%kth/(half*dx(1))*(Tsurface-Tsoil(1))
           dGdTsoil  =  -var(1)%kth/(half*dx(1))
 
           if ((var(1)%iice.eq.1) .and. (Tsurface>zero)) then
              Tsurface = 0.0
              rhocp1 = rmair*101325/rgas/(vmet%Ta+Tzero)*cpa
-             G0 = vmet%Rn - rhocp1*(Tsurface - vmet%Ta)/vmet%rrc - lE0
+             G0 = vmet%Rn - rhocp1*(Tsurface - vmet%Ta)/vmet%rbh - lE0
              dGdTsoil = 0.0
           endif
           
@@ -458,7 +458,7 @@ CONTAINS
           dEdTsoil = zero
           dGdTsoil = zero
           rhocp1 = rmair*101325/rgas/(vmet%Ta+Tzero)*cpa
-          Hpot = rhocp1*(Tsurface - vmet%Ta)/vmet%rrc
+          Hpot = rhocp1*(Tsurface - vmet%Ta)/vmet%rbh
           Gpot = vmet%Rn-vmet%Rnsw - Hpot - Epot
           dEdTs = zero
           qevap = Epot/(rhow*rlambda)
@@ -466,7 +466,7 @@ CONTAINS
           !     write(*,*) "Epot2", Tsurface, vmet%Ta, Epot, Hpot, vmet%rrc, rhocp1
        else
 
-          call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
+          call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
                vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
@@ -478,7 +478,7 @@ CONTAINS
                   vmet%cva)*rhow*lambdas/vmet%rbw
              dEdTsoil = zero
              dGdTsoil = zero
-             Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rrc
+             Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
              Gpot = vmet%Rn-vmet%Rnsw - Hpot - Epot
              dEdTs= zero
              !   write(*,*) "Epot3", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
@@ -2513,13 +2513,15 @@ CONTAINS
     c       = Mw*gravity/Rgas/(Tsoil+Tzero)
     rhoL    = plit%rho
     ! dhdS    = -plit%he/plit%lam*S**(-one/plit%lam-one)*(thousand/rhoL*plit%the)**(-one/plit%lam)
+
     dhdS    = -plit%he/plit%lam*exp((-one/plit%lam-one)*log(S))*exp(-one/plit%lam*log(thousand/rhoL*plit%the))
-    vlit%hS = dhdS
+!    vlit%hS = dhdS
     ! Mathews (2006), A process-based model of offine fuel moisture,
     !                 International Journal of Wildland Fire 15,155-168
     chi     = 2.08_r_2+u*2.38_r_2 ! (Eq. 45, Tab. 1)
     DT0     = Dva*exp(u*2.6_r_2) ! (Eq. 46, Tab. 1)
     vlit%Dv = DT0*exp(-half*chi) ! heat and vapour diffusivity half-way through layer (Eq. 11)
+    !write(*,*) 'litter_props', vlit%Dv
     if (S < one) then
        ! vlit%h = plit%he*(thousand/rhoL*S*plit%the)**(-one/plit%lam)
        vlit%h = plit%he*exp(-one/plit%lam*log(thousand/rhoL*S*plit%the))
@@ -2629,19 +2631,19 @@ CONTAINS
     plit%rho   = 63.5_r_2
     ! dxL        = zero            ! litter params
     dxL        = real(soil%clitt(index),r_2)*two/plit%rho*0.1_r_2
-
+    
+    
     plit%ishorizon  = 0
     plit%thw        = zero
     plit%thfc       = zero
     plit%thr        = zero
-    plit%he         = zero
-    plit%Ke         = zero
-    plit%lam        = zero
+   
+   
+   
     plit%eta        = zero
     plit%KSe        = zero
     plit%phie       = zero
     plit%phiSe      = zero
-    plit%rho        = zero
     plit%tortuosity = zero
     plit%clay       = zero
     plit%zeta       = zero

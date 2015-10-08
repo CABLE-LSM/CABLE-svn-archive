@@ -58,7 +58,7 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar, CanT, RnetSoil, SnowMelt
+                    HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -161,7 +161,9 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: CanT  ! within-canopy temperature
-                                                 ! [K]
+    ! [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Fwsoil  ! soil-moisture modfier to stomatal conductance
+                                                 ! [-]
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -614,6 +616,13 @@ PRINT*,"timeunits", timeunits
        ALLOCATE(out%CanT(mp))
        out%CanT = 0.0 ! initialise
     END IF
+    IF(output%veg .OR. output%Fwsoil) THEN
+       CALL define_ovar(ncid_out, ovid%Fwsoil, 'Fwsoil', '[-]', &
+                        'soil moisture modifier to stamatal conductance', patchout%Fwsoil, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Fwsoil(mp))
+       out%Fwsoil = 0.0 ! initialise
+    END IF
     IF(output%veg .OR. output%CanopInt) THEN
        CALL define_ovar(ncid_out, ovid%CanopInt, 'CanopInt', 'kg/m^2',         &
                         'Canopy intercepted water storage', patchout%CanopInt, &
@@ -1037,7 +1046,9 @@ PRINT*,"timeunits", timeunits
     INTEGER :: backtrack  ! modify timetemp for averaged output
 
     INTEGER :: dday ! number of past-years days for monthly output LN
-    INTEGER :: iy   ! Counter 
+    INTEGER :: iy   ! Counter
+    !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
+    INTEGER, SAVE :: YearStart
     
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
@@ -1052,8 +1063,12 @@ PRINT*,"timeunits", timeunits
     IF(ktau == 1) THEN
        out_timestep = 0
        out_month = 0
-       !! vh_js !! assume all met starts at the same year
-       IF ( TRIM(cable_user%MetType) .ne. 'gswp' ) CABLE_USER%YearStart = met%year(1)
+       !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
+       IF ( TRIM(cable_user%MetType) .ne. 'gswp' ) then
+          YearStart = met%year(1)
+       ELSE
+          YearStart = CABLE_USER%YearStart
+       ENDIF
     END IF
 
     ! Decide on output averaging regime:
@@ -1084,8 +1099,9 @@ PRINT*,"timeunits", timeunits
        
        ! LN Inserted for multiyear output
        dday = 0
-       DO iy = CABLE_USER%YearStart,MAXVAL(realyear)-1
-          IF ( IS_LEAPYEAR(iy) .AND. leaps ) THEN
+       !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
+       DO iy=YearStart, MAXVAL(realyear)-1
+          IF (IS_LEAPYEAR(iy) .AND. leaps) THEN
              dday = dday + 366
           ELSE
              dday = dday + 365
@@ -1125,8 +1141,7 @@ PRINT*,"timeunits", timeunits
              END IF
           END IF
        ELSE ! not using leap year timing in this run
-          IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of
-                                                             ! month
+          IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of month
              ! increment output month counter
              out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
              ! write to output file this time step 
@@ -1706,6 +1721,19 @@ PRINT*,"timeunits", timeunits
           out%CanT = 0.0
        END IF
     END IF
+     IF(output%veg .OR. output%Fwsoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Fwsoil = out%Fwsoil + REAL(canopy%fwsoil, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Fwsoil = out%Fwsoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Fwsoil, 'Fwsoil', out%Fwsoil, &
+                          ranges%Fwsoil, patchout%Fwsoil, 'default', met)
+          ! Reset temporary output variable:
+          out%Fwsoil = 0.0
+       END IF
+    END IF
     ! CanopInt: total canopy water storage [kg/m^2]
     IF(output%veg .OR. output%CanopInt) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2282,6 +2310,12 @@ PRINT*,"timeunits", timeunits
     CALL define_ovar(ncid_restart, rpid%za_tq, 'za_tq', 'm',                   &
                      'Reference height (lowest atm. model layer) for scalars', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+    IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+      CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
+            'Parameter in root efficiency function (Lai and Katul 2000)', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+    ENDIF
     ! Soil-Litter-Iso soil model
     IF(cable_user%SOIL_STRUC=='sli') THEN
        ! Parameters for SLI:
@@ -2295,9 +2329,6 @@ PRINT*,"timeunits", timeunits
             'Horizon number',.TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
        CALL define_ovar(ncid_restart,rpid%clitt,'clitt','tC/ha', &
             'Litter layer carbon content',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
-       CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
-            'Parameter in root efficiency function (Lai and Katul 2000)', &
-            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,rpid%ZR,'ZR','cm', &
             'Maximum rooting depth',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,rpid%F10,'F10','-', &
@@ -2545,7 +2576,12 @@ PRINT*,"timeunits", timeunits
     CALL write_ovar (ncid_restart, albedoID, 'albedo', REAL(rad%albedo, 4),    &
                      ranges%Albedo, .TRUE., 'radiation', .TRUE.)
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
-                     REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
+         REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
+
+    IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+       CALL write_ovar (ncid_restart,rpid%gamma,'gamma', &
+            REAL(veg%gamma,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+    ENDIF
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
        ! Write SLI parameters:
@@ -2555,8 +2591,6 @@ PRINT*,"timeunits", timeunits
             REAL(soil%ishorizon,4),(/-99999.0,99999.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%clitt,'clitt', &
             REAL(soil%clitt,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
-       CALL write_ovar (ncid_restart,rpid%gamma,'gamma', &
-            REAL(veg%gamma,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%ZR,'ZR', &
             REAL(veg%ZR,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%F10,'F10', &

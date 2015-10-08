@@ -49,7 +49,7 @@ MODULE CABLE_PLUME_MIP
   REAL, PRIVATE, PARAMETER :: SecDay = 86400.
 
   CHARACTER(len=6),DIMENSION(9),PARAMETER,PRIVATE  :: &
-       PREF = (/ "pr","prsn","rlds","rsds","ps","hurs","tasmax","tasmin","wind" /)
+       PREF = (/ "pr    ","prsn  ","rlds  ","rsds  ","ps    ","hurs  ","tasmax","tasmin","wind  " /)
       
 CONTAINS
 
@@ -821,7 +821,7 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
      met%ca(:) = CO2air / 1.e+6
 
      ! Open/close Met-files if necessary
-     IF (FILE_SWITCH( PLUME, 'OPEN' ) .OR. CALL1)  CALL OPEN_PLUME_MET( PLUME )
+     IF (FILE_SWITCH( PLUME, 'OPEN ' ) .OR. CALL1)  CALL OPEN_PLUME_MET( PLUME )
 
   ENDIF
 

@@ -115,6 +115,7 @@ MODULE cable_checks_module
            Ebal = (/-999999.0,999999.0/),      &
            !! vh_js !!
            CanT = (/213.0,333.0/),      &
+           Fwsoil = (/0.0,1.0/),      &
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &

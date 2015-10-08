@@ -65,18 +65,33 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
    canopy%rghlai = canopy%vlaiw
 
-   ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
-   IF (.not.cable_user%l_new_roughness_soil) THEN
-      rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
-      rough%z0soilsn = rough%z0soil 
-   ELSE
-      rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us**2/C%GRAV,1.0)
-      rough%z0soilsn = max(1.e-7,rough%z0soil)
-   ENDIF
+   
+    IF (cable_user%soil_struc=='default') THEN
 
-    WHERE( ssnow%snowd .GT. 0.01   )  &
-     rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
-     
+       ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
+       IF (.not.cable_user%l_new_roughness_soil) THEN
+          rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
+          rough%z0soilsn = rough%z0soil
+       ELSE
+          rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us**2/C%GRAV,1.0)
+          rough%z0soilsn = max(1.e-7,rough%z0soil)
+       ENDIF
+
+       WHERE( ssnow%snowd .GT. 0.01   )  &
+            rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
+
+    ELSEIF (cable_user%soil_struc=='sli') THEN
+
+       rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us**2/C%GRAV,1.0)
+       rough%z0soilsn = max(1.e-2,rough%z0soil) ! (1e-2: Mori et al., J Ag Met, 2010)
+
+
+       WHERE( ssnow%snowd .GT. 0.01   )  &
+            rough%z0soilsn =  max( 1.e-2, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
+
+    ENDIF
+
+         
    WHERE( canopy%vlaiw .LT. C%LAI_THRESH  .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
      
@@ -127,7 +142,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%zref_uv = MAX( 3.5, rough%za_uv )
       rough%zref_tq = MAX( 3.5, rough%za_tq )
        
-      ! Calcualte roughness length:
+      ! Calculate roughness length:
       rough%z0m = ( (1.0 - dh) * EXP( LOG( C%CCW_C ) - 1. + 1. / C%CCW_C       &
                   - C%VONK / rough%usuh ) ) * rough%hruff
        
@@ -143,36 +158,41 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
       rough%term6a = EXP(rough%coexp * ( 0.1 * rough%hruff / rough%hruff -1. ))
       
-!!!CLN03      ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
-!!!CLN03      rough%rt0us  = log(rough%disp / rough%z0soilsn) * &
-!!!CLN03                      EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
-!!!CLN03                       / rough%hruff / (c%a33 ** 2 * c%ctl)
-!!!CLN03
-!!!CLN03      ! vh ! Modify rt0us to be resistance between shear height = 0.1h and disp
-!!!CLN03      ! use this form when including addtional resistance from z0soil to 0.1hc (done in cable_canopy_vh)
-!!!CLN03      rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
-!!!CLN03                     EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
-!!!CLN03                    / rough%hruff / (c%a33 ** 2 * c%ctl)
-!!!CLN03      
-      ! eq. 3.54, SCAM manual (CSIRO tech report 132)
-      rough%rt0us  = rough%term5 * ( C%ZDLIN * LOG(                            &
-                     C%ZDLIN * rough%disp / rough%z0soilsn ) +                 &
-                     ( 1 - C%ZDLIN ) )                                         &
-                     * ( EXP( 2 * C%CSW * canopy%rghlai )  -  rough%term2 )    &
-                     / rough%term3  
-       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.49:
-      rough%zruffs = rough%disp + rough%hruff * C%A33**2 * C%CTL / C%VONK /    &
-                     rough%term5
       
-      ! See CSIRO SCAM, Raupach et al 1997, eq. 3.51:
-      rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
-      rough%rt1usb = rough%term5 * ( MIN( rough%zref_tq + rough%disp,          &
-                     rough%zruffs ) - rough%hruff ) /                          &
-                     ( C%A33**2 * C%CTL * rough%hruff )
-
-      rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
+         ! eq. 3.54, SCAM manual (CSIRO tech report 132)
+         rough%rt0us  = rough%term5 * ( C%ZDLIN * LOG(                            &
+              C%ZDLIN * rough%disp / rough%z0soilsn ) +                 &
+              ( 1 - C%ZDLIN ) )                                         &
+              * ( EXP( 2 * C%CSW * canopy%rghlai )  -  rough%term2 )    &
+              / rough%term3
     
-    END WHERE
+         ! See CSIRO SCAM, Raupach et al 1997, eq. 3.49:
+         rough%zruffs = rough%disp + rough%hruff * C%A33**2 * C%CTL / C%VONK /    &
+              rough%term5
+         
+         ! See CSIRO SCAM, Raupach et al 1997, eq. 3.51:
+         rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
+         rough%rt1usb = rough%term5 * ( MIN( rough%zref_tq + rough%disp,          &
+              rough%zruffs ) - rough%hruff ) /                          &
+              ( C%A33**2 * C%CTL * rough%hruff )
+         
+         rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
+         
+      END WHERE
+      
+
+       IF (cable_user%soil_struc.eq.'sli') THEN
+         WHERE( canopy%vlaiw .GE. C%LAI_THRESH  .AND.                                          &
+              rough%hruff .GE. rough%z0soilsn ) ! VEGETATED SURFACE
+
+            rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
+                    EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+                    / rough%hruff / (c%a33 ** 2 * c%ctl) ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
+           
+         ENDWHERE
+      ENDIF
+
+      
 
 END SUBROUTINE ruff_resist
 

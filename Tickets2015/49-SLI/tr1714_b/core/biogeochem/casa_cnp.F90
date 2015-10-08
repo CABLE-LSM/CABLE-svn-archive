@@ -510,7 +510,7 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
     casaflux%Cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:) 
   ENDWHERE
 
-3END SUBROUTINE casa_rplant
+END SUBROUTINE casa_rplant
 
 
 SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &

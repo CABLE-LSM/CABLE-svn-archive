@@ -48,7 +48,7 @@ MODULE cable_def_types_mod
       swb = 2,       & ! # shortwave bands 
       niter = 4,     & ! number of iterations for za/L
  !      ms = 12          ! # soil layers
-       ms = 6          ! # soil layers - standard
+       ms = 6         ! # soil layers - standard
 !       ms = 13          ! for Loetschental experiment
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
@@ -377,7 +377,9 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
          gswx,    & ! stom cond for water
-         zetar      ! stability correction
+         zetar, &   ! stability parameter (ref height)
+          !! vh_js !!
+         zetash      ! stability parameter (shear height)
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          fess,    & ! latent heatfl from soil (W/m2)
@@ -925,7 +927,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fes_cor(mp) )    
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
-   ALLOCATE( var% zetar(mp,NITER) )  
+   ALLOCATE( var% zetar(mp,NITER) )
+   ALLOCATE( var% zetash(mp,NITER) ) 
     ALLOCATE ( var % fwsoil(mp) )
     ALLOCATE ( var % ofes(mp) )
 
@@ -1408,9 +1411,10 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fes_cor )    
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
-   DEALLOCATE( var% zetar )  
-    DEALLOCATE ( var % fwsoil )
-    DEALLOCATE ( var % ofes )
+   DEALLOCATE( var% zetar )
+   DEALLOCATE( var% zetash )  
+   DEALLOCATE ( var % fwsoil )
+   DEALLOCATE ( var % ofes )
 
 END SUBROUTINE dealloc_canopy_type
    

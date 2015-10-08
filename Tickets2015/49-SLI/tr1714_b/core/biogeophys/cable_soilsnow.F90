@@ -196,7 +196,6 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
       dtt           !
    
    LOGICAL :: is_open     ! Is file open?
-   
    INTEGER ::                                                                  &
       u,    & ! I/O unit
       k
@@ -1615,7 +1614,7 @@ END SUBROUTINE soilfreeze
 
 SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    
-   USE cable_common_module, ONLY : redistrb
+   USE cable_common_module, ONLY : redistrb, cable_user
 
    ! Removes transpiration water from soil.
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
@@ -1627,31 +1626,46 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
    INTEGER k
  
- 
-   xx = 0.; xxd = 0.; diff(:,:) = 0.
-   DO k = 1,ms
-   
-      ! Removing transpiration from soil:
-      WHERE (canopy%fevc > 0.0 )     ! convert to mm/dels
-      
-         ! Calculate the amount (perhaps moisture/ice limited)
-         ! which can be removed:
-         xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
-         diff(:,k) = MAX( 0.0_r_2, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3
-                     * soil%zse(k)*1000.0
-         xxd = xx - diff(:,k)
-       
-         WHERE ( xxd .GT. 0.0 )
-            ssnow%wb(:,k) = ssnow%wb(:,k) - diff(:,k) / (soil%zse(k)*1000.0)
-            diff(:,k) = xxd
-         ELSEWHERE
-            ssnow%wb(:,k) = ssnow%wb(:,k) - xx / (soil%zse(k)*1000.0)
-            diff(:,k) = 0.0
-         ENDWHERE
+  IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
+     xx = 0.; xxd = 0.; diff(:,:) = 0.
+     DO k = 1,ms
+        
+        ! Removing transpiration from soil:
+        WHERE (canopy%fevc > 0.0 )     ! convert to mm/dels
+           
+           ! Calculate the amount (perhaps moisture/ice limited)
+           ! which can be removed:
+           xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
+           diff(:,k) = MAX( 0.0_r_2, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3
+                * soil%zse(k)*1000.0
+           xxd = xx - diff(:,k)
+           
+           WHERE ( xxd .GT. 0.0 )
+              ssnow%wb(:,k) = ssnow%wb(:,k) - diff(:,k) / (soil%zse(k)*1000.0)
+              diff(:,k) = xxd
+           ELSEWHERE
+              ssnow%wb(:,k) = ssnow%wb(:,k) - xx / (soil%zse(k)*1000.0)
+              diff(:,k) = 0.0
+           ENDWHERE
+           
+        END WHERE
+        
+     END DO
      
+  ELSE
+     WHERE (canopy%fevc .lt. 0.0_r_2)
+        canopy%fevw = canopy%fevw+canopy%fevc
+        canopy%fevc = 0.0_r_2
      END WHERE
-   
-   END DO
+     DO k = 1,ms
+        ssnow%wb(:,k) = ssnow%wb(:,k) - ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
+       
+      !  write(59,*) k,  ssnow%wb(:,k),  ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
+      !  write(59,*)
+     ENDDO
+
+     
+  ENDIF
 
 END SUBROUTINE remove_trans 
 

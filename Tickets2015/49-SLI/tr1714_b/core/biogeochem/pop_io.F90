@@ -23,7 +23,8 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   TYPE (casa_met), INTENT(IN)    :: casamet
   INTEGER       ,  INTENT(IN)    :: YEAR
   CHARACTER(LEN=9),INTENT(IN)    :: ACTION
-  LOGICAL,OPTIONAL,INTENT(IN)    :: CF
+!  LOGICAL,OPTIONAL,INTENT(IN)    :: CF
+ LOGICAL,INTENT(IN)    :: CF
 
   INTEGER            :: STATUS,i,m,p,l,land_ID,patch_ID,ndis_ID
   !CRM  INTEGER            :: ndis1_ID,nlay_ID,hgtb_ID,ncoh_ID,t_ID
@@ -248,11 +249,11 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  IF ( PRESENT( CF ) ) THEN 
+  !IF ( PRESENT( CF ) ) THEN 
      CLOSE_FILE = CF
-  ELSE
-     CLOSE_FILE = .FALSE.
-  END IF
+  !ELSE
+  !   CLOSE_FILE = .FALSE.
+  !END IF
 
   ! Check for valid ACTION
   IF ( INDEX(ACTION,"WRITE_EPI") .GT. 0 ) THEN
@@ -293,8 +294,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
         INQUIRE( FILE=TRIM( fname ), EXIST=EXISTFILE )
 
-        write(*,*) 'pop_io', fname, typ
-
+       
         IF ( EXISTFILE.and.(typ.ne.'ini').and.(typ.ne.'rst') ) THEN  ! file exists
         STATUS = NF90_open(fname, mode=nf90_write, ncid=FILE_ID)
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -380,7 +380,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
       
       ELSE  ! file doesn't already exist
 
-
+        
 
         ! Create NetCDF file:
         STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
@@ -388,6 +388,8 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         ! Put the file in define mode:
         STATUS = NF90_redef(FILE_ID)
 
+       
+      
         ! GLOBAL ATTRIBUTES
         STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Icycle" , icycle             )
         STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Year"   , YEAR               )
@@ -410,6 +412,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
         STATUS = NF90_def_dim(FILE_ID, 'time'   ,  NF90_UNLIMITED, t_ID    )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+       
         ! Define variables
         STATUS = NF90_def_var(FILE_ID,'Time' ,NF90_INT,(/t_ID/),VIDtime )
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)

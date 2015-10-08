@@ -221,27 +221,20 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting rad dimension.')
 
     ! check dimensions of soil-layers and time
-   IF(hide%Ticket49Bug1) THEN
-      
-      ! tmp fix vh for more soil layers but gridinfo with less layers
-      IF ((.not. ((nslayer == 6) .or. (nslayer == ms))) .OR. ntime /= 12) THEN
+     !! vh_js !!
+      IF ( (nslayer /= ms) .OR. (ntime /= 12)) THEN
          PRINT *, 'Variable dimensions do not match:'
          PRINT *, 'nslayer and ms = ', nslayer, ms
          PRINT *, 'ntime not equal 12 months: ', ntime
-         CALL abort('Variable dimensions do not match (read_gridinfo)')
+         IF (ntime /=12) THEN
+            CALL abort('Variable dimensions do not match (read_gridinfo)')
+         ELSE
+            PRINT*, 'warning: soil layers below nslayer will be initialsed with moisture' 
+            PRINT*,    'and temperature of lowest layer in grid_info'
+         ENDIF
       END IF
 
-   ELSE
-      
-      IF (nslayer /= ms .OR. ntime /= 12) THEN
-         PRINT *, 'Variable dimensions do not match:'
-         PRINT *, 'nslayer and ms = ', nslayer, ms
-         PRINT *, 'ntime not equal 12 months: ', ntime
-         CALL abort('Variable dimensions do not match (read_gridinfo)')
-      END IF
-
-   ENDIF
-
+   
     ALLOCATE( inLon(nlon), inLat(nlat) )
     ALLOCATE( inVeg(nlon, nlat, npatch) )
     ALLOCATE( inPFrac(nlon, nlat, npatch) )
@@ -904,19 +897,17 @@ CONTAINS
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
 
-   IF(hide%Ticket49Bug2) THEN
+   !IF(hide%Ticket49Bug2) THEN
       canopy%ofes    = 0.0  ! latent heat flux from soil (W/m2)
-      canopy%fevc     = 0.0 !vh!
-      canopy%fevw     = 0.0 !vh!
+      canopy%fevc     = 0.0 
+      canopy%fevw     = 0.0 
       canopy%fns      = 0.0
       canopy%fnv     = 0.0
       canopy%fhv     = 0.0
-      canopy%fwsoil = 1.0 ! vh -should be calculated from soil moisture or 
-                          ! be in restart file
-
-      ssnow%kth = 0.3  ! vh ! should be calculated from soil moisture or be in restart file
+      canopy%fwsoil = 1.0 ! vh 
+      ssnow%kth = 0.3  ! vh !
       ssnow%sconds(:,:) = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1), 
-                                      ! should be in restart file
+                                     
  
       ! parameters that are not spatially dependent
       select case(ms)
@@ -932,12 +923,12 @@ CONTAINS
          
       end select
  
-   ELSE
+   !ELSE
       
-      ! parameters that are not spatially dependent
-      soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+   !   ! parameters that are not spatially dependent
+   !   soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
 
-   ENDIF
+   !ENDIF
     
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
     rough%za_tq = 40.0
@@ -991,8 +982,9 @@ CONTAINS
       soil%isoilm(landpt(e)%cstart:landpt(e)%cend) =                           &
                                           inSoil(landpt(e)%ilon, landpt(e)%ilat)
       ! Set initial soil temperature and moisture according to starting month
-    
-   IF(hide%Ticket49Bug3) THEN
+!! vh_js !!
+      
+   !IF(hide%Ticket49Bug3) THEN
       ! Set initial soil temperature and moisture according to starting month
       DO is = 1, ms
          ! Work around set everything above last input layer to the last input layer
@@ -1002,15 +994,15 @@ CONTAINS
                 inWB(landpt(e)%ilon, landpt(e)%ilat, min(is,size(inTGG,3)), month)
       END DO
     
-   ELSE    
+   !ELSE    
     
-      DO is = 1, ms
-        ssnow%tgg(landpt(e)%cstart:landpt(e)%cend, is) =                       &
-                                 inTGG(landpt(e)%ilon,landpt(e)%ilat, is, month)
-        ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
-                                 inWB(landpt(e)%ilon, landpt(e)%ilat, is, month)
-      END DO
-   ENDIF
+   !   DO is = 1, ms
+   !     ssnow%tgg(landpt(e)%cstart:landpt(e)%cend, is) =                       &
+   !                              inTGG(landpt(e)%ilon,landpt(e)%ilat, is, month)
+   !     ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
+   !                              inWB(landpt(e)%ilon, landpt(e)%ilat, is, month)
+   !   END DO
+   !ENDIF
 
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
@@ -1141,8 +1133,8 @@ CONTAINS
             soil%css(h)     =  soilin%css(soil%isoilm(h))
           END IF
           rad%latitude(h) = latitude(e)
-            IF(hide%Ticket49Bug4) &
-               rad%longitude(h) = longitude(e)
+            !IF(hide%Ticket49Bug4) &
+          rad%longitude(h) = longitude(e)
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
        END DO ! over each veg patch in land point
     END DO ! over all land points
@@ -1239,12 +1231,15 @@ CONTAINS
       END IF
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
-         soil%nhorizons = 1 ! use 2 soil horizons globally
+         soil%nhorizons = 1 ! use 1 soil horizon globally
          soil%clitt = 5.0 ! (tC / ha)
-         veg%gamma = 1.e-2
          veg%F10 = 0.85
          veg%ZR = 5.0
       END IF
+
+      IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+         veg%gamma = 5.e-2
+      ENDIF
 
       IF(cable_user%CALL_POP) THEN
          veg%disturbance_interval = 100
@@ -1386,7 +1381,6 @@ CONTAINS
           ! Only 1 horizon by default ! 
           soil%nhorizons = 1 
           soil%ishorizon = 1
-          soil%clitt = 5.0 ! (tC / ha)
        END IF
    ! END IF
  

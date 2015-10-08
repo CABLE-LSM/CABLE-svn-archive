@@ -282,7 +282,7 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp) :: deltah0
     REAL(r_2),          DIMENSION(1:mp) :: SL0, deltaSL, cvL0, SLliq0, deltacvL, SLliq, deltaSLliq
     REAL(r_2),          DIMENSION(1:mp) :: qiso_evap, qiso_trans
-    REAL(r_2),          DIMENSION(1:mp) :: lE0, G0
+    REAL(r_2),          DIMENSION(1:mp) :: lE0, G0, Epot
     REAL(r_2),          DIMENSION(1:mp) :: Tfreezing, dT0
     REAL(r_2),          DIMENSION(1:mp) :: dtdT
     REAL(r_2),          DIMENSION(1:mp,-nsnow_max+1:n) :: LHS, RHS, LHS_h, RHS_h
@@ -338,6 +338,8 @@ CONTAINS
        write(*,*) 'dolitter not in [0-2]: ', littercase
        stop
     endif
+
+    
 
     if (present(doisotopologue)) then
        isotopologue = doisotopologue
@@ -640,6 +642,7 @@ CONTAINS
     ! v_aquifer(:)%zdelta = zdelta(:)
     ! call aquifer_props(v_aquifer(:))
 
+
     ! initialise litter
     if (littercase == 1 .or. littercase == 2) then
        call litter_props(Sl(:), Tl(:), vlit(:), plit(:), h0(:))
@@ -649,11 +652,12 @@ CONTAINS
        ztmp        = one/rhocp
        where (vsnow(:)%nsnow == 0)
           vmet(:)%rbw = vmet(:)%rbw + dxL(:)/vlit(:)%Dv
-          vmet(:)%rbh = vmet(:)%rbh + dxL(:)/(vlit(:)%kth*ztmp)
-          vmet(:)%rrc = vmet(:)%rrc + dxL(:)/(vlit(:)%kth*ztmp)
+          vmet(:)%rbh = vmet(:)%rbh + dxL(:)/(vlit(:)%kH*ztmp)
+          vmet(:)%rrc = vmet(:)%rrc + dxL(:)/(vlit(:)%kH*ztmp)
        endwhere
     endif
-
+ 
+       
     lE0(:) = lE_old(:) ! used for initial guess of litter temperature
     !----- end initialise
 
@@ -825,7 +829,7 @@ CONTAINS
              case (1) ! no snow
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
                      h0(kk), Tsoil(kk,:), &
-                     Tsurface(kk), G0(kk), lE0(kk),  &
+                     Tsurface(kk), G0(kk), lE0(kk),Epot(kk),  &
                      q(kk,0), qevap(kk), qliq(kk,0), qv(kk,0), &
                      qyb(kk,0), qTb(kk,0), qlyb(kk,0), qvyb(kk,0), qlTb(kk,0), qvTb(kk,0), qh(kk,0), &
                      qadv(kk,0), qhyb(kk,0), qhTb(kk,0), qadvyb(kk,0), qadvTb(kk,0), irec)
@@ -842,7 +846,7 @@ CONTAINS
              case (2) ! snow
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
                      h0(kk), Tsoil(kk,:), &
-                     Tsurface(kk), G0(kk), lE0(kk),  &
+                     Tsurface(kk), G0(kk), lE0(kk), Epot(kk),  &
                      q(kk,-vsnow(kk)%nsnow), qevap(kk), qliq(kk,-vsnow(kk)%nsnow), qv(kk,-vsnow(kk)%nsnow), &
                      qyb(kk,-vsnow(kk)%nsnow), qTb(kk,-vsnow(kk)%nsnow), qlyb(kk,-vsnow(kk)%nsnow), &
                      qvyb(kk,-vsnow(kk)%nsnow), qlTb(kk,-vsnow(kk)%nsnow), qvTb(kk,-vsnow(kk)%nsnow), &

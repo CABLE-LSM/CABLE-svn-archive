@@ -254,9 +254,9 @@ MODULE cable_IO_vars_module
          RnetSoil = .FALSE.,     & ! sensible heat from soil [W/m2] !vh!
          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
-         !! vh_js ! added CanT to the list
+         !! vh_js ! added CanT and fwsoil to the list
          CanT = .FALSE.,      & ! within-canopy temperature [K]
-         
+         Fwsoil = .FALSE.,      & ! soil moisture modifier to stomatal conductance
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude
