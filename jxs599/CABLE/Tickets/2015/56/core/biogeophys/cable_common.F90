@@ -230,7 +230,6 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
    INTEGER :: a, jveg ! do loop counter
 
 
- 
    !================= Read in vegetation type specifications: ============
    OPEN(40,FILE=filename%veg,STATUS='old',ACTION='READ',IOSTAT=ioerror)
       
@@ -303,25 +302,35 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                            vegin%length(jveg), vegin%frac4(jveg)
+            
             ! only refl(1:2) and taul(1:2) used
             READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
+            
             READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
+          
             READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
+
             READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
+            
             READ(40,*) vegin%vcmax(jveg), vegin%rp20(jveg),                    &
                        vegin%rpcoef(jveg),                                     &
                        vegin%rs20(jveg)
+
             READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),                 &
                        vegin%vbeta(jveg), vegin%rootbeta(jveg)
+            
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
+            
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
+
             READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
+            
             READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
+            
             READ(40,*) vegin%g0c3(jveg), vegin%g0c4(jveg),     & ! Ticket #56
                        vegin%g1c3(jveg),vegin%g1c4(jveg) ! Ticket #56
-
 
          END DO
 
