@@ -16,16 +16,28 @@ site="Konza"
 
 run_dir=`pwd`
 
+
 ### SET INPUT DIRECTORY
 cd /srv/ccrc/data45/z3509830/CABLE_runs/Rainfall_assymmetry/Inputs/Met_inputs/$site
-INDIR=`find * -maxdepth 1 -type d -name "${site}20"`
+
+
+if [[ $run_dir =~ ([^,]+).*"CABLE-2.3.4-GW-Medlyn_spin"([^,]+) ]]; then
+    INDIR=`find * -maxdepth 1 -type d -name "${site}${BASH_REMATCH[2]}"`
+else
+
+    #only for testing script
+    INDIR=`find * -maxdepth 1 -type d -name "${site}200"`
+fi
+
+
+
 
 ## Some options:
 GWFLAG="TRUE"
 
 
 
-cd $run_dir  #./../../CABLE-2.3.4-GW-Medlyn/offline/
+cd $run_dir
 
 
 
@@ -93,7 +105,8 @@ site_values[1,which(grepl("casamet_lon", colnames(site_values)))] <- lon
 site_values[1,which(grepl("casamet_lat", colnames(site_values)))] <- lat
 
 #Write to file
-write.csv(x=site_values, file=paste(path, "/Inputs/CASA_ins/${site}/poolcnp_init_${site}.csv", sep=""))
+write.table(x=site_values, file=paste(path, "/Inputs/CASA_ins/${site}/poolcnp_init_${site}.csv", sep=""), 
+          col.names=FALSE, row.names=FALSE, sep=",   ", fileEncoding= "UTF-8")
 
 EOF
 
@@ -117,7 +130,7 @@ OUTDIR="${D}_outs"
 if [[ -d "./../../Outputs/${site}/${OUTDIR}" ]]; then
     echo "output directory exists"
 else
-    mkdir ./../../Outputs/$site/$OUTDIR
+    mkdir -p ./../../Outputs/${site}/${OUTDIR}
 fi
 
 
@@ -188,7 +201,7 @@ soilparmnew = .TRUE.  ! using new format when true
 spinup = .FALSE.  ! do we spin up the model?
 delsoilM = 0.001   ! allowed variation in soil moisture for spin up
 delsoilT = 0.01    ! allowed variation in soil temperature for spin up
-output%restart = .TRUE.  ! should a restart file be created?
+output%restart = .FALSE.  ! should a restart file be created?
 output%met = .FALSE.  ! input met data
 output%flux = .FALSE.  ! convective, runoff, NEE
 output%soil = .FALSE.  ! soil states
@@ -214,7 +227,7 @@ l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax
 icycle = 1   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P
 casafile%cnpipool = "./../../Inputs/CASA_ins/${site}/${pool_file}"
 casafile%cnpbiome = "./../../Inputs/CASA_ins/pftlookup_csiro_v16_17tiles_Ticket2.csv"
-casafile%cnpepool = "./../../Outputs/${site}/${OUTDIR}/poololcnpOut_${D}.csv"   ! end of run pool size
+casafile%cnpepool = "./../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv"   ! end of run pool size
 casafile%cnpmetout= ""  ! output daily met forcing for spinning casacnp
 casafile%cnpmetin = ""  ! list of daily met files for spinning casacnp
 casafile%phen     = "./../../Inputs/CASA_ins/modis_phenology_csiro.txt"
@@ -263,7 +276,7 @@ EOF
 
 
 #run model
-./cable
+./cable-r3126
 
 
 
@@ -277,13 +290,13 @@ if [[ $I -eq 1 ]]
 then
     csoil_old=99999
 else
-    cmic_old =`awk -F "\"*,\"*" '{print $19}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    cmic_old=`awk -F "\"*,\"*" '{print $19}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cslow_old=`awk -F "\"*,\"*" '{print $20}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cpass_old=`awk -F "\"*,\"*" '{print $21}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     csoil_old=$cmic_old+$cslow_old+$cpass_old
 fi
 
-cmic_new =`awk -F "\"*,\"*" '{print $19}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+cmic_new=`awk -F "\"*,\"*" '{print $19}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
 cslow_new=`awk -F "\"*,\"*" '{print $20}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
 cpass_new=`awk -F "\"*,\"*" '{print $21}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
 csoil_new=$(echo "$cmic_new+$cslow_new+$cpass_new" | bc -l)
@@ -294,15 +307,15 @@ if [[ $I -eq 1 ]]
 then
     cplant_old=99999
 else
-    cleaf_old =`awk -F "\"*,\"*" '{print $13}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
-    cwood_old =`awk -F "\"*,\"*" '{print $14}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
-    croot_old =`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    cleaf_old=`awk -F "\"*,\"*" '{print $13}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    cwood_old=`awk -F "\"*,\"*" '{print $14}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
+    croot_old=`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cplant_old=$cleaf_old+$cwood_old+$croot_old
 fi
 
-cleaf_new =`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
-cwood_new =`awk -F "\"*,\"*" '{print $14}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
-croot_new =`awk -F "\"*,\"*" '{print $15}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+cleaf_new=`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+cwood_new=`awk -F "\"*,\"*" '{print $14}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
+croot_new=`awk -F "\"*,\"*" '{print $15}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
 cplant_new=$(echo "$cleaf_new+$cwood_new+$croot_new" | bc -l)
 
 
