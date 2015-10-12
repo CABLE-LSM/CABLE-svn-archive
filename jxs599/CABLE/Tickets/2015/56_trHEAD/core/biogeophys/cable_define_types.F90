@@ -247,8 +247,12 @@ MODULE cable_def_types_mod
          gswmin,  & ! minimal stomatal conductance
          conkc0,  &  ! Michaelis-menton constant for caroxylase
          conko0,  &  ! Michaelis-menton constant for oxygenase
-         ekc,     & ! activation energy for caroxylagse
-         eko        ! acvtivation enegery for oxygenase
+         ekc,     &  ! activation energy for caroxylagse
+         eko,     &  ! acvtivation enegery for oxygenase
+         g0c3,    & ! Belinda's stomatal model intercept, Ticket #56.
+         g0c4,    & ! Belinda's stomatal model intercept, Ticket #56.
+         g1c3,    & ! Belinda's stomatal model slope, Ticket #56.   
+         g1c4       ! Belinda's stomatal model slope, Ticket #56. 
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -286,6 +290,11 @@ MODULE cable_def_types_mod
          fnpp,    & ! npp flux
          fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
+         gswx_1,  & ! sunlit cond, jtk561
+         gswx_2,  & ! shaded cond, jtk561
+         gswmin_1, & ! min sunlint cond, jtk561
+         gswmin_2, & ! min shaded cond, jtk561
+         gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
          wetfac_cs,&! 
          fevw,    & ! lat heat fl wet canopy (W/m2)
@@ -713,7 +722,11 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    !was nrb(=3), but never uses (:,3) in model   
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
-   ALLOCATE( var%vlaimax(mp) ) 
+   ALLOCATE( var%vlaimax(mp) )
+   ALLOCATE( var% g0c3(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g0c4(mp) )   ! Ticket #56.
+   ALLOCATE( var% g1c3(mp) )   ! Ticket #56.
+   ALLOCATE( var% g1c4(mp) )   ! Ticket #56. 
    ALLOCATE( var%a1gs(mp) ) 
    ALLOCATE( var%d0gs(mp) ) 
    ALLOCATE( var%alpha(mp) ) 
@@ -778,7 +791,11 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% epot(mp) )   
    ALLOCATE( var% fnpp(mp) )   
    ALLOCATE( var% fevw_pot(mp) )  
-   ALLOCATE( var% gswx_T(mp) )  
+   ALLOCATE( var% gswx_T(mp) ) 
+   ALLOCATE( var% gswx_1(mp) ) ! jtk561
+   ALLOCATE( var% gswx_2(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_1(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_2(mp) ) ! jtk561 
    ALLOCATE( var% cdtq(mp) )   
    ALLOCATE( var% wetfac_cs(mp) )  
    ALLOCATE( var% fevw(mp) )   
@@ -1122,6 +1139,10 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
+   DEALLOCATE( var%g0c3 ) ! Ticket #56.
+   DEALLOCATE( var%g0c4 ) ! Ticket #56. 
+   DEALLOCATE( var%g1c3 ) ! Ticket #56.
+   DEALLOCATE( var%g1c4 ) ! Ticket #56.
    DEALLOCATE( var%a1gs ) 
    DEALLOCATE( var%d0gs ) 
    DEALLOCATE( var%alpha ) 
@@ -1185,7 +1206,11 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% epot )   
    DEALLOCATE( var% fnpp )   
    DEALLOCATE( var% fevw_pot )  
-   DEALLOCATE( var% gswx_T )  
+   DEALLOCATE( var% gswx_T ) 
+   DEALLOCATE( var% gswx_1 ) ! jtk561
+   DEALLOCATE( var% gswx_2 ) ! jtk561 
+   DEALLOCATE( var% gswmin_1)  ! jtk561
+   DEALLOCATE( var% gswmin_2)  ! jtk561
    DEALLOCATE( var% cdtq )   
    DEALLOCATE( var% wetfac_cs )  
    DEALLOCATE( var% fevw )   

@@ -56,6 +56,10 @@ MODULE cable_common_module
       
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
+
+      ! Ticket #56
+      CHARACTER(LEN=20) ::                                                     &
+         GS_SWITCH
       
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
@@ -91,7 +95,7 @@ MODULE cable_common_module
    ! external files read/written by CABLE
    TYPE filenames_type
 
-   CHARACTER(LEN=99) ::                                                        &
+   CHARACTER(LEN=500) ::                                                        &
       met,        & ! name of file for CABLE input
       out,        & ! name of file for CABLE output
       log,        & ! name of file for execution log
@@ -171,7 +175,12 @@ MODULE cable_common_module
          conkc0,     &
          conko0,     &
          ekc,        &
-         eko
+         eko,        &
+         g0c3,       & !  Ticket #56
+         g0c4,       & !  Ticket #56 
+         g1c3,       & !  Ticket #56 
+         g1c4          !  Ticket #56
+
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -274,7 +283,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype)  )
+         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
+         vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),             & ! Ticket #56
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype )  )
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -307,6 +318,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
             READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
             READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
+            
+            READ(40,*) vegin%g0c3(jveg), vegin%g0c4(jveg),     & ! Ticket #56
+                       vegin%g1c3(jveg),vegin%g1c4(jveg) ! Ticket #56
 
          END DO
 
@@ -370,6 +384,11 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl(1,:) = 0.07
          vegin%refl(2,:) = 0.425
          vegin%refl(3,:) = 0.0
+
+         READ(40,*) vegin%g0c3 ! Ticket #56
+         READ(40,*) vegin%g0c4 ! Ticket #56
+         READ(40,*) vegin%g1c3 ! Ticket #56
+         READ(40,*) vegin%g1c4 ! Ticket #56 
 
       ENDIF
 
