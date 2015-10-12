@@ -1051,6 +1051,10 @@ CONTAINS
           veg%extkn(h)    = vegin%extkn(veg%iveg(h))
           veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
           veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
+          veg%g0c3(h)     = vegin%g0c3(veg%iveg(h)) ! Ticket #56
+          veg%g0c4(h)     = vegin%g0c4(veg%iveg(h)) ! Ticket #56
+          veg%g1c3(h)     = vegin%g1c3(veg%iveg(h)) ! Ticket #56
+          veg%g1c4(h)     = vegin%g1c4(veg%iveg(h)) ! Ticket #56
           veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
           veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
           veg%alpha(h)  = vegin%alpha(veg%iveg(h))
@@ -1112,6 +1116,7 @@ CONTAINS
                vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
+               vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4,                 & 
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
                vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
