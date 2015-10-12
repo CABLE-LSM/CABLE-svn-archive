@@ -234,7 +234,6 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
    OPEN(40,FILE=filename%veg,STATUS='old',ACTION='READ',IOSTAT=ioerror)
       
       IF(ioerror/=0) then 
-         PRINT *, ioerror
          STOP 'CABLE_log: Cannot open veg type definitions.'
       ENDIF
      
