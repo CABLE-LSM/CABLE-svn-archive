@@ -109,8 +109,9 @@ CONTAINS
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
+   ! Ticket #56, removing myhome
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, myhome,            & 
+                                   cable_runtime, filename, & !myhome,            & 
                                    redistrb, wiltParam, satuParam
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -326,6 +327,9 @@ CONTAINS
    ! the master
    CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                        rough,rad,sum_flux,bal)
+
+   CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr) 
 
    ! MPI: casa parameters received only if cnp module is active
    IF (icycle>0) THEN
@@ -1101,6 +1105,24 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (veg%taul, displs(bidx), ierr)
   blen(bidx) = 2 * r1len
+
+  ! Ticket #56, adding new veg parms
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c3, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c4, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c4, displs(bidx), ierr)
+  blen(bidx) = r1len
+  ! Ticket #56, finish adding new veg parms
 
   ! ----------- bgc --------------
 
@@ -1945,8 +1967,8 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: rank
 
-  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
-  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+!  CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+!  CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
   CALL MPI_Comm_rank (comm, rank, ierr)
 
