@@ -1,19 +1,19 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
+! This work is licensed under the CABLE Academic User Licence Agreement
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
+! A copy of the Licence and registration form can be obtained from
 ! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
+! Please contact cable_help@nf.nci.org.au for any questions on
 ! registration and the Licence.
 !
-! Unless required by applicable law or agreed to in writing, 
+! Unless required by applicable law or agreed to in writing,
 ! software distributed under the Licence is distributed on an "AS IS" BASIS,
 ! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
+! See the Licence for the specific language governing permissions and
 ! limitations under the Licence.
 ! ==============================================================================
 !
@@ -31,18 +31,18 @@
 ! ==============================================================================
 
 MODULE cable_common_module
-   IMPLICIT NONE 
+   IMPLICIT NONE
 
    !---allows reference to "gl"obal timestep in run (from atm_step)
-   !---total number of timesteps, and processing node 
+   !---total number of timesteps, and processing node
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
-   
+
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
-   END TYPE kbl_internal_switches 
+   END TYPE kbl_internal_switches
 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
@@ -50,25 +50,30 @@ MODULE cable_common_module
    TYPE kbl_user_switches
       !jhan: this is redundant now we all use filename%veg?
       CHARACTER(LEN=200) ::                                                    &
-         VEG_PARS_FILE  ! 
-      
+         VEG_PARS_FILE  !
+
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
 
       ! Ticket #56
       CHARACTER(LEN=20) ::                                                     &
          GS_SWITCH
-      
+
+      ! MDK 26 March 2015.
+      ! added switch to easily pick SWP method
+      CHARACTER(LEN=20) ::                                                     &
+         SWP_SWITCH
+
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
-      
+
       CHARACTER(LEN=3) ::                                                      &
          SSNOW_POTEV,      & !
-         DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
-         LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
+         DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical)
+         LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical)
 
       LOGICAL ::                                                               &
-         INITIALIZE_MAPPING = .FALSE., & ! 
+         INITIALIZE_MAPPING = .FALSE., & !
          CONSISTENCY_CHECK = .FALSE.,  & !
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
@@ -102,7 +107,7 @@ MODULE cable_common_module
    ! hydraulic_redistribution switch _soilsnow module
    LOGICAL ::                                                                  &
       redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
-   
+
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam=0.5, satuParam=0.8
 
@@ -124,9 +129,9 @@ MODULE cable_common_module
          rhosoil, & !
          css,     & !
          c3         !
-   
+
    END TYPE soilin_type
- 
+
 
    TYPE vegin_type
 
@@ -142,22 +147,25 @@ MODULE cable_common_module
          rp20,       & !
          rpcoef,     & !
          rs20,       & !
-         wai,        & ! 
-         rootbeta,   & ! 
+         wai,        & !
+         rootbeta,   & !
          shelrb,     & !
-         vegcf,      & !  
+         vegcf,      & !
          frac4,      & !
          xalbnir,    & !
-         extkn,      & ! 
+         extkn,      & !
          tminvj,     & !
          tmaxvj,     & !
          vbeta,      & !
          g0c3,       & !  Ticket #56
-         g0c4,       & !  Ticket #56 
-         g1c3,       & !  Ticket #56 
-         g1c4          !  Ticket #56
+         g0c4,       & !  Ticket #56
+         g1c3,       & !  Ticket #56
+         g1c4,       & !  Ticket #56
+         g1_b,       & !  MDK 26 March 2015.
+         vcmax_sf,   & !  MDK 26 March 2015.
+         vcmax_psi_f   !  MDK 26 March 2015.
 
-      
+
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
          cplant,     & !
@@ -166,12 +174,12 @@ MODULE cable_common_module
          ratecs,     & !
          refl,     & !
          taul        !
-      
+
    END TYPE vegin_type
 
    CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
       veg_desc,   & ! decriptions of veg type
-      soil_desc     ! decriptns of soil type 
+      soil_desc     ! decriptns of soil type
 
    TYPE(soilin_type), SAVE  :: soilin
    TYPE(vegin_type),  SAVE  :: vegin
@@ -181,50 +189,50 @@ MODULE cable_common_module
 
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
-      
+
 CONTAINS
 
 
 SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 
    ! Gets parameter values for each vegetation type and soil type.
-   
-   USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, mstype, nrb 
+
+   USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, mstype, nrb
 
    INTEGER,INTENT(IN) :: logn     ! log file unit number
-   
+
    CHARACTER(LEN=4), INTENT(INOUT), OPTIONAL :: classification
-   
-   LOGICAL,INTENT(IN)      :: vegparmnew ! new format input file 
-   
-   CHARACTER(LEN=80) :: comments 
-   CHARACTER(LEN=10) :: vegtypetmp                   
-   CHARACTER(LEN=25) :: vegnametmp                   
-   
-   REAL    :: notused                           
+
+   LOGICAL,INTENT(IN)      :: vegparmnew ! new format input file
+
+   CHARACTER(LEN=80) :: comments
+   CHARACTER(LEN=10) :: vegtypetmp
+   CHARACTER(LEN=25) :: vegnametmp
+
+   REAL    :: notused
    INTEGER :: ioerror ! input error integer
    INTEGER :: a, jveg ! do loop counter
 
 
- 
+
    !================= Read in vegetation type specifications: ============
    OPEN(40,FILE=filename%veg,STATUS='old',ACTION='READ',IOSTAT=ioerror)
-      
-      IF(ioerror/=0) then 
+
+      IF(ioerror/=0) then
          PRINT *, ioerror
          STOP 'CABLE_log: Cannot open veg type definitions.'
       ENDIF
-     
+
       IF (vegparmnew) THEN
-         
+
          ! assume using IGBP/CSIRO vegetation types
          READ(40,*) comments
          READ(40,*) mvtype
          IF( present(classification) )                                         &
             WRITE(classification,'(a4)') comments(1:4)
-      
+
       ELSE
-         
+
          ! assume using CASA vegetation types
          !classification = 'CASA'
          READ(40,*)
@@ -233,13 +241,13 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          READ(40,*)
          READ(40,*)
          comments = 'CASA'
-      
+
       END IF
-         
+
       WRITE(logn, '(A31,I3,1X,A10)') '  Number of vegetation types = ',        &
                   mvtype,TRIM(comments)
-   
-    
+
+
       ! Allocate memory for type-specific vegetation parameters:
       ALLOCATE (                                                               &
          vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                        &
@@ -258,22 +266,23 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
          veg_desc( mvtype ) ,                                               &
          vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),             & ! Ticket #56
-         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) )             ! Ticket #56
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) ),             ! Ticket #56
+         vegin%g1_b( mvtype ), vegin%vcmax_sf( mvtype ),                       &
+         vegin%vcmax_psi_f( mvtype ) )               !  MDK 26 March 2015.
 
-      
-      
+
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
-            
+
          ! Read in parameter values for each vegetation type:
-         DO a = 1,mvtype 
-            
+         DO a = 1,mvtype
+
             READ(40,*) jveg, vegtypetmp, vegnametmp
-                 
+
             IF( jveg .GT. mvtype )                                             &
                STOP 'jveg out of range in parameter file'
-               
-            veg_desc(jveg) = vegnametmp 
-               
+
+            veg_desc(jveg) = vegnametmp
+
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                         &   vegin%length(jveg), vegin%frac4(jveg)
             ! only refl(1:2) and taul(1:2) used
@@ -292,17 +301,18 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
             READ(40,*) vegin%g0c3(jveg), vegin%g0c4(jveg),     & ! Ticket #56
                        vegin%g1c3(jveg),vegin%g1c4(jveg) ! Ticket #56
-
+            READ(40,*) vegin%g1_b(jveg), vegin%vcmax_sf(jveg),                     &
+                       vegin%vcmax_psi_f(jveg)           !  MDK 26 March 2015.
 
          END DO
 
       ELSE
 
-         DO a = 1,mvtype 
+         DO a = 1,mvtype
             READ(40,'(8X,A70)') veg_desc(a) ! Read description of each veg type
          END DO
 
-         READ(40,*); READ(40,*) 
+         READ(40,*); READ(40,*)
          READ(40,*) vegin%canst1
          READ(40,*) vegin%width
          READ(40,*) vegin%length
@@ -327,18 +337,18 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          READ(40,*) vegin%cplant(3,:)
          READ(40,*) vegin%csoil(1,:)
          READ(40,*) vegin%csoil(2,:)
-         READ(40,*) 
+         READ(40,*)
          READ(40,*) vegin%ratecp(:,1)
-            
+
          ! Set ratecp to be the same for all veg types:
          vegin%ratecp(1,:)=vegin%ratecp(1,1)
          vegin%ratecp(2,:)=vegin%ratecp(2,1)
          vegin%ratecp(3,:)=vegin%ratecp(3,1)
-         READ(40,*) 
+         READ(40,*)
          READ(40,*) vegin%ratecs(:,1)
          vegin%ratecs(1,:)=vegin%ratecs(1,1)
          vegin%ratecs(2,:)=vegin%ratecs(2,1)
-         
+
          ! old table does not have taul and refl ! BP may2011
          vegin%taul(1,:) = 0.07
          vegin%taul(2,:) = 0.425
@@ -350,41 +360,44 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          READ(40,*) vegin%g0c3 ! Ticket #56
          READ(40,*) vegin%g0c4 ! Ticket #56
          READ(40,*) vegin%g1c3 ! Ticket #56
-         READ(40,*) vegin%g1c4 ! Ticket #56 
+         READ(40,*) vegin%g1c4 ! Ticket #56
 
+         READ(40,*) vegin%g1_b        ! MDK 26 March 2015.
+         READ(40,*) vegin%vcmax_sf    ! MDK 26 March 2015.
+         READ(40,*) vegin%vcmax_psi_f ! MDK 26 March 2015.
       ENDIF
 
       WRITE(6,*)'CABLE_log:Closing veg params file: ',trim(filename%veg)
-      
+
    CLOSE(40)
-      
+
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
-    
-        
-    
+
+
+
   !================= Read in soil type specifications: ============
    OPEN(40,FILE=filename%soil,STATUS='old',ACTION='READ',IOSTAT=ioerror)
 
-      IF(ioerror/=0) then 
+      IF(ioerror/=0) then
            STOP 'CABLE_log: Cannot open soil type definitions.'
       ENDIF
 
       READ(40,*); READ(40,*)
       READ(40,*) mstype ! Number of soil types
       READ(40,*); READ(40,*)
-  
+
       ALLOCATE ( soil_desc(mstype) )
       ALLOCATE ( soilin%silt(mstype), soilin%clay(mstype), soilin%sand(mstype) )
       ALLOCATE ( soilin%swilt(mstype), soilin%sfc(mstype), soilin%ssat(mstype) )
       ALLOCATE ( soilin%bch(mstype), soilin%hyds(mstype), soilin%sucs(mstype) )
       ALLOCATE ( soilin%rhosoil(mstype), soilin%css(mstype) )
-     
-      DO a = 1,mstype 
+
+      DO a = 1,mstype
          READ(40,'(8X,A70)') soil_desc(a) ! Read description of each soil type
       END DO
 
-      READ(40,*); READ(40,*) 
+      READ(40,*); READ(40,*)
       READ(40,*) soilin%silt
       READ(40,*) soilin%clay
       READ(40,*) soilin%sand
@@ -406,42 +419,42 @@ END SUBROUTINE get_type_parameters
 SUBROUTINE report_version_no( logn )
    INTEGER, INTENT(IN) :: logn
    ! set from environment variable $HOME
-   CHARACTER(LEN=200) ::                                                       & 
+   CHARACTER(LEN=200) ::                                                       &
       myhome,       & ! $HOME (POSIX) environment/shell variable
       fcablerev,    & ! recorded svn revision number at build time
       icable_status   ! recorded svn STATUS at build time (ONLY 200 chars of it)
 
-   
+
    INTEGER :: icable_rev, ioerror
-    
-   CALL getenv("HOME", myhome) 
+
+   CALL getenv("HOME", myhome)
    fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
    OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)
 
-      IF(ioerror/=0) then 
-         PRINT *, "We'll keep running but the generated revision number "     
-         PRINT *, " in the log & file will be meaningless."     
+      IF(ioerror/=0) then
+         PRINT *, "We'll keep running but the generated revision number "
+         PRINT *, " in the log & file will be meaningless."
       ENDIF
-      
+
       ! get svn revision number (see WRITE comments)
       READ(440,*) icable_rev
-       
+
       WRITE(logn,*) ''
       WRITE(logn,*) 'Revision nuber: ', icable_rev
       WRITE(logn,*) ''
-      WRITE(logn,*)'This is the latest revision of you workin copy as sourced ' 
-      WRITE(logn,*)'by the SVN INFO command at build time. Please note that the' 
-      WRITE(logn,*)'accuracy of this number is dependent on how recently you ' 
+      WRITE(logn,*)'This is the latest revision of you workin copy as sourced '
+      WRITE(logn,*)'by the SVN INFO command at build time. Please note that the'
+      WRITE(logn,*)'accuracy of this number is dependent on how recently you '
       WRITE(logn,*)'used SVN UPDATE.'
-   
+
       ! get svn status (see WRITE comments)
-      ! (jhan: make this output prettier & not limitted to 200 chars) 
+      ! (jhan: make this output prettier & not limitted to 200 chars)
       WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
       WRITE(logn,*)'local changes: '
       READ(440,'(A)',IOSTAT=ioerror) icable_status
       WRITE(logn,*) TRIM(icable_status)
       WRITE(logn,*) ''
-   
+
    CLOSE(440)
 
 END SUBROUTINE report_version_no
@@ -449,4 +462,3 @@ END SUBROUTINE report_version_no
 
 
 END MODULE cable_common_module
-
