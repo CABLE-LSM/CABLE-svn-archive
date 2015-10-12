@@ -263,12 +263,12 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
-         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
-         veg_desc( mvtype ) ,                                               &
+         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
+         veg_desc( mvtype ) ,                                                  &
          vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),             & ! Ticket #56
-         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) ),             ! Ticket #56
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ),             & ! Ticket #56
          vegin%g1_b( mvtype ), vegin%vcmax_sf( mvtype ),                       &
-         vegin%vcmax_psi_f( mvtype ) )               !  MDK 26 March 2015.
+         vegin%vcmax_psi_f( mvtype ) )                     !  MDK 26 March 2015.
 
 
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
