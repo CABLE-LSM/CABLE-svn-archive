@@ -1,19 +1,19 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
+! This work is licensed under the CABLE Academic User Licence Agreement
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
+! A copy of the Licence and registration form can be obtained from
 ! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
+! Please contact cable_help@nf.nci.org.au for any questions on
 ! registration and the Licence.
 !
-! Unless required by applicable law or agreed to in writing, 
+! Unless required by applicable law or agreed to in writing,
 ! software distributed under the Licence is distributed on an "AS IS" BASIS,
 ! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
+! See the Licence for the specific language governing permissions and
 ! limitations under the Licence.
 ! ==============================================================================
 !
@@ -42,7 +42,7 @@
 !
 !==============================================================================
 
-MODULE cable_input_module   
+MODULE cable_input_module
 ! Note that any precision changes from r_1 to REAL(4) enable running with -r8
 !
    USE cable_abort_module,      ONLY: abort, nc_abort
@@ -60,28 +60,28 @@ MODULE cable_input_module
    USE cable_common_module, ONLY : filename
 
    IMPLICIT NONE
-   
+
    PRIVATE
    PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,      &
         allocate_cable_vars, get_met_data
 
-   INTEGER                      ::                                        & 
+   INTEGER                      ::                                        &
         ncid_met,        & ! met data netcdf file ID
         ncid_rain,       & ! following are netcdf file IDs for gswp run
         ncid_snow,       &
-        ncid_lw,         &   
+        ncid_lw,         &
         ncid_sw,         &
         ncid_ps,         &
         ncid_qa,         &
         ncid_ta,         &
-        ncid_wd,         &    
+        ncid_wd,         &
         ok                 ! netcdf error status
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
    REAL,POINTER,DIMENSION(:)    ::                                        &
         elevation,       & ! site/grid cell elevation
         avPrecip           ! site/grid cell average precip
-   TYPE met_varID_type 
+   TYPE met_varID_type
       INTEGER                   ::                                        &
            SWdown,       &
            LWdown,       &
@@ -127,7 +127,7 @@ MODULE cable_input_module
            Elev
    END TYPE convert_units_type
    TYPE(convert_units_type)          :: convert ! units change factors for met variables
-   
+
   !$OMP THREADPRIVATE(ok,exists)
 
 CONTAINS
@@ -177,7 +177,7 @@ SUBROUTINE get_default_lai
 
    WRITE(logn,*) ' Loading LAI from default file ', TRIM(filename%LAI)
    ! Open netcdf file
-   ok = NF90_OPEN(filename%LAI,0,ncid) 
+   ok = NF90_OPEN(filename%LAI,0,ncid)
    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening default LAI file.')
 
    ok = NF90_INQ_DIMID(ncid,'x',xID)
@@ -185,7 +185,7 @@ SUBROUTINE get_default_lai
       ok = NF90_INQ_DIMID(ncid,'longitude',xID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring x dimension.')
    END IF
-   
+
    ok = NF90_INQUIRE_DIMENSION(ncid,xID,LEN=nlon)
    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting x dimension.')
    ok = NF90_INQ_DIMID(ncid,'y',yID)
@@ -248,7 +248,7 @@ SUBROUTINE get_default_lai
    ! Close netcdf file
    ok = NF90_CLOSE(ncid)
 
-   
+
 END SUBROUTINE get_default_lai
 !==============================================================================
 !
@@ -260,7 +260,7 @@ END SUBROUTINE get_default_lai
 !   2. Timing details - time step size, number of timesteps, starting date,
 !      and whether time coordinate is local or GMT
 !   3. Checks availability, including units issues, of all required
-!      meteorological input variables. Also checks whether or not LAI is 
+!      meteorological input variables. Also checks whether or not LAI is
 !      present, and fetches prescribed veg and soil type if present.
 !
 !
@@ -286,10 +286,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
-   REAL, INTENT(IN) :: TFRZ 
+   REAL, INTENT(IN) :: TFRZ
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
    LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
-   
+
    ! Local variables
    INTEGER                     ::                                         &
         timevarID,              & ! time variable ID number
@@ -307,7 +307,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         jump_days,              & ! days made by first "time" entry
         sdoytmp,                & ! used to determine start time hour-of-day
         mland_ctr,              & ! counter for number of land points read from file
-        mland_fromfile,         & ! number of land points in file 
+        mland_fromfile,         & ! number of land points in file
         lai_dims,               & ! number of dims of LAI var if in met file
         iveg_dims,              & ! number of dims of iveg var if in met file
         isoil_dims,             & ! number of dims of isoil var if in met file
@@ -337,10 +337,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
    LOGICAL                          ::                                         &
         all_met     ! ALL required met in met file (no synthesis)?
 
-    ! Initialise parameter loading switch - will be set to TRUE when 
+    ! Initialise parameter loading switch - will be set to TRUE when
     ! parameters are loaded:
     exists%parameters = .FALSE. ! initialise
-    ! Initialise initialisation loading switch - will be set to TRUE when 
+    ! Initialise initialisation loading switch - will be set to TRUE when
     ! initialisation data are loaded:
     exists%initial = .FALSE. ! initialise
 
@@ -370,7 +370,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ok = NF90_OPEN(filename%met,0,ncid_met) ! open met data file
     IF (ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error opening netcdf met forcing file '//TRIM(filename%met)// &
-         ' (SUBROUTINE open_met_file)') 
+         ' (SUBROUTINE open_met_file)')
   ENDIF
 
     !!=====================VV Determine spatial details VV=================
@@ -450,7 +450,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ! Check for "land" variable:
        ok = NF90_INQ_VARID(ncid_met, 'land', landID)
        IF(ok /= NF90_NOERR) THEN ! ie no "land" or "mask"
-          IF(ngridcells==1) THEN 
+          IF(ngridcells==1) THEN
              ! Allow no explicit grid system if only one gridpoint
              ALLOCATE(mask(xdimsize,ydimsize)) ! Allocate "mask" variable
              metGrid='mask' ! Use mask system, one gridpoint.
@@ -513,7 +513,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              land_x(j) = x
              land_y(j) = y
           END DO
-       END IF ! does "land" variable exist 
+       END IF ! does "land" variable exist
     ELSE ! i.e. "mask" variable exists
        ! Allocate "mask" variable:
        ALLOCATE(mask(xdimsize,ydimsize))
@@ -584,7 +584,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END IF
 
     ! Set longitudes to be [-180,180]:
-    WHERE(longitude>180.0) 
+    WHERE(longitude>180.0)
        longitude = longitude - 360.0
     END WHERE
     ! Check ranges for latitude and longitude:
@@ -684,13 +684,13 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             // ' (SUBROUTINE open_met_file)')
     END IF
 
-    ! Use internal files to convert "time" variable units (giving the run's 
+    ! Use internal files to convert "time" variable units (giving the run's
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
     READ(timeunits(15:18),*) syear
     READ(timeunits(20:21),*) smoy ! integer month
     READ(timeunits(23:24),*) sdoytmp ! integer day of that month
-    READ(timeunits(26:27),*) shod  ! starting hour of day 
+    READ(timeunits(26:27),*) shod  ! starting hour of day
     ! Decide day-of-year for non-leap year:
     SELECT CASE(smoy)
     CASE(1) ! Jan
@@ -715,7 +715,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        sdoy=sdoytmp+lastday(9)
     CASE(11)
        sdoy=sdoytmp+lastday(10)
-    CASE(12) 
+    CASE(12)
        sdoy=sdoytmp+lastday(11)
     CASE DEFAULT
        CALL abort('Could not interpret month in "time" units from ' &
@@ -723,16 +723,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     END SELECT
     IF(leaps) THEN ! If we're using leap year timing:
        ! If start year is a leap year and start month > Feb, add a day:
-       IF( ( ( MOD( syear,4 ) == 0 .AND. MOD( syear, 100 ) /=0 ) .OR.          & 
+       IF( ( ( MOD( syear,4 ) == 0 .AND. MOD( syear, 100 ) /=0 ) .OR.          &
            ( MOD( syear, 4 ) == 0 .AND. MOD( syear, 400 ) == 0 ) )             &
            .AND. smoy > 2 ) sdoy = sdoy + 1
-                 
+
        ! Number of days between start position and 1st timestep:
        jump_days = INT((timevar(1)/3600.0 + shod)/24.0)
        ! Cycle through days to find leap year inclusive starting date:
        DO i=1,jump_days
           sdoy = sdoy + 1
-          IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+          IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. &
                (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
              ! Set month of year for leap year:
              SELECT CASE(sdoy)
@@ -758,14 +758,14 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 smoy = 10
              CASE(306)
                 smoy = 11
-             CASE(336) 
+             CASE(336)
                 smoy = 12
              CASE(367)! end of year; increment
-                syear = syear + 1 
+                syear = syear + 1
                 smoy = 1
                 sdoy = 1
              END SELECT
-          ELSE 
+          ELSE
              ! Set month of year for non-leap year:
              SELECT CASE(sdoy)
              CASE(1) ! Jan
@@ -790,10 +790,10 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 smoy = 10
              CASE(305)
                 smoy = 11
-             CASE(335) 
+             CASE(335)
                 smoy = 12
              CASE(366) ! end of year; increment
-                syear = syear + 1 
+                syear = syear + 1
                 smoy = 1
                 sdoy = 1
              END SELECT
@@ -833,7 +833,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
           smoy = 10
        CASE(305:334)
           smoy = 11
-       CASE(335:365) 
+       CASE(335:365)
           smoy = 12
        END SELECT
     END IF
@@ -853,19 +853,19 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ! Cycle through days to find leap year inclusive ending date:
        DO i=1,jump_days
           edoy = edoy + 1
-          IF((MOD(eyear,4)==0.AND.MOD(eyear,100)/=0).OR. & 
+          IF((MOD(eyear,4)==0.AND.MOD(eyear,100)/=0).OR. &
                (MOD(eyear,4)==0.AND.MOD(eyear,400)==0)) THEN
              ! Set moy for leap year:
              SELECT CASE(edoy)
              CASE(367)! end of year; increment
-                eyear = eyear + 1 
+                eyear = eyear + 1
                 edoy = 1
              END SELECT
-          ELSE 
+          ELSE
              ! Set moy for non-leap year:
              SELECT CASE(edoy)
              CASE(366) ! end of year; increment
-                eyear = eyear + 1 
+                eyear = eyear + 1
                 edoy = 1
              END SELECT
           END IF
@@ -894,7 +894,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     !!===================VV Look for met variables VV======================
     all_met = .TRUE. ! initialise
-    ! Look for SWdown (essential):- - - - - - - - - - - - - - - - - - 
+    ! Look for SWdown (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_sw
     ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
     IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -912,7 +912,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        CALL abort('Unknown units for SWdown'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
-    ! Look for Tair (essential):- - - - - - - - - - - - - - - - - - - 
+    ! Look for Tair (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_ta
     ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair)
     IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -935,7 +935,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        CALL abort('Unknown units for Tair'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
-    ! Look for Qair (essential):- - - - - - - - - - - - - - - - - - - 
+    ! Look for Qair (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_qa
     ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
     IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -959,7 +959,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        CALL abort('Unknown units for Qair'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
-    ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - - 
+    ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_rain
     ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
     IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1039,7 +1039,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        WRITE(logn,*) 'LWdown not present in met file; ', &
             'values will be synthesised based on air temperature.'
     END IF
-    ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - - 
+    ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_ps
     ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
@@ -1141,7 +1141,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        WRITE(logn,'(A33,A24,I4,A5)') ' CO2air not present in met file; ', &
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
-    ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - - 
+    ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_snow
     ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
@@ -1253,7 +1253,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
                 ! Store total Rainf for this grid cell:
                 PrecipTot = REAL(SUM(SUM(SUM(tempPrecip3,3),2))) &
-                     * convert%Rainf 
+                     * convert%Rainf
                 ! Get snowfall data for this grid cell:
                 IF(exists%Snowf) THEN
                    ok= NF90_GET_VAR(ncid_met,id%Snowf,tempPrecip3, &
@@ -1277,7 +1277,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                      (ok,'Error reading Rainf in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
                 ! Store total Rainf for this land grid cell:
-                PrecipTot = REAL(SUM(SUM(tempPrecip2,2)))*convert%Rainf 
+                PrecipTot = REAL(SUM(SUM(tempPrecip2,2)))*convert%Rainf
                 IF(exists%Snowf) THEN
                    ok= NF90_GET_VAR(ncid_met,id%Snowf,tempPrecip2, &
                         start=(/i,1/),count=(/1,kend/))
@@ -1299,7 +1299,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              WRITE(logn,*) '  average precip quoted in avPrecip variable:', &
                   avPrecip(i)
              WRITE(logn,*) '  average precip in met data:',avPrecipInMet
-          END DO ! over each land grid cell 
+          END DO ! over each land grid cell
           DEALLOCATE(avPrecip)
        ELSE ! avPrecip doesn't exist in met file
           ! Spinup will not modify precip values:
@@ -1331,7 +1331,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 vegtype_metfile(i,:)=data2i(1,1)
              END DO
           ELSE IF(iveg_dims==3) THEN ! i.e. patch specific iveg information
-             ! Patch-specific iveg variable MUST be accompanied by 
+             ! Patch-specific iveg variable MUST be accompanied by
              ! patchfrac variable with the same dimensions. So,
              ! Make sure that the patchfrac variable exists:
              ok = NF90_INQ_VARID(ncid_met,'patchfrac',id%patchfrac)
@@ -1361,7 +1361,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 vegtype_metfile(i,:) = data1i(1)
              END DO
           ELSE IF(iveg_dims==2) THEN ! i.e. patch specific iveg information
-             ! Patch-specific iveg variable MUST be accompanied by 
+             ! Patch-specific iveg variable MUST be accompanied by
              ! patchfrac variable with same dimensions. So,
              ! Make sure that the patchfrac variable exists:
              ok = NF90_INQ_VARID(ncid_met,'patchfrac',id%patchfrac)
@@ -1440,7 +1440,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     ! Deallocate read in arrays:
     IF(ASSOCIATED(temparray1)) DEALLOCATE(temparray1)
     IF(ASSOCIATED(temparray2)) DEALLOCATE(temparray2)
-    
+
     ! Report finding met variables to log file:
     IF(all_met) THEN
        WRITE(logn,*) 'Found all met variables in met file.'
@@ -1448,7 +1448,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        WRITE(logn,*) 'Found all ESSENTIAL met variables in met file,', &
             ' some synthesised (as above).'
     END IF
-  
+
    !!=================^^ End met variables search^^=======================
 END SUBROUTINE open_met_file
 !==============================================================================
@@ -1474,7 +1474,7 @@ END SUBROUTINE open_met_file
 !==============================================================================
 
 SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
-                        veg,kend,dels, TFRZ, ktau) 
+                        veg,kend,dels, TFRZ, ktau)
    ! Precision changes from REAL(4) to r_1 enable running with -r8
 
 
@@ -1483,14 +1483,14 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         spinup,         & ! are we performing a spinup?
         spinConv          ! has model spinup converged?
    TYPE(met_type),INTENT(OUT)             :: met ! meteorological data
-   TYPE (soil_parameter_type),INTENT(IN)  :: soil 
+   TYPE (soil_parameter_type),INTENT(IN)  :: soil
    TYPE (radiation_type),INTENT(IN)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
    INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
                                         kend    ! total number of timesteps in run
    REAL,INTENT(IN)                   :: dels ! time step size
-   REAL, INTENT(IN) :: TFRZ 
-   
+   REAL, INTENT(IN) :: TFRZ
+
    ! Local variables
    REAL(KIND=4),DIMENSION(1,1,1)          :: data3 ! temp variable for netcdf reading
    REAL(KIND=4),DIMENSION(1,1,1,1)        :: data4 !  " " "
@@ -1501,7 +1501,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)     :: tmpDat2, tmpDat2x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:)   :: tmpDat3, tmpDat3x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:,:) :: tmpDat4, tmpDat4x
-   
+
      DO i=1,mland ! over all land points/grid cells
        ! First set timing variables:
        ! All timing details below are initially written to the first patch
@@ -1509,8 +1509,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        IF(ktau==1) THEN ! initialise...
           SELECT CASE(time_coord)
           CASE('LOC')! i.e. use local time by default
-             ! hour-of-day = starting hod 
-             met%hod(landpt(i)%cstart) = shod 
+             ! hour-of-day = starting hod
+             met%hod(landpt(i)%cstart) = shod
              met%doy(landpt(i)%cstart) = sdoy
              met%moy(landpt(i)%cstart) = smoy
              met%year(landpt(i)%cstart) = syear
@@ -1530,14 +1530,14 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           ! increment hour-of-day by time step size:
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + dels/3600.0
        END IF
-       ! 
+       !
        IF(met%hod(landpt(i)%cstart)<0.0) THEN ! may be -ve since longitude
           ! has range [-180,180]
           ! Reduce day-of-year by one and ammend hour-of-day:
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) - 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + 24.0
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. &
                (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(0) ! ie Dec previous year
@@ -1573,14 +1573,14 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 12
                 met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
                 ! If previous year is a leap year
-                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. &
                      (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
                    met%doy(landpt(i)%cstart) = 366
                 ELSE
                    met%doy(landpt(i)%cstart) = 365
                 END IF
              CASE(31) ! Jan
-                met%moy(landpt(i)%cstart) = 1 
+                met%moy(landpt(i)%cstart) = 1
              CASE(59) ! Feb
                 met%moy(landpt(i)%cstart) = 2
              CASE(90)
@@ -1599,7 +1599,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 9
              CASE(304)
                 met%moy(landpt(i)%cstart) = 10
-             CASE(334) 
+             CASE(334)
                 met%moy(landpt(i)%cstart) = 11
              END SELECT
           END IF ! if leap year or not
@@ -1609,7 +1609,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) + 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) - 24.0
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. &
                (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(32) ! Feb
@@ -1632,15 +1632,15 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 10
              CASE(306)
                 met%moy(landpt(i)%cstart) = 11
-             CASE(336) 
+             CASE(336)
                 met%moy(landpt(i)%cstart) = 12
              CASE(367)! end of year; increment
-                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) + 1 
+                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) + 1
                 met%moy(landpt(i)%cstart) = 1
                 met%doy(landpt(i)%cstart) = 1
              END SELECT
              ! ELSE IF not leap year and Dec 31st, increment year
-          ELSE 
+          ELSE
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(32) ! Feb
                 met%moy(landpt(i)%cstart) = 2
@@ -1662,10 +1662,10 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 10
              CASE(305)
                 met%moy(landpt(i)%cstart) = 11
-             CASE(335) 
+             CASE(335)
                 met%moy(landpt(i)%cstart) = 12
              CASE(366)! end of year; increment
-                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) + 1 
+                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) + 1
                 met%moy(landpt(i)%cstart) = 1
                 met%doy(landpt(i)%cstart) = 1
              END SELECT
@@ -1821,8 +1821,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Convert units:
       met%precip(:) = met%precip(:) * convert%Rainf
       met%precip_sn(:) = met%precip_sn(:) * convert%Rainf
-      ! If we're performing a spinup, the spinup hasn't converged, 
-      ! and an avPrecip variable has been found, modify precip to 
+      ! If we're performing a spinup, the spinup hasn't converged,
+      ! and an avPrecip variable has been found, modify precip to
       ! ensure reasonable equilibration:
       IF(spinup.AND.(.NOT.spinConv).AND.exists%avPrecip) THEN
         ! Rescale precip to average rainfall for this site:
@@ -1835,7 +1835,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
-      ! Get LWdown data for mask grid: - - - - - - - - - - - - - - - - - 
+      ! Get LWdown data for mask grid: - - - - - - - - - - - - - - - - -
       IF(exists%LWdown) THEN ! If LWdown exists in met file
         ok= NF90_GET_VAR(ncid_met,id%LWdown,tmpDat3, &
              start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
@@ -1862,7 +1862,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%ca(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat4(land_x(i),land_y(i),1,1))/1000000.0
         ENDDO
-      ELSE 
+      ELSE
         ! Fix CO2 air concentration:
         met%ca(:) = fixedCO2 /1000000.0
       END IF
@@ -1942,7 +1942,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             ENDDO
           END IF
         END IF
-      ELSE 
+      ELSE
         ! If not in met file, use default LAI value:
         DO i=1,mland ! over all land points/grid cells
           veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
@@ -2095,8 +2095,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ! Convert units:
       met%precip(:) = met%precip(:) * convert%Rainf
       met%precip_sn(:) = met%precip_sn(:) * convert%Rainf
-      ! If we're performing a spinup, the spinup hasn't converged, 
-      ! and an avPrecip variable has been found, modify precip to 
+      ! If we're performing a spinup, the spinup hasn't converged,
+      ! and an avPrecip variable has been found, modify precip to
       ! ensure reasonable equilibration:
       IF(spinup.AND.(.NOT.spinConv).AND.exists%avPrecip) THEN
         ! Rescale precip to average rainfall for this site:
@@ -2108,7 +2108,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
-      ! Get LWdown data for land-only grid: - - - - - - - - - - - - - - 
+      ! Get LWdown data for land-only grid: - - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_lw
       IF(exists%LWdown) THEN ! If LWdown exists in met file
         ok= NF90_GET_VAR(ncid_met,id%LWdown,tmpDat2, &
@@ -2214,7 +2214,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             ENDDO
           END IF
         END IF
-      ELSE 
+      ELSE
         ! If not in met file, use default LAI value:
         DO i=1,mland ! over all land points/grid cells
           veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
@@ -2238,8 +2238,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     ! Set cosine of zenith angle (provided by GCM when online):
     met%coszen = sinbet(met%doy, rad%latitude, met%hod)
     ! initialise within canopy air temp
-    met%tvair = met%tk 
-    met%tvrad = met%tk 
+    met%tvair = met%tk
+    met%tvrad = met%tk
     IF(check%ranges) THEN
        ! Check ranges are okay:
           !jhan:quick fix, use dimension 1 here arbitrarily
@@ -2260,7 +2260,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        IF(ANY(met%pmb<ranges%PSurf(1)).OR.ANY(met%pmb>ranges%PSurf(2))) &
             CALL abort('PSurf out of specified ranges!')
     END IF
-  
+
 END SUBROUTINE get_met_data
 !==============================================================================
 !
@@ -2283,7 +2283,7 @@ SUBROUTINE close_met_file
        //TRIM(filename%met)//' (SUBROUTINE close_met_file)')
   ! Clear lat_all and lon_all variables
   DEALLOCATE(lat_all,lon_all)
-  
+
 END SUBROUTINE close_met_file
 
 !==============================================================================
@@ -2291,9 +2291,9 @@ END SUBROUTINE close_met_file
 ! Name: load_parameters
 !
 ! Purpose: Checks where parameters and initialisations should be loaded from.
-!          If they can be found in either the met file or restart file, they 
-!          will load from there, with the met file taking precedence. Otherwise, 
-!          they'll be chosen from a coarse global grid of veg and soil types, 
+!          If they can be found in either the met file or restart file, they
+!          will load from there, with the met file taking precedence. Otherwise,
+!          they'll be chosen from a coarse global grid of veg and soil types,
 !          based on the lat/lon coordinates.
 !
 ! CALLed from: cable_offline_driver
@@ -2332,7 +2332,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    !   max_vegpatches - via cable_IO_vars_module
 
    IMPLICIT NONE
-    
+
    ! Input arguments
    TYPE (met_type), INTENT(INOUT)          :: met
    TYPE (air_type), INTENT(INOUT)          :: air
@@ -2353,7 +2353,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    TYPE(phen_variable), INTENT(OUT)        :: phen
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
    LOGICAL,INTENT(IN)                      :: vegparmnew  ! are we using the new format?
-   REAL, INTENT(IN) :: TFRZ, EMSOIL 
+   REAL, INTENT(IN) :: TFRZ, EMSOIL
 
    ! Local variables
    REAL,POINTER,DIMENSION(:)          :: pfractmp ! temp store of patch fraction
@@ -2368,7 +2368,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     ALLOCATE(landpt(mland))
 
     WRITE(logn,*) '-------------------------------------------------------'
-    WRITE(logn,*) 'Looking for parameters and initial states....'  
+    WRITE(logn,*) 'Looking for parameters and initial states....'
     WRITE(logn,*) ' Loading initialisations from default grid.'
 
     ! Parameter values and some grid info are read in.
@@ -2418,7 +2418,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
                     'restart file: ', TRIM(filename%restart_in)
       WRITE(*,*)    ' Overwriting initialisations with values in ', &
                     'restart file: ', TRIM(filename%restart_in)
-     
+
       ! Check total number of patches in restart file:
       ok = NF90_INQ_DIMID(ncid_rin,'mp',mpID)
       IF(ok /= NF90_NOERR) THEN
@@ -2468,7 +2468,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     END IF
     WRITE(logn,*)
 
-    ! Construct derived parameters and zero initialisations, regardless 
+    ! Construct derived parameters and zero initialisations, regardless
     ! of where parameters and other initialisations have loaded from:
     CALL derived_parameters(soil,sum_flux,bal,ssnow,veg,rough)
 
@@ -2479,9 +2479,9 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
          casamet,casapool,casaflux,phen,vegparmnew,verbose)
 
-  
+
 END SUBROUTINE load_parameters
- 
+
 
 !==============================================================================
 !
@@ -2511,7 +2511,7 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    INTEGER                              :: parID ! parameter's netcdf ID
 
 ! removed the following section because already in IGBP types (BP apr08)
-!    ! First, if user defined surface type ratios are present in the 
+!    ! First, if user defined surface type ratios are present in the
 !    ! met file then use them:
 !    IF(ASSOCIATED(vegfrac_user)) THEN
 !       DO i=1,mland
@@ -2523,9 +2523,9 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
 !          landpt(i)%ice%frac = icefrac_user(i)
 !       END DO
 !    END IF
-   
+
    completeSet=.TRUE. ! initialise (assume all param will load from met file)
-   
+
    ! Get parameter values:
    ! Arguments: netcdf file ID; parameter name; complete set check;
    !   parameter value; filename for error messages; number of veg/soil patches
@@ -2609,7 +2609,15 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    CALL readpar(ncid_met,'g1c3',completeSet,veg%g1c3,filename%met,             &
                 nmetpatches,'def') ! Ticket #56
    CALL readpar(ncid_met,'g1c4',completeSet,veg%g1c4,filename%met,             &
-                nmetpatches,'def') ! Ticket #56         
+                nmetpatches,'def') ! Ticket #56
+   CALL readpar(ncid_met,'g1_b',completeSet,veg%g1_b,filename%met,             &
+                nmetpatches,'def') ! MDK 26 March 2015.
+   CALL readpar(ncid_met,'g1_b',completeSet,veg%g1_b,filename%met,             &
+                nmetpatches,'def') ! MDK 26 March 2015.
+   CALL readpar(ncid_met,'vcmax_sf',completeSet,veg%vcmax_sf,filename%met,     &
+                nmetpatches,'def') ! MDK 26 March 2015.
+   CALL readpar(ncid_met,'vcmax_psi_f',completeSet,veg%vcmax_psi_f,filename%met,&
+                nmetpatches,'def') ! MDK 26 March 2015.
    ok = NF90_INQ_VARID(ncid_met,'za',parID)
    IF(ok == NF90_NOERR) THEN ! if it does exist
       CALL readpar(ncid_met,'za',completeSet,rough%za_uv,filename%met,         &
@@ -2628,7 +2636,7 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'ncp')
    CALL readpar(ncid_met,'ratecs',completeSet,bgc%ratecs,filename%met,         &
                 nmetpatches,'ncs')
-   
+
 END SUBROUTINE get_parameters_met
 
 !==============================================================================
@@ -2659,7 +2667,7 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    TYPE (sum_flux_type), INTENT(INOUT)       :: sum_flux
    TYPE (balances_type), INTENT(INOUT)       :: bal
    INTEGER, INTENT(IN)                       :: arraysize
-   
+
    CALL alloc_cbm_var(air, arraysize)
    CALL alloc_cbm_var(bgc, arraysize)
    CALL alloc_cbm_var(canopy, arraysize)
@@ -2671,10 +2679,10 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    CALL alloc_cbm_var(ssnow, arraysize)
    CALL alloc_cbm_var(sum_flux, arraysize)
    CALL alloc_cbm_var(veg, arraysize)
-   
+
    ! Allocate patch fraction variable:
    ALLOCATE(patch(arraysize))
-   
+
 END SUBROUTINE allocate_cable_vars
 
 END MODULE cable_input_module
