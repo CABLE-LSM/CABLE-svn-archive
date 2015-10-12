@@ -1009,10 +1009,15 @@ CONTAINS
       landpt(kk)%nap = 0
       landpt(kk)%cstart = ncount + 1
 
+      allocate(landpt(kk)%tilenumber(mvtype))
+
+      landpt(kk)%tilenumber(:) = -1
+
       IF (ASSOCIATED(vegtype_metfile)) THEN
         DO tt = 1, nmetpatches
           IF (vegtype_metfile(kk,tt) > 0) ncount = ncount + 1
           landpt(kk)%nap = landpt(kk)%nap + 1
+          landpt(kk)%tilenumber(landpt(kk)%nap) = tt
         END DO
         landpt(kk)%cend = ncount
         IF (landpt(kk)%cend < landpt(kk)%cstart) THEN
@@ -1030,6 +1035,7 @@ CONTAINS
               if (inPFrac(landpt(kk)%ilon, landpt(kk)%ilat, tt) .gt. 1e-6) then
                  ncount = ncount + 1
                  landpt(kk)%nap = landpt(kk)%nap + 1
+                 landpt(kk)%tilenumber(landpt(kk)%nap) = tt  !store the tile number (1-17) for each active patch to read in iveg,and LAI
               end if
            end do
            landpt(kk)%cend = ncount
@@ -1115,13 +1121,13 @@ CONTAINS
     TYPE (roughness_type),      INTENT(OUT)   :: rough
     TYPE (radiation_type),      INTENT(OUT)   :: rad
 
-    INTEGER :: e,f,h  ! do loop counter
+    INTEGER :: e,f,h  ! do loop counter  why funny values?
     INTEGER :: is     ! YP oct07
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
     INTEGER :: klev   !soil layer
-    INTEGER :: kk
+    INTEGER :: kk, k
 
 !    The following is for the alternate method to calculate froot by Zeng 2001
 !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -1190,10 +1196,12 @@ CONTAINS
     
       ! Write to CABLE variables from temp variables saved in
       ! get_default_params
-      veg%iveg(landpt(e)%cstart:landpt(e)%cend) =                              &
-                          inVeg(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
-      patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
-                        inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
+      do k=1,landpt(e)%nap
+         veg%iveg(landpt(e)%cstart+k-1) =                              &
+                          inVeg(landpt(e)%ilon, landpt(e)%ilat, landpt(e)%tilenumber(k)) !1:landpt(e)%nap)
+         patch(landpt(e)%cstart+k-1)%frac =                            &
+                        inPFrac(landpt(e)%ilon, landpt(e)%ilat, landpt(e)%tilenumber(k))
+      end do
       ! Check that patch fractions total to 1
       !this is done again in the check_parameter_values subroutine
       tmp = 0
@@ -1248,7 +1256,7 @@ CONTAINS
       DO is=0,landpt(e)%cend - landpt(e)%cstart
          DO ir = 1, 12
             defaultLAI(landpt(e)%cstart + is, ir) =                       &
-                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,is+1,ir)
+                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(k)%tilenumber(is+1),ir)
          END DO
       END DO
 

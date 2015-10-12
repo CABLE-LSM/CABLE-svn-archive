@@ -88,6 +88,8 @@ MODULE cable_IO_vars_module
          ilat,    & ! replacing land_y  ! ??
          ilon       ! replacing land_x  ! ??
 
+      INTEGER, pointer :: tilenumber(:) 
+
    END TYPE land_type
  
    
