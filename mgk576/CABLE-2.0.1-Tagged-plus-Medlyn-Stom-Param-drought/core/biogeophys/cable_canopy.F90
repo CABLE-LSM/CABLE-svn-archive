@@ -2190,21 +2190,18 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc)
       psi_swp = psi_sat_mpa * theta_over_theta_sat**(-soil%bch)
 
    ELSE IF (cable_user%SWP_SWITCH == 'method_2') THEN
-
       ! Weight SWP calc on layer thickness, ignoring rooting depth, effectively
       ! we are using the total SWC and ignoring where the roots are. Here I am
       ! assuming the roots can't access the bottom layer, so we are doing this
       ! over the top 1.73 m, ignoring the bottom 2.87 m
       !
-
-      total_soil_depth = sum(soil%zse)
-      !total_soil_depth = sum(soil%zse(1:4)) ! ignoring the bottom 2 layer
-      !DO ns = 1, ms - 2 ! ignoring the bottom 2 layer
-      DO ns = 1, ms
+      !total_soil_depth = sum(soil%zse)
+      !DO ns = 1, ms
+      total_soil_depth = sum(soil%zse(1:5)) ! ignoring the bottom layer
+      DO ns = 1, ms - 1 ! ignoring the bottom layer
          weighting = soil%zse(ns) / total_soil_depth
          t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, &
                                       weighting * ssnow%wb(:,ns) / soil%ssat))
-
       END DO
       psi_swp = psi_sat_mpa * sum(t_over_t_sat)**(-soil%bch)
 
