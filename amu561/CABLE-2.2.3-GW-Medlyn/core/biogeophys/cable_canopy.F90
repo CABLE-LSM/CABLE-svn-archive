@@ -341,7 +341,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
          if (cable_user%gw_model) then 
             do i=1,mp
-               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16)  then 
                   dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -376,8 +376,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
          if (cable_user%gw_model) then 
             do i=1,mp
-               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16) then
+                  dq(i) = max(0.,ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if

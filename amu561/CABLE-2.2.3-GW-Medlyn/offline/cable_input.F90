@@ -169,7 +169,7 @@ SUBROUTINE get_default_lai
         nlat,                                   &
         nLaiPatches,                            &
         ntime,                                  &
-        e, tt                                     ! do loop counter
+        e, tt, i                                  ! do loop counter
    REAL, DIMENSION(:,:,:),  ALLOCATABLE :: inLai3D
    REAL, DIMENSION(:,:,:,:),ALLOCATABLE :: inLai4D
 
@@ -229,9 +229,13 @@ SUBROUTINE get_default_lai
       ok = NF90_GET_VAR(ncid,laiID,inLai4D)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 4D LAI variable.')
       DO e = 1, mland  ! over all land grid points
-         DO tt = 1, ntime
-            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
-                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
+         DO i=1,landpt(e)%nap
+            DO tt = 1, ntime
+               !defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
+               !     inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
+               defaultLAI(landpt(e)%cstart+i-1,tt) = &
+                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,landpt(e)%tilenumber(i),tt)
+            END DO
          END DO
       END DO
    ELSE

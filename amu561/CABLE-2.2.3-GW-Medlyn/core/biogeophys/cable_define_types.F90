@@ -40,12 +40,12 @@ MODULE cable_def_types_mod
    !---at least 10-digit precision
    
    INTEGER :: mp,    & ! # total no of patches/tiles 
-              mvtype=17,& ! total # vegetation types,   from input
-              mstype=9,& ! total # soil types,         from input
+              mvtype,&!=17,& ! total # vegetation types,   from input
+              mstype,&!=9,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
-      r_2  = SELECTED_REAL_KIND(12, 50), &
+      r_2  = kind(1.d0),&  !SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
       ncs = 2,       & ! # soil carbon stores

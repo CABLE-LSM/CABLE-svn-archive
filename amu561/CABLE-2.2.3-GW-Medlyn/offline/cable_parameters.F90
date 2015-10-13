@@ -87,7 +87,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:),          ALLOCATABLE :: inLat
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inALB
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inSND
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inLAI
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inLAI
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inArea
   INTEGER, DIMENSION(:, :),       ALLOCATABLE :: inSorder
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inNdep
@@ -214,7 +214,7 @@ CONTAINS
     INTEGER :: ncid, ok
     INTEGER :: xID, yID, pID, sID, tID, bID
     INTEGER :: varID
-    INTEGER :: nslayer, ntime, nband
+    INTEGER :: nslayer, ntime, nband, nlai_dims !number of dimensions for lai
     INTEGER :: ii, jj, kk
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
@@ -265,7 +265,7 @@ CONTAINS
     ALLOCATE( inTGG(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inALB(nlon, nlat, npatch,nband) )
     ALLOCATE( inSND(nlon, nlat, npatch,ntime) )
-    ALLOCATE( inLAI(nlon, nlat, ntime) )
+    ALLOCATE( inLAI(nlon, nlat, npatch, ntime) )
     ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
 
@@ -350,7 +350,19 @@ CONTAINS
     ENDDO
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
-    ok = NF90_GET_VAR(ncid,varID,inLAI)
+    ok = NF90_INQUIRE_VARIABLE(ncid,varID,ndims=nlai_dims)
+    !must test if it is lai per pft of only per grid cell
+    !this assumes if not per pft it is lon,lat,time
+    !if per pft it is lon,lat,pft,time
+    r3dum2(:,:,:) = 0.
+    if (nlai_dims .eq. 3) then
+       ok = NF90_GET_VAR(ncid,varID,r3dum2)
+       do jj=1,npatch
+          inLAI(:,:,jj,:) = r3dum2(:,:,:)
+       end do
+    else
+       ok = NF90_GET_VAR(ncid,varID,inLAI)
+    end if
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable LAI.')
     IF (icycle > 0) THEN
       ! casaCNP parameters
@@ -996,10 +1008,16 @@ CONTAINS
 
       landpt(kk)%nap = 0
       landpt(kk)%cstart = ncount + 1
+
+      allocate(landpt(kk)%tilenumber(mvtype))
+
+      landpt(kk)%tilenumber(:) = -1
+
       IF (ASSOCIATED(vegtype_metfile)) THEN
         DO tt = 1, nmetpatches
           IF (vegtype_metfile(kk,tt) > 0) ncount = ncount + 1
           landpt(kk)%nap = landpt(kk)%nap + 1
+          landpt(kk)%tilenumber(landpt(kk)%nap) = tt
         END DO
         landpt(kk)%cend = ncount
         IF (landpt(kk)%cend < landpt(kk)%cstart) THEN
@@ -1010,27 +1028,43 @@ CONTAINS
         END IF
       ELSE
         ! assume nmetpatches to be 1
-        IF (nmetpatches == 1) THEN
+        !Need to check patch config of file from read_gridinfo()
+        IF (npatch .gt. 1) then
+           do tt=1,npatch
+              !either need 1D patchfrac or lat_in(landpt(kk)),lon_ind(landpt(kk))
+              if (inPFrac(landpt(kk)%ilon, landpt(kk)%ilat, tt) .gt. 1e-6) then
+                 ncount = ncount + 1
+                 landpt(kk)%nap = landpt(kk)%nap + 1
+                 landpt(kk)%tilenumber(landpt(kk)%nap) = tt  !store the tile number (1-17) for each active patch to read in iveg,and LAI
+              end if
+           end do
+           landpt(kk)%cend = ncount
+           if (landpt(kk)%cend < landpt(kk)%cstart) then
+              write(*,*) 'Land point ', kk, ' does not have any veg fractions!'
+              write(*,*) 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend
+              stop
+           end if
+        elseif (nmetpatches == 1 .and. npatch == 1) THEN
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
         ELSE
-          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1.'
+          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1. because npatch=',npatch
           PRINT *, 'If soil patches exist, add new code.'
           STOP
         END IF
       END IF
     END DO
-    IF (ncount > mland * nmetpatches) THEN
-      PRINT *, ncount, ' should not be greater than mland*nmetpatches.'
-      PRINT *, 'mland, nmetpatches = ', mland, nmetpatches
+    IF ((ncount > mland * nmetpatches) .and. ncount > mland*npatch) THEN
+      PRINT *, ncount, ' should not be greater than mland*nmetpatches and mland*npatch.'
+      PRINT *, 'mland, nmetpatches, npatch = ', mland, nmetpatches,npatch
       STOP
     END IF
     DEALLOCATE(inLon, inLat)
 
     ! Set the maximum number of active patches to that read from met file:
     max_vegpatches = MAXVAL(landpt(:)%nap)
-    IF (max_vegpatches /= nmetpatches) THEN
+    IF ((max_vegpatches /= nmetpatches) .and. (max_vegpatches .gt. npatch)) THEN
       PRINT *, 'Error! Met file claiming to have more active patches than'
       PRINT *, 'it really has. Check met file.'
       STOP
@@ -1038,6 +1072,7 @@ CONTAINS
     IF (npatch < nmetpatches) THEN
       PRINT *, 'Warning! Met file data have more patches than the global file.'
       PRINT *, 'Remember to check final veg type and patch fractions.'
+      write(*,*) 'MORE WARNINGS!!! ALL HANDS ON DECK '
     END IF
 
     ! Write to total # patches - used to allocate all of CABLE's variables:
@@ -1086,12 +1121,13 @@ CONTAINS
     TYPE (roughness_type),      INTENT(OUT)   :: rough
     TYPE (radiation_type),      INTENT(OUT)   :: rad
 
-    INTEGER :: e,f,h  ! do loop counter
+    INTEGER :: e,f,h  ! do loop counter  why funny values?
     INTEGER :: is     ! YP oct07
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
     INTEGER :: klev   !soil layer
+    INTEGER :: kk, k
 
 !    The following is for the alternate method to calculate froot by Zeng 2001
 !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -1160,28 +1196,35 @@ CONTAINS
     
       ! Write to CABLE variables from temp variables saved in
       ! get_default_params
-      veg%iveg(landpt(e)%cstart:landpt(e)%cend) =                              &
-                          inVeg(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
-      patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
-                        inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
+      do k=1,landpt(e)%nap
+         veg%iveg(landpt(e)%cstart+k-1) =                              &
+                          inVeg(landpt(e)%ilon, landpt(e)%ilat, landpt(e)%tilenumber(k)) !1:landpt(e)%nap)
+         patch(landpt(e)%cstart+k-1)%frac =                            &
+                        inPFrac(landpt(e)%ilon, landpt(e)%ilat, landpt(e)%tilenumber(k))
+      end do
       ! Check that patch fractions total to 1
+      !this is done again in the check_parameter_values subroutine
       tmp = 0
       IF (landpt(e)%cstart == landpt(e)%cend) THEN
         patch(landpt(e)%cstart)%frac = 1.0
       ELSE
+        kk = landpt(e)%cstart
         DO is = landpt(e)%cstart, landpt(e)%cend
           tmp = tmp + patch(is)%frac
+          if (patch(is)%frac .eq. maxval(patch(landpt(e)%cstart:landpt(e)%cend)%frac)) then
+            kk = is
+          end if
         END DO
-        IF (ABS(1.0 - tmp) > 0.001) THEN
-          IF ((1.0 - tmp) < -0.001 .OR. (1.0 - tmp) > 0.5) THEN
-            PRINT *, 'Investigate the discrepancy in patch fractions:'
-            PRINT *, 'patch%frac = ',                                          &
-                                     patch(landpt(e)%cstart:landpt(e)%cend)%frac
-            PRINT *, 'landpoint # ', e
-            PRINT *, 'veg types = ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
-            STOP
-          END IF
-          patch(landpt(e)%cstart)%frac = patch(landpt(e)%cstart)%frac + 1.0    &
+        IF (ABS(1.0 - tmp) > 1.e-7) THEN
+          !IF ((1.0 - tmp) < -0.001 .OR. (1.0 - tmp) > 0.5) THEN
+          !  PRINT *, 'Investigate the discrepancy in patch fractions:'
+          !  PRINT *, 'patch%frac = ',                                          &
+          !                           patch(landpt(e)%cstart:landpt(e)%cend)%frac
+          !  PRINT *, 'landpoint # ', e
+          !  PRINT *, 'veg types = ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
+          !  STOP
+          !END IF
+          patch(kk)%frac = patch(kk)%frac + 1.0    &
                                          - tmp
         END IF
       END IF
@@ -1210,9 +1253,11 @@ CONTAINS
       END DO
 
       ! Set default LAI values
-      DO is = 1, 12
-        defaultLAI(landpt(e)%cstart:landpt(e)%cend,is) =                       &
-                                        inLAI(landpt(e)%ilon,landpt(e)%ilat,is)
+      DO is=0,landpt(e)%cend - landpt(e)%cstart
+         DO ir = 1, 12
+            defaultLAI(landpt(e)%cstart + is, ir) =                       &
+                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(k)%tilenumber(is+1),ir)
+         END DO
       END DO
 
       ! Set IGBP soil texture values, Q.Zhang @ 12/20/2010.
@@ -1392,6 +1437,13 @@ CONTAINS
           end do
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
+             !MDeck
+            do klev=1,ms
+               soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
+               soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+               soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
+            end do
+
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
             soil%ssat(h)    =  soilin%ssat(soil%isoilm(h))
@@ -1618,7 +1670,7 @@ CONTAINS
     !MD aquifer node depth
     soil%GWz = 0.5*soil%GWdz + sum(soil%zse)  !node is halfway through aquifer depth
 
-    IF (cable_user%GW_MODEL) then
+    IF (cable_user%GW_MODEL .and. soilparmnew) then
 
        DO klev=1,ms
           soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
@@ -1654,24 +1706,31 @@ CONTAINS
        END DO
 
        soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 +soil%Fsilt(:,1)*0.265
+       soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
+       !vegetation dependent wilting point
+       DO i=1,mp
+          psi_tmp(i,:) = -psi_c(veg%iveg(i))
+       END DO
+       soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
+       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
+                   + soil%silt * 0.265 ! set dry soil thermal conductivity
+
+       soil%sfc(:) = soil%fldcap(:,1)
+       soil%swilt(:) = soil%wiltp(:,1)
+
+    ELSE
+      do klev=1,ms
+       soil%fldcap(:,klev) = soil%sfc(:)
+       soil%wiltp(:,klev)  = soil%swilt(:)
+      end do
 
     END IF
-
-    soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
-    !vegetation dependent wilting point
-    DO i=1,mp
-       psi_tmp(i,:) = -psi_c(veg%iveg(i))
-    END DO
-    soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
     
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
     END IF
-
-      soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
-                   + soil%silt * 0.265 ! set dry soil thermal conductivity
 
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
