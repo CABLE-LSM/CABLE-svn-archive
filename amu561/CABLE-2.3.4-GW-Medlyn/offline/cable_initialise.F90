@@ -598,6 +598,8 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp) ! Ticket #56
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)
    ! special treatment of za with the introduction of za_uv and za_tq
    ! in case an old restart file is used
    ok = NF90_INQ_VARID(ncid_rin,'za',parID)

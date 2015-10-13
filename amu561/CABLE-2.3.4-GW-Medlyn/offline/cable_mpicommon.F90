@@ -111,8 +111,8 @@ MODULE cable_mpicommon
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
 
    !mrd add GWwb, wtd, GWwbeq, GWzq, GWsmp -->+5
-
-  INTEGER, PARAMETER :: nvec = 166
+   !mrd satfrac from hydrology
+  INTEGER, PARAMETER :: nvec = 167! 166
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

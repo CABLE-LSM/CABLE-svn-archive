@@ -129,7 +129,7 @@ CONTAINS
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
-                            dzsoil ) 
+                            dzsoil, ti_mean, ti_sig ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
@@ -144,7 +144,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
       smvcst, &
       smvcwt, &
       smvccl, &
-      albsoil 
+      albsoil,&
+      ti_mean,&
+      ti_sig 
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%sm_levels) :: sthu
    
@@ -157,8 +159,24 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    !___defs 1st call to CABLE in this run
    LOGICAL, SAVE :: first_call= .TRUE.
    INTEGER :: i,j,k,L,n
-   REAL, ALLOCATABLE :: tempvar(:), tempvar2(:)
+   REAL, ALLOCATABLE :: tempvar(:), tempvar2(:), fwork(:,:)
    LOGICAL, PARAMETER :: skip =.TRUE. 
+
+   REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
+   REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
+
+   REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
+   REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
+
+   psi_o(1:3)  = -66000._r_2
+   psi_o(4)    = -35000._r_2
+   psi_o(5)    = -83000._r_2
+   psi_o(6:17) = -74000._r_2
+
+   psi_c(1:3)  = -2550000._r_2
+   psi_c(4)    = -2240000._r_2
+   psi_c(5)    = -4280000._r_2
+   psi_c(6:17) = -2750000._r_2
 
       IF( first_call ) THEN 
 
@@ -193,9 +211,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
          !mrd561
-         soil%GWdz = 30.0                          !30 m thick aquifer
-
-
+         soil%GWdz = 20.0                          !20 m thick aquifer
 
          !-------------------------------------------------------------------
          !--- UM met forcing vars needed by CABLE which have UM dimensions
@@ -230,7 +246,30 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          CALL um2cable_lp( smvcst, soilin%ssat, soil%ssat, soil%isoilm)
          CALL um2cable_lp( smvcwt, soilin%swilt, soil%swilt, soil%isoilm)
          CALL um2cable_lp( smvccl, soilin%sfc, soil%sfc, soil%isoilm)
-   
+ 
+         if (allocated(fwork)) deallocate(fwork) 
+         ALLOCATE( fwork(um1%land_pts,um1%ntiles) )
+         fwork(:,:) = 0.1
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = ti_mean(i)
+            end do
+         end do
+         soil%slope(:) = pack(fwork(:,:),um1%l_tile_pts) 
+         soil%slope(:) = max(min(soil%slope(:),0.2),1e-6)
+ 
+         fwork(:,:) = 0.05 
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = ti_sig(i)
+            end do
+         end do
+         soil%slope_std(:) = pack(fwork(:,:),um1%l_tile_pts) 
+         soil%slope_std(:) = max(min(soil%slope_std(:),0.1),1e-6)
+         deallocate(fwork) 
+ 
     
             
          !--- (re)set values for CABLE
@@ -262,26 +301,38 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          !mrd561 set the gw hydro parameters directly from the cable values
          !future revisions will have soil type and properties be a functio
          !of layer depth
-         do k=1,ms
-            soil%smpsat(:,k)  = abs(soil%sucs(:))*1000.0  !convert units [m/s] to [mm/s]
-            soil%hksat(:,k)   = soil%hyds(:)*1000.0       !convert units
-            soil%clappB(:,k)  = soil%bch(:)
-            soil%densoil(:,k) = soil%rhosoil(:)
-            soil%watsat(:,k)  = soil%ssat(:)
-            soil%watr(:,k)    = 0.05
+         do i=1,mp
+         do k=1,um1%sm_levels
+            soil%Fclay(i,k)   = max(0._r_2,min(1._r_2, soil%clay(i)) )
+            soil%Fsand(i,k)   = max(0._r_2,min(1._r_2, soil%sand(i)) )
+            soil%Fsilt(i,k)   = 1._r_2 - soil%Fsand(i,k) - soil%Fclay(i,k)
 
-            soil%Fclay(:,k)   = soil%clay(:)
-            soil%Fsand(:,k)   = soil%sand(:)
+            soil%hksat(i,k) = 0.0070556*10.0**(-0.884 + & 
+                                 0.0153*soil%Fsand(i,k)*100.0)
+            soil%smpsat(i,k) = max(10.0 * 10.0**(1.88 -0.0131*soil%Fsand(i,k)*100.0),10._r_2)
+            soil%clappB(i,k) = max(2.91,min(18.0, 2.91 + 0.159*soil%Fclay(i,k)*100.0 ) )
+            soil%watsat(i,k) = 0.489 - 0.00126*soil%Fsand(i,k)*100.0
+            soil%watr(i,k) = 0.02 + 0.00018*soil%Fclay(i,k)*100.0
          end do
+         !aquifer share non-organic with last layer
+         soil%GWhksat(i)  = soil%hksat(i,ms)
+         soil%GWsmpsat(i) = soil%smpsat(i,ms)
+         soil%GWclappB(i) = soil%clappB(i,ms)
+         soil%GWwatsat(i) = soil%watsat(i,ms)
+         soil%GWwatr(i)   = soil%watr(i,ms)
 
-         soil%GWsmpsat(:)  = abs(soil%sucs(:))*1000.0
-         soil%GWhksat(:)   = soil%hyds(:)*1000.0
-         soil%GWclappB(:)  = soil%bch(:)
-         soil%GWdensoil(:) = soil%rhosoil(:)
-         soil%GWwatsat(:)  = soil%ssat(:)
-         soil%GWwatr(:)    = 0.05  !const for simplicity for now
+         !vegetation dependent wilting point
+         do k=1,ms
+            soil%fldcap(i,k) = (fldcap_hk/soil%hksat(i,k))**(1.0/(2.0*soil%clappB(i,k)+3.0)) * &
+                           (soil%watsat(i,k) - soil%watr(i,k)) + soil%watr(i,k)
 
-         
+            psi_tmp(i,k) = -psi_c(veg%iveg(i))
+
+            soil%wiltp(i,k) = (soil%watsat(i,k) - soil%watr(i,k)) *&
+                              (abs(psi_tmp(i,k))/(max(abs(soil%smpsat(i,k)),1.0)))**(-1.0/soil%clappB(i,k))+&
+                              soil%watr(i,k)
+         end do
+         end do  !loop over all tiles
             
          first_call= .FALSE.
       ENDIF
@@ -768,20 +819,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
          
          DEALLOCATE( fwork )
 
-
-         !mrd561
-         ssnow%GWwb(:) = pack(SMGW_TILE,um1%l_tile_pts)
-         !ensure that we have reasonable values in case 
-         !starting from a non-GW simulation
-         where (ssnow%GWwb(:) .eq. 0.0 ) &
-                ssnow%GWwb(:) = soil%GWwatsat*0.95
-
-         where (ssnow%GWwb(:) .lt. 0.01) & 
-                ssnow%GWwb(:)  = 0.01
-
-         where (ssnow%GWwb(:) .gt. soil%GWwatsat(:)) &
-                ssnow%GWwb(:) = soil%GWwatsat
-         
          ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
                          ( ssnow%wb(:,1) - soil%swilt ) /                      &
                          ( soil%sfc - soil%swilt) ) )
@@ -819,11 +856,24 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
         
          DEALLOCATE( fwork )
 
-         first_call = .FALSE.
 
       ENDIF ! END: if (first_call)       
 
-!     DO J=1, msn
+      !mrd561
+      if (first_call) then
+      ssnow%GWwb(:)= PACK(SMGW_TILE(:,:),um1%l_tile_pts)
+      where(ssnow%GWwb .lt. 1e-2)
+         ssnow%GWwb = 0.3   !temp so not passing junk 
+      endwhere
+      where(veg%iveg .eq. 16)
+         ssnow%GWwb = soil%GWwatsat   !temp so not passing junk 
+      endwhere
+
+      end if
+
+      first_call = .FALSE.
+
+!     DO J=1, msn  
       DO J=1, 1
 
          WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) ! lakes: remove hard-wired number in future version

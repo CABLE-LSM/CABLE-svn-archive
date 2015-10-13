@@ -71,6 +71,7 @@ PROGRAM cable_offline_driver
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
+                                   write_casa_flux, write_casa_params,         &
                                    write_output,close_output_file
    USE cable_cbm_module
    USE cable_diag_module
@@ -78,7 +79,7 @@ PROGRAM cable_offline_driver
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
+                                  casa_met, casa_balance, mdyear
    USE phenvariable,        ONLY: phen_variable
 
    IMPLICIT NONE
@@ -235,6 +236,10 @@ PROGRAM cable_offline_driver
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
+   IF( output%CASA .AND. icycle == 0 )                                      &
+      STOP 'cannot output casaCNP variables when not running casaCNP'
+
+
    ! Open log file:
    OPEN(logn,FILE=filename%log)
  
@@ -271,10 +276,12 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
+
    !write(*,*) 'loaded params' 
    ! Open output file:
-   CALL open_output_file( dels, soil, veg, bgc, rough )
- 
+   CALL open_output_file(kend, dels, soil, veg, bgc, rough )
+   if(icycle>0) CALL write_casa_params(veg,casamet,casabiome)
+  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
    canopy%fes_cor = 0.
@@ -303,13 +310,15 @@ PROGRAM cable_offline_driver
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
          !write(*,*) 'dels is ',dels
 
+
+
          ktauday=int(24.0*3600.0/dels)
+         
          idoy = mod(ktau/ktauday,365)
          IF(idoy==0) idoy=365
-         
          ! needed for CASA-CNP
          nyear =INT((kend-kstart+1)/(365*ktauday))
-   
+
          canopy%oldcansto=canopy%cansto
    
          ! Get met data and LAI, set time variables.
@@ -349,7 +358,7 @@ PROGRAM cable_offline_driver
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
          CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
-                        canopy, soil, ssnow, sum_flux, veg,                    &
+                        canopy, soil, ssnow, sum_flux, veg,                 &
                         met, casaflux, l_vcmaxFeedbk )
         ! write(*,*) 'done with sumcflux'
    
@@ -368,6 +377,9 @@ PROGRAM cable_offline_driver
                           canopy%fe + canopy%fh )
          ENDIF
        
+         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
+              CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
+
 
          ! Check this run against standard for quasi-bitwise reproducability
          ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
@@ -471,16 +483,33 @@ PROGRAM cable_offline_driver
 
    END DO
 
+   !Code for spinning up? comment out
    IF (icycle > 0) THEN
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-  
+      print *, 'before ncdf_dump', spinConv, spincasainput
+!      if ( spinConv .AND. spincasainput ) then
+ !          call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+  !    endif
    END IF
+
    ! Write restart file if requested:
-   IF(output%restart)                                                          &
+   IF(output%restart) THEN
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
+      IF (icycle > 0) THEN
+         WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
+         CALL casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
+                           casabal,phen)
+         WRITE(logn, '(A36)') '   Restart file complete and closed.'
+      END IF
+
+   END IF
+
+
+
+
       
    ! Close met data input file:
    CALL close_met_file

@@ -11,7 +11,7 @@ host_ccrc()
    export NCDIR='/usr/local/netcdf/intel/4.1.3/lib'
    export NCMOD='/usr/local/netcdf/intel/4.1.3/include'
    export FC=ifort
-   export CFLAGS='-O3 -xhost -ipo -parallel   -ftrapuv  -fp-model source'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -debug -g -ftrapuv -CB -check bounds -diag-enable warn'
 # -diag-enable sc2 -diag-enable sc-single-file
@@ -34,9 +34,9 @@ host_squa()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2  -shared-intel -mcmodel=medium -fp-model precise -ftz -fpe0 -xavx'
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
@@ -51,9 +51,9 @@ host_bliz()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx  -shared-intel -mcmodel=medium -parallel'
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
@@ -68,9 +68,9 @@ host_mael()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -parallel -ftrapuv  -shared-intel -mcmodel=medium'
-   export CFLAGS='-O2 -shared-intel -xhost -ipo -ftrapuv'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
@@ -86,9 +86,9 @@ host_mons()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -shared-intel -mcmodel=medium -parallel'
-   export CFLAGS='-O3 -shared-intel -mcmodel=medium -xhost -ipo -ftrapuv  -fpmodel precise -fpmodel except'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'

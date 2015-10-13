@@ -159,13 +159,13 @@ tol=$(echo "scale=6; 0.005" | bc)
 diff_cplant=$(echo "scale=6; 99999.0" | bc)
 diff_csoil=$(echo "scale=6; 99999.0" | bc)
 
-I=1
+I=100
 
 
 
 
 ######## Run model if tolerance not achieved ########
-while [[ $I -lt 102 ]] ## [[ $(echo "$diff_cplant > $tol" | bc -l) -gt 0 || $(echo "$diff_csoil > $tol" | bc -l) -gt 0 ]]
+while [[ $(echo "$diff_cplant > $tol" | bc -l) -gt 0 || $(echo "$diff_csoil > $tol" | bc -l) -gt 0 ]]
 do
 
 
@@ -319,6 +319,9 @@ croot_new=`awk -F "\"*,\"*" '{print $15}' ../../Outputs/${site}/${OUTDIR}/poolcn
 cplant_new=$(echo "$cleaf_new+$cwood_new+$croot_new" | bc -l)
 
 
+echo "PRINTING old/new csoil"
+echo $csoil_old
+echo $csoil_new
 
 
 diff_cplant=$(echo "$cplant_new-$cplant_old" | bc -l)

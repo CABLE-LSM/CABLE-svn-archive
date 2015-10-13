@@ -21,11 +21,15 @@
 !          Reorganisation of code (dryLeaf, wetLeaf, photosynthesis subroutines
 !          taken out of define_canopy)
 !        : Martin De Kauwe and Jatin Kala added new switch to compute stomatal
-!          conductance based on: Medlyn BE et al (2011) Global Change Biology 17:
+!          conductance based on: Medlyn BE et al (2011) Global Change Biology
+!          17:
 !          2134-2144. The variables xleuning, xleuningz are no longer used, but 
 !          replaced with gs_coeff,gs_coeffz. If GS_SWITCH is set to "leuning",
 !          gs_coeff=xleuning and gs_coeffz=xleuningz, but based on the new model
 !          if set to "medlyn". Search for "Ticket #56" 
+!         Mark Decker added different soil sat fraction for evap and runoff
+!
+!
 ! ==============================================================================
 
 MODULE cable_canopy_module
@@ -329,7 +333,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
          if (cable_user%gw_model) then 
             do i=1,mp
-               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
+               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16)  then 
                   dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -364,8 +368,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
          if (cable_user%gw_model) then 
             do i=1,mp
-               if (ssnow%qstss(i) .gt. met%qvair(i)) then 
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16) then
+                  dq(i) = max(0.,ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
@@ -699,6 +703,8 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
    ENDDO 
    
    ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
+   !if I alter resitance here need to incorporate term into derivates around
+   !Line 612
    
 END FUNCTION Humidity_deficit_method
 
@@ -1347,6 +1353,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    INTEGER :: i, j, k, kk  ! iteration count
    REAL :: vpd, g1 ! Ticket #56   
  
+  
    ! END header
 
 
@@ -1355,14 +1362,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
 
-      IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
+      IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
-      ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+      ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
-      ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
-         CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
+         CALL fwsoil_calc_Lai_Katul(fwsoil, soil, ssnow, veg) 
       ELSE
+         write(*,*) 'cable fwsoil_swith is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
       ENDIF
 
@@ -1541,7 +1549,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                 g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
                      (veg%g1c4(i)  * veg%frac4(i))
-            
+
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
                 
@@ -1559,7 +1567,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
                            gs_coeff(:,:), rad%fvlai(:,:),& ! Ticket #56, xleuning replaced with gs_coeff here
                            SPREAD( abs_deltlf, 2, mf ),                        &
-                           anx(:,:), fwsoil(:) )
+                           anx(:,:),fwsoil(:) )
 
       DO i=1,mp
          
@@ -1756,6 +1764,7 @@ END SUBROUTINE dryLeaf
 
 ! -----------------------------------------------------------------------------
 ! Ticket #56, xleuningz repalced with gs_coeffz
+! -----------------------------------------------------------------------------
 SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                            rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
                            vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz )
@@ -1777,14 +1786,13 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
       deltlfz       ! 
 
    REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
+   REAL, DIMENSION(mp),    INTENT(IN)    :: fwsoilz
    
    ! local variables
    REAL(r_2), DIMENSION(mp,mf) ::                                              &
       coef0z,coef1z,coef2z, ciz,delcxz,                                        &
       anrubiscoz,anrubpz,ansinkz
 
-   REAL, DIMENSION(mp) :: fwsoilz  
- 
    REAL, PARAMETER  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see
                                        ! Bonan,LSM version 1.0, p106)
 
@@ -1875,7 +1883,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                              coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *   &
                              (vx3z(i,j)*cx2z(i,j)/2.0                          &
                              + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
-                         - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
+                        - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
    
    
                !kdcorbin, 09/10 - new calculations
@@ -1925,9 +1933,9 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                              + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
                              * csxz(i,j) * effc4 * vcmxt4z(i,j)  
                                             
-               coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC )*csxz(i,j)*effc4 &
+               coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * csxz(i,j) * effc4 &
                              * vcmxt4z(i,j) + ( rdxz(i,j)                      &
-                           - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
+                        - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
           
                ! no solution, give it a huge number
                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
@@ -1971,7 +1979,6 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    ENDDO
      
 END SUBROUTINE photosynthesis
-
 ! ------------------------------------------------------------------------------
 
 FUNCTION ej3x(parx,alpha,convex,x) RESULT(z)
@@ -2129,7 +2136,6 @@ END SUBROUTINE fwsoil_mass_calc_std
 
 
 ! ------------------------------------------------------------------------------
-
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
@@ -2138,10 +2144,11 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
    REAL, DIMENSION(mp) :: rwater ! soil water availability
 
-   rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
+   rwater = MAX(1.0e-4_r_2,                                                    &
+            SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,ssnow%wb -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
    fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+   
    
       
 END SUBROUTINE fwsoil_calc_std 
@@ -2194,21 +2201,21 @@ END SUBROUTINE fwsoil_calc_non_linear
 
 ! ------------------------------------------------------------------------------
 
-
 ! ypw 19/may/2010 soil water uptake efficiency (see Lai and Ktaul 2000)
-SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+SUBROUTINE fwsoil_calc_Lai_Katul(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
    INTEGER   :: ns
    REAL, parameter ::rootgamma = 0.01   ! (19may2010)
    REAL, DIMENSION(mp)  :: dummy, normFac
    !--- local level dependent rwater 
    REAL, DIMENSION(mp,ms)  :: frwater
 
-   fwsoil(:) = 0.0
+   fwsoil(:) = 1.0e-4
    normFac(:) = 0.0
 
    DO ns=1,ms
@@ -2224,7 +2231,7 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
    ENDDO
 
-END SUBROUTINE fwsoil_calc_Lai_Ktaul
+END SUBROUTINE fwsoil_calc_Lai_Katul
 
 
     

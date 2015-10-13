@@ -32,12 +32,12 @@ MODULE cable_def_types_mod
    !---at least 10-digit precision
    
    INTEGER :: mp,    & ! # total no of patches/tiles 
-              mvtype=17,& ! total # vegetation types,   from input
-              mstype=9,& ! total # soil types,         from input
+              mvtype,&!=17,& ! total # vegetation types,   from input
+              mstype,&!=9,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
-      r_2  = SELECTED_REAL_KIND(12, 50), &
+      r_2  = kind(1.d0),&  !SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
       ncs = 2,       & ! # soil carbon stores
@@ -252,8 +252,8 @@ MODULE cable_def_types_mod
          GWsmp,   &  ! aquifer soil matric potential [mm]
          GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
          GWzq,    &  ! equilibrium aquifer smp   [mm]
-         qhz         ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
-     
+         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
+         satfrac
      
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
@@ -268,7 +268,6 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
-         
          
    END TYPE soil_snow_type
 
@@ -302,10 +301,10 @@ MODULE cable_def_types_mod
          xfang,   & ! leaf angle PARAMETER
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
-         g0c3,    & ! Belinda's stomatal model intercept, Ticket #56.
-         g0c4,    & ! Belinda's stomatal model intercept, Ticket #56.
-         g1c3,    & ! Belinda's stomatal model slope, Ticket #56.   
-         g1c4,    & ! Belinda's stomatal model slope, Ticket #56. 
+         g0c3,     & ! Belinda's stomatal model intercept, Ticket #56
+         g0c4,     & ! Belinda's stomatal model intercept, Ticket #56 
+         g1c3,     & ! Belinda's stomatal model slope, Ticket #56
+         g1c4,     & ! Belinda's stomatal model slope, Ticket #56
          wai,     & ! wood area index (stem+branches+twigs)
          a1gs,    & ! a1 parameter in stomatal conductance model
          d0gs,    & ! d0 in stomatal conductance model      
@@ -315,8 +314,10 @@ MODULE cable_def_types_mod
          gswmin,  & ! minimal stomatal conductance
          conkc0,  &  ! Michaelis-menton constant for caroxylase
          conko0,  &  ! Michaelis-menton constant for oxygenase
-         ekc,     & ! activation energy for caroxylagse
-         eko        ! acvtivation enegery for oxygenase
+         ekc,     &  ! activation energy for caroxylagse
+         eko,     &  ! acvtivation enegery for oxygenase
+         g1c3_map,&  ! jtk561, map version
+         g0c3_map    ! ditto
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -794,6 +795,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWwbeq(mp) )
    ALLOCATE( var%GWzq(mp) )
    ALLOCATE( var%qhz(mp) )
+   ALLOCATE( var%satfrac(mp) )
    !soil moisture variables
    ALLOCATE( var%wbeq(mp,ms) )
    ALLOCATE( var%zq(mp,ms) )
@@ -861,6 +863,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%conko0(mp) ) 
    ALLOCATE( var%ekc(mp) ) 
    ALLOCATE( var%eko(mp) ) 
+   ALLOCATE( var% g1c3_map(mp) ) ! jtk561
+   ALLOCATE( var% g0c3_map(mp) ) ! jtk561
 
 
 END SUBROUTINE alloc_veg_parameter_type
@@ -1271,6 +1275,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%GWwbeq )
    DEALLOCATE( var%GWzq )
    DEALLOCATE( var%qhz )
+   DEALLOCATE( var%satfrac )
    !soil moisture variables
    DEALLOCATE( var%wbeq )
    DEALLOCATE( var%zq )
@@ -1333,6 +1338,8 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%conko0 ) 
    DEALLOCATE( var%ekc ) 
    DEALLOCATE( var%eko ) 
+   DEALLOCATE( var%g1c3_map ) ! jtk561
+   DEALLOCATE( var%g0c3_map ) ! jtk561
    
 END SUBROUTINE dealloc_veg_parameter_type
    

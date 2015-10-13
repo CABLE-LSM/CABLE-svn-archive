@@ -37,7 +37,10 @@ MODULE cable_common_module
    LOGICAL :: calcsoilalbedo = .FALSE. 
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
-   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
+   !---mrd561 make the default values false
+   LOGICAL, SAVE :: l_casacnp = .false.,   &
+                    l_laiFeedbk = .false., &
+                    l_vcmaxFeedbk = .false.
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
@@ -56,7 +59,7 @@ MODULE cable_common_module
       CHARACTER(LEN=200) ::                                                    &
          VEG_PARS_FILE  ! 
       
-      CHARACTER(LEN=20) ::                                                     &
+      CHARACTER(LEN=30) ::                                                     &
          FWSOIL_SWITCH     !
 
       ! Ticket #56
@@ -92,8 +95,9 @@ MODULE cable_common_module
          !using GSWP3 forcing?
          GSWP3 = .FALSE.,                 &
 	     ! Switch for customized soil respiration - see Ticket #42
-         SRF = .FALSE.
-         
+         SRF = .FALSE.,                   &
+         g1map = .FALSE. !jtk561
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user
@@ -114,6 +118,7 @@ MODULE cable_common_module
       soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
       inits,      & ! name of file for initialisations
       soilIGBP,   & ! name of file for IGBP soil map
+      g1mapfile,  & ! jtk561 name of file for g1map
       gw_elev       !name of file for gw/elevation data
 
    END TYPE filenames_type
@@ -215,12 +220,12 @@ MODULE cable_common_module
 
       REAL ::                   &
         MaxSatFraction=0.7,     & !maximum fraction of cell that is saturated [qsrf]
-        MaxHorzDrainRate=100.0, & !anisintropy [qsub]
-        EfoldHorzDrainRate=0.5, & !qsub(wtd)
-        EfoldMaxSatFrac=0.5,    & !sat frac srf (wtd)
-        hkrz=0.2,               & !hksat variation with z
+        MaxHorzDrainRate=1e-3, & !anisintropy [qsub]
+        EfoldHorzDrainRate=2.5, & !qsub(wtd)
+        EfoldMaxSatFrac=4.0,    & !sat frac srf (wtd)
+        hkrz=0.5,               & !hksat variation with z
         zdepth=1.0,             & !level where hksat(z) = hksat(no z)
-        frozen_frac=0.2  !ice fraction to determine first non-frozen layer for qsub
+        frozen_frac=0.05  !ice fraction to determine first non-frozen layer for qsub
 
    END TYPE gw_parameters_type
 

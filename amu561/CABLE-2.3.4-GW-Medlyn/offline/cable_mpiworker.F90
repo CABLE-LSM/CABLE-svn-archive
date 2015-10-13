@@ -109,6 +109,7 @@ CONTAINS
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
+                                   write_casa_flux, write_casa_params,         &
                                    write_output,close_output_file
    USE cable_cbm_module
    
@@ -253,6 +254,10 @@ CONTAINS
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
+    IF( output%CASA .AND. icycle == 0 )                                      &
+      STOP 'cannot output casaCNP variables when not running casaCNP'
+
+
    ! Open log file:
    ! MPI: worker logs go to the black hole
    ! by opening the file we don't need to touch any of the code that writes
@@ -305,6 +310,9 @@ CONTAINS
    ! file themselves
    CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
    CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
+
+   CALL MPI_Bcast (mvtype, 1, MPI_REAL, 0, comm, ierr)
+   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
 
    ! MPI: receive from master starting time fields
    !CALL bcast_start_time (comm)
@@ -447,6 +455,12 @@ CONTAINS
 
          ! MPI: send the results back to the master
          CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
+      
+         IF(icycle >0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) THEN
+            ! MPI: send casa results back to the master
+            CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+         ENDIF
+
 
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
@@ -1165,6 +1179,14 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%g1c4, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g0c3_map, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3_map, displs(bidx), ierr)
   blen(bidx) = r1len
   ! Ticket #56, finish adding new veg parms
 
@@ -5013,6 +5035,9 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Get_address (ssnow%GWsmp(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%satfrac(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN

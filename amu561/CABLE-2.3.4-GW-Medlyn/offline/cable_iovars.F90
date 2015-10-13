@@ -80,6 +80,8 @@ MODULE cable_IO_vars_module
          ilat,    & ! replacing land_y  ! ??
          ilon       ! replacing land_x  ! ??
 
+      INTEGER, pointer :: tilenumber(:) 
+
    END TYPE land_type
  
    
@@ -131,11 +133,11 @@ MODULE cable_IO_vars_module
           ejmax,frac4,hc,lai,rp20,rpcoef,shelrb, vbeta, xalbnir,               &
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
-          veg_class,soil_class,mvtype,mstype,patchfrac,                        &
+          veg_class,soil_class,sorder,areacell,sla,mvtype,mstype,patchfrac,                 &
+          g0c3,g0c4,g1c3,g1c4,g0c3_map,g1c3_map,                               & ! Ticket #56
           !MD
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
-          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp,  & 
-          g0c3,g0c4,g1c3,g1c4 ! Ticket #56
+          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp 
 
    END TYPE parID_type
   
@@ -180,6 +182,7 @@ MODULE cable_IO_vars_module
          balances = .FALSE.,  & ! energy and water balances
          restart = .FALSE.,   & ! create restart file?
          ensemble = .FALSE.,  & ! are we creating an ensemble run?
+         CASA = .FALSE.,      & ! write CASA flux and pools
          patch = .FALSE.        ! should patch-specific info be written 
                                 ! to output file?
 
@@ -245,6 +248,47 @@ MODULE cable_IO_vars_module
          AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
+         
+         !CASA variables
+         casaGPP = .FALSE.,   & ! CASACNP fluxes
+         casaNPP = .FALSE.,   &
+         casaLFresp = .FALSE., &
+         casaWDresp = .FALSE., &
+         casaRTresp = .FALSE., &
+         casaGRresp = .FALSE., &
+         casaSLresp = .FALSE., &
+         casaNEE = .FALSE.,   &
+         Ndep    = .FALSE.,   &
+         Nfix    = .FALSE.,   &
+         Nmin    = .FALSE.,   &
+         Nup     = .FALSE.,   &
+         Nleach  = .FALSE.,   &
+         Nloss   = .FALSE.,   &
+         Pwea    = .FALSE.,   &
+         Pdust   = .FALSE.,   &
+         Pmin    = .FALSE.,   &
+         Pup     = .FALSE.,   &
+         Pleach  = .FALSE.,   &
+         Ploss   = .FALSE.,   &
+         phase   = .FALSE.,   & ! phenological phase
+         Clab    = .FALSE.,   & ! CASACNP pool sizes
+         Cplant  = .FALSE.,   &
+         Clitter = .FALSE.,   &
+         Csoil   = .FALSE.,   &
+         Nplant  = .FALSE.,   &
+         Nlitter = .FALSE.,   &
+         Nsoil   = .FALSE.,   &
+         Nsmin   = .FALSE.,   &
+         Pplant  = .FALSE.,   &
+         Plitter = .FALSE.,   &
+         Psoil   = .FALSE.,   &
+         Pslab   = .FALSE.,   &
+         Pssorb  = .FALSE.,   &
+         Psocc   = .FALSE.,   &
+         Cbal    = .FALSE.,   &
+         Nbal    = .FALSE.,   &
+         Pbal    = .FALSE.,   &
+
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
          cancd = .FALSE., & ! jtk561, canopy conductance (m/s)
          gswx_1 = .FALSE., & ! jtk561, sunlit cond (dunno units)
@@ -268,6 +312,7 @@ MODULE cable_IO_vars_module
          GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
          EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
          Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
+         SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)
 
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
@@ -300,6 +345,8 @@ MODULE cable_IO_vars_module
          g0c4 = .FALSE.,      & ! Ticket #56
          g1c3 = .FALSE.,      & ! Ticket #56
          g1c4 = .FALSE.,      & ! Ticket #56
+         g0c3_map = .FALSE.,  &
+         g1c3_map = .FALSE.,  &
          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
@@ -326,6 +373,9 @@ MODULE cable_IO_vars_module
          iveg  = .FALSE.,     & ! vegetation type from global index
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
+         SoilOrder = .FALSE., & ! soil order
+         area = .FALSE.,      & ! area of grid cell [m2]
+         sla = .FALSE.,       & ! specific leaf area [m2/gC]
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
          za  = .FALSE.,       &  ! something to do with roughness ????
 
