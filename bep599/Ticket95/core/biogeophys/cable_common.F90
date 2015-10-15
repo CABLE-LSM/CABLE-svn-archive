@@ -54,7 +54,7 @@ MODULE cable_common_module
       CHARACTER(LEN=200) ::                                                    &
          VEG_PARS_FILE  ! 
       
-      CHARACTER(LEN=20) ::                                                     &
+      CHARACTER(LEN=30) ::                                                     &
          FWSOIL_SWITCH     !
       
       CHARACTER(LEN=5) ::                                                      &
