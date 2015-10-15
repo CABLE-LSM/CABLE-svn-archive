@@ -80,6 +80,7 @@ MODULE cable_common_module
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE., & !
+         L_newProfile          = .FALSE., & ! BP 2015 - new transpiration extraction profile
 
 	     ! Switch for customized soil respiration - see Ticket #42
          SRF = .FALSE.
