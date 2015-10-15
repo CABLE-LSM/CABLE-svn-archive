@@ -2,8 +2,27 @@
 
 known_hosts()
 {
-   set -A kh cher burn shin  raij
+   set -A kh pear cher burn shin  raij
 }
+
+
+## pearcey.hpsc.csiro.au
+host_pear()
+{
+   . /apps/modules/Modules/default/init/ksh
+   module add netcdf/3.6.3 openmpi/1.6.5
+
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   export FC='mpif90'
+   export CFLAGS='-O2 -fp-model precise '
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 ## raijin.nci.org.au
 host_raij()
