@@ -1828,7 +1828,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 !   xxx=soil%ssat - ssnow%wb(:,3)
 !   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
    sinfil1 = MIN( 0.8*xxx*soil%zse(1)*rhowat, weting) !soil capacity
-   xxx = MAX( soil%ssat - ssnow%wb(:,2) )
+   xxx = MAX( 0.0, soil%ssat - ssnow%wb(:,2) )
    sinfil2 = 0.0
    WHERE( ssnow%tgg(:,2).gt.C%TFRZ )   &
           sinfil2 = MIN( 0.3*xxx*soil%zse(2)*rhowat, weting-sinfil1 )
