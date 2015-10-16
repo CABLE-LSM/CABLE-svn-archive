@@ -60,7 +60,7 @@ MODULE cable_common_module
       CHARACTER(LEN=200) ::                                                    &
          VEG_PARS_FILE  ! 
       
-      CHARACTER(LEN=20) ::                                                     &
+      CHARACTER(LEN=30) ::                                                     &
          FWSOIL_SWITCH     !
       
       ! switch added for alternative stomatal conductance following ticket #56 of Jatin Kala
@@ -81,6 +81,7 @@ MODULE cable_common_module
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
          CABLE_RUNTIME_COUPLED  = .FALSE.!
+         L_newProfile          = .FALSE., & ! BP 2015 - new transpiration extraction profile
 
 
    END TYPE kbl_user_switches

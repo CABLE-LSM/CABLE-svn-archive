@@ -581,7 +581,7 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
 !,tsurfavg  !!, msurfavg
   INTEGER :: npt
 
-  print *, 'within casa_xratesoil'
+!  print *, 'within casa_xratesoil'
 
   xklitter(:) = 1.0
   xksoil(:)   = 1.0
@@ -616,8 +616,8 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
 !    xklitter(:) = xkoptlitter(veg%iveg(:)) * xktemp(:) * xkwater(:)
 !    xksoil(:)   = xkoptsoil(veg%iveg(:))   * xktemp(:) * xkwater(:)
 !  ENDWHERE
-   npt =26493
-  print *, 'xratesoil', npt, casamet%moistavg(npt),soil%ssat(npt),casamet%tsoilavg(npt),xklitter(npt),tsavg(npt),xksoil(npt)
+!   npt =26493
+!  print *, 'xratesoil', npt, casamet%moistavg(npt),soil%ssat(npt),casamet%tsoilavg(npt),xklitter(npt),tsavg(npt),xksoil(npt)
 
 END SUBROUTINE casa_xratesoil
 
@@ -1259,7 +1259,7 @@ SUBROUTINE avgsoil(veg,soil,casamet)
   ENDDO
 
   nland=26493
-  print *, 'avgsoil for point = ', nland, casamet%tsoil(nland,:),casamet%tsoilavg(nland)
+!  print *, 'avgsoil for point = ', nland, casamet%tsoil(nland,:),casamet%tsoilavg(nland)
 
 END SUBROUTINE avgsoil
 
@@ -1338,9 +1338,9 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   ! now check if there is sufficient mineral N 
   xFluxNsoilminnet(:) = xFluxNlittermin(:) + xFluxNsoilmin(:) + xFluxNsoilimm(:)
 
-  print *, 'xkN= ', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:), &
-                    casaflux%fromLtoS(npt,:,:),casaflux%fromStoS(npt,:,:),casaflux%klitter(npt,:), &
-                    xFluxNsoilminnet(npt),xFluxNsoilmin(npt), xFluxNsoilimm(npt)
+!  print *, 'xkN= ', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:), &
+!                    casaflux%fromLtoS(npt,:,:),casaflux%fromStoS(npt,:,:),casaflux%klitter(npt,:), &
+!                    xFluxNsoilminnet(npt),xFluxNsoilmin(npt), xFluxNsoilimm(npt)
 
 !   PRINT *, 'casamet%iveg2 = ', casamet%iveg2
 !   PRINT *, 'deltpool = ',deltpool
@@ -1377,7 +1377,7 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   ENDWHERE
 
   xkNlimiting = MIN(1.0,MAX(0.0,xKNlimiting))
-  print *, 'xkN2= ', casapool%Nsoilmin(npt),casapool%clitter(npt,:),xFluxNsoilminnet(npt), xkNlimiting(npt)
+!  print *, 'xkN2= ', casapool%Nsoilmin(npt),casapool%clitter(npt,:),xFluxNsoilminnet(npt), xkNlimiting(npt)
 END SUBROUTINE casa_xkN
 
 SUBROUTINE casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)

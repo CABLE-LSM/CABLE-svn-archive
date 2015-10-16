@@ -1695,63 +1695,64 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
          
          IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
                                                   ! after discussion with BP
-!         ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
-!         ssnow%wbtot = 0.0
-!         DO k = 1, ms
-!            ssnow%wb(:,k)  = MIN( soil%ssat,MAX ( ssnow%wb(:,k), soil%swilt ))
-!         END DO
-!   
-!         ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-2),           &
-!                             0.5 * ( soil%sfc + soil%swilt ) ) )
-!         ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-1),           &
-!                             0.8 * soil%sfc ) )
-!         ssnow%wb(:,ms)    = MIN( soil%ssat, MAX ( ssnow%wb(:,ms), soil%sfc) )
-!         
-!         DO k = 1, ms
-!            
-!            WHERE( ssnow%tgg(:,k) <= C%TFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
-!               ssnow%wbice(:,k) = 0.5 * ssnow%wb(:,k)
-!            
-!            WHERE( ssnow%tgg(:,k) < C%TFRZ)                                    &
-!               ssnow%wbice(:,k) = frozen_limit * ssnow%wb(:,k)
-!            
-!         END DO
-!   
-!         WHERE (soil%isoilm == 9) 
-!            ! permanent ice: fix hard-wired number in next version
-!            ssnow%snowd = max_glacier_snowd
-!            ssnow%osnowd = max_glacier_snowd
-!            ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
-!            ssnow%wb(:,1) = 0.95 * soil%ssat
-!            ssnow%wb(:,2) = 0.95 * soil%ssat
-!            ssnow%wb(:,3) = 0.95 * soil%ssat
-!            ssnow%wb(:,4) = 0.95 * soil%ssat
-!            ssnow%wb(:,5) = 0.95 * soil%ssat
-!            ssnow%wb(:,6) = 0.95 * soil%ssat
-!            ssnow%wbice(:,1) = 0.90 * ssnow%wb(:,1)
-!            ssnow%wbice(:,2) = 0.90 * ssnow%wb(:,2)
-!            ssnow%wbice(:,3) = 0.90 * ssnow%wb(:,3)
-!            ssnow%wbice(:,4) = 0.90 * ssnow%wb(:,4)
-!            ssnow%wbice(:,5) = 0.90 * ssnow%wb(:,5)
-!            ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
-!         ENDWHERE
-!         
-!         xx=soil%css * soil%rhosoil
-!         
-!         ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
-!              & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat &
-!              & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1)
+      ! comment out as suggested by Andrew Zhang
+         ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
+!@         ssnow%wbtot = 0.0
+!@         DO k = 1, ms
+!@            ssnow%wb(:,k)  = MIN( soil%ssat,MAX ( ssnow%wb(:,k), soil%swilt ))
+!@         END DO
+!@   
+!@         ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-2),           &
+!@                             0.5 * ( soil%sfc + soil%swilt ) ) )
+!@         ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-1),           &
+!@                             0.8 * soil%sfc ) )
+!@         ssnow%wb(:,ms)    = MIN( soil%ssat, MAX ( ssnow%wb(:,ms), soil%sfc) )
+!@         
+!@         DO k = 1, ms
+!@            
+!@            WHERE( ssnow%tgg(:,k) <= C%TFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
+!@               ssnow%wbice(:,k) = 0.5 * ssnow%wb(:,k)
+!@            
+!@            WHERE( ssnow%tgg(:,k) < C%TFRZ)                                    &
+!@               ssnow%wbice(:,k) = frozen_limit * ssnow%wb(:,k)
+!@            
+!@         END DO
+!@  
+!@         WHERE (soil%isoilm == 9) 
+!@            ! permanent ice: fix hard-wired number in next version
+!@            ssnow%snowd = max_glacier_snowd
+!@            ssnow%osnowd = max_glacier_snowd
+!@            ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
+!@            ssnow%wb(:,1) = 0.95 * soil%ssat
+!@            ssnow%wb(:,2) = 0.95 * soil%ssat
+!@            ssnow%wb(:,3) = 0.95 * soil%ssat
+!@            ssnow%wb(:,4) = 0.95 * soil%ssat
+!@            ssnow%wb(:,5) = 0.95 * soil%ssat
+!@            ssnow%wb(:,6) = 0.95 * soil%ssat
+!@            ssnow%wbice(:,1) = 0.90 * ssnow%wb(:,1)
+!@            ssnow%wbice(:,2) = 0.90 * ssnow%wb(:,2)
+!@            ssnow%wbice(:,3) = 0.90 * ssnow%wb(:,3)
+!@            ssnow%wbice(:,4) = 0.90 * ssnow%wb(:,4)
+!@            ssnow%wbice(:,5) = 0.90 * ssnow%wb(:,5)
+!@            ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
+!@         ENDWHERE
+!@         
+!@         xx=soil%css * soil%rhosoil
+!@         
+!@         ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
+!@              & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat &
+!@              & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1)
       END IF
    ENDIF  ! if(.NOT.cable_runtime_coupled)
 
-!   xx=soil%css * soil%rhosoil
-!   IF (ktau <= 1)                                                              &
-!     ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
-!            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat           &
-!            & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1) +   &
-!            & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
+!@   xx=soil%css * soil%rhosoil
+!@   IF (ktau <= 1)                                                              &
+!@     ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
+!@            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat           &
+!@            & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1) +   &
+!@            & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
 
-
+!  ******** uncomment out by Andrew Zhang *************
 
    DO k = 1, ms ! for stempv
       
@@ -1798,11 +1799,17 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    weting = totwet + max(0.,ssnow%pudsto - canopy%fesp/C%HL*dels) 
    xxx=soil%ssat - ssnow%wb(:,1)
   
-   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*rhowat, weting) !soil capacity
-   xxx=soil%ssat - ssnow%wb(:,2)
-   sinfil2 = MIN( 0.95*xxx*soil%zse(2)*rhowat, weting - sinfil1) !soil capacity
-   xxx=soil%ssat - ssnow%wb(:,3)
-   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
+!   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*rhowat, weting) !soil capacity
+!   xxx=soil%ssat - ssnow%wb(:,2)
+!   sinfil2 = MIN( 0.95*xxx*soil%zse(2)*rhowat, weting - sinfil1) !soil capacity
+!   xxx=soil%ssat - ssnow%wb(:,3)
+!   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
+   sinfil1 = MIN( 0.8*xxx*soil%zse(1)*rhowat, weting) !soil capacity
+   xxx = MAX( 0.0, soil%ssat - ssnow%wb(:,2) )
+   sinfil2 = 0.0
+   WHERE( ssnow%tgg(:,2).gt.C%TFRZ )   &
+          sinfil2 = MIN( 0.3*xxx*soil%zse(2)*rhowat, weting-sinfil1 )
+   sinfil3 = 0.0
    
    ! net water flux to the soil
    ssnow%fwtop1 = sinfil1 / dels - canopy%segg          

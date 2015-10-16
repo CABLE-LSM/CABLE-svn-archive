@@ -1045,12 +1045,12 @@ SUBROUTINE get_casa_restart(casamet,casapool,casabal,phen)
     casabal%FPupyear=0.0;casabal%FPleachyear=0.0;casabal%FPlossyear=0.0
   ENDIF
 
-  npt=26493
-  print *, 'pool sizes for 26493 after: ', casamet%glai(npt),casapool%cplant(npt,:),  &
-            casapool%nplant(npt,:), casapool%pplant(npt,:),                           &
-            casapool%clitter(npt,:), casapool%nlitter(npt,:),casapool%plitter(npt,:), &
-            casapool%csoil(npt,:),   casapool%nsoil(npt,:), casapool%psoil(npt,:),    &
-            casapool%nsoilmin(npt), casapool%psoillab(npt),casapool%psoilsorb(npt), casapool%psoilocc(npt)
+!  npt=26493
+!  print *, 'pool sizes for 26493 after: ', casamet%glai(npt),casapool%cplant(npt,:),  &
+!            casapool%nplant(npt,:), casapool%pplant(npt,:),                           &
+!            casapool%clitter(npt,:), casapool%nlitter(npt,:),casapool%plitter(npt,:), &
+!            casapool%csoil(npt,:),   casapool%nsoil(npt,:), casapool%psoil(npt,:),    &
+!            casapool%nsoilmin(npt), casapool%psoillab(npt),casapool%psoilsorb(npt), casapool%psoilocc(npt)
 END SUBROUTINE get_casa_restart
 
 
@@ -1549,50 +1549,50 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   call avgsoil(veg,soil,casamet)
   call casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 
-  print *, 'biogeochem1', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+!  print *, 'biogeochem1', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
   call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                        casamet,phen)
 
-  print *, 'biogeochem2', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+!  print *, 'biogeochem2', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
   call casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                        casaflux,casamet)
 
-  print *, 'biogeochem3', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+!  print *, 'biogeochem3', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
   call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
-  print *, 'biogeochem4', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
-  print *, 'calling casa_xratesoil ???'
+!  print *, 'biogeochem4', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+!  print *, 'calling casa_xratesoil ???'
 
   call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
 
-  print *, 'biogeochem5', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+!  print *, 'biogeochem5', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
   call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
-  print *, 'biogeochem6', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+!  print *, 'biogeochem6', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
   IF (icycle>1) THEN
     call casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 
-    print *, 'biogeochem7', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+ !   print *, 'biogeochem7', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
     DO j=1,mlitter
       casaflux%klitter(:,j) = casaflux%klitter(:,j)* xkNlimiting(:)
     ENDDO
-    print *, 'biogeochem8', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
+ !   print *, 'biogeochem8', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
     call casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
     IF (icycle >2) call casa_puptake(veg,xkNlimiting,casabiome, &
                                      casapool,casaflux,casamet)
   ENDIF 
 
   ! changed by ypwang following Chris Lu on 5/nov/2012
-   write(*,900) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
-               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
-               casaflux%nupland(npt),casaflux%pupland(npt),xkNlimiting(npt),xnplimit(npt),xNPuptake(npt)
+ !  write(*,900) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
+ !              casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
+ !              casaflux%nupland(npt),casaflux%pupland(npt),xkNlimiting(npt),xnplimit(npt),xNPuptake(npt)
 
   call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
@@ -1618,11 +1618,11 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 !  casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
 !  casapool%Psoillab = max(casapool%Psoillab,0.1)
 
-    write(*,901) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
-               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
-               casaflux%fracCalloc(npt,:),casaflux%fracClabile(npt),               &
-               casapool%Nsoilmin(npt), casaflux%Nupland(npt),                       &
-               casapool%psoillab(npt), casaflux%Pupland(npt)
+!    write(*,901) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
+!               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
+!               casaflux%fracCalloc(npt,:),casaflux%fracClabile(npt),               &
+!               casapool%Nsoilmin(npt), casaflux%Nupland(npt),                       &
+!               casapool%psoillab(npt), casaflux%Pupland(npt)
 901 format('after delplant: ',3(i6,2x),100(f8.4,2x))
 900 format('before delplant: ',3(i6,2x),100(f8.4,2x))
 END SUBROUTINE biogeochem
