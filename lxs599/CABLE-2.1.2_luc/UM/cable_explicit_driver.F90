@@ -56,8 +56,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
                                   CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
                                   SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype )    
+                                  GLAI, PHENPHASE, PREV_YR_SFRAC, NPP_FT_ACC,  &
+                                  RESP_W_FT_ACC,  &
+                                  iday, endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -229,7 +230,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       U_S_CAB     ! Surface friction velocity (m/s)
 
    ! end step of experiment, this step, step width, processor num
-   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
+   INTEGER, INTENT(IN) :: endstep, timestep_number, mype, iday
    REAL, INTENT(IN) ::  timestep     
    
    INTEGER:: itimestep
@@ -263,7 +264,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       GLAI, &          ! Leaf Area Index for Prognostics LAI
-      PHENPHASE        ! Phenology Phase for Casa-CNP
+      PHENPHASE, &     ! Phenology Phase for Casa-CNP
+      PREV_YR_SFRAC    ! user_anc1, previous years surface fractions
                                   
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,     &
@@ -301,8 +303,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
                                  !the same as timestep of particular RUN
    knode_gl = mype               !which processor am i on?
-   itimestep = INT(timestep)    !realize for 'call cbm' pass
-   kwidth_gl = itimestep          !width of timestep (secs)
+   itimestep = INT(timestep)     !realize for 'call cbm' pass
+   kwidth_gl = itimestep         !width of timestep (secs)
    kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
 
    !--- internal FLAGS def. specific call of CABLE from UM
@@ -341,7 +343,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sin_theta_latitude, dzsoil,                         &
                            CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
                            NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
-                           NPP_FT_ACC,RESP_W_FT_ACC )
+                           PREV_YR_SFRAC,NPP_FT_ACC,RESP_W_FT_ACC, iday )
 
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
