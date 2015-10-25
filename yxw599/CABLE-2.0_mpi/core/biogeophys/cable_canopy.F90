@@ -1537,7 +1537,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             elseif(cable_user%GS_SWITCH=='M') then
 
                gs_coeff(i,1) = (1.0/csx(i,1)) * (1.0+g1(i)*fwsoil(i)/sqrt( max(0.05,0.001*dsx(i))))
-               gs_coeff(i,1) = (1.0/csx(i,2)) * (1.0+g1(i)*fwsoil(i)/sqrt( max(0.05,0.001*dsx(i))))
+               gs_coeff(i,2) = (1.0/csx(i,1)) * (1.0+g1(i)*fwsoil(i)/sqrt( max(0.05,0.001*dsx(i))))
 
             else
               stop 'gs_model_switch failed!'
@@ -2086,7 +2086,6 @@ SUBROUTINE fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
    REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot ! fraction of transpiration to be extracted from each soil layer   
-   REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot ! fraction of transpiration to be extracted from each soil layer   
    REAL, DIMENSION(mp) :: rwater ! soil water availability
    REAL, DIMENSION(mp,3)          :: xi, ti, si
    INTEGER :: j
@@ -2135,7 +2134,6 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, fextroot, soil, ssnow, veg)
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
-   REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot ! fraction of transpiration to be extracted from each soil layer
    REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot ! fraction of transpiration to be extracted from each soil layer
    INTEGER   :: ns
    REAL, parameter ::rootgamma = 0.01   ! (19may2010)

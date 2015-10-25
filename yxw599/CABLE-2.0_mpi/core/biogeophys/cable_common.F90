@@ -80,8 +80,8 @@ MODULE cable_common_module
          CONSISTENCY_CHECK = .FALSE.,  & !
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED  = .FALSE.!
-         L_newProfile          = .FALSE., & ! BP 2015 - new transpiration extraction profile
+         CABLE_RUNTIME_COUPLED  = .FALSE., & !
+         L_newProfile          = .FALSE.     ! BP 2015 - new transpiration extraction profile
 
 
    END TYPE kbl_user_switches
