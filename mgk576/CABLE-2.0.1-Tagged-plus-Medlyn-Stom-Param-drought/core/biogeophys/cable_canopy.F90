@@ -1653,6 +1653,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      met%dva(i) * ghr(i,2) ) /                                 &
                      ( air%dsatdk(i) + psycst(i,2) )
 
+            ! Print number of days the WUE bug appears.
+            IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) THEN
+               print *, "***** yes WUE bug"
+            ELSE
+               print *, "***** no WUE bug"
+            ENDIF
+
+
             ! MDK 26 March 2015.
             ! If using the Zhou model I have turned off recalculation of
             ! transpiration under the assumption the model is sufficient to
