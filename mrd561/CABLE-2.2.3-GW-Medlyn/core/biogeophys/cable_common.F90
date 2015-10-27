@@ -89,8 +89,7 @@ MODULE cable_common_module
          ! L.Stevens - Test Switches
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
-         L_NEW_REDUCE_SOILEVP  = .FALSE., & !
-         g1map = .FALSE. !jtk561
+         L_NEW_REDUCE_SOILEVP  = .FALSE.
      !MD
       LOGICAL :: GW_MODEL = .FALSE.
       LOGICAL :: alt_forcing = .FALSE.
@@ -117,7 +116,6 @@ MODULE cable_common_module
       soil,       & ! name of file for soil parameters
       inits,      & ! name of file for initialisations
       soilIGBP,   & ! name of file for IGBP soil map
-      g1mapfile,  & ! jtk561 name of file for g1map
       gw_elev       !name of file for gw/elevation data
 
    END TYPE filenames_type
@@ -208,13 +206,13 @@ MODULE cable_common_module
    TYPE gw_parameters_type
 
       REAL ::                   &
-        MaxSatFraction=0.7,     & !maximum fraction of cell that is saturated [qsrf]
-        MaxHorzDrainRate=1e-3, & !anisintropy [qsub]
-        EfoldHorzDrainRate=2.5, & !qsub(wtd)
-        EfoldMaxSatFrac=4.0,    & !sat frac srf (wtd)
+        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
+        MaxSatFraction=900,     & !parameter controll max sat fraction
         hkrz=0.5,               & !hksat variation with z
         zdepth=1.0,             & !level where hksat(z) = hksat(no z)
-        frozen_frac=0.05  !ice fraction to determine first non-frozen layer for qsub
+        frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+        SoilEvapAlpha = 1.0       !modify field capacity dependence of soil evap limit
 
    END TYPE gw_parameters_type
 

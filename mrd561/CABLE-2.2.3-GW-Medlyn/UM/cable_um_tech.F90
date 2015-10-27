@@ -146,19 +146,14 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
       CALL check_nmlvar('cable_user%RUN_DIAG_LEVEL', cable_user%RUN_DIAG_LEVEL)
       CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
                          cable_user%l_new_roughness_soil)
-      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
-                         cable_user%l_new_roughness_soil)
-      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
-                         cable_user%l_new_roughness_soil)
 
       !mrd561
       CALL check_nmlvar('cable_user%GW_MODEL', cable_user%GW_MODEL)
       CALL check_nmlvar('cable_user%GS_SWITCH', cable_user%GS_SWITCH)
       if (cable_user%GW_MODEL) then
-         CALL check_nmlvar('gw_params%MaxSatFraction', gw_params%MaxSatFraction)
          CALL check_nmlvar('gw_params%MaxHorzDrainRate', gw_params%MaxHorzDrainRate)
-         CALL check_nmlvar('gw_params%EfoldHorzDrainRate', gw_params%EfoldHorzDrainRate)
-         CALL check_nmlvar('gw_params%EfoldMaxSatFrac', gw_params%EfoldMaxSatFrac)
+         CALL check_nmlvar('gw_params%MaxSatFraction', gw_params%MaxSatFraction)
+         CALL check_nmlvar('gw_params%SoilEvapAlpha', gw_params%SoilEvapAlpha)
          CALL check_nmlvar('gw_params%hkrz', gw_params%hkrz)
          CALL check_nmlvar('gw_params%zdepth', gw_params%zdepth)
          CALL check_nmlvar('gw_params%frozen_frac', gw_params%frozen_frac)
@@ -297,6 +292,10 @@ SUBROUTINE dealloc_vegin_soilin()
       DEALLOCATE(vegin%csoil)
       DEALLOCATE(vegin%ratecp)
       DEALLOCATE(vegin%ratecs)
+      DEALLOCATE(vegin%g0c3)
+      DEALLOCATE(vegin%g0c4)
+      DEALLOCATE(vegin%g1c3)
+      DEALLOCATE(vegin%g1c4)  
      
       DEALLOCATE(soilin%silt)
       DEALLOCATE(soilin%clay)

@@ -310,9 +310,7 @@ MODULE cable_def_types_mod
          g0c3,    & ! Belinda's stomatal model intercept, Ticket #56.
          g0c4,    & ! Belinda's stomatal model intercept, Ticket #56.
          g1c3,    & ! Belinda's stomatal model slope, Ticket #56.   
-         g1c4,    &  ! Belinda's stomatal model slope, Ticket #56. 
-         g1c3_map, & ! jtk561, map version
-         g0c3_map    ! ditto
+         g1c4        ! Belinda's stomatal model slope, Ticket #56. 
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -320,7 +318,7 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          refl,    &
          taul,    & 
-         froot      ! fraction of root in each soil layer
+         froot,froot_w      ! fraction of root in each soil layer
 
    END TYPE veg_parameter_type
 
@@ -350,6 +348,10 @@ MODULE cable_def_types_mod
          fnpp,    & ! npp flux
          fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
+         gswx_1,  & ! sunlit cond, jtk561
+         gswx_2,  & ! shaded cond, jtk561
+         gswmin_1, & ! min sunlint cond, jtk561
+         gswmin_2, & ! min shaded cond, jtk561
          gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
          wetfac_cs,&! 
@@ -835,6 +837,10 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
+
+   ALLOCATE( var%froot_w(mp,ms) ) 
+
+
    ALLOCATE( var%refl(mp,3) ) !jhan:swb?
    ALLOCATE( var%taul(mp,3) ) !MDeck->cable_parameters.F90 tries to access taul(:,3)
    ALLOCATE( var%vlaimax(mp) ) 
@@ -842,8 +848,6 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var% g0c4(mp) )   ! Ticket #56.
    ALLOCATE( var% g1c3(mp) )   ! Ticket #56.
    ALLOCATE( var% g1c4(mp) )   ! Ticket #56. 
-   ALLOCATE( var% g1c3_map(mp) ) ! jtk561
-   ALLOCATE( var% g0c3_map(mp) ) ! jtk561
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -899,6 +903,10 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fnpp(mp) )   
    ALLOCATE( var% fevw_pot(mp) )  
    ALLOCATE( var% gswx_T(mp) )  
+   ALLOCATE( var% gswx_1(mp) ) ! jtk561
+   ALLOCATE( var% gswx_2(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_1(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_2(mp) ) ! jtk561 
    ALLOCATE( var% cdtq(mp) )   
    ALLOCATE( var% wetfac_cs(mp) )  
    ALLOCATE( var% fevw(mp) )   
@@ -1294,14 +1302,15 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%wai )   
    DEALLOCATE( var%deciduous ) 
    DEALLOCATE( var%froot) 
+
+   DEALLOCATE( var%froot_w) 
+
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
    DEALLOCATE( var%g0c3 ) ! Ticket #56.
    DEALLOCATE( var%g0c4 ) ! Ticket #56. 
    DEALLOCATE( var%g1c3 ) ! Ticket #56.
    DEALLOCATE( var%g1c4 ) ! Ticket #56.
-   DEALLOCATE( var%g1c3_map ) ! jtk561
-   DEALLOCATE( var%g0c3_map ) ! jtk561
    
 END SUBROUTINE dealloc_veg_parameter_type
    
@@ -1356,6 +1365,10 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fnpp )   
    DEALLOCATE( var% fevw_pot )  
    DEALLOCATE( var% gswx_T )  
+   DEALLOCATE( var% gswx_1 ) ! jtk561
+   DEALLOCATE( var% gswx_2 ) ! jtk561 
+   DEALLOCATE( var% gswmin_1)  ! jtk561
+   DEALLOCATE( var% gswmin_2)  ! jtk561
    DEALLOCATE( var% cdtq )   
    DEALLOCATE( var% wetfac_cs )  
    DEALLOCATE( var% fevw )   

@@ -154,8 +154,11 @@ MODULE cable_checks_module
            g0c4 = (/-999999.0,999999.0/),      & ! Ticket #56 (must find better range)
            g1c3 = (/-999999.0,999999.0/),      & ! Ticket #56 (must find better range)
            g1c4 = (/-999999.0,999999.0/),      & ! Ticket #56 (must find better range)
-           g0c3_map = (/-999999.0,999999.0/),  & ! Ticket #56 (must find better range)
-           g1c3_map = (/-999999.0,999999.0/),  & ! Ticket #56 (must find better range)
+           cancd = (/-999999.0,999999.0/),     & ! jtk561 (must have betterrange)
+           gswx_1 = (/-999999.0,999999.0/),    & ! jtk561 (must havebetterrange)
+           gswx_2 = (/-999999.0,999999.0/),    & ! jtk561 (must have betterrange)
+           gswmin_1 = (/-999999.0,999999.0/),  & ! jtk561 (must havebetterrange)
+           gswmin_2 = (/-999999.0,999999.0/),  & ! jtk561 (must havebetterrange)
            xalbnir = (/0.0,1.5/),              &
            meth = (/0.0,1.0/),                 &
            za =(/0.0,150.0/),                  &

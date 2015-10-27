@@ -162,24 +162,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
 
-   REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
-   REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
-
-   REAL(r_2) :: default_ti_mean
-   REAL(r_2) :: default_ti_sig
-
-   default_ti_sig  = 0.05
-   default_ti_mean = 0.006
-
-   psi_o(1:3)  = -66000._r_2
-   psi_o(4)    = -35000._r_2
-   psi_o(5)    = -83000._r_2
-   psi_o(6:17) = -74000._r_2
-
-   psi_c(1:3)  = -2550000._r_2
-   psi_c(4)    = -2240000._r_2
-   psi_c(5)    = -4280000._r_2
-   psi_c(6:17) = -2750000._r_2
+   REAL(r_2), parameter :: ti_mean_minimum = 0.0002_r_2
+   REAL(r_2), parameter :: ti_sig_minimum = 0.0002_r_2
 
       IF( first_call ) THEN 
 
@@ -260,7 +244,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
             end do
          end do
          soil%slope(:) = real(pack(fwork(:,:),um1%l_tile_pts) ,r_2)
-         soil%slope(:) = max(min(soil%slope(:),0.7),0.0002)
+         soil%slope(:) = max(min(soil%slope(:),0.7),ti_mean_minimum)
  
          fwork(:,:) = 0.05 
          DO n=1,um1%NTILES
@@ -270,7 +254,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
             end do
          end do
          soil%slope_std(:) = real(pack(fwork(:,:),um1%l_tile_pts) ,r_2)
-         soil%slope_std(:) = max(min(soil%slope_std(:),0.7),0.0002)
+         soil%slope_std(:) = max(min(soil%slope_std(:),0.7),ti_sig_minimum)
          deallocate(fwork) 
             
          !--- (re)set values for CABLE
@@ -471,7 +455,7 @@ END SUBROUTINE init_respiration
 SUBROUTINE init_veg_pars_fr_vegin() 
    USE cable_common_module, ONLY : vegin, cable_user
    USE cable_um_tech_mod,   ONLY : veg, soil 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, ms
 
    INTEGER :: k
 
@@ -505,16 +489,62 @@ SUBROUTINE init_veg_pars_fr_vegin()
         veg%taul(:,k)   = vegin%taul(k,veg%iveg)
       enddo
 
-      !froot fixed here for all vegetation types for ACCESS
-      !need more flexibility in next version to read in or parameterise
-      veg%froot(:,1) = 0.05
-      veg%froot(:,2) = 0.20
-      veg%froot(:,3) = 0.20
-      veg%froot(:,4) = 0.20
-      veg%froot(:,5) = 0.20
-      veg%froot(:,6) = 0.15
+      !if (cable_user%gw_model) then
+      !   call init_variable_froot()
+      !else
+         veg%froot(:,1) = 0.05
+         veg%froot(:,2) = 0.20
+         veg%froot(:,3) = 0.20
+         veg%froot(:,4) = 0.20
+         veg%froot(:,5) = 0.20
+         veg%froot(:,6) = 0.15
+      !end if
+
 
 END SUBROUTINE init_veg_pars_fr_vegin
+
+SUBROUTINE init_variable_froot()
+   USE cable_common_module, ONLY : vegin, cable_user
+   USE cable_um_tech_mod,   ONLY : veg, soil 
+   USE cable_def_types_mod, ONLY : mp, ms
+
+   real, dimension(17) :: r_a, r_b
+   real :: dz_sum
+   INTEGER :: k,i
+
+
+   r_a(:) = (/7.0,7.0,7.0,6.0,7.0,11.0,11.0,11.0,6.0,6.0,11.0,11.0,11.0,11.0,11.0,11.0,11.0/)
+   r_b(:) = (/2.0,1.0,2.0,2.0,1.5,2.0 ,2.0 ,2.0 ,3.0,3.0,2.0 ,2.0 ,2.0 ,2.0 ,2.0 ,2.0 ,2.0 /)
+
+      !froot fixed here for all vegetation types for ACCESS
+      !need more flexibility in next version to read in or parameterise
+      dz_sum = 0.0
+      do k=1,ms-1
+         veg%froot(:,k) = 0.5* (exp(-r_a(veg%iveg(:))*dz_sum) + &
+                                exp(-r_b(veg%iveg(:))*dz_sum) - &
+                                exp(-r_a(veg%iveg(:))*(dz_sum+soil%zse(k))) - &
+                                exp(-r_b(veg%iveg(:))*(dz_sum+soil%zse(k))) ) 
+         dz_sum = dz_sum + soil%zse(k)
+      end do
+
+      k = ms
+      veg%froot(:,k) = 0.5* (exp(-r_a(veg%iveg(:))*dz_sum) + &
+                             exp(-r_b(veg%iveg(:))*dz_sum)  )
+
+      do i=1,mp
+         if (abs(sum(veg%froot(i,:),dim=1)-1.) .gt. 1e-6) then
+           do k=1,ms
+              veg%froot(i,k) = veg%froot(i,k) / max(1e-3,sum(veg%froot(i,:),dim=1))
+           end do
+         end if
+      end do
+
+      do i=1,mp
+         if (veg%iveg(i) .eq. 16 .or. veg%iveg(i) .eq. 17) then
+            veg%froot(i,:) = 0.
+         end if
+      end do 
+END SUBROUTINE init_variable_froot
 
 !========================================================================
 !========================================================================

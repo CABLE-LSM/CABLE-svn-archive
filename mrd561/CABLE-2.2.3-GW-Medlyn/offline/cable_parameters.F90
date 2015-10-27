@@ -109,10 +109,6 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
 
- ! jtk561 - g1map
-  REAL, DIMENSION(:, :),        ALLOCATABLE :: ing1c3
-  REAL, DIMENSION(:, :),        ALLOCATABLE :: ing0c3
- 
   !MD temp vars for reading in aquifer properties
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWssat
@@ -168,10 +164,6 @@ CONTAINS
       CALL spatialSoil(nlon, nlat, npatch, logn)
     ENDIF
 
-    ! jtk561 - reading g1_map
-    IF (cable_user%g1map) THEN
-        CALL read_g1map(logn)
-    END IF
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
 
@@ -851,87 +843,6 @@ CONTAINS
   END SUBROUTINE spatialSoil
   !=============================================================================
 
-! jtk561 - subroutine to read g1 from map 
-
-!=============================================================
-
-  SUBROUTINE read_g1map(logn)
-
-    USE netcdf
-
-    USE cable_common_module, ONLY : filename
-
-    IMPLICIT NONE
-
-    INTEGER, INTENT(IN) ::  logn ! log file unit number
-    !Local variables?
-    INTEGER :: ncid, ok
-    INTEGER :: nlon
-    INTEGER :: nlat
-    INTEGER :: xID, yID
-    INTEGER :: varID
-    INTEGER :: r, e
-    REAL,    DIMENSION(:),          ALLOCATABLE :: inLong1map
-    REAL,    DIMENSION(:),          ALLOCATABLE :: inLatg1map
-
-    ok = NF90_OPEN(filename%g1mapfile, 0, ncid)
-
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening g1 file.')
-
-    ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
-    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring x dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, xID, LEN=nlon)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting x dimension.')
-    ok = NF90_INQ_DIMID(ncid, 'latitude', yID)
-    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'y', yID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
-
-
-    ALLOCATE( inLong1map(nlon), inLatg1map(nlat) )
-    ALLOCATE( ing0c3(nlon, nlat) )
-    ALLOCATE( ing1c3(nlon,nlat)  )
-
-    ok = NF90_INQ_VARID(ncid, 'longitude', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error finding variable longitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLong1map)
-
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error reading variable longitude.')
-
-    DO r = 1, nlon
-      IF ( inLong1map(r) /= inLon(r) ) CALL nc_abort(ok,                     &
-                                               'Wrong resolution in longitude.')
-    END DO
-
-    ok = NF90_INQ_VARID(ncid, 'latitude', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLatg1map)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
-
-    DO r = 1, nlat
-      IF ( inLatg1map(r) /= inLat(r) ) CALL nc_abort(ok,                     &
-                                               'Wrong resolution in latitude.')
-    END DO
-    ok = NF90_INQ_VARID(ncid, 'g0c3', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding g0c3')
-    ok = NF90_GET_VAR(ncid, varID, ing0c3)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading g0c3')
-    ok = NF90_INQ_VARID(ncid, 'g1c3', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding g1c3')
-    ok = NF90_GET_VAR(ncid, varID, ing1c3)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading g1c3')
-    ok = NF90_CLOSE(ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing g1 file.')
-
-    END SUBROUTINE read_g1map 
-
-!====================================================================
-
-
 
   SUBROUTINE NSflip(nlon, nlat, invar)
     IMPLICIT NONE
@@ -1048,6 +959,7 @@ CONTAINS
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
+          landpt(kk)%tilenumber(landpt(kk)%nap) = 1
         ELSE
           PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1. because npatch=',npatch
           PRINT *, 'If soil patches exist, add new code.'
@@ -1354,15 +1266,6 @@ CONTAINS
 
       ENDIF
 
- ! jtk561 - reading g1map
-
-     IF (cable_user%g1map) THEN
-       veg%g1c3_map(landpt(e)%cstart:landpt(e)%cend) =                        &
-                                     ing1c3(landpt(e)%ilon, landpt(e)%ilat) 
-       veg%g0c3_map(landpt(e)%cstart:landpt(e)%cend) =                        &
-                                     ing0c3(landpt(e)%ilon, landpt(e)%ilat)
-    END IF
-
 ! offline only below
        ! If user defined veg types are present in the met file then use them. 
        ! This means that if met file just has veg type and no other parameters,
@@ -1508,7 +1411,6 @@ CONTAINS
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
     if (allocated(inSoilColor)) deallocate(inSoilColor)
-    IF (cable_user%g1map) DEALLOCATE(ing0c3,ing1c3)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
 !    IF(ASSOCIATED(vegtype_metfile)) DEALLOCATE(vegtype_metfile)
