@@ -96,7 +96,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       r_sc,          & !
       zscl,          & !
       pwet,          & !   
-      dq,            & ! sat sp
+      dq,dq2,            & ! sat sp
       xx1,           & !
       sum_rad_rniso, & ! 
       sum_rad_gradis   ! 
@@ -132,7 +132,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    INTEGER :: j,i
    
    INTEGER, SAVE :: call_number =0
-   
+
    ! END header
   
  
@@ -341,7 +341,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
          if (cable_user%gw_model) then 
             do i=1,mp
-               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16)  then 
+               !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9)  then 
+               if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                   dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -351,7 +352,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          else
             dq = ssnow%qstss - met%qvair
          end if
-         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+         dq2 = ssnow%qstss - met%qvair
+         ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
           
       ENDIF
 
@@ -376,7 +378,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
          if (cable_user%gw_model) then 
             do i=1,mp
-               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16) then
+               !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
+               if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                   dq(i) = max(0.,ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -386,8 +389,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             dq = ssnow%qstss - met%qvair
 
          end if
+         dq2 = ssnow%qstss - met%qvair
          
-         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+         ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
           
       ENDIF
 
@@ -456,6 +460,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         & 
                    * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
                    canopy%vlaiw(:))*canopy%gswx(:,2)
+
+   canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
+   canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
 
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
     
@@ -610,9 +617,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fhs)/d(ssnow%tgg)
    ! d(canopy%fes)/d(dq)
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
-   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil      
+   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil     
    ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil  
-  
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
@@ -632,8 +638,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
-
-  
 
 CONTAINS
 
@@ -689,13 +693,12 @@ END FUNCTION Penman_Monteith
 
 ! ------------------------------------------------------------------------------
 ! method alternative to P-M formula above
-FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
+FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
 
    USE cable_def_types_mod, only : mp
-   
    REAL, DIMENSION(mp) ::                                                      &
       ssnowpotev,    & ! 
-      dq,            & ! sat spec hum diff.
+      dq,dq2,            & ! sat spec hum diff.
       qstss             !dummy var for compilation
        
    INTEGER :: j
@@ -704,11 +707,14 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
       !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
       IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
          dq(j) = max( -0.1e-3, dq(j))
+         dq2(j) = max( -0.1e-3, dq2(j))
    ENDDO 
-   
-   ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
-   !if I alter resitance here need to incorporate term into derivates around
-   !Line 612
+  
+   if (.not.cable_user%GW_MODEL) then 
+      ssnowpotev =air%rho * air%rlam * dq2 /ssnow%rtsoil
+   else
+      ssnowpotev = air%rho * air%rlam * dq /ssnow%rtsoil
+   end if
    
 END FUNCTION Humidity_deficit_method
 
@@ -1244,7 +1250,7 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
                    MAX( cansat, 0.01 ) ) )
 
 
-   !use top-model based wet fraction at the surface
+   !use soil hetero based wet fraction at the surface
    IF (cable_runtime%run_gw_model) then
   
      call calc_srf_wet_fraction(ssnow,soil)
@@ -1406,17 +1412,18 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
       IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
+         veg%froot_w = veg%froot
       ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
+         veg%froot_w = veg%froot
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Ktaul 2000') THEN
-         CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+         CALL fwsoil_calc_Lai_Ktaul(fwsoil,soil, ssnow, veg) 
+         veg%froot_w = veg%froot
       ELSE
          write(*,*) 'cable fwsoil_swith is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
       ENDIF
-
-      ELSE
 
    ENDIF
 
@@ -1603,11 +1610,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
                
-                IF (cable_user%g1map) THEN
-                    gswmin = veg%g0c3_map(i)
-                ELSE 
-                    gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
-                END IF                
+                gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
 
                 IF (dsx(i) < 50.0) THEN
                     vpd  = 0.05 ! kPa
@@ -1615,12 +1618,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     vpd = dsx(i) * 1E-03 ! Pa -> kPa  
                 END IF
 
-                IF (cable_user%g1map) THEN
-                    g1 = veg%g1c3_map(i) 
-                ELSE
-                    g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
+                g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
                         (veg%g1c4(i)  * veg%frac4(i))
-                END IF            
 
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
@@ -1687,8 +1686,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            / air%rlam(i)
 
                DO kk = 1,ms
-                  
-                  ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                  ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot_w(i,kk),      &
                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
@@ -1825,6 +1823,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%frday = 12.0 * SUM(rdy, 2)
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
+
+   canopy%gswmin_1 = gswmin(:,1)
+   canopy%gswmin_2 = gswmin(:,2)
+
    
    DEALLOCATE( gswmin )
 
@@ -2133,78 +2135,11 @@ END FUNCTION xejmxt3
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE fwsoil_calc_pressure(fwsoil,soil,ssnow,veg)
-   USE cable_def_types_mod
-   REAL, DIMENSION(:),         INTENT(INOUT) :: fwsoil
-   TYPE (soil_parameter_type), INTENT(IN)    :: soil
-   TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
-   TYPE (veg_parameter_type),  INTENT(IN)    :: veg
-
-   !Local Variables
-   !For now put pft constants here
-   !move to def_veg_parameters file if sucessful
-
-   REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
-   REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
-
-   INTEGER :: i,j,k
-
-   psi_o(1:3)  = -66000._r_2
-   psi_o(4)    = -35000._r_2
-   psi_o(5)    = -83000._r_2
-   psi_o(6:17) = -74000._r_2
-
-   psi_c(1:3)  = -255000._r_2
-   psi_c(4)    = -224000._r_2
-   psi_c(5)    = -428000._r_2
-   psi_c(6:17) = -275000._r_2   
-
-   !if it is the first timestep we haven't called hydrology so wbliq isn't yet defined
-   ssnow%wbliq = ssnow%wb - ssnow%wbice  !liquid volume.  not this assumes density ice = density liquid
-
-   psi_tmp = -soil%smpsat(:,:) * (max(0.01,(ssnow%wb-ssnow%wbice)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
-   fwsoil(:) = 1.
-   do i=1,mp
-      fwsoil(i) = 0.
-      j = veg%iveg(i)
-      do k=1,ms
-         fwsoil(i) = fwsoil(i) + veg%froot(i,k) * max(0.0,min(1.0,&
-                                 (psi_c(j)-psi_tmp(i,k))/(psi_c(j)-psi_o(j))*&
-                                 (soil%watsat(i,k)-ssnow%wbice(i,k))/soil%watsat(i,k)))
-      end do
-
-   end do
-
-END SUBROUTINE fwsoil_calc_pressure
-
-
-! ------------------------------------------------------------------------------
-
-SUBROUTINE fwsoil_mass_calc_std(fwsoil, soil, ssnow, veg)
-   USE cable_def_types_mod
-   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-   REAL, DIMENSION(mp) :: rwater ! soil water availability
-
-   rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
-            SPREAD(1.1*soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
-  
-   fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
- 
-END SUBROUTINE fwsoil_mass_calc_std
-
-! ------------------------------------------------------------------------------
-
-
-
 ! ------------------------------------------------------------------------------
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
    REAL, DIMENSION(mp) :: rwater ! soil water availability
@@ -2218,6 +2153,40 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
    fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
       
 END SUBROUTINE fwsoil_calc_std 
+
+! ------------------------------------------------------------------------------
+SUBROUTINE fwsoil_calc_linear(fwsoil, soil, ssnow, veg) 
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL(r_2), DIMENSION(mp) :: rwater ! soil water availability
+   REAL(r_2), DIMENSION(mp,ms) :: wbliq
+
+   INTEGER :: i,k
+
+   wbliq(:,:) = max(0._r_2, ssnow%wb - ssnow%wbice )
+
+   rwater = MAX(1.0e-4_r_2,                                                    &
+            SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,(wbliq -  &
+            soil%wiltp) /(soil%fldcap-soil%wiltp))) ) ) 
+   ! Remove vbeta
+   !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
+   do i=1,mp
+      if ((rwater(i) .gt. 1._r_2) .and. (rwater(i) .gt. 0.)) then
+         do k=1,ms
+            veg%froot_w(i,k) = veg%froot(i,k)* real( MAX(0._r_2,MIN(1.0_r_2,(wbliq(i,k) -  &
+            soil%wiltp(i,k)) /(soil%fldcap(i,k)-soil%wiltp(i,k)))) / rwater(i) )
+         end do
+      else
+         veg%froot(i,:) = 0.
+      end if
+   end do
+
+   fwsoil = MAX(1.0e-4,MIN(1.0, real(rwater) ) )
+      
+END SUBROUTINE fwsoil_calc_linear
 
 ! ------------------------------------------------------------------------------
 
@@ -2299,6 +2268,4 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
 END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
-
-    
 END MODULE cable_canopy_module
