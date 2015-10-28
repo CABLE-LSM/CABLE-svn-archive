@@ -1668,7 +1668,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                            soil%zse(kk) * 1000.0 )
                   ENDDO
 
-                  
+                  IF (ecx(i) > SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels / (1.0-canopy%fwet(i))) THEN
+                     print *, "***** yes WUE bug"
+                  ELSE
+                     print *, "***** no WUE bug"
+                  ENDIF
                ENDIF
             ENDIF
 
