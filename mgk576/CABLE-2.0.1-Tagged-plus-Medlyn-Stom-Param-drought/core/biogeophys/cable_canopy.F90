@@ -1660,7 +1660,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                ELSE
                   print *, "***** no WUE buy"
                ENDIF
-            ELSE
+            ENDIF
 
             ! MDK 26 March 2015.
             ! If using the Zhou model I have turned off recalculation of
