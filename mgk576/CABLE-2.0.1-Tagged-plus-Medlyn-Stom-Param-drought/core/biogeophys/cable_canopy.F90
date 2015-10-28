@@ -1664,7 +1664,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                   evapfb_wue_chk(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
                                       / air%rlam(i)
                   DO kk = 1,ms
-                     evapfbl_wue_chk(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                     evapfbl_wue_chk(i,kk) = MIN( evapfb_wue_chk(i) * veg%froot(i,kk),      &
                                            MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
                                            1.1 * soil%swilt(i) ) *                &
                                            soil%zse(kk) * 1000.0 )
