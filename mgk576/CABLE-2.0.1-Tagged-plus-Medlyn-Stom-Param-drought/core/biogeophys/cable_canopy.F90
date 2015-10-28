@@ -1673,6 +1673,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                   ELSE
                      print *, "***** no WUE bug"
                   ENDIF
+               ENDIF
             ENDIF
 
             ! MDK 26 March 2015.
