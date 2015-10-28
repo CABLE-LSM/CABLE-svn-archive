@@ -1654,12 +1654,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      ( air%dsatdk(i) + psycst(i,2) )
 
             ! Print number of days the WUE bug appears.
-            IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) THEN
-               print *, "***** yes WUE bug"
+            IF(cable_user%FWSOIL_SWITCH .ne. 'no_drought') THEN
+               IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) THEN
+                  print *, "***** yes WUE bug"
+               ELSE
+                  print *, "***** no WUE buy"
+               ENDIF
             ELSE
-               print *, "***** no WUE bug"
-            ENDIF
-
 
             ! MDK 26 March 2015.
             ! If using the Zhou model I have turned off recalculation of
