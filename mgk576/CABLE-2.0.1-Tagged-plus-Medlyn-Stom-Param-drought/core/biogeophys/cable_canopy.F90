@@ -1657,56 +1657,47 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      ( air%dsatdk(i) + psycst(i,2) )
 
             ! Print number of days the WUE bug appears.
-            IF(cable_user%FWSOIL_SWITCH .ne. 'no_drought') THEN
-               evapfb_wue_chk = 0.0
-               evapfbl_wue_chk = 0.0
-               IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) THEN
-                  evapfb_wue_chk(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
-                                      / air%rlam(i)
-                  DO kk = 1,ms
-                     evapfbl_wue_chk(i,kk) = MIN( evapfb_wue_chk(i) * veg%froot(i,kk),      &
-                                           MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                           1.1 * soil%swilt(i) ) *                &
-                                           soil%zse(kk) * 1000.0 )
-                  ENDDO
+            !IF(cable_user%FWSOIL_SWITCH .ne. 'no_drought') THEN
+            !   evapfb_wue_chk = 0.0
+            !   evapfbl_wue_chk = 0.0
+            !   IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) THEN
+            !      evapfb_wue_chk(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
+            !                          / air%rlam(i)
+            !      DO kk = 1,ms
+            !         evapfbl_wue_chk(i,kk) = MIN( evapfb_wue_chk(i) * veg%froot(i,kk),      &
+            !                               MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+            !                               1.1 * soil%swilt(i) ) *                &
+            !                               soil%zse(kk) * 1000.0 )
+            !      ENDDO
+            !
+            !      IF (ecx(i) > (SUM(evapfbl_wue_chk(i,:))*air%rlam(i)/dels) / (1.0-canopy%fwet(i))) THEN
+            !         print *, "***** yes WUE bug", ecx(i), (SUM(evapfbl_wue_chk(i,:))*air%rlam(i)/dels) / (1.0-canopy%fwet(i))
+            !      ELSE
+            !         print *, "***** no WUE bug"
+            !      ENDIF
+            !   ENDIF
+            !ENDIF
 
-                  IF (ecx(i) > (SUM(evapfbl_wue_chk(i,:))*air%rlam(i)/dels) / (1.0-canopy%fwet(i))) THEN
-                     print *, "***** yes WUE bug", ecx(i), (SUM(evapfbl_wue_chk(i,:))*air%rlam(i)/dels) / (1.0-canopy%fwet(i))
-                  ELSE
-                     print *, "***** no WUE bug"
-                  ENDIF
-               ENDIF
+
+             IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+                evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
+                            / air%rlam(i)
+
+                DO kk = 1,ms
+
+                   ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                         1.1 * soil%swilt(i) ) *                &
+                                         soil%zse(kk) * 1000.0 )
+
+                ENDDO
+
+                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
+
+                ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+
             ENDIF
-
-            ! MDK 26 March 2015.
-            ! If using the Zhou model I have turned off recalculation of
-            ! transpiration under the assumption the model is sufficient to
-            ! down-regulate fwsoil appropriately.
-            IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
-               cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
-               cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-               !print *, "Turned off recalc of transpiration"
-               continue
-            ELSE
-                IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
-                   evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
-                               / air%rlam(i)
-
-                   DO kk = 1,ms
-
-                      ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
-                                            MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                            1.1 * soil%swilt(i) ) *                &
-                                            soil%zse(kk) * 1000.0 )
-
-                   ENDDO
-
-                   canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
-
-                   ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
-
-                ENDIF
-            ENDIF
+            
 
             ! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
