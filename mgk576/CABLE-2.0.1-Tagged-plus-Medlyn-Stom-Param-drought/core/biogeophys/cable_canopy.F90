@@ -1678,26 +1678,34 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             !   ENDIF
             !ENDIF
 
+            ! Turn off re-calculation of transpiration
+            ! Martin De Kauwe, 17 March 2015,
+            IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+               cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+               cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+               continue
+               !print *, "Turned off recalc of transpiration"
+            ELSE
 
-             IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
-                evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
-                            / air%rlam(i)
+                IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+                   evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
+                               / air%rlam(i)
 
-                DO kk = 1,ms
+                   DO kk = 1,ms
 
-                   ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
-                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                         1.1 * soil%swilt(i) ) *                &
-                                         soil%zse(kk) * 1000.0 )
+                      ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                                            MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                            1.1 * soil%swilt(i) ) *                &
+                                            soil%zse(kk) * 1000.0 )
 
-                ENDDO
+                   ENDDO
 
-                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
+                   canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
 
-                ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+                   ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 
+               ENDIF
             ENDIF
-            
 
             ! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
