@@ -1317,7 +1317,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       temp             !
 
    REAL, DIMENSION(mp) :: evapfb_wue_chk
-   REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk
+   REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_need
+   REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_actual
 
    REAL(r_2), DIMENSION(mp)  ::                                                &
       ecx,        & ! lat. hflux big leaf
@@ -1686,9 +1687,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                !continue
                !print *, "Turned off recalc of transpiration"
 
-               REAL, DIMENSION(mp) :: evapfb_wue_chk
-               REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_need
-               REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_actual
+
 
 
                IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
