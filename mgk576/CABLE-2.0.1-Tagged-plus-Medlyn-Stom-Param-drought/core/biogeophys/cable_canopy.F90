@@ -1316,9 +1316,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                        ! wet canopy evaporation rate
       temp             !
 
-   REAL, DIMENSION(mp) :: evapfb_wue_chk
-   REAL, DIMENSION(mp)  :: evap_needed
-   REAL, DIMENSION(mp,ms)  :: evap_actual
+   REAL, DIMENSION(mp)  :: evap_possible
+   REAL, DIMENSION(mp,ms)  :: max_sw_avail
 
    REAL(r_2), DIMENSION(mp)  ::                                                &
       ecx,        & ! lat. hflux big leaf
@@ -1657,27 +1656,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      met%dva(i) * ghr(i,2) ) /                                 &
                      ( air%dsatdk(i) + psycst(i,2) )
 
-            ! Print number of days the WUE bug appears.
-            !IF(cable_user%FWSOIL_SWITCH .ne. 'no_drought') THEN
-            !   evapfb_wue_chk = 0.0
-            !   evapfbl_wue_chk = 0.0
-            !   IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) THEN
-            !      evapfb_wue_chk(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
-            !                          / air%rlam(i)
-            !      DO kk = 1,ms
-            !         evapfbl_wue_chk(i,kk) = MIN( evapfb_wue_chk(i) * veg%froot(i,kk),      &
-            !                               MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-            !                               1.1 * soil%swilt(i) ) *                &
-            !                               soil%zse(kk) * 1000.0 )
-            !      ENDDO
-            !
-            !      IF (ecx(i) > (SUM(evapfbl_wue_chk(i,:))*air%rlam(i)/dels) / (1.0-canopy%fwet(i))) THEN
-            !         print *, "***** yes WUE bug", ecx(i), (SUM(evapfbl_wue_chk(i,:))*air%rlam(i)/dels) / (1.0-canopy%fwet(i))
-            !      ELSE
-            !         print *, "***** no WUE bug"
-            !      ENDIF
-            !   ENDIF
-            !ENDIF
+
 
             ! Turn off re-calculation of transpiration
             ! Martin De Kauwe, 17 March 2015,
@@ -1687,15 +1666,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                !continue
                !print *, "Turned off recalc of transpiration"
 
-               REAL, DIMENSION(mp) :: evapfb_wue_chk
-               REAL, DIMENSION(mp)  :: evap_possible
-               REAL, DIMENSION(mp,ms)  :: max_sw_avail
-
-
                IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
-                  evapfb_wue_chk(i) = ( 1.0 - canopy%fwet(i)) * &
-                                       REAL( ecx(i) ) *dels      &
-                                       / air%rlam(i)
 
                   DO kk = 1,ms
 
@@ -1710,7 +1681,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                   ! Check to see if amount we need to transpire is bigger
                   ! than the supply from SW, if so set transpiration to
                   ! the available SW
-                  evap_possible(i) = ( SUM(max_sw_avail(i,:))*air%rlam(i)/dels )&
+                  evap_possible(i) = (SUM(max_sw_avail(i,:))*air%rlam(i)/dels) &
                                        / (1.0-canopy%fwet(i))
 
 
