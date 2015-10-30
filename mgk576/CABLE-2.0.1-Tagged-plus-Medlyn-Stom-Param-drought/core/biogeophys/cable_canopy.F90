@@ -1689,8 +1689,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      ecx(i) = evap_possible(i)
                      canopy%fevc(i) = SUM(max_sw_avail(i,:))*air%rlam(i)/dels
                      print*, "wue bug"
-                  ELSE
-                     print*, "fine"
+
                   ENDIF
 
               ENDIF
