@@ -1716,7 +1716,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      ecx(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels &
                                     / (1.0-canopy%fwet(i))
                      canopy%fevc(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels
-                     
+                  ENDIF
                   !IF ( SUM(evapfbl_wue_chk_need(i,:)) > SUM(evapfbl_wue_chk_actual(i,:)) ) THEN
                   !   canopy%fevc(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels
                   !ELSE
