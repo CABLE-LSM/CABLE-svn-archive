@@ -106,7 +106,7 @@ module cable_data_module
 
    type photosynthetic_constants
       integer:: maxiter=20 ! max # interations for leaf temperature
-      real :: a1c3 = 9.0
+      real :: a1c3 = 25.0 !modified by liyue from 9 to 25, in order to improve transpiration
       real :: a1c4 = 4.0
       real :: alpha3 = 0.200
       real :: alpha4  = 0.05

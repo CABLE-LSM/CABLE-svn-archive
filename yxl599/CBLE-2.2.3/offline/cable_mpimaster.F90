@@ -302,7 +302,7 @@ SUBROUTINE mpidrv_master (comm)
       
       PRINT *, 'Looking for global offline run info.'
       
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+      IF (ncciy < 1986 .OR. ncciy > 21000) THEN
          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
          PRINT *, 'Please check input in namelist file.'
 
@@ -647,14 +647,14 @@ SUBROUTINE prepareFiles(ncciy)
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
-  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
-  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
-  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
-  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
-  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
-  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
-  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
-  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
+!  CALL renameFiles(logn,gswpfile%rainf,16,ncciy,'rainf')
+!  CALL renameFiles(logn,gswpfile%snowf,16,ncciy,'snowf')
+!  CALL renameFiles(logn,gswpfile%LWdown,16,ncciy,'LWdown')
+!  CALL renameFiles(logn,gswpfile%SWdown,16,ncciy,'SWdown')
+!  CALL renameFiles(logn,gswpfile%PSurf,16,ncciy,'PSurf')
+!  CALL renameFiles(logn,gswpfile%Qair,14,ncciy,'Qair')
+!  CALL renameFiles(logn,gswpfile%Tair,14,ncciy,'Tair')
+!  CALL renameFiles(logn,gswpfile%wind,15,ncciy,'wind')
 
 END SUBROUTINE prepareFiles
 

@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg raij
+   set -A kh vayu cher burn shin jigg raij pear
 }
+
+
+## whaterver
+host_pear()
+{
+   export NCDIR='/apps/netcdf/3.6.3//lib'
+   export NCMOD='/apps/netcdf/3.6.3//include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/apps/netcdf/3.6.3//lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## jiggle

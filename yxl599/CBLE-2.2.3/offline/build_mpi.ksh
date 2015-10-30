@@ -2,8 +2,27 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin 
+   set -A kh vayu cher burn shin pear
 }
+
+
+## whatever
+host_pear()
+{
+   . /apps/modules/Modules/default/init/ksh
+   module add netcdf/3.6.3 openmpi/1.7.5
+   export NCDIR='/apps/netcdf/3.6.3//lib'
+   export NCMOD='/apps/netcdf/3.6.3//include'
+   export FC=mpif90
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/apps/netcdf/3.6.3//include -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## shine-cl.nexus.csiro.au 

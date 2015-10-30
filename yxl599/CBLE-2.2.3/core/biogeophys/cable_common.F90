@@ -79,6 +79,7 @@ MODULE cable_common_module
          CABLE_RUNTIME_COUPLED = .FALSE., & !
          ! L.Stevens - Test Switches
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
+         L_newProfile          = .FALSE., & ! BP 2015 - new transpiration extraction profile
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE.!
 
