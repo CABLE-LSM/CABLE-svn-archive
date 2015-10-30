@@ -1317,8 +1317,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       temp             !
 
    REAL, DIMENSION(mp) :: evapfb_wue_chk
-   REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_need
-   REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_actual
+   REAL, DIMENSION(mp)  :: evap_needed
+   REAL, DIMENSION(mp,ms)  :: evap_actual
 
    REAL(r_2), DIMENSION(mp)  ::                                                &
       ecx,        & ! lat. hflux big leaf
@@ -1687,7 +1687,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                !continue
                !print *, "Turned off recalc of transpiration"
 
-
+               REAL, DIMENSION(mp) :: evapfb_wue_chk
+               REAL, DIMENSION(mp)  :: evap_possible
+               REAL, DIMENSION(mp,ms)  :: max_sw_avail
 
 
                IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
@@ -1697,32 +1699,28 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                   DO kk = 1,ms
 
-                     ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
-                                           MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                           1.1 * soil%swilt(i) ) *                &
-                                           soil%zse(kk) * 1000.0 )
-
-
-                     !evapfbl_wue_chk_need(i,kk) = evapfb_wue_chk(i)
-                     evapfbl_wue_chk_actual(i,kk) = MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                                         1.1 * soil%swilt(i) ) *           &
-                                                         soil%zse(kk) * 1000.0
+                     ! Actual total evap that can be done from SW column
+                     max_sw_avail(i,kk) = MAX( 0.0, REAL( ssnow%wb(i,kk) ) -   &
+                                              1.1 * soil%swilt(i) ) *          &
+                                              soil%zse(kk) * 1000.0
 
 
                   ENDDO
 
-                  IF ( ecx(i) > SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels &
-                                    / (1.0-canopy%fwet(i)) ) THEN
-                     ecx(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels &
-                                    / (1.0-canopy%fwet(i))
-                     canopy%fevc(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels
+                  ! Check to see if amount we need to transpire is bigger
+                  ! than the supply from SW, if so set transpiration to
+                  ! the available SW
+                  evap_possible(i) = ( SUM(max_sw_avail(i,:))*air%rlam(i)/dels )&
+                                       / (1.0-canopy%fwet(i))
+
+
+                  IF ( ecx(i) > evap_possible(i) ) THEN
+                     ecx(i) = evap_possible(i)
+                     canopy%fevc(i) = SUM(max_sw_avail(i,:))*air%rlam(i)/dels
+                     print*, "wue bug"
+                  ELSE
+                     print*, "fine"
                   ENDIF
-                  !IF ( SUM(evapfbl_wue_chk_need(i,:)) > SUM(evapfbl_wue_chk_actual(i,:)) ) THEN
-                  !   canopy%fevc(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels
-                  !ELSE
-                  !   canopy%fevc(i) = SUM(evapfbl_wue_chk_need(i,:))*air%rlam(i)/dels
-                  !ENDIF
-                  !ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 
               ENDIF
 
