@@ -1656,47 +1656,105 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      met%dva(i) * ghr(i,2) ) /                                 &
                      ( air%dsatdk(i) + psycst(i,2) )
 
-
-
             ! Turn off re-calculation of transpiration
-            ! Martin De Kauwe, 17 March 2015,
+            ! in original code, by moving original recalculation code to
+            ! an else block for the paper
+            !IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+            !   cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+            !   cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+            !   !continue
+            !   !print *, "Turned off recalc of transpiration"
+
+
+            ! Re-calculation of transpiration, to match new drought scheme
+            ! Martin De Kauwe, 30th October 2015,
             IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
                cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
                cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-               !continue
-               !print *, "Turned off recalc of transpiration"
 
-               IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+               IF (cable_user%SWP_SWITCH == 'method_1') THEN
+                  ! Use standard recalculation, as below
+                  IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+                     evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
+                                 / air%rlam(i)
 
-                  DO kk = 1,ms
+                     DO kk = 1,ms
 
-                     ! Actual total evap that can be done from SW column
-                     max_sw_avail(i,kk) = MAX( 0.0, REAL( ssnow%wb(i,kk) ) -   &
-                                              1.1 * soil%swilt(i) ) *          &
-                                              soil%zse(kk) * 1000.0
+                        ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                                              MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                              1.1 * soil%swilt(i) ) *                &
+                                              soil%zse(kk) * 1000.0 )
 
+                     ENDDO
 
-                  ENDDO
-
-                  ! Check to see if amount we need to transpire is bigger
-                  ! than the supply from SW, if so set transpiration to
-                  ! the available SW
-                  evap_possible(i) = (SUM(max_sw_avail(i,:))*air%rlam(i)/dels) &
-                                       / (1.0-canopy%fwet(i))
-
-
-                  IF ( ecx(i) > evap_possible(i) ) THEN
-                     ecx(i) = evap_possible(i)
-                     canopy%fevc(i) = SUM(max_sw_avail(i,:))*air%rlam(i)/dels
-                     print*, "wue bug"
+                     canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
+                     ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 
                   ENDIF
 
+               ELSE IF (cable_user%SWP_SWITCH == 'method_2') THEN
+                  ! Recalculation of transpiration over total column,
+                  ! exclduing the bottom layer.
+                  IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+
+                     max_sw_avail = 0.0
+                     evap_possible = 0.0
+                     DO kk = 1, ms - 1 ! ignoring the bottom layer
+
+                        ! Actual total evap that can be done from SW column
+                        max_sw_avail(i,kk) = MAX( 0.0, REAL( ssnow%wb(i,kk) ) -   &
+                                                 1.1 * soil%swilt(i) ) *          &
+                                                 soil%zse(kk) * 1000.0
+
+
+                     ENDDO
+
+                     ! Check to see if amount we need to transpire is bigger
+                     ! than the supply from SW, if so set transpiration to
+                     ! the available SW
+                     evap_possible(i) = (SUM(max_sw_avail(i,:))*air%rlam(i)/dels) &
+                                          / (1.0-canopy%fwet(i))
+
+
+                     IF ( ecx(i) > evap_possible(i) ) THEN
+                        ecx(i) = evap_possible(i)
+                        canopy%fevc(i) = SUM(max_sw_avail(i,:))*air%rlam(i)/dels
+                        print*, "wue bug"
+
+                     ENDIF
+                  ENDIF
+
+               ELSE IF (cable_user%SWP_SWITCH == 'method_3') THEN
+                  ! Recalculation of transpiration over total column
+                  IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+
+                     max_sw_avail = 0.0
+                     evap_possible = 0.0
+                     DO kk = 1, ms
+
+                        ! Actual total evap that can be done from SW column
+                        max_sw_avail(i,kk) = MAX( 0.0, REAL( ssnow%wb(i,kk) ) -   &
+                                                 1.1 * soil%swilt(i) ) *          &
+                                                 soil%zse(kk) * 1000.0
+
+
+                     ENDDO
+
+                     ! Check to see if amount we need to transpire is bigger
+                     ! than the supply from SW, if so set transpiration to
+                     ! the available SW
+                     evap_possible(i) = (SUM(max_sw_avail(i,:))*air%rlam(i)/dels) &
+                                          / (1.0-canopy%fwet(i))
+
+
+                     IF ( ecx(i) > evap_possible(i) ) THEN
+                        ecx(i) = evap_possible(i)
+                        canopy%fevc(i) = SUM(max_sw_avail(i,:))*air%rlam(i)/dels
+                        print*, "wue bug"
+
+                     ENDIF
+                  ENDIF
               ENDIF
-
-
-
-
 
             ELSE
 
