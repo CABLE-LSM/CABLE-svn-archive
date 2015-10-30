@@ -1683,8 +1683,42 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
                cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
                cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-               continue
+               !continue
                !print *, "Turned off recalc of transpiration"
+
+               REAL, DIMENSION(mp) :: evapfb_wue_chk
+               REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_need
+               REAL, DIMENSION(mp,ms)  :: evapfbl_wue_chk_actual
+
+
+               IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+                  evapfb_wue_chk(i) = ( 1.0 - canopy%fwet(i)) * &
+                                       REAL( ecx(i) ) *dels      &
+                                       / air%rlam(i)
+
+                  DO kk = 1,ms
+
+                     evapfbl_wue_chk_need(i,kk) = evapfb_wue_chk(i)
+                     evapfbl_wue_chk_actual(i,kk) = MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                                         1.1 * soil%swilt(i) ) *           &
+                                                         soil%zse(kk) * 1000.0
+
+
+                  ENDDO
+
+                  IF ( SUM(evapfbl_wue_chk_need(i,:)) > SUM(evapfbl_wue_chk_actual(i,:)) ) THEN
+                     canopy%fevc(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels
+                  ELSE
+                     canopy%fevc(i) = SUM(evapfbl_wue_chk_need(i,:))*air%rlam(i)/dels
+                  ENDIF
+                  ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+
+              ENDIF
+
+
+
+
+
             ELSE
 
                 IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
