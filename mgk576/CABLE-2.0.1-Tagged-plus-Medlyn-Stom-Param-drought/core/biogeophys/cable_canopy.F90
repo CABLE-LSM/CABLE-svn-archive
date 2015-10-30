@@ -1697,7 +1697,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                   DO kk = 1,ms
 
-                     evapfbl_wue_chk_need(i,kk) = evapfb_wue_chk(i)
+                     ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                                           MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                           1.1 * soil%swilt(i) ) *                &
+                                           soil%zse(kk) * 1000.0 )
+
+
+                     !evapfbl_wue_chk_need(i,kk) = evapfb_wue_chk(i)
                      evapfbl_wue_chk_actual(i,kk) = MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
                                                          1.1 * soil%swilt(i) ) *           &
                                                          soil%zse(kk) * 1000.0
@@ -1705,12 +1711,18 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                   ENDDO
 
-                  IF ( SUM(evapfbl_wue_chk_need(i,:)) > SUM(evapfbl_wue_chk_actual(i,:)) ) THEN
+                  IF ( ecx(i) > SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels &
+                                    / (1.0-canopy%fwet(i)) ) THEN
+                     ecx(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels &
+                                    / (1.0-canopy%fwet(i))
                      canopy%fevc(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels
-                  ELSE
-                     canopy%fevc(i) = SUM(evapfbl_wue_chk_need(i,:))*air%rlam(i)/dels
-                  ENDIF
-                  ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+                     
+                  !IF ( SUM(evapfbl_wue_chk_need(i,:)) > SUM(evapfbl_wue_chk_actual(i,:)) ) THEN
+                  !   canopy%fevc(i) = SUM(evapfbl_wue_chk_actual(i,:))*air%rlam(i)/dels
+                  !ELSE
+                  !   canopy%fevc(i) = SUM(evapfbl_wue_chk_need(i,:))*air%rlam(i)/dels
+                  !ENDIF
+                  !ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 
               ENDIF
 
