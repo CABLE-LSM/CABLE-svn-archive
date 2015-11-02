@@ -1697,7 +1697,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                   IF ( ecx(i) > evap_possible(i) ) THEN
                      ecx(i) = evap_possible(i)
                      canopy%fevc(i) = SUM(max_sw_avail(i,:))*air%rlam(i)/dels
-                     print*, "wue bug"
+                     !print*, "wue bug"
 
                   ENDIF
                ENDIF
