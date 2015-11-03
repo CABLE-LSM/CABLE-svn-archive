@@ -2216,7 +2216,11 @@ SUBROUTINE fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg)
       rwater(:) = rwater(:) + fextroot(:,ns)
    enddo
 
-   fwsoil(:) = MAX(1.0e-9,MIN(1.0, veg%vbeta(:) * rwater(:)))
+
+   ! Remove vbeta
+   ! fwsoil(:) = MAX(1.0e-9,MIN(1.0, veg%vbeta(:) * rwater(:)))
+   fwsoil(:) = MAX(1.0e-9,MIN(1.0, rwater(:)))
+
 
    do ns=1,ms
       fextroot(:,ns) = fextroot(:,ns)/rwater(:)
