@@ -2237,7 +2237,7 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
        alpha_root(:) = zero
     endwhere
 
-    where (Fs(:) > 0.0)
+    where (Fs(:) > 0.05)
        delta_root(:) = one
     elsewhere
        delta_root(:) = zero
