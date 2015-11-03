@@ -343,7 +343,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
          if (cable_user%gw_model) then 
             do i=1,mp
-               !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9)  then 
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                   if (ssnow%wb(i,1) .lt. soil%watsat(i,1)) then
                      smp_srf = 1.5_r_2*ssnow%smp(i,1) - 0.5_r_2*ssnow%smp(i,2)
