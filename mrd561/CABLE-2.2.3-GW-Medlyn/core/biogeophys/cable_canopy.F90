@@ -2182,11 +2182,11 @@ SUBROUTINE fwsoil_calc_collins(fwsoil, soil, ssnow, veg)
    do k=1,ms
       do i=1,mp
          running_sum_liq_mass(i) = running_sum_liq_mass(i) + wb_liq(i,k)*soil%zse(k)*1000._r_2
-         alpha_1(i,k) = max( ssnow%wbliq(i,k) / (soil%watsat(i,k)-soil%wiltp(i,k)), &
+         alpha_1(i,k) = max( wb_liq(i,k) / max(soil%watsat(i,k)-soil%wiltp(i,k),1e-4), &
                              running_sum_liq_mass(i) / sum_liq_mass(i) )
 
          alpha_2(i,k) = min(1._r_2, max(0._r_2, &
-                           (wb_liq(i,k) - soil%wiltp(i,k)) / (soil%fldcap(i,k) - soil%wiltp(i,k)) ) )
+                           (wb_liq(i,k) - soil%wiltp(i,k)) / max(soil%fldcap(i,k) - soil%wiltp(i,k),1e-4) ) )
 
          alpha(i,k) = alpha_1(i,k) * alpha_2(i,k) * soil%zse(k) * 1000._r_2
 
@@ -2200,7 +2200,7 @@ SUBROUTINE fwsoil_calc_collins(fwsoil, soil, ssnow, veg)
 
    do i=1,mp
       if (sum_alpha(i) .gt. 1._r_2) then
-         alpha(i,:) = alpha(i,:) / sum_alpha(:)
+         alpha(i,:) = alpha(i,:) / sum_alpha(i)
          sum_alpha(:) = 1._r_2
       end if
   end do
@@ -2217,6 +2217,8 @@ SUBROUTINE fwsoil_calc_collins(fwsoil, soil, ssnow, veg)
          fwsoil(i) = 1.0
      end if
   end do
+
+  fwsoil(:) = max(1e-4,fwsoil)
         
       
 END SUBROUTINE fwsoil_calc_collins 
