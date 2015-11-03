@@ -133,8 +133,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    INTEGER, SAVE :: call_number =0
 
-   REAL(r_2) :: smp_srf
-
    ! END header
   
  
@@ -344,13 +342,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          if (cable_user%gw_model) then 
             do i=1,mp
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  if (ssnow%wb(i,1) .lt. soil%watsat(i,1)) then
-                     smp_srf = 1.5_r_2*ssnow%smp(i,1) - 0.5_r_2*ssnow%smp(i,2)
-                  else
-                     smp_srf = ssnow%smp(i,1)
-                  end if
-                  !dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*smp_srf/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
@@ -387,13 +379,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  if (ssnow%wb(i,1) .lt. soil%watsat(i,1)) then
-                     smp_srf = 1.5_r_2*ssnow%smp(i,1) - 0.5_r_2*ssnow%smp(i,2)
-                  else
-                     smp_srf = ssnow%smp(i,1)
-                  end if
-                  !dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*smp_srf/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
