@@ -64,7 +64,7 @@ MODULE cable_output_module
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar ,cancd, gswx_1, gswx_2,            &
-		            gswmin_1, gswmin_2,                                        &
+		            gswmin_1, gswmin_2, fwsoil,                                &
                     tCASA,                            &
                     !Anna casa variables
                     casaGPP, casaNPP, casaLFresp, casaWDresp,                  &
@@ -245,8 +245,9 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: gswx_2 ! shaded cond (dunno units), jtk561
     REAL(KIND=4), POINTER, DIMENSION(:) :: gswmin_1 ! min sunlit cond, jtk561
     REAL(KIND=4), POINTER, DIMENSION(:) :: gswmin_2 ! min shaded cond, jtk561
- 
- END TYPE output_temporary_type
+    REAL(KIND=4), POINTER, DIMENSION(:) :: fwsoil !soil water modifier of stom. cond.
+
+END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
 
@@ -549,8 +550,7 @@ CONTAINS
        out%gswmin_2 = 0.0 ! initialise
     END IF
     ! end modifs jtk561
-
-
+    
     IF(output%flux .OR. output%Qg) THEN
        CALL define_ovar(ncid_out, ovid%Qg, 'Qg', 'W/m^2',                      &
                         'Surface ground heat flux', patchout%Qg, 'dummy',      &
@@ -744,6 +744,16 @@ CONTAINS
        ALLOCATE(out%LAI(mp))
        out%LAI = 0.0 ! initialise
     END IF
+    
+    !amu561, adding fwsoil
+     IF(output%veg .OR. output%fwsoil) THEN
+       CALL define_ovar(ncid_out, ovid%fwsoil, 'fwsoil', 'fraction',         &
+                        'Soil water modifier of stom. cond.', patchout%fwsoil, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%fwsoil(mp))
+       out%fwsoil = 0.0 ! initialise
+    END IF
+    
     ! Define balance variables in output file and allocate temp output vars:
     IF(output%balances .OR. output%Ebal) THEN
        CALL define_ovar(ncid_out, ovid%Ebal, 'Ebal', 'W/m^2',                  &
@@ -2356,6 +2366,22 @@ CONTAINS
           out%LAI = 0.0
        END IF
     END IF
+
+    ! fwsoil: soil water modified of stomatal conductance (fractional) !amu561
+    IF(output%veg .OR. output%fwsoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fwsoil = out%fwsoil + REAL(canopy%fwsoil, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fwsoil = out%fwsoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fwsoil, 'fwsoil', out%fwsoil,       &
+                          ranges%fwsoil, patchout%fwsoil, 'default', met)
+          ! Reset temporary output variable:
+          out%fwsoil = 0.0
+       END IF
+    END IF
+
     !------------------------WRITE BALANCES DATA--------------------------------
     ! Ebal: cumulative energy balance [W/m^2]
     IF(output%balances .OR. output%Ebal) THEN

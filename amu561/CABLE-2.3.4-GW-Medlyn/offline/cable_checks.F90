@@ -200,7 +200,9 @@ MODULE cable_checks_module
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
            soil_class = (/1.0,20.0/),          &
-           
+           fwsoil = (/0.0,1.0/),               & ! amu561 oct15
+
+
            ! CASA-CNP variables
            SoilOrder = (/1.0,20.0/),           &
            area  = (/1.3E9,1.3E10/),           & ! 1x1 degree

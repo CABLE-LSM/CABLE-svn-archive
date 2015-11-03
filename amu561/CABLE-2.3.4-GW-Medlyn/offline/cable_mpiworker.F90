@@ -1520,6 +1520,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (canopy%zetar, displs(bidx), ierr)
   blen(bidx) = niter * r1len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil, displs(bidx), ierr)
+  blen(bidx) = niter * r1len
+
   ! ------- rough -------
   
   bidx = bidx + 1
@@ -4118,6 +4122,11 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   bidx = bidx + 1
   CALL MPI_Get_address (canopy%wcint(off), displs(bidx), ierr)
   blocks(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr) !amu561
+  blocks(bidx) = r1len
+
 
   ! MPI: 2D vars moved above
   ! rwater

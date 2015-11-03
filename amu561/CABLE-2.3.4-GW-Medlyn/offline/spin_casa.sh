@@ -293,7 +293,7 @@ else
     cmic_old=`awk -F "\"*,\"*" '{print $19}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cslow_old=`awk -F "\"*,\"*" '{print $20}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cpass_old=`awk -F "\"*,\"*" '{print $21}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
-    csoil_old=$cmic_old+$cslow_old+$cpass_old
+    csoil_old=$(echo "$cmic_old+$cslow_old+$cpass_old" | bc -l)
 fi
 
 cmic_new=`awk -F "\"*,\"*" '{print $19}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
@@ -310,7 +310,7 @@ else
     cleaf_old=`awk -F "\"*,\"*" '{print $13}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cwood_old=`awk -F "\"*,\"*" '{print $14}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     croot_old=`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
-    cplant_old=$cleaf_old+$cwood_old+$croot_old
+    cplant_old=$(echo "$cleaf_old+$cwood_old+$croot_old" | bc -l")
 fi
 
 cleaf_new=`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`

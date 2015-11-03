@@ -1742,7 +1742,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (canopy%fevw(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-!  bidx = bidx + 1
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
 !  CALL MPI_Get_address (canopy%potev_c(off), displs(bidx), ierr)
 !  blen(bidx) = r2len
 
@@ -1884,6 +1887,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Type_create_hvector (niter, r1len, r1stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
+
 
   ! ------- rough -------
   
@@ -4435,6 +4439,10 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      vidx = vidx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (canopy%gswx_T(off), vaddr(vidx), ierr) ! 44
+     blen(vidx) = cnt * extr1
+     vidx = vidx + 1
+     ! REAL(r_1)
+     CALL MPI_Get_address (canopy%fwsoil(off), vaddr(vidx), ierr) ! 35
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
      ! REAL(r_1)
