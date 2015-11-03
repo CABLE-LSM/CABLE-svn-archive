@@ -80,11 +80,12 @@ MODULE cable_common_module
          STRF_NAME      ! Soil Temp Respiration Function
 
       LOGICAL ::                                                               &
-         INITIALIZE_MAPPING = .FALSE., & ! 
-         CONSISTENCY_CHECK = .FALSE.,  & !
-         CASA_DUMP_READ = .FALSE.,     & !
-         CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED = .TRUE., & !
+         INITIALIZE_MAPPING    = .FALSE., & ! 
+         CONSISTENCY_CHECK     = .FALSE., & !
+         CASA_DUMP_READ        = .FALSE., & !
+         CASA_DUMP_WRITE       = .FALSE., & !
+         CABLE_RUNTIME_COUPLED = .TRUE.,  & !
+         L_newProfile          = .FALSE., & ! BP 2015 - new transpiration extraction profile
          ! L.Stevens - Test Switches
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !

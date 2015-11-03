@@ -385,8 +385,9 @@ MODULE cable_def_types_mod
          uscrn,   & ! wind speed at screen height (m/s)
          vlaiw,   & ! lai adj for snow depth for calc of resistances
          rghlai,  & ! lai adj for snow depth for calc of resistances
-         fwet       ! fraction of canopy wet
-
+         fwet,    & ! fraction of canopy wet
+         fwsoil     ! soil water modifier of stom. cond. (fractional)
+         
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
          gswx,    & ! stom cond for water
@@ -934,6 +935,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
+   ALLOCATE( var% fwsoil(mp))  !amu561
    
 END SUBROUTINE alloc_canopy_type
 
@@ -1407,6 +1409,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
+   DEALLOCATE( var% fwsoil)
 
 END SUBROUTINE dealloc_canopy_type
    
