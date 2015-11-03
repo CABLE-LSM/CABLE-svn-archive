@@ -1182,7 +1182,8 @@ END SUBROUTINE remove_trans
       icemass  = ssnow%wbice(i,1) * dzmm * dri
       liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm
       totmass  = max(liqmass+icemass,real(1e-2,r_2))
-      icef(i)     = max(0._r_2,min(1._r_2,1.25_r_2*icemass / totmass))
+      !icef(i)     = max(0._r_2,min(1._r_2,1.25_r_2*icemass / totmass))
+      icef(i)     = max(0._r_2,min(1._r_2,gw_params%IceBeta*icemass / totmass))
    end do
    S(:) = 0._r_2
    do k=1,2
@@ -1191,7 +1192,8 @@ END SUBROUTINE remove_trans
    S(:) = S(:)/sum(soil%zse(1:2),dim=1)
    !srf frozen fraction.  should be based on topography
    do i = 1,mp
-      fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+      !fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+      fice = (exp(gw_params%IceAlpha*(1._r_2-icef(i)))-exp(gw_params%IceAlpha))/(1._r_2-exp(gw_params%IceAlpha))
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
        slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-5)) ! ensure some variability
@@ -2155,7 +2157,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
        icemass  = ssnow%wbice(i,1) * dzmm_one * dri
        liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm_one
        totmass  = max(liqmass+icemass,real(1e-2,r_2))
-       icef(i)     = max(0._r_2,min(1._r_2, 1.25_r_2*icemass / totmass))
+       icef(i)     = max(0._r_2,min(1._r_2, gw_params%IceBeta*icemass / totmass))
    end do
 
    !S(:) = 0._r_2
@@ -2172,7 +2174,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
 
    !srf frozen fraction.  should be based on topography
    do i = 1,mp
-      fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
+      fice = (exp(gw_params%IceAlpha*(1._r_2-icef(i)))-exp(gw_params%IceAlpha))/(1._r_2-exp(gw_params%IceAlpha))
       fice = min(1._r_2,max(0._r_2,fice))
 
       !Saturated fraction

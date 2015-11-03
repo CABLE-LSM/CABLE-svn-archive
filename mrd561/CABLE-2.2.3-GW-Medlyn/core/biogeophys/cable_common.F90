@@ -212,7 +212,9 @@ MODULE cable_common_module
         hkrz=0.5,               & !hksat variation with z
         zdepth=1.0,             & !level where hksat(z) = hksat(no z)
         frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
-        SoilEvapAlpha = 1.0       !modify field capacity dependence of soil evap limit
+        SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+        IceAlpha=1.0,           &
+        IceBeta=1.0
 
    END TYPE gw_parameters_type
 

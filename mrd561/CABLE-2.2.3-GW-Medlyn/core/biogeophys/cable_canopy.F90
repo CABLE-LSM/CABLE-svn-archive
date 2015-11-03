@@ -133,6 +133,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    INTEGER, SAVE :: call_number =0
 
+   REAL(r_2) :: smp_srf
+
    ! END header
   
  
@@ -343,7 +345,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9)  then 
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  if (ssnow%wb(i,1) .lt. soil%watsat(i,1)) then
+                     smp_srf = 1.5_r_2*ssnow%smp(i,1) - 0.5_r_2*ssnow%smp(i,2)
+                  else
+                     smp_srf = ssnow%smp(i,1)
+                  end if
+                  !dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*smp_srf/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
@@ -380,7 +388,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  dq(i) = max(0.,ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  if (ssnow%wb(i,1) .lt. soil%watsat(i,1)) then
+                     smp_srf = 1.5_r_2*ssnow%smp(i,1) - 0.5_r_2*ssnow%smp(i,2)
+                  else
+                     smp_srf = ssnow%smp(i,1)
+                  end if
+                  !dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*smp_srf/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
@@ -1420,6 +1434,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Ktaul 2000') THEN
          CALL fwsoil_calc_Lai_Ktaul(fwsoil,soil, ssnow, veg) 
          veg%froot_w = veg%froot
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Collins') THEN
+         CALL fwsoil_calc_collins(fwsoil,soil, ssnow, veg) 
       ELSE
          write(*,*) 'cable fwsoil_swith is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
@@ -2134,7 +2150,6 @@ FUNCTION xejmxt3(x) RESULT(z)
 END FUNCTION xejmxt3
 
 ! ------------------------------------------------------------------------------
-
 ! ------------------------------------------------------------------------------
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
    USE cable_def_types_mod
@@ -2153,6 +2168,73 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
    fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
       
 END SUBROUTINE fwsoil_calc_std 
+
+! ------------------------------------------------------------------------------
+
+! ------------------------------------------------------------------------------
+SUBROUTINE fwsoil_calc_collins(fwsoil, soil, ssnow, veg) 
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
+
+   REAL(r_2), DIMENSION(mp,ms) :: alpha_1,alpha_2,alpha,wb_liq
+   REAL(r_2), DIMENSION(mp)    :: running_sum_liq_mass,sum_liq_mass, sum_alpha
+   INTEGER :: i,j,k
+
+ 
+   wb_liq = ssnow%wb - ssnow%wbice 
+  
+   sum_liq_mass(:) = 0._r_2
+   do k=1,ms
+      sum_liq_mass(:) = sum_liq_mass(:) + wb_liq(:,k)*soil%zse(k)*1000._r_2
+   end do
+   sum_liq_mass(:) = max(1.0e-6_r_2,sum_liq_mass(:))
+
+   running_sum_liq_mass(:) = 0._r_2
+   do k=1,ms
+      do i=1,mp
+         running_sum_liq_mass(i) = running_sum_liq_mass(i) + wb_liq(i,k)*soil%zse(k)*1000._r_2
+         alpha_1(i,k) = max( ssnow%wbliq(i,k) / (soil%watsat(i,k)-soil%wiltp(i,k)), &
+                             running_sum_liq_mass(i) / sum_liq_mass(i) )
+
+         alpha_2(i,k) = min(1._r_2, max(0._r_2, &
+                           (wb_liq(i,k) - soil%wiltp(i,k)) / (soil%fldcap(i,k) - soil%wiltp(i,k)) ) )
+
+         alpha(i,k) = alpha_1(i,k) * alpha_2(i,k) * soil%zse(k) * 1000._r_2
+
+      end do
+   end do
+
+   sum_alpha(:) = 0._r_2
+   do k=1,ms
+      sum_alpha(:) = sum_alpha(:) + alpha(:,k)
+   end do
+
+   do i=1,mp
+      if (sum_alpha(i) .gt. 1._r_2) then
+         alpha(i,:) = alpha(i,:) / sum_alpha(:)
+         sum_alpha(:) = 1._r_2
+      end if
+  end do
+
+  veg%froot_w(:,:) = real(alpha(:,:))*veg%froot(:,:) 
+  fwsoil(:) = 0.0
+  do k=1,ms
+     fwsoil(:) = fwsoil(:) + veg%froot_w(:,k)
+  end do
+
+  do i=1,mp
+     if (fwsoil(i) .gt. 1._r_2) then
+         veg%froot_w(i,:) = veg%froot_w(i,:) / fwsoil(i)
+         fwsoil(i) = 1.0
+     end if
+  end do
+        
+      
+END SUBROUTINE fwsoil_calc_collins 
 
 ! ------------------------------------------------------------------------------
 SUBROUTINE fwsoil_calc_linear(fwsoil, soil, ssnow, veg) 
