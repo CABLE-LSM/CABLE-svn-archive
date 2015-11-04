@@ -53,9 +53,7 @@ CONTAINS
    USE cable_roughness_module
    USE cable_radiation_module
    USE cable_air_module
-#ifndef NO_CASA_YET
    USE casadimension,     only : icycle ! used in casa_cnp
-#endif
    USE cable_data_module, ONLY : icbm_type, point2constants 
  
    
@@ -79,10 +77,10 @@ CONTAINS
     
    INTEGER :: k,kk,j  
 
-#ifdef NO_CASA_YET
-   INTEGER :: ICYCLE
+!#ifdef NO_CASA_YET
+ !  INTEGER :: ICYCLE
    ICYCLE = 0
-#endif
+!#endif
 
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
