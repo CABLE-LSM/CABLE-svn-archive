@@ -194,6 +194,7 @@ MODULE cable_def_types_mod
          rnof1,   & ! surface runoff (mm/dels)
          rnof2,   & ! deep drainage (mm/dels)
          rtsoil,  & ! turbulent resistance for soil
+         rtevap,  & ! turbulent resistance for soil
          wbtot1,  & ! total soil water (mm)
          wbtot2,  & ! total soil water (mm)
          wb_lake, &
@@ -732,6 +733,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% rnof1(mp) ) 
    ALLOCATE( var% rnof2(mp) ) 
    ALLOCATE( var% rtsoil(mp) )
+   ALLOCATE( var% rtevap(mp) )
    ALLOCATE( var% sconds(mp,msn) ) 
    ALLOCATE( var% sdepth(mp,msn) ) 
    ALLOCATE( var% smass(mp,msn) ) 
@@ -1201,6 +1203,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% rnof1 ) 
    DEALLOCATE( var% rnof2 ) 
    DEALLOCATE( var% rtsoil )
+   DEALLOCATE( var% rtevap )
    DEALLOCATE( var% sconds ) 
    DEALLOCATE( var% sdepth ) 
    DEALLOCATE( var% smass ) 

@@ -97,6 +97,8 @@ MODULE cable_common_module
      !using GSWP3 forcing?
      LOGICAL :: GSWP3 = .FALSE.
 
+     LOGICAL :: or_evap = .FALSE.
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user

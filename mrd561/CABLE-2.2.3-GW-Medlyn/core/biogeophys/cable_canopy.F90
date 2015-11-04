@@ -43,7 +43,7 @@
 MODULE cable_canopy_module
    
    USE cable_data_module,         ONLY : icanopy_type, point2constants 
-   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
+   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction,calc_soil_hydraulic_props
    
    IMPLICIT NONE
    
@@ -227,6 +227,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! Aerodynamic resistance (sum 3 height integrals)/us
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
       rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
+
+      if (cable_user%or_evap) then
+         call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
+      else
+         ssnow%rtevap(:) = 0.0 
+      end if
       
       DO j=1,mp
      
@@ -617,7 +623,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fes)/d(dq)
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
    ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil     
-   ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil  
+   ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap)
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
@@ -712,7 +718,7 @@ FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
    if (.not.cable_user%GW_MODEL) then 
       ssnowpotev =air%rho * air%rlam * dq2 /ssnow%rtsoil
    else
-      ssnowpotev = air%rho * air%rlam * dq /ssnow%rtsoil
+      ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap)
    end if
    
 END FUNCTION Humidity_deficit_method
@@ -1251,8 +1257,11 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
    !use soil hetero based wet fraction at the surface
    IF (cable_runtime%run_gw_model) then
-  
-     call calc_srf_wet_fraction(ssnow,soil)
+     if (cable_user%or_evap) then
+        ssnow%wetfac = 1.0
+     else
+        call calc_srf_wet_fraction(ssnow,soil)
+     end if
 
    else
 
@@ -2336,5 +2345,95 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
    ENDDO
 
 END SUBROUTINE fwsoil_calc_Lai_Ktaul
+
+SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
+   USE cable_def_types_mod
+   USE cable_air_module
+   USE cable_common_module   
+
+   TYPE (air_type), INTENT(INOUT)       :: air
+   TYPE (met_type), INTENT(INOUT)       :: met
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+   TYPE (canopy_type), INTENT(INOUT)    :: canopy
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
+   TYPE (veg_parameter_type), INTENT(IN) :: veg
+
+
+   REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, wb_liq
+   INTEGER, DIMENSION(mp) :: int_eddy_shape
+
+   REAL, parameter :: Dff=2.5e-5, &
+                      lm=1.73e-5, &
+                      pi = 3.14159265358979324, &
+                      pore_size = 0.7  !radius in mm
+
+   REAL :: P  !pore size parameter in m
+   integer :: i,j,k 
+
+   P = pore_size/1000.0*sqrt(pi)
+
+   eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
+
+   int_eddy_shape = int(eddy_shape)
+   eddy_mod(:) = 0.0
+   do i=1,mp   
+      eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
+
+      if (int_eddy_shape(i) .gt. 0) then
+         eddy_mod(i) = eddy_mod(i) / gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
+
+         do k=1,int_eddy_shape(i)
+            eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
+         end do
+      end if
+   end do
+
+
+   sublayer_dz = eddy_mod(:) * air%visc / max(1.0e-4,canopy%us)
+
+   CALL calc_soil_hydraulic_props(ssnow,soil,veg)
+
+   wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1) - ssnow%wbice(:,1)) ) )
+
+   soil_moisture_mod(:) = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
+
+   ssnow%rtevap(:) = 1000.0*lm/ (4.0*ssnow%hk(:,1)) + (sublayer_dz + P * soil_moisture_mod) / Dff  !1000.0 convert mm/s to m/s
+
+
+END SUBROUTINE or_soil_evap_resistance
+
+
+  recursive function gamma(a) result(g)
+    real, intent(in) :: a
+    real :: g
+ 
+    real, parameter :: pi = 3.14159265358979324
+    integer, parameter :: cg = 7
+ 
+    ! these precomputed values are taken by the sample code in Wikipedia,
+    ! and the sample itself takes them from the GNU Scientific Library
+    real, dimension(0:8), parameter :: p = &
+         (/ 0.99999999999980993, 676.5203681218851, -1259.1392167224028, &
+         771.32342877765313, -176.61502916214059, 12.507343278686905, &
+         -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
+ 
+    real :: t, w, x
+    integer :: i
+ 
+    x = a
+ 
+    if ( x < 0.5 ) then
+       g = pi / ( sin(pi*x) * gamma(1.0-x) )
+    else
+       x = x - 1.0
+       t = p(0)
+       do i=1, cg+2
+          t = t + p(i)/(x+real(i))
+       end do
+       w = x + real(cg) + 0.5
+       g = sqrt(2.0*pi) * w**(x+0.5) * exp(-w) * t
+    end if
+  end function gamma
+
 
 END MODULE cable_canopy_module
