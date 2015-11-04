@@ -895,6 +895,9 @@ CONTAINS
     landpt(:)%ilat = -999
     ncount = 0
     DO kk = 1, mland
+
+      write(*,*) kk,mland
+
       distance = 300.0 ! initialise, units are degrees
       DO jj = 1, nlat
       DO ii = 1, nlon
@@ -1116,6 +1119,7 @@ CONTAINS
       end do
       ! Check that patch fractions total to 1
       !this is done again in the check_parameter_values subroutine
+
       tmp = 0
       IF (landpt(e)%cstart == landpt(e)%cend) THEN
         patch(landpt(e)%cstart)%frac = 1.0
@@ -1140,7 +1144,7 @@ CONTAINS
                                          - tmp
         END IF
       END IF
-
+     
       patch(landpt(e)%cstart:landpt(e)%cend)%longitude = longitude(e)
       patch(landpt(e)%cstart:landpt(e)%cend)%latitude  = latitude(e)
       soil%isoilm(landpt(e)%cstart:landpt(e)%cend) =                           &
@@ -1163,15 +1167,12 @@ CONTAINS
         ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
                      = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 1000.0
       END DO
-
-      ! Set default LAI values
       DO is=0,landpt(e)%cend - landpt(e)%cstart
          DO ir = 1, 12
             defaultLAI(landpt(e)%cstart + is, ir) =                       &
-                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(k)%tilenumber(is+1),ir)
+                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(e)%tilenumber(is+1),ir)
          END DO
       END DO
-
       ! Set IGBP soil texture values, Q.Zhang @ 12/20/2010.
       IF (soilparmnew) THEN
   
