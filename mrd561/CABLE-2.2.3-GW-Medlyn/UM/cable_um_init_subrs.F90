@@ -161,6 +161,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
+   REAL(r_2), parameter :: fldcap_psi    = 3367.0   ! ~33 kPa
+   REAL(r_2), parameter :: wiltp_psi     = 152905.0 ! ~1500 kPa
 
    REAL(r_2), parameter :: ti_mean_minimum = 0.0002_r_2
    REAL(r_2), parameter :: ti_sig_minimum = 0.0002_r_2
@@ -306,14 +308,16 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%GWwatsat(i) = soil%watsat(i,ms)
          soil%GWwatr(i)   = soil%watr(i,ms)
 
-         !vegetation dependent wilting point
+         !vegetation dependent wilting point can be done here
          do k=1,ms
-            soil%fldcap(i,k) = real(soil%sfc(i),r_2)!(fldcap_hk/soil%hksat(i,k))**(1.0/(2.0*soil%clappB(i,k)+3.0)) * &
+            !soil%fldcap(i,k) = real(soil%sfc(i),r_2)!(fldcap_hk/soil%hksat(i,k))**(1.0/(2.0*soil%clappB(i,k)+3.0)) * &
                            !(soil%watsat(i,k) - soil%watr(i,k)) + soil%watr(i,k)
+            soil%fldcap(i,k) = soil%watsat(i,k) * (fldcap_psi/soil%smpsat(i,k))**(-1._r_2/soil%clappB(i,k))
+            soil%wiltp(i,k)  = soil%watsat(i,k) * (wiltp_psi/soil%smpsat(i,k))**(-1._r_2/soil%clappB(i,k))
 
             !psi_tmp(i,k) = -psi_c(veg%iveg(i))
 
-            soil%wiltp(i,k) = real(soil%swilt(i),r_2)! (soil%watsat(i,k) - soil%watr(i,k)) *&
+            !soil%wiltp(i,k) = real(soil%swilt(i),r_2)! (soil%watsat(i,k) - soil%watr(i,k)) *&
                              ! (abs(psi_tmp(i,k))/(max(abs(soil%smpsat(i,k)),1.0)))**(-1.0/soil%clappB(i,k))+&
                              ! soil%watr(i,k)
          end do

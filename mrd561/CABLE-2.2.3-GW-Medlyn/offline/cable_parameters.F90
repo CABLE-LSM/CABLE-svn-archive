@@ -1168,7 +1168,7 @@ CONTAINS
       DO is=0,landpt(e)%cend - landpt(e)%cstart
          DO ir = 1, 12
             defaultLAI(landpt(e)%cstart + is, ir) =                       &
-                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(e)%tilenumber(is+1),ir)
+                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(k)%tilenumber(is+1),ir)
          END DO
       END DO
 
