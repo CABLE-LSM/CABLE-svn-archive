@@ -276,8 +276,8 @@ EOF
 
 
 #run model
-./cable-r3126
-
+executable=`ls cable-r*`
+./$executable
 
 
 
