@@ -283,6 +283,8 @@ CONTAINS
        inLON = inLON - 360.0
     ENDWHERE
 
+    print*, "REACHES HERE grid#1"
+
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
     ok = NF90_GET_VAR(ncid, varID, inLat)
@@ -411,7 +413,7 @@ CONTAINS
       inPdust = inPdust / 365.0
 
     ENDIF
-
+print *, "REACHES HERE grid#2"
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
 
@@ -1341,7 +1343,7 @@ CONTAINS
       DO is=0,landpt(e)%cend - landpt(e)%cstart
          DO ir = 1, 12
             defaultLAI(landpt(e)%cstart + is, ir) =                       &
-                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(k)%tilenumber(is+1),ir)
+                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(e)%tilenumber(is+1),ir)
          END DO
       END DO
 

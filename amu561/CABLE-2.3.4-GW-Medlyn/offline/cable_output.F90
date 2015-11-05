@@ -2366,7 +2366,7 @@ CONTAINS
           out%LAI = 0.0
        END IF
     END IF
-
+   
     ! fwsoil: soil water modified of stomatal conductance (fractional) !amu561
     IF(output%veg .OR. output%fwsoil) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2381,7 +2381,7 @@ CONTAINS
           out%fwsoil = 0.0
        END IF
     END IF
-
+    
     !------------------------WRITE BALANCES DATA--------------------------------
     ! Ebal: cumulative energy balance [W/m^2]
     IF(output%balances .OR. output%Ebal) THEN
@@ -2577,8 +2577,8 @@ CONTAINS
     IF((output%soil .OR. output%SoilMatPot) .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'smp'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       write(*,*) ssnow%smp
-       write(*,*) ssnow%wb
+       !write(*,*) ssnow%smp
+       !write(*,*) ssnow%wb
        out%SoilMatPot = out%SoilMatPot + REAL(ssnow%smp/1000.0, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2670,8 +2670,8 @@ CONTAINS
        END IF
     END IF
     !write(*,*) ' at end of write_output '    !MDeck
- 
-  END SUBROUTINE write_output
+  
+    END SUBROUTINE write_output
   !=============================================================================
 
   SUBROUTINE write_casa_flux(dels, ktau, met, casaflux, casapool, casabal,phen)
