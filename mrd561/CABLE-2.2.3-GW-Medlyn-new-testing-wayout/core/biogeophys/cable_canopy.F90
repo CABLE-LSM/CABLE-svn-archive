@@ -1,4 +1,4 @@
-!==============================================================================
+f!==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CABLE Academic User Licence Agreement 
@@ -133,6 +133,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    INTEGER, SAVE :: call_number =0
 
+   REAL, DIMENSION(mp) :: Keffective
    ! END header
   
  
@@ -187,13 +188,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ssnow%potev = 0.
    canopy%fevw_pot = 0.
 
-   CALL radiation( ssnow, veg, air, met, rad, canopy )
-
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 
 
+   ssnow%tskin(:) = ssnow%tss
 
    DO iter = 1, NITER
+
+      tss4 = ssnow%tskin(:)**4
+
+      CALL radiation( ssnow, veg, air, met, rad, canopy )
 
       ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
       ! resistances rt0, rt1 (elements of dispersion matrix):
@@ -336,7 +340,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
      
       ! Saturation specific humidity at soil/snow surface temperature:
       
-      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+      call qsatfjh(ssnow%qstss,ssnow%tskin-C%tfrz,met%pmb)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
@@ -348,7 +352,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          if (cable_user%gw_model) then 
             do i=1,mp
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tskin(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
@@ -367,13 +371,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL latent_heat_flux()
 
       ! Calculate soil sensible heat:
-      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+      canopy%fhs = air%rho*C%CAPP*(ssnow%tskin - met%tk) /ssnow%rtsoil
 
       CALL within_canopy( gbhu, gbhf )
 
       ! Saturation specific humidity at soil/snow surface temperature:
       
-      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+      call qsatfjh(ssnow%qstss,ssnow%tskin-C%tfrz,met%pmb)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
@@ -385,7 +389,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tskin(i)/461.4) - met%qvair(i))
                else
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
@@ -406,9 +410,19 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL latent_heat_flux()
 
       ! Soil sensible heat:
-      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+      canopy%fhs = air%rho*C%CAPP*(ssnow%tskin - met%tvair) /ssnow%rtsoil
       !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
+
+      !update skin surface temperature
+         ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%watsat(:,k) ) * soil%css *             &
+                             soil%rhosoil + soil%watsat(:,k) * ( wblfsp * cswat *     &
+                             rhowat + ssnow%wbfice(:,k) * csice * rhowat *     &
+                             0.9) , xx ) * soil%zse(k)
+
+      
+      Keffective(:) =  ( 1.0 - soil%watsat(:,1) ) * soil%css *  soil%rhosoil 
+      ssnow%tskin(:) = 0.5*canopy%ga * Keffective * soil%zse(1) + ssnow%tss
       
       ! Set total latent heat:
       canopy%fe = canopy%fev + canopy%fes
