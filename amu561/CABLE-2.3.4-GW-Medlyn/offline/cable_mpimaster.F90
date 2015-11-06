@@ -435,7 +435,7 @@ SUBROUTINE mpidrv_master (comm)
    ! MPI: mostly original serial code follows...
 
    ! Open output file:
-   CALL open_output_file( dels, soil, veg, bgc, rough )
+   CALL open_output_file(kend, dels, soil, veg, bgc, rough )
    if(icycle>0) CALL write_casa_params(veg,casamet,casabiome)
  
 
@@ -538,7 +538,7 @@ SUBROUTINE mpidrv_master (comm)
          ! MPI: TODO: pull mass and energy balance calculation from write_output
          ! and refactor into worker code
          ktau_gl = oktau
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN                        
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
