@@ -2359,18 +2359,19 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
    TYPE (veg_parameter_type), INTENT(IN) :: veg
 
 
-   REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, wb_liq
+   REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, wb_liq, &
+                          pore_size,P  !note pore_size in m
    INTEGER, DIMENSION(mp) :: int_eddy_shape
 
    REAL, parameter :: Dff=2.5e-5, &
                       lm=1.73e-5, &
-                      pi = 3.14159265358979324, &
-                      pore_size = 0.7  !radius in mm
+                      pi = 3.14159265358979324
 
-   REAL :: P  !pore size parameter in m
    integer :: i,j,k 
 
-   P = pore_size/1000.0*sqrt(pi)
+
+   pore_size = 0.148 / (abs(soil%smpsat(:,1))/1000.0)
+   P(:) = pore_size(:)*sqrt(pi)
 
    eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
 
@@ -2397,8 +2398,10 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
 
    soil_moisture_mod(:) = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
 
-   ssnow%rtevap(:) = 1000.0*lm/ (4.0*ssnow%hk(:,1)) + (sublayer_dz + P * soil_moisture_mod) / Dff  !1000.0 convert mm/s to m/s
-
+   ssnow%rtevap(:) = min(1000.0*lm/ (4.0*ssnow%hk(:,1)) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff,&  !1000.0 convert mm/s to m/s
+                         2500.0 )
+   !no additional evap resistane over lakes
+   where(veg%iveg .eq. 16) ssnow%rtevap = 0.0
 
 END SUBROUTINE or_soil_evap_resistance
 
