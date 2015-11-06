@@ -1134,6 +1134,7 @@ CONTAINS
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
+          landpt(kk)%tilenumber(landpt(kk)%nap) = 1
         ELSE
           PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1. because npatch=',npatch
           PRINT *, 'If soil patches exist, add new code.'
