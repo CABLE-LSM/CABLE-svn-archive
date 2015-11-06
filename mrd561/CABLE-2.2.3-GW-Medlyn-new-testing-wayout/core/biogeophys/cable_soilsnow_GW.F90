@@ -73,11 +73,11 @@ MODULE cable_soil_snow_gw_module
    REAL :: max_glacier_snowd
  
    ! This module contains the following subroutines:
-   PUBLIC soil_snow_gw,calc_srf_wet_fraction,calc_soil_hydraulic_props ! must be available outside this module
+   PUBLIC soil_snow_gw,calc_srf_wet_fraction,soil_thermal_conductivity ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust 
    PRIVATE trimb,snow_accum, stempv,calc_equilibrium_water_content
    PRIVATE GWsoilfreeze, remove_trans,iterative_wtd,simple_wtd
-   PRIVATE smoistgw, ovrlndflx
+   PRIVATE smoistgw, ovrlndflx, calc_soil_hydraulic_props
 
 CONTAINS
 
@@ -555,50 +555,53 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
    coeff = 0.0
    snow_ccnsw = 2.0
 
-   DO k = 1, ms
-      
-      DO j = 1, mp
-      
-         IF( soil%isoilm(j) .eq. 9 ) THEN
-            ! permanent ice: fix hard-wired number in next version
-            ccnsw(j,k) = snow_ccnsw
-         ELSE
-            ew(j) = ssnow%wblf(j,k) * soil%watsat(j,k)
-            exp_arg = ( ew(j) * LOG( 60.0 ) ) + ( ssnow%wbfice(j,k)            &
-                      * soil%watsat(j,k) * LOG( 250.0 ) )
 
-            IF( exp_arg > 30 ) direct2min = .TRUE.
-            
-            IF( direct2min) THEN
-               
-               ccnsw(j,k) = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
-                            soil%watsat(j,k) /                                     &
-                            MIN( ew(j), 0.5_r_2 * soil%watsat(j,k) ) ) ) )
+   call  soil_thermal_conductivity(ccnsw, soil,ssnow)
 
-            ELSE         
-               
-               ccnsw(j,k) = MIN( soil%cnsd(j) * EXP( exp_arg ), 1.5_r_2 )      &
-                            * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
-                            soil%watsat(j,k) /                                     &
-                            MIN( ew(j), 0.5_r_2 * soil%watsat(j,k) ) ) ) )
-            
-            ENDIF          
-           
-            direct2min = .FALSE.
-        
-         ENDIF 
-      
-      END DO
-    
-   END DO
-    
-   xx = 0. 
-    
-   WHERE(ssnow%isflag == 0)
-      xx = MAX( 0., ssnow%snowd / ssnow%ssdnn )
-      ccnsw(:,1) = ( ccnsw(:,1) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + xx ) &
-                   ) + 0.2
-   END WHERE
+   !DO k = 1, ms
+   !   
+   !   DO j = 1, mp
+   !   
+   !      IF( soil%isoilm(j) .eq. 9 ) THEN
+   !         ! permanent ice: fix hard-wired number in next version
+   !         ccnsw(j,k) = snow_ccnsw
+   !      ELSE
+   !         ew(j) = ssnow%wblf(j,k) * soil%watsat(j,k)
+   !         exp_arg = ( ew(j) * LOG( 60.0 ) ) + ( ssnow%wbfice(j,k)            &
+   !                   * soil%watsat(j,k) * LOG( 250.0 ) )
+   !
+   !         IF( exp_arg > 30 ) direct2min = .TRUE.
+   !         
+   !         IF( direct2min) THEN
+   !            
+   !            ccnsw(j,k) = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
+   !                         soil%watsat(j,k) /                                     &
+   !                         MIN( ew(j), 0.5_r_2 * soil%watsat(j,k) ) ) ) )
+   !
+   !         ELSE         
+   !            
+   !            ccnsw(j,k) = MIN( soil%cnsd(j) * EXP( exp_arg ), 1.5_r_2 )      &
+   !                         * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
+   !                         soil%watsat(j,k) /                                     &
+   !                         MIN( ew(j), 0.5_r_2 * soil%watsat(j,k) ) ) ) )
+   !         
+   !         ENDIF          
+   !        
+   !         direct2min = .FALSE.
+   !     
+   !      ENDIF 
+   !   
+   !   END DO
+   ! 
+   !END DO
+   ! 
+   !xx = 0. 
+   ! 
+   !WHERE(ssnow%isflag == 0)
+   !   xx = MAX( 0., ssnow%snowd / ssnow%ssdnn )
+   !   ccnsw(:,1) = ( ccnsw(:,1) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + xx ) &
+   !                ) + 0.2
+   !END WHERE
     
    DO k = 3, ms
       
@@ -2229,5 +2232,64 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 
 END SUBROUTINE calc_soil_hydraulic_props
 
+
+SUBROUTINE soil_thermal_conductivity(ccnsw, soil,ssnow)
+   REAL(r_2), DIMENSION(mp,ms), INTENT(INOUT)     :: ccnsw
+   TYPE(soil_parameter_type), INTENT(IN)     :: soil 
+   TYPE(soil_snow_type)     , INTENT(INOUT)  :: ssnow
+
+   INTEGER :: k,j
+   REAL(r_2), DIMENSION(mp,ms) :: wblf, &  !ratio liquid volume to sat volume
+                                  wbfice   !ratio ice volume to sat volume
+   REAL, DIMENSION(mp) :: ew
+   REAL :: exp_arg,snow_ccnsw
+   
+   snow_ccnsw = 2.0
+
+   wblf = (ssnow%wb - ssnow%wbice) / soil%watsat
+   wbfice = ssnow%wbice / soil%watsat
+
+   DO k = 1, ms
+      
+      DO j = 1, mp
+      
+         IF( soil%isoilm(j) .eq. 9 ) THEN
+            ! permanent ice: fix hard-wired number in next version
+            ccnsw(j,k) = snow_ccnsw
+         ELSE
+            ew(j) = ssnow%wb(j,k) - ssnow%wbice(j,k)
+            exp_arg = ( ew(j) * LOG( 60.0 ) ) + ( ssnow%wbice(j,k)            &
+                       * LOG( 250.0 ) )
+
+            
+            IF( exp_arg .gt. 30.) THEN
+               
+               ccnsw(j,k) = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
+                            soil%watsat(j,k) /                                     &
+                            MIN( ew(j), 0.5_r_2 * soil%watsat(j,k) ) ) ) )
+
+            ELSE         
+               
+               ccnsw(j,k) = MIN( soil%cnsd(j) * EXP( exp_arg ), 1.5_r_2 )      &
+                            * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
+                            soil%watsat(j,k) /                                     &
+                            MIN( ew(j), 0.5_r_2 * soil%watsat(j,k) ) ) ) )
+            
+            ENDIF          
+        
+         ENDIF 
+      
+      END DO
+    
+   END DO
+
+   WHERE(ssnow%isflag == 0)
+      ccnsw(:,1) = ( ccnsw(:,1) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + &
+                    MAX( 0., ssnow%snowd / ssnow%ssdnn ) ) ) + 0.2
+   END WHERE
+
+
+
+END SUBROUTINE soil_thermal_conductivity
 
 END MODULE cable_soil_snow_gw_module

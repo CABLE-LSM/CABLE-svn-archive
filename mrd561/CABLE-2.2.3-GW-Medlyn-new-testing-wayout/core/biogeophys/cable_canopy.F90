@@ -43,7 +43,7 @@
 MODULE cable_canopy_module
    
    USE cable_data_module,         ONLY : icanopy_type, point2constants 
-   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
+   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction,soil_thermal_conductivity
    
    IMPLICIT NONE
    
@@ -133,7 +133,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    INTEGER, SAVE :: call_number =0
 
-   REAL, DIMENSION(mp) :: Keffective
+   REAL(r_2), DIMENSION(mp) :: Keffective
    ! END header
   
  
@@ -193,7 +193,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ssnow%tskin(:) = ssnow%tss
 
-   DO iter = 1, 25!NITER
+   DO iter = 1,NITER
 
       tss4 = ssnow%tskin(:)**4
 
@@ -415,8 +415,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
 
       !update skin surface temperature
-      Keffective(:) =  0.5
+      call soil_thermal_conductivity(Keffective, soil,ssnow)
       ssnow%tskin(:) = 0.5*canopy%ga * Keffective * soil%zse(1) + ssnow%tss
+      write(*,*) ssnow%tskin
 
       
       ! Set total latent heat:
@@ -2381,7 +2382,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    logical, save ::  first_call = .true.
 
 
-   pore_size = 0.148 / (abs(soil%smpsat(:,1))/1000.0)
+   pore_size =  0.148 / (abs(soil%smpsat(:,1))/1000.0)
    P(:) = pore_size(:)*sqrt(pi)
 
    eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
