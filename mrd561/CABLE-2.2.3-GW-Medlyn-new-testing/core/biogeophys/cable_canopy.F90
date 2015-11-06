@@ -43,7 +43,7 @@
 MODULE cable_canopy_module
    
    USE cable_data_module,         ONLY : icanopy_type, point2constants 
-   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction,calc_soil_hydraulic_props
+   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
    
    IMPLICIT NONE
    
@@ -229,7 +229,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
 
       if (cable_user%or_evap) then
-         call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
+         call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       else
          ssnow%rtevap(:) = 0.0 
       end if
@@ -2346,21 +2346,22 @@ SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
 END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
-SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
+SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    USE cable_def_types_mod
    USE cable_air_module
    USE cable_common_module   
 
-   TYPE (air_type), INTENT(INOUT)       :: air
-   TYPE (met_type), INTENT(INOUT)       :: met
+   TYPE (air_type), INTENT(IN)       :: air
+   TYPE (met_type), INTENT(IN)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-   TYPE (canopy_type), INTENT(INOUT)    :: canopy
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
+   TYPE (canopy_type), INTENT(IN)    :: canopy
+   TYPE (soil_parameter_type), INTENT(IN)   :: soil 
    TYPE (veg_parameter_type), INTENT(IN) :: veg
+   TYPE (roughness_type), INTENT(IN) :: rough
 
 
    REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, wb_liq, &
-                          pore_size,P  !note pore_size in m
+                          pore_size,P, rel_s,hk_zero  !note pore_size in m
    INTEGER, DIMENSION(mp) :: int_eddy_shape
 
    REAL, parameter :: Dff=2.5e-5, &
@@ -2368,6 +2369,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
                       pi = 3.14159265358979324
 
    integer :: i,j,k 
+   logical, save ::  first_call = .true.
 
 
    pore_size = 0.148 / (abs(soil%smpsat(:,1))/1000.0)
@@ -2392,14 +2394,18 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg)
 
    sublayer_dz = eddy_mod(:) * air%visc / max(1.0e-4,canopy%us)
 
-   CALL calc_soil_hydraulic_props(ssnow,soil,veg)
-
-   wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1) - ssnow%wbice(:,1)) ) )
+   if (first_call) then
+      wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
+   else
+      wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)-ssnow%wbice(:,1) ) ) )
+   end if
+   rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
+   hk_zero = soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) )
 
    soil_moisture_mod(:) = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
 
-   ssnow%rtevap(:) = min(1000.0*lm/ (4.0*ssnow%hk(:,1)) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff,&  !1000.0 convert mm/s to m/s
-                         2500.0 )
+   ssnow%rtevap(:) = min( rough%z0soil/sublayer_dz * (1000.0*lm/ (4.0*ssnow%hk(:,1)) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
+                         3500.0 )
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) ssnow%rtevap = 0.0
 
