@@ -1665,7 +1665,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             !   !continue
             !   !print *, "Turned off recalc of transpiration"
 
-
+            print*, met%hod(landpt(i)%cstart)
+            
             ! Re-calculation of transpiration, to match new drought scheme
             ! Martin De Kauwe, 30th October 2015,
             IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
