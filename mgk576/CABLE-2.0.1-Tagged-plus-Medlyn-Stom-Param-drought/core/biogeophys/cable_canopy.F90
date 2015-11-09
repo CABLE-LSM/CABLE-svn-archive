@@ -2200,7 +2200,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil    ! soil water modifier for g1
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil_ns ! soil water modifier for vcmax
-   REAL, DIMENSION(mp) :: psi_sat, psi_sat_mpa, psi_swp, psi_lwp, psi_pd
+   REAL, DIMENSION(mp) :: psi_sat, psi_sat_mpa, psi_swp, psi_lwp
    REAL, DIMENSION(mp) :: theta_over_theta_sat
    INTEGER, INTENT(IN) :: i
    INTEGER :: ns
@@ -2304,28 +2304,23 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
    ENDIF
 
-   print*,met%hod(i)
 
    IF (met%hod(i) <= 5.0) THEN
       ! At dawn we are setting psi_pd = psi_SWP, i.e. so that for the rest of
-      ! the day it doesn't vary. Clearly in the hours before this 24-04 it will
-      ! vary, but as no fluxes are being calculated this won't matter.
-      psi_pd = psi_swp
-
-   ELSEIF (met%hod(i) > 5.0) THEN
-      ! Don't change the psi_pd value throughout the day, use the pre-dawn value
-      continue
-
+      ! the day it doesn't vary.
+      veg%psi_pd = psi_swp
    ENDIF
+
+   print*,met%hod(i), veg%psi_pd
 
    !psi_lwp = psi_swp - psi_0
 
    ! SW modifier for g1 parameter (stomatal limitation)
-   fwsoil = exp(veg%g1_b(i) * psi_pd)
+   fwsoil = exp(veg%g1_b(i) * veg%psi_pd)
 
    ! SW modifier for Vcmax (non-stomatal limitation)
    fwsoil_ns = (1.0 + exp(veg%vcmax_sf(i) * veg%vcmax_psi_f(i))) / &
-               (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_pd)))
+               (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - veg%psi_pd)))
 
 END SUBROUTINE vcmax_non_stomatal_lim
 

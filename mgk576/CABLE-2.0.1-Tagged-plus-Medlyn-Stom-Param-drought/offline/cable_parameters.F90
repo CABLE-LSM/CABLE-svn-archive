@@ -813,6 +813,10 @@ CONTAINS
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
+
+    ! Martin De Kauwe, Nov 9 2015
+    veg%psi_pd = 0.0 ! default to zero stress, updated by pre-dawn psi-SWP
+
     ! calculate vegin%froot from using rootbeta and soil depth
     ! (Jackson et al. 1996, Oceologica, 108:389-411)
     totdepth = 0.0
@@ -1149,7 +1153,7 @@ CONTAINS
 
     ! Martin De Kauwe, 26 March bug fix - ticket #66
     WHERE(soil%ssat > 0. ) soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
-    
+
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff
