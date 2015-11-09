@@ -137,7 +137,8 @@ MODULE cable_IO_vars_module
           g0c3,g0c4,g1c3,g1c4,g0c3_map,g1c3_map,                               & ! Ticket #56
           !MD
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
-          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp 
+          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp,  &
+          gamma !Haverd 2013
 
    END TYPE parID_type
   

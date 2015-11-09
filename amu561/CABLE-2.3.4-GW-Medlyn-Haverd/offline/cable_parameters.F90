@@ -1683,6 +1683,12 @@ CONTAINS
       ssnow%wbice(:, :) = 0.0
     END WHERE
 
+    IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+         veg%gamma = 5.e-2
+    ENDIF
+
+
+
   END SUBROUTINE write_default_params
   !=============================================================================
   SUBROUTINE write_cnp_params(veg, casaflux, casamet)

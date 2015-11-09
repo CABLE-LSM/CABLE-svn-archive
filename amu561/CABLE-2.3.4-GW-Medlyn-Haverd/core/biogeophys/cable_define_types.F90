@@ -159,6 +159,10 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
 
+     !Haverd 2013
+     REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
+     REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
+
   END TYPE soil_parameter_type
 
 ! .............................................................................
@@ -268,7 +272,11 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
-         
+    
+      !Haverd 2013
+      REAL(r_2), DIMENSION(:,:), POINTER :: rex       ! root extraction from each layer (mm/dels)
+
+
    END TYPE soil_snow_type
 
 ! .............................................................................
@@ -327,6 +335,9 @@ MODULE cable_def_types_mod
          taul,    & 
          froot      ! fraction of root in each soil layer
 
+      !Haverd 2013
+      REAL(r_2), DIMENSION(:), POINTER :: gamma !parameter in root efficiency function (Lai Katul 2000)
+      
    END TYPE veg_parameter_type
 
 ! .............................................................................
@@ -385,8 +396,8 @@ MODULE cable_def_types_mod
          uscrn,   & ! wind speed at screen height (m/s)
          vlaiw,   & ! lai adj for snow depth for calc of resistances
          rghlai,  & ! lai adj for snow depth for calc of resistances
-         fwet,    & ! fraction of canopy wet
-         fwsoil     ! soil water modifier of stom. cond. (fractional)
+         fwet !,    & ! fraction of canopy wet
+        ! fwsoil     ! soil water modifier of stom. cond. (fractional)
          
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
@@ -399,7 +410,8 @@ MODULE cable_def_types_mod
          dgdtg,   & ! derivative of gflux wrt soil temp
          fes,     & ! latent heatfl from soil (W/m2)
          fes_cor, & ! latent heatfl from soil (W/m2)
-         fevc       ! dry canopy transpiration (W/m2)
+         fevc,    &       ! dry canopy transpiration (W/m2)
+         fwsoil
 
    END TYPE canopy_type
 
@@ -709,6 +721,15 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%topo_ind(mp) )
    allocate( var%basin_ind(mp) )
 
+   !Haverd 2013
+    ALLOCATE ( var % swilt_vec(mp,ms) )
+    ALLOCATE ( var % ssat_vec(mp,ms) )
+    !ALLOCATE ( var % sfc_vec(mp,ms) )
+    IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var%swilt_vec(mp,ms) )
+    IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var%ssat_vec(mp,ms) )
+    !IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var%sfc_vec(mp,ms) )
+
+
 END SUBROUTINE alloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -813,6 +834,9 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
    var%GWwb = 0.45_r_2
+
+   !Haverd 2013
+   ALLOCATE ( var%rex(mp,ms))
 
 END SUBROUTINE alloc_soil_snow_type
 
@@ -1191,6 +1215,13 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%topo_ind )
    DEALLOCATE( var%basin_ind )
    
+
+    !Haverd 2013
+     DEALLOCATE ( var % swilt_vec )
+     DEALLOCATE ( var % ssat_vec )
+    IF(ASSOCIATED(var % swilt_vec)) DEALLOCATE ( var % swilt_vec)
+    IF(ASSOCIATED(var % ssat_vec)) DEALLOCATE ( var % ssat_vec)
+
 END SUBROUTINE dealloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
@@ -1292,6 +1323,9 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
    
+   !Haverd 2013
+   DEALLOCATE (var%rex)
+
 END SUBROUTINE dealloc_soil_snow_type
    
 ! ------------------------------------------------------------------------------

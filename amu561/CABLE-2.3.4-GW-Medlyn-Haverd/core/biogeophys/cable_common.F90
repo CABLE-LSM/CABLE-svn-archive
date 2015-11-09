@@ -62,6 +62,10 @@ MODULE cable_common_module
       CHARACTER(LEN=30) ::                                                     &
          FWSOIL_SWITCH     !
 
+
+      !Haverd 2013
+      CHARACTER(LEN=20) :: SOIL_STRUC
+
       ! Ticket #56
       CHARACTER(LEN=20) ::                                                     &
          GS_SWITCH

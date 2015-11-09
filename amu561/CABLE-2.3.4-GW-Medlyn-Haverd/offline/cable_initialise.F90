@@ -39,7 +39,7 @@ MODULE cable_init_module
                                  soiltype_metfile
    USE cable_read_module
    USE netcdf
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename, cable_user
 
    IMPLICIT NONE
    
@@ -406,7 +406,13 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'runoff',dummy,ssnow%runoff,filename%restart_in,      &
                 max_vegpatches,'def',from_restart,mp)
-   CALL readpar(ncid_rin,'cansto',dummy,canopy%cansto,filename%restart_in,     &
+   
+  IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+      CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
+           max_vegpatches,'def',from_restart,mp)
+   ENDIF
+
+                CALL readpar(ncid_rin,'cansto',dummy,canopy%cansto,filename%restart_in,     &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'sghflux',dummy,canopy%sghflux,filename%restart_in,   &
                 max_vegpatches,'def',from_restart,mp)
