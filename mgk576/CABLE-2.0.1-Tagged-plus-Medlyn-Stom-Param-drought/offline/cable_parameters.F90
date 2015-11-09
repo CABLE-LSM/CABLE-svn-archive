@@ -814,8 +814,6 @@ CONTAINS
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
 
-    ! Martin De Kauwe, Nov 9 2015
-    veg%psi_pd = 0.0 ! default to zero stress, updated by pre-dawn psi-SWP
 
     ! calculate vegin%froot from using rootbeta and soil depth
     ! (Jackson et al. 1996, Oceologica, 108:389-411)
@@ -972,6 +970,7 @@ CONTAINS
           veg%g1_b(h)        = vegin%g1_b(veg%iveg(h)) ! MDK 26 March 2015.
           veg%vcmax_sf(h)    = vegin%vcmax_sf(veg%iveg(h)) ! MDK 26 March 2015.
           veg%vcmax_psi_f(h) = vegin%vcmax_psi_f(veg%iveg(h)) ! MDK 26 March 2015.
+          veg%psi_pd(h) = 0.0 ! default to zero drought MDK 26 March 2015.
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
@@ -1023,7 +1022,8 @@ CONTAINS
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
                vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4, &
-               vegin%g1_b, vegin%vcmax_sf, vegin%vcmax_psi_f)! MDK 26 March 2015.
+               vegin%g1_b, vegin%vcmax_sf, vegin%vcmax_psi_f,&
+               vegin%psi_pd)! MDK 26 March 2015.
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous
