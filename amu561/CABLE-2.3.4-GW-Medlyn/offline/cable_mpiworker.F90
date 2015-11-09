@@ -1387,6 +1387,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (canopy%fevw, displs(bidx), ierr)
   blen(bidx) = r1len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil, displs(bidx), ierr)
+  blen(bidx) = r1len
+
 !  bidx = bidx + 1
 !  CALL MPI_Get_address (canopy%potev_c, displs(bidx), ierr)
 !  blen(bidx) = r2len
