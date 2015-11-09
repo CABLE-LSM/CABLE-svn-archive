@@ -2200,7 +2200,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil    ! soil water modifier for g1
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil_ns ! soil water modifier for vcmax
-   REAL, DIMENSION(mp) :: psi_sat, psi_sat_mpa, psi_swp, psi_lwp
+   REAL, DIMENSION(mp) :: psi_sat, psi_sat_mpa, psi_swp, psi_lwp, psi_pd
    REAL, DIMENSION(mp) :: theta_over_theta_sat
    INTEGER, INTENT(IN) :: i
    INTEGER :: ns
@@ -2306,33 +2306,27 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
    ENDIF
 
-   ! Weight SWP using the layer with the most water
-   !
-   !DO ns = 1, ms
-   !    t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, &
-   !                             ssnow%wb(:,ns) / soil%ssat))
-   !    psi_swp_tmp(:,ns) = psi_sat_mpa * t_over_t_sat(:,ns)**(-soil%bch)
-   !END DO
-   !psi_swp = MAXVAL(psi_swp_tmp)
-
-
-   ! Weight SWP by root fraction in each layer
-   !
-   !DO ns = 1, ms
-   !    t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, &
-   !                             veg%froot(:,ns) * ssnow%wb(:,ns) / soil%ssat))
-   !    psi_swp_tmp(:,ns) = psi_sat_mpa * t_over_t_sat(:,ns)**(-soil%bch)
-   !END DO
-   !psi_swp = sum(psi_swp_tmp) / REAL(ms)
+   IF (met%hod(i) < 5.0) THEN
+      ! This doesn't really matter as no fluxes will be occuring during this
+      ! time, but for computational purposes this will likely change a bit
+      psi_pd = psi_swp
+   ELSEIF (met%hod(i) == 5.0) THEN
+      ! "dawn" now set the psi_pd = psi_SWP this then won't change for the rest
+      ! of the day
+      psi_pd = psi_swp
+   ELSEIF (met%hod(i) > 5.0) THEN
+      ! Don't change the psi_pd value throughout the day, use the pre-dawn value
+      continue
+   ENDIF
 
    psi_lwp = psi_swp - psi_0
 
    ! SW modifier for g1 parameter (stomatal limitation)
-   fwsoil = exp(veg%g1_b(i) * psi_swp)
+   fwsoil = exp(veg%g1_b(i) * psi_pd)
 
    ! SW modifier for Vcmax (non-stomatal limitation)
    fwsoil_ns = (1.0 + exp(veg%vcmax_sf(i) * veg%vcmax_psi_f(i))) / &
-               (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_swp)))
+               (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_pd)))
 
 END SUBROUTINE vcmax_non_stomatal_lim
 
