@@ -2400,11 +2400,11 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)-ssnow%wbice(:,1) ) ) )
    end if
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
-   hk_zero = soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) )
+   hk_zero = 0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) )
 
    soil_moisture_mod(:) = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
 
-   ssnow%rtevap(:) = min( rough%z0soil/sublayer_dz * (1000.0*lm/ (4.0*ssnow%hk(:,1)) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
+   ssnow%rtevap(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
                          3500.0 )
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) ssnow%rtevap = 0.0
