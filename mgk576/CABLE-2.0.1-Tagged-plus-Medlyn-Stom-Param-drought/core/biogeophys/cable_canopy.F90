@@ -2305,15 +2305,15 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
    ENDIF
 
 
-   !IF (met%hod(i) <= 5.0) THEN
-   !   ! At dawn we are setting psi_pd = psi_SWP, i.e. so that for the rest of
-   !   ! the day it doesn't vary.
-   !   psi_pd = psi_swp
-   !ENDIF
+   IF (met%hod(i) <= 5.0) THEN
+      ! At dawn we are setting psi_pd = psi_SWP, i.e. so that for the rest of
+      ! the day it doesn't vary.
+      psi_pd = psi_swp
+   ENDIF
 
-   !print*,met%hod(i), canopy%psi_pd
+   print*,met%hod(i), psi_pd
 
-   print *, psi_pd
+   
    !psi_lwp = psi_swp - psi_0
 
    ! SW modifier for g1 parameter (stomatal limitation)
