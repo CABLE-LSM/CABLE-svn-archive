@@ -2313,6 +2313,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
    !print*,met%hod(i), canopy%psi_pd
 
+   print *, psi_pd
    !psi_lwp = psi_swp - psi_0
 
    ! SW modifier for g1 parameter (stomatal limitation)
