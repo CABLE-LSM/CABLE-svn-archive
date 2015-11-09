@@ -779,11 +779,7 @@ CONTAINS
 !    2.608,2.614,2.614,2.614,0.978,0.978,0.978/
 !    (BP may2010)
 
-
     ! *******************************************************************
-
-    canopy%psi_pd  = 0.0 ! initialise drought stress to 0, MDK, 9 Nov, 2015
-
     ! Site independent initialisations (all gridcells):
     canopy%cansto  = 0.0 ! canopy water storage (mm or kg/m2)
     canopy%sghflux = 0.0

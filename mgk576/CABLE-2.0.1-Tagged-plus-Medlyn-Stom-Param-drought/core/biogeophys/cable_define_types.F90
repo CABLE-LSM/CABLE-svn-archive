@@ -267,8 +267,7 @@ MODULE cable_def_types_mod
    ! Canopy/vegetation variables:
    TYPE canopy_type
 
-      REAL :: psi_pd !
-      
+
       REAL, DIMENSION(:), POINTER ::                                           &
          cansto,  & ! canopy water storage (mm)
          cduv,    & ! drag coefficient for momentum
