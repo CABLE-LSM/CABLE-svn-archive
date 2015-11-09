@@ -196,6 +196,8 @@ PROGRAM cable_offline_driver
 
    ! END header
 
+print *, "PRITING icycle top of offline_driver:", icycle
+
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -485,13 +487,14 @@ PROGRAM cable_offline_driver
 
    END DO
 
+print *, "PRINTING icycle cable_driver", icycle
    !Code for spinning up? comment out
    IF (icycle > 0) THEN
-      print *, "Writing CASA pool and flux out"
+      print *, "WRITING CASA pool and flux out"
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-      print *, 'before ncdf_dump', spinConv, spincasainput
+    !  print *, 'before ncdf_dump', spinConv, spincasainput
 !      if ( spinConv .AND. spincasainput ) then
  !          call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
   !    endif
