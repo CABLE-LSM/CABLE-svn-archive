@@ -1665,7 +1665,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             !   !continue
             !   !print *, "Turned off recalc of transpiration"
 
-            print*, met%hod(i)
+            p
 
             ! Re-calculation of transpiration, to match new drought scheme
             ! Martin De Kauwe, 30th October 2015,
@@ -2220,6 +2220,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc)
    REAL, DIMENSION(mp) :: Lsoil
    REAL, PARAMETER :: min_lwp = -2.0
 
+   print*, met%hod(i)
    ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
    psi_sat_mpa = soil%sucs * 9.81 * 0.001
 
