@@ -2308,7 +2308,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
    IF (met%hod(i) <= 5.0) THEN
       ! At dawn we are setting psi_pd = psi_SWP, i.e. so that for the rest of
       ! the day it doesn't vary.
-      veg%psi_pd = psi_swp
+      veg%psi_pd(i) = psi_swp
    ENDIF
 
    print*,met%hod(i), veg%psi_pd(i)

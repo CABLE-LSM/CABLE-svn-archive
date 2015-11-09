@@ -250,7 +250,8 @@ MODULE cable_def_types_mod
          g1c4,    & ! Belinda's stomatal model slope, Ticket #56.
          g1_b,       & ! MDK 26 March 2015.
          vcmax_sf,   & ! MDK 26 March 2015.
-         vcmax_psi_f   ! MDK 26 March 2015.
+         vcmax_psi_f,& ! MDK 26 March 2015.
+         psi_pd   ! MDK 26 March 2015.
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -725,6 +726,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var% g1_b(mp) )        ! MDK 26 March 2015.
    ALLOCATE( var% vcmax_sf(mp) )    ! MDK 26 March 2015.
    ALLOCATE( var% vcmax_psi_f(mp) ) ! MDK 26 March 2015.
+   ALLOCATE( var% psi_pd(mp) ) ! MDK 26 March 2015.
 
 
 END SUBROUTINE alloc_veg_parameter_type
@@ -1133,6 +1135,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%g1_b ) ! MDK 26 March 2015.
    DEALLOCATE( var%vcmax_sf ) ! MDK 26 March 2015.
    DEALLOCATE( var%vcmax_psi_f ) ! MDK 26 March 2015.
+   DEALLOCATE( var%psi_pd ) ! MDK 26 March 2015.
 
 END SUBROUTINE dealloc_veg_parameter_type
 
