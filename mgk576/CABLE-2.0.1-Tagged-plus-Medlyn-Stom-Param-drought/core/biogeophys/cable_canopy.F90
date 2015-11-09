@@ -426,14 +426,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, bgc)
 
    END DO           ! do iter = 1, NITER
 
+   ! MDK, 9th Nov - I think this is superfilous and can be removed, check...
+   !
    ! MDK 26 March 2015.
    ! This needs to be in here as it is calculated per pft
-   IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
-      cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
-      cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-       CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
-                                   veg, 1, bgc, met)
-   ENDIF
+   !IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+   !   cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+   !   cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+   !    CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
+   !                                veg, 1, bgc, met)
+   !ENDIF
 
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
