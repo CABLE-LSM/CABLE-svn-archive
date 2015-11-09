@@ -163,8 +163,7 @@ MODULE cable_common_module
          g1c4,       & !  Ticket #56
          g1_b,       & !  MDK 26 March 2015.
          vcmax_sf,   & !  MDK 26 March 2015.
-         vcmax_psi_f,&   !  MDK 26 March 2015.
-         psi_pd   !  MDK 26 March 2015.
+         vcmax_psi_f   !  MDK 26 March 2015.
 
 
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
@@ -269,8 +268,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),             & ! Ticket #56
          vegin%g1c3( mvtype ), vegin%g1c4( mvtype ),             & ! Ticket #56
          vegin%g1_b( mvtype ), vegin%vcmax_sf( mvtype ),                       &
-         vegin%vcmax_psi_f( mvtype ), vegin%psi_pd( mvtype ) )
-                !  MDK 26 March 2015.
+         vegin%vcmax_psi_f( mvtype ) )                     !  MDK 26 March 2015.
 
 
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -305,7 +303,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                        vegin%g1c3(jveg),vegin%g1c4(jveg) ! Ticket #56
             READ(40,*) vegin%g1_b(jveg), vegin%vcmax_sf(jveg),                     &
                        vegin%vcmax_psi_f(jveg)           !  MDK 26 March 2015.
-            vegin%psi_pd(jveg) = 0.0
+
          END DO
 
       ELSE
