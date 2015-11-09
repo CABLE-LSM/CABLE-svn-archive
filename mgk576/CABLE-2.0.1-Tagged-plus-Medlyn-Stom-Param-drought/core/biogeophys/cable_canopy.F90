@@ -1665,7 +1665,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             !   !continue
             !   !print *, "Turned off recalc of transpiration"
 
-            
+
 
             ! Re-calculation of transpiration, to match new drought scheme
             ! Martin De Kauwe, 30th October 2015,
@@ -2183,7 +2183,7 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
 END SUBROUTINE fwsoil_calc_std
 
 ! ------------------------------------------------------------------------------
-SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,
+SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
                                   met)
 
    ! MDK 26 March 2015.
