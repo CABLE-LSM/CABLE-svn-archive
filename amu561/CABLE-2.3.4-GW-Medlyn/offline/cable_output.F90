@@ -2703,6 +2703,7 @@ CONTAINS
     INTEGER :: backCASA
     INTEGER :: ktauday
 
+
     ! calculate end-of-day step number for CASACNP variables
     ktauday = INT(24.0*3600.0/dels)
 

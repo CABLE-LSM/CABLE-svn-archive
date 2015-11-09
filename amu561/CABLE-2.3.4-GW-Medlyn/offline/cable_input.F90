@@ -2591,8 +2591,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     WRITE(logn,*) ' Loading initialisations from default grid.'
 
     ! Parameter values and some grid info are read in.
-    ! They will be overwritten by values from the restart file, if present.
-    ! Those variables found in the met file will again overwrite existing ones.
 
     CALL get_default_params(logn,vegparmnew)
 

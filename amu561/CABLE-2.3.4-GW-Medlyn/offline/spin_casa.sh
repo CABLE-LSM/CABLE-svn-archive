@@ -232,6 +232,7 @@ casafile%cnpmetout= ""  ! output daily met forcing for spinning casacnp
 casafile%cnpmetin = ""  ! list of daily met files for spinning casacnp
 casafile%phen     = "./../../Inputs/CASA_ins/modis_phenology_csiro.txt"
 casafile%cnpflux  ="./../../Outputs/${site}/${OUTDIR}/cnpfluxOut_${D}.csv"
+output%CASA = .FALSE.   ! output CASA variables to netcdf?
 ncciy = 0  ! 0 for not using gswp; 4-digit year input for year of gswp met
 gswpfile%rainf = "gswp/AustMerra3h${year}.nc"
 gswpfile%snowf = "gswp/AustMerra3h${year}.nc"
@@ -276,7 +277,7 @@ EOF
 
 
 #run model
-executable=`ls cable-r*`
+executable=`ls cable-r*`   #automatically find current cable version
 ./$executable
 
 
@@ -310,7 +311,7 @@ else
     cleaf_old=`awk -F "\"*,\"*" '{print $13}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     cwood_old=`awk -F "\"*,\"*" '{print $14}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
     croot_old=`awk -F "\"*,\"*" '{print $15}' ../../Inputs/CASA_ins/${site}/poolcnpOut_old_${D}.csv`
-    cplant_old=$(echo "$cleaf_old+$cwood_old+$croot_old" | bc -l")
+    cplant_old=$(echo "$cleaf_old+$cwood_old+$croot_old" | bc -l)
 fi
 
 cleaf_new=`awk -F "\"*,\"*" '{print $13}' ../../Outputs/${site}/${OUTDIR}/poolcnpOut_${D}.csv`
@@ -325,7 +326,7 @@ echo $csoil_new
 
 
 diff_cplant=$(echo "$cplant_new-$cplant_old" | bc -l)
-diff_csoil=$(echo "$csoil_new-$csoil_old" | bc -l )
+diff_csoil=$(echo "$csoil_new-$csoil_old" | bc -l)
 
 
 diff_csoil=$(echo "scale=6; a=$diff_csoil/1;if(0>a)a*=-1;a"|bc)

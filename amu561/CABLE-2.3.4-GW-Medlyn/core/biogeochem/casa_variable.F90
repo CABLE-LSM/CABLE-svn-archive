@@ -321,6 +321,10 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
 !  INTEGER :: mvt
 
 !  mvt = mvtype
+print *, "casa_variable, mp"
+print *, arraysize
+print *, mvtype
+
   ALLOCATE(casabiome%ivt2(mvtype),                   &
            casabiome%xkleafcoldmax(mvtype),          &
            casabiome%xkleafcoldexp(mvtype),          &

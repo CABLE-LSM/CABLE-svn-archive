@@ -332,7 +332,8 @@ PROGRAM cable_offline_driver
                                                 casapool, casamet )
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
-   
+
+
          ! CALL land surface scheme for this timestep, all grid points:
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
@@ -368,7 +369,12 @@ PROGRAM cable_offline_driver
             CALL write_output( dels, ktau, met, canopy, ssnow,                    &
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
-         ENDIF
+        
+            IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0)) &
+               CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
+        
+        ENDIF
+
          ! dump bitwise reproducible testing data
          IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
             IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
@@ -377,10 +383,6 @@ PROGRAM cable_offline_driver
                           canopy%fe + canopy%fh )
          ENDIF
        
-         IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
-              CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
-
-
          ! Check this run against standard for quasi-bitwise reproducability
          ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
          IF(cable_user%consistency_check) THEN 
@@ -485,6 +487,7 @@ PROGRAM cable_offline_driver
 
    !Code for spinning up? comment out
    IF (icycle > 0) THEN
+      print *, "Writing CASA pool and flux out"
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)

@@ -1705,6 +1705,8 @@ CONTAINS
     ! local variables
     INTEGER :: ee, hh
 
+print *, "REACHES wirte_ncp #1"
+
     DO ee=1, mland ! over all land grid points
       casamet%isorder(landpt(ee)%cstart:landpt(ee)%cend) =                     &
                                        inSorder(landpt(ee)%ilon,landpt(ee)%ilat)
@@ -1732,7 +1734,7 @@ CONTAINS
       ENDDO
     ENDDO
     DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust)
-
+print *, "REACHES write_cnp #2"
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)

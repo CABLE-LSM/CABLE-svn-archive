@@ -779,7 +779,7 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
        casabal%FPupyear=0.0;casabal%FPleachyear=0.0;casabal%FPlossyear=0.0
   EndIF 
 
-END SUBROUTINE casa_init
+  END SUBROUTINE casa_init
 
 
 SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
