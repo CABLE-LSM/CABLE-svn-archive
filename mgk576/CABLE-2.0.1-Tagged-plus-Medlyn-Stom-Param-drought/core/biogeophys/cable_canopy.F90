@@ -432,7 +432,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, bgc)
       cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
       cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
        CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
-                                   veg, 1, bgc)
+                                   veg, 1, bgc, met)
    ENDIF
 
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
@@ -1458,7 +1458,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
                cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
                 CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
-                                            veg, i, bgc)
+                                            veg, i, bgc, met)
             ENDIF
 
             ghwet(i) = 2.0   * sum_gbh(i)
@@ -2183,7 +2183,8 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
 END SUBROUTINE fwsoil_calc_std
 
 ! ------------------------------------------------------------------------------
-SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc)
+SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,
+                                  met)
 
    ! MDK 26 March 2015.
    ! Zhou et al. 2013, AFM SW availability limitation within CABLE logic
@@ -2195,6 +2196,8 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc)
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc
+   TYPE (met_type),       INTENT(INOUT) :: met
+
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil    ! soil water modifier for g1
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil_ns ! soil water modifier for vcmax
    REAL, DIMENSION(mp) :: psi_sat, psi_sat_mpa, psi_swp, psi_lwp
@@ -2218,9 +2221,10 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc)
    REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
    REAL, PARAMETER ::  head = 0.009807              ! head of pressure  (MPa/m)
    REAL, DIMENSION(mp) :: Lsoil
-   REAL, PARAMETER :: min_lwp = -2.0
+
 
    print*, met%hod(i)
+   
    ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
    psi_sat_mpa = soil%sucs * 9.81 * 0.001
 
