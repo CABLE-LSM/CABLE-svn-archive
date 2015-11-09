@@ -2618,6 +2618,8 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'def') ! MDK 26 March 2015.
    CALL readpar(ncid_met,'vcmax_psi_f',completeSet,veg%vcmax_psi_f,filename%met,&
                 nmetpatches,'def') ! MDK 26 March 2015.
+   CALL readpar(ncid_met,'psi_pd',completeSet,veg%psi_pd,filename%met,&
+                nmetpatches,'def') ! MDK 26 March 2015.
    ok = NF90_INQ_VARID(ncid_met,'za',parID)
    IF(ok == NF90_NOERR) THEN ! if it does exist
       CALL readpar(ncid_met,'za',completeSet,rough%za_uv,filename%met,         &
