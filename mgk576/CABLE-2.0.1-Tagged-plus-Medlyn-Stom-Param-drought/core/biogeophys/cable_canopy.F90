@@ -2187,32 +2187,34 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
                                   met)
 
    ! MDK 26 March 2015.
-   ! Zhou et al. 2013, AFM SW availability limitation within CABLE logic
+   ! Implementation of Zhou et al. 2013; 2014 "joey model" within CABLE.
+   ! All code is used in De Kauwe et al. 2015, Biogeosciences paper.
    ! Here we are testing multiple approaches to define the SWP "seen" by the
-   ! plant, see Biogeosciences paper for a human readable explanation
+   ! plant, see  paper for a human readable explanation
    USE cable_def_types_mod
    USE cable_common_module
-   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc
-   TYPE (met_type),       INTENT(INOUT) :: met
+   TYPE (bgc_pool_type),  INTENT(INOUT)        :: bgc
+   TYPE (met_type),       INTENT(INOUT)        :: met
+
+   INTEGER :: ns
+   INTEGER, INTENT(IN) :: i
 
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil    ! soil water modifier for g1
-   REAL, INTENT(OUT), DIMENSION(:):: fwsoil_ns ! soil water modifier for vcmax
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil_ns ! soil water modifier for Vcmax
    REAL, DIMENSION(mp) :: psi_sat, psi_sat_mpa, psi_swp, psi_lwp
    REAL, DIMENSION(mp) :: theta_over_theta_sat
-   INTEGER, INTENT(IN) :: i
-   INTEGER :: ns
-   REAL, PARAMETER :: psi_0 = 0.3
    REAL, DIMENSION(mp,ms)  :: t_over_t_sat, psi_swp_tmp, psi_swp_per_lay
    REAL, DIMENSION(mp,ms) :: emax_per_lay
-   REAL :: total_soil_depth, weighting, depth, total_est_evap
    REAL, DIMENSION(mp) :: layer_weighted_resistance, root_mass
    REAL, DIMENSION(mp,ms) :: root_resistance, root_length, rs, soil_root_resist
    REAL, DIMENSION(mp,ms) :: soil_resistance, emax_per_layer, cond_per_layer
    REAL, PARAMETER :: pi = 3.1415927
    REAL, DIMENSION(mp) :: Ks
+   REAL, PARAMETER :: psi_0 = 0.3
+   REAL :: total_soil_depth, weighting, depth, total_est_evap
 
    ! All from Williams et al. 2001, Tree phys
    REAL, PARAMETER :: root_radius = 0.0005                 ! m
@@ -2233,7 +2235,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
       ! model is to take the average water availability over these layers
       ! accounting for where the roots are distributed.
       theta_over_theta_sat = MAX(1.0e-9, MIN(1.0, &
-                           sum(veg%froot * ssnow%wb / SPREAD(soil%ssat,2,ms))))
+                            sum(veg%froot * ssnow%wb / SPREAD(soil%ssat,2,ms))))
       psi_swp = psi_sat_mpa * theta_over_theta_sat**(-soil%bch)
 
    ELSE IF (cable_user%SWP_SWITCH == 'method_2') THEN
@@ -2253,7 +2255,6 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
       psi_swp = psi_sat_mpa * sum(t_over_t_sat)**(-soil%bch)
 
    ELSE IF (cable_user%SWP_SWITCH == 'method_3') THEN
-
       ! Weight by root & soil hydraulic resistance following SPA approach
       !
       ! - root hydraulic resistance declines linearly with increasing root
@@ -2304,17 +2305,13 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
    ENDIF
 
-
+   ! At dawn (5 am) we are setting psi_pd = psi_SWP, i.e. so that for the
+   ! rest of the day it doesn't vary.
+   ! Note initialised on day 1 to zero stress, psi_pd = 0.0 at midnight
+   ! see cable_common
    IF (met%hod(i) > 4.9 .AND. met%hod(i) < 5.1) THEN
-      ! At dawn (5 am) we are setting psi_pd = psi_SWP, i.e. so that for the
-      ! rest of the day it doesn't vary.
-      ! Note initialised on day 1 to zero stress, psi_pd = 0.0 at midnight
-      ! see cable_common
       psi_pd = psi_swp(i)
    ENDIF
-
-   !print*,met%hod(i), psi_pd
-
 
    !psi_lwp = psi_swp - psi_0
 
