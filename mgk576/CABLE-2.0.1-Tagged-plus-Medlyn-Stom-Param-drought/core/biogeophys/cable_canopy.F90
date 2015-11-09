@@ -2308,10 +2308,12 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
    IF (met%hod(i) > 4.9 .AND. met%hod(i) < 5.1) THEN
       ! At dawn (5 am) we are setting psi_pd = psi_SWP, i.e. so that for the
       ! rest of the day it doesn't vary.
+      ! Note initialised on day 1 to zero stress, psi_pd = 0.0 at midnight
+      ! see cable_common
       psi_pd = psi_swp(i)
    ENDIF
 
-   print*,met%hod(i), psi_pd
+   !print*,met%hod(i), psi_pd
 
 
    !psi_lwp = psi_swp - psi_0
