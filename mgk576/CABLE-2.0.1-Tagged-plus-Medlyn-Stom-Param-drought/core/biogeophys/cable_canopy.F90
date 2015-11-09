@@ -2317,11 +2317,11 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
    !psi_lwp = psi_swp - psi_0
 
    ! SW modifier for g1 parameter (stomatal limitation)
-   fwsoil = exp(veg%g1_b(i) * psi_swp)
+   fwsoil = exp(veg%g1_b(i) * psi_pd)
 
    ! SW modifier for Vcmax (non-stomatal limitation)
    fwsoil_ns = (1.0 + exp(veg%vcmax_sf(i) * veg%vcmax_psi_f(i))) / &
-               (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_swp)))
+               (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_pd)))
 
 END SUBROUTINE vcmax_non_stomatal_lim
 
