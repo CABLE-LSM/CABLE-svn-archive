@@ -2304,20 +2304,21 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
    ENDIF
 
-   IF (met%hod(i) < 5.0) THEN
-      ! This doesn't really matter as no fluxes will be occuring during this
-      ! time, but for computational purposes this will likely change a bit
+   print*,met%hod(i)
+
+   IF (met%hod(i) <= 5.0) THEN
+      ! At dawn we are setting psi_pd = psi_SWP, i.e. so that for the rest of
+      ! the day it doesn't vary. Clearly in the hours before this 24-04 it will
+      ! vary, but as no fluxes are being calculated this won't matter.
       psi_pd = psi_swp
-   ELSEIF (met%hod(i) == 5.0) THEN
-      ! "dawn" now set the psi_pd = psi_SWP this then won't change for the rest
-      ! of the day
-      psi_pd = psi_swp
+
    ELSEIF (met%hod(i) > 5.0) THEN
       ! Don't change the psi_pd value throughout the day, use the pre-dawn value
       continue
+
    ENDIF
 
-   psi_lwp = psi_swp - psi_0
+   !psi_lwp = psi_swp - psi_0
 
    ! SW modifier for g1 parameter (stomatal limitation)
    fwsoil = exp(veg%g1_b(i) * psi_pd)
