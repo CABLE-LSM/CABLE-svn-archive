@@ -2237,7 +2237,7 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
        alpha_root(:) = zero
     endwhere
 
-    where (Fs(:) > 0.05)
+    where (Fs(:) > zero)
        delta_root(:) = one
     elsewhere
        delta_root(:) = zero
@@ -2254,9 +2254,8 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
     rex(:) = Etrans*rex(:)
 
     ! reduce extraction efficiency where total extraction depletes soil moisture below wilting point
-    !where ((rex*dt) > (theta(:)-0.01_r_2)*dx(:))
     where (((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))
-       alpha_root = alpha_root*(theta(:)-thetaw(:))*dx(:)/(rex*dt)
+       alpha_root = alpha_root*(theta(:)-thetaw(:))*dx(:)/(1.1_r_2*rex*dt)
     endwhere
     rex(:) = alpha_root(:)*Fs(:)
 
