@@ -426,7 +426,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, bgc)
 
    END DO           ! do iter = 1, NITER
 
-   
+
 
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
@@ -1383,7 +1383,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ELSEIF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
              cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
              cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-         ! limitations calculated within the mp loop below
+         ! *****
+         ! limitations calculated within the mp loop below as we need the "i"
+         ! index. It does not matter as this block is called once, so we
+         ! have a few superfluous calls.
          continue
       ELSEIF(cable_user%FWSOIL_SWITCH == 'no_drought') THEN
          !fwsoil = 1.0
@@ -1456,17 +1459,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
 
-            ! Actually no need for this here!
-            ! Calculated once per day as above
-            !
-            !! MDK 26 March 2015.
-            !! This needs to be in here as it is calculated per pft
-            !IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
-            !   cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
-            !   cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-            !    CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
-            !                                veg, i, bgc, met)
-            !ENDIF
+
+            ! MDK 26 March 2015.
+            ! This needs to be in here as we need to pass the "i" index
+            IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+               cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+               cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+                CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
+                                            veg, i, bgc, met)
+            ENDIF
 
             ghwet(i) = 2.0   * sum_gbh(i)
             gwwet(i) = 1.075 * sum_gbh(i)
