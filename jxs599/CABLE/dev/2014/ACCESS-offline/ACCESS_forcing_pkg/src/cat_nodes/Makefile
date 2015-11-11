@@ -6,11 +6,11 @@ FLINK = -c
 
 #compiler specific
 
-#FC = ifort
-#FFLAGS = -O0 -fpp -r8 -i8
+FC = ifort
+FFLAGS = -O0 -fpp -r8 -i8
 
-FC = gfortran 
-FFLAGS = -O0 -x f95-cpp-input  -fdefault-real-8 -fdefault-double-8 -fdefault-integer-8 -ffree-form -ffree-line-length-0    
+#FC = gfortran 
+#FFLAGS = -O0 -x f95-cpp-input  -fdefault-real-8 -fdefault-double-8 -fdefault-integer-8 -ffree-form -ffree-line-length-0    
 
 OBJ= cat_common.o cat_read.o cat_write.o cat_nodes.o
 
