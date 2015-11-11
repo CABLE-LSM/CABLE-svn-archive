@@ -426,16 +426,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, bgc)
 
    END DO           ! do iter = 1, NITER
 
-   ! MDK, 9th Nov - I think this is superfilous and can be removed, check...
-   !
-   ! MDK 26 March 2015.
-   ! This needs to be in here as it is calculated per pft
-   !IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
-   !   cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
-   !   cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-   !    CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
-   !                                veg, 1, bgc, met)
-   !ENDIF
+   
 
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
@@ -1465,14 +1456,17 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
 
-            ! MDK 26 March 2015.
-            ! This needs to be in here as it is calculated per pft
-            IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
-               cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
-               cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-                CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
-                                            veg, i, bgc, met)
-            ENDIF
+            ! Actually no need for this here!
+            ! Calculated once per day as above
+            !
+            !! MDK 26 March 2015.
+            !! This needs to be in here as it is calculated per pft
+            !IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+            !   cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+            !   cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+            !    CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
+            !                                veg, i, bgc, met)
+            !ENDIF
 
             ghwet(i) = 2.0   * sum_gbh(i)
             gwwet(i) = 1.075 * sum_gbh(i)
@@ -1669,22 +1663,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      met%dva(i) * ghr(i,2) ) /                                 &
                      ( air%dsatdk(i) + psycst(i,2) )
 
-            ! Turn off re-calculation of transpiration
-            ! in original code, by moving original recalculation code to
-            ! an else block for the paper
-            !IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
-            !   cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
-            !   cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
-            !   !continue
-            !   !print *, "Turned off recalc of transpiration"
-
-
 
             ! Re-calculation of transpiration, to match new drought scheme
             ! Martin De Kauwe, 30th October 2015,
-            IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
-               cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
-               cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+            IF(cable_user%FWSOIL_SWITCH == 'no_drought') THEN
+               continue
+            ELSE IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+                    cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+                    cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+
 
                ! Recalculation of transpiration over total column
                IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
@@ -1720,6 +1707,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ELSE
 
                 IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+
                    !depthProfile(:) = veg%froot(i,:)
                    depthProfile(:) = fextroot(i,:)
 
@@ -1734,7 +1722,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                       !                       1.1 * soil%swilt(i) ) *                &
                       !                       soil%zse(kk) * 1000.0 )
 
-                      ssnow%evapfbl(i,kk) = MIN( evapfb(i) * depthProfile(kk),     & !Ticket #95. * veg%froot(i,kk),      &
+                      ssnow%evapfbl(i,kk) = MIN( evapfb(i) * depthProfile(kk), &
                                         MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
@@ -1748,15 +1736,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    ENDDO
 
                    IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
-                     CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
-                   ELSEIF(cable_user%FWSOIL_SWITCH == 'no_drought') THEN
-                      !fwsoil = 1.0
-             	     DO j=1, mp
-             	         fwsoil(j) = 1.0
-                   	 END DO
+                      CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
                    ELSE
-                     write(*,*) 'no other options should be running here, MDK ',cable_user%FWSOIL_SWITCH
-                     STOP 'fwsoil_switch failed.'
+                      write(*,*) 'no other options should be running here, MDK ',cable_user%FWSOIL_SWITCH
+                      STOP 'fwsoil_switch failed.'
                    ENDIF
 
                    ! Fix soil water balance again, i.e. put the water back
