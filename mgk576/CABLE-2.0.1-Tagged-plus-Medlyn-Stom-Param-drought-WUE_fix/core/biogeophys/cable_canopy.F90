@@ -1329,7 +1329,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    REAL, DIMENSION(mp,ms)  :: oldevapfbl
    REAL, DIMENSION(mp,ms)  :: fextroot !Ticket #95
-   
+
    REAL, DIMENSION(mp,mf)  ::                                                  &
       gw,         & ! cond for water for a dry canopy
       gh,         & ! cond for heat for a dry canopy
@@ -1737,10 +1737,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                    IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
                      CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+                   ELSEIF(cable_user%FWSOIL_SWITCH == 'no_drought') THEN
+                      !fwsoil = 1.0
+             	     DO j=1, mp
+             	         fwsoil(j) = 1.0
+                   	 END DO
                    ELSE
                      write(*,*) 'no other options should be running here, MDK ',cable_user%FWSOIL_SWITCH
                      STOP 'fwsoil_switch failed.'
-                  ENDIF
+                   ENDIF
 
                    ! Fix soil water balance again, i.e. put the water back
                    ssnow%wb(i,:) = wb2(i,:)
@@ -1776,6 +1781,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          ENDIF !lai/abs_deltlf
 
       ENDDO !i=1,mp
+
+      ! WUE bug fix, put back the correct SW as this is updated later
+      ! M. De Kauwe 15th Nov.
+      ssnow%wb = wb2 !TESTING
+
 
       ! Whhere leaf temp change b/w iterations is significant, and
       ! difference is smaller than the previous iteration, store results:
@@ -1883,6 +1893,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%gswmin_2 = gswmin(:,2)
 
    DEALLOCATE( gswmin )
+   DEALLOCATE( wb2 )
 
 END SUBROUTINE dryLeaf
 
