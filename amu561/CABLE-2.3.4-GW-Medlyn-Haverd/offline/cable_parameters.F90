@@ -1250,7 +1250,7 @@ CONTAINS
     canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
-
+  canopy%fwsoil = 1.0  ! 
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
@@ -1684,7 +1684,7 @@ CONTAINS
     END WHERE
 
     IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
-         veg%gamma = 5.e-2
+         veg%gamma = 3.e-2
     ENDIF
 
 

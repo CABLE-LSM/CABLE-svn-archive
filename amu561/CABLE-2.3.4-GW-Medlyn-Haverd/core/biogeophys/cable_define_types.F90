@@ -890,7 +890,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%eko(mp) ) 
    ALLOCATE( var% g1c3_map(mp) ) ! jtk561
    ALLOCATE( var% g0c3_map(mp) ) ! jtk561
-
+ ! Haverd2013
+ ALLOCATE( var%gamma(mp) ) 
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -1376,6 +1377,9 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%eko ) 
    DEALLOCATE( var%g1c3_map ) ! jtk561
    DEALLOCATE( var%g0c3_map ) ! jtk561
+
+!Haverd2013
+DEALLOCATE(var%gamma)
    
 END SUBROUTINE dealloc_veg_parameter_type
    
