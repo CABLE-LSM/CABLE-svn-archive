@@ -1357,7 +1357,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (ssnow%otss(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1 !77
+  bidx = bidx + 1
   CALL MPI_Get_address (ssnow%otss_0(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -1371,7 +1371,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (veg%dleaf(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1    !80
+  bidx = bidx + 1
   CALL MPI_Get_address (veg%ejmax(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -1454,7 +1454,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (veg%deciduous(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1  !100
+  bidx = bidx + 1
   CALL MPI_Get_address (veg%a1gs(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -1554,7 +1554,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = ncp * extr1
 
   ! constant * ncs, each worker gets the same copy of whole array
-  bidx = bidx + 1 !121
+  bidx = bidx + 1
   CALL MPI_Get_address (bgc%ratecs, displs(bidx), ierr)
   blen(bidx) = ncs * extr1
 
@@ -1658,7 +1658,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ! ----------- canopy --------------
 
-  bidx = bidx + 1 !244
+  bidx = bidx + 1
   CALL MPI_Get_address (canopy%fess(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -1682,7 +1682,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (canopy%delwc(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1  !250
+  bidx = bidx + 1
   CALL MPI_Get_address (canopy%dewmm(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -1747,7 +1747,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r1len
 
 !  CALL MPI_Get_address (canopy%potev_c(off), displs(bidx), ierr)
- ! blen(bidx) = r2len
+!  blen(bidx) = r2len
 
   bidx = bidx + 1
   CALL MPI_Get_address (canopy%fhv(off), displs(bidx), ierr)
@@ -1765,7 +1765,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (canopy%fes(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
-  bidx = bidx + 1 !170
+  bidx = bidx + 1
   CALL MPI_Get_address (canopy%fhs(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -1882,7 +1882,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
-  bidx = bidx + 1 !296
+  bidx = bidx + 1
   CALL MPI_Get_address (canopy%zetar(off,1), displs(bidx), ierr)
   CALL MPI_Type_create_hvector (niter, r1len, r1stride, MPI_BYTE, &
   &                             types(bidx), ierr)
@@ -1903,7 +1903,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (rough%hruff(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1 !200
+  bidx = bidx + 1
   CALL MPI_Get_address (rough%hruff_grmx(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -2233,7 +2233,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (bal%evapc_tot(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1 !270
+  bidx = bidx + 1
   CALL MPI_Get_address (bal%evaps_tot(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -2360,7 +2360,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (veg%vlaimax(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1 !300
+  bidx = bidx + 1
   CALL MPI_Get_address (rad%albedo_T(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
