@@ -23,12 +23,14 @@ module cat_nodes_mod
          ! loop over descriptive text.dat node files
          do i=1, i_nodes
             
+            !create CHAR suffixes for per node files 
             write(chnodes,10), i-1 
   10        format(I3.3)   
             nfilename = trim( trim(filename)//trim(chnodes) )
 
             ! read descriptive .dat node files to set up dimensions
             call read_txt_ifile( trim( nfilename) )
+            !print *, "read file: ",( trim( nfilename) )
 
          end do   
          write(logu,*) "Allocated super-array" 
@@ -36,6 +38,7 @@ module cat_nodes_mod
          ! loop over node files
          do i=1, i_nodes
 
+            !create CHAR suffixes for per node files 
             write(chnodes,10), i-1 
             nfilename = trim( trim(filename)//trim(chnodes) )
             pndimx = ndimx + pndimx 

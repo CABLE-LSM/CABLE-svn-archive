@@ -23,7 +23,7 @@ program  catter
          write(logu,*) "N nodes: ", trim(n_nodes)
          write(logu,*) "executing.... " 
 
-      ! reformat #nodes for fortran 
+      ! reformat CHAR n_nodes to "useful" INT i_nodes 
       READ(n_nodes,12) i_nodes
    12 FORMAT(I3.3)
       

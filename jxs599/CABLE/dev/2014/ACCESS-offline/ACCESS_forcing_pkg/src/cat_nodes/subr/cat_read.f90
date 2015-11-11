@@ -154,9 +154,8 @@ module cat_read_mod
    
                   ! read all spatial data per node file @ this timstep
                   read(2), ar_Nvars(1:dimx )
-                  !print *, " readin ", ar_Nvars(1:dimx )
-                  !print *, " readin ", ar_Nvars(1:dimx )
                   ! put spatial data per timstep into global array
+                  ! harwired ar_data(index=1,,) assumes 1 var per file
                   ar_data(1,i,Lfrom:Lto) = ar_Nvars( 1 : dimx )
 
                enddo
@@ -166,6 +165,11 @@ module cat_read_mod
             endif
 
          close(2)
+                  
+         print *, " reading ", Lfilename
+         do i=1,dimx
+            print *, " val ",i, ar_Nvars(i)
+         enddo
 
    end subroutine read_dat_file 
    !==========================================================================!
