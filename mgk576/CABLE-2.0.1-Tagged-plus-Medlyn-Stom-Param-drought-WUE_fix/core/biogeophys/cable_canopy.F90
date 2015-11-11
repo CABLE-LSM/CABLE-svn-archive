@@ -1363,6 +1363,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ! Need for WUE fix, 11th November, 2015, MDK
    REAL(r_2), DIMENSION(:,:), POINTER :: wb2
+   REAL, DIMENSION(ms) :: depthProfile  !vertical distribution of transpiration demand
 
    ! END header
 
