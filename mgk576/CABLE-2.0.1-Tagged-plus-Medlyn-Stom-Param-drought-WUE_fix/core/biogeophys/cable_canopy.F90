@@ -1360,10 +1360,18 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    INTEGER :: i, j, k, kk  ! iteration count
    REAL :: vpd, g1 ! Ticket #56
 
+   ! Need for WUE fix, 11th November, 2015, MDK
+   REAL(r_2), DIMENSION(:,:), POINTER :: wb2
+
    ! END header
 
 
    ALLOCATE( gswmin(mp,mf ))
+
+   ! Need for WUE fix, 11th November, 2015, MDK
+   ALLOCATE( wb2(mp, ms))
+   wb2 = ssnow%wb
+
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
@@ -1719,7 +1727,21 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                             1.1 * soil%swilt(i) ) *                &
                                             soil%zse(kk) * 1000.0 )
 
+                     ! Need to extract water here, to adjust fwsoil so that
+                     ! it is consistent with reduced transpiration. We will
+                     ! fix ssnow%wb in a minute...see below
+                     ssnow%wb(i,kk) = ssnow%wb(i,kk) - ssnow%evapfbl(i,kk)
                    ENDDO
+
+                   IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
+                     CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+                   ELSE
+                     write(*,*) 'no other options should be running here, MDK ',cable_user%FWSOIL_SWITCH
+                     STOP 'fwsoil_switch failed.'
+                  ENDIF
+
+                   ! Fix soil water balance again, i.e. put the water back
+                   ssnow%wb(i,:) = wb2(i,:)
 
                    canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
 
@@ -2163,26 +2185,64 @@ FUNCTION xejmxt3(x) RESULT(z)
 END FUNCTION xejmxt3
 
 ! ------------------------------------------------------------------------------
+!
+!SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
+!   USE cable_def_types_mod
+!   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+!   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+!   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+!   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+!   REAL, DIMENSION(mp) :: rwater ! soil water availability
+!
+!   rwater = MAX(1.0e-4_r_2,                                                    &
+!            SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,ssnow%wb -                   &
+!            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+!
+!   ! Remove vbeta
+!   !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
+!   fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+!
+!   !print *, "**", fwsoil, sum(veg%froot * ssnow%wb)
+!
+!END SUBROUTINE fwsoil_calc_std
 
-SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
+
+SUBROUTINE fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg)
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-   REAL, DIMENSION(mp) :: rwater ! soil water availability
+   REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
+   REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot  ! fraction of transpiration to be extracted from each soil layer
+   REAL, DIMENSION(mp)               :: rwater ! soil water availability
+   INTEGER ns
 
-   rwater = MAX(1.0e-4_r_2,                                                    &
-            SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,ssnow%wb -                   &
-            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+   rwater(:) = 0.0
+   do ns=1,ms
+      fextroot(:,ns) = veg%froot(:,ns) * (ssnow%wb(:,ns) - soil%swilt(:))     &
+                     /(soil%sfc(:)-soil%swilt(:))
+      fextroot(:,ns) = MAX(1.0e-9,MIN(1.0_r_2,fextroot(:,ns)))
+      rwater(:) = rwater(:) + fextroot(:,ns)
+   enddo
+
 
    ! Remove vbeta
-   !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
-   fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+   ! fwsoil(:) = MAX(1.0e-9,MIN(1.0, veg%vbeta(:) * rwater(:)))
+   fwsoil(:) = MAX(1.0e-9,MIN(1.0, rwater(:)))
 
-   !print *, "**", fwsoil, sum(veg%froot * ssnow%wb)
+
+   do ns=1,ms
+      fextroot(:,ns) = fextroot(:,ns)/rwater(:)
+   enddo
 
 END SUBROUTINE fwsoil_calc_std
+
+
+
+
+
+
+
 
 ! ------------------------------------------------------------------------------
 SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
