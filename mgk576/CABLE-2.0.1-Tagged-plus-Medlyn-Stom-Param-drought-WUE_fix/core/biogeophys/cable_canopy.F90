@@ -1328,7 +1328,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       rnx           ! net rad prev timestep
 
    REAL, DIMENSION(mp,ms)  :: oldevapfbl
-
+   REAL, DIMENSION(mp,ms)  :: fextroot !Ticket #95
+   
    REAL, DIMENSION(mp,mf)  ::                                                  &
       gw,         & ! cond for water for a dry canopy
       gh,         & ! cond for heat for a dry canopy
