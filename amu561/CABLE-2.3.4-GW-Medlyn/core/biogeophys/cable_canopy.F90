@@ -630,10 +630,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
 
-print *, "**potev**", ssnow%potev(1)  
-print *, "**fes**", canopy%fes(1)
-print *, "**wetfac**", ssnow%wetfac(1)
-print *, "**sswb**", ssnow%wb(1,1:3)
+!print *, "**potev**", ssnow%potev(1)  
+!print *, "**fes**", canopy%fes(1)
+!print *, "**wetfac**", ssnow%wetfac(1)
+!print *, "**sswb**", ssnow%wb(1,1:3)
 
 CONTAINS
 
@@ -1354,6 +1354,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
    
+   REAL(r_2), DIMENSION(:,:), POINTER :: wb2 !TESTING
+
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
    INTEGER :: i, j, k, kk  ! iteration count
@@ -1367,6 +1369,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
    ALLOCATE( gswmin(mp,mf ))
+   ALLOCATE( wb2(mp, ms))
+   wb2 = ssnow%wb !TESTING
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
@@ -1487,19 +1491,19 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! used for Vcmax for C3 plants:
             temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
             
-            vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
-            vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+            vcmxt3(i,1) = rad%scalex(i,1) * temp(i) ! * canopy%fwsoil(i)
+            vcmxt3(i,2) = rad%scalex(i,2) * temp(i) !* canopy%fwsoil(i)
     
             ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
-            vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
-            vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
+            vcmxt4(i,1) = rad%scalex(i,1) * temp(i) !* canopy%fwsoil(i)
+            vcmxt4(i,2) = rad%scalex(i,2) * temp(i) !* canopy%fwsoil(i)
             
             ! Leuning 2002 (P C & E) equation for temperature response
             ! used for Jmax for C3 plants:
             temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
-            ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
-            ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
+            ejmxt3(i,1) = rad%scalex(i,1) * temp(i)! * canopy%fwsoil(i)
+            ejmxt3(i,2) = rad%scalex(i,2) * temp(i)! * canopy%fwsoil(i)
             
             ! Difference between leaf temperature and reference temperature:
             tdiff(i) = tlfx(i) - C%TREFK
@@ -1632,7 +1636,34 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
 
-               ENDDO
+
+   !         IF ( (evapfb(i) * depthProfile(kk)) > ssnow%evapfbl(i,kk)) THEN
+    !        print *, iter
+     !       print *, (evapfb(i) * depthProfile(kk))
+      !      print *, ssnow%evapfbl(i,kk)
+       !     END IF
+
+            ssnow%wb(i,kk) = ssnow%wb(i,kk) - ssnow%evapfbl(i,kk)
+
+        ENDDO
+
+      IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
+         CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+      ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
+         !EAK, 09/10 - replace linear approx by polynomial fitting
+         CALL fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg) 
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
+         CALL fwsoil_calc_Lai_Katul(canopy, fextroot, soil, ssnow, veg) 
+      ELSE
+         write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
+         STOP 'fwsoil_switch failed.'
+      ENDIF
+
+    ssnow%wb(i,:) = wb2(i,:)
+
+ !   print *, "ssnowwb", ssnow%wb(i,:)
+  !  print *, "wb2", wb2(i,:)
+   ! print *, "fwsoil", canopy%fwsoil(i)
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
     
@@ -1664,6 +1695,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          ENDIF !lai/abs_deltlf
 
       ENDDO !i=1,mp
+
+        ssnow%wb = wb2 !TESTING
+
 
       ! Whhere leaf temp change b/w iterations is significant, and
       ! difference is smaller than the previous iteration, store results:
@@ -1771,7 +1805,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%gswmin_2 = gswmin(:,2)
    
    DEALLOCATE( gswmin )
-
+   DEALLOCATE(wb2)
 END SUBROUTINE dryLeaf
 
 ! -----------------------------------------------------------------------------
