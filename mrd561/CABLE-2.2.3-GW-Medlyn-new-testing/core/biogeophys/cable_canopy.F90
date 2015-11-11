@@ -161,6 +161,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    gbhf = 1e-3     ! default free convection boundary layer conductance
    gbhu = 1e-3     ! default forced convection boundary layer conductance
    ssnow%evapfbl = 0.0
+   ssnow%rh_srf(:) = 1._r_2
 
    ! Initialise in-canopy temperatures and humidity:
    csx = SPREAD(met%ca, 2, mf) ! initialise leaf surface CO2 concentration
@@ -348,8 +349,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          if (cable_user%gw_model) then 
             do i=1,mp
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
+                  ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
             end do
@@ -385,8 +388,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
+                  ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
             end do
@@ -623,7 +628,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fes)/d(dq)
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
    ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil     
-   ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap)
+   ssnow%dfe_ddq = ssnow%rh_srf(:) * ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap)
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
@@ -2208,25 +2213,14 @@ SUBROUTINE fwsoil_calc_collins(fwsoil, soil, ssnow, veg)
    end do
 
    do i=1,mp
-      if (sum_alpha(i) .gt. 1._r_2) then
+      if (sum_alpha(i) .ne. 0._r_2) then
          alpha(i,:) = alpha(i,:) / sum_alpha(i)
-         sum_alpha(:) = 1._r_2
+      else
+         alpha(i,:) = 0.0
       end if
   end do
 
-  veg%froot_w(:,:) = real(alpha(:,:))*veg%froot(:,:) 
-  fwsoil(:) = 0.0
-  do k=1,ms
-     fwsoil(:) = fwsoil(:) + veg%froot_w(:,k)
-  end do
-
-  do i=1,mp
-     if (fwsoil(i) .gt. 1._r_2) then
-         veg%froot_w(i,:) = veg%froot_w(i,:) / fwsoil(i)
-         fwsoil(i) = 1.0
-     end if
-  end do
-
+  fwsoil(:) = maxval(alpha,dim=2)
   fwsoil(:) = max(1e-4,fwsoil)
         
       
@@ -2392,7 +2386,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    end do
 
 
-   sublayer_dz = eddy_mod(:) * air%visc / max(1.0e-4,canopy%us)
+   sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
 
    if (first_call) then
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
@@ -2400,12 +2394,12 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)-ssnow%wbice(:,1) ) ) )
    end if
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
-   hk_zero = 0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) )
+   hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-8)
 
    soil_moisture_mod(:) = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
 
    ssnow%rtevap(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
-                         3500.0 )
+                         200.0 )
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) ssnow%rtevap = 0.0
 
