@@ -178,7 +178,7 @@ CONTAINS
 
   END SUBROUTINE get_default_params
   !=============================================================================
-  SUBROUTINE read_gridinfo(nlon, nlat, npatch)
+  SUBROUTINE  info(nlon, nlat, npatch)
   ! Reads in veg type, patch fraction, soil type, soil moisture and temperature
   ! profiles; also grid area and nutrients
   !
@@ -1632,7 +1632,8 @@ CONTAINS
                vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
                vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
-               vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4,               &
+               vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4, 
+              &
                vegin%xalbnir, vegin%length, vegin%width,                       &
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
                vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )

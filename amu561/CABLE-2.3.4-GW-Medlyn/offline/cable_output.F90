@@ -1343,7 +1343,8 @@ CONTAINS
     write(*,*) 'write global attributes for the file'
 
 
-    ! Write global attributes for file:
+    ! 
+ributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
     todaydate = todaydate(1:4)//'/'//todaydate(5:6)//'/'//todaydate(7:8)
     nowtime = nowtime(1:2)//':'//nowtime(3:4)//':'//nowtime(5:6)

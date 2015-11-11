@@ -1632,6 +1632,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
 
+            IF ( (evapfb(i) * depthProfile(kk)) > ssnow%evapfbl(i,kk)) THEN
+            print *, iter
+            print *, (evapfb(i) * depthProfile(kk))
+            print *, ssnow%evapfbl(i,kk))
+            END IF
+
+
+
                ENDDO
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
