@@ -295,7 +295,7 @@ MODULE cable_IO_vars_module
          gswx_2 = .FALSE., & ! jtk561, shaded cond (dunno units)
          gswmin_1 = .FALSE., & ! jtk561, min sunlit cond
          gswmin_2 = .FALSE., & ! jtk561, min shaded cond 
-         fwsoil   = .FALSE., & ! amu561, soil water modifier of stom. cond.
+         fwsoil   = .FALSE., & ! amu561, soil water modifier of stomatal cond.
          
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
