@@ -1380,7 +1380,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ! Added fwsoil_ns if block and the "no drought" block" below
 
       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
-         CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
+         !CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
+         CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
       ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
@@ -1734,7 +1735,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    ENDDO
 
                    IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
-                     CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+                     CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
                    ELSE
                      write(*,*) 'no other options should be running here, MDK ',cable_user%FWSOIL_SWITCH
                      STOP 'fwsoil_switch failed.'
