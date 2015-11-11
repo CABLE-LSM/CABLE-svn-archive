@@ -1719,15 +1719,26 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ELSE
 
                 IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+                   !depthProfile(:) = veg%froot(i,:)
+                   depthProfile(:) = fextroot(i,:)
+
+
                    evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
                                / air%rlam(i)
 
                    DO kk = 1,ms
 
-                      ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
-                                            MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                            1.1 * soil%swilt(i) ) *                &
-                                            soil%zse(kk) * 1000.0 )
+                      !ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                      !                       MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                      !                       1.1 * soil%swilt(i) ) *                &
+                      !                       soil%zse(kk) * 1000.0 )
+
+                      ssnow%evapfbl(i,kk) = MIN( evapfb(i) * depthProfile(kk),     & !Ticket #95. * veg%froot(i,kk),      &
+                                        MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                        1.1 * soil%swilt(i) ) *                &
+                                        soil%zse(kk) * 1000.0 )
+
+
 
                      ! Need to extract water here, to adjust fwsoil so that
                      ! it is consistent with reduced transpiration. We will
