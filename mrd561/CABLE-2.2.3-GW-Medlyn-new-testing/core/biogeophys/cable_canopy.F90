@@ -232,7 +232,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       if (cable_user%or_evap) then
          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       else
-         ssnow%rtevap(:) = 0.0 
+         ssnow%rtevap_unsat(:) = 0.0 
+         ssnow%rtevap_sat(:) = 0.0 
       end if
       
       DO j=1,mp
@@ -627,8 +628,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fhs)/d(ssnow%tgg)
    ! d(canopy%fes)/d(dq)
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
-   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil     
-   ssnow%dfe_ddq = ssnow%rh_srf(:) * ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap)
+   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil    
+   if (cable_user%or_evap) then 
+      ssnow%dfe_ddq = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
+                      ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
+   else
+      ssnow%dfe_ddq = ssnow%rh_srf(:) * air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
+   end if
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
@@ -721,9 +727,12 @@ FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
    ENDDO 
   
    if (.not.cable_user%GW_MODEL) then 
-      ssnowpotev =air%rho * air%rlam * dq2 /ssnow%rtsoil
+      ssnowpotev = air%rho * air%rlam * dq2 /ssnow%rtsoil
+   elseif (cable_user%or_evap) then
+      ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
+                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
    else
-      ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap)
+      ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
    end if
    
 END FUNCTION Humidity_deficit_method
@@ -742,7 +751,11 @@ SUBROUTINE Latent_heat_flux()
 
    
    ! Soil latent heat:
-   canopy%fess= ssnow%wetfac * ssnow%potev
+   if (.not.cable_user%or_evap) then
+      canopy%fess= ssnow%wetfac * ssnow%potev
+   else
+      canopy%fess = ssnow%potev
+   end if
    WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
    
    ! Reduce soil evap due to presence of puddle
@@ -1262,11 +1275,11 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
    !use soil hetero based wet fraction at the surface
    IF (cable_runtime%run_gw_model) then
-     if (cable_user%or_evap) then
-        ssnow%wetfac = 1.0
-     else
+     !if (cable_user%or_evap) then
+     !   ssnow%wetfac = 1.0
+     !else
         call calc_srf_wet_fraction(ssnow,soil)
-     end if
+     !end if
 
    else
 
@@ -2354,7 +2367,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    TYPE (roughness_type), INTENT(IN) :: rough
 
 
-   REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, wb_liq, &
+   REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
+                          soil_moisture_mod_sat, wb_liq, &
                           pore_size,P, rel_s,hk_zero  !note pore_size in m
    INTEGER, DIMENSION(mp) :: int_eddy_shape
 
@@ -2391,17 +2405,24 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    if (first_call) then
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
    else
-      wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)-ssnow%wbice(:,1) ) ) )
+      wb_liq(:) = real(max(0.0,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
    end if
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
    hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-8)
 
-   soil_moisture_mod(:) = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
+   soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
+   soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
 
-   ssnow%rtevap(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
-                         200.0 )
+   ssnow%rtevap_unsat(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
+                         300.0 )
+
+   ssnow%rtevap_sat(:)  = min( rough%z0soil/sublayer_dz * (lm/ (4.0*0.001*soil%hksat(:,1)) + (sublayer_dz + P(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
+                         300.0 )
    !no additional evap resistane over lakes
-   where(veg%iveg .eq. 16) ssnow%rtevap = 0.0
+   where(veg%iveg .eq. 16) 
+      ssnow%rtevap_sat = 0.0
+      ssnow%rtevap_unsat = 0.0
+   endwhere
 
 END SUBROUTINE or_soil_evap_resistance
 
