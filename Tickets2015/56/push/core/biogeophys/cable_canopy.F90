@@ -417,8 +417,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
                    canopy%vlaiw(:))*canopy%gswx(:,2)
    
-   canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
-   canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
 
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
     canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
@@ -1680,9 +1678,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
 
-   ! jtk561, saving gswmin here
-   canopy%gswmin_1 = gswmin(:,1)
-   canopy%gswmin_2 = gswmin(:,2)
    
    DEALLOCATE( gswmin )
 
