@@ -95,20 +95,20 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inNfix
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inPwea
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inPdust
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inClab
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inCplant
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inClitter
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inCsoil
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inNinorg
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNplant
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNlitter
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNsoil
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPlab
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPplant
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPlitter
-  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPsoil
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPsorb
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPocc
+!  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inClab
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inCplant
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inClitter
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inCsoil
+!  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inNinorg
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNplant
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNlitter
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inNsoil
+!  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPlab
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPplant
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPlitter
+!  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inPsoil
+!  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPsorb
+!  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPocc
 
   ! Temporary values for reading IGBP soil map Q.Zhang @ 12/20/2010
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inswilt
@@ -206,7 +206,7 @@ CONTAINS
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
     REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
 !    REAL,    DIMENSION(:,:,:,:),  ALLOCATABLE :: r4dum, landFrac
-    LOGICAL :: ACCESS_run
+!    LOGICAL :: ACCESS_run
 
     ok = NF90_OPEN(filename%type, 0, ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file ' &
@@ -237,24 +237,25 @@ CONTAINS
     ok = NF90_INQ_DIMID(ncid, 'time', tID)
     ok = NF90_INQUIRE_DIMENSION(ncid, tID, LEN=ntime)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting time dimension.')
-    ok = NF90_INQ_DIMID(ncid, 'pools_plant', ppID)
-    IF (ok /= NF90_NOERR) THEN
-      ACCESS_run = .FALSE.
-    ELSE
-      ACCESS_run = .TRUE.
-      IF (.NOT. soilparmnew) STOP 'ACCESS_run must use soilparmnew'
-      ok = NF90_INQUIRE_DIMENSION(ncid, ppID, LEN=ppool)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting ppool dimension.')
-      ok = NF90_INQ_DIMID(ncid, 'pools_litter', plID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring lpool dimension.')
-      ok = NF90_INQUIRE_DIMENSION(ncid, plID, LEN=lpool)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting lpool dimension.')
-      ok = NF90_INQ_DIMID(ncid, 'pools_soil', psID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring spool dimension.')
-      ok = NF90_INQUIRE_DIMENSION(ncid, psID, LEN=spool)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting spool dimension.')
-    END IF
-    IF (.NOT. ACCESS_run) THEN
+!    ok = NF90_INQ_DIMID(ncid, 'pools_plant', ppID)
+!    IF (ok /= NF90_NOERR) THEN
+!      ACCESS_run = .FALSE.
+!    ELSE
+!      ACCESS_run = .TRUE.
+!      IF (.NOT. soilparmnew) STOP 'ACCESS_run must use soilparmnew'
+!      ok = NF90_INQUIRE_DIMENSION(ncid, ppID, LEN=ppool)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting ppool dimension.')
+!      ok = NF90_INQ_DIMID(ncid, 'pools_litter', plID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring lpool dimension.')
+!      ok = NF90_INQUIRE_DIMENSION(ncid, plID, LEN=lpool)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting lpool dimension.')
+!      ok = NF90_INQ_DIMID(ncid, 'pools_soil', psID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring spool dimension.')
+!      ok = NF90_INQUIRE_DIMENSION(ncid, psID, LEN=spool)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting spool dimension.')
+!    END IF
+    IF (.NOT. soilparmnew) THEN
+!    IF (.NOT. ACCESS_run) THEN
       ok = NF90_INQ_DIMID(ncid, 'rad', bID)
       ok = NF90_INQUIRE_DIMENSION(ncid, bID, LEN=nband)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting rad dimension.')
@@ -284,11 +285,11 @@ CONTAINS
     ALLOCATE( inSND(nlon, nlat, npatch,ntime) )
     ALLOCATE( inLAI(nlon, nlat, ntime) )
     ALLOCATE( inALB(nlon, nlat, npatch,nband) )
-    IF (.NOT. ACCESS_run) THEN
+    IF (.NOT. globalMetFile%l_access .AND. .NOT. globalMetFile%l_ncar) THEN
       ALLOCATE( idummy(nlon, nlat) )
       ALLOCATE( rdummy(nlon, nlat) )
-      ALLOCATE( r3dum(nlon, nlat, nband) )
-    END IF
+    ENDIF
+    IF (.NOT. soilparmnew)   ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
 
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
@@ -307,7 +308,8 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    IF (ACCESS_run) THEN
+    IF (globalMetFile%l_access .OR. globalMetFile%l_ncar) THEN
+!    IF (ACCESS_run) THEN
 
       ok = NF90_INQ_VARID(ncid, 'veg_fraction', varID)
       IF (ok /= NF90_NOERR) ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
@@ -354,7 +356,7 @@ CONTAINS
       ok = NF90_GET_VAR(ncid, varID, inLand)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable isoil.')
 
-    ELSE  
+    ELSE  ! other formats e.g. gswp, trendy until all formats are consolidated
   
       ok = NF90_INQ_VARID(ncid, 'iveg', varID)  
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')  
@@ -391,7 +393,8 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inTGG)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable SoilTemp.')
 
-    IF (.NOT. ACCESS_run) THEN
+    IF (.NOT. soilparmnew) THEN
+!    IF (.NOT. ACCESS_run) THEN
       ok = NF90_INQ_VARID(ncid, 'Albedo', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
       ok = NF90_GET_VAR(ncid, varID, r3dum)
@@ -430,7 +433,7 @@ CONTAINS
       ALLOCATE( inNfix(nlon, nlat) )
       ALLOCATE( inPwea(nlon, nlat) )
       ALLOCATE( inPdust(nlon, nlat) )
-      IF (ACCESS_run) ALLOCATE( rdummy(nlon, nlat) )
+!      IF (ACCESS_run) ALLOCATE( rdummy(nlon, nlat) )
 
       ok = NF90_INQ_VARID(ncid, 'area', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding area.')
@@ -439,15 +442,15 @@ CONTAINS
 
       ok = NF90_INQ_VARID(ncid, 'SoilOrder', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding SoilOrder.')
-      IF (.NOT. ACCESS_run) THEN
+!      IF (.NOT. ACCESS_run) THEN
         ok = NF90_GET_VAR(ncid, varID, inSorder)
         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading INT SoilOrder.')
-      ELSE
-        ok = NF90_GET_VAR(ncid, varID, rdummy)
-        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading real SoilOrder.')
-        inSorder = INT(rdummy)
-        DEALLOCATE( rdummy )
-      END IF
+!      ELSE
+!        ok = NF90_GET_VAR(ncid, varID, rdummy)
+!        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading real SoilOrder.')
+!        inSorder = INT(rdummy)
+!        DEALLOCATE( rdummy )
+!      END IF
 
       ok = NF90_INQ_VARID(ncid, 'Ndep', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Ndep.')
@@ -482,93 +485,93 @@ CONTAINS
       inPwea  = inPwea  / 365.0
       inPdust = inPdust / 365.0
 
-    IF (ACCESS_run) THEN
-      ! casaCNP pool sizes
-      ALLOCATE( inClab     (nlon, nlat, npatch) )
-      ALLOCATE( inCplant   (nlon, nlat, npatch, 3) )
-      ALLOCATE( inClitter  (nlon, nlat, npatch, 3) )
-      ALLOCATE( inCsoil    (nlon, nlat, npatch, 3) )
-      ALLOCATE( inNinorg   (nlon, nlat, npatch) )
-      ALLOCATE( inNplant   (nlon, nlat, npatch, 3) )
-      ALLOCATE( inNlitter  (nlon, nlat, npatch, 3) )
-      ALLOCATE( inNsoil    (nlon, nlat, npatch, 3) )
-      ALLOCATE( inPlab     (nlon, nlat, npatch) )
-      ALLOCATE( inPplant   (nlon, nlat, npatch, 3) )
-      ALLOCATE( inPlitter  (nlon, nlat, npatch, 3) )
-      ALLOCATE( inPsoil    (nlon, nlat, npatch, 3) )
-      ALLOCATE( inPsorb    (nlon, nlat, npatch) )
-      ALLOCATE( inPocc     (nlon, nlat, npatch) )
-
-      ok = NF90_INQ_VARID(ncid, 'Clabile', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_labile.')
-      ok = NF90_GET_VAR(ncid, varID, inClab)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_labile.')
-
-      ok = NF90_INQ_VARID(ncid, 'CASA_Cplant', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_plant.')
-      ok = NF90_GET_VAR(ncid, varID, inCplant)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_plant.')
-
-      ok = NF90_INQ_VARID(ncid, 'Clitter', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_litter_metabolic.')
-      ok = NF90_GET_VAR(ncid, varID, inClitter)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_litter_metabolic.')
-
-      ok = NF90_INQ_VARID(ncid, 'CASA_Csoil', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_soil_microbial.')
-      ok = NF90_GET_VAR(ncid, varID, inCsoil)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_soil_microbial.')
-
-      ok = NF90_INQ_VARID(ncid, 'Nsoilmin', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_inorganic.')
-      ok = NF90_GET_VAR(ncid, varID, inNinorg)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_inorganic.')
-
-      ok = NF90_INQ_VARID(ncid, 'Nplant', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_plant_leaf.')
-      ok = NF90_GET_VAR(ncid, varID, inNplant)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_plant_leaf.')
-
-      ok = NF90_INQ_VARID(ncid, 'Nlitter', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_litter_metabolic.')
-      ok = NF90_GET_VAR(ncid, varID, inNlitter)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_litter_metabolic.')
-
-      ok = NF90_INQ_VARID(ncid, 'Nsoil', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_soil_microbial.')
-      ok = NF90_GET_VAR(ncid, varID, inNsoil)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_soil_microbial.')
-
-      ok = NF90_INQ_VARID(ncid, 'Psoillab', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_labile.')
-      ok = NF90_GET_VAR(ncid, varID, inPlab)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_labile.')
-
-      ok = NF90_INQ_VARID(ncid, 'Pplant', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_plant_leaf.')
-      ok = NF90_GET_VAR(ncid, varID, inPplant)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_plant_leaf.')
-
-      ok = NF90_INQ_VARID(ncid, 'Plitter', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_litter_metabolic.')
-      ok = NF90_GET_VAR(ncid, varID, inPlitter)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_litter_metabolic.')
-
-      ok = NF90_INQ_VARID(ncid, 'Psoil', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_soil_microbial.')
-      ok = NF90_GET_VAR(ncid, varID, inPsoil)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_soil_microbial.')
-
-      ok = NF90_INQ_VARID(ncid, 'Psoilsorb', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_sorbed.')
-      ok = NF90_GET_VAR(ncid, varID, inPsorb)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_sorbed.')
-
-      ok = NF90_INQ_VARID(ncid, 'Psoilocc', varID)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_strongly_sorbed.')
-      ok = NF90_GET_VAR(ncid, varID, inPocc)
-      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_strongly_sorbed.')
-    ENDIF
+!    IF (ACCESS_run) THEN
+!      ! casaCNP pool sizes
+!      ALLOCATE( inClab     (nlon, nlat, npatch) )
+!      ALLOCATE( inCplant   (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inClitter  (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inCsoil    (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inNinorg   (nlon, nlat, npatch) )
+!      ALLOCATE( inNplant   (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inNlitter  (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inNsoil    (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inPlab     (nlon, nlat, npatch) )
+!      ALLOCATE( inPplant   (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inPlitter  (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inPsoil    (nlon, nlat, npatch, 3) )
+!      ALLOCATE( inPsorb    (nlon, nlat, npatch) )
+!      ALLOCATE( inPocc     (nlon, nlat, npatch) )
+!
+!      ok = NF90_INQ_VARID(ncid, 'Clabile', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_labile.')
+!      ok = NF90_GET_VAR(ncid, varID, inClab)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_labile.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'CASA_Cplant', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_plant.')
+!      ok = NF90_GET_VAR(ncid, varID, inCplant)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_plant.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Clitter', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_litter_metabolic.')
+!      ok = NF90_GET_VAR(ncid, varID, inClitter)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_litter_metabolic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'CASA_Csoil', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding C_soil_microbial.')
+!      ok = NF90_GET_VAR(ncid, varID, inCsoil)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading C_soil_microbial.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nsoilmin', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_inorganic.')
+!      ok = NF90_GET_VAR(ncid, varID, inNinorg)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_inorganic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nplant', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_plant_leaf.')
+!      ok = NF90_GET_VAR(ncid, varID, inNplant)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_plant_leaf.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nlitter', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_litter_metabolic.')
+!      ok = NF90_GET_VAR(ncid, varID, inNlitter)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_litter_metabolic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Nsoil', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding N_soil_microbial.')
+!      ok = NF90_GET_VAR(ncid, varID, inNsoil)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading N_soil_microbial.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoillab', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_labile.')
+!      ok = NF90_GET_VAR(ncid, varID, inPlab)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_labile.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Pplant', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_plant_leaf.')
+!      ok = NF90_GET_VAR(ncid, varID, inPplant)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_plant_leaf.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Plitter', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_litter_metabolic.')
+!      ok = NF90_GET_VAR(ncid, varID, inPlitter)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_litter_metabolic.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoil', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_soil_microbial.')
+!      ok = NF90_GET_VAR(ncid, varID, inPsoil)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_soil_microbial.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoilsorb', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_sorbed.')
+!      ok = NF90_GET_VAR(ncid, varID, inPsorb)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_sorbed.')
+!
+!      ok = NF90_INQ_VARID(ncid, 'Psoilocc', varID)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding P_strongly_sorbed.')
+!      ok = NF90_GET_VAR(ncid, varID, inPocc)
+!      IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading P_strongly_sorbed.')
+!    ENDIF
 
     ENDIF
 
@@ -1412,43 +1415,43 @@ CONTAINS
     ! local variables
     INTEGER :: ee, hh
 
-    PRINT *, 'Initializing CASA-CNP pools with default sizes.'
-    DO ee=1, mland ! over all land grid points
-      DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
-        casapool%Clabile(hh) = &
-               inClab(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
-        casapool%Cplant(hh,:) = &
-               inCplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Clitter(hh,:) = &
-               inClitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Csoil(hh,:) = &
-               inCsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Nsoilmin = &
-               inNinorg(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
-        casapool%Nplant(hh,:) = &
-               inNplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Nlitter(hh,:) = &
-               inNlitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Nsoil(hh,:) = &
-               inNsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Psoillab(hh) = &
-               inPlab(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
-        casapool%Pplant(hh,:) = &
-               inPplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Plitter(hh,:) = &
-               inPlitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Psoil(hh,:) = &
-               inPsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
-        casapool%Psoilsorb(hh) = &
-               inPsorb(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
-        casapool%Psoilocc(hh) = &
-               inPocc(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
-      ENDDO
-    ENDDO
-    DEALLOCATE(inClab,inCplant,inClitter,inCsoil)
-    DEALLOCATE(inNinorg,inNplant,inNlitter,inNsoil)
-    DEALLOCATE(inPplant,inPlitter,inPsoil)
-    DEALLOCATE(inPlab,inPsorb,inPocc)
+!    PRINT *, 'Initializing CASA-CNP pools with default sizes.'
+!    DO ee=1, mland ! over all land grid points
+!      DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
+!        casapool%Clabile(hh) = &
+!               inClab(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Cplant(hh,:) = &
+!               inCplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Clitter(hh,:) = &
+!               inClitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Csoil(hh,:) = &
+!               inCsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Nsoilmin = &
+!               inNinorg(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Nplant(hh,:) = &
+!               inNplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Nlitter(hh,:) = &
+!               inNlitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Nsoil(hh,:) = &
+!               inNsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Psoillab(hh) = &
+!               inPlab(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Pplant(hh,:) = &
+!               inPplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Plitter(hh,:) = &
+!               inPlitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Psoil(hh,:) = &
+!               inPsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Psoilsorb(hh) = &
+!               inPsorb(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Psoilocc(hh) = &
+!               inPocc(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!      ENDDO
+!    ENDDO
+!    DEALLOCATE(inClab,inCplant,inClitter,inCsoil)
+!    DEALLOCATE(inNinorg,inNplant,inNlitter,inNsoil)
+!    DEALLOCATE(inPplant,inPlitter,inPsoil)
+!    DEALLOCATE(inPlab,inPsorb,inPocc)
 
   ! check pool sizes
   casapool%cplant     = MAX(0.0,casapool%cplant)

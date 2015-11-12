@@ -1305,6 +1305,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       fwsoil_coef   !
 
    REAL, DIMENSION(mp,ms)  :: oldevapfbl, fextroot
+   REAL(r_2), DIMENSION(:,:), POINTER   :: wb2 
       
    REAL, DIMENSION(mp,mf)  ::                                                  &
       gw,         & ! cond for water for a dry canopy
@@ -1339,6 +1340,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
    ALLOCATE( gswmin(mp,mf ))
+   ALLOCATE( wb2(mp,ms ))
+
+   wb2 = ssnow%wb
+
    ! added by ypw 4-sept-2015
    g0 = veg%d0gs;   g1 = veg%a1gs     ! parameters for Medlyn's gs model
 
@@ -1609,6 +1614,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
 
+                 ssnow%wb(i,kk) = ssnow%wb(i,kk)-ssnow%evapfbl(i,kk)
+
                ENDDO
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
@@ -1617,7 +1624,20 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
             ENDIF
 
-            ! Update canopy sensible heat flux:
+            IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
+              CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)
+            ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+            !EAK, 09/10 - replace linear approx by polynomial fitting
+              CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
+            ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+              CALL fwsoil_calc_Lai_Ktaul(fwsoil, fextroot, soil, ssnow, veg)
+            ELSE
+              STOP 'fwsoil_switch failed.'
+            ENDIF
+
+
+            ssnow%wb(i,:) = wb2(i,:)
+! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
                - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
                * SUM(rad%gradis(i,:)))                                         &

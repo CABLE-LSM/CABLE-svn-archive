@@ -2621,7 +2621,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
 !      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
-      IF (globalMetfile%l_access .OR. globalMetfile%l_ncar) &
+!      IF (globalMetfile%l_access .OR. globalMetfile%l_ncar) &
          CALL init_cnp_pools(veg, casapool, casabal)
     ENDIF
 
@@ -2641,12 +2641,16 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       WRITE(logn,*) ' Pre-loaded default initialisations are used.'
       WRITE(*,*)    ' Could not find restart file ', TRIM(filename%restart_in)
       WRITE(*,*)    ' Pre-loaded default initialisations are used.'
-      ! This is added here as some versions still have not put pool sizes
-      ! in the gridinfo input file. Remove when that is done. (BP July 2013)
-      IF (icycle > 0 .AND. (.NOT. (globalMetfile%l_access &
-                              .OR. globalMetfile%l_ncar))) THEN
-        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
-        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+!      ! This is added here as some versions still have not put pool sizes
+!      ! in the gridinfo input file. Remove when that is done. (BP July 2013)
+!      IF (icycle > 0 .AND. (.NOT. (globalMetfile%l_access &
+!                              .OR. globalMetfile%l_ncar))) THEN
+!        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.'
+!        CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+!      ENDIF
+      IF (icycle > 0) THEN
+        WRITE(logn,*) ' CASA-CNP pool sizes using values in lookup table.'
+        WRITE(*,*)    ' CASA-CNP pool sizes using values in lookup table.'
       ENDIF
       ! This triggers initialization of owetfac when restart file not available
       ssnow%owetfac = -999.0
