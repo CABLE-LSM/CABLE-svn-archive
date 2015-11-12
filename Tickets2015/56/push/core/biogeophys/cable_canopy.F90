@@ -1315,13 +1315,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
-   IF (cable_user%GS_SWITCH == 'medlyn') THEN
-      gsw_term = C%gsw03 * (1. - frac42) + C%gsw04 * frac42
-      lower_limit2 = rad%scalex * (C%gsw03 * (1. - frac42) + C%gsw04 * frac42)
-   ELSE    
-      gsw_term = SPREAD(veg%gswmin,2,mf)
-      lower_limit2 = rad%scalex * gsw_term
-   ENDIF
+   gsw_term = SPREAD(veg%gswmin,2,mf)
+   lower_limit2 = rad%scalex * gsw_term
    gswmin = max(1.e-6,lower_limit2)
          
 
