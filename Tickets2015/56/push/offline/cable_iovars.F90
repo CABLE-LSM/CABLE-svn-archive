@@ -242,11 +242,6 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
-         cancd = .FALSE., & ! jtk561, canopy conductance (m/s)
-         gswx_1 = .FALSE., & ! jtk561, sunlit cond (dunno units)
-         gswx_2 = .FALSE., & ! jtk561, shaded cond (dunno units)
-         gswmin_1 = .FALSE., & ! jtk561, min sunlit cond
-         gswmin_2 = .FALSE., & ! jtk561, min shaded cond 
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
