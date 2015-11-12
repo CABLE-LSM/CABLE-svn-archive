@@ -1354,7 +1354,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
    
-   REAL(r_2), DIMENSION(:,:), POINTER :: wb2 !TESTING
+   REAL(r_2), DIMENSION(:,:), POINTER :: wb2 !WUE fix
 
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
@@ -1369,8 +1369,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
    ALLOCATE( gswmin(mp,mf ))
-   ALLOCATE( wb2(mp, ms))
-   wb2 = ssnow%wb !TESTING
+   ALLOCATE( wb2(mp, ms))  ! WUE fix   
+   
+   wb2 = ssnow%wb !WUE fix
 
    ! Soil water limitation on stomatal conductance:
    IF( iter ==1) THEN
@@ -1636,40 +1637,30 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
 
+                  ssnow%wb(i,kk) = ssnow%wb(i,kk) - ssnow%evapfbl(i,kk)
 
-   !         IF ( (evapfb(i) * depthProfile(kk)) > ssnow%evapfbl(i,kk)) THEN
-    !        print *, iter
-     !       print *, (evapfb(i) * depthProfile(kk))
-      !      print *, ssnow%evapfbl(i,kk)
-       !     END IF
+               ENDDO
 
-            ssnow%wb(i,kk) = ssnow%wb(i,kk) - ssnow%evapfbl(i,kk)
+               !WUE fix (YP, drought workshop Nov15)
+               IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
+                    CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+               ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
+                    !EAK, 09/10 - replace linear approx by polynomial fitting
+                    CALL fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg) 
+               ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
+                    CALL fwsoil_calc_Lai_Katul(canopy, fextroot, soil, ssnow, veg) 
+               ELSE
+                    write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
+                    STOP 'fwsoil_switch failed.'
+               ENDIF
 
-        ENDDO
-
-      IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
-         CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
-      ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
-         !EAK, 09/10 - replace linear approx by polynomial fitting
-         CALL fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg) 
-      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
-         CALL fwsoil_calc_Lai_Katul(canopy, fextroot, soil, ssnow, veg) 
-      ELSE
-         write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
-         STOP 'fwsoil_switch failed.'
-      ENDIF
-
-    ssnow%wb(i,:) = wb2(i,:)
-
- !   print *, "ssnowwb", ssnow%wb(i,:)
-  !  print *, "wb2", wb2(i,:)
-   ! print *, "fwsoil", canopy%fwsoil(i)
+               ssnow%wb(i,:) = wb2(i,:) !WUE fix
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
     
                ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 
-            ENDIF
+           ENDIF
 
             ! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
@@ -1696,7 +1687,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
       ENDDO !i=1,mp
 
-        ssnow%wb = wb2 !TESTING
+        ssnow%wb = wb2 !WUE fix
 
 
       ! Whhere leaf temp change b/w iterations is significant, and
@@ -1805,7 +1796,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%gswmin_2 = gswmin(:,2)
    
    DEALLOCATE( gswmin )
-   DEALLOCATE(wb2)
+   DEALLOCATE(wb2) !WUE fix
+   
 END SUBROUTINE dryLeaf
 
 ! -----------------------------------------------------------------------------
