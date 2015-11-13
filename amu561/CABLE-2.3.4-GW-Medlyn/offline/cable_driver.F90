@@ -196,8 +196,6 @@ PROGRAM cable_offline_driver
 
    ! END header
 
-print *, "PRITING icycle top of offline_driver:", icycle
-
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
       READ( 10, NML=CABLE )   !where NML=CABLE defined above

@@ -630,11 +630,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
 
-!print *, "**potev**", ssnow%potev(1)  
-!print *, "**fes**", canopy%fes(1)
-!print *, "**wetfac**", ssnow%wetfac(1)
-!print *, "**sswb**", ssnow%wb(1,1:3)
-
 CONTAINS
 
 ! ------------------------------------------------------------------------------

@@ -112,7 +112,7 @@ MODULE cable_mpicommon
 
    !mrd add GWwb, wtd, GWwbeq, GWzq, GWsmp -->+5
    !mrd satfrac from hydrology
-   !added fwsoil
+   !amu561 added fwsoil
   INTEGER, PARAMETER :: nvec = 168! 166
 
   ! MPI: number of final casa result matrices and vectors to receive

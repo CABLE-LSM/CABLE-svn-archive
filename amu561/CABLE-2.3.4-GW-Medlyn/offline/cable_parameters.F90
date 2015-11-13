@@ -283,7 +283,6 @@ CONTAINS
        inLON = inLON - 360.0
     ENDWHERE
 
-    print*, "REACHES HERE grid#1"
 
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
@@ -413,7 +412,7 @@ CONTAINS
       inPdust = inPdust / 365.0
 
     ENDIF
-print *, "REACHES HERE grid#2"
+   
     ok = NF90_CLOSE(ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
 
@@ -1705,7 +1704,6 @@ CONTAINS
     ! local variables
     INTEGER :: ee, hh
 
-print *, "REACHES wirte_ncp #1"
 
     DO ee=1, mland ! over all land grid points
       casamet%isorder(landpt(ee)%cstart:landpt(ee)%cend) =                     &
