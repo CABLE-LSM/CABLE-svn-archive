@@ -1537,6 +1537,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
            
            ! Ticket #56 added switch for Belinda Medlyn's model
             IF (cable_user%GS_SWITCH == 'leuning') THEN
+               
+                print *, "Using Leuning gs switch"
+                
                 !replace xleuning with gs_coeff Ticket #56
                 gs_coeff(i,1) = (canopy%fwsoil(i) / (csx(i,1) - co2cp3))  &
                                 * (veg%a1gs(i) / (1.0 + dsx(i) / veg%d0gs(i)))
@@ -1548,6 +1551,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
                 
+                print *, "Using Medlyn gs switch"
+
                 gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
                 
                 IF (dsx(i) < 50.0) THEN
@@ -1619,7 +1624,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
             depthProfile(:) = veg%froot(i,:)
-            IF(cable_user%L_newProfile)  depthProfile(:) = fextroot(i,:)
+            IF(cable_user%L_newProfile) THEN 
+                print *, "Using new depthProfile (cable_canopy)"
+                depthProfile(:) = fextroot(i,:)
+            ENDIF
+
 
             IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
                evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
