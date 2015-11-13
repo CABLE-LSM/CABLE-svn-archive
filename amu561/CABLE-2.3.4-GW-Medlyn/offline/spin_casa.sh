@@ -153,7 +153,7 @@ metfile="Met_inputs/${site}/${D}/CABLE_met_input_${D}.nc"
 
 
 #Set tolerance for spin-up
-tol=$(echo "scale=6; 0.005" | bc)
+tol=$(echo "scale=6; 0.05" | bc)
 
 #Initialise csoil and allocation variables for spin-up check
 diff_cplant=$(echo "scale=6; 99999.0" | bc)
@@ -251,7 +251,7 @@ cable_user%GS_SWITCH = 'medlyn'             ! choices are:
 cable_user%FWSOIL_SWITCH = 'standard'        ! choices are:
 ! 1. standard
 ! 2. nonlinear
-! 3. Lai and Ktaul 2000
+! 3. Lai and Katul 2000
 cable_user%DIAG_SOIL_RESP = 'ON '
 cable_user%LEAF_RESPIRATION = 'ON '
 cable_user%RUN_DIAG_LEVEL= 'BASIC'        ! choices are:
@@ -264,6 +264,7 @@ cable_user%SSNOW_POTEV= 'HDM'      ! Humidity Deficit Method
 cable_user%GW_MODEL = .${GWFLAG}.       !True means use the groundwater module, false means use default soil snow scheme
 cable_user%alt_forcing = .FALSE.
 cable_user%GSWP3       = .FALSE.
+cable_user%L_newProfile = .TRUE. !Use new YP profile for root water extraction?
 gw_params%EfoldMaxSatFrac = 6.0
 gw_params%MaxHorzDrainRate = 0.01
 gw_params%MaxSatFraction = 0.0  !Changed Anna
