@@ -193,7 +193,6 @@ CONTAINS
    ! Calculate net radiation absorbed by soil + veg
    canopy%rnet = canopy%fns + canopy%fnv
 
-   !write(*,*) 'rad%trad'
    ! Calculate radiative/skin temperature:
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25

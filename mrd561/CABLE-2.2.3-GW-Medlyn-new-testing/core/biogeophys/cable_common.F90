@@ -221,7 +221,8 @@ MODULE cable_common_module
    END TYPE gw_parameters_type
 
    TYPE(gw_parameters_type), SAVE :: gw_params
-      
+
+
 CONTAINS
 
 

@@ -137,7 +137,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
   
  
    call_number = call_number + 1
-           
+   
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
@@ -192,7 +192,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 
-
 
    DO iter = 1, NITER
 
@@ -289,7 +288,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ecy = rny - hcy        ! init current estimate lat heat
 
       sum_rad_rniso = SUM(rad%rniso,2)
-      
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
                     fwsoil, tlfx, tlfy, ecy, hcy,                              &
@@ -1438,16 +1436,16 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
       IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
          CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
-         veg%froot_w = veg%froot
+         canopy%fwsoil = real(fwsoil,r_2)
       ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
-         veg%froot_w = veg%froot
+         canopy%fwsoil = real(fwsoil,r_2)
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Ktaul 2000') THEN
          CALL fwsoil_calc_Lai_Ktaul(fwsoil,soil, ssnow, veg) 
-         veg%froot_w = veg%froot
-      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Collins') THEN
-         CALL fwsoil_calc_collins(fwsoil,soil, ssnow, veg) 
+         canopy%fwsoil = real(fwsoil,r_2)
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Haverd2013') THEN
+         fwsoil = real(canopy%fwsoil)
       ELSE
          write(*,*) 'cable fwsoil_swith is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
@@ -1708,22 +1706,45 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      met%dva(i) * ghr(i,2) ) /                                 &
                      ( air%dsatdk(i) + psycst(i,2) ) 
 
+            IF (cable_user%fwsoil_switch=='Haverd2013') then 
 
-            IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
-               evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
-                           / air%rlam(i)
+               if (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) then
+                  canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
 
-               DO kk = 1,ms
-                  ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot_w(i,kk),      &
-                                        MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                                        1.1 * soil%swilt(i) ) *                &
-                                        soil%zse(kk) * 1000.0 )
+                  call getrex(soil,ssnow,canopy,veg,air,real(dels,r_2),i) 
 
-               ENDDO
+               !call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:),canopy%fwsoil(i), &
+               !     real(veg%froot(i,:),r_2), SPREAD(real(soil%ssat(i),r_2),1,ms) , &
+               !     SPREAD(real(soil%swilt(i),r_2),1,ms), max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
+               !     real(veg%li_katul_skew_param(i),r_2), &
+               !     real(soil%zse,r_2), real(dels,r_2))
 
-               canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
+
+                  fwsoil(i) = real(canopy%fwsoil(i))
+                  ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels ! mm water (root water extraction) per time step
+                  canopy%fevc(i) = SUM(ssnow%evapfbl(i,:),dim=1)*air%rlam(i)/dels
+                  ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+
+                end if
+            ELSE
+
+
+               IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
+                  evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
+                              / air%rlam(i)
+
+                  DO kk = 1,ms
+                     ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
+                                           MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
+                                           1.1 * soil%swilt(i) ) *                &
+                                           soil%zse(kk) * 1000.0 )
+
+                  ENDDO
+
+                  canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
     
-               ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+                  ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+               END IF
 
             ENDIF
 
@@ -2257,19 +2278,7 @@ SUBROUTINE fwsoil_calc_linear(fwsoil, soil, ssnow, veg)
             SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,(wbliq -  &
             soil%wiltp) /(soil%fldcap-soil%wiltp))) ) ) 
    ! Remove vbeta
-   !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
-   do i=1,mp
-      if ((rwater(i) .gt. 1._r_2) .and. (rwater(i) .gt. 0.)) then
-         do k=1,ms
-            veg%froot_w(i,k) = veg%froot(i,k)* real( MAX(0._r_2,MIN(1.0_r_2,(wbliq(i,k) -  &
-            soil%wiltp(i,k)) /(soil%fldcap(i,k)-soil%wiltp(i,k)))) / rwater(i) )
-         end do
-      else
-         veg%froot(i,:) = 0.
-      end if
-   end do
-
-   fwsoil = MAX(1.0e-4,MIN(1.0, real(rwater) ) )
+   fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
       
 END SUBROUTINE fwsoil_calc_linear
 
@@ -2369,7 +2378,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
                           soil_moisture_mod_sat, wb_liq, &
-                          pore_size,P, rel_s,hk_zero  !note pore_size in m
+                          pore_size,pore_radius, rel_s,hk_zero,hk_zero_sat  !note pore_size in m
+
    INTEGER, DIMENSION(mp) :: int_eddy_shape
 
    REAL, parameter :: Dff=2.5e-5, &
@@ -2380,18 +2390,18 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    logical, save ::  first_call = .true.
 
 
-   pore_size = 0.148 / (abs(soil%smpsat(:,1))/1000.0)
-   P(:) = pore_size(:)*sqrt(pi)
+   pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)
+   pore_size(:) = pore_radius(:)*sqrt(pi)
 
    eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
 
-   int_eddy_shape = int(eddy_shape)
+   int_eddy_shape = floor(eddy_shape)
    eddy_mod(:) = 0.0
    do i=1,mp   
       eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
 
       if (int_eddy_shape(i) .gt. 0) then
-         eddy_mod(i) = eddy_mod(i) / gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
+         eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
 
          do k=1,int_eddy_shape(i)
             eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
@@ -2407,16 +2417,18 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    else
       wb_liq(:) = real(max(0.0,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
    end if
+
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
    hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-8)
+   hk_zero_sat = max(0.001*soil%hksat(:,1),1e-8)
 
    soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
    soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
 
-   ssnow%rtevap_unsat(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + P(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
+   ssnow%rtevap_unsat(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
                          300.0 )
 
-   ssnow%rtevap_sat(:)  = min( rough%z0soil/sublayer_dz * (lm/ (4.0*0.001*soil%hksat(:,1)) + (sublayer_dz + P(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
+   ssnow%rtevap_sat(:)  = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero_sat) + (sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
                          300.0 )
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 
@@ -2424,10 +2436,11 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       ssnow%rtevap_unsat = 0.0
    endwhere
 
+
 END SUBROUTINE or_soil_evap_resistance
 
 
-  recursive function gamma(a) result(g)
+  recursive function my_gamma(a) result(g)
     real, intent(in) :: a
     real :: g
  
@@ -2447,17 +2460,205 @@ END SUBROUTINE or_soil_evap_resistance
     x = a
  
     if ( x < 0.5 ) then
-       g = pi / ( sin(pi*x) * gamma(1.0-x) )
+       g = pi / ( sin(pi*x) * my_gamma(1.0-x) )
     else
        x = x - 1.0
        t = p(0)
        do i=1, cg+2
-          t = t + p(i)/(x+real(i))
+          t = t + p(i-1)/(x+real(i))
        end do
        w = x + real(cg) + 0.5
        g = sqrt(2.0*pi) * w**(x+0.5) * exp(-w) * t
     end if
-  end function gamma
+  end function my_gamma
+
+ SUBROUTINE getrex(soil,ssnow,canopy,veg,air,dels, i)  !Haverd 2013
+    USE cable_def_types_mod
+
+    IMPLICIT NONE
+
+    type(soil_snow_type), INTENT(INOUT)      :: ssnow
+    type(canopy_type), INTENT(INOUT)         :: canopy
+    TYPE (soil_parameter_type), INTENT(IN)   :: soil
+    type(veg_parameter_type), INTENT(IN)     :: veg
+    TYPE (air_type), INTENT(INOUT)           :: air
+
+    real(r_2), intent(in)                       :: dels
+    integer, intent(in)                         :: i !point_index
+
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
+!    REAL(r_2), DIMENSION(:), INTENT(INOUT)   :: rex    ! water extraction per layer
+!    REAL(r_2),               INTENT(INOUT) :: fws    ! stomatal limitation factor
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: Fs     ! root length density
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaS ! saturation soil moisture
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaw ! soil moisture at wiliting point
+!    REAL(r_2),               INTENT(IN)    :: Etrans ! total transpiration
+!    REAL(r_2),               INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: dx     ! layer thicknesses (m)
+!    REAL(r_2),               INTENT(IN)    :: dt
+
+    ! Gets rate of water extraction compatible with CABLE stomatal conductance model
+    ! theta(:) - soil moisture(m3 m-3)
+    ! rex(:)   - rate of water extraction by roots from layers (cm/h).
+    REAL(r_2), DIMENSION(ms) :: log_wbliq, alpha_root, delta_root,wb_liq
+    REAL(r_2)     :: trex,Etrans!, e3, one, zero
+    REAL(r_2), DIMENSION(ms) :: zse_mm
+
+    INTEGER :: k
+
+    Etrans = canopy%fevc(i) / air%rlam(i)
+    zse_mm = real(soil%zse,r_2)*1000._r_2
+
+    wb_liq = ssnow%wb(i,:) - ssnow%wbice(i,:)
+
+    log_wbliq(:) = log(max(wb_liq(:) - soil%wiltp(i,:),0.001_r_2) / soil%watsat(i,:) )
+    where ((wb_liq - soil%wiltp(i,:)) > 0.001_r_2)
+       alpha_root(:) = max (wb_liq - soil%wiltp(i,:),0.001_r_2) ** (veg%li_katul_skew_param(i) / (max(wb_liq(:) - soil%wiltp(i,:),0.001_r_2) / soil%watsat(i,:) ) )
+                       !exp( veg%li_katul_skew_param(i) / max (wb_liq - soil%wiltp(i,:),0.001_r_2) * log_wbliq )
+    elsewhere
+       alpha_root(:) = 0._r_2
+    endwhere
+
+    where (veg%froot(i,:) > 0.05)
+       delta_root(:) = 1._r_2
+    elsewhere
+       delta_root(:) = 0._r_2
+    endwhere
+
+    ssnow%rex(i,:) = alpha_root(:)*real(veg%froot(i,:),r_2)
+
+    trex = sum(ssnow%rex(i,:),dim=1)
+    if (trex > 0._r_2) then
+       ssnow%rex(i,:) = ssnow%rex(i,:)/trex
+    else
+       ssnow%rex(i,:) = 0._r_2
+    endif
+
+    ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
+
+    where(((ssnow%rex(i,:)*dels) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*dels .gt. 0._r_2))) 
+
+       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*dels)
+    
+    endwhere
+
+    ssnow%rex(i,:) = alpha_root(:) * real(veg%froot(i,:),r_2)
+
+    trex = sum(ssnow%rex(i,:),dim=1)
+
+    if (trex .gt. 0._r_2) then
+       ssnow%rex(i,:) = ssnow%rex(i,:) / trex
+    else
+       ssnow%rex(i,:) = 0._r_2
+    end if
+    ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
+
+
+    if (any(((ssnow%rex(i,:)*dels) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*dels) .gt. 0._r_2))) then
+       canopy%fwsoil(i) = 0._r_2
+       ssnow%rex(i,:) = max((wb_liq(:)-soil%wiltp(i,:))*zse_mm(:),0._r_2)
+       trex = sum(ssnow%rex(i,:),dim=1)
+       if (trex .gt. 0._r_2) then
+          ssnow%rex(i,:) = ssnow%rex(i,:) / trex
+       else
+          ssnow%rex(i,:) = 0._r_2
+       end if
+       ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
+    else
+       canopy%fwsoil(i) = maxval(alpha_root(2:)*delta_root(2:))
+    end if
+
+  END SUBROUTINE getrex
+ !*********************************************************************************************************************
+
+
+  SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt)
+
+    ! root extraction : Haverd et al. 2013
+    USE cable_def_types_mod, only: r_2
+
+    IMPLICIT NONE
+
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
+    REAL(r_2), DIMENSION(:), INTENT(INOUT)   :: rex    ! water extraction per layer
+    REAL(r_2),               INTENT(INOUT) :: fws    ! stomatal limitation factor
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: Fs     ! root length density
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaS ! saturation soil moisture
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaw ! soil moisture at wiliting point
+    REAL(r_2),               INTENT(IN)    :: Etrans ! total transpiration
+    REAL(r_2),               INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: dx     ! layer thicknesses (m)
+    REAL(r_2),               INTENT(IN)    :: dt
+
+    ! Gets rate of water extraction compatible with CABLE stomatal conductance model
+    ! theta(:) - soil moisture(m3 m-3)
+    ! rex(:)   - rate of water extraction by roots from layers (cm/h).
+    REAL(r_2), DIMENSION(1:size(theta)) ::  lthetar, alpha_root, delta_root
+    REAL(r_2)                       :: trex, e3, one, zero
+
+    e3 = 0.001
+    one = 1.0;
+    zero = 0.0;
+    lthetar(:) = log(max(theta(:)-thetaw(:),e3)/thetaS(:))
+
+    where ((theta(:)-thetaw(:)) > e3)
+       alpha_root(:) = exp( gamma/max(theta(:)-thetaw(:), e3) * lthetar(:) )
+    elsewhere
+       alpha_root(:) = zero
+    endwhere
+
+    where (Fs(:) > 0.05)
+       delta_root(:) = one
+    elsewhere
+       delta_root(:) = zero
+    endwhere
+
+    rex(:) = alpha_root(:)*Fs(:)
+
+    trex = sum(rex(:))
+    if (trex > zero) then
+       rex(:) = rex(:)/trex
+    else
+       rex(:) = zero
+    endif
+    rex(:) = Etrans*rex(:)
+
+    ! reduce extraction efficiency where total extraction depletes soil moisture below wilting point
+    !where ((rex*dt) > (theta(:)-0.01_r_2)*dx(:))
+    where (((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))
+       alpha_root = alpha_root*(theta(:)-thetaw(:))*dx(:)/(rex*dt)
+    endwhere
+    rex(:) = alpha_root(:)*Fs(:)
+
+    trex = sum(rex(:))
+    if (trex > zero) then
+       rex(:) = rex(:)/trex
+    else
+       rex(:) = zero
+    endif
+    rex(:) = Etrans*rex(:)
+
+    ! check that the water available in each layer exceeds the extraction
+    !if (any((rex*dt) > (theta(:)-0.01_r_2)*dx(:))) then
+
+    if (any(((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))) then
+       fws = zero
+       ! distribute extraction according to available water
+       !rex(:) = (theta(:)-0.01_r_2)*dx(:)
+       rex(:) = max((theta(:)-thetaw(:))*dx(:),zero)
+       trex = sum(rex(:))
+       if (trex > zero) then
+          rex(:) = rex(:)/trex
+       else
+          rex(:) = zero
+       endif
+       rex(:) = Etrans*rex(:)
+    else
+       fws    = maxval(alpha_root(2:)*delta_root(2:))
+    endif
+
+  END SUBROUTINE getrex_1d
+ !*********************************************************************************************************************
 
 
 END MODULE cable_canopy_module
