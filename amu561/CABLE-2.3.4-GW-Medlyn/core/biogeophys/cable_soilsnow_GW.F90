@@ -38,7 +38,7 @@ MODULE cable_soil_snow_gw_module
                              balances_type, r_2, ms, mp           
    USE cable_data_module, ONLY : issnow_type, point2constants
 
-   USE cable_common_module, ONLY : gw_params
+   USE cable_common_module, ONLY : gw_params, cable_user
 
    IMPLICIT NONE
 
@@ -2189,10 +2189,17 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
       else
          xx = 0.25 * (1._r_2 - cos(pi*(wb_unsat)/(0.5*soil%fldcap(i,1))))**2.0
       end if
+     
       if (wb_unsat .lt. 0.25*soil%wiltp(i,1)) xx = 0.
 
-      ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
-                                   (1. - satfrac_liqice(i))*xx ) )
+      !amu561 alt. SoilE
+      if (.not.cable_user%or_evap) then
+         ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
+                                     (1. - satfrac_liqice(i))*xx ) )
+      else
+         ssnow%wetfac(i) = ssnow%satfrac(i)
+      end if
+
 
    end do
 

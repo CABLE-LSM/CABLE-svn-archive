@@ -88,7 +88,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       r_sc,          & !
       zscl,          & !
       pwet,          & !   
-      dq,            & ! sat sp
+      dq,dq2,        & ! sat sp     amu561 alt. SoilE (dq2)
       xx1,           & !
       sum_rad_rniso, & ! 
       sum_rad_gradis   ! 
@@ -153,6 +153,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    gbhf = 1e-3     ! default free convection boundary layer conductance
    gbhu = 1e-3     ! default forced convection boundary layer conductance
    ssnow%evapfbl = 0.0
+   ssnow%rh_srf(:) = 1._r_2   !amu561 alt. ESoil
 
    ! Initialise in-canopy temperatures and humidity:
    csx = SPREAD(met%ca, 2, mf) ! initialise leaf surface CO2 concentration
@@ -219,7 +220,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! Aerodynamic resistance (sum 3 height integrals)/us
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
       rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
-      
+
+      !amu561 alt. SoilE
+      if (cable_user%or_evap) then
+         call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+      else
+         ssnow%rtevap_unsat(:) = 0.0 
+         ssnow%rtevap_sat(:) = 0.0 
+      end if
+ 
+
       DO j=1,mp
      
          IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
@@ -324,7 +334,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! Saturation specific humidity at soil/snow surface temperature:
       
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
-
+      
+      !amu561 16Nov      
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
          !--- uses %ga from previous timestep    
@@ -334,9 +345,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
          if (cable_user%gw_model) then 
             do i=1,mp
-               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16)  then 
-                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
+                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
+                  ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
             end do
@@ -344,12 +357,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          else
             dq = ssnow%qstss - met%qvair
          end if
-         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+         dq2 = ssnow%qstss - met%qvair
+         ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
           
       ENDIF
 
-      ! Soil latent heat:
-      
       CALL latent_heat_flux()
 
       ! Calculate soil sensible heat:
@@ -361,6 +373,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
+      !amu561 16Nov
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
          !--- uses %ga from previous timestep    
@@ -369,9 +382,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ELSE !by default assumes Humidity Deficit Method
          if (cable_user%gw_model) then 
             do i=1,mp
-               if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16) then
-                  dq(i) = max(0.,ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
+               !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
+               if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
+                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
+                  ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
             end do
@@ -379,12 +395,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             dq = ssnow%qstss - met%qvair
 
          end if
+         dq2 = ssnow%qstss - met%qvair
          
-         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+         ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
           
       ENDIF
 
-         
+               
       ! Soil latent heat:
       
       CALL latent_heat_flux()
@@ -606,10 +623,17 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fns)/d(ssnow%tgg)
    ! d(canopy%fhs)/d(ssnow%tgg)
    ! d(canopy%fes)/d(dq)
+
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
-   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil      
-   ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil  
-  
+   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil    
+   
+   !amu561 alt. SoilE
+   if (cable_user%or_evap) then 
+      ssnow%dfe_ddq = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
+                      ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
+   else
+      ssnow%dfe_ddq = ssnow%rh_srf(:) * air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
+   end if
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
@@ -622,6 +646,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    bal%wetbal = canopy%fevw + canopy%fhvw - SUM(rad%rniso,2) * canopy%fwet      &
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
+
 
 
    DEALLOCATE(cansat,gbhu)
@@ -684,13 +709,13 @@ END FUNCTION Penman_Monteith
 
 ! ------------------------------------------------------------------------------
 ! method alternative to P-M formula above
-FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
+FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
 
    USE cable_def_types_mod, only : mp
-   
-   REAL, DIMENSION(mp) ::                                                      &
+
+    REAL, DIMENSION(mp) ::                                                      &
       ssnowpotev,    & ! 
-      dq,            & ! sat spec hum diff.
+      dq,dq2,            & ! sat spec hum diff.
       qstss             !dummy var for compilation
        
    INTEGER :: j
@@ -699,11 +724,18 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
       !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
       IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
          dq(j) = max( -0.1e-3, dq(j))
+         dq2(j) = max( -0.1e-3, dq2(j))
    ENDDO 
+  
+   if (.not.cable_user%GW_MODEL) then 
+      ssnowpotev = air%rho * air%rlam * dq2 /ssnow%rtsoil
+   elseif (cable_user%or_evap) then
+      ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
+                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+   else
+      ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
+   end if
    
-   ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
-   !if I alter resitance here need to incorporate term into derivates around
-   !Line 612
    
 END FUNCTION Humidity_deficit_method
 
@@ -721,7 +753,11 @@ SUBROUTINE Latent_heat_flux()
 
    
    ! Soil latent heat:
-   canopy%fess= ssnow%wetfac * ssnow%potev
+     if (.not.cable_user%or_evap) then
+      canopy%fess= ssnow%wetfac * ssnow%potev
+   else
+      canopy%fess = ssnow%potev
+   end if
    WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
    
    ! Reduce soil evap due to presence of puddle
@@ -1636,7 +1672,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
 
-                  ssnow%wb(i,kk) = ssnow%wb(i,kk) - ssnow%evapfbl(i,kk)
+                  ssnow%wb(i,kk) = ssnow%wb(i,kk) - ssnow%evapfbl(i,kk) !WUE fix
 
                ENDDO
 
@@ -2299,7 +2335,119 @@ SUBROUTINE fwsoil_calc_Lai_Katul(canopy,fextroot, soil, ssnow, veg)
    ENDDO
 
 
-   END SUBROUTINE fwsoil_calc_Lai_Katul
+END SUBROUTINE fwsoil_calc_Lai_Katul
+
+! ------------------------------------------------------------------------------
+
+SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+   USE cable_def_types_mod
+   USE cable_air_module
+   USE cable_common_module   
+
+   TYPE (air_type), INTENT(IN)       :: air
+   TYPE (met_type), INTENT(IN)       :: met
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+   TYPE (canopy_type), INTENT(IN)    :: canopy
+   TYPE (soil_parameter_type), INTENT(IN)   :: soil 
+   TYPE (veg_parameter_type), INTENT(IN) :: veg
+   TYPE (roughness_type), INTENT(IN) :: rough
+
+
+   REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
+                          soil_moisture_mod_sat, wb_liq, &
+                          pore_size,pore_radius, rel_s,hk_zero,hk_zero_sat  !note pore_size in m
+
+   INTEGER, DIMENSION(mp) :: int_eddy_shape
+
+   REAL, parameter :: Dff=2.5e-5, &
+                      lm=1.73e-5, &
+                      pi = 3.14159265358979324
+
+   integer :: i,j,k 
+   logical, save ::  first_call = .true.
+
+
+   pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)
+   pore_size(:) = pore_radius(:)*sqrt(pi)
+
+   eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
+
+   int_eddy_shape = floor(eddy_shape)
+   eddy_mod(:) = 0.0
+   do i=1,mp   
+      eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
+
+      if (int_eddy_shape(i) .gt. 0) then
+         eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
+
+         do k=1,int_eddy_shape(i)
+            eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
+         end do
+      end if
+   end do
+
+
+   sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
+
+   if (first_call) then
+      wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
+   else
+      wb_liq(:) = real(max(0.0,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
+   end if
+
+   rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
+   hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-8)
+   hk_zero_sat = max(0.001*soil%hksat(:,1),1e-8)
+
+   soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
+   soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
+
+   ssnow%rtevap_unsat(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
+                         300.0 )
+
+   ssnow%rtevap_sat(:)  = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero_sat) + (sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
+                         300.0 )
+   !no additional evap resistane over lakes
+   where(veg%iveg .eq. 16) 
+      ssnow%rtevap_sat = 0.0
+      ssnow%rtevap_unsat = 0.0
+   endwhere
+
+
+END SUBROUTINE or_soil_evap_resistance
+
+
+  recursive function my_gamma(a) result(g)
+    real, intent(in) :: a
+    real :: g
+ 
+    real, parameter :: pi = 3.14159265358979324
+    integer, parameter :: cg = 7
+ 
+    ! these precomputed values are taken by the sample code in Wikipedia,
+    ! and the sample itself takes them from the GNU Scientific Library
+    real, dimension(0:8), parameter :: p = &
+         (/ 0.99999999999980993, 676.5203681218851, -1259.1392167224028, &
+         771.32342877765313, -176.61502916214059, 12.507343278686905, &
+         -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
+ 
+    real :: t, w, x
+    integer :: i
+ 
+    x = a
+ 
+    if ( x < 0.5 ) then
+       g = pi / ( sin(pi*x) * my_gamma(1.0-x) )
+    else
+       x = x - 1.0
+       t = p(0)
+       do i=1, cg+2
+          t = t + p(i-1)/(x+real(i))
+       end do
+       w = x + real(cg) + 0.5
+       g = sqrt(2.0*pi) * w**(x+0.5) * exp(-w) * t
+    end if
+  end function my_gamma
 
 
     

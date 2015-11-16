@@ -90,11 +90,17 @@ MODULE cable_common_module
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE., & !
+         
          !MD
          GW_MODEL = .FALSE.,              &
          alt_forcing = .FALSE.,           &
+         
          !using GSWP3 forcing?
          GSWP3 = .FALSE.,                 &
+
+         !using Or soilE?
+         or_evap = .FALSE.,               &
+
 	     ! Switch for customized soil respiration - see Ticket #42
          SRF = .FALSE.,                   &
          g1map = .FALSE. !jtk561

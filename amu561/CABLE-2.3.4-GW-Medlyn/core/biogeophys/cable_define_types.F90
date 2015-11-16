@@ -188,6 +188,8 @@ MODULE cable_def_types_mod
          rnof1,   & ! surface runoff (mm/dels)
          rnof2,   & ! deep drainage (mm/dels)
          rtsoil,  & ! turbulent resistance for soil
+         rtevap_unsat, & !turbulent resistance for soil (amu561 alt. SoilE)
+         rtevap_sat, &   !as above
          wbtot1,  & ! total soil water (mm)
          wbtot2,  & ! total soil water (mm)
          wb_lake, &
@@ -253,7 +255,8 @@ MODULE cable_def_types_mod
          GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
          GWzq,    &  ! equilibrium aquifer smp   [mm]
          qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
-         satfrac
+         satfrac, &
+         rh_srf      !amu561 alt. SoilE
      
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
@@ -741,6 +744,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% rnof1(mp) ) 
    ALLOCATE( var% rnof2(mp) ) 
    ALLOCATE( var% rtsoil(mp) )
+   ALLOCATE( var% rtevap_sat(mp))
+   ALLOCATE( var% rtevap_unsat(mp))
    ALLOCATE( var% sconds(mp,msn) ) 
    ALLOCATE( var% sdepth(mp,msn) ) 
    ALLOCATE( var% smass(mp,msn) ) 
@@ -797,6 +802,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWzq(mp) )
    ALLOCATE( var%qhz(mp) )
    ALLOCATE( var%satfrac(mp) )
+   ALLOCATE( var%rh_srf(mp))
    !soil moisture variables
    ALLOCATE( var%wbeq(mp,ms) )
    ALLOCATE( var%zq(mp,ms) )
@@ -1222,6 +1228,8 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% rnof1 ) 
    DEALLOCATE( var% rnof2 ) 
    DEALLOCATE( var% rtsoil )
+   DEALLOCATE( var% rtevap_sat)
+   DEALLOCATE( var% rtevap_unsat)
    DEALLOCATE( var% sconds ) 
    DEALLOCATE( var% sdepth ) 
    DEALLOCATE( var% smass ) 
@@ -1278,6 +1286,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%GWzq )
    DEALLOCATE( var%qhz )
    DEALLOCATE( var%satfrac )
+   DEALLOCATE( var%rh_srf )
    !soil moisture variables
    DEALLOCATE( var%wbeq )
    DEALLOCATE( var%zq )
