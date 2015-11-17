@@ -8,7 +8,7 @@
 
 ##### SET SITE !!!!! #####
 
-site="Konza"
+site="Stubai"
 
 
 ## Spins CASA for determined number of cycles
@@ -265,9 +265,10 @@ cable_user%GW_MODEL = .${GWFLAG}.       !True means use the groundwater module, 
 cable_user%alt_forcing = .FALSE.
 cable_user%GSWP3       = .FALSE.
 cable_user%L_newProfile = .TRUE. !Use new YP profile for root water extraction?
-gw_params%EfoldMaxSatFrac = 6.0
-gw_params%MaxHorzDrainRate = 0.01
-gw_params%MaxSatFraction = 0.0  !Changed Anna
+cable_user%or_evap = .FALSE.     !Use new Or soilE formulation?
+gw_params%EfoldMaxSatFrac    = 6.0
+gw_params%MaxHorzDrainRate   = 0.01
+gw_params%MaxSatFraction     = 900.0
 gw_params%EfoldHorzDrainRate = 1.0
 &end
 
