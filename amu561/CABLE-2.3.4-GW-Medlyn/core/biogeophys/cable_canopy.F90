@@ -124,7 +124,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    INTEGER :: j,i
    
    INTEGER, SAVE :: call_number =0
-   
+
    ! END header
   
  
@@ -345,9 +345,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
          if (cable_user%gw_model) then 
             do i=1,mp
+               !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9)  then 
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+                  dq(i) = max(0. , ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -384,8 +384,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+                  dq(i) = max(0.,ssnow%qstss(i)*exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4) - met%qvair(i))
                else
                   ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -467,6 +466,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                    * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
                    canopy%vlaiw(:))*canopy%gswx(:,2)
    
+   canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
+   canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
+
    canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
    canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
 
@@ -735,7 +737,6 @@ FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
    else
       ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
    end if
-   
    
 END FUNCTION Humidity_deficit_method
 
@@ -1236,7 +1237,7 @@ SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
                    MAX( cansat, 0.01 ) ) )
 
 
-   !use top-model based wet fraction at the surface
+   !use soil hetero based wet fraction at the surface
    IF (cable_runtime%run_gw_model) then
   
      call calc_srf_wet_fraction(ssnow,soil)
@@ -1409,17 +1410,18 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
       IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
          CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+         veg%froot_w = veg%froot
       ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
          CALL fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg) 
+         veg%froot_w=veg%froot     
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
          CALL fwsoil_calc_Lai_Katul(canopy, fextroot, soil, ssnow, veg) 
+         veg%froot_w = veg%froot
       ELSE
          write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
       ENDIF
-
-  ELSE
 
    ENDIF
    
@@ -1824,8 +1826,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%frday = 12.0 * SUM(rdy, 2)
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
-
-
+   
    ! jtk561, saving gswmin here
    canopy%gswmin_1 = gswmin(:,1)
    canopy%gswmin_2 = gswmin(:,2)
@@ -2192,7 +2193,7 @@ END SUBROUTINE fwsoil_calc_pressure
 SUBROUTINE fwsoil_mass_calc_std(canopy, soil, ssnow, veg)
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    TYPE (canopy_type),        INTENT(INOUT)    :: canopy
    !REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
@@ -2208,9 +2209,6 @@ END SUBROUTINE fwsoil_mass_calc_std
 
 ! ------------------------------------------------------------------------------
 
-
-
-! ------------------------------------------------------------------------------
 SUBROUTINE fwsoil_calc_std(canopy, fextroot, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
@@ -2239,8 +2237,8 @@ SUBROUTINE fwsoil_calc_std(canopy, fextroot, soil, ssnow, veg)
       fextroot(:,ns) = fextroot(:,ns)/rwater(:)
    enddo
  
-      
-END SUBROUTINE fwsoil_calc_std 
+     
+END SUBROUTINE fwsoil_calc_std
 
 ! ------------------------------------------------------------------------------
 

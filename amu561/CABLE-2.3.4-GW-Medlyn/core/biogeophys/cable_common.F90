@@ -105,6 +105,7 @@ MODULE cable_common_module
          SRF = .FALSE.,                   &
          g1map = .FALSE. !jtk561
 
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user
@@ -226,13 +227,15 @@ MODULE cable_common_module
    TYPE gw_parameters_type
 
       REAL ::                   &
-        MaxSatFraction=0.7,     & !maximum fraction of cell that is saturated [qsrf]
-        MaxHorzDrainRate=1e-3, & !anisintropy [qsub]
-        EfoldHorzDrainRate=2.5, & !qsub(wtd)
-        EfoldMaxSatFrac=4.0,    & !sat frac srf (wtd)
+        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
+        MaxSatFraction=900,     & !parameter controll max sat fraction
         hkrz=0.5,               & !hksat variation with z
         zdepth=1.0,             & !level where hksat(z) = hksat(no z)
-        frozen_frac=0.05  !ice fraction to determine first non-frozen layer for qsub
+        frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+        SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+        IceAlpha=1.0,           &
+        IceBeta=1.0
 
    END TYPE gw_parameters_type
 

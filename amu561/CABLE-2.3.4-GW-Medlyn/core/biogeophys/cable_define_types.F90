@@ -328,7 +328,7 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          refl,    &
          taul,    & 
-         froot      ! fraction of root in each soil layer
+         froot,froot_w      ! fraction of root in each soil layer
 
    END TYPE veg_parameter_type
 
@@ -853,6 +853,10 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
+
+   ALLOCATE( var%froot_w(mp,ms) ) 
+
+
    ALLOCATE( var%refl(mp,3) ) !jhan:swb?
    ALLOCATE( var%taul(mp,3) ) !MDeck->cable_parameters.F90 tries to access taul(:,3)
    ALLOCATE( var%vlaimax(mp) ) 
@@ -872,7 +876,6 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%eko(mp) ) 
    ALLOCATE( var% g1c3_map(mp) ) ! jtk561
    ALLOCATE( var% g0c3_map(mp) ) ! jtk561
-
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -928,6 +931,10 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fnpp(mp) )   
    ALLOCATE( var% fevw_pot(mp) )  
    ALLOCATE( var% gswx_T(mp) ) 
+   ALLOCATE( var% gswx_1(mp) ) ! jtk561
+   ALLOCATE( var% gswx_2(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_1(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_2(mp) ) ! jtk561 
    ALLOCATE( var% gswx_1(mp) ) ! jtk561
    ALLOCATE( var% gswx_2(mp) ) ! jtk561
    ALLOCATE( var% gswmin_1(mp) ) ! jtk561
@@ -1333,6 +1340,9 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%wai )   
    DEALLOCATE( var%deciduous ) 
    DEALLOCATE( var%froot) 
+
+   DEALLOCATE( var%froot_w) 
+
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
    DEALLOCATE( var%g0c3 ) ! Ticket #56.
@@ -1405,6 +1415,10 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fnpp )   
    DEALLOCATE( var% fevw_pot )  
    DEALLOCATE( var% gswx_T ) 
+   DEALLOCATE( var% gswx_1 ) ! jtk561
+   DEALLOCATE( var% gswx_2 ) ! jtk561 
+   DEALLOCATE( var% gswmin_1)  ! jtk561
+   DEALLOCATE( var% gswmin_2)  ! jtk561
    DEALLOCATE( var% gswx_1 ) ! jtk561
    DEALLOCATE( var% gswx_2 ) ! jtk561 
    DEALLOCATE( var% gswmin_1)  ! jtk561

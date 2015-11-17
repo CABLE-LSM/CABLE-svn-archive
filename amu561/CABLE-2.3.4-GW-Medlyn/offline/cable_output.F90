@@ -219,7 +219,7 @@ MODULE cable_output_module
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
-    !MD GW
+       !MD GW
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMatPot    ! soil matric potential [mm]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: EqSoilMatPot  ! equilibirum soil matric potential [mm]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: EqSoilMoist   ! equilibirum soil moisture [mm3/mm3]    
@@ -551,7 +551,7 @@ CONTAINS
     END IF
     ! end modifs jtk561
     
-    IF(output%flux .OR. output%Qg) THEN
+   IF(output%flux .OR. output%Qg) THEN
        CALL define_ovar(ncid_out, ovid%Qg, 'Qg', 'W/m^2',                      &
                         'Surface ground heat flux', patchout%Qg, 'dummy',      &
                         xID, yID, zID, landID, patchID, tID)
@@ -1198,10 +1198,6 @@ CONTAINS
     IF(output%params .OR. output%g1c4) CALL define_ovar(ncid_out, opid%g1c4,   &
                           'g1c4', '-', 'g1c4 term in Medlyn Stom Cond. Param', &
                           patchout%g1c4, 'real', xID, yID, zID, landID, patchID)
-    IF(output%params .OR. output%g0c3_map) CALL define_ovar(ncid_out,opid%g0c3_map,   &
-                          'g0c3_map', '-', 'g0c3_map term in Medlyn Stom Cond.Param', &
-                          patchout%g0c3_map, 'real', xID, yID, zID, landID,patchID)
-
     IF(output%params .OR. output%g1c3_map) CALL define_ovar(ncid_out,opid%g1c3_map,   &
                           'g1c3_map', '-', 'g1c3_map term in Medlyn Stom Cond. Param', &
                           patchout%g1c3_map, 'real', xID, yID, zID, landID,patchID)
@@ -1486,11 +1482,8 @@ CONTAINS
                    'g1c3', REAL(veg%g1c3, 4),ranges%g1c3, patchout%g1c3, 'real')
     IF(output%params .OR. output%g1c4) CALL write_ovar(ncid_out, opid%g1c4,    &
                    'g1c4', REAL(veg%g1c4, 4),ranges%g1c4, patchout%g1c4, 'real')
-    IF(output%params .OR. output%g0c3_map) CALL write_ovar(ncid_out,opid%g0c3_map,    &
-                   'g0c3_map', REAL(veg%g0c3_map, 4),ranges%g0c3_map,patchout%g0c3_map, 'real')
-    IF(output%params .OR. output%g1c3_map) CALL write_ovar(ncid_out,opid%g1c3_map,    &
-                   'g1c3_map', REAL(veg%g1c3_map, 4),ranges%g1c3_map,patchout%g1c3_map, 'real')
     ! end Ticket #56
+    
     IF(output%params .OR. output%rpcoef) CALL write_ovar(ncid_out,             &
                                    opid%rpcoef, 'rpcoef', REAL(veg%rpcoef, 4), &
                                          ranges%rpcoef, patchout%rpcoef, 'real')
@@ -1968,7 +1961,7 @@ CONTAINS
        END IF
     END IF
 
-    ! Qg: ground heat flux [W/m^2]
+   ! Qg: ground heat flux [W/m^2]
     IF(output%flux .OR. output%Qg) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%Qg = out%Qg + REAL(canopy%ga, 4)
@@ -2577,8 +2570,6 @@ CONTAINS
     IF((output%soil .OR. output%SoilMatPot) .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'smp'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       !write(*,*) ssnow%smp
-       !write(*,*) ssnow%wb
        out%SoilMatPot = out%SoilMatPot + REAL(ssnow%smp/1000.0, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -3728,10 +3719,6 @@ CONTAINS
                      ranges%g1c3, .TRUE., 'real', .TRUE.) ! Ticket #56
     CALL write_ovar (ncid_restart, rpid%g1c4, 'g1c4', REAL(veg%g1c4, 4),       &
                      ranges%g1c4, .TRUE., 'real', .TRUE.) ! Ticket #56
-    CALL write_ovar (ncid_restart, rpid%g0c3_map, 'g0c3_map', REAL(veg%g0c3_map,4),       &
-                     ranges%g0c3_map, .TRUE., 'real', .TRUE.) ! Ticket #56
-    CALL write_ovar (ncid_restart, rpid%g1c3_map, 'g1c3_map', REAL(veg%g1c3_map,4),       &
-                     ranges%g1c3_map, .TRUE., 'real', .TRUE.) ! Ticket #56
     CALL write_ovar (ncid_restart, rpid%rpcoef, 'rpcoef', REAL(veg%rpcoef, 4), &
                      ranges%rpcoef, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%shelrb, 'shelrb', REAL(veg%shelrb, 4), &

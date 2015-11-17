@@ -165,18 +165,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
 
-   REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
-   REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
-
-   psi_o(1:3)  = -66000._r_2
-   psi_o(4)    = -35000._r_2
-   psi_o(5)    = -83000._r_2
-   psi_o(6:17) = -74000._r_2
-
-   psi_c(1:3)  = -2550000._r_2
-   psi_c(4)    = -2240000._r_2
-   psi_c(5)    = -4280000._r_2
-   psi_c(6:17) = -2750000._r_2
+   REAL(r_2), parameter :: ti_mean_minimum = 0.0002_r_2
+   REAL(r_2), parameter :: ti_sig_minimum = 0.0002_r_2
 
       IF( first_call ) THEN 
 
@@ -256,8 +246,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
               fwork(i,n) = ti_mean(i)
             end do
          end do
-         soil%slope(:) = pack(fwork(:,:),um1%l_tile_pts) 
-         soil%slope(:) = max(min(soil%slope(:),0.2),1e-6)
+         soil%slope(:) = real(pack(fwork(:,:),um1%l_tile_pts) ,r_2)
+         soil%slope(:) = max(min(soil%slope(:),0.7),ti_mean_minimum)
  
          fwork(:,:) = 0.05 
          DO n=1,um1%NTILES
@@ -266,11 +256,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
               fwork(i,n) = ti_sig(i)
             end do
          end do
-         soil%slope_std(:) = pack(fwork(:,:),um1%l_tile_pts) 
-         soil%slope_std(:) = max(min(soil%slope_std(:),0.1),1e-6)
+         soil%slope_std(:) = real(pack(fwork(:,:),um1%l_tile_pts) ,r_2)
+         soil%slope_std(:) = max(min(soil%slope_std(:),0.7),ti_sig_minimum)
          deallocate(fwork) 
- 
-    
             
          !--- (re)set values for CABLE
          soil%ibp2    =  NINT(soil%bch)+2
@@ -302,17 +290,17 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          !future revisions will have soil type and properties be a functio
          !of layer depth
          do i=1,mp
-         do k=1,um1%sm_levels
-            soil%Fclay(i,k)   = max(0._r_2,min(1._r_2, soil%clay(i)) )
-            soil%Fsand(i,k)   = max(0._r_2,min(1._r_2, soil%sand(i)) )
+         do k=1,ms
+            soil%Fclay(i,k)   = max(0._r_2,min(1._r_2, real(soil%clay(i),r_2)) )
+            soil%Fsand(i,k)   = max(0._r_2,min(1._r_2, real(soil%sand(i),r_2)) )
             soil%Fsilt(i,k)   = 1._r_2 - soil%Fsand(i,k) - soil%Fclay(i,k)
 
-            soil%hksat(i,k) = 0.0070556*10.0**(-0.884 + & 
-                                 0.0153*soil%Fsand(i,k)*100.0)
-            soil%smpsat(i,k) = max(10.0 * 10.0**(1.88 -0.0131*soil%Fsand(i,k)*100.0),10._r_2)
-            soil%clappB(i,k) = max(2.91,min(18.0, 2.91 + 0.159*soil%Fclay(i,k)*100.0 ) )
-            soil%watsat(i,k) = 0.489 - 0.00126*soil%Fsand(i,k)*100.0
-            soil%watr(i,k) = 0.02 + 0.00018*soil%Fclay(i,k)*100.0
+            soil%hksat(i,k) = 1000._r_2 * real(soil%hyds(i),r_2)! 0.0070556*10.0**(-0.884 + & 
+                                 !0.0153*soil%Fsand(i,k)*100.0)
+            soil%smpsat(i,k) = 1000._r_2 * real(abs(soil%sucs(i)),r_2) !max(10.0 * 10.0**(1.88 -0.0131*soil%Fsand(i,k)*100.0),10._r_2)
+            soil%clappB(i,k) = real(soil%bch(i),r_2)!max(2.91,min(18.0, 2.91 + 0.159*soil%Fclay(i,k)*100.0 ) )
+            soil%watsat(i,k) = real(soil%ssat(i),r_2)!0.489 - 0.00126*soil%Fsand(i,k)*100.0
+            soil%watr(i,k) =   0.05_r_2 * real(soil%watsat(i,k),r_2)!0.02 + 0.00018*soil%Fclay(i,k)*100.0
          end do
          !aquifer share non-organic with last layer
          soil%GWhksat(i)  = soil%hksat(i,ms)
@@ -323,14 +311,14 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
          !vegetation dependent wilting point
          do k=1,ms
-            soil%fldcap(i,k) = (fldcap_hk/soil%hksat(i,k))**(1.0/(2.0*soil%clappB(i,k)+3.0)) * &
-                           (soil%watsat(i,k) - soil%watr(i,k)) + soil%watr(i,k)
+            soil%fldcap(i,k) = real(soil%sfc(i),r_2)!(fldcap_hk/soil%hksat(i,k))**(1.0/(2.0*soil%clappB(i,k)+3.0)) * &
+                           !(soil%watsat(i,k) - soil%watr(i,k)) + soil%watr(i,k)
 
-            psi_tmp(i,k) = -psi_c(veg%iveg(i))
+            !psi_tmp(i,k) = -psi_c(veg%iveg(i))
 
-            soil%wiltp(i,k) = (soil%watsat(i,k) - soil%watr(i,k)) *&
-                              (abs(psi_tmp(i,k))/(max(abs(soil%smpsat(i,k)),1.0)))**(-1.0/soil%clappB(i,k))+&
-                              soil%watr(i,k)
+            soil%wiltp(i,k) = real(soil%swilt(i),r_2)! (soil%watsat(i,k) - soil%watr(i,k)) *&
+                             ! (abs(psi_tmp(i,k))/(max(abs(soil%smpsat(i,k)),1.0)))**(-1.0/soil%clappB(i,k))+&
+                             ! soil%watr(i,k)
          end do
          end do  !loop over all tiles
             
@@ -468,9 +456,9 @@ END SUBROUTINE init_respiration
 !========================================================================
 
 SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
+   USE cable_common_module, ONLY : vegin, cable_user
    USE cable_um_tech_mod,   ONLY : veg, soil 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, ms
 
    INTEGER :: k
 
@@ -497,21 +485,74 @@ SUBROUTINE init_veg_pars_fr_vegin()
       veg%g1c3 = vegin%g1c3(veg%iveg)
       veg%g1c4 = vegin%g1c4(veg%iveg)
 
+      if (cable_user%GS_SWITCH == 'medlyn' .or. cable_user%GS_SWITCH == 'medlyn_fit') then
+         veg%g0c3 = vegin%g0c3(veg%iveg)
+         veg%g0c4 = vegin%g0c4(veg%iveg)
+         veg%g1c3 = vegin%g1c3(veg%iveg)
+         veg%g1c4 = vegin%g1c4(veg%iveg)
+      end if
+
       do k=1,2
         veg%refl(:,k)   = vegin%refl(k,veg%iveg)
         veg%taul(:,k)   = vegin%taul(k,veg%iveg)
       enddo
 
-      !froot fixed here for all vegetation types for ACCESS
-      !need more flexibility in next version to read in or parameterise
-      veg%froot(:,1) = 0.05
-      veg%froot(:,2) = 0.20
-      veg%froot(:,3) = 0.20
-      veg%froot(:,4) = 0.20
-      veg%froot(:,5) = 0.20
-      veg%froot(:,6) = 0.15
+      !if (cable_user%gw_model) then
+      !   call init_variable_froot()
+      !else
+         veg%froot(:,1) = 0.05
+         veg%froot(:,2) = 0.20
+         veg%froot(:,3) = 0.20
+         veg%froot(:,4) = 0.20
+         veg%froot(:,5) = 0.20
+         veg%froot(:,6) = 0.15
+      !end if
+
 
 END SUBROUTINE init_veg_pars_fr_vegin
+
+SUBROUTINE init_variable_froot()
+   USE cable_common_module, ONLY : vegin, cable_user
+   USE cable_um_tech_mod,   ONLY : veg, soil 
+   USE cable_def_types_mod, ONLY : mp, ms
+
+   real, dimension(17) :: r_a, r_b
+   real :: dz_sum
+   INTEGER :: k,i
+
+
+   r_a(:) = (/7.0,7.0,7.0,6.0,7.0,11.0,11.0,11.0,6.0,6.0,11.0,11.0,11.0,11.0,11.0,11.0,11.0/)
+   r_b(:) = (/2.0,1.0,2.0,2.0,1.5,2.0 ,2.0 ,2.0 ,3.0,3.0,2.0 ,2.0 ,2.0 ,2.0 ,2.0 ,2.0 ,2.0 /)
+
+      !froot fixed here for all vegetation types for ACCESS
+      !need more flexibility in next version to read in or parameterise
+      dz_sum = 0.0
+      do k=1,ms-1
+         veg%froot(:,k) = 0.5* (exp(-r_a(veg%iveg(:))*dz_sum) + &
+                                exp(-r_b(veg%iveg(:))*dz_sum) - &
+                                exp(-r_a(veg%iveg(:))*(dz_sum+soil%zse(k))) - &
+                                exp(-r_b(veg%iveg(:))*(dz_sum+soil%zse(k))) ) 
+         dz_sum = dz_sum + soil%zse(k)
+      end do
+
+      k = ms
+      veg%froot(:,k) = 0.5* (exp(-r_a(veg%iveg(:))*dz_sum) + &
+                             exp(-r_b(veg%iveg(:))*dz_sum)  )
+
+      do i=1,mp
+         if (abs(sum(veg%froot(i,:),dim=1)-1.) .gt. 1e-6) then
+           do k=1,ms
+              veg%froot(i,k) = veg%froot(i,k) / max(1e-3,sum(veg%froot(i,:),dim=1))
+           end do
+         end if
+      end do
+
+      do i=1,mp
+         if (veg%iveg(i) .eq. 16 .or. veg%iveg(i) .eq. 17) then
+            veg%froot(i,:) = 0.
+         end if
+      end do 
+END SUBROUTINE init_variable_froot
 
 !========================================================================
 !========================================================================
@@ -865,9 +906,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,smgw_ti
       where(ssnow%GWwb .lt. 1e-2)
          ssnow%GWwb = 0.3   !temp so not passing junk 
       endwhere
-      where(veg%iveg .eq. 16)
-         ssnow%GWwb = soil%GWwatsat   !temp so not passing junk 
-      endwhere
+      !where(veg%iveg .eq. 16)
+      !   ssnow%GWwb = soil%GWwatsat   
+      !endwhere
 
       end if
 

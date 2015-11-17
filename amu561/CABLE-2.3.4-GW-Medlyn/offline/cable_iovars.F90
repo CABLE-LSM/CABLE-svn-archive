@@ -133,7 +133,7 @@ MODULE cable_IO_vars_module
           ejmax,frac4,hc,lai,rp20,rpcoef,shelrb, vbeta, xalbnir,               &
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
-          veg_class,soil_class,sorder,areacell,sla,mvtype,mstype,patchfrac,                 &
+          veg_class,soil_class,sorder,areacell,sla,mvtype,mstype,patchfrac,    &
           g0c3,g0c4,g1c3,g1c4,g0c3_map,g1c3_map,                               & ! Ticket #56
           !MD
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
@@ -347,8 +347,8 @@ MODULE cable_IO_vars_module
          g0c4 = .FALSE.,      & ! Ticket #56
          g1c3 = .FALSE.,      & ! Ticket #56
          g1c4 = .FALSE.,      & ! Ticket #56
-         g0c3_map = .FALSE.,  &
          g1c3_map = .FALSE.,  &
+         g0c3_map = .FALSE.,  &
          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}

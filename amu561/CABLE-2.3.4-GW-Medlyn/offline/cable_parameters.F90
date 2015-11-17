@@ -101,10 +101,10 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
 
- ! jtk561 - g1map
-  REAL, DIMENSION(:, :),        ALLOCATABLE :: ing1c3
-  REAL, DIMENSION(:, :),        ALLOCATABLE :: ing0c3
- 
+  !jtk561 -g1map
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: ing1c3
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: ing0c3
+  
   !MD temp vars for reading in aquifer properties
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWssat
@@ -938,9 +938,7 @@ CONTAINS
 
 ! jtk561 - subroutine to read g1 from map 
 
-!=============================================================
-
-  SUBROUTINE read_g1map(logn)
+SUBROUTINE read_g1map(logn)
 
     USE netcdf
 
@@ -1016,9 +1014,7 @@ CONTAINS
 
 !====================================================================
 
-
-
-  SUBROUTINE NSflip(nlon, nlat, invar)
+    SUBROUTINE NSflip(nlon, nlat, invar)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
     INTEGER, INTENT(IN) :: nlat
@@ -1133,6 +1129,7 @@ CONTAINS
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
+          landpt(kk)%tilenumber(landpt(kk)%nap) = 1
           landpt(kk)%tilenumber(landpt(kk)%nap) = 1
         ELSE
           PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1. because npatch=',npatch
@@ -1618,7 +1615,6 @@ CONTAINS
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
     if (allocated(inSoilColor)) deallocate(inSoilColor)
-    IF (cable_user%g1map) DEALLOCATE(ing0c3,ing1c3)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
 !    IF(ASSOCIATED(vegtype_metfile)) DEALLOCATE(vegtype_metfile)
