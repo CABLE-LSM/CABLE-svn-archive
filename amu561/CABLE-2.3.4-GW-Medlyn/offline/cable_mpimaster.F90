@@ -1523,6 +1523,14 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (veg%g1c4(off), displs(bidx), ierr)
   blen(bidx) = r1len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3_map(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%g1c3_map(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
   ! Ticket #56, finish adding new veg parms 
 
   ! ----------- bgc --------------

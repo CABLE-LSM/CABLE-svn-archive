@@ -1201,6 +1201,10 @@ CONTAINS
     IF(output%params .OR. output%g1c3_map) CALL define_ovar(ncid_out,opid%g1c3_map,   &
                           'g1c3_map', '-', 'g1c3_map term in Medlyn Stom Cond. Param', &
                           patchout%g1c3_map, 'real', xID, yID, zID, landID,patchID)
+    IF(output%params .OR. output%g0c3_map) CALL define_ovar(ncid_out,opid%g0c3_map,   &
+                          'g0c3_map', '-', 'g1c3_map term in Medlyn Stom Cond. Param', &
+                          patchout%g0c3_map, 'real', xID, yID, zID, landID,patchID)
+                          
     ! end Ticket #56
     IF(output%params .OR. output%rpcoef) CALL define_ovar(ncid_out,            &
                                                  opid%rpcoef, 'rpcoef', '1/C', &
@@ -1482,6 +1486,11 @@ CONTAINS
                    'g1c3', REAL(veg%g1c3, 4),ranges%g1c3, patchout%g1c3, 'real')
     IF(output%params .OR. output%g1c4) CALL write_ovar(ncid_out, opid%g1c4,    &
                    'g1c4', REAL(veg%g1c4, 4),ranges%g1c4, patchout%g1c4, 'real')
+     IF(output%params .OR. output%g0c3_map) CALL write_ovar(ncid_out, opid%g0c3_map,    &
+                   'g0c3_map', REAL(veg%g0c3_map, 4),ranges%g0c3_map, patchout%g0c3_map, 'real')
+     IF(output%params .OR. output%g1c3_map) CALL write_ovar(ncid_out, opid%g1c3_map,    &
+                   'g1c3_map', REAL(veg%g1c3_map, 4),ranges%g1c3_map, patchout%g1c3_map, 'real')
+    
     ! end Ticket #56
     
     IF(output%params .OR. output%rpcoef) CALL write_ovar(ncid_out,             &
@@ -3717,6 +3726,10 @@ CONTAINS
                      ranges%g0c4, .TRUE., 'real', .TRUE.) ! Ticket #56
     CALL write_ovar (ncid_restart, rpid%g1c3, 'g1c3', REAL(veg%g1c3, 4),       &
                      ranges%g1c3, .TRUE., 'real', .TRUE.) ! Ticket #56
+    CALL write_ovar (ncid_restart, rpid%g1c3_map, 'g1c3_map', REAL(veg%g1c3_map, 4),       &
+                     ranges%g1c3_map, .TRUE., 'real', .TRUE.) ! Ticket #56
+    CALL write_ovar (ncid_restart, rpid%g0c3_map, 'g0c3_map', REAL(veg%g0c3_map, 4),       &
+                     ranges%g0c3_map, .TRUE., 'real', .TRUE.) ! Ticket #56                 
     CALL write_ovar (ncid_restart, rpid%g1c4, 'g1c4', REAL(veg%g1c4, 4),       &
                      ranges%g1c4, .TRUE., 'real', .TRUE.) ! Ticket #56
     CALL write_ovar (ncid_restart, rpid%rpcoef, 'rpcoef', REAL(veg%rpcoef, 4), &

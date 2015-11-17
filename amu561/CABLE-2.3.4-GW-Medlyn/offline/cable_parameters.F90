@@ -1130,7 +1130,6 @@ SUBROUTINE read_g1map(logn)
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
           landpt(kk)%tilenumber(landpt(kk)%nap) = 1
-          landpt(kk)%tilenumber(landpt(kk)%nap) = 1
         ELSE
           PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1. because npatch=',npatch
           PRINT *, 'If soil patches exist, add new code.'
@@ -1615,6 +1614,7 @@ SUBROUTINE read_g1map(logn)
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
     if (allocated(inSoilColor)) deallocate(inSoilColor)
+    if (cable_user%g1map) DEALLOCATE(ing0c3, ing1c3)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
 !    IF(ASSOCIATED(vegtype_metfile)) DEALLOCATE(vegtype_metfile)

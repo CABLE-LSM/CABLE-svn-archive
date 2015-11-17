@@ -935,10 +935,6 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% gswx_2(mp) ) ! jtk561
    ALLOCATE( var% gswmin_1(mp) ) ! jtk561
    ALLOCATE( var% gswmin_2(mp) ) ! jtk561 
-   ALLOCATE( var% gswx_1(mp) ) ! jtk561
-   ALLOCATE( var% gswx_2(mp) ) ! jtk561
-   ALLOCATE( var% gswmin_1(mp) ) ! jtk561
-   ALLOCATE( var% gswmin_2(mp) ) ! jtk561 
    ALLOCATE( var% cdtq(mp) )   
    ALLOCATE( var% wetfac_cs(mp) )  
    ALLOCATE( var% fevw(mp) )   
@@ -1415,10 +1411,6 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fnpp )   
    DEALLOCATE( var% fevw_pot )  
    DEALLOCATE( var% gswx_T ) 
-   DEALLOCATE( var% gswx_1 ) ! jtk561
-   DEALLOCATE( var% gswx_2 ) ! jtk561 
-   DEALLOCATE( var% gswmin_1)  ! jtk561
-   DEALLOCATE( var% gswmin_2)  ! jtk561
    DEALLOCATE( var% gswx_1 ) ! jtk561
    DEALLOCATE( var% gswx_2 ) ! jtk561 
    DEALLOCATE( var% gswmin_1)  ! jtk561
