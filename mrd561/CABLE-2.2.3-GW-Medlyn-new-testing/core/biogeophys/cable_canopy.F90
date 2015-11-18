@@ -2378,39 +2378,49 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
                           soil_moisture_mod_sat, wb_liq, &
-                          pore_size,pore_radius, rel_s,hk_zero,hk_zero_sat  !note pore_size in m
+                          pore_size,pore_radius, rel_s,hk_zero,hk_zero_sat,time_scale  !note pore_size in m
 
    INTEGER, DIMENSION(mp) :: int_eddy_shape
 
    REAL, parameter :: Dff=2.5e-5, &
                       lm=1.73e-5, &
-                      pi = 3.14159265358979324
+                      pi = 3.14159265358979324, &
+                      c2 = 2.0
 
    integer :: i,j,k 
    logical, save ::  first_call = .true.
+   logical :: default_sublayer_thickness
 
 
-   pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)
+   default_sublayer_thickness = .true.
+
+   pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
-   eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
+   if (default_sublayer_thickness) then    !calc sublayer thickness from Haghigni and Or et al. 2015
 
-   int_eddy_shape = floor(eddy_shape)
-   eddy_mod(:) = 0.0
-   do i=1,mp   
-      eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
+      eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
+      int_eddy_shape = floor(eddy_shape)
+      eddy_mod(:) = 0.0
+      do i=1,mp   
+         eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
 
-      if (int_eddy_shape(i) .gt. 0) then
-         eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
+         if (int_eddy_shape(i) .gt. 0) then
+            eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
+            do k=1,int_eddy_shape(i)
+               eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
+            end do
+         end if
+      end do
+      sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
 
-         do k=1,int_eddy_shape(i)
-            eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
-         end do
-      end if
-   end do
+   else  !use the timescale from the cable turbulence parameterizations
 
+      !base sublayer thickness on cable timescale equations instead of gamma distribution
+      time_scale = 0.4 * rough%hruff / max(1.0e-6,canopy%us) * rough%z0soilsn / rough%disp
+      sublayer_dz = min(8e-3,max(c2 * sqrt(air%visc * time_scale), 1e-5) )
 
-   sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
+   end if  !choose which sublayer thickness scheme
 
    if (first_call) then
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
