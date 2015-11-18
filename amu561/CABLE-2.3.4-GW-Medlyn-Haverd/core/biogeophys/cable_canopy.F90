@@ -101,7 +101,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    REAL, DIMENSION(:), POINTER ::                                              & 
       cansat,        & ! max canopy intercept. (mm)
       dsx,           & ! leaf surface vpd
-     ! fwsoil,        & ! soil water modifier of stom. cond
+      fwsoil,        & ! soil water modifier of stom. cond
       tlfx,          & ! leaf temp prev. iter (K)
       tlfy             ! leaf temp (K)
 
@@ -137,7 +137,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%cansto =  canopy%oldcansto
 
    ALLOCATE( cansat(mp), gbhu(mp,mf))
-   ALLOCATE( dsx(mp), tlfx(mp), tlfy(mp) )   !fwsoil(mp)
+   ALLOCATE( dsx(mp), tlfx(mp), tlfy(mp), fwsoil(mp) )
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
    ALLOCATE( ghwet(mp))
@@ -286,15 +286,14 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
-                    !fwsoil, 
-                    tlfx, tlfy, ecy, hcy,                   &
+                    fwsoil,                                                    & 
+                    tlfx, tlfy, ecy, hcy,                                      &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter )
       
       CALL wetLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, cansat, tlfy,                                 &
                     gbhu, gbhf, ghwet )
-
      
       ! Calculate latent heat from vegetation:
       ! Calculate sensible heat from vegetation:
@@ -652,7 +651,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
 
    DEALLOCATE(cansat,gbhu)
-   DEALLOCATE(dsx, tlfx, tlfy) !fwsoil
+   DEALLOCATE(dsx, tlfx, tlfy, fwsoil)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
@@ -1281,8 +1280,8 @@ END SUBROUTINE Surf_wetness_fact
 
 SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
-                   ! fwsoil, 
-                   tlfx,  tlfy,  ecy, hcy,                 &
+                    fwsoil,                                                    & 
+                    tlfx,  tlfy,  ecy, hcy,                                    &
                     rny, gbhu, gbhf, csx,                                      &
                     cansat, ghwet, iter )
 
@@ -1301,7 +1300,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    
    REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
       dsx,        & ! leaf surface vpd
-     ! fwsoil,     & ! soil water modifier of stom. cond
+      fwsoil,     & ! soil water modifier of stom. cond
       tlfx,       & ! leaf temp prev. iter (K)
       tlfy          ! leaf temp (K)
    
@@ -1409,15 +1408,17 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    IF( iter ==1) THEN
 
       IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
-         CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
-         veg%froot_w = veg%froot
+         CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+         canopy%fwsoil = REAL(fwsoil, r_2)
       ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
          !EAK, 09/10 - replace linear approx by polynomial fitting
-         CALL fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg) 
-         veg%froot_w=veg%froot     
+         CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg) 
+         canopy%fwsoil = REAL(fwsoil, r_2)     
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
-         CALL fwsoil_calc_Lai_Katul(canopy, fextroot, soil, ssnow, veg) 
-         veg%froot_w = veg%froot
+         CALL fwsoil_calc_Lai_Katul(fwsoil, fextroot, soil, ssnow, veg) 
+         canopy%fwsoil = REAL(fwsoil, r_2)
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Haverd2013') THEN
+         fwsoil = REAL(canopy%fwsoil)
       ELSE
          write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
@@ -1577,10 +1578,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             IF (cable_user%GS_SWITCH == 'leuning') THEN
                
                 !replace xleuning with gs_coeff Ticket #56
-                gs_coeff(i,1) = (canopy%fwsoil(i) / (csx(i,1) - co2cp3))  &
+                gs_coeff(i,1) = (fwsoil(i) / (csx(i,1) - co2cp3))  &
                                 * (veg%a1gs(i) / (1.0 + dsx(i) / veg%d0gs(i)))
 
-                gs_coeff(i,2) = (canopy%fwsoil(i) / (csx(i,2) - co2cp3))  &
+                gs_coeff(i,2) = (fwsoil(i) / (csx(i,2) - co2cp3))  &
                                 * (veg%a1gs(i) / (1.0 + dsx(i) / veg%d0gs(i)))
 
                 
@@ -1598,8 +1599,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
                      (veg%g1c4(i)  * veg%frac4(i))
 
-                gs_coeff(i,1) = (1.0 + (g1 * canopy%fwsoil(i)) / SQRT(vpd)) / csx(i,1)
-                gs_coeff(i,2) = (1.0 + (g1 * canopy%fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+                gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
                 
             ELSE
                 STOP 'gs_model_switch failed.'
@@ -1615,7 +1616,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
                            gs_coeff(:,:), rad%fvlai(:,:),& ! Ticket #56, xleuning replaced with gs_coeff here
                            SPREAD( abs_deltlf, 2, mf ),                        &
-                           anx(:,:),canopy%fwsoil(:) )
+                           anx(:,:),fwsoil(:) )
 
       DO i=1,mp
          
@@ -1629,7 +1630,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                               gbhu(i,kk) + gbhf(i,kk) )
                   csx(i,kk) = MAX( 1.0e-4, csx(i,kk) )
                   ! Ticket #56, xleuning replaced with gs_coeff here
-                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*canopy%fwsoil(i) +     &
+                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
                                       MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
                                       anx(i,kk) ) )
 
@@ -1663,6 +1664,24 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ENDIF
 
 
+        !amu561, Haverd2013 switch
+        IF (cable_user%fwsoil_switch=='Haverd2013') then 
+
+               if (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) then
+                  canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
+
+                  call getrex(soil,ssnow,canopy,veg,air,real(dels,r_2),i) 
+
+
+                  fwsoil(i) = real(canopy%fwsoil(i))
+                  ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels ! mm water (root water extraction) per time step
+                  canopy%fevc(i) = SUM(ssnow%evapfbl(i,:),dim=1)*air%rlam(i)/dels
+                  ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+
+                end if
+        ELSE
+
+
             IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
                evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
                            / air%rlam(i)
@@ -1680,17 +1699,17 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                !WUE fix (YP, drought workshop Nov15)
                IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
-                    CALL fwsoil_calc_std( canopy, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
-               ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
+                    CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+               ELSEIF (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
                     !EAK, 09/10 - replace linear approx by polynomial fitting
-                    CALL fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg) 
+                    CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg) 
                ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
-                    CALL fwsoil_calc_Lai_Katul(canopy, fextroot, soil, ssnow, veg) 
+                    CALL fwsoil_calc_Lai_Katul(fwsoil, fextroot, soil, ssnow, veg) 
                ELSE
                     write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
                     STOP 'fwsoil_switch failed.'
                ENDIF
-
+               
                ssnow%wb(i,:) = wb2(i,:) !WUE fix
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
@@ -1698,6 +1717,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 
            ENDIF
+        
+       ENDIF  !amu561, Haverd/noHaverd
 
             ! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
@@ -2142,81 +2163,14 @@ END FUNCTION xejmxt3
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE fwsoil_calc_pressure(canopy,soil,ssnow,veg)
-   USE cable_def_types_mod
-   !REAL, DIMENSION(:),         INTENT(INOUT) :: fwsoil
-   TYPE (soil_parameter_type), INTENT(IN)    :: soil
-   TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
-   TYPE (veg_parameter_type),  INTENT(IN)    :: veg
-   TYPE (canopy_type),         INTENT(INOUT) :: canopy
-
-   !Local Variables
-   !For now put pft constants here
-   !move to def_veg_parameters file if sucessful
-
-   REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
-   REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
-
-   INTEGER :: i,j,k
-
-   psi_o(1:3)  = -66000._r_2
-   psi_o(4)    = -35000._r_2
-   psi_o(5)    = -83000._r_2
-   psi_o(6:17) = -74000._r_2
-
-   psi_c(1:3)  = -255000._r_2
-   psi_c(4)    = -224000._r_2
-   psi_c(5)    = -428000._r_2
-   psi_c(6:17) = -275000._r_2   
-
-   !if it is the first timestep we haven't called hydrology so wbliq isn't yet defined
-   ssnow%wbliq = ssnow%wb - ssnow%wbice  !liquid volume.  not this assumes density ice = density liquid
-
-   psi_tmp = -soil%smpsat(:,:) * (max(0.01,(ssnow%wb-ssnow%wbice)/(soil%watsat-ssnow%wbice))**(-soil%clappB))
-   canopy%fwsoil(:) = 1.
-   do i=1,mp
-      canopy%fwsoil(i) = 0.
-      j = veg%iveg(i)
-      do k=1,ms
-         canopy%fwsoil(i) = canopy%fwsoil(i) + veg%froot(i,k) * max(0.0,min(1.0,&
-                                 (psi_c(j)-psi_tmp(i,k))/(psi_c(j)-psi_o(j))*&
-                                 (soil%watsat(i,k)-ssnow%wbice(i,k))/soil%watsat(i,k)))
-      end do
-
-   end do
-
-END SUBROUTINE fwsoil_calc_pressure
-
-
-! ------------------------------------------------------------------------------
-
-SUBROUTINE fwsoil_mass_calc_std(canopy, soil, ssnow, veg)
-   USE cable_def_types_mod
-   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
-   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   TYPE (canopy_type),        INTENT(INOUT)    :: canopy
-   !REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-   REAL, DIMENSION(mp) :: rwater ! soil water availability
-
-   rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
-            SPREAD(1.1*soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
-  
-   canopy%fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
- 
-END SUBROUTINE fwsoil_mass_calc_std
-
-! ------------------------------------------------------------------------------
-
-SUBROUTINE fwsoil_calc_std(canopy, fextroot, soil, ssnow, veg) 
+SUBROUTINE fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   TYPE (canopy_type),        INTENT(INOUT)    :: canopy
+   !TYPE (canopy_type),        INTENT(INOUT)    :: canopy
 
-   !REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
+   REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
    REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot ! fraction of transpiration to be extracted from each soil layer Ticket #95
    REAL, DIMENSION(mp)               :: rwater ! soil water availability
 
@@ -2231,7 +2185,7 @@ SUBROUTINE fwsoil_calc_std(canopy, fextroot, soil, ssnow, veg)
       rwater(:) = rwater(:) + fextroot(:,ns)
    enddo
 
-   canopy%fwsoil(:) = MAX(1.0e-9,MIN(1.0, veg%vbeta(:) * rwater(:)))
+   fwsoil(:) = MAX(1.0e-9,MIN(1.0, veg%vbeta(:) * rwater(:)))
 
    do ns=1,ms
       fextroot(:,ns) = fextroot(:,ns)/rwater(:)
@@ -2242,14 +2196,14 @@ END SUBROUTINE fwsoil_calc_std
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg) 
+SUBROUTINE fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   TYPE (canopy_type),        INTENT(INOUT)    :: canopy
+   !TYPE (canopy_type),        INTENT(INOUT)    :: canopy
 
-  ! REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
+   REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
    REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot ! fraction of transpiration to be extracted from each soil layer   
    REAL, DIMENSION(mp)               :: rwater ! soil water availability
    REAL, DIMENSION(mp,3)             :: xi, ti, si
@@ -2259,7 +2213,7 @@ SUBROUTINE fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg)
             SUM(veg%froot * MAX(0.0,MIN(1.0_r_2,ssnow%wb -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
 
-   canopy%fwsoil = 1.
+   fwsoil = 1.
 
    rwater = soil%swilt + rwater * (soil%sfc-soil%swilt)
    
@@ -2282,7 +2236,7 @@ SUBROUTINE fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg)
 
    DO j=1,mp
       IF (rwater(j) < soil%sfc(j) - 0.02)                                      &
-         canopy%fwsoil(j) = max(1.0e-4,min(1., ti(j,1)*si(j,1) +                          &
+         fwsoil(j) = max(1.0e-4,min(1., ti(j,1)*si(j,1) +                          &
                        ti(j,2)*si(j,2) + ti(j,3)*si(j,3)))
 
    ENDDO
@@ -2294,14 +2248,14 @@ SUBROUTINE fwsoil_calc_non_linear(canopy, fextroot, soil, ssnow, veg)
 ! ------------------------------------------------------------------------------
 
 ! ypw 19/may/2010 soil water uptake efficiency (see Lai and Ktaul 2000)
-SUBROUTINE fwsoil_calc_Lai_Katul(canopy,fextroot, soil, ssnow, veg) 
+SUBROUTINE fwsoil_calc_Lai_Katul(fwsoil,fextroot, soil, ssnow, veg) 
    USE cable_def_types_mod
    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   TYPE (canopy_type),        INTENT(INOUT)    :: canopy
+   !TYPE (canopy_type),        INTENT(INOUT)    :: canopy
 
-  ! REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
+   REAL, INTENT(OUT), DIMENSION(:)   :: fwsoil ! soil water modifier of stom. cond
    REAL, INTENT(OUT), DIMENSION(:,:) :: fextroot ! fraction of transpiration to be extracted from each soil layer
    REAL, DIMENSION(mp)               :: rwater ! soil water availability
    INTEGER   :: ns
@@ -2310,7 +2264,7 @@ SUBROUTINE fwsoil_calc_Lai_Katul(canopy,fextroot, soil, ssnow, veg)
    !--- local level dependent rwater 
    REAL, DIMENSION(mp,ms)  :: frwater, alpha1
 
-   canopy%fwsoil(:) = 1.0e-9
+   fwsoil(:) = 1.0e-9
    normFac(:) = 0.0
 
    DO ns=1,ms
@@ -2322,7 +2276,7 @@ SUBROUTINE fwsoil_calc_Lai_Katul(canopy,fextroot, soil, ssnow, veg)
       frwater(:,ns) = MAX(1.0e-9,((ssnow%wb(:,ns)-soil%swilt(:))/soil%ssat(:)) &
                       ** dummy)
       
-      canopy%fwsoil(:) = min(1.0,max(canopy%fwsoil(:),frwater(:,ns)))
+      fwsoil(:) = min(1.0,max(fwsoil(:),frwater(:,ns)))
       
       normFac(:) = normFac(:) + alpha1(:,ns) * frwater(:,ns) * veg%froot(:,ns)
 
@@ -2447,6 +2401,196 @@ END SUBROUTINE or_soil_evap_resistance
     end if
   end function my_gamma
 
+ !*********************************************************************************************************************
+ !amu561, Haverd2013 switch
+  SUBROUTINE getrex(soil,ssnow,canopy,veg,air,dels, i)  !Haverd 2013
+    USE cable_def_types_mod
 
+    IMPLICIT NONE
+
+    type(soil_snow_type), INTENT(INOUT)      :: ssnow
+    type(canopy_type), INTENT(INOUT)         :: canopy
+    TYPE (soil_parameter_type), INTENT(IN)   :: soil
+    type(veg_parameter_type), INTENT(IN)     :: veg
+    TYPE (air_type), INTENT(INOUT)           :: air
+
+    real(r_2), intent(in)                       :: dels
+    integer, intent(in)                         :: i !point_index
+
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
+!    REAL(r_2), DIMENSION(:), INTENT(INOUT)   :: rex    ! water extraction per layer
+!    REAL(r_2),               INTENT(INOUT) :: fws    ! stomatal limitation factor
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: Fs     ! root length density
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaS ! saturation soil moisture
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaw ! soil moisture at wiliting point
+!    REAL(r_2),               INTENT(IN)    :: Etrans ! total transpiration
+!    REAL(r_2),               INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
+!    REAL(r_2), DIMENSION(:), INTENT(IN)    :: dx     ! layer thicknesses (m)
+!    REAL(r_2),               INTENT(IN)    :: dt
+
+    ! Gets rate of water extraction compatible with CABLE stomatal conductance model
+    ! theta(:) - soil moisture(m3 m-3)
+    ! rex(:)   - rate of water extraction by roots from layers (cm/h).
+    REAL(r_2), DIMENSION(ms) :: log_wbliq, alpha_root, delta_root,wb_liq
+    REAL(r_2)     :: trex,Etrans!, e3, one, zero
+    REAL(r_2), DIMENSION(ms) :: zse_mm
+
+    INTEGER :: k
+
+    Etrans = canopy%fevc(i) / air%rlam(i)
+    zse_mm = real(soil%zse,r_2)*1000._r_2
+
+    wb_liq = ssnow%wb(i,:) - ssnow%wbice(i,:)
+
+    log_wbliq(:) = log(max(wb_liq(:) - soil%wiltp(i,:),0.001_r_2) / soil%watsat(i,:) )
+    where ((wb_liq - soil%wiltp(i,:)) > 0.001_r_2)
+       alpha_root(:) = max (wb_liq - soil%wiltp(i,:),0.001_r_2) ** (veg%li_katul_skew_param(i) / (max(wb_liq(:) - soil%wiltp(i,:),0.001_r_2) / soil%watsat(i,:) ) )
+                       !exp( veg%li_katul_skew_param(i) / max (wb_liq - soil%wiltp(i,:),0.001_r_2) * log_wbliq )
+    elsewhere
+       alpha_root(:) = 0._r_2
+    endwhere
+
+    where (veg%froot(i,:) > 0.05)
+       delta_root(:) = 1._r_2
+    elsewhere
+       delta_root(:) = 0._r_2
+    endwhere
+
+    ssnow%rex(i,:) = alpha_root(:)*real(veg%froot(i,:),r_2)
+
+    trex = sum(ssnow%rex(i,:),dim=1)
+    if (trex > 0._r_2) then
+       ssnow%rex(i,:) = ssnow%rex(i,:)/trex
+    else
+       ssnow%rex(i,:) = 0._r_2
+    endif
+
+    ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
+
+    where(((ssnow%rex(i,:)*dels) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*dels .gt. 0._r_2))) 
+
+       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*dels)
     
+    endwhere
+
+    ssnow%rex(i,:) = alpha_root(:) * real(veg%froot(i,:),r_2)
+
+    trex = sum(ssnow%rex(i,:),dim=1)
+
+    if (trex .gt. 0._r_2) then
+       ssnow%rex(i,:) = ssnow%rex(i,:) / trex
+    else
+       ssnow%rex(i,:) = 0._r_2
+    end if
+    ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
+
+
+    if (any(((ssnow%rex(i,:)*dels) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*dels) .gt. 0._r_2))) then
+       canopy%fwsoil(i) = 0._r_2
+       ssnow%rex(i,:) = max((wb_liq(:)-soil%wiltp(i,:))*zse_mm(:),0._r_2)
+       trex = sum(ssnow%rex(i,:),dim=1)
+       if (trex .gt. 0._r_2) then
+          ssnow%rex(i,:) = ssnow%rex(i,:) / trex
+       else
+          ssnow%rex(i,:) = 0._r_2
+       end if
+       ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
+    else
+       canopy%fwsoil(i) = maxval(alpha_root(2:)*delta_root(2:))
+    end if
+
+  END SUBROUTINE getrex
+ !*********************************************************************************************************************
+
+
+  SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt)
+
+    ! root extraction : Haverd et al. 2013
+    USE cable_def_types_mod, only: r_2
+
+    IMPLICIT NONE
+
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
+    REAL(r_2), DIMENSION(:), INTENT(INOUT)   :: rex    ! water extraction per layer
+    REAL(r_2),               INTENT(INOUT) :: fws    ! stomatal limitation factor
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: Fs     ! root length density
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaS ! saturation soil moisture
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaw ! soil moisture at wiliting point
+    REAL(r_2),               INTENT(IN)    :: Etrans ! total transpiration
+    REAL(r_2),               INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: dx     ! layer thicknesses (m)
+    REAL(r_2),               INTENT(IN)    :: dt
+
+    ! Gets rate of water extraction compatible with CABLE stomatal conductance model
+    ! theta(:) - soil moisture(m3 m-3)
+    ! rex(:)   - rate of water extraction by roots from layers (cm/h).
+    REAL(r_2), DIMENSION(1:size(theta)) ::  lthetar, alpha_root, delta_root
+    REAL(r_2)                       :: trex, e3, one, zero
+
+    e3 = 0.001
+    one = 1.0;
+    zero = 0.0;
+    lthetar(:) = log(max(theta(:)-thetaw(:),e3)/thetaS(:))
+
+    where ((theta(:)-thetaw(:)) > e3)
+       alpha_root(:) = exp( gamma/max(theta(:)-thetaw(:), e3) * lthetar(:) )
+    elsewhere
+       alpha_root(:) = zero
+    endwhere
+
+    where (Fs(:) > 0.05)
+       delta_root(:) = one
+    elsewhere
+       delta_root(:) = zero
+    endwhere
+
+    rex(:) = alpha_root(:)*Fs(:)
+
+    trex = sum(rex(:))
+    if (trex > zero) then
+       rex(:) = rex(:)/trex
+    else
+       rex(:) = zero
+    endif
+    rex(:) = Etrans*rex(:)
+
+    ! reduce extraction efficiency where total extraction depletes soil moisture below wilting point
+    !where ((rex*dt) > (theta(:)-0.01_r_2)*dx(:))
+    where (((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))
+       alpha_root = alpha_root*(theta(:)-thetaw(:))*dx(:)/(rex*dt)
+    endwhere
+    rex(:) = alpha_root(:)*Fs(:)
+
+    trex = sum(rex(:))
+    if (trex > zero) then
+       rex(:) = rex(:)/trex
+    else
+       rex(:) = zero
+    endif
+    rex(:) = Etrans*rex(:)
+
+    ! check that the water available in each layer exceeds the extraction
+    !if (any((rex*dt) > (theta(:)-0.01_r_2)*dx(:))) then
+
+    if (any(((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))) then
+       fws = zero
+       ! distribute extraction according to available water
+       !rex(:) = (theta(:)-0.01_r_2)*dx(:)
+       rex(:) = max((theta(:)-thetaw(:))*dx(:),zero)
+       trex = sum(rex(:))
+       if (trex > zero) then
+          rex(:) = rex(:)/trex
+       else
+          rex(:) = zero
+       endif
+       rex(:) = Etrans*rex(:)
+    else
+       fws    = maxval(alpha_root(2:)*delta_root(2:))
+    endif
+
+  END SUBROUTINE getrex_1d
+ !*********************************************************************************************************************
+
+
+   
 END MODULE cable_canopy_module

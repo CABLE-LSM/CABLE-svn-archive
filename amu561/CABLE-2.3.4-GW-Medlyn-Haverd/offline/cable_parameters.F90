@@ -1245,7 +1245,7 @@ SUBROUTINE read_g1map(logn)
     canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
-
+  canopy%fwsoil = 1._r_2  !amu561 Haverd2013 switch
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
@@ -1677,6 +1677,10 @@ SUBROUTINE read_g1map(logn)
     ELSEWHERE
       ssnow%wbice(:, :) = 0.0
     END WHERE
+
+    !amu561, Haverd2013 switch
+    !Note this could depend on veg type but is constant for now
+    veg%li_katul_skew_param = 0.03_r_2
 
   END SUBROUTINE write_default_params
   !=============================================================================
