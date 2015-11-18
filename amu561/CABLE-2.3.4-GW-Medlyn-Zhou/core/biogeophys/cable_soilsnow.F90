@@ -1811,7 +1811,20 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    ! Add new snow melt to global snow melt variable: 
    ssnow%smelt = ssnow%smelt + snowmlt
 
-   CALL remove_trans(dels, soil, ssnow, canopy, veg)
+   ! MDK 26 March 2015.
+   ! No drought case for Biogeosciences paper
+   IF(cable_user%FWSOIL_SWITCH == 'no_drought') THEN
+       ! don't remove any soil water
+       print *, "Water is being added to the bucket"
+
+       !DO k = 1,ms
+       !    print *, ssnow%wb(:,k), sum(ssnow%wb(:,k))
+       !END DO
+       !stop
+   ELSE
+       CALL remove_trans(dels, soil, ssnow, canopy, veg)
+   ENDIF
+
 
    CALL  soilfreeze(dels, soil, ssnow)
 

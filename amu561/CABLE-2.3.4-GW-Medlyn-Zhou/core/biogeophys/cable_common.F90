@@ -66,6 +66,11 @@ MODULE cable_common_module
       CHARACTER(LEN=20) ::                                                     &
          GS_SWITCH
       
+      ! MDK 26 March 2015.
+      ! added switch to easily pick SWP method
+      CHARACTER(LEN=20) ::                                                     &
+         SWP_SWITCH
+
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
       
@@ -198,7 +203,10 @@ MODULE cable_common_module
          conkc0,     &
          conko0,     &
          ekc,        &
-         eko
+         eko,        &
+         g1_b,       & !MDK
+         vcmax_sf,   & !MDK
+         vcmax_psi_f   !MDK
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -321,7 +329,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype)  )
+         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
+         vegin%g1_b(mvtype), vegin%vcmax_sf(mvtype),                           & !MDK
+         vegin%vcmax_psi_f(mvtype) )                                             !MDK
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -356,10 +366,14 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                        vegin%g1c3(jveg),vegin%g1c4(jveg) ! Ticket #56
             READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
             READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
-
-         END DO
+            READ(40,*) vegin%g1_b(jveg), vegin%vcmax_sf(jveg),                     &
+                       vegin%vcmax_psi_f(jveg)           !  MDK 26 March 2015.
+        
+        END DO
 
       ELSE
+
+         print *, "Warning: using old veg param !!!!"
 
          DO a = 1,mvtype 
             READ(40,'(8X,A70)') veg_desc(a) ! Read description of each veg type
@@ -424,6 +438,10 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          READ(40,*) vegin%g0c4 ! Ticket #56
          READ(40,*) vegin%g1c3 ! Ticket #56
          READ(40,*) vegin%g1c4 ! Ticket #56 
+
+         READ(40,*) vegin%g1_b        ! MDK 26 March 2015.
+         READ(40,*) vegin%vcmax_sf    ! MDK 26 March 2015.
+         READ(40,*) vegin%vcmax_psi_f ! MDK 26 March 2015.
 
       ENDIF
 

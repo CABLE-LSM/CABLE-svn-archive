@@ -1525,6 +1525,9 @@ SUBROUTINE read_g1map(logn)
           veg%conko0(h) = vegin%conko0(veg%iveg(h))
           veg%ekc(h)    = vegin%ekc(veg%iveg(h))
           veg%eko(h)    = vegin%eko(veg%iveg(h))
+          veg%g1_b(h)        = vegin%g1_b(veg%iveg(h)) ! MDK 26 March 2015.
+          veg%vcmax_sf(h)    = vegin%vcmax_sf(veg%iveg(h)) ! MDK 26 March 2015.
+          veg%vcmax_psi_f(h) = vegin%vcmax_psi_f(veg%iveg(h)) ! MDK 26 March 2015.
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
@@ -1630,7 +1633,8 @@ SUBROUTINE read_g1map(logn)
                vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4,               &
                vegin%xalbnir, vegin%length, vegin%width,                       &
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
-               vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
+               vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko,    &
+               vegin%g1_b, vegin%vcmax_sf, vegin%vcmax_psi_f)                    ! MDK 26 March 2015
     !          vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous

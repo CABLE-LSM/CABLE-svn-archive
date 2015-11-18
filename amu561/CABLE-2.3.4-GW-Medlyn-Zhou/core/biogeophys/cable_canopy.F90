@@ -48,7 +48,7 @@ MODULE cable_canopy_module
 CONTAINS
  
 
-SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, bgc)
    USE cable_def_types_mod
    USE cable_radiation_module
    USE cable_air_module
@@ -65,6 +65,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   
+   ! MDK, 26 March 2015: passing C biomass stuff (in g C m-2),
+   ! Need this to access the root biomass.
+   TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc
    
    REAL, INTENT(IN)               :: dels ! integration time setp (s)
    
@@ -102,6 +106,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       cansat,        & ! max canopy intercept. (mm)
       dsx,           & ! leaf surface vpd
      ! fwsoil,        & ! soil water modifier of stom. cond
+      fwsoil_ns,     & ! soil water modifier of vcmax, MKD 26 Mar 15
       tlfx,          & ! leaf temp prev. iter (K)
       tlfy             ! leaf temp (K)
 
@@ -138,6 +143,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ALLOCATE( cansat(mp), gbhu(mp,mf))
    ALLOCATE( dsx(mp), tlfx(mp), tlfy(mp) )   !fwsoil(mp)
+   ALLOCATE( fwsoil_ns(mp)) !MDK
    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
    ALLOCATE( ghwet(mp))
@@ -284,15 +290,15 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       sum_rad_rniso = SUM(rad%rniso,2)
       
-      CALL dryLeaf( dels, rad, rough, air, met,                                &
-                    veg, canopy, soil, ssnow, dsx,                             &
-                    !fwsoil, 
+      CALL dryLeaf( dels, rad, rough, air, met,             &
+                    veg, canopy, soil, ssnow, dsx,          &
+                    fwsoil_ns,                              & !MDK passing fwsoil_ns and bgc
                     tlfx, tlfy, ecy, hcy,                   &
-                    rny, gbhu, gbhf, csx, cansat,                              &
-                    ghwet,  iter )
+                    rny, gbhu, gbhf, csx, cansat,           &
+                    ghwet,  iter, bgc )
       
-      CALL wetLeaf( dels, rad, rough, air, met,                                &
-                    veg, canopy, cansat, tlfy,                                 &
+      CALL wetLeaf( dels, rad, rough, air, met,             &
+                    veg, canopy, cansat, tlfy,              &
                     gbhu, gbhf, ghwet )
 
      
@@ -458,7 +464,17 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    END DO           ! do iter = 1, NITER
 
-   
+
+   ! MDK 26 March 2015.
+   ! This needs to be in here as it is calculated per pft
+   IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+      cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+      cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+        CALL vcmax_non_stomatal_lim(canopy, fwsoil_ns, soil, ssnow, &
+                                   veg, 1, bgc)
+    ENDIF
+
+
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
    !---diagnostic purposes
@@ -653,6 +669,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    DEALLOCATE(cansat,gbhu)
    DEALLOCATE(dsx, tlfx, tlfy) !fwsoil
+   DEALLOCATE(fwsoil_ns)  !MDK
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
@@ -1279,12 +1296,13 @@ END SUBROUTINE Surf_wetness_fact
 
 ! -----------------------------------------------------------------------------
 
-SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
-                    veg, canopy, soil, ssnow, dsx,                             &
-                   ! fwsoil, 
-                   tlfx,  tlfy,  ecy, hcy,                 &
-                    rny, gbhu, gbhf, csx,                                      &
-                    cansat, ghwet, iter )
+SUBROUTINE dryLeaf( dels, rad, rough, air, met,             &
+                    veg, canopy, soil, ssnow, dsx,          &
+                   ! fwsoil,
+                    fwsoil_ns,                              &  !MDK passing fwsoil_ns and bgc
+                    tlfx,  tlfy,  ecy, hcy,                 &
+                    rny, gbhu, gbhf, csx,                   &
+                    cansat, ghwet, iter, bgc )
 
    USE cable_def_types_mod
    USE cable_common_module
@@ -1299,9 +1317,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    TYPE (veg_parameter_type),  INTENT(INOUT)   :: veg
    TYPE (soil_parameter_type), INTENT(inout)   :: soil
    
+   ! MDK, passing C biomass (g C m-2) 
+   TYPE (bgc_pool_type), INTENT(INOUT)  :: bgc
+
    REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
       dsx,        & ! leaf surface vpd
-     ! fwsoil,     & ! soil water modifier of stom. cond
+     ! fwsoil,    & ! soil water modifier of stom. cond
+      fwsoil_ns,  & ! soil water modifier for vcmax, MDK
       tlfx,       & ! leaf temp prev. iter (K)
       tlfy          ! leaf temp (K)
    
@@ -1418,6 +1440,19 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
          CALL fwsoil_calc_Lai_Katul(canopy, fextroot, soil, ssnow, veg) 
          veg%froot_w = veg%froot
+     
+      ! MDK, added fwsoil_ns if block and the "no drought" block below
+      ELSEIF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+             cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+             cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+         ! limitations calculated within the mp loop below
+         continue
+      ELSEIF(cable_user%FWSOIL_SWITCH == 'no_drought') THEN
+         !fwsoil = 1.0
+	     DO j=1, mp
+	         canopy%fwsoil(j) = 1.0
+      	 END DO
+      
       ELSE
          write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
@@ -1490,7 +1525,16 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       DO i=1,mp
          
          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
-         
+     
+            ! MDK 26 March 2015.
+            ! This needs to be in here as it is calculated per pft
+            IF(cable_user%FWSOIL_SWITCH == 'zhou_g1' .OR. &
+               cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+               cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+                CALL vcmax_non_stomatal_lim(canopy, fwsoil_ns, soil, ssnow, &
+                                            veg, i, bgc)
+            ENDIF
+
             ghwet(i) = 2.0   * sum_gbh(i)
             gwwet(i) = 1.075 * sum_gbh(i)
             ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
@@ -1533,6 +1577,22 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             vcmxt4(i,1) = rad%scalex(i,1) * temp(i) !* canopy%fwsoil(i)
             vcmxt4(i,2) = rad%scalex(i,2) * temp(i) !* canopy%fwsoil(i)
             
+            ! MDK 26 March 2015.
+            ! Zhou et al. Reduce Vcmax (Jmax) if SW availability is limiting
+            IF(cable_user%FWSOIL_SWITCH == 'zhou_vcmax' .OR. &
+               cable_user%FWSOIL_SWITCH == 'zhou_all') THEN
+                vcmxt3(i,1) = vcmxt3(i,1) * fwsoil_ns(i)
+                vcmxt3(i,2) = vcmxt3(i,2) * fwsoil_ns(i)
+                vcmxt4(i,1) = vcmxt4(i,1) * fwsoil_ns(i)
+                vcmxt4(i,2) = vcmxt4(i,2) * fwsoil_ns(i)
+
+		        ! Also need to change Jmax-Vcmax reln.
+		        veg%ejmax = 2.0 * veg%vcmax * fwsoil_ns(i)
+            END IF
+
+
+
+
             ! Leuning 2002 (P C & E) equation for temperature response
             ! used for Jmax for C3 plants:
             temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
@@ -1674,6 +1734,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
 
+                   !Need to extract water here, to adjust fwsoil so that
+                   !is it consistent with reduced transpiration. We will fix
+                   !ssnow%wb in a minute... see below
                   ssnow%wb(i,kk) = ssnow%wb(i,kk) - ssnow%evapfbl(i,kk) !WUE fix
 
                ENDDO
@@ -1691,6 +1754,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     STOP 'fwsoil_switch failed.'
                ENDIF
 
+               ! Fix soil water balance again, i.e. put the water back
                ssnow%wb(i,:) = wb2(i,:) !WUE fix
 
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
@@ -1724,6 +1788,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
       ENDDO !i=1,mp
 
+        !Put bakc the correct SW as this is update later 
         ssnow%wb = wb2 !WUE fix
 
 
@@ -1832,7 +1897,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%gswmin_2 = gswmin(:,2)
    
    DEALLOCATE( gswmin )
-   DEALLOCATE(wb2) !WUE fix
+   DEALLOCATE( wb2 ) !WUE fix
    
 END SUBROUTINE dryLeaf
 
@@ -2334,6 +2399,158 @@ SUBROUTINE fwsoil_calc_Lai_Katul(canopy,fextroot, soil, ssnow, veg)
 
 
 END SUBROUTINE fwsoil_calc_Lai_Katul
+
+! ------------------------------------------------------------------------------
+
+SUBROUTINE vcmax_non_stomatal_lim(canopy, fwsoil_ns, soil, ssnow, veg, i, bgc)
+
+   ! MDK 26 March 2015.
+   ! Zhou et al. 2013, AFM SW availability limitation within CABLE logic
+   ! Here we are testing multiple approaches to define the SWP "seen" by the
+   ! plant, see Biogeosciences paper for a human readable explanation
+   USE cable_def_types_mod
+   USE cable_common_module
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc
+   TYPE (canopy_type),    INTENT(INOUT) :: canopy
+
+  ! REAL, INTENT(OUT), DIMENSION(:):: fwsoil    ! soil water modifier for g1
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil_ns ! soil water modifier for vcmax
+   REAL, DIMENSION(mp) :: psi_sat, psi_sat_mpa, psi_swp, psi_lwp
+   REAL, DIMENSION(mp) :: theta_over_theta_sat
+   INTEGER, INTENT(IN) :: i
+   INTEGER :: ns
+   REAL, PARAMETER :: psi_0 = 0.3
+   REAL, DIMENSION(mp,ms)  :: t_over_t_sat, psi_swp_tmp, psi_swp_per_lay
+   REAL, DIMENSION(mp,ms) :: emax_per_lay
+   REAL :: total_soil_depth, weighting, depth, total_est_evap
+   REAL, DIMENSION(mp) :: layer_weighted_resistance, root_mass
+   REAL, DIMENSION(mp,ms) :: root_resistance, root_length, rs, soil_root_resist
+   REAL, DIMENSION(mp,ms) :: soil_resistance, emax_per_layer, cond_per_layer
+   REAL, PARAMETER :: pi = 3.1415927
+   REAL, DIMENSION(mp) :: Ks
+
+   ! All from Williams et al. 2001, Tree phys
+   REAL, PARAMETER :: root_radius = 0.0005                 ! m
+   REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
+   REAL, PARAMETER :: root_density = 0.5e6                 ! g biomass m-3 root
+   REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
+   REAL, PARAMETER ::  head = 0.009807              ! head of pressure  (MPa/m)
+   REAL, DIMENSION(mp) :: Lsoil
+   REAL, PARAMETER :: min_lwp = -2.0
+
+   ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
+   psi_sat_mpa = soil%sucs * 9.81 * 0.001
+
+   IF (cable_user%SWP_SWITCH == 'method_1') THEN
+      ! Weight SWP by rooting fraction in each layer (my original attempt)
+      !
+      ! CABLE has 6 soil layers, so I think the best implementation of Joey's
+      ! model is to take the average water availability over these layers
+      ! accounting for where the roots are distributed.
+      theta_over_theta_sat = MAX(1.0e-9, MIN(1.0, &
+                           sum(veg%froot * ssnow%wb / SPREAD(soil%ssat,2,ms))))
+      psi_swp = psi_sat_mpa * theta_over_theta_sat**(-soil%bch)
+
+   ELSE IF (cable_user%SWP_SWITCH == 'method_2') THEN
+      ! Weight SWP calc on layer thickness, ignoring rooting depth, effectively
+      ! we are using the total SWC and ignoring where the roots are. Here I am
+      ! assuming the roots can't access the bottom layer, so we are doing this
+      ! over the top 1.73 m, ignoring the bottom 2.87 m
+      !
+      !total_soil_depth = sum(soil%zse)
+      !DO ns = 1, ms
+      total_soil_depth = sum(soil%zse(1:5)) ! ignoring the bottom layer
+      DO ns = 1, ms - 1 ! ignoring the bottom layer
+         weighting = soil%zse(ns) / total_soil_depth
+         t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, &
+                                      weighting * ssnow%wb(:,ns) / soil%ssat))
+      END DO
+      psi_swp = psi_sat_mpa * sum(t_over_t_sat)**(-soil%bch)
+
+   ELSE IF (cable_user%SWP_SWITCH == 'method_3') THEN
+
+      ! Weight by root & soil hydraulic resistance following SPA approach
+      !
+      ! - root hydraulic resistance declines linearly with increasing root
+      !   biomass according to root resistivity (400) [MPA s m2 mmol-1]
+      !
+      ! - soil hydraulic resistance depends on soil conductivity, root length,
+      !   depth of layer and distance between roots
+      !
+      depth = 0.0
+      DO ns = 1, ms
+         depth = depth + soil%zse(ns)
+         root_mass = bgc%cplant(:,3) * veg%froot(:,ns)
+         ! (m m-3 soil)
+         root_length(:,ns) = root_mass / (root_density * root_xsec_area)
+
+         !root_resistance(:,ns) = root_resistivity / (depth * root_mass)
+         root_resistance(:,ns) = root_resistivity / (soil%zse(ns) * root_mass)
+
+         Ks(:) = soil%hyds * (ssnow%wb(:,ns) / &
+                              soil%ssat)**(2.0 * soil%bch + 3.0)
+         Lsoil(:) = Ks(:) / head ! converts from m s-1 to m2 s-1 MPa-1
+
+         IF (Lsoil(1) < 1E-35) THEN      !prevent floating point error
+            soil_root_resist(:,ns) = 1E35
+         ELSE
+            rs(:,ns) = sqrt(1. / (root_length(:,ns) * pi))
+            soil_resistance(:,ns) = log(rs(:,ns) / root_radius) /       &
+                                        (2.0 * pi * root_length(:,ns) * &
+                                         soil%zse(ns) * Lsoil(:))
+
+            ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
+            soil_resistance(:,ns) = soil_resistance(:,ns) * 1E-6 * 18 * 0.001
+            soil_root_resist(:,ns) = (soil_resistance(:,ns) + &
+                                      root_resistance(:,ns))
+         ENDIF
+      END DO
+
+      DO ns = 1, ms
+
+         t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, ssnow%wb(:,ns) / soil%ssat))
+         psi_swp_per_lay(:,ns) = psi_sat_mpa * t_over_t_sat(:,ns)**(-soil%bch)
+         cond_per_layer(:,ns) = 1.0 / soil_root_resist(:,ns)
+
+      END DO
+
+      ! weighted soil water potential
+      psi_swp = sum(psi_swp_per_lay * cond_per_layer) / sum(cond_per_layer)
+
+   ENDIF
+
+   ! Weight SWP using the layer with the most water
+   !
+   !DO ns = 1, ms
+   !    t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, &
+   !                             ssnow%wb(:,ns) / soil%ssat))
+   !    psi_swp_tmp(:,ns) = psi_sat_mpa * t_over_t_sat(:,ns)**(-soil%bch)
+   !END DO
+   !psi_swp = MAXVAL(psi_swp_tmp)
+
+
+   ! Weight SWP by root fraction in each layer
+   !
+   !DO ns = 1, ms
+   !    t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, &
+   !                             veg%froot(:,ns) * ssnow%wb(:,ns) / soil%ssat))
+   !    psi_swp_tmp(:,ns) = psi_sat_mpa * t_over_t_sat(:,ns)**(-soil%bch)
+   !END DO
+   !psi_swp = sum(psi_swp_tmp) / REAL(ms)
+
+   psi_lwp = psi_swp - psi_0
+
+   ! SW modifier for g1 parameter (stomatal limitation)
+   canopy%fwsoil = exp(veg%g1_b(i) * psi_swp)
+
+   ! SW modifier for Vcmax (non-stomatal limitation)
+   fwsoil_ns = (1.0 + exp(veg%vcmax_sf(i) * veg%vcmax_psi_f(i))) / &
+               (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_swp)))
+
+END SUBROUTINE vcmax_non_stomatal_lim
 
 ! ------------------------------------------------------------------------------
 

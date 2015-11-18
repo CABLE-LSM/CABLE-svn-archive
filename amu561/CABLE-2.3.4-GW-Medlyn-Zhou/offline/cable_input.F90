@@ -2827,6 +2827,15 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'def') ! Ticket #56
    CALL readpar(ncid_met,'g1c4',completeSet,veg%g1c4,filename%met,             &
                 nmetpatches,'def') ! Ticket #56         
+   CALL readpar(ncid_met,'g1_b',completeSet,veg%g1_b,filename%met,             &
+                nmetpatches,'def') ! MDK 26 March 2015.
+   CALL readpar(ncid_met,'g1_b',completeSet,veg%g1_b,filename%met,             &
+                nmetpatches,'def') ! MDK 26 March 2015.
+   CALL readpar(ncid_met,'vcmax_sf',completeSet,veg%vcmax_sf,filename%met,     &
+                nmetpatches,'def') ! MDK 26 March 2015.
+   CALL readpar(ncid_met,'vcmax_psi_f',completeSet,veg%vcmax_psi_f,filename%met,&
+                nmetpatches,'def') ! MDK 26 March 2015.
+
    ok = NF90_INQ_VARID(ncid_met,'za',parID)
    IF(ok == NF90_NOERR) THEN ! if it does exist
       CALL readpar(ncid_met,'za',completeSet,rough%za_uv,filename%met,         &

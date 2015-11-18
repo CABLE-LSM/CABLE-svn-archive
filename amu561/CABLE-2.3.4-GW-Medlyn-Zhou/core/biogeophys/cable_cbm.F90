@@ -115,7 +115,8 @@ CONTAINS
    ENDIf
 
    ! Calculate canopy variables:
-   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+   !MDK, added bgc as we need to pass root biomass to the new drought routine
+   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg,canopy,bgc)
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss

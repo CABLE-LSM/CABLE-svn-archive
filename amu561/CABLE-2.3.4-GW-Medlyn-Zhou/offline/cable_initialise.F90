@@ -596,8 +596,12 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp) ! Ticket #56
    CALL readpar(ncid_rin,'g1c4',dummy,veg%g1c4,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp) ! Ticket #56
-   CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)
+   CALL readpar(ncid_rin,'g1_b',dummy,veg%g1_b,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! MDK 26 March 2015.
+   CALL readpar(ncid_rin,'vcmax_sf',dummy,veg%vcmax_sf,filename%restart_in,    &
+                max_vegpatches,'def',from_restart,mp) ! MDK 26 March 2015.
+   CALL readpar(ncid_rin,'vcmax_psi_f',dummy,veg%vcmax_psi_f,filename%restart_in, &
+                max_vegpatches,'def',from_restart,mp) ! MDK 26 March 2015.
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    ! special treatment of za with the introduction of za_uv and za_tq

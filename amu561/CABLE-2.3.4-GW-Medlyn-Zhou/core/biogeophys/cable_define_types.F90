@@ -304,23 +304,26 @@ MODULE cable_def_types_mod
          xfang,   & ! leaf angle PARAMETER
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
-         g0c3,     & ! Belinda's stomatal model intercept, Ticket #56
-         g0c4,     & ! Belinda's stomatal model intercept, Ticket #56 
-         g1c3,     & ! Belinda's stomatal model slope, Ticket #56
-         g1c4,     & ! Belinda's stomatal model slope, Ticket #56
-         wai,     & ! wood area index (stem+branches+twigs)
-         a1gs,    & ! a1 parameter in stomatal conductance model
-         d0gs,    & ! d0 in stomatal conductance model      
-         alpha,   & ! initial slope of J-Q response curve   
-         convex,  & ! convexity of J-Q response curve       
-         cfrd,    & ! ratio of day respiration to vcmax
-         gswmin,  & ! minimal stomatal conductance
-         conkc0,  &  ! Michaelis-menton constant for caroxylase
-         conko0,  &  ! Michaelis-menton constant for oxygenase
-         ekc,     &  ! activation energy for caroxylagse
-         eko,     &  ! acvtivation enegery for oxygenase
-         g1c3_map,&  ! jtk561, map version
-         g0c3_map    ! ditto
+         g0c3,       & ! Belinda's stomatal model intercept, Ticket #56
+         g0c4,       & ! Belinda's stomatal model intercept, Ticket #56 
+         g1c3,       & ! Belinda's stomatal model slope, Ticket #56
+         g1c4,       & ! Belinda's stomatal model slope, Ticket #56
+         wai,        & ! wood area index (stem+branches+twigs)
+         a1gs,       & ! a1 parameter in stomatal conductance model
+         d0gs,       & ! d0 in stomatal conductance model      
+         alpha,      & ! initial slope of J-Q response curve   
+         convex,     & ! convexity of J-Q response curve       
+         cfrd,       & ! ratio of day respiration to vcmax
+         gswmin,     & ! minimal stomatal conductance
+         conkc0,     &  ! Michaelis-menton constant for caroxylase
+         conko0,     &  ! Michaelis-menton constant for oxygenase
+         ekc,        &  ! activation energy for caroxylagse
+         eko,        &  ! acvtivation enegery for oxygenase
+         g1c3_map,   &  ! jtk561, map version
+         g0c3_map,   &  ! ditto
+         g1_b,       & ! MDK 26 March 2015.
+         vcmax_sf,   & ! MDK 26 March 2015.
+         vcmax_psi_f   ! MDK 26 March 2015.
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -876,6 +879,9 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%eko(mp) ) 
    ALLOCATE( var% g1c3_map(mp) ) ! jtk561
    ALLOCATE( var% g0c3_map(mp) ) ! jtk561
+   ALLOCATE( var% g1_b(mp) )        ! MDK 26 March 2015.
+   ALLOCATE( var% vcmax_sf(mp) )    ! MDK 26 March 2015.
+   ALLOCATE( var% vcmax_psi_f(mp) ) ! MDK 26 March 2015.
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -1357,7 +1363,10 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%eko ) 
    DEALLOCATE( var%g1c3_map ) ! jtk561
    DEALLOCATE( var%g0c3_map ) ! jtk561
-   
+   DEALLOCATE( var%g1_b ) ! MDK 26 March 2015.
+   DEALLOCATE( var%vcmax_sf ) ! MDK 26 March 2015.
+   DEALLOCATE( var%vcmax_psi_f ) ! MDK 26 March 2015.
+
 END SUBROUTINE dealloc_veg_parameter_type
    
 ! ------------------------------------------------------------------------------
