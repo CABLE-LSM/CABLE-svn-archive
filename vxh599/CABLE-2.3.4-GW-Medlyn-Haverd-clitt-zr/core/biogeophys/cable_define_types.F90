@@ -336,6 +336,9 @@ MODULE cable_def_types_mod
         !amu561, Haverd2013 switch
         REAL(r_2), DIMENSION(:), POINTER :: li_katul_skew_param
 
+        REAL(r_2), DIMENSION(:), POINTER :: ZR       ! maximum rooting depth (m)
+        REAL(r_2), DIMENSION(:), POINTER :: clitt  ! (structural litter TCha-1)
+
    END TYPE veg_parameter_type
 
 ! .............................................................................
@@ -409,6 +412,10 @@ MODULE cable_def_types_mod
          fes,     & ! latent heatfl from soil (W/m2)
          fes_cor, & ! latent heatfl from soil (W/m2)
          fevc       ! dry canopy transpiration (W/m2)
+
+
+      !! vh !! !litter thermal conductivity (Wm-2K-1) and vapour diffusivity (m2s-1)
+      REAL(r_2), DIMENSION(:), POINTER :: kthLitt, DvLitt   
 
    END TYPE canopy_type
 
@@ -889,6 +896,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    
    !amu561, Haverd2013 switch
    ALLOCATE( var%li_katul_skew_param(mp))
+   ALLOCATE( var%ZR(mp))
+   ALLOCATE( var%clitt(mp))
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -958,6 +967,9 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
    ALLOCATE( var% fwsoil(mp))  !amu561
+   ALLOCATE( var% kthlitt(mp))  ! vh 
+   ALLOCATE( var% DvLitt(mp))  ! vh
+
    
 END SUBROUTINE alloc_canopy_type
 
@@ -1376,6 +1388,8 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    
    !amu561, Haverd2013 switch
    DEALLOCATE( var%li_katul_skew_param)
+   DEALLOCATE( var%ZR)
+   DEALLOCATE( var%CLitt)
 
 END SUBROUTINE dealloc_veg_parameter_type
    
@@ -1444,6 +1458,10 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
    DEALLOCATE( var% fwsoil) !amu561
+   DEALLOCATE( var% kthlitt)
+   DEALLOCATE( var% Dvlitt)
+
+
 
 END SUBROUTINE dealloc_canopy_type
    

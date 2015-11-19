@@ -2,41 +2,28 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg raij squa bliz
+   set -A kh vayu cher pear shin jigg nXXX raij
 }
 
 
-host_squa()
+## Interactive Job nXXX@burnet.hpsc.csiro.au  
+host_nXXX()
 {
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   #export FC=$F90
    export FC=ifort
-  # export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-  #ll  if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
-  # fi
+   #vanessa's test options
+#   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+# export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
+#   export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
    build_build
    cd ../
    build_status
 }
-
-host_bliz()
-{
-   export NCDIR='/share/apps/netcdf/intel/4.1.3/lib'
-   export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
-   build_build
-   cd ../
-   build_status
-}
-
-
-
 
 ## jiggle
 host_jigg()
@@ -67,14 +54,24 @@ host_shin()
    build_status
 }
 
+ #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+#export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
 
-## burnet.hpsc.csiro.au 
-host_burn()
+
+## pearcey.hpsc.csiro.au 
+host_pear()
 {
+   . /apps/modules/Modules/default/init/ksh
+   #CLN module add netcdf/3.6.3 openmpi/1.6.5
+   module add netcdf openmpi/1.6.5
+
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
+   export FC='mpif90'
    export CFLAGS='-O2 -fp-model precise'
+   #export CFLAGS='-O0 -fp-model precise -g -debug -traceback -fpe1 -no-ftz -ftrapuv '
+   #export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
+   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -233,9 +230,9 @@ host_write()
 clean_build()
 {
       print '\ncleaning up\n'
-      rm -fr .tmp
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy 
+      rm -fr .tmp
 }
 
 
@@ -276,7 +273,15 @@ do_i_no_u()
    integer kmax=${#kh[*]}
    integer k=0
    typeset -f subr
-   
+
+   # for specific nodes on burnet
+   ic=`echo $HOST_MACH | cut -c 1`
+   in=`echo $HOST_MACH | cut -c 2-4`
+   if [[ $ic == 'n' ]]; then
+       if [ $in -gt 0 -a $in -lt 1000 ]; then
+	   HOST_MACH=nXXX
+       fi
+   fi
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized as' $HOST_MACH
@@ -322,7 +327,7 @@ build_build()
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
-   if [[ $CABLE_REV="" ]]; then
+   if [[ $CABLE_REV = "" ]]; then
       echo "this is not an svn checkout"
       CABLE_REV=0
       echo "setting CABLE revision number to " $CABLE_REV 
@@ -341,6 +346,7 @@ build_build()
       mv cable cable.`date +%d.%m.%y`
    fi
    
+   # directories contain source code
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"

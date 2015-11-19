@@ -216,6 +216,15 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       rt_min = 5.      
       rt0 = max(rt_min,rough%rt0us / canopy%us)
+
+      if (cable_user%litter) then 
+         ! Mathews (2006), A process-based model of offine fuel moisture,
+         !                 International Journal of Wildland Fire 15,155-168
+         ! assuming here u=1.0 ms-1, bulk litter density 63.5 kgm-3
+         canopy%kthLitt = 0.2+0.14*0.045*1000.0/63.5
+         canopy%DvLitt = 2.17e-5*exp(1.0*2.6)*exp(-0.5*(2.08+(1.0*2.38)))
+      endif
+
       
       ! Aerodynamic resistance (sum 3 height integrals)/us
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
@@ -366,6 +375,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! Calculate soil sensible heat:
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
 
+      if (cable_user%litter) then
+         canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
+              (ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+      endif
+
       CALL within_canopy( gbhu, gbhf )
 
       ! Saturation specific humidity at soil/snow surface temperature:
@@ -406,6 +420,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ! Soil sensible heat:
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+
+      if (cable_user%litter) then
+         canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
+              (ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+      endif
       !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
       
@@ -627,6 +646,14 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
    ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil    
+
+ !! vh !!
+ if (cable_user%litter) then
+    ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ &
+         real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))     
+    ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
+         (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+ endif
    
    !amu561 alt. SoilE
    if (cable_user%or_evap) then 
@@ -704,6 +731,14 @@ FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
 
    ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
    cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
+
+  !! vh !!
+   if (cable_user%litter) then 
+      ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
+           cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ &
+           (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+   endif
+
  
 END FUNCTION Penman_Monteith
 
@@ -733,6 +768,9 @@ FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
    elseif (cable_user%or_evap) then
       ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
                    ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+   elseif (cable_user%litter) then
+      ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
+       real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
    else
       ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
    end if
@@ -2430,12 +2468,17 @@ END SUBROUTINE or_soil_evap_resistance
 
     ! Gets rate of water extraction compatible with CABLE stomatal conductance model
     ! theta(:) - soil moisture(m3 m-3)
-    ! rex(:)   - rate of water extraction by roots from layers (cm/h).
-    REAL(r_2), DIMENSION(ms) :: log_wbliq, alpha_root, delta_root,wb_liq
+    ! rex(:)   - rate of water extraction by roots from layers (m s-1).
+    REAL(r_2), DIMENSION(ms) :: log_wbliq, alpha_root, delta_root,wb_liq, layer_depth
     REAL(r_2)     :: trex,Etrans!, e3, one, zero
     REAL(r_2), DIMENSION(ms) :: zse_mm
 
     INTEGER :: k
+
+    layer_depth(1) = 0.0
+    do k=2,ms
+       layer_depth(k) = sum(soil%zse(1:k-1))
+    enddo
 
     Etrans = canopy%fevc(i) / air%rlam(i)
     zse_mm = real(soil%zse,r_2)*1000._r_2
@@ -2450,7 +2493,7 @@ END SUBROUTINE or_soil_evap_resistance
        alpha_root(:) = 0._r_2
     endwhere
 
-    where (veg%froot(i,:) > 0.05)
+    where (veg%froot(i,:) > 0.0 .and.  layer_depth < veg%ZR(i))
        delta_root(:) = 1._r_2
     elsewhere
        delta_root(:) = 0._r_2

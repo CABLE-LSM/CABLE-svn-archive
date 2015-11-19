@@ -1,12 +1,12 @@
 &cable
-   filename%met = "../../Inputs/PLUMBER_sites_all/HarvardFluxnet.1.4_met.nc"
+   filename%met = "/home/hav014/prog/testsuite/fluxnet/input/HarvardFluxnet.1.4_met.nc"
    filename%out = "out_cable.nc"
    filename%log = "log_cable.txt"
    filename%restart_in  = "" 
    filename%restart_out = "restart_out.nc"
-   filename%type    = "./../../Inputs/CABLE_GSWP3_HGSD_DRT_Surface_Data.nc"
-   filename%veg    = "./../../Inputs/g1_files/def_veg_params_Ticket2_with_medlyn.txt"
-   filename%soil    = "./../../Inputs/def_soil_params.txt"
+   filename%type    = "/data/hav014/surface_data/gridinfo_CSIRO_1x1.nc"
+   filename%veg    = "./def_veg_params_Ticket2_with_medlyn_Haverd.txt"
+   filename%soil    = "./def_soil_params.txt"
    filename%gw_elev = "./../../Inputs/GSWP3_elevation_slope_mean_stddev.nc"
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true

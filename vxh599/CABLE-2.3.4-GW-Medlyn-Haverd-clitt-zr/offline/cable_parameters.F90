@@ -1495,6 +1495,8 @@ SUBROUTINE read_g1map(logn)
           veg%hc(h)       = vegin%hc(veg%iveg(h))
           veg%xfang(h)    = vegin%xfang(veg%iveg(h))
           veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+          veg%zr(h)    = vegin%zr(veg%iveg(h))   !! vh !!
+          veg%clitt(h)    = vegin%clitt(veg%iveg(h))!! vh !!
           veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
           veg%rp20(h)     = vegin%rp20(veg%iveg(h))
           veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
