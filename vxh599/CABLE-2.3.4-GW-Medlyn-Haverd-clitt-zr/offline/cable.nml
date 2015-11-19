@@ -69,7 +69,7 @@
    cable_user%CONSISTENCY_CHECK= .TRUE.      ! TRUE outputs combined fluxes at each timestep for comparisson to A control run 
    cable_user%CASA_DUMP_READ = .FALSE.      ! TRUE reads CASA forcing from netcdf format
    cable_user%CASA_DUMP_WRITE = .FALSE.      ! TRUE outputs CASA forcing in netcdf format
-   cable_user%SSNOW_POTEV= 'HDM'      ! Humidity Deficit Method
+   cable_user%SSNOW_POTEV= 'P-M'      ! Humidity Deficit Method
    cable_user%GW_MODEL = .FALSE.       !True means use the groundwater module, false means use default soil snow scheme
    cable_user%alt_forcing = .false.
    cable_user%GSWP3 = .FALSE.
@@ -79,6 +79,7 @@
 
    cable_user%L_newProfile = .FALSE.   !Use new YP profile for root water extraction?
    cable_user%or_evap = .FALSE.        !Use alternative Or SoilE formulation?
+   cable_user%litter = .TRUE.	        ! leaf litter alters resistances to heat and vapour at soil surface       	    
 
 &end
 
