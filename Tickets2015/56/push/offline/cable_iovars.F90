@@ -131,7 +131,7 @@ MODULE cable_IO_vars_module
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
-          g0c3,g0c4,g1c3,g1c4 ! Ticket #56
+          g0,g1 ! Ticket #56
 
    END TYPE parID_type
   
@@ -276,10 +276,8 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at 
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-         g0c3 = .FALSE.,      & ! Ticket #56      
-         g0c4 = .FALSE.,      & ! Ticket #56
-         g1c3 = .FALSE.,      & ! Ticket #56
-         g1c4 = .FALSE.,      & ! Ticket #56
+         g0   = .FALSE.,      & ! Ticket #56      
+         g1   = .FALSE.,      & ! Ticket #56
          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}

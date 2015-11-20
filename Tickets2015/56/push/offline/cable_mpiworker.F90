@@ -1148,19 +1148,11 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ! Ticket #56, adding new veg parms
   bidx = bidx + 1
-  CALL MPI_Get_address (veg%g0c3, displs(bidx), ierr)
+  CALL MPI_Get_address (veg%g0, displs(bidx), ierr)
   blen(bidx) = r1len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (veg%g0c4, displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%g1c3, displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%g1c4, displs(bidx), ierr)
+  CALL MPI_Get_address (veg%g1, displs(bidx), ierr)
   blen(bidx) = r1len
   ! Ticket #56, finish adding new veg parms
 

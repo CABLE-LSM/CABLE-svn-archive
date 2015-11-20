@@ -249,10 +249,8 @@ MODULE cable_def_types_mod
          conko0,  &  ! Michaelis-menton constant for oxygenase
          ekc,     &  ! activation energy for caroxylagse
          eko,     &  ! acvtivation enegery for oxygenase
-         g0c3,    & ! Belinda's stomatal model intercept, Ticket #56.
-         g0c4,    & ! Belinda's stomatal model intercept, Ticket #56.
-         g1c3,    & ! Belinda's stomatal model slope, Ticket #56.   
-         g1c4       ! Belinda's stomatal model slope, Ticket #56. 
+         g0,      & ! Belinda's stomatal model intercept, Ticket #56.
+         g1         ! Belinda's stomatal model slope, Ticket #56.   
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -719,10 +717,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) ) 
    ALLOCATE( var%vlaimax(mp) )
-   ALLOCATE( var% g0c3(mp) )   ! Ticket #56. 
-   ALLOCATE( var% g0c4(mp) )   ! Ticket #56.
-   ALLOCATE( var% g1c3(mp) )   ! Ticket #56.
-   ALLOCATE( var% g1c4(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g0(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g1(mp) )   ! Ticket #56.
    ALLOCATE( var%a1gs(mp) ) 
    ALLOCATE( var%d0gs(mp) ) 
    ALLOCATE( var%alpha(mp) ) 
@@ -1131,10 +1127,8 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
-   DEALLOCATE( var%g0c3 ) ! Ticket #56.
-   DEALLOCATE( var%g0c4 ) ! Ticket #56. 
-   DEALLOCATE( var%g1c3 ) ! Ticket #56.
-   DEALLOCATE( var%g1c4 ) ! Ticket #56.
+   DEALLOCATE( var%g0 ) ! Ticket #56.
+   DEALLOCATE( var%g1 ) ! Ticket #56. 
    DEALLOCATE( var%a1gs ) 
    DEALLOCATE( var%d0gs ) 
    DEALLOCATE( var%alpha ) 
