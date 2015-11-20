@@ -415,10 +415,8 @@ SUBROUTINE init_veg_pars_fr_vegin()
       veg%xalbnir = vegin%xalbnir(veg%iveg)
       veg%rs20 = vegin%rs20(veg%iveg)
       ! jtk561
-      veg%g0c3 = vegin%g0c3(veg%iveg)
-      veg%g0c4 = vegin%g0c4(veg%iveg)
-      veg%g1c3 = vegin%g1c3(veg%iveg)
-      veg%g1c4 = vegin%g1c4(veg%iveg)
+      veg%g0 = vegin%g0(veg%iveg)
+      veg%g1 = vegin%g1(veg%iveg)
 
       do k=1,2
         veg%refl(:,k)   = vegin%refl(k,veg%iveg)
