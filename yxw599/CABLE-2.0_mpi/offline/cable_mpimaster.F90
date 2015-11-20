@@ -362,7 +362,7 @@ SUBROUTINE mpidrv_master (comm)
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kend, spinup, kstart, C%TFRZ )
 
-!   kend = 48
+   ! kend = 48
 !   kend = 96
 
    ! Checks where parameters and initialisations should be loaded from.
@@ -503,6 +503,7 @@ SUBROUTINE mpidrv_master (comm)
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
 
+!         print *,'ktau =', ktau
 !         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
          iktau = iktau + 1
