@@ -2436,10 +2436,10 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
 
    ssnow%rtevap_unsat(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
-                         300.0 )
+                         500.0 )
 
    ssnow%rtevap_sat(:)  = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero_sat) + (sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
-                         300.0 )
+                         500.0 )
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 
       ssnow%rtevap_sat = 0.0
