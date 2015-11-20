@@ -1542,7 +1542,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
-  npt =26493
+!  npt =62343
 
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
@@ -1571,7 +1571,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
 !  print *, 'biogeochem5', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
-  call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
+  call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casapool,casaflux,casamet)
 
 !  print *, 'biogeochem6', casaflux%ksoil(npt,:),casapool%Nsoil(npt,:)
 
@@ -1590,9 +1590,9 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   ENDIF 
 
   ! changed by ypwang following Chris Lu on 5/nov/2012
- !  write(*,900) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
- !              casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
- !              casaflux%nupland(npt),casaflux%pupland(npt),xkNlimiting(npt),xnplimit(npt),xNPuptake(npt)
+!   write(*,900) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
+!               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
+!               casaflux%nupland(npt),casaflux%pupland(npt),xkNlimiting(npt),xnplimit(npt),xNPuptake(npt)
 
   call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &

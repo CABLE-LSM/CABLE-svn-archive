@@ -1614,7 +1614,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                                         1.1 * soil%swilt(i) ) *                &
                                         soil%zse(kk) * 1000.0 )
 
-                 ssnow%wb(i,kk) = ssnow%wb(i,kk)-ssnow%evapfbl(i,kk)
+                  ssnow%wb(i,kk) = ssnow%wb(i,kk)-ssnow%evapfbl(i,kk)
 
                ENDDO
 
@@ -1623,20 +1623,21 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
 
             ENDIF
-
-            IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
-              CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)
-            ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
-            !EAK, 09/10 - replace linear approx by polynomial fitting
-              CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
-            ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
-              CALL fwsoil_calc_Lai_Ktaul(fwsoil, fextroot, soil, ssnow, veg)
-            ELSE
-              STOP 'fwsoil_switch failed.'
-            ENDIF
+     ! including the following "IF" "ENDIF" considerably caused system to hang: to be investigated!!! 
+     !@       IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
+     !@         CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)
+     !@       ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+     !@       !EAK, 09/10 - replace linear approx by polynomial fitting
+     !@         CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
+     !@       ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+     !@         CALL fwsoil_calc_Lai_Ktaul(fwsoil, fextroot, soil, ssnow, veg)
+     !@       ELSE
+     !@         STOP 'fwsoil_switch failed.'
+     !@       ENDIF
 
 
             ssnow%wb(i,:) = wb2(i,:)
+
 ! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
                - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
@@ -1763,6 +1764,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    canopy%evapfbl = ssnow%evapfbl
    
    DEALLOCATE( gswmin )
+   DEALLOCATE( wb2)
 
 END SUBROUTINE dryLeaf
 
