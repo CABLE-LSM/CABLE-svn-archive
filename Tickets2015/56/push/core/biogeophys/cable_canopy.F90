@@ -1464,7 +1464,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
                 
-                !gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
                  gswmin = veg%g0(i)               
  
                 IF (dsx(i) < 50.0) THEN
@@ -1473,8 +1472,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     vpd = dsx(i) * 1E-03 ! Pa -> kPa  
                 END IF
 
-               ! g1 = (veg%g1c3(i) * (1.0 - veg%frac4(i))) + &
-               !      (veg%g1c4(i)  * veg%frac4(i))
                 g1 = veg%g1(i)
             
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
