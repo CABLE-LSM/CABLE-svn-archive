@@ -626,7 +626,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fhs)/d(ssnow%tgg)
    ! d(canopy%fes)/d(dq)
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
-   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil    
+   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
    if (cable_user%or_evap) then 
       ssnow%dfe_ddq = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
                       ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
@@ -2389,10 +2389,22 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    integer :: i,j,k 
    logical, save ::  first_call = .true.
-   logical :: default_sublayer_thickness
+   logical :: default_sublayer_thickness, &
+              use_legranian_timescale, &
+              use_simple_sublayer_thickness, &
+              use_const_thickness
 
+   !litter density : 63.5
+   !litter depth: 10 cm = 0.1 m
+   !heat capacity : 1932 
+   !thermal conductivity : 0.2
+   !density : 210
+   !so for sensible r_litter = 0.1/(210.0*0.2) = 0.002380952380952381
 
-   default_sublayer_thickness = .true.
+   default_sublayer_thickness = .false.
+   use_legranian_timescale = .false.
+   use_simple_sublayer_thickness = .true.
+   use_const_thickness = .false.
 
    pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
@@ -2414,11 +2426,23 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       end do
       sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
 
-   else  !use the timescale from the cable turbulence parameterizations
+   elseif (use_legranian_timescale) then  !use the timescale from the cable turbulence parameterizations
 
       !base sublayer thickness on cable timescale equations instead of gamma distribution
       time_scale = 0.4 * rough%hruff / max(1.0e-6,canopy%us) * rough%z0soilsn / rough%disp
       sublayer_dz = min(8e-3,max(c2 * sqrt(air%visc * time_scale), 1e-5) )
+
+   elseif (use_simple_sublayer_thickness) then
+
+      sublayer_dz = sublayer_Z_param*rough%z0soil
+
+   elseif (use_const_thickness) then
+
+      sublayer_dz = sublayer_Z_param
+
+   else
+
+      stop 'bad option for sublayer thickness'
 
    end if  !choose which sublayer thickness scheme
 
@@ -2440,6 +2464,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    ssnow%rtevap_sat(:)  = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero_sat) + (sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
                          500.0 )
+
+
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 
       ssnow%rtevap_sat = 0.0
