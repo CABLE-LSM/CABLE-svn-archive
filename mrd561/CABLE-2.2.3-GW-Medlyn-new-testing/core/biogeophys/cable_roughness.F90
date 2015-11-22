@@ -50,7 +50,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    !      MRR draft paper "Simplified expressions...", dec-92
    ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_runtime, cable_user,old_soil_roughness
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
 
