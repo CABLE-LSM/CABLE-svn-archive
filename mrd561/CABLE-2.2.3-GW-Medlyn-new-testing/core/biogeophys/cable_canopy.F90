@@ -2389,10 +2389,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    integer :: i,j,k 
    logical, save ::  first_call = .true.
-   logical :: default_sublayer_thickness, &
-              use_legranian_timescale, &
-              use_simple_sublayer_thickness, &
-              use_const_thickness
 
    !litter density : 63.5
    !litter depth: 10 cm = 0.1 m
@@ -2400,11 +2396,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    !thermal conductivity : 0.2
    !density : 210
    !so for sensible r_litter = 0.1/(210.0*0.2) = 0.002380952380952381
-
-   default_sublayer_thickness = .false.
-   use_legranian_timescale = .false.
-   use_simple_sublayer_thickness = .true.
-   use_const_thickness = .false.
 
    pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
