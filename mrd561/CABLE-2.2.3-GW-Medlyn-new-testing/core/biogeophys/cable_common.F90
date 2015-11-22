@@ -222,6 +222,13 @@ MODULE cable_common_module
 
    TYPE(gw_parameters_type), SAVE :: gw_params
 
+   REAL, SAVE ::  sublayer_Z_param = 1.0
+   logical,save :: default_sublayer_thickness=.true., &
+                   use_legranian_timescale=.false., &
+                   use_simple_sublayer_thickness=.false., &
+                   use_const_thickness=.false.
+
+
 
 CONTAINS
 
