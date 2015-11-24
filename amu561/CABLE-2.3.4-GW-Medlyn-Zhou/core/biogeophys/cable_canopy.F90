@@ -1542,7 +1542,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,             &
                                             veg, i, bgc)
                 canopy%fwsoil=fwsoil
             ENDIF
-
+            
             ghwet(i) = 2.0   * sum_gbh(i)
             gwwet(i) = 1.075 * sum_gbh(i)
             ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
@@ -1697,7 +1697,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,             &
                               gbhu(i,kk) + gbhf(i,kk) )
                   csx(i,kk) = MAX( 1.0e-4, csx(i,kk) )
                   ! Ticket #56, xleuning replaced with gs_coeff here
-                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*canopy%fwsoil(i) +     &
+                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
                                       MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
                                       anx(i,kk) ) )
 
@@ -2431,6 +2431,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc)
    REAL, DIMENSION(mp) :: Lsoil
    REAL, PARAMETER :: min_lwp = -2.0
 
+
    ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
    psi_sat_mpa = soil%sucs * 9.81 * 0.001
 
@@ -2483,15 +2484,11 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc)
          Ks(:) = soil%hyds * (ssnow%wb(:,ns) / &
                               soil%ssat)**(2.0 * soil%bch + 3.0)
          Lsoil(:) = Ks(:) / head ! converts from m s-1 to m2 s-1 MPa-1
-print *, Lsoil
+         
          IF (Lsoil(1) < 1E-20) THEN      !prevent floating point error
             soil_root_resist(:,ns) = 1E20
-            print *, "ENTERS HERE"
          ELSE
-             print *, "REACHES HERE #1"
             rs(:,ns) = sqrt(1. / (root_length(:,ns) * pi))
-            print *, "REACHES HERE #2"
-            print *, rs
             soil_resistance(:,ns) = log(rs(:,ns) / root_radius) /       &
                                         (2.0 * pi * root_length(:,ns) * &
                                          soil%zse(ns) * Lsoil(:))
@@ -2503,11 +2500,6 @@ print *, Lsoil
          ENDIF
       END DO
 
-      print *, "PRINTING lsoil"
-      print *, Lsoil
-      print *, rs
-      print *, root_length
-      print *, pi
       DO ns = 1, ms
 
          t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, ssnow%wb(:,ns) / soil%ssat))
@@ -2518,7 +2510,6 @@ print *, Lsoil
 
       ! weighted soil water potential
       psi_swp = sum(psi_swp_per_lay * cond_per_layer) / sum(cond_per_layer)
-
    ENDIF
 
    
@@ -2543,9 +2534,9 @@ print *, Lsoil
 
    psi_lwp = psi_swp - psi_0
 
+
    ! SW modifier for g1 parameter (stomatal limitation)
    fwsoil = exp(veg%g1_b(i) * psi_swp)
-
    ! SW modifier for Vcmax (non-stomatal limitation)
    fwsoil_ns = (1.0 + exp(veg%vcmax_sf(i) * veg%vcmax_psi_f(i))) / &
                (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_swp)))

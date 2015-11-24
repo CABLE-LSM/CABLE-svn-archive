@@ -1246,6 +1246,8 @@ SUBROUTINE read_g1map(logn)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
 
+    canopy%fwsoil = 1.0
+
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
@@ -1849,6 +1851,11 @@ print *, "REACHES write_cnp #2"
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
+    
+    !MDK, 26 March 2015 bug fix - ticket #66
+    WHERE(soil%ssat > 0.) soil%pwb_min = (soil%swilt / soil%ssat)**soil%ibp2
+    
+    
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     soil%pwb_min = (soil%swilt / soil%ssat )**soil%ibp2
 
