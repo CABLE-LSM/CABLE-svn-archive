@@ -145,6 +145,10 @@ MODULE cable_common_module
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam=0.5, satuParam=0.8
 
+    !initialise drought stress to zero MDK 9th Nov 2011
+    REAL :: psi_pd = 0.0
+
+
    ! soil parameters read from file(filename%soil def. in cable.nml)
    ! & veg parameters read from file(filename%veg def. in cable.nml)
    TYPE soilin_type
