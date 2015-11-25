@@ -485,9 +485,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, bgc)
    canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
    canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
 
-   canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
-   canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
-
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
     
     canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
@@ -627,10 +624,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, bgc)
    ! snow may absorb
    canopy%precis = max(0.,canopy%through)
 
-   ! this change of units does not affect next timestep as canopy%through is
-   ! re-calc in Surf_wetness_fact routine
-   canopy%through = canopy%through / dels   ! change units for stash output
-   
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill
    
@@ -1797,13 +1790,16 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,             &
                !WUE fix (YP, drought workshop Nov15)
                  IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
                     CALL fwsoil_calc_std( fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+                    veg%froot_w=veg%froot
                     canopy%fwsoil=fwsoil
                 ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
                     !EAK, 09/10 - replace linear approx by polynomial fitting
                     CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
+                    veg%froot_w=veg%froot
                     canopy%fwsoil=fwsoil
                 ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
                     CALL fwsoil_calc_Lai_Katul(fwsoil, fextroot, soil, ssnow, veg)
+                    veg%froot_w=veg%froot
                     canopy%fwsoil=fwsoil
                 ELSE
                     write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
@@ -1931,7 +1927,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,             &
                PRINT *, 'oldevapfbl = ', oldevapfbl(i,:)
                PRINT *, 'ssnow%evapfbl before rescaling: ',                    &
                                                            ssnow%evapfbl(i,:)
-               STOP
+               !STOP amu561 NEED TO UNCOMMENT ONCE FIXED
             
             ELSE
             
