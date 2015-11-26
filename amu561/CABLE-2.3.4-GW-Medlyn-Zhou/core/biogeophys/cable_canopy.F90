@@ -2430,7 +2430,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
 
 
    ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
-   psi_sat_mpa = soil%sucs * 9.81 * 0.001
+   psi_sat_mpa = -1.0*abs(soil%sucs) * 9.81 * 0.001
 
    IF (cable_user%SWP_SWITCH == 'method_1') THEN
       ! Weight SWP by rooting fraction in each layer (my original attempt)
@@ -2525,6 +2525,7 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
    ! SW modifier for Vcmax (non-stomatal limitation)
    fwsoil_ns = (1.0 + exp(veg%vcmax_sf(i) * veg%vcmax_psi_f(i))) / &
                (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_pd)))
+
 
 END SUBROUTINE vcmax_non_stomatal_lim
 
