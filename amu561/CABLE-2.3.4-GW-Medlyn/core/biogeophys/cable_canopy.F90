@@ -469,9 +469,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
    canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
 
-   canopy%gswx_1 = canopy%gswx(:,1)/air%cmolar ! jtk561
-   canopy%gswx_2 = canopy%gswx(:,2)/air%cmolar ! jtk561
-
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
     
     canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
@@ -613,7 +610,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ! this change of units does not affect next timestep as canopy%through is
    ! re-calc in Surf_wetness_fact routine
-   canopy%through = canopy%through / dels   ! change units for stash output
+   !canopy%through = canopy%through / dels   ! change units for stash output
    
    ! Update canopy storage term:
    canopy%cansto=canopy%cansto - canopy%spill

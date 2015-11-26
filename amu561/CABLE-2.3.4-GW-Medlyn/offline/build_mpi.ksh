@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin squa bliz mael r raij r94 r377 r373
+   set -A kh vayu cher burn shin squa bliz mael r raij r94 r377 r373 s
 }
+
+
+## 
+host_s()
+{
+   export NCDIR='/'
+   export NCMOD='/'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf'
+   export LDFLAGS='-L/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 ## raijin.nci.org.au
 host_raij()
