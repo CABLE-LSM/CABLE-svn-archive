@@ -1534,6 +1534,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,             &
                 CALL vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, &
                                             veg, i, bgc, met)
                 canopy%fwsoil=fwsoil
+                veg%froot_w=veg%froot
             ENDIF
             
             ghwet(i) = 2.0   * sum_gbh(i)
@@ -2428,9 +2429,23 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
    REAL, PARAMETER ::  head = 0.009807              ! head of pressure  (MPa/m)
    REAL, DIMENSION(mp) :: Lsoil
 
+   REAL, DIMENSION(mp) :: sucs, hyds, bch,ssat
+
+   !Set soil params to match hydro scheme amu561 Nov 15
+   IF (cable_user%GW_MODEL) THEN
+       sucs = soil%smpsat(:,1)/1000.0
+       hyds = soil%hksat(:,1)/1000.0
+       bch  = soil%clappB(:,1)
+       ssat = soil%watsat(:,1)
+   ELSE
+       sucs = soil%sucs
+       hyds = soil%hyds
+       bch  = soil%bch
+       ssat = soil%ssat
+   ENDIF
 
    ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
-   psi_sat_mpa = -1.0*abs(soil%sucs) * 9.81 * 0.001
+   psi_sat_mpa = -1.0*abs(sucs) * 9.81 * 0.001
 
    IF (cable_user%SWP_SWITCH == 'method_1') THEN
       ! Weight SWP by rooting fraction in each layer (my original attempt)
@@ -2439,8 +2454,8 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
       ! model is to take the average water availability over these layers
       ! accounting for where the roots are distributed.
       theta_over_theta_sat = MAX(1.0e-9, MIN(1.0, &
-                            sum(veg%froot * ssnow%wb / SPREAD(soil%ssat,2,ms))))
-      psi_swp = psi_sat_mpa * theta_over_theta_sat**(-soil%bch)
+                            sum(veg%froot * ssnow%wb / SPREAD(ssat,2,ms))))
+      psi_swp = psi_sat_mpa * theta_over_theta_sat**(-bch)
 
    ELSE IF (cable_user%SWP_SWITCH == 'method_2') THEN
       ! Weight SWP calc on layer thickness, ignoring rooting depth, effectively
@@ -2454,9 +2469,9 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
       DO ns = 1, ms - 1 ! ignoring the bottom layer
          weighting = soil%zse(ns) / total_soil_depth
          t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, &
-                                      weighting * ssnow%wb(:,ns) / soil%ssat))
+                                      weighting * ssnow%wb(:,ns) / ssat))
       END DO
-      psi_swp = psi_sat_mpa * sum(t_over_t_sat)**(-soil%bch)
+      psi_swp = psi_sat_mpa * sum(t_over_t_sat)**(-bch)
 
    ELSE IF (cable_user%SWP_SWITCH == 'method_3') THEN
       ! Weight by root & soil hydraulic resistance following SPA approach
@@ -2477,9 +2492,10 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
          !root_resistance(:,ns) = root_resistivity / (depth * root_mass)
          root_resistance(:,ns) = root_resistivity / (soil%zse(ns) * root_mass)
 
-         Ks(:) = soil%hyds * (ssnow%wb(:,ns) / &
-                              soil%ssat)**(2.0 * soil%bch + 3.0)
+         Ks(:) = hyds * (ssnow%wb(:,ns) / &
+                              ssat)**(2.0 * bch + 3.0)
          Lsoil(:) = Ks(:) / head ! converts from m s-1 to m2 s-1 MPa-1
+
 
          IF (Lsoil(1) < 1E-35) THEN      !prevent floating point error
             soil_root_resist(:,ns) = 1E35
@@ -2497,18 +2513,17 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
       END DO
 
       DO ns = 1, ms
-
-         t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, ssnow%wb(:,ns) / soil%ssat))
-         psi_swp_per_lay(:,ns) = psi_sat_mpa * t_over_t_sat(:,ns)**(-soil%bch)
+         t_over_t_sat(:,ns) = MAX(1.0e-9, MIN(1.0, ssnow%wb(:,ns) / ssat))
+         psi_swp_per_lay(:,ns) = psi_sat_mpa * t_over_t_sat(:,ns)**(-bch)
          cond_per_layer(:,ns) = 1.0 / soil_root_resist(:,ns)
 
-      END DO
-
+      END DO  
+      
       ! weighted soil water potential
       psi_swp = sum(psi_swp_per_lay * cond_per_layer) / sum(cond_per_layer)
 
    ENDIF
-
+   
    ! At dawn (5 am) we are setting psi_pd = psi_SWP, i.e. so that for the
    ! rest of the day it doesn't vary.
    ! Note initialised on day 1 to zero stress, psi_pd = 0.0 at midnight
@@ -2516,16 +2531,14 @@ SUBROUTINE vcmax_non_stomatal_lim(fwsoil, fwsoil_ns, soil, ssnow, veg, i, bgc,&
    IF (met%hod(i) > 4.9 .AND. met%hod(i) < 5.1) THEN
       psi_pd = psi_swp(i)
    ENDIF
-
    !psi_lwp = psi_swp - psi_0
 
    ! SW modifier for g1 parameter (stomatal limitation)
    fwsoil = exp(veg%g1_b(i) * psi_pd)
-
+   
    ! SW modifier for Vcmax (non-stomatal limitation)
    fwsoil_ns = (1.0 + exp(veg%vcmax_sf(i) * veg%vcmax_psi_f(i))) / &
                (1.0 + exp(veg%vcmax_sf(i) * (veg%vcmax_psi_f(i) - psi_pd)))
-
 
 END SUBROUTINE vcmax_non_stomatal_lim
 
