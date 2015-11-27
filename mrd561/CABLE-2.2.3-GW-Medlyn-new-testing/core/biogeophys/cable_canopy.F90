@@ -2417,12 +2417,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       end do
       canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
 
-   elseif (use_legranian_timescale) then  !use the timescale from the cable turbulence parameterizations
-
-      !base sublayer thickness on cable timescale equations instead of gamma distribution
-      time_scale = 0.4 * rough%hruff / max(1.0e-6,canopy%us) * rough%z0soilsn / rough%disp
-      canopy%sublayer_dz = min(8e-3,max(c2 * sqrt(air%visc * time_scale), 1e-5) )
-
    elseif (use_simple_sublayer_thickness) then
 
       canopy%sublayer_dz = max(sublayer_Z_param*rough%z0soil,1e-7)

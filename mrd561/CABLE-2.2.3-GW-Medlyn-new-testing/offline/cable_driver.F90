@@ -76,7 +76,6 @@ PROGRAM cable_offline_driver
                                    redistrb, wiltParam, satuParam, gw_params, &
                                    sublayer_Z_param,&
                                    default_sublayer_thickness,&
-                                   use_legranian_timescale,&
                                    use_simple_sublayer_thickness,&
                                    use_const_thickness,&
                                    old_soil_roughness
@@ -190,7 +189,6 @@ PROGRAM cable_offline_driver
                   gw_params,&              !four additional tunable paramters controlling the GW hydro
                   sublayer_Z_param,&
                   default_sublayer_thickness,&
-                  use_legranian_timescale,&
                   use_simple_sublayer_thickness,&
                   use_const_thickness,&
                   old_soil_roughness
