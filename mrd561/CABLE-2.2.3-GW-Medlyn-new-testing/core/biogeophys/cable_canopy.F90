@@ -1711,7 +1711,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                if (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) then
                   canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
 
-                  call getrex(soil,ssnow,canopy,veg,air,real(dels,r_2),i) 
+                  call getrex(soil,ssnow,canopy,veg,air,dels,i) 
 
                !call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:),canopy%fwsoil(i), &
                !     real(veg%froot(i,:),r_2), SPREAD(real(soil%ssat(i),r_2),1,ms) , &
@@ -2510,7 +2510,7 @@ END SUBROUTINE or_soil_evap_resistance
     type(veg_parameter_type), INTENT(IN)     :: veg
     TYPE (air_type), INTENT(INOUT)           :: air
 
-    real(r_2), intent(in)                       :: dels
+    real, intent(in)                       :: dels
     integer, intent(in)                         :: i !point_index
 
 !    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
@@ -2563,9 +2563,9 @@ END SUBROUTINE or_soil_evap_resistance
 
     ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
 
-    where(((ssnow%rex(i,:)*dels) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*dels .gt. 0._r_2))) 
+    where(((ssnow%rex(i,:)*real(dels,r_2)) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*real(dels,r_2) .gt. 0._r_2))) 
 
-       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*dels)
+       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*real(dels,r_2))
     
     endwhere
 
@@ -2581,7 +2581,7 @@ END SUBROUTINE or_soil_evap_resistance
     ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
 
 
-    if (any(((ssnow%rex(i,:)*dels) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*dels) .gt. 0._r_2))) then
+    if (any(((ssnow%rex(i,:)*real(dels,r_2)) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*real(dels,r_2)) .gt. 0._r_2))) then
        canopy%fwsoil(i) = 0._r_2
        ssnow%rex(i,:) = max((wb_liq(:)-soil%wiltp(i,:))*zse_mm(:),0._r_2)
        trex = sum(ssnow%rex(i,:),dim=1)
