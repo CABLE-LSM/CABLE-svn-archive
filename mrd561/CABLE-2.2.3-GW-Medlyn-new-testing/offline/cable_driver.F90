@@ -73,7 +73,14 @@ PROGRAM cable_offline_driver
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, myhome,            & 
-                                   redistrb, wiltParam, satuParam, gw_params
+                                   redistrb, wiltParam, satuParam, gw_params, &
+                                   sublayer_Z_param,&
+                                   default_sublayer_thickness,&
+                                   use_legranian_timescale,&
+                                   use_simple_sublayer_thickness,&
+                                   use_const_thickness,&
+                                   old_soil_roughness
+
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -180,7 +187,14 @@ PROGRAM cable_offline_driver
                   wiltParam,        &
                   satuParam,        &
                   cable_user,       &    ! additional USER switches 
-                  gw_params              !four additional tunable paramters controlling the GW hydro
+                  gw_params,&              !four additional tunable paramters controlling the GW hydro
+                  sublayer_Z_param,&
+                  default_sublayer_thickness,&
+                  use_legranian_timescale,&
+                  use_simple_sublayer_thickness,&
+                  use_const_thickness,&
+                  old_soil_roughness
+
 
    ! END header
 
@@ -266,7 +280,7 @@ PROGRAM cable_offline_driver
       ! time step loop over ktau
       DO ktau=kstart, kend 
          !MDeck
-         write(*,*) ' timestep number ',ktau
+         if (mod(ktau,200) .eq. 0) write(*,*) ' timestep number ',ktau
 
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1
@@ -332,7 +346,7 @@ PROGRAM cable_offline_driver
          ! or we're spinning up and the spinup has converged:
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
+                               rad, bal, air, soil, veg, rough,C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
        END DO ! END Do loop over timestep ktau

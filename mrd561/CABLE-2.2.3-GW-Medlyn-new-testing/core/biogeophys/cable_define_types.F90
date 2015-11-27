@@ -403,6 +403,9 @@ MODULE cable_def_types_mod
          fevc,    & ! dry canopy transpiration (W/m2)
          fwsoil
 
+      REAL(r_2), DIMENSION(:), POINTER :: &
+         sublayer_dz
+
    END TYPE canopy_type
 
 ! .............................................................................
@@ -928,6 +931,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
    ALLOCATE( var%fwsoil(mp) )
+   ALLOCATE( var%sublayer_dz(mp) )
    
 END SUBROUTINE alloc_canopy_type
 
@@ -1393,6 +1397,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
    DEALLOCATE( var% fwsoil )
+   DEALLOCATE( var% sublayer_dz )
 
 END SUBROUTINE dealloc_canopy_type
    

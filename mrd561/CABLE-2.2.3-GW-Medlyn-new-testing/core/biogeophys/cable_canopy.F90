@@ -1711,7 +1711,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                if (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) then
                   canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
 
-                  call getrex(soil,ssnow,canopy,veg,air,dels,i) 
+                  call getrex(soil,ssnow,canopy,veg,air,real(dels,r_2),i) 
 
                !call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:),canopy%fwsoil(i), &
                !     real(veg%froot(i,:),r_2), SPREAD(real(soil%ssat(i),r_2),1,ms) , &
@@ -2415,19 +2415,21 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
             end do
          end if
       end do
-      sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
+      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
 
    elseif (use_legranian_timescale) then  !use the timescale from the cable turbulence parameterizations
 
-      sublayer_dz = max(rough%z0soil,1e-6)
+      !base sublayer thickness on cable timescale equations instead of gamma distribution
+      time_scale = 0.4 * rough%hruff / max(1.0e-6,canopy%us) * rough%z0soilsn / rough%disp
+      canopy%sublayer_dz = min(8e-3,max(c2 * sqrt(air%visc * time_scale), 1e-5) )
 
    elseif (use_simple_sublayer_thickness) then
 
-      sublayer_dz = sublayer_Z_param*rough%z0soil
+      canopy%sublayer_dz = max(sublayer_Z_param*rough%z0soil,1e-7)
 
    elseif (use_const_thickness) then
 
-      sublayer_dz = sublayer_Z_param
+      canopy%sublayer_dz = max(sublayer_Z_param,1e-7)
 
    else
 
@@ -2436,9 +2438,9 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    end if  !choose which sublayer thickness scheme
 
    if (first_call) then
-      wb_liq(:) = real(max(1e-6,min(pi/4.0, ssnow%wb(:,1)) ) )
+      wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
    else
-      wb_liq(:) = real(max(1e-6,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
+      wb_liq(:) = real(max(0.0,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
    end if
 
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
@@ -2448,11 +2450,11 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
    soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
 
-   ssnow%rtevap_unsat(:) = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero) + (sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
-                         1000.0 )
+   ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
+                         500.0 )
 
-   ssnow%rtevap_sat(:)  = min( rough%z0soil/sublayer_dz * (lm/ (4.0*hk_zero_sat) + (sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
-                         1000.0 )
+   ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
+                         500.0 )
 
 
    !no additional evap resistane over lakes
@@ -2508,7 +2510,7 @@ END SUBROUTINE or_soil_evap_resistance
     type(veg_parameter_type), INTENT(IN)     :: veg
     TYPE (air_type), INTENT(INOUT)           :: air
 
-    real, intent(in)                       :: dels
+    real(r_2), intent(in)                       :: dels
     integer, intent(in)                         :: i !point_index
 
 !    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
@@ -2561,9 +2563,9 @@ END SUBROUTINE or_soil_evap_resistance
 
     ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
 
-    where(((ssnow%rex(i,:)*real(dels,r_2)) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*real(dels,r_2) .gt. 0._r_2))) 
+    where(((ssnow%rex(i,:)*dels) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*dels .gt. 0._r_2))) 
 
-       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*real(dels,r_2))
+       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*dels)
     
     endwhere
 
@@ -2579,7 +2581,7 @@ END SUBROUTINE or_soil_evap_resistance
     ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
 
 
-    if (any(((ssnow%rex(i,:)*real(dels,r_2)) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*real(dels,r_2)) .gt. 0._r_2))) then
+    if (any(((ssnow%rex(i,:)*dels) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*dels) .gt. 0._r_2))) then
        canopy%fwsoil(i) = 0._r_2
        ssnow%rex(i,:) = max((wb_liq(:)-soil%wiltp(i,:))*zse_mm(:),0._r_2)
        trex = sum(ssnow%rex(i,:),dim=1)
@@ -2592,8 +2594,6 @@ END SUBROUTINE or_soil_evap_resistance
     else
        canopy%fwsoil(i) = maxval(alpha_root(2:)*delta_root(2:))
     end if
-
-    canopy%fwsoil(i) = max(1e-6,canopy%fwsoil(i))
 
   END SUBROUTINE getrex
  !*********************************************************************************************************************
