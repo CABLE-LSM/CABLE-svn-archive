@@ -33,7 +33,8 @@
 
 SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
-                                  land_index, tile_frac,  tile_pts, tile_index,&
+                                  land_index, tile_frac,tile_frac_vars,        &
+                                  tile_pts, tile_index,                        &
                                   bexp, hcon, satcon, sathh, smvcst,           &
                                   smvcwt,  smvccl, albsoil,ti_mean,ti_sig,     &
                                   snow_tile,                                   &
@@ -156,6 +157,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       tile_frac,  &    
       snow_rho1l, &
       snage_tile
+
+   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+       tile_frac_vars`
    
    REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
@@ -333,7 +337,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !---------------------------------------------------------------------!
    CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,           & 
                            sm_levels, itimestep, latitude, longitude,          &
-                           land_index, tile_frac, tile_pts, tile_index,        &
+                           land_index, tile_frac, tile_frac_vars,              &
+                           tile_pts, tile_index,                               &
                            bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
                            smvccl, albsoil, ti_mean, ti_sig,                   &
                            snow_tile, snow_rho1l,                              &

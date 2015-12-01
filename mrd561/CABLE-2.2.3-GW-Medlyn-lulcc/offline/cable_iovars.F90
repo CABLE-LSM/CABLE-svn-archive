@@ -355,7 +355,12 @@ MODULE cable_IO_vars_module
          Forg=.FALSE.,        & !ogranic frac in soil   [-]
          SoilIce=.FALSE.,     & !volumetric soil ice [mm3/mm3]
          VISalbedo=.FALSE.,   & !albedo visible band [-]
-         NIRalbedo=.FALSE.      !albedo nir band [-]
+         NIRalbedo=.FALSE.,   & !albedo nir band [-]
+         rtevap=.false.,      &
+         sublayer_dz=.false., &
+         rtevap_sat=.false.,  &
+         z0soil=.false.,      &
+         rtsoil=.false.
    
    END TYPE output_inclusion_type
 

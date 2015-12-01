@@ -194,6 +194,8 @@ MODULE cable_def_types_mod
          rnof1,   & ! surface runoff (mm/dels)
          rnof2,   & ! deep drainage (mm/dels)
          rtsoil,  & ! turbulent resistance for soil
+         rtevap_unsat,  & ! turbulent resistance for soil
+         rtevap_sat, &
          wbtot1,  & ! total soil water (mm)
          wbtot2,  & ! total soil water (mm)
          wb_lake, &
@@ -259,7 +261,8 @@ MODULE cable_def_types_mod
          GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
          GWzq,    &  ! equilibrium aquifer smp   [mm]
          qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
-         satfrac
+         satfrac, &
+         rh_srf
      
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
@@ -274,6 +277,9 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
+
+      !Haverd 2013
+      REAL(r_2), DIMENSION(:,:), POINTER :: rex       ! root extraction from each layer (mm/dels)
          
    END TYPE soil_snow_type
 
@@ -318,7 +324,10 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          refl,    &
          taul,    & 
-         froot,froot_w      ! fraction of root in each soil layer
+         froot     ! fraction of root in each soil layer
+
+      !Haverd 2013
+      REAL(r_2), DIMENSION(:), POINTER :: li_katul_skew_param
 
    END TYPE veg_parameter_type
 
@@ -391,7 +400,11 @@ MODULE cable_def_types_mod
          dgdtg,   & ! derivative of gflux wrt soil temp
          fes,     & ! latent heatfl from soil (W/m2)
          fes_cor, & ! latent heatfl from soil (W/m2)
-         fevc       ! dry canopy transpiration (W/m2)
+         fevc,    & ! dry canopy transpiration (W/m2)
+         fwsoil
+
+      REAL(r_2), DIMENSION(:), POINTER :: &
+         sublayer_dz
 
    END TYPE canopy_type
 
@@ -732,6 +745,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% rnof1(mp) ) 
    ALLOCATE( var% rnof2(mp) ) 
    ALLOCATE( var% rtsoil(mp) )
+   ALLOCATE( var% rtevap_sat(mp) )
+   ALLOCATE( var% rtevap_unsat(mp) )
    ALLOCATE( var% sconds(mp,msn) ) 
    ALLOCATE( var% sdepth(mp,msn) ) 
    ALLOCATE( var% smass(mp,msn) ) 
@@ -788,6 +803,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWzq(mp) )
    ALLOCATE( var%qhz(mp) )
    ALLOCATE( var%satfrac(mp) )
+   ALLOCATE( var%rh_srf(mp) )
    !soil moisture variables
    ALLOCATE( var%wbeq(mp,ms) )
    ALLOCATE( var%zq(mp,ms) )
@@ -801,6 +817,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmliq(mp,ms) )
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
+   ALLOCATE( var%rex(mp,ms) )
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
    var%GWwb = 0.45_r_2
@@ -837,10 +854,6 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
-
-   ALLOCATE( var%froot_w(mp,ms) ) 
-
-
    ALLOCATE( var%refl(mp,3) ) !jhan:swb?
    ALLOCATE( var%taul(mp,3) ) !MDeck->cable_parameters.F90 tries to access taul(:,3)
    ALLOCATE( var%vlaimax(mp) ) 
@@ -848,6 +861,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var% g0c4(mp) )   ! Ticket #56.
    ALLOCATE( var% g1c3(mp) )   ! Ticket #56.
    ALLOCATE( var% g1c4(mp) )   ! Ticket #56. 
+   ALLOCATE( var%li_katul_skew_param(mp) )
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -916,6 +930,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% gswx(mp,mf) )  
    ALLOCATE( var% oldcansto(mp) )  
    ALLOCATE( var% zetar(mp,NITER) )  
+   ALLOCATE( var%fwsoil(mp) )
+   ALLOCATE( var%sublayer_dz(mp) )
    
 END SUBROUTINE alloc_canopy_type
 
@@ -1201,6 +1217,8 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% rnof1 ) 
    DEALLOCATE( var% rnof2 ) 
    DEALLOCATE( var% rtsoil )
+   DEALLOCATE( var% rtevap_sat )
+   DEALLOCATE( var% rtevap_unsat )
    DEALLOCATE( var% sconds ) 
    DEALLOCATE( var% sdepth ) 
    DEALLOCATE( var% smass ) 
@@ -1257,6 +1275,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%GWzq )
    DEALLOCATE( var%qhz )
    DEALLOCATE( var%satfrac )
+   DEALLOCATE( var%rh_srf )
    !soil moisture variables
    DEALLOCATE( var%wbeq )
    DEALLOCATE( var%zq )
@@ -1270,6 +1289,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
+   DEALLOCATE( var%rex )
    
 END SUBROUTINE dealloc_soil_snow_type
    
@@ -1302,15 +1322,13 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%wai )   
    DEALLOCATE( var%deciduous ) 
    DEALLOCATE( var%froot) 
-
-   DEALLOCATE( var%froot_w) 
-
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
    DEALLOCATE( var%g0c3 ) ! Ticket #56.
    DEALLOCATE( var%g0c4 ) ! Ticket #56. 
    DEALLOCATE( var%g1c3 ) ! Ticket #56.
    DEALLOCATE( var%g1c4 ) ! Ticket #56.
+   DEALLOCATE( var%li_katul_skew_param )
    
 END SUBROUTINE dealloc_veg_parameter_type
    
@@ -1378,6 +1396,8 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% gswx )  
    DEALLOCATE( var% oldcansto )  
    DEALLOCATE( var% zetar )  
+   DEALLOCATE( var% fwsoil )
+   DEALLOCATE( var% sublayer_dz )
 
 END SUBROUTINE dealloc_canopy_type
    

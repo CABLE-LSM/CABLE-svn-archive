@@ -38,7 +38,7 @@ MODULE cable_soil_snow_gw_module
                              balances_type, r_2, ms, mp           
    USE cable_data_module, ONLY : issnow_type, point2constants
 
-   USE cable_common_module, ONLY : gw_params
+   USE cable_common_module, ONLY : gw_params,cable_user
 
    IMPLICIT NONE
 
@@ -1116,7 +1116,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
 
          if (canopy%fevc(i) .gt. 0._r_2) then
 
-            xx(i) = canopy%fevc(i) * dels / C%HL * veg%froot_w(i,k) + diff(i,k+1)
+            xx(i) = canopy%fevc(i) * dels / C%HL * veg%froot(i,k) + diff(i,k+1)
             diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%wiltp(i,k)) &
                        * real(soil%zse(k)*C%denliq,r_2)
             xxd(i) = xx(i) - diff(i,k)
@@ -1596,7 +1596,7 @@ END SUBROUTINE remove_trans
        qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
        dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
        dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%dsmpdw(i,k+1) + num(i)*ssnow%dhkdw(i,k))/den(i)
-       rt(i,k) =  qin(i) - qout(i)! - qhlev(i,k) - canopy%fevc(i)/C%HL*veg%froot_w(i,k)
+       rt(i,k) =  qin(i) - qout(i)! - qhlev(i,k) - ssnow%rex(i,k)
        at(i,k) =  0._r_2
        bt(i,k) =  dzmm(k)/dels + dqodw1(i)
        ct(i,k) =  dqodw2(i)      
@@ -1615,7 +1615,7 @@ END SUBROUTINE remove_trans
           qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
           dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
           dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%dsmpdw(i,k+1) + num(i)*ssnow%dhkdw(i,k))/den(i)
-          rt(i,k) =  qin(i) - qout(i)! - qhlev(i,k) - canopy%evapfbl(i,k)/dels
+          rt(i,k) =  qin(i) - qout(i)! - qhlev(i,k) - ssnow%rex(i,k)
           at(i,k) = -dqidw0(i)
           bt(i,k) =  dzmm(k)/dels - dqidw1(i) + dqodw1(i)
           ct(i,k) =  dqodw2(i)
@@ -1636,7 +1636,7 @@ END SUBROUTINE remove_trans
        qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
        dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
        dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%GWdsmpdw(i) + num(i)*ssnow%dhkdw(i,k))/den(i)
-       rt(i,k) =  qin(i) - qout(i) !- qhlev(i,k) - canopy%evapfbl(i,k)/dels
+       rt(i,k) =  qin(i) - qout(i) !- qhlev(i,k) - ssnow%rex(i,k)
        at(i,k) = -dqidw0(i)
        bt(i,k) =  dzmm(k)/dels - dqidw1(i) + dqodw1(i)
        ct(i,k) =  dqodw2(i) 
@@ -2120,8 +2120,12 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
          xx = 0.25 * (1._r_2 - cos(2.0*pi*wb_unsat/(wb_evap_threshold)))**2.0
       end if
 
-      ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
-                                  (1. - satfrac_liqice(i))*xx ) )
+      if (.not.cable_user%or_evap) then
+         ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
+                                     (1. - satfrac_liqice(i))*xx ) )
+      else
+         ssnow%wetfac(i) = ssnow%satfrac(i)
+      end if
 
    end do
 

@@ -38,7 +38,8 @@ CONTAINS
 
 SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
-                              land_index, tile_frac, tile_pts, tile_index,     &
+                              land_index, tile_frac, tile_frac_vars,           &
+                              tile_pts, tile_index,                            &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
                               smvccl, albsoil, ti_mean, ti_sig,                &
                               snow_tile, snow_rho1l,                           &
@@ -140,6 +141,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       tile_frac, &   !   
       snow_rho1l,&   !
       snage_tile     !
+   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: tile_frac_vars
 
    REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
@@ -258,20 +260,25 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          mp = SUM(um1%TILE_PTS)
          
          CALL alloc_cable_types()
+
+      END IF
+
+      !TILE_FRAC changhes must do ever step
          
-         DO i=1,land_pts
-            DO j=1,ntiles
-               
-               IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
-                     um1%L_TILE_PTS(i,j) = .TRUE.
-                  !jhan:can set veg%iveg from  here ?
-                  tile_index_mp(i,j) = j 
-               ENDIF
+      DO i=1,land_pts
+         DO j=1,ntiles
+              
+            IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
+               um1%L_TILE_PTS(i,j) = .TRUE.
+               !jhan:can set veg%iveg from  here ?
+               tile_index_mp(i,j) = j 
+            ENDIF
+
+            tile_frac_changes(i,j) = um1%TILE_FRAC(i,j) - tile_frac_vars(i,j)
             
-            ENDDO
          ENDDO
+      ENDDO
       
-      ENDIF
          
       !jhan: turn this off until implementation finalised
       !--- initialize latitude/longitude & mapping IF required
@@ -311,6 +318,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                                  ls_snow, tl_1, qw_1, vshr_land, pstar,     &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE )   
+
+
+      CALL adjust_for_tile_frac_changes(tile_frac_changes)
 
  
       IF( first_call ) THEN
