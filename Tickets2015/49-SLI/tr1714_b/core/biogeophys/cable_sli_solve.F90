@@ -136,7 +136,7 @@ CONTAINS
     REAL(r_2),                             INTENT(IN)              :: ts, tfin
     INTEGER(i_d),                          INTENT(IN)              :: irec, mp
     REAL(r_2),      DIMENSION(1:mp),       INTENT(IN)              :: qprec
-    REAL(r_2),      DIMENSION(1:mp),       INTENT(IN)              :: qprec_snow
+    REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT)              :: qprec_snow
     INTEGER(i_d),                          INTENT(IN)              :: n
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(IN)              :: dx
     REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT)           :: h0
@@ -664,15 +664,16 @@ CONTAINS
     !----- solve until tfin
     init(:) = .true. ! flag to initialise h at soil interfaces
     do kk=1, mp
-       rewind(3337)
-       write(3337,*) irec, kk, Tsoil(kk,1)
-       J0snow(kk) = vsnow(kk)%J ! for tracking change in internal energy of snowpack
-       !if (vsnow(kk)%nsnow.ge.1) then
-       !write(*,*) vsnow(kk)%nsnow, vsnow(kk)%hsnow
+     !  rewind(3337)
+     !  write(3337,*) irec, kk, Tsoil(kk,1)
+
+    !  CALL snow_augment(irec, mp, n, kk, ns,qprec_snow,vmet%Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
+    !                 Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow) 
+      J0snow(kk) = vsnow(kk)%J ! for tracking change in internal energy of snowpack
+   
+      
        wcol0snow(kk) = sum(vsnow(kk)%hsnow(1:nsnow_max)) ! for tracking change in water content of snowpack
-       !else
-       !    wcol0snow(kk) = zero
-       !endif
+      
 
        do while (t(kk) < tfin)
 
@@ -2966,6 +2967,82 @@ CONTAINS
   !   end do
   ! END SUBROUTINE solute
   !*********************************************************************************************************************
+   SUBROUTINE snow_augment(irec, mp, n, kk, ns,qprec_snow, Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
+        Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
+
+     INTEGER(i_d),                               INTENT(IN)    :: irec  ! # of grid-cells
+    INTEGER(i_d),                               INTENT(IN)    :: mp    ! # of grid-cells
+    INTEGER(i_d),                               INTENT(IN)    :: n     ! # of soil layers
+    INTEGER(i_d),                               INTENT(IN)    :: kk    ! grid-cell reference
+    INTEGER(i_d),    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
+    REAL(r_2),    DIMENSION(mp),             INTENT(INOUT) :: qprec_snow    ! snowfall ms-1
+    REAL(r_2),    DIMENSION(mp),             INTENT(IN) :: Ta    ! air temp
+    REAL(r_2),                 INTENT(IN) :: tfin    ! time 
+    REAL(r_2),       DIMENSION(mp,1:n),         INTENT(IN)    :: dx    ! soil depths
+    REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: Tsoil ! soil temperatures soil
+    REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: S     ! soil temperatures soil
+    REAL(r_2),       DIMENSION(mp),             INTENT(INOUT) :: h0, hice, j0snow ! pond
+    REAL(r_2),       DIMENSION(1:mp,1:n),       INTENT(INOUT) :: thetai
+    REAL(r_2),       DIMENSION(1:mp),           INTENT(INOUT) :: Jcol_latent_S, Jcol_latent_T, Jcol_sensible
+    REAL(r_2),       DIMENSION(1:mp,1:n),       INTENT(INOUT) :: deltaJ_sensible_S
+    REAL(r_2),       DIMENSION(1:mp,nsnow_max), INTENT(INOUT) :: qmelt
+    REAL(r_2),       DIMENSION(1:mp), INTENT(OUT) :: qtransfer
+    TYPE(vars),      DIMENSION(1:mp,1:n),       INTENT(INOUT) :: var
+    TYPE(params),    DIMENSION(1:mp,1:n),       INTENT(IN)    :: par
+    TYPE(vars_snow), DIMENSION(1:mp),           INTENT(INOUT) :: vsnow
+    REAL(r_2),       DIMENSION(1:mp) :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
+    REAL(r_2),       DIMENSION(1:mp) :: h0_tmp, hice_tmp
+    REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil, theta_tmp
+    INTEGER(i_d) :: i,j ! counters
+
+    if (qprec_snow(kk).gt.0) then
+       ! total energy of augmented snow pack
+       tmp1d1(kk) = rhow*(vsnow(kk)%hsnow(1)-vsnow(kk)%hliq(1))*(csice*vsnow(kk)%tsn(1) - lambdaf) + &
+            rhow*(qprec_snow(kk)*tfin)* &
+            (csice*min(Ta(kk),zero) - lambdaf)
+       ! total water content of augmented snow pack
+       vsnow(kk)%hsnow(1) = vsnow(kk)%hsnow(1) + qprec_snow(kk)*tfin
+       vsnow(kk)%wcol = vsnow(kk)%wcol+qprec_snow(kk)*tfin
+
+     !  write(*,*) 'augment_snow', tfin,kk, qprec_snow(kk), vsnow(kk)%hsnow(1)
+       ! temperature and liquid moisture content of augmented snow pack
+       if (tmp1d1(kk).lt. -vsnow(kk)%hsnow(1)*rhow*lambdaf) then
+          vsnow(kk)%hliq(1)= zero
+          vsnow(kk)%tsn(1)= (tmp1d1(kk)/(rhow*vsnow(kk)%hsnow(1))+lambdaf)/csice
+       else
+          vsnow(kk)%tsn(1)= zero
+          vsnow(kk)%hliq(1)= vsnow(kk)%hsnow(1)+ tmp1d1(kk)/(rhow*lambdaf)
+       endif
+
+       ! density of augmented snow pack
+       ! snowfall density (tmp1d1), LaChapelle 1969
+       if (Ta(kk) > 2.0) then
+          tmp1d2(kk) = 189.0
+       elseif ((Ta(kk) > -15.0) .and. (Ta(kk) <= 2.0)) then
+          tmp1d2(kk) = 50.0 + 1.7*(Ta(kk)+15.0)**1.5
+       else
+          tmp1d2(kk) = 50.0
+       endif
+       
+      
+       vsnow(kk)%dens(1) = (vsnow(kk)%dens(1)*(vsnow(kk)%hsnow(1)-qprec_snow(kk)*tfin) &
+               + tmp1d2(kk)*qprec_snow(kk)*tfin)/vsnow(kk)%hsnow(1)
+
+       vsnow(kk)%depth(1) = vsnow(kk)%hsnow(1)/(vsnow(kk)%dens(1)/rhow)
+      
+      
+       vsnow(kk)%Qprec = qprec_snow(kk)*tfin
+       vsnow(kk)%Qadv_snow=rhow*(qprec_snow(kk))* &
+                        (csice*(min(Ta(kk),zero))-lambdaf)*tfin
+       qprec_snow(kk)=0
+       if (vsnow(kk)%nsnow==0) then
+          vsnow(kk)%nsnow=1
+       endif
+    endif
+    
+    END SUBROUTINE snow_augment
+
+!*********************************************************************************************************************
 
   SUBROUTINE snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
        Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)

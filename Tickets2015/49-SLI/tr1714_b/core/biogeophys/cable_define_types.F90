@@ -307,13 +307,13 @@ MODULE cable_def_types_mod
          taul,    & 
          froot      ! fraction of root in each soil layer
 
-     ! Additional SLI veg parameters:
+     ! Additional  veg parameters:
      REAL(r_2), DIMENSION(:), POINTER :: rootbeta ! parameter for estimating vertical root mass distribution (froot)
      REAL(r_2), DIMENSION(:), POINTER :: gamma    ! parameter in root efficiency function (Lai and Katul 2000)
      REAL(r_2), DIMENSION(:), POINTER :: ZR       ! maximum rooting depth (cm)
      REAL(r_2), DIMENSION(:), POINTER :: F10      ! fraction of roots in top 10 cm
-     REAL(r_2), DIMENSION(:), POINTER :: d0c3     !
-     REAL(r_2), DIMENSION(:), POINTER :: a1c3     !
+   
+     REAL(r_2), DIMENSION(:), POINTER :: clitt     !
 
      ! Additional POP veg param
      INTEGER, DIMENSION(:,:), POINTER ::  disturbance_interval
@@ -399,6 +399,10 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:,:,:), POINTER :: ci     ! intra-cellular CO2 vh 6/7/09
      REAL(r_2), DIMENSION(:),     POINTER :: fwsoil !
 
+!! vh_js !! !litter thermal conductivity (Wm-2K-1) and vapour diffusivity (m2s-1)
+      REAL(r_2), DIMENSION(:), POINTER :: kthLitt, DvLitt   
+             
+
    END TYPE canopy_type
 
 ! .............................................................................
@@ -479,6 +483,8 @@ MODULE cable_def_types_mod
    
       REAL, DIMENSION(:), POINTER ::                                           &
          term2, term3, term5, term6, term6a ! for aerodyn resist. calc.
+
+
    
    END TYPE roughness_type
 
@@ -849,21 +855,17 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%ekc(mp) ) 
    ALLOCATE( var%eko(mp) ) 
 
-    !Allocate variables for SLI soil model:
-    ! IF(cable_user%SOIL_STRUC=='sli') THEN
+    
     ALLOCATE ( var % rootbeta(mp) )
     ALLOCATE ( var % gamma(mp) )
     ALLOCATE ( var % F10(mp) )
     ALLOCATE ( var % ZR(mp) )
-    ALLOCATE ( var % d0c3(mp) )
-    ALLOCATE ( var % a1c3(mp) )
+    ALLOCATE ( var % clitt(mp) )
+
     ALLOCATE ( var % disturbance_interval(mp,2) )
     ALLOCATE ( var % disturbance_intensity(mp,2) )
-    !END IF
-    ! Allocate variables for canopy_vh model:
-    !IF(cable_user%SOIL_STRUC=='sli') THEN
-    IF(.NOT.ASSOCIATED(var % gamma)) ALLOCATE ( var % gamma(mp) )
-    !END IF
+
+ 
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -939,6 +941,10 @@ SUBROUTINE alloc_canopy_type(var, mp)
     ALLOCATE ( var % ecx(mp,mf) )    ! sunlit and shaded leaf latent heat flux
     ALLOCATE ( var % ci(mp,mf,3) )   ! intra-cellular CO2 vh 6/7/09
     ALLOCATE ( var % fwsoil (mp) )
+
+!! vh_js !! liiter resistances to heat and vapour transfer
+   ALLOCATE (var % kthLitt(mp))
+   ALLOCATE (var % DvLitt(mp)) 
    
 END SUBROUTINE alloc_canopy_type
 
@@ -1011,6 +1017,8 @@ SUBROUTINE alloc_roughness_type(var, mp)
    ALLOCATE ( var % zruffs(mp) )
    ALLOCATE ( var % z0soilsn(mp) )
    ALLOCATE ( var % z0soil(mp) )
+   
+
 
 END SUBROUTINE alloc_roughness_type
 
@@ -1342,8 +1350,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
     DEALLOCATE ( var % gamma ) ! vh 20/07/09
     DEALLOCATE ( var % F10 )
     DEALLOCATE ( var % ZR )
-    DEALLOCATE ( var % d0c3 )
-    DEALLOCATE ( var % a1c3 )
+    DEALLOCATE ( var % CLitt )
     DEALLOCATE ( var % disturbance_interval )
     DEALLOCATE ( var % disturbance_intensity )
     IF(ASSOCIATED(var % gamma)) DEALLOCATE ( var % gamma )
@@ -1415,6 +1422,10 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% zetash )  
    DEALLOCATE ( var % fwsoil )
    DEALLOCATE ( var % ofes )
+
+!! vh_js !! liiter resistances to heat and vapour transfer
+   DEALLOCATE (var % kthLitt)
+   DEALLOCATE (var % DvLitt) 
 
 END SUBROUTINE dealloc_canopy_type
    

@@ -17,11 +17,12 @@ MODULE CABLE_PLUME_MIP
   TYPE PLUME_MIP_TYPE
      INTEGER  :: mland, NMET, xdimsize, ydimsize, tdimsize
      INTEGER  :: CYEAR, MetStart, MetEnd, CTSTEP, DT, ktau
+     INTEGER,           DIMENSION(9) :: F_ID, V_ID
      REAL,   DIMENSION(:)  ,ALLOCATABLE :: AVG_LWDN, CO2VALS
+     LOGICAL  :: DirectRead, LeapYears
      LOGICAL,DIMENSION(:,:),ALLOCATABLE :: LandMask 
      CHARACTER(len=15) :: Run,Forcing,RCP, CO2, NDEP,RCPdir
      CHARACTER(len=200):: BasePath, MetPath, LandMaskFile
-     INTEGER,           DIMENSION(9) :: F_ID, V_ID
      CHARACTER(len=12) ,DIMENSION(9) :: VAR_NAME
      CHARACTER(len=200),DIMENSION(9) :: MetFile
      TYPE(PLUME_MET_TYPE), DIMENSION(11) :: MET
@@ -45,11 +46,11 @@ MODULE CABLE_PLUME_MIP
        nextTmin = 11
 
   INTEGER, PRIVATE :: STATUS
-
+  
   REAL, PRIVATE, PARAMETER :: SecDay = 86400.
 
   CHARACTER(len=6),DIMENSION(9),PARAMETER,PRIVATE  :: &
-       PREF = (/ "pr    ","prsn  ","rlds  ","rsds  ","ps    ","hurs  ","tasmax","tasmin","wind  " /)
+       PREF = (/ "pr","prsn","rlds","rsds","ps","hurs","tasmax","tasmin","wind" /)
       
 CONTAINS
 
@@ -60,7 +61,8 @@ CONTAINS
 SUBROUTINE PLUME_MIP_INIT( PLUME )
 
   USE cable_IO_vars_module, ONLY: latitude, longitude, nmetpatches, &
-       mask, metGrid, sdoy, smoy, syear, shod, xdimsize, ydimsize
+       mask, metGrid, sdoy, smoy, syear, shod, xdimsize, ydimsize,  &
+       lat_all, lon_all
   
   USE cable_def_types_mod,  ONLY: mland
 
@@ -71,6 +73,7 @@ SUBROUTINE PLUME_MIP_INIT( PLUME )
   INTEGER              :: STATUS, iu
   INTEGER              :: FID, latID, lonID, landID, timID, tdimsize
   INTEGER              :: cnt, x, y
+  LOGICAL              :: DirectRead = .FALSE.
   LOGICAL              :: ERR = .FALSE.
   CHARACTER(len=15)    :: Run, Forcing, RCP, CO2, NDEP
   CHARACTER(len=200)   :: BasePath, LandMaskFile, LMFILE
@@ -78,35 +81,12 @@ SUBROUTINE PLUME_MIP_INIT( PLUME )
   REAL,DIMENSION(:)  ,ALLOCATABLE :: plume_lats, plume_lons
   INTEGER,DIMENSION(:,:),ALLOCATABLE :: landmask
 
-  NAMELIST /PLUMENML/ BasePath, LandMaskFile, Run, Forcing, RCP, CO2, NDEP, DT
+  NAMELIST /PLUMENML/ BasePath, LandMaskFile, Run, Forcing, RCP, CO2, NDEP, DT, DirectRead
 
   ! Read PLUME settings
 
-  PLUME%NMET = 9
-  IF ( TRIM(PLUME%Forcing) .EQ. "watch") THEN
-     PLUME%VAR_NAME(prec)  = "Rainf"
-     PLUME%VAR_NAME(snow)  = "Snowf"
-     PLUME%VAR_NAME(lwdn)  = "LWdown"
-     PLUME%VAR_NAME(swdn)  = "SWdown"
-     PLUME%VAR_NAME(pres)  = "PSurf"
-     PLUME%VAR_NAME(rhum)  = "Qmean"
-     PLUME%VAR_NAME(tmax)  = "Tmax"
-     PLUME%VAR_NAME(tmin)  = "Tmin"
-     PLUME%VAR_NAME(wind)  = "Wind"
-  ELSE
-     PLUME%VAR_NAME(prec)  = "prAdjust"
-     PLUME%VAR_NAME(snow)  = "prsnAdjust"
-     PLUME%VAR_NAME(lwdn)  = "rldsAdjust"
-     PLUME%VAR_NAME(swdn)  = "rsdsAdjust"
-     PLUME%VAR_NAME(pres)  = "psAdjust"
-     PLUME%VAR_NAME(rhum)  = "hurs"
-     PLUME%VAR_NAME(tmax)  = "tasmaxAdjust"
-     PLUME%VAR_NAME(tmin)  = "tasminAdjust"
-     PLUME%VAR_NAME(wind)  = "windAdjust"
-  END IF
-
   CALL GET_UNIT(iu)
-  OPEN (iu,FILE="plume.nml")
+  OPEN (iu,FILE="plume.nml",STATUS='OLD',ACTION='READ')
   READ (iu,NML=PLUMENML)
   CLOSE(iu)
 
@@ -118,6 +98,7 @@ SUBROUTINE PLUME_MIP_INIT( PLUME )
   PLUME%CO2          = CO2    
   PLUME%NDEP         = NDEP   
   PLUME%DT           = DT * 3600.  ! in seconds
+  PLUME%DirectRead   = DirectRead
   ! Print settings
   
   WRITE(*   ,*)"========================================= PLUME ============"
@@ -143,10 +124,17 @@ SUBROUTINE PLUME_MIP_INIT( PLUME )
 
 PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
 
+
   ! check for valid Run Identifier
 
   SELECT CASE (TRIM(PLUME%Run))
-  CASE( "spinup","1850_1900","2006_2099" ) ; CONTINUE
+  CASE( "2006_2099" ) ; CONTINUE
+  CASE( "spinup","1850_1900") 
+     IF ( TRIM(PLUME%CO2) .NE. "static1850" ) THEN
+        WRITE(*   ,*)"'spinup' chosen: Set CO2 to 'static1850'!!!"
+        WRITE(logn,*)"'spinup' chosen: Set CO2 to 'static1850'!!!"
+        ERR = .TRUE.
+     ENDIF
   CASE( "1901_2001" )
      IF ( TRIM(PLUME%Forcing) .NE. "watch" ) THEN
         WRITE(*   ,*)"Run 1901_2001 must use 'watch' forcing!"
@@ -161,9 +149,9 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
      ENDIF
   CASE  default 
      WRITE(*   ,*)"Wrong PLUME%Run: ",PLUME%Run
-     WRITE(*   ,*)"Use: Spinup, 1850_1900, 1901_2001, 1901_2005 or 2006_2099!"
+     WRITE(*   ,*)"Use: spinup, 1850_1900, 1901_2001, 1901_2005 or 2006_2099!"
      WRITE(logn,*)"Wrong PLUME%Run: ",PLUME%Run
-     WRITE(logn,*)"Use: Spinup, 1850_1900, 1901_2001, 1901_2005 or 2006_2099!"
+     WRITE(logn,*)"Use: spinup, 1850_1900, 1901_2001, 1901_2005 or 2006_2099!"
      ERR = .TRUE.
   END SELECT
 
@@ -197,8 +185,7 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
   ! check for valid RCP
 
   SELECT CASE (TRIM(PLUME%RCP))
-  CASE ("hist","2.6","4.5","6.0","8.5") 
-     
+  CASE ("hist","2.6","4.5","6.0","8.5") ; CONTINUE
   CASE default
      WRITE(*   ,*)"Wrong PLUME%RCP: ",PLUME%RCP
      WRITE(*   ,*)"Please choose any of"
@@ -206,6 +193,20 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
      WRITE(logn,*)"Wrong PLUME%RCP: ",PLUME%RCP
      WRITE(logn,*)"Please choose any of"
      WRITE(logn,*)" hist, 2.6, 4.5, 6.0, 8.5"
+     ERR = .TRUE.
+  END SELECT
+
+  ! check for valid CO2
+
+  SELECT CASE (TRIM(PLUME%CO2))
+  CASE ("static1850","static1990","static2085","varying") ; CONTINUE
+  CASE default
+     WRITE(*   ,*)"Wrong PLUME%CO2: ",PLUME%CO2
+     WRITE(*   ,*)"Please choose any of"
+     WRITE(*   ,*)" static1850, static1990, static2085, varying"
+     WRITE(logn,*)"Wrong PLUME%CO2: ",PLUME%CO2
+     WRITE(logn,*)"Please choose any of"
+     WRITE(logn,*)" static1850, static1990, static2085, varying"
      ERR = .TRUE.
   END SELECT
 
@@ -222,7 +223,7 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
   ENDIF
    
   IF (TRIM(PLUME%Run) .EQ. "spinup" .OR. TRIM(PLUME%Run) .EQ. "1850_1900") THEN
-     PLUME%MetPath = TRIM(PLUME%MetPath)//"spinup_data"//"/hist/"
+     PLUME%MetPath = TRIM(PLUME%MetPath)//"spinup_data/"
   ELSE
      SELECT CASE(TRIM(PLUME%RCP))
      CASE ( "hist" ); PLUME%RCPdir = "hist"   
@@ -233,15 +234,45 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
      END SELECT
      PLUME%MetPath = TRIM(PLUME%MetPath)//TRIM(PLUME%RCPdir)//"/"
   ENDIF
-  
+
+  ! Set Leap-years according to dataset
+  IF ( TRIM(PLUME%Forcing) .EQ. "watch" ) THEN
+     PLUME%LeapYears = .FALSE.
+  ELSE
+     PLUME%LeapYears = .TRUE.
+  ENDIF
+
+  ! Set varialbe names in files
+ 
+  PLUME%NMET = 9
+  IF ( TRIM(PLUME%Forcing) .EQ. "watch") THEN
+     PLUME%VAR_NAME(prec)  = "Rainf"
+     PLUME%VAR_NAME(snow)  = "Snowf"
+     PLUME%VAR_NAME(lwdn)  = "LWdown"
+     PLUME%VAR_NAME(swdn)  = "SWdown"
+     PLUME%VAR_NAME(pres)  = "PSurf"
+     PLUME%VAR_NAME(rhum)  = "Qmean"
+     PLUME%VAR_NAME(tmax)  = "Tmax"
+     PLUME%VAR_NAME(tmin)  = "Tmin"
+     PLUME%VAR_NAME(wind)  = "Wind"
+  ELSE
+     PLUME%VAR_NAME(prec)  = "prAdjust"
+     PLUME%VAR_NAME(snow)  = "prsnAdjust"
+     PLUME%VAR_NAME(lwdn)  = "rldsAdjust"
+     PLUME%VAR_NAME(swdn)  = "rsdsAdjust"
+     PLUME%VAR_NAME(pres)  = "psAdjust"
+     PLUME%VAR_NAME(rhum)  = "hurs"
+     PLUME%VAR_NAME(tmax)  = "tasmaxAdjust"
+     PLUME%VAR_NAME(tmin)  = "tasminAdjust"
+     PLUME%VAR_NAME(wind)  = "windAdjust"
+  END IF
+
   WRITE(*   ,*)"========================================= PLUME ============"
   WRITE(logn,*)"========================================= PLUME ============"
   
   ! Now read landmask file
   ! Landmask file into init! Get LAt, LON etc. from there
-!  LMFILE = TRIM(PLUME%BasePath)//"/plumber_landmask_1x1.nc"
-!  LMFILE = TRIM(PLUME%BasePath)//"/plumber_landmask_.5x.5_F.nc"
-  LMFILE = TRIM(PLUME%BasePath)//"/"//TRIM(PLUME%LandMaskFile)
+  LMFILE = TRIM(PLUME%LandMaskFile)
   WRITE(*   ,*) 'Opening PLUME landmask file: ',TRIM(LMFILE)
   WRITE(logn,*) 'Opening PLUME landmask file: ',TRIM(LMFILE) 
   
@@ -275,6 +306,7 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
   ! Allocate PLUME arrays
   ALLOCATE( PLUME%landmask ( xdimsize, ydimsize) )
   ALLOCATE( landmask ( xdimsize, ydimsize) )
+  ALLOCATE ( mask( xdimsize, ydimsize) )
   
   ! get mask
   STATUS = NF90_INQ_VARID(FID,'land',landID)
@@ -307,7 +339,7 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
   DO y = 1, ydimsize
      DO x = 1, xdimsize
         IF ( .NOT. PLUME%landmask(x,y) ) CYCLE
-PRINT*," lo,la, x,y   ",plume_lons(x),plume_lats(y),x, y
+WRITE(6,FMT='(A15,I3,2(1X,F8.2),2(1x,I3))')"i, lo,la, x,y",cnt,plume_lons(x),plume_lats(y),x, y
 
         land_x   (cnt) = x
         land_y   (cnt) = y
@@ -323,6 +355,14 @@ PRINT*," lo,la, x,y   ",plume_lons(x),plume_lats(y),x, y
   mask        = landmask
   mland       = PLUME%mland
   nmetpatches = 1
+  ALLOCATE( lat_all(xdimsize, ydimsize), lon_all(xdimsize, ydimsize) )
+  DO x = 1, xdimsize
+     lat_all(x,:) = plume_lats
+  END DO
+  DO y = 1, ydimsize
+     lon_all(:,y) = plume_lons
+  END DO
+  
   ! CABLE TIME-UNITS needed by load-parameters (only on CABLE_init)
   shod        = 0.
   sdoy        = 1
@@ -365,37 +405,41 @@ SUBROUTINE PLUME_GET_FILENAME ( PLUME, cyear, par, FN )
      
   IF ( TRIM(fc) .EQ. "watch" ) THEN
      ! WATCH data comes in annual files
-     IF ( TRIM(PLUME%Run) .EQ. "Spinup" ) THEN
+     IF ( TRIM(PLUME%Run) .EQ. "spinup" ) THEN
+        FN = TRIM(mp)//"1901_1930/"
         SELECT CASE ( par )
-        CASE(prec) ; FN = TRIM(mp)//"/1901_1930/Rainf_daily_WFD_TYX_format_detrended_" //cy//".nc"
-        CASE(snow) ; FN = TRIM(mp)//"/1901_1930/Snowf_daily_WFD_TYX_format_detrended_" //cy//".nc"
-        CASE(lwdn) ; FN = TRIM(mp)//"/1901_1930/LWdown_daily_WFD_TYX_format_detrended_"//cy//".nc"
-        CASE(swdn) ; FN = TRIM(mp)//"/1901_1930/SWdown_daily_WFD_TYX_format_detrended_"//cy//".nc"
-        CASE(pres) ; FN = TRIM(mp)//"/1901_1930/PSurf_daily_WFD_TYX_format_detrended_" //cy//".nc"
-        CASE(rhum) ; FN = TRIM(mp)//"/1901_1930/Qmean_WFD_TYX_format_detrended_"       //cy//".nc"
-        CASE(tmax,PrevTmax) ; FN = TRIM(mp)//"/1901_1930/Tmax_WFD_TYX_format_detrended_"        //cy//".nc"
-        CASE(tmin,NextTmin) ; FN = TRIM(mp)//"/1901_1930/Tmin_WFD_TYX_format_detrended_"        //cy//".nc"
-        CASE(wind) ; FN = TRIM(mp)//"/1901_1930/Wind_daily_WFD_TYX_format_"            //cy//".nc"
+        CASE(prec) ; FN = TRIM(FN)//"Rainf_daily_WFD_GPCC_TYX_format_detrended_" 
+        CASE(snow) ; FN = TRIM(FN)//"Snowf_daily_WFD_GPCC_TYX_format_detrended_" 
+        CASE(lwdn) ; FN = TRIM(FN)//"LWdown_daily_WFD_TYX_format_detrended_"
+        CASE(swdn) ; FN = TRIM(FN)//"SWdown_daily_WFD_TYX_format_detrended_"
+        CASE(pres) ; FN = TRIM(FN)//"PSurf_daily_WFD_TYX_format_detrended_" 
+        CASE(rhum) ; FN = TRIM(FN)//"Qmean_WFD_TYX_format_detrended_"       
+        CASE(tmax,PrevTmax) ; FN = TRIM(FN)//"Tmax_WFD_TYX_format_detrended_"
+        CASE(tmin,NextTmin) ; FN = TRIM(FN)//"Tmin_WFD_TYX_format_detrended_"
+        CASE(wind) ; FN = TRIM(FN)//"Wind_daily_WFD_TYX_format_"            
         END SELECT
+        FN = TRIM(FN)//cy//".nc"
+        
      ELSE IF ( TRIM(PLUME%Run) .EQ. "1850_1900" ) THEN
         STOP "Not yet implemented! PLUME: GET_FILE_NAMES"
      ELSE
         SELECT CASE ( par )
-        CASE(prec) ; FN = TRIM(mp)//"/Rainf_daily_WFD/Rainf_daily_WFD_TYX_format_"  //cy//".nc"
-        CASE(snow) ; FN = TRIM(mp)//"/Snowf_daily_WFD/Snowf_daily_WFD_TYX_format_"  //cy//".nc"
-        CASE(lwdn) ; FN = TRIM(mp)//"/LWdown_daily_WFD/LWdown_daily_WFD_TYX_format_"//cy//".nc"
-        CASE(swdn) ; FN = TRIM(mp)//"/SWdown_daily_WFD/SWdown_daily_WFD_TYX_format_"//cy//".nc"
-        CASE(pres) ; FN = TRIM(mp)//"/PSurf_daily_WFD/PSurf_daily_WFD_TYX_format_"  //cy//".nc"
-        CASE(rhum) ; FN = TRIM(mp)//"/Qmean_daily_WFD/Qmean_daily_WFD_TYX_format_"  //cy//".nc"
-        CASE(tmax,PrevTmax) ; FN = TRIM(mp)//"/Tmax_daily_WFD/Tmax_daily_WFD_TYX_format_"    //cy//".nc"
-        CASE(tmin,NextTmin) ; FN = TRIM(mp)//"/Tmin_daily_WFD/Tmin_daily_WFD_TYX_format_"    //cy//".nc"
-        CASE(wind) ; FN = TRIM(mp)//"/Wind_daily_WFD/Wind_daily_WFD_TYX_format_"    //cy//".nc"
+        CASE(prec) ; FN = TRIM(mp)//"/Rainf_daily_WFD/Rainf_daily_WFD_TYX_format_"  
+        CASE(snow) ; FN = TRIM(mp)//"/Snowf_daily_WFD/Snowf_daily_WFD_TYX_format_"  
+        CASE(lwdn) ; FN = TRIM(mp)//"/LWdown_daily_WFD/LWdown_daily_WFD_TYX_format_"
+        CASE(swdn) ; FN = TRIM(mp)//"/SWdown_daily_WFD/SWdown_daily_WFD_TYX_format_"
+        CASE(pres) ; FN = TRIM(mp)//"/PSurf_daily_WFD/PSurf_daily_WFD_TYX_format_"  
+        CASE(rhum) ; FN = TRIM(mp)//"/Qmean_daily_WFD/Qmean_daily_WFD_TYX_format_"  
+        CASE(tmax,PrevTmax) ; FN = TRIM(mp)//"/Tmax_daily_WFD/Tmax_daily_WFD_TYX_format_"  
+        CASE(tmin,NextTmin) ; FN = TRIM(mp)//"/Tmin_daily_WFD/Tmin_daily_WFD_TYX_format_"  
+        CASE(wind) ; FN = TRIM(mp)//"/Wind_daily_WFD/Wind_daily_WFD_TYX_format_"
         END SELECT
+        FN = TRIM(FN)//cy//".nc"
      ENDIF
   ELSE
      ! find proper file for current time
         ! hist spinup only
-     IF ( TRIM(PLUME%Run) .EQ. "Spinup" ) THEN
+     IF ( TRIM(PLUME%Run) .EQ. "spinup" ) THEN
         FN = TRIM(mp)//"/"//TRIM(PREF(par))
         IF ( par .NE. rhum ) FN = TRIM(FN)//"Adjust"
         FN = TRIM(FN)//"_"//TRIM(fc)//"_"//TRIM(rcp)//"_"
@@ -495,7 +539,7 @@ SUBROUTINE GET_PLUME_CO2( PLUME, CO2air )
   INTEGER              :: i, iu, f, IOS = 0
   CHARACTER            :: CO2FILE*200
 
-  IF ( TRIM(PLUME%Run) .EQ. "Spinup" ) THEN
+  IF ( TRIM(PLUME%Run) .EQ. "spinup" .OR. TRIM(PLUME%CO2) .EQ. "static1850") THEN
      ! fixed 1850 value 
      CO2air = 284.72501
   ELSE IF ( TRIM(PLUME%CO2) .EQ. "static1990" ) THEN
@@ -555,6 +599,7 @@ SUBROUTINE OPEN_PLUME_MET( PLUME )
 
   TYPE( PLUME_MIP_TYPE )   :: PLUME
   INTEGER             :: i, iy, yy, tID
+  INTEGER             :: CYEAR
   LOGICAL, SAVE       :: CALL1 = .TRUE.
 
   ! find time 
@@ -564,7 +609,14 @@ SUBROUTINE OPEN_PLUME_MET( PLUME )
 
 
   DO i = 1, PLUME%NMET
-     CALL PLUME_GET_FILENAME( PLUME, PLUME%CYEAR, i, PLUME%MetFile(i) )
+     IF ( TRIM(PLUME%Run) .EQ. 'spinup' .AND. &
+          TRIM(PLUME%FORCING) .EQ. 'watch' ) THEN
+        CYEAR = MODULO(PLUME%CYEAR-1901,30) + 1901
+     ELSE
+        CYEAR = PLUME%CYEAR
+     ENDIF
+
+     CALL PLUME_GET_FILENAME( PLUME, CYEAR, i, PLUME%MetFile(i) )
 
      ! OPEN NEW MET FILES and access variables
      WRITE(*   ,*) 'Opening met data file: ', PLUME%MetFile(i)
@@ -572,13 +624,14 @@ SUBROUTINE OPEN_PLUME_MET( PLUME )
      STATUS = NF90_OPEN(TRIM(PLUME%MetFile(i)), NF90_NOWRITE, PLUME%F_ID(i))
      CALL HANDLE_ERR(STATUS, "Opening PLUME file "//PLUME%MetFile(i) )
      STATUS = NF90_INQ_VARID(PLUME%F_ID(i),TRIM(PLUME%VAR_NAME(i)), PLUME%V_ID(i))
-     CALL HANDLE_ERR(STATUS, "Inquiring PLUME var in "//PLUME%MetFile(i) )
+     CALL HANDLE_ERR(STATUS, "Inquiring PLUME var "//TRIM(PLUME%VAR_NAME(i))// &
+          " in "//PLUME%MetFile(i) )
   END DO
 
   ! Set internal counter
   PLUME%CTSTEP = 1
   ! For first call there might be an offset
-  IF ( PLUME%CYEAR .GT. PLUME%MetStart ) THEN 
+  IF ( TRIM(PLUME%Run) .NE. 'spinup' .AND. PLUME%CYEAR .GT. PLUME%MetStart ) THEN 
      DO yy = PLUME%MetStart, PLUME%CYEAR - 1
         PLUME%CTSTEP = PLUME%CTSTEP + 365 + LEAP_DAY( yy )
      END DO
@@ -587,9 +640,9 @@ SUBROUTINE OPEN_PLUME_MET( PLUME )
   ! Get unit of time
   IF ( CALL1 ) THEN
      STATUS = NF90_INQ_VARID(PLUME%F_ID(prec),'time',tID)
-     CALL HANDLE_ERR(STATUS, "Inquiring PLUME time  in "//PLUME%MetFile(i) )
+     CALL HANDLE_ERR(STATUS, "Inquiring PLUME time  in "//PLUME%MetFile(1) )
      STATUS = NF90_GET_ATT(PLUME%F_ID(prec),tID,'units',timeunits)
-     CALL HANDLE_ERR(STATUS, "Inquiring PLUME timeunit in "//PLUME%MetFile(i) )
+     CALL HANDLE_ERR(STATUS, "Inquiring PLUME timeunit in "//PLUME%MetFile(1) )
   ENDIF
 
   CALL1 = .FALSE.
@@ -604,10 +657,10 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
 
   TYPE(PLUME_MIP_TYPE) :: PLUME
   LOGICAL, INTENT(IN)  :: TminFlag, islast
-  REAL    :: tmparr(720,360)
-  INTEGER :: t, i, ii, k, realk
+  REAL    :: tmparr(720,360), tmp, stmp(365)
+  INTEGER :: t, i, ii, k, x, y, realk
   INTEGER :: fid, vid, tid
-  INTEGER :: xds, yds, tds
+  INTEGER :: xds, yds, tds, CYEAR, NYEAR
   LOGICAL, SAVE :: CALL1 = .TRUE. 
   CHARACTER(LEN=200) :: filename
 
@@ -618,50 +671,89 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
      PLUME%MET(  Tmin  )%VAL(:) = PLUME%MET(NextTmin)%VAL(:) 
   ENDIF
 
+  IF ( TRIM(PLUME%Run) .EQ. 'spinup' .AND. &
+       TRIM(PLUME%FORCING) .EQ. 'watch' ) THEN
+     CYEAR = MODULO(PLUME%CYEAR-1901,30) + 1901
+  ELSE
+     CYEAR = PLUME%CYEAR
+  ENDIF
+
   xds = PLUME%xdimsize
   yds = PLUME%ydimsize
 
   DO i= 1, PLUME%NMET
      
      IF ( i .EQ. Tmin )THEN 
+        ! Tmin needs to be read from NEXT DAY 
         ii = nextTmin
         
         t  = PLUME%CTSTEP + 1
         
         ! On first occasion read t=1 as well  
         IF ( CALL1 ) THEN
-           STATUS = NF90_GET_VAR(PLUME%F_ID(i), PLUME%V_ID(i), tmparr, &
-                start=(/1,1,t-1/),count=(/xds,yds,1/) )
-           CALL HANDLE_ERR(STATUS, "Reading from "//PLUME%MetFile(i) )
 
-           DO k = 1, PLUME%mland
-              PLUME%MET(i)%VAL(k) = tmparr( land_x(k), land_y(k) )
-           END DO
+           IF ( PLUME%DirectRead ) THEN
+
+              DO k = 1, PLUME%mland
+                 STATUS = NF90_GET_VAR( PLUME%F_ID(i), PLUME%V_ID(i), tmp, &
+                      start=(/land_x(k),land_y(k),t-1/) ) 
+                  CALL HANDLE_ERR(STATUS, "Reading direct from "//PLUME%MetFile(i) )
+                 PLUME%MET(i)%VAL(k) = tmp
+              END DO
+
+           ELSE
+              STATUS = NF90_GET_VAR(PLUME%F_ID(i), PLUME%V_ID(i), tmparr, &
+                    start=(/1,1,t-1/),count=(/xds,yds,1/) )
+              CALL HANDLE_ERR(STATUS, "Reading from "//PLUME%MetFile(i) )
+              
+              DO k = 1, PLUME%mland
+                 PLUME%MET(i)%VAL(k) = tmparr( land_x(k), land_y(k) )
+              END DO
+
+           ENDIF
         END IF
            
-     ELSE
+     ELSE 
         ii = i
         t  = PLUME%CTSTEP
-     ENDIF
+     ENDIF 
 
      IF ( i .EQ. Tmin .AND. TminFlag ) THEN
         IF ( .NOT. islast ) THEN
            ! Open next file for Quick access or use same if very last t-step.
            t  = 1
-           CALL PLUME_GET_FILENAME( PLUME, PLUME%CYEAR+1, Tmin, filename )
+           IF ( TRIM(PLUME%Run) .EQ. 'spinup' .AND. &
+                TRIM(PLUME%FORCING) .EQ. 'watch' ) THEN
+              NYEAR = MODULO(PLUME%CYEAR+1-1901,30) + 1901
+           ELSE
+              NYEAR = PLUME%CYEAR
+           ENDIF
+
+           CALL PLUME_GET_FILENAME( PLUME, NYEAR, Tmin, filename )
            STATUS = NF90_OPEN(TRIM(filename), NF90_NOWRITE, fid)
            CALL HANDLE_ERR(STATUS, "Opening PLUME file "//filename )
            
            STATUS = NF90_INQ_VARID(fid,TRIM(PLUME%VAR_NAME(i)), vid)
            CALL HANDLE_ERR(STATUS, "Inquiring PLUME var "//filename )
            
-           STATUS = NF90_GET_VAR(fid, vid, tmparr, &
-                start=(/1,1,t/),count=(/xds,yds,1/) )
-           CALL HANDLE_ERR(STATUS, "Reading from "//filename )
-           
-           DO k = 1, PLUME%mland
-              PLUME%MET(ii)%VAL(k) = tmparr( land_x(k), land_y(k) )
-           END DO
+           IF ( PLUME%DirectRead ) THEN
+
+              DO k = 1, PLUME%mland
+                 STATUS = NF90_GET_VAR(fid, vid, PLUME%MET(ii)%VAL(k), &
+                      start=(/land_x(k), land_y(k),t/) )
+                 CALL HANDLE_ERR(STATUS, "Reading directly from "//filename )
+              END DO
+
+           ELSE
+
+              STATUS = NF90_GET_VAR(fid, vid, tmparr, &
+                   start=(/1,1,t/),count=(/xds,yds,1/) )
+              CALL HANDLE_ERR(STATUS, "Reading from "//filename )
+              DO k = 1, PLUME%mland
+                 PLUME%MET(ii)%VAL(k) = tmparr( land_x(k), land_y(k) )
+              END DO
+
+           ENDIF
            
            STATUS = NF90_CLOSE(fid)
            CALL HANDLE_ERR(STATUS, "Closing PLUME file "//filename)
@@ -673,20 +765,31 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
 
         ! STANDARD READ 
         ! variables from open files
-        STATUS = NF90_GET_VAR(PLUME%F_ID(i), PLUME%V_ID(i), tmparr, &
-             start=(/1,1,t/),count=(/xds,yds,1/) )
-        CALL HANDLE_ERR(STATUS, "Reading from "//PLUME%MetFile(i) )
-        DO k = 1, PLUME%mland
-           PLUME%MET(ii)%VAL(k) = tmparr( land_x(k), land_y(k) )
-        END DO
-     ENDIF
+        IF ( PLUME%DirectRead ) THEN
 
+           DO k = 1, PLUME%mland
+              STATUS = NF90_GET_VAR(PLUME%F_ID(i), PLUME%V_ID(i), PLUME%MET(ii)%VAL(k), &
+                   start=(/land_x(k),land_y(k),t/) )
+              CALL HANDLE_ERR(STATUS, "Reading directly from "//PLUME%MetFile(i) )
+           END DO
+
+        ELSE
+        
+           STATUS = NF90_GET_VAR(PLUME%F_ID(i), PLUME%V_ID(i), tmparr, &
+                start=(/1,1,t/),count=(/xds,yds,1/) )
+           CALL HANDLE_ERR(STATUS, "Reading from "//PLUME%MetFile(i) )
+           DO k = 1, PLUME%mland
+              PLUME%MET(ii)%VAL(k) = tmparr( land_x(k), land_y(k) )
+           END DO
+        ENDIF
+     ENDIF
+     
      IF ( (i .EQ. Tmax ) .AND. CALL1 ) THEN
         ii = prevTmax
 
-        IF ( PLUME%CYEAR .GT. 1900 ) THEN
+        IF ( CYEAR .GT. 1900 ) THEN
            ! on
-           CALL PLUME_GET_FILENAME( PLUME, PLUME%CYEAR-1, i, filename )
+           CALL PLUME_GET_FILENAME( PLUME, CYEAR-1, i, filename )
            STATUS = NF90_OPEN(TRIM(filename), NF90_NOWRITE, fid)
            CALL HANDLE_ERR(STATUS, "Opening PLUME file "//filename )
            
@@ -697,13 +800,25 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
            STATUS = NF90_INQ_VARID(fid,TRIM(PLUME%VAR_NAME(i)), vid)
            CALL HANDLE_ERR(STATUS, "Inquiring PLUME var "//filename )
            
-           STATUS = NF90_GET_VAR(fid, vid, tmparr, &
-                start=(/1,1,tds/),count=(/xds,yds,1/) )
-           CALL HANDLE_ERR(STATUS, "Reading from "//filename )
-           
-           DO k = 1, PLUME%mland
-              PLUME%MET(ii)%VAL(k) = tmparr( land_x(k), land_y(k) )
-           END DO
+           IF ( PLUME%DirectRead ) THEN
+
+              DO k = 1, PLUME%mland
+                 STATUS = NF90_GET_VAR(fid, vid, PLUME%MET(ii)%VAL(k), &
+                      start=(/land_x(k), land_y(k),tds/) )
+                 CALL HANDLE_ERR(STATUS, "Reading from "//filename )
+              END DO
+
+           ELSE
+
+              STATUS = NF90_GET_VAR(fid, vid, tmparr, &
+                   start=(/1,1,tds/),count=(/xds,yds,1/) )
+              CALL HANDLE_ERR(STATUS, "Reading from "//filename )
+              
+              DO k = 1, PLUME%mland
+                 PLUME%MET(ii)%VAL(k) = tmparr( land_x(k), land_y(k) )
+              END DO
+              
+           ENDIF
            
            STATUS = NF90_CLOSE(fid)
            CALL HANDLE_ERR(STATUS, "Closing PLUME file "//filename)
@@ -712,8 +827,6 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
            PLUME%MET(ii)%VAL(:) = PLUME%MET(i) %VAL(:)
         ENDIF
      END IF
-        
-        
         
   END DO
 
@@ -781,8 +894,8 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
   TYPE(MET_TYPE)       :: MET
 
   LOGICAL   :: newday                  
-  INTEGER   :: i, dY, dM, dD
-  REAL      :: dt, CO2air
+  INTEGER   :: i, dY, dM, dD, is, ie
+  REAL      :: dt, CO2air, etime
   CHARACTER :: LMFILE*200
 
   TYPE(WEATHER_GENERATOR_TYPE), SAVE :: WG
@@ -802,13 +915,13 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
   !!!!  this only works with CANBERRA cable_driver, as ktau    !!!!
   !!!!  restarts on Jan 1                                      !!!!
 
-  met%hod (landpt(1)%cstart) = REAL(MOD( (ktau-1) * NINT(dt), INT(SecDay)) ) / 3600.
-  met%doy (landpt(:)%cstart) = INT(REAL(ktau-1) * dt / SecDay ) + 1
-  met%year(landpt(:)%cstart) = Curyear
+  met%hod (:) = REAL(MOD( (ktau-1) * NINT(dt), INT(SecDay)) ) / 3600.
+  met%doy (:) = INT(REAL(ktau-1) * dt / SecDay ) + 1
+  met%year(:) = Curyear
 
   CALL DOYSOD2YMDHMS(CurYear, INT(met%doy(1)), INT(met%hod(1)) * 3600, dY, dM, dD )
 
-  met%moy (landpt(:)%cstart) = dM
+  met%moy (:) = dM
 
   newday = ( met%hod(landpt(1)%cstart).EQ. 0 ) 
 
@@ -829,11 +942,19 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
 
   IF ( newday ) THEN
 
-     CALL PLUME_GET_DAILY_MET( PLUME, (ktau.EQ.kend-((SecDay/dt)-1) .AND. FILE_SWITCH( PLUME, 'CLOSE' )), islast )
+ CALL CPU_TIME(etime)
+   PRINT *, 'b4 daily ', etime, ' seconds needed '
+
+     CALL PLUME_GET_DAILY_MET( PLUME, (ktau.EQ.kend-((SecDay/dt)-1) .AND. & 
+          FILE_SWITCH( PLUME, 'CLOSE' )), islast )
+CALL CPU_TIME(etime)
+   PRINT *, 'after daily ', etime, ' seconds needed '
+
 
      ! Air pressure assumed to be constant over day
-
-     met%pmb = PLUME%MET(pres)%VAL !CLN interpolation??
+     DO i = 1, PLUME%mland
+        met%pmb(landpt(i)%cstart:landpt(i)%cend) = PLUME%MET(pres)%VAL(i) !CLN interpolation??
+     END DO
 
      WG%WindDay        = PLUME%MET(  wind  )%VAL
      WG%TempMinDay     = PLUME%MET(  Tmin  )%VAL - 273.15
@@ -855,7 +976,6 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
         PLUME%AVG_LWDN = PLUME%AVG_LWDN + WG%PhiLD
      END DO
      PLUME%AVG_LWDN = PLUME%AVG_LWDN / (SecDay/dt)
-        
   END IF
   
   ! Decision has been made, that first tstep of the day is at 0:01 am
@@ -864,35 +984,52 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
 
   ! assign to cable variables
 
-  met%precip    = WG%Precip 
-  met%precip_sn = WG%Snow
-  met%fld       = WG%PhiLD * PLUME%MET(lwdn )%VAL / PLUME%AVG_LWDN
-  met%fsd(:,1)  = WG%PhiSD * 0.5
-  met%fsd(:,2)  = WG%PhiSD * 0.5
-  met%tk        = WG%Temp + 273.15
-  met%ua        = WG%Wind
-  met%coszen    = WG%coszen
-  met%tvrad     = met%tk !!!! Exclamation mark!
+  ! strangely, met% is not save over Wait all in MPI...!
+!  met%pmb = PLUME%MET(pres)%VAL !CLN interpolation??
+
   DO i = 1, PLUME%mland
+     is = landpt(i)%cstart
+     ie = landpt(i)%cend
+     met%precip    (is:ie)   = WG%Precip (i) +  WG%Snow  (i) 
+     met%precip_sn (is:ie)   = WG%Snow   (i) 
+     met%fld       (is:ie)   = PLUME%MET( lwdn )%VAL(i) * WG%PhiLD(i) / PLUME%AVG_LWDN(i)
+     met%fsd       (is:ie,1) = WG%PhiSD(i) * 0.5
+     met%fsd       (is:ie,2) = WG%PhiSD(i) * 0.5
+     met%tk        (is:ie)   = WG%Temp(i) + 273.15
+     met%ua        (is:ie)   = WG%Wind(i)
+     met%coszen    (is:ie)   = WG%coszen(i)
      ! compute qv 
-     CALL rh_sh ( PLUME%MET(rhum)%VAL(i), met%tk(i), met%pmb(i), met%qv(i) )
+     CALL rh_sh ( PLUME%MET(rhum)%VAL(i), met%tk(is), met%pmb(is), met%qv(is) )
+     met%qv        (is:ie)   = met%qv(is)
   END DO
 
-  IF ( ktau.EQ.1 ) THEN
-     WRITE(*,*)"Pmax,Tmin, max,Ntmin", PLUME%MET(PrevTmax)%VAL(19), &
-          PLUME%MET(Tmin)%VAL(19),PLUME%MET(Tmax)%VAL(19),PLUME%MET(NextTmin)%VAL(19) 
-     WRITE(*,*)"#  qv       Precip   snow   LWDin PhiLD  rPhiLD  PhiSD Temp    Wind    coszen"
-    
-     
-  ENDIF
-  
-  IF ( ktau .lt. 9 ) &
-  WRITE(*,FMT='(I2,3(X,F8.5),X,3(F5.1,x),F7.3,2(X,F5.1),3(X,ES12.4))')&
-       MOD((ktau-1)*NINT(dt/3600.),24), met%qv(19), &
-       WG%Precip(19), met%precip_sn(19), PLUME%MET(lwdn)%VAL(19), &
-       met%fld(19), WG%PhiLD(19) , WG%PhiSD(19) , met%tk(19) , WG%Wind(19), &
-       WG%coszen(19)
+  ! initialise within canopy air temp
+  met%tvair     = met%tk 
+  met%tvrad     = met%tk 
 
+!!$write(*,*) "met", met%precip(1), &
+!!$met%precip_sn (is:ie)  , & 
+!!$     met%fld       (is:ie), &
+!!$     met%fsd       (is:ie,1), &
+!!$     met%fsd       (is:ie,2), &
+!!$     met%tk        (is:ie) , &
+!!$     met%ua        (is:ie)  , &
+!!$     met%coszen    (is:ie)  
+
+!CLN  IF ( ktau.EQ.1 ) &
+!CLN       WRITE(*,*)"#    qv       Precip   snow   LWDin  PhiLD   rPhiLD   PhiSD Temp     Wind     coszen"
+  
+  !Test write out
+  
+!  IF ( ktau .lt. 100 ) THEN
+!CLN     DO i = 1, PLUME%MLAND
+!CLN       WRITE(*,FMT='(I4,3(X,F8.5),X,3(F6.1,x),F7.3,2(X,F6.1),3(X,ES12.4))')&
+!CLN       i, met%qv(i), &
+!CLN       WG%Precip(i), met%precip_sn(i), PLUME%MET(lwdn)%VAL(i), &
+!CLN       met%fld(i), WG%PhiLD(i) , WG%PhiSD(i) , met%tk(i) , WG%Wind(i), &
+!CLN       WG%coszen(i)
+!CLN    ENDDO
+! ENDIF
   ! Finally closing files when done
 
   IF ((ktau .EQ. kend .AND. FILE_SWITCH( PLUME, 'CLOSE' )) .OR. islast) THEN
@@ -904,6 +1041,7 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
   
   ! CALL1 is over...
   CALL1 = .FALSE.
+
 
 END SUBROUTINE PLUME_MIP_GET_MET
 

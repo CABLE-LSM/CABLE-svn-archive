@@ -33,7 +33,7 @@
 !                 casadimension
 !                 casavariable
 !                 phenvariable
-! 
+!
 ! CALLs:       point2constants
 !              casa_feedback
 !              cbm
@@ -86,483 +86,720 @@ MODULE cable_mpiworker
   ! worker's struct for sending final casa results to the master
   INTEGER :: casa_t
 
+  ! worker's struct for rec'ing/sending final casa results to/from the master
+  INTEGER :: casa_dump_t
+
+  ! worker's struct for rec'ing/sending pop io to/from the master
+  INTEGER :: pop_t
+
   ! worker's struct for restart data to the master
   INTEGER :: restart_t
+
+  ! worker's logfile unit
+  INTEGER :: wlogn 
 
   PUBLIC :: mpidrv_worker
 
 CONTAINS
 
-   SUBROUTINE mpidrv_worker (comm)
+  SUBROUTINE mpidrv_worker (comm)
 
-   USE mpi
+    USE mpi
 
-   USE cable_def_types_mod
-   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
-                                   verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
-   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, calcsoilalbedo,    & 
-                                   redistrb, wiltParam, satuParam
-   USE cable_data_module,    ONLY: driver_type, point2constants
-   USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
-                                   get_met_data,close_met_file
-   USE cable_output_module,  ONLY: create_restart,open_output_file,            &
-                                   write_output,close_output_file
-   USE cable_cbm_module
-   
-   ! modules related to CASA-CNP
-   USE casadimension,       ONLY: icycle 
-   USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
-   USE phenvariable,        ONLY: phen_variable
+    USE cable_def_types_mod
+    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+         verbose, fixedCO2,output,check,patchout,    &
+         patch_type,soilparmnew,&
+         defaultLAI
+    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
+         cable_runtime, filename, myhome,            &
+         redistrb, wiltParam, satuParam, CurYear,    &
+         IS_LEAPYEAR, calcsoilalbedo,                &
+         report_version_no
+    USE cable_data_module,    ONLY: driver_type, point2constants
+    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
+         get_met_data,close_met_file
+    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
+         write_output,close_output_file
+    USE cable_cbm_module
 
-   IMPLICIT NONE
+    ! modules related to CASA-CNP
+    USE casadimension,        ONLY: icycle
+    USE casavariable,         ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
+         casa_met, casa_balance
+    USE phenvariable,         ONLY: phen_variable
 
-   ! MPI:
-   INTEGER               :: comm ! MPI communicator for comms with the workers
+    !CLN added
+    ! modules related to POP
+    USE POP_Types,            ONLY: POP_TYPE
+    USE POP_Constants,        ONLY: HEIGHT_BINS, NCOHORT_MAX
 
-   ! CABLE namelist: model configuration, runtime/user switches 
-   CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
-   
-   ! timing variables 
-   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-   
-   INTEGER        ::                                                           &
-      ktau,       &  ! increment equates to timestep, resets if spinning up
-      ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
-      kend,       &  ! no. of time steps in run
-      ktauday,    &  ! day counter for CASA-CNP
-      idoy,       &  ! day of year (1:365) counter for CASA-CNP
-      nyear          ! year counter for CASA-CNP
+    ! PLUME-MIP only
+    USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE
 
-   REAL :: dels                        ! time step size in seconds
-   
-   ! CABLE variables
-   TYPE (met_type)       :: met     ! met input variables
-   TYPE (air_type)       :: air     ! air property variables
-   TYPE (canopy_type)    :: canopy  ! vegetation variables
-   TYPE (radiation_type) :: rad     ! radiation variables
-   TYPE (roughness_type) :: rough   ! roughness varibles
-   TYPE (balances_type)  :: bal     ! energy and water balance variables
-   TYPE (soil_snow_type) :: ssnow   ! soil and snow variables
-   
-   ! CABLE parameters
-   TYPE (soil_parameter_type) :: soil ! soil parameters	
-   TYPE (veg_parameter_type)  :: veg  ! vegetation parameters	 
-   TYPE (driver_type)    :: C         ! constants used locally  
-   
-   TYPE (sum_flux_type)  :: sum_flux ! cumulative flux variables
-   TYPE (bgc_pool_type)  :: bgc  ! carbon pool variables
-   
-   ! CASA-CNP variables 
-   TYPE (casa_biome)     :: casabiome
-   TYPE (casa_pool)      :: casapool
-   TYPE (casa_flux)      :: casaflux
-   TYPE (casa_met)       :: casamet
-   TYPE (casa_balance)   :: casabal
-   TYPE (phen_variable)  :: phen 
-   
-   ! declare vars for switches (default .FALSE.) etc declared thru namelist
-   LOGICAL, SAVE           :: &
-      vegparmnew = .FALSE.,       & ! using new format input file (BP dec 2007)
-      spinup = .FALSE.,           & ! model spinup to soil state equilibrium?
-      spinConv = .FALSE.,         & ! has spinup converged?
-      spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
+    IMPLICIT NONE
+
+    ! MPI:
+    INTEGER               :: comm ! MPI communicator for comms with the workers
+
+    ! CABLE namelist: model configuration, runtime/user switches 
+    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
+
+    ! timing variables 
+    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+
+    INTEGER        ::                                                           &
+         ktau,       &  ! increment equates to timestep, resets if spinning up
+         ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
+         kend,       &  ! no. of time steps in run
+                                !CLN      kstart = 1, &  ! timestep to start at
+         koffset = 0, &  ! timestep to start at
+         ktauday,    &  ! day counter for CASA-CNP
+         idoy,       &  ! day of year (1:365) counter for CASA-CNP
+         nyear,      &  ! year counter for CASA-CNP
+         casa_it,    &  ! number of calls to CASA-CNP
+         ctime,      &  ! day count for casacnp
+         YYYY,       &  !
+         LOY,        &  ! Length of Year
+         rank,       &  ! Rank of this worker
+         maxdiff(2)     ! location of maximum in convergence test
+
+    REAL      :: dels    ! time step size in seconds
+    CHARACTER :: cRank*4 ! for worker-logfiles
+
+    ! CABLE variables
+    TYPE (met_type)       :: met     ! met input variables
+    TYPE (air_type)       :: air     ! air property variables
+    TYPE (canopy_type)    :: canopy  ! vegetation variables
+    TYPE (radiation_type) :: rad     ! radiation variables
+    TYPE (roughness_type) :: rough   ! roughness varibles
+    TYPE (balances_type)  :: bal     ! energy and water balance variables
+    TYPE (soil_snow_type) :: ssnow   ! soil and snow variables
+
+    ! CABLE parameters
+    TYPE (soil_parameter_type) :: soil ! soil parameters
+    TYPE (veg_parameter_type)  :: veg  ! vegetation parameters
+    TYPE (driver_type)    :: C         ! constants used locally
+
+    TYPE (sum_flux_type)  :: sum_flux ! cumulative flux variables
+    TYPE (bgc_pool_type)  :: bgc  ! carbon pool variables
+
+    ! CASA-CNP variables 
+    TYPE (casa_biome)     :: casabiome
+    TYPE (casa_pool)      :: casapool
+    TYPE (casa_flux)      :: casaflux
+    TYPE (casa_met)       :: casamet
+    TYPE (casa_balance)   :: casabal
+    TYPE (phen_variable)  :: phen
+    TYPE (POP_TYPE)       :: POP
+    TYPE (PLUME_MIP_TYPE) :: PLUME
+    CHARACTER             :: cyear*4
+    CHARACTER             :: ncfile*99
+
+    ! declare vars for switches (default .FALSE.) etc declared thru namelist
+    LOGICAL, SAVE           :: &
+         vegparmnew    = .FALSE., & ! using new format input file (BP dec 2007)
+         spinup        = .FALSE., & ! model spinup to soil state equilibrium?
+         spinConv      = .FALSE., & ! has spinup converged?
+         spincasainput = .FALSE., & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
-      spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
+         spincasa      = .FALSE., & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
-      l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
-      l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
-   
-   
-   REAL              :: &  
-      delsoilM,         & ! allowed variation in soil moisture for spin up
-      delsoilT            ! allowed variation in soil temperature for spin up
-  
-   ! temporary storage for soil moisture/temp. in spin up mode
-   REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
-      soilMtemp,                         &   
-      soilTtemp      
-   
-   ! MPI:
-   LOGICAL :: loop_exit     ! MPI: exit flag for bcast to workers
-   INTEGER :: stat(MPI_STATUS_SIZE)
-   INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
-   INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
-   INTEGER :: ierr
-
-   ! switches etc defined thru namelist (by default cable.nml)
-   NAMELIST/CABLE/                  &
-                  filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! use new soil param. method
-                  soilparmnew,      & ! use new soil param. method
-                  calcsoilalbedo,   & ! switch: soil colour albedo - Ticket #27 
-                  spinup,           & ! spinup model (soil) to steady state 
-                  delsoilM,delsoilT,& ! 
-                  output,           &
-                  patchout,         &
-                  check,            &
-                  verbose,          &
-                  leaps,            &
-                  logn,             &
-                  fixedCO2,         &
-                  spincasainput,    &
-                  spincasa,         &
-                  l_casacnp,        &
-                  l_laiFeedbk,      &
-                  l_vcmaxFeedbk,    &
-                  icycle,           &
-                  casafile,         &
-                  ncciy,            &
-                  gswpfile,         &
-                  redistrb,         &
-                  wiltParam,        &
-                  satuParam,        &
-                  cable_user           ! additional USER switches 
-
-   ! END header
-
-   ! Open, read and close the namelist file.
-   OPEN( 10, FILE = CABLE_NAMELIST )
-      READ( 10, NML=CABLE )   !where NML=CABLE defined above
-   CLOSE(10)
-
-   IF( IARGC() > 0 ) THEN
-      CALL GETARG(1, filename%met)
-      CALL GETARG(2, casafile%cnpipool)
-   ENDIF
-
-    
-   cable_runtime%offline = .TRUE.
-   
-   ! associate pointers used locally with global definitions
-   CALL point2constants( C )
-    
-   IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
-      STOP 'icycle must be 1 to 3 when using casaCNP'
-   IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
-      STOP 'casaCNP required to get prognostic LAI or Vcmax'
-   IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
-      STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
-   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
-      STOP 'casaCNP must use new soil parameters'
-
-   ! Open log file:
-   ! MPI: worker logs go to the black hole
-   ! by opening the file we don't need to touch any of the code that writes
-   ! to it and may be called somewhere by a worker
-   ! OPEN(logn,FILE=filename%log)
-
-   ! MPI: TODO: find a way to preserve workers log messages somewhere
-   ! (either separate files or collated by the master to a single file
-   ! or perhaps use MPI-IO - but probably not gonna work with random length
-   ! text strings)
-   OPEN(logn,FILE="/dev/null")
- 
-   !! Check for gswp run
-   ! MPI: done by the master only; if check fails then master MPI_Aborts
-   ! everyone
-   !IF (ncciy /= 0) THEN
-   !   
-   !   PRINT *, 'Looking for global offline run info.'
-   !   
-   !   IF (ncciy < 1986 .OR. ncciy > 1995) THEN
-   !      PRINT *, 'Year ', ncciy, ' outside range of dataset!'
-   !      STOP 'Please check input in namelist file.'
-   !   ELSE
-   !      
-   !      CALL prepareFiles(ncciy)
-   !   
-   !   ENDIF
-   !
-   !ENDIF
-   
-   ! Open met data and get site information from netcdf file.
-   ! This retrieves time step size, number of timesteps, starting date,
-   ! latitudes, longitudes, number of sites. 
-   ! MPI: master only; necessary info will be received by MPI below
-   !CALL open_met_file( dels, kend, spinup, C%TFRZ )
- 
-   ! Checks where parameters and initialisations should be loaded from.
-   ! If they can be found in either the met file or restart file, they will 
-   ! load from there, with the met file taking precedence. Otherwise, they'll
-   ! be chosen from a coarse global grid of veg and soil types, based on 
-   ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
-   ! MPI: master only; necessary info will be received by MPI below
-   !CALL load_parameters( met, air, ssnow, veg, bgc,                            &
-   !                      soil, canopy, rough, rad, sum_flux,                   &
-   !                      bal, logn, vegparmnew, casabiome, casapool,           &
-   !                      casaflux, casamet, casabal, phen, C%EMSOIL,        &
-   !                      C%TFRZ )
-
-   ! MPI: bcast to workers so that they don't need to open the met
-   ! file themselves
-   CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
-   CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
-
-   ! MPI: receive from master starting time fields
-   !CALL bcast_start_time (comm)
-
-   ! MPI: need to know extents before creating datatypes
-   CALL find_extents
-
-   ! MPI: receive decomposition info from the master
-   call worker_decomp(comm)
-
-   ! MPI: in overlap version sends and receives occur on separate comms
-   CALL MPI_Comm_dup (comm, icomm, ierr)
-   CALL MPI_Comm_dup (comm, ocomm, ierr)
-
-   ! MPI: data set in load_parameter is now received from
-   ! the master
-   CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
-   &                        rough,rad,sum_flux,bal)
-
-   ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
-   !      so that old CABLE carbon module can use them. (BP May 2013)
-   CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
-   CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
-
-   ! MPI: casa parameters received only if cnp module is active
-   IF (icycle>0) THEN
-     ! MPI:
-     CALL worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
-     &                        casabal,phen)
-   END IF
-
-   ! MPI: create inp_t type to receive input data from the master
-   ! at the start of every timestep
-   CALL worker_intype (comm,met,veg)
-
-   ! MPI: create send_t type to send the results to the master
-   ! at the end of every timestep
-   CALL worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
-
-   ! MPI: create type to send casa results back to the master
-   ! only if cnp module is active
-   IF (icycle>0) THEN
-      CALL worker_casa_type (comm, casapool,casaflux, &
-                          casamet,casabal, phen)
-   END IF
-
-   ! MPI: create type to send restart data back to the master
-   ! only if restart file is to be created
-   IF(output%restart) THEN
-      CALL worker_restart_type (comm, canopy, air)
-   END IF
-
-   ! Open output file:
-   ! MPI: only the master writes to the files
-   !CALL open_output_file( dels, soil, veg, bgc, rough )
- 
-   ssnow%otss_0 = ssnow%tgg(:,1)
-   ssnow%otss = ssnow%tgg(:,1)
-   canopy%fes_cor = 0.
-   canopy%fhs_cor = 0.
-   met%ofsd = 0.1
-   
-   ! outer loop - spinup loop no. ktau_tot :
-   ktau_tot = 0 
-   DO
-
-      ! globally (WRT code) accessible kend through USE cable_common_module
-      ktau_gl = 0
-      kend_gl = kend
-      knode_gl = 0
-      
-      ! time step loop over ktau
-      DO ktau=kstart, kend 
+         l_casacnp     = .FALSE., & ! using CASA-CNP with CABLE
+         l_laiFeedbk   = .FALSE., & ! using prognostic LAI
+         l_vcmaxFeedbk = .FALSE., & ! using prognostic Vcmax
+         CASAONLY      = .FALSE., & ! ONLY Run CASA-CNP
+         CALL1         = .TRUE.
          
-         ! increment total timstep counter
-         ktau_tot = ktau_tot + 1
-         
-         ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau_gl + 1
-         
-         ! somethings (e.g. CASA-CNP) only need to be done once per day  
-         ktauday=int(24.0*3600.0/dels)
-         idoy = mod(ktau/ktauday,365)
-         IF(idoy==0) idoy=365
-         
-         ! needed for CASA-CNP
-         nyear =INT((kend-kstart+1)/(365*ktauday))
-   
-         canopy%oldcansto=canopy%cansto
-   
-         ! Get met data and LAI, set time variables.
-         ! Rainfall input may be augmented for spinup purposes:
-         met%ofsd = met%fsd(:,1) + met%fsd(:,2)
-         ! MPI: input file read on the master only
-         !CALL get_met_data( spinup, spinConv, met, soil,                    &
-         !                   rad, veg, kend, dels, C%TFRZ, ktau ) 
+         REAL              :: &  
+         delsoilM,         & ! allowed variation in soil moisture for spin up
+         delsoilT            ! allowed variation in soil temperature for spin up
 
-         ! MPI: receive input data for this step from the master
-         CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
+    ! temporary storage for soil moisture/temp. in spin up mode
+    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
+         soilMtemp,                         &   
+         soilTtemp      
+    ! variables for keeping track of maximum annual leaf carbon, annual npp, annual gpp
+    REAL, ALLOCATABLE, DIMENSION(:) :: cleaf_max, npp_ann, stemnpp_ann, gpp_ann, &
+         leafnpp_ann, gpp_ann_save 
 
-         ! MPI: some fields need explicit init, because we don't transfer
-         ! them for better performance
-         ! in the serial version this is done in get_met_data
-         ! after input has been read from the file
-         met%tvair = met%tk
-         met%tvrad = met%tk
+    ! MPI:
+    LOGICAL :: loop_exit     ! MPI: exit flag for bcast to workers
+    INTEGER :: stat(MPI_STATUS_SIZE)
+    INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
+    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
+    INTEGER :: ierr
 
-         ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
-                                                casapool, casamet )
-   
-         IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
-   
-         ! CALL land surface scheme for this timestep, all grid points:
-         CALL cbm( dels, air, bgc, canopy, met,                             &
-                   bal, rad, rough, soil, ssnow,                            &
-                   sum_flux, veg )
-   
-         ssnow%smelt = ssnow%smelt*dels
-         ssnow%rnof1 = ssnow%rnof1*dels
-         ssnow%rnof2 = ssnow%rnof2*dels
-         ssnow%runoff = ssnow%runoff*dels
-   
-   
-         !jhan this is insufficient testing. condition for 
-         !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
-         IF(icycle >0) THEN
-            call bgcdriver( ktau, kstart, kend, dels, met,                  &
-                            ssnow, canopy, veg, soil, casabiome,               &
-                            casapool, casaflux, casamet, casabal,              &
-                            phen, spinConv, spinup, ktauday, idoy,             &
-                            .FALSE., .FALSE. )
-         ENDIF 
-   
-         ! sumcflux is pulled out of subroutine cbm
-         ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
-                        canopy, soil, ssnow, sum_flux, veg,                    &
-                        met, casaflux, l_vcmaxFeedbk )
+    INTEGER :: LALLOC
 
-         ! MPI: send the results back to the master
-         CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
+    ! switches etc defined thru namelist (by default cable.nml)
+    NAMELIST/CABLE/                  &
+         filename,         & ! TYPE, containing input filenames 
+         vegparmnew,       & ! use new soil param. method
+         soilparmnew,      & ! use new soil param. method
+         calcsoilalbedo,   & ! switch: soil colour albedo - Ticket #27 
+         spinup,           & ! spinup model (soil) to steady state 
+         delsoilM,delsoilT,& ! 
+         output,           &
+         patchout,         &
+         check,            &
+         verbose,          &
+         leaps,            &
+         logn,             &
+         fixedCO2,         &
+         spincasainput,    &
+         spincasa,         &
+         l_casacnp,        &
+         l_laiFeedbk,      &
+         l_vcmaxFeedbk,    &
+         icycle,           &
+         casafile,         &
+         ncciy,            &
+         gswpfile,         &
+         redistrb,         &
+         wiltParam,        &
+         satuParam,        &
+         cable_user           ! additional USER switches 
 
-         ! Write time step's output to file if either: we're not spinning up 
-         ! or we're spinning up and the spinup has converged:
-         ! MPI: writing done only by the master
-         !IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-         !   CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-         !                      rad, bal, air, soil, veg, C%SBOLTZ, &
-         !                      C%EMLEAF, C%EMSOIL )
-   
-       END DO ! END Do loop over timestep ktau
+    ! END header
+
+    ! Open, read and close the namelist file.
+    OPEN( 10, FILE = CABLE_NAMELIST )
+    READ( 10, NML=CABLE )   !where NML=CABLE defined above
+    CLOSE(10)
+
+    IF( IARGC() > 0 ) THEN
+       CALL GETARG(1, filename%met)
+       CALL GETARG(2, casafile%cnpipool)
+    ENDIF
+
+    ! Get worker's rank and determine logfile-unit
+
+    ! MPI: TODO: find a way to preserve workers log messages somewhere
+    ! (either separate files or collated by the master to a single file
+    ! or perhaps use MPI-IO - but probably not gonna work with random length
+    ! text strings)
+    ! LN: Done!
+    IF ( CABLE_USER%LogWorker ) THEN
+       CALL MPI_Comm_rank (comm, rank, ierr)
+       WRITE(cRank,FMT='(I4.4)')rank
+       wlogn = 1000+rank
+       OPEN(wlogn,FILE="cable_log_"//cRank,STATUS="REPLACE")
+    ELSE
+       wlogn = 1000
+       OPEN(wlogn, FILE="/dev/null")
+    ENDIF
+
+    ! INITIALISATION depending on nml settings
+
+    CurYear = CABLE_USER%YearStart
+
+    IF ( icycle .GE. 11 ) THEN
+       icycle                     = icycle - 10
+       CASAONLY                   = .TRUE.
+       CABLE_USER%CASA_DUMP_READ  = .TRUE.
+       CABLE_USER%CASA_DUMP_WRITE = .FALSE.
+    ELSEIF ( icycle .EQ. 0 ) THEN
+       CABLE_USER%CASA_DUMP_READ  = .FALSE.
+       spincasa                   = .FALSE.
+       CABLE_USER%CALL_POP        = .FALSE.
+    ENDIF
+
+    !! vh_js !!
+    IF (icycle.GT.0) THEN
+       l_casacnp = .TRUE.
+    ELSE
+       l_casacnp = .FALSE.
+    ENDIF
+
+    !! vh_js !! suggest LALLOC should ulitmately be a switch in the .nml file
+    IF (CABLE_USER%CALL_POP) THEN
+       LALLOC = 3 ! for use with POP: makes use of pipe model to partition between stem and leaf
+    ELSE
+       LALLOC = 0 ! default
+    ENDIF
+
+    IF ( .NOT. spinup ) THEN
+       IF ( spincasa ) THEN
+          spincasa = .FALSE.
+          WRITE(*,*)   "spinup == .FALSE. -> spincasa set to .F."
+       ENDIF
+    ENDIF
+
+
+    IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
+       leaps = .TRUE.
+       cable_user%MetType = 'gswp'
+    ENDIF
+
+    cable_runtime%offline = .TRUE.
+
+    ! associate pointers used locally with global definitions
+    CALL point2constants( C )
+
+    IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
+         STOP 'icycle must be 1 to 3 when using casaCNP'
+    IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
+         STOP 'casaCNP required to get prognostic LAI or Vcmax'
+    IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
+         STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
+    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
+         STOP 'casaCNP must use new soil parameters'
+
+    ! Open log file:
+    ! MPI: worker logs go to the black hole
+    ! by opening the file we don't need to touch any of the code that writes
+    ! to it and may be called somewhere by a worker
+    ! OPEN(logn,FILE=filename%log)
+
+
+    !! Check for gswp run
+    ! MPI: done by the master only; if check fails then master MPI_Aborts
+    ! everyone
+    !IF (ncciy /= 0) THEN
+    !   
+    !   PRINT *, 'Looking for global offline run info.'
+    !   
+    !   IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+    !      PRINT *, 'Year ', ncciy, ' outside range of dataset!'
+    !      STOP 'Please check input in namelist file.'
+    !   ELSE
+    !      
+    !      CALL prepareFiles(ncciy)
+    !   
+    !   ENDIF
+    !
+    !ENDIF
+
+    ! Open met data and get site information from netcdf file.
+    ! This retrieves time step size, number of timesteps, starting date,
+    ! latitudes, longitudes, number of sites. 
+    ! MPI: master only; necessary info will be received by MPI below
+    !CALL open_met_file( dels, kend, spinup, C%TFRZ )
+
+    ! Checks where parameters and initialisations should be loaded from.
+    ! If they can be found in either the met file or restart file, they will 
+    ! load from there, with the met file taking precedence. Otherwise, they'll
+    ! be chosen from a coarse global grid of veg and soil types, based on 
+    ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
+    ! MPI: master only; necessary info will be received by MPI below
+    !CALL load_parameters( met, air, ssnow, veg, bgc,                            &
+    !                      soil, canopy, rough, rad, sum_flux,                   &
+    !                      bal, logn, vegparmnew, casabiome, casapool,           &
+    !                      casaflux, casamet, casabal, phen, C%EMSOIL,        &
+    !                      C%TFRZ )
+
+    ktau_tot = 0 
+    SPINLOOP:DO
+       YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
+          CurYear = YYYY
+
+WRITE(wlogn,*)"W1 START SPIN LOOP and YEAR at: ",YYYY
+CALL FLUSH (wlogn)
+
+          IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
+             LOY = 366
+          ELSE
+             LOY = 365
+          ENDIF
+
+
+          IF ( CALL1 ) THEN
+
+
+             ! MPI: bcast to workers so that they don't need to open the met
+             ! file themselves
+             CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
+             CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
+
+             ! MPI: receive from master starting time fields
+             !CALL bcast_start_time (comm)
+
+             ! MPI: need to know extents before creating datatypes
+             CALL find_extents
+
+             ! MPI: receive decomposition info from the master
+             call worker_decomp(comm)
+
+             ! MPI: in overlap version sends and receives occur on separate comms
+             CALL MPI_Comm_dup (comm, icomm, ierr)
+             CALL MPI_Comm_dup (comm, ocomm, ierr)
+
+             ! MPI: data set in load_parameter is now received from
+             ! the master
+             CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
+                  &                        rough,rad,sum_flux,bal)
+
+! CLN PLUME-INIT...
+WRITE(wlogn,*)" worker_cable_params"
+CALL FLUSH (wlogn)
+
+             ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
+             !      so that old CABLE carbon module can use them. (BP May 2013)
+             CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
+             CALL MPI_Bcast (mstype, 1, MPI_INTEGER, 0, comm, ierr)
+
+WRITE(wlogn,*)"W2  bcast2"
+CALL FLUSH (wlogn)
+             ! MPI: casa parameters received only if cnp module is active
+             IF (icycle>0) THEN
+                ! MPI:
+                CALL worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
+                     &                        casabal,phen)
+WRITE(wlogn,*)"W3  wkr casa par",casamet%glai
+CALL FLUSH (wlogn)
+                ! MPI: POP restart received only if pop module is active
+                IF ( CABLE_USER%CALL_POP ) THEN
+                  CALL worker_pop_types (comm,casamet,pop)
+                  CALL MPI_Recv (MPI_BOTTOM, 1, pop_t, 0, 0, icomm, stat, ierr)
+!CLN
+WRITE(wlogn,*)"W4  wkr pop_t par"
+CALL FLUSH (wlogn)
+                END IF
+             END IF
+
+             ! MPI: create inp_t type to receive input data from the master
+             ! at the start of every timestep
+             CALL worker_intype (comm,met,veg)
+
+WRITE(wlogn,*)" w intype"
+CALL FLUSH (wlogn)
+             ! MPI: casa parameters received only if cnp module is active
+             ! MPI: create send_t type to send the results to the master
+             ! at the end of every timestep
+             CALL worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
+
+ WRITE(wlogn,*)"W5  w outtype"
+CALL FLUSH (wlogn)
+             ! MPI: casa parameters received only if cnp module is active
+            ! MPI: create type to send casa results back to the master
+             ! only if cnp module is active
+             IF (icycle>0) THEN
+                CALL worker_casa_type (comm, casapool,casaflux, &
+                     casamet,casabal, phen) 
+WRITE(wlogn,*)"W6  w casa pouttype",( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) 
+CALL FLUSH (wlogn)
+                IF ( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) &
+                     CALL worker_casa_dump_types(comm, casamet, casaflux)
+WRITE(wlogn,*)"W7 w after dump typ"
+CALL FLUSH (wlogn)
+!Call Mpi_barrier (comm, ierr)
+!CLN                IF ( CABLE_USER%CALL_POP ) &
+!CLN                   CALL worker_pop_types (comm,casamet,pop)
+WRITE(wlogn,*)" w casa popttype"
+CALL FLUSH (wlogn)
+             ! MPI: casa parameters received only if cnp module is active
+             END IF
+
+             ! MPI: create type to send restart data back to the master
+             ! only if restart file is to be created
+             IF(output%restart) THEN
+                CALL worker_restart_type (comm, canopy, air)
+             END IF
+WRITE(wlogn,*)" w "
+CALL FLUSH (wlogn)
+
+             ! Open output file:
+             ! MPI: only the master writes to the files
+             !CALL open_output_file( dels, soil, veg, bgc, rough )
+
+             ssnow%otss_0 = ssnow%tgg(:,1)
+             ssnow%otss = ssnow%tgg(:,1)
+             canopy%fes_cor = 0.
+             canopy%fhs_cor = 0.
+             met%ofsd = 0.1
+             IF (.NOT.ALLOCATED(gpp_ann)) ALLOCATE(  gpp_ann(mp) )
+             IF (.NOT.ALLOCATED(gpp_ann_save)) ALLOCATE(  gpp_ann_save(mp) )
+             gpp_ann_save = -999.
+          ENDIF !CALL1
+WRITE(wlogn,*)" w "
+CALL FLUSH (wlogn)
+
+          ! outer loop - spinup loop no. ktau_tot :
+          !CLN   ktau_tot = 0 
+          !CLN   DO
+
+          ! globally (WRT code) accessible kend through USE cable_common_module
+          ktau_gl = 0
+          kend_gl = kend
+          knode_gl = 0
+
+          ! time step loop over ktau
+          KTAULOOP:DO ktau=kstart, kend 
+WRITE(wlogn,*)"================================= ktau", ktau
+CALL FLUSH (wlogn)
+
+             ! increment total timstep counter
+             ktau_tot = ktau_tot + 1
+
+             ! globally (WRT code) accessible kend through USE cable_common_module
+             ktau_gl = ktau_gl + 1
+
+             ! somethings (e.g. CASA-CNP) only need to be done once per day  
+             ktauday=int(24.0*3600.0/dels)
+             idoy = mod(ktau/ktauday,365)
+             IF(idoy==0) idoy=365
+
+             ! needed for CASA-CNP
+             nyear =INT((kend-kstart+1)/(365*ktauday))
+             canopy%oldcansto=canopy%cansto
+
+             ! Get met data and LAI, set time variables.
+             ! Rainfall input may be augmented for spinup purposes:
+             met%ofsd = met%fsd(:,1) + met%fsd(:,2)
+             ! MPI: input file read on the master only
+             !CALL get_met_data( spinup, spinConv, met, soil,                    &
+             !                   rad, veg, kend, dels, C%TFRZ, ktau ) 
+
+             IF ( .NOT. CASAONLY ) THEN
+                ! MPI: receive input data for this step from the master
+WRITE(wlogn,*)"W8 w read met in ",ktau
+                CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
+CALL FLUSH (Wlogn)
+WRITE(wlogn,*)"W8 w read mettk",met%tk
+WRITE(wlogn,*)"W8 w read ssnow%tgg",ssnow%tgg
+WRITE(wlogn,*)"W8 w read ssnow%wb",ssnow%wb
+WRITE(wlogn,*)"met%fsd(:,:)",   met%fsd(:,:)
+WRITE(wlogn,*)"met%pmb", met%pmb
+WRITE(wlogn,*)"met%qv", met%qv
+WRITE(wlogn,*)"met%ua", met%ua
+WRITE(wlogn,*)"met%precip", met%precip
+WRITE(wlogn,*)"met%precip_sn", met%precip_sn
+WRITE(wlogn,*)"met%fld", met%fld
+WRITE(wlogn,*)"met%ca ",met%ca
+WRITE(wlogn,*)"met%coszen ",met%coszen
+WRITE(wlogn,*)"veg%vlai ",veg%vlai 
+WRITE(wlogn,*)"met%year ",met%year 
+WRITE(wlogn,*)"met%moy ",met%moy
+WRITE(wlogn,*)"met%doy ",met%doy
+WRITE(wlogn,*)"met%hod ",met%hod
+!Call Mpi_barrier (comm, ierr)
+! HERE THE TIMESTEPS NEED TO BE TAKEN ACCOUNT OF
+             ELSE ! CLN IF ( MOD((ktau-kstart),ktauday)==0 ) THEN
+                ! MPI: receive casa_dump_data for this step from the master
+                CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, ktau_gl, icomm, stat, ierr)
+             END IF
+WRITE(wlogn,*)"W9 w read casa_dump_t"
+!Call Mpi_barrier (comm, ierr)
+
+             ! MPI: some fields need explicit init, because we don't transfer
+             ! them for better performance
+             ! in the serial version this is done in get_met_data
+             ! after input has been read from the file
+             met%tvair = met%tk
+             met%tvrad = met%tk
+
+!Call Mpi_barrier (comm, ierr)
+!Call Mpi_barrier (comm, ierr)
+
+
+WRITE(wlogn,*)"casamet%glai1",casamet%glai
+CALL FLUSH (wlogn)
+             ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
+             IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
+                  casapool, casamet )
+
+             IF (l_laiFeedbk) veg%vlai(:) = REAL(casamet%glai(:))
+WRITE(wlogn,*)"casamet%glai2",casamet%glai
+CALL FLUSH (wlogn)
+
+             ! CALL land surface scheme for this timestep, all grid points:
+             CALL cbm( ktau, dels, air, bgc, canopy, met,                             &
+                  bal, rad, rough, soil, ssnow,                            &
+                  sum_flux, veg )
+
+             ssnow%smelt = ssnow%smelt*dels
+             ssnow%rnof1 = ssnow%rnof1*dels
+             ssnow%rnof2 = ssnow%rnof2*dels
+             ssnow%runoff = ssnow%runoff*dels
+
+
+             !jhan this is insufficient testing. condition for 
+             !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
+
+             IF(icycle >0) THEN
+WRITE(wlogn,*)"casamet%glai2.1",casamet%glai
+WRITE(wlogn,*)"casabiome%glaimin",casabiome%glaimin
+WRITE(wlogn,*)"casabiome%glaimax",casabiome%glaimax
+WRITE(wlogn,*)"casabiome%sla",casabiome%sla
+WRITE(wlogn,*)"casapool%cplant(:,leaf)",casapool%cplant(:,1)
+CALL FLUSH (wlogn)
+
+                call bgcdriver( ktau, kstart, kend, dels, met,                  &
+                     ssnow, canopy, veg, soil, casabiome,               &
+                     casapool, casaflux, casamet, casabal,              &
+                     phen, pop, spinConv, spinup, ktauday, idoy, loy,             &
+                     .FALSE., .FALSE., gpp_ann_save, LALLOC,wlogn  )
+WRITE(wlogn,*)"casamet%glai3",casamet%glai
+CALL FLUSH (wlogn)
+                
+WRITE(wlogn,*)" w send casa_T",( MOD (ktau,ktauday*CABLE_USER%CASA_OUT_FREQ)&
+                     == 0 .OR. ktau .EQ. kend),ktau,CABLE_USER%CASA_OUT_FREQ,kend
+CALL FLUSH (wlogn)
+
+                IF ( MOD (ktau,ktauday*CABLE_USER%CASA_OUT_FREQ)&
+                     == 0 .OR. ktau .EQ. kend) THEN
+                   CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
+                 ENDIF
+                
+
+                ! MPI: send the results back to the master
+                IF( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND. &
+                     CABLE_USER%CASA_DUMP_WRITE )  &
+                     CALL MPI_Send (MPI_BOTTOM, 1, casa_dump_t, 0, ktau_gl, ocomm, ierr)
+
+WRITE(wlogn,*)"BAR W10 w send casdadump_t",( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND. &
+                     CABLE_USER%CASA_DUMP_WRITE )
+CALL FLUSH (wlogn)
+                
+             ENDIF
+WRITE(wlogn,*)" w adter bgc"
+CALL FLUSH (wlogn)
+
+             ! sumcflux is pulled out of subroutine cbm
+             ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
+             CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
+                  canopy, soil, ssnow, sum_flux, veg,                    &
+                  met, casaflux, l_vcmaxFeedbk )
+
+             ! MPI: send the results back to the master
+             CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
+! CLN SEND THE CASA KRAM to write read for CASA ONLY
+WRITE(wlogn,*)"sent veg%vlai", ktau
+WRITE(wlogn,*)veg%vlai
+
+             ! Write time step's output to file if either: we're not spinning up 
+             ! or we're spinning up and the spinup has converged:
+             ! MPI: writing done only by the master
+             !IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+             !   CALL write_output( dels, ktau, met, canopy, ssnow,                    &
+             !                      rad, bal, air, soil, veg, C%SBOLTZ, &
+             !                      C%EMLEAF, C%EMSOIL )
+
+             CALL1 = .FALSE.
+WRITE(wlogn,*)"BAR W12 w end ktau ", ktau
+CALL FLUSH (wlogn)
+IF ( ktau == 25 ) CALL MPI_ABORT( COMM, 1, ierr )
+CALL MPI_Barrier (comm, ierr)
+          END DO KTAULOOP ! END Do loop over timestep ktau
 
 
 
-   
-      !!jhan this is insufficient testing. condition for 
-      !!spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
-      !! see if spinup (if conducting one) has converged:
-      !IF(spinup.AND..NOT.spinConv) THEN
-      !   
-      !   ! Write to screen and log file:
-      !   WRITE(*,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
-      !         ' of data set complete...'
-      !   WRITE(logn,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),   &
-      !         ' of data set complete...'
-      !   
-      !   ! IF not 1st run through whole dataset:
-      !   IF( INT( ktau_tot/kend ) > 1 ) THEN 
-      !      
-      !      ! evaluate spinup
-      !      IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
-      !          ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
-      !         
-      !         ! No complete convergence yet
-      !         PRINT *, 'ssnow%wb : ', ssnow%wb
-      !         PRINT *, 'soilMtemp: ', soilMtemp
-      !         PRINT *, 'ssnow%tgg: ', ssnow%tgg
-      !         PRINT *, 'soilTtemp: ', soilTtemp
-      !      
-      !      ELSE ! spinup has converged
-      !         
-      !         spinConv = .TRUE.
-      !         ! Write to screen and log file:
-      !         WRITE(*,'(A33)') ' Spinup has converged - final run'
-      !         WRITE(logn,'(A52)')                                             &
-      !                    ' Spinup has converged - final run - writing all data'
-      !         WRITE(logn,'(A37,F8.5,A28)')                                    &
-      !                    ' Criteria: Change in soil moisture < ',             &
-      !                    delsoilM, ' in any layer over whole run'
-      !         WRITE(logn,'(A40,F8.5,A28)' )                                   &
-      !                    '           Change in soil temperature < ',          &
-      !                    delsoilT, ' in any layer over whole run'
-      !      END IF
+          IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. &
+               CABLE_USER%CALL_POP .AND. TRIM(cable_user%POP_out).eq.'epi') &
+               CALL MPI_Send (MPI_BOTTOM,1, pop_t,0,ktau_gl,ocomm,ierr)
 
-      !   ELSE ! allocate variables for storage
-      !   
-      !     ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
-      !   
-      !   END IF
-      !   
-      !   ! store soil moisture and temperature
-      !   soilTtemp = ssnow%tgg
-      !   soilMtemp = REAL(ssnow%wb)
+       END DO YEAR
 
-      !ELSE
 
-      !   ! if not spinning up, or spin up has converged, exit:
-      !   EXIT
-      ! 
-      !END IF
+       !!jhan this is insufficient testing. condition for 
+       !!spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
+       !! see if spinup (if conducting one) has converged:
+       !IF(spinup.AND..NOT.spinConv) THEN
+       !   
+       !   ! Write to screen and log file:
+       !   WRITE(*,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
+       !         ' of data set complete...'
+       !   WRITE(wlogn,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),   &
+       !         ' of data set complete...'
+       !   
+       !   ! IF not 1st run through whole dataset:
+       !   IF( INT( ktau_tot/kend ) > 1 ) THEN 
+       !      
+       !      ! evaluate spinup
+       !      IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
+       !          ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
+       !         
+       !         ! No complete convergence yet
+       !         PRINT *, 'ssnow%wb : ', ssnow%wb
+       !         PRINT *, 'soilMtemp: ', soilMtemp
+       !         PRINT *, 'ssnow%tgg: ', ssnow%tgg
+       !         PRINT *, 'soilTtemp: ', soilTtemp
+       !      
+       !      ELSE ! spinup has converged
+       !         
+       !         spinConv = .TRUE.
+       !         ! Write to screen and log file:
+       !         WRITE(*,'(A33)') ' Spinup has converged - final run'
+       !         WRITE(logn,'(A52)')                                             &
+       !                    ' Spinup has converged - final run - writing all data'
+       !         WRITE(logn,'(A37,F8.5,A28)')                                    &
+       !                    ' Criteria: Change in soil moisture < ',             &
+       !                    delsoilM, ' in any layer over whole run'
+       !         WRITE(logn,'(A40,F8.5,A28)' )                                   &
+       !                    '           Change in soil temperature < ',          &
+       !                    delsoilT, ' in any layer over whole run'
+       !      END IF
 
-      ! MPI: learn from the master whether it's time to quit
-      CALL MPI_Bcast (loop_exit, 1, MPI_LOGICAL, 0, comm, ierr)
+       !   ELSE ! allocate variables for storage
+       !   
+       !     ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
+       !   
+       !   END IF
+       !   
+       !   ! store soil moisture and temperature
+       !   soilTtemp = ssnow%tgg
+       !   soilMtemp = REAL(ssnow%wb)
 
-      IF (loop_exit) THEN
-            EXIT
-      END IF
+       !ELSE
 
-   END DO
+       !   ! if not spinning up, or spin up has converged, exit:
+       !   EXIT
+       ! 
+       !END IF
 
-   IF (icycle > 0) THEN
+       ! MPI: learn from the master whether it's time to quit
+       CALL MPI_Bcast (loop_exit, 1, MPI_LOGICAL, 0, comm, ierr)
 
-      ! MPI: send casa results back to the master
-      CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
-      ! MPI: output file written by master only
-      !CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-      !                   casapool, casaflux, casamet, casabal, phen )
-      ! MPI: output file written by master only
-      !CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-  
-   END IF
+       IF (loop_exit) THEN
+          EXIT
+       END IF
 
-   ! Write restart file if requested:
-   IF(output%restart) THEN
-      ! MPI: send variables that are required by create_restart
-      CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
-      ! MPI: output file written by master only
-      !CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
-      !                     canopy, rough, rad, bgc, bal )
-   END IF
+    END DO SPINLOOP
 
-   ! MPI: cleanup
-   CALL worker_end(icycle, output%restart)
-   ! MPI: open and close by master only
-   ! Close met data input file:
-   !CALL close_met_file
-   ! MPI: open and close by master only 
-   ! Close output file and deallocate main variables:
-   !CALL close_output_file( bal, air, bgc, canopy, met,                         &
-   !                        rad, rough, soil, ssnow,                            &
-   !                        sum_flux, veg )
+    IF (icycle > 0) THEN
 
-   !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+       ! MPI: send casa results back to the master
+       CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+       ! MPI: output file written by master only
+       !CALL casa_poolout( ktau, veg, soil, casabiome,                           &
+       !                   casapool, casaflux, casamet, casabal, phen )
+       ! MPI: output file written by master only
+       !CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
-   ! Close log file
-   ! MPI: closes handle to /dev/null in workers
-   CLOSE(logn)
+    END IF
 
-   RETURN
+    ! Write restart file if requested:
+    IF(output%restart) THEN
+       ! MPI: send variables that are required by create_restart
+       CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
+       ! MPI: output file written by master only
+       !CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
+       !                     canopy, rough, rad, bgc, bal )
+    END IF
 
-END SUBROUTINE mpidrv_worker
+    ! MPI: cleanup
+    CALL worker_end(icycle, output%restart)
+    ! MPI: open and close by master only
+    ! Close met data input file:
+    !CALL close_met_file
+    ! MPI: open and close by master only 
+    ! Close output file and deallocate main variables:
+    !CALL close_output_file( bal, air, bgc, canopy, met,                         &
+    !                        rad, rough, soil, ssnow,                            &
+    !                        sum_flux, veg )
+
+    !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+
+WRITE(wlogn,*)"Closing wlogn"
+    ! Close log file
+    ! MPI: closes handle to /dev/null in workers
+    CLOSE(wlogn)
+
+
+    RETURN
+
+  END SUBROUTINE mpidrv_worker
 
 
 
@@ -2519,6 +2756,14 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%frac_sapwood, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%sapwood_area, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casaflux%klitter, displs(bidx), ierr)
   blen(bidx) = mlitter * r2len
 
@@ -2912,8 +3157,9 @@ SUBROUTINE worker_intype (comm,met,veg)
   ! met fields
   ! TODO: don't add optional field when not required
   ! (exists% flags)
+  bidx = 0
 
-  bidx = 1
+  bidx = bidx + 1
   CALL MPI_Get_address (met%fsd, displs(bidx), ierr)
   blocks(bidx) = swb * r1len
 
@@ -5520,6 +5766,178 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
   RETURN
 
 END SUBROUTINE worker_restart_type
+
+SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
+
+  USE mpi
+
+  USE casavariable, ONLY: casa_met, casa_flux, mplant
+
+  IMPLICIT NONE
+
+  ! sub arguments
+  INTEGER, INTENT(IN) :: comm  ! MPI communicator
+  TYPE (casa_flux)   , INTENT(INOUT) :: casaflux
+  TYPE (casa_met)    , INTENT(INOUT) :: casamet
+
+  ! local vars
+
+  ! temp arrays for marshalling all fields into a single struct
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+  INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+  ! temp vars for verifying block number and total length of inp_t
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+  INTEGER :: tsize
+
+  INTEGER :: stat(MPI_STATUS_SIZE), ierr
+  INTEGER :: landp_t, patch_t, param_t
+
+  INTEGER :: r1len, r2len, ilen, llen ! block lengths
+  INTEGER :: bidx ! block index
+  INTEGER :: ntyp ! total number of blocks
+
+  INTEGER :: rank
+
+  CALL MPI_Comm_rank (comm, rank, ierr)
+
+  ntyp = ncdumprw
+
+  ALLOCATE (blen(ntyp))
+  ALLOCATE (displs(ntyp))
+  ALLOCATE (types(ntyp))
+
+  ! default type is byte, to be overriden for multi-D types
+  types = MPI_BYTE
+
+  r1len = mp * extr1
+  r2len = mp * extr2
+
+  bidx = 0
+
+  ! ------- casamet ----
+
+WRITE(wlogn,*)" w creat casa_dump1"
+CALL FLUSH (wlogn)
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tairk, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+WRITE(wlogn,*)" w creat casa_dump2"
+CALL FLUSH (wlogn)
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoil, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+WRITE(wlogn,*)" w creat casa_dump3"
+CALL FLUSH (wlogn)
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moist, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  ! ------- casaflux ----
+
+WRITE(wlogn,*)" w creat casa_dump4"
+CALL FLUSH (wlogn)
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cgpp, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+WRITE(wlogn,*)" w creat casa_dump5"
+CALL FLUSH (wlogn)
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crmplant, displs(bidx), ierr)
+  blen(bidx) = mplant * r2len
+
+  ! MPI: sanity check
+  IF (bidx /= ntyp) THEN
+     WRITE (*,*) 'worker ',rank,' invalid number of casa_dump_t param fields ',bidx,', fix it!'
+     CALL MPI_Abort (comm, 1, ierr)
+  END IF
+
+  CALL MPI_Type_create_struct (bidx, blen, displs, types, casa_dump_t, ierr)
+  CALL MPI_Type_commit (casa_dump_t, ierr)
+
+  CALL MPI_Type_size (casa_t, tsize, ierr)
+  CALL MPI_Type_get_extent (casa_dump_t, tmplb, text, ierr)
+
+  WRITE (*,*) 'worker casa_t param blocks, size, extent and lb: ',rank, &
+       bidx,tsize,text,tmplb
+
+  ! MPI: check whether total size of received data equals total
+  ! data sent by all the workers
+  CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+
+  DEALLOCATE(types)
+  DEALLOCATE(displs)
+  DEALLOCATE(blen)
+
+  ! if anything went wrong the master will mpi_abort
+  ! which mpi_recv below is going to catch...
+
+  CALL MPI_Barrier (comm, ierr)
+
+  ! so, now receive all the parameters
+  CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, 0, comm, stat, ierr)
+
+  ! finally free the MPI type
+  CALL MPI_Type_Free (casa_dump_t, ierr)
+
+  ! all casa parameters have been received from the master by now
+
+END SUBROUTINE worker_casa_dump_types
+
+SUBROUTINE worker_pop_types(comm, casamet, pop)
+
+  USE mpi
+  USE POP_types,    ONLY: pop_type
+  USE POP_Constants,ONLY: NLAYER, NPATCH
+  USE casavariable, ONLY: casa_met
+  USE casaparm,     ONLY: forest, shrub
+ 
+  IMPLICIT NONE
+
+  INTEGER,INTENT(IN) :: comm
+  TYPE (casa_met)   , INTENT(IN)    :: casamet
+  TYPE (pop_type)   , INTENT(INOUT) :: pop
+
+  ! temp arrays for marshalling all fields into a single struct
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
+  INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+  ! temp vars for verifying block number and total length of inp_t
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+  INTEGER :: tsize, localtotal, remotetotal
+
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride
+  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
+  INTEGER :: bidx ! block index
+  INTEGER :: ntyp ! total number of blocks
+  INTEGER :: rank ! worker rank
+  INTEGER :: off  ! first patch index for a worker
+  INTEGER :: cnt  ! mp for a worker
+  INTEGER :: ierr
+  INTEGER :: x, l
+
+  ntyp = npop
+
+  ALLOCATE (blocks(ntyp))
+  ALLOCATE (displs(ntyp))
+  ALLOCATE (types(ntyp))
+  
+  off = 1
+  cnt = mp
+
+  r1len = cnt * extr1
+  r2len = cnt * extr2
+  ilen = cnt * extid
+  llen = cnt * extl
+
+  bidx = 0
+STOP "NOCH NICHT FERTI"
+END SUBROUTINE worker_pop_types
 
 ! frees memory used for worker's data structures
 SUBROUTINE worker_end(icycle, restart)

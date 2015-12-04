@@ -1,7 +1,7 @@
 MODULE sli_utils
 
   USE cable_def_types_mod, ONLY: r_2, i_d
-  USE cable_def_types_mod, ONLY: soil_parameter_type
+  USE cable_def_types_mod, ONLY: soil_parameter_type, veg_parameter_type
   USE sli_numbers,         ONLY: &
        experiment, &
        zero, half, one, two, four, e3, pi, &
@@ -2608,12 +2608,12 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  SUBROUTINE setlitterpar(mp, soil,index)
+  SUBROUTINE setlitterpar(mp, veg,index)
 
     IMPLICIT NONE
 
     INTEGER(i_d),              INTENT(IN) :: mp
-    TYPE(soil_parameter_type), INTENT(IN) :: soil
+    TYPE(veg_parameter_type), INTENT(IN) :: veg
     integer(i_d), DIMENSION(:),  INTENT(IN) :: index
 
     allocate(plit(mp))
@@ -2630,7 +2630,7 @@ CONTAINS
     plit%phiSe = zero
     plit%rho   = 63.5_r_2
     ! dxL        = zero            ! litter params
-    dxL        = real(soil%clitt(index),r_2)*two/plit%rho*0.1_r_2
+    dxL        = real(veg%clitt(index),r_2)*two/plit%rho*0.1_r_2
     
     
     plit%ishorizon  = 0

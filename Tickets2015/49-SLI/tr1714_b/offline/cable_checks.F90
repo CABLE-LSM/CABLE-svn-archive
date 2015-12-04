@@ -226,6 +226,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
          END DO
       END IF
    END IF
+
+
    
    ! net water into soil (precip-(change in canopy water storage) 
    !  - (change in snow depth) - (surface runoff) - (deep drainage)
@@ -236,6 +238,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
         + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
+!write(*,*) 'wbal', bal%wbal, delwb
 
 
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew

@@ -185,6 +185,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
 
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 
+   canopy%zetash(:,1) = C%ZETA0 ! stability correction terms
+   canopy%zetash(:,2) = C%ZETPOS + 1 
 
 
    DO iter = 1, NITER
@@ -260,6 +262,15 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
         
        ELSE
           rt0 = max(rt_min,rough%rt0us / canopy%us)
+
+          IF (cable_user%litter) THEN
+             ! Mathews (2006), A process-based model of offine fuel moisture,
+             !                 International Journal of Wildland Fire 15,155-168
+             ! assuming here u=1.0 ms-1, bulk litter density 63.5 kgm-3
+             canopy%kthLitt = 0.2+0.14*0.045*1000.0/63.5
+             canopy%DvLitt = 2.17e-5*exp(1.0*2.6)*exp(-0.5*(2.08+(1.0*2.38)))
+          ENDIF
+
        ENDIF
           
        
@@ -306,13 +317,15 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
             ! Forced convection boundary layer conductance                     
             ! (see Wang & Leuning 1998, AFM):
 
-             !vh! inserted 'max' to avoid floating underflow
-            gbhu(j,1) = gbvtop(j)*(1.0-EXP(-max(canopy%vlaiw(j)                    &
-                        *(0.5*rough%coexp(j)+rad%extkb(j) ),1.e-12))) /            &
+     
+
+             !vh! inserted 'min' to avoid floating underflow
+            gbhu(j,1) = gbvtop(j)*(1.0-EXP(-min(canopy%vlaiw(j)                    &
+                        *(0.5*rough%coexp(j)+rad%extkb(j) ),20.0))) /            &
                         (rad%extkb(j)+0.5*rough%coexp(j))
             
             gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
-                        (1.0-EXP(-max(0.5*rough%coexp(j)*canopy%vlaiw(j),1.e-12))) &
+                        (1.0-EXP(-min(0.5*rough%coexp(j)*canopy%vlaiw(j),20.0))) &
                         - gbhu(j,1)
          ENDIF 
       
@@ -392,8 +405,14 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
           CALL latent_heat_flux()
           
           ! Calculate soil sensible heat:
-          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
-          
+          !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          IF (cable_user%litter) THEN
+             !! vh_js !! account for additional litter resistance to sensible heat transfer
+             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
+                  (ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+          ELSE
+             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          ENDIF
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
@@ -425,7 +444,15 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
          CALL latent_heat_flux()
          
          ! Soil sensible heat:
-         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+         !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+         IF (cable_user%litter) THEN
+            !! vh_js !! account for additional litter resistance to sensible heat transfer
+            canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
+                 (ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+         else
+            canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+         ENDIF
+
          !! vh_js !! ssnow%cls factor in the line below should be retained: required for energy balance
          !! note this causes a small difference in cumlative latent heat flux (for comparison with trunk), but correction implemented
          !! because of importance for energy balance
@@ -641,15 +668,25 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
    ! d(canopy%fhs)/d(ssnow%tgg)
    ! d(canopy%fes)/d(dq)
     IF (cable_user%soil_struc=='default') THEN
-   ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
-   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil      
-   ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil  
-  
-   ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
-                   / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
-                   ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
-   canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
-                  ssnow%ddq_dtg
+       ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
+            
+       IF (cable_user%litter) THEN
+          !!vh_js!! 
+          ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ &
+               real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))     
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
+               (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+          
+       ELSE
+          ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil 
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil  
+       ENDIF
+       
+       ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
+            / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
+            ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
+       canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
+            ssnow%ddq_dtg
     ENDIF
 
    bal%drybal = REAL(ecy+hcy) - SUM(rad%rniso,2)                               &
@@ -711,8 +748,17 @@ FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
    
    CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
 
+
+IF (cable_user%litter) THEN
+   !! vh_js !!
    ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-   cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
+        cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ &
+        (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+ELSE
+   ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
+        cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
+ENDIF
+
  
 END FUNCTION Penman_Monteith
 
@@ -727,7 +773,7 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
       ssnowpotev,    & ! 
       dq,            & ! sat spec hum diff.
       qstss             !dummy var for compilation
-       
+         
    INTEGER :: j
    
    DO j=1,mp
@@ -735,8 +781,14 @@ FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
       IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
          dq(j) = max( -0.1e-3, dq(j))
    ENDDO 
-   
-   ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
+
+   IF (cable_user%litter) THEN
+      !! vh_js !!
+      ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
+           real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+   ELSE
+      ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
+   ENDIF
    
 END FUNCTION Humidity_deficit_method
 
@@ -1602,7 +1654,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                      met%tk(i) ) * rad%gradis(i,2) ) + C%capp * C%rmair *      &
                      met%dva(i) * ghr(i,2) ) /                                 &
                      ( air%dsatdk(i) + psycst(i,2) ) 
-
            
             IF (cable_user%fwsoil_switch=='Haverd2013') then
                canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
@@ -1610,9 +1661,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     real(veg%froot(i,:),r_2), real(soil%ssat_vec(i,:),r_2), &
                     real(soil%swilt_vec(i,:),r_2), max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
                     real(veg%gamma(i),r_2), &
-                    real(soil%zse,r_2), real(dels,r_2))
+                    real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
                fwsoil(i) = canopy%fwsoil(i)
                ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels*1000_r_2 ! mm water (root water extraction) per time step
+
             ELSE
                
                IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
@@ -2200,7 +2252,7 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
    !*********************************************************************************************************************
 
-  SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt)
+  SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt, zr)
 
     ! root extraction : Haverd et al. 2013
     USE cable_def_types_mod, only: r_2
@@ -2217,16 +2269,23 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
     REAL(r_2),               INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
     REAL(r_2), DIMENSION(:), INTENT(IN)    :: dx     ! layer thicknesses (m)
     REAL(r_2),               INTENT(IN)    :: dt
+    REAL(r_2),               INTENT(IN)    :: zr
 
     ! Gets rate of water extraction compatible with CABLE stomatal conductance model
     ! theta(:) - soil moisture(m3 m-3)
     ! rex(:)   - rate of water extraction by roots from layers (cm/h).
-    REAL(r_2), DIMENSION(1:size(theta)) ::  lthetar, alpha_root, delta_root
+    REAL(r_2), DIMENSION(1:size(theta)) ::  lthetar, alpha_root, delta_root, layer_depth
     REAL(r_2)                       :: trex, e3, one, zero
+    INTEGER :: k
 
     e3 = 0.001
     one = 1.0;
     zero = 0.0;
+  
+    layer_depth(1) = 0.0
+    do k=2,size(theta)
+       layer_depth(k) = sum(dx(1:k-1))
+    enddo
 
     !theta(:)   = S(:)*thetaS(:)
     lthetar(:) = log(max(theta(:)-thetaw(:),e3)/thetaS(:))
@@ -2237,7 +2296,7 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
        alpha_root(:) = zero
     endwhere
 
-    where (Fs(:) > zero)
+    where (Fs(:) > zero .and. layer_depth < zr )  ! where there are roots and we are aobe max rooting depth
        delta_root(:) = one
     elsewhere
        delta_root(:) = zero

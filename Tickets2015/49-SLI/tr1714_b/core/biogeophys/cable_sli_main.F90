@@ -43,7 +43,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   INTEGER(i_d),    DIMENSION(1:mp)      :: nsteps
   REAL(r_2),       DIMENSION(1:mp,1:ms) :: Tsoil, S, thetai, Jsensible
   REAL(r_2),       DIMENSION(1:mp)      :: SL, TL, T0
-  REAL(r_2),       DIMENSION(1:mp)      :: drn, evap, infil, qprec, qprec_snow, qprec_tot, runoff, runoff_sat
+  REAL(r_2),       DIMENSION(1:mp)      :: drn, evap, infil, qprec, qprec_snow,qprec_snow_tmp, qprec_tot, runoff, runoff_sat
   REAL(r_2),       DIMENSION(1:mp)      :: win, wp, wpi, h0, deltah0, h0old,hsnowold, discharge
   REAL(r_2),       DIMENSION(1:mp)      :: ip, ipi ! volumetric ice content of profile (final and initial)
   REAL(r_2),       DIMENSION(1:mp,1:ms) :: wex, csoil, qex, kth, phi, thetal_max, Sliq, Ksat
@@ -178,7 +178,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! Litter parameters:
   if (.not. allocated(plit)) then
      index=(/(i,i=1,mp,1)/)
-     call setlitterpar(mp, soil, index)
+     call setlitterpar(mp, veg, index)
   endif
 
   ! Met data above soil:
@@ -277,6 +277,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   TL(:) = Tsoil(:,1) ! litter T
 
   thetai      = ssnow%thetai
+  var%thetai = thetai
   ssnow%smelt = zero
   ssnow%cls   = one
   S           = ssnow%S                ! degree of soil saturation
@@ -335,7 +336,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         vsnow(kk)%fsnowliq_max = 0.1 !MC! ???
         vsnow(kk)%tsn(:) = real(ssnow%tggsn(kk,1:nsnow_max),r_2) - Tzero
         vsnow(kk)%kH(:)  = ssnow%sconds(kk,1:nsnow_max)
-        vsnow(kk)%Dv(:)  = Dva*(real(ssnow%tggsn(kk,1:nsnow_max),r_2)/Tzero)**1.88_r_2 ! m2 s-1
+        vsnow(kk)%Dv(:)  = Dva*(max(real(ssnow%tggsn(kk,1:nsnow_max),r_2)/Tzero,0.0_r_2))**1.88_r_2 ! m2 s-1
         vsnow(kk)%sl     = slope_esat_ice(vsnow(kk)%tsn) * Mw/thousand/Rgas/(vsnow(kk)%tsn+Tzero)
         vsnow(kk)%kE     = vsnow(kk)%Dv*vsnow(kk)%sl*thousand*lambdaf
         vsnow(kk)%kth    = vsnow(kk)%kE + vsnow(kk)%kH
@@ -397,10 +398,14 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   deltaTa = zero
   lE_old  = ssnow%lE
   gamm    = real(veg%gamma,r_2)
-
-  qprec      = (canopy%through-met%precip_sn)/thousand/dt              ! liq precip rate (m s-1)
-  qprec_snow = (met%precip_sn)/thousand/dt
-
+  where (canopy%through>met%precip_sn)
+     qprec      = (canopy%through-met%precip_sn)/thousand/dt              ! liq precip rate (m s-1)
+     qprec_snow = (met%precip_sn)/thousand/dt
+  elsewhere
+     qprec = zero
+     qprec_snow = zero
+  endwhere
+  
   ! re-calculate qprec_snow and qprec based on total precip and air T (ref Jin et al. Table II, Hyd Proc, 1999
   ! qprec_tot = qprec + qprec_snow
   ! where (vmet%Ta > 2.5_r_2)
@@ -416,7 +421,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   !    qprec = zero
   !    qprec_snow = qprec_tot
   ! endwhere
-
+  qprec_snow_tmp = qprec_snow
   h0old = ssnow%h0 ! pond height
 
   do kk=1, mp
@@ -496,10 +501,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      canopy%fes = real(lE)
      canopy%fhs = canopy%fns - canopy%ga - real(canopy%fes)
      ssnow%tss  = real(Tsurface + Tzero)
-     ssnow%potev  = real(Epot(kk))
-     !write(*,"(a10, 100f16.6)") "sli_main SEB", canopy%fhs, Tsurface-vmet%Ta
+     ssnow%potev  = real(Epot)
 
-     !stop
+    
+
 
   else ! full SLI
      ! save for output, because they get changed with litter in solve
@@ -520,7 +525,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
           deltaTa=deltaTa, lE_old=lE_old, &
           dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
           doadvection=advection)
-
+     qprec_snow = qprec_snow_tmp
      H             = (H/(tf-ti)) 
      lE            = lE/(tf-ti)
      G0            = G0/(tf-ti)

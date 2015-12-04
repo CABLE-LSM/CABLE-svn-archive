@@ -139,6 +139,7 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fev     = 0.0   ! latent heat flux from vegetation (W/m2)
    canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
+   canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
 
 END SUBROUTINE get_default_inits
 
@@ -442,7 +443,7 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
             max_vegpatches,'ms',from_restart,mp)
        soil%ishorizon = int(var_r2)
        DEALLOCATE(var_r2)
-       CALL readpar(ncid_rin,'clitt',dummy,soil%clitt,filename%restart_in,           &
+       CALL readpar(ncid_rin,'clitt',dummy,veg%clitt,filename%restart_in,           &
             max_vegpatches,'def',from_restart,mp)
     ENDIF
    CALL readpar(ncid_rin,'cansto',dummy,canopy%cansto,filename%restart_in,     &

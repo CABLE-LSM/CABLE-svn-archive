@@ -72,7 +72,7 @@ host_pear()
    #export CFLAGS='-O0 -fp-model precise -g -debug -traceback '
    #export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
    #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
-   export LDFLAGS='-L'$NCDIR' -O2'
+   export LDFLAGS='-L'$NCDIR' -O2 '
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../

@@ -208,11 +208,18 @@ WG%WindLite  = WG%WindDay / &
 ! TempMinDayNext                                                    Tp
 ! TempMaxDayPrev                                                    * Tx-24h
  
-WG%TimeSunrise     = (ACOS(TAN(WG%LatRad)*TAN(WG%DecRad)))*12./Pi              ! Hn
-WG%TimeSunset      = WG%TimeSunrise + WG%DayLength                             ! Ho
+WHERE ( WG%DayLength .LT. 0.01 ) 
+   ! Polar night
+   WG%TimeSunrise     = 9.              ! Hn
+   WG%TimeSunset      = 16.                            ! Ho
+   WG%TimeMaxTemp     = 13.                                    ! Hx
+ELSEWHERE   
+   WG%TimeSunrise     = (ACOS(TAN(WG%LatRad)*TAN(WG%DecRad)))*12./Pi              ! Hn
+   WG%TimeSunset      = WG%TimeSunrise + WG%DayLength                             ! Ho
+   WG%TimeMaxTemp     = WG%TimeSunset - MIN(4.,( WG%DayLength * 0.4)) ! Hx
+END WHERE
 WG%TimeSunsetPrev  = WG%TimeSunset - 24.                                 ! * Ho-24h (a negative hour)  
-WG%TimeMaxTemp     = WG%TimeSunset - 4.                                     ! Hx
-TimeSunriseNext = WG%TimeSunrise + 24.                               ! Hp
+TimeSunriseNext    = WG%TimeSunrise + 24.                               ! Hp
 WG%TempSunset      = WG%TempMaxDay - & 
      (0.39 * (WG%TempMaxDay - WG%TempMinDayNext))               ! To
 WG%TempSunsetPrev  = WG%TempMaxDayPrev - &
@@ -220,11 +227,10 @@ WG%TempSunsetPrev  = WG%TempMaxDayPrev - &
 WG%TempRangeDay    = WG%TempMaxDay - WG%TempMinDay                            ! alpha = Tx-Tn
 WG%TempRangeAft    = WG%TempMaxDay - WG%TempSunset                            ! R = Tx-To
 WG%TempNightRate   = (WG%TempMinDayNext - WG%TempSunset)/ &
-                SQRT(TimeSunriseNext-WG%TimeSunset)                  ! b = (Tp-To)/sqrt(Hp-Ho)
+     SQRT(TimeSunriseNext-WG%TimeSunset)                  ! b = (Tp-To)/sqrt(Hp-Ho)
 WG%TempNightRatePrev = (WG%TempMinDay - WG%TempSunsetPrev)/ &
-                SQRT(WG%TimeSunrise-WG%TimeSunsetPrev)                  ! * b-24h = (Tn-(To-24h))/sqrt(Hn-(Ho-24h))
-
-
+     SQRT(WG%TimeSunrise-WG%TimeSunsetPrev)                  ! * b-24h = (Tn-(To-24h))/sqrt(Hn-(Ho-24h))
+   
 END SUBROUTINE WGEN_DAILY_CONSTANTS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -331,24 +337,23 @@ END WHERE
 ! Calculate temperature according to Cesaraccio et al 2001, including midnight to 
 ! sunrise period using previous days info, and ignoring the period from after the 
 ! following midnight to sunrise the next day, normally calculated by Cesaraccio.
-
-WHERE (ritime > 0. .AND. ritime <= WG%TimeSunrise)
-! Midnight to sunrise
-  WG%Temp = WG%TempSunsetPrev + WG%TempNightRatePrev * SQRT(ritime - WG%TimeSunsetPrev)
+WHERE ( ritime <= WG%TimeSunrise )
+   ! Midnight to sunrise
+   WG%Temp = WG%TempSunsetPrev + WG%TempNightRatePrev * SQRT(ritime - WG%TimeSunsetPrev)
 ELSEWHERE (ritime > WG%TimeSunrise .AND. ritime <= WG%TimeMaxTemp) 
-! Sunrise to time of maximum temperature
-  WG%Temp = WG%TempMinDay + &
+   ! Sunrise to time of maximum temperature
+   WG%Temp = WG%TempMinDay + &
         WG% TempRangeDay *SIN (((ritime-WG%TimeSunrise)/ & 
         (WG%TimeMaxTemp-WG%TimeSunrise))*PiBy2)
 ELSEWHERE (ritime > WG%TimeMaxTemp .AND. ritime <= WG%TimeSunset) 
-! Time of maximum temperature to sunset
-  WG%Temp = WG%TempSunset + &
-         WG%TempRangeAft * SIN(PiBy2 + ((ritime-WG%TimeMaxTemp)/4.*PiBy2))
-ELSEWHERE (ritime > WG%TimeSunset .AND. ritime <= 24.)
-! Sunset to midnight
-  WG%Temp = WG%TempSunset + WG%TempNightRate * SQRT(ritime - WG%TimeSunset)
+   ! Time of maximum temperature to sunset
+   WG%Temp = WG%TempSunset + &
+        WG%TempRangeAft * SIN(PiBy2 + ((ritime-WG%TimeMaxTemp)/4.*PiBy2))
+ELSEWHERE (ritime > WG%TimeSunset )
+   ! Sunset to midnight
+   WG%Temp = WG%TempSunset + WG%TempNightRate * SQRT(ritime - WG%TimeSunset)
 END WHERE
-      
+
 ! -----------------------------------
 ! Water Vapour Pressure, Air Pressure
 ! -----------------------------------
@@ -374,24 +379,26 @@ END WHERE
 PhiLd_Swinbank = 335.97 * (((WG%Temp + 273.16) / 293.0)**6)   ! [W/m2] (Swinbank 1963)
 
 ! -------------------------------
- ! Alternate longwave formulation
+! Alternate longwave formulation
+! ----------------------------
+
 WG%PhiLd = epsilon * SBoltz * (WG%Temp + 273.16)**4       ! [W/m2] (Brutsaert)
+
 WHERE (WG%PhiSd.GT.50.0)
-   adjust_fac = ((1.17)**(WG%SolarNorm))/1.17
+	adjust_fac = ((1.17)**(WG%SolarNorm))/1.17
 ELSEWHERE
-   adjust_fac = 0.9
-endwhere
+	adjust_fac = 0.9
+ENDWHERE
 
 WG%PhiLd = WG%PhiLd /adjust_fac * (1.0 + WG%PhiSd/8000.)       ! adjustment (formulation from Gab Abramowitz)
 
 WHERE ((WG%PhiLd.GT.500.00).OR.(WG%PhiLd.LT.100.00))
-   WG%PhiLd = PhiLd_Swinbank
-endwhere
+	WG%PhiLd = PhiLd_Swinbank
+ENDWHERE
 
 IF (ANY((WG%PhiLd.GT.750.00).OR.(WG%PhiLd.LT.100.00))) THEN
 !write(*,*) 'PhiLD out of range'
 ENDIF
-
 
 END SUBROUTINE WGEN_SUBDIURNAL_MET
 

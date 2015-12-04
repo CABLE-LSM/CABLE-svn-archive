@@ -88,7 +88,6 @@ MODULE cable_common_module
 
      CHARACTER(LEN=10):: RunIden = 'STANDARD'  !
      CHARACTER(LEN=4) :: MetType = "NA" !
-     CHARACTER(LEN=20) :: CANOPY_STRUC !
      CHARACTER(LEN=20) :: SOIL_STRUC !
      CHARACTER(LEN=3)  :: POP_out = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst = ' ' !
@@ -132,8 +131,11 @@ MODULE cable_common_module
           L_NEW_REDUCE_SOILEVP  = .FALSE., & !
           
                                 ! Switch for customized soil respiration - see Ticket #42
-          SRF = .FALSE.
-
+          SRF = .FALSE., &
+     
+          !! vh_js !!
+         litter = .FALSE.
+     
   END TYPE kbl_user_switches
 
   ! instantiate internal switches 
@@ -223,7 +225,9 @@ MODULE cable_common_module
           conkc0,     &
           conko0,     &
           ekc,        &
-          eko
+          eko,        &
+          zr,         &
+          clitt
 
      REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
           froot,      & !
@@ -326,7 +330,9 @@ CONTAINS
          vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype)  )
+         vegin%ekc(mvtype), vegin%eko(mvtype)  ,                              &
+!! vh_veg_params !!
+         vegin%zr(mvtype), vegin%clitt(mvtype))
 
 
     IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -354,13 +360,13 @@ CONTAINS
                vegin%rpcoef(jveg),                                     &
                vegin%rs20(jveg)
           READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),                 &
-               vegin%vbeta(jveg), vegin%rootbeta(jveg)
+               vegin%vbeta(jveg), vegin%rootbeta(jveg),                      &
+               vegin%zr(jveg), vegin%clitt(jveg)
           READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
           ! rates not currently set to vary with veg type
           READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
           READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
           READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
-
        END DO
 
     ELSE

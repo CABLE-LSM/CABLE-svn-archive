@@ -334,7 +334,7 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
          ssnow%wblf(:,k) = ( ssnow%wb(:,k) - ssnow%wbice(:,k) ) / ssatcurr_k
       
       END DO
-      
+
       ssnow%rnof2 = dels * REAL( fluxh(:,ms) ) * 1000.0
 
       ! wbh_k represents wblf(k-.5)
@@ -367,7 +367,7 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
       ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / rhowat
       ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / rhowat
       ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / rhowat
-    
+
    END IF
    ! END: IF (nmeth <= 0) THEN
 
@@ -533,7 +533,7 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
    END IF  ! IF (nmeth > 0)
 
    CALL trimb(at, bt, ct, ssnow%wblf, ms)
-   
+
    DO k = 1, ms
       ssatcurr(:,k) = soil%ssat - ssnow%wbice(:,k)
       ssnow%wb(:,k) = ssnow%wblf(:,k) * ssatcurr(:,k) + ssnow%wbice(:,k)
@@ -955,14 +955,13 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
    INTEGER :: k,j
 
    CALL smoisturev( dels, ssnow, soil, veg )
-
+ 
    DO k = 1, ms
       xxx = REAL( soil%ssat,r_2 )
       ssnow%rnof1 = ssnow%rnof1 + REAL( MAX( ssnow%wb(:,k) - xxx, 0.0_r_2 )  &
                     * 1000.0 )  * soil%zse(k)
       ssnow%wb(:,k) = MAX( 0.01_r_2, MIN( ssnow%wb(:,k), xxx ) )
    END DO
-
    ! for deep runoff use wb-sfc, but this value not to exceed .99*wb-wbice
    ! account for soil/ice cracking
    ! fracm = MIN(0.2, 1. - MIN(1., ssnow%wb(:,ms) / soil%sfc ) )
@@ -1278,6 +1277,7 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
 
       rhs(:,1-3) = ssnow%tggsn(:,1)
    END WHERE
+
  
    !     note in the following that tgg and tggsn are processed together
    tmp_mat(:,1:3) = REAL(ssnow%tggsn,r_2) 
@@ -1837,7 +1837,6 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL  soilfreeze(dels, soil, ssnow)
 
-
    totwet = canopy%precis + ssnow%smelt 
    
    ! total available liquid including puddle
@@ -1859,8 +1858,9 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%pudsto = max( 0._r_2, weting - sinfil1 - sinfil2 - sinfil3 )
    ssnow%rnof1 = max(0.,ssnow%pudsto - ssnow%pudsmx)
    ssnow%pudsto = ssnow%pudsto - ssnow%rnof1
-
+    
    CALL surfbv(dels, met, ssnow, soil, veg, canopy )
+
 
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um ) THEN

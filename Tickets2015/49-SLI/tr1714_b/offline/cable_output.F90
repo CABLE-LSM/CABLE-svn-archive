@@ -1109,6 +1109,9 @@ PRINT*,"timeunits", timeunits
        END DO
        ! LN Inserted for multiyear output
 
+       !write(*,*) "leaps" leaps
+       !stop
+
        ! Are we using leap year calendar?
        IF (leaps) THEN
           ! If currently a leap year:
@@ -1144,6 +1147,7 @@ PRINT*,"timeunits", timeunits
           IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of month
              ! increment output month counter
              out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
+             !write(66,*) out_month, lastday, dday, ktau, met%year(1), met%moy(1), met%doy(1)
              ! write to output file this time step 
              writenow = .TRUE.
              ! increment output time step counter:
@@ -2590,7 +2594,7 @@ PRINT*,"timeunits", timeunits
        CALL write_ovar (ncid_restart,rpid%ishorizon,'ishorizon', &
             REAL(soil%ishorizon,4),(/-99999.0,99999.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%clitt,'clitt', &
-            REAL(soil%clitt,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+            REAL(veg%clitt,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%ZR,'ZR', &
             REAL(veg%ZR,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%F10,'F10', &

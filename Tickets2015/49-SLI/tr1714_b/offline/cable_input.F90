@@ -321,7 +321,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
         isoil_dims,             & ! number of dims of isoil var if in met file
         tsmin,tsdoy,tsyear,     & ! temporary variables
         x,y,i,j,                & ! do loop counters
-        tempmonth,              &
+        tempmonth,				&
         ssod, &
         nsod, &
         LOY, &
@@ -759,11 +759,11 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        IF ( IS_LEAPYEAR( syear ) ) LOY = 366
        IF ( sdoy .GT. LOY ) THEN
           sdoy  = sdoy - LOY
-                syear = syear + 1 
-        ELSE 
+          syear = syear + 1 
+       ELSE 
           EXIT
-          END IF
-       END DO
+       END IF
+    END DO
 
 
     CALL DOYSOD2YMDHMS( syear, sdoy, nsod, smoy, iday, ishod, imin, isec )
@@ -2370,7 +2370,39 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
             rad,logn,vegparmnew,smoy, TFRZ)
 
-   
+    ! Zero out lai where there is no vegetation acc. to veg. index
+    WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+
+    IF (icycle > 0) THEN
+      CALL write_cnp_params(veg,casaflux,casamet)
+      CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
+      CALL casa_readphen(veg,casamet,phen)
+
+      CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
+      IF ( CABLE_USER%CALL_POP ) THEN
+      ! evaluate mp_POP and POP_array
+       mp_POP = COUNT(casamet%iveg2==forest)+COUNT(casamet%iveg2==shrub)
+       ALLOCATE(Iwood(mp_POP))
+       j = 1
+       DO i=1,mp
+          IF (casamet%iveg2(i)==forest .OR. casamet%iveg2(i)==shrub) THEN
+             Iwood(j) = i
+             j = j+1
+          ENDIF
+       ENDDO
+
+       !write(*,*) 'Iwood', Iwood
+
+       
+         IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
+            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
+         ELSE
+            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
+            CALL POP_IO( POP, casamet, cable_user%YearStart, "READ_rst" , .TRUE.)
+         END IF
+      END IF
+    ENDIF
+
 ! removed get_default_inits and get_default_lai as they are already done
 ! in write_default_params
 !    ! Load default initialisations from Mk3L climatology:
@@ -2459,39 +2491,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
       WRITE(logn,*) ' Met file has no params; all parameters remain as default.'
     END IF
     WRITE(logn,*)
-
- ! Zero out lai where there is no vegetation acc. to veg. index
-    WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
-
-    IF (icycle > 0) THEN
-      CALL write_cnp_params(veg,casaflux,casamet)
-      CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
-      CALL casa_readphen(veg,casamet,phen)
-
-      CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
-      IF ( CABLE_USER%CALL_POP ) THEN
-      ! evaluate mp_POP and POP_array
-       mp_POP = COUNT(casamet%iveg2==forest)+COUNT(casamet%iveg2==shrub)
-       ALLOCATE(Iwood(mp_POP))
-       j = 1
-       DO i=1,mp
-          IF (casamet%iveg2(i)==forest .OR. casamet%iveg2(i)==shrub) THEN
-             Iwood(j) = i
-             j = j+1
-          ENDIF
-       ENDDO
-
-      
-       
-         IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
-            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
-         ELSE
-            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
-            CALL POP_IO( POP, casamet, cable_user%YearStart, "READ_rst" ,.TRUE.)
-         END IF
-      END IF
-    ENDIF
-
 
     ! Construct derived parameters and zero initialisations, regardless 
     ! of where parameters and other initialisations have loaded from:

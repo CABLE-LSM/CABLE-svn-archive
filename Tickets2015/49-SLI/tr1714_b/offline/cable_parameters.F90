@@ -263,9 +263,10 @@ CONTAINS
 
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-    ok = NF90_GET_VAR(ncid, varID, idummy)
+!CLN    ok = NF90_GET_VAR(ncid, varID, idummy)
+    ok = NF90_GET_VAR(ncid, varID, inVeg)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+!CLN    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -273,7 +274,7 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inPFrac)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable patchfrac.')
-    inPFrac(:, :, 1) = rdummy(:, :)
+!CLN    inPFrac(:, :, 1) = rdummy(:, :)
 
     ok = NF90_INQ_VARID(ncid, 'isoil', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
@@ -778,7 +779,23 @@ CONTAINS
           PRINT *, 'vegtype_metfile = ', vegtype_metfile(kk,:)
           STOP
         END IF
-      ELSE
+! CLN added for npatches
+     ELSE IF ( npatch .GT. 1 ) THEN
+        landpt(kk)%nap = 0
+        DO tt = 1, npatch
+          IF (inVeg(landpt(kk)%ilon,landpt(kk)%ilat,tt) > 0) THEN
+             landpt(kk)%nap = landpt(kk)%nap + 1
+          ENDIF
+        END DO
+        ncount = ncount + landpt(kk)%nap
+        landpt(kk)%cend = ncount
+        IF (landpt(kk)%cend < landpt(kk)%cstart) THEN
+          PRINT *, 'Land point ', kk, ' does not have veg type!'
+          PRINT *, 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend
+          PRINT *, 'vegtype_metfile = ', vegtype_metfile(kk,:)
+          STOP
+        END IF
+     ELSE
         ! assume nmetpatches to be 1
         IF (nmetpatches == 1) THEN
           ncount = ncount + 1
@@ -791,7 +808,8 @@ CONTAINS
         END IF
       END IF
     END DO
-    IF (ncount > mland * nmetpatches) THEN
+! CLN IF (ncount > mland * nmetpatches) THEN
+    IF (ncount > mland * nmetpatches .AND. npatch == 1) THEN
       PRINT *, ncount, ' should not be greater than mland*nmetpatches.'
       PRINT *, 'mland, nmetpatches = ', mland, nmetpatches
       STOP
@@ -800,7 +818,8 @@ CONTAINS
 
     ! Set the maximum number of active patches to that read from met file:
     max_vegpatches = MAXVAL(landpt(:)%nap)
-    IF (max_vegpatches /= nmetpatches) THEN
+!CLN    IF (max_vegpatches /= nmetpatches) THEN
+    IF (max_vegpatches /= nmetpatches .and. npatch == 1) THEN
       PRINT *, 'Error! Met file claiming to have more active patches than'
       PRINT *, 'it really has. Check met file.'
       STOP
@@ -886,6 +905,7 @@ CONTAINS
     ssnow%sdepth = 0.0   ! snow depth for each snow layer (BP jul2010)
     ssnow%snage  = 0.0   ! snow age
     ssnow%wbice  = 0.0   ! soil ice 
+    ssnow%thetai = 0.0   ! soil ice 
     ssnow%smass  = 0.0   ! snow mass per layer (kg/m^2)
     ssnow%runoff = 0.0   ! runoff total = subsurface + surface runoff
     ssnow%rnof1  = 0.0   ! surface runoff (mm/timestepsize)
@@ -896,18 +916,24 @@ CONTAINS
     canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
+    !! vh_js !!
+    canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be retart?
+    canopy%fh    = 0.0  ! sensible heat flux
+    canopy%fe    = 0.0  ! sensible heat flux
 
    !IF(hide%Ticket49Bug2) THEN
       canopy%ofes    = 0.0  ! latent heat flux from soil (W/m2)
-      canopy%fevc     = 0.0 
-      canopy%fevw     = 0.0 
+      canopy%fevc     = 0.0 !vh!
+      canopy%fevw     = 0.0 !vh!
       canopy%fns      = 0.0
       canopy%fnv     = 0.0
       canopy%fhv     = 0.0
-      canopy%fwsoil = 1.0 ! vh 
-      ssnow%kth = 0.3  ! vh !
+      canopy%fwsoil = 1.0 ! vh -should be calculated from soil moisture or 
+                          ! be in restart file
+
+      ssnow%kth = 0.3  ! vh ! should be calculated from soil moisture or be in restart file
       ssnow%sconds(:,:) = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1), 
-                                     
+                                      ! should be in restart file
  
       ! parameters that are not spatially dependent
       select case(ms)
@@ -947,6 +973,7 @@ CONTAINS
     END DO
 
     ALLOCATE(defaultLAI(mp, 12))
+
     DO e = 1, mland ! over all land grid points
     
       ! Write to CABLE variables from temp variables saved in
@@ -993,7 +1020,7 @@ CONTAINS
          ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
                 inWB(landpt(e)%ilon, landpt(e)%ilat, min(is,size(inTGG,3)), month)
       END DO
-    
+
    !ELSE    
     
    !   DO is = 1, ms
@@ -1092,6 +1119,9 @@ CONTAINS
           veg%hc(h)       = vegin%hc(veg%iveg(h))
           veg%xfang(h)    = vegin%xfang(veg%iveg(h))
           veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+          veg%zr(h)    = vegin%zr(veg%iveg(h))
+          veg%clitt(h)    = vegin%clitt(veg%iveg(h))
+
           veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
           veg%rp20(h)     = vegin%rp20(veg%iveg(h))
           veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
@@ -1164,7 +1194,7 @@ CONTAINS
                vegin%vcmax, vegin%ejmax, vegin%hc, vegin%xfang, vegin%rp20,    &
                vegin%rpcoef, vegin%rs20, vegin%shelrb, vegin%frac4,            &
                vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
-               vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
+               vegin%tmaxvj, vegin%vbeta,vegin%clitt, vegin%zr, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
@@ -1232,13 +1262,14 @@ CONTAINS
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
          soil%nhorizons = 1 ! use 1 soil horizon globally
-         soil%clitt = 5.0 ! (tC / ha)
+        ! veg%clitt = 5.0 ! (tC / ha)
          veg%F10 = 0.85
          veg%ZR = 5.0
       END IF
 
       IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
-         veg%gamma = 5.e-2
+         veg%gamma = 3.e-2
+         !veg%clitt = 5.0 ! (tC / ha)
       ENDIF
 
       IF(cable_user%CALL_POP) THEN
@@ -1323,8 +1354,11 @@ CONTAINS
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
     END IF
+
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
+!!!!!!!!!!!! vh_js !!!!!!!!!!!!!!!!!
+    soil%pwb_min = (soil%swilt/soil%ssat)**soil%ibp2
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
