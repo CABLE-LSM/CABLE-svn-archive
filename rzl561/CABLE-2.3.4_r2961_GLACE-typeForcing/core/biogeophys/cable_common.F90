@@ -57,9 +57,16 @@ MODULE cable_common_module
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
       
-      CHARACTER(LEN=5) ::                                                      &
+      CHARACTER(LEN=5) ::						&  
+      	!RL: add GLACE_STATUS
+         GLACE_STATUS, & !
          RUN_DIAG_LEVEL  !
       
+      !RL: add path for GLACE output
+      CHARACTER(LEN=200) ::                                                    &
+	 GLACE_DIR       !
+      !RL: end
+
       CHARACTER(LEN=3) ::                                                      &
          SSNOW_POTEV,      & !
          DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 

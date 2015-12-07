@@ -43,9 +43,12 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
                                   G_LEAF, TRANSP_TILE, CPOOL_TILE, NPOOL_TILE, &
                                   PPOOL_TILE, GLAI, PHENPHASE, NPP_FT_ACC,     &
-                                  RESP_W_FT_ACC, idoy )
-
-   USE cable_def_types_mod, ONLY : mp
+!                                  RESP_W_FT_ACC, idoy )
+   !RL:add endstep, timestep_number, mype, first_atmstep_call
+		 		  RESP_W_FT_ACC, idoy, endstep, timestep_number,&
+				  mype, first_atmstep_call)
+   !RL: add ms
+   USE cable_def_types_mod, ONLY : mp, ms
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
@@ -61,6 +64,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    !USE casa_cable
    USE casa_um_inout_mod
 
+   !RL: for GLACE
+   !--- include subr called to read data for GLACE-type experiments 
+   USE cable_diag_module
+   USE cable_diag_read_mod 
+
    IMPLICIT NONE
         
    REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
@@ -71,7 +79,24 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       DTL_1,    & ! IN Level 1 increment to T field 
       DQW_1       ! IN Level 1 increment to q field 
 
+   !RL: add endstep, timestep_number, mype
+   ! end step of experiment, this step, step width, processor num
+     INTEGER, INTENT(IN) :: endstep, timestep_number, mype
+     LOGICAL, INTENT(IN) :: first_atmstep_call
+
    REAL :: timestep
+
+   !RL: for GLACE
+   !jhan: not needed in UM as compiled -r8  ? 
+   !___ temporary array , RL:changed to 2d
+   REAL, POINTER, DIMENSION(:,:), SAVE  :: & 
+      ftemp
+
+   !RL:!___path for GLACE filename (writing/reading soil moisture)
+   CHARACTER(LEN=200) :: glace_file
+   CHARACTER(LEN=20) :: sm_filename
+   !___ unique unit/file identifiers for cable_diag 
+   INTEGER, SAVE :: iDiag_Zero=0, iDiag1=0 
 
    INTEGER ::                                                                  &
       DIM_CS1, DIM_CS2 
@@ -216,6 +241,15 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    
       dtlc = 0. ; dqwc = 0.
 
+      !RL: for GLACE:
+      !--- basic info from global model passed to cable_common_module 
+      !--- vars so don't need to be passed around, just USE _module
+      ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
+                                 !the same as timestep of particular RUN
+
+      knode_gl = mype               !which processor am i on?
+      kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
+
       !--- All these subrs do is pack a CABLE var with a UM var.
       !-------------------------------------------------------------------
       !--- UM met forcing vars needed by CABLE which have UM dimensions
@@ -248,6 +282,40 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg)
 
+   !RL: for GLACE
+   sm_filename = 'smcl_'
+   glace_file = trim(cable_user%GLACE_DIR)//trim(sm_filename)
+
+   ! read/write GLACE-type forcing data
+   IF( first_atmstep_call ) & 
+      WRITE(6,*)'CABLE_log:GLACE_STATUS ',trim(cable_user%GLACE_STATUS)
+   
+   IF( cable_user%GLACE_STATUS== 'WRITE') THEN
+      
+      IF( first_atmstep_call ) & 
+         WRITE(6,*)'CABLE_log: GLACE_STATUS write loop activated'
+      
+      call cable_diag2( iDiag1, trim(sm_filename), mp, kend_gl, ms,	&
+                        ktau_gl, knode_gl, "smcl per layer ",		&
+			REAL(ssnow%wb(:,:)), first_atmstep_call )
+   ENDIF
+ 
+   !RL: overwrite soil moisture if GLACE=READ
+   IF( cable_user%GLACE_STATUS== 'READ') THEN
+      
+      IF( first_atmstep_call ) & 
+         WRITE(6,*)'CABLE_log: GLACE_STATUS read loop activated'
+      
+      IF( first_atmstep_call ) ALLOCATE( ftemp(mp,ms) )
+
+      IF (mp /= 0 ) THEN
+         call cable_diagRead( iDiag1, glace_file, mp, kend_gl, ms, ktau_gl,       &
+                             knode_gl, "smcl per layer ", ftemp )
+         ssnow%wb(:,:) = ftemp
+	 ENDIF
+
+   ENDIF
+   
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
       IF(idoy==0) idoy =365

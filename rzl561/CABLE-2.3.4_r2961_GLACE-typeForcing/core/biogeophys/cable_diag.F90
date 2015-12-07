@@ -145,6 +145,112 @@ SUBROUTINE cable_diag_data1( iDiag, filename, dimx, timestep, kend, var1  )
 
 END SUBROUTINE cable_diag_data1
 
+!=============================================================================!
+!=============================================================================!
+
+!RL: add cable_diag2 for 3d array (tiles on proc, sm_level, timesteps)
+
+SUBROUTINE cable_diag2( iDiag, basename, dimx, kend, dimz, timestep, &
+                        node, vname2, var2, start_run )
+   integer, intent(inOUT) :: iDiag 
+   integer, SAVE :: pDiag=713 
+   integer, intent(in) :: dimx, kend, dimz, timestep, node
+   real, intent(in), dimension(:,:) :: var2
+   logical, intent(in) :: start_run
+   integer :: Nvars=1 !this WAS input
+   integer :: i=0
+   integer :: dimy
+   character(len=*), intent(in) :: basename, vname2
+   character(len=30) :: filename, chnode
+ 
+   dimy = kend-timestep+1
+
+      IF(iDiag==0) THEN
+         pDiag = pDiag+2  
+         iDiag=pDiag
+      ENDIF
+         
+      write(chnode,10) node
+   10 format(i3.3)   
+      filename=trim(trim(basename)//trim(chnode))
+      
+      if (start_run) & 
+      call cable_diag_desc2( iDiag, trim(filename), dimx, &
+      	   		      dimy, dimz, vname2, timestep )
+      
+      call cable_diag_data2( iDiag, trim(filename),dimx, dimz,  &
+                              timestep, kend, var2, start_run )
+END SUBROUTINE cable_diag2
+
+!=============================================================================!
+!=============================================================================!
+
+SUBROUTINE cable_diag_desc2( iDiag, filename, dimx, &
+	   		     dimy, dimz, vname2, timestep )
+
+   integer, intent(in) :: iDiag, dimx, dimy, dimz, timestep
+   integer, PARAMETER :: Nvars=1
+   character(len=*), intent(in) :: filename, vname2
+   integer, save :: gopenstatus = 1
+
+     open(unit=iDiag,file=filename//'.dat', status="replace", &
+          action="write", iostat=gopenstatus )
+     
+      if(gopenstatus==gok) then
+            write (iDiag,*) 'Number of var(s): '
+            write (iDiag,*) Nvars
+            write (iDiag,*) 'Name of var(s): '
+            write (iDiag,7139) vname2 
+ 7139       format(a)   
+            write (iDiag,*) 'Timestep is: '
+            write (iDiag,*)  timestep        
+            write (iDiag,*) 'dimension of var(s) in x: '
+            write (iDiag,*) dimx 
+            write (iDiag,*) 'dimension of var(s) in y: '
+            write (iDiag,*) dimy
+            write (iDiag,*) 'dimension of var(s) in z: '
+            write (iDiag,*) dimz 
+      else
+         write (*,*), filename//'.dat',' Error: unable to write'
+      endif
+      
+   close(iDiag)
+  
+END SUBROUTINE cable_diag_desc2
+
+
+SUBROUTINE cable_diag_data2( iDiag, filename, dimx, dimz,	&
+	   		      timestep, kend, var2, start_run  )
+
+   integer, intent(in) :: iDiag, dimx, dimz, timestep, kend
+   integer, PARAMETER :: Nvars=1
+   real, intent(in), dimension(:,:) :: var2
+   character(len=*), intent(in) :: filename
+   logical, intent(in) :: start_run
+   integer, save :: gopenstatus = 1
+   integer :: i,k
+ 
+   if (start_run)  then 
+      open(unit=iDiag+1,file=filename//'.bin',status="unknown", &
+           action="write", iostat=gopenstatus, form="unformatted", &
+           position='append' )
+   endif   
+ 
+   if(gopenstatus==gok) then
+      do i=1,dimx
+      	 do k=1,dimz
+            write (iDiag+1) var2(i,k)
+	 enddo
+	 enddo
+   else
+      write (*,*) filename//'.bin',' NOT open for write. Error'
+   endif
+
+   if (timestep == kend) & 
+      close(iDiag+1)
+
+END SUBROUTINE cable_diag_data2
+
 !==========================================================================!
 !--- cable generic print status
 !==========================================================================!
@@ -161,5 +267,86 @@ END SUBROUTINE cable_stat
 
 END MODULE cable_diag_module
 
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!RL: added for GLACE-type simulations
+MODULE cable_diag_read_mod 
+
+   IMPLICIT NONE
+
+CONTAINS
+  
+   SUBROUTINE cable_diagRead( iDiag, basename, dimx, dimy, dimz, timestep, node, &
+                        vname, fdata )
+
+      integer :: iDiag, dimx, dimy, dimz, timestep, node
+      ! dimx = typically #landpoints over which variable is specified per timestep 
+      ! dimy = # timesteps
+      ! dimz = # soil levels
+      !INTEGER ::dimx, dimy, dimz, iDiag 
+
+      ! passed filename (per field, per processor, at present)
+      character(len=*), intent(in) :: basename, vname
+      
+      character(len=100) :: filename, chnode
+ 
+      ! field (3D at present - one time, one spatial, one vertical ) 
+      REAL, DIMENSION(:,:), POINTER :: fdata
+
+ 
+      write(chnode,10) node
+   10 format(i3.3)   
+      filename=trim(trim(basename)//trim(chnode))
+   
+      ! read the binary data and store in 2nd arg 
+      CALL read_dat_file(iDiag, TRIM(filename), fdata, dimx, dimz, timestep, dimy)
+
+   END SUBROUTINE cable_diagRead   
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+
+SUBROUTINE read_dat_file( iDiag, filename, fdata, dimx, dimz, timestep, kend)
+
+   INTEGER :: iDiag
+   INTEGER, INTENT(IN) :: dimx, dimz, timestep, kend 
+   REAL, DIMENSION(:,:), POINTER :: fdata
+   CHARACTER(LEN=*), INTENT(IN) :: filename
+   
+   INTEGER, PARAMETER :: gok=0
+   INTEGER, SAVE :: gopenstatus
+   LOGICAL, SAVE :: first_call = .TRUE. 
+   INTEGER :: i,k
+
+      IF (first_call) THEN
+         OPEN(UNIT=iDiag, FILE=trim(filename)//'.bin', STATUS="unknown", ACTION="read", &
+               IOSTAT=gopenstatus, FORM="unformatted" )
+         first_call= .FALSE.
+      ENDIF   
+
+         IF(gopenstatus==gok) THEN
+	    DO i=1,dimx
+               DO k=1,dimz
+               	  READ(iDiag), fdata(i,k)
+	       ENDDO 
+	    ENDDO
+     
+         ELSE
+            WRITE (*,*), trim(filename)//'.bin',' NOT found for read'
+            STOP
+     
+         ENDIF
+
+      IF (timestep == kend) THEN
+      	 REWIND(iDiag) 
+      	 CLOSE(iDiag)
+      END IF
+
+END SUBROUTINE read_dat_file 
+
+!==========================================================================!
+      
+
+END MODULE cable_diag_read_mod 
 
 

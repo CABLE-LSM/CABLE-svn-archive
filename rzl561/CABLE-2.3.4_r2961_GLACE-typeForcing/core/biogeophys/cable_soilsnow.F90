@@ -315,8 +315,13 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
          END IF
 
          ! fluxh (:,ms) is drainage
-         ssnow%wb(:,k) = ssnow%wb(:,k) + dels * ( fluxh(:,k-1) - fluxh(:,k) )  &
+	!RL: no drainage for GLACE=READ
+     	IF( cable_user%GLACE_STATUS /= 'READ' ) THEN
+           ssnow%wb(:,k) = ssnow%wb(:,k) + dels * ( fluxh(:,k-1) - fluxh(:,k) )&
                          / soil%zse(k)
+	ELSE
+		WRITE(6,*)'CABLE_log: GLACE_STATUS read: no update of ssnow%wb'
+	ENDIF
 
          ! re-calculate wblf
          ssatcurr_k = soil%ssat - ssnow%wbice(:,k)
@@ -529,7 +534,10 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
    
    DO k = 1, ms
       ssatcurr(:,k) = soil%ssat - ssnow%wbice(:,k)
-      ssnow%wb(:,k) = ssnow%wblf(:,k) * ssatcurr(:,k) + ssnow%wbice(:,k)
+!RL: do not update ssnow%wb in GLACE=READ
+      IF(cable_user%GLACE_STATUS/= 'READ') THEN
+      	  ssnow%wb(:,k) = ssnow%wblf(:,k) * ssatcurr(:,k) + ssnow%wbice(:,k)
+      END IF
       ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k), frozen_limit * ssnow%wb(:,k) )
    END DO
 
@@ -953,7 +961,10 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
       xxx = REAL( soil%ssat,r_2 )
       ssnow%rnof1 = ssnow%rnof1 + REAL( MAX( ssnow%wb(:,k) - xxx, 0.0_r_2 )  &
                     * 1000.0 )  * soil%zse(k)
-      ssnow%wb(:,k) = MAX( 0.01, MIN( ssnow%wb(:,k), xxx ) )
+!RL: do not update ssnow%wb in GLACE=READ
+      IF( cable_user%GLACE_STATUS/= 'READ') THEN
+      	  ssnow%wb(:,k) = MAX( 0.01, MIN( ssnow%wb(:,k), xxx ) )
+      END IF
    END DO
 
    ! for deep runoff use wb-sfc, but this value not to exceed .99*wb-wbice
@@ -1632,7 +1643,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
          diff(:,k) = MAX( 0.0, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3
                      * soil%zse(k)*1000.0
          xxd = xx - diff(:,k)
-       
+ 
          WHERE ( xxd .GT. 0.0 )
             ssnow%wb(:,k) = ssnow%wb(:,k) - diff(:,k) / (soil%zse(k)*1000.0)
             diff(:,k) = xxd
@@ -1640,7 +1651,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
             ssnow%wb(:,k) = ssnow%wb(:,k) - xx / (soil%zse(k)*1000.0)
             diff(:,k) = 0.0
          ENDWHERE
-     
+
      END WHERE
    
    END DO
@@ -1721,16 +1732,19 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
                                                   ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
-         DO k = 1, ms
-            ssnow%wb(:,k)  = MIN( soil%ssat,MAX ( ssnow%wb(:,k), soil%swilt ))
-         END DO
-   
-         ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-2),           &
+!RL: do not update ssnow%wb in GLACE=READ
+      	 IF( cable_user%GLACE_STATUS/= 'READ' ) THEN
+           DO k = 1, ms
+             ssnow%wb(:,k)  = MIN( soil%ssat,MAX ( ssnow%wb(:,k), soil%swilt ))
+           END DO
+
+           ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-2),         &
                              0.5 * ( soil%sfc + soil%swilt ) ) )
-         ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-1),           &
+           ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-1),         &
                              0.8 * soil%sfc ) )
-         ssnow%wb(:,ms)    = MIN( soil%ssat, MAX ( ssnow%wb(:,ms), soil%sfc) )
-         
+           ssnow%wb(:,ms)    = MIN( soil%ssat, MAX ( ssnow%wb(:,ms), soil%sfc) )
+         END IF
+
          DO k = 1, ms
             
             WHERE( ssnow%tgg(:,k) <= C%TFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
@@ -1810,8 +1824,10 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    
    ! Add new snow melt to global snow melt variable: 
    ssnow%smelt = ssnow%smelt + snowmlt
-
-   CALL remove_trans(dels, soil, ssnow, canopy, veg)
+!RL: do not update ssnow%wb in GLACE=READ
+      IF( cable_user%GLACE_STATUS/= 'READ' ) THEN
+      	  CALL remove_trans(dels, soil, ssnow, canopy, veg)
+      END IF
 
    CALL  soilfreeze(dels, soil, ssnow)
 
@@ -1849,9 +1865,12 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
       canopy%fes = canopy%fes+canopy%fes_cor
    ENDIF
 
-   ! redistrb (set in cable.nml) by default==.FALSE. 
-   IF( redistrb )                                                              &
-      CALL hydraulic_redistribution( dels, soil, ssnow, canopy, veg, met )
+   !RL: do not update ssnow%wb in GLACE=READ
+   IF( cable_user%GLACE_STATUS /= 'READ' ) THEN
+       ! redistrb (set in cable.nml) by default==.FALSE. 
+       IF( redistrb )                                                              &
+      	  CALL hydraulic_redistribution( dels, soil, ssnow, canopy, veg, met )
+   ENDIF
 
    ssnow%smelt = ssnow%smelt/dels
 
