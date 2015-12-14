@@ -90,7 +90,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
 
   ! 1 dim arrays (np)
   CHARACTER(len=40),DIMENSION( 2) :: AR0
-  CHARACTER(len=40),DIMENSION( 1) :: AI0
+  CHARACTER(len=40),DIMENSION( 2) :: AI0
 
   ! LANDSCAPE STRUCTURE
   ! 2 dim arrays (np,t)
@@ -139,6 +139,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   AR0(2) = 'longitude'
 
   AI0(1) = 'Iwood'
+  AI0(2) = 'it_pop'
 
   AI1(1) = 'npatch_active'
 
@@ -503,6 +504,12 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         STATUS = NF90_PUT_VAR(FILE_ID, VIDI0(1), POP%Iwood,&
              start=(/ 1 /), count=(/ mp /)  )
         IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+        ! PUT it_pop
+        STATUS = NF90_PUT_VAR(FILE_ID, VIDI0(2), POP%it_pop,&
+             start=(/ 1 /), count=(/ mp /)  )
+        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
      END IF ! file exists
 END IF 
 
@@ -977,6 +984,19 @@ END IF
         STOP
      ENDIF
      DEALLOCATE ( R1 )
+
+     ! GET 0D VARS ( np )
+     STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI0(1)), dID )
+     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+     STATUS = NF90_GET_VAR  ( FILE_ID, dID, POP%Iwood, &
+          start=(/ 1,tx /), count=(/ mp, 1 /) )
+     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+     STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI0(2)), dID )
+     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+     STATUS = NF90_GET_VAR  ( FILE_ID, dID, POP%it_pop, &
+          start=(/ 1,tx /), count=(/ mp, 1 /) )
+     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
      ! GET 1D VARS ( np )
      STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AI1(1)), dID )

@@ -31,26 +31,26 @@
 ! http://creativecommons.org/licenses/by-sa/3.0/
 !*******************************************************************************
 
-!!$MODULE TypeDef
-!!$  !-------------------------------------------------------------------------------
-!!$  ! This module explicitly defines the sizes of variable types
-!!$  !-------------------------------------------------------------------------------
-!!$  IMPLICIT NONE
-!!$  SAVE
-!!$  ! Define integer kind parameters to accommodate the range of numbers usually
-!!$  ! associated with 4, 2, and 1 byte integers.
-!!$  INTEGER,PARAMETER :: i4b = SELECTED_INT_KIND(9)
-!!$  INTEGER,PARAMETER :: i2b = SELECTED_INT_KIND(4)
-!!$  INTEGER,PARAMETER :: i1b = SELECTED_INT_KIND(2)
-!!$  ! Define single and double precision real kind parameters:
-!!$  ! * Kind(1.0)   defines sp as the machine's default size for single precision
-!!$  ! * Kind(1.0d0) defines dp as the machine's default size for double precision
-!!$  INTEGER,PARAMETER :: sp  = KIND(1.0)
-!!$  INTEGER,PARAMETER :: dp  = KIND(1.0d0)
-!!$  ! lgt is set to the default kind required for representing logical values.
-!!$  INTEGER,PARAMETER :: lgt = KIND(.TRUE.)
-!!$
-!!$END MODULE TypeDef
+MODULE TypeDef
+  !-------------------------------------------------------------------------------
+  ! This module explicitly defines the sizes of variable types
+  !-------------------------------------------------------------------------------
+  IMPLICIT NONE
+  SAVE
+  ! Define integer kind parameters to accommodate the range of numbers usually
+  ! associated with 4, 2, and 1 byte integers.
+  INTEGER,PARAMETER :: i4b = SELECTED_INT_KIND(9)
+  INTEGER,PARAMETER :: i2b = SELECTED_INT_KIND(4)
+  INTEGER,PARAMETER :: i1b = SELECTED_INT_KIND(2)
+  ! Define single and double precision real kind parameters:
+  ! * Kind(1.0)   defines sp as the machine's default size for single precision
+  ! * Kind(1.0d0) defines dp as the machine's default size for double precision
+  INTEGER,PARAMETER :: sp  = KIND(1.0)
+  INTEGER,PARAMETER :: dp  = KIND(1.0d0)
+  ! lgt is set to the default kind required for representing logical values.
+  INTEGER,PARAMETER :: lgt = KIND(.TRUE.)
+
+END MODULE TypeDef
 
 
 !*******************************************************************************
@@ -232,7 +232,7 @@ MODULE POP_Types
 
   TYPE POP_TYPE
      TYPE(Landscape), DIMENSION(:), ALLOCATABLE :: pop_grid
-     INTEGER                                    :: it_pop
+     INTEGER , DIMENSION(:), Allocatable    :: it_pop
      INTEGER :: np
      INTEGER, DIMENSION(:), Allocatable :: Iwood
   END TYPE POP_TYPE
@@ -536,7 +536,7 @@ END SUBROUTINE InitPOP2D_Poisson
     REAL(dp):: dallocW
     pop%it_pop = pop%it_pop + 1
 
-    it = pop%it_pop
+    it = pop%it_pop(1)
     np = SIZE(POP%POP_grid)
 
     !PRINT*,"Go POP"
@@ -2271,17 +2271,22 @@ INTEGER(i4b), INTENT(IN) ::  it,g
 INTEGER(i4b) :: nage,iage, i_min, i_max, tmp_array(NPATCH2D)
 REAL(dp) :: disturbance_freq,tmp_min,tmp_max, tmp1_min, tmp1_max
 REAL(dp) :: tmp2_min, tmp2_max
+REAL(dp) :: tmp3_min, tmp3_max
+REAL(dp) :: tmp4_min, tmp4_max
 LOGICAL :: MASK(NPATCH2D)
 INTEGER(i4b) :: age_min, age_max
 INTEGER(i4b), ALLOCATABLE :: age(:)
 REAL(dp), ALLOCATABLE ::cmass_age(:), stress_mort_age(:), crowd_mort_age(:)
+REAL(dp), ALLOCATABLE ::csapwood_age(:), sapwood_area_age(:)
 REAL(dp), ALLOCATABLE ::freq_age(:)
 
-   ! get interpolated biomass, stress mortality, crowding mortality, disturbance mortality
+! get interpolated biomass,sapwood, stress mortality, crowding mortality, disturbance mortality
 POP%pop_grid(g)%cmass_sum= 0
 POP%pop_grid(g)%stress_mortality = 0
 POP%pop_grid(g)%cat_mortality = 0
 pop%pop_grid(g)%crowding_mortality = 0
+pop%pop_grid(g)%csapwood_sum = 0
+pop%pop_grid(g)%sapwood_area = 0
 tmp_array = 0 
 nage =  min(POP%pop_grid(g)%patch(1)%disturbance_interval(1),it)+1 ! maximum age
 !nage = maxval(pop%pop_grid(g)%patch(:)%age(1))
@@ -2289,6 +2294,8 @@ disturbance_freq=1.0/REAL(disturbance_interval(g,1))
 IF(.NOT.ALLOCATED(age)) ALLOCATE(age(nage))
 IF(.NOT.ALLOCATED(freq_age)) ALLOCATE(freq_age(nage))
 IF(.NOT.ALLOCATED(cmass_age)) ALLOCATE(cmass_age(nage))
+IF(.NOT.ALLOCATED(csapwood_age)) ALLOCATE(csapwood_age(nage))
+IF(.NOT.ALLOCATED(sapwood_area_age)) ALLOCATE(sapwood_area_age(nage))
 IF(.NOT.ALLOCATED(stress_mort_age)) ALLOCATE(stress_mort_age(nage))
 IF(.NOT.ALLOCATED(crowd_mort_age)) ALLOCATE(crowd_mort_age(nage))
 DO iage = 1, nage
@@ -2330,6 +2337,8 @@ DO iage = 1, nage
       endwhere
       cmass_age(iage) =  &
            SUM(pop%pop_grid(g)%patch(:)%layer(1)%biomass,MASK)/SUM(tmp_array)
+      csapwood_age(iage) = SUM(pop%pop_grid(g)%patch(:)%sapwood,MASK)/SUM(tmp_array) 
+      sapwood_area_age(iage) = SUM(pop%pop_grid(g)%patch(:)%sapwood_area,MASK)/SUM(tmp_array) 
       stress_mort_age(iage)= &
            SUM(pop%pop_grid(g)%patch(:)%stress_mortality,MASK)/SUM(tmp_array)
       crowd_mort_age(iage)= &
@@ -2363,10 +2372,14 @@ DO iage = 1, nage
          tmp_min = SUM(pop%pop_grid(g)%patch(:)%layer(1)%biomass,MASK)/SUM(tmp_array)
          tmp1_min = SUM(pop%pop_grid(g)%patch(:)%stress_mortality,MASK)/SUM(tmp_array)
          tmp2_min = SUM(pop%pop_grid(g)%patch(:)%crowding_mortality,MASK)/SUM(tmp_array)
+         tmp3_min = SUM(pop%pop_grid(g)%patch(:)%sapwood,MASK)/SUM(tmp_array)
+         tmp4_min = SUM(pop%pop_grid(g)%patch(:)%sapwood_area,MASK)/SUM(tmp_array)
       else
          tmp_min = 0.0
          tmp1_min = 0.0
          tmp2_min = 0.0
+         tmp3_min = 0.0
+         tmp4_min = 0.0
       endif
       
       MASK = pop%pop_grid(g)%patch(:)%age(1).eq.age_max
@@ -2378,6 +2391,8 @@ DO iage = 1, nage
       tmp_max = SUM(pop%pop_grid(g)%patch(:)%layer(1)%biomass,MASK)/SUM(tmp_array)
       tmp1_max = SUM(pop%pop_grid(g)%patch(:)%stress_mortality,MASK)/SUM(tmp_array)
       tmp2_max = SUM(pop%pop_grid(g)%patch(:)%crowding_mortality,MASK)/SUM(tmp_array)
+      tmp3_max = SUM(pop%pop_grid(g)%patch(:)%sapwood,MASK)/SUM(tmp_array)
+      tmp4_max = SUM(pop%pop_grid(g)%patch(:)%sapwood_area,MASK)/SUM(tmp_array)
       
       cmass_age(iage) = tmp_min + (tmp_max-tmp_min)/real(age_max-age_min)* &
            real(age(iage)-age_min)
@@ -2387,6 +2402,13 @@ DO iage = 1, nage
       
       crowd_mort_age(iage) = tmp2_min + (tmp2_max-tmp2_min)/real(age_max-age_min)* &
            real(age(iage)-age_min)
+
+      csapwood_age(iage) = tmp3_min + (tmp3_max-tmp3_min)/real(age_max-age_min)* &
+           real(age(iage)-age_min)
+
+      sapwood_area_age(iage) = tmp4_min + (tmp4_max-tmp4_min)/real(age_max-age_min)* &
+           real(age(iage)-age_min)
+
    endif
    ! write(*,*) 'age_min, age_max 1:', age(iage), age_min, age_max, i_min, i_max
    
@@ -2396,6 +2418,10 @@ DO iage = 1, nage
    
    POP%pop_grid(g)%cmass_sum =  POP%pop_grid(g)%cmass_sum + &
         freq_age(iage)*cmass_age(iage) 
+   POP%pop_grid(g)%csapwood_sum =  POP%pop_grid(g)%csapwood_sum + &
+        freq_age(iage)*csapwood_age(iage) 
+   POP%pop_grid(g)%sapwood_area =  POP%pop_grid(g)%sapwood_area + &
+        freq_age(iage)*sapwood_area_age(iage) 
    POP%pop_grid(g)%stress_mortality =  POP%pop_grid(g)%stress_mortality + &
         freq_age(iage)*stress_mort_age(iage)
    POP%pop_grid(g)%crowding_mortality =  POP%pop_grid(g)%crowding_mortality + &
@@ -2404,6 +2430,8 @@ DO iage = 1, nage
         POP%pop_grid(g)%stress_mortality - &
         POP%pop_grid(g)%crowding_mortality - &
         ( POP%pop_grid(g)%cmass_sum- POP%pop_grid(g)%cmass_sum_old)
+   POP%pop_grid(g)%fire_mortality = 0.0
+   POP%pop_grid(g)%res_mortality = 0.0
 enddo
 !!$if (it.gt.400) then
 !!$   write(*,*) 'it, nage', it, nage
@@ -3012,12 +3040,13 @@ END FUNCTION Area_Triangle
     TYPE( POP_TYPE )        , INTENT(INOUT) :: POP
     INTEGER(i4b) :: j, k
 
-    POP%it_pop = 0
+
 
 
     CALL alloc_POP(pop,np)
     POP%np = np
     POP%Iwood = Iwood
+    POP%it_pop = 0
     CALL ZeroPOP(pop)
     CALL InitPOP2D_Poisson(pop,INT(disturbance_interval))
 
@@ -3050,6 +3079,7 @@ END FUNCTION Area_Triangle
 
     IF (.NOT.ALLOCATED(POP%POP_Grid)) ALLOCATE (POP%POP_Grid(arraysize))
     IF (.NOT.ALLOCATED(POP%Iwood)) ALLOCATE (POP%Iwood(arraysize))
+    IF (.NOT.ALLOCATED(POP%it_pop)) ALLOCATE (POP%it_pop(arraysize))
 
   END SUBROUTINE alloc_POP
 

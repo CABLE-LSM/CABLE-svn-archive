@@ -109,7 +109,7 @@ PROGRAM cable_offline_driver
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-   INTEGER, PARAMETER ::  mloop  = 100   ! CASA-CNP PreSpinup loops
+   INTEGER, PARAMETER ::  mloop  = 5   ! CASA-CNP PreSpinup loops
    INTEGER :: LALLOC ! allocation coefficient for passing to spincasa
    
    INTEGER        ::                                                           &
@@ -309,14 +309,14 @@ PROGRAM cable_offline_driver
       LALLOC = 0 ! default
    ENDIF
    
-   IF ( .NOT. spinup ) THEN
-      IF ( spincasa ) THEN
-         spincasa = .FALSE.
-         WRITE(*,*)   "spinup == .FALSE. -> spincasa set to .F."
-         WRITE(logn,*)"spinup == .FALSE. -> spincasa set to .F."
-      ENDIF
-   ENDIF
-   
+!!$   IF ( .NOT. spinup ) THEN
+!!$      IF ( spincasa ) THEN
+!!$         spincasa = .FALSE.
+!!$         WRITE(*,*)   "spinup == .FALSE. -> spincasa set to .F."
+!!$         WRITE(logn,*)"spinup == .FALSE. -> spincasa set to .F."
+!!$      ENDIF
+!!$   ENDIF
+!!$   
    
    IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
       leaps = .TRUE.
@@ -469,7 +469,8 @@ PROGRAM cable_offline_driver
         IF( icycle>0 .AND. spincasa) THEN
            PRINT *, 'EXT spincasacnp enabled with mloop= ', mloop
            CALL spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                casaflux,casamet,casabal,phen,gpp_ann_save,LALLOC)
+                casaflux,casamet,casabal,phen,POP,gpp_ann_save,LALLOC)
+
         ENDIF
         
         !! VH_js !!
@@ -511,13 +512,16 @@ PROGRAM cable_offline_driver
         ! Rainfall input may be augmented for spinup purposes:
         IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN   
            
-           CALL CPU_TIME(etime)
-           PRINT *, 'before met ', etime, ' seconds needed '              
-           CALL PLUME_MIP_GET_MET(PLUME, MET, YYYY, ktau, kend, &
-                (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend))
+           ! CALL CPU_TIME(etime)
+           ! PRINT *, 'before met ', etime, ' seconds needed '  
            
-           CALL CPU_TIME(etime)
-           PRINT *, 'after met ', etime, ' seconds needed '   
+           IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN       
+              CALL PLUME_MIP_GET_MET(PLUME, MET, YYYY, ktau, kend, &
+                   (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend))
+           ENDIF
+           
+         !  CALL CPU_TIME(etime)
+         !  PRINT *, 'after met ', etime, ' seconds needed '   
         ELSE
            CALL get_met_data( spinup, spinConv, met, soil,                 &
                 rad, veg, kend, dels, C%TFRZ, ktau+koffset,                &
@@ -744,25 +748,15 @@ ELSE
 END IF
 
 
-!!$            IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-!!$               IF (icycle > 0) THEN
-!!$      
-!!$                  CALL casa_poolout( ktau, veg, soil, casabiome,               &
-!!$                      casapool, casaflux, casamet, casabal, phen )
-!!$                  CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-!!$                  CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
-!!$  
-!!$               END IF
-!!$
-!!$               IF ( .NOT. CASAONLY ) THEN
-!!$                  ! Write restart file if requested:
-!!$                  IF(output%restart)                                           &
-!!$                       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,  &
-!!$                      canopy, rough, rad, bgc, bal, met )
-!!$
-!!$    !--- LN ------------------------------------------[
-!!$              ENDIF
-!!$           ENDIF
+IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
+   IF (icycle > 0) THEN
+      
+      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+      
+   END IF
+   
+ENDIF
+
 IF ( .NOT. spinup .OR. spinconv ) THEN
    if ( NRRRR .GT. 1 ) THEN
       RYEAR = YYYY + ( CABLE_USER%YearEnd - CABLE_USER%YearStart + 1 ) &
@@ -804,7 +798,8 @@ IF (icycle.gt.0) THEN
    casabal%FCrsyear=0.0
    casabal%FCneeyear=0.0
 ENDIF
-
+ CALL CPU_TIME(etime)
+     PRINT *, 'Finished. ', etime, ' seconds needed for year'
 
 END DO YEAR
 
@@ -830,38 +825,38 @@ ENDIF
 
 
 
-     IF (icycle > 0) THEN
-        
-        CALL casa_poolout( ktau, veg, soil, casabiome,               &
-             casapool, casaflux, casamet, casabal, phen )
-        CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-        CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
-        
-     END IF
-     
-     IF ( .NOT. CASAONLY ) THEN
-        ! Write restart file if requested:
-        IF(output%restart)                                           &
-             CALL create_restart( logn, dels, ktau, soil, veg, ssnow,  &
-             canopy, rough, rad, bgc, bal, met )
-        
-        !--- LN ------------------------------------------[
-     ENDIF
-  
-     
+IF (icycle > 0) THEN
+   
+   CALL casa_poolout( ktau, veg, soil, casabiome,               &
+        casapool, casaflux, casamet, casabal, phen )
+  ! CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+   CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
+   
+END IF
 
-     IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
-          TRIM(cable_user%MetType) .NE. "plum" ) CALL close_met_file
-     
-     WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
-     CALL CPU_TIME(etime)
-     WRITE(logn,*) 'Finished. ', etime, ' seconds needed for ', kend,' hours'
-     ! Close log file
-     CLOSE(logn)
-     CALL CPU_TIME(etime)
-     PRINT *, 'Finished. ', etime, ' seconds needed for ', kend,' hours'
-     
-   END PROGRAM cable_offline_driver
+IF ( .NOT. CASAONLY ) THEN
+   ! Write restart file if requested:
+   IF(output%restart)                                           &
+        CALL create_restart( logn, dels, ktau, soil, veg, ssnow,  &
+        canopy, rough, rad, bgc, bal, met )
+   
+   !--- LN ------------------------------------------[
+ENDIF
+
+
+
+IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
+     TRIM(cable_user%MetType) .NE. "plum" ) CALL close_met_file
+
+WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+CALL CPU_TIME(etime)
+WRITE(logn,*) 'Finished. ', etime, ' seconds needed for ', kend,' hours'
+! Close log file
+CLOSE(logn)
+CALL CPU_TIME(etime)
+PRINT *, 'Finished. ', etime, ' seconds needed for ', kend,' hours'
+
+END PROGRAM cable_offline_driver
    
    
    SUBROUTINE prepareFiles(ncciy)

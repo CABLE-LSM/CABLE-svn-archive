@@ -236,16 +236,16 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
     END WHERE
   CASE (0)   ! fixed allocation
     casaflux%fracCalloc(:,:) = casabiome%fracnpptop(veg%iveg(:),:)    
-  CASE (3) ! leaf:wood allocation set to maintain LA:SA ratio below target value of 4000, where phen%phase = 1 or 2
+  CASE (3) ! leaf:wood allocation set to maintain LA:SA ratio below target value of 3000, where phen%phase = 1 or 2
      WHERE(casamet%lnonwood==0) 
         casaflux%fracCalloc(:,FROOT) =  casabiome%fracnpptop(veg%iveg(:),FROOT)
         casaflux%fracCalloc(:,WOOD) = 0.01
         casaflux%fracCalloc(:,LEAF) = 1.0 - casaflux%fracCalloc(:,FROOT) - casaflux%fracCalloc(:,WOOD)
         newLAI =casamet%glai + (casaflux%fracCalloc(:,LEAF) *casaflux%cnpp- &
              casaflux%kplant(:,leaf) *casapool%cplant(:,LEAF) )*casabiome%sla(veg%iveg(:))
-        where (casaflux%sapwood_area.gt.1.e-6 .and. newLAI.gt.(4000.*casaflux%sapwood_area)) 
+        where (casaflux%sapwood_area.gt.1.e-6 .and. newLAI.gt.(3000.*casaflux%sapwood_area)) 
 
-           casaflux%fracCalloc(:,LEAF) = ((4000.*casaflux%sapwood_area - casamet%glai)/casabiome%sla(veg%iveg(:)) &
+           casaflux%fracCalloc(:,LEAF) = ((3000.*casaflux%sapwood_area - casamet%glai)/casabiome%sla(veg%iveg(:)) &
              + casaflux%kplant(:,leaf) *casapool%cplant(:,LEAF)  )/casaflux%cnpp
       
            casaflux%fracCalloc(:,LEAF) = max(0.0,  casaflux%fracCalloc(:,LEAF) )
@@ -566,6 +566,8 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                     * (1.0-casamet%btran(npt))&
                     ** casabiome%xkleafdryexp(veg%iveg(npt))
     IF (phen%phase(npt)==1) xkleaf(npt)= 0.0
+! vh: account for high rate of leaf loss during senescence
+    IF (phen%phase(npt)==3.or.phen%phase(npt)==0) xkleaf(npt)= 100.0
   END IF
   END DO
 
@@ -694,10 +696,11 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
     END IF
   END IF
   END DO
+
 END SUBROUTINE casa_xratesoil
 
 SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
-                           casaflux,casamet)
+                           casaflux,casamet,phen)
 ! calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
 ! and the transfer coefficients between different pools
 !
@@ -717,6 +720,7 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
+  TYPE (phen_variable),       INTENT(IN) :: phen
 
   ! local variables
   REAL(r_2), DIMENSION(mp)  :: xk
@@ -745,6 +749,13 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                                    + xkleafcold(:) + xkleafdry(:)
     casaflux%kplant(:,wood)        = casabiome%plantrate(veg%iveg(:),wood) 
     casaflux%kplant(:,froot)       = casabiome%plantrate(veg%iveg(:),froot) 
+  ENDWHERE
+
+
+  WHERE (phen%doyphase(:,3).ne.367 .and. casamet%iveg2/=icewater)
+     casaflux%kplant(:,leaf)        =  (deltcasa/10.0) *xkleaf(:) &
+          + xkleafcold(:) + xkleafdry(:)
+     
   ENDWHERE
 
   ! When glai<glaimin,leaf biomass will not decrease anymore. (Q.Zhang 10/03/2011)
@@ -2036,6 +2047,7 @@ SUBROUTINE phenology(iday,veg,phen)
   WHERE(veg%iveg==1 .or. veg%iveg ==2 )
        phen%phase = 2
   ENDWHERE
+
 
 END SUBROUTINE phenology
 

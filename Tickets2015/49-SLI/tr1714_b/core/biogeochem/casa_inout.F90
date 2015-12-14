@@ -438,7 +438,8 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
     phen%doyphase(np,4) = phen%doyphase(np,3) +14    ! DOY for minimal LAI season
     IF (phen%doyphase(np,2) > 365) phen%doyphase(np,2)=phen%doyphase(np,2)-365
     IF (phen%doyphase(np,4) > 365) phen%doyphase(np,4)=phen%doyphase(np,4)-365
-  ENDDO
+
+ ENDDO
 
 END SUBROUTINE casa_readphen
 
@@ -1142,13 +1143,14 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal)
 END SUBROUTINE casa_cnpflux
 ! changed by yp wang following Chris Lu 5/nov/2012
 SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-     casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+     casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
   USE cable_def_types_mod
   USE casadimension
   USE casa_cnp_module
+  USE POP_TYPES,            ONLY: POP_TYPE
   IMPLICIT NONE
   INTEGER, INTENT(IN)    :: ktau
   REAL,    INTENT(IN)    :: dels
@@ -1162,6 +1164,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
+  TYPE(POP_TYPE),             INTENT(IN) :: POP
 
   ! local variables added by ypwang following Chris Lu 5/nov/2012
 
@@ -1189,12 +1192,23 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
    call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
         casamet,phen)
    call casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
-        casaflux,casamet)
+        casaflux,casamet,phen)
 
    call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
    IF (cable_user%CALL_POP) THEN
+
       call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
+      WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)       
+                     
+                     casaflux%frac_sapwood(POP%Iwood) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
+                     casaflux%sapwood_area(POP%Iwood) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)       
+                     casabiome%plantrate(POP%Iwood,2) =   &
+                         ((POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+                          + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) &
+                          /POP%pop_grid(:)%cmass_sum_old)/365.0
+      ENDWHERE
+
    ENDIF
 !  write(*,991)casaflux%cgpp(2058),casaflux%cnpp(2058),casaflux%fracClabile(2058), &
 !            casaflux%fracCalloc(2058,:),casaflux%crmplant(2058,:),casaflux%crgplant(2058), casapool%Nsoilmin(2058), &

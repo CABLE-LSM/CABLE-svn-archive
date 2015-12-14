@@ -1,5 +1,6 @@
 SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-     casaflux,casamet,casabal,phen,gpp_ann,LALLOC )
+     casaflux,casamet,casabal,phen,POP,gpp_ann,LALLOC )
+
 
   USE cable_def_types_mod
   USE cable_carbon_module
@@ -25,7 +26,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
-  !TYPE ( POP_TYPE )     :: POP
+  TYPE (POP_TYPE), INTENT(IN)     :: POP
 
   TYPE (casa_met)  :: casaspin
 
@@ -112,8 +113,10 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
         casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
 
+
         CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-             casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+             casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter, &
+             xksoil,xkleaf,xkleafcold,xkleafdry,&
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
@@ -201,6 +204,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   avg_rationcsoilslow = avg_rationcsoilslow /real(nday*myearspin)
   avg_rationcsoilpass = avg_rationcsoilpass /real(nday*myearspin)
 
+
+write(5117,*), "b4 analytic pool",  casapool%csoil(19,pass)
   call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
        casaflux,casamet,casabal,phen,                                         &
        avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
@@ -210,7 +215,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
        avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
        avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
        avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
-
+write(5117,*), "after analytic pool",  casapool%csoil(19,pass)
   call totcnppools(1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
        bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
 
@@ -246,11 +251,16 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
            casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
            casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
            casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
+
+
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-                casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
+                xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+
         ENDDO   ! end of idoy
      ENDDO   ! end of nyear
      !!CLN  close(91)
@@ -260,6 +270,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
           bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
 
   ENDDO     ! end of nloop
+
+!STOP
 
   ! write the last five loop pool size by PFT type
   open(92,file='cnpspinlast5.txt')

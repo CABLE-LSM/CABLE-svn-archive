@@ -137,11 +137,10 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    
          IF ( icycle .GT. 0 ) THEN
 
-            ! if calling POP, set woody biomass turnover to zero: it will be set using POP mortality
-            IF (cable_user%CALL_POP)  casabiome%plantrate(:,2) = 0.0
-
+           
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-                casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter,xksoil,&
+                xkleaf,xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
@@ -175,21 +174,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
 
-                  WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)       
-                     casapool%CLitter(Iw,3) = casapool%CLitter(Iw,3) + &
-                          (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-                          + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%res_mortality  ) * &
-                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
-
-                     casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2) -  &
-                          (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-                          + POP%pop_grid(:)%fire_mortality+ POP%pop_grid(:)%res_mortality  ) * &
-                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
-                     
-                     casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
-                     casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)       
-                     
-                  ENDWHERE
+!!$                  WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)       
+!!$                     
+!!$                     casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
+!!$                     casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)       
+!!$                     casabiome%plantrate(Iw,2) =   &
+!!$                         ((POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+!!$                          + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) &
+!!$                          /POP%pop_grid(:)%cmass_sum_old)/365.0
+!!$                  ENDWHERE
                
                ENDIF  ! end of year
             ENDIF ! CALL_POP
@@ -213,10 +206,11 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN  ! end of day
 
-         IF (cable_user%CALL_POP)  casabiome%plantrate(:,2) = 0.0
+       !  IF (cable_user%CALL_POP)  casabiome%plantrate(:,2) = 0.0
        
          CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-              casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+              casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
+              xkleafcold,xkleafdry,&
               cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
               pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
@@ -250,21 +244,26 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                     real(veg%disturbance_intensity(Iw,:),dp)      ,&
                     LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
                
-               WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)       
-                  casapool%CLitter(Iw,3) = casapool%CLitter(Iw,3) + &
-                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-                       + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%res_mortality  ) * &
-                       casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
-                  
-                  casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2) -  &
-                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-                          + POP%pop_grid(:)%fire_mortality+ POP%pop_grid(:)%res_mortality  ) * &
-                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
-                  
-                  casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
-                  casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)       
-                  
-               ENDWHERE
+!!$               WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)       
+!!$                  casapool%CLitter(Iw,3) = casapool%CLitter(Iw,3) + &
+!!$                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+!!$                       + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) * &
+!!$                       casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
+!!$                  
+!!$                  casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2) -  &
+!!$                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+!!$                          + POP%pop_grid(:)%fire_mortality+ POP%pop_grid(:)%cat_mortality  ) * &
+!!$                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
+!!$                  
+!!$                  casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
+!!$                  casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)
+!!$
+!!$                  casabiome%plantrate(Iw,2) =   &
+!!$                          ((POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
+!!$                          + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) &
+!!$                          /POP%pop_grid(:)%cmass_sum_old)/365.0     
+!!$                  
+!!$               ENDWHERE
                
                ENDIF ! end of year
 

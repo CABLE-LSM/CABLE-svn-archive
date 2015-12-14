@@ -129,10 +129,16 @@ PRINT*,"DOUBLECHECK FOR EACH CASE IN FILE_SWITCH WHETHER ANNUAL OR OTHER!"
 
   SELECT CASE (TRIM(PLUME%Run))
   CASE( "2006_2099" ) ; CONTINUE
-  CASE( "spinup","1850_1900") 
+  CASE( "spinup") 
      IF ( TRIM(PLUME%CO2) .NE. "static1850" ) THEN
         WRITE(*   ,*)"'spinup' chosen: Set CO2 to 'static1850'!!!"
         WRITE(logn,*)"'spinup' chosen: Set CO2 to 'static1850'!!!"
+        ERR = .TRUE.
+     ENDIF
+  CASE("1850_1900") 
+     IF ( TRIM(PLUME%CO2) .NE. "varying" ) THEN
+        WRITE(*   ,*)"'1850_1900' chosen: Set CO2 to 'varying'!!!"
+        WRITE(logn,*)"'1850_1900' chosen: Set CO2 to 'varying'!!!"
         ERR = .TRUE.
      ENDIF
   CASE( "1901_2001" )
@@ -388,7 +394,7 @@ SUBROUTINE PLUME_GET_FILENAME ( PLUME, cyear, par, FN )
   INTEGER,              INTENT(IN)  :: cyear, par
   CHARACTER(LEN=200),   INTENT(OUT) :: FN
   INTEGER                           :: i, idx
-  CHARACTER            :: cy*4, sfy*12, mp*200,fc*15,rcp*15 
+  CHARACTER            :: cy*4, sfy*12, mp*200,fc*15,rcp*15 ,ccy*4
   
   INTEGER,         DIMENSION(21),PARAMETER :: &
        syear = (/ 1901, 1911, 1921, 1931, 1941, 1951, 1961, 1971, 1981, 1991, 2001, &
@@ -406,7 +412,8 @@ SUBROUTINE PLUME_GET_FILENAME ( PLUME, cyear, par, FN )
   IF ( TRIM(fc) .EQ. "watch" ) THEN
      ! WATCH data comes in annual files
      IF ( TRIM(PLUME%Run) .EQ. "spinup" ) THEN
-        FN = TRIM(mp)//"1901_1930/"
+       ! FN = TRIM(mp)//"1901_1930/"
+        FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
         SELECT CASE ( par )
         CASE(prec) ; FN = TRIM(FN)//"Rainf_daily_WFD_GPCC_TYX_format_detrended_" 
         CASE(snow) ; FN = TRIM(FN)//"Snowf_daily_WFD_GPCC_TYX_format_detrended_" 
@@ -421,7 +428,21 @@ SUBROUTINE PLUME_GET_FILENAME ( PLUME, cyear, par, FN )
         FN = TRIM(FN)//cy//".nc"
         
      ELSE IF ( TRIM(PLUME%Run) .EQ. "1850_1900" ) THEN
-        STOP "Not yet implemented! PLUME: GET_FILE_NAMES"
+        FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
+        SELECT CASE ( par )
+        CASE(prec) ; FN = TRIM(FN)//"Rainf_daily_WFD_GPCC_TYX_format_detrended_" 
+        CASE(snow) ; FN = TRIM(FN)//"Snowf_daily_WFD_GPCC_TYX_format_detrended_" 
+        CASE(lwdn) ; FN = TRIM(FN)//"LWdown_daily_WFD_TYX_format_detrended_"
+        CASE(swdn) ; FN = TRIM(FN)//"SWdown_daily_WFD_TYX_format_detrended_"
+        CASE(pres) ; FN = TRIM(FN)//"PSurf_daily_WFD_TYX_format_detrended_" 
+        CASE(rhum) ; FN = TRIM(FN)//"Qmean_WFD_TYX_format_detrended_"       
+        CASE(tmax,PrevTmax) ; FN = TRIM(FN)//"Tmax_WFD_TYX_format_detrended_"
+        CASE(tmin,NextTmin) ; FN = TRIM(FN)//"Tmin_WFD_TYX_format_detrended_"
+        CASE(wind) ; FN = TRIM(FN)//"Wind_daily_WFD_TYX_format_"            
+        END SELECT
+        WRITE(CCY,FMT="(I4.4)") MOD(cyear+10 , 30) + 1901
+        FN = TRIM(FN)//ccy//".nc"
+
      ELSE
         SELECT CASE ( par )
         CASE(prec) ; FN = TRIM(mp)//"/Rainf_daily_WFD/Rainf_daily_WFD_TYX_format_"  
@@ -631,7 +652,8 @@ SUBROUTINE OPEN_PLUME_MET( PLUME )
   ! Set internal counter
   PLUME%CTSTEP = 1
   ! For first call there might be an offset
-  IF ( TRIM(PLUME%Run) .NE. 'spinup' .AND. PLUME%CYEAR .GT. PLUME%MetStart ) THEN 
+  IF ( TRIM(PLUME%Run) .NE. 'spinup'.AND. TRIM(PLUME%Run) .NE. '1850_1900' &
+       .AND. PLUME%CYEAR .GT. PLUME%MetStart ) THEN 
      DO yy = PLUME%MetStart, PLUME%CYEAR - 1
         PLUME%CTSTEP = PLUME%CTSTEP + 365 + LEAP_DAY( yy )
      END DO
@@ -942,14 +964,14 @@ SUBROUTINE PLUME_MIP_GET_MET(PLUME, MET, CurYear, ktau, kend, islast )
 
   IF ( newday ) THEN
 
- CALL CPU_TIME(etime)
-   PRINT *, 'b4 daily ', etime, ' seconds needed '
+ !CALL CPU_TIME(etime)
+ !  PRINT *, 'b4 daily ', etime, ' seconds needed '
 
      CALL PLUME_GET_DAILY_MET( PLUME, (ktau.EQ.kend-((SecDay/dt)-1) .AND. & 
           FILE_SWITCH( PLUME, 'CLOSE' )), islast )
-CALL CPU_TIME(etime)
-   PRINT *, 'after daily ', etime, ' seconds needed '
-
+!CALL CPU_TIME(etime)
+!   PRINT *, 'after daily ', etime, ' seconds needed '
+!STOP
 
      ! Air pressure assumed to be constant over day
      DO i = 1, PLUME%mland
