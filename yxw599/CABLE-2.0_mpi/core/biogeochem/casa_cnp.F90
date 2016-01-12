@@ -820,7 +820,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
                                      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
                                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
 
-  INTEGER  npt,nL,nP,nland
+  INTEGER  npt,nL,nP,nland,ivt
 
    casaflux%FluxCtolitter = 0.0
    casaflux%FluxNtolitter = 0.0
@@ -962,6 +962,23 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
   ENDIF
   ENDDO
+
+
+! for error diagnosis, for single processor-run
+!   npt =61964
+!   ivt= veg%iveg(npt)
+!   write(58,507) npt,ivt,casabiome%ratioNCplantmin(ivt,leaf),casabiome%ratioNCplantmax(ivt,leaf), &
+!                     casabiome%ratioNCplantmin(ivt,froot),casabiome%ratioNCplantmax(ivt,froot),   &
+!                     casapool%nplant(npt,leaf)/casapool%cplant(npt,leaf),                         &
+!                     casapool%nplant(npt,froot)/casapool%cplant(npt,froot),                       &
+!                     casaflux%FluxNtolitter(npt,str),casaflux%FluxNtolitter(npt,metb),            &
+!                     casapool%dNplantdt(npt,leaf),casapool%dNplantdt(npt,froot),                  &
+!                     casaflux%fromPtoL(npt,str,leaf), casaflux%kplant(npt,leaf),                  &
+!                     casapool%cplant(npt,leaf), casapool%nplant(npt,leaf),   ratioNCstrfix,       &     
+!                     casaflux%fromPtoL(npt,str,froot), casaflux%kplant(npt,froot),                &
+!                     casapool%cplant(npt,froot), casapool%nplant(npt,froot)  
+! 
+!507  format('point ', i5,2x,i3,2x,100(f9.4,1x)) 
 !  PRINT *, 'Done casa_delplant; npt, mp', npt, mp
 
 END SUBROUTINE casa_delplant
