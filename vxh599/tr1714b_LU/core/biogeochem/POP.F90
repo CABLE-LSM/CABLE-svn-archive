@@ -8,7 +8,6 @@
 !CITATION
 !--------------------------------------------------------
 !When referring to this code in publications, please cite:
-
 ! Haverd, V., Smith, B., Cook, G., Briggs, P.R., Nieradzik, L., Roxburgh, S.R., Liedloff, A.,
 ! Meyer, C.P. and Canadell, J.G., 2013.
 ! A stand-alone tree demography and landscape structure module for Earth system models.
@@ -63,7 +62,7 @@ MODULE POP_Constants
   REAL(dp),PARAMETER:: DENSINDIV_MIN=1e-9 !
   REAL(dp),PARAMETER:: Kbiometric=50.0 ! Constant in height-diameter relationship
   REAL(dp),PARAMETER:: WD= 300.0 ! Wood density kgC/m3
-  REAL(dp),PARAMETER:: GROWTH_EFFICIENCY_MIN=0.008 ! threshold growth efficiency for enhanced mortality
+  REAL(dp),PARAMETER:: GROWTH_EFFICIENCY_MIN=0.004 ! threshold growth efficiency for enhanced mortality
   REAL(dp),PARAMETER:: Pmort=2.0 ! exponent in mortality formula
   REAL(dp),PARAMETER:: MORT_MAX=0.2 ! upper asymptote for enhanced mortality
   REAL(dp),PARAMETER:: THETA_recruit=0.95 ! shape parameter in recruitment equation
@@ -482,7 +481,7 @@ CONTAINS
               DO j = 1,PATCH_REPS1
                   ipatch = (j-1)*PATCH_REPS2 + c
                   POP%pop_grid(g)%patch(ipatch)%first_disturbance_year(idist) = &
-                       tmp3(c) +(j-1)*max((tmp3(2)-tmp3(1))/PATCH_REPS1,1)
+                       tmp3(c) +(j-1)*max((tmp3(idist)-tmp3(1))/PATCH_REPS1,1)
 
                !  i = i+1
                !  if (i.gt.(tmp3(2)-tmp3(1))) i = 0
@@ -495,10 +494,7 @@ CONTAINS
    
         ENDDO
       
-        DO k=1,NPATCH2D
-                    write(706,*) 'patch_first_disturbance_year',k, POP%pop_grid(g)%patch(k)%first_disturbance_year(1:2) 
-        ENDDO
-!stop
+       
 
      ELSE   ! NPATCH =1 (single patch mode)
         k = 1
@@ -538,6 +534,7 @@ END SUBROUTINE InitPOP2D_Poisson
 
     it = pop%it_pop(1)
     np = SIZE(POP%POP_grid)
+
 
     !PRINT*,"Go POP"
     IF (PRESENT(precip)) THEN
@@ -1364,6 +1361,8 @@ END SUBROUTINE InitPOP2D_Poisson
              DO j=1,HEIGHT_BINS_highres
                 IF (ht.GT.limits_highres(j)) ct_highres = j
              ENDDO ! bins
+
+
 
              pop%pop_grid(g)%patch(p)%layer(1)%biomass = pop%pop_grid(g)%patch(p)%layer(1)%biomass + cmass_stem
              pop%pop_grid(g)%patch(p)%layer(1)%density = pop%pop_grid(g)%patch(p)%layer(1)%density + densindiv
@@ -2412,9 +2411,9 @@ DO iage = 1, nage
    endif
    ! write(*,*) 'age_min, age_max 1:', age(iage), age_min, age_max, i_min, i_max
    
-   if (it.eq.403) then
-      write(58,*) age(iage),age_min, age_max, tmp1_min, tmp1_max,  stress_mort_age(iage), i_min
-   endif
+   !if (it.eq.403) then
+   !   write(58,*) age(iage),age_min, age_max, tmp1_min, tmp1_max,  stress_mort_age(iage), i_min
+   !endif
    
    POP%pop_grid(g)%cmass_sum =  POP%pop_grid(g)%cmass_sum + &
         freq_age(iage)*cmass_age(iage) 
@@ -2483,7 +2482,7 @@ INTEGER(i4b), allocatable :: address(:,:)
 
 ! Construct Age  Interpolating Grid
 age_max(1) =  min(POP%pop_grid(g)%patch(1)%disturbance_interval(1),it)+1 ! maximum age
-age_max(2) =  min(POP%pop_grid(g)%patch(1)%disturbance_interval(2),it)+1 ! maximum age
+age_max(2) =  min(POP%pop_grid(g)%patch(1)%disturbance_interval(NDISTURB),it)+1 ! maximum age
 
 p=0;
 DO j=0,age_max(1)
@@ -2534,7 +2533,7 @@ j = j+1
 
 do k=1,NPATCH2D
    tmp1 = pop%pop_grid(g)%patch(k)%age(1)
-   tmp2 = pop%pop_grid(g)%patch(k)%age(2)
+   tmp2 = pop%pop_grid(g)%patch(k)%age(NDISTURB)
    if (j.gt.1) then
       do n=1,j-1
          if (tmp1 == age1(n) .and. tmp2==age2(n)) then

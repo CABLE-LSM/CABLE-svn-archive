@@ -6,7 +6,7 @@
 ! 
 ! You may not use this file except in compliance with this License.
 ! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! in each directory cTYPE(casa_flux_type), INTENT(IN) :: casaflux ! casa fluxesontaining CABLE code.
 !
 ! ==============================================================================
 ! Purpose: Defines input/output related variables for CABLE offline
@@ -257,6 +257,29 @@ MODULE cable_IO_vars_module
          !! vh_js ! added CanT and fwsoil to the list
          CanT = .FALSE.,      & ! within-canopy temperature [K]
          Fwsoil = .FALSE.,      & ! soil moisture modifier to stomatal conductance
+
+         !! vh_js !! additional casa variables
+         NBP = .FALSE., &
+         TotSoilCarb = .FALSE.,   &
+         TotLivBiomass = .FALSE., &
+         TotLittCarb = .FALSE., &
+         SoilCarbFast = .FALSE., &
+         SoilCarbSlow = .FALSE., &
+         SoilCarbPassive = .FALSE., &
+         LittCarbMetabolic = .FALSE., &
+         LittCarbStructural = .FALSE., &
+         LittCarbCWD = .FALSE., &
+         PlantCarbLeaf = .FALSE., &
+         PlantCarbFineRoot = .FALSE., &
+         PlantCarbWood = .FALSE., &
+         PlantTurnover = .FALSE., &
+         PlantTurnoverLeaf = .FALSE., &
+         PlantTurnoverFineRoot = .FALSE., &
+         PlantTurnoverWood = .FALSE., &
+         PlantTurnoverWoodDist = .FALSE., &
+         PlantTurnoverWoodCrowding = .FALSE., &
+         PlantTurnoverWoodResourceLim = .FALSE., &
+
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude

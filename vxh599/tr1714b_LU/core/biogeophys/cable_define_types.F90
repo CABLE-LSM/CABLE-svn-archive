@@ -18,6 +18,8 @@
 !          rs20 now in veg% instead of soil%
 !          fes split into fess and fesp (though fes still defined)
 !
+! Jan 2016: Now includes climate% for use in climate variables required for 
+! prognostic phenology and potential veg type
 ! ==============================================================================
 
 MODULE cable_def_types_mod
@@ -336,8 +338,8 @@ MODULE cable_def_types_mod
          fh,      & ! total sensible heat (W/m2)
          fpn,     & ! plant photosynthesis (g C m-2 s-1)
          frp,     & ! plant respiration (g C m-2 s-1)
-         frpw,    & ! plant respiration (g C m-2 s-1)???
-         frpr,    & ! plant respiration (g C m-2 s-1)???
+         frpw,    & ! plant respiration (woody component) (g C m-2 s-1)
+         frpr,    & ! plant respiration (root component) (g C m-2 s-1)
          frs,     & ! soil respiration (g C m-2 s-1)
          fnee,    & ! net carbon flux (g C m-2 s-1)
          frday,   & ! daytime leaf resp
@@ -541,6 +543,45 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
+   ! Climate data:
+   TYPE climate_type
+     
+      INTEGER, POINTER ::                                                  &
+       nyears, & ! number of years in climate record
+       doy ! day of year
+
+       INTEGER, DIMENSION(:), POINTER ::                                   &
+       chilldays   ! length of chilling period (period with T<5deg)
+ 
+     
+      REAL, DIMENSION(:), POINTER ::                                           &
+      dtemp,        & ! daily temperature   
+      dmoist,        & ! daily moisture availability  
+      mtemp,       & ! mean temperature over the last 31 days
+      mmoist,        & ! monthly moisture availability  
+      mtemp_min,   & ! minimum monthly temperature
+      mtemp_max,   & ! maximum monhtly temperature
+      mtemp_min20,   & ! minimum monthly temperature, averaged over 20 y
+      mtemp_max20,   & ! maximum monhtly temperature, averaged over 20 y
+      atemp_mean,  & ! annual average temperature
+      AGDD5,       &
+      GDD5,        & ! growing degree day sum relative to 5deg base temperature
+      GDD0,        & ! growing degree days to bud burst
+      alpha_PT,    & ! ratio of annual evap to annual PT evap
+      aevap_PT,    & ! annual PT evap [mm]
+      aevap        ! annual evap [mm]
+
+     REAL, DIMENSION(:,:), POINTER ::                                   &   
+      mtemp_min_20, & ! mimimum monthly temperatures for the last 20 y
+      mtemp_max_20, & ! maximum monthly temperatures for the last 20 y
+      dtemp_31 , &    ! daily temperature for the last 31 days
+      dmoist_31     ! daily moisture availability for the last 31 days
+
+
+   END TYPE climate_type
+
+! .............................................................................
+
    ! Cumulative flux variables:
    TYPE sum_flux_type
      
@@ -566,7 +607,8 @@ MODULE cable_def_types_mod
       
       REAL, DIMENSION(:,:), POINTER ::                                         &
          cplant,  & ! plant carbon (g C/m2))
-         csoil      ! soil carbon (g C/m2)
+         csoil   ! soil carbon (g C/m2)
+
      
       REAL, DIMENSION(ncp)  :: ratecp ! plant carbon rate constant (1/year)
       
@@ -594,7 +636,8 @@ MODULE cable_def_types_mod
          alloc_air_type,                                                       &
          alloc_met_type,                                                       &
          alloc_sum_flux_type,                                                  &
-         alloc_bgc_pool_type            
+         alloc_bgc_pool_type,                                                  &
+         alloc_climate_type            
    END INTERFACE
 
    INTERFACE dealloc_cbm_var
@@ -1070,6 +1113,40 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % coszen(mp) )
 
 END SUBROUTINE alloc_met_type
+
+! ------------------------------------------------------------------------------
+  
+SUBROUTINE alloc_climate_type(var, mp)
+
+   TYPE(climate_type), INTENT(inout) :: var
+   INTEGER, INTENT(in) :: mp
+
+   ALLOCATE ( var %  nyears )
+   ALLOCATE ( var %  doy )
+   ALLOCATE ( var %  dtemp(mp) )
+   ALLOCATE ( var %  dmoist(mp) )
+   ALLOCATE ( var % mtemp(mp) )
+   ALLOCATE ( var % mmoist(mp) )
+   ALLOCATE ( var % mtemp_min(mp) )
+   ALLOCATE ( var %  mtemp_max20(mp) )
+   ALLOCATE ( var % mtemp_min20(mp) )
+   ALLOCATE ( var %  mtemp_max(mp) )
+   ALLOCATE ( var % atemp_mean(mp) )
+   ALLOCATE ( var % AGDD5(mp) )
+   ALLOCATE ( var % GDD5(mp) )
+   ALLOCATE ( var % GDD0(mp) )
+   ALLOCATE ( var % chilldays(mp) )
+   ALLOCATE ( var % alpha_PT(mp) )
+   ALLOCATE ( var % aevap_PT(mp) )
+   ALLOCATE ( var % aevap(mp) )
+   
+   ALLOCATE ( var % mtemp_min_20(mp,20) )
+   ALLOCATE ( var %     mtemp_max_20(mp,20) )
+   ALLOCATE ( var %     dtemp_31(mp,31) )
+   ALLOCATE ( var %     dmoist_31(mp,31) )
+  
+
+END SUBROUTINE alloc_climate_type
    
 ! ------------------------------------------------------------------------------
 

@@ -412,8 +412,11 @@ SUBROUTINE PLUME_GET_FILENAME ( PLUME, cyear, par, FN )
   IF ( TRIM(fc) .EQ. "watch" ) THEN
      ! WATCH data comes in annual files
      IF ( TRIM(PLUME%Run) .EQ. "spinup" ) THEN
-       ! FN = TRIM(mp)//"1901_1930/"
-        FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
+        IF (PLUME%DirectRead) THEN
+           FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
+        ELSE
+           FN = TRIM(mp)//"1901_1930/"
+        ENDIF
         SELECT CASE ( par )
         CASE(prec) ; FN = TRIM(FN)//"Rainf_daily_WFD_GPCC_TYX_format_detrended_" 
         CASE(snow) ; FN = TRIM(FN)//"Snowf_daily_WFD_GPCC_TYX_format_detrended_" 
@@ -428,7 +431,11 @@ SUBROUTINE PLUME_GET_FILENAME ( PLUME, cyear, par, FN )
         FN = TRIM(FN)//cy//".nc"
         
      ELSE IF ( TRIM(PLUME%Run) .EQ. "1850_1900" ) THEN
-        FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
+       IF (PLUME%DirectRead) THEN
+           FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
+        ELSE
+           FN = TRIM(mp)//"1901_1930/"
+        ENDIF
         SELECT CASE ( par )
         CASE(prec) ; FN = TRIM(FN)//"Rainf_daily_WFD_GPCC_TYX_format_detrended_" 
         CASE(snow) ; FN = TRIM(FN)//"Snowf_daily_WFD_GPCC_TYX_format_detrended_" 
@@ -445,14 +452,14 @@ SUBROUTINE PLUME_GET_FILENAME ( PLUME, cyear, par, FN )
 
      ELSE
         SELECT CASE ( par )
-        CASE(prec) ; FN = TRIM(mp)//"/Rainf_daily_WFD/Rainf_daily_WFD_TYX_format_"  
-        CASE(snow) ; FN = TRIM(mp)//"/Snowf_daily_WFD/Snowf_daily_WFD_TYX_format_"  
+        CASE(prec) ; FN = TRIM(mp)//"/Rainf_daily_WFD/Rainf_daily_WFD_GPCC_TYX_format_"  
+        CASE(snow) ; FN = TRIM(mp)//"/Snowf_daily_WFD/Snowf_daily_WFD_GPCC_TYX_format_"  
         CASE(lwdn) ; FN = TRIM(mp)//"/LWdown_daily_WFD/LWdown_daily_WFD_TYX_format_"
         CASE(swdn) ; FN = TRIM(mp)//"/SWdown_daily_WFD/SWdown_daily_WFD_TYX_format_"
         CASE(pres) ; FN = TRIM(mp)//"/PSurf_daily_WFD/PSurf_daily_WFD_TYX_format_"  
-        CASE(rhum) ; FN = TRIM(mp)//"/Qmean_daily_WFD/Qmean_daily_WFD_TYX_format_"  
-        CASE(tmax,PrevTmax) ; FN = TRIM(mp)//"/Tmax_daily_WFD/Tmax_daily_WFD_TYX_format_"  
-        CASE(tmin,NextTmin) ; FN = TRIM(mp)//"/Tmin_daily_WFD/Tmin_daily_WFD_TYX_format_"  
+        CASE(rhum) ; FN = TRIM(mp)//"/Qmean_WFD/Qmean_WFD_TYX_format_"  
+        CASE(tmax,PrevTmax) ; FN = TRIM(mp)//"/Tmax_WFD/Tmax_WFD_TYX_format_"  
+        CASE(tmin,NextTmin) ; FN = TRIM(mp)//"/Tmin_WFD/Tmin_WFD_TYX_format_"  
         CASE(wind) ; FN = TRIM(mp)//"/Wind_daily_WFD/Wind_daily_WFD_TYX_format_"
         END SELECT
         FN = TRIM(FN)//cy//".nc"
@@ -652,7 +659,10 @@ SUBROUTINE OPEN_PLUME_MET( PLUME )
   ! Set internal counter
   PLUME%CTSTEP = 1
   ! For first call there might be an offset
-  IF ( TRIM(PLUME%Run) .NE. 'spinup'.AND. TRIM(PLUME%Run) .NE. '1850_1900' &
+
+
+  IF (TRIM(PLUME%FORCING) .NE. 'watch' .AND.  TRIM(PLUME%Run) .NE. 'spinup' &
+       .AND. TRIM(PLUME%Run) .NE. '1850_1900' &
        .AND. PLUME%CYEAR .GT. PLUME%MetStart ) THEN 
      DO yy = PLUME%MetStart, PLUME%CYEAR - 1
         PLUME%CTSTEP = PLUME%CTSTEP + 365 + LEAP_DAY( yy )
@@ -717,6 +727,7 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
            IF ( PLUME%DirectRead ) THEN
 
               DO k = 1, PLUME%mland
+
                  STATUS = NF90_GET_VAR( PLUME%F_ID(i), PLUME%V_ID(i), tmp, &
                       start=(/land_x(k),land_y(k),t-1/) ) 
                   CALL HANDLE_ERR(STATUS, "Reading direct from "//PLUME%MetFile(i) )
@@ -788,7 +799,7 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
         ! STANDARD READ 
         ! variables from open files
         IF ( PLUME%DirectRead ) THEN
-
+          
            DO k = 1, PLUME%mland
               STATUS = NF90_GET_VAR(PLUME%F_ID(i), PLUME%V_ID(i), PLUME%MET(ii)%VAL(k), &
                    start=(/land_x(k),land_y(k),t/) )
@@ -809,7 +820,7 @@ SUBROUTINE PLUME_GET_DAILY_MET( PLUME, TminFlag, islast )
      IF ( (i .EQ. Tmax ) .AND. CALL1 ) THEN
         ii = prevTmax
 
-        IF ( CYEAR .GT. 1900 ) THEN
+        IF ( CYEAR .GT. 1901 ) THEN
            ! on
            CALL PLUME_GET_FILENAME( PLUME, CYEAR-1, i, filename )
            STATUS = NF90_OPEN(TRIM(filename), NF90_NOWRITE, fid)

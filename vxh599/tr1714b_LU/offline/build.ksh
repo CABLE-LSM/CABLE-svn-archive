@@ -62,17 +62,15 @@ host_shin()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   #CLN module add netcdf/3.6.3 openmpi/1.6.5
-   module add netcdf openmpi/1.6.5
+   #CLN module add netcdf/3.6.3
+   module add netcdf/4.3.3.1
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   #export CFLAGS='-O0 -fp-model precise -g -debug -traceback '
-   #export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
-   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
-   export LDFLAGS='-L'$NCDIR' -O2 '
+   export FC='ifort'
+   export CFLAGS='-O0 -fp-model precise -g -debug -traceback  '
+  # export CFLAGS='  -g -debug -traceback -fp-stack-check -O2 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+   export LDFLAGS='-g -L'$NCDIR' -O0'
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
@@ -101,11 +99,11 @@ host_vayu()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O0 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O2 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
-   export LDFLAGS='-L'$NCDIR' -O2'
+   export LDFLAGS='-L'$NCDIR' -O0'
    export LD='-lnetcdf'
    build_build
    cd ../
@@ -361,9 +359,9 @@ build_build()
     
    /bin/cp -p Makefile_offline  ./.tmp
    
-  cd .tmp/
-   
+   cd .tmp/
    make -f Makefile_offline
+ 
 }
 
 ###########################################

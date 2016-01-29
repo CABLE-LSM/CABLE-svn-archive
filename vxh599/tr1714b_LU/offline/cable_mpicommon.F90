@@ -51,8 +51,9 @@ MODULE cable_mpicommon
 !  INTEGER, PARAMETER :: ncasaparam = 179
 !  INTEGER, PARAMETER :: ncasaparam = 183  ! changed ypw to add 4 new variables in casabal%
 !  INTEGER, PARAMETER :: ncasaparam = 196  ! changed ypw to add 13  new variables in casabiome%
-  INTEGER, PARAMETER :: ncasaparam = 198  ! changed lpn added 2 variables(casaflux%frac_sapwood/sapwood_area)
-
+  INTEGER, PARAMETER :: ncasaparam = 203  ! changed lpn added 4 variables 
+!  (casaflux%frac_sapwood/sapwood_area,casabiome,casabiome%ratioNPplantmin,%ratioNPplantmax)
+! casapool%ratioNPplant,%ratioNPlitter,ratioNPsoil
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
 

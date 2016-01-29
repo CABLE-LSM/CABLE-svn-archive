@@ -2284,9 +2284,9 @@ END SUBROUTINE close_met_file
 !
 !==============================================================================
 
-SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
+SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad,        &
        sum_flux,bal,logn,vegparmnew,casabiome,casapool,    &
-       casaflux,casamet,casabal,phen,POP,spinup,EMSOIL,TFRZ)
+       casaflux,sum_casapool, sum_casaflux,casamet,casabal,phen,POP,spinup,EMSOIL,TFRZ)
    ! Input variables not listed:
    !   filename%type  - via cable_IO_vars_module
    !   exists%type    - via cable_IO_vars_module
@@ -2305,6 +2305,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
    TYPE (air_type), INTENT(INOUT)          :: air
    TYPE (soil_snow_type), INTENT(OUT)      :: ssnow
    TYPE (veg_parameter_type), INTENT(OUT)  :: veg
+   TYPE (climate_type), INTENT(INOUT)          :: climate
    TYPE (bgc_pool_type), INTENT(OUT)       :: bgc
    TYPE (soil_parameter_type), INTENT(OUT) :: soil
    TYPE (canopy_type), INTENT(OUT)         :: canopy
@@ -2315,6 +2316,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
    TYPE (casa_biome)  , INTENT(OUT)        :: casabiome
    TYPE (casa_pool)   , INTENT(OUT)        :: casapool
    TYPE (casa_flux)   , INTENT(OUT)        :: casaflux
+   TYPE (casa_pool)   , INTENT(OUT)        :: sum_casapool
+   TYPE (casa_flux)   , INTENT(OUT)        :: sum_casaflux
    TYPE (casa_met)    , INTENT(OUT)        :: casamet
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
@@ -2357,14 +2360,15 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
 
     CALL get_default_params(logn,vegparmnew)
     CALL allocate_cable_vars(air,bgc,canopy,met,bal,rad,rough,soil,ssnow, &
-            sum_flux,veg,mp)
+            sum_flux,veg,climate,mp)
     WRITE(logn,*) ' CABLE variables allocated with ', mp, ' patch(es).'
 
     IF (icycle > 0 .OR. CABLE_USER%CASA_DUMP_WRITE ) &
-      CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
+      CALL alloc_casavariable(casabiome,casapool,casaflux,sum_casapool, sum_casaflux, &
+      casamet,casabal,mp)
     IF (icycle > 0) THEN
-      CALL alloc_phenvariable(phen,mp)
-   ENDIF
+       CALL alloc_phenvariable(phen,mp)
+    ENDIF
 
     ! Write parameter values to CABLE's parameter variables:
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
@@ -2375,33 +2379,32 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,soil,canopy,rough,rad,        &
 
     IF (icycle > 0) THEN
       CALL write_cnp_params(veg,casaflux,casamet)
-      CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
-      CALL casa_readphen(veg,casamet,phen)
+      CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux, &
+           casamet,phen)
+      IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') CALL casa_readphen(veg,casamet,phen)
 
       CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
+
       IF ( CABLE_USER%CALL_POP ) THEN
-      ! evaluate mp_POP and POP_array
-       mp_POP = COUNT(casamet%iveg2==forest)+COUNT(casamet%iveg2==shrub)
-       ALLOCATE(Iwood(mp_POP))
-       j = 1
-       DO i=1,mp
-          IF (casamet%iveg2(i)==forest .OR. casamet%iveg2(i)==shrub) THEN
-             Iwood(j) = i
-             j = j+1
-          ENDIF
-       ENDDO
+         ! evaluate mp_POP and POP_array
+         mp_POP = COUNT(casamet%iveg2==forest)+COUNT(casamet%iveg2==shrub)
 
-       !write(*,*) 'Iwood', Iwood
+         ALLOCATE(Iwood(mp_POP))
+         j = 1
+         DO i=1,mp
+            IF (casamet%iveg2(i)==forest .OR. casamet%iveg2(i)==shrub) THEN
+               Iwood(j) = i
+               j = j+1
+            ENDIF
+         ENDDO
+         
+             CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
+         IF ( .NOT. (spinup .OR. CABLE_USER%POP_fromZero )) &
+              CALL POP_IO( POP, casamet, cable_user%YearStart, "READ_rst " , .TRUE.)
 
-       
-         IF ( spinup .OR. CABLE_USER%POP_fromZero ) THEN
-            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
-         ELSE
-            CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
-            CALL POP_IO( POP, casamet, cable_user%YearStart, "READ_rst" , .TRUE.)
-         END IF
-      END IF
-    ENDIF
+      ENDIF
+
+   ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done
 ! in write_default_params
@@ -2662,7 +2665,7 @@ END SUBROUTINE get_parameters_met
 
 SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
                                rad,rough,soil,ssnow,sum_flux,                  &
-                               veg,arraysize)
+                               veg,climate,arraysize)
    TYPE (met_type), INTENT(INOUT)            :: met
    TYPE (air_type), INTENT(INOUT)            :: air
    TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
@@ -2675,6 +2678,7 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    TYPE (sum_flux_type), INTENT(INOUT)       :: sum_flux
    TYPE (balances_type), INTENT(INOUT)       :: bal
    INTEGER, INTENT(IN)                       :: arraysize
+   TYPE (climate_type), INTENT(INOUT)            :: climate
    
    CALL alloc_cbm_var(air, arraysize)
    CALL alloc_cbm_var(bgc, arraysize)
@@ -2687,6 +2691,7 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    CALL alloc_cbm_var(ssnow, arraysize)
    CALL alloc_cbm_var(sum_flux, arraysize)
    CALL alloc_cbm_var(veg, arraysize)
+   CALL alloc_cbm_var(climate, arraysize)
    
    ! Allocate patch fraction variable:
    ALLOCATE(patch(arraysize))

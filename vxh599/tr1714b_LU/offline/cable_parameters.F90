@@ -1021,6 +1021,7 @@ CONTAINS
                 inWB(landpt(e)%ilon, landpt(e)%ilat, min(is,size(inTGG,3)), month)
       END DO
 
+
    !ELSE    
     
    !   DO is = 1, ms
@@ -1273,9 +1274,11 @@ CONTAINS
       ENDIF
 
       IF(cable_user%CALL_POP) THEN
-         veg%disturbance_interval = 100
+         veg%disturbance_interval = 200
          veg%disturbance_intensity = 0.
       ENDIF
+
+
    
   END SUBROUTINE write_default_params
   !=============================================================================

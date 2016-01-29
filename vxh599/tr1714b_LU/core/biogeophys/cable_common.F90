@@ -35,21 +35,21 @@ MODULE cable_common_module
   ! trunk modifications protected by these switches 
   TYPE hide_switches
      LOGICAL ::                                                               & 
-                                ! L.Stevens - Test Switches 
+          ! L.Stevens - Test Switches 
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket? 
           L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
           L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
           Ticket46 = .FALSE.,              & !
-                                !jhan: default should be FALSE, bu set up nml etc
+          !jhan: default should be FALSE, bu set up nml etc
           Ticket49Bug1 = .false.,           & ! 
           Ticket49Bug2 = .false.,           & ! 
           Ticket49Bug3 = .false.,           & ! 
           Ticket49Bug4 = .false.,           & ! 
           Ticket49Bug5 = .false.,           & ! 
           Ticket49Bug6 = .false.              ! 
-
+     
   END TYPE hide_switches
-
+  
   ! instantiate internal switches 
   TYPE (hide_switches), SAVE :: hide
 
@@ -83,7 +83,8 @@ MODULE cable_common_module
           VEG_PARS_FILE  ! 
 
      CHARACTER(LEN=20) ::                                                     &
-          FWSOIL_SWITCH     !
+          FWSOIL_SWITCH, &     !
+          PHENOLOGY_SWITCH = 'MODIS'   ! alternative is 'climate' 
     !--- LN ------------------------------------------[
 
      CHARACTER(LEN=10):: RunIden = 'STANDARD'  !
@@ -91,17 +92,20 @@ MODULE cable_common_module
      CHARACTER(LEN=20) :: SOIL_STRUC !
      CHARACTER(LEN=3)  :: POP_out = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst = ' ' !
+     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' !
 
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
-          POP_fromZero           = .FALSE.
+          POP_fromZero           = .FALSE., &
+          CALL_Climate           = .FALSE., &
+          Climate_fromZero       = .FALSE.
+          
 
      INTEGER  :: &
           CASA_SPIN_STARTYEAR = 1950, &
           CASA_SPIN_ENDYEAR   = 1960, &
           YEARSTART           = 1950, &
           YEAREND             = 1960, &
-          CASA_OUT_FREQ       = 365, &
           CASA_NREP           = 1
     !--- LN ------------------------------------------]
 
@@ -688,6 +692,71 @@ CONTAINS
 
   END SUBROUTINE report_version_no
 
+
+  FUNCTION IS_CASA_TIME(iotype, yyyy, ktau, kstart, koffset, kend, ktauday, logn)
+
+    ! Correctly determine if it is time to dump-read or standard-write 
+    ! casa output from cable_driver. 
+    ! Writing casa-dump data is handled in casa_cable and therefore not \
+    ! captured here
+
+    USE cable_IO_vars_module, ONLY: leaps
+ 
+    IMPLICIT NONE
+
+    LOGICAL   :: IS_CASA_TIME 
+    INTEGER   :: yyyy, ktau, kstart, koffset, kend, ktauday, logn
+    CHARACTER :: iotype*5
+    LOGICAL   :: is_eod, is_eom, is_eoy
+    INTEGER   :: doy, m
+    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
+    is_eod = ( MOD((ktau-kstart+1+koffset),ktauday).EQ.0 )
+    IF ( .NOT. is_eod ) RETURN    ! NO if it is not end of day
+
+    is_eom       = .FALSE. 
+    is_eoy       = .FALSE. 
+    IS_CASA_TIME = .FALSE. 
+
+    IF ( IS_LEAPYEAR( YYYY ) ) THEN
+       MONTH(2) = 29
+    ELSE 
+       MONTH(2) = 28
+    ENDIF
+ 
+    ! Check for reading from dump-file (hard-wired to daily casa-timestep)
+    IF ( iotype .eq. "dread" ) THEN
+       IF ( CABLE_USER%CASA_DUMP_READ )  IS_CASA_TIME = .TRUE.
+       write(logn,*)"HERE dread"
+    ! Check for writing of casa dump output
+    ELSE IF ( iotype .eq. "dwrit" ) THEN
+       IF ( CABLE_USER%CASA_DUMP_WRITE ) IS_CASA_TIME = .TRUE.
+       write(logn,*)"HERE dwrit"
+    ! Check for writing of casa standard output
+    ELSE IF ( iotype .eq. "write" ) THEN
+       write(logn,*)"HERE write"
+
+       doy = NINT(REAL(ktau-kstart+1+koffset)/REAL(ktauday))
+       DO m = 1, 12 
+          IF ( doy .EQ. SUM(MONTH(1:m)) ) THEN
+             is_eom = .TRUE.
+             IF ( m .EQ. 12 ) is_eoy = .TRUE.
+             EXIT
+          ENDIF
+       END DO
+
+       SELECT CASE ( TRIM(CABLE_USER%CASA_OUT_FREQ) )
+       CASE ("daily"   ) ; IS_CASA_TIME = .TRUE.
+       CASE ("monthly" ) ; IF ( is_eom ) IS_CASA_TIME = .TRUE.
+       CASE ("annually") ; IF ( is_eoy ) IS_CASA_TIME = .TRUE.
+       END SELECT
+    ELSE
+       WRITE(logn,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
+       WRITE(*   ,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
+       STOP -1
+    ENDIF
+
+  END FUNCTION IS_CASA_TIME
 
 
 END MODULE cable_common_module

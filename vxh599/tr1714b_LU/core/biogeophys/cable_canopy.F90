@@ -146,6 +146,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
    !---compute surface wetness factor, update cansto, through
    CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
 
+
    canopy%fevw_pot = 0.0
    canopy%gswx = 1e-3     ! default stomatal conuctance 
    gbhf = 1e-3     ! default free convection boundary layer conductance
@@ -317,8 +318,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
             ! Forced convection boundary layer conductance                     
             ! (see Wang & Leuning 1998, AFM):
 
-     
-
+    
              !vh! inserted 'min' to avoid floating underflow
             gbhu(j,1) = gbvtop(j)*(1.0-EXP(-min(canopy%vlaiw(j)                    &
                         *(0.5*rough%coexp(j)+rad%extkb(j) ),20.0))) /            &
@@ -342,6 +342,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
                     fwsoil, tlfx, tlfy, ecy, hcy,                              &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter,ktau )
+
+
      
       CALL wetLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, cansat, tlfy,                                 &
@@ -367,9 +369,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
 
             rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
                            sum_rad_gradis(j) 
+!! vh_js !!
 
-            canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
-                           * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+           if (  (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+                   * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4) .gt. 0.0) then
+
+              canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+                   * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+              
+           else
+              canopy%tv(j) = met%tk(j)
+           endif
+           
          
          ELSE! sparse canopy
          
@@ -384,10 +395,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
       canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
             C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
 
+
        IF (cable_user%soil_struc=='default') THEN
 
           ! Saturation specific humidity at soil/snow surface temperature:
           call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+
           
           IF(cable_user%ssnow_POTEV== "P-M") THEN
              
@@ -511,6 +524,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau)
       CALL update_zetar()
 
    END DO           ! do iter = 1, NITER
+
 
 
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
@@ -968,6 +982,7 @@ SUBROUTINE update_zetar()
       canopy%zetar(:,iterplus) = -( C%VONK * C%GRAV * rough%zref_tq *              &
                                  ( canopy%fh + 0.07 * canopy%fe ) ) /          &
                                  ( air%rho * C%CAPP * met%tk * canopy%us**3 )
+
 
      
       ! stability parameter at shear height: needed for Harman in-canopy stability correction
@@ -1606,6 +1621,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          ENDIF
          
       ENDDO !i=1,mp
+
+
    
       CALL photosynthesis( csx(:,:),                                           &
                            SPREAD( cx1(:), 2, mf ),                            &
@@ -1618,7 +1635,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
       DO i=1,mp
          
-         IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) Then
+         IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1 ) Then
       
             DO kk=1,mf
                
@@ -1861,7 +1878,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    
    DO i=1,mp
       
-      IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
+      IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH.and.fwsoilz(i).gt.1.e-3) THEN
       
          DO j=1,mf
             
@@ -2034,6 +2051,8 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
       ENDIF
 
    ENDDO
+
+
      
 END SUBROUTINE photosynthesis
 
@@ -2312,6 +2331,7 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
     endif
     rex(:) = Etrans*rex(:)
 
+
     ! reduce extraction efficiency where total extraction depletes soil moisture below wilting point
     where (((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))
        alpha_root = alpha_root*(theta(:)-thetaw(:))*dx(:)/(1.1_r_2*rex*dt)
@@ -2328,7 +2348,7 @@ END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
     ! check that the water available in each layer exceeds the extraction
     !if (any((rex*dt) > (theta(:)-0.01_r_2)*dx(:))) then
-    if (any(((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))) then
+    if (any(((rex*dt) > max((theta(:)-thetaw(:)),zero)*dx(:)) .and. (Etrans > zero))) then
        fws = zero
        ! distribute extraction according to available water
        !rex(:) = (theta(:)-0.01_r_2)*dx(:)
