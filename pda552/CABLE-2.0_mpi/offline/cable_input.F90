@@ -287,10 +287,10 @@ SUBROUTINE open_met_file(dels,kend,spinup,kstart,TFRZ)
 
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
-   REAL, INTENT(IN) :: TFRZ
-   INTEGER, INTENT(IN)         :: kstart ! starting time step
+   REAL, INTENT(INOUT) :: TFRZ
+   INTEGER, INTENT(INOUT)         :: kstart ! starting time step
    INTEGER, INTENT(OUT)        :: kend   ! ending time step in simulation
-   LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
+   LOGICAL, INTENT(INOUT)              :: spinup ! will a model spinup be performed?
    
    ! Local variables
    INTEGER                     ::                                         &
@@ -1655,17 +1655,17 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
 
    ! Input arguments
-   LOGICAL, INTENT(IN)                    ::                                   &
+   LOGICAL, INTENT(INOUT)                    ::                                   &
         spinup,         & ! are we performing a spinup?
         spinConv          ! has model spinup converged?
    TYPE(met_type),INTENT(OUT)             :: met ! meteorological data
-   TYPE (soil_parameter_type),INTENT(IN)  :: soil 
-   TYPE (radiation_type),INTENT(IN)       :: rad
+   TYPE (soil_parameter_type),INTENT(INOUT)  :: soil 
+   TYPE (radiation_type),INTENT(INOUT)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
-   INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
+   INTEGER, INTENT(INOUT)               :: ktau, &  ! timestep in loop including spinup
                                         kend    ! total number of timesteps in run
-   REAL,INTENT(IN)                   :: dels ! time step size
-   REAL, INTENT(IN) :: TFRZ 
+   REAL,INTENT(INOUT)                   :: dels ! time step size
+   REAL, INTENT(INOUT) :: TFRZ 
    
    ! Local variables
    REAL(KIND=4),DIMENSION(1,1,1)          :: data3 ! temp variable for netcdf reading
@@ -2579,9 +2579,9 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    TYPE (casa_met)    , INTENT(OUT)        :: casamet
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
-   INTEGER,INTENT(IN)                      :: logn     ! log file unit number
-   LOGICAL,INTENT(IN)                      :: vegparmnew  ! are we using the new format?
-   REAL, INTENT(IN) :: TFRZ, EMSOIL 
+   INTEGER,INTENT(INOUT)                      :: logn     ! log file unit number
+   LOGICAL,INTENT(INOUT)                      :: vegparmnew  ! are we using the new format?
+   REAL, INTENT(INOUT) :: TFRZ, EMSOIL 
 
    ! Local variables
    REAL,POINTER,DIMENSION(:)          :: pfractmp ! temp store of patch fraction
@@ -2906,7 +2906,7 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    TYPE (radiation_type),INTENT(INOUT)       :: rad
    TYPE (sum_flux_type), INTENT(INOUT)       :: sum_flux
    TYPE (balances_type), INTENT(INOUT)       :: bal
-   INTEGER, INTENT(IN)                       :: arraysize
+   INTEGER, INTENT(INOUT)                       :: arraysize
    
    CALL alloc_cbm_var(air, arraysize)
    CALL alloc_cbm_var(bgc, arraysize)
