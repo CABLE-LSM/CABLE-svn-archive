@@ -342,7 +342,6 @@ SUBROUTINE mpidrv_master (comm)
       ENDIF
    
    ENDIF
-   
 
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,

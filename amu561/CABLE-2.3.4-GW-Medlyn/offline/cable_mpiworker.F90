@@ -258,6 +258,7 @@ CONTAINS
       STOP 'cannot output casaCNP variables when not running casaCNP'
 
 
+
    ! Open log file:
    ! MPI: worker logs go to the black hole
    ! by opening the file we don't need to touch any of the code that writes
@@ -436,7 +437,6 @@ CONTAINS
          ssnow%rnof2 = ssnow%rnof2*dels
          ssnow%runoff = ssnow%runoff*dels
    
-   
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
          IF(icycle >0) THEN
@@ -573,7 +573,6 @@ CONTAINS
    !                        sum_flux, veg )
 
    !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
-
    ! Close log file
    ! MPI: closes handle to /dev/null in workers
    CLOSE(logn)
