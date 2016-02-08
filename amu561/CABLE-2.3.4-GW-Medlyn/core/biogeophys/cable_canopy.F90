@@ -1678,6 +1678,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                ENDDO
                
+               canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
+    
+               ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+           
+           ENDIF
+
+
                !WUE fix (YP, drought workshop Nov15)
                IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
                     CALL fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
@@ -1694,14 +1701,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                     STOP 'fwsoil_switch failed.'
                ENDIF
                
-               ssnow%wb(i,:) = wb2(i,:) !WUE fix
+              ! ssnow%wb(i,:) = wb2(i,:) !WUE fix, should this one be commented
+              ! out or the identical statement below?
 
-               canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
-    
-               ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
-           
-           ENDIF
-
+ 
             ! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
                - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
