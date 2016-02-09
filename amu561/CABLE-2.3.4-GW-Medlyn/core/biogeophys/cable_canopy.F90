@@ -1682,58 +1682,62 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     
                ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
            
-           ENDIF
-
-
-               !WUE fix (YP, drought workshop Nov15)
-               IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
-                    CALL fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
-                    canopy%fwsoil = fwsoil
-               ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
-                    !EAK, 09/10 - replace linear approx by polynomial fitting
-                    CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
-                    canopy%fwsoil = fwsoil 
-               ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
-                    CALL fwsoil_calc_Lai_Katul(fwsoil, fextroot, soil, ssnow, veg)
-                    canopy%fwsoil = fwsoil 
-               ELSE
-                    write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
-                    STOP 'fwsoil_switch failed.'
-               ENDIF
-               
-              ! ssnow%wb(i,:) = wb2(i,:) !WUE fix, should this one be commented
-              ! out or the identical statement below?
-
- 
-            ! Update canopy sensible heat flux:
-            hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
-               - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
-               * SUM(rad%gradis(i,:)))                                         &
-               * SUM(gh(i,:))/ SUM(ghr(i,:))
-
-            ! Update leaf temperature:
-            tlfx(i)=met%tvair(i)+REAL(hcx(i))/(C%capp*C%rmair*SUM(gh(i,:)))
-      
-            ! Update net radiation for canopy:
-            rnx(i) = SUM( rad%rniso(i,:)) -                                    &
-                     C%CAPP * C%rmair *( tlfx(i)-met%tk(i) ) *                 &
-                     SUM( rad%gradis(i,:) )
-
-            ! Update leaf surface vapour pressure deficit:
-            dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
-
-            ! Store change in leaf temperature between successive iterations:
-            deltlf(i) = tlfxx(i)-tlfx(i)
-            abs_deltlf(i) = ABS(deltlf(i))
-
+            ENDIF
          ENDIF !lai/abs_deltlf
+      ENDDO !i=1,mp
+
+  
+      !WUE fix (YP, drought workshop Nov15)
+      IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
+          CALL fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
+          canopy%fwsoil = fwsoil
+      ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
+          !EAK, 09/10 - replace linear approx by polynomial fitting
+          CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
+          canopy%fwsoil = fwsoil 
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
+          CALL fwsoil_calc_Lai_Katul(fwsoil, fextroot, soil, ssnow, veg)
+          canopy%fwsoil = fwsoil 
+      ELSE
+          write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
+          STOP 'fwsoil_switch failed.'
+      ENDIF
+               
+        
+      DO i=1,mp
+
+          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) Then
+     
+             ssnow%wb(i,:)  = wb2(i,:)
+    
+             ! Update canopy sensible heat flux:
+             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
+                - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
+                * SUM(rad%gradis(i,:)))                                         &
+                * SUM(gh(i,:))/ SUM(ghr(i,:))
+
+             ! Update leaf temperature:
+             tlfx(i)=met%tvair(i)+REAL(hcx(i))/(C%capp*C%rmair*SUM(gh(i,:)))
+      
+             ! Update net radiation for canopy:
+             rnx(i) = SUM( rad%rniso(i,:)) -                                    &
+                      C%CAPP * C%rmair *( tlfx(i)-met%tk(i) ) *                 &
+                      SUM( rad%gradis(i,:) )
+
+             ! Update leaf surface vapour pressure deficit:
+             dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
+
+             ! Store change in leaf temperature between successive iterations:
+             deltlf(i) = tlfxx(i)-tlfx(i)
+             abs_deltlf(i) = ABS(deltlf(i))
+
+          ENDIF !lai/abs_deltlf
 
       ENDDO !i=1,mp
 
-        ssnow%wb = wb2 !WUE fix
 
 
-      ! Whhere leaf temp change b/w iterations is significant, and
+      ! Where leaf temp change b/w iterations is significant, and
       ! difference is smaller than the previous iteration, store results:
       DO i=1,mp
       
