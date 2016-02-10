@@ -1418,6 +1418,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          CALL fwsoil_calc_Lai_Katul(fwsoil, fextroot, soil, ssnow, veg) 
          veg%froot_w = veg%froot
          canopy%fwsoil = fwsoil
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Haverd2013') THEN
+         fwsoil = REAL(canopy%fwsoil)
       ELSE
          write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
          STOP 'fwsoil_switch failed.'
@@ -1718,15 +1720,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       IF(trim(cable_user%FWSOIL_SWITCH) == 'standard') THEN
           CALL fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg)   !fextroot: see Ticket #95
           canopy%fwsoil = fwsoil
-      ELSEIf (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
+      ELSEIF (trim(cable_user%FWSOIL_SWITCH) == 'non-linear extrapolation') THEN
           !EAK, 09/10 - replace linear approx by polynomial fitting
           CALL fwsoil_calc_non_linear(fwsoil, fextroot, soil, ssnow, veg)
           canopy%fwsoil = fwsoil 
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Katul 2000') THEN
           CALL fwsoil_calc_Lai_Katul(fwsoil, fextroot, soil, ssnow, veg)
           canopy%fwsoil = fwsoil
-      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Haverd2013') THEN
-          continue 
+      ELSEIF (trim(cable_user%FWSOIL_SWITCH) == 'Haverd2013') THEN
+          continue
       ELSE
           write(*,*) 'cable fwsoil_switch is ',cable_user%FWSOIL_SWITCH
           STOP 'fwsoil_switch failed.'
