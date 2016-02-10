@@ -1670,7 +1670,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                if (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) then
                   canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
 
-                  call getrex(soil,ssnow,canopy,veg,air,real(dels,r_2),i) 
+                  call getrex(soil,ssnow,canopy,veg,air,dels,i) 
 
 
                   fwsoil(i) = real(canopy%fwsoil(i))
@@ -2342,9 +2342,9 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
 
    if (first_call) then
-      wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
+      wb_liq(:) = real(max(1e-6,min(pi/4.0, ssnow%wb(:,1)) ) )
    else
-      wb_liq(:) = real(max(0.0,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
+      wb_liq(:) = real(max(1e-6,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
    end if
 
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
@@ -2414,8 +2414,8 @@ END SUBROUTINE or_soil_evap_resistance
     type(veg_parameter_type), INTENT(IN)     :: veg
     TYPE (air_type), INTENT(INOUT)           :: air
 
-    real(r_2), intent(in)                       :: dels
-    integer, intent(in)                         :: i !point_index
+    real, intent(in)                         :: dels
+    integer, intent(in)                      :: i !point_index
 
 !    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
 !    REAL(r_2), DIMENSION(:), INTENT(INOUT)   :: rex    ! water extraction per layer
@@ -2467,9 +2467,9 @@ END SUBROUTINE or_soil_evap_resistance
 
     ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
 
-    where(((ssnow%rex(i,:)*dels) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*dels .gt. 0._r_2))) 
+    where(((ssnow%rex(i,:)*real(dels,r_2)) .gt. (wb_liq - soil%wiltp(i,:))*zse_mm) .and. ((ssnow%rex(i,:)*real(dels,r_2) .gt. 0._r_2))) 
 
-       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*dels)
+       alpha_root(:) = alpha_root(:) * (wb_liq - soil%wiltp(i,:)) * zse_mm / (ssnow%rex(i,:)*real(dels,r_2))
     
     endwhere
 
@@ -2485,7 +2485,7 @@ END SUBROUTINE or_soil_evap_resistance
     ssnow%rex(i,:) = Etrans*ssnow%rex(i,:)
 
 
-    if (any(((ssnow%rex(i,:)*dels) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*dels) .gt. 0._r_2))) then
+    if (any(((ssnow%rex(i,:)*reaL(dels,r_2)) .gt. (wb_liq(:)-soil%wiltp(i,:))*zse_mm(:)) .and. ((ssnow%rex(i,:)*real(dels,r_2)) .gt. 0._r_2))) then
        canopy%fwsoil(i) = 0._r_2
        ssnow%rex(i,:) = max((wb_liq(:)-soil%wiltp(i,:))*zse_mm(:),0._r_2)
        trex = sum(ssnow%rex(i,:),dim=1)
