@@ -271,7 +271,10 @@ MODULE cable_def_types_mod
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
          wmtot         !water mass [mm] liq+ice ->total
-         
+        
+        !Haverd2013 swithc, amu561 Feb 16
+      REAL(r_2), DIMENSION(:,:), POINTER :: rex !root water extraction from each layer (mm/dels)
+ 
    END TYPE soil_snow_type
 
 ! .............................................................................
@@ -329,6 +332,9 @@ MODULE cable_def_types_mod
          refl,    &
          taul,    & 
          froot,froot_w      ! fraction of root in each soil layer
+
+      !Haverd2013 switch, amu561 Feb 16
+      REAL(r_2), DIMENSION(:), POINTER :: li_katul_skew_param
 
    END TYPE veg_parameter_type
 
@@ -816,6 +822,9 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmliq(mp,ms) )
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
+   !Haverd2013 switch, amu561 Feb 16
+   ALLOCATE( var%rex(mp,ms) )
+
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
    var%GWwb = 0.45_r_2
@@ -876,6 +885,9 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%eko(mp) ) 
    ALLOCATE( var% g1c3_map(mp) ) ! jtk561
    ALLOCATE( var% g0c3_map(mp) ) ! jtk561
+
+   !Haverd2013 swtich, amu561 Feb '16
+   ALLOCATE( var%li_katul_skew_param(mp) )
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -1303,7 +1315,10 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
-   
+  
+   !Haverd2013 switch, amu561 Feb '16
+   DEALLOCATE( var%rex )
+ 
 END SUBROUTINE dealloc_soil_snow_type
    
 ! ------------------------------------------------------------------------------
@@ -1357,7 +1372,10 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%eko ) 
    DEALLOCATE( var%g1c3_map ) ! jtk561
    DEALLOCATE( var%g0c3_map ) ! jtk561
-   
+  
+   !Haverd2013 swtich, amu561 Feb '16
+   DEALLOCATE( var%li_katul_skew_param )
+ 
 END SUBROUTINE dealloc_veg_parameter_type
    
 ! ------------------------------------------------------------------------------

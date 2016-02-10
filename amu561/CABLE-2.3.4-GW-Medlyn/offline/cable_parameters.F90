@@ -1223,28 +1223,29 @@ SUBROUTINE read_g1map(logn)
 
     ! *******************************************************************
     ! Site independent initialisations (all gridcells):
-    canopy%cansto  = 0.0 ! canopy water storage (mm or kg/m2)
+    canopy%cansto  = 0.0   ! canopy water storage (mm or kg/m2)
     canopy%sghflux = 0.0
     canopy%ghflux  = 0.0
-    ssnow%ssdn   = 120.0 ! snow density per layer (kg/m3)
-    ssnow%ssdnn  = 120.0 ! overall snow density (kg/m3)
-    ssnow%tggsn  = tfrz  ! snow temperature per layer (K)
-    ssnow%isflag = 0     ! snow layer scheme flag (0 = no/little snow, 1=snow)
-    ssnow%snowd  = 0.0   ! snow liquid water equivalent depth (mm or kg/m2)
-    ssnow%osnowd = 0.0   ! snow depth prev timestep (mm or kg/m2)
-    ssnow%sdepth = 0.0   ! snow depth for each snow layer (BP jul2010)
-    ssnow%snage  = 0.0   ! snow age
-    ssnow%wbice  = 0.0   ! soil ice 
-    ssnow%smass  = 0.0   ! snow mass per layer (kg/m^2)
-    ssnow%runoff = 0.0   ! runoff total = subsurface + surface runoff
-    ssnow%rnof1  = 0.0   ! surface runoff (mm/timestepsize)
-    ssnow%rnof2  = 0.0   ! deep drainage (mm/timestepsize)
-    ssnow%rtsoil = 100.0 ! turbulent resistance for soil
-    canopy%ga     = 0.0  ! ground heat flux (W/m2)
-    canopy%dgdtg  = 0.0  ! derivative of ground heat flux wrt soil temp
-    canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
-    canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
-    canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
+    ssnow%ssdn     = 120.0 ! snow density per layer (kg/m3)
+    ssnow%ssdnn    = 120.0 ! overall snow density (kg/m3)
+    ssnow%tggsn    = tfrz  ! snow temperature per layer (K)
+    ssnow%isflag   = 0     ! snow layer scheme flag (0 = no/little snow, 1=snow)
+    ssnow%snowd    = 0.0   ! snow liquid water equivalent depth (mm or kg/m2)
+    ssnow%osnowd   = 0.0   ! snow depth prev timestep (mm or kg/m2)
+    ssnow%sdepth   = 0.0   ! snow depth for each snow layer (BP jul2010)
+    ssnow%snage    = 0.0   ! snow age
+    ssnow%wbice    = 0.0   ! soil ice 
+    ssnow%smass    = 0.0   ! snow mass per layer (kg/m^2)
+    ssnow%runoff   = 0.0   ! runoff total = subsurface + surface runoff
+    ssnow%rnof1    = 0.0   ! surface runoff (mm/timestepsize)
+    ssnow%rnof2    = 0.0   ! deep drainage (mm/timestepsize)
+    ssnow%rtsoil   = 100.0 ! turbulent resistance for soil
+    canopy%ga      = 0.0   ! ground heat flux (W/m2)
+    canopy%dgdtg   = 0.0   ! derivative of ground heat flux wrt soil temp
+    canopy%fev     = 0.0   ! latent heat flux from vegetation (W/m2)
+    canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
+    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
+    canopy%fwsoil  = 1._r_2 ! Haverd2013 switch, amu561 Feb 16
 
     ! *******************************************************************
     ! parameters that are not spatially dependent
@@ -1677,6 +1678,11 @@ SUBROUTINE read_g1map(logn)
     ELSEWHERE
       ssnow%wbice(:, :) = 0.0
     END WHERE
+
+    !Haverd2013 switch, amu561 Feb 16
+    !Note this could depend on veg type but is constant for now
+    veg%li_katul_skew_param = 0.03_r_2
+
 
   END SUBROUTINE write_default_params
   !=============================================================================
