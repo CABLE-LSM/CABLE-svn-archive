@@ -63,7 +63,7 @@ MODULE cable_mpicommon
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
 ! INTEGER, PARAMETER :: ncasaparam = 179
 ! INTEGER, PARAMETER :: ncasaparam = 183     ! changed ypw to add 4 new variables in casabal%
- INTEGER, PARAMETER :: ncasaparam = 196     ! changed ypw to add 13  new variables in casabiome%
+ INTEGER, PARAMETER :: ncasaparam = 198     ! changed ypw to add 13  new variables in casabiome%
   !INTEGER, PARAMETER :: ncasaparam = 214     ! amu561 Feb '16, added 18 new variables for automated spin-up 
 
   ! MPI: base number of casa_init parameters sent to the workers
@@ -119,9 +119,9 @@ MODULE cable_mpicommon
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
 !  INTEGER, PARAMETER :: ncasa_mat = 15
-  INTEGER, PARAMETER :: ncasa_mat = 33 !amu561 Feb '16 added 18 new 2d variables for automated spin-up 
+  INTEGER, PARAMETER :: ncasa_mat = 35 !amu561 Feb '16 added 18 new 2d variables for automated spin-up, also added missing flux variables 
 !  INTEGER, PARAMETER :: ncasa_vec = 27
-  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+  INTEGER, PARAMETER :: ncasa_vec = 49    ! changed on 30-jan-2013 for adding four new respiration variable to the output, amu561 added missing flux variables
 
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run

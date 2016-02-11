@@ -22,7 +22,7 @@
 !
 ! ==============================================================================
 
-SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
+  SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
                      spinConv, spinup, ktauday, idoy, dump_read, dump_write )
 
@@ -126,18 +126,196 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 
 
-END SUBROUTINE bgcdriver
+  END SUBROUTINE bgcdriver
+
+!-------------------------------------------------------------------------------------
+
+ ! added by ypwang following Chris Lu 5/nov/2012
+  SUBROUTINE ncdf_dump(casamet, n_call, kend, ncfile)
+      USE netcdf
+      USE cable_def_types_mod
+      USE casadimension, ONLY : mdyear, mplant
+      USE casavariable
+      USE casa_dump_module, ONLY : def_dims, def_vars, def_var_atts, &
+                                   put_var_nc, stderr_nc
+      USE cable_io_vars_module, ONLY : patch
+
+      implicit none
+      !var (type) to write
+      TYPE (casa_met),            INTENT(INOUT) :: casamet
+
+      integer , intent(in) :: &
+         n_call, &         ! this timestep #
+         kend              ! final timestep of run
+
+      !number of instances. dummied here and so=1
+      !integer :: inst =1
+
+      !netcdf IDs/ names
+      character(len=*),intent(in):: ncfile
+      integer, parameter :: num_vars=7
+      integer, parameter :: num_dims=4
+
+      integer, dimension(ms)     :: &
+         soil
+
+      integer, dimension(mvtype) :: &
+         tile
+
+      integer, dimension(mplant) :: &
+         plant
+
+      integer, save :: ncid       ! netcdf file ID
+
+      !vars
+      character(len=*), dimension(num_vars), parameter :: &
+            var_name =  (/  "latitude     ", &
+                           "longitude    ", &
+                            "casamet_tairk", &
+                            "tsoil        ", &
+                            "moist        ", &
+                            "cgpp         ", &
+                            "crmplant     " /)
+
+      integer, dimension(num_vars) :: varID ! (1) tvair, (2) pmb
+
+      !dims
+      character(len=*), dimension(num_dims), parameter :: &
+            dim_name =  (/ "tile", &
+                           "soil", &
+                           "plant",&
+                           "time" /)
+
+      integer, dimension(num_dims)  :: &
+            dimID   ! (1) mp, (2) ms, (3) mplant (4) time
+
+      integer, dimension(num_dims)  :: &
+            !x,y generally lat/lon BUT for single site = 1,1
+            dim_len
+      !local only
+     integer :: ncok      !ncdf return status
+     integer :: i,j
 
 
+      real(r_2), dimension(1:mp) :: &
+         cgpp,   &
+         tairk
+
+      real(r_2), dimension(1:mp,1:ms) :: &
+         tsoil, &
+         moist
+
+      real(r_2), dimension(1:mp,1:mplant) :: &
+         crmplant
+
+      ! END header
+!      tairk = 0
+!      cgpp  = 0
+!      tsoil = 0
+!      moist = 0
+!      crmplant = 0
+!      write(89,*) 'tsoil,gpp',casamet%Tsoilspin_1(1,:),casamet%cgppspin(1,:),mplant,ms
+!      write(89,*) 'creating dump file'
+!      n_call = 1
+!      kend   = mdyear
 
 
+      print *, 'yp wang: calling ncdf_dump'
+!      print *, 'latitude= ', patch(:)%latitude
+!      print *, 'longitude= ', patch(:)%longitude
+      print *, 'filename= ', ncfile
+      print *, 'constants= ', mp,ms,mplant,mdyear,ncid
+
+      dim_len(1) = mp
+      dim_len(2) = ms
+      dim_len(3) = mplant
+      dim_len(4) = mdyear
+         ! create netCDF dataset: enter define mode
+      ncok = nf90_create(path = ncfile, cmode = nf90_clobber, ncid = ncid)
+
+!      print *, 'ncok =', ncok
+
+!      ncok = nf90_create(path = 'dump_casamet.nc', cmode = nf90_noclobber, ncid = ncid)
+      if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', ncfile)
+!      if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', 'dump_casamet.nc')
+
+!      print *, 'here 1' ,ncid
+
+      ! define dimensions: from name and length
+!      write(89,*) 'defining dims'
+      call def_dims(num_dims, ncid, dimID, dim_len, dim_name )
+
+!      print *, 'here 2',varID,num_dims
+      ! define variables: from name, type, dims
+!      write(89,*) 'defining vars'
+      call def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
+
+!      print *, 'here 3',varID,num_vars
+      ! define variable attributes
+!      write(89,*) 'defining attribution'
+      call def_var_atts(ncfile, ncid, varID )
+!      call def_var_atts('dump_casamet.nc', ncid, varID )
+
+!      print *, 'here 4', varID
+      ncok = nf90_enddef(ncid)
+
+!      print *, 'here 5', var_name(1), size(patch(:)%latitude)
+!      write(89,*) 'writing latitude'
+      call put_var_nc(ncid, var_name(1), patch(:)%latitude )
+
+!      print *, 'here 6',var_name(2) , size(patch(:)%longitude)
+!      write(89,*) 'writing longitude'
+      call put_var_nc(ncid, var_name(2), patch(:)%longitude )
+
+      write(*,901)  mdyear 
+901   format(' yp wang at ncdf_dump', I6)
+!      write(*,*) casamet%cgppspin(10,:)
+
+      do i=1,mdyear
+         tairk(:)      = casamet%Tairkspin(:,i)
+         tsoil(:,1)    = casamet%Tsoilspin_1(:,i)
+!      tairk           = casamet%Tsoilspin_1
+         tsoil(:,2)    = casamet%Tsoilspin_2(:,i)
+         tsoil(:,3)    = casamet%Tsoilspin_3(:,i)
+         tsoil(:,4)    = casamet%Tsoilspin_4(:,i)
+         tsoil(:,5)    = casamet%Tsoilspin_5(:,i)
+         tsoil(:,6)    = casamet%Tsoilspin_6(:,i)
+         moist(:,1)    = casamet%moistspin_1(:,i)
+         moist(:,2)    = casamet%moistspin_2(:,i)
+         moist(:,3)    = casamet%moistspin_3(:,i)
+         moist(:,4)    = casamet%moistspin_4(:,i)
+         moist(:,5)    = casamet%moistspin_5(:,i)
+         moist(:,6)    = casamet%moistspin_6(:,i)
+         cgpp (:)      = casamet%cgppspin   (:,i)
+         crmplant(:,1) = casamet%crmplantspin_1(:,i)
+         crmplant(:,2) = casamet%crmplantspin_2(:,i)
+         crmplant(:,3) = casamet%crmplantspin_3(:,i)
+
+!         write(89,*) 'writing ',var_name(3)
+         call put_var_nc(ncid, var_name(3), tairk, i,kend )
+!         write(89,*) 'writing '//trim(var_name(4))
+         call put_var_nc(ncid, var_name(4), tsoil, i,kend ,ms)
+!         write(89,*) 'writing '//trim(var_name(5))
+         call put_var_nc(ncid, var_name(5), moist, i,kend ,ms)
+!         write(89,*) 'writing '//trim(var_name(6))
+         call put_var_nc(ncid, var_name(6), cgpp , i,kend )
+!         write(89,*) 'writing '//trim(var_name(7))
+         call put_var_nc(ncid, var_name(7), crmplant, i,kend,mplant )
+     end do
+
+     !      if (n_call == kend ) &
+     ncok = nf90_close(ncid)            ! close: save new netCDF dataset
+
+  END SUBROUTINE ncdf_dump
 
 
+!amu561 replaced this with the above from Y-P's code, Feb '16
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
 
-   subroutine ncdf_dump(tairk, tsoil, moist, &
-                        cgpp, crmplant, &
-                        n_call, kend)
+
+!   subroutine ncdf_dump(tairk, tsoil, moist, &
+!                        cgpp, crmplant, &
+!                        n_call, kend)
 !      use netcdf
 !      use cable_common_module, only : kend_gl
 !      use cable_diag_module, only : def_dims, def_vars, def_var_atts, & 
@@ -231,11 +409,95 @@ END SUBROUTINE bgcdriver
 !      if (n_call == kend ) & 
 !         ncok = nf90_close(ncid)            ! close: save new netCDF dataset
      
-   end subroutine ncdf_dump
+!   end subroutine ncdf_dump
+
+!------------------------------------------------------------------------------------------
+
+  SUBROUTINE read_casa_dump(ncfile, casamet, casaflux, ktau, kend)
+      USE netcdf
+      USE cable_def_types_mod,   ONLY : r_2,ms
+      USE casadimension,         ONLY : mplant,mdyear
+      USE casa_cnp_module
+      USE casa_dump_module,      ONLY : get_var_nc, stderr_nc
+
+      TYPE (casa_flux), intent(inout) :: casaflux
+      TYPE (casa_met), intent(inout)  :: casamet
+      integer, intent(in) :: kend, ktau
+
+      !netcdf IDs/ names
+      character(len=*)  ncfile
+      integer, parameter :: num_vars=5
+      integer, parameter :: num_dims=4
+      integer:: ncid       ! netcdf file ID
+
+      !vars
+      character(len=*), dimension(num_vars), parameter :: &
+            var_name =  (/  "casamet_tairk", &
+                            "tsoil        ", &
+                            "moist        ", &
+                            "cgpp         ", &
+                            "crmplant     " /)
+
+      integer, dimension(num_vars) :: varID ! (1) tvair, (2) pmb
+
+      real(r_2), dimension(mp) :: &
+         tairk,  &
+         cgpp
+
+      real(r_2), dimension(mp,ms) :: &
+         tsoil, &
+         moist
+
+      real(r_2), dimension(mp,mplant) :: &
+         crmplant
+
+!      write(89,*)'opening file'
+      ncok = NF90_OPEN(ncfile, nf90_nowrite, ncid)
+         if (ncok /= nf90_noerr ) CALL stderr_nc('re-opening ', ncfile)
+
+      do idoy=1,mdyear
+
+!         write(89,*)'get tairk'
+         CALL get_var_nc(ncid, var_name(1), tairk   , idoy, kend )
+!         write(89,*)'get tsoil'
+         CALL get_var_nc(ncid, var_name(2), tsoil   , idoy, kend ,ms)
+!         write(89,*)'get moist'
+         CALL get_var_nc(ncid, var_name(3), moist   , idoy, kend ,ms)
+!         write(89,*)'get cgpp'
+         CALL get_var_nc(ncid, var_name(4), cgpp    , idoy, kend )
+!         write(89,*)'get crmplant'
+         CALL get_var_nc(ncid, var_name(5), crmplant, idoy, kend ,mplant)
 
 
+         casamet%Tairkspin(:,idoy) = tairk
+         casamet%cgppspin (:,idoy) = cgpp
+         casamet%crmplantspin_1(:,idoy) = crmplant(:,1)
+         casamet%crmplantspin_2(:,idoy) = crmplant(:,2)
+         casamet%crmplantspin_3(:,idoy) = crmplant(:,3)
+         casamet%Tsoilspin_1(:,idoy)    = tsoil(:,1)
+         casamet%Tsoilspin_2(:,idoy)    = tsoil(:,2)
+         casamet%Tsoilspin_3(:,idoy)    = tsoil(:,3)
+         casamet%Tsoilspin_4(:,idoy)    = tsoil(:,4)
+         casamet%Tsoilspin_5(:,idoy)    = tsoil(:,5)
+         casamet%Tsoilspin_6(:,idoy)    = tsoil(:,6)
+         casamet%moistspin_1(:,idoy)    = moist(:,1)
+         casamet%moistspin_2(:,idoy)    = moist(:,2)
+         casamet%moistspin_3(:,idoy)    = moist(:,3)
+         casamet%moistspin_4(:,idoy)    = moist(:,4)
+         casamet%moistspin_5(:,idoy)    = moist(:,5)
+         casamet%moistspin_6(:,idoy)    = moist(:,6)
+
+      end do
+
+      ncok = NF90_CLOSE(ncid)
+         if (ncok /= nf90_noerr ) call stderr_nc('closing ', ncfile)
+
+
+   END SUBROUTINE read_casa_dump
+
+!amu561 replaced this with the above code from Y-P's repo, Feb '16
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
-   subroutine read_casa_dump( casamet, casaflux, ktau, kend )
+!   subroutine read_casa_dump( casamet, casaflux, ktau, kend )
 !      use netcdf
 !      USE casa_cnp_module  
 !      use cable_diag_module, only : get_var_nc, stderr_nc
@@ -273,9 +535,9 @@ END SUBROUTINE bgcdriver
 !      ncok = NF90_CLOSE(ncid)            
 !         if (ncok /= nf90_noerr ) call stderr_nc('closing ', ncfile)      
 !      
-   end subroutine read_casa_dump
+!   end subroutine read_casa_dump
 
-
+!--------------------------------------------------------------------------------
 
  SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet)
   USE cable_def_types_mod
@@ -334,15 +596,16 @@ END SUBROUTINE bgcdriver
 !                  * ncleafx(np)/casabiome%sla(ivt))*(1.0e-6)
 !    veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
 
-!write(*,991) np, ivt,veg%vlai(np),veg%vcmax(np)*1.0e6
-!write(*,891) np,ivt,casapool%cplant(np,leaf),casapool%nplant(np,leaf),casapool%pplant(np,leaf)
-!891 format(2(i6),3(f9.3,2x))
+! write(*,991) np, ivt,veg%vlai(np),veg%vcmax(np)*1.0e6
+! write(*,891) np,ivt,casapool%cplant(np,leaf),casapool%nplant(np,leaf),casapool%pplant(np,leaf)
+! 891 format(2(i6),3(f9.3,2x))
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
-!991 format(i6,2x,i4,2x,2(f9.3,2x))
+! 991 format(i6,2x,i4,2x,2(f9.3,2x))
  END SUBROUTINE casa_feedback
 
+!------------------------------------------------------------------------------------------------
 
 SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
                     soil, ssnow, sum_flux, veg, met, casaflux, l_vcmaxFeedbk)

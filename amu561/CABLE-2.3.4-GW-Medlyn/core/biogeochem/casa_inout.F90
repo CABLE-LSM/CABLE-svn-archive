@@ -372,7 +372,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%ratioNCsoilmin(npt,:)   = 1.0/ratioCNsoilmax(iv1,:)
     casapool%ratioNCsoilmax(npt,:)   = 1.0/ratioCNsoilmin(iv1,:)
     casapool%ratioNCsoilnew(npt,:)   = casapool%ratioNCsoilmax(npt,:)
-
+    casapool%ratioNPsoil(npt,:)   = ratioNPsoil(iso,:) !amu561, spin up?
+    casapool%ratioNPlitter(npt,:) = casapool%nlitter(npt,:)/(casapool%plitter(npt,:)+1.0e-10) !amu561, spin up?
   ENDDO
 
   IF (icycle==1) THEN
@@ -934,6 +935,13 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   dim_name   = (/ "pools_plant", &
                   "pools_litter", &
                   "pools_soil" /)
+
+print *, "printing num_dims", num_dims
+print *, "printing ncid", ncid
+print *, "printing dimID", dimID
+print *, "printing dim_len", dim_len
+print *, "printing dim_name", dim_name
+
   CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
   ! define new variables

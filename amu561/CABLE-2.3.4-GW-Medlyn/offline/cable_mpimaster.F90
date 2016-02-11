@@ -2867,6 +2867,20 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   !blen(bidx) = mplant * r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPsoil(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+  !blen(bidx) = msoil * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPlitter(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+  !blen(bidx) = mlitter * r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casapool%Nsoilmin(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -3602,8 +3616,8 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = 1
   !blen(bidx) = mphase * ilen
 
-print *, "PRINTING bidx ", bidx
-print *, "PRINTING ntyp ", ntyp
+print *, "PRINTING bidx master #1: ", bidx
+print *, "PRINTING ntyp master #1: ", ntyp
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
@@ -5322,6 +5336,14 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      &                             types(bidx), ierr)
      blocks(bidx) = 1
 
+     bidx = bidx + 1
+     CALL MPI_Get_address (casapool%ratioNPsoil(off,1), displs(bidx), ierr)
+     blocks(bidx) = r2len * msoil
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casapool%ratioNPlitter(off,1), displs(bidx), ierr)
+     blocks(bidx) = r2len * mlitter
+
      ! added by ypwang 27-nov2012 for casa-cnp spinning up variables
      bidx = bidx + 1
      CALL MPI_Get_address (casamet%Tairkspin(off,1), displs(bidx), ierr)
@@ -5468,6 +5490,74 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      blocks(bidx) = r2len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casapool%dClabiledt(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nmindep(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nsnet(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminleach(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminloss(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Pwea(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Pdep(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Psnet(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Plabuptake(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Pleach(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Ploss(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (casabal%sumcbal(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
@@ -5565,6 +5655,9 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      types(last2d+1:bidx) = MPI_BYTE
 
+     print *, "PRINTING bidx master #2: ", bidx
+     print *, "PRINTING ntyp master #2: ", ntyp
+
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
         WRITE (*,*) 'master: invalid number of casa fields, fix it!'
@@ -5572,7 +5665,9 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      END IF
 
      CALL MPI_Type_create_struct (bidx, blocks, displs, types, casa_ts(rank), ierr)
-     CALL MPI_Type_commit (casa_ts(rank), ierr)
+print *, "REACHES HERE?"     
+
+CALL MPI_Type_commit (casa_ts(rank), ierr)
 
      CALL MPI_Type_size (casa_ts(rank), tsize, ierr)
      CALL MPI_Type_get_extent (casa_ts(rank), tmplb, text, ierr)

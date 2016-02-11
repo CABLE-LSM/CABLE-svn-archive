@@ -2484,6 +2484,14 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Get_address (casapool%ratioNCsoilmax, displs(bidx), ierr)
   blen(bidx) = msoil * r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPlitter, displs(bidx), ierr)
+  blen(bidx) = mlitter * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPsoil, displs(bidx), ierr)
+  blen(bidx) = msoil * r2len
+
   ! ------- casaflux ----
 
   bidx = bidx + 1
@@ -2958,6 +2966,9 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   bidx = bidx + 1
   CALL MPI_Get_address (phen%doyphase, displs(bidx), ierr)
   blen(bidx) = mphase * ilen
+
+print *, "PRINTING bidx worker #1: ", bidx
+print *, "PRINTING ntyp worker #1: ", ntyp
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
@@ -5402,6 +5413,14 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * msoil
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPsoil(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * msoil
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPlitter(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mlitter
+
   ! added by yp wang 27-nov-2012 for variables for spinning casa-cnp
 
   bidx = bidx + 1
@@ -5514,6 +5533,74 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   blocks(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%dClabiledt(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nmindep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nsnet(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminleach(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Pwea(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Pdep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Psnet(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Plabuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Pleach(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Ploss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casabal%sumcbal(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
@@ -5608,6 +5695,10 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   bidx = bidx + 1
   CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
   blocks(bidx) = r2len
+
+print *, "PRINTING bidx worker #2: ", bidx
+print *, "PRINTING ntyp worker #2: ", ntyp
+
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
