@@ -195,6 +195,10 @@ CONTAINS
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
 
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
@@ -5397,6 +5401,81 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   bidx = bidx + 1
   CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * msoil
+
+  ! added by yp wang 27-nov-2012 for variables for spinning casa-cnp
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tairkspin(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%cgppspin(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%crmplantspin_1(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%crmplantspin_2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%crmplantspin_3(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_1(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_3(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_4(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_5(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%Tsoilspin_6(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_1(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_2(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_3(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_4(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_5(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casamet%moistspin_6(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mdyear
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crmplant(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * mplant
+
 
   ! ------------- 1D vectors -------------
 

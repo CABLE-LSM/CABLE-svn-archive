@@ -38,9 +38,9 @@ MODULE cable_common_module
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
    !---mrd561 make the default values false
-   LOGICAL, SAVE :: l_casacnp = .false.,   &
-                    l_laiFeedbk = .false., &
-                    l_vcmaxFeedbk = .false.
+   LOGICAL, SAVE :: l_casacnp = .FALSE.,   &
+                    l_laiFeedbk = .FALSE., &
+                    l_vcmaxFeedbk = .FALSE.
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches

@@ -148,6 +148,10 @@ PROGRAM cable_offline_driver
       soilMtemp,                         &   
       soilTtemp      
 
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+
    !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
    INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
 
@@ -287,7 +291,16 @@ PROGRAM cable_offline_driver
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+  
+   !Added by YP following Chris Lu
+   IF(icycle>0) THEN
+       IF (spincasa) THEN
+           print *, 'spincasacnp enabled with mloop= ', mloop
+           call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
+                            casabiome,casapool,casaflux,casamet,casabal,phen)
+       ENDIF
+   ENDIF
+ 
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -485,17 +498,17 @@ PROGRAM cable_offline_driver
 
    END DO
 
-print *, "PRINTING icycle cable_driver", icycle
-   !Code for spinning up? comment out
+   WRITE(logn,'(A33,I1)') 'CASA icycle:', icycle
+   !Code for spinning up?
    IF (icycle > 0) THEN
-      print *, "WRITING CASA pool and flux out"
+      print *, "Writing CASA pool and flux out"
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-    !  print *, 'before ncdf_dump', spinConv, spincasainput
-!      if ( spinConv .AND. spincasainput ) then
- !          call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
-  !    endif
+      print *, 'before ncdf_dump', spinConv, spincasainput
+      if ( spinConv .AND. spincasainput ) then
+           call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
+      endif
    END IF
 
    ! Write restart file if requested:
