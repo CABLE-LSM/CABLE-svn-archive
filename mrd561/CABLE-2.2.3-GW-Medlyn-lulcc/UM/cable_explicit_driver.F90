@@ -33,7 +33,8 @@
 
 SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
-                                  land_index, tile_frac,tile_frac_vars,        &
+                                  land_index,                                  &
+                                  tile_frac,tile_frac_vars,tile_frac_max,      &
                                   tile_pts, tile_index,                        &
                                   bexp, hcon, satcon, sathh, smvcst,           &
                                   smvcwt,  smvccl, albsoil,ti_mean,ti_sig,     &
@@ -159,7 +160,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       snage_tile
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-       tile_frac_vars`
+       tile_frac_vars,                                &
+       tile_frac_max         
    
    REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
@@ -324,6 +326,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- first time step of each run. these variables are read at 
    !--- runtime and for the most part do not require a model rebuild.
    IF(first_cable_call) THEN
+      write(6,*) 'calling cable_um_runtime_vars'
       CALL cable_um_runtime_vars(runtime_vars_file) 
       first_cable_call = .FALSE.
    ENDIF      
@@ -337,7 +340,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !---------------------------------------------------------------------!
    CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,           & 
                            sm_levels, itimestep, latitude, longitude,          &
-                           land_index, tile_frac, tile_frac_vars,              &
+                           land_index, tile_frac, tile_frac_vars,tile_frac_max,&
                            tile_pts, tile_index,                               &
                            bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
                            smvccl, albsoil, ti_mean, ti_sig,                   &
@@ -364,6 +367,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    canopy%oldcansto=canopy%cansto
 
+   write(6,*) 'DECKER LOG'
+   write(6,*) 'Before cbm call'
+
 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
@@ -371,6 +377,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !---------------------------------------------------------------------!
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg )
+
+   write(6,*) 'DECKER LOG'
+   write(6,*) 'after cbm'
+   write(6,*) maxval(canopy%cdtq)
+   write(6,*) minval(canopy%cdtq)
 
 
 
@@ -545,6 +556,7 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
    REAL :: miss = 0.0
    LOGICAL, SAVE :: first_cable_call = .true.
    REAL, POINTER :: CAPP 
+
    
       CAPP => PHYS%CAPP
       

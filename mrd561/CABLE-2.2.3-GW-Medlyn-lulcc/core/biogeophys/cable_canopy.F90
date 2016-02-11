@@ -486,6 +486,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                - psis( canopy%zetar(:,NITER))                                  &
                + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
 
+   write(*,*) 'cdtq is ',canopy%cdtq
+
 
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m

@@ -60,7 +60,7 @@ MODULE cable_um_tech_mod
       INTEGER, ALLOCATABLE, DIMENSION(:) :: tile_pts, land_index
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: tile_index
       REAL :: rho_water
-      REAL,ALLOCATABLE, DIMENSION(:,:) :: tile_frac
+      REAL,ALLOCATABLE, DIMENSION(:,:) :: tile_frac,tile_frac_vars,tile_frac_max
       REAL,ALLOCATABLE, DIMENSION(:,:) :: latitude, longitude
       LOGICAL,ALLOCATABLE, DIMENSION(:,:) :: l_tile_pts
    ENDTYPE um_dimensions 
@@ -107,6 +107,8 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                   casafile, cable_user, redistrb, wiltParam, satuParam,        &
                   gw_params
 
+   write(6,*) 'in cable_um_runtime_vars'
+
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
          READ(funit,NML=CABLE)
@@ -118,6 +120,8 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
             PRINT *, 'End CABLE_log:'; PRINT *, '  '
         ENDIF
       CLOSE(funit)
+
+    write(6,*) 'read ',trim(runtime_vars_file)
 
       if (knode_gl==0) then
         print *, '  '; print *, 'CASA_log:'
@@ -244,6 +248,8 @@ SUBROUTINE alloc_um_interface_types( row_length, rows, land_pts, ntiles,       &
          ALLOCATE( um1%land_index(land_pts) )
          ALLOCATE( um1%tile_pts(ntiles) )
          ALLOCATE( um1%tile_frac(land_pts, ntiles) )
+         ALLOCATE( um1%tile_frac_vars(land_pts, ntiles) )
+         ALLOCATE( um1%tile_frac_max(land_pts, ntiles) )
          ALLOCATE( um1%tile_index(land_pts, ntiles) )
          ALLOCATE( um1%latitude(row_length, rows) )
          ALLOCATE( um1%longitude(row_length, rows) )

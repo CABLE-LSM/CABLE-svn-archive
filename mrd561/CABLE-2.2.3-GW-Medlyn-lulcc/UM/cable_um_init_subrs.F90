@@ -121,8 +121,290 @@ CONTAINS
 !      
 !      return
 !   end subroutine initialize_maps
+subroutine adjust_for_lulcc(mp_to,mp_from,received_delta,j,n) 
+   USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
+   USE cable_um_tech_mod,   ONLY : um1, ssnow, canopy
+   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
+                                   soilin, get_type_parameters
   
+   integer, intent(in) :: mp_to,mp_from,j,n  !positions in mp array to add to and from
+   real, intent(in) :: received_delta  !how much of the needed tile change for
+                                       !n,j,l comes from nn,jj,ll
+   real :: old_frac  !original tile fraction for n,j,l
+
+   old_frac = um1%tile_frac(j,n)
+
+
+   ssnow%GWwb(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%GWwb(mp_to) + received_delta*ssnow%GWwb(mp_from))
+   ssnow%wb(mp_to,:) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%wb(mp_to,:) + received_delta*ssnow%wb(mp_from,:))
+   ssnow%wbice(mp_to,:) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%wbice(mp_to,:) + received_delta*ssnow%wbice(mp_from,:))
+   ssnow%snowd(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%snowd(mp_to) + received_delta*ssnow%snowd(mp_from))
+   ssnow%ssdnn(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%ssdnn(mp_to) + received_delta*ssnow%ssdnn(mp_from))
+
+   ssnow%sdepth(mp_to,:) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%sdepth(mp_to,:) + received_delta*ssnow%sdepth(mp_from,:))
+   ssnow%smass(mp_to,:) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%smass(mp_to,:) + received_delta*ssnow%smass(mp_from,:))
+   ssnow%ssdn(mp_to,:) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%ssdn(mp_to,:) + received_delta*ssnow%ssdn(mp_from,:))
+   ssnow%tggsn(mp_to,:) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%tggsn(mp_to,:) + received_delta*ssnow%tggsn(mp_from,:))
+   ssnow%tgg(mp_to,:) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%tgg(mp_to,:) + received_delta*ssnow%tgg(mp_from,:))
+
+   ssnow%snage(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%snage(mp_to) + received_delta*ssnow%snage(mp_from))
+   ssnow%osnowd(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*ssnow%osnowd(mp_to) + received_delta*ssnow%osnowd(mp_from))
+   canopy%cansto(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*canopy%cansto(mp_to) + received_delta*canopy%cansto(mp_from))
+
+   if (old_frac .eq. 0.) then  !simply add to bottom of soil column
+      ssnow%wb(mp_to,5) = ssnow%wb(mp_to,1) + canopy%cansto(mp_to)
+      canopy%cansto(mp_to) = 0.
+   end if
+
+   canopy%oldcansto(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*canopy%oldcansto(mp_to) + received_delta*canopy%oldcansto(mp_from))
+   canopy%frs(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*canopy%frs(mp_to) + received_delta*canopy%frs(mp_from))
+   canopy%frp(mp_to) = 1.0/(old_frac + received_delta)*(old_frac*canopy%frp(mp_to) + received_delta*canopy%frp(mp_from))
+
+end subroutine  adjust_for_lulcc
+
+
+SUBROUTINE adjust_for_tile_frac_changes(tile_frac_changes,mp_position)
+   USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
+   USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow, canopy
+   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
+                                   soilin, get_type_parameters
   
+
+  REAL, INTENT(INOUT), DIMENSION(um1%land_pts,um1%ntiles) :: tile_frac_changes
+  integer, intent(in), dimension(um1%land_pts,um1%ntiles) :: mp_position
+
+  INTEGER :: i,j,k,n,ii,kk,jj,nn,ll,l
+  REAL, DIMENSION(mp) :: delta_frac_left
+  REAL, allocatable :: fwork(:,:)
+  REAL, DIMENSION(um1%land_pts) :: max_positive_delta
+  integer,   DIMENSION(um1%land_pts) :: max_positive_tile_loc
+  logical :: loop_now = .true.
+  logical :: inner_loop_now=.true.
+  REAL :: needed_delta,received_delta,avail_delta
+
+!      DO N=1,um1%NTILES
+!         DO J=1,um1%TILE_PTS(N)
+!
+!            L = um1%TILE_INDEX(j,N)  ! It must be landpt index
+!
+!            !IF( um1%TILE_FRAC(L,N) .gt. 0.0 ) THEN
+!
+!               !IF(N <= 13 ) THEN
+!                  tempvar(L,N)  = NPP_FT_ACC(L,N)
+!                  tempvar2(L,N) = RESP_W_FT_ACC(L,N)
+!               !ELSE IF(N > 13 ) THEN
+!               !   tempvar(L,N)  = 0.
+!               !   tempvar2(L,N) = 0.
+!               !ENDIF
+!
+!            !ENDIF
+
+!  one method
+!  do n=1,um1%ntiles
+!
+!     do j=1,um1%tile_pts(n)
+!
+!        mp_i = mp_i + 1
+!
+!        l = um1%tile_index(j,n)
+!
+!        needed_delta = tile_frac_changes(l,n)
+!
+!        if (needed_delta .gt. 0.) then
+!
+!           do nn=1,um1%ntiles
+!
+!              if (n .ne. nn .and. needed_delta .gt. 0.) then
+!
+!                 do jj=1,um1%tile_pts(nn)
+!
+!                   ll = um1%tile_index(jj,nn)
+!
+!
+!                   if (ll .eq. l .and. needed_delta .gt. 0.) then
+!
+!                      avail_delta = tile_frac_changes(ll,nn)
+!
+!                      if (avail_delta .lt. 0. .and. needed_delta .gt. 0.) then
+!
+!                         if (abs(avail_delta) .ge. needed_delta) then
+!
+!                           received_delta = needed_delta
+!
+!                           call adjust_for_lulcc(mp_position(j,n),mp_position(jj,nn),received_delta,tile_frac(j,n))
+!
+!                            needed_delta  = 0.
+!
+!                         elseif ( abs(avail_delta) .lt. needed_delta) then
+!
+!                           received_delta = abs(avail_delta)
+!
+!                           call adjust_for_lulcc(mp_position(j,n),mp_position(jj,nn),received_delta,tile_frac(j,n))
+!
+!                           needed_delta = needed_delta - received_delta
+!
+!                         end if  !size of positive change and negative
+!
+!                      end if  !other tile became smaller
+!
+!                   end if  !same land cell and need more
+!
+!                end do  !loop over tile pts again
+!
+!             end if  !different tile and still need some
+!
+!          end do  !loop over tiles again
+!
+!       end if  !tile_frac change is greater than 0
+!
+!     end do  !first loop over tile points looking for positive tile frac changes
+!
+!  end do  !first loop over all tile types
+
+! a second method using while loop maybe cleaner
+
+  do n=1,um1%ntiles
+
+     do j=1,um1%tile_pts(n)
+
+        l = um1%tile_index(j,n)
+
+        needed_delta = tile_frac_changes(l,n)
+
+        if (needed_delta .gt. 0.) then
+           loop_now = .true.
+        else
+           loop_now = .false.
+        end if
+
+        nn = 0
+        jj = 0
+
+        outer: do while (loop_now)
+
+           nn = nn + 1
+           if (nn .gt. um1%ntiles) exit outer
+
+           jj = 0
+
+           if (n .eq. nn) then
+              inner_loop_now = .false.
+           else
+              inner_loop_now = .true.
+           end if
+
+           inner: do while (inner_loop_now)
+
+              jj = jj + 1 
+
+              if (jj .gt. um1%land_pts) exit inner
+
+              ll = um1%tile_index(jj,nn)
+
+              if (ll .ne. l) exit inner
+
+              avail_delta = tile_frac_changes(ll,nn)
+
+              if (avail_delta .ge. 0.) exit inner
+
+              if (abs(avail_delta) .ge. needed_delta) then
+
+                 received_delta = needed_delta
+
+                 call adjust_for_lulcc(mp_position(j,n),mp_position(jj,nn),received_delta,j,n)
+
+                 needed_delta  = 0.
+
+              elseif ( abs(avail_delta) .lt. needed_delta) then
+
+                 received_delta = abs(avail_delta)
+
+                 call adjust_for_lulcc(mp_position(j,n),mp_position(jj,nn),received_delta,j,n)
+
+                 needed_delta = needed_delta - received_delta
+
+              end if  !size of positive change and negative
+
+              if (needed_delta .eq. 0.) inner_loop_now = .false.
+
+           end do inner !inner while loop
+
+           if (needed_delta .eq. 0.) loop_now = .false.
+
+        end do outer !outer loop
+
+     end do  !first loop over tile points looking for positive tile frac changes
+
+  end do  !first loop over all tile types
+
+
+!method if they are all in a row which I doubt they are
+
+!  max_positive_delta(:) = 0.
+!
+!  do k=1,size(tile_frac_changes,dim=1)
+!
+!     number_positive_changes = count(tile_frac_changes(k,:) .gt. 0., dim=1)
+!
+!     do i=1,number_positive_changes
+!
+!        max_positive_delta(k) = maxval(tile_frac_changes(k,:),dim=1)
+!        max_positive_tile_loc(k) = maxloc(tile_frac_changes(k,:), dim=1 )
+!
+!        if (max_positive_delta(k) .gt. 0.) then
+!
+!           loop_now = .true.
+!
+!           j=1
+!           do while (loop_now)
+!
+!              if (tile_frac_changes(k,j) .lt. 0.) then
+!
+!                 if (abs(tile_frac_changes(k,j)) .le. max_positive_delta(k)) then
+!
+!                    !adjust tile k,max_positive_tile_loc(k) using values from
+!                    !k,j
+!
+!                    call adjust_tiles(k,max_positive_tile_loc(k),j,abs(tile_frac_changes(k,j)))
+!
+!                    max_positive_delta(k) = 0.
+!                    tile_frac_changes(k,max_positive_tile_loc(k)) = 0.
+!
+!                 elseif (abs(tile_frac_changes(k,j)) .le. max_positive_delta(k))  then
+!
+!                   ! available_frac = max_positive_delta(k) - abs(tile_frac_changes(k,j))
+! 
+!                    !adjust tile k,max_positive_tile_loc(k) using availble frac,
+!                    !reduce max_frac
+!
+!                    call adjust_tiles(k,max_positive_tile_loc(k),j,available_frac)
+!
+!                    max_positive_delta(k) = max_positive_delta(k) - available_frac
+!                    tile_frac_changes(k,max_positive_tile_loc(k)) =  max_positive_delta(k)
+!                 end if
+!
+!              end if
+!
+!              j = j + 1
+!
+!              if (j .gt. um1%NTILES) loop_now = .false.
+!              if (max_positive_delta(k) .eq. 0.) loop_now = .false.
+!
+!
+!           end do
+!
+!
+!        end if
+!
+!        tile_frac_changes(k,max_positive_tile_loc(k)) = 0._r_2
+!
+!     end do
+!
+!  end do
+           
+
+END SUBROUTINE adjust_for_tile_frac_changes
+   
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &

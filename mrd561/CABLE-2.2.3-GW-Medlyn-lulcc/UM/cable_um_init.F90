@@ -39,6 +39,7 @@ CONTAINS
 SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_frac_vars,           &
+                              tile_frac_max,                                   &
                               tile_pts, tile_index,                            &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
                               smvccl, albsoil, ti_mean, ti_sig,                &
@@ -141,7 +142,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       tile_frac, &   !   
       snow_rho1l,&   !
       snage_tile     !
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: tile_frac_vars
+   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) ::                          &
+      tile_frac_vars,                                                          &
+      tile_frac_max
 
    REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
@@ -228,7 +231,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !--- logn, vegparmnew can be set thru cable.nml
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
-         
+
+   REAL :: tile_frac_changes(land_pts,ntiles)
+   integer :: mp_position(land_pts,ntiles)         
+   integer :: counter
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -242,7 +248,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       
       CALL assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,        &
                                     npft, sm_levels, itimestep, latitude,      &
-                                    longitude, land_index, tile_frac,          &
+                                    longitude, land_index,                     &
+                                    tile_frac,                                 &
                                     tile_pts, tile_index, l_tile_pts,          &
                                     rho_water  )
 
@@ -255,7 +262,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !---def. vector length for cable(mp) & logical l_tile_pts
       !--- IF the tile is "active"
       IF ( first_call ) THEN
-      
+     
+         !mp will change if the number of active tiles needs to change, that is
+         !a mess 
+         !better off just using all tiles all time
          um1%L_TILE_PTS = .FALSE.
          mp = SUM(um1%TILE_PTS)
          
@@ -264,22 +274,39 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       END IF
 
       !TILE_FRAC changhes must do ever step
-         
-      DO i=1,land_pts
-         DO j=1,ntiles
-              
-            IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
-               um1%L_TILE_PTS(i,j) = .TRUE.
-               !jhan:can set veg%iveg from  here ?
-               tile_index_mp(i,j) = j 
-            ENDIF
+      counter = 0         
 
-            tile_frac_changes(i,j) = um1%TILE_FRAC(i,j) - tile_frac_vars(i,j)
+      tile_frac_max(:,:) = tile_frac(:,:)
+      tile_frac_vars(:,:) = tile_frac(:,:)
+
+      if (first_call) then
+         DO i=1,land_pts
+            DO j=1,ntiles
+              
+               IF( tile_frac(i,j) .GT. 0.0 ) THEN 
+                  um1%L_TILE_PTS(i,j) = .TRUE.
+                  !should have different flag that says use this
+                  !pass all through cable to determine if to calc on these
+                  !points????
+
+                  counter = counter + 1
+                  !jhan:can set veg%iveg from  here ?
+                  tile_index_mp(i,j) = j 
+
+                  mp_position(i,j) = counter
+               ENDIF
+
             
+            ENDDO
          ENDDO
-      ENDDO
-      
-         
+      end if
+     
+      do i=1,land_pts
+         do j=1,ntiles 
+            if (tile_frac_vars(i,j) .gt. 0.) &
+                     tile_frac_changes(i,j) = um1%TILE_FRAC(i,j) - tile_frac_vars(i,j)
+         end do
+      end do
       !jhan: turn this off until implementation finalised
       !--- initialize latitude/longitude & mapping IF required
       !if ( first_call ) & 
@@ -290,6 +317,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- read in soil (and veg) parameters 
       IF(first_call)                                                        & 
          CALL  get_type_parameters(logn,vegparmnew)
+
+
 
       !--- initialize veg   
       CALL initialize_veg( canht_ft, lai_ft ) 
@@ -319,8 +348,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE )   
 
-
-      CALL adjust_for_tile_frac_changes(tile_frac_changes)
+      !if (any(tile_frac_changes(:,:) .gt. 0.)) then
+      !   CALL adjust_for_tile_frac_changes(tile_frac_changes,mp_position)
+      !end if
 
  
       IF( first_call ) THEN
