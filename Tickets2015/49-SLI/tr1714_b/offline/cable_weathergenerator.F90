@@ -13,18 +13,18 @@ MODULE CABLE_WEATHERGENERATOR
        SBoltz     = 5.67e-8  ! Stefan-Boltzmann constant [W/m2/K4]
   ! Global variables
   TYPE WEATHER_GENERATOR_TYPE
-     ! general 
+     ! general
      INTEGER :: np
      INTEGER :: ndtime   ! number of subdiurnal steps in 24 hr
      REAL    :: delT     ! subdiurnal timestep (in s)
-     REAL(sp),DIMENSION(:),ALLOCATABLE :: LatDeg  
+     REAL(sp),DIMENSION(:),ALLOCATABLE :: LatDeg
      ! Daily input
      REAL(sp),DIMENSION(:),ALLOCATABLE :: &
           WindDay        ,&
           TempMinDay     ,&    ! Daily minimum air temp [degC]
-          TempMaxDay     ,&    ! Daily maximum air temp [degC]    
+          TempMaxDay     ,&    ! Daily maximum air temp [degC]
           TempMinDayNext ,&    ! Daily minimum air temp tomorrow [degC]
-          TempMaxDayPrev ,&    ! Daily maximum air temp yesterday [degC] 
+          TempMaxDayPrev ,&    ! Daily maximum air temp yesterday [degC]
           SolarMJDay           ! Total daily down-ward irradiation [MJ/m2/d] (swdown)
      ! Daily constants
      REAL(sp) :: DecRad                                   ! Declination in radians
@@ -43,7 +43,7 @@ MODULE CABLE_WEATHERGENERATOR
           TempNightRate      ,&
           TempNightRatePrev  ,&
           TempRangeDay       ,&
-          TempRangeAft   
+          TempRangeAft
 
      ! Additional input to Subdiurnal met calculations
      !  Daily Met
@@ -84,7 +84,7 @@ SUBROUTINE WGEN_INIT( WG, np, latitude, dels )
   TYPE(WEATHER_GENERATOR_TYPE) :: WG
   INTEGER, INTENT(IN) :: np
   REAL,    INTENT(IN) :: latitude(np), dels
-  
+
   WG%np     = np
   WG%delT   = dels
   WG%ndtime = NINT ( REAL(SecDay)/dels )
@@ -92,9 +92,9 @@ SUBROUTINE WGEN_INIT( WG, np, latitude, dels )
   ALLOCATE ( WG%LatDeg             (np) )
   ALLOCATE ( WG%WindDay            (np) )
   ALLOCATE ( WG%TempMinDay         (np) ) ! Daily minimum air temp [degC]
-  ALLOCATE ( WG%TempMaxDay         (np) ) ! Daily maximum air temp [degC]    
+  ALLOCATE ( WG%TempMaxDay         (np) ) ! Daily maximum air temp [degC]
   ALLOCATE ( WG%TempMinDayNext     (np) ) ! Daily minimum air temp tomorrow [degC]
-  ALLOCATE ( WG%TempMaxDayPrev     (np) ) ! Daily maximum air temp yesterday [degC] 
+  ALLOCATE ( WG%TempMaxDayPrev     (np) ) ! Daily maximum air temp yesterday [degC]
   ALLOCATE ( WG%SolarMJDay         (np) )
   ALLOCATE ( WG%WindDark           (np) )  ! Wind [m/s] during night hrs
   ALLOCATE ( WG%WindLite           (np) )  ! Wind [m/s] during daylight hrs
@@ -132,7 +132,7 @@ SUBROUTINE WGEN_DAILY_CONSTANTS( WG, np, YearDay )
 
 !-------------------------------------------------------------------------------
 ! Routine for calculating solar and met parameters that are constant over the
-! the course of a 24hr day. These have been split off from version 01 of 
+! the course of a 24hr day. These have been split off from version 01 of
 ! SubDiurnalMet which no longer calculates a day's worth of subdiurnal met in
 ! one call. Subdiurnal met for ntime times is now calculated using ntime calls,
 ! using the day-constants calculated here.
@@ -145,11 +145,11 @@ SUBROUTINE WGEN_DAILY_CONSTANTS( WG, np, YearDay )
 
   ! Local variables
   REAL(sp) :: YearRad
-  REAL(sp),DIMENSION(np) :: LatDeg1 
-  REAL(sp),DIMENSION(np) :: TanTan 
-  REAL(sp),DIMENSION(np) :: HDLRad 
+  REAL(sp),DIMENSION(np) :: LatDeg1
+  REAL(sp),DIMENSION(np) :: TanTan
+  REAL(sp),DIMENSION(np) :: HDLRad
   REAL(sp),DIMENSION(np) :: TimeSunriseNext
-  REAL(sp) :: RatioWindLiteDark 
+  REAL(sp) :: RatioWindLiteDark
 
 ! -------------------------
 ! Downward solar irradiance
@@ -168,7 +168,7 @@ WG%DecRad = 0.006918 - 0.399912*COS(YearRad) + 0.070257*SIN(YearRad)     &
 
 ! Daylength: HDLRad = Half Day Length in radians (dawn:noon = noon:dusk):
 TanTan = -TAN(WG%LatRad)*TAN(WG%DecRad)
-WHERE (TanTan .LE. -1.0) 
+WHERE (TanTan .LE. -1.0)
   HDLRad = Pi                           ! polar summer: sun never sets
 ELSEWHERE (TanTan .GE. 1.0)
   HDLRad = 0.0                          ! polar winter: sun never rises
@@ -196,9 +196,9 @@ WG%WindLite  = WG%WindDay / &
 ! -----------
 ! Temperature
 ! -----------
-! These are parameters required for the calculation of temperature according to 
+! These are parameters required for the calculation of temperature according to
 ! Cesaraccio et al 2001 for sunrise-to-sunrise-next-day. Because we are calculating temp for
-! midnight-to-midnight, we need to calculate midnight-to-sunrise temps using data for the 
+! midnight-to-midnight, we need to calculate midnight-to-sunrise temps using data for the
 ! previous day (-24h), hence the extra parameters denoted by *'s below which are not
 ! mentioned per se in Cesaraccio. Cesaraccio symbology for incoming met data is included
 ! here as comments for completeness:
@@ -207,20 +207,20 @@ WG%WindLite  = WG%WindDay / &
 ! TempMaxDay                                                        Tx
 ! TempMinDayNext                                                    Tp
 ! TempMaxDayPrev                                                    * Tx-24h
- 
-WHERE ( WG%DayLength .LT. 0.01 ) 
+
+WHERE ( WG%DayLength .LT. 0.01 )
    ! Polar night
    WG%TimeSunrise     = 9.              ! Hn
    WG%TimeSunset      = 16.                            ! Ho
    WG%TimeMaxTemp     = 13.                                    ! Hx
-ELSEWHERE   
+ELSEWHERE
    WG%TimeSunrise     = (ACOS(TAN(WG%LatRad)*TAN(WG%DecRad)))*12./Pi              ! Hn
    WG%TimeSunset      = WG%TimeSunrise + WG%DayLength                             ! Ho
    WG%TimeMaxTemp     = WG%TimeSunset - MIN(4.,( WG%DayLength * 0.4)) ! Hx
 END WHERE
-WG%TimeSunsetPrev  = WG%TimeSunset - 24.                                 ! * Ho-24h (a negative hour)  
+WG%TimeSunsetPrev  = WG%TimeSunset - 24.                                 ! * Ho-24h (a negative hour)
 TimeSunriseNext    = WG%TimeSunrise + 24.                               ! Hp
-WG%TempSunset      = WG%TempMaxDay - & 
+WG%TempSunset      = WG%TempMaxDay - &
      (0.39 * (WG%TempMaxDay - WG%TempMinDayNext))               ! To
 WG%TempSunsetPrev  = WG%TempMaxDayPrev - &
      (0.39 * (WG%TempMaxDayPrev - WG%TempMinDay))           ! * To-24h
@@ -230,7 +230,7 @@ WG%TempNightRate   = (WG%TempMinDayNext - WG%TempSunset)/ &
      SQRT(TimeSunriseNext-WG%TimeSunset)                  ! b = (Tp-To)/sqrt(Hp-Ho)
 WG%TempNightRatePrev = (WG%TempMinDay - WG%TempSunsetPrev)/ &
      SQRT(WG%TimeSunrise-WG%TimeSunsetPrev)                  ! * b-24h = (Tn-(To-24h))/sqrt(Hn-(Ho-24h))
-   
+
 END SUBROUTINE WGEN_DAILY_CONSTANTS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -250,15 +250,15 @@ SUBROUTINE WGEN_SUBDIURNAL_MET(WG, np, itime)
 ! * Precipitation:
 !   * Assume steady through 24 hours at average value (needs improvement?)
 ! * Wind:
-!   * Set RatioWindLiteDark = (daytime wind) / (nighttime wind), a predetermined 
-!     value, typically 3. Then calculate wind by day and wind by night (both 
+!   * Set RatioWindLiteDark = (daytime wind) / (nighttime wind), a predetermined
+!     value, typically 3. Then calculate wind by day and wind by night (both
 !     steady, but different) to make the average work out right.
 ! * Temperature:
 !   * Fit a sine wave from sunrise (TempMinDay) to peak at TempMaxDay, another
-!     from TempMaxDay to sunset, TempMinDay, and a square-root function from 
+!     from TempMaxDay to sunset, TempMinDay, and a square-root function from
 !     sunset to sunrise the next day (Cesaraccio et al 2001).
 ! * Water Vapour Pressure, Air Pressure:
-!   * Hold constant. Return rel humidity at TempMinDay as a diagnostic on obs. 
+!   * Hold constant. Return rel humidity at TempMinDay as a diagnostic on obs.
 !
 ! HISTORY:
 ! * 04-sep-2003 (MRR): 01 Written and tested in Program SubDiurnalWeather
@@ -276,10 +276,10 @@ SUBROUTINE WGEN_SUBDIURNAL_MET(WG, np, itime)
   ! Local variables
   REAL(sp) :: TimeNoon , test1, test2, adjust_fac(np)
   REAL(sp) :: TimeRad
-  REAL(sp) :: rntime    ! Real version of ntime 
+  REAL(sp) :: rntime    ! Real version of ntime
   REAL(sp) :: ritime    ! Real version of current time
   REAL(sp),DIMENSION(np):: PhiLd_Swinbank     ! down longwave irradiance  [W/m2]
-     
+
 !-------------------------------------------------------------------------------
 
 ritime = REAL(itime)     * WG%delT/3600.  ! Convert the current time to real
@@ -318,7 +318,7 @@ IF ((ritime >= 15. .AND. ritime < 16.).OR.(ritime >= 18. .AND. ritime < 19.)) TH
    WG%Snow   = WG%SnowDay*1000./2.
 ELSE
    WG%Precip = 0.
-   WG%Snow   = 0.   
+   WG%Snow   = 0.
 ENDIF
 
 ! ----
@@ -334,18 +334,18 @@ END WHERE
 ! -----------
 ! Temperature
 ! -----------
-! Calculate temperature according to Cesaraccio et al 2001, including midnight to 
-! sunrise period using previous days info, and ignoring the period from after the 
+! Calculate temperature according to Cesaraccio et al 2001, including midnight to
+! sunrise period using previous days info, and ignoring the period from after the
 ! following midnight to sunrise the next day, normally calculated by Cesaraccio.
 WHERE ( ritime <= WG%TimeSunrise )
    ! Midnight to sunrise
    WG%Temp = WG%TempSunsetPrev + WG%TempNightRatePrev * SQRT(ritime - WG%TimeSunsetPrev)
-ELSEWHERE (ritime > WG%TimeSunrise .AND. ritime <= WG%TimeMaxTemp) 
+ELSEWHERE (ritime > WG%TimeSunrise .AND. ritime <= WG%TimeMaxTemp)
    ! Sunrise to time of maximum temperature
    WG%Temp = WG%TempMinDay + &
-        WG% TempRangeDay *SIN (((ritime-WG%TimeSunrise)/ & 
+        WG% TempRangeDay *SIN (((ritime-WG%TimeSunrise)/ &
         (WG%TimeMaxTemp-WG%TimeSunrise))*PiBy2)
-ELSEWHERE (ritime > WG%TimeMaxTemp .AND. ritime <= WG%TimeSunset) 
+ELSEWHERE (ritime > WG%TimeMaxTemp .AND. ritime <= WG%TimeSunset)
    ! Time of maximum temperature to sunset
    WG%Temp = WG%TempSunset + &
         WG%TempRangeAft * SIN(PiBy2 + ((ritime-WG%TimeMaxTemp)/4.*PiBy2))
@@ -360,7 +360,7 @@ END WHERE
 
 !CLN VapPmb = VapPmbDay
 !CLN Pmb    = PmbDay
-!CLN 
+!CLN
 !CLN IF (ritime <= 9.) THEN
 !CLN    ! before 9am
 !CLN    VapPmb = VapPmb1500Prev + (VapPmb0900 - VapPmb1500Prev) * (9. + ritime)/18.
@@ -385,15 +385,15 @@ PhiLd_Swinbank = 335.97 * (((WG%Temp + 273.16) / 293.0)**6)   ! [W/m2] (Swinbank
 WG%PhiLd = epsilon * SBoltz * (WG%Temp + 273.16)**4       ! [W/m2] (Brutsaert)
 
 WHERE (WG%PhiSd.GT.50.0)
-	adjust_fac = ((1.17)**(WG%SolarNorm))/1.17
+        adjust_fac = ((1.17)**(WG%SolarNorm))/1.17
 ELSEWHERE
-	adjust_fac = 0.9
+        adjust_fac = 0.9
 ENDWHERE
 
 WG%PhiLd = WG%PhiLd /adjust_fac * (1.0 + WG%PhiSd/8000.)       ! adjustment (formulation from Gab Abramowitz)
 
 WHERE ((WG%PhiLd.GT.500.00).OR.(WG%PhiLd.LT.100.00))
-	WG%PhiLd = PhiLd_Swinbank
+        WG%PhiLd = PhiLd_Swinbank
 ENDWHERE
 
 IF (ANY((WG%PhiLd.GT.750.00).OR.(WG%PhiLd.LT.100.00))) THEN
@@ -403,6 +403,3 @@ ENDIF
 END SUBROUTINE WGEN_SUBDIURNAL_MET
 
 END MODULE CABLE_WEATHERGENERATOR
-
-
-

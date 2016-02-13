@@ -309,7 +309,7 @@ CONTAINS
     REAL(r_2),                       INTENT(IN) :: h0
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: Tsoil
 
-    REAL(r_2),                       INTENT(OUT)           :: Tsurface, G0, lE0, Epot ! SEB 
+    REAL(r_2),                       INTENT(OUT)           :: Tsurface, G0, lE0, Epot ! SEB
     REAL(r_2),                       INTENT(OUT)           :: qsurface          ! water flux into surface
     REAL(r_2),                       INTENT(OUT)           :: qevap             ! evaporative water flux
     ! liquid and vapour components of water flux from surface into soil
@@ -383,7 +383,7 @@ CONTAINS
              G0 = vmet%Rn - rhocp1*(Tsurface - vmet%Ta)/vmet%rbh - lE0
              dGdTsoil = 0.0
           endif
-          
+
        endif
        ! write(*,*) var(1)%phi, phimin
 
@@ -2631,15 +2631,15 @@ CONTAINS
     plit%rho   = 63.5_r_2
     ! dxL        = zero            ! litter params
     dxL        = real(veg%clitt(index),r_2)*two/plit%rho*0.1_r_2
-    
-    
+
+
     plit%ishorizon  = 0
     plit%thw        = zero
     plit%thfc       = zero
     plit%thr        = zero
-   
-   
-   
+
+
+
     plit%eta        = zero
     plit%KSe        = zero
     plit%phie       = zero

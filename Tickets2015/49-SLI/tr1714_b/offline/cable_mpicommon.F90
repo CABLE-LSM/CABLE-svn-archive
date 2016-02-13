@@ -38,7 +38,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 293    ! add 10 vairable to veg%
+  INTEGER, PARAMETER :: nparam = 295    ! add 10 vairable to veg%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -51,8 +51,9 @@ MODULE cable_mpicommon
 !  INTEGER, PARAMETER :: ncasaparam = 179
 !  INTEGER, PARAMETER :: ncasaparam = 183  ! changed ypw to add 4 new variables in casabal%
 !  INTEGER, PARAMETER :: ncasaparam = 196  ! changed ypw to add 13  new variables in casabiome%
-  INTEGER, PARAMETER :: ncasaparam = 198  ! changed lpn added 2 variables(casaflux%frac_sapwood/sapwood_area)
-
+  INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 4 variables 
+!  (casaflux%frac_sapwood/sapwood_area,casabiome,casabiome%ratioNPplantmin,%ratioNPplantmax)
+! casapool%ratioNPplant,%ratioNPlitter,ratioNPsoil
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
 
@@ -69,8 +70,8 @@ MODULE cable_mpicommon
   INTEGER, PARAMETER :: ncdumprw = 5
 
   ! MPI: number of pop parameters sent/rec'd to/from the workers every
-  ! timestep or at start, end
-  INTEGER, PARAMETER :: npop = 92
+  ! timestep or at start, end. Here, with POP the dimensions are separate!
+  INTEGER, PARAMETER :: npop = 988
 
   ! MPI: number of input fields sent to workers at the start of each
   ! timestep
@@ -108,14 +109,17 @@ MODULE cable_mpicommon
   ! by the master for casa_poolout and casa_fluxout
   INTEGER, PARAMETER :: ncasa_mat = 15
 !  INTEGER, PARAMETER :: ncasa_vec = 27
-  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
-
+!  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+  INTEGER, PARAMETER :: ncasa_vec = 34    ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run
   !INTEGER, PARAMETER :: nrestart = 16
   ! MPI: gol124: canopy%rwater removed when Bernard ported to CABLE_r491
   INTEGER, PARAMETER :: nrestart = 15
-
+  INTEGER, PARAMETER :: nsumcasaflux = 62
+  INTEGER, PARAMETER :: nsumcasapool = 40
+  INTEGER, PARAMETER :: nclimate = 22
+  INTEGER, PARAMETER :: nphen = 9
   ! MPI: type to hold landpoint decomposition info
   TYPE lpdecomp_t
           INTEGER :: landp0      ! starting land point index
@@ -124,6 +128,9 @@ MODULE cable_mpicommon
           INTEGER :: patch0      ! starting patch index in global CABLE vars
           INTEGER :: npatch      ! sum of patches for all landpoints of this
                                  ! worker
+          INTEGER :: npop_iwood  ! number of pop-patches for each worker
+          INTEGER,ALLOCATABLE :: iwood(:)  ! number of pop-patches for each worker
+
   END TYPE
 
   ! MPI: worker's local landpoints and patches

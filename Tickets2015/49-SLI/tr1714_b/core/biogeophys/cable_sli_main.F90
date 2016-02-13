@@ -17,7 +17,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
        esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
- 
+
   IMPLICIT NONE
 
   REAL,                      INTENT(IN)    :: dt
@@ -198,13 +198,13 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   vmet%rbw = vmet%rbh
 
   gr       = four * emsoil * (vmet%Ta+Tzero)**3 *5.67e-8_r_2 ! radiation conductance Wm-2K-1
-  grc      = one/vmet%rbh   + gr/rhocp 
+  grc      = one/vmet%rbh   + gr/rhocp
   vmet%rrc = one/grc                            ! resistance to radiative and convective heat transfer
 
   vmet%rha   = max(min((esat(vmet%Ta)-vmet%Da)/esat(vmet%Ta),one),0.1_r_2)
   vmet%cva   = vmet%rha * esat(vmet%Ta)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero) ! m3 H2O (liq) m-3 (air)
   vmet%phiva = Dva * vmet%cva
-  vmet%Rn    = canopy%fns 
+  vmet%Rn    = canopy%fns
   ! vmet%Rnsw  = rad%qssabs  ! shortwave radiation absorbed
   vmet%Rnsw = zero ! all radiation absorbed at snow surface
   ! vmet%Rnsw = vmet%Rn ! all radiation absorbed beneath snow surface
@@ -262,16 +262,16 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      enddo
      first = .false.
   endif
- 
-  
+
+
      Tsurface = ssnow%Tsurface
      T0       = ssnow%Tsurface
      deltaTa  = zero
      lE_old   = ssnow%lE
      zdelta   = ssnow%zdelta
-  
-    
-     
+
+
+
   SL    = 0.5_r_2   ! degree of litter saturation
   Tsoil = ssnow%Tsoil
   TL(:) = Tsoil(:,1) ! litter T
@@ -282,7 +282,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ssnow%cls   = one
   S           = ssnow%S                ! degree of soil saturation
 
- 
+
   ! ----------------------------------------------------------------
   ! Iinitialise phi where it is (frozen and saturated) and where (pond >zero)
 
@@ -405,7 +405,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      qprec = zero
      qprec_snow = zero
   endwhere
-  
+
   ! re-calculate qprec_snow and qprec based on total precip and air T (ref Jin et al. Table II, Hyd Proc, 1999
   ! qprec_tot = qprec + qprec_snow
   ! where (vmet%Ta > 2.5_r_2)
@@ -456,9 +456,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
      else
         fws = canopy%fwsoil
-        
+
      endif
-     
+
      do k=1,ms
         qex(:,k)= ssnow%rex(:,k)
      enddo
@@ -503,7 +503,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%tss  = real(Tsurface + Tzero)
      ssnow%potev  = real(Epot)
 
-    
+
 
 
   else ! full SLI
@@ -526,7 +526,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
           dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
           doadvection=advection)
      qprec_snow = qprec_snow_tmp
-     H             = (H/(tf-ti)) 
+     H             = (H/(tf-ti))
      lE            = lE/(tf-ti)
      G0            = G0/(tf-ti)
      Jcol_latent_S = Jcol_latent_S/(tf-ti)
@@ -576,7 +576,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         write(371,"(20e20.12)")  qvsig+qlsig
      endif
 
-     
+
      ! Update variables for output:
      ssnow%tss      = real(Tsurface + Tzero)
      ssnow%tgg      = real(Tsoil + Tzero)
@@ -604,7 +604,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      if (cable_user%fwsoil_switch.ne.'Haverd2013') then
         canopy%fwsoil  = real(fws)
      endif
-     
+
      if (litter==0) then
         ssnow%rlitt = zero
      else

@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -25,11 +25,11 @@
 ! respiration; track sapwood cross-sectional area for use in carbon allocation when LALLOC=3
 ! ==============================================================================
 
-!#     define UM_BUILD YES 
+!#     define UM_BUILD YES
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
-                     casabiome,casapool,casaflux,casamet,casabal,phen, &
+                     climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
                      pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &
-                     dump_write, gpp_ann, LALLOC )
+                     dump_write, LALLOC )
 
    USE cable_def_types_mod
    USE cable_common_module, only: cable_runtime
@@ -41,26 +41,26 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    USE TypeDef,              ONLY: i4b, dp
    USE POPMODULE,            ONLY: POPStep
    USE POP_TYPES,            ONLY: POP_TYPE
+   USE cable_phenology_module, ONLY: cable_phenology_clim
 
    IMPLICIT NONE
- 
+
    INTEGER,      INTENT(IN) :: ktau ! integration step number
    INTEGER,      INTENT(IN) :: kstart ! starting value of ktau
    INTEGER,      INTENT(IN) :: kend ! total # timesteps in run
-   
+
    INTEGER,      INTENT(IN)                  :: idoy ,LOY ! day of year (1-365) , Length oy
    INTEGER,      INTENT(IN)                  :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
-   logical,      INTENT(IN) :: dump_read, dump_write 
+   logical,      INTENT(IN) :: dump_read, dump_write
    INTEGER,      INTENT(IN)                  :: LALLOC
-        
+
    REAL,         INTENT(IN) :: dels ! time setp size (s)
-   REAL, DIMENSION(mp)    ,    INTENT(IN) :: gpp_ann
    TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow ! soil and snow variables
    TYPE (canopy_type), INTENT(INOUT) :: canopy ! vegetation variables
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-   TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
+   TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
    TYPE (casa_biome),          INTENT(INOUT) :: casabiome
    TYPE (casa_pool),           INTENT(INOUT) :: casapool
    TYPE (casa_flux),           INTENT(INOUT) :: casaflux
@@ -68,7 +68,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    TYPE (casa_balance),        INTENT(INOUT) :: casabal
    TYPE (phen_variable),       INTENT(INOUT) :: phen
    TYPE(POP_TYPE),             INTENT(INOUT) :: POP
-  
+   TYPE (climate_type), INTENT(IN)       :: climate  ! climate variables
+
    ! local variables added ypwang 5/nov/2012
    real,      dimension(mp)  :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
    real,      dimension(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
@@ -82,23 +83,22 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    CHARACTER                                 :: cyear*4
    CHARACTER                                 :: ncfile*99
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
-   
-         
+
    if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
    if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
    if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
    if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
-      
+
 
    !! vh_js !!
     IF (cable_user%CALL_POP) THEN
-      
+
        Iw = POP%Iwood
-   
+
     ENDIF
-      
-   
+
+
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF(ktau == kstart) THEN
          casamet%tairk  = 0.0
@@ -129,18 +129,21 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + canopy%frday*dels
       ENDIF
 
-     
       IF(MOD((ktau-kstart+1),ktauday)==0) THEN  ! end of day
          casamet%tairk  =casamet%tairk/FLOAT(ktauday)
          casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
          casamet%moist=casamet%moist/FLOAT(ktauday)
-   
-         IF ( icycle .GT. 0 ) THEN
 
-           
+         IF ( icycle .GT. 0 ) THEN
+            IF (trim(cable_user%PHENOLOGY_SWITCH)=='climate') THEN
+               ! get climate_dependent phenology
+               call cable_phenology_clim(veg, climate, phen)
+
+            ENDIF
+
+
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-                casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter,xksoil,&
-                xkleaf,xkleafcold,xkleafdry,&
+                casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
@@ -157,44 +160,38 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                   casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
                   LAImax = max(casamet%glai, LAImax)
                   Cleafmean = Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
-                  Crootmean = Crootmean +casapool%cplant(:,3)/real(LOY)/1000.
+                  Crootmean = Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
                ENDIF
-        
-                    
+
+
                IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN ! end of year
 
                   StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
                   StemNPP(:,2) = 0.0
-                  WHERE (casabal%FCgppyear > 1.e-5)
+                  WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
                      NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
                   ELSEWHERE
                      NPPtoGPP = 0.5
                   ENDWHERE
+
                   CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
 
-!!$                  WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)       
-!!$                     
-!!$                     casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
-!!$                     casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)       
-!!$                     casabiome%plantrate(Iw,2) =   &
-!!$                         ((POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-!!$                          + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) &
-!!$                          /POP%pop_grid(:)%cmass_sum_old)/365.0
-!!$                  ENDWHERE
-               
+
                ENDIF  ! end of year
+            ELSE
+               casaflux%stemnpp = 0.
             ENDIF ! CALL_POP
-               
+
          ENDIF  ! icycle .gt. 0
-   
-         IF( (.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
+
+         IF( (.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
             IF ( dump_write )  THEN
                !CLN CHECK FOR LEAP YEAR
                WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-               CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
+               CALL write_casa_dump( ncfile, casamet , casaflux, phen, idoy, &
                                  kend/ktauday )
 
             ENDIF
@@ -207,9 +204,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN  ! end of day
 
        !  IF (cable_user%CALL_POP)  casabiome%plantrate(:,2) = 0.0
-       
+
          CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-              casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
+              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
               xkleafcold,xkleafdry,&
               cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
@@ -229,42 +226,42 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                Cleafmean = Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
                Crootmean = Crootmean +casapool%cplant(:,3)/real(LOY)/1000.
             ENDIF
-        
-       
+
+
             IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN  ! end of year
                StemNPP(:,1) = casaflux%stemnpp ! (assumes 70% of wood NPP is allocated above ground & static alloc)
                StemNPP(:,2) = 0.0
-               WHERE (casabal%FCgppyear > 1.e-5)
+               WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5 )
                   NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
                ELSEWHERE
                   NPPtoGPP = 0.5
                ENDWHERE
-            
+
                CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
                     real(veg%disturbance_intensity(Iw,:),dp)      ,&
                     LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
-               
-!!$               WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)       
+
+!!$               WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)
 !!$                  casapool%CLitter(Iw,3) = casapool%CLitter(Iw,3) + &
 !!$                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
 !!$                       + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) * &
-!!$                       casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
-!!$                  
+!!$                       casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old
+!!$
 !!$                  casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2) -  &
 !!$                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
 !!$                          + POP%pop_grid(:)%fire_mortality+ POP%pop_grid(:)%cat_mortality  ) * &
-!!$                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old 
-!!$                  
+!!$                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old
+!!$
 !!$                  casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
 !!$                  casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)
 !!$
 !!$                  casabiome%plantrate(Iw,2) =   &
 !!$                          ((POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
 !!$                          + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) &
-!!$                          /POP%pop_grid(:)%cmass_sum_old)/365.0     
-!!$                  
+!!$                          /POP%pop_grid(:)%cmass_sum_old)/365.0
+!!$
 !!$               ENDWHERE
-               
+
                ENDIF ! end of year
 
          ENDIF ! CALL_POP
@@ -275,12 +272,13 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 END SUBROUTINE bgcdriver
 
-SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
+SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATonce )
       USE netcdf
       USE cable_def_types_mod,   ONLY : r_2,ms,mp
       USE casadimension,         ONLY : mplant,mdyear
       USE casavariable,          ONLY : casa_met, casa_flux
-#     ifndef UM_BUILD            
+      USE phenvariable
+#     ifndef UM_BUILD
       USE cable_diag_module,     ONLY : get_var_ncr2, &
                                         get_var_ncr3, stderr_nc
 #     endif
@@ -288,47 +286,61 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
 
       TYPE (casa_flux), INTENT(INOUT) :: casaflux
       TYPE (casa_met), INTENT(inout)  :: casamet
+      TYPE (phen_variable),         INTENT(INOUT) :: phen
       INTEGER, INTENT(in)             :: kend, ncall
       CHARACTER(len=*), INTENT(in)    :: ncfile
       LOGICAL, INTENT(in)             :: allATonce
 
       !netcdf IDs/ names
-      INTEGER, PARAMETER :: num_vars=7 
-      INTEGER, PARAMETER :: num_dims=3 
+      INTEGER, PARAMETER :: num_vars=12
+      INTEGER, PARAMETER :: num_dims=3
       INTEGER, SAVE                        :: ncrid  ! netcdf file ID
       INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
 
-      !vars 
+      !vars
       CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
             var_name =  (/  "lat          ", &
                             "lon          ", &
-                            "casamet_tairk", & 
+                            "casamet_tairk", &
                             "tsoil        ", &
                             "moist        ", &
                             "cgpp         ", &
-                            "crmplant     " /)
+                            "crmplant     ", &
+                            "phenphase    ", &
+                            "phendoyphase1", &
+                            "phendoyphase2", &
+                            "phendoyphase3", &
+                            "phendoyphase4" /)
 
       REAL     , DIMENSION(mp)        :: lat, lon
       REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
       REAL(r_2), DIMENSION(mp,mplant) :: crmplant
+      REAL(r_2), DIMENSION(mp)        :: phenphase, phendoyphase1, &
+           phendoyphase2,  phendoyphase3,  phendoyphase4
       INTEGER :: ncok,  idoy
 
-#     ifndef UM_BUILD            
-      IF ( allATonce .OR. ncall .EQ. 1 ) THEN
+#     ifndef UM_BUILD
+
+ IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
       ENDIF
 #     endif
       IF ( allATonce ) THEN
          DO idoy=1,mdyear
-            
+
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
             CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
             CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
             CALL get_var_ncr2(ncrid, var_name(6), cgpp    , idoy )
             CALL get_var_ncr3(ncrid, var_name(7), crmplant, idoy ,mplant)
-            
+            CALL get_var_ncr2(ncrid, var_name(8), phenphase, idoy)
+            CALL get_var_ncr2(ncrid, var_name(9), phendoyphase1, idoy)
+            CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2, idoy)
+            CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3, idoy)
+            CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
+
             casamet%Tairkspin(:,idoy) = tairk
             casamet%cgppspin (:,idoy) = cgpp
             casamet%crmplantspin_1(:,idoy) = crmplant(:,1)
@@ -346,7 +358,12 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
             casamet%moistspin_4(:,idoy)    = moist(:,4)
             casamet%moistspin_5(:,idoy)    = moist(:,5)
             casamet%moistspin_6(:,idoy)    = moist(:,6)
-            
+            phen%phasespin(:,idoy) = int(phenphase)
+            phen%doyphasespin_1(:,idoy) = int(phendoyphase1)
+            phen%doyphasespin_2(:,idoy) = int(phendoyphase2)
+            phen%doyphasespin_3(:,idoy) = int(phendoyphase3)
+            phen%doyphasespin_4(:,idoy) = int(phendoyphase4)
+
          END DO
       ELSE
 
@@ -355,50 +372,67 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux, ncall, kend, allATonce )
          CALL get_var_ncr3(ncrid, var_name(5), moist   ,ncall , ms)
          CALL get_var_ncr2(ncrid, var_name(6), cgpp    ,ncall )
          CALL get_var_ncr3(ncrid, var_name(7), crmplant,ncall , mplant)
-         
+         CALL get_var_ncr2(ncrid, var_name(8), phenphase    ,ncall )
+         CALL get_var_ncr2(ncrid, var_name(9), phendoyphase1    ,ncall )
+         CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2    ,ncall )
+         CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3    ,ncall )
+         CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4    ,ncall )
+
          casamet%tairk     = tairk
          casamet%tsoil     = tsoil
          casamet%moist     = moist
          casaflux%cgpp     = cgpp
          casaflux%crmplant = crmplant
+         phen%phase = int(phenphase)
+         phen%doyphase(:,1) = int(phendoyphase1)
+         phen%doyphase(:,2) = int(phendoyphase2)
+         phen%doyphase(:,3) = int(phendoyphase3)
+         phen%doyphase(:,4) = int(phendoyphase4)
+
 
       ENDIF
 
-#     ifndef UM_BUILD            
+#     ifndef UM_BUILD
       IF ( allATonce .OR. ncall .EQ. kend ) THEN
          ncok = NF90_CLOSE(ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'closing ', ncfile)
       ENDIF
 #     endif
+
    END SUBROUTINE read_casa_dump
 
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
+!! NO
 
-SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
+SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen,  n_call, kend )
   USE netcdf
   USE cable_def_types_mod,   ONLY : r_2,ms,mp
   USE cable_common_module,   ONLY : kend_gl
-#     ifndef UM_BUILD            
+#     ifndef UM_BUILD
   USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
        put_var_ncr1, put_var_ncr2,       &
        put_var_ncr3, stderr_nc
 #     endif
   USE casavariable,          ONLY : CASA_MET, CASA_FLUX
   USE casadimension,         ONLY : mplant
+  USE phenvariable
 
   IMPLICIT NONE
-     
+
   INTEGER, INTENT(in) :: &
        n_call, &         ! this timestep #
        kend              ! final timestep of run
 
+  TYPE (casa_flux),             INTENT(IN) :: casaflux
+  TYPE (casa_met),              INTENT(IN) :: casamet
+  TYPE (phen_variable),         INTENT(IN) :: phen
 
   !number of instances. dummied here and so=1
   !integer :: inst =1
 
   !netcdf IDs/ names
   CHARACTER(len=*)   :: ncfile
-  INTEGER, PARAMETER :: num_vars=7
+  INTEGER, PARAMETER :: num_vars=12
   INTEGER, PARAMETER :: num_dims=3
   INTEGER, SAVE :: ncid       ! netcdf file ID
 
@@ -410,7 +444,12 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
        "tsoil        ", &
        "moist        ", &
        "cgpp         ", &
-       "crmplant     " /)
+       "crmplant     " , &
+       "phenphase    ", &
+       "phendoyphase1", &
+       "phendoyphase2", &
+       "phendoyphase3", &
+       "phendoyphase4"/)
 
   INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
 
@@ -431,16 +470,16 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
                                 !x,y generally lat/lon BUT for single site = 1,1
        dim_len = (/-1,soil_dim,-1/)  ! (1) x, (2) y, (3) soil, (4) time [re-set]
 
-  TYPE(CASA_MET)  :: CASAMET
-  TYPE(CASA_FLUX) :: CASAFLUX
+
 
   !local only
   INTEGER :: ncok      !ncdf return status
 
   ! END header
-#ifndef UM_BUILD 
+#ifndef UM_BUILD
   dim_len(1)        = mp
   dim_len(num_dims) = kend
+
 
 
   IF (n_call == 1) THEN
@@ -469,9 +508,15 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, n_call, kend )
   CALL put_var_ncr3(ncid, var_name(5), casamet%moist    ,n_call, ms )
   CALL put_var_ncr2(ncid, var_name(6), casaflux%cgpp    ,n_call )
   CALL put_var_ncr3(ncid, var_name(7), casaflux%crmplant,n_call, mplant )
+  CALL put_var_ncr2(ncid, var_name(8), real(phen%phase , r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(9), real(phen%doyphase(:,1), r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset
+
 #endif
 END SUBROUTINE write_casa_dump
 
@@ -492,13 +537,13 @@ END SUBROUTINE write_casa_dump
   real, dimension(17)                   ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
-  ! first initialize 
-  ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf) 
-  npleafx = 14.2 
+  ! first initialize
+  ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
+  npleafx = 14.2
 
   DO np=1,mp
     ivt=veg%iveg(np)
-    IF (casamet%iveg2(np)/=icewater & 
+    IF (casamet%iveg2(np)/=icewater &
         .AND. casamet%glai(np)>casabiome%glaimin(ivt)  &
         .AND. casapool%cplant(np,leaf)>0.0) THEN
       ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
@@ -562,7 +607,7 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   TYPE (soil_parameter_type), INTENT(INOUT) :: soil
   TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
   TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
-  TYPE (met_type),            INTENT(IN)    :: met    
+  TYPE (met_type),            INTENT(IN)    :: met
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   LOGICAL, INTENT(IN)   :: l_vcmaxFeedbk ! using prognostic Vcmax
@@ -802,7 +847,7 @@ END SUBROUTINE sumcflux
   enddo
 
 
-  do npt=1,mp       
+  do npt=1,mp
    if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) then
     ! compute steady-state litter and soil C pool sizes
      casapool%clitter(npt,metb) = (avgcleaf2met(npt)+avgcroot2met(npt))/casaflux%klitter(npt,metb)
@@ -875,7 +920,7 @@ END SUBROUTINE sumcflux
                                    * (casapool%ratioNCsoil(npt,slow)/casapool%ratioNPsoil(npt,slow))/casaflux%ksoil(npt,slow)
           casapool%psoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
                                      +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
-                                   *  (casapool%ratioNCsoil(npt,pass)/casapool%ratioNPsoil(npt,pass))/casaflux%ksoil(npt,pass)         
+                                   *  (casapool%ratioNCsoil(npt,pass)/casapool%ratioNPsoil(npt,pass))/casaflux%ksoil(npt,pass)
           ! assign the mineral pools
           casapool%psoillab(npt)      = avgpsoillab(npt)
           casapool%psoilsorb(npt)     = avgPsoilsorb(npt)

@@ -322,7 +322,7 @@ CONTAINS
     ! and their partial derivs wrt S or phi of upper and lower layers or boundaries
     ! are stored in q, qya and qyb.
 
-   
+
     ! set switches
     if (present(dolitter)) then
        littercase = dolitter
@@ -339,7 +339,7 @@ CONTAINS
        stop
     endif
 
-    
+
 
     if (present(doisotopologue)) then
        isotopologue = doisotopologue
@@ -620,7 +620,7 @@ CONTAINS
        var(:,:)%K    = par(:,:)%Ke
        var(:,:)%isat = 1
     endwhere
-  
+
     !    Sliq = S
     !    where ((Tsoil<Tfrz(S,par%he,one/par%lam)) .and. (var%isat == 1))
     !       thetal_max    = thetalmax(Tsoil,S,par%he,one/par%lam,par%thre,par%the)
@@ -656,8 +656,8 @@ CONTAINS
           vmet(:)%rrc = vmet(:)%rrc + dxL(:)/(vlit(:)%kH*ztmp)
        endwhere
     endif
- 
-       
+
+
     lE0(:) = lE_old(:) ! used for initial guess of litter temperature
     !----- end initialise
 
@@ -668,12 +668,12 @@ CONTAINS
      !  write(3337,*) irec, kk, Tsoil(kk,1)
 
     !  CALL snow_augment(irec, mp, n, kk, ns,qprec_snow,vmet%Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
-    !                 Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow) 
+    !                 Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
       J0snow(kk) = vsnow(kk)%J ! for tracking change in internal energy of snowpack
-   
-      
+
+
        wcol0snow(kk) = sum(vsnow(kk)%hsnow(1:nsnow_max)) ! for tracking change in water content of snowpack
-      
+
 
        do while (t(kk) < tfin)
 
@@ -718,10 +718,10 @@ CONTAINS
                 isave(kk,:) = var(kk,:)%isat
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
 
-                
+
                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
-                
-                
+
+
                 ! do i=1, n
                 !    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
                 ! end do
@@ -753,12 +753,12 @@ CONTAINS
                         vsnow(kk)%hsnow(1:nsnow_max)
 
                 endif
-             
+
 
                 CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
                      Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
                 thetai(kk,1) = var(kk,1)%thetai  ! this is the value of thetaice prior to matrix call
-             
+
              endif ! iflux==1
 
              ! initialise litter vars
@@ -769,9 +769,9 @@ CONTAINS
              ! ! phi is solution var at satn, so h calc from phi where S>=1 - done in hyofS above for S<1
              ! where (S(kk,:) >= one) & ! (special for frozen soil)
              !      var(kk,:)%h = var(kk,:)%he + (var(kk,:)%phi-var(kk,:)%phie)/var(kk,:)%Ksat
-            
 
-             
+
+
 
              !----- get fluxes and derivs
              ! get surface condition
@@ -1790,7 +1790,7 @@ CONTAINS
                 ! endif
              end do ! while (iok==0) ----- end get and solve eqns
 
-             
+
              !----- update unknowns
              ! i.e. update state variables to end of time step
              !      cumulate some surface fluxes
@@ -1850,7 +1850,7 @@ CONTAINS
                       deltaJ_sensible_T(kk,j) = var(kk,j)%csoil*dx(kk,j)*dTsoil(kk,j) + &
                            var(kk,j)%iice*var(kk,j)%dthetaldT*(Tsoil(kk,j))*rhow*(cswat-csice)*dx(kk,j)*dTsoil(kk,j)
 
-                     
+
                       if (advection==1) then
                          deltaJ_sensible_S(kk,j) = rhow*cswat*(Tsoil(kk,j))*dx(kk,j)*dy(kk,j)*par(kk,j)%thre* &
                               real(1-var(kk,j)%isat,r_2)*real(1-var(kk,j)%iice,r_2) &
@@ -1874,7 +1874,7 @@ CONTAINS
                 !write(*,*) 'E balance check 1', irec, nsteps, tmp1d1(kk)
                 !       endif
 
-                
+
                 if (ns(kk)<1) then ! change in pond height
                    h0(kk) = h0(kk) + dy(kk,1)
                    deltah0(kk) = dy(kk,1)
@@ -2472,8 +2472,8 @@ CONTAINS
                          ! correct total energy stored in  soil
                          deltaJ_latent_S(kk,i) = - rhow*lambdaf*( + &
                               dx(kk,i)*(var(kk,i)%thetai-thetai(kk,i)))
-                         
-                            
+
+
                       endif
 
                       deltaJ_latent_T(kk,i) = zero
@@ -2500,9 +2500,9 @@ CONTAINS
                 isave(kk,1:n) = var(kk,1:n)%iice ! save isat before updating
                 ! update variables (particularly thetaice)
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-                
+
                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
-                
+
                 ! do i=1, n
                 !    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
                 ! end do
@@ -2977,7 +2977,7 @@ CONTAINS
     INTEGER(i_d),    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
     REAL(r_2),    DIMENSION(mp),             INTENT(INOUT) :: qprec_snow    ! snowfall ms-1
     REAL(r_2),    DIMENSION(mp),             INTENT(IN) :: Ta    ! air temp
-    REAL(r_2),                 INTENT(IN) :: tfin    ! time 
+    REAL(r_2),                 INTENT(IN) :: tfin    ! time
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(IN)    :: dx    ! soil depths
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: Tsoil ! soil temperatures soil
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: S     ! soil temperatures soil
@@ -3023,14 +3023,14 @@ CONTAINS
        else
           tmp1d2(kk) = 50.0
        endif
-       
-      
+
+
        vsnow(kk)%dens(1) = (vsnow(kk)%dens(1)*(vsnow(kk)%hsnow(1)-qprec_snow(kk)*tfin) &
                + tmp1d2(kk)*qprec_snow(kk)*tfin)/vsnow(kk)%hsnow(1)
 
        vsnow(kk)%depth(1) = vsnow(kk)%hsnow(1)/(vsnow(kk)%dens(1)/rhow)
-      
-      
+
+
        vsnow(kk)%Qprec = qprec_snow(kk)*tfin
        vsnow(kk)%Qadv_snow=rhow*(qprec_snow(kk))* &
                         (csice*(min(Ta(kk),zero))-lambdaf)*tfin
@@ -3039,7 +3039,7 @@ CONTAINS
           vsnow(kk)%nsnow=1
        endif
     endif
-    
+
     END SUBROUTINE snow_augment
 
 !*********************************************************************************************************************
