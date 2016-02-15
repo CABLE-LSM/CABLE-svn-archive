@@ -63,7 +63,7 @@ MODULE cable_param_module
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
          check_parameter_values, report_parameters, parID_type,                &
-         write_cnp_params
+         write_cnp_params, init_cnp_pools
   INTEGER :: patches_in_parfile=4 ! # patches in default global parameter
                                        ! file
 
@@ -1733,10 +1733,122 @@ SUBROUTINE read_g1map(logn)
         ENDIF
       ENDDO
     ENDDO
-    DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust)
-print *, "REACHES write_cnp #2"
+      DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust)
+  
   END SUBROUTINE write_cnp_params
-  !============================================================================
+  
+ !=============================================================================
+  
+  SUBROUTINE init_cnp_pools(veg, casapool, casabal)
+  ! Input variables:
+  !   landpt(mp)%type- via cable_IO_vars_module (%cstart,cend,ilon,ilat)
+  !   patch(mp)%type - via cable_IO_vars_module (%frac)
+  !   inClab         - via cable_param_module
+  !   ......
+  !   inPocc         - via cable_param_module
+
+    USE casavariable
+    IMPLICIT NONE
+    TYPE (veg_parameter_type),  INTENT(IN)    :: veg
+    TYPE (casa_pool),           INTENT(INOUT) :: casapool
+    TYPE (casa_balance),        INTENT(INOUT) :: casabal
+
+    ! local variables
+    INTEGER :: ee, hh
+
+!    PRINT *, 'Initializing CASA-CNP pools with default sizes.'
+!    DO ee=1, mland ! over all land grid points
+!      DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid
+!        casapool%Clabile(hh) = &
+!               inClab(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Cplant(hh,:) = &
+!               inCplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Clitter(hh,:) = &
+!               inClitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Csoil(hh,:) = &
+!               inCsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Nsoilmin = &
+!               inNinorg(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Nplant(hh,:) = &
+!               inNplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Nlitter(hh,:) = &
+!               inNlitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Nsoil(hh,:) = &
+!               inNsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Psoillab(hh) = &
+!               inPlab(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Pplant(hh,:) = &
+!               inPplant(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Plitter(hh,:) = &
+!               inPlitter(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Psoil(hh,:) = &
+!               inPsoil(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh), :)
+!        casapool%Psoilsorb(hh) = &
+!               inPsorb(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!        casapool%Psoilocc(hh) = &
+!               inPocc(landpt(ee)%ilon, landpt(ee)%ilat, veg%iveg(hh))
+!      ENDDO
+!    ENDDO
+!    DEALLOCATE(inClab,inCplant,inClitter,inCsoil)
+!    DEALLOCATE(inNinorg,inNplant,inNlitter,inNsoil)
+!    DEALLOCATE(inPplant,inPlitter,inPsoil)
+!    DEALLOCATE(inPlab,inPsorb,inPocc)
+
+  ! check pool sizes
+  casapool%cplant     = MAX(0.0,casapool%cplant)
+  casapool%clitter    = MAX(0.0,casapool%clitter)
+  casapool%csoil      = MAX(0.0,casapool%csoil)
+  casabal%cplantlast  = casapool%cplant
+  casabal%clitterlast = casapool%clitter
+  casabal%csoillast   = casapool%csoil
+  casabal%clabilelast = casapool%clabile
+  casabal%sumcbal     = 0.0
+  casabal%FCgppyear=0.0;casabal%FCrpyear=0.0
+  casabal%FCnppyear=0.0;casabal%FCrsyear=0.0;casabal%FCneeyear=0.0
+
+  IF (icycle==1) THEN
+    casapool%nplant(:,:) = casapool%cplant(:,:) * casapool%rationcplant(:,:)
+    casapool%Nsoil(:,:)  = casapool%ratioNCsoil(:,:) * casapool%Csoil(:,:)
+    casapool%Psoil(:,:)  = casapool%Nsoil(:,:)/casapool%ratioNPsoil(:,:)
+    casapool%Nsoilmin(:) = 2.5
+  ENDIF
+
+  IF (icycle >1) THEN
+    casapool%nplant     = MAX(1.e-6,casapool%nplant)
+    casapool%nlitter    = MAX(1.e-6,casapool%nlitter)
+    casapool%nsoil      = MAX(1.e-6,casapool%nsoil)
+    casapool%nsoilmin   = MAX(1.e-6,casapool%nsoilmin)
+    casabal%nplantlast  = casapool%nplant
+    casabal%nlitterlast = casapool%nlitter
+    casabal%nsoillast   = casapool%nsoil
+    casabal%nsoilminlast= casapool%nsoilmin
+    casabal%sumnbal     = 0.0
+    casabal%FNdepyear=0.0;casabal%FNfixyear=0.0;casabal%FNsnetyear=0.0
+    casabal%FNupyear=0.0;casabal%FNleachyear=0.0;casabal%FNlossyear=0.0
+  ENDIF
+
+  IF (icycle >2) THEN
+    casapool%pplant       = MAX(1.0e-7,casapool%pplant)
+    casapool%plitter      = MAX(1.0e-7,casapool%plitter)
+    casapool%psoil        = MAX(1.0e-7,casapool%psoil)
+    casapool%Psoillab     = MAX(1.0e-7,casapool%psoillab)  ! was 2.0,  YP
+    casapool%psoilsorb    = MAX(1.0e-7,casapool%psoilsorb) ! was 10.0, -
+    casapool%psoilocc     = MAX(1.0e-7,casapool%psoilocc)  ! was 50.0, -
+    casabal%pplantlast    = casapool%pplant
+    casabal%plitterlast   = casapool%plitter
+    casabal%psoillast     = casapool%psoil
+    casabal%psoillablast  = casapool%psoillab
+    casabal%psoilsorblast = casapool%psoilsorb
+    casabal%psoilocclast  = casapool%psoilocc
+    casabal%sumpbal       = 0.0
+    casabal%FPweayear=0.0;casabal%FPdustyear=0.0;casabal%FPsnetyear=0.0
+    casabal%FPupyear=0.0;casabal%FPleachyear=0.0;casabal%FPlossyear=0.0
+  ENDIF
+
+  END SUBROUTINE init_cnp_pools
+
+!============================================================================
+
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     use cable_common_module, only : cable_user
     ! Gives values to parameters that are derived from other parameters.

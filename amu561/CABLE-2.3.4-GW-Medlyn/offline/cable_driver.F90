@@ -172,6 +172,7 @@ PROGRAM cable_offline_driver
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  mloop,            & !amu561 Feb '16, spin casa
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
@@ -502,9 +503,9 @@ PROGRAM cable_offline_driver
    !Code for spinning up?
    IF (icycle > 0) THEN
       print *, "Writing CASA pool and flux out"
-      CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-                         casapool, casaflux, casamet, casabal, phen )
-      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+   !   CALL casa_poolout( ktau, veg, soil, casabiome,                           &
+   !                      casapool, casaflux, casamet, casabal, phen )
+   !   CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
       print *, 'before ncdf_dump', spinConv, spincasainput
       if ( spinConv .AND. spincasainput ) then
            call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )

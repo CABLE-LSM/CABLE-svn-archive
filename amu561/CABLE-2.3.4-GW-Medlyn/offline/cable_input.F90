@@ -2660,10 +2660,18 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL get_restart_data(logn,ssnow,canopy,rough,bgc,bal,veg, &
                             soil,rad,vegparmnew, EMSOIL )
 
+      !amu561 added Feb '16, automated casa spin up?
+      IF (icycle > 0) THEN 
+ !        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.' 
+          !CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+          WRITE(logn,*) ' Initialize pool sizes with values in restart file.' 
+          CALL get_casa_restart(casamet,casapool,casabal,phen) 
+      ENDIF
+
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
-    CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
+    CALL get_parameters_met(soil,veg,bgc,rough,completeSet,casamet)
 
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
@@ -2716,16 +2724,18 @@ END SUBROUTINE load_parameters
 !
 !==============================================================================
 
-SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
+SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet)
 
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc
    TYPE (roughness_type), INTENT(INOUT)      :: rough
+   TYPE (casa_met),       INTENT(INOUT)      :: casamet
    LOGICAL, INTENT(OUT)                      :: completeSet ! were all pars found?
 
    ! Local variables
    INTEGER                              :: parID ! parameter's netcdf ID
+   INTEGER                              :: ee, hh !amu561 Feb '16, casa spin up?
 
 ! removed the following section because already in IGBP types (BP apr08)
 !    ! First, if user defined surface type ratios are present in the 
@@ -2753,6 +2763,16 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    !         nmetpatches,'def')
    CALL readpar(ncid_met,'patchfrac',completeSet,patch(:)%frac,filename%met,   &
                 nmetpatches,'def')
+   
+   !amu561 Feb '16, casa spin up?
+   DO ee=1, mland ! over all land grid points  
+       DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid 
+           IF(ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file 
+               casamet%areacell(hh) = patch(hh)%frac * casamet%areacell(hh) 
+           ENDIF 
+       END DO 
+   END DO  
+
 !    CALL readpar(ncid_met,'isoil',completeSet,soil%isoilm,filename%met, &
 !         nmetpatches,'def')
    CALL readpar(ncid_met,'clay',completeSet,soil%clay,filename%met,            &

@@ -56,6 +56,14 @@
    TYPE (casa_balance),        INTENT(INOUT) :: casabal
    TYPE (phen_variable),       INTENT(INOUT) :: phen
 
+
+   ! local variables added ypwang 5/nov/2012
+   real,      dimension(mp)  :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
+   real,      dimension(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
+   real,      dimension(mp)  :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
+   real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
+
+
    !    phen%phase = 2
 
    if ( .NOT. dump_read ) then
@@ -101,7 +109,11 @@
          casamet%moist=casamet%moist/FLOAT(ktauday)
    
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                    casamet,casabal,phen)
+                        casamet,casabal,phen,                                     &
+                        cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,   &
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
    
          IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
             IF ( dump_write ) &
@@ -118,7 +130,10 @@
 
       IF( mod((ktau-kstart+1),ktauday) == 0 ) & 
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                    casamet,casabal,phen)
+                         casamet,casabal,phen,                                     &
+                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,   &
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
 
    ENDIF
@@ -822,7 +837,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
        casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
 
        CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-                    casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                    casamet,casabal,phen, & !xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                     cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                     nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                     pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)

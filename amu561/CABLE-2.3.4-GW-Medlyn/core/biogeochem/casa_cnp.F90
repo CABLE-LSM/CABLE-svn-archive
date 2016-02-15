@@ -720,7 +720,11 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
 END SUBROUTINE casa_coeffsoil
 
-SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
+SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
+                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
 !  calculate the chnage in plant C, N and P pools
 !  uptake of N and P will be computed in casa_uptake
 !  labile C pool will be computed casa_labile
@@ -732,11 +736,35 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
   TYPE (casa_flux),          INTENT(INOUT) :: casaflux
   TYPE (casa_met),           INTENT(INOUT) :: casamet
 
+! added by ypwang following Chris Lu 5/nov/2012
+  REAL, DIMENSION(mp), INTENT(OUT) :: cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                                      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
+
   INTEGER  npt,nL,nP,nland
 
    casaflux%FluxCtolitter = 0.0
    casaflux%FluxNtolitter = 0.0
    casaflux%FluxPtolitter = 0.0
+
+   ! added by ypwang following Chris Lu 5/nov/2012
+   cleaf2met = 0.0
+   cleaf2str = 0.0
+   croot2met = 0.0
+   croot2str = 0.0
+   cwood2cwd = 0.0
+
+   nleaf2met = 0.0
+   nleaf2str = 0.0
+   nroot2met = 0.0
+   nroot2str = 0.0
+   nwood2cwd = 0.0
+
+   pleaf2met = 0.0
+   pleaf2str = 0.0
+   proot2met = 0.0
+   proot2str = 0.0
+   pwood2cwd = 0.0
 
   DO npt=1,mp
   IF(casamet%iveg2(npt)/=icewater) THEN
@@ -748,6 +776,13 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
     ! calculate fraction c to labile pool as a fraction of gpp, not npp
     ! casapool%dClabiledt(npt)   = casaflux%Cnpp(npt)    * casaflux%fracClabile(npt)
     casapool%dClabiledt(npt)   =  casaflux%Cgpp(npt)  * casaflux%fracClabile(npt) - casaflux%clabloss(npt)
+
+    ! added by ypwang 5/nov/2012
+    cleaf2met(npt) = casaflux%fromPtoL(npt,metb,leaf)  * casaflux%kplant(npt,leaf)  * casapool%cplant(npt,leaf)
+    cleaf2str(npt) = casaflux%fromPtoL(npt,str,leaf)   * casaflux%kplant(npt,leaf)  * casapool%cplant(npt,leaf)
+    croot2met(npt) = casaflux%fromPtoL(npt,metb,froot) * casaflux%kplant(npt,froot) * casapool%cplant(npt,froot)
+    croot2str(npt) = casaflux%fromPtoL(npt,str,froot)  * casaflux%kplant(npt,froot) * casapool%cplant(npt,froot)
+    cwood2cwd(npt) = casaflux%fromPtoL(npt,cwd,wood)   * casaflux%kplant(npt,wood)  * casapool%cplant(npt,wood)
 
 !    PRINT *, 'npt, mp, iveg', npt, mp, veg%iveg(npt)
     IF(icycle > 1) THEN
