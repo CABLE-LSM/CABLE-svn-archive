@@ -190,7 +190,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
          !mrd561
-         soil%GWdz = 20.0                          !20 m thick aquifer
+         soil%GWdz = 5.0                          !20 m thick aquifer
 
 
          !-------------------------------------------------------------------
