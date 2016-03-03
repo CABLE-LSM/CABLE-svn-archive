@@ -80,8 +80,8 @@ host_pear()
 #   module add netcdf/3.6.3 openmpi/1.7.5
 #   module add netcdf/4.3.2 openmpi/1.6.5
 #   module add netcdf/4.3.2 openmpi/1.7.5
-#   module add netcdf/4.3.3.1 openmpi/1.7.5
-   module add netcdf/4.3.3.1 openmpi/1.8.4
+   module add netcdf/4.3.3.1 openmpi/1.7.5
+#   module add netcdf/4.3.3.1 openmpi/1.8.4
 #   module add netcdf/4.3.2 openmpi/1.8.4
 
    export NCDIR=$NETCDF_ROOT'/lib/'
@@ -90,14 +90,14 @@ host_pear()
 ###   export CFLAGS='-O0 -fp-model precise'
 #   export CFLAGS='-O0 -C'
 #   best settings for debugging
-   export CFLAGS='-O0 -C -g -debug all -traceback -check all,noarg_temp_created  '
+#   export CFLAGS='-O0 -C -g -debug all -traceback -check all,noarg_temp_created  '
 #   export CFLAGS='-O0 '
 #   export CFLAGS='-O0 -fp-model precise -g -debug -traceback -C'
-#   export CFLAGS='-O2 '
+   export CFLAGS='-O2 -fp-model precise  '
 #   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
 #   best debugg flags
-   export LDFLAGS='-g -L'$NCDIR  #'-L'$NCDIR' -O2'
-#   export LDFLAGS='-L'$NCDIR''
+#   export LDFLAGS='-g -L'$NCDIR  #'-L'$NCDIR' -O2'
+   export LDFLAGS='-O2 -L'$NCDIR''
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../

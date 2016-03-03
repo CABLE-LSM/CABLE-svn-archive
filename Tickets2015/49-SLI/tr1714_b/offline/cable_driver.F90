@@ -527,8 +527,7 @@ PROGRAM cable_offline_driver
                  if (cable_user%CALL_climate) &
                  CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy)
-
-
+                 
                  ! Call land surface scheme for this timestep, all grid points:
                  CALL cbm( ktau, dels, air, bgc, canopy, met,                 &
                       bal, rad, rough, soil, ssnow,                           &

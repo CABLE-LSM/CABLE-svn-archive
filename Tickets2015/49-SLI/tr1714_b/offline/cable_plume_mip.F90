@@ -345,7 +345,7 @@ CONTAINS
     DO y = 1, ydimsize
        DO x = 1, xdimsize
           IF ( .NOT. PLUME%landmask(x,y) ) CYCLE
-          WRITE(6,FMT='(A15,I3,2(1X,F8.2),2(1x,I3))')"i, lo,la, x,y",cnt,plume_lons(x),plume_lats(y),x, y
+          WRITE(6,FMT='(A15,I5,2(1X,F8.2),2(1x,I3))')"i, lo,la, x,y",cnt,plume_lons(x),plume_lats(y),x, y
 
           land_x   (cnt) = x
           land_y   (cnt) = y
@@ -1032,13 +1032,16 @@ CONTAINS
        met%ua        (is:ie)   = WG%Wind(i)
        met%coszen    (is:ie)   = WG%coszen(i)
        ! compute qv
-       CALL rh_sh ( PLUME%MET(rhum)%VAL(i), met%tk(is), met%pmb(is), met%qv(is) )
-       met%qv        (is:ie)   = met%qv(is)
+      ! CALL rh_sh ( PLUME%MET(rhum)%VAL(i), met%tk(is), met%pmb(is), met%qv(is) )
+      ! met%qv        (is:ie)   = met%qv(is)
+       met%qv        (is:ie) = PLUME%MET(rhum)%VAL(i)
     END DO
 
     ! initialise within canopy air temp
     met%tvair     = met%tk
     met%tvrad     = met%tk
+
+
 
 !!$write(*,*) "met", met%precip(1), &
 !!$met%precip_sn (is:ie)  , &

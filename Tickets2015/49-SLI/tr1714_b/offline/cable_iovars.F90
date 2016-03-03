@@ -261,6 +261,7 @@ MODULE cable_IO_vars_module
 
          !! vh_js !! additional casa variables
          NBP = .FALSE., &
+         dCdt = .FALSE., &
          TotSoilCarb = .FALSE.,   &
          TotLivBiomass = .FALSE., &
          TotLittCarb = .FALSE., &

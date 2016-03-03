@@ -66,7 +66,7 @@ MODULE cable_output_module
                     PlantCarbLeaf, PlantCarbFineRoot, PlantCarbWood, &
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
-                    PlantTurnoverWoodResourceLim
+                    PlantTurnoverWoodResourceLim, dCdt
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -175,6 +175,7 @@ MODULE cable_output_module
 
     ![umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: NBP
+    REAL(KIND=4), POINTER, DIMENSION(:) :: dCdt
     ! [kg C /m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: TotSoilCarb
     REAL(KIND=4), POINTER, DIMENSION(:) :: TotLivBiomass
@@ -730,6 +731,12 @@ PRINT*,"timeunits", timeunits
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%NBP(mp))
        out%NBP = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%dCdt, 'dCdt', 'umol/m^2/s',               &
+                        'Carbon accumulation rate (uptake +ve)', patchout%dCdt,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%dCdt(mp))
+       out%dCdt = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%TotSoilCarb, 'TotSoilCarb', 'kg C/m^2',               &
                         'Total Soil and Litter Carbon', patchout%TotSoilCarb,         &
@@ -1330,7 +1337,7 @@ PRINT*,"timeunits", timeunits
        END IF ! using leap year timing or not
        backtrack = output%interval / 2
 
-if (writenow) write(58,*) leaps, realyear, out_month, ktau
+
     ELSE ! type of output aggregation
        CALL abort('Unknown output averaging request in namelist file.'//       &
                   '(SUBROUTINE write_output)')
@@ -1994,8 +2001,8 @@ if (writenow) write(58,*) leaps, realyear, out_month, ktau
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
-     !  out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
-       out%NPP = out%NPP + REAL((canopy%frday) / 1.201E-5, 4)
+       out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
+     !  out%NPP = out%NPP + REAL((canopy%frday) / 1.201E-5, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%NPP = out%NPP / REAL(output%interval, 4)
@@ -2053,7 +2060,7 @@ if (writenow) write(58,*) leaps, realyear, out_month, ktau
     ! NBP and turnover fluxes [umol/m^2/s]
     IF(output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%NBP = out%NBP + REAL((casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)/86400.0 &
+       out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)/86400.0 &
             / 1.201E-5, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2063,6 +2070,19 @@ if (writenow) write(58,*) leaps, realyear, out_month, ktau
                           ranges%NEE, patchout%NBP, 'default', met)
           ! Reset temporary output variable:
           out%NBP = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%dCdt = out%dCdt + REAL((casapool%ctot-casapool%ctot_0)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%dCdt = out%dCdt / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%dCdt, 'dCdt', out%dCdt,    &
+                          ranges%NEE, patchout%dCdt, 'default', met)
+          ! Reset temporary output variable:
+          out%dCdt = 0.0
        END IF
 
        ! Add current timestep's value to total of temporary output variable:

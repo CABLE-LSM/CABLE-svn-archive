@@ -51,7 +51,7 @@ MODULE cable_mpicommon
 !  INTEGER, PARAMETER :: ncasaparam = 179
 !  INTEGER, PARAMETER :: ncasaparam = 183  ! changed ypw to add 4 new variables in casabal%
 !  INTEGER, PARAMETER :: ncasaparam = 196  ! changed ypw to add 13  new variables in casabiome%
-  INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 4 variables 
+  INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables 
 !  (casaflux%frac_sapwood/sapwood_area,casabiome,casabiome%ratioNPplantmin,%ratioNPplantmax)
 ! casapool%ratioNPplant,%ratioNPlitter,ratioNPsoil
   ! MPI: base number of casa_init parameters sent to the workers
@@ -107,10 +107,10 @@ MODULE cable_mpicommon
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
-  INTEGER, PARAMETER :: ncasa_mat = 15
+  INTEGER, PARAMETER :: ncasa_mat = 16
 !  INTEGER, PARAMETER :: ncasa_vec = 27
 !  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
-  INTEGER, PARAMETER :: ncasa_vec = 34    ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
+  INTEGER, PARAMETER :: ncasa_vec = 39    ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run
   !INTEGER, PARAMETER :: nrestart = 16

@@ -424,19 +424,14 @@ CONTAINS
 
              ! MPI: data set in load_parameter is now received from
              ! the master
-write(wlogn,*) 'b4 worker_cable_params'
-CALL flush(wlogn)
-CALL mpi_barrier( comm, ierr) 
+
              CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                        rough,rad,sum_flux,bal)
-write(wlogn,*) 'after worker_cable_params'
 
-CALL mpi_barrier( comm, ierr) 
 
 
              CALL worker_climate_types(comm, climate)
-write(wlogn,*) 'mtemp', climate%mtemp
-CALL flush(wlogn)
+
              ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)
              CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
@@ -502,11 +497,18 @@ CALL flush(wlogn)
                      casaflux,casamet,casabal,phen,POP,climate,LALLOC)
              ENDIF
 
+          ELSE
+             IF (icycle.gt.0) THEN
+                ! re-initalise annual flux sums
+                casabal%FCgppyear =0.0
+                casabal%FCrpyear  =0.0
+                casabal%FCnppyear =0.0
+                casabal%FCrsyear  =0.0
+                casabal%FCneeyear =0.0
+             ENDIF
+
           ENDIF !CALL1
 
-write(wlogn,*) 'after call1'
-CALL flush(wlogn)
-CALL mpi_barrier( comm, ierr) 
 
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl  = 0
@@ -570,7 +572,7 @@ CALL mpi_barrier( comm, ierr)
              ! CALL land surface scheme for this timestep, all grid points:
              CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
                   bal, rad, rough, soil, ssnow,                            &
-                  sum_flux, veg, climate, wlogn )
+                  sum_flux, veg, climate)
 
  
              ssnow%smelt  = ssnow%smelt*dels
@@ -589,6 +591,7 @@ CALL mpi_barrier( comm, ierr)
                      casapool, casaflux, casamet, casabal,              &
                      phen, pop, spinConv, spinup, ktauday, idoy, loy,   &
                      .FALSE., .FALSE., LALLOC )
+
 
                 IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
                      koffset, kend, ktauday, wlogn) ) THEN
@@ -626,21 +629,13 @@ CALL mpi_barrier( comm, ierr)
           END DO KTAULOOP ! END Do loop over timestep ktau
 
           IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. &
-               CABLE_USER%CALL_POP .AND. TRIM(cable_user%POP_out).eq.'epi') THEN
+               CABLE_USER%CALL_POP) THEN
 
              CALL worker_send_pop (POP, ocomm) 
 
           ENDIF
 
-          IF (icycle.gt.0) THEN
-             ! re-initalise annual flux sums
-             casabal%FCgppyear =0.0
-             casabal%FCrpyear  =0.0
-             casabal%FCnppyear =0.0
-             casabal%FCrsyear  =0.0
-             casabal%FCneeyear =0.0
-          ENDIF
-
+        
        END DO YEAR
 
        !!jhan this is insufficient testing. condition for 
@@ -723,10 +718,9 @@ CALL mpi_barrier( comm, ierr)
     ! Write restart file if requested:
     IF(output%restart .AND. (.NOT. CASAONLY)) THEN
        ! MPI: send variables that are required by create_restart
-       !CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
+       CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
        ! MPI: output file written by master only
-       !CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
-       !                     canopy, rough, rad, bgc, bal )
+
        if (cable_user%CALL_climate) &
        CALL MPI_Send (MPI_BOTTOM, 1, climate_t, 0, ktau_gl, comm, ierr)
     END IF
@@ -5482,30 +5476,12 @@ CALL mpi_barrier( comm, ierr)
     CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
     blocks(bidx) = r2len * msoil
 
-    ! ------------- 1D vectors -------------
-
-    bidx = bidx + 1
-    CALL MPI_Get_address (casamet%glai(off), displs(bidx), ierr)
-    blocks(bidx) = r2len
-
-    !  gol124: commented out because casa_poolout in this version
-    !  is no longer writing phen%phase
-    bidx = bidx + 1
-    CALL MPI_Get_address (phen%phase(off), displs(bidx), ierr)
-    blocks(bidx) = I1LEN
 
     bidx = bidx + 1
     CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
-    blocks(bidx) = mdyear*I1LEN
+    blocks(bidx) = mphase*I1LEN
 
-    bidx = bidx + 1
-    CALL MPI_Get_address (phen%phen(off), displs(bidx), ierr)
-    blocks(bidx) =  r1len
-
-    bidx = bidx + 1
-    CALL MPI_Get_address (phen%aphen(off), displs(bidx), ierr)
-    blocks(bidx) = r1len
-
+   
 
     bidx = bidx + 1
     CALL MPI_Get_address (phen%phasespin(off,1), displs(bidx), ierr)
@@ -5531,12 +5507,40 @@ CALL mpi_barrier( comm, ierr)
     CALL MPI_Get_address (phen%doyphasespin_4(off,1), displs(bidx), ierr)
     blocks(bidx) = mdyear*I1LEN
 
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%Cplant_turnover(off,1), displs(bidx), ierr)
+    blocks(bidx) = mplant*r2LEN
 
+    ! ------------- 1D vectors -------------
 
+    bidx = bidx + 1
+    CALL MPI_Get_address (casamet%glai(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
 
+    !  gol124: commented out because casa_poolout in this version
+    !  is no longer writing phen%phase
+    bidx = bidx + 1
+    CALL MPI_Get_address (phen%phase(off), displs(bidx), ierr)
+    blocks(bidx) = I1LEN
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (phen%phen(off), displs(bidx), ierr)
+    blocks(bidx) =  r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (phen%aphen(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (casapool%clabile(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%Ctot(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%Ctot_0(off), displs(bidx), ierr)
     blocks(bidx) = r2len
 
     bidx = bidx + 1
@@ -5661,6 +5665,18 @@ CALL mpi_barrier( comm, ierr)
 
     bidx = bidx + 1
     CALL MPI_Get_address (casaflux%sapwood_area(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%Cplant_turnover_disturbance(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+    
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%Cplant_turnover_crowding(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+    
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%Cplant_turnover_resource_limitation(off), displs(bidx), ierr)
     blocks(bidx) = r2len
 
     ! MPI: sanity check
@@ -6141,9 +6157,6 @@ SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
 
  ! if anything went wrong the master will mpi_abort
  ! which mpi_recv below is going to catch...
-
- CALL MPI_Barrier (comm, ierr)
-
  ! so, now receive all the parameters
  CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, 0, comm, stat, ierr)
 
