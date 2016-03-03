@@ -1610,10 +1610,13 @@ CONTAINS
              vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
              vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
 
-             rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
-             rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
-             if (cable_user%CALL_climate) rdx(i,:) = rdx(i,:) * merge(0.30, 1., climate%mtemp_min(i).gt.15.0)
+             rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+             rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+          
+
+             !if (cable_user%CALL_climate) rdx(i,:) = rdx(i,:) * &
+             !     merge(0.30, 1., climate%mtemp_min(i).gt.15.0)
 
              !write(67,*)  climate%mtemp_min(i),  merge(0.15, 1., climate%mtemp_min(i).gt.15.0)
 
@@ -1622,15 +1625,33 @@ CONTAINS
              !rdx(i,1) = rad%scalex(i,1)*veg%cfrd(i)*veg%vcmax(i)*(3.09-0.043*(tlfx(i)-C%tfrz +25.)/2.)**((tlfx(i)-C%tfrz-25.)/10.)
              !rdx(i,2) = rad%scalex(i,2)*veg%cfrd(i)*veg%vcmax(i)*(3.09-0.043*(tlfx(i)-C%tfrz +25.)/2.)**((tlfx(i)-C%tfrz-25.)/10.)
 
-             !rdx(i,1) = 0.7*(1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,1)* xvcmxt3(tlfx(i))
-             !rdx(i,2) = 0.7* (1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,2)* xvcmxt3(tlfx(i))
+if (cable_user%CALL_climate) then
+   
+   !rdx(i,1) = 0.7*(1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,1)* xvcmxt3(tlfx(i))
+   !rdx(i,2) = 0.7* (1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,2)* xvcmxt3(tlfx(i))
+
+   rdx(i,1) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
+        0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
+        rad%scalex(i,1)* xvcmxt3(tlfx(i))
+   rdx(i,2) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
+        0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
+        rad%scalex(i,2)* xvcmxt3(tlfx(i))
+
+endif
+
+if (rad%qcan(i,1,1).gt.0.0) &
+     rdx(i,1) = rdx(i,1) * &
+     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,1,1),40.0)*1.e5))
+if (rad%qcan(i,1,2).gt.0.0) &
+     rdx(i,2) = rdx(i,2) * &
+                  (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,2,1),40.0)*1.e5))
 
              xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                   * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
              xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
                   * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
           ENDIF
-
+          
        ENDDO !i=1,mp
 
 

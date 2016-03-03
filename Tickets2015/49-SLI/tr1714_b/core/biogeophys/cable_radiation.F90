@@ -120,6 +120,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       ! Define beam fraction, fbeam:
       rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
       rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
+
       ! coszen is set during met data read in.
 
       WHERE (met%coszen <1.0e-2)

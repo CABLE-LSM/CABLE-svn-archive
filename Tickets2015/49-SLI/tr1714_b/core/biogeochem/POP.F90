@@ -515,7 +515,7 @@ END SUBROUTINE InitPOP2D_Poisson
   !*******************************************************************************
 
   SUBROUTINE POPStep(POP, StemNPP, disturbance_interval, disturbance_intensity,LAI,Cleaf,Croot, &
-       NPPtoGPP,StemNPP_av,frac_intensity1,precip )
+       NPPtoGPP, StemNPP_av,frac_intensity1,precip )
     IMPLICIT NONE
 
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
@@ -530,13 +530,16 @@ END SUBROUTINE InitPOP2D_Poisson
     REAL(dp), INTENT(IN), OPTIONAL :: StemNPP_av(:)
     INTEGER(i4b) :: idisturb, it,np,g
     REAL(dp):: dallocW
+
+    !INTEGER, INTENT(IN) :: wlogn
     pop%it_pop = pop%it_pop + 1
 
     it = pop%it_pop(1)
     np = SIZE(POP%POP_grid)
 
 
-    PRINT*,"Go POP", it, np, StemNPP
+   !write(wlogn,*) "Go POP", it, np, StemNPP
+   !call flush(wlogn)
     IF (PRESENT(precip)) THEN
        IF(PRESENT(StemNPP_av)) THEN
           CALL PatchAnnualDynamics(POP, StemNPP,NPPtoGPP,disturbance_interval, it, precip=precip,StemNPP_av=StemNPP_av)

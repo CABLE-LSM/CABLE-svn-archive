@@ -155,7 +155,9 @@ MODULE casavariable
 
   TYPE casa_pool
     REAL(r_2), DIMENSION(:),POINTER :: Clabile,       &
-                                       dClabiledt
+                                       dClabiledt,    &
+                                       Ctot ,         &          !! vh_js !!
+                                       Ctot_0
     REAL(r_2), DIMENSION(:,:),POINTER :: Cplant,      &
                                        Nplant,        &
                                        Pplant,        &
@@ -194,6 +196,7 @@ MODULE casavariable
                                        ratioPcsoil,   &
                                        ratioPcplant,  &
                                        ratioPclitter
+ 
   END TYPE casa_pool
 
   TYPE casa_flux
@@ -451,8 +454,9 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casapool%ratioNCsoilmax(arraysize,msoil),  &
            casapool%ratioPcsoil(arraysize,msoil),     &
            casapool%ratioPcplant(arraysize,mplant),   &
-           casapool%ratioPclitter(arraysize,mlitter)  &
-          )
+           casapool%ratioPclitter(arraysize,mlitter),  &
+           casapool%Ctot_0(arraysize),               &
+           casapool%Ctot(arraysize)                )
 
   ALLOCATE(casaflux%Cgpp(arraysize),                     &
            casaflux%Cnpp(arraysize),                     &

@@ -150,7 +150,7 @@ write(*,*) 'b4 read_casa_dump', ktau, kend
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-        IF (cable_user%CALL_POP) THEN ! CALL_POP
+        IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 
            ! accumulate annual variables for use in POP
            IF(idoy==1 ) THEN

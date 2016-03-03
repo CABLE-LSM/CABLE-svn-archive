@@ -84,6 +84,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    CHARACTER                                 :: ncfile*99
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
 
+   !INTEGER, INTENT(IN) :: wlogn
+
    if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
    if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
    if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
@@ -104,12 +106,12 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
-         casaflux%cgpp  = 0.0
+       !  casaflux%cgpp  = 0.0
          ! add initializations (BP jul2010)
-         casaflux%Crsoil   = 0.0
-         casaflux%crgplant = 0.0
-         casaflux%crmplant = 0.0
-         casaflux%clabloss = 0.0
+       !  casaflux%Crsoil   = 0.0
+       !  casaflux%crgplant = 0.0
+       !  casaflux%crmplant = 0.0
+       !  casaflux%clabloss = 0.0
          ! casaflux%crmplant(:,leaf) = 0.0
          ! end changes (BP jul2010)
 
@@ -148,7 +150,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-            IF (cable_user%CALL_POP) THEN ! CALL_POP
+            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 
                ! accumulate annual variables for use in POP
                IF(MOD(ktau/ktauday,LOY)==1 ) THEN
@@ -174,10 +176,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      NPPtoGPP = 0.5
                   ENDWHERE
 
+!write(wlogn, *) 'b4 POP'
+!call flush(wlogn)
+
                   CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
-
+!write(wlogn, *) 'after POP'
+!call flush(wlogn)
 
                ENDIF  ! end of year
             ELSE
@@ -212,7 +218,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
               pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-         IF (cable_user%CALL_POP) THEN
+         IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN
 
             ! accumulate annual variables for use in POP
             IF(MOD(ktau/ktauday,LOY)==1) THEN

@@ -765,6 +765,8 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
                   casapool%clabile(npt) ,casapool%cplant(npt,:) ,  &
                   casapool%clitter(npt,:),casapool%csoil(npt,:), &
                   casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt)
+
+
              ELSE
              READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                   casamet%glai(npt),slaz,phen%phase(npt) , &
@@ -787,6 +789,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
                   casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt), &
                   casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
                   casapool%nsoil(npt,:),casapool%nsoilmin(npt)
+
           ELSE
              READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                   casamet%glai(npt),slaz,phen%phase(npt), &
@@ -839,6 +842,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
     ENDDO
     CLOSE(99)
 
+
  ELSE
     WRITE(*,*)'No valid restart file for casa_init found.'
     WRITE(*,*)'Using input from readbiome.!!!'
@@ -850,7 +854,9 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
  ENDIF  ! IF (EXRST)
 
 ENDIF
-92 format(5(i6,3x),5(f18.6,3x),i6,3x,100(f18.6,3x))
+!92 format(5(i6,2x),5(f18.6,3x),2(i6,',',2x),',',2x,100(f18.6,3x))
+92    format(5(i6,',',2x),5(f18.6,',',2x),2(i6,',',2x),',',2x,100(f18.6,',',2x))
+
 
 if(initcasa==0) then
    nyearz = 1
@@ -912,6 +918,8 @@ endif
      casabal%FPweayear=0.0;casabal%FPdustyear=0.0; casabal%FPsnetyear=0.0
      casabal%FPupyear=0.0;casabal%FPleachyear=0.0;casabal%FPlossyear=0.0
   EndIF
+
+write(*,*) 'casa_init', casapool%cplant(1,:)
 
 END SUBROUTINE casa_init
 
@@ -1035,9 +1043,10 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   endif
 
   IF (cable_user%CALL_POP) THEN
+   
      WRITE(nout,92) ktau,npt,veg%iveg(npt),soil%isoilm(npt) ,     &
           casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
-          casamet%areacell(npt)*(1.0e-9),casamet%glai(npt),       &
+         casamet%areacell(npt)*(1.0e-9),casamet%glai(npt),       &
           casabiome%sla(veg%iveg(npt)), phen%phase(npt), &
           phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
           casapool%clabile(npt), &
@@ -1048,6 +1057,8 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
           casapool%plitter(npt,:), casapool%psoil(npt,:),         &
           casapool%psoillab(npt),casapool%psoilsorb(npt),casapool%psoilocc(npt), &
           casabal%sumcbal(npt),casabal%sumnbal(npt),casabal%sumpbal(npt)
+
+
   ELSE
      WRITE(nout,92) ktau,npt,veg%iveg(npt),soil%isoilm(npt),     &
           casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
@@ -1068,7 +1079,7 @@ ENDDO
 
   CLOSE(nout)
 
-92    format(5(i6,',',2x),5(f18.6,',',2x),i6,',',2x,100(f18.6,',',2x))
+92    format(5(i6,',',2x),5(f18.6,',',2x),2(i6,',',2x),100(f18.6,',',2x))
 END SUBROUTINE casa_poolout
 
 ! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
@@ -1162,6 +1173,8 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 
       END SELECT
       totGPP = totGPP+casabal%Fcgppyear(npt)* casamet%areacell(npt)
+
+
       totNPP = totNPP+casabal%Fcnppyear(npt)* casamet%areacell(npt)
     ENDDO
 
@@ -1341,7 +1354,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   call casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
 
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
- !! vh_js !!
+   !! vh_js !!
   !CLN ndummy must be before pdummy!!!!
   IF (icycle<3) then
       IF (icycle<2) call casa_ndummy(casapool)
