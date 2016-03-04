@@ -200,7 +200,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%zshh(2:ms) = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
 
          !mrd561
-         soil%GWdz = 20.0                          !20 m thick aquifer
+         soil%GWdz = 10.0                          !20 m thick aquifer
 
          !-------------------------------------------------------------------
          !--- UM met forcing vars needed by CABLE which have UM dimensions
@@ -545,7 +545,12 @@ SUBROUTINE init_variable_froot()
 
       do i=1,mp
          if (veg%iveg(i) .eq. 16 .or. veg%iveg(i) .eq. 17) then
-            veg%froot(i,:) = 0.
+            veg%froot(i,1) = 0.05 
+            veg%froot(i,2) = 0.20 
+            veg%froot(i,3) = 0.20 
+            veg%froot(i,4) = 0.20 
+            veg%froot(i,5) = 0.20 
+            veg%froot(i,6) = 0.15 
          end if
       end do 
 END SUBROUTINE init_variable_froot
