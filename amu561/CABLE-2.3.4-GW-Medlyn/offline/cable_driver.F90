@@ -296,7 +296,7 @@ PROGRAM cable_offline_driver
    !Added by YP following Chris Lu
    IF(icycle>0) THEN
        IF (spincasa) THEN
-           print *, 'spincasacnp enabled with mloop= ', mloop
+           print *, 'cable_driver: spincasacnp enabled with mloop= ', mloop
            call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
                             casabiome,casapool,casaflux,casamet,casabal,phen)
        ENDIF

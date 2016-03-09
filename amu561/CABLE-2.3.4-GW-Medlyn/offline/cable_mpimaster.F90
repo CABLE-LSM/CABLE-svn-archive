@@ -368,7 +368,7 @@ SUBROUTINE mpidrv_master (comm)
    !Casa spin-up (added Feb '16 by amu561 from yxw599 code)
    IF(icycle>0) THEN
      IF (spincasa) THEN
-        print *, 'spincasacnp enabled with mloop= ', mloop
+        print *, 'mpimaster: spincasacnp enabled with mloop= ', mloop
         ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart,
         ! kend)
         call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,     &

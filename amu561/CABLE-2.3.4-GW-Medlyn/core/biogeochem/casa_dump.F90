@@ -158,7 +158,15 @@ MODULE casa_dump_module
       real(r_2), dimension(:,:),intent(in) :: var
       integer, intent(in) :: ncid, n_call, kend, nl
       integer :: ncok, varID 
-       
+      
+      print *, ncid
+print *, varId
+print *,  var
+print *, n_call
+print *, mp
+print *, nl
+
+ 
          ncok = NF90_INQ_VARID( ncid, var_name, varId )
             IF( ncok /= nf90_noerr ) call stderr_nc('inquire var ', var_name )
              

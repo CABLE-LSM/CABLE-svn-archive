@@ -1210,12 +1210,6 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
                   "pools_litter", &
                   "pools_soil" /)
 
-print *, "printing num_dims", num_dims
-print *, "printing ncid", ncid
-print *, "printing dimID", dimID
-print *, "printing dim_len", dim_len
-print *, "printing dim_name", dim_name
-
   CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
   ! define new variables

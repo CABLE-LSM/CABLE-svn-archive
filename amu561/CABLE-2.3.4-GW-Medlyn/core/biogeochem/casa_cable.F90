@@ -70,7 +70,7 @@
    ! Lest 13may13: will require loop when prog resp are init nonzero
    ! need for mk3l ?
    IF( .NOT. cable_runtime%UM ) THEN
-      if(ktau == kstart) then
+      IF(ktau == kstart) THEN
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
@@ -87,6 +87,7 @@
          ! end changes (BP jul2010)
       ENDIF
    ENDIF
+
       IF(mod(ktau,ktauday)==1) THEN
          casamet%tairk = met%tk
          casamet%tsoil = ssnow%tgg
@@ -94,7 +95,7 @@
          casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = canopy%frday*dels
       ELSE
-         Casamet%tairk  =casamet%tairk + met%tk
+         Casamet%tairk = casamet%tairk + met%tk
          casamet%tsoil = casamet%tsoil + ssnow%tgg
          casamet%moist = casamet%moist + ssnow%wb
          casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
@@ -104,10 +105,31 @@
 
       IF(mod((ktau-kstart+1),ktauday)==0) THEN
 
-         casamet%tairk  =casamet%tairk/FLOAT(ktauday)
-         casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
-         casamet%moist=casamet%moist/FLOAT(ktauday)
-   
+         casamet%tairk = casamet%tairk/FLOAT(ktauday)
+         casamet%tsoil = casamet%tsoil/FLOAT(ktauday)
+         casamet%moist = casamet%moist/FLOAT(ktauday)
+       
+         !amu561 added Feb '16
+         IF(ktau/ktauday .le. 365) THEN
+             casamet%Tairkspin     (:,idoy) = casamet%tairk(:)
+             casamet%cgppspin      (:,idoy) = casaflux%cgpp(:)
+             casamet%crmplantspin_1(:,idoy) = casaflux%crmplant(:,1)
+             casamet%crmplantspin_2(:,idoy) = casaflux%crmplant(:,2)
+             casamet%crmplantspin_3(:,idoy) = casaflux%crmplant(:,3)
+             casamet%Tsoilspin_1   (:,idoy) = casamet%tsoil(:,1)
+             casamet%Tsoilspin_2   (:,idoy) = casamet%tsoil(:,2)
+             casamet%Tsoilspin_3   (:,idoy) = casamet%tsoil(:,3)
+             casamet%Tsoilspin_4   (:,idoy) = casamet%tsoil(:,4)
+             casamet%Tsoilspin_5   (:,idoy) = casamet%tsoil(:,5)
+             casamet%Tsoilspin_6   (:,idoy) = casamet%tsoil(:,6)
+             casamet%moistspin_1   (:,idoy) = casamet%moist(:,1)
+             casamet%moistspin_2   (:,idoy) = casamet%moist(:,2)
+             casamet%moistspin_3   (:,idoy) = casamet%moist(:,3)
+             casamet%moistspin_4   (:,idoy) = casamet%moist(:,4)
+             casamet%moistspin_5   (:,idoy) = casamet%moist(:,5)
+             casamet%moistspin_6   (:,idoy) = casamet%moist(:,6)
+         ENDIF
+
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                         casamet,casabal,phen,                                     &
                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
@@ -467,10 +489,14 @@
          crmplant
 
 !      write(89,*)'opening file'
-      ncok = NF90_OPEN(ncfile, nf90_nowrite, ncid)
-         if (ncok /= nf90_noerr ) CALL stderr_nc('re-opening ', ncfile)
+      ncok = NF90_OPEN(ncfile, nf90_nowrite, ncid)   
+      IF (ncok /= nf90_noerr ) THEN
+         CALL stderr_nc('re-opening ', ncfile)
+         print *, trim(nf90_strerror(ncok))
+      ENDIF
 
-      do idoy=1,mdyear
+
+      DO idoy=1,mdyear
 
 !         write(89,*)'get tairk'
          CALL get_var_nc(ncid, var_name(1), tairk   , idoy, kend )
@@ -502,13 +528,18 @@
          casamet%moistspin_5(:,idoy)    = moist(:,5)
          casamet%moistspin_6(:,idoy)    = moist(:,6)
 
-      end do
+      ENDDO
 
       ncok = NF90_CLOSE(ncid)
-         if (ncok /= nf90_noerr ) call stderr_nc('closing ', ncfile)
-
+      IF (ncok /= nf90_noerr ) THEN 
+         call stderr_nc('closing ', ncfile)
+         print *, trim(nf90_strerror(ncok))
+      ENDIF
 
    END SUBROUTINE read_casa_dump
+
+!----------------------------------------------------------------------------------
+
 
 !amu561 replaced this with the above code from Y-P's repo, Feb '16
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
