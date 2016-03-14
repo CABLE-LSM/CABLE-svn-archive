@@ -613,6 +613,7 @@ SUBROUTINE worker_decomp (comm)
 
 END SUBROUTINE worker_decomp
 
+!======================================================================================
 
 ! MPI: creates param_t type for the worker to receive the default parameters
 ! from the master process
@@ -2394,6 +2395,14 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mplant * r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPsoil, displs(bidx), ierr)
+  blen(bidx) = msoil * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%ratioNPlitter, displs(bidx), ierr)
+  blen(bidx) = mlitter * r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casapool%Nsoilmin, displs(bidx), ierr)
   blen(bidx) = r2len
 
@@ -2501,15 +2510,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Get_address (casapool%ratioNCsoilmax, displs(bidx), ierr)
   blen(bidx) = msoil * r2len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioNPlitter, displs(bidx), ierr)
-  blen(bidx) = mlitter * r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (casapool%ratioNPsoil, displs(bidx), ierr)
-  blen(bidx) = msoil * r2len
-
-  ! ------- casaflux ----
+   ! ------- casaflux ----
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Cgpp, displs(bidx), ierr)

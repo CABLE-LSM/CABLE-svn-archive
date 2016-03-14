@@ -2583,8 +2583,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
         napID,             &
         i                    ! do loop variables
 
-print *, "ENTERS HERE cable_input #1"
-
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))
 
