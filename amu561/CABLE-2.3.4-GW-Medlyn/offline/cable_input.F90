@@ -2583,6 +2583,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
         napID,             &
         i                    ! do loop variables
 
+print *, "ENTERS HERE cable_input #1"
+
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))
 
@@ -2765,13 +2767,16 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet,casamet)
                 nmetpatches,'def')
    
    !amu561 Feb '16, casa spin up?
-   DO ee=1, mland ! over all land grid points  
-       DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid 
-           IF(ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file 
-               casamet%areacell(hh) = patch(hh)%frac * casamet%areacell(hh) 
-           ENDIF 
-       END DO 
-   END DO  
+   IF (icycle > 0) THEN   
+       DO ee=1, mland ! over all land grid points  
+           DO hh = landpt(ee)%cstart, landpt(ee)%cend  ! each patch in current grid 
+               IF(ASSOCIATED(vegtype_metfile)) THEN ! i.e. iveg found in the met file 
+                   casamet%areacell(hh) = patch(hh)%frac * casamet%areacell(hh) 
+               ENDIF 
+           END DO 
+       END DO  
+   ENDIF
+
 
 !    CALL readpar(ncid_met,'isoil',completeSet,soil%isoilm,filename%met, &
 !         nmetpatches,'def')

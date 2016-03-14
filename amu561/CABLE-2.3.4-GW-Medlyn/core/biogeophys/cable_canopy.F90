@@ -1427,7 +1427,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    ENDIF
    
-   
+  
    ! weight min stomatal conductance by C3 an C4 plant fractions
    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
    
@@ -1871,7 +1871,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    ! jtk561, saving gswmin here
    canopy%gswmin_1 = gswmin(:,1)
    canopy%gswmin_2 = gswmin(:,2)
-   
+  
+ 
    DEALLOCATE( gswmin )
    DEALLOCATE(wb2) !WUE fix
    
@@ -2211,7 +2212,8 @@ SUBROUTINE fwsoil_calc_std(fwsoil, fextroot, soil, ssnow, veg)
    do ns=1,ms
       fextroot(:,ns) = fextroot(:,ns)/rwater(:)
    enddo
-     
+   
+  
 END SUBROUTINE fwsoil_calc_std
 
 ! ------------------------------------------------------------------------------

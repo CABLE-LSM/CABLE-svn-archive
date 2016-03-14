@@ -714,87 +714,87 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   ! the order of fields within follows alloc_*_type subroutines
 
   ! ----------- met --------------
-
-  bidx = bidx + 1
+  
+  bidx = bidx + 1 !1
   CALL MPI_Get_address (met%ca, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !2
   CALL MPI_Get_address (met%year, displs(bidx), ierr)
   blen(bidx) = ilen
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !3
   CALL MPI_Get_address (met%moy, displs(bidx), ierr)
   blen(bidx) = ilen
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !4
   CALL MPI_Get_address (met%doy, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !5
   CALL MPI_Get_address (met%hod, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !6
   CALL MPI_Get_address (met%fsd, displs(bidx), ierr)
   blen(bidx) = swb * r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !7
   CALL MPI_Get_address (met%fld, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !8
   CALL MPI_Get_address (met%precip, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !9
   CALL MPI_Get_address (met%precip_sn, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !10
   CALL MPI_Get_address (met%tk, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !11
   CALL MPI_Get_address (met%tvair, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !12
   CALL MPI_Get_address (met%tvrad, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !13
   CALL MPI_Get_address (met%pmb, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !14
   CALL MPI_Get_address (met%ua, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !15
   CALL MPI_Get_address (met%qv, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !16
   CALL MPI_Get_address (met%qvair, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !17
   CALL MPI_Get_address (met%da, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !18
   CALL MPI_Get_address (met%dva, displs(bidx), ierr)
   blen(bidx) = r1len
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !19
   CALL MPI_Get_address (met%coszen, displs(bidx), ierr)
   blen(bidx) = r1len
 
 
   ! ----------- air --------------
 
-  bidx = bidx + 1
+  bidx = bidx + 1 !20
   CALL MPI_Get_address (air%rho, displs(bidx), ierr)
   blen(bidx) = r1len
 
@@ -833,7 +833,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ! ----------- ssnow --------------
 
-  bidx = bidx + 1
+  bidx = bidx + 1  !29
   CALL MPI_Get_address (ssnow%dtmlt, displs(bidx), ierr)
   blen(bidx) = 3 * r1len
 
@@ -1524,6 +1524,22 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (canopy%gswx, displs(bidx), ierr)
   blen(bidx) = mf * r1len
 
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswx_1, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswx_2, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswmin_1, displs(bidx), ierr)
+  blen(bidx) = r1len
+
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswmin_2, displs(bidx), ierr)
+  blen(bidx) = r1len
+
   bidx = bidx + 1
   CALL MPI_Get_address (canopy%zetar, displs(bidx), ierr)
   blen(bidx) = niter * r1len
@@ -2083,6 +2099,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
 END SUBROUTINE worker_cable_params
 
+!===================================================================================
 
 ! MPI: creates param_t type for the worker to receive the default casa
 ! parameters from the master process
@@ -3009,6 +3026,7 @@ print *, "PRINTING ntyp worker #1: ", ntyp
 
 END SUBROUTINE worker_casa_params
 
+!===========================================================================
 
 ! MPI: creates inp_t type to receive input data from the master
 SUBROUTINE worker_intype (comm,met,veg)
@@ -3164,6 +3182,8 @@ SUBROUTINE worker_intype (comm,met,veg)
 
 END SUBROUTINE worker_intype
 
+!============================================================================================
+
 ! MPI: creates send_t type to send the results to the master
 !
 ! list of fields that master needs to receive for use in write_output:
@@ -3171,7 +3191,7 @@ END SUBROUTINE worker_intype
 ! air%          rlam
 !
 ! canopy%       delwc, fe, fev, fh, fhs, fhv, fevw, fevc, fes, fnee, fpn, frday,
-!               frp, frs, ga, through, spill, tv, cansto,
+!               frp, frs, ga, through, spill, tv, cansto, fwsoil ?
 !
 ! met%          precip, precip_sn, fld, fsd, tk, pmb, qv, ua, ca,
 !
@@ -3183,7 +3203,9 @@ END SUBROUTINE worker_intype
 !
 ! veg%          vlai
 !
-! Total: 47
+! Total: 48
+
+
 SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
   USE mpi
@@ -3925,6 +3947,10 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   bidx = bidx + 1
   CALL MPI_Get_address (canopy%fevw(off), displs(bidx), ierr)
   blocks(bidx) = r1len
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr) !amu561
+  blocks(bidx) = r1len
 
   !vidx = vidx + 1
   ! REAL(r_2)
@@ -4138,10 +4164,25 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   CALL MPI_Get_address (canopy%wcint(off), displs(bidx), ierr)
   blocks(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr) !amu561
+  ! REAL(r_1)
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswx_1(off), displs(bidx), ierr)
   blocks(bidx) = r1len
 
+  ! REAL(r_1)
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswx_2(off), displs(bidx), ierr)
+  blocks(bidx) = r1len
+
+  ! REAL(r_1)
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswmin_1(off), displs(bidx), ierr)
+  blocks(bidx) = r1len
+
+  ! REAL(r_1)
+  bidx = bidx + 1 !amu561 Mar '16
+  CALL MPI_Get_address (canopy%gswmin_2(off), displs(bidx), ierr)
+  blocks(bidx) = r1len
 
   ! MPI: 2D vars moved above
   ! rwater
@@ -5092,6 +5133,8 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
 END SUBROUTINE worker_outtype
 
+!====================================================================================================
+
 SUBROUTINE worker_time_update (met, kend, dels)
 
   USE cable_common_module, ONLY: ktau_gl
@@ -5285,6 +5328,8 @@ SUBROUTINE worker_time_update (met, kend, dels)
   RETURN
 
 END SUBROUTINE worker_time_update
+
+!=======================================================================================
 
 ! creates MPI types for sending casa results back to the master at
 ! the end of the simulation
@@ -5727,6 +5772,8 @@ print *, "PRINTING ntyp worker #2: ", ntyp
   RETURN
 
 END SUBROUTINE worker_casa_type
+
+!=====================================================================================
 
 ! MPI: creates restart_t type to send to the master the fields
 ! that are only required for the restart file but not included in the

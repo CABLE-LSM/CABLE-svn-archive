@@ -51,7 +51,8 @@ MODULE cable_mpicommon
            !in master.  in worker
   !added topo_ind, slope,slope_std,elev,elev_std
   ! Ticket #56, we've added 4 extra new params for the Medlyns Stom Cond model
-  INTEGER, PARAMETER :: nparam =320 !317 !302! 301!297 !283
+  !amu561 Mar '16 added missing gswmin and gswx params
+  INTEGER, PARAMETER :: nparam = 324 !320 !317 !302! 301!297 !283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -114,7 +115,8 @@ MODULE cable_mpicommon
    !mrd add GWwb, wtd, GWwbeq, GWzq, GWsmp -->+5
    !mrd satfrac from hydrology
    !amu561 added fwsoil
-  INTEGER, PARAMETER :: nvec = 168! 166
+   !amu561 Mar '16 added missing gswmin and gswx params
+  INTEGER, PARAMETER :: nvec = 172 !168! 166
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

@@ -64,8 +64,8 @@ MODULE cable_output_module
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar ,cancd, gswx_1, gswx_2,            &
-		            gswmin_1, gswmin_2, fwsoil,                                &
-                    tCASA,                            &
+		    gswmin_1, gswmin_2, fwsoil,                                &
+                    tCASA,                                                     &
                     !Anna casa variables
                     casaGPP, casaNPP, casaLFresp, casaWDresp,                  &
                     casaRTresp, casaGRresp, casaSLresp, casaNEE,               &
@@ -1627,7 +1627,6 @@ CONTAINS
     INTEGER, DIMENSION(mp) :: realyear ! fix problem for yr b4 leap yr
     INTEGER :: backtrack  ! modify timetemp for averaged output
 
-
     !write(*,*) ' in write_output '    !MDeck
 
     ! IF asked to check mass/water balance:
@@ -1920,7 +1919,7 @@ CONTAINS
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%gswx_1 = out%gswx_1 / REAL(output%interval, 4)
-          ! Write value to file:
+         ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%gswx_1, 'gswx_1',out%gswx_1,       &
                           ranges%gswx_1, patchout%gswx_1, 'default', met)
           ! Reset temporary output variable:
@@ -1940,7 +1939,7 @@ CONTAINS
           ! Reset temporary output variable:
           out%gswx_2 = 0.0
        END IF
-    END IF            
+    END IF
     ! gswmin_1: sunlit conductance [NA]
     IF(output%flux .OR. output%gswmin_1) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1970,7 +1969,7 @@ CONTAINS
        END IF
     END IF
 
-   ! Qg: ground heat flux [W/m^2]
+  ! Qg: ground heat flux [W/m^2]
     IF(output%flux .OR. output%Qg) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%Qg = out%Qg + REAL(canopy%ga, 4)
@@ -2368,7 +2367,7 @@ CONTAINS
           out%LAI = 0.0
        END IF
     END IF
-   
+  
     ! fwsoil: soil water modified of stomatal conductance (fractional) !amu561
     IF(output%veg .OR. output%fwsoil) THEN
        ! Add current timestep's value to total of temporary output variable:
