@@ -1006,7 +1006,11 @@ END SUBROUTINE spincasacnp
   REAL(r_2), DIMENSION(mso) :: Psorder,pweasoil,xpsoil50
   REAL(r_2), DIMENSION(mso) :: fracPlab,fracPsorb,fracPocc,fracPorg
   REAL(r_2), DIMENSION(mp)  :: totpsoil
-  INTEGER  npt,nout,nso
+
+  real(r_2), dimension(mp)             :: cuemet, cuestr,cuecwd
+  real, parameter                      :: cnmic=8.0                ! microbial biomass C:N ratio
+
+INTEGER  npt,nout,nso
 
   ! Soiltype     soilnumber soil P(g P/m2)
   ! Alfisol     1       61.3
@@ -1040,18 +1044,28 @@ END SUBROUTINE spincasacnp
   casabal%sumnbal(:)   = 0.0
   casabal%sumpbal(:)   = 0.0
 
+  WHERE(casamet%iveg2/=icewater)
+    cuemet(:) = (cnmic)*(casapool%nlitter(:,mic)/(casapool%clitter(:,mic)+1.0e-3))**0.76
+    cuestr(:) = (cnmic)*(casapool%nlitter(:,str)/(casapool%clitter(:,str)+1.0e-3))**0.76
+    WHERE(casapool%clitter(:,cwd) >1.0e-3)
+      cuecwd(:) = (0.45/0.52)*(cnmic)*(casapool%nlitter(:,cwd)/(casapool%clitter(:,cwd)+1.0e-3))**0.76
+    ELSEWHERE
+      cuecwd(:) = 1.0
+    ENDWHERE
+  ENDWHERE
+
 !  write(517,*),'before analyticpool:casaflux%klitter(39:40,1:3),casa%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,1:3),casa%csoil%(39:40,1:3)',casaflux%klitter(39:40,1:3),casaflux%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,:),casapool%csoil(39:40,:)
   do npt=1,mp
   if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) THEN
-    casaflux%fromLtoS(npt,mic,metb)   = 0.45
+    casaflux%fromLtoS(npt,mic,metb)   = 0.45 *cuemet(npt)
                                           ! metb -> mic
-    casaflux%fromLtoS(npt,mic,str)   = 0.45*(1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf))
+    casaflux%fromLtoS(npt,mic,str)   = 0.45*(1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf)) * cuestr(npt)
                                           ! str -> mic
-    casaflux%fromLtoS(npt,slow,str)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),leaf)
+    casaflux%fromLtoS(npt,slow,str)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),leaf) *cuestr(npt)
                                           ! str -> slow
-    casaflux%fromLtoS(npt,mic,cwd)   = 0.40*(1.0 - casabiome%fracLigninplant(veg%iveg(npt),wood))
+    casaflux%fromLtoS(npt,mic,cwd)   = 0.40*(1.0 - casabiome%fracLigninplant(veg%iveg(npt),wood)) *cuecwd(npt)
                                           ! CWD -> fmic
-    casaflux%fromLtoS(npt,slow,cwd)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),wood)
+    casaflux%fromLtoS(npt,slow,cwd)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),wood) * cuecwd(npt)
                                           ! CWD -> slow
 !! set the following two backflow to set (see Bolker 199x)
 !    casaflux%fromStoS(npt,mic,slow)  = 0.45 * (0.997 - 0.009 *soil%clay(npt))
