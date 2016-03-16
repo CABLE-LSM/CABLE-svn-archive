@@ -1260,8 +1260,8 @@ CONTAINS
       soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inTI(landpt(e)%ilon,landpt(e)%ilat)
 
-      !soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-      !                              int(inBI(landpt(e)%ilon,landpt(e)%ilat))
+      soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+                                    int(inBI(landpt(e)%ilon,landpt(e)%ilat))
 
 
       ENDIF

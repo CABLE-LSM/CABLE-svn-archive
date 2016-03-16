@@ -2233,6 +2233,18 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%wiltp(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%fldcap(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
 !1D
   bidx = bidx + 1
   CALL MPI_Get_address (soil%GWwatsat(off), displs(bidx), ierr)

@@ -73,7 +73,8 @@ host_mael()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=mpif90
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx'
-   export CFLAGS='-O2 -fp-model source -ftrapuv  -xhost '   #-traceback
+   #export CFLAGS='-O2 -fp-model source -ftrapuv  -xhost '   #-traceback
+   export CFLAG
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -shared-intel -mcmodel=medium' 
    fi
