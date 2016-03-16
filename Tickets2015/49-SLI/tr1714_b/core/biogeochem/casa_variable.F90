@@ -301,7 +301,8 @@ MODULE casavariable
                                           moistspin_3,&
                                           moistspin_4,&
                                           moistspin_5,&
-                                          moistspin_6
+                                          moistspin_6, &
+                                          mtempspin
 
   END TYPE casa_met
 
@@ -556,7 +557,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casamet%moistspin_3(arraysize,mdyear),   &
            casamet%moistspin_4(arraysize,mdyear),   &
            casamet%moistspin_5(arraysize,mdyear),   &
-           casamet%moistspin_6(arraysize,mdyear))
+           casamet%moistspin_6(arraysize,mdyear),  &
+           casamet%mtempspin(arraysize,mdyear))     
 
   ALLOCATE(casabal%FCgppyear(arraysize),           &
            casabal%FCnppyear(arraysize),           &

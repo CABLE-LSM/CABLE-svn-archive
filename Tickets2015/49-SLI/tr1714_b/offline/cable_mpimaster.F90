@@ -511,7 +511,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
 
              CALL master_climate_types(comm, climate)
 
-             CALL master_send_input (icomm, climate_ts, 0)
+            
              ! MPI: mvtype and mstype send out here instead of inside master_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)
              CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
@@ -1822,6 +1822,18 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = r1len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (veg%clitt(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%zr(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%gamma(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (veg%refl(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
           &                             types(bidx), ierr)
@@ -2187,6 +2199,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = r1len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (canopy%gswx(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
           &                             types(bidx), ierr)
@@ -2197,6 +2213,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Type_create_hvector (niter, r1len, r1stride, MPI_BYTE, &
           &                             types(bidx), ierr)
      blen(bidx) = 1
+
 
      ! ------- rough -------
 
@@ -4785,6 +4802,11 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_1)
      CALL MPI_Get_address (canopy%wcint(off), vaddr(vidx), ierr) ! 59
      blen(vidx) = cnt * extr1
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (canopy%fwsoil(off), vaddr(vidx), ierr) ! 59
+     blen(vidx) = cnt * extr2
+
      ! MPI: 2D vars moved above
      ! rwater
      ! evapfbl
@@ -6685,7 +6707,7 @@ SUBROUTINE master_send_input (comm, dtypes, ktau)
   !   ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
   !END IF
 
-  !CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
   RETURN
 
@@ -6721,7 +6743,7 @@ SUBROUTINE master_receive(comm, ktau, types)
   END DO
 
   ! MPI: we need all timesteps data before processing/saving
-  !CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+  CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
   RETURN
 

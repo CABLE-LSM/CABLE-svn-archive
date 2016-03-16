@@ -1625,31 +1625,33 @@ CONTAINS
              !rdx(i,1) = rad%scalex(i,1)*veg%cfrd(i)*veg%vcmax(i)*(3.09-0.043*(tlfx(i)-C%tfrz +25.)/2.)**((tlfx(i)-C%tfrz-25.)/10.)
              !rdx(i,2) = rad%scalex(i,2)*veg%cfrd(i)*veg%vcmax(i)*(3.09-0.043*(tlfx(i)-C%tfrz +25.)/2.)**((tlfx(i)-C%tfrz-25.)/10.)
 
-if (cable_user%CALL_climate) then
+             if (cable_user%CALL_climate) then
    
-   !rdx(i,1) = 0.7*(1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,1)* xvcmxt3(tlfx(i))
-   !rdx(i,2) = 0.7* (1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,2)* xvcmxt3(tlfx(i))
+                !rdx(i,1) = 0.7*(1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,1)* xvcmxt3(tlfx(i))
+                !rdx(i,2) = 0.7* (1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,2)* xvcmxt3(tlfx(i))
 
-   rdx(i,1) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
-        0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
-        rad%scalex(i,1)* xvcmxt3(tlfx(i))
-   rdx(i,2) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
-        0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
-        rad%scalex(i,2)* xvcmxt3(tlfx(i))
-
-endif
-
-if (rad%qcan(i,1,1).gt.0.0) &
-     rdx(i,1) = rdx(i,1) * &
-     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,1,1),40.0)*1.e5))
-if (rad%qcan(i,1,2).gt.0.0) &
-     rdx(i,2) = rdx(i,2) * &
-                  (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,2,1),40.0)*1.e5))
-
-             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                  * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-             xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
-                  * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+                rdx(i,1) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
+                     0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
+                     rad%scalex(i,1)* xvcmxt3(tlfx(i))
+                rdx(i,2) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
+                     0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
+                     rad%scalex(i,2)* xvcmxt3(tlfx(i))
+                
+                 ! reduction of daytime leaf respiration to account for photo-inhibition
+                
+                if (rad%qcan(i,1,1).gt.0.0) &
+                     rdx(i,1) = rdx(i,1) * &
+                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,1,1),40.0)*1.e5))
+                if (rad%qcan(i,1,2).gt.0.0) &
+                     rdx(i,2) = rdx(i,2) * &
+                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,2,1),40.0)*1.e5))
+                
+                xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
+                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+                
+             endif
           ENDIF
           
        ENDDO !i=1,mp
@@ -1706,11 +1708,19 @@ if (rad%qcan(i,1,2).gt.0.0) &
 
              IF (cable_user%fwsoil_switch=='Haverd2013') then
                 canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
+!!$                call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:),canopy%fwsoil(i), &
+!!$                     real(veg%froot(i,:),r_2), real(soil%ssat_vec(i,:),r_2), &
+!!$                     real(soil%swilt_vec(i,:),r_2), max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
+!!$                     real(veg%gamma(i),r_2), &
+!!$                     real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
+
+
                 call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:),canopy%fwsoil(i), &
-                     real(veg%froot(i,:),r_2), real(soil%ssat_vec(i,:),r_2), &
-                     real(soil%swilt_vec(i,:),r_2), max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
+                     real(veg%froot(i,:),r_2), SPREAD(real(soil%ssat(i),r_2),1,ms), &
+                      SPREAD(real(soil%swilt(i),r_2),1,ms), max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
                      real(veg%gamma(i),r_2), &
                      real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
+
                 fwsoil(i) = canopy%fwsoil(i)
                 ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels*1000_r_2 ! mm water (root water extraction) per time step
 

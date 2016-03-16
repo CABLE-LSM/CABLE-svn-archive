@@ -40,6 +40,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   USE casaparm
   USE casavariable
   USE phenvariable
+  !! vh_js !!
+  USE cable_common_module, only: cable_user
   IMPLICIT NONE
 !  INTEGER,               INTENT(IN)    :: mvt,mst
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
@@ -304,12 +306,20 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%plitter(npt,cwd)  = 0.0
     IF (casamet%iveg2(npt)==forest.or.casamet%iveg2(npt)==shrub) THEN
       casamet%lnonwood(npt) = 0
-      casapool%cplant(npt,wood)  = cwood(iv1)
+      casapool%cplant(npt,wood)  = Cwood(iv1)
       casapool%clitter(npt,cwd)  = ccwd(iv1)
       casapool%nplant(npt,wood)  = nwood(iv1)
       casapool%nlitter(npt,cwd)  = ncwd(iv1)
       casapool%pplant(npt,wood)  = xpwood(iv1)
       casapool%plitter(npt,cwd)  = xpcwd(iv1)
+      !! vh_js !!
+      IF (cable_user%CALL_POP) THEN  ! initialise very small wood pool, so POP can start from zero.
+         casapool%cplant(npt,wood) = 0.01
+         casapool%nplant(npt,wood)= casabiome%ratioNCplantmin(nv,wood)* casapool%cplant(npt,wood)
+         casapool%pplant(npt,wood)= casabiome%ratioPCplantmin(nv,wood)* casapool%cplant(npt,wood)
+      ENDIF
+      !! vh_js
+
     ENDIF
     casapool%cplant(npt,leaf)     = cleaf(iv1)
     casapool%cplant(npt,froot)    = cfroot(iv1)

@@ -231,23 +231,28 @@ END SUBROUTINE cable_diag_data1
     !doyphase1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(9)), xtype, &
          (/ dimID(1), dimID(3)/), varID(9))
-    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(8))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(9))
 
     !doyphase2
     ncok = NF90_DEF_VAR(ncid, trim(var_name(10)), xtype, &
          (/ dimID(1), dimID(3)/), varID(10))
-    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(8))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(10))
 
     !doyphase3
     ncok = NF90_DEF_VAR(ncid, trim(var_name(11)), xtype, &
          (/ dimID(1), dimID(3)/), varID(11))
-    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(8))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(11))
 
     !doyphase4
     ncok = NF90_DEF_VAR(ncid, trim(var_name(12)), xtype, &
          (/ dimID(1), dimID(3)/), varID(12))
-    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(8))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(12))
 
+
+    !mtemp
+    ncok = NF90_DEF_VAR(ncid, trim(var_name(13)), xtype, &
+         (/ dimID(1),dimID(3)/), varID(13))
+    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(13))
 
     return
   end subroutine def_vars

@@ -567,14 +567,14 @@ CONTAINS
              if (cable_user%CALL_climate) &
                  CALL cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy)
-
+             write(wlogn,*) ktau, canopy%fwsoil, veg%clitt, veg%zr, veg%gamma
 
              ! CALL land surface scheme for this timestep, all grid points:
              CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
                   bal, rad, rough, soil, ssnow,                            &
                   sum_flux, veg, climate)
 
- 
+             write(wlogn,*) ktau, canopy%fwsoil, veg%clitt, veg%zr, veg%gamma
              ssnow%smelt  = ssnow%smelt*dels
              ssnow%rnof1  = ssnow%rnof1*dels
              ssnow%rnof2  = ssnow%rnof2*dels
@@ -1323,6 +1323,18 @@ CONTAINS
     blen(bidx) = r1len
 
     bidx = bidx + 1
+    CALL MPI_Get_address (veg%clitt, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%zr, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%gamma, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
     CALL MPI_Get_address (veg%refl, displs(bidx), ierr)
     blen(bidx) = 2 * r1len
 
@@ -1627,6 +1639,8 @@ CONTAINS
     CALL MPI_Get_address (canopy%wcint, displs(bidx), ierr)
     blen(bidx) = r1len
 
+   
+
     !  bidx = bidx + 1
     !  CALL MPI_Get_address (canopy%rwater, displs(bidx), ierr)
     !  blen(bidx) = ms * r1len
@@ -1659,6 +1673,10 @@ CONTAINS
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%wetfac_cs, displs(bidx), ierr)
     blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fwsoil, displs(bidx), ierr)
+    blen(bidx) = r2len
 
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%gswx, displs(bidx), ierr)
@@ -2131,6 +2149,7 @@ CONTAINS
 
     ! finally free the MPI type
     CALL MPI_Type_Free (param_t, ierr)
+
 
     ! all CABLE parameters have been received from the master by now
     RETURN
@@ -4229,6 +4248,10 @@ CONTAINS
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%wcint(off), displs(bidx), ierr)
     blocks(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
 
     ! MPI: 2D vars moved above
     ! rwater

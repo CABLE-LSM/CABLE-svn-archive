@@ -538,7 +538,7 @@ END SUBROUTINE InitPOP2D_Poisson
     np = SIZE(POP%POP_grid)
 
 
-   !write(wlogn,*) "Go POP", it, np, StemNPP
+   !write(*,*) "Go POP", it, np, StemNPP
    !call flush(wlogn)
     IF (PRESENT(precip)) THEN
        IF(PRESENT(StemNPP_av)) THEN
@@ -1144,11 +1144,7 @@ END SUBROUTINE InitPOP2D_Poisson
                 bound(i, 2) = Poisson_age(i_max)
              ENDIF
           ENDIF
-          if (it.eq.228) then
-             write(83,"(4i5, 100e16.6)") i, unique_age(i), bound(i,1), bound(i,2), &
-                  REALExponential(disturbance_freq,REAL(unique_age(i),dp))
-          endif
-
+          
 
        ENDDO
 

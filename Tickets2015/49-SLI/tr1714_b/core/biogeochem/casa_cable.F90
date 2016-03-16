@@ -142,6 +142,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                call cable_phenology_clim(veg, climate, phen)
 
             ENDIF
+ ! write(66991,*) casaflux%cgpp(1), climate%mtemp(1), casaflux%crmplant(1,1)
 
 
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
@@ -149,8 +150,12 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
-
+! write(77991,91)  veg%vcmax(1), casaflux%cgpp(1), veg%vlai(1)
+!91  format(e12.4,2x,20(f10.4,2x))
+!if (idoy==100) stop
             IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
+
+
 
                ! accumulate annual variables for use in POP
                IF(MOD(ktau/ktauday,LOY)==1 ) THEN
@@ -197,7 +202,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                !CLN CHECK FOR LEAP YEAR
                WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-               CALL write_casa_dump( ncfile, casamet , casaflux, phen, idoy, &
+               CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &
                                  kend/ktauday )
 
             ENDIF
@@ -278,9 +283,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 END SUBROUTINE bgcdriver
 
-SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATonce )
+SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
       USE netcdf
-      USE cable_def_types_mod,   ONLY : r_2,ms,mp
+      USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
       USE casadimension,         ONLY : mplant,mdyear
       USE casavariable,          ONLY : casa_met, casa_flux
       USE phenvariable
@@ -293,12 +298,13 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATon
       TYPE (casa_flux), INTENT(INOUT) :: casaflux
       TYPE (casa_met), INTENT(inout)  :: casamet
       TYPE (phen_variable),         INTENT(INOUT) :: phen
+      TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
       INTEGER, INTENT(in)             :: kend, ncall
       CHARACTER(len=*), INTENT(in)    :: ncfile
       LOGICAL, INTENT(in)             :: allATonce
 
       !netcdf IDs/ names
-      INTEGER, PARAMETER :: num_vars=12
+      INTEGER, PARAMETER :: num_vars=13
       INTEGER, PARAMETER :: num_dims=3
       INTEGER, SAVE                        :: ncrid  ! netcdf file ID
       INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
@@ -316,10 +322,11 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATon
                             "phendoyphase1", &
                             "phendoyphase2", &
                             "phendoyphase3", &
-                            "phendoyphase4" /)
+                            "phendoyphase4", &
+                            "mtemp" /)
 
       REAL     , DIMENSION(mp)        :: lat, lon
-      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp
+      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
       REAL(r_2), DIMENSION(mp,mplant) :: crmplant
       REAL(r_2), DIMENSION(mp)        :: phenphase, phendoyphase1, &
@@ -346,6 +353,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATon
             CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2, idoy)
             CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3, idoy)
             CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
+            CALL get_var_ncr2(ncrid, var_name(13), mtemp   , idoy )
 
             casamet%Tairkspin(:,idoy) = tairk
             casamet%cgppspin (:,idoy) = cgpp
@@ -369,6 +377,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATon
             phen%doyphasespin_2(:,idoy) = int(phendoyphase2)
             phen%doyphasespin_3(:,idoy) = int(phendoyphase3)
             phen%doyphasespin_4(:,idoy) = int(phendoyphase4)
+            casamet%mtempspin(:,idoy) = mtemp
 
          END DO
       ELSE
@@ -383,6 +392,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATon
          CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2    ,ncall )
          CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3    ,ncall )
          CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4    ,ncall )
+         CALL get_var_ncr2(ncrid, var_name(13), mtemp   , ncall )
 
          casamet%tairk     = tairk
          casamet%tsoil     = tsoil
@@ -394,6 +404,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATon
          phen%doyphase(:,2) = int(phendoyphase2)
          phen%doyphase(:,3) = int(phendoyphase3)
          phen%doyphase(:,4) = int(phendoyphase4)
+         climate%mtemp_max = mtemp
 
 
       ENDIF
@@ -410,9 +421,9 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, ncall, kend, allATon
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
 !! NO
 
-SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen,  n_call, kend )
+SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, kend )
   USE netcdf
-  USE cable_def_types_mod,   ONLY : r_2,ms,mp
+  USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
   USE cable_common_module,   ONLY : kend_gl
 #     ifndef UM_BUILD
   USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
@@ -432,13 +443,14 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen,  n_call, kend )
   TYPE (casa_flux),             INTENT(IN) :: casaflux
   TYPE (casa_met),              INTENT(IN) :: casamet
   TYPE (phen_variable),         INTENT(IN) :: phen
+  TYPE (climate_type), INTENT(IN)       :: climate  ! climate variables
 
   !number of instances. dummied here and so=1
   !integer :: inst =1
 
   !netcdf IDs/ names
   CHARACTER(len=*)   :: ncfile
-  INTEGER, PARAMETER :: num_vars=12
+  INTEGER, PARAMETER :: num_vars=13
   INTEGER, PARAMETER :: num_dims=3
   INTEGER, SAVE :: ncid       ! netcdf file ID
 
@@ -455,7 +467,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen,  n_call, kend )
        "phendoyphase1", &
        "phendoyphase2", &
        "phendoyphase3", &
-       "phendoyphase4"/)
+       "phendoyphase4", &
+       "mtemp"/)
 
   INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
 
@@ -519,6 +532,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen,  n_call, kend )
   CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
+
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset

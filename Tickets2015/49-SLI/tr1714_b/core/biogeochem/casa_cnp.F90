@@ -154,6 +154,8 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
      endif
    enddo
 
+!write(59,91)  xNuptake,casapool%Nsoilmin, totNreqmin*deltpool 
+!91  format(20(f12.4,2x))
 !  casaflux%cnpp(:) = xNPuptake(:) * xnplimit(:) * casaflux%cnpp(:)
 
 
@@ -515,10 +517,10 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
     !     resp_coeff = 0.30
     ! endwhere
     ! resp_coeff = (1.28+0.01*55-0.0334*climate%mtemp_max)/1.38
-    ! resp_coeff = (1.06+veg%cfrd*veg%vcmax*1e6-0.053*climate%mtemp_max)/ &
-       !   (1.06+veg%cfrd*veg%vcmax*1e6-0.053*20)
-          resp_coeff = max(((1.06+0.015*55-0.053*climate%mtemp_max)/ &
-          (1.06+0.015*55-0.053*20)),0.2)
+     resp_coeff = max((1.06+veg%cfrd*veg%vcmax*1e6-0.053*climate%mtemp_max)/ &
+          (1.06+veg%cfrd*veg%vcmax*1e6-0.053*20),0.2)
+         ! resp_coeff = max(((1.06+0.015*55-0.053*climate%mtemp)/ &
+         ! (1.06+0.015*55-0.053*20)),0.2)
   Endif
 
 
@@ -573,7 +575,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
     !casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
     !                 - casaflux%crgplant(:)))
     ! changes made by yp wang 5 april 2013
-    casaflux%Cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+    Casaflux%cnpp(:) = casaflux%Cgpp(:)-Sum(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+
   ENDWHERE
 
 END SUBROUTINE casa_rplant
@@ -818,12 +821,6 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
   ENDWHERE
 
 
-  WHERE (phen%doyphase(:,3).ne.367 .and. casamet%iveg2/=icewater)
-     casaflux%kplant(:,leaf)        =  (deltcasa/10.0) *xkleaf(:) &
-          + xkleafcold(:) + xkleafdry(:)
-
-  ENDWHERE
-
   ! When glai<glaimin,leaf biomass will not decrease anymore. (Q.Zhang 10/03/2011)
   DO npt = 1,mp
     if(casamet%glai(npt).le.casabiome%glaimin(veg%iveg(npt))) casaflux%kplant(npt,leaf) = 0.0
@@ -1026,7 +1023,10 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
         casapool%dcplantdt(npt,:)  =  casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,:)     &
           - casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
 
+
+
      endif
+
 
 !! vh_js !! end of adjustments to avoid negative stores.
 
