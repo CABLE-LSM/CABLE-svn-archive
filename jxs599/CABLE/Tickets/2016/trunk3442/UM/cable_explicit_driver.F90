@@ -379,7 +379,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
    !---------------------------------------------------------------------!
-   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+   CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg )
 
    !---------------------------------------------------------------------!
