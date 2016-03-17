@@ -248,13 +248,13 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
                         air,bal)
 
    ! Input arguments
-   REAL,INTENT(IN)                           :: dels        ! time step size
-   INTEGER, INTENT(IN)                       :: ktau        ! timestep number  
-   TYPE (soil_snow_type),INTENT(IN)          :: ssnow       ! soil data
-   TYPE (soil_parameter_type),INTENT(IN)     :: soil        ! soil data
-   TYPE (canopy_type),INTENT(IN)             :: canopy      ! canopy variable data
-   TYPE(met_type),INTENT(IN)                 :: met         ! met data
-   TYPE (air_type),INTENT(IN)                :: air
+   REAL,INTENT(INOUT)                           :: dels        ! time step size
+   INTEGER, INTENT(INOUT)                       :: ktau        ! timestep number  
+   TYPE (soil_snow_type),INTENT(INOUT)          :: ssnow       ! soil data
+   TYPE (soil_parameter_type),INTENT(INOUT)     :: soil        ! soil data
+   TYPE (canopy_type),INTENT(INOUT)             :: canopy      ! canopy variable data
+   TYPE(met_type),INTENT(INOUT)                 :: met         ! met data
+   TYPE (air_type),INTENT(INOUT)                :: air
 
    ! Local variables
    REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwb         ! volumetric soil moisture
@@ -338,13 +338,13 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
                              SBOLTZ,EMLEAF, EMSOIL )
 
    ! Input arguments
-   REAL,INTENT(IN)              :: dels   ! time step size
-   TYPE (canopy_type),INTENT(IN)     :: canopy ! canopy variable data
-   TYPE(met_type),INTENT(IN)         :: met    ! met data
-   TYPE(radiation_type),INTENT(IN)   :: rad    ! met data
+   REAL,INTENT(INOUT)              :: dels   ! time step size
+   TYPE (canopy_type),INTENT(INOUT)     :: canopy ! canopy variable data
+   TYPE(met_type),INTENT(INOUT)         :: met    ! met data
+   TYPE(radiation_type),INTENT(INOUT)   :: rad    ! met data
    TYPE (balances_type),INTENT(INOUT):: bal 
-   TYPE (soil_snow_type),INTENT(IN)  :: ssnow  ! soil data
-   REAL, INTENT(IN)::                                                         &
+   TYPE (soil_snow_type),INTENT(INOUT)  :: ssnow  ! soil data
+   REAL, INTENT(INOUT)::                                                         &
       SBOLTZ,  & !Stefan-Bolzman constant
       EMLEAF,  & !leaf emissivity
       EMSOIL     !leaf emissivity
@@ -398,11 +398,11 @@ END SUBROUTINE energy_balance
 SUBROUTINE rh_sh (relHum,tk,psurf,specHum)
 
    ! Input arguments
-   REAL, INTENT (IN)  ::                                                  &
+   REAL   ::                                                  &
         psurf,  & ! surface pressure (hPa)
         relHum, & ! relative humidity (%)
         tk        ! air temp (K) 
-   REAL, INTENT (OUT) :: specHum ! specific humidity (kg/kg)
+   REAL :: specHum ! specific humidity (kg/kg)
    
    ! Local variables
    REAL ::                                                                &

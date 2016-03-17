@@ -256,12 +256,12 @@ CONTAINS
   SUBROUTINE open_output_file(kend, dels, soil, veg, bgc, rough)
     ! Creates netcdf output file, defines all variables 
     ! and writes parameters to it if requested by user.
-    INTEGER, INTENT(IN) :: kend
-    REAL, INTENT(IN) :: dels ! time step size
-    TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
-    TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
-    TYPE (bgc_pool_type), INTENT(IN)       :: bgc
-    TYPE (roughness_type), INTENT(IN)      :: rough
+    INTEGER, INTENT(INOUT) :: kend
+    REAL, INTENT(INOUT) :: dels ! time step size
+    TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg  ! vegetation parameters
+    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc
+    TYPE (roughness_type), INTENT(INOUT)      :: rough
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
     INTEGER, POINTER, DIMENSION(:,:) :: nap_tmp  ! temp var for # active patch
     INTEGER :: ii
@@ -1442,9 +1442,9 @@ CONTAINS
 
   SUBROUTINE write_casa_params(veg,casamet,casabiome)
     USE casavariable,        ONLY: casa_biome, casa_met
-    TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
-    TYPE (casa_biome),         INTENT(IN)  :: casabiome
-    TYPE (casa_met),           INTENT(IN)  :: casamet
+    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg  ! vegetation parameters
+    TYPE (casa_biome),         INTENT(INOUT)  :: casabiome
+    TYPE (casa_met),           INTENT(INOUT)  :: casamet
 
     ! local variable
     REAL, DIMENSION(mp)   :: temp
@@ -1466,16 +1466,16 @@ CONTAINS
     ! each timestep, but may only write to the output file periodically,
     ! depending on whether the user has specified that output should be 
     ! aggregated, e.g. to monthly or 6-hourly averages.
-    REAL, INTENT(IN)              :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
-    REAL, INTENT(IN) :: SBOLTZ, EMLEAF, EMSOIL
-    TYPE(met_type), INTENT(IN)         :: met  ! met data
-    TYPE(canopy_type), INTENT(IN)      :: canopy ! canopy variable data
-    TYPE(soil_snow_type), INTENT(IN)   :: ssnow ! soil data
-    TYPE(soil_parameter_type), INTENT(IN) :: soil ! soil parameters
-    TYPE(radiation_type), INTENT(IN)  :: rad   ! radiation data
-    TYPE(air_type), INTENT(IN)        :: air
-    TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
+    REAL, INTENT(INOUT)              :: dels ! time step size
+    INTEGER, INTENT(INOUT)           :: ktau ! timestep number in loop which include spinup 
+    REAL, INTENT(INOUT) :: SBOLTZ, EMLEAF, EMSOIL
+    TYPE(met_type), INTENT(INOUT)         :: met  ! met data
+    TYPE(canopy_type), INTENT(INOUT)      :: canopy ! canopy variable data
+    TYPE(soil_snow_type), INTENT(INOUT)   :: ssnow ! soil data
+    TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+    TYPE(radiation_type), INTENT(INOUT)  :: rad   ! radiation data
+    TYPE(air_type), INTENT(INOUT)        :: air
+    TYPE(veg_parameter_type), INTENT(INOUT) :: veg ! vegetation parameters
     TYPE(balances_type), INTENT(INOUT) :: bal
 
     REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
@@ -2388,13 +2388,13 @@ CONTAINS
   SUBROUTINE write_casa_flux(dels, ktau, met, casaflux, casapool, casabal,phen)
     USE casavariable,        ONLY: casa_pool, casa_flux, casa_balance
     USE phenvariable,        ONLY: phen_variable
-    REAL, INTENT(IN)     :: dels ! time step size
-    INTEGER, INTENT(IN)  :: ktau ! timestep number in loop which include spinup
-    TYPE(met_type), INTENT(IN)      :: met      ! met data
-    TYPE(casa_flux), INTENT(IN)     :: casaflux ! flux data from CASACNP module
-    TYPE(casa_pool), INTENT(IN)     :: casapool ! nutrient pools data
-    TYPE(casa_balance), INTENT(IN)  :: casabal
-    TYPE(phen_variable), INTENT(IN) :: phen
+    REAL, INTENT(INOUT)     :: dels ! time step size
+    INTEGER, INTENT(INOUT)  :: ktau ! timestep number in loop which include spinup
+    TYPE(met_type), INTENT(INOUT)      :: met      ! met data
+    TYPE(casa_flux), INTENT(INOUT)     :: casaflux ! flux data from CASACNP module
+    TYPE(casa_pool), INTENT(INOUT)     :: casapool ! nutrient pools data
+    TYPE(casa_balance), INTENT(INOUT)  :: casabal
+    TYPE(phen_variable), INTENT(INOUT) :: phen
     ! variables inherited from cable_output_module
     ! cable_IO_vars_module  -  
 !   INTEGER,DIMENSION(12) ::                                                    &
@@ -2814,19 +2814,19 @@ CONTAINS
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
     ! not be active). It uses CABLE's internal variable names.
-    INTEGER, INTENT(IN) :: logn ! log file number
-    REAL, INTENT(IN) :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
-    TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
-    TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
-    TYPE (soil_snow_type), INTENT(IN)      :: ssnow  ! soil and snow variables
-    TYPE (bgc_pool_type), INTENT(IN)       :: bgc    ! carbon pool variables
-    TYPE (canopy_type), INTENT(IN)         :: canopy ! vegetation variables
-    TYPE (roughness_type), INTENT(IN)      :: rough  ! roughness varibles
-    TYPE (radiation_type), INTENT(IN)  :: rad ! radiation variables
-    TYPE (balances_type), INTENT(IN) :: bal ! energy and water balance variables
-!    INTEGER, INTENT(IN) :: mvtype
-!    INTEGER, INTENT(IN) :: mstype
+    INTEGER, INTENT(INOUT) :: logn ! log file number
+    REAL, INTENT(INOUT) :: dels ! time step size
+    INTEGER, INTENT(INOUT)           :: ktau ! timestep number in loop which include spinup 
+    TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg  ! vegetation parameters
+    TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil and snow variables
+    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc    ! carbon pool variables
+    TYPE (canopy_type), INTENT(INOUT)         :: canopy ! vegetation variables
+    TYPE (roughness_type), INTENT(INOUT)      :: rough  ! roughness varibles
+    TYPE (radiation_type), INTENT(INOUT)  :: rad ! radiation variables
+    TYPE (balances_type), INTENT(INOUT) :: bal ! energy and water balance variables
+!    INTEGER, INTENT(INOUT) :: mvtype
+!    INTEGER, INTENT(INOUT) :: mstype
 
     TYPE(parID_type) :: rpid ! parameter IDs for restart nc file
     INTEGER :: ncid_restart ! netcdf restart file ID
