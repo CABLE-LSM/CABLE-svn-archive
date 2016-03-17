@@ -6,7 +6,7 @@
 ! 
 ! You may not use this file except in compliance with this License.
 ! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! in each directory cTYPE(casa_flux_type), INTENT(IN) :: casaflux ! casa fluxesontaining CABLE code.
 !
 ! ==============================================================================
 ! Purpose: Defines input/output related variables for CABLE offline
@@ -133,6 +133,10 @@ MODULE cable_IO_vars_module
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
           g0,g1 ! Ticket #56
 
+     INTEGER :: ishorizon,nhorizons,clitt, &
+          zeta,fsatmax, &
+          gamma,ZR,F10
+
    END TYPE parID_type
   
    ! =============== Logical  variables ============================
@@ -221,6 +225,7 @@ MODULE cable_IO_vars_module
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
+         SoilMoistIce = .FALSE., & ! 33 av.layer soil frozen moisture [kg/m2]
          Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
          Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
          DelSoilMoist = .FALSE., & ! 36 change in soilmoisture 
