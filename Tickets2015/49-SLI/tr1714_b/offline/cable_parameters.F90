@@ -1272,7 +1272,7 @@ CONTAINS
          veg%gamma = 3.e-2
          !veg%clitt = 5.0 ! (tC / ha)
       ENDIF
-
+!! vh_js !!
       IF(cable_user%CALL_POP) THEN
          veg%disturbance_interval = 100
          veg%disturbance_intensity = 0.

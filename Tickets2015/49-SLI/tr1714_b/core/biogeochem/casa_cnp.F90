@@ -281,6 +281,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
   !   root=ratiofinerootleaf*cleaf
 
 ! vh edit to avoid overwriting CASE(3) for woody veg
+!! vh_js !!
   IF (LALLOC.ne.(3)) THEN
 
      WHERE(casamet%iveg2/=icewater)
@@ -414,10 +415,10 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
      ENDWHERE
   !   write(*,*) 'alloc2',  casaflux%fracCalloc(1,2), casaflux%Cnpp(1), casapool%Cplant(1,:), &
   !        casamet%lnonwood(1)
-if (ANY(casapool%Cplant(1,:).NE.casapool%Cplant(1,:))) then
-write(*,*) 'cplant', casapool%Cplant(1,:)
-stop
-endif
+!if (ANY(casapool%Cplant(1,:).NE.casapool%Cplant(1,:))) then
+!write(*,*) 'cplant', casapool%Cplant(1,:)
+!stop
+!endif
   ENDIF ! LALLOC=3
   
 
@@ -636,7 +637,10 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                     ** casabiome%xkleafdryexp(veg%iveg(npt))
     IF (phen%phase(npt)==1) xkleaf(npt)= 0.0
 ! vh: account for high rate of leaf loss during senescence
+! vh_js
+if (trim(cable_user%PHENOLOGY_SWITCH)=='climate') then
     IF (phen%phase(npt)==3.or.phen%phase(npt)==0) xkleaf(npt)= 100.0
+endif
   END IF
   END DO
 

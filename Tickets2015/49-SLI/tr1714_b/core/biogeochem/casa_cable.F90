@@ -82,6 +82,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    REAL(dp), allocatable :: NPPtoGPP(:)
    CHARACTER                                 :: cyear*4
    CHARACTER                                 :: ncfile*99
+ !! vh_js !!
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
 
    !INTEGER, INTENT(IN) :: wlogn
@@ -90,6 +91,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
    if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
    if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
+   !! vh_js !!
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
 
 

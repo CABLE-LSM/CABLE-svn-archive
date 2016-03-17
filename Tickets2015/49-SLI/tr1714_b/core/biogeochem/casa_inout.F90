@@ -758,6 +758,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
 
   IF (initcasa==1) THEN
      INQUIRE( FILE=TRIM(casafile%cnpipool), EXIST=EXRST )
+!! vh_js!!
      IF ( EXRST ) THEN
 
            PRINT*, ' Reading cnppoolOutfile as input: ,',casafile%cnpipool
@@ -767,6 +768,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
     DO npt =1, mp
        SELECT CASE(icycle)
        CASE(1)
+          !! vh_js !!
           IF (cable_user%CALL_POP) THEN
 
              READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
@@ -778,7 +780,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
 
 
              ELSE
-             READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
+              READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                   casamet%glai(npt),slaz,phen%phase(npt) , &
                   phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
                   casapool%clabile(npt) ,casapool%cplant(npt,:) ,  &
@@ -789,7 +791,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
 
 
        CASE(2)
-
+!! vh_js !!
           IF (cable_user%CALL_POP) THEN
              READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                   casamet%glai(npt),slaz,phen%phase(npt), &
@@ -813,6 +815,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
 
           ENDIF
        CASE(3)
+!! vh_js !!
           IF (cable_user%CALL_POP) THEN
              READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
                   casamet%glai(npt),slaz,phen%phase(npt), &
@@ -854,6 +857,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
 
 
  ELSE
+ !! vh_js !!
     WRITE(*,*)'No valid restart file for casa_init found.'
     WRITE(*,*)'Using input from readbiome.!!!'
     WRITE(*,*) 'initialising frac_sapwood=1 and sapwood_area = 0)'
@@ -929,7 +933,7 @@ endif
      casabal%FPupyear=0.0;casabal%FPleachyear=0.0;casabal%FPlossyear=0.0
   EndIF
 
-write(*,*) 'casa_init', casapool%cplant(1,:)
+
 
 END SUBROUTINE casa_init
 
@@ -1052,6 +1056,7 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
      casabal%sumcbal(npt) =0.0; casabal%sumnbal(npt) =0.0; casabal%sumpbal(npt) = 0.0
   endif
 
+!! vh_js  !! 
   IF (cable_user%CALL_POP) THEN
    
      WRITE(nout,92) ktau,npt,veg%iveg(npt),soil%isoilm(npt) ,     &
@@ -1291,7 +1296,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   call avgsoil(veg,soil,casamet)
   call casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
-
+!! vh_hs !!
    IF (.NOT.cable_user%CALL_POP) THEN
       call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
    ENDIF
@@ -1302,7 +1307,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
         casaflux,casamet,phen)
 
    call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
-
+!! vh_js !!
    IF (cable_user%CALL_POP) THEN
 
       call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)

@@ -96,6 +96,7 @@ PROGRAM cable_offline_driver
        casa_met, casa_balance, zero_sum_casa, update_sum_casa
   USE phenvariable,	    ONLY: phen_variable
 
+!! vh_js !!
   ! modules related to POP
   USE POP_Types,	    ONLY: POP_TYPE
   USE POP_Constants,	    ONLY: HEIGHT_BINS, NCOHORT_MAX
@@ -170,6 +171,7 @@ PROGRAM cable_offline_driver
   TYPE (casa_met)	:: casamet
   TYPE (casa_balance)	:: casabal
   TYPE (phen_variable)	:: phen
+!! vh_js !!
   TYPE (POP_TYPE)	:: POP
   TYPE (PLUME_MIP_TYPE) :: PLUME
   CHARACTER		:: cyear*4
@@ -291,6 +293,8 @@ PROGRAM cable_offline_driver
   ELSEIF ( icycle .EQ. 0 ) THEN
      CABLE_USER%CASA_DUMP_READ	= .FALSE.
      spincasa			= .FALSE.
+
+!! vh_js !!
      CABLE_USER%CALL_POP	= .FALSE.
   ENDIF
 
@@ -441,7 +445,7 @@ PROGRAM cable_offline_driver
 	   ! be chosen from a coarse global grid of veg and soil types, based on
 	   ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
 	   IF ( CALL1 ) THEN
-!mpidiff
+!! vh_js !!
 	      CALL load_parameters( met, air, ssnow, veg,climate,bgc,		&
 		   soil, canopy, rough, rad, sum_flux,			 &
 		   bal, logn, vegparmnew, casabiome, casapool,		 &
@@ -572,7 +576,7 @@ PROGRAM cable_offline_driver
 	      !jhan this is insufficient testing. condition for
 	      !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
 	      IF(icycle >0 .OR.	 CABLE_USER%CASA_DUMP_WRITE ) THEN
-
+!! vh_js !!
 		 CALL bgcdriver( ktau, kstart, kend, dels, met,		       &
 		      ssnow, canopy, veg, soil, climate, casabiome,			&
 		      casapool, casaflux, casamet, casabal,		       &

@@ -43,6 +43,7 @@ MODULE cable_input_module
    USE casavariable
    USE casaparm, ONLY: forest, shrub
    USE phenvariable
+!! vh_js !!
    USE POP_Types,               Only: POP_TYPE
    USE POPModule,               Only: alloc_POP
    USE cable_param_module
@@ -2321,11 +2322,13 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    TYPE (casa_met)    , INTENT(OUT)        :: casamet
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
-    TYPE( POP_TYPE ), INTENT(INOUT)         :: POP
+!! vh_js !!
+   TYPE (POP_TYPE), INTENT(INOUT)         :: POP
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
    LOGICAL,INTENT(IN)                      :: &
          vegparmnew, &  ! are we using the new format?
-         spinup         ! for POP (initialize pop)
+!! vh_js !!  
+       spinup         ! for POP (initialize pop)
    REAL, INTENT(IN) :: TFRZ, EMSOIL
 
    ! Local variables
@@ -2344,6 +2347,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     INTEGER   :: IOS
     CHARACTER :: TACC*20
     INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
+!! vh_js !!
     INTEGER :: mp_POP
     INTEGER, dimension(:), ALLOCATABLE :: Iwood
 
@@ -2386,7 +2390,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
       IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') CALL casa_readphen(veg,casamet,phen)
 
       CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
-
+!! vh_js !!
       IF ( CABLE_USER%CALL_POP ) THEN
          ! evaluate mp_POP and POP_array
          mp_POP = COUNT(casamet%iveg2==forest)+COUNT(casamet%iveg2==shrub)
