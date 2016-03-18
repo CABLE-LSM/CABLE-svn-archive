@@ -48,6 +48,8 @@ USE casavariable
 USE phenvariable
 USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
 IMPLICIT NONE
+  REAL(r_2), PARAMETER :: zero = 0.0_r_2
+  REAL(r_2), PARAMETER :: one  = 1.0_r_2
 CONTAINS
 
 
@@ -78,7 +80,6 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
   xnplimit = 1.0
   casaflux%fracClabile(:) = 0.0
 
-  !print *, 'xnp:icycle', icycle
   SELECT CASE(icycle)
   CASE(2)
     WHERE(casamet%iveg2/=icewater) 
@@ -153,10 +154,10 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
      endif
    enddo
 
+!write(59,91)  xNuptake,casapool%Nsoilmin, totNreqmin*deltpool 
+!91  format(20(f12.4,2x))
 !  casaflux%cnpp(:) = xNPuptake(:) * xnplimit(:) * casaflux%cnpp(:)
 
-!  write(*,911) xNuptake(1), totNreqmin(1), totNreqmax(1), casapool%Nsoilmin(1)
-!911  format('xnp: ',10(f8.3,2x))
 
 END SUBROUTINE casa_xnp
 
@@ -180,9 +181,10 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
   TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
   TYPE (casa_biome),          INTENT(INOUT) :: casabiome
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
+  TYPE (casa_pool) :: casapool
   TYPE (casa_met),            INTENT(INOUT) :: casamet
   TYPE (phen_variable),       INTENT(INOUT) :: phen
-
+  INTEGER  :: LALLOC
   ! local variables
   INTEGER :: npt,ns,is,iv
   REAL(r_2), DIMENSION(mp,mplant) :: fracCallocx
@@ -191,7 +193,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
   REAL(r_2), DIMENSION(mp)        :: xLalloc,xwsalloc,xTalloc
   REAL(r_2), DIMENSION(mp)        :: xWorNalloc,xNalloc,xWalloc
   REAL(r_2), DIMENSION(mp)        :: totfracCalloc
-
+  REAL(r_2), DIMENSION(mp)        :: newLAI
   ! initlization
   casaflux%fracCalloc  = 0.0
   casaflux%fracClabile = 0.0
@@ -314,10 +316,15 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
   TYPE (casa_pool),           INTENT(INOUT) :: casapool
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   TYPE (casa_met),            INTENT(INOUT) :: casamet
+  TYPE (climate_type) :: climate
   INTEGER :: npt
 
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
   real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
+  real(r_2), dimension(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
+  real(r_2), dimension(mp)        :: resp_coeff
+
+
 
   ratioPNplant = 0.0
   Ygrow        = 0.0
@@ -578,6 +585,7 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
+  TYPE (phen_variable)                        :: phen
 
   ! local variables
   REAL(r_2), DIMENSION(mp)  :: xk
@@ -732,7 +740,13 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
   TYPE (casa_flux),          INTENT(INOUT) :: casaflux
   TYPE (casa_met),           INTENT(INOUT) :: casamet
 
+    ! added by ypwang following Chris Lu 5/nov/2012
+    real, dimension(mp) :: cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
+
   INTEGER  npt,nL,nP,nland
+  real(r_2)      :: Ygrow, ratioPNplant
 
    casaflux%FluxCtolitter = 0.0
    casaflux%FluxNtolitter = 0.0
@@ -1284,7 +1298,6 @@ SUBROUTINE casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
 
   casaflux%Nminuptake(:)     = 0.0
   casaflux%fracNalloc(:,:)   = 0.0
-  !xnCnpp = casaflux%Cnpp
   xnCnpp = max(0.0,casaflux%Cnpp)
   call casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
                      casabiome,casapool,casaflux,casamet)
@@ -1527,7 +1540,6 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
     casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
                                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
     casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
-!    PRINT *, 'np, casamet%glai(np) = ', np,veg%iveg(np),casamet%glai(np)
     casapool%clitter(np,:) = casapool%clitter(np,:) &
                            + casapool%dClitterdt(np,:) * deltpool 
     casapool%csoil(np,:)   = casapool%csoil(np,:)   &
@@ -1680,7 +1692,7 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
- !  npt=1
+!stop
 
  !  write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &
  !             ! casapool%cplant(npt,:),casabal%cplantlast(npt,:),casapool%dcplantdt(npt,:), &
@@ -1744,9 +1756,6 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
       casabal%psoilocclast = casapool%psoilocc
       casabal%sumpbal  = casabal%sumpbal + casabal%pbalance
    ENDIF
-   !write(*,991) npt, pbalplant(npt), pbalsoil(npt),casabal%pbalance(npt)
-91 format('balance= ',100(f12.5,2x))
-991 format('P balance at',i6,2x,10(f14.8,2x))
 
 END SUBROUTINE casa_cnpbal
 
