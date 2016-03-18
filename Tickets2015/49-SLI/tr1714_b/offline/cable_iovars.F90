@@ -180,6 +180,7 @@ MODULE cable_IO_vars_module
          ensemble = .FALSE.,  & ! are we creating an ensemble run?
          patch = .FALSE. , &   ! should patch-specific info be written
                                 ! to output file?
+!! vh_js !!
          casa = .FALSE.       ! additional casa outputs (C stores and plant turnover)
 
       ! Should output grid follow met file 'default'; force with 'land' or 'mask':
