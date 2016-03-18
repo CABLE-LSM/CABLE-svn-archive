@@ -67,11 +67,13 @@ CONTAINS
    TYPE (roughness_type), INTENT(INOUT) :: rough
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (sum_flux_type),  INTENT(INOUT) :: sum_flux
+   TYPE (climate_type)    :: climate
     
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg  
 
    REAL, INTENT(IN)               :: dels ! time setp size (s)
+   INTEGER            :: ktau !,wlogn ! integration step number
     
    INTEGER :: k,kk,j  
 

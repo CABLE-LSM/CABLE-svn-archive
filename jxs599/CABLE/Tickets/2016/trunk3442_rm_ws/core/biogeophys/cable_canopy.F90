@@ -49,6 +49,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    USE cable_air_module
    USE cable_common_module   
    USE cable_roughness_module
+    USE sli_utils, ONLY : potential_evap
+
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -57,12 +59,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    TYPE (met_type), INTENT(INOUT)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (canopy_type), INTENT(INOUT)    :: canopy
+    TYPE (climate_type)    :: climate
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    
    REAL, INTENT(IN)               :: dels ! integration time setp (s)
-   
+   INTEGER :: ktau !, wlogn
    INTEGER  ::                                                                 &
       iter,  & ! iteration #
       iterplus !
@@ -92,6 +95,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    REAL, DIMENSION(mp) ::                                                      &
       ftemp,z_eff,psim_arg, psim_1, psim_2, rlower_limit,                      &
       term1, term2, term3, term5 
+    ! arguments for potential_evap (sli)
+    REAL(r_2), DIMENSION(mp) ::  Rn, rbh, rbw, Ta, rha,Ts, &
+         kth, dz,lambdav, &
+         Tsoil, Epot, Hpot, Gpot, &
+         dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil
+    REAL, DIMENSION(mp) :: qsat
 
    REAL, DIMENSION(:), POINTER ::                                              & 
       cansat,        & ! max canopy intercept. (mm)
@@ -115,6 +124,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       csx              ! leaf surface CO2 concentration
 
    REAL  :: rt_min
+    REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
 
    INTEGER :: j
    
@@ -208,6 +218,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       rt_min = 5.      
       rt0 = max(rt_min,rough%rt0us / canopy%us)
       
+          IF (cable_user%litter) THEN
+             ! Mathews (2006), A process-based model of offine fuel moisture,
+             !                 International Journal of Wildland Fire 15,155-168
+             ! assuming here u=1.0 ms-1, bulk litter density 63.5 kgm-3
+             canopy%kthLitt = 0.3_r_2 ! ~ 0.2992125984251969 = 0.2+0.14*0.045*1000.0/63.5
+             canopy%DvLitt = 3.1415841138194147e-05_r_2 ! = 2.17e-5*exp(1.0*2.6)*exp(-0.5*(2.08+(1.0*2.38)))
+          ENDIF
+
+       ENDIF
+
+
+
       ! Aerodynamic resistance (sum 3 height integrals)/us
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
       rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
@@ -1198,6 +1220,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
    TYPE (veg_parameter_type),  INTENT(INOUT)   :: veg
    TYPE (soil_parameter_type), INTENT(inout)   :: soil
+    INTEGER :: ktau
+    TYPE (climate_type)    :: climate
    
    REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
       dsx,        & ! leaf surface vpd
