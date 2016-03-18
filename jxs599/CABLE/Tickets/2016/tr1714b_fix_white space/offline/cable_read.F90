@@ -91,8 +91,8 @@ CONTAINS
     IF(ok /= NF90_NOERR) THEN ! if it doesn't exist
        completeSet=.FALSE.
        ! If this routine is reading from the restart, abort
-       IF(PRESENT(from_restart))  write(*,*) ' Error reading '//parname//' in file ' &
-                                   //TRIM(filename)//' (SUBROUTINE readpar_i)'
+       IF(PRESENT(from_restart)) CALL nc_abort(ok,'Error reading '//parname//  &
+                         ' in file '//TRIM(filename)// '(SUBROUTINE readpar_i)')
     ELSE
        exists%parameters = .TRUE. ! Note that pars were found in file
        ! Check for grid type - restart file uses land type grid
@@ -685,8 +685,8 @@ CONTAINS
     IF(ok /= NF90_NOERR) THEN ! if it doesn't exist
        completeSet = .FALSE.
        ! If this routine is reading from the restart, abort
-       IF(PRESENT(from_restart))  write(*,*) ' Error reading '//parname//' in file ' &
-                                   //TRIM(filename)//' (SUBROUTINE readpar_r2d)'
+       IF(PRESENT(from_restart)) CALL nc_abort(ok,'Error reading '//parname//  &
+                       ' in file '//TRIM(filename)// '(SUBROUTINE readpar_r2d)')
     ELSE
        exists%parameters = .TRUE. ! Note that pars were found in file
        ! Decide which 2nd dimension of parameter /init state we're loading:

@@ -35,7 +35,7 @@ MODULE cable_albedo_module
 CONTAINS
 
 
-SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
+SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
    USE cable_common_module
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
@@ -53,7 +53,6 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
       dummy
-   REAL, INTENT(IN) :: dels
 
    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE :: c1, rhoch
 
@@ -68,8 +67,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
    IF (.NOT. allocated(c1)) &
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-
-   CALL surface_albedosn(ssnow, veg, met, soil, dels)
+   CALL surface_albedosn(ssnow, veg, met, soil)
 
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
@@ -111,8 +109,9 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
                         * rhoch(:,b)
 
          ! Canopy beam transmittance (fraction):
-         dummy2 = MIN(rad%extkbm(:,b)*canopy%vlaiw, 20.)
-         dummy  = EXP(-dummy2)
+         dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
+         dummy  = EXP(dummy2)
+
          rad%cexpkbm(:,b) = REAL(dummy)
 
          ! Calculate effective beam reflectance (fraction):
@@ -132,7 +131,7 @@ END SUBROUTINE surface_albedo
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
+SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
 
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
                                    met_type, soil_snow_type, mp
@@ -143,7 +142,6 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
 
    TYPE (veg_parameter_type),INTENT(INout)  :: veg
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
-   REAL, INTENT(IN) :: dels
 
    REAL, DIMENSION(mp) ::                                                      &
       alv,     &  ! Snow albedo for visible
@@ -164,6 +162,8 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
    REAL, PARAMETER ::                                                          &
       alvo  = 0.95,  &  ! albedo for vis. on a new snow
       aliro = 0.70      ! albedo for near-infr. on a new snow
+
+   INTEGER :: k,i,j,l,l1,l2
 
    soil%albsoilf = soil%albsoil(:,1)
 
@@ -224,13 +224,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
 
       END WHERE
 
-
-
-     !! vh_js !! in offline runs kwidth_gl is zero. Suggest using dels instead
-
-      dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * dels
-
-     ! dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl
+      dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl 
 
       WHERE (ssnow%snowd <= 1.0)
          ssnow%snage = 0.
@@ -299,9 +293,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
 
    ENDWHERE        ! snowd > 0
 
-   IF(cable_user%SOIL_STRUC=='sli') THEN
-      snrat = 1.0   ! using default parameterisation, albedo is too low, inhibiting snowpack initiation
-   ENDIF
+
    ssnow%albsoilsn(:,2) = MIN( aliro,                                          &
                           ( 1. - snrat ) * ssnow%albsoilsn(:,2) + snrat * alir)
 
@@ -346,7 +338,7 @@ SUBROUTINE soilcol_albedo(ssnow, soil)
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
 
    ! Local Variables
-   INTEGER   :: ib
+   INTEGER   :: ib, ic
    REAL(r_2), DIMENSION(mp)      :: inc
    REAL(r_2), DIMENSION(mp, nrb) :: albsod,          & ! soil albedo (direct)
                                     albsoi             ! soil albedo (indirect)
@@ -376,11 +368,11 @@ SUBROUTINE soilcol_albedo(ssnow, soil)
    albdry = RESHAPE( albdry1D, (/20, nrb/) )
 
    DO ib = 1,2 ! Number of wavebands (vis, nir)
-      inc = MAX(0.11-0.40*ssnow%wb(:,1), 0._r_2)
+      inc = MAX(0.11-0.40*ssnow%wb(:,1), 0.)
       albsod(:,ib) = MIN(albsat(INT(soil%soilcol),ib)+inc, albdry(INT(soil%soilcol),ib))
       albsoi(:,ib) = albsod(:,ib)
    END DO
-   ssnow%albsoilsn = real(0.5*(albsod + albsoi))
+   ssnow%albsoilsn = 0.5*(albsod + albsoi)
 
 END SUBROUTINE soilcol_albedo
 

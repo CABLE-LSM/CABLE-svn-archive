@@ -28,7 +28,6 @@ PROGRAM mpi_driver
   IMPLICIT NONE
 
   INTEGER :: comm, np, rank, ierr
-  REAL    :: etime ! Declare the type of etime()
 
   CALL MPI_Init (ierr)
   CALL MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
@@ -48,9 +47,6 @@ PROGRAM mpi_driver
   END IF
 
   CALL MPI_Finalize (ierr)
-
-  CALL CPU_TIME(etime)
-  PRINT *, 'Finished. ', etime, ' seconds needed for '
 
 END PROGRAM mpi_driver
 

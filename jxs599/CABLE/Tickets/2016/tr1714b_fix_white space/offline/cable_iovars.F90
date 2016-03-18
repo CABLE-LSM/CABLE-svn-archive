@@ -6,7 +6,7 @@
 !
 ! You may not use this file except in compliance with this License.
 ! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
-! in each directory cTYPE(casa_flux_type), INTENT(IN) :: casaflux ! casa fluxesontaining CABLE code.
+! in each directory containing CABLE code.
 !
 ! ==============================================================================
 ! Purpose: Defines input/output related variables for CABLE offline
@@ -94,7 +94,7 @@ MODULE cable_IO_vars_module
 
    TYPE gswp_type
 
-      CHARACTER(LEN=200) ::                                                     &
+      CHARACTER(LEN=99) ::                                                     &
          rainf, &
          snowf, &
          LWdown, &
@@ -130,10 +130,8 @@ MODULE cable_IO_vars_module
           ejmax,frac4,hc,lai,rp20,rpcoef,shelrb, vbeta, xalbnir,               &
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
-          veg_class,soil_class,mvtype,mstype,patchfrac
-     INTEGER :: ishorizon,nhorizons,clitt, &
-          zeta,fsatmax, &
-          gamma,ZR,F10
+          veg_class,soil_class,mvtype,mstype,patchfrac,                        &
+          g0,g1 ! Ticket #56
 
    END TYPE parID_type
 
@@ -178,9 +176,8 @@ MODULE cable_IO_vars_module
          balances = .FALSE.,  & ! energy and water balances
          restart = .FALSE.,   & ! create restart file?
          ensemble = .FALSE.,  & ! are we creating an ensemble run?
-         patch = .FALSE. , &   ! should patch-specific info be written
+         patch = .FALSE.        ! should patch-specific info be written 
                                 ! to output file?
-         casa = .FALSE.       ! additional casa outputs (C stores and plant turnover)
 
       ! Should output grid follow met file 'default'; force with 'land' or 'mask':
       CHARACTER(LEN=7) ::                                                      &
@@ -223,7 +220,6 @@ MODULE cable_IO_vars_module
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
-          SoilMoistIce = .FALSE., & ! 33 av.layer soil frozen moisture [kg/m2]
          Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
          Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
          DelSoilMoist = .FALSE., & ! 36 change in soilmoisture
@@ -235,7 +231,6 @@ MODULE cable_IO_vars_module
          AvgSurfT = .FALSE.,  & ! 41 Average surface temperature [K]
          RadT = .FALSE.,      & ! 42 Radiative surface temperature [K]
          SWE = .FALSE.,       & ! 43 snow water equivalent [kg/m2]
-          SnowMelt = .FALSE.,       & ! 43 snow melt [kg/m2/s] !vh!
          RootMoist = .FALSE., & ! 44 root zone soil moisture [kg/m2]
          CanopInt = .FALSE.,  & ! 45 total canopy water storage [kg/m2]
          NEE  = .FALSE.,      & ! 46 net ecosystem exchange [umol/m2/s]
@@ -247,40 +242,12 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
-
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
          HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
-         RnetSoil = .FALSE.,     & ! sensible heat from soil [W/m2] !vh!
          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
-         !! vh_js ! added CanT and fwsoil to the list
-         CanT = .FALSE.,      & ! within-canopy temperature [K]
-         Fwsoil = .FALSE.,      & ! soil moisture modifier to stomatal conductance
-
-         !! vh_js !! additional casa variables
-         NBP = .FALSE., &
-         dCdt = .FALSE., &
-         TotSoilCarb = .FALSE.,   &
-         TotLivBiomass = .FALSE., &
-         TotLittCarb = .FALSE., &
-         SoilCarbFast = .FALSE., &
-         SoilCarbSlow = .FALSE., &
-         SoilCarbPassive = .FALSE., &
-         LittCarbMetabolic = .FALSE., &
-         LittCarbStructural = .FALSE., &
-         LittCarbCWD = .FALSE., &
-         PlantCarbLeaf = .FALSE., &
-         PlantCarbFineRoot = .FALSE., &
-         PlantCarbWood = .FALSE., &
-         PlantTurnover = .FALSE., &
-         PlantTurnoverLeaf = .FALSE., &
-         PlantTurnoverFineRoot = .FALSE., &
-         PlantTurnoverWood = .FALSE., &
-         PlantTurnoverWoodDist = .FALSE., &
-         PlantTurnoverWoodCrowding = .FALSE., &
-         PlantTurnoverWoodResourceLim = .FALSE., &
 
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
@@ -309,6 +276,8 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
+         g0   = .FALSE.,      & ! Ticket #56      
+         g1   = .FALSE.,      & ! Ticket #56
          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}

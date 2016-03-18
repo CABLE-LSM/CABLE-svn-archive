@@ -31,7 +31,6 @@ module cable_data_module
       capp   = 1004.64, & ! air spec. heat (J/kg/K)
       hl = 2.5014e6, & ! air spec. heat (J/kg/K)
       hlf = 0.334e6, & ! latent heat of fusion
-      hls = 2.8350e6, & ! latent heat of sublimation (J/kg)
       !hl = 2.5104e6, & ! air spec. heat (J/kg/K)
       !hlf = 0.335e6, & ! latent heat of fusion
       dheat  = 21.5E-6, & ! molecular diffusivity for heat
@@ -93,10 +92,8 @@ module cable_data_module
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
-
-!! vh_js !! smaller values
-      real:: RAD_THRESH = 0.001
-      real:: LAI_THRESH = 0.001
+      real:: RAD_THRESH = 0.01 
+      real:: LAI_THRESH = 0.01 
    end type other_constants
 
    type photosynthetic_constants
@@ -209,7 +206,7 @@ module cable_data_module
       REAL, POINTER ::                                                         &
          ! physical constants
          CSD, CRD, CCD, CCW_C, USUHM, VONK,                                    &
-         A33, CTL,  ZDLIN, CSW, GRAV , LAI_THRESH  !! vh_js !! added LAI_THRESH here
+         A33, CTL,  ZDLIN, CSW, GRAV   
    END TYPE irough_type
 
 
@@ -217,7 +214,7 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF, HLS
+         CAPP, TFRZ, HL, HLF
    END TYPE issnow_type
 
 
@@ -399,7 +396,6 @@ SUBROUTINE rough_type_ptr(C)
          C%CTL   => PHYS%CTL
          C%ZDLIN => PHYS%ZDLIN
          C%GRAV  => PHYS%GRAV
-         C%LAI_THRESH => OTHER%LAI_THRESH
 END SUBROUTINE rough_type_ptr
 
 ! ------------------------------------------------------------------------------
@@ -411,8 +407,8 @@ SUBROUTINE ssnow_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
-   C%HLS   => PHYS%HLS
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr
 
 END MODULE cable_data_module
+

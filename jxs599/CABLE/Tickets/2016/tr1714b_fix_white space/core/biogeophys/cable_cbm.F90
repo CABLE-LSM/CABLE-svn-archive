@@ -39,9 +39,9 @@ MODULE cable_cbm_module
 
 CONTAINS
 
-   SUBROUTINE cbm( ktau,dels, air, bgc, canopy, met,                                &
+   SUBROUTINE cbm( dels, air, bgc, canopy, met,                                &
                    bal, rad, rough, soil,                                      &
-                   ssnow, sum_flux, veg, climate )
+                   ssnow, sum_flux, veg )
 
    USE cable_common_module
    USE cable_carbon_module
@@ -67,13 +67,11 @@ CONTAINS
    TYPE (roughness_type), INTENT(INOUT) :: rough
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (sum_flux_type),  INTENT(INOUT) :: sum_flux
-   TYPE (climate_type), INTENT(IN)    :: climate
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg
 
    REAL, INTENT(IN)               :: dels ! time setp size (s)
-   INTEGER, INTENT(IN)            :: ktau !,wlogn ! integration step number
 
    INTEGER :: k,kk,j
 
@@ -106,23 +104,18 @@ CONTAINS
    IF( cable_runtime%um ) THEN
 
       IF( cable_runtime%um_explicit ) THEN
-         CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, dels)
+         CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
       ENDIF
 
    ELSE
-      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, dels)
+      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
    ENDIf
 
-   !! vh_js !!
-   ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
-   ssnow%otss = ssnow%tss
-
    ! Calculate canopy variables:
-        CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau,climate)!,wlogn)
+   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
-   !ssnow%otss_0 = ssnow%otss
-   !ssnow%otss = ssnow%tss
-
+   ssnow%otss_0 = ssnow%otss
+   ssnow%otss = ssnow%tss
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac
 
@@ -133,13 +126,8 @@ CONTAINS
       ENDIF
 
    ELSE
-      IF(cable_user%SOIL_STRUC=='default') THEN
          call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
-      ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
-         CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
       ENDIF
-   ENDIF
-
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations

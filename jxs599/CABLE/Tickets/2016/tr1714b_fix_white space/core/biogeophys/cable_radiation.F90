@@ -120,7 +120,6 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       ! Define beam fraction, fbeam:
       rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
       rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
-
       ! coszen is set during met data read in.
 
       WHERE (met%coszen <1.0e-2)
@@ -146,8 +145,6 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    END WHERE
 
    WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
-!! vh_js !!
-    !  rad%extkb=1.0e5         ! vh ! suggest higher to avoid sunlit leaves at night: this change affects cumulative fluxes, so currently commented out for comparison with trunk.
       rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
    END WHERE
 
@@ -160,6 +157,8 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, soil_snow_type,         &
                                    air_type, mp, mf, r_2
+
+   USE cable_common_module, only : cable_runtime, cable_user
 
    TYPE (canopy_type),   INTENT(IN) :: canopy
    TYPE (air_type),      INTENT(IN) :: air
@@ -176,6 +175,9 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
       emair, &    ! air emissivity
       flpwb, &    ! black-body long-wave radiation
       flwv, &     ! vegetation long-wave radiation (isothermal)
+      xx1,tssp    ! 
+      
+   REAL(r_2), DIMENSION(mp) ::                                                 &
       dummy, dummy2
 
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
@@ -183,6 +185,8 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
 
    INTEGER, SAVE :: call_number =0
+
+   REAL s1,s2,s3,step
 
    call_number = call_number + 1
 
@@ -205,15 +209,12 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    END WHERE
 
    ! Define fraction of SW beam tranmitted through canopy:
-!! vh_js !!
-   dummy2 = MIN(rad%extkb * canopy%vlaiw,30.) ! vh version to avoid floating underflow !
-   dummy = EXP(-dummy2)
-  ! dummy2 = -rad%extkb * canopy%vlaiw
-  ! dummy = EXP(dummy2)
+   dummy2 = -rad%extkb * canopy%vlaiw
+   dummy = EXP(dummy2)
    rad%transb = REAL(dummy)
 
    ! Define longwave from vegetation:
-   flpwb = C%sboltz * (met%tvrad) ** 4
+   flpwb = C%sboltz * (met%tk) ** 4
    flwv = C%EMLEAF * flpwb
 
    rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
@@ -303,9 +304,9 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
       ! (av. of transmitted NIR and PAR through canopy)*SWdown
       rad%qssabs = met%fsd(:,1) * (                                            &
                    rad%fbeam(:,1) * ( 1. - rad%reffbm(:,1) ) *                 &
-                   EXP( -min(rad%extkbm(:,1) * canopy%vlaiw,20.) ) +           &
+                   EXP( -rad%extkbm(:,1) * canopy%vlaiw ) +                    &
                    ( 1. - rad%fbeam(:,1) ) * ( 1. - rad%reffdf(:,1) ) *        &
-                   EXP( -min(rad%extkdm(:,1) * canopy%vlaiw,20.) ) )           &
+                   EXP( -rad%extkdm(:,1) * canopy%vlaiw ) )                    &
                    + met%fsd(:,2) * ( rad%fbeam(:,2) * ( 1. - rad%reffbm(:,2) )&
                    * rad%cexpkbm(:,2) + ( 1. - rad%fbeam(:,2) ) *              &
                    ( 1. - rad%reffdf(:,2) ) * rad%cexpkdm(:,2) )
@@ -343,6 +344,7 @@ END SUBROUTINE radiation
 SUBROUTINE calc_rhoch(veg,c1,rhoch)
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
+   USE cable_common_module, only : cable_runtime   
 
    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
    REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch

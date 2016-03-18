@@ -28,31 +28,6 @@ MODULE cable_common_module
   !---allows reference to "gl"obal timestep in run (from atm_step)
   !---total number of timesteps, and processing node
   INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
-  INTEGER, SAVE :: CurYear  ! current year of multiannual run
-
-  ! user switches turned on/off by the user thru namelists
-
-  ! trunk modifications protected by these switches
-  TYPE hide_switches
-     LOGICAL ::                                                               &
-          ! L.Stevens - Test Switches
-          L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket?
-          L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
-          L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
-          Ticket46 = .FALSE.,              & !
-          !jhan: default should be FALSE, bu set up nml etc
-          Ticket49Bug1 = .false.,           & !
-          Ticket49Bug2 = .false.,           & !
-          Ticket49Bug3 = .false.,           & !
-          Ticket49Bug4 = .false.,           & !
-          Ticket49Bug5 = .false.,           & !
-          Ticket49Bug6 = .false.              !
-
-  END TYPE hide_switches
-
-  ! instantiate internal switches
-  TYPE (hide_switches), SAVE :: hide
-
 
   ! set from environment variable $HOME
   CHARACTER(LEN=200) ::                                                       &
@@ -71,43 +46,20 @@ MODULE cable_common_module
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   END TYPE kbl_internal_switches
 
-  ! instantiate internal switches
   TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
-  ! user switches turned on/off by the user thru namelists
-  ! CABLE-2.0 user switches all in single namelist file cable.nml
-  ! clean these up for new namelist(s) format
+   !---CABLE runtime switches def in this type
   TYPE kbl_user_switches
      !jhan: this is redundant now we all use filename%veg?
      CHARACTER(LEN=200) ::                                                    &
           VEG_PARS_FILE  !
 
      CHARACTER(LEN=20) ::                                                     &
-          FWSOIL_SWITCH, &     !
-          PHENOLOGY_SWITCH = 'MODIS'   ! alternative is 'climate'
-    !--- LN ------------------------------------------[
+         FWSOIL_SWITCH     !
 
-     CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
-     CHARACTER(LEN=4)  :: MetType       = "NA" !
-     CHARACTER(LEN=20) :: SOIL_STRUC !
-     CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
-     CHARACTER(LEN=50) :: POP_rst       = ' ' !
-     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' !
-
-     LOGICAL ::                                                               &
-          CALL_POP               = .FALSE., & !
-          POP_fromZero           = .FALSE., &
-          CALL_Climate           = .FALSE., &
-          Climate_fromZero       = .FALSE.
-
-
-     INTEGER  :: &
-          CASA_SPIN_STARTYEAR = 1950, &
-          CASA_SPIN_ENDYEAR   = 1960, &
-          YEARSTART           = 1950, &
-          YEAREND             = 1960, &
-          CASA_NREP           = 1
-    !--- LN ------------------------------------------]
+      ! Ticket #56
+      CHARACTER(LEN=20) ::                                                     &
+         GS_SWITCH='leuning'
 
      CHARACTER(LEN=5) ::                                                      &
           RUN_DIAG_LEVEL  !
@@ -128,29 +80,23 @@ MODULE cable_common_module
           CASA_DUMP_READ        = .FALSE., & !
           CASA_DUMP_WRITE       = .FALSE., & !
           CABLE_RUNTIME_COUPLED = .TRUE. , & !
-          LogWorker             = .TRUE. , & ! Write Output of each worker
                                 ! L.Stevens - Test Switches
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
           L_NEW_RUNOFF_SPEED    = .FALSE., & !
           L_NEW_REDUCE_SOILEVP  = .FALSE., & !
 
                                 ! Switch for customized soil respiration - see Ticket #42
-          SRF = .FALSE., &
-
-          !! vh_js !!
-         litter = .FALSE.
+         SRF = .FALSE.
 
   END TYPE kbl_user_switches
 
-  ! instantiate internal switches
   TYPE(kbl_user_switches), SAVE :: cable_user
 
   ! external files read/written by CABLE
   TYPE filenames_type
 
-     CHARACTER(LEN=200) ::                                                        &
+   CHARACTER(LEN=500) ::                                                        &
           met,        & ! name of file for CABLE input
-          path,       & ! path for output and restart files for CABLE and CASA
           out,        & ! name of file for CABLE output
           log,        & ! name of file for execution log
           restart_in, & ! name of restart file to read
@@ -230,9 +176,10 @@ MODULE cable_common_module
           conko0,     &
           ekc,        &
           eko,        &
-          zr,         &
-          clitt
+         g0,         & !  Ticket #56
+         g1          !  Ticket #56 
 
+      
      REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
           froot,      & !
           cplant,     & !
@@ -335,8 +282,7 @@ CONTAINS
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
          vegin%ekc(mvtype), vegin%eko(mvtype)  ,                              &
-!! vh_veg_params !!
-         vegin%zr(mvtype), vegin%clitt(mvtype))
+         vegin%g0( mvtype ), vegin%g1( mvtype ))                ! Ticket #56
 
 
     IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -359,18 +305,19 @@ CONTAINS
           READ(40,*) notused, notused, notused, vegin%xalbnir(jveg)
           READ(40,*) notused, vegin%wai(jveg), vegin%canst1(jveg),           &
                vegin%shelrb(jveg), vegin%vegcf(jveg), vegin%extkn(jveg)
-
           READ(40,*) vegin%vcmax(jveg), vegin%rp20(jveg),                    &
                vegin%rpcoef(jveg),                                     &
                vegin%rs20(jveg)
           READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),                 &
-               vegin%vbeta(jveg), vegin%rootbeta(jveg),                      &
-               vegin%zr(jveg), vegin%clitt(jveg)
+                       vegin%vbeta(jveg), vegin%rootbeta(jveg)
           READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
           ! rates not currently set to vary with veg type
           READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
           READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg)
           READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg)
+            
+            READ(40,*) vegin%g0(jveg), vegin%g1(jveg)      ! Ticket #56
+
        END DO
 
     ELSE
@@ -434,6 +381,9 @@ CONTAINS
        vegin%refl(2,:) = 0.425
        vegin%refl(3,:) = 0.0
 
+         READ(40,*) vegin%g0 ! Ticket #56
+         READ(40,*) vegin%g1 ! Ticket #56
+
     ENDIF
 
     WRITE(6,*)'CABLE_log:Closing veg params file: ',trim(filename%veg)
@@ -483,164 +433,9 @@ CONTAINS
 
   END SUBROUTINE get_type_parameters
 
-    !--- LN ------------------------------------------[
-  SUBROUTINE HANDLE_ERR( status, msg )
-    ! LN 06/2013
-    use netcdf
-    INTEGER, INTENT(IN) :: status
-    CHARACTER(LEN=*), INTENT(IN),OPTIONAL :: msg
-    IF(status /= NF90_noerr) THEN
-       WRITE(*,*)"netCDF error:"
-       IF ( PRESENT( msg ) ) WRITE(*,*)msg
-       WRITE(*,*) TRIM(NF90_strerror(status))
-       STOP -1
-    END IF
-  END SUBROUTINE HANDLE_ERR
-
-  SUBROUTINE GET_UNIT (IUNIT)
-
-    ! Find an unused unit for intermediate use
-    ! PLEASE, use it ONLY when you OPEN AND CLOSE WITHIN THE SAME CALL
-    ! or there could be interferences with other files!!!
-    ! LN 05/2014
-
-    IMPLICIT NONE
-
-    INTEGER,INTENT(OUT) :: IUNIT
-    INTEGER :: i
-    LOGICAL :: is_open = .FALSE.
-
-    DO i = 200, 10000
-       INQUIRE ( UNIT=i, OPENED=is_open )
-       IF ( .NOT. is_open ) EXIT
-    END DO
-    IUNIT = i
-
-  END SUBROUTINE GET_UNIT
-
-  ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
-    IMPLICIT NONE
-    INTEGER,INTENT(IN) :: YYYY
-    LOGICAL :: IS_LEAPYEAR
-
-    IS_LEAPYEAR = .FALSE.
-    IF ( ( ( MOD( YYYY,  4 ) .EQ. 0 .AND. MOD( YYYY, 100 ) .NE. 0 ) .OR. &
-         MOD( YYYY,400 ) .EQ. 0 ) ) IS_LEAPYEAR = .TRUE.
-
-  END FUNCTION IS_LEAPYEAR
-
-  FUNCTION LEAP_DAY( YYYY )
-    IMPLICIT NONE
-    INTEGER :: YYYY, LEAP_DAY
-
-    IF ( IS_LEAPYEAR ( YYYY ) ) THEN
-       LEAP_DAY = 1
-    ELSE
-       LEAP_DAY = 0
-    END IF
-  END FUNCTION LEAP_DAY
-
-  SUBROUTINE YMDHMS2DOYSOD( YYYY,MM,DD,HOUR,MINUTE,SECOND,DOY,SOD )
-
-    ! Compute Day-of-year and second-of-day from given date and time or
-
-    IMPLICIT NONE
-
-    INTEGER,INTENT(IN)  :: YYYY,MM,DD,HOUR,MINUTE,SECOND
-    INTEGER,INTENT(OUT) :: DOY,SOD
-
-    !  LOGICAL :: IS_LEAPYEAR
-    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
-
-    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
-
-    IF ( DD .GT. MONTH(MM) .OR. DD .LT. 1 .OR. &
-         MM .GT. 12 .OR. MM .LT. 1 ) THEN
-       WRITE(*,*)"Wrong date entered in YMDHMS2DOYSOD "
-       WRITE(*,*)"DATE : ",YYYY,MM,DD
-       STOP
-    ENDIF
-    DOY = DD
-    IF ( MM .GT. 1 ) DOY = DOY + SUM( MONTH( 1:MM-1 ) )
-    SOD = HOUR * 3600 + MINUTE * 60 + SECOND
-
-  END SUBROUTINE YMDHMS2DOYSOD
-
-  SUBROUTINE DOYSOD2YMDHMS( YYYY,DOY,SOD,MM,DD,HOUR,MINUTE,SECOND )
-
-    ! Compute Day-of-year and second-of-day from given date and time or
-
-    IMPLICIT NONE
-
-    INTEGER,INTENT(IN)           :: YYYY,DOY,SOD
-    INTEGER,INTENT(OUT)          :: MM,DD
-    INTEGER,INTENT(OUT),OPTIONAL :: HOUR,MINUTE,SECOND
-
-    !  LOGICAL :: IS_LEAPYEAR
-    INTEGER :: MON, i
-    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
-
-    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
-
-    IF ( SOD .GE. 86400 .OR. SOD .LT. 0 .OR. &
-         DOY .GT. SUM(MONTH) .OR. DOY .LT. 1 ) THEN
-       WRITE(*,*)"Wrong date entered in DOYSOD2YMDHMS "
-       WRITE(*,*)"YYYY DOY SOD : ",YYYY,DOY,SOD
-       STOP
-    ENDIF
-
-    MON = 0
-    DO i = 1, 12
-       IF ( MON + MONTH(i) .LT. DOY ) THEN
-          MON = MON + MONTH(i)
-       ELSE
-          MM  = i
-          DD  = DOY - MON
-          EXIT
-       ENDIF
-    END DO
-    IF ( PRESENT ( HOUR ) ) HOUR   = INT( REAL(SOD)/3600. )
-    IF ( PRESENT (MINUTE) ) MINUTE = INT( ( REAL(SOD) - REAL(HOUR)*3600.) / 60. )
-    IF ( PRESENT (SECOND) ) SECOND = SOD - HOUR*3600 - MINUTE*60
-
-  END SUBROUTINE DOYSOD2YMDHMS
-
-  SUBROUTINE LAND2XY( xdimsize, landgrid, x, y )
-
-    ! Convert landgrid to x and y (indices for lat and lon) as
-    ! used in CABLE
-    ! LN 08/2015
-
-    IMPLICIT NONE
-    INTEGER, INTENT(IN)  :: xdimsize, landgrid
-    INTEGER, INTENT(OUT) :: x, y
-
-    y = INT(REAL((landGrid-1))/REAL(xdimsize)) + 1
-    x = landGrid - (y-1) * xdimsize
-
-  END SUBROUTINE LAND2XY
-
-  SUBROUTINE XY2LAND( xdimsize, x, y, landgrid )
-
-    ! Convert x and y (indices for lat and lon) to landgrid
-    ! as used in CABLE
-    ! LN 08/2015
-
-    IMPLICIT NONE
-    INTEGER, INTENT(IN)  :: xdimsize, x, y
-    INTEGER, INTENT(OUT) :: landgrid
-
-    landgrid = x + ( y - 1 ) * xdimsize
-
-  END SUBROUTINE XY2LAND
-    !--- LN ------------------------------------------]
 
   ! get svn revision number and status
   SUBROUTINE report_version_no( logn )
-
-#ifdef NAG
-    USE F90_UNIX_ENV, only: getenv
-#endif
     INTEGER, INTENT(IN) :: logn
     ! set from environment variable $HOME
     CHARACTER(LEN=200) ::                                                       &
@@ -693,68 +488,6 @@ CONTAINS
   END SUBROUTINE report_version_no
 
 
-  FUNCTION IS_CASA_TIME(iotype, yyyy, ktau, kstart, koffset, kend, ktauday, logn)
-
-    ! Correctly determine if it is time to dump-read or standard-write
-    ! casa output from cable_driver.
-    ! Writing casa-dump data is handled in casa_cable and therefore not \
-    ! captured here
-
-    USE cable_IO_vars_module, ONLY: leaps
-
-    IMPLICIT NONE
-
-    LOGICAL   :: IS_CASA_TIME
-    INTEGER  ,INTENT(IN) :: yyyy, ktau, kstart, koffset, kend, ktauday, logn
-    CHARACTER,INTENT(IN) :: iotype*5
-    LOGICAL   :: is_eod, is_eom, is_eoy
-    INTEGER   :: doy, m
-    INTEGER, DIMENSION(12) :: MONTH
-
-    is_eom       = .FALSE.
-    is_eoy       = .FALSE.
-    IS_CASA_TIME = .FALSE.
-
-    MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
-    is_eod = ( MOD((ktau-kstart+1+koffset),ktauday).EQ.0 )
-    IF ( .NOT. is_eod ) RETURN    ! NO if it is not end of day
-
-    IF ( IS_LEAPYEAR( YYYY ) .AND. leaps ) THEN
-       MONTH(2) = 29
-    ELSE
-       MONTH(2) = 28
-    ENDIF
-
-    ! Check for reading from dump-file (hard-wired to daily casa-timestep)
-    IF ( iotype .eq. "dread" ) THEN
-       IF ( CABLE_USER%CASA_DUMP_READ )  IS_CASA_TIME = .TRUE.
-    ! Check for writing of casa dump output
-    ELSE IF ( iotype .eq. "dwrit" ) THEN
-       IF ( CABLE_USER%CASA_DUMP_WRITE ) IS_CASA_TIME = .TRUE.
-    ! Check for writing of casa standard output
-    ELSE IF ( iotype .eq. "write" ) THEN
-
-       doy = NINT(REAL(ktau-kstart+1+koffset)/REAL(ktauday))
-       DO m = 1, 12
-          IF ( doy .EQ. SUM(MONTH(1:m)) ) THEN
-             is_eom = .TRUE.
-             IF ( m .EQ. 12 ) is_eoy = .TRUE.
-             EXIT
-          ENDIF
-       END DO
-
-       SELECT CASE ( TRIM(CABLE_USER%CASA_OUT_FREQ) )
-       CASE ("daily"   ) ; IS_CASA_TIME = .TRUE.
-       CASE ("monthly" ) ; IF ( is_eom ) IS_CASA_TIME = .TRUE.
-       CASE ("annually") ; IF ( is_eoy ) IS_CASA_TIME = .TRUE.
-       END SELECT
-    ELSE
-       WRITE(logn,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
-       WRITE(*   ,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
-       STOP -1
-    ENDIF
-
-  END FUNCTION IS_CASA_TIME
-
 
 END MODULE cable_common_module
+

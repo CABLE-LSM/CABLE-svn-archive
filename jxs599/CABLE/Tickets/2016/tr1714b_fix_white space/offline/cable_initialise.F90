@@ -39,7 +39,7 @@ MODULE cable_init_module
                                  soiltype_metfile
    USE cable_read_module
    USE netcdf
-   USE cable_common_module, ONLY : filename, cable_user
+   USE cable_common_module, ONLY : filename
 
    IMPLICIT NONE
 
@@ -139,7 +139,6 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fev     = 0.0   ! latent heat flux from vegetation (W/m2)
    canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
-   canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
 
 END SUBROUTINE get_default_inits
 
@@ -202,7 +201,6 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
         from_restart = .TRUE., & ! insist variables/params load
         dummy                    ! To replace completeSet in parameter read; unused
    REAL,    ALLOCATABLE :: var_r(:)
-   REAL,    ALLOCATABLE :: var_r2(:,:)
 
    ! Write to screen the restart file is found:
    WRITE(*,*) 'Reading restart data from: ' ,TRIM(filename%restart_in)
@@ -407,45 +405,6 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'runoff',dummy,ssnow%runoff,filename%restart_in,      &
         max_vegpatches,'def',from_restart,mp)
-
-   IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
-      CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
-           max_vegpatches,'def',from_restart,mp)
-   ENDIF
-
-    IF(cable_user%SOIL_STRUC=='sli') THEN
-       CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
-            max_vegpatches,'ms',from_restart,mp)
-      CALL readpar(ncid_rin,'Tsoil',dummy,ssnow%Tsoil,filename%restart_in, &
-            max_vegpatches,'ms',from_restart,mp)
-       CALL readpar(ncid_rin,'h0',dummy,ssnow%h0,filename%restart_in, &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'nsnow',dummy,ssnow%nsnow,filename%restart_in, &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'Tsurface',dummy,ssnow%Tsurface,filename%restart_in, &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'snowliq',dummy,ssnow%snowliq,filename%restart_in, &
-            max_vegpatches,'snow',from_restart,mp)
-       CALL readpar(ncid_rin,'sconds',dummy,ssnow%sconds,filename%restart_in, &
-            max_vegpatches,'snow',from_restart,mp)
-       CALL readpar(ncid_rin,'ZR',dummy,veg%ZR, &
-            filename%restart_in,max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'F10',dummy,veg%F10, &
-            filename%restart_in,max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'zeta',dummy,soil%zeta,filename%restart_in,           &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'fsatmax',dummy,soil%fsatmax,filename%restart_in,           &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'nhorizons',dummy,soil%nhorizons,filename%restart_in,           &
-            max_vegpatches,'def',from_restart,mp)
-       ALLOCATE(var_r2(mp,ms))
-       CALL readpar(ncid_rin,'ishorizon',dummy,var_r2,filename%restart_in,           &
-            max_vegpatches,'ms',from_restart,mp)
-       soil%ishorizon = int(var_r2)
-       DEALLOCATE(var_r2)
-       CALL readpar(ncid_rin,'clitt',dummy,veg%clitt,filename%restart_in,           &
-            max_vegpatches,'def',from_restart,mp)
-    ENDIF
    CALL readpar(ncid_rin,'cansto',dummy,canopy%cansto,filename%restart_in,     &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'sghflux',dummy,canopy%sghflux,filename%restart_in,   &
@@ -619,6 +578,10 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    CALL readpar(ncid_rin,'xalbnir',dummy,veg%xalbnir,filename%restart_in,      &
                 max_vegpatches,'def',from_restart,mp)
    veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
+   CALL readpar(ncid_rin,'g0',dummy,veg%g0,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56
+   CALL readpar(ncid_rin,'g1',dummy,veg%g1,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56 
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    ! special treatment of za with the introduction of za_uv and za_tq
