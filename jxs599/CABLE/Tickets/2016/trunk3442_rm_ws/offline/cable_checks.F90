@@ -18,7 +18,8 @@
 ! History: Small change to energy balance equation relative to 1.4b
 !          Additional variables from 1.4b for range checking
 !
-!
+! March 2014: Modifications to ebal
+! and wbal (new wbal for sli) ! (Vanessa Haverd)
 !==============================================================================
 
 MODULE cable_checks_module
@@ -31,6 +32,7 @@ MODULE cable_checks_module
 !
    USE cable_radiation_module, ONLY: sinbet
    USE cable_def_types_mod
+  USE cable_common_module, ONLY: cable_user
 
    IMPLICIT NONE
 
@@ -55,27 +57,27 @@ MODULE cable_checks_module
            timestp,                            &      
            ! possible forcing variables for CABLE
            SWdown = (/0.0,1360.0/),            & ! W/m^2
-           LWdown = (/0.0,750.0/),             & ! W/m^2
-           Rainf = (/0.0,0.03/),               & ! mm/s
-           Snowf = (/0.0,0.0085/),             & ! mm/s
+           LWdown = (/0.0,950.0/),             & ! W/m^2
+           Rainf = (/0.0,0.1/),               & ! mm/s
+           Snowf = (/0.0,0.1/),             & ! mm/s
            PSurf = (/500.0,1100.0/),           & ! mbar/hPa
            Tair = (/200.0,333.0/),             & ! K
-           Qair = (/0.0,0.04/),                & ! g/g
+           Qair = (/0.0,0.1/),                & ! g/g
            CO2air = (/160.0,2000.0/),          & ! ppmv   
            Wind = (/0.0,75.0/),                & ! m/s
            Wind_N = (/-75.0,75.0/),            & ! m/s
            Wind_E = (/-75.0,75.0/),            & ! m/s
            ! possible output variables
-           Qh = (/-1000.0,1000.0/),            & ! W/m^2
-           Qle = (/-1000.0,1000.0/),           & ! W/m^2
-           Qg = (/-1000.0,1000.0/),            & ! W/m^2   
+           Qh = (/-2000.0,2000.0/),            & ! W/m^2
+           Qle = (/-2500.0,2500.0/),           & ! W/m^2
+           Qg = (/-4000.0,4000.0/),            & ! W/m^2   
            SWnet = (/0.0,1350.0/),             & ! W/m^2 (YP oct07)
            ! SWnet = (/0.0,1250.0/),            & ! W/m^2
            LWnet = (/-500.0,510.0/),           & ! W/m^2 
            Rnet = (/-500.0,1250.0/),           & ! W/m^2 
-           Evap = (/-0.0003,0.00035/),         &      
-           Ewater = (/-0.0003,0.0003/),        &
-           ESoil = (/-0.0003,0.0003/),         &
+           Evap = (/-0.0045,0.0045/),         &  ! note this is also used for snow melt !
+           Ewater = (/-0.0005,0.0005/),        &
+           ESoil = (/-0.0015,0.0015/),         &
            TVeg = (/-0.0003,0.0003/),          &
            ECanop = (/-0.0003,0.0003/),        &
            PotEvap = (/-0.0006,0.0006/),       &
@@ -84,11 +86,11 @@ MODULE cable_checks_module
            Albedo = (/0.0,1.0/),               &
            visAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
            nirAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
-           VegT = (/213.0,333.0/),             &
-           SoilTemp = (/213.0,343.0/),         &
+           VegT = (/213.0,353.0/),             &
+           SoilTemp = (/213.0,353.0/),         &
            SoilMoist = (/0.0,2000.0/),         &
-           Qs = (/0.0,5.0/),                   &
-           Qsb = (/0.0,5.0/),                  &
+           Qs = (/0.0,15.0/),                   &
+           Qsb = (/0.0,15.0/),                  &
            DelSoilMoist  = (/-2000.0,2000.0/), & 
            DelSWE  = (/-2000.0,2000.0/),       &
            DelIntercept = (/-100.0,100.0/),    &
@@ -96,7 +98,8 @@ MODULE cable_checks_module
            BaresoilT = (/213.0,343.0/),        &
            AvgSurfT = (/213.0,333.0/),         &
            RadT = (/200.0,373.0/),             &
-           SWE = (/0.0,2000.0/),               &
+           !! vh_js !!
+           SWE = (/0.0,4000.0/),               &
            RootMoist = (/0.0,2000.0/),         &
            CanopInt = (/0.0,100.0/),           &
            NEE = (/-70.0,50.0/),               & ! umol/m2/s
@@ -110,6 +113,9 @@ MODULE cable_checks_module
            SnowDepth = (/0.0,50.0/),           & ! EK nov07
            Wbal = (/-999999.0,999999.0/),      &
            Ebal = (/-999999.0,999999.0/),      &
+           !! vh_js !!
+           CanT = (/213.0,333.0/),      &
+           Fwsoil = (/0.0,1.0/),      &
            ! parameters:
            albsoil = (/0.0,0.9/),              &
            isoil = (/1.0,30.0/),               &
@@ -120,7 +126,7 @@ MODULE cable_checks_module
            clay = (/0.0,1.0/),                 &
            css = (/700.0,2200.0/),             &
            rhosoil = (/300.0,3000.0/),         &
-           hyds = (/5.0E-7,8.5E-4/),           &
+           hyds = (/5.0E-7,8.5E-3/),           & ! VH ! sep14
            rs20 = (/0.0,10.0/),                &
            sand = (/0.0,1.0/),                 &
            sfc = (/0.1,0.5/),                  & 
@@ -161,7 +167,10 @@ MODULE cable_checks_module
            tmaxvj = (/-15.0,30.0/),            &
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
-           soil_class = (/1.0,20.0/)  
+           soil_class = (/1.0,20.0/)  , &
+           TotLivBiomass =  (/-999999.0,999999.0/),      &
+           TotSoilCarb =  (/-999999.0,999999.0/),      &
+           TotLittCarb =  (/-999999.0,999999.0/)
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
@@ -273,6 +282,7 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
 
    ! Input arguments
    REAL,INTENT(IN)              :: dels   ! time step size
+    Integer               		:: ktau   ! time step 
    TYPE (canopy_type),INTENT(IN)     :: canopy ! canopy variable data
    TYPE(met_type),INTENT(IN)         :: met    ! met data
    TYPE(radiation_type),INTENT(IN)   :: rad    ! met data

@@ -28,6 +28,7 @@ PROGRAM mpi_driver
   IMPLICIT NONE
 
   INTEGER :: comm, np, rank, ierr
+  REAL    :: etime ! Declare the type of etime()
 
   CALL MPI_Init (ierr)
   CALL MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
