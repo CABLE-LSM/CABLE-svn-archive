@@ -195,9 +195,7 @@ MODULE casavariable
                                        ratioNPsoil,   &
                                        ratioPCsoil,   &
                                        ratioNCsoilmin,&
-                                       ratioNCsoilmax,&
-                                       ratioPCplant,  &
-                                       ratioPClitter
+                                       ratioNCsoilmax
  
   END TYPE casa_pool
 
