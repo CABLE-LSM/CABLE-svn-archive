@@ -339,7 +339,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
          vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
-         vegin%g0( mvtype ), vegin%g1( mvtype ))                ! Ticket #56
+         vegin%g0( mvtype ), vegin%g1( mvtype ), &                ! Ticket #56
          !! vh_veg_params !!
          vegin%zr(mvtype), vegin%clitt(mvtype))
       
