@@ -1,6 +1,6 @@
 MODULE sli_numbers
 
-  USE cable_def_types_mod,  ONLY: r_2, i_d
+  USE cable_def_types_mod,  ONLY: r_2
 
   IMPLICIT NONE
 
@@ -55,7 +55,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: h0min        = -2.e-3
   REAL(r_2), PARAMETER :: snmin        = 0.001 ! depth of snowpack (m) without dedicated snow layer(s)
   REAL(r_2), PARAMETER :: fsnowliq_max = 0.03  ! max fraction of snow water in liquid phase
-  INTEGER(i_d), PARAMETER :: nsnow_max = 1     ! maximum number of dedicated snow layers (1 or 2)
+  INTEGER, PARAMETER :: nsnow_max = 1     ! maximum number of dedicated snow layers (1 or 2)
 
   REAL(r_2), PARAMETER :: dh0max    = 0.0001
   REAL(r_2), PARAMETER :: SLmax     = 1.01
@@ -71,7 +71,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: dTsoilmax = 1.0
   REAL(r_2), PARAMETER :: dTLmax    = 1.0
   REAL(r_2), PARAMETER :: tol_dthetaldT = 1.e-12_r_2
-  INTEGER(i_d), PARAMETER ::nsteps_ice_max = 20
+  INTEGER, PARAMETER ::nsteps_ice_max = 20
   !MC-ToDo! Identify why smaller time-steps are needed for isotopes
   ! With isotopes  REAL(r_2), PARAMETER :: dSmax=0.1_r_2, dSmaxr=0.1_r_2, dtmax=0.05_r_2*3600.,
   !                                        dtmin=0.0_r_2, dsmmax=1.0_r_2
@@ -93,7 +93,7 @@ MODULE sli_numbers
   !  0: normal run
   ! 11: Mizoguchi (1990) / Hansson et al. (2004) lab experiment of freezing unsaturated soil; etc.
   ! 16: Loetschental
-  INTEGER(i_d) :: experiment = 0
+  INTEGER :: experiment = 0
 
   ! Steeper freezing curve factor: 1=normal, >1=steeper (e.g. 1.5-2.0)
   REAL(r_2), PARAMETER :: freezefac = 1.0
@@ -103,14 +103,14 @@ MODULE sli_numbers
   ! 1: topmodel surface runoff
   ! 2: topmodel deep drainage
   ! 3: topmodel surface runoff and deep drainage
-  INTEGER(i_d), PARAMETER :: topmodel = 0
+  INTEGER, PARAMETER :: topmodel = 0
   REAL(r_2),    PARAMETER :: alpha    = 0.1 ! anistropy param for lateral flow (topmodel)
   REAL(r_2),    PARAMETER :: fsat_max = 2.0 ! exponent for vertical profile of Ksat (topmodel)
 
   ! Thermal conductivity of soil
   ! 0: Campbell (1985)
   ! 1: Van de Griend and O'Neill (1986)
-  INTEGER(i_d) :: ithermalcond = 0
+  INTEGER :: ithermalcond = 0
 
   ! define types
   TYPE vars_met
@@ -118,10 +118,10 @@ MODULE sli_numbers
   END TYPE vars_met
 
   TYPE vars
-     INTEGER(i_d) :: isat
+     INTEGER :: isat
      REAL(r_2)    :: h, phi, phiS, K, KS, Dv, cvsat, rh, phiv, phivS, kH
      REAL(r_2)    :: kE, kth, csoil, eta_th, hS, rhS, sl, cv, cvsatT, cvS, kv
-     INTEGER(i_d) :: iice
+     INTEGER :: iice
      REAL(r_2)    :: thetai, thetal, phiT, KT, lambdav, lambdaf
      REAL(r_2)    :: he, phie, Ksat ! air-entry potential values (different to core sp params for frozen soil)
      REAL(r_2)    :: dthetaldT
@@ -139,18 +139,18 @@ MODULE sli_numbers
           Qadv_melt, Qadv_vap, Qcond_net, &
           Qadv_transfer, Qmelt, Qtransfer,FluxDivergence, deltaJ, &
           Qvap, MoistureFluxDivergence, Qprec, Qevap, deltawcol
-     INTEGER(i_d) :: nsnow, nsnow_last
+     INTEGER :: nsnow, nsnow_last
   END TYPE vars_snow
 
   TYPE vars_aquifer
-     INTEGER(i_d) :: isat
+     INTEGER :: isat
      REAL(r_2)    :: zdelta, zsoil, zzero, K, Wa, discharge, f, Rsmax, Sy
   END TYPE vars_aquifer
 
   TYPE params
      REAL(r_2) :: the, thre, he, lam, Ke, eta, thr
      REAL(r_2) :: KSe, phie, phiSe, rho, thw, thfc, kd, css, clay, tortuosity
-     INTEGER(i_d) :: ishorizon ! horizon number with different soil properties
+     INTEGER :: ishorizon ! horizon number with different soil properties
      REAL(r_2) :: zeta
      REAL(r_2) :: fsatmax
      REAL(r_2) :: lambc        ! original lam for storage
@@ -162,7 +162,7 @@ MODULE sli_numbers
   END TYPE rapointer
 
   TYPE solve_type ! for energy and moisture balance in rh0_sol, etc.
-     INTEGER(i_d) :: k
+     INTEGER :: k
      REAL(r_2)    :: T1, Ta, cva, Rnet, hr1, hra, Dv, gv, gh, Dh, dz, phie, he, K1, eta,lambda, Ks, lambdav
   END TYPE solve_type
 

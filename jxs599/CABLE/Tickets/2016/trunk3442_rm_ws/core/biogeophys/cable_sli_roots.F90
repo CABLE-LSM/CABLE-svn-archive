@@ -1,6 +1,6 @@
 MODULE sli_roots
 
-  USE cable_def_types_mod, ONLY: r_2, i_d
+  USE cable_def_types_mod, ONLY: r_2
   USE sli_numbers,       ONLY: zero, half, one, two, e3
 
   IMPLICIT NONE
@@ -49,7 +49,7 @@ CONTAINS
     ! x(:) - depths to bottom of layers (cm).
     ! F10  - fraction of root length density in top 10% of the root zone
     ! Zr   - rooting depth (cm).
-    INTEGER(i_d)                    :: ms
+    INTEGER                    :: ms
     REAL(r_2)                       :: b, extr
     REAL(r_2), DIMENSION(1:size(x)) :: ext0, ext1, xend, Fi
     REAL(r_2)                       :: tmp
@@ -88,7 +88,7 @@ CONTAINS
     REAL(r_2), DIMENSION(:),   INTENT(IN)  :: Zr
     REAL(r_2), DIMENSION(:,:), INTENT(OUT) :: Fs
 
-    INTEGER(i_d)                      :: i
+    INTEGER                      :: i
     REAL(r_2), DIMENSION(1:size(x,2)) :: out
 
     do i=1, size(x,1) ! landpoints
@@ -199,7 +199,7 @@ CONTAINS
     REAL(r_2), DIMENSION(:,:), INTENT(IN)    :: dx     ! layer thicknesses (m)
     REAL(r_2),                 INTENT(IN)    :: dt
 
-    INTEGER(i_d)                      :: i
+    INTEGER                      :: i
     REAL(r_2), DIMENSION(1:size(S,2)) :: rout
     REAL(r_2)                         :: fout
 

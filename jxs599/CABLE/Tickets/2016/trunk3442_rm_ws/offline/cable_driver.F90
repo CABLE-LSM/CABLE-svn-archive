@@ -66,22 +66,22 @@ PROGRAM cable_offline_driver
                                    patch_type,soilparmnew,                     &
                                    defaultLAI
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, redistrb,  		   &
+                                   cable_runtime, filename, redistrb,          &
                                    report_version_no, wiltParam, satuParam,    &
-                                   calcsoilalbedo,		                       &
-                                   CurYear,	IS_LEAPYEAR, IS_CASA_TIME,
+                                   calcsoilalbedo,                             &
+                                   CurYear,IS_LEAPYEAR, IS_CASA_TIME
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
-                                   get_met_data,close_met_file,		   &
+                                   get_met_data,close_met_file,                &
                                    ncid_rain, ncid_snow, ncid_lw, ncid_sw,     &
-                                   ncid_ps,	ncid_qa, ncid_ta, ncid_wd
+                                   ncid_ps, ncid_qa, ncid_ta, ncid_wd
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
    USE cable_cbm_module
    USE cable_diag_module
 !mpidiff
-  USE cable_climate_mod
+  !USE cable_climate_mod
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 

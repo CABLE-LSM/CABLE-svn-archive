@@ -1018,8 +1018,8 @@ CONTAINS
     TYPE(radiation_type), INTENT(IN)  :: rad   ! radiation data
     TYPE(air_type), INTENT(IN)        :: air
     TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
-    TYPE(casa_flux), INTENT(IN) :: casaflux ! casa fluxes
-    TYPE(casa_pool), INTENT(IN) :: casapool ! casa fluxes
+    TYPE(casa_flux) :: casaflux ! casa fluxes
+    TYPE(casa_pool) :: casapool ! casa fluxes
     TYPE(balances_type), INTENT(INOUT) :: bal
 
     REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
@@ -1838,7 +1838,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: logn ! log file number
     REAL, INTENT(IN) :: dels ! time step size
     INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
-    TYPE (met_type),INTENT(IN)             :: met ! meteorological data
+    TYPE (met_type)             :: met ! meteorological data
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
     TYPE (soil_snow_type), INTENT(IN)      :: ssnow  ! soil and snow variables

@@ -81,8 +81,8 @@ MODULE cable_common_module
          VEG_PARS_FILE  ! 
       
       CHARACTER(LEN=20) ::                                                     &
-         FWSOIL_SWITCH     !
-          PHENOLOGY_SWITCH = 'MODIS'   ! alternative is 'climate'
+         FWSOIL_SWITCH, &     !
+         PHENOLOGY_SWITCH = 'MODIS'   ! alternative is 'climate'
       ! Ticket #56
       CHARACTER(LEN=20) ::                                                     &
          GS_SWITCH='leuning'

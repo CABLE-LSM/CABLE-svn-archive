@@ -62,7 +62,7 @@
 
 MODULE sli_solve
 
-  USE cable_def_types_mod, ONLY: r_2, i_d
+  USE cable_def_types_mod, ONLY: r_2
   USE sli_numbers,         ONLY: &
        experiment, &
        zero, one, two, half, thousand, e3, e5, &  ! numbers
@@ -90,7 +90,7 @@ MODULE sli_solve
 
   PUBLIC :: solve ! solution routine
 
-  INTEGER(i_d), DIMENSION(:), ALLOCATABLE :: nless, n_noconverge ! global counters
+  INTEGER, DIMENSION(:), ALLOCATABLE :: nless, n_noconverge ! global counters
 
   ! Definitions of public entities and private parameters (see above for default
   ! values):
@@ -134,10 +134,10 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(r_2),                             INTENT(IN)              :: ts, tfin
-    INTEGER(i_d),                          INTENT(IN)              :: irec, mp
+    INTEGER,                          INTENT(IN)              :: irec, mp
     REAL(r_2),      DIMENSION(1:mp),       INTENT(IN)              :: qprec
     REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT)              :: qprec_snow
-    INTEGER(i_d),                          INTENT(IN)              :: n
+    INTEGER,                          INTENT(IN)              :: n
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(IN)              :: dx
     REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT)           :: h0
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(INOUT)           :: S
@@ -148,7 +148,7 @@ CONTAINS
     REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)             :: evap_pot, runoff, infil
     REAL(r_2),      DIMENSION(1:mp),       INTENT(OUT)             :: drainage, discharge
     REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n), INTENT(OUT)      :: qh
-    INTEGER(i_d),   DIMENSION(1:mp),       INTENT(OUT)             :: nsteps
+    INTEGER,   DIMENSION(1:mp),       INTENT(OUT)             :: nsteps
     TYPE(vars_met), DIMENSION(1:mp),       INTENT(INOUT)           :: vmet
     TYPE(vars),     DIMENSION(1:mp),       INTENT(INOUT)           :: vlit
     TYPE(vars_snow), DIMENSION(1:mp),      INTENT(INOUT)           :: vsnow
@@ -182,11 +182,11 @@ CONTAINS
     REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n),   INTENT(OUT),   OPTIONAL :: qvsig, qlsig, qvTsig, qvh
     REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT), OPTIONAL :: deltaTa
     REAL(r_2),      DIMENSION(1:mp),       INTENT(IN),    OPTIONAL :: lE_old
-    INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: dolitter       ! 0: no; 1: normal; 2: resistance
-    INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: doisotopologue ! 0: no isotope; 1: HDO; 2: H218O
-    INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: dosepts        ! 0: normal; 1: uncouple T & S
-    INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: docondition    ! 0: no cond., 1: columns, 2: lines, 3: both
-    INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: doadvection       ! 0: off; 1: onn
+    INTEGER,                          INTENT(IN),    OPTIONAL :: dolitter       ! 0: no; 1: normal; 2: resistance
+    INTEGER,                          INTENT(IN),    OPTIONAL :: doisotopologue ! 0: no isotope; 1: HDO; 2: H218O
+    INTEGER,                          INTENT(IN),    OPTIONAL :: dosepts        ! 0: normal; 1: uncouple T & S
+    INTEGER,                          INTENT(IN),    OPTIONAL :: docondition    ! 0: no cond., 1: columns, 2: lines, 3: both
+    INTEGER,                          INTENT(IN),    OPTIONAL :: doadvection       ! 0: off; 1: onn
     ! Solves the RE and, optionally, the ADE from time ts to tfin.
     ! Definitions of arguments:
     ! Required args:
@@ -231,7 +231,7 @@ CONTAINS
     REAL(r_2),    DIMENSION(1:mp)       :: qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, ql0, qv0
     LOGICAL,      DIMENSION(1:mp)       :: again, getq0,getqn,init
     LOGICAL,      DIMENSION(1:mp,1:n)   :: again_ice
-    INTEGER(i_d), DIMENSION(1:mp)       :: ih0, iok, itmp, ns, nsat, nsatlast, nsteps0
+    INTEGER, DIMENSION(1:mp)       :: ih0, iok, itmp, ns, nsat, nsatlast, nsteps0
     REAL(r_2),    DIMENSION(1:mp)       :: accel, dmax, dt, dwinfil, dwoff, fac, Khmin1, Kmin1, phimin1, phip
     REAL(r_2),    DIMENSION(1:mp)       :: qpme, rsig, rsigdt, sig, t
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: Sbot, Tbot
@@ -261,14 +261,14 @@ CONTAINS
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: cv0_ss, cv_ss, Dv_ss, deltacv_ss, dx_ss
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n-1)   :: dz_ss
     REAL(r_2),      DIMENSION(1:mp,1:nsnow_max) :: cisoliqice_snow
-    INTEGER(i_d) :: itop ! integer corresponding to top of soil-snow column
-    INTEGER(i_d) :: nsnow ! number of dedicated snow layers
+    INTEGER :: itop ! integer corresponding to top of soil-snow column
+    INTEGER :: nsnow ! number of dedicated snow layers
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: tmp_thetasat, tmp_thetar
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: thetasat_ss, thetar_ss
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   ::  tmp_tortuosity
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   ::  ciso_ss, cisoice_ss
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: delthetai, dthetaldT, thetal
-    INTEGER(i_d), DIMENSION(1:mp,1:n)   :: isave, nsteps_ice, imelt
+    INTEGER, DIMENSION(1:mp,1:n)   :: isave, nsteps_ice, imelt
 
 
     TYPE(vars),         DIMENSION(1:mp) :: vtop, vbot
@@ -286,12 +286,12 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp) :: Tfreezing, dT0
     REAL(r_2),          DIMENSION(1:mp) :: dtdT
     REAL(r_2),          DIMENSION(1:mp,-nsnow_max+1:n) :: LHS, RHS, LHS_h, RHS_h
-    INTEGER(i_d),       DIMENSION(1:mp) :: surface_case
+    INTEGER,       DIMENSION(1:mp) :: surface_case
 
-    INTEGER(i_d),       DIMENSION(1:mp) :: nns, iflux
+    INTEGER,       DIMENSION(1:mp) :: nns, iflux
     LOGICAL      :: litter
-    INTEGER(i_d) :: i, j, k, kk, condition
-    INTEGER(i_d) :: littercase, isotopologue, advection, septs ! switches
+    INTEGER :: i, j, k, kk, condition
+    INTEGER :: littercase, isotopologue, advection, septs ! switches
     REAL(r_2)    :: ztmp, c2, theta
     REAL(r_2)    :: dTqwdTa, dTqwdTb, Tqw, keff
     REAL(r_2),          DIMENSION(1:mp) :: cp, cpeff, hice, deltahice, h0_0, hice_0, h0_tmp, hice_tmp
@@ -307,7 +307,7 @@ CONTAINS
     REAL(r_2) :: tmp1, tmp2
     REAL(r_2),          DIMENSION(1:mp,1:n) :: iqex, thetal_max
     REAL(r_2),          DIMENSION(1:mp)     :: icali
-    INTEGER(i_d),       DIMENSION(1:mp) :: nfac1, nfac2, nfac3, nfac4, nfac5, &
+    INTEGER,       DIMENSION(1:mp) :: nfac1, nfac2, nfac3, nfac4, nfac5, &
          nfac6, nfac7, nfac8, nfac9, nfac10,nfac11,nfac12
     REAL(r_2),          DIMENSION(1:mp)     :: J0snow, wcol0snow
 
@@ -2814,9 +2814,9 @@ CONTAINS
 
   !   IMPLICIT NONE
 
-  !   INTEGER(i_d),INTENT(IN)::n,ns,jt(n)
+  !   INTEGER,INTENT(IN)::n,ns,jt(n)
   !   REAL(r_2),INTENT(IN)::ti,tf,thi(n),thf(n),win,cin(ns),dx(n),dsmmax
-  !   INTEGER(i_d),INTENT(INOUT)::nssteps(ns)
+  !   INTEGER,INTENT(INOUT)::nssteps(ns)
   !   REAL(r_2),INTENT(INOUT)::sm(n,ns),sdrn(ns),c(n,ns)
   !   OPTIONAL::isosub
   !   INTERFACE
@@ -2853,14 +2853,14 @@ CONTAINS
   !   !      Arguments: iso - 2 character code; c - concn in soil water;
   !   !      p(:) - isotherm parameters; f - adsorbed mass/g soil;
   !   !      fc - deriv of f wrt c (slope of isotherm curve).
-  !   INTEGER(i_d),PARAMETER::itmax=20 ! max iterations for finding c from sm
+  !   INTEGER,PARAMETER::itmax=20 ! max iterations for finding c from sm
   !   REAL(r_2),PARAMETER::eps=0.00001 ! for stopping
-  !   INTEGER(i_d)::i,it,j,k
+  !   INTEGER::i,it,j,k
   !   REAL(r_2)::dc,dm,dmax,dt,dz(n-1),f,fc,r,rsig,rsigdt,sig,sigdt,t,tfin,th,v1,v2
   !   REAL(r_2),DIMENSION(n-1)::coef1,coef2
   !   REAL(r_2),DIMENSION(n)::csm,tht
   !   REAL(r_2),DIMENSION(0:n)::aa,bb,cc,dd,dy,q,qw,qya,qyb
-  !   INTEGER(i_d) :: info
+  !   INTEGER :: info
 
   !   sig=half
   !   rsig=one/sig
@@ -2970,11 +2970,11 @@ CONTAINS
    SUBROUTINE snow_augment(irec, mp, n, kk, ns,qprec_snow, Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
         Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
 
-     INTEGER(i_d),                               INTENT(IN)    :: irec  ! # of grid-cells
-    INTEGER(i_d),                               INTENT(IN)    :: mp    ! # of grid-cells
-    INTEGER(i_d),                               INTENT(IN)    :: n     ! # of soil layers
-    INTEGER(i_d),                               INTENT(IN)    :: kk    ! grid-cell reference
-    INTEGER(i_d),    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
+     INTEGER,                               INTENT(IN)    :: irec  ! # of grid-cells
+    INTEGER,                               INTENT(IN)    :: mp    ! # of grid-cells
+    INTEGER,                               INTENT(IN)    :: n     ! # of soil layers
+    INTEGER,                               INTENT(IN)    :: kk    ! grid-cell reference
+    INTEGER,    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
     REAL(r_2),    DIMENSION(mp),             INTENT(INOUT) :: qprec_snow    ! snowfall ms-1
     REAL(r_2),    DIMENSION(mp),             INTENT(IN) :: Ta    ! air temp
     REAL(r_2),                 INTENT(IN) :: tfin    ! time
@@ -2993,7 +2993,7 @@ CONTAINS
     REAL(r_2),       DIMENSION(1:mp) :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
     REAL(r_2),       DIMENSION(1:mp) :: h0_tmp, hice_tmp
     REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil, theta_tmp
-    INTEGER(i_d) :: i,j ! counters
+    INTEGER :: i,j ! counters
 
     if (qprec_snow(kk).gt.0) then
        ! total energy of augmented snow pack
@@ -3047,11 +3047,11 @@ CONTAINS
   SUBROUTINE snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
        Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
 
-    INTEGER(i_d),                               INTENT(IN)    :: irec  ! # of grid-cells
-    INTEGER(i_d),                               INTENT(IN)    :: mp    ! # of grid-cells
-    INTEGER(i_d),                               INTENT(IN)    :: n     ! # of soil layers
-    INTEGER(i_d),                               INTENT(IN)    :: kk    ! grid-cell reference
-    INTEGER(i_d),    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
+    INTEGER,                               INTENT(IN)    :: irec  ! # of grid-cells
+    INTEGER,                               INTENT(IN)    :: mp    ! # of grid-cells
+    INTEGER,                               INTENT(IN)    :: n     ! # of soil layers
+    INTEGER,                               INTENT(IN)    :: kk    ! grid-cell reference
+    INTEGER,    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(IN)    :: dx    ! soil depths
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: Tsoil ! soil temperatures soil
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: S     ! soil temperatures soil
@@ -3067,7 +3067,7 @@ CONTAINS
     REAL(r_2),       DIMENSION(1:mp) :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
     REAL(r_2),       DIMENSION(1:mp) :: h0_tmp, hice_tmp
     REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil, theta_tmp
-    INTEGER(i_d) :: i,j ! counters
+    INTEGER :: i,j ! counters
 
     tmp1d1(kk) = h0(kk)+dx(kk,1)*(var(kk,1)%thetai+var(kk,1)%thetal) ! total moisture content of top soil layer + pond
     ! tmp1d1(kk) = hice(kk)+dx(kk,1)*(var(kk,1)%thetai) ! total ice  moisture content of top soil layer + pond
@@ -3740,12 +3740,12 @@ CONTAINS
 
 
     IMPLICIT NONE
-    INTEGER(i_d),                  INTENT(IN)    :: irec
-    INTEGER(i_d),                  INTENT(IN)    :: isotopologue ! which isotope
-    INTEGER(i_d),                  INTENT(IN)    :: n            ! # of soil layers
-    INTEGER(i_d),                  INTENT(IN)    :: nsnow           ! # of snow layers
-    INTEGER(i_d),                  INTENT(IN)    :: nsnow_last           ! # of snow layers
-    INTEGER(i_d),                  INTENT(IN)    :: ns           ! index of top of soil/snow column (-nsnow_max+1)
+    INTEGER,                  INTENT(IN)    :: irec
+    INTEGER,                  INTENT(IN)    :: isotopologue ! which isotope
+    INTEGER,                  INTENT(IN)    :: n            ! # of soil layers
+    INTEGER,                  INTENT(IN)    :: nsnow           ! # of snow layers
+    INTEGER,                  INTENT(IN)    :: nsnow_last           ! # of snow layers
+    INTEGER,                  INTENT(IN)    :: ns           ! index of top of soil/snow column (-nsnow_max+1)
     REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: dx           ! soil/snow depths
     REAL(r_2),   DIMENSION(ns:n-1), INTENT(IN)    :: deltaz       ! soil/snow layer thickness
     REAL(r_2),                     INTENT(IN)    :: sig          ! implicit/explicit time steping constant
@@ -3815,7 +3815,7 @@ CONTAINS
     REAL(r_2)                   :: coefA_liqice, coefB_liqice, coefC_liqice
     REAL(r_2), DIMENSION(ns:n)   :: Seff, deltaSeff, S, Tsoil, cvsig, Sliqsig, Sicesig,qex_ss
     REAL(r_2), DIMENSION(ns:n)   :: thetaice, deltathetaice, dcice
-    INTEGER(i_d)                :: ns_ciso, j
+    INTEGER                :: ns_ciso, j
     REAL(r_2)                   :: num, den, cv1
     REAL(r_2)                   :: alphaplus_s, alphaplus_0
     ! REAL(r_2)                   :: alphaplus_liqice
@@ -3823,7 +3823,7 @@ CONTAINS
     ! REAL(r_2)                   :: cevapinL, cevapoutL, dcevapoutdcisoL, dcevapindcisoL
     REAL(r_2), DIMENSION(ns-1:n)   :: Dveff
     REAL(r_2)                   :: w1
-    INTEGER(i_d), PARAMETER     :: formulation= 2
+    INTEGER, PARAMETER     :: formulation= 2
     REAL(r_2), DIMENSION(ns:n)   :: ifreeze         ! ==1 if ice accumulating (deltathetice>0)
     REAL(r_2), DIMENSION(ns:n)   :: kfreeze, kfreeze2         ! combination of freezing variables (used when ifreeze=1)
     REAL(r_2),   DIMENSION(ns:n)    :: deltaS     !
