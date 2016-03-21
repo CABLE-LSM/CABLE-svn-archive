@@ -740,7 +740,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
            .AND. smoy > 2 ) sdoy = sdoy + 1
                  
        ! Number of days between start position and 1st timestep:
-    sdoy = sdoy + INT((timevar(1)/3600.0 + shod)/24.0)
+    jump_days =  INT((timevar(1)/3600.0 + shod)/24.0)
        ! Cycle through days to find leap year inclusive starting date:
        DO i=1,jump_days
           sdoy = sdoy + 1
