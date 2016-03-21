@@ -1613,6 +1613,11 @@ CONTAINS
 
              rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
+                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
           
 
              !if (cable_user%CALL_climate) rdx(i,:) = rdx(i,:) * &

@@ -127,24 +127,24 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   hice       = zero
 
   ! output files for testing purposes
-!!$  if (first) then
-!!$     open (unit=332,file="vh08.out",status="replace",position="rewind")
-!!$     open (unit=334,file="S.out",status="replace",position="rewind")
-!!$     open (unit=336,file="Tsoil.out",status="replace",position="rewind")
-!!$     open (unit=335,file="SEB.out",status="replace",position="rewind")
-!!$     open (unit=337,file="soil_log.out",status="replace",position="rewind")
-!!$     open(unit=338, file="thetai.out", status="replace", position="rewind")
-!!$     open(unit=340, file="snow.out", status="replace", position="rewind")
-!!$     open(unit=345, file="diags.out",status="replace", position="rewind")
-!!$     open(unit=369, file="vmet.out", status="replace", position="rewind", recl=20*20)
-!!$     open(unit=370, file="qex.out",status="replace", position="rewind")
-!!$     open(unit=371, file="q.out",status="replace", position="rewind")
-!!$
-!!$     open(unit=339, file="latlong.out",status="replace", position="rewind")
-!!$     write(339,"(20000f8.2)") rad%latitude
-!!$     write(339,"(20000f8.2)") rad%longitude
-!!$     counter = 0
-!!$  endif
+  if (first) then
+     open (unit=332,file="vh08.out",status="replace",position="rewind")
+     open (unit=334,file="S.out",status="replace",position="rewind")
+     open (unit=336,file="Tsoil.out",status="replace",position="rewind")
+     open (unit=335,file="SEB.out",status="replace",position="rewind")
+     open (unit=337,file="soil_log.out",status="replace",position="rewind")
+     open(unit=338, file="thetai.out", status="replace", position="rewind")
+     open(unit=340, file="snow.out", status="replace", position="rewind")
+     open(unit=345, file="diags.out",status="replace", position="rewind")
+     open(unit=369, file="vmet.out", status="replace", position="rewind", recl=20*20)
+     open(unit=370, file="qex.out",status="replace", position="rewind")
+     open(unit=371, file="q.out",status="replace", position="rewind")
+
+     open(unit=339, file="latlong.out",status="replace", position="rewind")
+     write(339,"(20000f8.2)") rad%latitude
+     write(339,"(20000f8.2)") rad%longitude
+     counter = 0
+  endif
 
   counter = counter + 1
 
@@ -206,8 +206,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   vmet%phiva = Dva * vmet%cva
   vmet%Rn    = canopy%fns
   ! vmet%Rnsw  = rad%qssabs  ! shortwave radiation absorbed
-  vmet%Rnsw = zero ! all radiation absorbed at snow surface
-  ! vmet%Rnsw = vmet%Rn ! all radiation absorbed beneath snow surface
+  !vmet%Rnsw = zero ! all radiation absorbed at snow surface
+   vmet%Rnsw = vmet%Rn ! all radiation absorbed beneath snow surface
   Etrans     = max(canopy%fevc/air%rlam/thousand, zero) ! m s-1
   where (canopy%fevc .lt. zero)
      canopy%fevw = canopy%fevw+canopy%fevc
@@ -554,7 +554,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL
      win = win + (qprec+qprec_snow)*(tf-ti)
 
-     if (1 == 0) then
+     if (1 == 1) then
         k=1
         write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
              win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
@@ -562,7 +562,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
              drn(k), h0(k), Etrans(k)*dt, discharge(k), fws(k), (ip(k)-ipi(k)), fsat(k), runoff_sat(k), qb(k)
         write(334,"(100f15.6)") S(k,:), S(k,:)*par(k,:)%thre+par(k,:)%thr
         write(336,"(100f15.6)") Tsoil(k,:)
-        write(335,"(100e20.12)") vmet(k)%Ta, T0(k), zero, H(k), lE(k), &
+        write(335,"(100e20.12)") vmet(k)%Ta, Tsurface(k), zero, H(k), lE(k), &
              G0(k),Jcol_sensible(k),Jcol_latent_S(k), Jcol_latent_T(k), &
              vmet(k)%Rn, TL(k), SL(k), deltaice_cum_T(k), &
              deltaice_cum_S(k), zero, Tsurface(k), vmet(k)%rha, &
@@ -634,15 +634,15 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%isflag = 0
 
      ! snow output
-!!$     if (1 == 1) then
-!!$        k = 1
-!!$        write(340,"(100e16.6)") sum(vsnow(k)%hsnow(1:vsnow(k)%nsnow)), vsnow(k)%tsn(1),sum(vsnow(k)%hliq(1:vsnow(k)%nsnow)), &
-!!$             qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &
-!!$             vsnow(k)%Qevap,vsnow(k)%Qvap,ssnow%albsoilsn(k,1), ssnow%albsoilsn(k,2), ssnow%sconds(k,1), &
-!!$             vsnow(k)%dens(1),sum(vsnow(k)%depth(1:vsnow(k)%nsnow)), vsnow(k)%J, &
-!!$             vsnow(k)%MoistureFluxDivergence, vsnow(k)%FluxDivergence, vsnow(k)%dens(nsnow_max), vsnow(k)%tsn(nsnow_max), &
-!!$             qh(k,0), vmet(k)%rbh
-!!$     endif
+     if (1 == 1) then
+        k = 1
+        write(340,"(100e16.6)") sum(vsnow(k)%hsnow(1:vsnow(k)%nsnow)), vsnow(k)%tsn(1),sum(vsnow(k)%hliq(1:vsnow(k)%nsnow)), &
+             qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &
+             vsnow(k)%Qevap,vsnow(k)%Qvap,ssnow%albsoilsn(k,1), ssnow%albsoilsn(k,2), ssnow%sconds(k,1), &
+             vsnow(k)%dens(1),sum(vsnow(k)%depth(1:vsnow(k)%nsnow)), vsnow(k)%J, &
+             vsnow(k)%MoistureFluxDivergence, vsnow(k)%FluxDivergence, vsnow(k)%dens(nsnow_max), vsnow(k)%tsn(nsnow_max), &
+             qh(k,0), vmet(k)%rbh
+     endif
 
      canopy%ofes = canopy%fes
      ! Update total latent heat to reflect updated soil component:

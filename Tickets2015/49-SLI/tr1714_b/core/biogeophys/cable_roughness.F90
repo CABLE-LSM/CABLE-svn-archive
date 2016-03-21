@@ -91,7 +91,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
     ENDIF
 
-
+   !! vh_js !! use LAI_THRESH here
    WHERE( canopy%vlaiw .LT. C%LAI_THRESH  .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
 
