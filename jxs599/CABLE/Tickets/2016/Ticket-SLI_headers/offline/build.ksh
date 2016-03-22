@@ -1,10 +1,67 @@
 #!/bin/ksh
 
+export dosvn=1 # 1/0: do/do not check svn
+
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg raij
+   set -A kh vayu cher pear shin jigg nXXX raij ces2
 }
 
+
+## 
+host_ces2()
+{
+   # GFORTRAN
+   export FC=gfortran
+   # debug
+   export CFLAGS="-pedantic-errors -Wall -W -O -g -Wno-maybe-uninitialized -cpp -ffree-form -ffixed-line-length-132"
+   # # release
+   # export CFLAGS="-O3 -Wno-aggressive-loop-optimizations -cpp -ffree-form -ffixed-line-length-132"
+   export LD=''
+   export NCROOT='/usr/local/netcdf-fortran-4.4.1-gfortran'
+
+   # # NAG
+   # export FC=nagfor
+   # # debug
+   # export CFLAGS="-C -C=dangling -g -nan -O0 -strict95 -gline -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free -DNAG"
+   # # # release
+   # # export CFLAGS="-O4 -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free"
+   # export LD='-ideclient -unsharedrts'
+   # export NCROOT='/usr/local/netcdf-fortran-4.4.1-nagfor'
+
+   # All compilers
+   export NCCROOT='/usr/local'
+   export NCCLIB=${NCROOT}'/lib'
+   export NCLIB=${NCROOT}'/lib'
+   export NCMOD=${NCROOT}'/include'
+   export LDFLAGS="-L${NCCLIB} -L${NCLIB} -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lsz -lz"
+   export dosvn=0
+   build_build
+   cd ../
+   build_status
+}
+
+
+
+
+## Interactive Job nXXX@burnet.hpsc.csiro.au  
+host_nXXX()
+{
+   export NCDIR=$NETCDF_ROOT'/lib/'
+   export NCMOD=$NETCDF_ROOT'/include/'
+   #export FC=$F90
+   export FC=ifort
+   #vanessa's test options
+#   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+# export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
+#   export CFLAGS='-O0 -fp-model precise -debug all -g  '
+   export CFLAGS='-O2 -fp-model precise'
+   export LDFLAGS='-L'$NCDIR' -O2'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ## jiggle
 host_jigg()
@@ -35,15 +92,23 @@ host_shin()
    build_status
 }
 
+ #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
+#export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
 
-## burnet.hpsc.csiro.au 
-host_burn()
+
+## pearcey.hpsc.csiro.au 
+host_pear()
 {
+   . /apps/modules/Modules/default/init/ksh
+   #CLN module add netcdf/3.6.3
+   module add netcdf/4.3.3.1
+
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
-   export LDFLAGS='-L'$NCDIR' -O2'
+   export FC='ifort'
+   export CFLAGS='-O2 -fp-model precise -g -debug -traceback  '
+  # export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv -check bounds'
+   export LDFLAGS='-g -L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
@@ -72,11 +137,11 @@ host_vayu()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O0 -fp-model precise'
    if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0' 
+      export CFLAGS='-O2 -traceback -g -fp-model precise -ftz -fpe0' 
    fi
-   export LDFLAGS='-L'$NCDIR' -O2'
+   export LDFLAGS='-L'$NCDIR' -O0'
    export LD='-lnetcdf'
    build_build
    cd ../
@@ -201,9 +266,9 @@ host_write()
 clean_build()
 {
       print '\ncleaning up\n'
-      rm -fr .tmp
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy 
+      rm -fr .tmp
 }
 
 
@@ -245,6 +310,14 @@ do_i_no_u()
    integer k=0
    typeset -f subr
    
+   # for specific nodes on burnet
+   ic=`echo $HOST_MACH | cut -c 1`
+   in=`echo $HOST_MACH | cut -c 2-4`
+   if [[ $ic == 'n' ]]; then
+       if [ $in -gt 0 -a $in -lt 1000 ]; then
+	   HOST_MACH=nXXX
+       fi
+   fi
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized as' $HOST_MACH
@@ -287,6 +360,7 @@ i_do_now()
 
 build_build()
 {
+   if [[ ${dosvn} -eq 1 ]] ; then
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
@@ -299,6 +373,7 @@ build_build()
    # get SVN status 
    CABLE_STAT=`svn status`
    print $CABLE_STAT >> ~/.cable_rev
+   fi
  
    if [[ ! -d .tmp ]]; then
       mkdir .tmp
@@ -309,6 +384,7 @@ build_build()
       mv cable cable.`date +%d.%m.%y`
    fi
    
+   # directories contain source code
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
@@ -324,8 +400,8 @@ build_build()
    /bin/cp -p Makefile_offline  ./.tmp
    
   cd .tmp/
-   
    make -f Makefile_offline
+   
 }
 
 ###########################################
