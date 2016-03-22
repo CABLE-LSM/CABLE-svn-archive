@@ -177,8 +177,8 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
       flwv, &     ! vegetation long-wave radiation (isothermal)
       xx1,tssp    ! 
       
-!vh   REAL(r_2), DIMENSION(mp) ::                                                 &
-   REAL, DIMENSION(mp) ::                                                 &
+   REAL(r_2), DIMENSION(mp) ::                                                 &
+   !vhREAL, DIMENSION(mp) ::                                                 &
       dummy, dummy2
    
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
