@@ -2986,7 +2986,7 @@ CONTAINS
     REAL(r_2),       DIMENSION(1:mp),           INTENT(INOUT) :: Jcol_latent_S, Jcol_latent_T, Jcol_sensible
     REAL(r_2),       DIMENSION(1:mp,1:n),       INTENT(INOUT) :: deltaJ_sensible_S
     REAL(r_2),       DIMENSION(1:mp,nsnow_max), INTENT(INOUT) :: qmelt
-    REAL(r_2),       DIMENSION(1:mp), INTENT(OUT) :: qtransfer
+    REAL(r_2),       DIMENSION(1:mp)  :: qtransfer
     TYPE(vars),      DIMENSION(1:mp,1:n),       INTENT(INOUT) :: var
     TYPE(params),    DIMENSION(1:mp,1:n),       INTENT(IN)    :: par
     TYPE(vars_snow), DIMENSION(1:mp),           INTENT(INOUT) :: vsnow
