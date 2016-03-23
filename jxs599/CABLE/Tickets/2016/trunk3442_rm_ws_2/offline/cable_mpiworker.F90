@@ -86,8 +86,20 @@ MODULE cable_mpiworker
   ! worker's struct for sending final casa results to the master
   INTEGER :: casa_t
 
+  ! worker's struct for rec'ing/sending final casa results to/from the master
+  INTEGER :: casa_dump_t
+
+  ! worker's struct for rec'ing/sending final casa results to/from the master
+  INTEGER :: climate_t
+
+  ! worker's struct for rec'ing/sending pop io to/from the master
+  INTEGER :: pop_t
+
   ! worker's struct for restart data to the master
   INTEGER :: restart_t
+
+  ! worker's logfile unit
+  INTEGER :: wlogn 
 
   PUBLIC :: mpidrv_worker
 
@@ -100,22 +112,33 @@ CONTAINS
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   patch_type,soilparmnew,                     &
+                                   defaultLAI
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, calcsoilalbedo,    & 
-                                   redistrb, wiltParam, satuParam
+                                   redistrb, wiltParam, satuParam,             &
+                                   CurYear, IS_LEAPYEAR, IS_CASA_TIME
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file
    USE cable_cbm_module
+   USE cable_climate_mod
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
+
+   ! modules related to POP
+   USE POPmodule,            ONLY: POP_INIT
+   USE POP_Types,            ONLY: POP_TYPE
+   USE POP_Constants,        ONLY: HEIGHT_BINS, NCOHORT_MAX
+
+   ! PLUME-MIP only
+   USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE
 
    IMPLICIT NONE
 
@@ -127,16 +150,28 @@ CONTAINS
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+   INTEGER, PARAMETER ::  mloop  = 5   ! CASA-CNP PreSpinup loops
    
    INTEGER        ::                                                           &
       ktau,       &  ! increment equates to timestep, resets if spinning up
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
       kend,       &  ! no. of time steps in run
+                                !CLN      kstart = 1, &  ! timestep to start at
+      koffset = 0, &  ! timestep to start at
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
-      nyear          ! year counter for CASA-CNP
+      nyear,      &  ! year counter for CASA-CNP
+      casa_it,    &  ! number of calls to CASA-CNP
+      ctime,      &  ! day count for casacnp
+      YYYY,       &  !
+      LOY,        &  ! Length of Year
+      count_sum_casa, & ! number of time steps over which casa pools &
+                                !and fluxes are aggregated (for output)
+      rank,       &  ! Rank of this worker
+      maxdiff(2)     ! location of maximum in convergence test
 
    REAL :: dels                        ! time step size in seconds
+   CHARACTER :: cRank*4 ! for worker-logfiles
    
    ! CABLE variables
    TYPE (met_type)       :: met     ! met input variables
@@ -146,6 +181,7 @@ CONTAINS
    TYPE (roughness_type) :: rough   ! roughness varibles
    TYPE (balances_type)  :: bal     ! energy and water balance variables
    TYPE (soil_snow_type) :: ssnow   ! soil and snow variables
+   TYPE (climate_type)   :: climate     ! climate variables
    
    ! CABLE parameters
    TYPE (soil_parameter_type) :: soil ! soil parameters	
@@ -162,6 +198,10 @@ CONTAINS
    TYPE (casa_met)       :: casamet
    TYPE (casa_balance)   :: casabal
    TYPE (phen_variable)  :: phen 
+   TYPE (POP_TYPE)       :: POP
+   TYPE (PLUME_MIP_TYPE) :: PLUME
+   CHARACTER             :: cyear*4
+   CHARACTER             :: ncfile*99
    
    ! declare vars for switches (default .FALSE.) etc declared thru namelist
    LOGICAL, SAVE           :: &
@@ -174,8 +214,9 @@ CONTAINS
                                     ! FALSE: no spin up
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
-   
+      l_vcmaxFeedbk = .FALSE., & ! using prognostic Vcmax
+      CASAONLY      = .FALSE., & ! ONLY Run CASA-CNP
+      CALL1         = .TRUE.
    
    REAL              :: &  
       delsoilM,         & ! allowed variation in soil moisture for spin up
@@ -222,6 +263,8 @@ CONTAINS
                   satuParam,        &
                   cable_user           ! additional USER switches 
 
+   INTEGER :: i,x,kk
+   INTEGER :: LALLOC
    ! END header
 
    ! Open, read and close the namelist file.
@@ -639,11 +682,11 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   INTEGER :: stat(MPI_STATUS_SIZE), ierr
   INTEGER :: landp_t, patch_t, param_t
 
-  INTEGER :: r1len, r2len, ilen, llen ! block lengths
+  INTEGER :: r1len, r2len, i1len, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
 
-  INTEGER :: rank
+  INTEGER :: rank,  off
 
   CALL MPI_Comm_rank (comm, rank, ierr)
 
@@ -2000,11 +2043,11 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   ! INTEGER :: landp_t, patch_t, param_t
   INTEGER :: casa_t
 
-  INTEGER :: r1len, r2len, ilen, llen ! block lengths
+  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
 
-  INTEGER :: rank
+  INTEGER :: rank, off
 
   CALL MPI_Comm_rank (comm, rank, ierr)
 
@@ -2897,7 +2940,7 @@ SUBROUTINE worker_intype (comm,met,veg)
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
   INTEGER :: tsize
 
-  INTEGER :: r1len, r2len, ilen, llen ! block lengths
+  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
   INTEGER :: ierr
@@ -3072,7 +3115,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   INTEGER :: ntyp ! number of worker's types
 
   ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, ilen, llen
+  INTEGER :: r1len, r2len, I1LEN, llen
 
   INTEGER :: rank, off, cnt
   INTEGER :: bidx, midx, vidx, ierr
@@ -5143,7 +5186,7 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   INTEGER :: ntyp ! number of worker's types
 
   ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, ilen, llen
+  INTEGER :: r1len, r2len, I1LEN, llen
 
   INTEGER :: rank, off, cnt
   INTEGER :: bidx, midx, vidx, ierr
@@ -5391,6 +5434,218 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
 
 END SUBROUTINE worker_casa_type
 
+
+  
+SUBROUTINE worker_climate_types (comm, climate)
+
+    USE mpi
+
+    USE cable_def_types_mod, ONLY: climate_type, alloc_cbm_var
+    USE cable_climate_mod, ONLY: climate_init
+
+
+    TYPE(climate_type):: climate
+    INTEGER :: comm
+    ! MPI: temp arrays for marshalling all types into a struct
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
+    INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+    INTEGER :: ntyp ! number of worker's types
+
+    INTEGER :: last2d, i
+
+    ! MPI: block lenghts for hindexed representing all vectors
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+
+    ! MPI: block lengths and strides for hvector representing matrices
+    INTEGER :: r1len, r2len, I1LEN
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
+
+    INTEGER :: tsize, totalrecv, totalsend
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+
+    INTEGER :: rank, off, cnt
+    INTEGER :: bidx, midx, vidx, ierr, ny, nd
+    INTEGER :: stat(MPI_STATUS_SIZE)
+
+    
+   ! CALL alloc_cbm_var(climate,mp)
+
+    CALL climate_init (climate, mp)
+    ! MPI: allocate temp vectors used for marshalling
+    ntyp = nclimate
+
+    ALLOCATE (blocks(ntyp))
+    ALLOCATE (displs(ntyp))
+    ALLOCATE (types(ntyp))
+    off = 1
+
+    ! counter to sum total number of bytes receives from all workers
+    totalrecv = 0
+
+    r1len = mp * extr1
+    r2len = mp * extr2
+    I1LEN = mp * extid
+
+    bidx = 0
+
+    ! ------------- 2D arrays -------------
+    ny = climate%nyear_average
+    nd = climate%nday_average
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mtemp_min_20(off,1), displs(bidx), ierr)
+    blocks(bidx) = ny*r1len
+    types(bidx)  = MPI_BYTE
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mtemp_max_20(off,1), displs(bidx), ierr)
+    blocks(bidx) = ny*r1len
+    types(bidx)  = MPI_BYTE
+   
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%dtemp_31(off,1), displs(bidx), ierr)
+    blocks(bidx) = nd*r1len
+    types(bidx)  = MPI_BYTE
+   
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%dmoist_31(off,1), displs(bidx), ierr)
+    blocks(bidx) = nd*r1len
+    types(bidx)  = MPI_BYTE
+
+   
+    ! ------------- 1D vectors -------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%chilldays(off), displs(bidx), ierr)
+    blocks(bidx) = i1len
+    types(bidx)  = MPI_BYTE
+   
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%dtemp(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+  
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%dmoist(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+   
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mtemp(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+ 
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mmoist(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+  
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mtemp_min(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+  
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+   
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mtemp_min20(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%mtemp_max20(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%atemp_mean(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%agdd5(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%gdd5(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%gdd0(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%alpha_PT(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%aevap_PT(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%aevap(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    ! ------------- scalars  -------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%nyears, displs(bidx), ierr)
+    blocks(bidx) = extid
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%doy, displs(bidx), ierr)
+    blocks(bidx) = extid
+    types(bidx)  = MPI_BYTE
+
+
+!!$types = MPI_BYTE
+    ! MPI: sanity check
+    IF (bidx /= ntyp) THEN
+       WRITE (*,*) 'worker: invalid number of climate fields, fix it!'
+       CALL MPI_Abort (comm, 1, ierr)
+    END IF
+
+   
+    CALL MPI_Type_create_struct (bidx, blocks, displs, types, climate_t, ierr)
+    CALL MPI_Type_commit (climate_t, ierr)
+
+    CALL MPI_Type_size (climate_t, tsize, ierr)
+    CALL MPI_Type_get_extent (climate_t, tmplb, text, ierr)
+
+    CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr) 
+
+    ! so, now receive all the parameters
+    CALL MPI_Recv (MPI_BOTTOM, 1, climate_t, 0, 0, comm, stat, ierr)
+ 
+ DEALLOCATE(types)
+ DEALLOCATE(displs)
+ DEALLOCATE(blocks)
+
+ RETURN
+
+END SUBROUTINE worker_climate_types
+!!$ 
 ! MPI: creates restart_t type to send to the master the fields
 ! that are only required for the restart file but not included in the
 ! results sent at the end of each time step
@@ -5414,10 +5669,10 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
   INTEGER :: ntyp ! number of worker's types
 
   ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, ilen, llen
+  INTEGER :: r1len, r2len, I1LEN, llen
 
   INTEGER :: rank, off, cnt
-  INTEGER :: bidx, midx, vidx, ierr
+  INTEGER :: bidx, midx, vidx, ierr, nd, ny
 
   INTEGER :: tsize
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
@@ -5530,6 +5785,171 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
   RETURN
 
 END SUBROUTINE worker_restart_type
+
+SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
+
+ USE mpi
+
+ USE casavariable, ONLY: casa_met, casa_flux, mplant
+
+ IMPLICIT NONE
+
+ ! sub arguments
+ INTEGER, INTENT(IN) :: comm  ! MPI communicator
+ TYPE (casa_flux)   , INTENT(INOUT) :: casaflux
+ TYPE (casa_met)    , INTENT(INOUT) :: casamet
+
+ ! local vars
+
+ ! temp arrays for marshalling all fields into a single struct
+ INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+ INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+ INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+ ! temp vars for verifying block number and total length of inp_t
+ INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+ INTEGER :: tsize
+
+ INTEGER :: stat(MPI_STATUS_SIZE), ierr
+ INTEGER :: landp_t, patch_t, param_t
+
+ INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
+ INTEGER :: bidx ! block index
+ INTEGER :: ntyp ! total number of blocks
+
+ INTEGER :: rank
+
+ CALL MPI_Comm_rank (comm, rank, ierr)
+
+ ntyp = ncdumprw
+
+ ALLOCATE (blen(ntyp))
+ ALLOCATE (displs(ntyp))
+ ALLOCATE (types(ntyp))
+
+ ! default type is byte, to be overriden for multi-D types
+ types = MPI_BYTE
+
+ r1len = mp * extr1
+ r2len = mp * extr2
+
+ bidx = 0
+
+ ! ------- casamet ----
+
+ bidx = bidx + 1
+ CALL MPI_Get_address (casamet%Tairk, displs(bidx), ierr)
+ blen(bidx) = r2len
+
+ bidx = bidx + 1
+ CALL MPI_Get_address (casamet%Tsoil, displs(bidx), ierr)
+ blen(bidx) = ms * r2len
+
+ bidx = bidx + 1
+ CALL MPI_Get_address (casamet%moist, displs(bidx), ierr)
+ blen(bidx) = ms * r2len
+
+ ! ------- casaflux ----
+
+ bidx = bidx + 1
+ CALL MPI_Get_address (casaflux%Cgpp, displs(bidx), ierr)
+ blen(bidx) = r2len
+
+ bidx = bidx + 1
+ CALL MPI_Get_address (casaflux%Crmplant, displs(bidx), ierr)
+ blen(bidx) = mplant * r2len
+
+ ! MPI: sanity check
+ IF (bidx /= ntyp) THEN
+    WRITE (*,*) 'worker ',rank,' invalid number of casa_dump_t param fields ',bidx,', fix it!'
+    CALL MPI_Abort (comm, 1, ierr)
+ END IF
+
+ CALL MPI_Type_create_struct (bidx, blen, displs, types, casa_dump_t, ierr)
+ CALL MPI_Type_commit (casa_dump_t, ierr)
+
+ CALL MPI_Type_size (casa_dump_t, tsize, ierr)
+ CALL MPI_Type_get_extent (casa_dump_t, tmplb, text, ierr)
+
+ WRITE (*,*) 'worker casa_t param blocks, size, extent and lb: ',rank, &
+      bidx,tsize,text,tmplb
+
+ ! MPI: check whether total size of received data equals total
+ ! data sent by all the workers
+ CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+
+ DEALLOCATE(types)
+ DEALLOCATE(displs)
+ DEALLOCATE(blen)
+
+ ! if anything went wrong the master will mpi_abort
+ ! which mpi_recv below is going to catch...
+ ! so, now receive all the parameters
+ CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, 0, comm, stat, ierr)
+
+ ! finally free the MPI type
+ CALL MPI_Type_Free (casa_dump_t, ierr)
+
+ ! all casa parameters have been received from the master by now
+
+END SUBROUTINE worker_casa_dump_types
+
+SUBROUTINE worker_pop_types(comm, veg, casamet, pop)
+
+ USE mpi
+ USE POP_mpi
+ USE POPmodule,          ONLY: ALLOC_POP,POP_INIT
+ USE POP_types,          ONLY: pop_type
+ USE casavariable,       ONLY: casa_met
+ USE cable_def_types_mod,ONLY: veg_parameter_type
+ USE cable_common_module,ONLY: cable_user
+
+ IMPLICIT NONE
+
+ INTEGER,         INTENT(IN)    :: comm
+ TYPE (casa_met), INTENT(IN)    :: casamet
+ TYPE (pop_type), INTENT(INOUT) :: pop
+ TYPE (veg_parameter_type),INTENT(IN) :: veg 
+
+ INTEGER :: mp_pop, stat(MPI_STATUS_SIZE), ierr
+
+ ! Get POP relevant info from Master 
+ CALL MPI_Recv ( mp_pop, 1, MPI_INTEGER, 0, 0, comm, stat, ierr )
+write(*,*),'worker mppop', mp_pop
+ ALLOCATE( POP%Iwood( mp_pop ) )
+ CALL MPI_Recv ( POP%Iwood, mp_pop, MPI_INTEGER, 0, 0, comm, stat, ierr )
+write(*,*),'worker Iwood', POP%Iwood
+ CALL ALLOC_POP ( POP, mp_pop )
+ CALL POP_INIT( pop,veg%disturbance_interval,mp_pop,POP%Iwood )
+
+ CALL create_pop_gridcell_type (pop_t, comm)
+
+ IF ( .NOT. CABLE_USER%POP_fromZero ) &
+      CALL MPI_Recv( POP%pop_grid(1), mp_pop, pop_t, 0, 0, comm, stat, ierr )
+
+
+END SUBROUTINE worker_pop_types
+
+SUBROUTINE worker_send_pop (POP, comm) 
+
+ USE mpi
+ USE POP_mpi
+ USE POP_Types,           ONLY: pop_type
+
+ IMPLICIT NONE
+
+ INTEGER         ,INTENT(IN) :: comm
+ TYPE (pop_type) ,INTENT(IN) :: pop
+
+ INTEGER :: ierr
+
+ IF ( POP%np .EQ. 0 ) RETURN
+
+ CALL MPI_Send(POP%pop_grid(1), POP%np, pop_t, 0, 0, comm, ierr )
+
+
+END SUBROUTINE worker_send_pop
+
 
 ! frees memory used for worker's data structures
 SUBROUTINE worker_end(icycle, restart)
