@@ -38,15 +38,15 @@
    INTEGER,      INTENT(IN) :: kstart ! starting value of ktau
    INTEGER,      INTENT(IN) :: kend ! total # timesteps in run
    
-   INTEGER,      INTENT(IN)                  :: idoy ! day of year (1-365)
-   INTEGER,      INTENT(IN)                  :: ktauday
-   logical,      INTENT(IN) :: spinConv, spinup
-   logical,      INTENT(IN) :: dump_read, dump_write 
+   INTEGER,      INTENT(IN) :: idoy ! day of year (1-365)
+   INTEGER,      INTENT(IN) :: ktauday
+   LOGICAL,      INTENT(IN) :: spinConv, spinup
+   LOGICAL,      INTENT(IN) :: dump_read, dump_write 
         
-   REAL,         INTENT(IN) :: dels ! time setp size (s)
-   TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
-   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow ! soil and snow variables
-   TYPE (canopy_type), INTENT(INOUT) :: canopy ! vegetation variables
+   REAL,                       INTENT(IN)    :: dels ! time setp size (s)
+   TYPE (met_type),            INTENT(INOUT) :: met  ! met input variables
+   TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow variables
+   TYPE (canopy_type),         INTENT(INOUT) :: canopy ! vegetation variables
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
    TYPE (casa_biome),          INTENT(INOUT) :: casabiome
@@ -58,15 +58,15 @@
 
 
    ! local variables added ypwang 5/nov/2012
-   real,      dimension(mp)  :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
-   real,      dimension(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
-   real,      dimension(mp)  :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
-   real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
+   REAL,      DIMENSION(mp)  :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
+   REAL,      DIMENSION(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
+   REAL,      DIMENSION(mp)  :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
+   REAL(r_2), DIMENSION(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
 
 
    !    phen%phase = 2
 
-   if ( .NOT. dump_read ) then
+   IF ( .NOT. dump_read ) THEN
    ! Lest 13may13: will require loop when prog resp are init nonzero
    ! need for mk3l ?
    IF( .NOT. cable_runtime%UM ) THEN
@@ -181,7 +181,7 @@
       !var (type) to write
       TYPE (casa_met),            INTENT(INOUT) :: casamet
 
-      integer , intent(in) :: &
+      INTEGER , INTENT(IN) :: &
          n_call, &         ! this timestep #
          kend              ! final timestep of run
 
@@ -189,23 +189,16 @@
       !integer :: inst =1
 
       !netcdf IDs/ names
-      character(len=*),intent(in):: ncfile
-      integer, parameter :: num_vars=7
-      integer, parameter :: num_dims=4
-
-      integer, dimension(ms)     :: &
-         soil
-
-      integer, dimension(mvtype) :: &
-         tile
-
-      integer, dimension(mplant) :: &
-         plant
-
-      integer, save :: ncid       ! netcdf file ID
+      CHARACTER(LEN=*),INTENT(IN)        :: ncfile
+      INTEGER,         PARAMETER         :: num_vars=7
+      INTEGER,         PARAMETER         :: num_dims=4
+      INTEGER,         DIMENSION(ms)     :: soil
+      INTEGER,         DIMENSION(mvtype) :: tile
+      INTEGER,         DIMENSION(mplant) :: plant
+      INTEGER,         SAVE              :: ncid ! netcdf file ID
 
       !vars
-      character(len=*), dimension(num_vars), parameter :: &
+      CHARACTER(LEN=*), DIMENSION(num_vars), PARAMETER :: &
             var_name =  (/  "latitude     ", &
                            "longitude    ", &
                             "casamet_tairk", &
@@ -970,7 +963,6 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
                    bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter,  &
                    bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
                    bmpsoilocc,bmarea)
-
     nloop1= max(1,mloop-3)
 
   DO nloop=1,mloop
@@ -1008,7 +1000,6 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,                                      &
                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,                                      &
                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
-      
         ENDDO   ! end of idoy
       ENDDO   ! end of nyear
   
@@ -1114,28 +1105,31 @@ END SUBROUTINE spincasacnp
          bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)  + casapool%psoilocc(npt) * casamet%areacell(npt)
          bmarea(nvt)  = bmarea(nvt) + casamet%areacell(npt)
       ENDDO
-
+ 
       DO nvt=1,mvtype
-         bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)/bmarea(nvt)
-         bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)/bmarea(nvt)
-         bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)/bmarea(nvt)
+         IF(bmarea(nvt) .gt. 0.0) THEN
+             bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)/bmarea(nvt)
+             bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)/bmarea(nvt)
+             bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)/bmarea(nvt)
 
-         bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:)/bmarea(nvt)
-         bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:)/bmarea(nvt)
-         bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:)/bmarea(nvt)
+             bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:)/bmarea(nvt)
+             bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:)/bmarea(nvt)
+             bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:)/bmarea(nvt)
 
-         bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)/bmarea(nvt)
-         bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)/bmarea(nvt)
-         bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)/bmarea(nvt)
+             bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)/bmarea(nvt)
+             bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)/bmarea(nvt)
+             bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)/bmarea(nvt)
 
-         bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)/bmarea(nvt)
-         bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)/bmarea(nvt)
-         bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)/bmarea(nvt)
-         bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)/bmarea(nvt)
+             bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)/bmarea(nvt)
+             bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)/bmarea(nvt)
+             bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)/bmarea(nvt)
+             bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)/bmarea(nvt)
+         ENDIF
       ENDDO
 
   END SUBROUTINE totcnppools
-!-----------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------------------------------------
 
  SUBROUTINE analyticpool(kend,veg,soil,casabiome,casapool,                                  &
                           casaflux,casamet,casabal,phen,                                    &
@@ -1259,21 +1253,21 @@ END SUBROUTINE spincasacnp
        
       IF(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) then
           ! compute steady-state litter and soil C pool sizes
-          casapool%clitter(npt,metb) = (avgcleaf2met(npt)+avgcroot2met(npt))/casaflux%klitter(npt,metb)
-          casapool%clitter(npt,str)  = (avgcleaf2str(npt)+avgcroot2str(npt))/casaflux%klitter(npt,str)
-          casapool%clitter(npt,cwd)  = (avgcwood2cwd(npt))/casaflux%klitter(npt,cwd)
+          casapool%clitter(npt,metb) = (avgcleaf2met(npt)+avgcroot2met(npt))/MAX(1.e-10, casaflux%klitter(npt,metb))
+          casapool%clitter(npt,str)  = (avgcleaf2str(npt)+avgcroot2str(npt))/MAX(1.e-10,casaflux%klitter(npt,str))
+          casapool%clitter(npt,cwd)  = (avgcwood2cwd(npt))/MAX(1.e-10, casaflux%klitter(npt,cwd))
           casapool%csoil(npt,mic)    = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb)  &
                                        +casaflux%fromLtoS(npt,mic,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str)     &
                                        +casaflux%fromLtoS(npt,mic,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) )   &
-                                       /casaflux%ksoil(npt,mic)
+                                       /MAX(1.e-10, casaflux%ksoil(npt,mic))
           casapool%csoil(npt,slow)   = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
                                        +casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str)    &
                                        +casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd)    &
                                        +casaflux%fromStoS(npt,slow,mic)*casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)  )    &
-                                       /casaflux%ksoil(npt,slow)
+                                       /MAX(1.e-10, casaflux%ksoil(npt,slow))
           casapool%csoil(npt,pass)   = (casaflux%fromStoS(npt,pass,mic)*casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)       &
                                        +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow))    &
-                                       /casaflux%ksoil(npt,pass)
+                                       /MAX(1.e-10, casaflux%ksoil(npt,pass))
 
            IF(icycle <=1) THEN
                casapool%nlitter(npt,:)= casapool%rationclitter(npt,:) * casapool%clitter(npt,:)
@@ -1283,9 +1277,9 @@ END SUBROUTINE spincasacnp
            ELSE
        
                ! compute steady-state litter and soil N pool sizes
-               casapool%nlitter(npt,metb) = (avgnleaf2met(npt)+avgnroot2met(npt))/casaflux%klitter(npt,metb)
-               casapool%nlitter(npt,str)  = (avgnleaf2str(npt)+avgnroot2str(npt))/casaflux%klitter(npt,str)
-               casapool%nlitter(npt,cwd)  = (avgnwood2cwd(npt))/casaflux%klitter(npt,cwd)
+               casapool%nlitter(npt,metb) = (avgnleaf2met(npt)+avgnroot2met(npt))/MAX(1.e-10, casaflux%klitter(npt,metb))
+               casapool%nlitter(npt,str)  = (avgnleaf2str(npt)+avgnroot2str(npt))/MAX(1.e-10, casaflux%klitter(npt,str))
+               casapool%nlitter(npt,cwd)  = (avgnwood2cwd(npt))/MAX(1.e-10, casaflux%klitter(npt,cwd))
 
                casapool%nsoil(npt,mic)    = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
                                             +casaflux%fromLtoS(npt,mic,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str)    &
@@ -1311,17 +1305,17 @@ END SUBROUTINE spincasacnp
 
            IF (icycle<=2) THEN
                totpsoil(npt)          = psorder(casamet%isorder(npt))*xpsoil50(casamet%isorder(npt))
-               casapool%plitter(npt,:)= casapool%Nlitter(npt,:) / casapool%ratioNPlitter(npt,:)
-               casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)   / casapool%ratioNPsoil(npt,:)
+               casapool%plitter(npt,:)= casapool%Nlitter(npt,:) / MAX(casapool%ratioNPlitter(npt,:), 1e-10)
+               casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)   / MAX(casapool%ratioNPsoil(npt,:), 1e-10)
                casapool%psoillab(npt) = totpsoil(npt)*fracpLab(casamet%isorder(npt))
                casapool%psoilsorb(npt)= casaflux%psorbmax(npt) *casapool%psoillab(npt) &
                                         /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
                casapool%psoilocc(npt) = totpsoil(npt)*fracPocc(casamet%isorder(npt))
            ELSE
                ! compute the steady-state litter and soil P pools
-               casapool%plitter(npt,metb) = (avgpleaf2met(npt)+avgproot2met(npt))/casaflux%klitter(npt,metb)
-               casapool%plitter(npt,str)  = (avgpleaf2str(npt)+avgproot2str(npt))/casaflux%klitter(npt,str)
-               casapool%plitter(npt,cwd)  = (avgpwood2cwd(npt))/casaflux%klitter(npt,cwd)
+               casapool%plitter(npt,metb) = (avgpleaf2met(npt)+avgproot2met(npt))/MAX(1.e-10, casaflux%klitter(npt,metb))
+               casapool%plitter(npt,str)  = (avgpleaf2str(npt)+avgproot2str(npt))/MAX(1.e-10, casaflux%klitter(npt,str))
+               casapool%plitter(npt,cwd)  = (avgpwood2cwd(npt))/MAX(1.e-10, casaflux%klitter(npt,cwd))
 
                casapool%psoil(npt,mic)    = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb)  &
                                             +casaflux%fromLtoS(npt,mic,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str)     &

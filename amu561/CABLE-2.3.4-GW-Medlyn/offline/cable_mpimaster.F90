@@ -406,11 +406,11 @@ SUBROUTINE mpidrv_master (comm)
    CALL MPI_Comm_dup (comm, icomm, ierr)
    CALL MPI_Comm_dup (comm, ocomm, ierr)
 
+
    ! MPI: data set in load_parameter is now scattered out to the
    ! workers
    CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                         rough,rad,sum_flux,bal)
-
 
 
    ! MPI: mvtype and mstype send out here instead of inside master_casa_params
@@ -718,11 +718,11 @@ SUBROUTINE mpidrv_master (comm)
       CALL master_receive (comm, ktau_gl, casa_ts)
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
-      print *, 'output BGC pools'
-      CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-                         casapool, casaflux, casamet, casabal, phen )
-      print *, 'output BGC fluxes'
-      CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+    !  print *, 'output BGC pools'
+    !  CALL casa_poolout( ktau, veg, soil, casabiome,                           &
+    !                     casapool, casaflux, casamet, casabal, phen )
+    !  print *, 'output BGC fluxes'
+    !  CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
  
 
       print *, 'before ncdf_dump', spinConv, spincasainput
@@ -968,6 +968,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   INTEGER :: landpt_t, patch_t
 
   INTEGER :: nxt, pcnt, off, cnt
+
 
   ! create MPI types for exchanging slices of landpt and patch arrays
   CALL decomp_types (landpt_t, patch_t)
@@ -1559,6 +1560,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r1len
 
   ! Ticket #56, finish adding new veg parms 
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%li_katul_skew_param(off), displs(bidx), ierr)
+  blen(bidx) = r2len
 
   ! ----------- bgc --------------
 
@@ -2570,6 +2575,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
 END SUBROUTINE master_cable_params
 
+!============================================================================================
 
 ! MPI: creates casa_ts types to broadcast/scatter the default casa parameters
 ! to all the workers
@@ -2655,6 +2661,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   ilen = cnt * extid
   llen = cnt * extl
 
+  
   bidx = 0
 
   ! ------- casabiome -----
@@ -3649,8 +3656,6 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = 1
   !blen(bidx) = mphase * ilen
 
-print *, "PRINTING bidx master #1: ", bidx
-print *, "PRINTING ntyp master #1: ", ntyp
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
@@ -3699,13 +3704,13 @@ print *, "PRINTING ntyp master #1: ", ntyp
   END DO
 
   DEALLOCATE (casa_ts)
-
   ! all casa parameters have been sent to the workers by now
 
   RETURN
 
 END SUBROUTINE master_casa_params
 
+!============================================================================
 
 ! MPI: creates inp_t types to send input data to the workers
 ! input data means arrays read by get_met_data; each worker receives
@@ -5490,11 +5495,16 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioNPsoil(off,1), displs(bidx), ierr)
-     blocks(bidx) = r2len * msoil
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioNPlitter(off,1), displs(bidx), ierr)
-     blocks(bidx) = r2len * mlitter
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
 
      ! added by ypwang 27-nov2012 for casa-cnp spinning up variables
      bidx = bidx + 1
@@ -5807,8 +5817,6 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      types(last2d+1:bidx) = MPI_BYTE
 
-     print *, "PRINTING bidx master #2: ", bidx
-     print *, "PRINTING ntyp master #2: ", ntyp
 
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
@@ -5847,7 +5855,7 @@ CALL MPI_Type_commit (casa_ts(rank), ierr)
   WRITE (*,*) 'total size of casa results sent by all workers: ', totalsend
 
   IF (totalrecv /= totalsend) THEN
-          WRITE (*,*) 'error: casa results totalsend and totalrecv differ'
+          WRITE (*,*) 'error master_casa_types: casa results totalsend and totalrecv differ'
           CALL MPI_Abort (comm, 0, ierr)
   END IF
 
@@ -5858,6 +5866,8 @@ CALL MPI_Type_commit (casa_ts(rank), ierr)
   RETURN
 
 END SUBROUTINE master_casa_types
+
+!=================================================================================
 
 ! MPI: creates datatype handles to receive restart data from workers
 SUBROUTINE master_restart_types (comm, canopy, air)

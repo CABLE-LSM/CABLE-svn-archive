@@ -1195,6 +1195,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ! Ticket #56, finish adding new veg parms
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%li_katul_skew_param, displs(bidx), ierr)
+  blen(bidx) = r2len
+
   ! ----------- bgc --------------
 
   bidx = bidx + 1
@@ -2159,7 +2163,6 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   INTEGER :: rank
 
-
   CALL MPI_Comm_rank (comm, rank, ierr)
 
   IF (.NOT. ASSOCIATED (casabiome%ivt2)) THEN
@@ -2994,8 +2997,6 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Get_address (phen%doyphase, displs(bidx), ierr)
   blen(bidx) = mphase * ilen
 
-print *, "PRINTING bidx worker #1: ", bidx
-print *, "PRINTING ntyp worker #1: ", ntyp
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
@@ -5751,8 +5752,6 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
-print *, "PRINTING bidx worker #2: ", bidx
-print *, "PRINTING ntyp worker #2: ", ntyp
 
 
   ! MPI: sanity check

@@ -365,16 +365,17 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 
     casapool%rationcplant(npt,:)  = 1.0/ratioCNplant(iv1,:)
     casapool%ratiopcplant(npt,:)  = casabiome%ratioPcplantmax(iv1,:)
-    casapool%rationclitter(npt,:) = casapool%nlitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
-    casapool%ratiopclitter(npt,:) = casapool%plitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
+    casapool%rationclitter(npt,:) = casapool%nlitter(npt,:)/MAX(casapool%clitter(npt,:), 1.0e-10)
+    casapool%ratiopclitter(npt,:) = casapool%plitter(npt,:)/MAX(casapool%clitter(npt,:), 1.0e-10)
     casapool%ratioNCsoil(npt,:)   = 1.0/ratioCNsoil(iv1,:)
     casapool%ratioPCsoil(npt,:)   = 1.0/(ratioCNsoil(iv1,:)*ratioNPsoil(iso,:))
     casapool%ratioNCsoilmin(npt,:)   = 1.0/ratioCNsoilmax(iv1,:)
     casapool%ratioNCsoilmax(npt,:)   = 1.0/ratioCNsoilmin(iv1,:)
     casapool%ratioNCsoilnew(npt,:)   = casapool%ratioNCsoilmax(npt,:)
     casapool%ratioNPsoil(npt,:)   = ratioNPsoil(iso,:) !amu561, spin up?
-    casapool%ratioNPlitter(npt,:) = casapool%nlitter(npt,:)/(casapool%plitter(npt,:)+1.0e-10) !amu561, spin up?
+    casapool%ratioNPlitter(npt,:) = casapool%nlitter(npt,:)/MAX(casapool%plitter(npt,:),1.0e-10) !amu561, spin up?
   ENDDO
+
 
   IF (icycle==1) THEN
     casapool%nplant(:,:)  = casapool%cplant(:,:) * casapool%rationcplant(:,:)
@@ -1211,8 +1212,8 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
                   "pools_soil" /)
 
   CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
-
-  ! define new variables
+  
+! define new variables
 !  ncok = NF90_DEF_VAR(ncid, 'soilOrder', NF90_INT, (/mpID/), soID)
 !  IF(ncok /= NF90_NOERR) CALL nc_abort &
 !       (ncok,'Error defining soil order in '//TRIM(ncfile))
