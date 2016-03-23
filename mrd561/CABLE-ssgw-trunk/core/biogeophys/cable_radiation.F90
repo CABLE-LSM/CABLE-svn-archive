@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Computes radiation absorbed by canopy and soil surface
 !
 ! Contact: Yingping.Wang@csiro.au
@@ -152,11 +160,11 @@ END SUBROUTINE init_radiation
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, soil )
+SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, soil_snow_type,         &
-                                   air_type, soil_parameter_type, mp, mf, r_2
+                                   air_type, mp, mf, r_2
                                        
    USE cable_common_module, only : cable_runtime, cable_user
 
@@ -167,7 +175,6 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, soil )
    TYPE (radiation_type),INTENT(INOUT) :: rad
    
    TYPE (veg_parameter_type), INTENT(IN) :: veg
-   TYPE (soil_parameter_type), INTENT(IN) :: soil
    
    REAL, DIMENSION(mp) ::                                                      &
       cf1, &      ! (1.0 - rad%transb * cexpkdm) / (extkb + extkdm(:,b))
@@ -218,12 +225,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, soil )
    flpwb = C%sboltz * (met%tk) ** 4
    flwv = C%EMLEAF * flpwb
 
-   if (.not. cable_user%GW_MODEL) then
-      rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
-   else
-      rad%flws = C%sboltz*(C%EMSOIL + (1.-C%EMSOIL)*(ssnow%wb(:,1)/soil%watsat(:,1)))*&  !maybe use liq? check init
-                 ssnow%tss*ssnow%tss*ssnow%tss*ssnow%tss
-   end if
+   rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
    
    ! Define air emissivity:
    emair = met%fld / flpwb

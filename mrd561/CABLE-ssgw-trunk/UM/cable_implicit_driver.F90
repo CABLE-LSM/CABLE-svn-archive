@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Updates CABLE variables (as altered by first pass through boundary 
 !          layer and convection scheme), calls cbm, passes CABLE variables back 
 !          to UM. 'Implicit' is the second call to cbm in each UM timestep.
@@ -28,7 +36,7 @@
 subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
                                   SMCL_TILE,                                   &
-                                  SMGW, SMGW_TILE,                             &
+                                  SMGW_TILE,                             &
                                   timestep, SMVCST,STHF, STHF_TILE, &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
                                   ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
@@ -120,8 +128,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       SURF_CAB_ROFF !       
 
    !mrd561
-   REAL, dimension(um1%land_pts)  ::                             &
-      SMGW
    REAL, dimension(um1%land_pts,um1%ntiles)  ::                             &
       SMGW_TILE
 
@@ -272,7 +278,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
                     sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
 
-      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
+      CALL implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE,      &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -312,7 +318,7 @@ END SUBROUTINE cable_implicit_driver
 !========================================================================= 
 !========================================================================= 
         
-SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
+SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE, &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -382,8 +388,6 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
       STHF_TILE  
 
    !mrd561
-   REAL, DIMENSION(um1%land_pts) ::                                            &
-      SMGW
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                  &
       SMGW_TILE
 
@@ -473,7 +477,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
       !--- set UM vars to zero
       TSOIL_CAB = 0.; SMCL_CAB = 0.; TSOIL_TILE = 0.; 
       SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
-      SMGW_TILE = 0.; SMGW = 0.;
+      SMGW_TILE = 0.; 
 
       DO j = 1,um1%SM_LEVELS
          TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), um1%L_TILE_PTS, miss)
@@ -504,7 +508,6 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW,SMGW_TILE, &
 
       !mrd561 groudnwater variables
       SMGW_TILE = UNPACK(REAL(ssnow%GWwb(:)),um1%L_TILE_PTS,miss)
-      SMGW      = SUM(um1%TILE_FRAC * SMGW_TILE,2)
 
       !--- unpack snow vars 
       SNOW_RHO1L  = UNPACK(ssnow%ssdnn, um1%L_TILE_PTS, miss)

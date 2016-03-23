@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Calculates plant and soil respiration and updates carbon pools.
 !          Note: carbon pools reset if ACCESS model run restarted
 !          Use CASA-CNP in preference to these routines for carbon fluxes
@@ -322,6 +330,7 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
       tmp1,tmp2,tmp3   ! kludge
 
    REAL, PARAMETER :: sec_per_year  = 365.0*24.0*3600.0
+   INTEGER :: i
 
    call point2constants(C)    
    
@@ -334,9 +343,12 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
    poolcoef1r=(sum(spread(bgc%ratecp,1,mp)*bgc%cplant,2) -                     &
         bgc%ratecp(1)*bgc%cplant(:,1) - bgc%ratecp(2)*bgc%cplant(:,2))
 
-   tmp1(:) = 3.22 - 0.046 * (met%tk(:)-C%TFRZ)
-   tmp2(:) = 0.1 * (met%tk(:)-C%TFRZ-20.0)
-   tmp3(:) = max(tmp1(:),0.1) ** tmp2(:)
+   !bug if temperature is too low so need max()
+   do i=1,mp
+      tmp1(i) = max(3.22 - 0.046 * (met%tk(i)-C%TFRZ),1e-6)
+      tmp2(i) = 0.1 * (met%tk(i)-C%TFRZ-20.0)
+      tmp3(i) = tmp1(i) ** tmp2(i)
+   end do
 
    canopy%frp  = veg%rp20 * tmp3 * poolcoef1  / sec_per_year 
    canopy%frpw = veg%rp20 * tmp3 * poolcoef1w / sec_per_year

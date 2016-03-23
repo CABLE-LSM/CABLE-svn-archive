@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Input module for CABLE offline version
 !
 ! Contact: Bernard.Pak@csiro.au
@@ -161,7 +169,7 @@ SUBROUTINE get_default_lai
         nlat,                                   &
         nLaiPatches,                            &
         ntime,                                  &
-        e, tt                                     ! do loop counter
+        e, tt, i                                  ! do loop counter
    REAL, DIMENSION(:,:,:),  ALLOCATABLE :: inLai3D
    REAL, DIMENSION(:,:,:,:),ALLOCATABLE :: inLai4D
 
@@ -221,9 +229,13 @@ SUBROUTINE get_default_lai
       ok = NF90_GET_VAR(ncid,laiID,inLai4D)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading 4D LAI variable.')
       DO e = 1, mland  ! over all land grid points
-         DO tt = 1, ntime
-            defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
-                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
+         DO i=1,landpt(e)%nap
+            DO tt = 1, ntime
+               !defaultLAI(landpt(e)%cstart:landpt(e)%cend,tt) = &
+               !     inLai4D(landpt(e)%ilon,landpt(e)%ilat,1:landpt(e)%nap,tt)
+               defaultLAI(landpt(e)%cstart+i-1,tt) = &
+                 inLai4D(landpt(e)%ilon,landpt(e)%ilat,landpt(e)%tilenumber(i),tt)
+            END DO
          END DO
       END DO
    ELSE
@@ -329,6 +341,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
    REAL(4),POINTER,DIMENSION(:,:,:) :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
         all_met,LAT1D,LON1D     ! ALL required met in met file (no synthesis)?
+   CHARACTER(LEN=10)                 :: year_str
 
     ! Initialise parameter loading switch - will be set to TRUE when 
     ! parameters are loaded:
@@ -590,6 +603,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok= NF90_GET_VAR(ncid_mask,maskID,mask)
        write(*,*) "The total number of land points is ",sum(mask)
        write(*,*) "The size of mask is ",xdimsize,ydimsize," total: ",ngridcells
+       !MDeck
+       !write(*,*) 'read mask'
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error reading "mask" variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -734,18 +749,21 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        write (timeunits, "('seconds since ',I4.4,'-01-01 00:00:00')") ncciy
        write(*,*) 'wrote time units'
     end if
+    !MDeck
+    !write(*,*) timeunits
+
 
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
-    if (.not.cable_user%alt_forcing .and. ncciy .eq. 0) then
-    IF (timevar(1) == 0.0) THEN
-      READ(timeunits(29:30),*) tsmin
-      IF (tsmin*60.0 >= dels) THEN
-        tsmin = tsmin - INT(dels / 60)
-        timevar = timevar + dels
-        WRITE(timeunits(29:30),'(i2.2)') tsmin
+    IF (.not.cable_user%alt_forcing .and. ncciy .eq. 0) THEN
+      IF (timevar(1) == 0.0) THEN
+        READ(timeunits(29:30),*) tsmin
+        IF (tsmin*60.0 >= dels) THEN
+          tsmin = tsmin - INT(dels / 60)
+          timevar = timevar + dels
+          WRITE(timeunits(29:30),'(i2.2)') tsmin
+        ENDIF
       ENDIF
     END IF
-    end if
     !****** done bug fixing for timevar in PALS met file **********************
 
     !********* gswp input file has bug in timeunits ************
@@ -1319,6 +1337,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
           WRITE(*,*) '  precip will be rescaled to match these values during spinup'
           ! Spinup will modify precip values:
           exists%avPrecip = .TRUE.
+
           ! Get avPrecip units:
           ok = NF90_GET_ATT(ncid_met,id%avPrecip,'units',metunits%avPrecip)
           IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1350,6 +1369,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              ! Needed since r_1 will be double precision with -r8:
              avPrecip = REAL(temparray1)
           END IF
+
           ! Now find average precip from met data, and create rescaling
           ! factor for spinup:
           ALLOCATE(PrecipScale(mland))
@@ -1563,7 +1583,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             ' some synthesised (as above).'
     END IF
   
-   !!=================^^ End met variables search^^=======================
+    !!=================^^ End met variables search^^=======================
 END SUBROUTINE open_met_file
 !==============================================================================
 !
@@ -1687,8 +1707,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                 met%moy(landpt(i)%cstart) = 12
                 met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
                 ! If previous year is a leap year
-                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
+                IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) .and. leaps) THEN
                    met%doy(landpt(i)%cstart) = 366
                 ELSE
                    met%doy(landpt(i)%cstart) = 365
@@ -1820,7 +1840,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
 
       ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
-      if (cable_user%GSWP3) ncid_met = ncid_ta
+    IF(cable_user%GSWP3) THEN
+      ncid_met = ncid_ta
       ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat3, &
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1831,6 +1852,19 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         met%tk(landpt(i)%cstart:landpt(i)%cend) = &
              REAL(tmpDat3(land_x(i),land_y(i),1)) + convert%Tair
       ENDDO
+    ELSE  !Anna, site runs need extra z dimension
+      ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat4, &
+            start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error reading Tair in met data file HERE' &
+            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      ! Assign value to met data variable with units change:
+      DO i=1,mland ! over all land points/grid cells
+        met%tk(landpt(i)%cstart:landpt(i)%cend) = &
+             REAL(tmpDat4(land_x(i),land_y(i),1,1)) + convert%Tair
+      ENDDO
+    END IF !gswp3/site
+
 
       ! Get PSurf data for mask grid:- - - - - - - - - - - - - - - - - -
       if (cable_user%GSWP3) ncid_met = ncid_ps
@@ -1853,7 +1887,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
 
       ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
-      if (cable_user%GSWP3) ncid_met = ncid_qa
+    IF(cable_user%GSWP3) THEN
+      ncid_met = ncid_qa
       ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat3, &
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1874,9 +1909,33 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                REAL(tmpDat3(land_x(i),land_y(i),1))
         ENDDO
       END IF
+    ELSE !Anna, site runs need extra z dimension
+      ok= NF90_GET_VAR(ncid_met,id%Qair,tmpDat4, &
+           start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort &
+           (ok,'Error reading Qair in met data file ' &
+           //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      IF(convert%Qair==-999.0) THEN
+        ! Convert relative value using only first veg/soil patch values
+        ! (identical)
+        DO i=1,mland ! over all land points/grid cells
+          CALL rh_sh(REAL(tmpDat4(land_x(i),land_y(i),1,1)), &
+               met%tk(landpt(i)%cstart), &
+               met%pmb(landpt(i)%cstart),met%qv(landpt(i)%cstart))
+          met%qv(landpt(i)%cstart:landpt(i)%cend) = met%qv(landpt(i)%cstart)
+        ENDDO
+      ELSE
+        DO i=1,mland ! over all land points/grid cells
+          met%qv(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      END IF
+    END IF  !gspw3/site
+
 
       ! Get Wind data for mask grid: - - - - - - - - - - - - - - - - - -
-      if (cable_user%GSWP3) ncid_met = ncid_wd
+    IF(cable_user%GSWP3) THEN
+      ncid_met = ncid_wd
       IF(exists%Wind) THEN ! Scalar Wind
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat3, &
              start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
@@ -1911,6 +1970,45 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                REAL(tmpDat3(land_x(i),land_y(i),1))**2)
         ENDDO
       END IF
+   
+    ELSE ! Anna, site runs need extra z dimension
+      IF(exists%Wind) THEN ! Scalar Wind
+        ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Wind in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        ! Assign value to met data variable (no units change required):
+        DO i=1,mland ! over all land points/grid cells
+          met%ua(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      ELSE ! Vector wind
+        ! Get Wind_N:
+        ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Wind_N in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        ! only part of wind variable
+        DO i=1,mland ! over all land points/grid cells
+          met%ua(landpt(i)%cstart) = REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+        ok= NF90_GET_VAR(ncid_met,id%Wind_E,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Wind_E in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        ! Write final scalar Wind value:
+        DO i=1,mland ! over all land points/grid cells
+          met%ua(landpt(i)%cstart:landpt(i)%cend) = &
+               SQRT(met%ua(landpt(i)%cstart)**2 + &
+               REAL(tmpDat4(land_x(i),land_y(i),1,1))**2)
+        ENDDO
+      END IF
+
+    END IF !gswp3/site
+
 
       ! Get Rainf and Snowf data for mask grid:- - - - - - - - - - - - -
       if (cable_user%GSWP3) ncid_met = ncid_rain
@@ -2068,8 +2166,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ELSE 
         ! If not in met file, use default LAI value:
         DO i=1,mland ! over all land points/grid cells
-          veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
-               defaultLAI(i,met%moy(landpt(i)%cstart))
+        !incorrect, defaultLAI(mp,month)
+        ! not defaultLAI(mland,month)
+          !veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
+          !     defaultLAI(i,met%moy(landpt(i)%cstart))
+          !defaultLAI is (mp,month) as read in in cable_parameters
+          veg%vlai(landpt(i)%cstart:landpt(i)%cend) = &
+               defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
         ENDDO
       END IF
 
@@ -2726,6 +2829,14 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'def')
    CALL readpar(ncid_met,'meth',completeSet,veg%meth,filename%met,             &
                 nmetpatches,'def')
+   CALL readpar(ncid_met,'g0c3',completeSet,veg%g0c3,filename%met,            &
+                nmetpatches,'def') ! Ticket #56
+   CALL readpar(ncid_met,'g0c4',completeSet,veg%g0c4,filename%met,             &
+                nmetpatches,'def') ! Ticket #56
+   CALL readpar(ncid_met,'g1c3',completeSet,veg%g1c3,filename%met,             &
+                nmetpatches,'def') ! Ticket #56
+   CALL readpar(ncid_met,'g1c4',completeSet,veg%g1c4,filename%met,             &
+                nmetpatches,'def') ! Ticket #56   
    ok = NF90_INQ_VARID(ncid_met,'za',parID)
    IF(ok == NF90_NOERR) THEN ! if it does exist
       CALL readpar(ncid_met,'za',completeSet,rough%za_uv,filename%met,         &

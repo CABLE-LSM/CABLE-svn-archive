@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Defines input/output related variables for CABLE offline
 !
 ! Contact: Bernard.Pak@csiro.au
@@ -80,6 +88,8 @@ MODULE cable_IO_vars_module
          ilat,    & ! replacing land_y  ! ??
          ilon       ! replacing land_x  ! ??
 
+      INTEGER, pointer :: tilenumber(:) 
+
    END TYPE land_type
  
    
@@ -132,6 +142,7 @@ MODULE cable_IO_vars_module
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
+          g0c3,g0c4,g1c3,g1c4,                                                 & ! Ticket #56
           !MD
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
           HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp
@@ -218,8 +229,6 @@ MODULE cable_IO_vars_module
          ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
          SoilWet = .FALSE.,   & ! 29 total soil wetness [-] 
          Albedo = .FALSE.,    & ! 30 albedo [-] 
-         visAlbedo = .FALSE., & ! vars intro for Ticket #27
-         nirAlbedo = .FALSE., & ! vars intro for Ticket #27 
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
@@ -245,7 +254,11 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
-         
+         cancd = .FALSE., & ! jtk561, canopy conductance (m/s)
+         gswx_1 = .FALSE., & ! jtk561, sunlit cond (dunno units)
+         gswx_2 = .FALSE., & ! jtk561, shaded cond (dunno units)
+         gswmin_1 = .FALSE., & ! jtk561, min sunlit cond
+         gswmin_2 = .FALSE., & ! jtk561, min shaded cond          
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
@@ -292,6 +305,10 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at 
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
+         g0c3 = .FALSE.,      & ! Ticket #56      
+         g0c4 = .FALSE.,      & ! Ticket #56
+         g1c3 = .FALSE.,      & ! Ticket #56
+         g1c4 = .FALSE.,      & ! Ticket #56
          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
@@ -336,7 +353,9 @@ MODULE cable_IO_vars_module
          fldcap=.FALSE.,      & !field cap including org frac [mm3/mm3]
          wiltp=.FALSE.,       & !wilt point including org frac [mm3/mm3]
          Forg=.FALSE.,        & !ogranic frac in soil   [-]
-         SoilIce=.FALSE.        !volumetric soil ice [mm3/mm3]
+         SoilIce=.FALSE.,     & !volumetric soil ice [mm3/mm3]
+         VISalbedo=.FALSE.,   & !albedo visible band [-]
+         NIRalbedo=.FALSE.      !albedo nir band [-]
    
    END TYPE output_inclusion_type
 

@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Passes UM variables to CABLE, calls cbm, passes CABLE variables 
 !          back to UM. 'Explicit' is the first of two routines that call cbm at 
 !          different parts of the UM timestep.
@@ -27,7 +35,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
                                   land_index, tile_frac,  tile_pts, tile_index,&
                                   bexp, hcon, satcon, sathh, smvcst,           &
-                                  smvcwt,  smvccl, albsoil, snow_tile,         &
+                                  smvcwt,  smvccl, albsoil,ti_mean,ti_sig,     &
+                                  snow_tile,                                   &
                                   snow_rho1l, snage_tile, isnow_flg3l,         &
                                   snow_rho3l, snow_cond, snow_depth3l,         &
                                   snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
@@ -119,16 +128,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       smvcwt,  &
       smvccl,  &
       albsoil, &
-      fland 
+      fland ,  &
+      ti_mean, &
+      ti_sig
    
    REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
       sw_down,          & 
       cos_zenith_angle
    
-   REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                             &
-      latitude
-   
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
+      latitude,   &
       longitude,  &
       lw_down,    &
       ls_rain,    &
@@ -284,23 +293,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
-   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
 
-
-   ! Vars for standard for quasi-bitwise reproducability b/n runs
-   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-   CHARACTER(len=30), PARAMETER ::                                             &
-      Ftrunk_sumbal  = ".trunk_sumbal",                                        &
-      Fnew_sumbal    = "new_sumbal"
-
-   DOUBLE PRECISION, save ::                                                         &
-      trunk_sumbal = 0.0, & !
-      new_sumbal = 0.0
-
-   INTEGER :: ioerror=0
-
-   ! END header
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -322,9 +315,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- internal FLAGS def. specific call of CABLE from UM
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
-   
-   !--- UM7.3 latitude is not passed correctly. hack 
-   IF(first_cable_call) latitude = sin_theta_latitude
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
@@ -333,16 +323,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       CALL cable_um_runtime_vars(runtime_vars_file) 
       first_cable_call = .FALSE.
    ENDIF      
-
-   ! Open, read and close the consistency check file.
-   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-   IF(cable_user%consistency_check) THEN 
-      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
-         IF(ioerror==0) then
-            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
-         ENDIF
-      CLOSE(11)
-   ENDIF
 
 
 
@@ -355,7 +335,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sm_levels, itimestep, latitude, longitude,          &
                            land_index, tile_frac, tile_pts, tile_index,        &
                            bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
-                           smvccl, albsoil, snow_tile, snow_rho1l,             &
+                           smvccl, albsoil, ti_mean, ti_sig,                   &
+                           snow_tile, snow_rho1l,                              &
                            snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
                            snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
@@ -386,42 +367,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg )
 
-   !---------------------------------------------------------------------!
-   ! Check this run against standard for quasi-bitwise reproducability   !  
-   ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
-   !---------------------------------------------------------------------!
-   IF(cable_user%consistency_check) THEN 
-         
-      IF( knode_gl==1 ) &
-         new_sumbal = new_sumbal + ( SUM(canopy%fe) + SUM(canopy%fh)           &
-                    + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1)) )
-     
-      IF( knode_gl==1 .and. ktau_gl==kend_gl ) then 
-         
-         IF( abs(new_sumbal-trunk_sumbal) < 1.e-7 ) THEN
-   
-            print *, ""
-            print *, &
-            "Internal check shows this version reproduces the trunk sumbal"
-         
-         ELSE
-   
-            print *, ""
-            print *, &
-            "Internal check shows in this version new_sumbal != trunk sumbal"
-            print *, "The difference is: ", new_sumbal - trunk_sumbal
-            print *, &
-            "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
-                  
-            OPEN( 12, FILE = Fnew_sumbal )
-               WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
-            CLOSE(12)
-         
-         ENDIF   
-      
-      ENDIF   
-   
-   ENDIF
+
 
 
    !---------------------------------------------------------------------!
@@ -443,7 +389,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    ! dump bitwise reproducible testing data
    IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( iDiagZero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
                           "FLUXES", canopy%fe + canopy%fh )
                 
 

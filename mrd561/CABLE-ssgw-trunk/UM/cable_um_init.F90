@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Initialize and update CABLE variables from UM forcing, calls to 
 !          memory allocation and initialization subroutines
 !
@@ -32,7 +40,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_pts, tile_index,     &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
-                              smvccl, albsoil, snow_tile, snow_rho1l,          &
+                              smvccl, albsoil, ti_mean, ti_sig,                &
+                              snow_tile, snow_rho1l,                           &
                               snage_tile, isnow_flg3l, snow_rho3l, snow_cond,  &
                               snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
                               lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
@@ -104,7 +113,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       smvcwt, &   !
       smvccl, &   !
       albsoil,&   !
-      fland       !
+      fland,  &   !
+      ti_mean,&
+      ti_sig
        
    REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                          &
       sw_down, &        !
@@ -264,8 +275,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          
       !jhan: turn this off until implementation finalised
       !--- initialize latitude/longitude & mapping IF required
-      if ( first_call ) & 
-         call initialize_maps(latitude,longitude, tile_index_mp)
+      !if ( first_call ) & 
+      !   call initialize_maps(latitude,longitude, tile_index_mp)
 
 
 
@@ -279,7 +290,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
-                            dzsoil ) 
+                            dzsoil, ti_mean,ti_sig  ) 
         
       !--- initialize roughness
       CALL initialize_roughness( z1_tq, z1_uv, kblum_veg%htveg ) 

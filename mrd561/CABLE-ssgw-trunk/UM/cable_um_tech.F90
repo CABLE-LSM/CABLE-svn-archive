@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Routines to read CABLE namelist, check variables, allocate and 
 !          deallocate CABLE arrays
 !
@@ -67,7 +75,7 @@ MODULE cable_um_tech_mod
    END TYPE derived_veg_pars
 
    INTERFACE check_nmlvar 
-      MODULE PROCEDURE check_chvar, check_intvar, check_lgvar
+      MODULE PROCEDURE check_chvar, check_intvar, check_lgvar,check_realvar
    END INTERFACE check_nmlvar 
  
       TYPE(derived_rad_bands), SAVE :: kblum_rad    
@@ -95,8 +103,9 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    INTEGER :: funit=88
    
    !--- namelist for CABLE runtime vars, files, switches 
-   NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,   &
-                  casafile, cable_user, redistrb, wiltParam, satuParam,gw_params
+   NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,     &
+                  casafile, cable_user, redistrb, wiltParam, satuParam,        &
+                  gw_params
 
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
@@ -137,19 +146,19 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
       CALL check_nmlvar('cable_user%RUN_DIAG_LEVEL', cable_user%RUN_DIAG_LEVEL)
       CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
                          cable_user%l_new_roughness_soil)
-      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
-                         cable_user%l_new_roughness_soil)
-      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
-                         cable_user%l_new_roughness_soil)
 
       !mrd561
       CALL check_nmlvar('cable_user%GW_MODEL', cable_user%GW_MODEL)
+      CALL check_nmlvar('cable_user%GS_SWITCH', cable_user%GS_SWITCH)
+      if (cable_user%GW_MODEL) then
+         CALL check_nmlvar('gw_params%MaxHorzDrainRate', gw_params%MaxHorzDrainRate)
+         CALL check_nmlvar('gw_params%MaxSatFraction', gw_params%MaxSatFraction)
+         CALL check_nmlvar('gw_params%SoilEvapAlpha', gw_params%SoilEvapAlpha)
+         CALL check_nmlvar('gw_params%hkrz', gw_params%hkrz)
+         CALL check_nmlvar('gw_params%zdepth', gw_params%zdepth)
+         CALL check_nmlvar('gw_params%frozen_frac', gw_params%frozen_frac)
+      end if
 
-      CALL check_nmlvar('gw_params%MaxSatFraction', gw_params%MaxSatFraction)
-
-      CALL check_nmlvar('gw_params%MaxHorzDrainRate', gw_params%MaxHorzDrainRate)
-      CALL check_nmlvar('gw_params%EfoldHorzDrainRate', gw_params%EfoldHorzDrainRate)
-      CALL check_nmlvar('gw_params%EfoldMaxSatFrac', gw_params%EfoldMaxSatFrac)
 
 
 END SUBROUTINE cable_um_runtime_vars
@@ -204,7 +213,24 @@ SUBROUTINE check_lgvar(this_var, val_var)
       ENDIf
 
 END SUBROUTINE check_lgvar
-    
+   
+SUBROUTINE check_realvar(this_var, val_var)
+   USE cable_common_module, ONLY : knode_gl
+
+   CHARACTER(len=*), INTENT(IN) :: this_var
+   REAL, INTENT(IN) :: val_var 
+
+      IF (knode_gl==0) THEN
+         PRINT *, '  '; PRINT *, 'CABLE_log:' 
+         PRINT *, '   run time variable - '
+         PRINT *, '  ', trim(this_var) 
+         PRINT *, '   defined as - '
+         PRINT *, '  ', val_var
+         PRINT *, 'End CABLE_log:'; PRINT *, '  '
+      ENDIF
+
+END SUBROUTINE check_realvar
+ 
 !========================================================================= 
 !=========================================================================
 !========================================================================= 
@@ -266,6 +292,10 @@ SUBROUTINE dealloc_vegin_soilin()
       DEALLOCATE(vegin%csoil)
       DEALLOCATE(vegin%ratecp)
       DEALLOCATE(vegin%ratecs)
+      DEALLOCATE(vegin%g0c3)
+      DEALLOCATE(vegin%g0c4)
+      DEALLOCATE(vegin%g1c3)
+      DEALLOCATE(vegin%g1c4)  
      
       DEALLOCATE(soilin%silt)
       DEALLOCATE(soilin%clay)

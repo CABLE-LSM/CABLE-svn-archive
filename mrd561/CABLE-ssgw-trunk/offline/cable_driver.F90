@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Offline driver for CABLE
 !
 ! Contact: Bernard.Pak@csiro.au
@@ -64,9 +72,8 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, redistrb,          & 
-                                   report_version_no, wiltParam, satuParam,    &
-                                   calcsoilalbedo, gw_params
+                                   cable_runtime, filename, myhome,            & 
+                                   redistrb, wiltParam, satuParam, gw_params
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -145,16 +152,12 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
-
-   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
-   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
-
+   
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
                   filename,         & ! TYPE, containing input filenames 
-                  vegparmnew,       & ! use new soil param. method
-                  soilparmnew,      & ! use new soil param. method
-                  calcsoilalbedo,   & ! albedo considers soil color Ticket #27
+                  vegparmnew,       & ! jhan: use new soil param. method
+                  soilparmnew,      & ! jhan: use new soil param. method
                   spinup,           & ! spinup model (soil) to steady state 
                   delsoilM,delsoilT,& ! 
                   output,           &
@@ -179,19 +182,6 @@ PROGRAM cable_offline_driver
                   cable_user,       &    ! additional USER switches 
                   gw_params              !four additional tunable paramters controlling the GW hydro
 
-   ! Vars for standard for quasi-bitwise reproducability b/n runs
-   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-   CHARACTER(len=30), PARAMETER ::                                             &
-      Ftrunk_sumbal  = ".trunk_sumbal",                                        &
-      Fnew_sumbal    = "new_sumbal"
-
-   DOUBLE PRECISION ::                                                                     &
-      trunk_sumbal = 0.0, & !
-      new_sumbal = 0.0
-
-   INTEGER :: nkend=0
-   INTEGER :: ioerror
-
    ! END header
 
    ! Open, read and close the namelist file.
@@ -199,21 +189,6 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
-   ! Open, read and close the consistency check file.
-   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-   IF(cable_user%consistency_check) THEN 
-      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
-         IF(ioerror==0) then
-            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
-         ENDIF
-      CLOSE(11)
-   ENDIF
-   
-   ! Open log file:
-   OPEN(logn,FILE=filename%log)
- 
-   CALL report_version_no( logn )
-    
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
@@ -360,53 +335,7 @@ PROGRAM cable_offline_driver
                                rad, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
-         ! dump bitwise reproducible testing data
-         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
-            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,                   &
-                                knode_gl, "FLUXES",                            &
-                          canopy%fe + canopy%fh )
-         ENDIF
-   
-         ! Check this run against standard for quasi-bitwise reproducability
-         ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-         IF(cable_user%consistency_check) THEN 
-            
-            new_sumbal = new_sumbal + SUM(bal%wbal_tot) + SUM(bal%ebal_tot)          &
-                             + SUM(bal%ebal_tot_cncheck)
-  
-            IF( ktau == kend ) THEN
-               nkend = nkend+1
-
-               IF( abs(new_sumbal-trunk_sumbal) < 1.e-7) THEN
-
-                  print *, ""
-                  print *, &
-                  "NB. Offline-serial runs spinup cycles:", nkend
-                  print *, &
-                  "Internal check shows this version reproduces the trunk sumbal"
-               
-               ELSE
-
-                  print *, ""
-                  print *, &
-                  "NB. Offline-serial runs spinup cycles:", nkend
-                  print *, &
-                  "Internal check shows in this version new_sumbal != trunk sumbal"
-                  print *, &
-                  "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
-                        
-                  OPEN( 12, FILE = Fnew_sumbal )
-                     WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
-                  CLOSE(12)
-               
-               ENDIF   
-            ENDIF   
-            
-         ENDIF
-
-         
-      END DO ! END Do loop over timestep ktau
+       END DO ! END Do loop over timestep ktau
 
 
 
@@ -492,7 +421,7 @@ PROGRAM cable_offline_driver
                            sum_flux, veg )
 
    WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
-   
+
    ! Close log file
    CLOSE(logn)
 

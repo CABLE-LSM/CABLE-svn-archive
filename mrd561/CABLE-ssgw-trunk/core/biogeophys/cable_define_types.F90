@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: defines parameters, variables and derived types, allocation and 
 !          deallocation of these derived types
 !
@@ -32,12 +40,12 @@ MODULE cable_def_types_mod
    !---at least 10-digit precision
    
    INTEGER :: mp,    & ! # total no of patches/tiles 
-              mvtype=17,& ! total # vegetation types,   from input
-              mstype=9,& ! total # soil types,         from input
+              mvtype,&!=17,& ! total # vegetation types,   from input
+              mstype,&!=9,& ! total # soil types,         from input
               mland                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
-      r_2  = SELECTED_REAL_KIND(12, 50), &
+      r_2  = kind(1.d0),&  !SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
       ncs = 2,       & ! # soil carbon stores
@@ -112,8 +120,6 @@ MODULE cable_def_types_mod
          swilt,   & ! vol H2O @ wilting
          zse,     & ! thickness of each soil layer (1=top) in m
          zshh,    & ! distance between consecutive layer midpoints (m)
-  		 ! vars intro for Ticket #27
-         soilcol, & ! keep color for all patches/tiles
          albsoilf   ! soil reflectance
      
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
@@ -294,24 +300,17 @@ MODULE cable_def_types_mod
          shelrb,  & ! sheltering factor (dimensionless)
          vegcf,   & ! kdcorbin, 08/10
          tminvj,  & ! min temperature of the start of photosynthesis
-         toptvj,  & ! opt temperature of the start of photosynthesis
          tmaxvj,  & ! max temperature of the start of photosynthesis
          vbeta,   & ! 
          vcmax,   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
          xfang,   & ! leaf angle PARAMETER
          extkn,   & ! extinction coef for vertical
          vlaimax, & ! extinction coef for vertical
-         wai,     & ! wood area index (stem+branches+twigs)
-         a1gs,    & ! a1 parameter in stomatal conductance model
-         d0gs,    & ! d0 in stomatal conductance model      
-         alpha,   & ! initial slope of J-Q response curve   
-         convex,  & ! convexity of J-Q response curve       
-         cfrd,    & ! ratio of day respiration to vcmax
-         gswmin,  & ! minimal stomatal conductance
-         conkc0,  &  ! Michaelis-menton constant for caroxylase
-         conko0,  &  ! Michaelis-menton constant for oxygenase
-         ekc,     & ! activation energy for caroxylagse
-         eko        ! acvtivation enegery for oxygenase
+         wai,      &  ! wood area index (stem+branches+twigs)
+         g0c3,    & ! Belinda's stomatal model intercept, Ticket #56.
+         g0c4,    & ! Belinda's stomatal model intercept, Ticket #56.
+         g1c3,    & ! Belinda's stomatal model slope, Ticket #56.   
+         g1c4        ! Belinda's stomatal model slope, Ticket #56. 
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -319,7 +318,7 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          refl,    &
          taul,    & 
-         froot      ! fraction of root in each soil layer
+         froot,froot_w      ! fraction of root in each soil layer
 
    END TYPE veg_parameter_type
 
@@ -349,6 +348,11 @@ MODULE cable_def_types_mod
          fnpp,    & ! npp flux
          fevw_pot,& ! potential lat heat from canopy
          gswx_T,  & ! ! stom cond for water
+         gswx_1,  & ! sunlit cond, jtk561
+         gswx_2,  & ! shaded cond, jtk561
+         gswmin_1, & ! min sunlint cond, jtk561
+         gswmin_2, & ! min shaded cond, jtk561
+         gs_vs,   & ! ! stom cond for water
          cdtq,    & ! drag coefficient for momentum
          wetfac_cs,&! 
          fevw,    & ! lat heat fl wet canopy (W/m2)
@@ -661,30 +665,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% cnsd(mp) )  
    allocate( var% albsoil(mp, nrb) )  
    allocate( var% pwb_min(mp) )  
-   allocate( var% albsoilf(mp) ) 
-   allocate( var% soilcol(mp) )
-   
-   !MD
-   !Aquifer properties
-   allocate( var%GWhksat(mp) )
-   allocate( var%GWsmpsat(mp) )
-   allocate( var%GWclappB(mp) )
-   allocate( var%GWwatsat(mp) )
-   allocate( var%GWwatr(mp) )
-   var%GWwatr(:) = 0.05
-   allocate( var%GWz(mp) )
-   allocate( var%GWdz(mp) )
-   allocate( var%GWdensoil(mp) )
-   !soil properties (vary by layer)
-   allocate( var%hksat(mp,ms) )
-   allocate( var%smpsat(mp,ms) )
-   allocate( var%clappB(mp,ms) )
-   allocate( var%watsat(mp,ms) )
-   allocate( var%watr(mp,ms) )
-   var%watr(:,:) = 0.05
-   allocate( var%Fsand(mp,ms) )
-   allocate( var%Fclay(mp,ms) )
-   allocate( var%densoil(mp,ms) )
+   allocate( var% albsoilf(mp) )  
    
    !MD
    !Aquifer properties
@@ -848,7 +829,6 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var% shelrb(mp) ) 
    ALLOCATE( var% vegcf(mp) )  
    ALLOCATE( var% tminvj(mp) ) 
-   ALLOCATE( var% toptvj(mp) ) 
    ALLOCATE( var% tmaxvj(mp) ) 
    ALLOCATE( var% vbeta(mp) )  
    ALLOCATE( var% vcmax(mp) )  
@@ -857,19 +837,17 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%wai(mp) )   
    ALLOCATE( var%deciduous(mp) ) 
    ALLOCATE( var%froot(mp,ms) ) 
+
+   ALLOCATE( var%froot_w(mp,ms) ) 
+
+
    ALLOCATE( var%refl(mp,3) ) !jhan:swb?
    ALLOCATE( var%taul(mp,3) ) !MDeck->cable_parameters.F90 tries to access taul(:,3)
    ALLOCATE( var%vlaimax(mp) ) 
-   ALLOCATE( var%a1gs(mp) ) 
-   ALLOCATE( var%d0gs(mp) ) 
-   ALLOCATE( var%alpha(mp) ) 
-   ALLOCATE( var%convex(mp) ) 
-   ALLOCATE( var%cfrd(mp) ) 
-   ALLOCATE( var%gswmin(mp) ) 
-   ALLOCATE( var%conkc0(mp) ) 
-   ALLOCATE( var%conko0(mp) ) 
-   ALLOCATE( var%ekc(mp) ) 
-   ALLOCATE( var%eko(mp) ) 
+   ALLOCATE( var% g0c3(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g0c4(mp) )   ! Ticket #56.
+   ALLOCATE( var% g1c3(mp) )   ! Ticket #56.
+   ALLOCATE( var% g1c4(mp) )   ! Ticket #56. 
 
 END SUBROUTINE alloc_veg_parameter_type
 
@@ -925,6 +903,10 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fnpp(mp) )   
    ALLOCATE( var% fevw_pot(mp) )  
    ALLOCATE( var% gswx_T(mp) )  
+   ALLOCATE( var% gswx_1(mp) ) ! jtk561
+   ALLOCATE( var% gswx_2(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_1(mp) ) ! jtk561
+   ALLOCATE( var% gswmin_2(mp) ) ! jtk561 
    ALLOCATE( var% cdtq(mp) )   
    ALLOCATE( var% wetfac_cs(mp) )  
    ALLOCATE( var% fevw(mp) )   
@@ -1156,8 +1138,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% albsoil )  
    DEALLOCATE( var% cnsd )  
    DEALLOCATE( var% pwb_min)  
-   DEALLOCATE( var% albsoilf )
-   DEALLOCATE( var% soilcol )  
+   DEALLOCATE( var% albsoilf )  
    
    !MD
    !Aquifer properties
@@ -1313,7 +1294,6 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var% shelrb ) 
    DEALLOCATE( var% vegcf )  
    DEALLOCATE( var% tminvj ) 
-   DEALLOCATE( var% toptvj ) 
    DEALLOCATE( var% tmaxvj ) 
    DEALLOCATE( var% vbeta)  
    DEALLOCATE( var% vcmax )  
@@ -1322,18 +1302,15 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%wai )   
    DEALLOCATE( var%deciduous ) 
    DEALLOCATE( var%froot) 
+
+   DEALLOCATE( var%froot_w) 
+
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
-   DEALLOCATE( var%a1gs ) 
-   DEALLOCATE( var%d0gs ) 
-   DEALLOCATE( var%alpha ) 
-   DEALLOCATE( var%convex ) 
-   DEALLOCATE( var%cfrd ) 
-   DEALLOCATE( var%gswmin ) 
-   DEALLOCATE( var%conkc0 ) 
-   DEALLOCATE( var%conko0 ) 
-   DEALLOCATE( var%ekc ) 
-   DEALLOCATE( var%eko ) 
+   DEALLOCATE( var%g0c3 ) ! Ticket #56.
+   DEALLOCATE( var%g0c4 ) ! Ticket #56. 
+   DEALLOCATE( var%g1c3 ) ! Ticket #56.
+   DEALLOCATE( var%g1c4 ) ! Ticket #56.
    
 END SUBROUTINE dealloc_veg_parameter_type
    
@@ -1388,6 +1365,10 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fnpp )   
    DEALLOCATE( var% fevw_pot )  
    DEALLOCATE( var% gswx_T )  
+   DEALLOCATE( var% gswx_1 ) ! jtk561
+   DEALLOCATE( var% gswx_2 ) ! jtk561 
+   DEALLOCATE( var% gswmin_1)  ! jtk561
+   DEALLOCATE( var% gswmin_2)  ! jtk561
    DEALLOCATE( var% cdtq )   
    DEALLOCATE( var% wetfac_cs )  
    DEALLOCATE( var% fevw )   

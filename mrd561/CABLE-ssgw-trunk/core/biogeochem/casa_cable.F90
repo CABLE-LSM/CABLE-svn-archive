@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: bgcdriver - interface between casacnp and cable
 !          sumcflux  - accumulating carbon fluxes (not required for UM)
 !
@@ -285,14 +293,27 @@ END SUBROUTINE bgcdriver
   IMPLICIT NONE
   INTEGER,      INTENT(IN) :: ktau ! integration step number
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (casa_biome),          INTENT(INOUT) :: casabiome
+  TYPE (casa_biome),          INTENT(IN) :: casabiome
   TYPE (casa_pool),           INTENT(IN) :: casapool
   TYPE (casa_met),            INTENT(IN) :: casamet
+  real, dimension(17)                   ::  nintercept,nslope,xnslope
+! Will move to look-up table in later version
+  data nintercept/6.32,4.19,6.32,5.73,14.71,6.42,2.00,14.71,4.71,14.71,14.71,7.00,14.71,14.71,14.71,14.71,14.71/
+  data nslope/18.15,26.19,18.15,29.81,23.15,40.96,8.00,23.15,59.23,23.15,23.15,10.00,23.15,23.15,23.15,23.15,23.15/
+!  data xnslope/0.41,0.67,0.79,0.63,0.29,0.28,0.25,0.48,0.27,1.00,1.00,1.00,1.00,0.35,1.00,1.00,1.00/
+!  data xnslope/0.60,0.75,0.75,0.70,0.40,0.36,0.30,0.54,0.30,1.00,1.00,1.00,1.00,0.35,1.00,1.00,1.00/
+!  data xnslope/0.86,0.80,0.70,0.78,0.53,0.46,0.34,0.57,0.35,1.00,1.00,1.00,1.00,0.25,1.00,1.00,1.00/
+!  data xnslope/0.69,0.71,0.79,0.67,0.35,0.32,0.25,0.47,0.26,1.00,1.00,1.00,1.00,0.27,1.00,1.00,1.00/
+! ypw: 13-june-2011: the following value give correct GPP and NPP, but not enough soil N
+! data xnslope/0.69,0.71,0.70,0.67,0.42,0.40,0.50,0.52,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
+!  data xnslope/0.64,0.71,0.70,0.67,0.42,0.40,0.45,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
+!  data xnslope/0.64,0.71,0.70,0.60,0.42,0.40,0.40,0.50,0.28,1.00,1.00,1.00,1.00,0.23,1.00,1.00,1.00/
+! Q.Zhang: test parameters 13/09/2011
+! Modified further in ACCESS-1.4
+  data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
   integer np,ivt
   real, dimension(mp)  :: ncleafx,npleafx  ! local variables
-  real, dimension(17)                   ::  xnslope
-  data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
   ! first initialize 
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf) 
@@ -314,19 +335,19 @@ END SUBROUTINE bgcdriver
 
     IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
       IF (ivt/=2) THEN
-        veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+        veg%vcmax(np) = ( nintercept(ivt) &
+                        + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
       ELSE
         IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
-          veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
-                          + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
+          veg%vcmax(np) = ( nintercept(ivt)  &
+                          + nslope(ivt)*(0.4+9.0/npleafx(np)) &
                           * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
         ELSE
-          veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
+          veg%vcmax(np) = ( nintercept(ivt) &
+                          + nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
         ENDIF
       ENDIF
-      veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+      veg%vcmax(np) = veg%vcmax(np) * xnslope(ivt)
     ENDIF
 
 !    veg%vcmax(np) = ( nintercept(ivt)  &

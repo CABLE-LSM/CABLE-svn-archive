@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose:       This module file reads default parameter sets and basic
 !                initialisations for CABLE. Parameters values are chosen based
 !                on a global map of vegetation and soil types, currently based
@@ -79,7 +87,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:),          ALLOCATABLE :: inLat
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inALB
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inSND
-  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inLAI
+  REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inLAI
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inArea
   INTEGER, DIMENSION(:, :),       ALLOCATABLE :: inSorder
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inNdep
@@ -100,7 +108,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inclay
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
-  
+
   !MD temp vars for reading in aquifer properties
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWssat
@@ -113,12 +121,10 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWWatr
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inWatr
 
-  ! vars intro for Ticket #27 
-  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
-
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElev
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inElevSTD
+  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inTI
@@ -127,8 +133,7 @@ MODULE cable_param_module
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew)
-    use cable_common_module, only : get_type_parameters, filename,             &
-                                    calcsoilalbedo
+    use cable_common_module, only : get_type_parameters, filename,cable_user
   ! Load parameters for each veg type and each soil type. (get_type_parameters)
   ! Also read in initial information for each grid point. (read_gridinfo)
   ! Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
@@ -156,13 +161,8 @@ CONTAINS
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
       WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
-      CALL spatialSoil(nlon, nlat, logn)
+      CALL spatialSoil(nlon, nlat, npatch, logn)
     ENDIF
-
-    ! include prescribed soil colour in determining albedo - Ticket #27
-    IF (calcsoilalbedo) THEN
-       CALL read_soilcolor(logn)
-    END IF
 
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
@@ -206,7 +206,7 @@ CONTAINS
     INTEGER :: ncid, ok
     INTEGER :: xID, yID, pID, sID, tID, bID
     INTEGER :: varID
-    INTEGER :: nslayer, ntime, nband
+    INTEGER :: nslayer, ntime, nband, nlai_dims !number of dimensions for lai
     INTEGER :: ii, jj, kk
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
@@ -257,7 +257,7 @@ CONTAINS
     ALLOCATE( inTGG(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inALB(nlon, nlat, npatch,nband) )
     ALLOCATE( inSND(nlon, nlat, npatch,ntime) )
-    ALLOCATE( inLAI(nlon, nlat, ntime) )
+    ALLOCATE( inLAI(nlon, nlat, npatch, ntime) )
     ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
 
@@ -284,9 +284,16 @@ CONTAINS
 
     ok = NF90_GET_VAR(ncid, varID, inVeg)
     IF (ok /= NF90_NOERR) THEN
-       ok = NF90_GET_VAR(ncid, varID, idummy)
-       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-      inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+       if (npatch .eq. 1) then
+          ok = NF90_GET_VAR(ncid, varID, idummy)
+          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+          do kk=1,npatch
+             inVeg(:, :,kk) = idummy(:,:) ! npatch=1 in 1x1 degree input
+          end do
+       else
+          ok = NF90_GET_VAR(ncid, varID, inVeg)
+          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+       end if
     END IF
 
     ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
@@ -335,7 +342,19 @@ CONTAINS
     ENDDO
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
-    ok = NF90_GET_VAR(ncid,varID,inLAI)
+    ok = NF90_INQUIRE_VARIABLE(ncid,varID,ndims=nlai_dims)
+    !must test if it is lai per pft of only per grid cell
+    !this assumes if not per pft it is lon,lat,time
+    !if per pft it is lon,lat,pft,time
+    r3dum2(:,:,:) = 0.
+    if (nlai_dims .eq. 3) then
+       ok = NF90_GET_VAR(ncid,varID,r3dum2)
+       do jj=1,npatch
+          inLAI(:,:,jj,:) = r3dum2(:,:,:)
+       end do
+    else
+       ok = NF90_GET_VAR(ncid,varID,inLAI)
+    end if
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable LAI.')
     IF (icycle > 0) THEN
       ! casaCNP parameters
@@ -389,7 +408,7 @@ CONTAINS
 
   END SUBROUTINE read_gridinfo
   !============================================================================
-  SUBROUTINE spatialSoil(nlon, nlat, logn)
+  SUBROUTINE spatialSoil(nlon, nlat, npatch, logn)
   ! Read in spatially-specific soil properties including snow-free albedo
   ! plus soil texture; all these from UM ancilliary file
   !
@@ -423,6 +442,7 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
     INTEGER, INTENT(IN) :: nlat
+    INTEGER, INTENT(IN) :: npatch    
     INTEGER, INTENT(IN) :: logn ! log file unit number
 
     ! local variables
@@ -463,6 +483,7 @@ CONTAINS
     ALLOCATE(    inclay(nlon, nlat) )
     ALLOCATE(    insilt(nlon, nlat) )
     ALLOCATE(    insand(nlon, nlat) )
+    
     !MD Aquifer properties
     ALLOCATE(    inGWssat(nlon, nlat) )
     ALLOCATE(     inGWbch(nlon, nlat) )
@@ -598,7 +619,7 @@ CONTAINS
     end if
     IF ((ok .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inORG(:,:) = 0.0
-      write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE '
+      write(logn,*) 'COULD NOT READ FORG FROM THR SRF FILE setting to 0.0'
     END IF    
 
     ok = NF90_INQ_VARID(ncid, 'topo_index', fieldID)
@@ -731,9 +752,11 @@ CONTAINS
       in2alb = -1.0
     END WHERE
     dummy2(:, :) = 2.0 * in2alb(:, :) / (1.0 + sfact(:, :))
-    inALB(:, :, 1, 2) = dummy2(:, :)
-    inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
+    do ii=1,npatch
+       inALB(:, :, ii, 2) = dummy2(:, :)
+       inALB(:, :, ii, 1) = sfact(:, :) * dummy2(:, :)
+    end do
 
     !always allocate and initialize to 0
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
@@ -819,89 +842,8 @@ CONTAINS
 
   END SUBROUTINE spatialSoil
   !=============================================================================
-  !subr to read soil color for albed o calc - Ticket #27
-  SUBROUTINE read_soilcolor(logn)
-  ! Read soil color
-  !
-  ! Input variables:
-  !   filename%soilcolor  - via cable_IO_vars_module
-  ! Output variables:
-  !   soilcol    - via cable_param_module
-  !
-  ! New input structure using netcdf
-
-    USE netcdf
-    USE cable_common_module, ONLY : filename, calcsoilalbedo
-    ! USE cable_IO_vars_module, ONLY : soilcol
-
-    IMPLICIT NONE
-    ! INTEGER, DIMENSION(:), INTENT(INOUT) :: soilcol
-    ! TYPE (soil_parameter_type), INTENT(OUT) :: soil
-    INTEGER, INTENT(IN) ::  logn ! log file unit number
-
-    ! local variables  
-    ! INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
-    INTEGER :: ncid, ok
-    INTEGER :: nlon
-    INTEGER :: nlat
-    INTEGER :: xID, yID
-    INTEGER :: varID
-    INTEGER :: r, e
-
-    REAL,    DIMENSION(:),          ALLOCATABLE :: inLonSoilCol
-    REAL,    DIMENSION(:),          ALLOCATABLE :: inLatSoilCol
-
-    ok = NF90_OPEN(filename%soilcolor, 0, ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening soil color file.')
-
-    ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
-    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring x dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, xID, LEN=nlon)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting x dimension.')
-    ok = NF90_INQ_DIMID(ncid, 'latitude', yID)
-    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'y', yID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
 
 
-    ALLOCATE( inLonSoilCol(nlon), inLatSoilCol(nlat) )
-    ALLOCATE( inSoilColor(nlon, nlat) )
-    ! ALLOCATE( soilcol(mp) )
-
-    ok = NF90_INQ_VARID(ncid, 'longitude', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error finding variable longitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLonSoilCol)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error reading variable longitude.')
-
-    DO r = 1, nlon 
-      IF ( inLonSoilCol(r) /= inLon(r) ) CALL nc_abort(ok,                     &
-                                               'Wrong resolution in longitude.')
-    END DO
-
-    ok = NF90_INQ_VARID(ncid, 'latitude', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
-    ok = NF90_GET_VAR(ncid, varID, inLatSoilCol)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
-
-    DO r = 1, nlat
-      IF ( inLatSoilCol(r) /= inLat(r) ) CALL nc_abort(ok,                     &
-                                               'Wrong resolution in latitude.')
-    END DO
-
-    ok = NF90_INQ_VARID(ncid, 'SOIL_COLOR', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable soil color.')
-    ok = NF90_GET_VAR(ncid, varID, inSoilColor)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable soil color.')
-
-    ok = NF90_CLOSE(ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing soil color file.')
-
-  END SUBROUTINE read_soilcolor
-  !=============================================================================
   SUBROUTINE NSflip(nlon, nlat, invar)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
@@ -977,10 +919,16 @@ CONTAINS
 
       landpt(kk)%nap = 0
       landpt(kk)%cstart = ncount + 1
+
+      allocate(landpt(kk)%tilenumber(mvtype))
+
+      landpt(kk)%tilenumber(:) = -1
+
       IF (ASSOCIATED(vegtype_metfile)) THEN
         DO tt = 1, nmetpatches
           IF (vegtype_metfile(kk,tt) > 0) ncount = ncount + 1
           landpt(kk)%nap = landpt(kk)%nap + 1
+          landpt(kk)%tilenumber(landpt(kk)%nap) = tt
         END DO
         landpt(kk)%cend = ncount
         IF (landpt(kk)%cend < landpt(kk)%cstart) THEN
@@ -991,27 +939,44 @@ CONTAINS
         END IF
       ELSE
         ! assume nmetpatches to be 1
-        IF (nmetpatches == 1) THEN
+        !Need to check patch config of file from read_gridinfo()
+        IF (npatch .gt. 1) then
+           do tt=1,npatch
+              !either need 1D patchfrac or lat_in(landpt(kk)),lon_ind(landpt(kk))
+              if (inPFrac(landpt(kk)%ilon, landpt(kk)%ilat, tt) .gt. 1e-6) then
+                 ncount = ncount + 1
+                 landpt(kk)%nap = landpt(kk)%nap + 1
+                 landpt(kk)%tilenumber(landpt(kk)%nap) = tt  !store the tile number (1-17) for each active patch to read in iveg,and LAI
+              end if
+           end do
+           landpt(kk)%cend = ncount
+           if (landpt(kk)%cend < landpt(kk)%cstart) then
+              write(*,*) 'Land point ', kk, ' does not have any veg fractions!'
+              write(*,*) 'landpt%cstart, cend = ', landpt(kk)%cstart, landpt(kk)%cend
+              stop
+           end if
+        elseif (nmetpatches == 1 .and. npatch == 1) THEN
           ncount = ncount + 1
           landpt(kk)%nap = 1
           landpt(kk)%cend = ncount
+          landpt(kk)%tilenumber(landpt(kk)%nap) = 1
         ELSE
-          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1.'
+          PRINT *, 'nmetpatches = ', nmetpatches, '. Should be 1. because npatch=',npatch
           PRINT *, 'If soil patches exist, add new code.'
           STOP
         END IF
       END IF
     END DO
-    IF (ncount > mland * nmetpatches) THEN
-      PRINT *, ncount, ' should not be greater than mland*nmetpatches.'
-      PRINT *, 'mland, nmetpatches = ', mland, nmetpatches
+    IF ((ncount > mland * nmetpatches) .and. ncount > mland*npatch) THEN
+      PRINT *, ncount, ' should not be greater than mland*nmetpatches and mland*npatch.'
+      PRINT *, 'mland, nmetpatches, npatch = ', mland, nmetpatches,npatch
       STOP
     END IF
     DEALLOCATE(inLon, inLat)
 
     ! Set the maximum number of active patches to that read from met file:
     max_vegpatches = MAXVAL(landpt(:)%nap)
-    IF (max_vegpatches /= nmetpatches) THEN
+    IF ((max_vegpatches /= nmetpatches) .and. (max_vegpatches .gt. npatch)) THEN
       PRINT *, 'Error! Met file claiming to have more active patches than'
       PRINT *, 'it really has. Check met file.'
       STOP
@@ -1019,6 +984,7 @@ CONTAINS
     IF (npatch < nmetpatches) THEN
       PRINT *, 'Warning! Met file data have more patches than the global file.'
       PRINT *, 'Remember to check final veg type and patch fractions.'
+      write(*,*) 'MORE WARNINGS!!! ALL HANDS ON DECK '
     END IF
 
     ! Write to total # patches - used to allocate all of CABLE's variables:
@@ -1051,7 +1017,7 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,cable_user
+    USE cable_common_module, only : vegin, soilin,cable_user
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1067,12 +1033,13 @@ CONTAINS
     TYPE (roughness_type),      INTENT(OUT)   :: rough
     TYPE (radiation_type),      INTENT(OUT)   :: rad
 
-    INTEGER :: e,f,h  ! do loop counter
+    INTEGER :: e,f,h  ! do loop counter  why funny values?
     INTEGER :: is     ! YP oct07
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
     INTEGER :: klev   !soil layer
+    INTEGER :: kk, k
 
 !    The following is for the alternate method to calculate froot by Zeng 2001
 !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -1111,7 +1078,7 @@ CONTAINS
     ! *******************************************************************
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
-    !soil%zse = (/0.005, 0.075, 0.154,0.409,1.085,2.872/)  
+
     !MD aquifer layers
     soil%GWdz = 20.0                          !20 m thick aquifer
 
@@ -1141,28 +1108,35 @@ CONTAINS
     
       ! Write to CABLE variables from temp variables saved in
       ! get_default_params
-      veg%iveg(landpt(e)%cstart:landpt(e)%cend) =                              &
-                          inVeg(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
-      patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
-                        inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
+      do k=1,landpt(e)%nap
+         veg%iveg(landpt(e)%cstart+k-1) =                              &
+                          inVeg(landpt(e)%ilon, landpt(e)%ilat, landpt(e)%tilenumber(k)) !1:landpt(e)%nap)
+         patch(landpt(e)%cstart+k-1)%frac =                            &
+                        inPFrac(landpt(e)%ilon, landpt(e)%ilat, landpt(e)%tilenumber(k))
+      end do
       ! Check that patch fractions total to 1
+      !this is done again in the check_parameter_values subroutine
       tmp = 0
       IF (landpt(e)%cstart == landpt(e)%cend) THEN
         patch(landpt(e)%cstart)%frac = 1.0
       ELSE
+        kk = landpt(e)%cstart
         DO is = landpt(e)%cstart, landpt(e)%cend
           tmp = tmp + patch(is)%frac
+          if (patch(is)%frac .eq. maxval(patch(landpt(e)%cstart:landpt(e)%cend)%frac)) then
+            kk = is
+          end if
         END DO
-        IF (ABS(1.0 - tmp) > 0.001) THEN
-          IF ((1.0 - tmp) < -0.001 .OR. (1.0 - tmp) > 0.5) THEN
-            PRINT *, 'Investigate the discrepancy in patch fractions:'
-            PRINT *, 'patch%frac = ',                                          &
-                                     patch(landpt(e)%cstart:landpt(e)%cend)%frac
-            PRINT *, 'landpoint # ', e
-            PRINT *, 'veg types = ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
-            STOP
-          END IF
-          patch(landpt(e)%cstart)%frac = patch(landpt(e)%cstart)%frac + 1.0    &
+        IF (ABS(1.0 - tmp) > 1.e-7) THEN
+          !IF ((1.0 - tmp) < -0.001 .OR. (1.0 - tmp) > 0.5) THEN
+          !  PRINT *, 'Investigate the discrepancy in patch fractions:'
+          !  PRINT *, 'patch%frac = ',                                          &
+          !                           patch(landpt(e)%cstart:landpt(e)%cend)%frac
+          !  PRINT *, 'landpoint # ', e
+          !  PRINT *, 'veg types = ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
+          !  STOP
+          !END IF
+          patch(kk)%frac = patch(kk)%frac + 1.0    &
                                          - tmp
         END IF
       END IF
@@ -1183,7 +1157,7 @@ CONTAINS
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
         DO ir = 1, nrb                                  ! each band
            ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                      &
-              = inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir) ! various rad band
+              = min(inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir),0.2) ! various rad band
         END DO
         ! total depth, change from m to mm
         ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
@@ -1191,9 +1165,11 @@ CONTAINS
       END DO
 
       ! Set default LAI values
-      DO is = 1, 12
-        defaultLAI(landpt(e)%cstart:landpt(e)%cend,is) =                       &
-                                        inLAI(landpt(e)%ilon,landpt(e)%ilat,is)
+      DO is=0,landpt(e)%cend - landpt(e)%cstart
+         DO ir = 1, 12
+            defaultLAI(landpt(e)%cstart + is, ir) =                       &
+                                           inLAI(landpt(e)%ilon,landpt(e)%ilat,landpt(e)%tilenumber(is+1),ir)
+         END DO
       END DO
 
       ! Set IGBP soil texture values, Q.Zhang @ 12/20/2010.
@@ -1284,17 +1260,11 @@ CONTAINS
       soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inTI(landpt(e)%ilon,landpt(e)%ilat)
 
-      !soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-      !                              int(inBI(landpt(e)%ilon,landpt(e)%ilat))
+      soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+                                    int(inBI(landpt(e)%ilon,landpt(e)%ilat))
 
 
       ENDIF
-
-      ! vars intro for Ticket #27
-      IF (calcsoilalbedo) THEN
-        soil%soilcol(landpt(e)%cstart:landpt(e)%cend) =                        &
-                                     inSoilColor(landpt(e)%ilon, landpt(e)%ilat)
-      END IF
 
 ! offline only below
        ! If user defined veg types are present in the met file then use them. 
@@ -1345,22 +1315,14 @@ CONTAINS
           veg%rs20(h)     = vegin%rs20(veg%iveg(h))
           veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
           veg%wai(h)      = vegin%wai(veg%iveg(h))
-          veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
-          veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
           veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
           veg%extkn(h)    = vegin%extkn(veg%iveg(h))
+          veg%g0c3(h)     = vegin%g0c3(veg%iveg(h)) ! Ticket #56
+          veg%g0c4(h)     = vegin%g0c4(veg%iveg(h)) ! Ticket #56
+          veg%g1c3(h)     = vegin%g1c3(veg%iveg(h)) ! Ticket #56
+          veg%g1c4(h)     = vegin%g1c4(veg%iveg(h)) ! Ticket #56
           veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
           veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
-          veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
-          veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
-          veg%alpha(h)  = vegin%alpha(veg%iveg(h))
-          veg%convex(h) = vegin%convex(veg%iveg(h))
-          veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
-          veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
-          veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
-          veg%conko0(h) = vegin%conko0(veg%iveg(h))
-          veg%ekc(h)    = vegin%ekc(veg%iveg(h))
-          veg%eko(h)    = vegin%eko(veg%iveg(h))
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
@@ -1369,6 +1331,7 @@ CONTAINS
           soil%silt(h)    =  soilin%silt(soil%isoilm(h))
           soil%clay(h)    =  soilin%clay(soil%isoilm(h))
           soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+
           !MDeck
           do klev=1,ms
             soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
@@ -1377,6 +1340,13 @@ CONTAINS
           end do
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
+             !MDeck
+            do klev=1,ms
+               soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
+               soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+               soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
+            end do
+
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
             soil%ssat(h)    =  soilin%ssat(soil%isoilm(h))
@@ -1423,9 +1393,6 @@ CONTAINS
     ! Deallocate temporary variables:
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
                        insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010, MD
-
-    IF (calcsoilalbedo) DEALLOCATE(inSoilColor) ! vars intro for Ticket #27
-
     if (allocated(inGWsucs  )) deallocate(inGWsucs)
     if (allocated(inGWhyds  )) deallocate(inGWhyds)
     if (allocated(inGWbch   )) deallocate(inGWbch)
@@ -1457,8 +1424,7 @@ CONTAINS
                vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
-               vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
-               vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
+               vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4) 
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous
@@ -1606,7 +1572,7 @@ CONTAINS
     !MD aquifer node depth
     soil%GWz = 0.5*soil%GWdz + sum(soil%zse)  !node is halfway through aquifer depth
 
-    IF (cable_user%GW_MODEL) then
+    IF (cable_user%GW_MODEL .and. soilparmnew) then
 
        DO klev=1,ms
           soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
@@ -1634,8 +1600,6 @@ CONTAINS
        !ENDWHERE
 
        DO klev=1,3  !0-23.3 cm, data really is to 30cm
-          !soil%hksat(:,klev ) = (1.-perc_frac(:,klev))*((1.-soil%Forg(:,klev))/soil%hksat(:,klev) + &
-          !                       (soil%Forg(:,klev)-perc_frac(:,klev))/hksat_organic)**(-1.0)
           soil%hksat(:,klev)  = (1.-soil%Forg(:,klev))*soil%hksat(:,klev) +soil%Forg(:,klev)*hksat_organic
           soil%smpsat(:,klev) = (1.-soil%Forg(:,klev))*soil%smpsat(:,klev) + soil%Forg(:,klev)*smpsat_organic
           soil%clappB(:,klev) = (1.-soil%Forg(:,klev))*soil%clappB(:,klev) +soil%Forg(:,klev)*clappb_organic
@@ -1644,24 +1608,31 @@ CONTAINS
        END DO
 
        soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 +soil%Fsilt(:,1)*0.265
+       soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
+       !vegetation dependent wilting point
+       DO i=1,mp
+          psi_tmp(i,:) = -psi_c(veg%iveg(i))
+       END DO
+       soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
+       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
+                   + soil%silt * 0.265 ! set dry soil thermal conductivity
+
+       soil%sfc(:) = soil%fldcap(:,1)
+       soil%swilt(:) = soil%wiltp(:,1)
+
+    ELSE
+      do klev=1,ms
+       soil%fldcap(:,klev) = soil%sfc(:)
+       soil%wiltp(:,klev)  = soil%swilt(:)
+      end do
 
     END IF
-
-    soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
-    !vegetation dependent wilting point
-    DO i=1,mp
-       psi_tmp(i,:) = -psi_c(veg%iveg(i))
-    END DO
-    soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
     
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
     END IF
-
-      soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
-                   + soil%silt * 0.265 ! set dry soil thermal conductivity
 
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
@@ -2004,12 +1975,6 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
                - 1))
          WRITE(logn, patchfmtr) 'Modifier for surface albedo in near IR '//   &
                'band: ', veg%xalbnir(landpt(e)%cstart:(landpt(e)%cstart +     &
-               landpt(e)%nap - 1))
-         WRITE(logn, patchfmtr) 'a1 parameter in leaf stomatal model  ',      &
-               veg%a1gs(landpt(e)%cstart:(landpt(e)%cstart +                  &
-               landpt(e)%nap - 1))
-         WRITE(logn, patchfmtr) 'd0 parameter in leaf stomatal model  ',      &
-               veg%d0gs(landpt(e)%cstart:(landpt(e)%cstart +                  &
                landpt(e)%nap - 1))
          IF (icycle == 0) THEN
            WRITE(logn,'(4X, A50, F12.4)')                                     &
