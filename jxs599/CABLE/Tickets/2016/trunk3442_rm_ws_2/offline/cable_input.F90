@@ -1452,8 +1452,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        END IF
     END IF
     ! Deallocate read in arrays:
-    IF(ASSOCIATED(temparray1)) DEALLOCATE(temparray1)
-    IF(ASSOCIATED(temparray2)) DEALLOCATE(temparray2)
+    !IF(ASSOCIATED(temparray1)) DEALLOCATE(temparray1)
+    !IF(ASSOCIATED(temparray2)) DEALLOCATE(temparray2)
     
     ! Report finding met variables to log file:
     IF(all_met) THEN
@@ -1501,8 +1501,9 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    TYPE (radiation_type),INTENT(IN)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
    INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
-                                        kend, & ! total number of timesteps in run
-                                        kstart  ! starting timestep
+                                        kend!, & ! total number of timesteps in run
+                                        !kstart  ! starting timestep
+   INTEGER :: kstart 
    REAL,INTENT(IN)                   :: dels ! time step size
    REAL, INTENT(IN) :: TFRZ 
    
