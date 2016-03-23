@@ -216,7 +216,7 @@ SUBROUTINE soilcarb( soil, ssnow, veg, bgc, met, canopy)
    TYPE (soil_snow_type), INTENT(IN)        :: ssnow
    TYPE (bgc_pool_type), INTENT(IN)         :: bgc
    TYPE (met_type), INTENT(IN)              :: met 
-   TYPE (canopy_type), INTENT(OUT)          :: canopy
+   TYPE (canopy_type), INTENT(INOUT)        :: canopy
 
    TYPE (soil_parameter_type), INTENT(IN)   :: soil
    TYPE (veg_parameter_type), INTENT(IN)    :: veg
@@ -313,7 +313,7 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
    TYPE (veg_parameter_type), INTENT(IN)    :: veg
    TYPE (bgc_pool_type), INTENT(IN)         :: bgc
    TYPE (met_type), INTENT(IN)              :: met
-   TYPE (canopy_type), INTENT(OUT)          :: canopy
+   TYPE (canopy_type), INTENT(INOUT)        :: canopy
 
    REAL, DIMENSION(mp) ::                                                      &
       poolcoef1,     &! non-leaf carbon turnover rate * non-leaf pool size

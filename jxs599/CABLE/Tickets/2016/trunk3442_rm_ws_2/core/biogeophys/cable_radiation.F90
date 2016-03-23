@@ -175,9 +175,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
       emair, &    ! air emissivity
       flpwb, &    ! black-body long-wave radiation
       flwv, &     ! vegetation long-wave radiation (isothermal)
-      xx1,tssp    ! 
-      
-   REAL(r_2), DIMENSION(mp) ::                                                 &
+      xx1,tsspl, &!    ! 
       dummy, dummy2
    
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation

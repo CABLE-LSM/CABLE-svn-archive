@@ -939,8 +939,8 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
       sgamm,      & !
       smasstot,   & !
       talb,       & ! snow albedo
-      tmp,        & ! temporary value
-      xxx           !
+      tmp           ! temporary value
+   REAL(r_2), DIMENSION(mp) :: xxx
 
    REAL, DIMENSION(mp,0:3) :: smelt1
     
@@ -1607,7 +1607,7 @@ END SUBROUTINE soilfreeze
 
 SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    
-   USE cable_common_module, ONLY : redistrb
+   USE cable_common_module, ONLY : redistrb, cable_user
 
    ! Removes transpiration water from soil.
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
