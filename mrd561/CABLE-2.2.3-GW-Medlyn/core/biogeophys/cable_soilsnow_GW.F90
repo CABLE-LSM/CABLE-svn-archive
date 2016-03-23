@@ -1694,17 +1694,17 @@ END SUBROUTINE remove_trans
            end if
        end do
      
-       !do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
-       !   if (xsi .gt. 0._r_2) then
-       !      if (xsi .lt. (eff_por(i,k)-ssnow%wbliq(i,k))*dzmm(k)) then
-       !         ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + xsi/dzmm(k)
-       !         xsi = 0._r_2
-       !      else
-       !         xsi = xsi - (eff_por(i,k) - ssnow%wbliq(i,k))*dzmm(k)
-       !         ssnow%wbliq(i,k) = eff_por(i,k)
-       !      end if
-       !   end if
-       !end do  !ms loop
+       do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
+          if (xsi .gt. 0._r_2) then
+             if (xsi .lt. (eff_por(i,k)-ssnow%wbliq(i,k))*dzmm(k)) then
+                ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + xsi/dzmm(k)
+                xsi = 0._r_2
+             else
+                xsi = xsi - (eff_por(i,k) - ssnow%wbliq(i,k))*dzmm(k)
+                ssnow%wbliq(i,k) = eff_por(i,k)
+             end if
+          end if
+       end do  !ms loop
 
        if (xsi .gt. 0._r_2) then
           ssnow%qhz(i) = ssnow%qhz(i) + xsi/dels
@@ -2107,8 +2107,12 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
       fice = min(1._r_2,max(0._r_2,fice))
 
       !Saturated fraction
-      slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-2)) ! ensure some variability
-      ssnow%satfrac(i)    = 1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) )
+       if (gw_params%MaxSatFraction .gt. 1e-7) then 
+         slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-2)) ! ensure some variability
+         ssnow%satfrac(i)    = 1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) )
+      else
+         ssnow%satfrac(i) = 0._r_2
+      end if
       ssnow%satfrac(i)    = max(1e-6,min(0.95,ssnow%satfrac(i)))
       satfrac_liqice(i) = fice + (1._r_2-fice)*ssnow%satfrac(i)
 
