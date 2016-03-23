@@ -40,7 +40,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    USE TypeDef,              ONLY: i4b, dp
    USE POPMODULE,            ONLY: POPStep
    USE POP_TYPES,            ONLY: POP_TYPE
-   USE cable_phenology_module, ONLY: cable_phenology_clim
+   !vh
+   !USE cable_phenology_module, ONLY: cable_phenology_clim
 
    IMPLICIT NONE
  
@@ -48,11 +49,11 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER,      INTENT(IN) :: kstart ! starting value of ktau
    INTEGER,      INTENT(IN) :: kend ! total # timesteps in run
    
-   INTEGER,      INTENT(IN)                  :: idoy ,LOY ! day of year (1-365) , Length oy
+   INTEGER,      INTENT(IN)                  :: idoy !,LOY ! day of year (1-365) , Length oy
    INTEGER,      INTENT(IN)                  :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
    logical,      INTENT(IN) :: dump_read, dump_write 
-   INTEGER                  :: LALLOC
+   !INTEGER                  :: LALLOC
         
    REAL,         INTENT(IN) :: dels ! time setp size (s)
    TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
@@ -147,9 +148,10 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    
          IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN 
             IF ( dump_write ) &
-               call ncdf_dump( casamet%tairk, casamet%tsoil, casamet%moist, &
-                               casaflux%cgpp, casaflux%crmplant, idoy, &
-                               kend/ktauday )
+               print *,""
+               !call ncdf_dump( casamet%tairk, casamet%tsoil, casamet%moist, &
+               !                casaflux%cgpp, casaflux%crmplant, idoy, &
+               !                kend/ktauday )
          ENDIF
 
       ENDIF
@@ -273,7 +275,7 @@ END SUBROUTINE bgcdriver
 !      if (n_call == kend ) & 
 !         ncok = nf90_close(ncid)            ! close: save new netCDF dataset
      
-   end subroutine ncdf_dump
+!   end subroutine ncdf_dump
 
 
 !! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)

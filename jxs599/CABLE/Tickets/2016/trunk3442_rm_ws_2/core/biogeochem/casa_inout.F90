@@ -401,6 +401,7 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
   ! read in the tabulated modis-derived leaf phenology data
   ! for latitude bands of 79.75 to -55.25
   USE cable_def_types_mod
+  USE cable_common_module
   USE casadimension
   USE casaparm
   USE casavariable
@@ -1050,7 +1051,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   INTEGER, INTENT(IN)    :: ktau
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: idoy
-  INTEGER    :: LALLOC
+  !INTEGER    :: LALLOC
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome

@@ -1,5 +1,5 @@
 SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-     casaflux,casamet,casabal,phen,POP,climate,LALLOC )
+     casaflux,casamet,casabal,phen,POP,climate)
 
 
   USE cable_def_types_mod
@@ -19,7 +19,6 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   INTEGER, INTENT(IN)    :: kstart
   INTEGER, INTENT(IN)    :: kend
   INTEGER, INTENT(IN)    :: mloop
-  INTEGER, INTENT(IN)    :: LALLOC
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
