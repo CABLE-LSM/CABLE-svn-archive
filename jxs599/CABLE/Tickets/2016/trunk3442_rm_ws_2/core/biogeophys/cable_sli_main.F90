@@ -6,7 +6,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! Modified to operate for multiple veg tiles but a single soil column, March 2011
   ! Rewritten for same number of soil columns as veg tiles May 2012
   USE cable_def_types_mod,       ONLY: veg_parameter_type, soil_parameter_type, soil_snow_type, met_type, &
-       canopy_type, air_type, radiation_type, ms, mp, r_2, i_d
+       canopy_type, air_type, radiation_type, ms, mp, r_2
   USE cable_common_module , ONLY: cable_user
   USE sli_numbers,        ONLY:  zero, half, one, two, four, thousand, & ! numbers
        Tzero, experiment, &                                       ! variables
@@ -34,13 +34,13 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   REAL(r_2), PARAMETER :: emsoil=0.97
   REAL(r_2), PARAMETER :: rhocp=1.1822e3
   REAL(r_2), PARAMETER :: Dva = 2.17e-5
-  INTEGER(i_d) :: i, k, kk, setroot
+  INTEGER :: i, k, kk, setroot
   REAL(r_2)    :: ti, tf
   TYPE(vars_met),  DIMENSION(1:mp)      :: vmet ! Meteorology above soil
   TYPE(vars),      DIMENSION(1:mp)      :: vlit
   TYPE(vars),      DIMENSION(1:mp,1:ms) :: var
   TYPE(vars_snow), DIMENSION(1:mp)      :: vsnow
-  INTEGER(i_d),    DIMENSION(1:mp)      :: nsteps
+  INTEGER,    DIMENSION(1:mp)      :: nsteps
   REAL(r_2),       DIMENSION(1:mp,1:ms) :: Tsoil, S, thetai, Jsensible
   REAL(r_2),       DIMENSION(1:mp)      :: SL, TL, T0
   REAL(r_2),       DIMENSION(1:mp)      :: drn, evap, infil, qprec, qprec_snow,qprec_snow_tmp, qprec_tot, runoff, runoff_sat
@@ -65,34 +65,34 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
        tmp1d5, tmp1d6, tmp1d7, tmp1d8, tmp1d9,tmp1d10, tmp1d11, &
        tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16
   REAL(r_2) :: rbw, rbh, rrc ! resistances for output
-  INTEGER(i_d), DIMENSION(1:mp) :: index
+  INTEGER, DIMENSION(1:mp) :: index
 
   ! Topmodel
   REAL(r_2), DIMENSION(1:mp) :: fsat ! topmodel saturated area
   REAL(r_2), DIMENSION(1:mp) :: qb   ! topmodel baseflow
 
   ! Model switches
-  INTEGER(i_d), PARAMETER :: litter       = 2 ! which litter model
+  INTEGER, PARAMETER :: litter       = 2 ! which litter model
   ! 0: no litter
   ! 1: full litter
   ! 2: litter resistance
-  INTEGER(i_d), PARAMETER :: advection    = 1 ! heat advection by water
-  INTEGER(i_d), PARAMETER :: isotopologue = 0 ! which isotope
+  INTEGER, PARAMETER :: advection    = 1 ! heat advection by water
+  INTEGER, PARAMETER :: isotopologue = 0 ! which isotope
   ! 0: no isotope calculations
   ! 1: HDO
   ! 2: H218O
   ! 3: HDO & H218O
   ! 0: normal run
-  INTEGER(i_d), PARAMETER :: septs        = 0 ! coupled or uncoupled energy and water calculation
+  INTEGER, PARAMETER :: septs        = 0 ! coupled or uncoupled energy and water calculation
   ! 0: coupled calc
   ! 1: uncoupled energy (T) and moisture (S)
-  INTEGER(i_d), PARAMETER :: condition    = 3 ! condition matrix before solving
+  INTEGER, PARAMETER :: condition    = 3 ! condition matrix before solving
   ! 0: no conditioning
   ! 1: condition columns
   ! 2: condition lines
   ! 3: condition first lines then columns
   LOGICAL, SAVE :: first = .true.
-  INTEGER(i_d), SAVE  :: counter
+  INTEGER, SAVE  :: counter
 
   ! initialise cumulative variables
   ! Jcol_sensible = zero

@@ -1,6 +1,6 @@
 MODULE sli_utils
 
-  USE cable_def_types_mod, ONLY: r_2, i_d
+  USE cable_def_types_mod, ONLY: r_2
   USE cable_def_types_mod, ONLY: soil_parameter_type, veg_parameter_type
   USE sli_numbers,         ONLY: &
        experiment, &
@@ -297,14 +297,14 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),                    INTENT(IN) :: n
+    INTEGER,                    INTENT(IN) :: n
     TYPE(params),    DIMENSION(1:n), INTENT(IN) :: par
     TYPE(vars_met),                  INTENT(IN) :: vmet
     TYPE(vars_snow),                 INTENT(IN) :: vsnow
     TYPE(vars),      DIMENSION(1:n), INTENT(IN) :: var
     REAL(r_2),                       INTENT(IN) :: qprec
     REAL(r_2),                       INTENT(IN) :: qprec_snow
-    INTEGER(i_d),                    INTENT(IN) :: irec
+    INTEGER,                    INTENT(IN) :: irec
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: dx
     REAL(r_2),                       INTENT(IN) :: h0
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: Tsoil
@@ -322,7 +322,7 @@ CONTAINS
     REAL(r_2),                       INTENT(OUT)           :: qhyb, qhTb, qadvyb, qadvTb
 
     ! local variables
-    INTEGER(i_d) :: surface_case
+    INTEGER :: surface_case
     REAL(r_2) :: Tsurface_pot,  Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     REAL(r_2) :: E_vap, dE_vapdT1, E_liq
     REAL(r_2) :: Kmin, Khmin, phimin
@@ -543,14 +543,14 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d), INTENT(IN)              :: n
+    INTEGER, INTENT(IN)              :: n
     TYPE(params),      DIMENSION(1:n), INTENT(IN)  :: par
     TYPE(vars_met),        INTENT(IN)           :: vmet
     TYPE(vars_snow),   INTENT(IN)           :: vsnow
     TYPE(vars),      DIMENSION(1:n),   INTENT(IN)           :: var
     REAL(r_2),   INTENT(IN)              :: qprec
     REAL(r_2),   INTENT(IN)              :: qprec_snow
-    INTEGER(i_d), INTENT(IN)              ::  nsteps, irec
+    INTEGER, INTENT(IN)              ::  nsteps, irec
     REAL(r_2),      DIMENSION(1:n),   INTENT(IN)              :: dx
     REAL(r_2),          INTENT(IN)           :: h0
     REAL(r_2),      DIMENSION(1:n),   INTENT(IN)           :: Tsoil
@@ -568,7 +568,7 @@ CONTAINS
     REAL(r_2),  INTENT(OUT)           :: qhyb, qhTb, qadvyb, qadvTb ! derivatives of heat fluxes wrt moiture and T
 
     ! local variables
-    INTEGER(i_d) :: surface_case, j
+    INTEGER :: surface_case, j
     REAL(r_2) :: Tsurface_pot, Epot, Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     REAL(r_2) :: E_vap, dE_vapdT1, E_liq
     REAL(r_2) :: Kmin, Khmin, phimin
@@ -837,7 +837,7 @@ CONTAINS
     IMPLICIT NONE
 
     ! in/out
-    INTEGER(i_d),                      INTENT(IN)  :: n
+    INTEGER,                      INTENT(IN)  :: n
     REAL(r_2), DIMENSION(1:n,1:2,1:2), INTENT(IN)  :: A, B, C
     REAL(r_2), DIMENSION(1:n,1:2),     INTENT(IN)  :: r
     REAL(r_2), DIMENSION(1:n,1:2),     INTENT(OUT) :: u
@@ -846,7 +846,7 @@ CONTAINS
     REAL(r_2), DIMENSION(1:2,1:2)     :: bet
     REAL(r_2), DIMENSION(1:2)         :: d
     REAL(r_2)                         :: detbet, detbet1
-    INTEGER(i_d)                      :: j
+    INTEGER                      :: j
 
     ! j=1
     bet(1:2,1:2) = B(1,1:2,1:2)
@@ -892,8 +892,8 @@ CONTAINS
     IMPLICIT NONE
 
     ! in/out
-    INTEGER(i_d),                           INTENT(IN)  :: mp
-    INTEGER(i_d),                           INTENT(IN)  :: n
+    INTEGER,                           INTENT(IN)  :: mp
+    INTEGER,                           INTENT(IN)  :: n
     REAL(r_2), DIMENSION(1:mp,1:n,1:2,1:2), INTENT(IN)  :: A, B, C
     REAL(r_2), DIMENSION(1:mp,1:n,1:2),     INTENT(IN)  :: r
     REAL(r_2), DIMENSION(1:mp,1:n,1:2),     INTENT(OUT) :: u
@@ -902,7 +902,7 @@ CONTAINS
     REAL(r_2), DIMENSION(1:mp,1:2,1:2)     :: bet
     REAL(r_2), DIMENSION(1:mp,1:2)         :: d
     REAL(r_2), DIMENSION(1:mp)             :: detbet, detbet1
-    INTEGER(i_d)                           :: j
+    INTEGER                           :: j
     REAL(r_2), DIMENSION(1:mp,1:2)         :: tmp1d
     REAL(r_2), DIMENSION(1:mp,1:2,1:2)     :: tmp2d
 
@@ -959,7 +959,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),                 INTENT(IN)    :: n
+    INTEGER,                 INTENT(IN)    :: n
     REAL(r_2),    DIMENSION(1:n), INTENT(IN)    :: dx
     TYPE(vars),                   INTENT(IN)    :: vtop
     TYPE(vars),                   INTENT(IN)    :: vbot
@@ -980,14 +980,14 @@ CONTAINS
     REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qvh
     REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qvya
     REAL(r_2),    DIMENSION(0:n), INTENT(INOUT)   :: qvyb
-    INTEGER(i_d),                 INTENT(IN)    :: iflux
+    INTEGER,                 INTENT(IN)    :: iflux
     LOGICAL,                      INTENT(IN)    :: init
     LOGICAL,                      INTENT(IN)    :: getq0
     LOGICAL,                      INTENT(IN)    :: getqn
     REAL(r_2),    DIMENSION(1:n), INTENT(IN)    :: Tsoil
     REAL(r_2),                    INTENT(IN)    :: T0
-    INTEGER(i_d),                 INTENT(IN)    :: nsat
-    INTEGER(i_d),                 INTENT(IN)    :: nsatlast
+    INTEGER,                 INTENT(IN)    :: nsat
+    INTEGER,                 INTENT(IN)    :: nsatlast
     ! Gets fluxes q and partial derivs qya, qyb wrt S (if unsat) or phi (if sat).
     ! Fluxes at top and bottom of profile, and fluxes due to plant extraction of
     ! water are included.
@@ -1012,7 +1012,7 @@ CONTAINS
     ! getq0    - true if q(0) required.
     ! getqn    - true if q(n) required.
     LOGICAL               :: flag, limit
-    INTEGER(i_d)          :: i, itmp, l
+    INTEGER          :: i, itmp, l
     REAL(r_2)             :: dphii1, dhi, h1, h2, hi, Khi1, Khi2, phii1, q2, qya2, qyb2, y, y1, y2
     REAL(r_2)             :: qTa2, qTb2
     TYPE(vars)            :: vi1, vi2
@@ -1260,14 +1260,14 @@ CONTAINS
     REAL(r_2),    DIMENSION(:,:), INTENT(OUT)   :: i_qvh     ! 0:n
     REAL(r_2),    DIMENSION(:,:), INTENT(OUT)   :: i_qvya    ! 0:n
     REAL(r_2),    DIMENSION(:,:), INTENT(OUT)   :: i_qvyb    ! 0:n
-    INTEGER(i_d), DIMENSION(:),   INTENT(IN)    :: iflux
+    INTEGER, DIMENSION(:),   INTENT(IN)    :: iflux
     LOGICAL,      DIMENSION(:),   INTENT(IN)    :: init
     LOGICAL,      DIMENSION(:),   INTENT(IN)    :: getq0
     LOGICAL,      DIMENSION(:),   INTENT(IN)    :: getqn
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: Tsoil   ! 1:n
     REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: T0
-    INTEGER(i_d), DIMENSION(:),   INTENT(IN)    :: nsat
-    INTEGER(i_d), DIMENSION(:),   INTENT(IN)    :: nsatlast
+    INTEGER, DIMENSION(:),   INTENT(IN)    :: nsat
+    INTEGER, DIMENSION(:),   INTENT(IN)    :: nsatlast
     ! Gets fluxes q and partial derivs qya, qyb wrt S (if unsat) or phi (if sat).
     ! Fluxes at top and bottom of profile, and fluxes due to plant extraction of
     ! water are included.
@@ -1312,7 +1312,7 @@ CONTAINS
     REAL(r_2),    DIMENSION(1:size(dx,1),0:size(dx,2))   :: qvya
     REAL(r_2),    DIMENSION(1:size(dx,1),0:size(dx,2))   :: qvyb
     TYPE(vars)    :: vtmp
-    INTEGER(i_d)  :: i, n, mp, itmp
+    INTEGER  :: i, n, mp, itmp
 
     mp = size(dx,1)
     n  = size(dx,2)
@@ -1637,7 +1637,7 @@ CONTAINS
     ! modified 25/05/10 to include contribution to heat flux from liquid water flux in the presence of ice
     IMPLICIT NONE
 
-    INTEGER(i_d),               INTENT(IN)    :: n
+    INTEGER,               INTENT(IN)    :: n
     REAL(r_2),  DIMENSION(1:n), INTENT(IN)    :: dx
     REAL(r_2),                  INTENT(IN)    :: dxL
     REAL(r_2),  DIMENSION(0:n), INTENT(INOUT) :: qh, q, qadv
@@ -1650,10 +1650,10 @@ CONTAINS
     REAL(r_2),  DIMENSION(1:n), INTENT(IN)    :: T
     REAL(r_2),                  INTENT(IN)    :: TL
     LOGICAL,                    INTENT(IN)    :: litter
-    INTEGER(i_d),               INTENT(IN)    :: advection
+    INTEGER,               INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
 
-    INTEGER(i_d)          :: i
+    INTEGER          :: i
     REAL(r_2)             :: rdz, keff !, w
     REAL(r_2), DIMENSION(1:n-1) :: dz
     REAL(r_2) :: dTqwdTa, dTqwdTb, Tqw
@@ -1761,10 +1761,10 @@ CONTAINS
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: T       ! :,1:n
     REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: TL
     LOGICAL,                      INTENT(IN)    :: litter
-    INTEGER(i_d),   INTENT(IN)    :: advection
+    INTEGER,   INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
 
-    INTEGER(i_d)          :: i, n
+    INTEGER          :: i, n
     REAL(r_2),  DIMENSION(1:size(dx,1))                :: rdz
     REAL(r_2),  DIMENSION(1:size(dx,1))                :: keff
     REAL(r_2),  DIMENSION(1:size(dx,1),1:size(dx,2)-1) :: dz
@@ -1936,7 +1936,7 @@ CONTAINS
     REAL(r_2) :: thetal_max
     REAL(r_2) :: Sliq
     REAL(r_2) :: A, B, D, C1
-    INTEGER(i_d) :: E
+    INTEGER :: E
     REAL(r_2) :: F1, F2, F
     ! REAL(r_2) :: macropore_modifier
     REAL(r_2) :: cdry
@@ -2217,7 +2217,7 @@ CONTAINS
 
   SUBROUTINE massman_sparse_1d(aa, aah, bb, bbh, cc, cch, dd, ddh, ee, eeh, ff, ffh, gg, ggh, dy, dT, condition)
 
-    USE cable_def_types_mod, ONLY: r_2, i_d
+    USE cable_def_types_mod, ONLY: r_2
     USE sli_numbers,       ONLY: zero, one
 
     IMPLICIT NONE
@@ -2226,9 +2226,9 @@ CONTAINS
     REAL(r_2), DIMENSION(:), INTENT(IN)  :: aa, aah, bb, bbh, ee, eeh, ff, ffh
     REAL(r_2), DIMENSION(:), INTENT(IN)  :: cc, cch, dd, ddh, gg, ggh
     REAL(r_2), DIMENSION(:), INTENT(OUT) :: dy, dT
-    INTEGER(i_d),  OPTIONAL, INTENT(IN)  :: condition
+    INTEGER,  OPTIONAL, INTENT(IN)  :: condition
     ! local
-    INTEGER(i_d)                         :: n, n2
+    INTEGER                         :: n, n2
     REAL(r_2), DIMENSION(size(cc),2,2)   :: A, B, C
     REAL(r_2), DIMENSION(size(cc),2)     :: d, x
     ! for conditioning
@@ -2237,7 +2237,7 @@ CONTAINS
     REAL(r_2), DIMENSION(2*size(cc)*2*size(cc)) :: allvec
     REAL(r_2), DIMENSION(2*size(cc),2*size(cc)) :: allmat
     REAL(r_2)    :: eps
-    INTEGER(i_d) :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
+    INTEGER :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
     ! CHARACTER(LEN=20) :: form1
     ! integer :: i, nn
     !
@@ -2344,7 +2344,7 @@ CONTAINS
 
   SUBROUTINE massman_sparse_2d(aa, aah, bb, bbh, cc, cch, dd, ddh, ee, eeh, ff, ffh, gg, ggh, dy, dT, condition)
 
-    USE cable_def_types_mod, ONLY: r_2, i_d
+    USE cable_def_types_mod, ONLY: r_2
     USE sli_numbers,       ONLY: zero, one
 
     IMPLICIT NONE
@@ -2353,10 +2353,10 @@ CONTAINS
     REAL(r_2), DIMENSION(:,:), INTENT(IN)  :: aa, aah, bb, bbh, ee, eeh, ff, ffh
     REAL(r_2), DIMENSION(:,:), INTENT(IN)  :: cc, cch, dd, ddh, gg, ggh
     REAL(r_2), DIMENSION(:,:), INTENT(OUT) :: dy, dT
-    INTEGER(i_d),    OPTIONAL, INTENT(IN)  :: condition
+    INTEGER,    OPTIONAL, INTENT(IN)  :: condition
     ! local
-    INTEGER(i_d)                                        :: n, mp
-    INTEGER(i_d)                                        :: n2
+    INTEGER                                        :: n, mp
+    INTEGER                                        :: n2
     REAL(r_2), DIMENSION(1:size(cc,1),1:size(cc,2),2,2) :: A, B, C
     REAL(r_2), DIMENSION(1:size(cc,1),1:size(cc,2),2)   :: d, x
     ! for conditioning
@@ -2365,7 +2365,7 @@ CONTAINS
     REAL(r_2), DIMENSION(1:size(cc,1),2*size(cc,2)*2*size(cc,2)) :: allvec
     REAL(r_2), DIMENSION(1:size(cc,1),2*size(cc,2),2*size(cc,2)) :: allmat
     REAL(r_2)    :: eps
-    INTEGER(i_d) :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
+    INTEGER :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
     ! CHARACTER(LEN=20) :: form1
     ! integer :: i, k, nn
     !
@@ -2612,9 +2612,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),              INTENT(IN) :: mp
+    INTEGER,              INTENT(IN) :: mp
     TYPE(veg_parameter_type), INTENT(IN) :: veg
-    integer(i_d), DIMENSION(:),  INTENT(IN) :: index
+    integer, DIMENSION(:),  INTENT(IN) :: index
 
     allocate(plit(mp))
     allocate(dxL(mp))
@@ -2661,12 +2661,12 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),                 INTENT(IN) :: mp
-    INTEGER(i_d),                 INTENT(IN) :: ms
+    INTEGER,                 INTENT(IN) :: mp
+    INTEGER,                 INTENT(IN) :: ms
     TYPE(soil_parameter_type),    INTENT(IN) :: soil
-    integer(i_d), DIMENSION(:),   INTENT(IN) :: index
+    integer, DIMENSION(:),   INTENT(IN) :: index
 
-    INTEGER(i_d) :: i
+    INTEGER :: i
 
     allocate(par(mp,ms))
 
@@ -2703,11 +2703,11 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),                 INTENT(IN)    :: mp
-    INTEGER(i_d),                 INTENT(IN)    :: ms
+    INTEGER,                 INTENT(IN)    :: mp
+    INTEGER,                 INTENT(IN)    :: ms
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: x2dx
 
-    INTEGER(i_d) :: i
+    INTEGER :: i
 
     allocate(par(mp,ms))
 
@@ -2789,7 +2789,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d), INTENT(IN) :: mp
+    INTEGER, INTENT(IN) :: mp
 
     allocate(sol(mp))
 
@@ -2820,8 +2820,8 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),              INTENT(IN) :: mp
-    INTEGER(i_d),              INTENT(IN) :: ms
+    INTEGER,              INTENT(IN) :: mp
+    INTEGER,              INTENT(IN) :: ms
     TYPE(soil_parameter_type), INTENT(IN) :: soil
 
     REAL(r_2), DIMENSION(ms) :: tmp1d
@@ -2849,8 +2849,8 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),                 INTENT(IN)    :: ns
-    INTEGER(i_d),                 INTENT(IN)    :: n
+    INTEGER,                 INTENT(IN)    :: ns
+    INTEGER,                 INTENT(IN)    :: n
     REAL(r_2),    DIMENSION(0:n), INTENT(IN)    :: aa
     REAL(r_2),    DIMENSION(0:n), INTENT(IN)    :: cc
     REAL(r_2),    DIMENSION(0:n), INTENT(IN)    :: dd
@@ -2867,7 +2867,7 @@ CONTAINS
     ! ee(0:n) - work space.
     ! dy(0:n) - solution in ns:n.
     REAL(r_2),   DIMENSION(0:n) :: ee
-    INTEGER(i_d)                :: i
+    INTEGER                :: i
 
     dy(ns) = dd(ns) ! decomposition and forward substitution
     do i=ns, n-1
@@ -2888,9 +2888,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER(i_d),                      INTENT(IN)    :: mp
-    INTEGER(i_d),                      INTENT(IN)    :: ns
-    INTEGER(i_d),                      INTENT(IN)    :: n
+    INTEGER,                      INTENT(IN)    :: mp
+    INTEGER,                      INTENT(IN)    :: ns
+    INTEGER,                      INTENT(IN)    :: n
     REAL(r_2),    DIMENSION(1:mp,0:n), INTENT(IN)    :: aa
     REAL(r_2),    DIMENSION(1:mp,0:n), INTENT(IN)    :: cc
     REAL(r_2),    DIMENSION(1:mp,0:n), INTENT(IN)    :: dd
@@ -2908,7 +2908,7 @@ CONTAINS
     ! ee(0:n) - work space.
     ! dy(0:n) - solution in ns:n.
     REAL(r_2),   DIMENSION(1:mp,0:n) :: ee
-    INTEGER(i_d)                     :: i
+    INTEGER                     :: i
 
     dy(:,ns) = dd(:,ns) ! decomposition and forward substitution
     do i=ns, n-1
@@ -3045,7 +3045,7 @@ CONTAINS
     REAL(r_2), PARAMETER :: sixpt5 = 6.5_r_2
     REAL(r_2), PARAMETER :: seven = 7.0_r_2
     REAL(r_2)    :: tmp, tmpgammln
-    INTEGER(i_d) :: j
+    INTEGER :: j
 
     tmpgammln = zero
     tmp = z + seven
@@ -3066,10 +3066,10 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(r_2), INTENT(IN) :: a,x
-    INTEGER(i_d), PARAMETER :: ITMAX=100
+    INTEGER, PARAMETER :: ITMAX=100
     REAL(r_2),    PARAMETER :: EPS=epsilon(x)
     REAL(r_2),    PARAMETER :: FPMIN=tiny(x)/EPS
-    INTEGER(i_d) :: i
+    INTEGER :: i
     REAL(r_2)     :: an, b, c, d, del, h
 
     if (x == 0.0) then
@@ -3103,9 +3103,9 @@ CONTAINS
     IMPLICIT NONE
 
     REAL(r_2), INTENT(IN) :: a, x
-    INTEGER(i_d), PARAMETER :: ITMAX=100
+    INTEGER, PARAMETER :: ITMAX=100
     REAL(r_2),     PARAMETER :: EPS=epsilon(x)
-    INTEGER(i_d) :: n
+    INTEGER :: n
     REAL(r_2)     :: ap, del, summ
 
     if (x == 0.0) then
@@ -3214,8 +3214,8 @@ CONTAINS
     TYPE(solve_type), INTENT(IN) :: sol
     REAL(r_2),        INTENT(IN) :: x1, x2, xacc
 
-    INTEGER(i_d), PARAMETER :: MAXIT=40
-    INTEGER(i_d) :: j
+    INTEGER, PARAMETER :: MAXIT=40
+    INTEGER :: j
     REAL(r_2)    :: dx, f, fmid, xmid
 
     fmid = rh0_sol(x2,sol)
@@ -3437,8 +3437,8 @@ CONTAINS
     real(r_2), intent(in) :: J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b
     REAL(r_2), INTENT(IN) :: x1, x2, xacc
 
-    INTEGER(i_d), PARAMETER :: MAXIT=80
-    INTEGER(i_d) :: k
+    INTEGER, PARAMETER :: MAXIT=80
+    INTEGER :: k
     REAL(r_2)    :: dx, f, fmid, xmid
 
     fmid = GTfrozen(x2,J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b)
@@ -3497,7 +3497,7 @@ CONTAINS
     real(r_2), intent(in) :: thetal,S,he,b,thre,the,Tin
     real(r_2)             :: opsi, psi, h, T, Tfreezing
 
-    !integer(i_d) :: k
+    !integer :: k
 
     T = Tin
     !do k=1,20
@@ -3638,7 +3638,7 @@ CONTAINS
     !
     !    Input, real(r_2) XVAL(M), values to be bracketed.
     !
-    !    Output, integer(i_d) LEFT(M), RIGHT(M), the results of the search.
+    !    Output, integer LEFT(M), RIGHT(M), the results of the search.
     !    Either:
     !      XVAL < X(1), when LEFT = 1, RIGHT = 2;
     !      X(N) < XVAL, when LEFT = N-1, RIGHT = N;
@@ -3649,11 +3649,11 @@ CONTAINS
 
     real(r_2), dimension(:), intent(in) :: x
     real(r_2), dimension(:), intent(in) :: xval
-    integer(i_d), dimension(size(xval)), intent(out) :: left
-    integer(i_d), dimension(size(xval)), intent(out) :: right
+    integer, dimension(size(xval)), intent(out) :: left
+    integer, dimension(size(xval)), intent(out) :: right
 
-    integer(i_d) :: n, m
-    integer(i_d) :: i, j
+    integer :: n, m
+    integer :: i, j
     logical :: istheend
 
     n = size(x)
@@ -3728,10 +3728,10 @@ CONTAINS
     real(r_2), dimension(:), intent(in) :: ydata
     real(r_2), dimension(size(tval))    :: spline_b
 
-    integer(i_d) :: ndata
+    integer :: ndata
     real(r_2),    dimension(size(tval)) :: bval
-    integer(i_d), dimension(size(tval)) :: left
-    integer(i_d), dimension(size(tval)) :: right
+    integer, dimension(size(tval)) :: left
+    integer, dimension(size(tval)) :: right
     real(r_2),    dimension(size(tval)) :: u
 
     ndata = size(tdata)
@@ -3894,7 +3894,7 @@ CONTAINS
     REAL(r_2), DIMENSION(size(x,1),size(x,2))       :: v1, v2
     LOGICAL,   DIMENSION(size(x,1),size(x,2))       :: maske
 
-    INTEGER(i_d) :: i
+    INTEGER :: i
 
     if (present(mask)) then
        maske = mask
