@@ -247,13 +247,6 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLon)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable longitude.')
-    !ensure this longitude is -180->180
-    !as for GSWP3 it is 0-360
-    !cable ensures lon is -180-180 at line 670 in cable_input.F90
-    !why not remove both of these?
-    WHERE (inLON > 180.0)
-       inLON = inLON - 360.0
-    ENDWHERE
 
     ok = NF90_INQ_VARID(ncid, 'latitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable latitude.')
@@ -839,7 +832,7 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,cable_user
+    USE cable_common_module, only : vegin, soilin, calcsoilalbedo
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -899,10 +892,8 @@ CONTAINS
     ! parameters that are not spatially dependent
     soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
 
-    if (.not.cable_user%GSWP3) then
-       rough%za_uv = 40.0 ! lowest atm. model layer/reference height
-       rough%za_tq = 40.0
-    end if
+    rough%za_uv = 40.0 ! lowest atm. model layer/reference height
+    rough%za_tq = 40.0
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
@@ -1060,6 +1051,8 @@ CONTAINS
           veg%extkn(h)    = vegin%extkn(veg%iveg(h))
           veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
           veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
+          veg%g0(h)       = vegin%g0(veg%iveg(h)) ! Ticket #56
+          veg%g1(h)       = vegin%g1(veg%iveg(h)) ! Ticket #56
           veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
           veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
           veg%alpha(h)  = vegin%alpha(veg%iveg(h))
@@ -1121,6 +1114,7 @@ CONTAINS
                vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
+               vegin%g0, vegin%g1,                                             & 
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
                vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
@@ -1223,7 +1217,6 @@ CONTAINS
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
-    USE cable_common_module, ONLY : cable_user
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
@@ -1269,12 +1262,6 @@ CONTAINS
     END WHERE
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
-
-    if (cable_user%GSWP3) then 
-       rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
-       rough%za_tq = 2.0 + veg%hc
-    end if
-
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
