@@ -1196,8 +1196,12 @@ END SUBROUTINE remove_trans
       fice = (exp(gw_params%IceAlpha*(1._r_2-icef(i)))-exp(gw_params%IceAlpha))/(1._r_2-exp(gw_params%IceAlpha))
       fice  = min(max(fice,0._r_2),1._r_2)
       !Saturated fraction
-       slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-5)) ! ensure some variability
-       ssnow%satfrac(i)    = max(1e-6,min(0.95,1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) ) ) ) 
+       if (gw_params%MaxSatFraction .gt. 1e-7) then
+          slopeSTDmm = sqrt(max(gw_params%MaxSatFraction*soil%slope_std(i),1e-5)) ! ensure some variability
+          ssnow%satfrac(i)    = max(1e-6,min(0.95,1._r_2 - erf( slopeSTDmm / sqrt(2.0* S(i)) ) ) ) 
+       else
+          ssnow%satfrac(i) = 0.
+       end if
        satfrac_liqice(i)   = max(1e-6,min(0.95,fice + (1._r_2-fice)*ssnow%satfrac(i) ) )
    end do
 
