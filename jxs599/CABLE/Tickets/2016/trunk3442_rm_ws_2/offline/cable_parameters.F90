@@ -59,6 +59,7 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
+  USE cable_common_module, ONLY: cable_user, hide
   IMPLICIT NONE
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
@@ -844,11 +845,12 @@ CONTAINS
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
     TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
-    TYPE (canopy_type),         INTENT(OUT)   :: canopy
-    TYPE (roughness_type),      INTENT(OUT)   :: rough
-    TYPE (radiation_type),      INTENT(OUT)   :: rad
+    TYPE (canopy_type),         INTENT(INOUT)   :: canopy
+    TYPE (roughness_type),      INTENT(INOUT)   :: rough
+    TYPE (radiation_type),      INTENT(INOUT)   :: rad
 
-    INTEGER :: e,f,h  ! do loop counter
+    INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
+    INTEGER :: e,f,h,i  ! do loop counter
     INTEGER :: is     ! YP oct07
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
@@ -1218,7 +1220,7 @@ CONTAINS
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
     ! Gives values to parameters that are derived from other parameters.
-    TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
+    TYPE (soil_snow_type),      INTENT(INOUT)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
     TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux

@@ -61,7 +61,7 @@ MODULE cable_write_module
          otmp4xyst, otmp4xysnt, otmp4xyrt, otmp4xypct, otmp4xysct, otmp4lpst,  &
          otmp4lpsnt, otmp4lprt, otmp4lpsct, otmp4lppct, otmp4xyps,             &
          otmp4xyppc, otmp4xypsc, otmp5xypst, otmp5xypsnt, otmp5xyprt,          &
-         otmp5xyppct, otmp5xypsct
+         otmp5xyppct, otmp5xypsct, nullify_write
   INTERFACE define_ovar
     ! Defines an output variable in the output netcdf file. Units, long name,
     ! variable, dimensions etc are created.
@@ -112,6 +112,67 @@ MODULE cable_write_module
   REAL :: ncmissingr = -1.0e+33
 
 CONTAINS
+
+  ! Nullify all temporary pointers so that one can query associated(pointer)
+  SUBROUTINE nullify_write()
+    IMPLICIT NONE
+
+    NULLIFY(otmp1)
+    NULLIFY(otmp1l)
+
+    NULLIFY(otmp2lt)
+    NULLIFY(otmp2xy)
+    NULLIFY(otmp2lp)
+    NULLIFY(otmp2ls)
+    NULLIFY(otmp2lpc)
+    NULLIFY(otmp2lsc)
+    NULLIFY(otmp2lsf)
+    NULLIFY(otmp2lr)
+    NULLIFY(otmp2lsn)
+
+    NULLIFY(otmp3xyt)
+    NULLIFY(otmp3lpt)
+    NULLIFY(otmp3lst)
+    NULLIFY(otmp3lsnt)
+    NULLIFY(otmp3lrt)
+    NULLIFY(otmp3lpct)
+    NULLIFY(otmp3lsct)
+    NULLIFY(otmp3xyp)
+    NULLIFY(otmp3xys)
+    NULLIFY(otmp3xypc)
+    NULLIFY(otmp3xysc)
+    NULLIFY(otmp3lps)
+    NULLIFY(otmp3lppc)
+    NULLIFY(otmp3lpsc)
+    NULLIFY(otmp3xysf)
+    NULLIFY(otmp3lpr)
+    NULLIFY(otmp3lpsn)
+    NULLIFY(otmp3xyr)
+
+    NULLIFY(otmp4xypt)
+    NULLIFY(otmp4xyzt)
+    NULLIFY(otmp4xyst)
+    NULLIFY(otmp4xysnt)
+    NULLIFY(otmp4xyrt)
+    NULLIFY(otmp4xypct)
+    NULLIFY(otmp4xysct)
+    NULLIFY(otmp4lpst)
+    NULLIFY(otmp4lpsnt)
+    NULLIFY(otmp4lprt)
+    NULLIFY(otmp4lpsct)
+    NULLIFY(otmp4lppct)
+    NULLIFY(otmp4xyps)
+    NULLIFY(otmp4xyppc)
+    NULLIFY(otmp4xypsc)
+    NULLIFY(otmp4xypr)
+
+    NULLIFY(otmp5xypst)
+    NULLIFY(otmp5xypsnt)
+    NULLIFY(otmp5xyprt)
+    NULLIFY(otmp5xyppct)
+    NULLIFY(otmp5xypsct)
+
+  END SUBROUTINE nullify_write
 
   SUBROUTINE define_output_variable_r1(ncid, varID, vname,                     &
                                        vunits, longname, writepatch,           &

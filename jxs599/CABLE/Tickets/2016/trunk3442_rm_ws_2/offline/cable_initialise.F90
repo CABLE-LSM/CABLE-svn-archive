@@ -39,7 +39,7 @@ MODULE cable_init_module
                                  soiltype_metfile
    USE cable_read_module
    USE netcdf
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename, cable_user
 
    IMPLICIT NONE
    
@@ -201,6 +201,7 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
         from_restart = .TRUE., & ! insist variables/params load
         dummy                    ! To replace completeSet in parameter read; unused
    REAL,    ALLOCATABLE :: var_r(:)
+   REAL,    ALLOCATABLE :: var_r2(:,:)
    
    ! Write to screen the restart file is found:
    WRITE(*,*) 'Reading restart data from: ' ,TRIM(filename%restart_in)

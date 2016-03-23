@@ -15,6 +15,7 @@
 !
 ! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
 !          inclusion of call to CASA-CNP (icycle>0)
+!	   exclusion of call to cbm (icycle>10)
 !          soil_snow_type now ssnow (instead of ssoil)
 !
 !
@@ -62,25 +63,44 @@ PROGRAM cable_offline_driver
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   patch_type,soilparmnew,                     &
+                                   defaultLAI
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, redistrb,          & 
+                                   cable_runtime, filename, redistrb,  		   &
                                    report_version_no, wiltParam, satuParam,    &
-                                   calcsoilalbedo
+                                   calcsoilalbedo,		                       &
+                                   CurYear,	IS_LEAPYEAR, IS_CASA_TIME,
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
-                                   get_met_data,close_met_file
+                                   get_met_data,close_met_file,		   &
+                                   ncid_rain, ncid_snow, ncid_lw, ncid_sw,     &
+                                   ncid_ps,	ncid_qa, ncid_ta, ncid_wd
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file
+  USE cable_write_module,   ONLY: nullify_write
    USE cable_cbm_module
-   
    USE cable_diag_module
+!mpidiff
+  USE cable_climate_mod
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-                                  casa_met, casa_balance
+                                  casa_met, casa_balance,                      &
+                                  zero_sum_casa, update_sum_casa
    USE phenvariable,        ONLY: phen_variable
+
+!! vh_js !!
+  ! modules related to POP
+  USE POP_Types,	    ONLY: POP_TYPE
+  USE POP_Constants,	    ONLY: HEIGHT_BINS, NCOHORT_MAX
+
+  ! PLUME-MIP only
+  USE CABLE_PLUME_MIP,	    ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
+       PLUME_MIP_INIT
+#ifdef NAG
+  USE F90_UNIX
+#endif
 
    IMPLICIT NONE
    
@@ -89,18 +109,35 @@ PROGRAM cable_offline_driver
    
    ! timing variables 
    INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
+   INTEGER, PARAMETER ::	 mloop	= 5   ! CASA-CNP PreSpinup loops
+   INTEGER :: LALLOC ! allocation coefficient for passing to spincasa
    
    INTEGER        ::                                                           &
       ktau,       &  ! increment equates to timestep, resets if spinning up
       ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
       kend,       &  ! no. of time steps in run
+      !CLN	  kstart = 1, &	 ! timestep to start at
+      koffset = 0, &  ! timestep to start at
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
       nyear,      &  ! year counter for CASA-CNP
-      maxdiff(2)     ! location of maximum in convergence test
+      maxdiff(2), & 
+      casa_it,	   &  ! number of calls to CASA-CNP
+      YYYY,	   &  !
+      RYEAR,	   &  !
+      RRRR,	   &  !
+      NRRRR,	   &  !
+      ctime,	   &  ! day count for casacnp
+      LOY, &	      ! days in year
+      count_sum_casa ! number of time steps over which casa pools &
+      !and fluxes are aggregated (for output)
+
 
    REAL :: dels                        ! time step size in seconds
    
+   INTEGER,DIMENSION(:,:),ALLOCATABLE :: GSWP_MID
+   CHARACTER	:: dum*9
+
    ! CABLE variables
    TYPE (met_type)       :: met     ! met input variables
    TYPE (air_type)       :: air     ! air property variables
@@ -109,6 +146,7 @@ PROGRAM cable_offline_driver
    TYPE (roughness_type) :: rough   ! roughness varibles
    TYPE (balances_type)  :: bal     ! energy and water balance variables
    TYPE (soil_snow_type) :: ssnow   ! soil and snow variables
+   TYPE (climate_type)	:: climate     ! climate variables
    
    ! CABLE parameters
    TYPE (soil_parameter_type) :: soil ! soil parameters	
@@ -122,9 +160,16 @@ PROGRAM cable_offline_driver
    TYPE (casa_biome)     :: casabiome
    TYPE (casa_pool)      :: casapool
    TYPE (casa_flux)      :: casaflux
+   TYPE (casa_pool)	:: sum_casapool
+   TYPE (casa_flux)	:: sum_casaflux
    TYPE (casa_met)       :: casamet
    TYPE (casa_balance)   :: casabal
    TYPE (phen_variable)  :: phen 
+   !! vh_js !!
+   TYPE (POP_TYPE)	:: POP
+   TYPE (PLUME_MIP_TYPE) :: PLUME
+   CHARACTER		:: cyear*4
+   CHARACTER		:: ncfile*99
    
    ! declare vars for switches (default .FALSE.) etc declared thru namelist
    LOGICAL, SAVE           :: &
@@ -137,8 +182,10 @@ PROGRAM cable_offline_driver
                                     ! FALSE: no spin up
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
-   
+      l_vcmaxFeedbk = .FALSE.,	  & ! using prognostic Vcmax
+      CASAONLY	     = .FALSE.,	  & ! ONLY Run CASA-CNP
+      CALL1 = .TRUE.,		      &
+      SPINon= .TRUE.
    
    REAL              :: &  
       delsoilM,         & ! allowed variation in soil moisture for spin up
@@ -148,6 +195,9 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
+
+   ! timing
+   REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
 
    !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
    INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
@@ -180,6 +230,7 @@ PROGRAM cable_offline_driver
                   wiltParam,        &
                   satuParam,        &
                   cable_user           ! additional USER switches 
+   INTEGER :: i,x,kk
 
    ! Vars for standard for quasi-bitwise reproducability b/n runs
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
@@ -189,7 +240,9 @@ PROGRAM cable_offline_driver
 
    DOUBLE PRECISION ::                                                                     &
       trunk_sumbal = 0.0, & !
-      new_sumbal = 0.0
+      new_sumbal = 0.0, &
+      new_sumfpn = 0.0, &
+      new_sumfe = 0.0
 
    INTEGER :: nkend=0
    INTEGER :: ioerror
@@ -520,10 +573,9 @@ END SUBROUTINE prepareFiles
 
 SUBROUTINE renameFiles(logn,inFile,nn,ncciy,inName)
   IMPLICIT NONE
-  INTEGER, INTENT(IN) :: logn
-  INTEGER, INTENT(IN) :: nn
-  INTEGER, INTENT(IN) :: ncciy
-  CHARACTER(LEN=99), INTENT(INOUT) :: inFile
+  INTEGER, INTENT(IN) :: logn,ncciy
+  INTEGER:: nn
+  CHARACTER(LEN=200), INTENT(INOUT) :: inFile
   CHARACTER(LEN=*),  INTENT(IN)    :: inName
   INTEGER :: idummy
 

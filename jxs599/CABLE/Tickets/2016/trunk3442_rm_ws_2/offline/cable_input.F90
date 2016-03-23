@@ -41,7 +41,11 @@ MODULE cable_input_module
    USE cable_def_types_mod
    USE casadimension,     ONLY: icycle
    USE casavariable
+   USE casaparm, ONLY: forest, shrub
    USE phenvariable
+!! vh_js !!
+   USE POP_Types,               Only: POP_TYPE
+   USE POPModule,               Only: alloc_POP
    USE cable_param_module
    USE cable_checks_module,     ONLY: ranges, rh_sh
    USE cable_radiation_module,  ONLY: sinbet
@@ -49,13 +53,16 @@ MODULE cable_input_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename
+   USE cable_common_module, ONLY : filename,                                   &
+                                   cable_user, CurYear, HANDLE_ERR, is_leapyear
 
    IMPLICIT NONE
    
    PRIVATE
    PUBLIC get_default_lai, open_met_file, close_met_file,load_parameters,      &
-        allocate_cable_vars, get_met_data
+        allocate_cable_vars, get_met_data, &
+        ncid_met, ncid_rain, ncid_snow, ncid_lw, ncid_sw, ncid_ps, ncid_qa,    &
+        ncid_ta, ncid_wd
 
    INTEGER                      ::                                        & 
         ncid_met,        & ! met data netcdf file ID
@@ -276,9 +283,13 @@ END SUBROUTINE get_default_lai
 
 SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
+   USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,  &
+                                   HANDLE_ERR
+   IMPLICIT NONE
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
    REAL, INTENT(IN) :: TFRZ 
+   INTEGER          :: koffset ! offset between met file and desired period
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
    LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
    
@@ -305,7 +316,16 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
         isoil_dims,             & ! number of dims of isoil var if in met file
         tsmin,tsdoy,tsyear,     & ! temporary variables
         x,y,i,j,                & ! do loop counters
-        tempmonth
+        tempmonth,              &
+        ssod,                   &
+        nsod,                   &
+        LOY,                    &
+        iday,                   &
+        imin,                   &
+        isec,                   &
+        ishod,                  &
+        dnsec  = 0,             &
+        ntstp
    INTEGER,DIMENSION(1)        ::                                         &
         timedimID,              & ! time dimension ID number
         data1i                    ! temp variable for netcdf reading
@@ -321,11 +341,11 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
    CHARACTER(LEN=10)                :: todaydate, nowtime ! used to timestamp log file
    REAL(4),DIMENSION(1)             :: data1 ! temp variable for netcdf reading
    REAL(4),DIMENSION(1,1)           :: data2 ! temp variable for netcdf reading
-   REAL(4),POINTER,DIMENSION(:)     :: temparray1 ! temp read in variable
-   REAL(4),POINTER,DIMENSION(:,:)   ::                                         &
+   REAL(4), DIMENSION(:),     ALLOCATABLE :: temparray1  ! temp read in variable
+   REAL(4), DIMENSION(:,:),   ALLOCATABLE :: &
         tempPrecip2,            & ! used for spinup adj
         temparray2                ! temp read in variable
-   REAL(4),POINTER,DIMENSION(:,:,:) :: tempPrecip3 ! used for spinup adj
+   REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
         all_met     ! ALL required met in met file (no synthesis)?
 
@@ -721,6 +741,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                  
        ! Number of days between start position and 1st timestep:
        jump_days = INT((timevar(1)/3600.0 + shod)/24.0)
+       !sdoy = sdoy + INT((timevar(1)/3600.0 + shod)/24.0)
        ! Cycle through days to find leap year inclusive starting date:
        DO i=1,jump_days
           sdoy = sdoy + 1
@@ -897,6 +918,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+  !! vh_js !! fixed bug in logic
     IF(metunits%SWdown(1:4)/='W/m2'.AND.metunits%SWdown(1:5) &
          /='W/m^2'.AND.metunits%SWdown(1:5)/='Wm^-2' &
          .AND.metunits%SWdown(1:4)/='Wm-2') THEN
@@ -1474,12 +1496,13 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    LOGICAL, INTENT(IN)                    ::                                   &
         spinup,         & ! are we performing a spinup?
         spinConv          ! has model spinup converged?
-   TYPE(met_type),INTENT(OUT)             :: met ! meteorological data
+   TYPE(met_type), INTENT(INOUT) :: met ! meteorological data
    TYPE (soil_parameter_type),INTENT(IN)  :: soil 
    TYPE (radiation_type),INTENT(IN)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
    INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
-                                        kend    ! total number of timesteps in run
+                                        kend, & ! total number of timesteps in run
+                                        kstart  ! starting timestep
    REAL,INTENT(IN)                   :: dels ! time step size
    REAL, INTENT(IN) :: TFRZ 
    
@@ -2330,6 +2353,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    TYPE (air_type), INTENT(INOUT)          :: air
    TYPE (soil_snow_type), INTENT(OUT)      :: ssnow
    TYPE (veg_parameter_type), INTENT(OUT)  :: veg
+   TYPE (climate_type)          :: climate
    TYPE (bgc_pool_type), INTENT(OUT)       :: bgc
    TYPE (soil_parameter_type), INTENT(OUT) :: soil
    TYPE (canopy_type), INTENT(OUT)         :: canopy
@@ -2340,21 +2364,37 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    TYPE (casa_biome)  , INTENT(OUT)        :: casabiome
    TYPE (casa_pool)   , INTENT(OUT)        :: casapool
    TYPE (casa_flux)   , INTENT(OUT)        :: casaflux
+   TYPE (casa_pool)           :: sum_casapool
+   TYPE (casa_flux)           :: sum_casaflux
    TYPE (casa_met)    , INTENT(OUT)        :: casamet
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
+!! vh_js !!
+   TYPE (POP_TYPE)          :: POP
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
    LOGICAL,INTENT(IN)                      :: vegparmnew  ! are we using the new format?
+!! vh_js !!  
+   LOGICAL                    ::       spinup         ! for POP (initialize pop)
    REAL, INTENT(IN) :: TFRZ, EMSOIL 
 
    ! Local variables
    REAL,POINTER,DIMENSION(:)          :: pfractmp ! temp store of patch fraction
    LOGICAL                                 :: completeSet ! was a complete parameter set found?
+   LOGICAL                            :: EXRST = .FALSE. ! does a RunIden restart file exist?
    INTEGER                            ::                                  &
         mp_restart,        & ! total number of patches in restart file
         mpID,              &
         napID,             &
-        i                    ! do loop variables
+        i , j                   ! do loop variables
+    !! vh_js !!
+    CHARACTER :: frst_in*200, CYEAR*4
+
+    INTEGER   :: IOS
+    CHARACTER :: TACC*20
+    INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
+!! vh_js !!
+    INTEGER :: mp_POP
+    INTEGER, dimension(:), ALLOCATABLE :: Iwood
 
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))

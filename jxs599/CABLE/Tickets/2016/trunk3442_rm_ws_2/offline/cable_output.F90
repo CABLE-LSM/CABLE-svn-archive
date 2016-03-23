@@ -38,11 +38,13 @@ MODULE cable_output_module
 
   USE cable_abort_module, ONLY: abort, nc_abort
   USE cable_def_types_mod
+  USE casavariable, ONLY: casa_pool, casa_flux
   USE cable_IO_vars_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: filename, calcsoilalbedo
+  USE cable_common_module, ONLY: filename, calcsoilalbedo,                     &
+                                 CurYear,IS_LEAPYEAR, cable_user
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -58,7 +60,15 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar
+                    HVeg, HSoil, Rnet, tvar,                                   &
+                    SoilMoistIce, CanT,Fwsoil, RnetSoil, SnowMelt,             &
+                    NBP, TotSoilCarb, TotLivBiomass,                           &
+                    TotLittCarb, SoilCarbFast, SoilCarbSlow, SoilCarbPassive,  &
+                    LittCarbMetabolic, LittCarbStructural, LittCarbCWD,        &
+                    PlantCarbLeaf, PlantCarbFineRoot, PlantCarbWood,           &
+                    PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot,   &
+                    PlantTurnoverWood, PlantTurnoverWoodDist,                  &
+                    PlantTurnoverWoodCrowding, PlantTurnoverWoodResourceLim, dCdt
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -109,6 +119,8 @@ MODULE cable_output_module
                                                        ! temperature [K]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoist ! 33 av.layer soil
                                                        ! moisture [kg/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoistIce ! 33 av.layer soil
+     ! frozen moisture [kg/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qs  ! 34 surface runoff [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qsb ! 35 subsurface runoff [kg/m2/s]
     ! 36 change in soilmoisture (sum layers) [kg/m2]
@@ -150,10 +162,43 @@ MODULE cable_output_module
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HSoil ! sensible heat from soil
                                                  ! [W/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: RnetSoil ! latent heat from soil
+      ! [kg/m2/s]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: SnowMelt ! snow melt
+     ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ebal  ! cumulative energy balance
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CanT  ! within-canopy temperature
+    ! [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Fwsoil  ! soil-moisture modfier to stomatal conductance
+                                                 ! [-]
+
+    ![umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: NBP
+    REAL(KIND=4), POINTER, DIMENSION(:) :: dCdt
+    ! [kg C /m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: TotSoilCarb
+    REAL(KIND=4), POINTER, DIMENSION(:) :: TotLivBiomass
+    REAL(KIND=4), POINTER, DIMENSION(:) :: TotLittCarb
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilCarbFast
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilCarbSlow
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilCarbPassive
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LittCarbMetabolic
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LittCarbStructural
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LittCarbCWD
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantCarbLeaf
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantCarbFineRoot
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantCarbWood
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnover
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverLeaf
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverFineRoot
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWood
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodDist
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodCrowding
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodResourceLim
+
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -172,7 +217,7 @@ CONTAINS
 
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
                     plantcarbID, tID, landID, patchID ! dimension IDs
-    INTEGER :: latID, lonID ! time,lat,lon variable ID
+    INTEGER :: latID, lonID, llatvID, llonvID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
@@ -973,6 +1018,8 @@ CONTAINS
     TYPE(radiation_type), INTENT(IN)  :: rad   ! radiation data
     TYPE(air_type), INTENT(IN)        :: air
     TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
+    TYPE(casa_flux) :: casaflux ! casa fluxes
+    TYPE(casa_pool) :: casapool ! casa fluxes
     TYPE(balances_type), INTENT(INOUT) :: bal
 
     REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
@@ -982,6 +1029,11 @@ CONTAINS
     INTEGER, SAVE :: out_month ! counter for output month
     INTEGER, DIMENSION(mp) :: realyear ! fix problem for yr b4 leap yr
     INTEGER :: backtrack  ! modify timetemp for averaged output
+
+    INTEGER :: dday ! number of past-years days for monthly output LN
+    INTEGER :: iy   ! Counter
+    !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
+    INTEGER, SAVE :: YearStart
 
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
@@ -1786,6 +1838,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: logn ! log file number
     REAL, INTENT(IN) :: dels ! time step size
     INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    TYPE (met_type)             :: met ! meteorological data
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
     TYPE (soil_snow_type), INTENT(IN)      :: ssnow  ! soil and snow variables
@@ -1812,7 +1865,9 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
+    CHARACTER         :: FRST_OUT*200, CYEAR*4
     dummy = 0 ! initialise
 
     WRITE(logn, '(A24)') ' Writing restart file...'
