@@ -193,6 +193,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ssnow%tskin(:) = ssnow%tss
 
+   call soil_thermal_conductivity(Keffective, soil,ssnow)  !doesn't change with iterations
+
    DO iter = 1,NITER
 
       tss4 = ssnow%tskin(:)**4
@@ -415,11 +417,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
 
       !update skin surface temperature
-      call soil_thermal_conductivity(Keffective, soil,ssnow)
-      ssnow%tskin(:) = 0.5*canopy%ga * Keffective * soil%zse(1) + ssnow%tss
-      write(*,*) ssnow%tskin
-
-      
+      !call soil_thermal_conductivity(Keffective, soil,ssnow)
+      if (cable_user%gw_model) then
+         do i=1,mp
+            if (abs(canopy%ga(i) *soil%zse(1)/Keffective(i)) .gt. 1.0) then
+               ssnow%tskin(i) = ssnow%tss(i) + sign(0.5,canopy%ga(i))
+            else
+               ssnow%tskin(i) = ssnow%tss(i) + 0.5*canopy%ga(i)*soil%zse(1)/Keffective(i)
+            end if
+         end do
+      end if
       ! Set total latent heat:
       canopy%fe = canopy%fev + canopy%fes
       
@@ -2402,7 +2409,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    end do
 
 
-   sublayer_dz = eddy_mod(:) * air%visc / max(1.0e-4,canopy%us)
+   sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us),1e-7)
 
    if (first_call) then
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
@@ -2410,7 +2417,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)-ssnow%wbice(:,1) ) ) )
    end if
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
-   hk_zero = 0.001 * soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) )  !convert to m/s
+   hk_zero = max(0.001 * soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-7)  !convert to m/s
 
    soil_moisture_mod(:) = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
 
