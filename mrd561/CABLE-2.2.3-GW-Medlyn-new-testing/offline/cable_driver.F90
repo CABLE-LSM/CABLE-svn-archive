@@ -158,6 +158,8 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
+
+   REAL, ALLOCATABLE, DIMENSION(:) :: soilGWtemp
    
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -368,13 +370,18 @@ PROGRAM cable_offline_driver
             
             ! evaluate spinup
             IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
-                ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
-               
+                ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT).OR.                     &
+                ANY( ABS(ssnow%GWwb-soilGWtemp)>delsoilM) ) THEN
+
                ! No complete convergence yet
                PRINT *, 'ssnow%wb : ', ssnow%wb
                PRINT *, 'soilMtemp: ', soilMtemp
                PRINT *, 'ssnow%tgg: ', ssnow%tgg
                PRINT *, 'soilTtemp: ', soilTtemp
+               if (cable_user%gw_model) then
+                  PRINT *, 'ssnow%GWwb: ', ssnow%GWwb
+                  PRINT *, 'soilGWtemp: ', soilGWtemp
+               end if
             
             ELSE ! spinup has converged
                
@@ -394,12 +401,14 @@ PROGRAM cable_offline_driver
          ELSE ! allocate variables for storage
          
            ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
+           ALLOCATE( soilGWtemp(mp) )
          
          END IF
          
          ! store soil moisture and temperature
          soilTtemp = ssnow%tgg
          soilMtemp = REAL(ssnow%wb)
+         soilGWtemp = real(ssnow%GWwb)
 
       ELSE
 

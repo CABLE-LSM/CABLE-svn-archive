@@ -233,6 +233,8 @@ SUBROUTINE mpidrv_master (comm)
       soilMtemp,                         &   
       soilTtemp      
 
+   REAL, ALLOCATABLE, DIMENSION(:) :: soilGWtemp
+
    ! MPI:
    TYPE (met_type)       :: imet  ! read ahead met input variables
    TYPE (veg_parameter_type) :: iveg  ! MPI read ahead vegetation parameters
@@ -552,6 +554,7 @@ SUBROUTINE mpidrv_master (comm)
             
             ! evaluate spinup
             IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
+                ANY( ABS(ssnow%GWwb-soilGWtemp)>delsoilM).OR.                  &
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
@@ -567,6 +570,13 @@ SUBROUTINE mpidrv_master (comm)
                PRINT *, 'Example location of temperature non-convergence: ',maxdiff
                PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
                PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
+               if (cable_user%gw_model) then
+                   maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-soilGWtemp))
+                   PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+                   PRINT *, 'ssnow%wb : ', ssnow%GWwb(maxdiff(1))
+                   PRINT *, 'soilGWtemp: ', soilGWtemp(maxdiff(1))
+               end if
+
 
             ELSE ! spinup has converged
                
@@ -586,12 +596,14 @@ SUBROUTINE mpidrv_master (comm)
          ELSE ! allocate variables for storage
          
            ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
+           ALLOCATE( soilGWtemp(mp) )
          
          END IF
          
          ! store soil moisture and temperature
          soilTtemp = ssnow%tgg
          soilMtemp = REAL(ssnow%wb)
+         soilGWtemp = real(ssnow%GWwb)
 
          ! MPI:
          loop_exit = .FALSE.
