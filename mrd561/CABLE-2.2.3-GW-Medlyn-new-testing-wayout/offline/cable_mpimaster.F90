@@ -143,7 +143,13 @@ SUBROUTINE mpidrv_master (comm)
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
                                    report_version_no, wiltParam, satuParam,    &
-                                   gw_params
+                                   gw_params,                                  &
+                                   sublayer_Z_param,&
+                                   default_sublayer_thickness,&
+                                   use_simple_sublayer_thickness,&
+                                   use_const_thickness,&
+                                   old_soil_roughness
+
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
@@ -227,6 +233,8 @@ SUBROUTINE mpidrv_master (comm)
       soilMtemp,                         &   
       soilTtemp      
 
+   REAL, ALLOCATABLE, DIMENSION(:) :: soilGWtemp
+
    ! MPI:
    TYPE (met_type)       :: imet  ! read ahead met input variables
    TYPE (veg_parameter_type) :: iveg  ! MPI read ahead vegetation parameters
@@ -265,7 +273,13 @@ SUBROUTINE mpidrv_master (comm)
                   wiltParam,        &
                   satuParam,        &
                   cable_user,       &    ! additional USER switches 
-                  gw_params
+                  gw_params, &
+                  sublayer_Z_param,&
+                  default_sublayer_thickness,&
+                  use_simple_sublayer_thickness,&
+                  use_const_thickness,&
+                  old_soil_roughness
+
 
    ! END header
 
@@ -387,7 +401,7 @@ SUBROUTINE mpidrv_master (comm)
 
    ! MPI: create out_t types to receive results from the workers
    ! at the end of every timestep
-   CALL master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
+   CALL master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg,rough)
 
    ! MPI: create type for receiving casa results
    ! only if cnp module is active
@@ -502,7 +516,7 @@ SUBROUTINE mpidrv_master (comm)
          ktau_gl = oktau
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,              &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
+                               rad, bal, air, soil, veg, rough, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
        END DO ! END Do loop over timestep ktau
@@ -520,7 +534,7 @@ SUBROUTINE mpidrv_master (comm)
     canopy%oldcansto=canopy%cansto
     IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,         &
-                               rad, bal, air, soil, veg, C%SBOLTZ,     &
+                              rad, bal, air, soil, veg, rough,C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
 
    
@@ -540,6 +554,7 @@ SUBROUTINE mpidrv_master (comm)
             
             ! evaluate spinup
             IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
+                ANY( ABS(ssnow%GWwb-soilGWtemp)>delsoilM).OR.                  &
                 ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
                
                ! No complete convergence yet
@@ -555,6 +570,13 @@ SUBROUTINE mpidrv_master (comm)
                PRINT *, 'Example location of temperature non-convergence: ',maxdiff
                PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
                PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
+               if (cable_user%gw_model) then
+                   maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-soilGWtemp))
+                   PRINT *, 'Example location of moisture non-convergence: ',maxdiff
+                   PRINT *, 'ssnow%wb : ', ssnow%GWwb(maxdiff(1))
+                   PRINT *, 'soilGWtemp: ', soilGWtemp(maxdiff(1))
+               end if
+
 
             ELSE ! spinup has converged
                
@@ -574,12 +596,14 @@ SUBROUTINE mpidrv_master (comm)
          ELSE ! allocate variables for storage
          
            ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
+           ALLOCATE( soilGWtemp(mp) )
          
          END IF
          
          ! store soil moisture and temperature
          soilTtemp = ssnow%tgg
          soilMtemp = REAL(ssnow%wb)
+         soilGWtemp = real(ssnow%GWwb)
 
          ! MPI:
          loop_exit = .FALSE.
@@ -2233,6 +2257,20 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%wiltp(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%fldcap(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+
 !1D
   bidx = bidx + 1
   CALL MPI_Get_address (soil%GWwatsat(off), displs(bidx), ierr)
@@ -3582,7 +3620,7 @@ SUBROUTINE master_intypes (comm,met,veg)
 END SUBROUTINE master_intypes
 
 ! MPI: creates out_t types to receive the results from the workers
-SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
+SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg,rough)
 
   USE mpi
 
@@ -3600,6 +3638,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   TYPE (air_type),INTENT(IN)        :: air
   TYPE (soil_parameter_type),INTENT(IN) :: soil ! soil parameters
   TYPE (veg_parameter_type),INTENT(IN) :: veg ! vegetation parameters
+  TYPE (roughness_type),INTENT(IN) :: rough ! vegetation parameters
 
   ! MPI: displacement (address) vector for vectors (1D arrays)
   INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: vaddr
@@ -4275,6 +4314,11 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_1)
      CALL MPI_Get_address (canopy%wcint(off), vaddr(vidx), ierr) ! 59
      blen(vidx) = cnt * extr1
+
+     !mrd561
+     vidx = vidx + 1
+     CALL MPI_Get_address (canopy%sublayer_dz(off), vaddr(vidx), ierr) ! 60
+     blen(vidx) = r2len
      ! MPI: 2D vars moved above
      ! rwater
      ! evapfbl
@@ -4453,6 +4497,19 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_1)
      CALL MPI_Get_address (ssnow%otss_0(off), vaddr(vidx), ierr) ! 91
      blen(vidx) = cnt * extr1
+
+     !mrd561
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%rtevap_unsat(off), vaddr(vidx), ierr) ! 9something
+     blen(vidx) = r1len
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%rtevap_sat(off), vaddr(vidx), ierr) ! 9something
+     blen(vidx) = r1len
+
+
 
      ! rad
      ! MPI: 2D vars moved above
@@ -4819,6 +4876,17 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_2)
      CALL MPI_Get_address (ssnow%satfrac(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
+
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (rough%z0soilsn(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr1
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%rtsoil(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr1
 
      
      ! MPI: sanity check

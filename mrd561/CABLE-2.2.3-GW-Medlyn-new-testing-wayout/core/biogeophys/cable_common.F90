@@ -221,7 +221,15 @@ MODULE cable_common_module
    END TYPE gw_parameters_type
 
    TYPE(gw_parameters_type), SAVE :: gw_params
-      
+
+   REAL, SAVE ::  sublayer_Z_param = 1.0
+   logical,save :: default_sublayer_thickness=.true., &
+                   use_simple_sublayer_thickness=.false., &
+                   use_const_thickness=.false., &
+                   old_soil_roughness=.false.
+
+
+
 CONTAINS
 
 

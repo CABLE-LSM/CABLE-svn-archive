@@ -50,7 +50,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    !      MRR draft paper "Simplified expressions...", dec-92
    ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_runtime, cable_user,old_soil_roughness
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
 
@@ -76,9 +76,14 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    canopy%rghlai = canopy%vlaiw
 
    ! Roughness length of bare soil (m):
-   !rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
+   if (old_soil_roughness) &
+      rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
+
    canopy%us  = min(max(1e-6,canopy%us),3.5)
-   rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us*canopy%us/C%GRAV,1.0)
+
+   if (.not.old_soil_roughness) &
+      rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us*canopy%us/C%GRAV,1.0)
+
    !rough%z0soilsn = rough%z0soil 
    rough%z0soilsn = max(1.e-7,rough%z0soil)
 

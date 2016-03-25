@@ -71,7 +71,8 @@ MODULE cable_output_module
                     WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
                     EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,   &
                     wiltp,SoilIce,SatFrac,                                     &
-                    VISalbedo,NIRalbedo
+                    VISalbedo,NIRalbedo, &
+                    rtevap,sublayer_dz,rtevap_sat,z0soil,rtsoil
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -191,6 +192,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: VISalbedo
     REAL(KIND=4), POINTER, DIMENSION(:) :: NIRalbedo
 
+    REAL(KIND=4), POINTER, DIMENSION(:) :: rtevap,rtevap_sat,sublayer_dz,rtsoil,z0soil
 
 
   END TYPE output_temporary_type
@@ -783,6 +785,48 @@ CONTAINS
        out%NIRalbedo = 0.0 ! initialise
     END IF   
 
+    IF(output%rtevap) THEN
+       CALL define_ovar(ncid_out, ovid%rtevap, 'rtevap', 's/m',      &
+                        'Evap resistance', patchout%rtevap,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%rtevap(mp))
+       out%rtevap = 0.0 ! initialise
+    END IF
+
+    IF(output%rtevap_sat) THEN
+       CALL define_ovar(ncid_out, ovid%rtevap_sat, 'rtevap_sat', 's/m',      &
+                        'Evap resistance sat', patchout%rtevap_sat,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%rtevap_sat(mp))
+       out%rtevap_sat = 0.0 ! initialise
+    END IF
+
+
+    IF(output%sublayer_dz) THEN
+       CALL define_ovar(ncid_out, ovid%sublayer_dz, 'sublayer_dz', 'm',      &
+                        'Sublayer thickness', patchout%sublayer_dz,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%sublayer_dz(mp))
+       out%sublayer_dz = 0.0 ! initialise
+    END IF
+
+    IF(output%z0soil) THEN
+       CALL define_ovar(ncid_out, ovid%z0soil, 'z0soil', 'm',      &
+                        'Soil surface resistance', patchout%z0soil,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%z0soil(mp))
+       out%z0soil = 0.0 ! initialise
+    END IF
+
+
+    IF(output%rtsoil) THEN
+       CALL define_ovar(ncid_out, ovid%rtsoil, 'rtsoil', 'm',      &
+                        'soil resistance', patchout%rtsoil,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%rtsoil(mp))
+       out%rtsoil = 0.0 ! initialise
+    END IF
+
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
                      'iveg', '-', 'Vegetation type', patchout%iveg, 'integer', &
@@ -1233,7 +1277,7 @@ CONTAINS
   END SUBROUTINE open_output_file
   !=============================================================================
   SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
-                          rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
+                          rad, bal, air, soil, veg, rough,SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
     ! energy and mass balance routines. This subroutine is called 
     ! each timestep, but may only write to the output file periodically,
@@ -1249,6 +1293,7 @@ CONTAINS
     TYPE(radiation_type), INTENT(IN)  :: rad   ! radiation data
     TYPE(air_type), INTENT(IN)        :: air
     TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
+    TYPE (roughness_type), INTENT(IN)      :: rough
     TYPE(balances_type), INTENT(INOUT) :: bal
 
     REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
@@ -2106,14 +2151,7 @@ CONTAINS
     END IF    
     !aquifer water content
     IF((output%soil .OR. output%GWMoist)  .and. cable_user%GW_MODEL) THEN
-       !write(*,*) 'GWmoist'    !MDeck
-       ! Add current timestep's value to total of temporary output variable:
        out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
-       !write(*,*) 'max GWmoist is ',maxval(out%GWMoist)
-       !write(*,*) 'min GWmoist is ',minval(out%GWMoist)
-       !write(*,*) 'max GWwb is ',maxval(ssnow%GWwb)
-       !write(*,*) 'min GWwb is ',minval(ssnow%GWwb)
-
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GWMoist = out%GWMoist / REAL(output%interval, 4)
@@ -2238,11 +2276,6 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        out%SatFrac = out%SatFrac + REAL(ssnow%satfrac, 4)
        IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-         ! write(*,*) 'maxval satfrac ',maxval(out%SatFrac(:))
-         ! write(*,*) 'minval satfrac ',minval(out%SatFrac)
-         ! write(*,*) 'avg satfrac ',sum(out%SatFrac)/real(size(out%SatFrac,dim=1))
-
           out%SatFrac = out%SatFrac / REAL(output%interval, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%SatFrac, 'SatFrac', &
@@ -2266,6 +2299,70 @@ CONTAINS
        END IF
     END IF
    
+    IF(output%rtevap) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%rtevap = out%rtevap + REAL(ssnow%rtevap_unsat, 4)
+       IF(writenow) THEN
+          out%rtevap = out%rtevap / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%rtevap, 'rtevap', &
+               out%rtevap, (/-9999.0,9999.0/), patchout%rtevap, 'default', met)
+          ! Reset temporary output variable:
+          out%rtevap = 0.0
+       END IF
+    END IF      
+
+    IF(output%rtevap_sat) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%rtevap_sat = out%rtevap_sat + REAL(ssnow%rtevap_sat, 4)
+       IF(writenow) THEN
+          out%rtevap_sat = out%rtevap_sat / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%rtevap_sat, 'rtevap_sat', &
+               out%rtevap_sat, (/-9999.0,9999.0/), patchout%rtevap_sat, 'default', met)
+          ! Reset temporary output variable:
+          out%rtevap_sat = 0.0
+       END IF
+    END IF      
+    IF(output%sublayer_dz) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%sublayer_dz = out%sublayer_dz + REAL(canopy%sublayer_dz, 4)
+       IF(writenow) THEN
+          out%sublayer_dz = out%sublayer_dz / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%sublayer_dz, 'sublayer_dz', &
+               out%sublayer_dz, (/-9999.0,9999.0/), patchout%sublayer_dz, 'default', met)
+          ! Reset temporary output variable:
+          out%sublayer_dz = 0.0
+       END IF
+    END IF      
+
+    IF(output%z0soil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%z0soil = out%z0soil + REAL(rough%z0soilsn, 4)
+       IF(writenow) THEN
+          out%z0soil = out%z0soil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%z0soil, 'z0soil', &
+               out%z0soil, (/-9999.0,9999.0/), patchout%z0soil, 'default', met)
+          ! Reset temporary output variable:
+          out%z0soil = 0.0
+       END IF
+    END IF      
+
+    IF(output%rtsoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%rtsoil = out%rtsoil + REAL(ssnow%rtsoil, 4)
+       IF(writenow) THEN
+          out%rtsoil = out%rtsoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%rtsoil, 'rtsoil', &
+               out%rtsoil, (/-9999.0,9999.0/), patchout%rtsoil, 'default', met)
+          ! Reset temporary output variable:
+          out%rtsoil = 0.0
+       END IF
+    END IF      
+
     !write(*,*) ' at end of write_output '    !MDeck
  
   END SUBROUTINE write_output
