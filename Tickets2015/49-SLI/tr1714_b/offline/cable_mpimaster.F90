@@ -211,7 +211,7 @@ CONTAINS
     CHARACTER :: dum*9  ! dummy char for fileName generation
 
     ! CABLE variables
-    TYPE (met_type)       :: met     ! met input variables
+    TYPE (met_type)       :: met     ! met input variables: see below for imet in MPI variables
     TYPE (air_type)       :: air     ! air property variables
     TYPE (canopy_type)    :: canopy  ! vegetation variables
     TYPE (radiation_type) :: rad     ! radiation variables
@@ -222,7 +222,7 @@ CONTAINS
 
     ! CABLE parameters
     TYPE (soil_parameter_type) :: soil ! soil parameters
-    TYPE (veg_parameter_type)  :: veg  ! vegetation parameters
+    TYPE (veg_parameter_type)  :: veg  ! vegetation parameters: see below for iveg in MPI variables
     TYPE (driver_type)    :: C         ! constants used locally
 
     TYPE (sum_flux_type)  :: sum_flux ! cumulative flux variables
@@ -465,14 +465,16 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                   casaflux, sum_casapool, sum_casaflux,               &
                   casamet, casabal, phen, POP, spinup,        &
                   C%EMSOIL, C%TFRZ )
-             
+            
              ssnow%otss_0 = ssnow%tgg(:,1)
              ssnow%otss = ssnow%tgg(:,1)
              canopy%fes_cor = 0.
              canopy%fhs_cor = 0.
              met%ofsd = 0.1
 
-            
+
+             IF (.NOT.spinup)	spinConv=.TRUE.
+             
              ! MPI: above was standard serial code
              ! now it's time to initialize the workers
 
@@ -611,13 +613,14 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                   (YYYY.EQ.CABLE_USER%YearEnd .AND. 1.EQ.kend))
           ELSE
              CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                  rad, veg, kend, dels, C%TFRZ, iktau+koffset,                &
+                  rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
                   kstart+koffset )
+
+           
+         
           ENDIF
 
 
-PRINT*,"IS_CASA ","dread", yyyy, iktau, kstart, koffset, &
-               kend, ktauday, logn 
           IF ( CASAONLY .AND. IS_CASA_TIME("dread", yyyy, iktau, kstart, koffset, &
                kend, ktauday, logn) ) THEN     
              WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
@@ -629,9 +632,10 @@ PRINT*,"IS_CASA ","dread", yyyy, iktau, kstart, koffset, &
           canopy%oldcansto=canopy%cansto
 
           ! Zero out lai where there is no vegetation acc. to veg. index
-          WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+          WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
           IF ( .NOT. CASAONLY ) THEN
+             write(59,*) 'after get_met_data ', iveg%vlai
              ! MPI: scatter input data to the workers
              CALL master_send_input (icomm, inp_ts, iktau)
            !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
@@ -671,9 +675,11 @@ PRINT*,"IS_CASA ","dread", yyyy, iktau, kstart, koffset, &
                 CALL PLUME_MIP_GET_MET(PLUME, iMET, YYYY, iktau, kend, &
                      (YYYY.EQ.CABLE_USER%YearEnd .AND. iktau.EQ.kend))
              ELSE
+              
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, veg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
                      kstart+koffset )
+ 
              ENDIF
              IF ( TRIM(cable_user%MetType) .NE. 'gswp' ) CurYear = met%year(1)
 
@@ -707,6 +713,7 @@ PRINT*,"IS_CASA ","dread", yyyy, iktau, kstart, koffset, &
                 CALL master_receive (ocomm, oktau, recv_ts)
                ! CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
+
                 ! MPI: scatter input data to the workers
                 CALL master_send_input (icomm, inp_ts, iktau)
               !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
@@ -735,7 +742,7 @@ PRINT*,"IS_CASA ","dread", yyyy, iktau, kstart, koffset, &
              canopy%oldcansto=canopy%cansto
 
              ! Zero out lai where there is no vegetation acc. to veg. index
-             WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+             WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
              ! Write time step's output to file if either: we're not spinning up 
              ! or we're spinning up and the spinup has converged:
@@ -754,25 +761,34 @@ PRINT*,"IS_CASA ","dread", yyyy, iktau, kstart, koffset, &
                            ( ktau.EQ.kend .AND. YYYY .EQ.cable_user%YearEnd ) )
                    ENDIF
                 ENDIF
-
-                IF ( .NOT. CASAONLY ) &
-                     CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
-                     ssnow,         &
-                     rad, bal, air, soil, veg, C%SBOLTZ,     &
-                     C%EMLEAF, C%EMSOIL )
-             END IF
-             
-             !---------------------------------------------------------------------!
+          
+                
+                 IF ( (.NOT. CASAONLY).AND. spinConv  ) THEN
+                    IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) then
+                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
+                            ssnow,         &
+                            rad, bal, air, soil, veg, C%SBOLTZ,     &
+                            C%EMLEAF, C%EMSOIL )
+                    else
+                       CALL write_output( dels, ktau, met, canopy, casaflux, casapool, ssnow,   &
+                            rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                       
+                    ENDIF
+                 END IF
+              ENDIF
+               
+               !---------------------------------------------------------------------!
              ! Check this run against standard for quasi-bitwise reproducability   !  
              ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
              !---------------------------------------------------------------------!
              IF(cable_user%consistency_check) THEN 
 
-                new_sumbal = new_sumbal + SUM(canopy%fe) + SUM(canopy%fh)                &
-                     + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+               ! new_sumbal = new_sumbal + SUM(canopy%fe) + SUM(canopy%fh)                &
+               !      + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+                new_sumbal = SUM(bal%wbal_tot) +  SUM(bal%ebal_tot)
                 new_sumfpn = new_sumfpn + SUM(canopy%fpn)
                 new_sumfe = new_sumfe + SUM(canopy%fe)
-                if (ktau == kend) PRINT*," The sumbals", sum(bal%ebal_tot), &
+                if (ktau == kend-1) PRINT*," Ebal_tot, Wbal_tot, sumbal, sum_fe, sum_fpn", sum(bal%ebal_tot), &
                      sum(bal%wbal_tot),  new_sumbal, &
                       new_sumfe, new_sumfpn
                 if(any( canopy%fe.NE. canopy%fe))  CALL MPI_Abort(comm, 0, ierr)
@@ -881,16 +897,29 @@ PRINT*,"IS_CASA ","dread", yyyy, iktau, kstart, koffset, &
                      kend/ktauday )
                 
              ENDIF
+
+             IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
+                IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) then
+                   CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
+                        ssnow,         &
+                        rad, bal, air, soil, veg, C%SBOLTZ,     &
+                        C%EMLEAF, C%EMSOIL )
+                else
+                   CALL write_output( dels, ktau, met, canopy, casaflux, casapool, ssnow,   &
+                        rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                   
+                ENDIF
+             END IF
              
-             IF ( .NOT. CASAONLY ) &
-                  CALL write_output( dels, ktau_tot, met, canopy, &
-                   casaflux, casapool, ssnow,         &
-                  rad, bal, air, soil, veg, C%SBOLTZ,     &
-                  C%EMLEAF, C%EMSOIL )
+!!$             IF ( .NOT. CASAONLY ) &
+!!$                  CALL write_output( dels, ktau_tot, met, canopy, &
+!!$                   casaflux, casapool, ssnow,         &
+!!$                  rad, bal, air, soil, veg, C%SBOLTZ,     &
+!!$                  C%EMLEAF, C%EMSOIL )
           END IF
        END DO YEARLOOP
        
-print*, 'pop 02',  POP%pop_grid(:)%cmass_sum
+
        ! jhan this is insufficient testing. condition for 
        ! spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
        ! see if spinup (if conducting one) has converged:
@@ -1765,9 +1794,9 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Get_address (veg%vcmax(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
-     bidx = bidx + 1
-     CALL MPI_Get_address (veg%vlai(off), displs(bidx), ierr)
-     blen(bidx) = r1len
+    ! bidx = bidx + 1
+    ! CALL MPI_Get_address (veg%vlai(off), displs(bidx), ierr)
+    ! blen(bidx) = r1len
 
      bidx = bidx + 1
      CALL MPI_Get_address (veg%xfang(off), displs(bidx), ierr)

@@ -661,7 +661,7 @@ PROGRAM cable_offline_driver
 		 new_sumbal = new_sumbal + SUM(bal%wbal) +  SUM(bal%ebal)
 		 new_sumfpn = new_sumfpn + SUM(canopy%fpn)
 		 new_sumfe = new_sumfe + SUM(canopy%fe)
-		 if (ktau == kend) PRINT*," The sumbals", sum(bal%ebal_tot), sum(bal%wbal_tot),	 new_sumbal, &
+		 if (ktau == kend) PRINT*,"Ebal_tot, Wbal_tot, sumbal, sum_fe, sum_fpn", sum(bal%ebal_tot), sum(bal%wbal_tot),	 new_sumbal, &
 		      new_sumfe, new_sumfpn
 !!$
        ! write(557,*) MAXVAL(abs(canopy%fpn)), MAXLOC(abs(canopy%fpn),1)

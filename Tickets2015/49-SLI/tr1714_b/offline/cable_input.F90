@@ -1907,8 +1907,10 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         DO i=1,mland ! over all land points/grid cells
           veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
                defaultLAI(i,met%moy(landpt(i)%cstart))
+       
         ENDDO
       END IF
+
 
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
@@ -2182,7 +2184,12 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
 
 
+
         ENDDO
+
+write(60,*) exists%LAI
+write(60,*) 'defaultLAI', veg%vlai(1)
+
       END IF
       DEALLOCATE(tmpDat1, tmpDat2, tmpDat3, tmpDat2x)
 

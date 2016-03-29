@@ -251,7 +251,14 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    IF (cable_user%soil_struc=='sli') then  !! vh March 2014 !!
       ! delwcol includes change in soil water, pond and snowpack
       bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
-                  - ssnow%evap - canopy%fevc*dels/air%rlam, r_2)
+                  - ssnow%evap - max(canopy%fevc,0.0)*dels/air%rlam, r_2)
+
+
+!write(*,*) ktau,dels, canopy%through,   ssnow%delwcol, ssnow%runoff,   max(canopy%fevc,0.0)*dels/air%rlam,bal%wbal
+
+    if (ktau.le.28831.and.met%precip_sn(1).gt.0) then
+       write(*,*) ktau,  bal%wbal, ssnow%delwcol, ssnow%snowd - ssnow%osnowd, met%precip_sn(1), canopy%through
+    endif
 
    END IF
 

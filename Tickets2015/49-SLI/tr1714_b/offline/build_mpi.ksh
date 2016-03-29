@@ -77,12 +77,10 @@ host_pear()
 #    export LD_PRELOAD=/apps/netcdf/4.3.3/lib/libnetcdf.so
 #    export LD_PRELOAD=/apps/openmpi/1.8.4/lib/libopen-rte.so.7:/apps/openmpi/1.8.4/lib/libopen-pal.so.6
 #   . /apps/modules/Modules/default/init/ksh
-#   module add netcdf/3.6.3 openmpi/1.7.5
-#   module add netcdf/4.3.2 openmpi/1.6.5
-#   module add netcdf/4.3.2 openmpi/1.7.5
+
    module add netcdf/4.3.3.1 openmpi/1.7.5
-#   module add netcdf/4.3.3.1 openmpi/1.8.4
-#   module add netcdf/4.3.2 openmpi/1.8.4
+#   module add netcdf/4.3.3.1 openmpi/1.8.8
+
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'

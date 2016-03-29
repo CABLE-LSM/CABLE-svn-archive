@@ -415,7 +415,7 @@ CONTAINS
           IF (PLUME%DirectRead) THEN
              FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
           ELSE
-             FN = TRIM(mp)//"1901_1930/"
+             FN = TRIM(mp)//"1901_1930/ORICHUNKED_D0/"
           ENDIF
           SELECT CASE ( par )
           CASE(prec) ; FN = TRIM(FN)//"Rainf_daily_WFD_GPCC_TYX_format_detrended_"
@@ -434,7 +434,7 @@ CONTAINS
           IF (PLUME%DirectRead) THEN
              FN = TRIM(mp)//"1901_1930/RECHUNKED_FULL/"
           ELSE
-             FN = TRIM(mp)//"1901_1930/"
+             FN = TRIM(mp)//"1901_1930/ORICHUNKED_D0/"
           ENDIF
           SELECT CASE ( par )
           CASE(prec) ; FN = TRIM(FN)//"Rainf_daily_WFD_GPCC_TYX_format_detrended_"

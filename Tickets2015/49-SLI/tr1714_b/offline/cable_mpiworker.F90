@@ -403,7 +403,9 @@ CONTAINS
 
           IF ( CALL1 ) THEN
 
-              ! MPI: bcast to workers so that they don't need to open the met
+             IF (.NOT.spinup)	spinConv=.TRUE.
+
+             ! MPI: bcast to workers so that they don't need to open the met
              ! file themselves
              CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
           ENDIF
@@ -428,7 +430,7 @@ CONTAINS
              CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                        rough,rad,sum_flux,bal)
 
-
+             write(wlogn,*), 'lai1',veg%vlai
 
              CALL worker_climate_types(comm, climate)
 
@@ -544,7 +546,9 @@ CONTAINS
              IF ( .NOT. CASAONLY ) THEN
 
                 CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
-
+write(wlogn,*) 'lai', veg%vlai
+write(wlogn,*) 'coszen', met%coszen
+write(wlogn,*) 'year', met%year
                 ! MPI: receive casa_dump_data for this step from the master
              ELSEIF ( IS_CASA_TIME("dread", yyyy, ktau, kstart, koffset, &
                   kend, ktauday, wlogn) ) THEN
@@ -567,14 +571,14 @@ CONTAINS
              if (cable_user%CALL_climate) &
                  CALL cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy)
-             write(wlogn,*) ktau, canopy%fwsoil, veg%clitt, veg%zr, veg%gamma
-
+            
+             write(wlogn,*) 'b4 cbm', veg%vlai
              ! CALL land surface scheme for this timestep, all grid points:
              CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
                   bal, rad, rough, soil, ssnow,                            &
                   sum_flux, veg, climate)
 
-             write(wlogn,*) ktau, canopy%fwsoil, veg%clitt, veg%zr, veg%gamma
+             
              ssnow%smelt  = ssnow%smelt*dels
              ssnow%rnof1  = ssnow%rnof1*dels
              ssnow%rnof2  = ssnow%rnof2*dels
@@ -1266,9 +1270,9 @@ CONTAINS
     CALL MPI_Get_address (veg%vcmax, displs(bidx), ierr)
     blen(bidx) = r1len
 
-    bidx = bidx + 1
-    CALL MPI_Get_address (veg%vlai, displs(bidx), ierr)
-    blen(bidx) = r1len
+    !bidx = bidx + 1
+    !CALL MPI_Get_address (veg%vlai, displs(bidx), ierr)
+    !blen(bidx) = r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%xfang, displs(bidx), ierr)
