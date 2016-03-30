@@ -367,8 +367,9 @@ PROGRAM cable_offline_driver
                             rad, veg, kend, dels, C%TFRZ, ktau ) 
    
          ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
-                                                casapool, casamet )
+         !VH
+         !IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
+         !                                       casapool, casamet )
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
    
