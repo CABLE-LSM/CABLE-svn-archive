@@ -452,8 +452,8 @@ CONTAINS
          met%tvrad = met%tk
 
          ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-         IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
-                                                casapool, casamet )
+         !VHIF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,    &
+         !VH                                       casapool, casamet )
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
    
@@ -682,7 +682,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   INTEGER :: stat(MPI_STATUS_SIZE), ierr
   INTEGER :: landp_t, patch_t, param_t
 
-  INTEGER :: r1len, r2len, i1len, llen ! block lengths
+  INTEGER :: r1len, r2len, ilen, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
 
@@ -2009,9 +2009,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
                                casabal,phen)
 
   USE mpi
-
   USE cable_def_types_mod
-
   USE casavariable
   USE phenvariable
 
@@ -2043,7 +2041,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   ! INTEGER :: landp_t, patch_t, param_t
   INTEGER :: casa_t
 
-  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
+  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
 
@@ -2940,7 +2938,7 @@ SUBROUTINE worker_intype (comm,met,veg)
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
   INTEGER :: tsize
 
-  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
+  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
   INTEGER :: ierr
@@ -3115,7 +3113,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   INTEGER :: ntyp ! number of worker's types
 
   ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, I1LEN, llen
+  INTEGER :: r1len, r2len, ILEN, llen
 
   INTEGER :: rank, off, cnt
   INTEGER :: bidx, midx, vidx, ierr
@@ -5186,7 +5184,7 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   INTEGER :: ntyp ! number of worker's types
 
   ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, I1LEN, llen
+  INTEGER :: r1len, r2len, ILEN, llen
 
   INTEGER :: rank, off, cnt
   INTEGER :: bidx, midx, vidx, ierr
@@ -5669,7 +5667,7 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
   INTEGER :: ntyp ! number of worker's types
 
   ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, I1LEN, llen
+  INTEGER :: r1len, r2len, ILEN, llen
 
   INTEGER :: rank, off, cnt
   INTEGER :: bidx, midx, vidx, ierr, nd, ny
