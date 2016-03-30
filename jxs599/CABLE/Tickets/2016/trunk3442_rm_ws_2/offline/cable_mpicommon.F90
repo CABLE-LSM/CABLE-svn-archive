@@ -38,7 +38,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! Ticket #56, we've added 2 extra new params for the Medlyns Stom Cond model 299+2
-  INTEGER, PARAMETER :: nparam = 301    ! add 10 vairable to veg%
+!  INTEGER, PARAMETER :: nparam = 301    ! add 10 vairable to veg%
+  INTEGER, PARAMETER :: nparam = 300    ! tr1714_b -r 3537 
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
