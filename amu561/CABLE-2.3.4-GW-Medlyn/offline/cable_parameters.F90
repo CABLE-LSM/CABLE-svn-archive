@@ -1365,16 +1365,16 @@ SUBROUTINE read_g1map(logn)
                                            incss(landpt(e)%ilon, landpt(e)%ilat)
       soil%cnsd(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           incnsd(landpt(e)%ilon, landpt(e)%ilat)
-                                          
+                          
       !MD
       !possibly heterogeneous soil properties
       DO klev=1,ms
         soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
          abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
-                                         
+                         
         soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
              inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
-                                         
+                    
         soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
               inbch(landpt(e)%ilon, landpt(e)%ilat)                       
                                          
@@ -1398,6 +1398,7 @@ SUBROUTINE read_g1map(logn)
                                          
         soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01
       END DO
+
       !Aquifer properties  same as bottom soil layer for now
       soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
          soil%smpsat(landpt(e)%cstart:landpt(e)%cend,ms)
@@ -1407,13 +1408,13 @@ SUBROUTINE read_g1map(logn)
                                          
       soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
           soil%clappB(landpt(e)%cstart:landpt(e)%cend,ms)
-                                         
+                    
       soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
          soil%densoil(landpt(e)%cstart:landpt(e)%cend,ms)
-                                         
+                         
       soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
          soil%watsat(landpt(e)%cstart:landpt(e)%cend,ms)
-                                         
+                            
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
 
@@ -1432,9 +1433,9 @@ SUBROUTINE read_g1map(logn)
       soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inTI(landpt(e)%ilon,landpt(e)%ilat)
 
-      soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    int(inBI(landpt(e)%ilon,landpt(e)%ilat))
-
+!Commented out to avoid floating invalid error in GSWP3
+!      soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+!                                    int(inBI(landpt(e)%ilon,landpt(e)%ilat))
 
       ENDIF
 
@@ -1682,7 +1683,6 @@ SUBROUTINE read_g1map(logn)
     !Haverd2013 switch, amu561 Feb 16
     !Note this could depend on veg type but is constant for now
     veg%li_katul_skew_param = 0.03_r_2
-
 
   END SUBROUTINE write_default_params
   !=============================================================================

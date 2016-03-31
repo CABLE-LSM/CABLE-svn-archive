@@ -2601,16 +2601,18 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
       CALL alloc_phenvariable(phen,mp)
     ENDIF
-
     ! Write parameter values to CABLE's parameter variables:
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
             rad,logn,vegparmnew,smoy, TFRZ)
+
     IF (icycle > 0) THEN
       CALL write_cnp_params(veg,casaflux,casamet)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
       CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
     ENDIF
+
+
 
 ! removed get_default_inits and get_default_lai as they are already done
 ! in write_default_params
@@ -2914,6 +2916,7 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    
    ! Allocate patch fraction variable:
    ALLOCATE(patch(arraysize))
+
    
 END SUBROUTINE allocate_cable_vars
 

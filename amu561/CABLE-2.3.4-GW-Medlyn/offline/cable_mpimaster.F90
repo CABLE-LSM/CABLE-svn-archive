@@ -350,10 +350,12 @@ SUBROUTINE mpidrv_master (comm)
    
    ENDIF
 
+
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kend, spinup, C%TFRZ )
+
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
@@ -366,7 +368,6 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
-
 
    !Casa spin-up (added Feb '16 by amu561 from yxw599 code)
    IF(icycle>0) THEN
@@ -498,7 +499,6 @@ SUBROUTINE mpidrv_master (comm)
       CALL master_send_input (icomm, inp_ts, iktau)
       CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
-
       ! time step loop over ktau
       DO ktau=kstart, kend - 1
          
@@ -566,7 +566,7 @@ SUBROUTINE mpidrv_master (comm)
          IF (icycle > 0 .AND. output%CASA .AND. (MOD(ktau, ktauday) == 0))  &
             CALL write_casa_flux(dels,ktau,met,casaflux,casapool,casabal,phen)
          END IF
-   
+
          !---------------------------------------------------------------------!
          ! Check this run against standard for quasi-bitwise reproducability   !  
          ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
