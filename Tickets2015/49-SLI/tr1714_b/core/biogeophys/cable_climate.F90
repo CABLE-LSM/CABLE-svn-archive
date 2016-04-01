@@ -243,11 +243,11 @@ if (cable_user%climate_fromzero) then
    climate%mtemp_min_20=0
    climate%mtemp_max_20=0
 
-
-else
-   CALL READ_CLIMATE_RESTART_NC (climate)
-
 endif
+!else
+  ! CALL READ_CLIMATE_RESTART_NC (climate)
+
+!endif
 
 END SUBROUTINE climate_init
 
@@ -524,10 +524,11 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate )
   IF ( land_dim .NE. SIZE(patch%latitude)) THEN
      WRITE(*,*) "Dimension misfit, ", fname
      WRITE(*,*) "land_dim", land_dim
+     WRITE(*,*) "lat_dim",  SIZE(patch%latitude)
      STOP
   ENDIF
 
-  ! LAT & LON
+  ! LAT & LON SIZE(patch%latitude)
   STATUS = NF90_INQ_VARID( FILE_ID, A1(1), dID )
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
   STATUS = NF90_GET_VAR( FILE_ID, dID, LAT )

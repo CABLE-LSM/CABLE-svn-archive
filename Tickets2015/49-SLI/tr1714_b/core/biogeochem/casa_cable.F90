@@ -29,7 +29,7 @@
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
                      pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &
-                     dump_write, LALLOC )
+                     dump_write, LALLOC)
 
    USE cable_def_types_mod
    USE cable_common_module, only: cable_runtime
@@ -85,7 +85,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
  !! vh_js !!
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
 
-   !INTEGER, INTENT(IN) :: wlogn
+  ! INTEGER, INTENT(IN) :: wlogn
+   INTEGER , parameter :: wlogn=6
 
    if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
    if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
@@ -183,12 +184,18 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      NPPtoGPP = 0.5
                   ENDWHERE
 
-!write(wlogn, *) 'b4 POP'
+
+
+
+!write(wlogn, *) 'b4 POP1', StemNPP(Iw(1:2),1),  LAImax(Iw(1:2)), Cleafmean(Iw(1:2)), Crootmean(Iw(1:2)), NPPtoGPP(Iw(1:2))
 !call flush(wlogn)
 
                   CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+
+
+
 !write(wlogn, *) 'after POP'
 !call flush(wlogn)
 
@@ -199,16 +206,16 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
          ENDIF  ! icycle .gt. 0
 
-         IF( (.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-            IF ( dump_write )  THEN
-               !CLN CHECK FOR LEAP YEAR
-               WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
-               ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-               CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &
-                                 kend/ktauday )
-
-            ENDIF
-         ENDIF
+!!$         IF( (.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
+!!$            IF ( dump_write )  THEN
+!!$               !CLN CHECK FOR LEAP YEAR
+!!$               WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+!!$               ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+!!$               CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &
+!!$                                 kend/ktauday )
+!!$
+!!$            ENDIF
+!!$         ENDIF
 
       ENDIF  ! end of day
 
@@ -500,7 +507,6 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 #ifndef UM_BUILD
   dim_len(1)        = mp
   dim_len(num_dims) = kend
-
 
 
   IF (n_call == 1) THEN

@@ -538,7 +538,7 @@ END SUBROUTINE InitPOP2D_Poisson
     np = SIZE(POP%POP_grid)
 
 
-   !write(*,*) "Go POP", it, np, StemNPP
+    it =  maxval(pop%pop_grid(1)%patch(:)%age(1)) + 1
    !call flush(wlogn)
     IF (PRESENT(precip)) THEN
        IF(PRESENT(StemNPP_av)) THEN

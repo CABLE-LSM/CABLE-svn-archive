@@ -315,8 +315,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       !! vh_js !!
       IF (cable_user%CALL_POP) THEN  ! initialise very small wood pool, so POP can start from zero.
          casapool%cplant(npt,wood) = 0.01
-         casapool%nplant(npt,wood)= casabiome%ratioNCplantmin(nv,wood)* casapool%cplant(npt,wood)
-         casapool%pplant(npt,wood)= casabiome%ratioPCplantmin(nv,wood)* casapool%cplant(npt,wood)
+         casapool%nplant(npt,wood)= casabiome%ratioNCplantmin(iv1,wood)* casapool%cplant(npt,wood)
+         casapool%pplant(npt,wood)= casabiome%ratioPCplantmin(iv1,wood)* casapool%cplant(npt,wood)
       ENDIF
       !! vh_js
 

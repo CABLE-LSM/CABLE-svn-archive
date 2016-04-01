@@ -110,7 +110,7 @@ MODULE cable_mpicommon
   INTEGER, PARAMETER :: ncasa_mat = 16
 !  INTEGER, PARAMETER :: ncasa_vec = 27
 !  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
-  INTEGER, PARAMETER :: ncasa_vec = 39    ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
+  INTEGER, PARAMETER :: ncasa_vec = 50   ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run
   !INTEGER, PARAMETER :: nrestart = 16

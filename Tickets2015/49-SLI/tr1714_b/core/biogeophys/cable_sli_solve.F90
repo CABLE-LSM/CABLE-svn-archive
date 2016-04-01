@@ -723,9 +723,7 @@ CONTAINS
                 !do i=1, n
                 !   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
                 !end do
-                if (irec.eq.9322) then
-                    write(*,*) 'phi 9322 2', var(1,1)%phi, var(1,1)%phie, var(1,1)%Sliq
-                 endif
+               
                 ! End debug hyofS
                 cp(kk) = real(1-var(kk,1)%iice,r_2)*cswat*rhow & ! heat capacity of pond
                      + real(var(kk,1)%iice,r_2)*rhow* &
@@ -798,9 +796,7 @@ CONTAINS
                 call flux(par(kk,1), vtop(kk), var(kk,1), half*dx(kk,1), &
                      q(kk,0), qya(kk,0), qyb(kk,0), qTa(kk,0), qTb(kk,0))
 
-                 if (irec.eq.9322) then
-                    write(*,*) 'phi 9322 3', var(1,1)%phi, var(1,1)%phie
-                 endif
+                
              endif
 
              if (Sl(kk) >= one) then

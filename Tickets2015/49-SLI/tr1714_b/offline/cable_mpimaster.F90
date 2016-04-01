@@ -524,7 +524,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                 ! MPI:
                 CALL master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
                      &                        casabal,phen)
-
+write(*,*) 'b4 pop_types',  pop%pop_grid(:)%cmass_sum
                 IF ( CABLE_USER%CALL_POP ) CALL master_pop_types (comm,casamet,pop)
              END IF
 
@@ -560,6 +560,9 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                 CALL master_restart_types (comm, canopy, air)
              END IF
 
+write(*,*) 'after master_restart'
+call flush(6)
+
            !  CALL zero_sum_casa(sum_casapool, sum_casaflux)
            !  count_sum_casa = 0
 
@@ -568,7 +571,8 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
            
              ! MPI: mostly original serial code follows...
           ENDIF ! CALL1
-
+write(*,*) 'after call 1'
+call flush(6)
 
           ! Open output file:
           IF (.NOT.CASAONLY) THEN
@@ -608,6 +612,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
           !tmp_kgl = ktau_gl
           ktau_gl = iktau
 
+
           IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN                  
              CALL PLUME_MIP_GET_MET(PLUME, iMET, YYYY, 1, kend, &
                   (YYYY.EQ.CABLE_USER%YearEnd .AND. 1.EQ.kend))
@@ -635,9 +640,10 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
           WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
           IF ( .NOT. CASAONLY ) THEN
-             write(59,*) 'after get_met_data ', iveg%vlai
              ! MPI: scatter input data to the workers
+
              CALL master_send_input (icomm, inp_ts, iktau)
+
            !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
           ELSE 
              CALL master_send_input (icomm, casa_dump_ts, iktau)
@@ -659,9 +665,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
              ktau_gl = iktau
 
              ! somethings (e.g. CASA-CNP) only need to be done once per day  
-             idoy = MOD(ktau/ktauday,365)
-             IF(idoy==0) idoy=365
-
+            
              idoy = MOD(INT(REAL(ktau+koffset)/REAL(ktauday)),LOY)
              IF ( idoy .EQ. 0 ) idoy = LOY
 
@@ -695,17 +699,25 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
              IF ( .NOT. CASAONLY ) THEN
                              
                 IF ( icycle > 0 ) THEN
+                   !casaflux%cgpp = 1
+                 !  IF(MOD((ktau-kstart+1),ktauday)==0) THEN ! end of day
+                      CALL master_receive (ocomm, oktau, casa_ts)
+                 !  ENDIF
+                     ! write(61,*) 'after MR', casaflux%cgpp 
                    IF ( IS_CASA_TIME("write", yyyy, oktau, kstart, &
                         koffset, kend, ktauday, logn) ) THEN
-                      CALL master_receive (ocomm, oktau, casa_ts)
+                    !  CALL master_receive (ocomm, oktau, casa_ts)
+                    !  write(61,*) 'after MR', casapool%cplant(:,1)
                     !  CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
                    ENDIF
                 ENDIF
                 IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
                      ( IS_CASA_TIME("dwrit", yyyy, oktau, kstart, &
                         koffset, kend, ktauday, logn) ) ) THEN
+
                    !CLN CHECK FOR LEAP YEAR
                    CALL master_receive ( ocomm, oktau, casa_dump_ts )
+
                   ! CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
                 ENDIF
 
@@ -718,15 +730,29 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                 CALL master_send_input (icomm, inp_ts, iktau)
               !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
-                IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
-                     ( IS_CASA_TIME("dwrit", yyyy, oktau, kstart, &
-                        koffset, kend, ktauday, logn) ) ) THEN
-                   WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
-                   ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                   CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
-                        kend/ktauday )
-                   
-                ENDIF
+!!$                IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
+!!$                     ( IS_CASA_TIME("dwrit", yyyy, oktau, kstart, &
+!!$                        koffset, kend, ktauday, logn) ) ) THEN
+!!$                   WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+!!$                   ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+!!$                   CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
+!!$                        kend/ktauday )
+!!$                   
+!!$                ENDIF
+
+                IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
+                      MOD((ktau-kstart+1),ktauday)==0) THEN
+                    IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
+
+
+                       !CLN CHECK FOR LEAP YEAR
+                       WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+                       ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+                       CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &    
+                         kend/ktauday )
+                       
+                    ENDIF
+                 ENDIF
 
              ELSE IF ( MOD((ktau-kstart+1+koffset),ktauday)==0 ) THEN
                 
@@ -756,6 +782,8 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                    IF ( IS_CASA_TIME("write", yyyy, oktau, kstart, &
                         koffset, kend, ktauday, logn) ) THEN
                       ctime = ctime +1
+
+write(60,*) 'write_casa', casaflux%cgpp 
                       CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
                            CASAONLY, ctime, &
                            ( ktau.EQ.kend .AND. YYYY .EQ.cable_user%YearEnd ) )
@@ -889,13 +917,26 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                 ENDIF
              END IF
         
-             IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
-                !CLN CHECK FOR LEAP YEAR
-                WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
-                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
-                     kend/ktauday )
-                
+!!$             IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
+!!$                !CLN CHECK FOR LEAP YEAR
+!!$                WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+!!$                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+!!$                CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
+!!$                     kend/ktauday )
+!!$                
+!!$             ENDIF
+
+             IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
+                  MOD((ktau-kstart+1),ktauday)==0) THEN
+                IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
+                   !CLN CHECK FOR LEAP YEAR
+                   WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+                   ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+
+                   CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, LOY, &    
+                        kend/ktauday )
+                   
+                ENDIF
              ENDIF
 
              IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
@@ -5779,6 +5820,52 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
+!*****************************
+ bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Plabuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Clabloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracClabile(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+!****************************************************
+
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%frac_sapwood(off), displs(bidx), ierr)
      blocks(bidx) = r2len
@@ -5854,7 +5941,8 @@ SUBROUTINE master_climate_types (comm, climate)
   USE mpi
 
   USE cable_def_types_mod, ONLY: climate_type
-  USE cable_climate_mod, ONLY: climate_init
+  USE cable_climate_mod, ONLY: climate_init,  READ_CLIMATE_RESTART_NC
+  USE cable_common_module, ONLY: CABLE_USER
 
   TYPE(climate_type):: climate
   INTEGER :: comm
@@ -5880,7 +5968,8 @@ SUBROUTINE master_climate_types (comm, climate)
   INTEGER :: bidx, midx, vidx, ierr, ny, nd
 
   CALL climate_init (climate, mp)
-
+  if (.NOT.cable_user%climate_fromzero) &
+       CALL READ_CLIMATE_RESTART_NC (climate)
   ALLOCATE (climate_ts(wnp))
 
   ! MPI: allocate temp vectors used for marshalling
@@ -6438,19 +6527,25 @@ WRITE(*,*) 'bidx', bidx
   END DO
 
   WRITE (*,*) 'total size of restart fields received from all workers: ', totalrecv
-
+write(*,*) 'here we are!'
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
   totalsend = 0
+write(*,*) 'b4 Reduce', MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
+    &     0, comm, ierr
   CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
     &     0, comm, ierr)
 
   WRITE (*,*) 'total size of restart fields sent by all workers: ', totalsend
-
+CALL flush(6)
   IF (totalrecv /= totalsend) THEN
           WRITE (*,*) 'error: restart fields totalsend and totalrecv differ'
+          CALL flush(6)
           CALL MPI_Abort (comm, 0, ierr)
   END IF
+
+write(*,*) 'after total recv'
+CALL flush(6)
 
   DEALLOCATE(types)
   DEALLOCATE(displs)
@@ -6483,7 +6578,7 @@ SUBROUTINE master_casa_dump_types(comm, casamet, casaflux )
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
   INTEGER :: tsize, localtotal, remotetotal
 
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
   INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
@@ -6518,21 +6613,24 @@ SUBROUTINE master_casa_dump_types(comm, casamet, casaflux )
 
      r1stride = mp * extr1
 
+     r2len = cnt * extr2
+     r2stride = mp * extr2
+
      ! casamet fields
 
      bidx = 1
      CALL MPI_Get_address (casamet%tairk(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
+     blocks(bidx) = r2len
 
      bidx = bidx + 1
      CALL MPI_Get_address (casamet%tsoil(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casamet%moist(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           types(bidx), ierr)
      blocks(bidx) = 1
 
@@ -6540,13 +6638,14 @@ SUBROUTINE master_casa_dump_types(comm, casamet, casaflux )
 
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%cgpp(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
+     blocks(bidx) = r2len
 
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%crmplant(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (ncp, r2len, r2stride, MPI_BYTE, &
           types(bidx), ierr)
      blocks(bidx) = 1
+
 
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
@@ -6586,6 +6685,15 @@ SUBROUTINE master_casa_dump_types(comm, casamet, casaflux )
           WRITE (*,*) 'error: total length of input data sent and received differ'
           CALL MPI_Abort (comm, 0, ierr)
   END IF
+
+!!$  DO rank = 1, wnp
+!!$
+!!$     CALL MPI_ISend (MPI_BOTTOM, 1, casa_dump_ts(rank), rank, 0, comm, &
+!!$          &               inp_req(rank), ierr)
+!!$       
+!!$  END DO
+!!$  
+!!$  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
 END SUBROUTINE master_casa_dump_types
 

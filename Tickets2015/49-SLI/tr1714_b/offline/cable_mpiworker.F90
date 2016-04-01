@@ -430,8 +430,7 @@ CONTAINS
              CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                        rough,rad,sum_flux,bal)
 
-             write(wlogn,*), 'lai1',veg%vlai
-
+          
              CALL worker_climate_types(comm, climate)
 
              ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
@@ -447,6 +446,7 @@ CONTAINS
 
                 ! MPI: POP restart received only if pop module AND casa are active 
                 IF ( CABLE_USER%CALL_POP ) CALL worker_pop_types (comm,veg,casamet,pop)
+write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
              END IF
 
@@ -465,6 +465,7 @@ CONTAINS
              IF (icycle>0) THEN
                 CALL worker_casa_type (comm, casapool,casaflux, &
                      casamet,casabal, phen) 
+
                 IF ( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) &
                      CALL worker_casa_dump_types(comm, casamet, casaflux)
 
@@ -474,7 +475,9 @@ CONTAINS
              ! MPI: create type to send restart data back to the master
              ! only if restart file is to be created
              IF(output%restart) THEN
+
                 CALL worker_restart_type (comm, canopy, air)
+
              END IF
 
              ! Open output file:
@@ -546,9 +549,7 @@ CONTAINS
              IF ( .NOT. CASAONLY ) THEN
 
                 CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
-write(wlogn,*) 'lai', veg%vlai
-write(wlogn,*) 'coszen', met%coszen
-write(wlogn,*) 'year', met%year
+
                 ! MPI: receive casa_dump_data for this step from the master
              ELSEIF ( IS_CASA_TIME("dread", yyyy, ktau, kstart, koffset, &
                   kend, ktauday, wlogn) ) THEN
@@ -572,7 +573,6 @@ write(wlogn,*) 'year', met%year
                  CALL cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy)
             
-             write(wlogn,*) 'b4 cbm', veg%vlai
              ! CALL land surface scheme for this timestep, all grid points:
              CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
                   bal, rad, rough, soil, ssnow,                            &
@@ -595,11 +595,15 @@ write(wlogn,*) 'year', met%year
                      casapool, casaflux, casamet, casabal,              &
                      phen, pop, spinConv, spinup, ktauday, idoy, loy,   &
                      .FALSE., .FALSE., LALLOC )
-
+                
+                ! IF(MOD((ktau-kstart+1),ktauday)==0) THEN
+                   CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
+              !  ENDIF
 
                 IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
                      koffset, kend, ktauday, wlogn) ) THEN
-                   CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
+             ! write(wlogn,*), 'IN IS_CASA', casapool%cplant(:,1)
+             !      CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
                 ENDIF
 
 
@@ -5685,7 +5689,52 @@ write(wlogn,*) 'year', met%year
     bidx = bidx + 1
     CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
     blocks(bidx) = r2len
+!*****************************
+ bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Plabuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Clabloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracClabile(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+!*****************************
     bidx = bidx + 1
     CALL MPI_Get_address (casaflux%frac_sapwood(off), displs(bidx), ierr)
     blocks(bidx) = r2len
@@ -6076,6 +6125,9 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
  ! MPI: check whether total size of received data equals total
  ! data sent by all the workers
  !mcd287  CALL MPI_Reduce (tsize, tsize, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+write(*,*) 'b4 reduce wk', tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr
+call flush(6)
+!call flush(wlogn)
  CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
 
  DEALLOCATE(types)
@@ -6171,7 +6223,7 @@ SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
  CALL MPI_Type_size (casa_dump_t, tsize, ierr)
  CALL MPI_Type_get_extent (casa_dump_t, tmplb, text, ierr)
 
- WRITE (*,*) 'worker casa_t param blocks, size, extent and lb: ',rank, &
+ WRITE (*,*) 'worker casa_dump_t param blocks, size, extent and lb: ',rank, &
       bidx,tsize,text,tmplb
 
  ! MPI: check whether total size of received data equals total
@@ -6182,13 +6234,13 @@ SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
  DEALLOCATE(displs)
  DEALLOCATE(blen)
 
- ! if anything went wrong the master will mpi_abort
- ! which mpi_recv below is going to catch...
- ! so, now receive all the parameters
- CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, 0, comm, stat, ierr)
-
- ! finally free the MPI type
- CALL MPI_Type_Free (casa_dump_t, ierr)
+!!$ ! if anything went wrong the master will mpi_abort
+!!$ ! which mpi_recv below is going to catch...
+!!$ ! so, now receive all the parameters
+!!$ CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, 0, comm, stat, ierr)
+!!$
+!!$ ! finally free the MPI type
+!!$ CALL MPI_Type_Free (casa_dump_t, ierr)
 
  ! all casa parameters have been received from the master by now
 

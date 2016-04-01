@@ -2187,9 +2187,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
         ENDDO
 
-write(60,*) exists%LAI
-write(60,*) 'defaultLAI', veg%vlai(1)
-
       END IF
       DEALLOCATE(tmpDat1, tmpDat2, tmpDat3, tmpDat2x)
 

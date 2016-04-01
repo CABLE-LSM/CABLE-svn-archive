@@ -483,6 +483,8 @@ PROGRAM cable_offline_driver
 	      count_sum_casa = 0
 
 	      if (cable_user%call_climate) CALL climate_init ( climate, mp )
+              if (.NOT.cable_user%climate_fromzero) &
+                   CALL READ_CLIMATE_RESTART_NC (climate)
 
 	      spinConv = .FALSE. ! initialise spinup convergence variable
 	      IF (.NOT.spinup)	spinConv=.TRUE.
@@ -599,9 +601,9 @@ PROGRAM cable_offline_driver
 	      ! WRITE CASA OUTPUT
 	      IF(icycle >0) THEN
 
+
 		 IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
 		      koffset, kend, ktauday, logn) ) THEN
-
 		    ctime = ctime +1
 !mpidiff
 		    CALL update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &
@@ -610,10 +612,23 @@ PROGRAM cable_offline_driver
 			 CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.	       &
 			 cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
 !mpidiff
-		    count_sum_casa = 0
+                     count_sum_casa = 0
 		    CALL zero_sum_casa(sum_casapool, sum_casaflux)
 		 ENDIF
-		 ! END IF
+
+
+                 IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
+                      MOD((ktau-kstart+1),ktauday)==0) THEN
+                    IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
+                       !CLN CHECK FOR LEAP YEAR
+                       WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+                       ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+                       CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &    
+                         kend/ktauday )
+                       
+                    ENDIF
+                 ENDIF
+                 
 	      ENDIF
 
 
@@ -624,6 +639,9 @@ PROGRAM cable_offline_driver
 		 CALL sumcflux( ktau, kstart, kend, dels, bgc,		       &
 		      canopy, soil, ssnow, sum_flux, veg,		       &
 		      met, casaflux, l_vcmaxFeedbk )
+
+
+ 
 
 	      ENDIF
 

@@ -433,7 +433,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! Water balance variables:
   ipi = sum(ssnow%thetai*dx,2)  + h0*ssnow%thetai(:,1)/par(:,1)%thre       ! ice in profile initially
   ! water in profile initially
-  wpi = sum((par%thr + (par%the-par%thr)*S)*dx,2)  + plit%thre*SL*dxL
+  wpi = sum((par%thr + (par%the-par%thr)*S)*dx,2)  + plit%thre*SL*dxL 
 
   nsteps = 0
   ti     = zero
@@ -551,7 +551,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%thetai = thetai
      ip  = sum(ssnow%thetai*dx,2)   + h0*ssnow%thetai(:,1)/par(:,1)%thre   ! ice in profile at tf
      ! water at tf
-     wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL
+     wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL 
      win = win + (qprec+qprec_snow)*(tf-ti)
 
      if (1 == 1) then
@@ -574,6 +574,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
             vmet(k)%phiva, Etrans(k), qprec(k), qprec_snow(k), rad%latitude(k),  rad%longitude(k)
         write(370,"(20e20.12)")  qex
         write(371,"(20e20.12)")  qvsig+qlsig
+
      endif
 
 
@@ -586,15 +587,15 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      canopy%ga      = real(G0)
      canopy%fes     = lE
      canopy%fhs = canopy%fns - canopy%ga - canopy%fes
-     ssnow%rnof1    = real(runoff*thousand/dt + runoff_sat)
-     ssnow%rnof2    = real(drn*thousand/dt + qb)
+     ssnow%rnof1    = real(runoff*thousand/dt )
+     ssnow%rnof2    = real(drn*thousand/dt )
      ssnow%runoff   = ssnow%rnof1 + ssnow%rnof2
      ssnow%zdelta   = zdelta
      ssnow%S        = S
      ssnow%Tsoil    = Tsoil
      ssnow%SL       = SL
      ssnow%TL       = TL
-     ssnow%delwcol  = (wp-wpi+deltah0)*thousand  ! includes change in snow pack
+     ssnow%delwcol  = (wp-wpi+deltah0)*thousand  ! includes change in snow pack via deltah0
      ssnow%Tsurface = Tsurface
      ssnow%lE       = lE
      ssnow%evap     = evap*thousand
@@ -649,6 +650,14 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      canopy%fe = canopy%fev + real(canopy%fes)
      ! Update total sensible heat to reflect updated soil component:
      canopy%fh = real(canopy%fhv) + canopy%fhs
+
+
+    ! write(5999,*) ktau, canopy%through, REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
+    !              - ssnow%evap - max(canopy%fevc,0.0)*dt/air%rlam, r_2)
+
+ !win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt
+k=1
+write(*,*) ktau,dt, canopy%through, win*1000,  ssnow%delwcol, (wp(k)-wpi(k)+deltah0(k))*1000, ssnow%runoff*dt, (runoff+drn)*1000,  max(canopy%fevc,0.0)*dt/air%rlam, Etrans*1000*dt
 
   endif ! SEB only
 
