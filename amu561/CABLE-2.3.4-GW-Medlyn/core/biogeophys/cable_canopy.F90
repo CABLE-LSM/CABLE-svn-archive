@@ -2485,7 +2485,7 @@ SUBROUTINE getrex(soil,ssnow,canopy,veg,air,dels, i)  !Haverd 2013
     ! check that the water available in each layer exceeds the extraction
     !if (any((rex*dt) > (theta(:)-0.01_r_2)*dx(:))) then
 
-    if (any(((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))) then
+    if (any(((rex*dt) > max((theta(:)-thetaw(:)),zero)*dx(:)) .and. (Etrans > zero))) then
        fws = zero
        ! distribute extraction according to available water
        !rex(:) = (theta(:)-0.01_r_2)*dx(:)
