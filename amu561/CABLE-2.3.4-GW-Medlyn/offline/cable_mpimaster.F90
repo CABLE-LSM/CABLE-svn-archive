@@ -236,7 +236,7 @@ SUBROUTINE mpidrv_master (comm)
 
    ! added variable by yp wang 7-nov-2012
    ! BP had values of mloop read in from namelist file (Jun 2013)
-   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+   INTEGER :: mloop = 50        ! default = 5, to be overwritten by namelist
 
 
    ! Vars for standard for quasi-bitwise reproducability b/n runs

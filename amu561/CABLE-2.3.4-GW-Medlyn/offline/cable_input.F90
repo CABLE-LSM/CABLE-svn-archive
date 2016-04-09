@@ -2609,7 +2609,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
       CALL write_cnp_params(veg,casaflux,casamet)
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       CALL casa_readphen(veg,casamet,phen)
-      CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+     ! CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
     ENDIF
 
 
