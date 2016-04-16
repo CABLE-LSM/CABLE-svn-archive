@@ -133,6 +133,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    INTEGER, SAVE :: call_number =0
 
+   REAL ::  litter_thermal_diff
    ! END header
   
  
@@ -369,7 +370,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL latent_heat_flux()
 
       ! Calculate soil sensible heat:
-      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+      if (simple_litter) then
+         litter_thermal_diff = 0.2 / (1932.0*62.0)
+         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
+      else
+         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+      end if
 
       CALL within_canopy( gbhu, gbhf )
 
@@ -409,8 +415,14 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       CALL latent_heat_flux()
 
-      ! Soil sensible heat:
-      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+      ! Calculate soil sensible heat:
+      if (simple_litter) then
+         litter_thermal_diff = 0.2 / (1932.0*62.0)
+         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
+      else
+         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+      end if
+
       !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
       
@@ -626,12 +638,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fhs)/d(ssnow%tgg)
    ! d(canopy%fes)/d(dq)
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
-   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
+   if (simple_litter) then
+      ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+litter_dz/(0.2 / (1932.0*62.0)))
+   else
+      ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
+   end if
    if (cable_user%or_evap) then 
       ssnow%dfe_ddq = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
                       ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
+   elseif (simple_litter) then
+         ssnow%dfe_ddq = ssnow%rh_srf(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil+litter_dz/0.00002)
    else
-      ssnow%dfe_ddq = ssnow%rh_srf(:) * air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
+         ssnow%dfe_ddq = ssnow%rh_srf(:) * air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
    end if
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
@@ -699,8 +717,13 @@ FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
    
    CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
 
-   ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-   cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
+   if (simple_litter) then
+      ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
+         cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/(ssnow%rtsoil+litter_dz/0.00002)
+   else
+      ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
+         cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
+   end if
  
 END FUNCTION Penman_Monteith
 
@@ -2390,13 +2413,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    integer :: i,j,k 
    logical, save ::  first_call = .true.
 
-   !litter density : 63.5
-   !litter depth: 10 cm = 0.1 m
-   !heat capacity : 1932 
-   !thermal conductivity : 0.2
-   !density : 210
-   !so for sensible r_litter = 0.1/(210.0*0.2) = 0.002380952380952381
-
    pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
@@ -2421,7 +2437,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
       canopy%sublayer_dz = max(sublayer_Z_param*rough%z0soil,1e-7)
 
-   elseif (use_const_thickness) then
+   elseif (use_const_thickness .or. simple_litter) then
 
       canopy%sublayer_dz = max(sublayer_Z_param,1e-7)
 

@@ -148,7 +148,10 @@ SUBROUTINE mpidrv_master (comm)
                                    default_sublayer_thickness,&
                                    use_simple_sublayer_thickness,&
                                    use_const_thickness,&
-                                   old_soil_roughness
+                                   old_soil_roughness,&
+                                   simple_litter,&
+                                   litter_dz
+
 
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -278,7 +281,9 @@ SUBROUTINE mpidrv_master (comm)
                   default_sublayer_thickness,&
                   use_simple_sublayer_thickness,&
                   use_const_thickness,&
-                  old_soil_roughness
+                  old_soil_roughness,&
+                  simple_litter,&
+                  litter_dz
 
 
    ! END header

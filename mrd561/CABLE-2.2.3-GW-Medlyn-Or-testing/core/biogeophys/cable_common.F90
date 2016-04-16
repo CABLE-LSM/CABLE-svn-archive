@@ -226,7 +226,10 @@ MODULE cable_common_module
    logical,save :: default_sublayer_thickness=.true., &
                    use_simple_sublayer_thickness=.false., &
                    use_const_thickness=.false., &
-                   old_soil_roughness=.false.
+                   old_soil_roughness=.false.,&
+                   simple_litter=.false.
+
+   REAL, SAVE :: litter_dz = 1.0
 
 
 
