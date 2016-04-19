@@ -238,7 +238,7 @@ MODULE cable_def_types_mod
          tmaxvj,  & !< max temperature of the start of photosynthesis
          vbeta,   & !< 
          vcmax,   & !< max RuBP carboxylation rate top leaf (mol/m2/s)
-         xfang,   & !< leaf angle PARAMETER
+         xfang,   & !< leaf angle PARAMETER (Kowalczyk 2006, p.10)
          extkn,   & !< extinction coef for vertical
          vlaimax, & !< extinction coef for vertical
          wai,     & !< wood area index (stem+branches+twigs)
@@ -345,15 +345,15 @@ MODULE cable_def_types_mod
          workp1,  & !< absorbed short-wave radiation for soil
          workp2,  & !< absorbed short-wave radiation for soil
          workp3,  & !< absorbed short-wave radiation for soil
-         extkb,   & !< beam radiation extinction coeff
-         extkd2,  & !< diffuse 2D radiation extinction coeff
-         extkd,   & !< diffuse radiation extinction coeff (-)
+         extkb,   & !< beam radiation extinction coeff for black leaves (Kowalczyk 2006, p. 9)
+         extkd2,  & !< diffuse 2D radiation extinction coeff for black leaves (Kowalczyk 2006, p. 9)
+         extkd,   & !< diffuse radiation extinction coeff (-) for black leaves (Kowalczyk 2006, p. 9)
          flws,    & !< soil long-wave radiation
          latitude,& !< latitude
          lwabv,   & !< long wave absorbed by vegetation
          qssabs,  & !< absorbed short-wave radiation for soil
          transd,  & !< frac SW diffuse transmitted through canopy
-         trad       !<  radiative temperature (soil and veg)
+         trad       !< radiative temperature (soil and veg)
      
       REAL, DIMENSION(:,:), POINTER  ::                                        &
          fvlai,   & !< leaf area index of big leaf

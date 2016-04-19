@@ -48,7 +48,7 @@ module cable_data_module
       tetenc = 237.3, &
       
       ! Aerodynamic parameters, diffusivities, water density:
-      vonk   = 0.40, & ! von Karman constant
+      vonk   = 0.40, & ! von Karman constant - Wikipedia says this should be 0.41
       a33    = 1.25, & ! inertial sublayer sw/us
       csw    = 0.50, & ! canopy sw decay (Weil theory)
       ctl    = 0.40, & ! Wagga wheat (RDD 1992, Challenges)
