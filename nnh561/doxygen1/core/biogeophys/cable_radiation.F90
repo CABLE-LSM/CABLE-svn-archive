@@ -9,12 +9,12 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Computes radiation absorbed by canopy and soil surface
 !
-! Contact: Yingping.Wang@csiro.au
-!
-! History: No significant change from v1.4b
-!
+!> Purpose: Computes radiation absorbed by canopy and soil surface
+!>
+!> Contact: Yingping.Wang@csiro.au
+!>
+!> History: No significant change from v1.4b
 !
 ! ==============================================================================
 

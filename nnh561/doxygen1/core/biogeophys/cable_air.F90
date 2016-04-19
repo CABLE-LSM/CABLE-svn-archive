@@ -9,15 +9,15 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Fills CABLE type 'air' with appropriate values calculating 
-!          temperature dependent physical constants
 !
-! Called from: cbm, define_canopy
-!
-! Contact: Yingping.Wang@csiro.au
-!
-! History: No significant change from v1.4b
-!
+!> Purpose: Fills CABLE type 'air' with appropriate values calculating
+!>          temperature dependent physical constants
+!>
+!> Called from: cbm, define_canopy
+!>
+!> Contact: Yingping.Wang@csiro.au
+!>
+!> History: No significant change from v1.4b
 !
 ! ==============================================================================
 

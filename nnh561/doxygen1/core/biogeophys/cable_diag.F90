@@ -9,14 +9,15 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: handles additional, dynamically decided diagnostic output from model.
-!          permanently used for bitwise identical testing. more applications 
-!          will follow.   
 !
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Currently stripped down version of cable_diag here. will be 
-!          re-implemented in time.
+!> Purpose: handles additional, dynamically decided diagnostic output from model.
+!>          permanently used for bitwise identical testing. more applications
+!>          will follow.
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: Currently stripped down version of cable_diag here. will be
+!>          re-implemented in time.
 !
 ! ==============================================================================
 

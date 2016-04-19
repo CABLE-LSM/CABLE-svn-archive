@@ -9,12 +9,13 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Defines input/output related variables for CABLE offline
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Development by Gab Abramowitz 
-!          Additional code to use multiple vegetation types per grid-cell (patches)
+!> Purpose: Defines input/output related variables for CABLE offline
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: Development by Gab Abramowitz
+!>          Additional code to use multiple vegetation types per grid-cell (patches)
 !
 ! ==============================================================================
 MODULE cable_IO_vars_module

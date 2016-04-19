@@ -9,14 +9,14 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Calculates surface albedo, including from snow covered surface
 !
-! Called from: cbm
-!
-! Contact: Yingping.Wang@csiro.au
-!
-! History: No significant change from v1.4b (but was previously in cable_radiation)
-!
+!> Purpose: Calculates surface albedo, including from snow covered surface
+!>
+!> Called from: cbm
+!>
+!> Contact: Yingping.Wang@csiro.au
+!>
+!> History: No significant change from v1.4b (but was previously in cable_radiation)
 !
 ! ==============================================================================
 

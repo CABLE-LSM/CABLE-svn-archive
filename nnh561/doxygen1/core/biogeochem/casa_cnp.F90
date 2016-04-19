@@ -9,36 +9,39 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: subroutines for calculating carbon, nitrogen, phosphorus cycle 
-!          including plant growth
 !
-! Called from: biogeochem (mostly) or casa_xnp
-!
-! Contact: Yingping.Wang@csiro.au
-!
-! History: Developed by Yingping Wang (Wang et al., BG, 2011)
-!          Current version uses fixed phenology.
-!
+!> Purpose: subroutines for calculating carbon, nitrogen, phosphorus cycle 
+!>          including plant growth
+!>
+!> Called from: biogeochem (mostly) or casa_xnp
+!>
+!> Contact: Yingping.Wang@csiro.au
+!>
+!> History: Developed by Yingping Wang (Wang et al., BG, 2011)
+!>          Current version uses fixed phenology.
+!>
+!>
+!> ==============================================================================
+!> casa_cnp.f90
+!>
+!> This module contains the following subroutines:
+!>   casa_xnp
+!>   casa_allocation
+!>   casa_rplant
+!>   casa_xrateplant,        casa_xratesoil
+!>   casa_coeffplant,        casa_coeffsoil
+!>   casa_delplant,          casa_delsoil
+!>   avgsoil
+!>   casa_xkN
+!>   casa_nuptake,           casa_puptake
+!>   casa_Nrequire,          casa_Prequire
+!>   casa_cnpcycle
+!>   casa_poolzero
+!>   casa_cnpbal
+!>   casa_ndummy
+!>   phenology
 !
 ! ==============================================================================
-! casa_cnp.f90
-!
-! This module contains the following subroutines:
-!   casa_xnp
-!   casa_allocation
-!   casa_rplant
-!   casa_xrateplant,        casa_xratesoil
-!   casa_coeffplant,        casa_coeffsoil
-!   casa_delplant,          casa_delsoil
-!   avgsoil
-!   casa_xkN
-!   casa_nuptake,           casa_puptake
-!   casa_Nrequire,          casa_Prequire
-!   casa_cnpcycle
-!   casa_poolzero
-!   casa_cnpbal
-!   casa_ndummy
-!   phenology
 
 MODULE casa_cnp_module
 USE cable_def_types_mod

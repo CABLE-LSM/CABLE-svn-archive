@@ -9,13 +9,13 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Routines to pass UM variables into appropriate CABLE variables and 
-!          to map parameters for each surface type to CABLE arrays
 !
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Rewrites of code in v1.8 (ACCESS1.3)
-!
+!> Purpose: Routines to pass UM variables into appropriate CABLE variables and
+!>          to map parameters for each surface type to CABLE arrays
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: Rewrites of code in v1.8 (ACCESS1.3)
 !
 ! ==============================================================================
 

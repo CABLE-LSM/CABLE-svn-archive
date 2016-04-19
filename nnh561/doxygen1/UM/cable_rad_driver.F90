@@ -9,14 +9,14 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Pass CABLE albedo to UM variable for UM radiation scheme
 !
-! Called from: UM code glue_rad_ctl
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
-!
+!> Purpose: Pass CABLE albedo to UM variable for UM radiation scheme
+!>
+!> Called from: UM code glue_rad_ctl
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: Developed for CABLE v1.8
 !
 ! ==============================================================================
 

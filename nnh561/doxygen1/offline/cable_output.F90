@@ -9,30 +9,33 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Output module for CABLE offline 
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Developed by Gab Abramowitz
-!          Output of additional variables and parameters relative to v1.4b
-!
+!> Purpose: Output module for CABLE offline
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: Developed by Gab Abramowitz
+!>          Output of additional variables and parameters relative to v1.4b
+!>
+!> ==============================================================================
+!>
+!> CALLed from:    cable_driver.F90
+!>
+!> MODULEs used:   cable_abort_module
+!>                 cable_common_module
+!>                 cable_checks_module
+!>                 cable_def_types_mod
+!>                 cable_IO_vars_module
+!>                 cable_write_module
+!>                 netcdf
+!>
+!> CALLs:          open_output_file
+!>                 write_output
+!>                 close_output_file
+!>                 create_restart
 !
 ! ==============================================================================
-! CALLed from:    cable_driver.F90
-!
-! MODULEs used:   cable_abort_module
-!                 cable_common_module
-!                 cable_checks_module
-!                 cable_def_types_mod
-!                 cable_IO_vars_module
-!                 cable_write_module
-!                 netcdf
-!
-! CALLs:          open_output_file
-!                 write_output
-!                 close_output_file
-!                 create_restart
-!
+
 MODULE cable_output_module
 
 

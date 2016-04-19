@@ -9,17 +9,17 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: bgcdriver - interface between casacnp and cable
-!          sumcflux  - accumulating carbon fluxes (not required for UM)
-!
-! Called from: cable_driver for offline version
-!              Not currently called/available for ACCESS version
-!
-! Contact: Yingping.Wang@csiro.au
-!
-! History: Model development by Yingping Wang, coupling to Mk3L by Bernard Pak
-!          ssoil changed to ssnow
-!
+!> Purpose: bgcdriver - interface between casacnp and cable
+!>          sumcflux  - accumulating carbon fluxes (not required for UM)
+!>
+!> Called from: cable_driver for offline version
+!>              Not currently called/available for ACCESS version
+!>
+!> Contact: Yingping.Wang@csiro.au
+!>
+!> History: Model development by Yingping Wang, coupling to Mk3L by Bernard Pak
+!>          ssoil changed to ssnow
+!>
 ! ==============================================================================
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &

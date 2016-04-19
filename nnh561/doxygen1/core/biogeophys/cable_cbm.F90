@@ -9,19 +9,19 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Calls CABLE routines including define_air, surface_albedo, 
-!          define_canopy, soilsnow, carbon
-!          Note that cbm is called once per timestep in the offline case but
-!          twice per timestep in the ACCESS case. Not all parts of cbm 
-!          are executed in each of the ACCESS calls.
-!          
-! Called from: cable_driver for offline version
-!              cable_explicit_driver, cable_implicit_driver for ACCESS
 !
-! Contact: Yingping.Wang@csiro.au
-!
-! History: Calling sequence changes for ACCESS compared to v1.4b
-!
+!> Purpose: Calls CABLE routines including define_air, surface_albedo,
+!>          define_canopy, soilsnow, carbon
+!>          Note that cbm is called once per timestep in the offline case but
+!>          twice per timestep in the ACCESS case. Not all parts of cbm
+!>          are executed in each of the ACCESS calls.
+!>
+!> Called from: cable_driver for offline version
+!>              cable_explicit_driver, cable_implicit_driver for ACCESS
+!>
+!> Contact: Yingping.Wang@csiro.au
+!>
+!> History: Calling sequence changes for ACCESS compared to v1.4b
 !
 ! ==============================================================================
 

@@ -9,23 +9,19 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Calculates surface exchange fluxes through the solution of surface 
-!          energy balance and its interaction with plant physiology. Specific 
-!        representation of the transport of scalars within a canopy is included.
 !
-! Called from: cbm
+!> Purpose: Calculates surface exchange fluxes through the solution of surface
+!>          energy balance and its interaction with plant physiology. Specific
+!>        representation of the transport of scalars within a canopy is included.
+!>
+!> Called from: cbm
+!>
+!> Contact: Yingping.Wang@csiro.au and Eva.Kowalczyk@csiro.au
+!>
+!> History: Revision of canopy temperature calculation (relative to v1.4b)
+!>          Reorganisation of code (dryLeaf, wetLeaf, photosynthesis subroutines
+!>          taken out of define_canopy)
 !
-! Contact: Yingping.Wang@csiro.au and Eva.Kowalczyk@csiro.au
-!
-! History: Revision of canopy temperature calculation (relative to v1.4b) 
-!          Reorganisation of code (dryLeaf, wetLeaf, photosynthesis subroutines
-!          taken out of define_canopy)
-!        : Martin De Kauwe and Jatin Kala added new switch to compute stomatal
-!          conductance based on: Medlyn BE et al (2011) Global Change Biology 17:
-!          2134-2144. The variables xleuning, xleuningz are no longer used, but 
-!          replaced with gs_coeff,gs_coeffz. If GS_SWITCH is set to "leuning",
-!          gs_coeff=xleuning and gs_coeffz=xleuningz, but based on the new model
-!          if set to "medlyn". Search for "Ticket #56" 
 ! ==============================================================================
 
 MODULE cable_canopy_module

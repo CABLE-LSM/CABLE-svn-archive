@@ -9,14 +9,14 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Calculate roughness lengths as a function of soil and canopy 
-!          parameters
 !
-! Contact: Eva.Kowalczyk@csiro.au
-!
-! History: No significant changes since v1.4b except change to cope with 
-!          split timestep in ACCESS (zref_uv, zref_tq)
-!
+!> Purpose: Calculate roughness lengths as a function of soil and canopy
+!>          parameters
+!>
+!> Contact: Eva.Kowalczyk@csiro.au
+!>
+!> History: No significant changes since v1.4b except change to cope with
+!>          split timestep in ACCESS (zref_uv, zref_tq)
 !
 ! ==============================================================================
 

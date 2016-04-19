@@ -9,22 +9,25 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: defines/allocates variables for CASA-CNP
 !
-! Contact: Yingping.Wang@csiro.au
-!
-! History: Developed for offline CASA-CNP, code revision likely to better
-!          suit ACCESS and to merge more consistently with CABLE code
-!
+!> Purpose: defines/allocates variables for CASA-CNP
+!>
+!> Contact: Yingping.Wang@csiro.au
+!>
+!> History: Developed for offline CASA-CNP, code revision likely to better
+!>          suit ACCESS and to merge more consistently with CABLE code
+!>
+!> ==============================================================================
+!>
+!> casa_variable.f90
+!>
+!> the following modules are used when "casacnp" is coupled to "cable"
+!>   casadimension
+!>   casaparm
+!>   casavariable with subroutine alloc_casavariable
+!>   phenvariable with subroutine alloc_phenvariable
 !
 ! ==============================================================================
-! casa_variable.f90
-!
-! the following modules are used when "casacnp" is coupled to "cable"
-!   casadimension
-!   casaparm
-!   casavariable with subroutine alloc_casavariable
-!   phenvariable with subroutine alloc_phenvariable
 
 MODULE casadimension
    

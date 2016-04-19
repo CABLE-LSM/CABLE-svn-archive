@@ -9,15 +9,15 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: defines ranges to verify validity of inputs and outputs
-!          checks mass balance and energy balance
-!          switched on/off through namelist variables: check%*
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Small change to energy balance equation relative to 1.4b
-!          Additional variables from 1.4b for range checking
-!
+!> Purpose: defines ranges to verify validity of inputs and outputs
+!>          checks mass balance and energy balance
+!>          switched on/off through namelist variables: check%*
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: Small change to energy balance equation relative to 1.4b
+!>          Additional variables from 1.4b for range checking
 !
 !==============================================================================
 

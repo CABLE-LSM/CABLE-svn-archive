@@ -9,14 +9,17 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: defines parameters, variables and derived types, allocation and 
-!          deallocation of these derived types
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Brings together define_dimensions and define_types from v1.4b
-!          rs20 now in veg% instead of soil%
-!          fes split into fess and fesp (though fes still defined)
+!> Purpose
+!> :   defines parameters, variables and derived types, allocation and
+!>          deallocation of these derived types
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History:
+!>     * Brings together define_dimensions and define_types from v1.4b
+!>     * rs20 now in veg% instead of soil%
+!>     * fes split into fess and fesp (though fes still defined)
 !
 ! ==============================================================================
 

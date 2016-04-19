@@ -9,12 +9,12 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Error management for CABLE offline
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Developed by Gab Abramowitz and Harvey Davies
-!
+!> Purpose: Error management for CABLE offline
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: Developed by Gab Abramowitz and Harvey Davies
 !
 ! ==============================================================================
 

@@ -9,25 +9,27 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: CASA-CNP
 !
-! Contact: Yingping Wang, Lauren Stevens
-!
-! History: 2012
-!
+!> Purpose: CASA-CNP
+!>
+!> Contact: Yingping Wang, Lauren Stevens
+!>
+!> History: 2012
+!>
+!> ==============================================================================
+!>
+!> Lauren Stevens Jan-Apr 2011
+!> Casa CNP for UM
+!>
+!> Includes:
+!> init_casacnp
+!> casa_readpoint_pk
+!> casa_init_pk
+!> pack_cnppool
+!> casa_poolout_unpk
+!> unpack_cnppool
 !
 ! ==============================================================================
-
-! Lauren Stevens Jan-Apr 2011
-! Casa CNP for UM
-!
-! Includes:
-! init_casacnp
-! casa_readpoint_pk
-! casa_init_pk 
-! pack_cnppool
-! casa_poolout_unpk
-! unpack_cnppool
 
 MODULE casa_um_inout_mod
 

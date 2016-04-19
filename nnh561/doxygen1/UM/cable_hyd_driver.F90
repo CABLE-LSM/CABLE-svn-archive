@@ -9,17 +9,17 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Converts selected CABLE hydrology variables to UM variables for 
-!          UM hydrology code
 !
-! Called from: UM code hydrol
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Written for CABLE v1.8. No change for CABLE v2.0
-!          In future could be combined with standard unpacking of cable 
-!          variables at end of implicit call
-!
+!> Purpose: Converts selected CABLE hydrology variables to UM variables for
+!>          UM hydrology code
+!>
+!> Called from: UM code hydrol
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: Written for CABLE v1.8. No change for CABLE v2.0
+!>          In future could be combined with standard unpacking of cable
+!>          variables at end of implicit call
 !
 ! ==============================================================================
 

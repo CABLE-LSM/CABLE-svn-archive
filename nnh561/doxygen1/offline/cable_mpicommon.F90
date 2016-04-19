@@ -9,14 +9,15 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: common modules for MPI wrapper for CABLE
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: MPI wrapper developed by Maciej Golebiewski (2012)
+!> Purpose: common modules for MPI wrapper for CABLE
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: MPI wrapper developed by Maciej Golebiewski (2012)
 !
 ! ==============================================================================
-!
+
 MODULE cable_mpicommon
 
   USE cable_def_types_mod

@@ -9,14 +9,14 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Routines to read CABLE namelist, check variables, allocate and 
-!          deallocate CABLE arrays
 !
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Rewrite of code from v1.8 (ACCESS1.3)
-!          soil_snow_type now ssnow (instead of ssoil)
-!
+!> Purpose: Routines to read CABLE namelist, check variables, allocate and
+!>          deallocate CABLE arrays
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: Rewrite of code from v1.8 (ACCESS1.3)
+!>          soil_snow_type now ssnow (instead of ssoil)
 !
 ! ==============================================================================
 

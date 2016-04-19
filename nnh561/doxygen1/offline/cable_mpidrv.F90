@@ -9,14 +9,15 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Bare bones MPI driver for CABLE
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: MPI wrapper developed by Maciej Golebiewski (2012)
+!> Purpose: Bare bones MPI driver for CABLE
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: MPI wrapper developed by Maciej Golebiewski (2012)
 !
 ! ==============================================================================
-!
+
 PROGRAM mpi_driver
 
   USE mpi

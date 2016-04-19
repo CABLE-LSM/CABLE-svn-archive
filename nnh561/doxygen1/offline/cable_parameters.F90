@@ -9,47 +9,49 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose:       This module file reads default parameter sets and basic
-!                initialisations for CABLE. Parameters values are chosen based
-!                on a global map of vegetation and soil types, currently based
-!                on a 1x1-degree grid for offline case and host-model grid for
-!                online case. Default initialisations are obtained from monthly
-!                climatology in GSWP and Mk3L runs for offline and online
-!                respectively.
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: Changes since v1.4b for global offline (GSWP) cases, read in new 
-!          input files
-!          Two subroutines moved to cable_common (reading veg and soil parameter
-!          files)
-!          Addition of code for CASA-CNP
-!
+!> Purpose:       This module file reads default parameter sets and basic
+!>                initialisations for CABLE. Parameters values are chosen based
+!>                on a global map of vegetation and soil types, currently based
+!>                on a 1x1-degree grid for offline case and host-model grid for
+!>                online case. Default initialisations are obtained from monthly
+!>                climatology in GSWP and Mk3L runs for offline and online
+!>                respectively.
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: Changes since v1.4b for global offline (GSWP) cases, read in new
+!>          input files
+!>          Two subroutines moved to cable_common (reading veg and soil parameter
+!>          files)
+!>          Addition of code for CASA-CNP
+!>
+!> ==============================================================================
+!>
+!> CALLed from:   cable_input.F90
+!>
+!> MODULEs used:  cable_abort_module
+!>                cable_common_module
+!>                cable_def_types_mod
+!>                casadimension
+!>                casaparm
+!>                cable_IO_vars_module
+!>                phenvariable
+!>                physical_constants
+!>                netcdf
+!>
+!> CALLs:         get_default_params
+!>                read_gridinfo
+!>                spatialSoil
+!>                NSflip
+!>                countPatch
+!>                write_default_params
+!>                write_cnp_params
+!>                derived_parameters
+!>                check_parameter_values
+!>                report_parameters
 !
 ! ==============================================================================
-! CALLed from:   cable_input.F90
-!
-! MODULEs used:  cable_abort_module
-!                cable_common_module
-!                cable_def_types_mod
-!                casadimension
-!                casaparm
-!                cable_IO_vars_module
-!                phenvariable
-!                physical_constants
-!                netcdf
-
-! CALLs:         get_default_params
-!                read_gridinfo
-!                spatialSoil
-!                NSflip
-!                countPatch
-!                write_default_params
-!                write_cnp_params
-!                derived_parameters
-!                check_parameter_values
-!                report_parameters
-!
 
 MODULE cable_param_module
 

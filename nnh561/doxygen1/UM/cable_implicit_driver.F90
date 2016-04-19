@@ -9,15 +9,16 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Updates CABLE variables (as altered by first pass through boundary 
-!          layer and convection scheme), calls cbm, passes CABLE variables back 
-!          to UM. 'Implicit' is the second call to cbm in each UM timestep.
 !
-! Called from: UM code sf_impl
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
+!> Purpose: Updates CABLE variables (as altered by first pass through boundary
+!>          layer and convection scheme), calls cbm, passes CABLE variables back
+!>          to UM. 'Implicit' is the second call to cbm in each UM timestep.
+!>
+!> Called from: UM code sf_impl
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: Developed for CABLE v1.8
 !
 ! ==============================================================================
 

@@ -9,16 +9,16 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Reads vegetation and soil parameter files, fills vegin, soilin
-!          NB. Most soil parameters overwritten by spatially explicit datasets
-!          input as ancillary file (for ACCESS) or surface data file (for offline)
-!          Module enables accessibility of variables throughout CABLE
 !
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: v2.0 vegin%dleaf now calculated from leaf length and width
-!          Parameter files were read elsewhere in v1.8 (init_subrs)
-!
+!> Purpose: Reads vegetation and soil parameter files, fills vegin, soilin
+!>          NB. Most soil parameters overwritten by spatially explicit datasets
+!>          input as ancillary file (for ACCESS) or surface data file (for offline)
+!>          Module enables accessibility of variables throughout CABLE
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: v2.0 vegin%dleaf now calculated from leaf length and width
+!>          Parameter files were read elsewhere in v1.8 (init_subrs)
 !
 ! ==============================================================================
 

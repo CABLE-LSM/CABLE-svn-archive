@@ -9,27 +9,31 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Read routines for CABLE offline
 !
-! Contact: Bernard.Pak@csiro.au
-!
-! History: New routines (redistr*) to do land use change
-!
+!> Purpose: Read routines for CABLE offline
+!>
+!> Contact: Bernard.Pak@csiro.au
+!>
+!> History: New routines (redistr*) to do land use change
+!>
+!> ==============================================================================
+!>
+!> CALLed from:    cable_driver.f90
+!>
+!> MODULEs used:   cable_abort_module
+!>                 cable_IO_vars_module
+!>                 netcdf
+!>
+!> CALLs:          readpar_i
+!>                 readpar_r
+!>                 readpar_rd
+!>                 readpar_r2
+!>                 readpar_r2d
+!>                 nc_abort
+!>                 redistr*
 !
 ! ==============================================================================
-! CALLed from:    cable_driver.f90
-! MODULEs used:   cable_abort_module
-!                 cable_IO_vars_module
-!                 netcdf
-!
-! CALLs:          readpar_i
-!                 readpar_r
-!                 readpar_rd
-!                 readpar_r2
-!                 readpar_r2d
-!                 nc_abort
-!                 redistr*
-!
+
 MODULE cable_read_module
 
    

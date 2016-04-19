@@ -9,15 +9,15 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Initialize and update CABLE variables from UM forcing, calls to 
-!          memory allocation and initialization subroutines
 !
-! Called from: cable_explicit_driver
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: No significant change from v1.8
-!
+!> Purpose: Initialize and update CABLE variables from UM forcing, calls to
+!>          memory allocation and initialization subroutines
+!>
+!> Called from: cable_explicit_driver
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: No significant change from v1.8
 !
 ! ==============================================================================
 

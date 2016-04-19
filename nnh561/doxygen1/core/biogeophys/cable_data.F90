@@ -9,13 +9,13 @@
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Defines constants for CABLE
 !
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Combines cable_*_constants from earlier versions
-!          Will include define_types in future version.
-!
+!> Purpose: Defines constants for CABLE
+!>
+!> Contact: Jhan.Srbinovsky@csiro.au
+!>
+!> History: Combines cable_*_constants from earlier versions
+!>          Will include define_types in future version.
 !
 ! ==============================================================================
 
