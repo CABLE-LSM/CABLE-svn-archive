@@ -451,24 +451,29 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
     ! to reduce wood and root resp when NPP < 0.0
     casaflux%Cnpp(:) = casaflux%Cgpp(:) - SUM(casaflux%crmplant(:,:),2) &
                      - casaflux%crgplant(:)
-!    WHERE(casaflux%Cnpp < 0.0)
-!      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
-!                     / max(0.01,(casaflux%crmplant(:,wood) &
-!                               + casaflux%crmplant(:,froot)))
-!      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
-!                     / max(0.01,(casaflux%crmplant(:,wood) &
-!                               + casaflux%crmplant(:,froot)))
-!      casaflux%crmplant(:,wood) = casaflux%crmplant(:,wood) + delcrmwood(:)
-!      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
-!      casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
-!    ENDWHERE
+    WHERE(casaflux%Cnpp < 0.0)
+      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
+                     / max(0.01,(casaflux%crmplant(:,wood) &
+                               + casaflux%crmplant(:,froot)))
+      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
+                     / max(0.01,(casaflux%crmplant(:,wood) &
+                               + casaflux%crmplant(:,froot)))
+      casaflux%crmplant(:,wood) = casaflux%crmplant(:,wood) + delcrmwood(:)
+      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+      casaflux%crgplant(:) = 0.0
+    ENDWHERE
   ENDWHERE
-!  npt = 26493
-!  print *, 'calling rplant', npt,veg%iveg(npt),casamet%tairk(npt), &
-!                            casapool%cplant(npt,:),casapool%nplant(npt,:), &
-!                            casaflux%Cgpp(npt), casaflux%Cnpp(npt), &
-!                            casaflux%crmplant(npt,:),casaflux%crgplant(npt)
+  casaflux%Cnpp(:) = casaflux%Cgpp(:) - SUM(casaflux%crmplant(:,:),2) &
+                   - casaflux%crgplant(:)
+!  npt = 19360 
+!  write(67,671) npt,veg%iveg(npt),casamet%tairk(npt),casamet%lat(npt),casamet%lon(npt), &
+!                casapool%cplant(npt,:),casapool%nplant(npt,:), &
+!                casaflux%Cgpp(npt), casaflux%Cnpp(npt), &
+!                casaflux%crmplant(npt,:),casaflux%crgplant(npt),Ygrow(npt),&
+!                ratioPNplant(npt,leaf),casapool%pplant(npt,leaf)
 
+671 format('calling r plant',i6,1x,i3,1x,100(f10.4,2x))
 END SUBROUTINE casa_rplant
 
 
@@ -711,7 +716,7 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casapool,casaflux,c
   ! local variables
   INTEGER j,k,kk,nland             !i: for plant pool, j for litter, k for soil
   real(r_2), dimension(mp)             :: cuemet, cuestr,cuecwd
-  real, parameter                      :: cnmic=8.0                ! microbial biomass C:N ratio 
+  real, parameter                      :: cnmic=10.0               ! microbial biomass C:N ratio 
 
   casaflux%fromLtoS(:,:,:)      = 0.0   
   casaflux%fromStoS(:,:,:)      = 0.0                                
@@ -746,23 +751,31 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casapool,casaflux,c
        casaflux%ksoil(:,pass) = casaflux%ksoil(:,pass)* 1.5 
     ENDWHERE  ! 
 
-    cuemet(:) = (cnmic)*(casapool%nlitter(:,mic)/(casapool%clitter(:,mic)+1.0e-3))**0.76 
-    cuestr(:) = (cnmic)*(casapool%nlitter(:,str)/(casapool%clitter(:,str)+1.0e-3))**0.76 
-    WHERE(casapool%clitter(:,cwd) >1.0e-3)
-      cuecwd(:) = (0.45/0.52)*(cnmic)*(casapool%nlitter(:,cwd)/(casapool%clitter(:,cwd)+1.0e-3))**0.76
-    ELSEWHERE
-      cuecwd(:) = 1.0
-    ENDWHERE
+!    cuemet(:) = (cnmic)*(casapool%nlitter(:,mic)/(casapool%clitter(:,mic)+1.0e-3))**0.76 
+!    cuestr(:) = (cnmic)*(casapool%nlitter(:,str)/(casapool%clitter(:,str)+1.0e-3))**0.76 
+!    WHERE(casapool%clitter(:,cwd) >1.0e-3)
+!      cuecwd(:) = (0.45/0.52)*(cnmic)*(casapool%nlitter(:,cwd)/(casapool%clitter(:,cwd)+1.0e-3))**0.76
+!    ELSEWHERE
+!      cuecwd(:) = 0.4     
+!    ENDWHERE
+
+!    cuemet(:) = min(0.7,min(0.1,cuemet(:)))
+!    cuestr(:) = min(0.7,min(0.1,cuestr(:)))
+!    cuecwd(:) = min(0.7,min(0.1,cuecwd(:)))
                                           ! flow from litter to soil 
-    casaflux%fromLtoS(:,mic,metb)   = 0.45* cuemet(:)                                  
+    cuemet(:) = 0.45
+    cuestr(:) = 0.45
+    cuecwd(:) = 0.4
+
+    casaflux%fromLtoS(:,mic,metb)  = cuemet(:)                                  
                                           ! metb -> mic
-    casaflux%fromLtoS(:,mic,str)   = cuestr(:)* 0.45*(1.0-casabiome%fracLigninplant(veg%iveg(:),leaf))  
+    casaflux%fromLtoS(:,mic,str)   = cuestr(:)*(1.0-casabiome%fracLigninplant(veg%iveg(:),leaf))  
                                           ! str -> mic
-    casaflux%fromLtoS(:,slow,str)  = cuestr(:) * 0.7 * casabiome%fracLigninplant(veg%iveg(:),leaf)       
+    casaflux%fromLtoS(:,slow,str)  = cuestr(:) * casabiome%fracLigninplant(veg%iveg(:),leaf)       
                                           ! str -> slow
-    casaflux%fromLtoS(:,mic,cwd)   = cuecwd(:) * 0.40*(1.0 - casabiome%fracLigninplant(veg%iveg(:),wood)) 
+    casaflux%fromLtoS(:,mic,cwd)   = cuecwd(:) *(1.0 - casabiome%fracLigninplant(veg%iveg(:),wood)) 
                                           ! CWD -> fmic
-    casaflux%fromLtoS(:,slow,cwd)  = cuecwd(:) * 0.7 * casabiome%fracLigninplant(veg%iveg(:),wood)        
+    casaflux%fromLtoS(:,slow,cwd)  = cuecwd(:) * casabiome%fracLigninplant(veg%iveg(:),wood)        
                                           ! CWD -> slow
  
 !! set the following two backflow to set (see Bolker 199x)
@@ -1910,11 +1923,11 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
                  +(SUM((casaflux%kplant*casabal%cplantlast),2)-casaflux%Crsoil(:))*deltpool
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
-
+! comment out the revision on cnpp and crgplant due to changes in labile pool
    ! add change in labile carbon pool to NPP 
-   casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
+!   casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
    ! add the labile C loss to growth respiration
-   casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
+!   casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
 !   npt=59894
 
 !   write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &

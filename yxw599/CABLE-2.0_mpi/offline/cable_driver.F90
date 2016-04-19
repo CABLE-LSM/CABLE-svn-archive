@@ -240,7 +240,7 @@ PROGRAM cable_offline_driver
        globalMetfile%l_gswp   = .FALSE.
        globalMetfile%l_access = .FALSE.
        PRINT *, 'Using GPCC met forcing.'
-       IF (ncciy < 1948 .OR. ncciy > 2008) THEN
+       IF (ncciy < 1800 .OR. ncciy > 2200) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP
