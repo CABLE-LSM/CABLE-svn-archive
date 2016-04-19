@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: CASA-CNP
 !>
 !> Contact: Yingping Wang, Lauren Stevens
@@ -22,12 +23,12 @@
 !> Casa CNP for UM
 !>
 !> Includes:
-!> init_casacnp
-!> casa_readpoint_pk
-!> casa_init_pk
-!> pack_cnppool
-!> casa_poolout_unpk
-!> unpack_cnppool
+!> - init_casacnp
+!> - casa_readpoint_pk
+!> - casa_init_pk
+!> - pack_cnppool
+!> - casa_poolout_unpk
+!> - unpack_cnppool
 !
 ! ==============================================================================
 

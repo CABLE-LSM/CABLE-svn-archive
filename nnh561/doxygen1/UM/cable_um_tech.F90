@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Routines to read CABLE namelist, check variables, allocate and
 !>          deallocate CABLE arrays
 !>

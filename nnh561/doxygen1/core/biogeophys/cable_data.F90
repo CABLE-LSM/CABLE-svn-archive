@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Defines constants for CABLE
 !>
 !> Contact: Jhan.Srbinovsky@csiro.au

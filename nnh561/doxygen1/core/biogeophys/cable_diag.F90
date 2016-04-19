@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: handles additional, dynamically decided diagnostic output from model.
 !>          permanently used for bitwise identical testing. more applications
 !>          will follow.
@@ -18,21 +19,21 @@
 !>
 !> History: Currently stripped down version of cable_diag here. will be
 !>          re-implemented in time.
-!
-! ==============================================================================
-
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
-!+++ USE this module in any subr. you wish to write vars from.             +++!
-!+++ x is typically the number of landpoints(tiles). binary file is        +++!
-!+++ then appended every timestep with the new foo(x_i)                    +++!
-!+++                                                                       +++! 
-!+++ CALL syntax:                                                          +++!  
-!+++                                                                       +++! 
-!+++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )     +++!
-!+++                                                                       +++! 
-!+++ output binaries can be interpreted from the command line              +++!
-!+++ using a suite of tools. Currently, only zero_diff.ksh is supported.   +++!  
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
+!>
+!> ==============================================================================
+!>
+!>     ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!>     +++ USE this module in any subr. you wish to write vars from.          +++
+!>     +++ x is typically the number of landpoints(tiles). binary file is     +++
+!>     +++ then appended every timestep with the new foo(x_i)                 +++
+!>     +++                                                                    +++
+!>     +++ CALL syntax:                                                       +++
+!>     +++                                                                    +++
+!>     +++ cable_diag( Nvars, filename, dimx, dimy, timestep, vname1, var1 )  +++
+!>     +++                                                                    +++
+!>     +++ output binaries can be interpreted from the command line using     +++
+!>     +++ a suite of tools. Currently, only zero_diff.ksh is supported.      +++
+!>     ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 MODULE cable_diag_module

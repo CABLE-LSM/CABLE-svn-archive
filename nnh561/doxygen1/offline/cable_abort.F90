@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Error management for CABLE offline
 !>
 !> Contact: Bernard.Pak@csiro.au

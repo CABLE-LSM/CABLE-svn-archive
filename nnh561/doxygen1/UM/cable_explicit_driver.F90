@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Passes UM variables to CABLE, calls cbm, passes CABLE variables
 !>          back to UM. 'Explicit' is the first of two routines that call cbm at
 !>          different parts of the UM timestep.

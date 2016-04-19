@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Bare bones MPI driver for CABLE
 !>
 !> Contact: Bernard.Pak@csiro.au

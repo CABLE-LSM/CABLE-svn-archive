@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Input module for CABLE offline version
 !>
 !> Contact: Bernard.Pak@csiro.au
@@ -20,20 +21,21 @@
 !>
 !> ==============================================================================
 !>
-!> MODULEs used: cable_abort_module
-!>               cable_def_types_mod
-!>               cable_IO_vars_module
-!>               cable_read_module
-!>               netcdf
-!>               casadimension
-!>               casavariable
-!>               phenvariable
-!>               cable_param_module
-!>               cable_checks_module
-!>               cable_radiation_module
-!>               cable_init_module
+!> MODULEs used:
+!> - cable_abort_module
+!> - cable_def_types_mod
+!> - cable_IO_vars_module
+!> - cable_read_module
+!> - netcdf
+!> - casadimension
+!> - casavariable
+!> - phenvariable
+!> - cable_param_module
+!> - cable_checks_module
+!> - cable_radiation_module
+!> - cable_init_module
 !
-! ==============================================================================
+!==============================================================================
 
 MODULE cable_input_module   
 ! Note that any precision changes from r_1 to REAL(4) enable running with -r8

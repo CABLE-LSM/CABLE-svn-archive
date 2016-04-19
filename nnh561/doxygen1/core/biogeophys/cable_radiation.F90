@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Computes radiation absorbed by canopy and soil surface
 !>
 !> Contact: Yingping.Wang@csiro.au

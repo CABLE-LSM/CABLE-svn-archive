@@ -10,14 +10,17 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Calls CABLE routines including define_air, surface_albedo,
-!>          define_canopy, soilsnow, carbon
+!>          define_canopy, soilsnow, carbon.
 !>          Note that cbm is called once per timestep in the offline case but
 !>          twice per timestep in the ACCESS case. Not all parts of cbm
 !>          are executed in each of the ACCESS calls.
 !>
-!> Called from: cable_driver for offline version
-!>              cable_explicit_driver, cable_implicit_driver for ACCESS
+!> Called from:
+!> - cable_driver for offline version
+!> - cable_explicit_driver
+!> -cable_implicit_driver for ACCESS
 !>
 !> Contact: Yingping.Wang@csiro.au
 !>

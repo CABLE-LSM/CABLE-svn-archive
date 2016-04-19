@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Updates CABLE variables (as altered by first pass through boundary
 !>          layer and convection scheme), calls cbm, passes CABLE variables back
 !>          to UM. 'Implicit' is the second call to cbm in each UM timestep.

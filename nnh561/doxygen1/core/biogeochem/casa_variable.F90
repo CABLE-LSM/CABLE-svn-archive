@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: defines/allocates variables for CASA-CNP
 !>
 !> Contact: Yingping.Wang@csiro.au

@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: defines ranges to verify validity of inputs and outputs
 !>          checks mass balance and energy balance
 !>          switched on/off through namelist variables: check%*

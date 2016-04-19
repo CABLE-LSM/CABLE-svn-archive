@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Calculates surface albedo, including from snow covered surface
 !>
 !> Called from: cbm

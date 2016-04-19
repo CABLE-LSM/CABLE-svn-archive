@@ -10,14 +10,17 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Defines input/output related variables for CABLE offline
 !>
 !> Contact: Bernard.Pak@csiro.au
 !>
-!> History: Development by Gab Abramowitz
+!> History: Development by Gab Abramowitz.
 !>          Additional code to use multiple vegetation types per grid-cell (patches)
 !
 ! ==============================================================================
+
+
 MODULE cable_IO_vars_module
 
    USE cable_def_types_mod, ONLY : r_2, mvtype, mstype

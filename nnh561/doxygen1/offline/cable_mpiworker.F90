@@ -10,59 +10,65 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Offline driver for mpi worker in CABLE global run
 !>
 !> Contact: Bernard.Pak@csiro.au
 !>
-!> History: Since 1.4b, capability to run global offline (ncciy = YEAR),
-!>          inclusion of call to CASA-CNP (icycle>0)
-!>          soil_snow_type now ssnow (instead of ssoil)
+!> History:
+!> - Since 1.4b, capability to run global offline (ncciy = YEAR),
+!> - inclusion of call to CASA-CNP (icycle>0)
+!> - soil_snow_type now ssnow (instead of ssoil)
 !>
-!>          MPI wrapper developed by Maciej Golebiewski (2012)
-!>          Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
+!> - MPI wrapper developed by Maciej Golebiewski (2012)
+!> - Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
 !>
 !> ==============================================================================
-!> Uses:           mpi
-!>                 cable_mpicommon
-!>                 cable_def_types_mod
-!>                 cable_IO_vars_module
-!>                 cable_common_module
-!>                 cable_data_module
-!>                 cable_input_module
-!>                 cable_output_module
-!>                 cable_cbm_module
-!>                 casadimension
-!>                 casavariable
-!>                 phenvariable
 !>
-!> CALLs:       point2constants
-!>              casa_feedback
-!>              cbm
-!>              bgcdriver
-!>              sumcflux
-!>              find_extents
-!>              worker_decomp
-!>              worker_cable_params
-!>              worker_casa_params
-!>              worker_intype
-!>              worker_outtype
-!>              worker_casa_type
-!>              worker_restart_type
-!>              worker_end
+!> Uses:
+!> - mpi
+!> - cable_mpicommon
+!> - cable_def_types_mod
+!> - cable_IO_vars_module
+!> - cable_common_module
+!> - cable_data_module
+!> - cable_input_module
+!> - cable_output_module
+!> - cable_cbm_module
+!> - casadimension
+!> - casavariable
+!> - phenvariable
 !>
-!> input  file: [SiteName].nc
-!>              poolcnpIn[SiteName].csv -- for CASA-CNP only
-!>              gridinfo_CSIRO_1x1.nc
-!>              def_veg_params.txt
-!>              def_soil_params.txt -- nearly redundant, can be switched on
-!>              restart_in.nc -- not strictly required
+!> CALLs:
+!> - point2constants
+!> - casa_feedback
+!> - cbm
+!> - bgcdriver
+!> - sumcflux
+!> - find_extents
+!> - worker_decomp
+!> - worker_cable_params
+!> - worker_casa_params
+!> - worker_intype
+!> - worker_outtype
+!> - worker_casa_type
+!> - worker_restart_type
+!> - worker_end
 !>
-!> output file: log_cable.txt
-!>              out_cable.nc
-!>              restart_out.nc
-!>              poolcnpOut.csv -- from CASA-CNP
-!
-! ==============================================================================
+!> input file:
+!> - [SiteName].nc
+!> - poolcnpIn[SiteName].csv -- for CASA-CNP only
+!> - gridinfo_CSIRO_1x1.nc
+!> - def_veg_params.txt
+!> - def_soil_params.txt -- nearly redundant, can be switched on
+!> - restart_in.nc -- not strictly required
+!>
+!> output file:
+!> - log_cable.txt
+!> - out_cable.nc
+!> - restart_out.nc
+!> - poolcnpOut.csv -- from CASA-CNP
+
 
 MODULE cable_mpiworker
 

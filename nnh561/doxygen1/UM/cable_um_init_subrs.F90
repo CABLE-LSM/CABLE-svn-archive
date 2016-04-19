@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Routines to pass UM variables into appropriate CABLE variables and
 !>          to map parameters for each surface type to CABLE arrays
 !>

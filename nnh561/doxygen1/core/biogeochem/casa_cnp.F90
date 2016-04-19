@@ -10,7 +10,8 @@
 !
 ! ==============================================================================
 !
-!> Purpose: subroutines for calculating carbon, nitrogen, phosphorus cycle 
+!> \file
+!> Purpose: subroutines for calculating carbon, nitrogen, phosphorus cycle
 !>          including plant growth
 !>
 !> Called from: biogeochem (mostly) or casa_xnp

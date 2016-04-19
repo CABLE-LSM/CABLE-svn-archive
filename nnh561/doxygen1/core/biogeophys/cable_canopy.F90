@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Calculates surface exchange fluxes through the solution of surface
 !>          energy balance and its interaction with plant physiology. Specific
 !>        representation of the transport of scalars within a canopy is included.

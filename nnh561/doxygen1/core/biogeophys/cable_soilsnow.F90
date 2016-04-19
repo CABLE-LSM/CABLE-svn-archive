@@ -15,11 +15,12 @@
 !>
 !> Contact: Eva.Kowalczyk@csiro.au
 !>
-!> History: v2.0 Tighter water budget
-!>          v2.0 Hydraulic redistribution subroutine (with namelist switch).
-!>               NB Currently hard-wired to veg types 2 and 7
-!>                  (usually evergreen broadleaf and c4 grass)
-!>          v2.0 ssoil variable renamed ssnow
+!> History:
+!> - v2.0 Tighter water budget
+!> - v2.0 Hydraulic redistribution subroutine (with namelist switch).
+!>     - NB Currently hard-wired to veg types 2 and 7
+!>       (usually evergreen broadleaf and c4 grass)
+!> - v2.0 ssoil variable renamed ssnow
 !
 ! ==============================================================================
 

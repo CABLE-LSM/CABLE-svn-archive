@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Pass CABLE albedo to UM variable for UM radiation scheme
 !>
 !> Called from: UM code glue_rad_ctl

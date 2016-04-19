@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Calculate roughness lengths as a function of soil and canopy
 !>          parameters
 !>

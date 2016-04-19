@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: common modules for MPI wrapper for CABLE
 !>
 !> Contact: Bernard.Pak@csiro.au

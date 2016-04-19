@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Initialize and update CABLE variables from UM forcing, calls to
 !>          memory allocation and initialization subroutines
 !>

@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Writing routines for CABLE offline
 !>
 !> Contact: Bernard.Pak@csiro.au
@@ -19,24 +20,27 @@
 !>
 !> ==============================================================================
 !>
-!> CALLed from:    cable_initialise.F90
-!>                 cable_input.F90
+!> CALLed from:  
+!> - cable_initialise.F90              
+!> - cable_input.F90
 !>
-!> MODULEs used:   cable_abort_module
-!>                 cable_def_types_mod
-!>                 cable_IO_vars_module
-!>                 netcdf
+!> MODULEs used:
+!> - cable_abort_module
+!> - cable_def_types_mod
+!> - cable_IO_vars_module
+!> - netcdf
 !>
-!> CALLs:          define_output_variable_r1
-!>                 define_output_variable_r2
-!>                 define_output_parameter_r1
-!>                 define_output_parameter_r2
-!>                 write_output_variable_r1
-!>                 write_output_variable_r2
-!>                 write_output_parameter_r1
-!>                 write_output_parameter_r1d
-!>                 write_output_parameter_r2
-!>                 write_output_parameter_r2d
+!> CALLs:         
+!> - define_output_variable_r1
+!> - define_output_variable_r2
+!> - define_output_parameter_r1
+!> - define_output_parameter_r2
+!> - write_output_variable_r1
+!> - write_output_variable_r2
+!> - write_output_parameter_r1
+!> - write_output_parameter_r1d
+!> - write_output_parameter_r2
+!> - write_output_parameter_r2d
 !>
 !>
 !> Notes: Single precision netcdf writes are forced to single precision here

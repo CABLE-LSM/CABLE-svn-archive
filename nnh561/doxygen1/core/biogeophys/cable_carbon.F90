@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Calculates plant and soil respiration and updates carbon pools.
 !>          Note: carbon pools reset if ACCESS model run restarted
 !>          Use CASA-CNP in preference to these routines for carbon fluxes
@@ -18,8 +19,8 @@
 !>
 !> Contact: Rachel.Law@csiro.au
 !>
-!> History: Plant respiration code moved from canopy
-!>          Namelist parameter used to switch between soil respiration options
+!> History: Plant respiration code moved from canopy.
+!>          Namelist parameter used to switch between soil respiration options.
 !
 ! ==============================================================================
 

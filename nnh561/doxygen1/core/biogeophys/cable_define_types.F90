@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose
 !> :   defines parameters, variables and derived types, allocation and
 !>          deallocation of these derived types

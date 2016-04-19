@@ -10,22 +10,25 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: default initialisation module for CABLE offline
 !>
 !> Contact: Bernard.Pak@csiro.au
 !>
-!> History: Developed by Gab Abramowitz
-!>          Since 1.4b fes split into fess and fesp
-!>          Significant changes: new routine 'extraRestart' for land-use change
+!> History:
+!> - Developed by Gab Abramowitz
+!> - Since 1.4b fes split into fess and fesp
+!> - Significant changes: new routine 'extraRestart' for land-use change
 !>
 !> ==============================================================================
 !>
-!> MODULEs used: cable_abort_module
-!>               cable_def_types_mod
-!>               cable_IO_vars_module
-!>               cable_read_module
-!>               physical_constants
-!>               netcdf
+!> MODULEs used:
+!> - cable_abort_module
+!> - cable_def_types_mod
+!> - cable_IO_vars_module
+!> - cable_read_module
+!> - physical_constants
+!> - netcdf
 !
 !==============================================================================
 

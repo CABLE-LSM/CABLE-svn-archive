@@ -10,27 +10,29 @@
 !
 ! ==============================================================================
 !
-!> Purpose: Input and output code for CASA-CNP when run offline
-!>          ACCESS version may use some of this code but split into different files?
+!> \file
+!> Purpose:
+!>
+!> - Input and output code for CASA-CNP when run offline.
+!> - ACCESS version may use some of this code but split into different files?
 !>
 !> Contact: Yingping.Wang@csiro.au and Bernard.Pak@csiro.au
 !>
 !> History: Developed for offline code.  Expect to re-write for MPI and ACCESS
 !>          versions
 !>
-!>
 !> ==============================================================================
 !>
 !> casa_inout.f90
 !>
 !> the following routines are used when "casacnp" is coupled to "cable"
-!>   casa_readbiome
-!>   casa_readphen
-!>   casa_readpoint   (removed, now done in parameter_module)
-!>   casa_init
-!>   casa_poolout
-!>   casa_cnpflux  (not used?)
-!>   biogeochem
+!> - casa_readbiome
+!> - casa_readphen
+!> - casa_readpoint   (removed, now done in parameter_module)
+!> - casa_init
+!> - casa_poolout
+!> - casa_cnpflux  (not used?)
+!> - biogeochem
 !
 ! ==============================================================================
 

@@ -10,6 +10,7 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Reads vegetation and soil parameter files, fills vegin, soilin
 !>          NB. Most soil parameters overwritten by spatially explicit datasets
 !>          input as ancillary file (for ACCESS) or surface data file (for offline)
