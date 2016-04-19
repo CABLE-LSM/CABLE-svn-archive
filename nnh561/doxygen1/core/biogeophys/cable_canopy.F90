@@ -990,6 +990,7 @@ ELEMENTAL FUNCTION psis(zeta) RESULT(r)
    z      = 0.5 + sign(0.5,zeta)    ! z=1 in stable, 0 in unstable 
 
    ! Beljaars and Holtslag (1991) for stable
+   ! Equations (18), Kowalczyk (2006, p.8)
    stzeta = MAX(0.,zeta)
    stable = -(1.+2./3.*a*stzeta)**(3./2.) -  &
              b*(stzeta-c/d)*exp(-d*stzeta) - b*c/d + 1.
