@@ -953,6 +953,7 @@ FUNCTION psim(zeta) RESULT(r)
    z = 0.5 + sign(0.5,zeta)    ! z=1 in stable, 0 in unstable
    
    ! Beljaars and Holtslag (1991) for stable
+   ! Equation 19, Kowalczyk (2006, p.8).
    stable = -a*zeta - b*(zeta - xc/d)*exp( -d*zeta) - b*xc/d
    x      = (1.0 + gu*abs(zeta))**0.25
    unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*atan(x) + C%PI_C*0.5

@@ -204,6 +204,7 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
    z1(:,1) = 0.0           ! i.e. K(.5),    value at surface
    z1(:,ms+1) = 0.0        ! i.e. K(ms+.5), value at bottom
 
+   ! These equations are the various Equations 110-116 in Kowalczyk et al. (2006).
    ! nmeth: equation solution technique
    IF (nmeth <= 0) THEN
 
@@ -238,10 +239,12 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
 
          speed_k = hydss * (wh / soil%ssat )**( soil%i2bp3 - 1 )
          
+         ! Equation 122 in Kowalczyk et al. (2006)
          ! update wb by TVD method
          rat = delt(:,k - 1) / ( delt(:,k) + SIGN( REAL( 1.0e-20, r_2 ),       &
                delt(:,k) ) )
 
+         ! Superbee (Roe 1985) - Equation 121 in Kowalczyk et al. (2006)
          phi = MAX( 0.0_r_2, MIN( 1.0_r_2, 2.0_r_2 * rat ),                    &
                MIN( 2.0_r_2, rat ) ) ! 0 for -ve rat
          fluxhi = wh
@@ -1156,6 +1159,9 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
       
       xx = soil%css * soil%rhosoil
       
+      ! Calculation of volumetric soil heat capacity.
+      ! First instance of Equation 127 in Kowalczyk et al. (2006)
+      ! Equation does correspond directly to paper.
       ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
                           + soil%ssat * ( wblfsp * cswat * rhowat +            &
                           ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )     &
