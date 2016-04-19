@@ -202,7 +202,7 @@ clean_build()
 {
       print '\ncleaning up\n'
       rm -fr .tmp
-      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      print '\n\tPress Enter too continue building, Control-C to abort now.\n'
       read dummy 
 }
 
