@@ -49,29 +49,26 @@ MODULE cable_init_module
    PRIVATE
    PUBLIC get_default_inits, get_restart_data
 
-   INTEGER :: ok ! netcdf status
+   INTEGER :: ok !< netcdf status
    
 CONTAINS
-!==============================================================================
-!
-! Name: get_default_inits
-!
-! Purpose: Loads initialisations based on Mk3L 50 year monthly
-!          climatology file
-!
-! CALLed from: load_parameters
-!
-! CALLs: abort
-!
-!==============================================================================
 
 
-!==============================================================================
-! changes since version release on 
-! changes made by who on date
-!
-!==============================================================================
-
+!> Name: get_default_inits
+!>
+!> Purpose: Loads initialisations based on Mk3L 50 year monthly
+!>          climatology file
+!>
+!> CALLed from: load_parameters
+!>
+!> CALLs: abort
+!>
+!>==============================================================================
+!>
+!> changes since version release on 
+!> changes made by who on date
+!>
+!>==============================================================================
 SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
 
    IMPLICIT NONE
@@ -81,7 +78,7 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    TYPE (soil_parameter_type), INTENT(IN) :: soil
    TYPE (soil_snow_type), INTENT(INOUT)   :: ssnow
    TYPE (canopy_type), INTENT(OUT)        :: canopy
-   INTEGER,INTENT(IN)                :: logn     ! log file unit number
+   INTEGER,INTENT(IN)                :: logn     !< log file unit number
    REAL, INTENT(IN) :: EMSOIL
    ! Local variables
    INTEGER :: e,i,j  ! do loop counter
@@ -145,39 +142,35 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
 
 END SUBROUTINE get_default_inits
 
-!==============================================================================
-!
-! Name: get_restart_data
-!
-! Purpose: Reads initialisations and parameters from restart file
-!
-! CALLed from: load_parameters
-!
-! CALLs: nc_abort
-!        extraRestart
-!        readpar
-!        abort
-!
-! Input file: [restart].nc
-!
-!==============================================================================
-
+!> Name: get_restart_data
+!>
+!> Purpose: Reads initialisations and parameters from restart file
+!>
+!> CALLed from: load_parameters
+!>
+!> CALLs:
+!> - nc_abort
+!> - extraRestart
+!> - readpar
+!> - abort
+!>
+!> Input file: [restart].nc
 SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                             bal,veg,soil,rad,vegparmnew, EMSOIL)
 
    IMPLICIT NONE
 
    ! Input arguments
-   INTEGER, INTENT(IN)                       :: logn       ! log file number
-   TYPE (soil_snow_type),INTENT(INOUT)       :: ssnow      ! soil and snow variables
-   TYPE (bgc_pool_type),INTENT(INOUT)        :: bgc        ! carbon pool variables
-   TYPE (canopy_type),INTENT(INOUT)          :: canopy     ! vegetation variables
-   TYPE (roughness_type),INTENT(INOUT)       :: rough      ! roughness varibles
-   TYPE (balances_type),INTENT(INOUT)        :: bal        ! energy + water balance variables
-   TYPE (veg_parameter_type), INTENT(INOUT)  :: veg        ! vegetation parameters
-   TYPE (soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
+   INTEGER, INTENT(IN)                       :: logn       !< log file number
+   TYPE (soil_snow_type),INTENT(INOUT)       :: ssnow      !< soil and snow variables
+   TYPE (bgc_pool_type),INTENT(INOUT)        :: bgc        !< carbon pool variables
+   TYPE (canopy_type),INTENT(INOUT)          :: canopy     !< vegetation variables
+   TYPE (roughness_type),INTENT(INOUT)       :: rough      !< roughness varibles
+   TYPE (balances_type),INTENT(INOUT)        :: bal        !< energy + water balance variables
+   TYPE (veg_parameter_type), INTENT(INOUT)  :: veg        !< vegetation parameters
+   TYPE (soil_parameter_type), INTENT(INOUT) :: soil       !< soil parameters
    TYPE (radiation_type),INTENT(INOUT)       :: rad
-   LOGICAL,INTENT(IN)                        :: vegparmnew ! are we using the new format?
+   LOGICAL,INTENT(IN)                        :: vegparmnew !< are we using the new format?
 
    REAL, INTENT(IN) :: EMSOIL
    ! Local variables
@@ -615,25 +608,25 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    
 END SUBROUTINE get_restart_data
 
-!==============================================================================
-!
-! Name: extraRestart
-!
-! Purpose: Redistribute the patches if restart file does not match
-!
-! CALLed from: get_restart_data
-!
-! CALLs: nc_abort
-!        readpar
-!        redistr_r2d
-!        redistr_rd
-!        redistr_r
-!        redistr_r2
-!        redistr_i
-!
-! Input file: [restart].nc
-!
-!==============================================================================
+
+!> Name: extraRestart
+!>
+!> Purpose: Redistribute the patches if restart file does not match
+!>
+!> CALLed from: get_restart_data
+!>
+!> CALLs:
+!> - nc_abort
+!> - readpar
+!> - redistr_r2d
+!> - redistr_rd
+!> - redistr_r
+!> - redistr_r2
+!> - redistr_i
+!>
+!> Input file: [restart].nc
+!>
+!>==============================================================================
 
 SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
                         bal,veg,soil,rad, EMSOIL)
@@ -641,14 +634,14 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    ! so do not need to read in tgg, wb, iveg, patchfrac and frac4.
    IMPLICIT NONE
    INTEGER, INTENT(IN)                  :: INpatch
-   TYPE (soil_snow_type),INTENT(INOUT)       :: ssnow  ! soil and snow variables
-   TYPE (bgc_pool_type),INTENT(INOUT)        :: bgc    ! carbon pool variables
-   TYPE (canopy_type),INTENT(INOUT)          :: canopy ! vegetation variables
-   TYPE (roughness_type),INTENT(INOUT)       :: rough  ! roughness varibles
-   TYPE (balances_type),INTENT(INOUT)        :: bal ! energy + water balance variables
+   TYPE (soil_snow_type),INTENT(INOUT)       :: ssnow  !< soil and snow variables
+   TYPE (bgc_pool_type),INTENT(INOUT)        :: bgc    !< carbon pool variables
+   TYPE (canopy_type),INTENT(INOUT)          :: canopy !< vegetation variables
+   TYPE (roughness_type),INTENT(INOUT)       :: rough  !< roughness variables
+   TYPE (balances_type),INTENT(INOUT)        :: bal    !< energy + water balance variables
    REAL, INTENT(IN) :: EMSOIL
-   TYPE (veg_parameter_type), INTENT(INOUT)  :: veg  ! vegetation parameters
-   TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+   TYPE (veg_parameter_type), INTENT(INOUT)  :: veg    !< vegetation parameters
+   TYPE (soil_parameter_type), INTENT(INOUT) :: soil   !< soil parameters
    TYPE (radiation_type),INTENT(INOUT)       :: rad
 
    ! local variables

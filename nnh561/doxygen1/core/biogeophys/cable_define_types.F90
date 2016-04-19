@@ -24,9 +24,9 @@
 !
 ! ==============================================================================
 
-MODULE cable_def_types_mod
 
-   ! Contains all variables which are not subroutine-internal
+!> Contains all variables which are not subroutine-internal
+MODULE cable_def_types_mod
 
    IMPLICIT NONE
 
@@ -56,7 +56,7 @@ MODULE cable_def_types_mod
   
 ! .............................................................................
 
-   ! Energy and water balance variables:
+   !> Energy and water balance variables:
    TYPE balances_type 
 
       REAL, DIMENSION(:), POINTER ::                                           &
@@ -92,7 +92,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Soil parameters:
+   !> Soil parameters:
    TYPE soil_parameter_type 
    
       INTEGER, DIMENSION(:), POINTER ::                                        &
@@ -131,7 +131,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Soil and snow variables:
+   !> Soil and snow variables:
    TYPE soil_snow_type 
      
      INTEGER, DIMENSION(:), POINTER :: isflag !< 0 => no snow 1 => snow
@@ -214,7 +214,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Vegetation parameters:
+   !> Vegetation parameters:
    TYPE veg_parameter_type
      
       INTEGER, DIMENSION(:), POINTER ::                                        &
@@ -268,7 +268,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Canopy/vegetation variables:
+   !> Canopy/vegetation variables:
    TYPE canopy_type
       
 
@@ -336,7 +336,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Radiation variables:
+   !> Radiation variables:
    TYPE radiation_type
    
       REAL, DIMENSION(:), POINTER   ::                                         &
@@ -380,7 +380,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Roughness variables:
+   !> Roughness variables:
    TYPE roughness_type
       
       REAL, DIMENSION(:), POINTER ::                                           &
@@ -406,7 +406,7 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:), POINTER ::                                           &
          coexp !< Extinction coef for wind profile in canopy
      
-      !< "usuh": us/uh (us=friction velocity, uh = mean velocity at z=h)
+      ! "usuh": us/uh (us=friction velocity, uh = mean velocity at z=h)
       REAL, DIMENSION(:), POINTER ::                                           &
          usuh !< Friction velocity/windspeed at canopy height
    
@@ -417,7 +417,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Air variables:
+   !> Air variables:
    TYPE air_type
       
       REAL, DIMENSION(:), POINTER ::                                           &
@@ -435,7 +435,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Meterological data:
+   !> Meterological data:
    TYPE met_type
      
       INTEGER, DIMENSION(:), POINTER ::                                        &
@@ -468,7 +468,7 @@ MODULE cable_def_types_mod
 
 ! .............................................................................
 
-   ! Cumulative flux variables:
+   !> Cumulative flux variables:
    TYPE sum_flux_type
      
       REAL, DIMENSION(:), POINTER ::                                           &

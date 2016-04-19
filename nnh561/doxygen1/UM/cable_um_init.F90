@@ -73,21 +73,21 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !-------------------------------------------------------------------------- 
    !___UM dimensions, array indexes, flags
    INTEGER, INTENT(IN) ::                                                      &
-      row_length, rows, & ! UM resolution
-      land_pts,         & ! number of land_pts
-      ntiles,           & ! number of tiles
-      npft,             & ! number of Plant Functional Types
-      sm_levels           ! number of soil layers
+      row_length, rows, & !< UM resolution
+      land_pts,         & !< number of land_pts
+      ntiles,           & !< number of tiles
+      npft,             & !< number of Plant Functional Types
+      sm_levels           !< number of soil layers
 
    INTEGER, INTENT(IN), DIMENSION(land_pts) ::                                 &
-      land_index  ! index of land point 
+      land_index  !< index of land point 
    
    INTEGER, INTENT(IN), DIMENSION(ntiles) ::                                   &
-      tile_pts    ! number of land_pts per tile type
+      tile_pts    !< number of land_pts per tile type
   
    INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         &
-      tile_index, &  ! index of tile 
-      isnow_flg3l    ! flag for 3-layer snow 
+      tile_index, &  !< index of tile 
+      isnow_flg3l    !< flag for 3-layer snow 
 
    !___UM parameters 
    INTEGER, INTENT(IN) :: itimestep
@@ -165,10 +165,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    INTEGER, INTENT(IN) ::                              &
       CO2_DIM_LEN                                      &
      ,CO2_DIM_ROW
-   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
+   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  !< co2 mass mixing ratio
 
    LOGICAL, INTENT(INOUT),DIMENSION(land_pts, ntiles) ::                       &
-      L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
+      L_tile_pts  !< true IF vegetation (tile) fraction is greater than 0
   
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             & 
       sin_theta_latitude

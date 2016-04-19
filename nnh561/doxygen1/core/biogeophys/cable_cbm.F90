@@ -74,7 +74,7 @@ CONTAINS
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg  
 
-   REAL, INTENT(IN)               :: dels ! time setp size (s)
+   REAL, INTENT(IN)               :: dels !< time setp size (s)
     
    INTEGER :: k,kk,j  
 

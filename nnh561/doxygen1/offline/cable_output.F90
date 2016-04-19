@@ -22,7 +22,7 @@
 !>
 !> CALLed from:    cable_driver.F90
 !>
-!> MODULEs used:
+!> MODULEs used: 
 !> - cable_abort_module
 !> - cable_common_module
 !> - cable_checks_module
@@ -52,9 +52,9 @@ MODULE cable_output_module
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
-  INTEGER :: ncid_out ! output data netcdf file ID
-  REAL :: missing_value = -999999.0 ! for netcdf output
-  TYPE out_varID_type ! output variable IDs in netcdf file
+  INTEGER :: ncid_out !< output data netcdf file ID
+  REAL :: missing_value = -999999.0 !< for netcdf output
+  TYPE out_varID_type !< output variable IDs in netcdf file
     INTEGER ::      SWdown, LWdown, Wind, Wind_E, PSurf,                       &
                     Tair, Qair, Rainf, Snowf, CO2air,                          &
                     Qle, Qh, Qg, NEE, SWnet,                                   &
@@ -66,122 +66,122 @@ MODULE cable_output_module
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar
   END TYPE out_varID_type
-  TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
-  TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
+  TYPE(out_varID_type) :: ovid !< netcdf variable IDs for output variables
+  TYPE(parID_type) :: opid !< netcdf variable IDs for output variables
   TYPE output_temporary_type
-    REAL(KIND=4), POINTER, DIMENSION(:) :: SWdown ! 6 downward short-wave
-                                                  ! radiation [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: LWdown ! 7 downward long-wave
-                                                  ! radiation [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Rainf  ! 8 rainfall [kg/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Snowf  ! 9 snowfall [kg/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PSurf  ! 10 surface pressure [Pa]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Tair   ! 11 surface air temperature
-                                                  ! [K]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qair   ! 12 specific humidity [kg/kg]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: CO2air ! 13 CO2 concentration [ppmv]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Wind   ! 14 windspeed [m/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_N ! 15 surface wind speed, N
-                                                  ! component [m/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_E ! 16 surface wind speed, E
-                                                  ! component [m/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SWdown !< 6 downward short-wave
+                                                  !< radiation [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LWdown !< 7 downward long-wave
+                                                  !< radiation [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Rainf  !< 8 rainfall [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Snowf  !< 9 snowfall [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PSurf  !< 10 surface pressure [Pa]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tair   !< 11 surface air temperature
+                                                  !< [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qair   !< 12 specific humidity [kg/kg]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CO2air !< 13 CO2 concentration [ppmv]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Wind   !< 14 windspeed [m/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_N !< 15 surface wind speed, N
+                                                  !< component [m/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_E !< 16 surface wind speed, E
+                                                  !< component [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: LAI
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qh     ! 17 sensible heat flux [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qle    ! 18 latent heat flux [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qg     ! 19 ground heat flux [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: SWnet  ! 20 net shortwave [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: LWnet  ! 21 net longwave [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Evap   ! 22 total evapotranspiration
-                                                  ! [kg/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Ewater ! 23 evap. from surface water
-                                                  ! storage [kg/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: ESoil  ! 24 bare soil evaporation
-                                                  ! [kg/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: TVeg   ! 25 vegetation transpiration
-                                                  ! [kg/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: ECanop ! 26 interception evaporation
-                                                  ! [kg/m2/s]
-    ! 27 potential evapotranspiration [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qh     !< 17 sensible heat flux [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qle    !< 18 latent heat flux [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qg     !< 19 ground heat flux [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SWnet  !< 20 net shortwave [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LWnet  !< 21 net longwave [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Evap   !< 22 total evapotranspiration
+                                                  !< [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Ewater !< 23 evap. from surface water
+                                                  !< storage [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: ESoil  !< 24 bare soil evaporation
+                                                  !< [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: TVeg   !< 25 vegetation transpiration
+                                                  !< [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: ECanop !< 26 interception evaporation
+                                                  !< [kg/m2/s]
+    !> 27 potential evapotranspiration [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: PotEvap
-    REAL(KIND=4), POINTER, DIMENSION(:) :: ACond   ! 28 aerodynamic conductance
-                                                   ! [m/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilWet ! 29 total soil wetness [-]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Albedo  ! 30 albedo [-]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: visAlbedo  ! vars intro for Ticket #27
-    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo  ! vars intro for Ticket #27 
-    REAL(KIND=4), POINTER, DIMENSION(:) :: VegT    ! 31 vegetation temperature
-                                                   ! [K]
-    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilTemp  ! 32 av.layer soil
-                                                       ! temperature [K]
-    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoist ! 33 av.layer soil
-                                                       ! moisture [kg/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qs  ! 34 surface runoff [kg/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qsb ! 35 subsurface runoff [kg/m2/s]
-    ! 36 change in soilmoisture (sum layers) [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: ACond   !< 28 aerodynamic conductance
+                                                   !< [m/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilWet !< 29 total soil wetness [-]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Albedo  !< 30 albedo [-]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: visAlbedo  !< vars intro for Ticket #27
+    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo  !< vars intro for Ticket #27 
+    REAL(KIND=4), POINTER, DIMENSION(:) :: VegT    !< 31 vegetation temperature
+                                                   !< [K]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilTemp  !< 32 av.layer soil
+                                                       !< temperature [K]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoist !< 33 av.layer soil
+                                                       !< moisture [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qs  !< 34 surface runoff [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qsb !< 35 subsurface runoff [kg/m2/s]
+    !> 36 change in soilmoisture (sum layers) [kg/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: DelSoilMoist
-    ! 37 change in snow water equivalent [kg/m2]
+    !> 37 change in snow water equivalent [kg/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: DelSWE
-    ! 38 change in interception storage [kg/m2]
+    !> 38 change in interception storage [kg/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: DelIntercept
-    REAL(KIND=4), POINTER, DIMENSION(:) :: SnowT     ! 39 snow surface temp [K]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: BaresoilT ! 40 surface bare soil
-                                                     ! temp [K]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: AvgSurfT  ! 41 Average surface
-                                                     ! temperature [K]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: RadT      ! 42 Radiative surface
-                                                     ! temperature [K]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: SWE       ! 43 snow water equivalent
-                                                     ! [kg/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: RootMoist ! 44 root zone soil
-                                                     ! moisture [kg/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: CanopInt  ! 45 total canopy water
-                                                     ! storage [kg/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: NEE       ! 46 net ecosystem exchange
-                                                     ! [umol/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: NPP       ! 47 net primary production
-                                                     ! of C by veg [umol/m2/s]
-    ! 48 gross primary production C by veg [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SnowT     !< 39 snow surface temp [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: BaresoilT !< 40 surface bare soil
+                                                     !< temp [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: AvgSurfT  !< 41 Average surface
+                                                     !< temperature [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: RadT      !< 42 Radiative surface
+                                                     !< temperature [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SWE       !< 43 snow water equivalent
+                                                     !< [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: RootMoist !< 44 root zone soil
+                                                     !< moisture [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CanopInt  !< 45 total canopy water
+                                                     !< storage [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: NEE       !< 46 net ecosystem exchange
+                                                     !< [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: NPP       !< 47 net primary production
+                                                     !< of C by veg [umol/m2/s]
+    !> 48 gross primary production C by veg [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: GPP
-    REAL(KIND=4), POINTER, DIMENSION(:) :: AutoResp   ! 49 autotrophic
-                                                      ! respiration [umol/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: LeafResp   ! 51 autotrophic
-                                                      ! respiration [umol/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: HeteroResp ! 50 heterotrophic
-                                                      ! respiration [umol/m2/s]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: SnowDepth  ! actual depth of snow in
-                                                      ! [m]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: AutoResp   !< 49 autotrophic
+                                                      !< respiration [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LeafResp   !< 51 autotrophic
+                                                      !< respiration [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: HeteroResp !< 50 heterotrophic
+                                                      !< respiration [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SnowDepth  !< actual depth of snow in
+                                                      !< [m]
     ! Non-Alma variables
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Rnet  ! net absorbed radiation [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: HVeg  ! sensible heat from vegetation
-                                                 ! [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: HSoil ! sensible heat from soil
-                                                 ! [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Ebal  ! cumulative energy balance
-                                                 ! [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
-                                                 ! [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Rnet  !< net absorbed radiation [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: HVeg  !< sensible heat from vegetation
+                                                 !< [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: HSoil !< sensible heat from soil
+                                                 !< [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Ebal  !< cumulative energy balance
+                                                 !< [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  !< cumulative water balance
+                                                 !< [W/m2]
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
 
 CONTAINS
 
+  !> Creates netcdf output file, defines all variables 
+  !> and writes parameters to it if requested by user.
   SUBROUTINE open_output_file(dels, soil, veg, bgc, rough)
-    ! Creates netcdf output file, defines all variables 
-    ! and writes parameters to it if requested by user.
-    REAL, INTENT(IN) :: dels ! time step size
-    TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
-    TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
+    REAL, INTENT(IN) :: dels !< time step size
+    TYPE (soil_parameter_type), INTENT(IN) :: soil !< soil parameters
+    TYPE (veg_parameter_type), INTENT(IN)  :: veg  !< vegetation parameters
     TYPE (bgc_pool_type), INTENT(IN)       :: bgc
     TYPE (roughness_type), INTENT(IN)      :: rough
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
 
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
-                    plantcarbID, tID, landID, patchID ! dimension IDs
-    INTEGER :: latID, lonID ! time,lat,lon variable ID
-    INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
+                    plantcarbID, tID, landID, patchID !< dimension IDs
+    INTEGER :: latID, lonID !< time,lat,lon variable ID
+    INTEGER :: xvID, yvID   !< coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
-    CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
+    CHARACTER(LEN=10) :: todaydate, nowtime !< used to timestamp netcdf file
   
     ! Create output file:
     ok = NF90_CREATE(filename%out, NF90_CLOBBER, ncid_out)
@@ -961,33 +961,35 @@ CONTAINS
                                 patchout%zse, 'soil')! no spatial dim at present
 
   END SUBROUTINE open_output_file
+
   !=============================================================================
+
+  !> Writes model output variables and, if requested, calls
+  !> energy and mass balance routines. This subroutine is called 
+  !> each timestep, but may only write to the output file periodically,
+  !> depending on whether the user has specified that output should be 
+  !> aggregated, e.g. to monthly or 6-hourly averages.
   SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
-    ! Writes model output variables and, if requested, calls
-    ! energy and mass balance routines. This subroutine is called 
-    ! each timestep, but may only write to the output file periodically,
-    ! depending on whether the user has specified that output should be 
-    ! aggregated, e.g. to monthly or 6-hourly averages.
-    REAL, INTENT(IN)              :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    REAL, INTENT(IN)              :: dels !< time step size
+    INTEGER, INTENT(IN)           :: ktau !< timestep number in loop which include spinup 
     REAL, INTENT(IN) :: SBOLTZ, EMLEAF, EMSOIL
-    TYPE(met_type), INTENT(IN)         :: met  ! met data
-    TYPE(canopy_type), INTENT(IN)      :: canopy ! canopy variable data
-    TYPE(soil_snow_type), INTENT(IN)   :: ssnow ! soil data
-    TYPE(soil_parameter_type), INTENT(IN) :: soil ! soil parameters
-    TYPE(radiation_type), INTENT(IN)  :: rad   ! radiation data
+    TYPE(met_type), INTENT(IN)         :: met  !< met data
+    TYPE(canopy_type), INTENT(IN)      :: canopy !< canopy variable data
+    TYPE(soil_snow_type), INTENT(IN)   :: ssnow !< soil data
+    TYPE(soil_parameter_type), INTENT(IN) :: soil !< soil parameters
+    TYPE(radiation_type), INTENT(IN)  :: rad   !< radiation data
     TYPE(air_type), INTENT(IN)        :: air
-    TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
+    TYPE(veg_parameter_type), INTENT(IN) :: veg !< vegetation parameters
     TYPE(balances_type), INTENT(INOUT) :: bal
 
-    REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
-                                        ! value
-    LOGICAL :: writenow ! write to output file during this time step?
-    INTEGER, SAVE :: out_timestep ! counter for output time steps
-    INTEGER, SAVE :: out_month ! counter for output month
-    INTEGER, DIMENSION(mp) :: realyear ! fix problem for yr b4 leap yr
-    INTEGER :: backtrack  ! modify timetemp for averaged output
+    REAL(r_2), DIMENSION(1) :: timetemp !< temporary variable for storing time
+                                        !< value
+    LOGICAL :: writenow !< write to output file during this time step?
+    INTEGER, SAVE :: out_timestep !< counter for output time steps
+    INTEGER, SAVE :: out_month !< counter for output month
+    INTEGER, DIMENSION(mp) :: realyear !< fix problem for yr b4 leap yr
+    INTEGER :: backtrack  !< modify timetemp for averaged output
 
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
@@ -1734,11 +1736,13 @@ CONTAINS
     END IF
 
   END SUBROUTINE write_output
+
   !=============================================================================
+
+  !> Closes output file, reports cumulative mass and energy 
+  !> balances, and deallocates variables.
   SUBROUTINE close_output_file(bal, air, bgc, canopy, met,                     &
                                rad, rough, soil, ssnow, sum_flux, veg)
-    ! Closes output file, reports cumulative mass and energy 
-    ! balances, and deallocates variables.
     TYPE (met_type), INTENT(INOUT)       :: met
     TYPE (air_type), INTENT(INOUT)       :: air
     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
@@ -1783,23 +1787,25 @@ CONTAINS
     WRITE(logn, *) 'Run finished and output file closed.'
 
   END SUBROUTINE close_output_file
+
   !=============================================================================
+
+  !> Creates a restart file for CABLE using a land only grid with mland
+  !> land points and max_vegpatches veg/soil patches (some of which may
+  !> not be active). It uses CABLE's internal variable names.
   SUBROUTINE create_restart(logn, dels, ktau, soil, veg, ssnow,                      &
                             canopy, rough, rad, bgc, bal)
-    ! Creates a restart file for CABLE using a land only grid with mland
-    ! land points and max_vegpatches veg/soil patches (some of which may
-    ! not be active). It uses CABLE's internal variable names.
-    INTEGER, INTENT(IN) :: logn ! log file number
-    REAL, INTENT(IN) :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
-    TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
-    TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
-    TYPE (soil_snow_type), INTENT(IN)      :: ssnow  ! soil and snow variables
-    TYPE (bgc_pool_type), INTENT(IN)       :: bgc    ! carbon pool variables
-    TYPE (canopy_type), INTENT(IN)         :: canopy ! vegetation variables
-    TYPE (roughness_type), INTENT(IN)      :: rough  ! roughness varibles
-    TYPE (radiation_type), INTENT(IN)  :: rad ! radiation variables
-    TYPE (balances_type), INTENT(IN) :: bal ! energy and water balance variables
+    INTEGER, INTENT(IN) :: logn !< log file number
+    REAL, INTENT(IN) :: dels !< time step size
+    INTEGER, INTENT(IN)           :: ktau !< timestep number in loop which include spinup 
+    TYPE (soil_parameter_type), INTENT(IN) :: soil !< soil parameters
+    TYPE (veg_parameter_type), INTENT(IN)  :: veg  !< vegetation parameters
+    TYPE (soil_snow_type), INTENT(IN)      :: ssnow  !< soil and snow variables
+    TYPE (bgc_pool_type), INTENT(IN)       :: bgc    !< carbon pool variables
+    TYPE (canopy_type), INTENT(IN)         :: canopy !< vegetation variables
+    TYPE (roughness_type), INTENT(IN)      :: rough  !< roughness varibles
+    TYPE (radiation_type), INTENT(IN)  :: rad !< radiation variables
+    TYPE (balances_type), INTENT(IN) :: bal !< energy and water balance variables
 !    INTEGER, INTENT(IN) :: mvtype
 !    INTEGER, INTENT(IN) :: mstype
 

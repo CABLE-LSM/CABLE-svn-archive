@@ -37,21 +37,21 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    USE phenvariable
    IMPLICIT NONE
  
-   INTEGER,      INTENT(IN) :: ktau ! integration step number
-   INTEGER,      INTENT(IN) :: kstart ! starting value of ktau
-   INTEGER,      INTENT(IN) :: kend ! total # timesteps in run
+   INTEGER,      INTENT(IN) :: ktau   !< integration step number
+   INTEGER,      INTENT(IN) :: kstart !< starting value of ktau
+   INTEGER,      INTENT(IN) :: kend   !< total # timesteps in run
    
-   INTEGER,      INTENT(IN)                  :: idoy ! day of year (1-365)
-   INTEGER,      INTENT(IN)                  :: ktauday
+   INTEGER,      INTENT(IN) :: idoy   !< day of year (1-365)
+   INTEGER,      INTENT(IN) :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
    logical,      INTENT(IN) :: dump_read, dump_write 
         
-   REAL,         INTENT(IN) :: dels ! time setp size (s)
-   TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
-   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow ! soil and snow variables
-   TYPE (canopy_type), INTENT(INOUT) :: canopy ! vegetation variables
-   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-   TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
+   REAL,         INTENT(IN) :: dels                  !< time setp size (s)
+   TYPE (met_type), INTENT(INOUT)       :: met       !< met input variables
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow     !< soil and snow variables
+   TYPE (canopy_type), INTENT(INOUT) :: canopy       !< vegetation variables
+   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  !< vegetation parameters
+   TYPE (soil_parameter_type), INTENT(INOUT) :: soil !< soil parameters  
    TYPE (casa_biome),          INTENT(INOUT) :: casabiome
    TYPE (casa_pool),           INTENT(INOUT) :: casapool
    TYPE (casa_flux),           INTENT(INOUT) :: casaflux
@@ -356,9 +356,9 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   USE casaparm
   USE casavariable
   IMPLICIT NONE
-  INTEGER, INTENT(IN)    :: ktau ! integration step number
-  INTEGER, INTENT(IN)    :: kstart ! starting value of ktau
-  INTEGER, INTENT(IN)    :: kend ! total # timesteps in run
+  INTEGER, INTENT(IN)    :: ktau   !< integration step number
+  INTEGER, INTENT(IN)    :: kstart !< starting value of ktau
+  INTEGER, INTENT(IN)    :: kend   !< total # timesteps in run
 !  INTEGER, INTENT(IN)    :: mvtype  ! Number of veg types
 !  INTEGER, INTENT(IN)    :: mstype ! Number of soil types
   REAL,    INTENT(IN)    :: dels ! time setp size (s)
@@ -370,7 +370,7 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   TYPE (met_type),            INTENT(IN)    :: met    
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
-  LOGICAL, INTENT(IN)   :: l_vcmaxFeedbk ! using prognostic Vcmax
+  LOGICAL, INTENT(IN)   :: l_vcmaxFeedbk !< using prognostic Vcmax
 
 !   if(icycle<=0) then
 !     these are executed in cbm

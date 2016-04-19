@@ -29,103 +29,103 @@ MODULE cable_mpicommon
 
   PUBLIC
 
-  ! MPI: base number of input fields sent to workers as start up
-  ! parameters
-  !INTEGER, PARAMETER :: nparam = 68
-  !INTEGER, PARAMETER :: nparam = 219
-  ! MPI: Bernard commented out two canopy params (potev_c and rwater)
-  ! when porting to CABLE_r491
-  ! INTEGER, PARAMETER :: nparam = 217
-  ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  !INTEGER, PARAMETER :: nparam = 260
-  ! added 23 params when trying to fix the bug in MPI
-  ! Ticket #56, we've added 2 extra new params for the Medlyns Stom Cond model
+  !>  MPI: base number of input fields sent to workers as start up
+  !>  parameters
+  !> INTEGER, PARAMETER :: nparam = 68
+  !> INTEGER, PARAMETER :: nparam = 219
+  !>  MPI: Bernard commented out two canopy params (potev_c and rwater)
+  !>  when porting to CABLE_r491
+  !>  INTEGER, PARAMETER :: nparam = 217
+  !>  MPI: CABLE_r491, after following up with Bernard on the new variables
+  !> INTEGER, PARAMETER :: nparam = 260
+  !>  added 23 params when trying to fix the bug in MPI
+  !>  Ticket #56, we've added 2 extra new params for the Medlyns Stom Cond model
   INTEGER, PARAMETER :: nparam = 295
 
-  ! MPI: extra params sent only if nsoilparmnew is true
+  !> MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
-  ! MPI: number of casa parameters sent to workers as
-  ! start up parameters
-  !INTEGER, PARAMETER :: ncasaparam = 68
-  !INTEGER, PARAMETER :: ncasaparam = 176
-  ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
+  !>  MPI: number of casa parameters sent to workers as
+  !>  start up parameters
+  !> INTEGER, PARAMETER :: ncasaparam = 68
+  !> INTEGER, PARAMETER :: ncasaparam = 176
+  !>  MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
   INTEGER, PARAMETER :: ncasaparam = 196      ! changed ypw to add 13  new variables in casabiome%
 
-  ! MPI: base number of casa_init parameters sent to the workers
+  !> MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
 
-  ! MPI: number of casa_init parameters sent to the workers only if
-  ! icycle = 2 or 3
+  !> MPI: number of casa_init parameters sent to the workers only if
+  !> icycle = 2 or 3
   INTEGER, PARAMETER :: ncinit2 = 13
 
-  ! MPI: number of casa_init parameters sent to the workers only if
-  ! icycle = 3
+  !> MPI: number of casa_init parameters sent to the workers only if
+  !> icycle = 3
   INTEGER, PARAMETER :: ncinit3 = 18
 
-  ! MPI: number of input fields sent to workers at the start of each
-  ! timestep
-  !INTEGER, PARAMETER :: ninput = 11
-  ! added 4 time fields in met: year, moy, doy, hod
+  !>      MPI: number of input fields sent to workers at the start of each
+  !>      timestep
+  !>     INTEGER, PARAMETER :: ninput = 11
+  !>      added 4 time fields in met: year, moy, doy, hod
   INTEGER, PARAMETER :: ninput = 15
 
-  ! MPI: number of 3D array slices / worker (results)
+  !> MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1
 
-  ! MPI: number of matrix slices / worker (results)
-  !INTEGER, PARAMETER :: nmat = 29
-  ! MPI: 2011-07-08 - removed dtmlt from data exchange
-  !INTEGER, PARAMETER :: nmat = 28
-  ! MPI: gol124: net +1 when Bernard ported to CABLE_r491
-  !INTEGER, PARAMETER :: nmat = 29
-  ! MPI: CABLE_r491, after following up with Bernard on the new variables
+  !      MPI: number of matrix slices / worker (results)
+  !     INTEGER, PARAMETER :: nmat = 29
+  !      MPI: 2011-07-08 - removed dtmlt from data exchange
+  !     INTEGER, PARAMETER :: nmat = 28
+  !      MPI: gol124: net +1 when Bernard ported to CABLE_r491
+  !     INTEGER, PARAMETER :: nmat = 29
+  !      MPI: CABLE_r491, after following up with Bernard on the new variables
   INTEGER, PARAMETER :: nmat = 36
 
-  ! MPI: number of contig vector parts / worker (results)
-  !INTEGER, PARAMETER :: nvec = 149
-  ! MPI: 2011-06-28 - removed ebal, ebal_tot, seb, seb_tot from data exchange
-  !INTEGER, PARAMETER :: nvec = 145
-  ! MPI: 2011-07-08 - removed otss from data exchange
-  ! INTEGER, PARAMETER :: nvec = 144
-  ! MPI: 2012-02-14 - removed year, moy, doy, hod
-  !INTEGER, PARAMETER :: nvec = 140
-  ! MPI: gol124: net -3 (removed or changed to 2D) when Bernard
-  ! ported to CABLE_r491
-  !INTEGER, PARAMETER :: nvec = 137
-  ! MPI: CABLE_r491, after following up with Bernard on the new variables
+  !      MPI: number of contig vector parts / worker (results)
+  !     INTEGER, PARAMETER :: nvec = 149
+  !      MPI: 2011-06-28 - removed ebal, ebal_tot, seb, seb_tot from data exchange
+  !     INTEGER, PARAMETER :: nvec = 145
+  !      MPI: 2011-07-08 - removed otss from data exchange
+  !      INTEGER, PARAMETER :: nvec = 144
+  !      MPI: 2012-02-14 - removed year, moy, doy, hod
+  !     INTEGER, PARAMETER :: nvec = 140
+  !      MPI: gol124: net -3 (removed or changed to 2D) when Bernard
+  !      ported to CABLE_r491
+  !     INTEGER, PARAMETER :: nvec = 137
+  !      MPI: CABLE_r491, after following up with Bernard on the new variables
   INTEGER, PARAMETER :: nvec = 161
 
-  ! MPI: number of final casa result matrices and vectors to receive
-  ! by the master for casa_poolout and casa_fluxout
+  !> MPI: number of final casa result matrices and vectors to receive
+  !> by the master for casa_poolout and casa_fluxout
   INTEGER, PARAMETER :: ncasa_mat = 15
 !  INTEGER, PARAMETER :: ncasa_vec = 27
   INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
 
-  ! MPI: number of fields included in restart_t type for data
-  ! that is returned only for creating a restart file at the end of the run
-  !INTEGER, PARAMETER :: nrestart = 16
-  ! MPI: gol124: canopy%rwater removed when Bernard ported to CABLE_r491
+  !>      MPI: number of fields included in restart_t type for data
+  !>      that is returned only for creating a restart file at the end of the run
+  !>     INTEGER, PARAMETER :: nrestart = 16
+  !>      MPI: gol124: canopy%rwater removed when Bernard ported to CABLE_r491
   INTEGER, PARAMETER :: nrestart = 15
 
-  ! MPI: type to hold landpoint decomposition info
+  !> MPI: type to hold landpoint decomposition info
   TYPE lpdecomp_t
-          INTEGER :: landp0      ! starting land point index
-          INTEGER :: nland       ! number of landpoints
+          INTEGER :: landp0      !< starting land point index
+          INTEGER :: nland       !< number of landpoints
 
-          INTEGER :: patch0      ! starting patch index in global CABLE vars
-          INTEGER :: npatch      ! sum of patches for all landpoints of this
-                                 ! worker
+          INTEGER :: patch0      !< starting patch index in global CABLE vars
+          INTEGER :: npatch      !< sum of patches for all landpoints of this
+                                 !< worker
   END TYPE
 
-  ! MPI: worker's local landpoints and patches
+  !> MPI: worker's local landpoints and patches
   TYPE(lpdecomp_t) :: wpatch
 
-  ! MPI: Fortran types extents
+  !> MPI: Fortran types extents
   INTEGER :: extr1, extr2, extid, extl
 
 CONTAINS
 
-! calculates extents of the Fortran types used by CABLE
+!> calculates extents of the Fortran types used by CABLE
 SUBROUTINE find_extents
 
   USE mpi
@@ -160,7 +160,7 @@ SUBROUTINE find_extents
 
 END SUBROUTINE find_extents
 
-! creates MPI derived datatypes for exchanging landpt and patch arrays
+!> creates MPI derived datatypes for exchanging landpt and patch arrays
 SUBROUTINE decomp_types (landpt_t, patch_t)
 
   USE mpi

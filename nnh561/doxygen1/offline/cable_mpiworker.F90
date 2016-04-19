@@ -63,7 +63,7 @@
 !> - def_soil_params.txt -- nearly redundant, can be switched on
 !> - restart_in.nc -- not strictly required
 !>
-!> output file:
+!> output file: 
 !> - log_cable.txt
 !> - out_cable.nc
 !> - restart_out.nc
@@ -80,22 +80,22 @@ MODULE cable_mpiworker
 
   PRIVATE
 
-  ! MPI: MPI derived datatype for receiving parameters from the master
+  !> MPI: MPI derived datatype for receiving parameters from the master
   INTEGER :: param_t
 
-  ! MPI: MPI derived datatype for receiving casa parameters from the master
+  !> MPI: MPI derived datatype for receiving casa parameters from the master
   INTEGER :: casaparam_t
 
-  ! MPI: MPI derived datatype for receiving input from the master
+  !> MPI: MPI derived datatype for receiving input from the master
   INTEGER :: inp_t
 
-  ! MPI: MPI derived datatype for sending results back to the master
+  !> MPI: MPI derived datatype for sending results back to the master
   INTEGER :: send_t
 
-  ! worker's struct for sending final casa results to the master
+  !> worker's struct for sending final casa results to the master
   INTEGER :: casa_t
 
-  ! worker's struct for restart data to the master
+  !> worker's struct for restart data to the master
   INTEGER :: restart_t
 
   PUBLIC :: mpidrv_worker
@@ -129,7 +129,7 @@ CONTAINS
    IMPLICIT NONE
 
    ! MPI:
-   INTEGER               :: comm ! MPI communicator for comms with the workers
+   INTEGER               :: comm !< MPI communicator for comms with the workers
 
    ! CABLE namelist: model configuration, runtime/user switches 
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
@@ -578,7 +578,7 @@ END SUBROUTINE mpidrv_worker
 ! ============== PRIVATE SUBROUTINES USED ONLY BY THE MPI WORKERS ===============
 
 
-! MPI: receives grid decomposition info from the master
+!> MPI: receives grid decomposition info from the master
 SUBROUTINE worker_decomp (comm)
 
   USE mpi
@@ -587,7 +587,7 @@ SUBROUTINE worker_decomp (comm)
 
   IMPLICIT NONE
 
-  INTEGER, INTENT(IN)   :: comm ! MPI communicator to talk to the workers
+  INTEGER, INTENT(IN)   :: comm !< MPI communicator to talk to the workers
 
   INTEGER :: stat(MPI_STATUS_SIZE), ierr
 
@@ -602,10 +602,10 @@ SUBROUTINE worker_decomp (comm)
 END SUBROUTINE worker_decomp
 
 
-! MPI: creates param_t type for the worker to receive the default parameters
-! from the master process
-! then receives the parameters
-! and finally frees the MPI type
+!> MPI: creates param_t type for the worker to receive the default parameters
+!> from the master process
+!> then receives the parameters
+!> and finally frees the MPI type
 SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
                                 rough,rad,sum_flux,bal)
 
@@ -620,7 +620,7 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ! subroutine arguments
 
-  INTEGER, INTENT(IN) :: comm ! MPI communicator
+  INTEGER, INTENT(IN) :: comm !< MPI communicator
 
   TYPE (met_type), INTENT(OUT) :: met
   TYPE (air_type), INTENT(OUT) :: air
@@ -1967,10 +1967,10 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 END SUBROUTINE worker_cable_params
 
 
-! MPI: creates param_t type for the worker to receive the default casa
-! parameters from the master process
-! then receives them
-! and finally frees the MPI type
+!> MPI: creates param_t type for the worker to receive the default casa
+!> parameters from the master process
+!> then receives them
+!> and finally frees the MPI type
 SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
                                casabal,phen)
 
@@ -1984,7 +1984,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   IMPLICIT NONE
 
   ! sub arguments
-  INTEGER, INTENT(IN) :: comm  ! MPI communicator
+  INTEGER, INTENT(IN) :: comm  !< MPI communicator
 
   ! TODO: have these variables been already allocated?
   TYPE (casa_biome)   , INTENT(OUT) :: casabiome
@@ -2881,7 +2881,7 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 END SUBROUTINE worker_casa_params
 
 
-! MPI: creates inp_t type to receive input data from the master
+!> MPI: creates inp_t type to receive input data from the master
 SUBROUTINE worker_intype (comm,met,veg)
 
   USE mpi
@@ -2892,8 +2892,8 @@ SUBROUTINE worker_intype (comm,met,veg)
   
   ! Arguments
   INTEGER,INTENT(IN) :: comm
-  TYPE(met_type),INTENT(IN):: met ! meteorological data
-  TYPE(veg_parameter_type),INTENT(IN) :: veg ! LAI retrieved from file
+  TYPE(met_type),INTENT(IN):: met !< meteorological data
+  TYPE(veg_parameter_type),INTENT(IN) :: veg !< LAI retrieved from file
 
   ! Local variables
 
@@ -3035,26 +3035,26 @@ SUBROUTINE worker_intype (comm,met,veg)
 
 END SUBROUTINE worker_intype
 
-! MPI: creates send_t type to send the results to the master
-!
-! list of fields that master needs to receive for use in write_output:
-!
-! air%          rlam
-!
-! canopy%       delwc, fe, fev, fh, fhs, fhv, fevw, fevc, fes, fnee, fpn, frday,
-!               frp, frs, ga, through, spill, tv, cansto,
-!
-! met%          precip, precip_sn, fld, fsd, tk, pmb, qv, ua, ca,
-!
-! rad%          albedo, qcan, qssabs, transd, flws
-!
-! soil%         zse,
-!
-! ssnow%        wb, snowd, osnowd, runoff, cls, rnof1, rnof2, tgg, tggsn, sdepth, isflag
-!
-! veg%          vlai
-!
-! Total: 47
+!> MPI: creates send_t type to send the results to the master
+!>
+!> list of fields that master needs to receive for use in write_output:
+!>
+!> air%          rlam
+!>
+!> canopy%       delwc, fe, fev, fh, fhs, fhv, fevw, fevc, fes, fnee, fpn, frday,
+!>               frp, frs, ga, through, spill, tv, cansto,
+!>
+!> met%          precip, precip_sn, fld, fsd, tk, pmb, qv, ua, ca,
+!>
+!> rad%          albedo, qcan, qssabs, transd, flws
+!>
+!> soil%         zse,
+!>
+!> ssnow%        wb, snowd, osnowd, runoff, cls, rnof1, rnof2, tgg, tggsn, sdepth, isflag
+!>
+!> veg%          vlai
+!>
+!> Total: 47
 SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
   USE mpi
@@ -3063,7 +3063,7 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
   IMPLICIT NONE
 
-  INTEGER :: comm ! MPI communicator to talk to the workers
+  INTEGER :: comm !< MPI communicator to talk to the workers
 
   TYPE(met_type), INTENT(IN) :: met
   TYPE(canopy_type), INTENT(IN) :: canopy
@@ -3071,8 +3071,8 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   TYPE(radiation_type), INTENT(IN) :: rad
   TYPE (balances_type),INTENT(INOUT):: bal 
   TYPE (air_type),INTENT(IN)     :: air
-  TYPE (soil_parameter_type),INTENT(IN) :: soil ! soil parameters
-  TYPE (veg_parameter_type),INTENT(IN) :: veg ! vegetation parameters
+  TYPE (soil_parameter_type),INTENT(IN) :: soil !< soil parameters
+  TYPE (veg_parameter_type),INTENT(IN) :: veg !< vegetation parameters
 
   ! MPI: temp arrays for marshalling all types into a struct
   INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
@@ -4928,8 +4928,8 @@ SUBROUTINE worker_time_update (met, kend, dels)
   IMPLICIT NONE
 
   TYPE(met_type), INTENT(INOUT) :: met
-  INTEGER, INTENT(IN) :: kend ! number of time steps in simulation
-  REAL, INTENT(IN) :: dels ! time step size
+  INTEGER, INTENT(IN) :: kend !< number of time steps in simulation
+  REAL, INTENT(IN) :: dels !< time step size
 
   INTEGER :: i
 
@@ -5113,13 +5113,12 @@ SUBROUTINE worker_time_update (met, kend, dels)
 
 END SUBROUTINE worker_time_update
 
-! creates MPI types for sending casa results back to the master at
-! the end of the simulation
-!
-! changes from old mpi version:
-!  phen: removed out because casa_poolout in this version
-!  is no longer writing phen%phase
-!
+!> creates MPI types for sending casa results back to the master at
+!> the end of the simulation
+!>
+!> changes from old mpi version:
+!>  phen: removed out because casa_poolout in this version
+!>  is no longer writing phen%phase
 SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
                              casamet,casabal, phen)
 
@@ -5136,7 +5135,7 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   IMPLICIT NONE
 
   ! subroutine arguments
-  INTEGER :: comm ! MPI communicator to talk to the workers
+  INTEGER :: comm !< MPI communicator to talk to the workers
   TYPE (casa_pool),           INTENT(INOUT) :: casapool
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   TYPE (casa_met),            INTENT(INOUT) :: casamet
@@ -5400,9 +5399,9 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
 
 END SUBROUTINE worker_casa_type
 
-! MPI: creates restart_t type to send to the master the fields
-! that are only required for the restart file but not included in the
-! results sent at the end of each time step
+!> MPI: creates restart_t type to send to the master the fields
+!> that are only required for the restart file but not included in the
+!> results sent at the end of each time step
 SUBROUTINE worker_restart_type (comm, canopy, air)
 
   USE mpi
@@ -5540,14 +5539,14 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
 
 END SUBROUTINE worker_restart_type
 
-! frees memory used for worker's data structures
+!> frees memory used for worker's data structures
 SUBROUTINE worker_end(icycle, restart)
 
   USE mpi
 
   IMPLICIT NONE
 
-  INTEGER :: icycle ! casa flag
+  INTEGER :: icycle !< casa flag
   LOGICAL :: restart
 
   INTEGER :: ierr

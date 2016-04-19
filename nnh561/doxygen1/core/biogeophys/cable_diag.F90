@@ -41,18 +41,15 @@ MODULE cable_diag_module
    INTEGER, PARAMETER :: gok=0
    INTEGER :: galloctest=1
   
-   !--- subrs overloaded to respond to call cable_diag 
+   !> subrs overloaded to respond to call cable_diag 
    INTERFACE cable_diag
       MODULE PROCEDURE cable_diag1
    END INTERFACE cable_diag
   
 CONTAINS
 
-!==========================================================================!
-! cable_diag1/2/3 call subrs to write filename.dat which contains description
-! of data and format etc., and filename.bin containing the data   
-!==========================================================================!
-
+!> cable_diag1/2/3 call subrs to write filename.dat which contains description
+!> of data and format etc., and filename.bin containing the data   
 SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
                         vname1, var1, once )
    integer, intent(inOUT) :: iDiag 
@@ -90,7 +87,6 @@ SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
 
 END SUBROUTINE cable_diag1
 
-!=============================================================================!
 !=============================================================================!
 
 SUBROUTINE cable_diag_desc1( iDiag, filename, dimx, dimy, vname1 )
@@ -147,10 +143,7 @@ SUBROUTINE cable_diag_data1( iDiag, filename, dimx, timestep, kend, var1  )
 
 END SUBROUTINE cable_diag_data1
 
-!==========================================================================!
-!--- cable generic print status
-!==========================================================================!
-
+!> cable generic print status
 SUBROUTINE cable_stat( routname)
    use cable_common_module, only : ktau_gl, knode_gl
 

@@ -10,69 +10,76 @@
 !
 ! ==============================================================================
 !
+!> \file
 !> Purpose: Offline driver for mpi master in CABLE global run
 !>
 !> Contact: Bernard.Pak@csiro.au
 !>
-!> History: Since 1.4b, capability to run global offline (ncciy = YEAR),
-!>          inclusion of call to CASA-CNP (icycle>0)
-!>          soil_snow_type now ssnow (instead of ssoil)
+!> History:
+!> - Since 1.4b, capability to run global offline (ncciy = YEAR),
+!> - inclusion of call to CASA-CNP (icycle>0)
+!> - soil_snow_type now ssnow (instead of ssoil)
 !>
-!>          MPI wrapper developed by Maciej Golebiewski (2012)
-!>          Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
+!> - MPI wrapper developed by Maciej Golebiewski (2012)
+!> - Modified from cable_driver.F90 in CABLE-2.0_beta r171 by B Pak
 !>
 !> ==============================================================================
 !>
-!> Uses:           mpi
-!>                 cable_mpicommon
-!>                 cable_def_types_mod
-!>                 cable_IO_vars_module
-!>                 cable_common_module
-!>                 cable_data_module
-!>                 cable_input_module
-!>                 cable_output_module
-!>                 cable_cbm_module
-!>                 casadimension
-!>                 casavariable
-!>                 phenvariable
+!> Uses:
+!> - mpi
+!> - cable_mpicommon
+!> - cable_def_types_mod
+!> - cable_IO_vars_module
+!> - cable_common_module
+!> - cable_data_module
+!> - cable_input_module
+!> - cable_output_module
+!> - cable_cbm_module
+!> - casadimension
+!> - casavariable
+!> - phenvariable
 !>
-!> CALLs:       point2constants
-!>              open_met_file
-!>              load_parameters
-!>              open_output_file
-!>              get_met_data
-!>              write_output
-!>              casa_poolout
-!>              casa_fluxout
-!>              create_restart
-!>              close_met_file
-!>              close_output_file
-!>              prepareFiles
-!>              find_extents
-!>              master_decomp
-!>              master_cable_params
-!>              master_casa_params
-!>              master_intypes
-!>              master_outtypes
-!>              master_casa_types
-!>              master_restart_types
-!>              master_send_input
-!>              master_receive
-!>              master_end
+!> CALLs:
+!> - point2constants
+!> - open_met_file
+!> - load_parameters
+!> - open_output_file
+!> - get_met_data
+!> - write_output
+!> - casa_poolout
+!> - casa_fluxout
+!> - create_restart
+!> - close_met_file
+!> - close_output_file
+!> - prepareFiles
+!> - find_extents
+!> - master_decomp
+!> - master_cable_params
+!> - master_casa_params
+!> - master_intypes
+!> - master_outtypes
+!> - master_casa_types
+!> - master_restart_types
+!> - master_send_input
+!> - master_receive
+!> - master_end
 !>
-!> input  file: [SiteName].nc
-!>              poolcnpIn[SiteName].csv -- for CASA-CNP only
-!>              gridinfo_CSIRO_1x1.nc
-!>              def_veg_params.txt
-!>              def_soil_params.txt -- nearly redundant, can be switched on
-!>              restart_in.nc -- not strictly required
+!> input  file:
+!> - [SiteName].nc
+!> - poolcnpIn[SiteName].csv -- for CASA-CNP only
+!> - gridinfo_CSIRO_1x1.nc
+!> - def_veg_params.txt
+!> - def_soil_params.txt -- nearly redundant, can be switched on
+!> - restart_in.nc -- not strictly required
 !>
-!> output file: log_cable.txt
-!>              out_cable.nc
-!>              restart_out.nc
-!>              poolcnpOut.csv -- from CASA-CNP
+!> output file:
+!> - log_cable.txt
+!> - out_cable.nc
+!> - restart_out.nc
+!> - poolcnpOut.csv -- from CASA-CNP
 !
-! ==============================================================================
+!==============================================================================
+
 
 MODULE cable_mpimaster
 
@@ -84,44 +91,44 @@ MODULE cable_mpimaster
 
   PRIVATE
 
-  ! number of workers; set in master_decomp
+  !> number of workers; set in master_decomp
   INTEGER :: wnp
 
   ! TODO: m3d_t mat_t and vec_t to be factored out from here and from
   ! master_outtypes
-  ! MPI: slices of 3D arrays
+  !> MPI: slices of 3D arrays
   INTEGER, ALLOCATABLE, DIMENSION(:,:) :: m3d_t
-  ! MPI: slices of matrices (2D)
+  !> MPI: slices of matrices (2D)
   INTEGER, ALLOCATABLE, DIMENSION(:,:) :: mat_t
 
   ! MPI: parts of vectors (1D)
-  ! MPI: vec_t dimension is wnp; as each worker gets a single hindexed
-  ! with nvec blocks
+  !> MPI: vec_t dimension is wnp; as each worker gets a single hindexed
+  !> with nvec blocks
   INTEGER, ALLOCATABLE, DIMENSION(:) :: vec_t
 
-  ! MPI derived datatype handles for sending input data to the workers
+  !> MPI derived datatype handles for sending input data to the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
 
-  ! MPI derived datatype handles for receiving output from the workers
+  !> MPI derived datatype handles for receiving output from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_ts
 
-  ! MPI derived datatype handles for receiving casa results from the workers
+  !> MPI derived datatype handles for receiving casa results from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: casa_ts
 
-  ! master's struct for receiving restart data from the workers
+  !> master's struct for receiving restart data from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: restart_ts
 
-  ! MPI: isend request array for scattering input data to the workers
+  !> MPI: isend request array for scattering input data to the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_req
-  ! MPI: isend status array for scattering input data to the workers
+  !> MPI: isend status array for scattering input data to the workers
   INTEGER, ALLOCATABLE, DIMENSION(:,:) :: inp_stats
 
-  ! MPI: irecv request array for gathering results from the workers
+  !> MPI: irecv request array for gathering results from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_req
-  ! MPI: irecv status array for gathering results from the workers
+  !> MPI: irecv status array for gathering results from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:,:) :: recv_stats
 
-  ! MPI: landpoints decomposition; global info used by the master process
+  !> MPI: landpoints decomposition; global info used by the master process
   TYPE(lpdecomp_t), ALLOCATABLE, DIMENSION(:) :: wland
 
   PUBLIC :: mpidrv_master
@@ -156,7 +163,7 @@ SUBROUTINE mpidrv_master (comm)
    IMPLICIT NONE
 
    ! MPI:
-   INTEGER               :: comm ! MPI communicator for comms with the workers
+   INTEGER               :: comm !< MPI communicator for comms with the workers
 
    ! CABLE namelist: model configuration, runtime/user switches 
    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
@@ -752,7 +759,7 @@ END SUBROUTINE renameFiles
 ! ============== PRIVATE SUBROUTINES USED ONLY BY THE MPI MASTER ===============
 
 
-! MPI: calculates and sends grid decomposition info to the workers
+!> MPI: calculates and sends grid decomposition info to the workers
 SUBROUTINE master_decomp (comm, mland, mp)
 
   USE mpi
@@ -761,9 +768,9 @@ SUBROUTINE master_decomp (comm, mland, mp)
 
   IMPLICIT NONE
 
-  INTEGER, INTENT(IN)   :: comm ! MPI communicator to talk to the workers
-  INTEGER, INTENT(IN)   :: mland ! total number of landpoints in the global grid
-  INTEGER, INTENT(IN)   :: mp ! total number of land patches in the global grid
+  INTEGER, INTENT(IN)   :: comm !< MPI communicator to talk to the workers
+  INTEGER, INTENT(IN)   :: mland !< total number of landpoints in the global grid
+  INTEGER, INTENT(IN)   :: mp !< total number of land patches in the global grid
 
   INTEGER :: lpw  ! average number of landpoints per worker
   INTEGER :: rank, rest, nxt, pcnt, ierr, i, tmp
@@ -843,10 +850,10 @@ SUBROUTINE master_decomp (comm, mland, mp)
 END SUBROUTINE master_decomp
 
 
-! MPI: creates param_t type for the master to scatter the default parameters
-! to the workers
-! then sends the parameters
-! and finally frees the MPI type
+!> MPI: creates param_t type for the master to scatter the default parameters
+!> to the workers
+!> then sends the parameters
+!> and finally frees the MPI type
 SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
                                 rough,rad,sum_flux,bal)
 
@@ -861,7 +868,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ! subroutine arguments
 
-  INTEGER, INTENT(IN) :: comm ! MPI communicator
+  INTEGER, INTENT(IN) :: comm !< MPI communicator
 
   TYPE (met_type), INTENT(INOUT) :: met
   TYPE (air_type), INTENT(INOUT) :: air
@@ -2360,10 +2367,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 END SUBROUTINE master_cable_params
 
 
-! MPI: creates casa_ts types to broadcast/scatter the default casa parameters
-! to all the workers
-! then sends them
-! and finally frees the MPI type
+!> MPI: creates casa_ts types to broadcast/scatter the default casa parameters
+!> to all the workers
+!> then sends them
+!> and finally frees the MPI type
 SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
                                casabal,phen)
 
@@ -2377,7 +2384,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   IMPLICIT NONE
 
   ! sub arguments
-  INTEGER, INTENT(IN) :: comm  ! MPI communicator
+  INTEGER, INTENT(IN) :: comm  !< MPI communicator
 
   ! TODO: have these variables been already allocated?
   TYPE (casa_biome)   , INTENT(INOUT) :: casabiome
@@ -3479,9 +3486,9 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 END SUBROUTINE master_casa_params
 
 
-! MPI: creates inp_t types to send input data to the workers
-! input data means arrays read by get_met_data; each worker receives
-! only its own slice of the arrays
+!> MPI: creates inp_t types to send input data to the workers
+!> input data means arrays read by get_met_data; each worker receives
+!> only its own slice of the arrays
 SUBROUTINE master_intypes (comm,met,veg)
 
   USE mpi
@@ -3492,8 +3499,8 @@ SUBROUTINE master_intypes (comm,met,veg)
   
   ! Arguments
   INTEGER,INTENT(IN) :: comm
-  TYPE(met_type),INTENT(IN):: met ! meteorological data
-  TYPE(veg_parameter_type),INTENT(IN) :: veg ! LAI retrieved from file
+  TYPE(met_type),INTENT(IN):: met !< meteorological data
+  TYPE(veg_parameter_type),INTENT(IN) :: veg !< LAI retrieved from file
 
   ! Local variables
 
@@ -3664,7 +3671,7 @@ SUBROUTINE master_intypes (comm,met,veg)
 
 END SUBROUTINE master_intypes
 
-! MPI: creates out_t types to receive the results from the workers
+!> MPI: creates out_t types to receive the results from the workers
 SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
   USE mpi
@@ -3673,7 +3680,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
   IMPLICIT NONE
 
-  INTEGER :: comm ! MPI communicator to talk to the workers
+  INTEGER :: comm !< MPI communicator to talk to the workers
 
   TYPE(met_type), INTENT(IN) :: met
   TYPE(canopy_type), INTENT(IN) :: canopy
@@ -3681,8 +3688,8 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   TYPE(radiation_type), INTENT(IN) :: rad
   TYPE (balances_type),INTENT(INOUT):: bal 
   TYPE (air_type),INTENT(IN)        :: air
-  TYPE (soil_parameter_type),INTENT(IN) :: soil ! soil parameters
-  TYPE (veg_parameter_type),INTENT(IN) :: veg ! vegetation parameters
+  TYPE (soil_parameter_type),INTENT(IN) :: soil !< soil parameters
+  TYPE (veg_parameter_type),INTENT(IN) :: veg !< vegetation parameters
 
   ! MPI: displacement (address) vector for vectors (1D arrays)
   INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: vaddr
@@ -4922,7 +4929,7 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   RETURN
 END SUBROUTINE master_outtypes
 
-! MPI: creates handles for receiving casa final results from the workers
+!> MPI: creates handles for receiving casa final results from the workers
 SUBROUTINE master_casa_types (comm, casapool, casaflux, &
                               casamet, casabal, phen)
 
@@ -4935,7 +4942,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
   IMPLICIT NONE
 
-  INTEGER :: comm ! MPI communicator to talk to the workers
+  INTEGER :: comm !< MPI communicator to talk to the workers
 
   TYPE (casa_pool),           INTENT(INOUT) :: casapool
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
@@ -5262,7 +5269,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
 END SUBROUTINE master_casa_types
 
-! MPI: creates datatype handles to receive restart data from workers
+!> MPI: creates datatype handles to receive restart data from workers
 SUBROUTINE master_restart_types (comm, canopy, air)
 
   USE mpi
@@ -5273,7 +5280,7 @@ SUBROUTINE master_restart_types (comm, canopy, air)
 
   IMPLICIT NONE
 
-  INTEGER :: comm ! MPI communicator to talk to the workers
+  INTEGER :: comm !< MPI communicator to talk to the workers
 
   TYPE(canopy_type), INTENT(IN) :: canopy
   TYPE (air_type),INTENT(IN)        :: air
@@ -5449,7 +5456,7 @@ SUBROUTINE master_restart_types (comm, canopy, air)
   RETURN
 END SUBROUTINE master_restart_types
 
-! MPI: scatters input data for timestep ktau to all workers
+!> MPI: scatters input data for timestep ktau to all workers
 SUBROUTINE master_send_input (comm, dtypes, ktau)
 
   USE mpi
@@ -5458,7 +5465,7 @@ SUBROUTINE master_send_input (comm, dtypes, ktau)
 
   INTEGER, INTENT(IN) :: comm
   INTEGER, DIMENSION(:), INTENT(IN) :: dtypes
-  INTEGER, INTENT(IN) :: ktau    ! timestep
+  INTEGER, INTENT(IN) :: ktau    !< timestep
 
   INTEGER :: rank, ierr
 
@@ -5481,8 +5488,8 @@ SUBROUTINE master_send_input (comm, dtypes, ktau)
 
 END SUBROUTINE master_send_input
 
-! receives model output variables from the workers for a single timestep
-! uses the timestep value as the message tag
+!> receives model output variables from the workers for a single timestep
+!> uses the timestep value as the message tag
 SUBROUTINE master_receive(comm, ktau, types)
 
   USE mpi
@@ -5490,8 +5497,8 @@ SUBROUTINE master_receive(comm, ktau, types)
   IMPLICIT NONE
 
   INTEGER, INTENT(IN) :: comm
-  INTEGER, INTENT(IN) :: ktau    ! timestep
-  ! array with MPI datatype handles for receiving
+  INTEGER, INTENT(IN) :: ktau    !< timestep
+  !> array with MPI datatype handles for receiving
   INTEGER, DIMENSION(:), INTENT(IN) :: types
 
   ! local vars
@@ -5530,15 +5537,15 @@ END SUBROUTINE master_receive
 !END SUBROUTINE receive_restart
 
 
-! frees memory used for data structures specific to the master
+!> frees memory used for data structures specific to the master
 SUBROUTINE master_end (icycle, restart)
 
   USE mpi
 
   IMPLICIT NONE
 
-  INTEGER :: icycle ! casa flag
-  LOGICAL :: restart ! restart flag
+  INTEGER :: icycle !< casa flag
+  LOGICAL :: restart !< restart flag
 
   INTEGER :: rank, i, ierr
 

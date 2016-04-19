@@ -33,10 +33,10 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
    IMPLICIT NONE
 
    REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS,um1%NTILES) ::                    &
-      SNOW_TILE   ! IN Lying snow on tiles (kg/m2)        
+      SNOW_TILE   !< IN Lying snow on tiles (kg/m2)        
 
    REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) ::                               &
-      LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
+      LYING_SNOW,    & !< OUT Gridbox snowmass (kg/m2)        
       SUB_SURF_ROFF, & !
       SURF_ROFF,     & !
       TOT_TFALL        !
@@ -47,7 +47,7 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
 
    ! Lestevens 25sep13 - water balance fix for lakes
    REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
-      WB_LAKE         ! unpack CABLE wb_lake
+      WB_LAKE         !< unpack CABLE wb_lake
 
    REAL :: miss =0. 
    REAL, POINTER :: TFRZ

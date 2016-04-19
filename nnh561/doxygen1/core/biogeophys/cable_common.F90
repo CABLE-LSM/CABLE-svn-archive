@@ -26,21 +26,21 @@
 MODULE cable_common_module
    IMPLICIT NONE 
 
-   !---allows reference to "gl"obal timestep in run (from atm_step)
-   !---total number of timesteps, and processing node 
+   !> allows reference to "gl"obal timestep in run (from atm_step)
+   !> total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
    
-   ! set from environment variable $HOME
+   !> set from environment variable $HOME
    CHARACTER(LEN=200) ::                                                       & 
       myhome
 
    ! switch to calc sil albedo using soil colour - Ticket #27
    LOGICAL :: calcsoilalbedo = .FALSE. 
    !---Lestevens Sept2012
-   !---CASACNP switches and cycle index
+   !> CASACNP switches and cycle index
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
    
-   !---CABLE runtime switches def in this type
+   !> CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
@@ -49,7 +49,7 @@ MODULE cable_common_module
 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
-   !---CABLE runtime switches def in this type
+   !> CABLE runtime switches def in this type
    TYPE kbl_user_switches
       !jhan: this is redundant now we all use filename%veg?
       CHARACTER(LEN=200) ::                                                    &
@@ -67,8 +67,8 @@ MODULE cable_common_module
       
       CHARACTER(LEN=3) ::                                                      &
          SSNOW_POTEV,      & !
-         DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
-         LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
+         DIAG_SOIL_RESP,   & !< either ON or OFF (jhan:Make Logical) 
+         LEAF_RESPIRATION    !< either ON or OFF (jhan:Make Logical) 
 
       ! Custom soil respiration - see Ticket #42
       CHARACTER(LEN=10) ::                                                     &
@@ -93,22 +93,22 @@ MODULE cable_common_module
 
    TYPE(kbl_user_switches), SAVE :: cable_user
 
-   ! external files read/written by CABLE
+   !> external files read/written by CABLE
    TYPE filenames_type
 
    CHARACTER(LEN=500) ::                                                        &
-      met,        & ! name of file for CABLE input
-      out,        & ! name of file for CABLE output
-      log,        & ! name of file for execution log
-      restart_in, & ! name of restart file to read
-      restart_out,& ! name of restart file to read
-      LAI,        & ! name of file for default LAI
-      type,       & ! file for default veg/soil type
-      veg,        & ! file for vegetation parameters
-      soil,       & ! name of file for soil parameters
-      soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
-      inits,      & ! name of file for initialisations
-      soilIGBP      ! name of file for IGBP soil map
+      met,        & !< name of file for CABLE input
+      out,        & !< name of file for CABLE output
+      log,        & !< name of file for execution log
+      restart_in, & !< name of restart file to read
+      restart_out,& !< name of restart file to read
+      LAI,        & !< name of file for default LAI
+      type,       & !< file for default veg/soil type
+      veg,        & !< file for vegetation parameters
+      soil,       & !< name of file for soil parameters
+      soilcolor,  & !< file for soil color(soilcolor_global_1x1.nc)
+      inits,      & !< name of file for initialisations
+      soilIGBP      !< name of file for IGBP soil map
 
    END TYPE filenames_type
 
@@ -116,14 +116,14 @@ MODULE cable_common_module
 
    ! hydraulic_redistribution switch _soilsnow module
    LOGICAL ::                                                                  &
-      redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
+      redistrb = .FALSE.  !< Turn on/off the hydraulic redistribution
    
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam=0.5, satuParam=0.8
 
 
-   ! soil parameters read from file(filename%soil def. in cable.nml)
-   ! & veg parameters read from file(filename%veg def. in cable.nml)
+   !> soil parameters read from file(filename%soil def. in cable.nml)
+   !> & veg parameters read from file(filename%veg def. in cable.nml)
    TYPE soilin_type
 
       REAL, DIMENSION(:),ALLOCATABLE ::                                        &
@@ -193,8 +193,8 @@ MODULE cable_common_module
    END TYPE vegin_type
 
    CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
-      veg_desc,   & ! decriptions of veg type
-      soil_desc     ! decriptns of soil type 
+      veg_desc,   & !< decriptions of veg type
+      soil_desc     !< decriptns of soil type 
 
    TYPE(soilin_type), SAVE  :: soilin
    TYPE(vegin_type),  SAVE  :: vegin
@@ -208,25 +208,24 @@ MODULE cable_common_module
 CONTAINS
 
 
+!> Gets parameter values for each vegetation type and soil type.
 SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
-
-   ! Gets parameter values for each vegetation type and soil type.
    
    USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, mstype, nrb 
 
-   INTEGER,INTENT(IN) :: logn     ! log file unit number
+   INTEGER,INTENT(IN) :: logn     !< log file unit number
    
    CHARACTER(LEN=4), INTENT(INOUT), OPTIONAL :: classification
    
-   LOGICAL,INTENT(IN)      :: vegparmnew ! new format input file 
+   LOGICAL,INTENT(IN)      :: vegparmnew !< new format input file 
    
    CHARACTER(LEN=80) :: comments 
    CHARACTER(LEN=10) :: vegtypetmp                   
    CHARACTER(LEN=25) :: vegnametmp                   
    
    REAL    :: notused                           
-   INTEGER :: ioerror ! input error integer
-   INTEGER :: a, jveg ! do loop counter
+   INTEGER :: ioerror !< input error integer
+   INTEGER :: a, jveg !< do loop counter
 
 
  
@@ -435,14 +434,14 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 END SUBROUTINE get_type_parameters
 
 
-! get svn revision number and status
+!> get svn revision number and status
 SUBROUTINE report_version_no( logn )
    INTEGER, INTENT(IN) :: logn
    ! set from environment variable $HOME
    CHARACTER(LEN=200) ::                                                       & 
-      myhome,       & ! $HOME (POSIX) environment/shell variable
-      fcablerev,    & ! recorded svn revision number at build time
-      icable_status   ! recorded svn STATUS at build time (ONLY 200 chars of it)
+      myhome,       & !< $HOME (POSIX) environment/shell variable
+      fcablerev,    & !< recorded svn revision number at build time
+      icable_status   !< recorded svn STATUS at build time (ONLY 200 chars of it)
 
    
    INTEGER :: icable_rev, ioerror

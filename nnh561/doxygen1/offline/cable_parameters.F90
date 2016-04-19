@@ -10,46 +10,50 @@
 !
 ! ==============================================================================
 !
-!> Purpose:       This module file reads default parameter sets and basic
-!>                initialisations for CABLE. Parameters values are chosen based
-!>                on a global map of vegetation and soil types, currently based
-!>                on a 1x1-degree grid for offline case and host-model grid for
-!>                online case. Default initialisations are obtained from monthly
-!>                climatology in GSWP and Mk3L runs for offline and online
-!>                respectively.
+!> \file
+!> Purpose: This module file reads default parameter sets and basic
+!>          initialisations for CABLE. Parameters values are chosen based
+!>          on a global map of vegetation and soil types, currently based
+!>          on a 1x1-degree grid for offline case and host-model grid for
+!>          online case. Default initialisations are obtained from monthly
+!>          climatology in GSWP and Mk3L runs for offline and online
+!>          respectively.
 !>
 !> Contact: Bernard.Pak@csiro.au
 !>
-!> History: Changes since v1.4b for global offline (GSWP) cases, read in new
-!>          input files
-!>          Two subroutines moved to cable_common (reading veg and soil parameter
-!>          files)
-!>          Addition of code for CASA-CNP
+!> History:
+!> - Changes since v1.4b for global offline (GSWP) cases, read in new
+!>   input files
+!> - Two subroutines moved to cable_common (reading veg and soil parameter
+!>   files)
+!> - Addition of code for CASA-CNP
 !>
 !> ==============================================================================
 !>
 !> CALLed from:   cable_input.F90
 !>
-!> MODULEs used:  cable_abort_module
-!>                cable_common_module
-!>                cable_def_types_mod
-!>                casadimension
-!>                casaparm
-!>                cable_IO_vars_module
-!>                phenvariable
-!>                physical_constants
-!>                netcdf
+!> MODULEs used:
+!> - cable_abort_module
+!> - cable_common_module
+!> - cable_def_types_mod
+!> - casadimension
+!> - casaparm
+!> - cable_IO_vars_module
+!> - phenvariable
+!> - physical_constants
+!> - netcdf
 !>
-!> CALLs:         get_default_params
-!>                read_gridinfo
-!>                spatialSoil
-!>                NSflip
-!>                countPatch
-!>                write_default_params
-!>                write_cnp_params
-!>                derived_parameters
-!>                check_parameter_values
-!>                report_parameters
+!> CALLs:
+!> - get_default_params
+!> - read_gridinfo
+!> - spatialSoil
+!> - NSflip
+!> - countPatch
+!> - write_default_params
+!> - write_cnp_params
+!> - derived_parameters
+!> - check_parameter_values
+!> - report_parameters
 !
 ! ==============================================================================
 
@@ -66,8 +70,8 @@ MODULE cable_param_module
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
          check_parameter_values, report_parameters, parID_type,                &
          write_cnp_params
-  INTEGER :: patches_in_parfile=4 ! # patches in default global parameter
-                                       ! file
+  INTEGER :: patches_in_parfile=4 !< number of patches in default globalr
+                                  !< parameter file
 
   CHARACTER(LEN=4)  :: classification
 
@@ -108,19 +112,19 @@ MODULE cable_param_module
 
 CONTAINS
 
+  !> Load parameters for each veg type and each soil type. (get_type_parameters)
+  !> Also read in initial information for each grid point. (read_gridinfo)
+  !> Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
+  !>
+  !> New input structure using netcdf and introduced 'month' to initialize
+  !> soil profiles with the correct monthly average values (BP apr2010)
   SUBROUTINE get_default_params(logn, vegparmnew)
     use cable_common_module, only : get_type_parameters, filename,             &
                                     calcsoilalbedo
-  ! Load parameters for each veg type and each soil type. (get_type_parameters)
-  ! Also read in initial information for each grid point. (read_gridinfo)
-  ! Count to obtain 'landpt', 'max_vegpatches' and 'mp'. (countPatch)
-  !
-  ! New input structure using netcdf and introduced 'month' to initialize
-  ! soil profiles with the correct monthly average values (BP apr2010)
 
     IMPLICIT NONE
-    INTEGER, INTENT(IN) :: logn     ! log file unit number
-    LOGICAL,      INTENT(IN) :: vegparmnew ! new format input file (BP dec2007)
+    INTEGER, INTENT(IN) :: logn     !< log file unit number
+    LOGICAL,      INTENT(IN) :: vegparmnew !< new format input file (BP dec2007)
 
     ! local variables
     INTEGER :: npatch
@@ -150,39 +154,41 @@ CONTAINS
     CALL countPatch(nlon, nlat, npatch)
 
   END SUBROUTINE get_default_params
+
   !=============================================================================
+
+  !> Reads in veg type, patch fraction, soil type, soil moisture and temperature
+  !> profiles; also grid area and nutrients
+  !>
+  !> Input variables:
+  !> - filename%type  - via cable_IO_vars_module
+  !> - classification - via cable_param_module
+  !> Output variables:
+  !> - nlon           - # longitudes in input data set
+  !> - nlat           - # latitudes  in input data set
+  !> - npatch         - # patches in each grid from input data set
+  !> - inVeg          - via cable_param_module
+  !> - inPFrac        - via cable_param_module
+  !> - inSoil         - via cable_param_module
+  !> - inWB           - via cable_param_module
+  !> - inTGG          - via cable_param_module
+  !> - inLon          - via cable_param_module
+  !> - inLat          - via cable_param_module
+  !> - inALB          - via cable_param_module
+  !> - inSND          - via cable_param_module
+  !> - inLAI          - via cable_param_module
+  !>
+  !> New input structure using netcdf and introduced 'month' to initialize
+  !> soil profiles with the correct monthly average values (BP apr2010)
   SUBROUTINE read_gridinfo(nlon, nlat, npatch)
-  ! Reads in veg type, patch fraction, soil type, soil moisture and temperature
-  ! profiles; also grid area and nutrients
-  !
-  ! Input variables:
-  !   filename%type  - via cable_IO_vars_module
-  !   classification - via cable_param_module
-  ! Output variables:
-  !   nlon           - # longitudes in input data set
-  !   nlat           - # latitudes  in input data set
-  !   npatch         - # patches in each grid from input data set
-  !   inVeg          - via cable_param_module
-  !   inPFrac        - via cable_param_module
-  !   inSoil         - via cable_param_module
-  !   inWB           - via cable_param_module
-  !   inTGG          - via cable_param_module
-  !   inLon          - via cable_param_module
-  !   inLat          - via cable_param_module
-  !   inALB          - via cable_param_module
-  !   inSND          - via cable_param_module
-  !   inLAI          - via cable_param_module
-  !
-  ! New input structure using netcdf and introduced 'month' to initialize
-  ! soil profiles with the correct monthly average values (BP apr2010)
 
     USE netcdf
     use cable_common_module, only : filename
       
     IMPLICIT NONE
-    INTEGER, INTENT(OUT) :: nlon
-    INTEGER, INTENT(OUT) :: nlat
-    INTEGER, INTENT(OUT) :: npatch
+    INTEGER, INTENT(OUT) :: nlon   !< # longitudes in input data set
+    INTEGER, INTENT(OUT) :: nlat   !< # latitudes  in input data set
+    INTEGER, INTENT(OUT) :: npatch !< # patches in each grid from input data set
 
     ! local variables
     INTEGER :: ncid, ok
@@ -360,36 +366,38 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
 
   END SUBROUTINE read_gridinfo
+
   !============================================================================
+
+  !> Read in spatially-specific soil properties including snow-free albedo
+  !> plus soil texture; all these from UM ancilliary file
+  !>
+  !> Input variables:
+  !> - nlon,nlat         - # longitudes and latitudes in the previous input file
+  !> - filename%soilIGBP - via cable_IO_vars_module
+  !> Output variables:
+  !> - inswilt   - via cable_param_module
+  !> - insfc     - via cable_param_module
+  !> - inssat    - via cable_param_module
+  !> - inbch     - via cable_param_module
+  !> - inhyds    - via cable_param_module
+  !> - insucs    - via cable_param_module
+  !> - inrhosoil - via cable_param_module
+  !> - incss     - via cable_param_module
+  !> - incnsd    - via cable_param_module
+  !> - inclay    - via cable_param_module
+  !> - insilt    - via cable_param_module
+  !> - insand    - via cable_param_module
+  !> - inALB     - via cable_param_module
   SUBROUTINE spatialSoil(nlon, nlat, logn)
-  ! Read in spatially-specific soil properties including snow-free albedo
-  ! plus soil texture; all these from UM ancilliary file
-  !
-  ! Input variables:
-  !   nlon,nlat         - # longitudes and latitudes in the previous input file
-  !   filename%soilIGBP - via cable_IO_vars_module
-  ! Output variables:
-  !   inswilt   - via cable_param_module
-  !   insfc     - via cable_param_module
-  !   inssat    - via cable_param_module
-  !   inbch     - via cable_param_module
-  !   inhyds    - via cable_param_module
-  !   insucs    - via cable_param_module
-  !   inrhosoil - via cable_param_module
-  !   incss     - via cable_param_module
-  !   incnsd    - via cable_param_module
-  !   inclay    - via cable_param_module
-  !   insilt    - via cable_param_module
-  !   insand    - via cable_param_module
-  !   inALB     - via cable_param_module
 
     USE netcdf
     use cable_common_module, only : filename
       
     IMPLICIT NONE
-    INTEGER, INTENT(IN) :: nlon
-    INTEGER, INTENT(IN) :: nlat
-    INTEGER, INTENT(IN) :: logn ! log file unit number
+    INTEGER, INTENT(IN) :: nlon !< # longitudes in the previous input file
+    INTEGER, INTENT(IN) :: nlat !< # latitudes in the previous input file
+    INTEGER, INTENT(IN) :: logn !< log file unit number
 
     ! local variables
     INTEGER :: ncid, ok, ii, jj
@@ -601,17 +609,20 @@ CONTAINS
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
 
   END SUBROUTINE spatialSoil
+
   !=============================================================================
-  !subr to read soil color for albed o calc - Ticket #27
+
+  !> Read soil color
+  !>
+  !> Input variables:
+  !> - filename%soilcolor  - via cable_IO_vars_module
+  !> Output variables:
+  !> - soilcol    - via cable_param_module
+  !>
+  !> New input structure using netcdf
+  !>
+  !> subr to read soil color for albed o calc - Ticket #27
   SUBROUTINE read_soilcolor(logn)
-  ! Read soil color
-  !
-  ! Input variables:
-  !   filename%soilcolor  - via cable_IO_vars_module
-  ! Output variables:
-  !   soilcol    - via cable_param_module
-  !
-  ! New input structure using netcdf
 
     USE netcdf
     USE cable_common_module, ONLY : filename, calcsoilalbedo
@@ -620,7 +631,7 @@ CONTAINS
     IMPLICIT NONE
     ! INTEGER, DIMENSION(:), INTENT(INOUT) :: soilcol
     ! TYPE (soil_parameter_type), INTENT(OUT) :: soil
-    INTEGER, INTENT(IN) ::  logn ! log file unit number
+    INTEGER, INTENT(IN) ::  logn !< log file unit number
 
     ! local variables  
     ! INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
@@ -684,7 +695,9 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing soil color file.')
 
   END SUBROUTINE read_soilcolor
+
   !=============================================================================
+
   SUBROUTINE NSflip(nlon, nlat, invar)
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon
@@ -703,25 +716,27 @@ CONTAINS
     invar(:, :) = rdummy(:, :)
 
   END SUBROUTINE NSflip
+
   !=============================================================================
+  
+  !> count the total number of active patches and
+  !> fill the index variable 'landpt'
+  !>
+  !> Input variables:
+  !> - nlon           - # longitudes in input data set
+  !> - nlat           - # latitudes  in input data set
+  !> - npatch         - # patches in each grid from input data set
+  !> - inLon          - via cable_param_module
+  !> - inLat          - via cable_param_module
+  !> - longitude      - via cable_IO_vars_module, dim(mland), not patches
+  !> - latitude       - via cable_IO_vars_module, dim(mland), not patches
+  !> - nmetpatches    - via cable_IO_vars_module
+  !> - vegtype_metfile - via cable_IO_vars_module, dim(mland,nmetpatches)
+  !> - soiltype_metfile- via cable_IO_vars_module, dim(mland,nmetpatches)
+  !> Output variables:
+  !> - max_vegpatches - via cable_IO_vars_module
+  !> - landpt%type    - via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   SUBROUTINE countPatch(nlon, nlat, npatch)
-  ! count the total number of active patches and
-  ! fill the index variable 'landpt'
-  !
-  ! Input variables:
-  !   nlon           - # longitudes in input data set
-  !   nlat           - # latitudes  in input data set
-  !   npatch         - # patches in each grid from input data set
-  !   inLon          - via cable_param_module
-  !   inLat          - via cable_param_module
-  !   longitude      - via cable_IO_vars_module, dim(mland), not patches
-  !   latitude       - via cable_IO_vars_module, dim(mland), not patches
-  !   nmetpatches    - via cable_IO_vars_module
-  !   vegtype_metfile - via cable_IO_vars_module, dim(mland,nmetpatches)
-  !   soiltype_metfile- via cable_IO_vars_module, dim(mland,nmetpatches)
-  ! Output variables:
-  !   max_vegpatches - via cable_IO_vars_module
-  !   landpt%type    - via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
 
     IMPLICIT NONE
     INTEGER, INTENT(IN) :: nlon, nlat, npatch
@@ -809,36 +824,38 @@ CONTAINS
     PRINT *, 'Total number of patches (countPatch): ', ncount
 
   END SUBROUTINE countPatch
+
   !=============================================================================
+
+  !> Initialize many canopy_type, soil_snow_type, soil_parameter_type and
+  !> roughness_type variables;
+  !> Calculate 'froot' from 'rootbeta' parameter;
+  !> Assign values from input file to their proper variables in soil_snow_type,
+  !> soil_parameter_type, veg_parameter_type and patch_type;
+  !> Prescribe parameters for each point based on its veg/soil type.
+  !>
+  !> New input structure using netcdf and introduced 'month' to initialize
+  !> soil profiles with the correct monthly average values (BP apr2010)
+  !>
+  !> Input variables:
+  !> - longitude      - via cable_IO_vars_module, dim(mland), not patches
+  !> - latitude       - via cable_IO_vars_module, dim(mland), not patches
+  !> - nmetpatches    - via cable_IO_vars_module
+  !> - vegtype_metfile - via cable_IO_vars_module, dim(mland,nmetpatches)
+  !> - soiltype_metfile- via cable_IO_vars_module, dim(mland,nmetpatches)
+  !> Output variables:
+  !> - max_vegpatches - via cable_IO_vars_module
+  !> - landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
+  !> - patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
   SUBROUTINE write_default_params(met,  air,    ssnow, veg, bgc,               &
                                   soil, canopy, rough, rad, logn,              &
                                   vegparmnew, month, TFRZ)
-  ! Initialize many canopy_type, soil_snow_type, soil_parameter_type and
-  ! roughness_type variables;
-  ! Calculate 'froot' from 'rootbeta' parameter;
-  ! Assign values from input file to their proper variables in soil_snow_type,
-  ! soil_parameter_type, veg_parameter_type and patch_type;
-  ! Prescribe parameters for each point based on its veg/soil type.
-  !
-  ! New input structure using netcdf and introduced 'month' to initialize
-  ! soil profiles with the correct monthly average values (BP apr2010)
-  !
-  ! Input variables:
-  !   longitude      - via cable_IO_vars_module, dim(mland), not patches
-  !   latitude       - via cable_IO_vars_module, dim(mland), not patches
-  !   nmetpatches    - via cable_IO_vars_module
-  !   vegtype_metfile - via cable_IO_vars_module, dim(mland,nmetpatches)
-  !   soiltype_metfile- via cable_IO_vars_module, dim(mland,nmetpatches)
-  ! Output variables:
-  !   max_vegpatches - via cable_IO_vars_module
-  !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
-  !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
     USE cable_common_module, only : vegin, soilin, calcsoilalbedo
     IMPLICIT NONE
-    INTEGER,               INTENT(IN)    :: logn  ! log file unit number
-    INTEGER,               INTENT(IN)    :: month ! month of year
-    LOGICAL,                    INTENT(IN)    :: vegparmnew ! new format input
+    INTEGER,               INTENT(IN)    :: logn  !< log file unit number
+    INTEGER,               INTENT(IN)    :: month !< month of year
+    LOGICAL,                    INTENT(IN)    :: vegparmnew !< new format input
     REAL,                       INTENT(IN)    :: TFRZ
     TYPE (met_type),            INTENT(INOUT) :: met
     TYPE (air_type),            INTENT(INOUT) :: air
@@ -1053,8 +1070,8 @@ CONTAINS
           veg%extkn(h)    = vegin%extkn(veg%iveg(h))
           veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
           veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
-          veg%g0(h)       = vegin%g0(veg%iveg(h)) ! Ticket #56
-          veg%g1(h)       = vegin%g1(veg%iveg(h)) ! Ticket #56
+          veg%g0(h)       = vegin%g0(veg%iveg(h)) !< Ticket #56
+          veg%g1(h)       = vegin%g1(veg%iveg(h)) !< Ticket #56
           veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
           veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
           veg%alpha(h)  = vegin%alpha(veg%iveg(h))
@@ -1167,17 +1184,19 @@ CONTAINS
     END WHERE
 
   END SUBROUTINE write_default_params
+
   !=============================================================================
+
+  !> Input variables:
+  !> - landpt(mp)%type- via cable_IO_vars_module (%cstart,cend,ilon,ilat)
+  !> - patch(mp)%type - via cable_IO_vars_module (%frac)
+  !> - inSorder       - via cable_param_module
+  !> - inArea         - via cable_param_module
+  !> - inNdep         - via cable_param_module
+  !> - inNfix         - via cable_param_module
+  !> - inPdust        - via cable_param_module
+  !> - inPwea         - via cable_param_module
   SUBROUTINE write_cnp_params(veg, casaflux, casamet)
-  ! Input variables:
-  !   landpt(mp)%type- via cable_IO_vars_module (%cstart,cend,ilon,ilat)
-  !   patch(mp)%type - via cable_IO_vars_module (%frac)
-  !   inSorder       - via cable_param_module
-  !   inArea         - via cable_param_module
-  !   inNdep         - via cable_param_module
-  !   inNfix         - via cable_param_module
-  !   inPdust        - via cable_param_module
-  !   inPwea         - via cable_param_module
 
     USE casaparm, ONLY: cropland, croplnd2
     IMPLICIT NONE
@@ -1217,9 +1236,11 @@ CONTAINS
     DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust)
 
   END SUBROUTINE write_cnp_params
+
   !============================================================================
+
+  !> Gives values to parameters that are derived from other parameters.
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
-    ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
@@ -1292,14 +1313,16 @@ CONTAINS
     bal%osnowd0 = ssnow%osnowd
 
   END SUBROUTINE derived_parameters
+
   !============================================================================
+
+  !> Checks for basic inconsistencies in parameter values
   SUBROUTINE check_parameter_values(soil, veg, ssnow)
-    ! Checks for basic inconsistencies in parameter values
-    TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameter data
-    TYPE (veg_parameter_type),  INTENT(IN)    :: veg   ! vegetation parameter
-                                                       ! data
-    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow
-                                                       ! variables
+    TYPE (soil_parameter_type), INTENT(IN)    :: soil  !< soil parameter data
+    TYPE (veg_parameter_type),  INTENT(IN)    :: veg   !< vegetation parameter
+                                                       !< data
+    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow !< soil and snow
+                                                       !< variables
     INTEGER :: i, j ! do loop counter
 
     DO i = 1, mland
@@ -1405,16 +1428,18 @@ CONTAINS
     END DO
 
   END SUBROUTINE check_parameter_values
+
 !===============================================================================
+
 SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
                                ssnow, canopy, casamet, casapool, casaflux,     &
                                phen, vegparmnew, verbose )
    USE cable_common_module, ONLY : veg_desc, soil_desc 
    IMPLICIT NONE
-   INTEGER,      INTENT(IN)  :: logn        ! log file unit number
-   LOGICAL,      INTENT(IN)  :: vegparmnew  ! are we using the new format?
-   LOGICAL,      INTENT(IN)  :: verbose     ! write all parameter details to
-                                            ! log file?
+   INTEGER,      INTENT(IN)  :: logn        !< log file unit number
+   LOGICAL,      INTENT(IN)  :: vegparmnew  !< are we using the new format?
+   LOGICAL,      INTENT(IN)  :: verbose     !< write all parameter details to
+                                            !< log file?
    TYPE (soil_parameter_type), INTENT(IN)  :: soil
    TYPE (veg_parameter_type),  INTENT(IN)  :: veg
    TYPE (bgc_pool_type),       INTENT(IN)  :: bgc

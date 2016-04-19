@@ -60,7 +60,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
   IMPLICIT NONE
   REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xnplimit
   REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xNPuptake
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
@@ -165,23 +165,26 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 END SUBROUTINE casa_xnp
 
 
+!> compute fraction of net photosynthate allocated to leaf, wood and froot
+!>
+!> inputs
+!> - moistavg(mp)           as an argument (volume fraction)
+!> - tsoilavg(mp)           as an argument (K)
+!> - btran(mp)              as an argument (dimensionless)
+!>
+!> outputs:
+!> - fracCalloc(mp,mplant1)  
+!>
+!> modified Piere's alocation scheme 
+!>
+!> input:
+!> - leaf stage 
+!> - leaf area
 SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
-! compute fraction of net photosynthate allocated to leaf, wood and froot
-!
-! inputs
-!   moistavg(mp)           as an argument (volume fraction)
-!   tsoilavg(mp)           as an argument (K)
-!   btran(mp)              as an argument (dimensionless)
-! outputs:
-!   fracCalloc(mp,mplant1)  
-!
-! modified Piere's alocation scheme 
-! input: leaf stage 
-!        leaf area
 
   IMPLICIT NONE
-  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters  
+  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type), INTENT(INOUT) :: soil !< soil parameters  
   TYPE (casa_biome),          INTENT(INOUT) :: casabiome
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   TYPE (casa_met),            INTENT(INOUT) :: casamet
@@ -308,20 +311,20 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
 END SUBROUTINE casa_allocation  
 
 
+!> maintenance respiration of woody tisse and fineroots 
+!> see Sitch et al. (2003), GCB, reqn (23)
 SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
-! maintenance respiration of woody tisse and fineroots 
-! see Sitch et al. (2003), GCB, reqn (23)
 
   IMPLICIT NONE
-  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),          INTENT(INOUT) :: casabiome
   TYPE (casa_pool),           INTENT(INOUT) :: casapool
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   TYPE (casa_met),            INTENT(INOUT) :: casamet
   INTEGER :: npt
 
-  real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
-  real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
+  real(r_2), dimension(mp)        :: Ygrow        !< growth efficiency Q.Zhang 22/02/2011
+  real(r_2), dimension(mp,mplant) :: ratioPNplant !< Q.Zhang 22/02/2011
 
   ratioPNplant = 0.0
   Ygrow        = 0.0
@@ -378,24 +381,26 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 END SUBROUTINE casa_rplant
 
 
+!> use xleafcold and xleafdry to account for
+!> cold and drought stress on death rate of leaf
+!>
+!> inputs:
+!> - ivt(mp)  :       biome type
+!> - phase(mp):       leaf growth stage
+!> - tairk(mp)    :   air temperature in K
+!>
+!> outputs
+!> - xkleafcold(mp):  cold stress induced leaf senescence rate (1/day)
+!> - xkleafdry(mp):   drought-induced leaf senescence rate (1/day)
+!> - xkleaf(mp):      set to 0.0 during maximal leaf growth phase
 SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                            casamet,phen)
-! use xleafcold and xleafdry to account for
-! cold and drought stress on death rate of leaf
-! inputs:
-!     ivt(mp)  :       biome type
-!     phase(mp):       leaf growth stage
-!     tairk(mp)    :   air temperature in K
-! outputs
-!     xkleafcold(mp):  cold stress induced leaf senescence rate (1/day)
-!     xkleafdry(mp):   drought-induced leaf senescence rate (1/day)
-!     xkleaf(mp):      set to 0.0 during maximal leaf growth phase
 
   IMPLICIT NONE
-  REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xkleafcold
-  REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xkleafdry
-  REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xkleaf
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xkleafcold !< cold stress induced leaf senescence rate (1/day)
+  REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xkleafdry  !< drought-induced leaf senescence rate (1/day)
+  REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xkleaf     !< set to 0.0 during maximal leaf growth phase
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (phen_variable),         INTENT(INOUT) :: phen
@@ -458,32 +463,32 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
 END SUBROUTINE casa_xrateplant
 
 
-SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
-!  to account for cold and drought stress on death rate of leaf: xleafcold,xleafdry
-!  to account for effects of T and W on litter decomposition: xk, xksurf
-!  inputs:
-!     ivt(mp)  :       biome type
-!     tsoilavg(mp):    soil temperature in K
-!     moistavg(mp):    volumetric soil moisture
+!> to account for cold and drought stress on death rate of leaf: xleafcold,xleafdry
+!> to account for effects of T and W on litter decomposition: xk, xksurf
+!> inputs:
+!> - ivt(mp)  :       biome type
+!> - tsoilavg(mp):    soil temperature in K
+!> - moistavg(mp):    volumetric soil moisture
 !
-!  outputs
-!     xk(mp):          modifier of soil litter decomposition rate (dimensionless)
+!> outputs
+!> - xk(mp):          modifier of soil litter decomposition rate (dimensionless)
+SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
   IMPLICIT NONE
   REAL(r_2), DIMENSION(mp), INTENT(OUT) :: xklitter,xksoil
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil !< soil parameters  
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
 
   ! local variables
   INTEGER nland,np         
-  REAL(r_2), parameter :: wfpscoefa=0.55   ! Kelly et al. (2000) JGR, Figure 2b), optimal wfps 
-  REAL(r_2), parameter :: wfpscoefb=1.70   ! Kelly et al. (2000) JGR, Figure 2b)
-  REAL(r_2), parameter :: wfpscoefc=-0.007 ! Kelly et al. (2000) JGR, Figure 2b)
-  REAL(r_2), parameter :: wfpscoefd=3.22   ! Kelly et al. (2000) JGR, Figure 2b)
-  REAL(r_2), parameter :: wfpscoefe=6.6481 ! =wfpscoefd*(wfpscoefb-wfpscoefa)/(wfpscoefa-wfpscoefc)
+  REAL(r_2), parameter :: wfpscoefa=0.55   !< Kelly et al. (2000) JGR, Figure 2b), optimal wfps 
+  REAL(r_2), parameter :: wfpscoefb=1.70   !< Kelly et al. (2000) JGR, Figure 2b)
+  REAL(r_2), parameter :: wfpscoefc=-0.007 !< Kelly et al. (2000) JGR, Figure 2b)
+  REAL(r_2), parameter :: wfpscoefd=3.22   !< Kelly et al. (2000) JGR, Figure 2b)
+  REAL(r_2), parameter :: wfpscoefe=6.6481 !< =wfpscoefd*(wfpscoefb-wfpscoefa)/(wfpscoefa-wfpscoefc)
 ! Kirschbaum function parameters
-  REAL(r_2), parameter :: xkalpha=-3.764   ! Kirschbaum (1995, SBB)
+  REAL(r_2), parameter :: xkalpha=-3.764   !< Kirschbaum (1995, SBB)
   REAL(r_2), parameter :: xkbeta=0.204
   REAL(r_2), parameter :: xktoptc=36.9
   REAL(r_2), DIMENSION(mp)       :: xkwater,xktemp
@@ -561,23 +566,23 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
   END DO
 END SUBROUTINE casa_xratesoil
 
+!> calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
+!> and the transfer coefficients between different pools
+!> 
+!> inputs:
+!> - xkleafcold(mp):  cold stress induced leaf senescence rate (1/day)
+!> - xkleafdry(mp):   drought-induced leaf senescence rate (1/day)
+!> - xkleaf(mp):      set to 0.0 during maximal leaf growth phase
+!> 
+!> outputs:
+!> - kplant(mp,mplant):        senescence rate of plant pool (1/day)
+!> - fromPtoL(mp,mlitter,mplant): fraction of senesced plant biomass to litter pool (fraction)
 SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                            casaflux,casamet)
-! calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
-! and the transfer coefficients between different pools
-!
-! inputs:
-!     xkleafcold(mp):  cold stress induced leaf senescence rate (1/day)
-!     xkleafdry(mp):   drought-induced leaf senescence rate (1/day)
-!     xkleaf(mp):      set to 0.0 during maximal leaf growth phase
-!
-! outputs:
-!     kplant(mp,mplant):        senescence rate of plant pool (1/day)
-!     fromPtoL(mp,mlitter,mplant): fraction of senesced plant biomass to litter pool (fraction)
 
   IMPLICIT NONE
   REAL(r_2), DIMENSION(mp), INTENT(IN)    :: xkleafcold,xkleafdry,xkleaf
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
@@ -620,31 +625,31 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
 
 END SUBROUTINE casa_coeffplant
 
+!> calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
+!> and the transfer coefficients between different pools
+!>
+!> inputs:
+!> - xk(mp):          modifier of soil litter decomposition rate (dimensionless)
+!>
+!> outputs:
+!> - klitter(mp,mlitter):      decomposition rate of litter pool (1/day)
+!> - ksoil(mp,msoil):          decomposition rate of soil pool (1/day)
+!> - fromLtoS(mp,mlitter,msoil):  fraction of decomposed litter to soil (fraction)
+!> - fromStoS(mp,msoil,msoil):    fraction of decomposed soil C to another soil pool (fraction)
+!> - fromLtoCO2(mp,mlitter):      fraction of decomposed litter emitted as CO2 (fraction)
+!> - fromStoCO2(mp,msoil):        fraction of decomposed soil C emitted as Co2 (fraction)
 SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
-!  calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
-!  and the transfer coefficients between different pools
-!
-! inputs:
-!     xk(mp):          modifier of soil litter decomposition rate (dimensionless)
-!
-! outputs:
-!     klitter(mp,mlitter):      decomposition rate of litter pool (1/day)
-!     ksoil(mp,msoil):          decomposition rate of soil pool (1/day)
-!     fromLtoS(mp,mlitter,msoil):  fraction of decomposed litter to soil (fraction)
-!     fromStoS(mp,msoil,msoil):    fraction of decomposed soil C to another soil pool (fraction)
-!     fromLtoCO2(mp,mlitter):      fraction of decomposed litter emitted as CO2 (fraction)
-!     fromStoCO2(mp,msoil):        fraction of decomposed soil C emitted as Co2 (fraction)
 
   IMPLICIT NONE
   REAL(r_2), DIMENSION(mp), INTENT(IN) :: xklitter,xksoil
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil !< soil parameters  
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
 
   ! local variables
-  INTEGER j,k,kk,nland             !i: for plant pool, j for litter, k for soil
+  INTEGER j,k,kk,nland             ! i: for plant pool, j for litter, k for soil
 
   casaflux%fromLtoS(:,:,:)      = 0.0   
   casaflux%fromStoS(:,:,:)      = 0.0                                
@@ -724,13 +729,13 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
 END SUBROUTINE casa_coeffsoil
 
+!> calculate the chnage in plant C, N and P pools.
+!> uptake of N and P will be computed in casa_uptake.
+!> labile C pool will be computed casa_labile.
 SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
-!  calculate the chnage in plant C, N and P pools
-!  uptake of N and P will be computed in casa_uptake
-!  labile C pool will be computed casa_labile
 
   IMPLICIT NONE
-  TYPE (veg_parameter_type), INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type), INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),         INTENT(INOUT) :: casabiome
   TYPE (casa_pool),          INTENT(INOUT) :: casapool
   TYPE (casa_flux),          INTENT(INOUT) :: casaflux
@@ -836,11 +841,11 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
 END SUBROUTINE casa_delplant
 
+!> calculate changes in litter and soil pools
 SUBROUTINE casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
-! calculate changes in litter and soil pools
 
   IMPLICIT NONE
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
@@ -1121,14 +1126,14 @@ ENDDO
 
 END SUBROUTINE casa_delsoil
 
+!> Get avg soil moisture, avg soil temperature 
+!> need to estimate the land cell mean soil temperature and moisture weighted by the area fraction
+!> of each tile within the land cell
 SUBROUTINE avgsoil(veg,soil,casamet)
-! Get avg soil moisture, avg soil temperature 
-! need to estimate the land cell mean soil temperature and moisture weighted by the area fraction
-! of each tile within the land cell
 
   IMPLICIT NONE
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
+  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil !< soil parameters  
   TYPE (casa_met),              INTENT(INOUT) :: casamet
 
   INTEGER                     :: ns,nland
@@ -1152,9 +1157,9 @@ SUBROUTINE avgsoil(veg,soil,casamet)
 
 END SUBROUTINE avgsoil
 
+!> computing the reduction in litter and SOM decomposition 
+!> when decomposition rate is N-limiting
 SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
-! computing the reduction in litter and SOM decomposition 
-! when decomposition rate is N-limiting
   IMPLICIT NONE
   REAL(r_2), DIMENSION(mp), INTENT(INOUT) :: xkNlimiting
   TYPE (casa_pool),         INTENT(INOUT) :: casapool
@@ -1162,7 +1167,7 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   TYPE (casa_met),          INTENT(INOUT) :: casamet
   TYPE (casa_biome),        INTENT(INOUT) :: casabiome
 !    
-  TYPE (veg_parameter_type),   INTENT(IN) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),   INTENT(IN) :: veg  !< vegetation parameters
 
   ! local variables
   INTEGER i,j,k,kk,iv,thepoint,nland
@@ -1262,12 +1267,11 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 
 END SUBROUTINE casa_xkN
 
+!> (1) compute (1)N uptake by plants; 
+!> (2) allocation of uptaken N to plants 
 SUBROUTINE casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
-! (1) compute (1)N uptake by plants; 
-! (2) allocation of uptaken N to plants 
-!
   IMPLICIT NONE
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
@@ -1321,9 +1325,9 @@ SUBROUTINE casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
 911 format('N uptake:',100(f8.3,2x))
 END SUBROUTINE casa_nuptake
 
+!>
 SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
                          casabiome,casapool,casaflux,casamet)
-!
   IMPLICIT NONE
   REAL(r_2), DIMENSION(mp),        INTENT(IN)    :: xnCnpp
   REAL(r_2), DIMENSION(mp,mplant), INTENT(INOUT) :: Nreqmax, Nreqmin
@@ -1375,12 +1379,11 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
 
 END SUBROUTINE casa_Nrequire
 
+!> (1) compute  P uptake by plants; 
+!> (2) allocation of uptaken P to plants 
 SUBROUTINE casa_puptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
-! (1) compute  P uptake by plants; 
-! (2) allocation of uptaken P to plants 
-!
   IMPLICIT NONE
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
@@ -1495,11 +1498,10 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
 END SUBROUTINE casa_Prequire
 
 
+!> update all pool sizes
 SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
-! update all pool sizes
-!
   IMPLICIT NONE
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
@@ -1616,6 +1618,7 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
 
 END SUBROUTINE casa_cnpcycle
 
+!>
 SUBROUTINE casa_poolzero(n,ipool,casapool)
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: n, ipool
@@ -1775,7 +1778,7 @@ END SUBROUTINE casa_pdummy
 SUBROUTINE phenology(iday,veg,phen)
   IMPLICIT NONE
   INTEGER,              INTENT(IN)    :: iday
-  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  !< vegetation parameters
   TYPE (phen_variable), INTENT(INOUT) :: phen
 
   ! local variables (temprary)

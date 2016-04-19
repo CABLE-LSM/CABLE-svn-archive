@@ -29,53 +29,53 @@ module cable_data_module
     
    TYPE physical_constants
       real ::                                                                  & 
-      capp   = 1004.64, & ! air spec. heat (J/kg/K)
-      hl = 2.5014e6, & ! air spec. heat (J/kg/K)
-      hlf = 0.334e6, & ! latent heat of fusion
-      !hl = 2.5104e6, & ! air spec. heat (J/kg/K)
-      !hlf = 0.335e6, & ! latent heat of fusion
-      dheat  = 21.5E-6, & ! molecular diffusivity for heat
-      !grav   = 9.80, & ! gravity acceleration (m/s2)
-      grav   = 9.8086, & ! gravity acceleration (m/s2)
-      rgas   = 8.3143, & ! universal gas const  (J/mol/K)
-      rmair  = 0.02897, & ! molecular wt: dry air (kg/mol)
-      rmh2o  = 0.018016, & ! molecular wt: water	(kg/mol)
-      sboltz = 5.67e-8, & ! Stefan-Boltz. constant (W/m2/K4)
-      tfrz   = 273.16, & ! Temp (K) corresp. to 0 C
+      capp   = 1004.64, &  !< air spec. heat (J/kg/K)
+      hl     = 2.5014e6, & !< air spec. heat (J/kg/K)
+      hlf    = 0.334e6, &  !< latent heat of fusion
+      !hl     = 2.5104e6, & ! air spec. heat (J/kg/K)
+      !hlf    = 0.335e6, &  ! latent heat of fusion
+      dheat  = 21.5E-6, &  !< molecular diffusivity for heat
+      !grav   = 9.80, &     ! gravity acceleration (m/s2)
+      grav   = 9.8086, &   !< gravity acceleration (m/s2)
+      rgas   = 8.3143, &   !< universal gas const  (J/mol/K)
+      rmair  = 0.02897, &  !< molecular wt: dry air (kg/mol)
+      rmh2o  = 0.018016, & !< molecular wt: water	(kg/mol)
+      sboltz = 5.67e-8, &  !< Stefan-Boltz. constant (W/m2/K4)
+      tfrz   = 273.16, &   !< Temp (K) corresp. to 0 C
       
-      ! Teten coefficients
+      !> Teten coefficients
       tetena = 6.106, & ! ??? refs?
       tetenb = 17.27, &
       tetenc = 237.3, &
       
       ! Aerodynamic parameters, diffusivities, water density:
-      vonk   = 0.40, & ! von Karman constant - Wikipedia says this should be 0.41
-      a33    = 1.25, & ! inertial sublayer sw/us
-      csw    = 0.50, & ! canopy sw decay (Weil theory)
-      ctl    = 0.40, & ! Wagga wheat (RDD 1992, Challenges)
-      apol   = 0.70, & ! Polhausen coeff: single-sided plate
-      prandt = 0.71, & ! Prandtl number: visc/diffh
-      schmid = 0.60, & ! Schmidt number: visc/diffw
-      diffwc = 1.60, & ! diffw/diffc = H2O/CO2 diffusivity
-      rhow   = 1000.0, & ! liquid water density   [kg/m3]
-      emleaf = 1.0, & ! leaf emissivity
-      emsoil = 1.0, & ! soil emissivity
-      crd = 0.3,    & ! element drag coefficient
-      csd = 0.003,  & ! substrate drag coefficient
+      vonk   = 0.40, &   !< von Karman constant - Wikipedia says this should be 0.41
+      a33    = 1.25, &   !< inertial sublayer sw/us
+      csw    = 0.50, &   !< canopy sw decay (Weil theory)
+      ctl    = 0.40, &   !< Wagga wheat (RDD 1992, Challenges)
+      apol   = 0.70, &   !< Polhausen coeff: single-sided plate
+      prandt = 0.71, &   !< Prandtl number: visc/diffh
+      schmid = 0.60, &   !< Schmidt number: visc/diffw
+      diffwc = 1.60, &   !< diffw/diffc = H2O/CO2 diffusivity
+      rhow   = 1000.0, & !< liquid water density   [kg/m3]
+      emleaf = 1.0, &    !< leaf emissivity
+      emsoil = 1.0, &    !< soil emissivity
+      crd = 0.3,    &    !< element drag coefficient
+      csd = 0.003,  &    !< substrate drag coefficient
       
       !jhan:hardwire for now. note beta2 = crd/csd
-      beta2 = 0.3/0.003, & ! ratio cr/cs
-      ccd   = 15.0,  & ! constant in d/h equation
-      ccw_c = 2.0,   & ! ccw=(zw-d)/(h-d)
-      usuhm = 0.3,   & ! (max of us/uh)
+      beta2 = 0.3/0.003, & !< ratio cr/cs
+      ccd   = 15.0,  &     !< constant in d/h equation
+      ccw_c = 2.0,   &     !< ccw=(zw-d)/(h-d)
+      usuhm = 0.3,   &     !< (max of us/uh)
       
       ! Turbulence parameters:
-      zetmul = 0.4,  & ! if niter=2, final zeta=zetmul*zetar(2)
-                       ! NB> niter currently=4 see cable_define_types.F90
-      zeta0  = 0.0,  & ! initial value of za/L
-      zetneg = -15.0, & ! negative limit on za/L when niter>=3
-      zetpos = 1.0,  & ! positive limit on za/L when niter>=3
-      zdlin  = 1.0,  & ! height frac of d below which TL linear
+      zetmul = 0.4,  &  !< if niter=2, final zeta=zetmul*zetar(2)
+                        !< NB> niter currently=4 see cable_define_types.F90
+      zeta0  = 0.0,  &  !< initial value of za/L
+      zetneg = -15.0, & !< negative limit on za/L when niter>=3
+      zetpos = 1.0,  &  !< positive limit on za/L when niter>=3
+      zdlin  = 1.0,  &  !< height frac of d below which TL linear
       umin   = 0.01
        
    END TYPE physical_constants
@@ -86,20 +86,20 @@ module cable_data_module
    type math_constants
       real :: pi_c = 3.1415927
       !jhan:hardwire for now. note pi180= pi_c/180
-      real :: pi180 = 3.1415927/ 180.0 ! radians / degree
+      real :: pi180 = 3.1415927/ 180.0 !< radians / degree
    end type math_constants
 
    type other_constants
       !where 3 = no. radiation bands (nrb in define types)
-      real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
+      real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) !< Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
       real:: RAD_THRESH = 0.01 
       real:: LAI_THRESH = 0.01 
    end type other_constants
 
    type photosynthetic_constants
-      integer:: maxiter=20 ! max # interations for leaf temperature
-      real :: gam0 = 28.0E-6  !mol mol^-1 @ 20C = 36.9 @ 25C
+      integer:: maxiter=20 !< max number of interations for leaf temperature
+      real :: gam0 = 28.0E-6  !< mol mol^-1 @ 20C = 36.9 @ 25C
       real :: gam1 = 0.0509
       real :: gam2 = 0.0010
       real :: rgbwc  = 1.32
@@ -110,7 +110,7 @@ module cable_data_module
       real :: tminv  = -5.0
       real :: toptj  = 20.0
       real :: toptv  = 20.0
-      real :: trefk= 298.2  !reference temperature K
+      real :: trefk= 298.2  !< reference temperature K
    end type photosynthetic_constants
 
 

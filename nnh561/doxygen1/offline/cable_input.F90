@@ -61,8 +61,8 @@ MODULE cable_input_module
         allocate_cable_vars, get_met_data
 
    INTEGER                      ::                                        & 
-        ncid_met,        & ! met data netcdf file ID
-        ncid_rain,       & ! following are netcdf file IDs for gswp run
+        ncid_met,        & !< met data netcdf file ID
+        ncid_rain,       & !< following are netcdf file IDs for gswp run
         ncid_snow,       &
         ncid_lw,         &   
         ncid_sw,         &
@@ -70,12 +70,12 @@ MODULE cable_input_module
         ncid_qa,         &
         ncid_ta,         &
         ncid_wd,         &    
-        ok                 ! netcdf error status
+        ok                 !< netcdf error status
    ! - see ALMA compress by gathering
-   INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
+   INTEGER,POINTER,DIMENSION(:) :: landGrid !< for ALMA compressed variables
    REAL,POINTER,DIMENSION(:)    ::                                        &
-        elevation,       & ! site/grid cell elevation
-        avPrecip           ! site/grid cell average precip
+        elevation,       & !< site/grid cell elevation
+        avPrecip           !< site/grid cell average precip
    TYPE met_varID_type 
       INTEGER                   ::                                        &
            SWdown,       &
@@ -95,7 +95,7 @@ MODULE cable_input_module
            isoil,        &
            patchfrac
    END TYPE met_varID_type
-   TYPE(met_varID_type)              :: id ! netcdf variable IDs for input met variables
+   TYPE(met_varID_type)              :: id !< netcdf variable IDs for input met variables
    TYPE met_units_type
       CHARACTER(LEN=20)              ::                                        &
            SWdown,       &
@@ -111,7 +111,7 @@ MODULE cable_input_module
            Elev,         &
            avPrecip
    END TYPE met_units_type
-   TYPE(met_units_type)              :: metunits ! units for meteorological variables
+   TYPE(met_units_type)              :: metunits !< units for meteorological variables
    TYPE convert_units_type
       REAL                      ::                                        &
            PSurf,        &
@@ -121,27 +121,22 @@ MODULE cable_input_module
            CO2air,       &
            Elev
    END TYPE convert_units_type
-   TYPE(convert_units_type)          :: convert ! units change factors for met variables
+   TYPE(convert_units_type)          :: convert !< units change factors for met variables
    
   !$OMP THREADPRIVATE(ok,exists)
 
 CONTAINS
 
-!==============================================================================
-!
-! Name: get_default_lai
-!
-! Purpose: Reads all monthly LAI from default gridded netcdf file
-!
-! CALLed from: load_parameters
-!
-! CALLs: nc_abort
-!        abort
-!
-! Input file: [LAI].nc
-!
-!==============================================================================
-
+!> Name: get_default_lai
+!>
+!> Purpose: Reads all monthly LAI from default gridded netcdf file
+!>
+!> CALLed from: load_parameters
+!>
+!> CALLs: nc_abort
+!>        abort
+!>
+!> Input file: [LAI].nc
 SUBROUTINE get_default_lai
 
    ! Input variables:
@@ -245,45 +240,44 @@ SUBROUTINE get_default_lai
 
    
 END SUBROUTINE get_default_lai
-!==============================================================================
-!
-! Name: open_met_file
-!
-! Purpose: Opens netcdf file containing meteorological (LSM input) data
-!          and determines:
-!   1. Spatial details - number of sites/grid cells, latitudes, longitudes
-!   2. Timing details - time step size, number of timesteps, starting date,
-!      and whether time coordinate is local or GMT
-!   3. Checks availability, including units issues, of all required
-!      meteorological input variables. Also checks whether or not LAI is 
-!      present, and fetches prescribed veg and soil type if present.
-!
-!
-! CALLed from: cable_offline_driver
-!
-! CALLs: abort
-!        nc_abort
-!        date_and_time
-!
-! Input file: [SiteName].nc
-!             [GSWP_Snowf].nc
-!             [GSWP_LWdown].nc
-!             [GSWP_SWdown].nc
-!             [GSWP_PSurf].nc
-!             [GSWP_Qair].nc
-!             [GSWP_Tair].nc
-!             [GSWP_wind].nc
-!             [GSWP_Rainf].nc
-!
-!==============================================================================
 
+
+!> Name: open_met_file
+!>
+!> Purpose: Opens netcdf file containing meteorological (LSM input) data
+!>          and determines:
+!>   1. Spatial details - number of sites/grid cells, latitudes, longitudes
+!>   2. Timing details - time step size, number of timesteps, starting date,
+!>      and whether time coordinate is local or GMT
+!>   3. Checks availability, including units issues, of all required
+!>      meteorological input variables. Also checks whether or not LAI is 
+!>      present, and fetches prescribed veg and soil type if present.
+!>
+!>
+!> CALLed from: cable_offline_driver
+!>
+!> CALLs:
+!> - abort
+!> - nc_abort
+!> - date_and_time
+!>
+!> Input file:
+!> - [SiteName].nc
+!> - [GSWP_Snowf].nc
+!> - [GSWP_LWdown].nc
+!> - [GSWP_SWdown].nc
+!> - [GSWP_PSurf].nc
+!> - [GSWP_Qair].nc
+!> - [GSWP_Tair].nc
+!> - [GSWP_wind].nc
+!> - [GSWP_Rainf].nc
 SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
    ! Input arguments
-   REAL, INTENT(OUT) :: dels   ! time step size
+   REAL, INTENT(OUT) :: dels   !< time step size
    REAL, INTENT(IN) :: TFRZ 
-   INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
-   LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
+   INTEGER, INTENT(OUT)        :: kend   !< number of time steps in simulation
+   LOGICAL, INTENT(IN)              :: spinup !< will a model spinup be performed?
    
    ! Local variables
    INTEGER                     ::                                         &
@@ -1446,44 +1440,41 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
   
    !!=================^^ End met variables search^^=======================
 END SUBROUTINE open_met_file
-!==============================================================================
-!
-! Name: get_met_data
-!
-! Purpose: Fetches meteorological forcing data from the netcdf met forcing file
-!          for a single time step, including LAI if it exists.
-!          Note that currently met forcing is duplicated for every vegetated
-!          patch in a single gridcell.
-!
-! CALLed from: cable_offline_driver
-!
-! MODULEs used: cable_common_module
-!
-! CALLs: abort
-!        nc_abort
-!        rh_sh
-!        sinbet
-!
-! Input file: [SiteName].nc
-!
-!==============================================================================
 
+
+!> Name: get_met_data
+!>
+!> Purpose: Fetches meteorological forcing data from the netcdf met forcing file
+!>          for a single time step, including LAI if it exists.
+!>          Note that currently met forcing is duplicated for every vegetated
+!>          patch in a single gridcell.
+!>
+!> CALLed from: cable_offline_driver
+!>
+!> MODULEs used: cable_common_module
+!>
+!> CALLs:
+!> - abort
+!> - nc_abort
+!> - rh_sh
+!> - sinbet
+!>
+!> Input file: [SiteName].nc
 SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                         veg,kend,dels, TFRZ, ktau) 
    ! Precision changes from REAL(4) to r_1 enable running with -r8
 
-
    ! Input arguments
    LOGICAL, INTENT(IN)                    ::                                   &
-        spinup,         & ! are we performing a spinup?
-        spinConv          ! has model spinup converged?
-   TYPE(met_type),INTENT(OUT)             :: met ! meteorological data
+        spinup,         & !< are we performing a spinup?
+        spinConv          !< has model spinup converged?
+   TYPE(met_type),INTENT(OUT)             :: met !< meteorological data
    TYPE (soil_parameter_type),INTENT(IN)  :: soil 
    TYPE (radiation_type),INTENT(IN)       :: rad
-   TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
-   INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
-                                        kend    ! total number of timesteps in run
-   REAL,INTENT(IN)                   :: dels ! time step size
+   TYPE(veg_parameter_type),INTENT(INOUT) :: veg !< LAI retrieved from file
+   INTEGER, INTENT(IN)               :: ktau, &  !< timestep in loop including spinup
+                                        kend    !< total number of timesteps in run
+   REAL,INTENT(IN)                   :: dels !< time step size
    REAL, INTENT(IN) :: TFRZ 
    
    ! Local variables
@@ -2257,20 +2248,17 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     END IF
   
 END SUBROUTINE get_met_data
-!==============================================================================
-!
-! Name: close_met_file
-!
-! Purpose: Close the file with the meteorological data
-!
-! CALLed from: cable_offline_driver
-!
-! CALLs: nc_abort
-!
-! Input file: [SiteName].nc
-!
-!==============================================================================
 
+
+!> Name: close_met_file
+!>
+!> Purpose: Close the file with the meteorological data
+!>
+!> CALLed from: cable_offline_driver
+!>
+!> CALLs: nc_abort
+!>
+!> Input file: [SiteName].nc
 SUBROUTINE close_met_file
 
   ok=NF90_CLOSE(ncid_met)
@@ -2281,38 +2269,35 @@ SUBROUTINE close_met_file
   
 END SUBROUTINE close_met_file
 
-!==============================================================================
-!
-! Name: load_parameters
-!
-! Purpose: Checks where parameters and initialisations should be loaded from.
-!          If they can be found in either the met file or restart file, they 
-!          will load from there, with the met file taking precedence. Otherwise, 
-!          they'll be chosen from a coarse global grid of veg and soil types, 
-!          based on the lat/lon coordinates.
-!
-! CALLed from: cable_offline_driver
-!
-! CALLs: get_default_params
-!        allocate_cable_vars
-!        alloc_casavariable
-!        alloc_phenvariable
-!        write_default_params
-!        write_cnp_params
-!        casa_readbiome
-!        casa_readphen
-!        casa_init
-!        abort
-!        get_restart_data
-!        get_parameters_met
-!        derived_parameters
-!        check_parameter_values
-!        report_parameters
-!
-! Input file: [restart].nc
-!
-!==============================================================================
 
+!> *Name*: load_parameters
+!>
+!> Purpose: Checks where parameters and initialisations should be loaded from.
+!>          If they can be found in either the met file or restart file, they 
+!>          will load from there, with the met file taking precedence. Otherwise, 
+!>          they'll be chosen from a coarse global grid of veg and soil types, 
+!>          based on the lat/lon coordinates.
+!>
+!> CALLed from: cable_offline_driver
+!>
+!> CALLs:
+!> - get_default_params
+!> - allocate_cable_vars
+!> - alloc_casavariable
+!> - alloc_phenvariable
+!> - write_default_params
+!> - write_cnp_params
+!> - casa_readbiome
+!> - casa_readphen
+!> - casa_init
+!> - abort
+!> - get_restart_data
+!> - get_parameters_met
+!> - derived_parameters
+!> - check_parameter_values
+!> - report_parameters
+!>
+!> Input file: [restart].nc
 SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
                            soil,canopy,rough,rad,sum_flux,                     &
                            bal,logn,vegparmnew,casabiome,casapool,             &
@@ -2346,8 +2331,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
    TYPE (casa_met)    , INTENT(OUT)        :: casamet
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
-   INTEGER,INTENT(IN)                      :: logn     ! log file unit number
-   LOGICAL,INTENT(IN)                      :: vegparmnew  ! are we using the new format?
+   INTEGER,INTENT(IN)                      :: logn     !< log file unit number
+   LOGICAL,INTENT(IN)                      :: vegparmnew  !< are we using the new format?
    REAL, INTENT(IN) :: TFRZ, EMSOIL 
 
    ! Local variables
@@ -2478,29 +2463,25 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 END SUBROUTINE load_parameters
  
 
-!==============================================================================
-!
-! Name: get_parameters_met
-!
-! Purpose: This subroutine looks for parameters in the met file, and loads
-!          those that are found.
-!
-! CALLed from: load_parameters
-!              old_load_parameters
-!
-! CALLs: readpar
-!
-! Input file: [SiteName].nc
-!
-!==============================================================================
-
+!> Name: get_parameters_met
+!>
+!> Purpose: This subroutine looks for parameters in the met file, and loads
+!>          those that are found.
+!>
+!> CALLed from:
+!> - load_parameters
+!> - old_load_parameters
+!>
+!> CALLs: readpar
+!>
+!> Input file: [SiteName].nc
 SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
 
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc
    TYPE (roughness_type), INTENT(INOUT)      :: rough
-   LOGICAL, INTENT(OUT)                      :: completeSet ! were all pars found?
+   LOGICAL, INTENT(OUT)                      :: completeSet !< were all pars found?
 
    ! Local variables
    INTEGER                              :: parID ! parameter's netcdf ID
@@ -2622,19 +2603,16 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    
 END SUBROUTINE get_parameters_met
 
-!==============================================================================
-!
-! Name: allocate_cable_vars
-!
-! Purpose: Allocate CABLE's main variables.
-!
-! CALLed from: load_parameters
-!              old_load_parameters
-!
-! CALLs: alloc_cbm_var
-!
-!==============================================================================
 
+!> Name: allocate_cable_vars
+!>
+!> Purpose: Allocate CABLE's main variables.
+!>
+!> CALLed from: 
+!> - load_parameters
+!> - old_load_parameters
+!>
+!> CALLs: alloc_cbm_var
 SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
                                rad,rough,soil,ssnow,sum_flux,                  &
                                veg,arraysize)
