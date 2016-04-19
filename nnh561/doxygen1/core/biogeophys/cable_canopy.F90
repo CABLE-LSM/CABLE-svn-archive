@@ -359,6 +359,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ! Soil sensible heat:
       ! Instance of the equation (1), Kowalczyk (2006, p 3)
       canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+
+      ! Dumps all remaining heat into ground heat flux
+      ! Equation 108, Kowalczyk (2006)
       !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
       
