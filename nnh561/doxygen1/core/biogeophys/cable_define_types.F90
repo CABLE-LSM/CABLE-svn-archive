@@ -300,7 +300,7 @@ MODULE cable_def_types_mod
          fhv,     & !< sens heatfl from canopy (W/m2)
          fns,     & !< net rad avail to soil (W/m2)
          fhs,     & !< sensible heat flux from soil
-         fhs_cor, &
+         fhs_cor, & !< sensible heat flux from soil absorbed by snowmelt.
          ga,      & !< ground heat flux (W/m2) ???
          ghflux,  & !< ground heat flux (W/m2) ???
          precis,  & !< throughfall to soil, after snow (mm)
@@ -329,7 +329,7 @@ MODULE cable_def_types_mod
          fesp,    & !< latent heatfl from soil (W/m2)
          dgdtg,   & !< derivative of gflux wrt soil temp
          fes,     & !< latent heatfl from soil (W/m2)
-         fes_cor, & !< latent heatfl from soil (W/m2)
+         fes_cor, & !< latent heatfl from soil (W/m2) absorbed by snowmelt.
          fevc       !< dry canopy transpiration (W/m2)
 
    END TYPE canopy_type

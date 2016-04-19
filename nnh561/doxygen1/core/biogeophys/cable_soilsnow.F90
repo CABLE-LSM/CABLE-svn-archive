@@ -1849,6 +1849,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um ) THEN
+      ! correct soil heat terms for heat absorbed by snowmelt.
       canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
       canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
 
