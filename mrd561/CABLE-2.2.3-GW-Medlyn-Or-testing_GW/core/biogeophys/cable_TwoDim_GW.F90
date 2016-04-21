@@ -1,0 +1,270 @@
+module cable_TwoDim_GW
+
+
+   !add ssnow%GWconvergence(i) and soil%dx in soil_define_types
+   !also need ssnow%elv
+
+  USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
+                             veg_parameter_type, canopy_type, met_type,        &
+                             balances_type, r_2, ms, mp,mlat,mlon
+  USE cable_data_module, ONLY : issnow_type, point2constants
+  USE cable_IO_vars_module, ONLY: landpt, patch, max_vegpatches, parID_type,  &
+                          metGrid, land_x, land_y, logn, output,               &
+                          xdimsize, ydimsize, check, mask,map_index,latitude, &
+                          longitude
+
+  IMPLICIT NONE
+
+  PRIVATE
+ 
+  TYPE ( issnow_type ) :: C 
+
+  PUBLIC lateral_fluxes
+
+  contains
+
+
+  subroutine lateral_fluxes(dels,ssnow,soil)
+   
+    implicit none
+
+    real, intent(in)                         :: dels
+    type(soil_snow_type), intent(inout)      :: ssnow
+    type(soil_parameter_type), intent(in)    :: soil
+    !LOCAL variables to map ssnow to previous code
+    !note assume continantal??
+
+    real(r_2), dimension(mlon,mlat) ::  &
+        head              ! head = elev - wtd
+
+    integer ::  istep,i,j,k,kk,klev,ii,jj,ib,ie,jb,je
+! Local arrays:
+    real(r_2),  dimension(mlon,mlat)   :: Qlateral    ! 
+    real(r_2),  dimension(mlon,mlat)   :: hksat_lateral    ! 
+    real(r_2),  dimension(mlon,mlat) :: trans_lateral,fdepth
+    real(r_2)  :: soil_z_depth,delta_mass,Qtemp
+    real(r_2), dimension(mlon,mlat) :: hkfactor_lateral,area
+    real(r_2) :: radius_earth,delta_radians,dXY,factor
+
+    radius_earth = 6.371e6
+    hkfactor_lateral(:,:) = 30.0
+    delta_radians = 0.25*3.14159/180.0
+    dXY = delta_radians*radius_earth
+
+
+   
+   soil_z_depth = real(sum(soil%zse,dim=1),r_2)
+
+   Qlateral(:,:) = 0.
+
+   do j=1,mlat
+      do i=1,mlon
+
+         k = map_index(i,j)
+
+         if (k .gt. 0) then
+            !hard coded for gswp3 forcing
+            area(i,j) = dXY*dXY*cos(latitude(k)*3.14159/180.0)
+
+            fdepth(i,j) = 100._r_2 / (1._r_2 + 150._r_2 * soil%slope(k))
+
+            if (ssnow%wtd(k) .gt. soil_z_depth*1000._r_2) then
+               trans_lateral(i,j) = 0.001*soil%hksat(k,ms)*hkfactor_lateral(i,j)*fdepth(i,j)*exp((ssnow%wtd(k)/1000._r_2-soil_z_depth)/fdepth(i,j))
+            else
+               trans_lateral(i,j) = 0.001*soil%hksat(k,ms)*(hkfactor_lateral(i,j)*fdepth(i,j) + (soil_z_depth - ssnow%wtd(k)/1000._r_2))
+            end if
+            !no movement when frozen
+            if (ssnow%tgg(k,ms) .lt. 270.) trans_lateral(i,j) = 0.
+
+            head(i,j) = soil%elev(k) - ssnow%wtd(k)/1000._r_2
+
+         else
+
+            head(i,j) = 0.
+
+         end if
+      end do
+
+  end do
+
+   do j = 2,mlat-1
+
+      jb = j - 1
+      je = j + 1
+
+      do i=2,mlon-1
+
+         ib = i - 1
+         ie = i+1
+
+         Qtemp = 0.
+
+         if (mask(i,j) .eq. 1) then
+
+            do jj=jb,je
+               do ii=ib,ie
+ 
+                  
+                  if ((abs(jj-j) + abs(ii-i)) .eq. 2) then
+                     factor = dXY/sqrt(2.0)
+                  else
+                     factor = dXY
+                  end if
+                  if (jj .ne. j) then
+                     factor = factor*cos(latitude(k)*2.0*3.14159/360.0)
+                  end if
+
+                  if (mask(ii,jj) .eq. 1) then
+                     Qtemp = Qtemp + 0.5*factor*(head(ii,jj)-head(i,j))*(trans_lateral(ii,jj) + trans_lateral(i,j))
+                  end if
+               end do
+            end do
+
+            Qlateral(i,j) = Qtemp  / area(i,j)
+
+         end if
+      end do
+
+      i = 1
+      Qtemp = 0.
+
+      if (mask(i,j) .eq. 1) then
+         do jj=jb,je
+
+            if (jj .eq. jb+1) then
+               factor = dXY
+            else 
+               factor = dXY/sqrt(2.0)
+            end if
+            if (jj .ne. j) then
+               factor = factor*cos(latitude(k)*2.0*3.14159/360.0)
+            end if
+            Qtemp = Qtemp + 0.5*factor*(head(mlon,jj)-head(i,j))*(trans_lateral(mlon,jj) +trans_lateral(i,j)) &
+                          + 0.5*factor*(head(2,jj)-head(i,j))*(trans_lateral(2,jj) + trans_lateral(i,j)) &
+                          + 0.5*(head(i,jj)-head(i,j))*(trans_lateral(i,jj) + trans_lateral(i,j))
+
+         end do
+         Qlateral(i,j) = Qtemp  / area(i,j)
+      end if
+
+      Qtemp = 0.
+      i=mlon
+
+      if (mask(i,j) .eq. 1) then
+
+         do jj=jb,je
+            if (jj .eq. jb+1) then
+               factor = dXY
+            else 
+               factor = dXY/sqrt(2.0)
+            end if
+            if (jj .ne. j) then
+               factor = factor*cos(latitude(k)*2.0*3.14159/360.0)
+            end if
+            Qtemp = Qtemp + 0.5*factor*(head(i-1,jj)-head(i,j))*(trans_lateral(i-1,jj) + trans_lateral(i,j)) + &
+                         0.5*factor*(head(1,jj)-head(i,j))*(trans_lateral(1,jj) + trans_lateral(i,j)) + &
+                         0.5*       (head(i,jj)-head(i,j))*(trans_lateral(i,jj) + trans_lateral(i,j))
+         end do
+         Qlateral(i,j) = Qtemp / area(i,j)
+                        
+      end if
+   end do
+
+   !Qlateral is in m/s
+   head(:,:) = head(:,:) + Qlateral(:,:)*dels
+
+   !translate into change in aquifer or soil water
+   do j=1,mlat
+
+      do i=1,mlon
+
+         k = map_index(i,j)
+
+         if (k .gt. 0) then
+
+            ssnow%wtd(k) = 1000._r_2*(soil%elev(k)-head(i,j))
+
+            delta_mass = Qlateral(i,j)*dels*1000._r_2
+
+            if (delta_mass .ge. 0.) then
+               if (delta_mass .lt. soil%GWdz(k)*1000._r_2*(ssnow%GWwb(k)-soil%GWwatsat(k))) then
+                  ssnow%GWwb(k) = ssnow%GWwb(k) + delta_mass/soil%GWdz(k)*1000._r_2
+                  delta_mass = 0.
+               else
+                  delta_mass = delta_mass - (soil%GWwatsat(k)-ssnow%GWwb(k))*soil%GWdz(k)*1000._r_2
+                  ssnow%GWwb(k) = soil%GWwatsat(k)
+               end if
+
+               if (delta_mass .gt. 0._r_2) then
+
+                  do kk=ms,1,-1
+                     if (delta_mass .lt. soil%zse(kk)*1000._r_2*(ssnow%wbliq(k,kk)-soil%watsat(k,kk))) then
+                        ssnow%wbliq(k,kk) = ssnow%wbliq(k,kk) + delta_mass/soil%zse(kk)*1000._r_2
+                        delta_mass = 0.
+                     else
+                        delta_mass = delta_mass - (soil%watsat(k,kk)-ssnow%wbliq(k,kk))*soil%zse(kk)*1000._r_2
+                        ssnow%wbliq(k,kk) = soil%watsat(k,kk)
+                     end if
+                   end do
+
+               end if
+
+            else
+  
+               if (ssnow%wtd(k) .gt. 1000._r_2*sum(soil%zse,dim=1)) then
+
+                  ssnow%GWwb(k) = ssnow%GWwb(k) + delta_mass/soil%GWdz(k)*1000._r_2
+                  if (ssnow%GWwb(k) .lt. 0._r_2) then
+                     delta_mass = (ssnow%GWwb(k)-1e-8)*soil%GWdz(k)*1000._r_2
+                     ssnow%GWwb(k) = 1.e-8
+                  else
+                     delta_mass = 0.
+                  end if
+
+                  if (delta_mass .lt. 0.) then
+                     do kk=ms,1,-1
+                        if (delta_mass .lt. -soil%zse(kk)*1000._r_2*(ssnow%wbliq(k,kk))) then
+                           ssnow%wbliq(k,kk) = ssnow%wbliq(k,kk) + delta_mass/soil%zse(kk)*1000._r_2
+                           delta_mass = 0.
+                        else
+                           delta_mass = delta_mass + (ssnow%wbliq(k,kk)-1e-7)*soil%zse(kk)*1000._r_2
+                           ssnow%wbliq(k,kk) = 1.e-7
+                        end if
+                     end do
+                   end if
+ 
+               else
+                  klev = ms
+                  do kk=2,ms-1
+                     if (ssnow%wtd(kk) .ge. sum(soil%zse(1:kk-1),dim=1) .and. &
+                         ssnow%wtd(kk) .le. sum(soil%zse(1:kk-1),dim=1) ) then
+                         klev = kk
+                     end if
+                  end do
+
+                  do kk=ms,klev,-1
+                     if (delta_mass .lt. -soil%zse(kk)*1000._r_2*(ssnow%wbliq(k,kk))) then
+                        ssnow%wbliq(k,kk) = ssnow%wbliq(k,kk) + delta_mass/soil%zse(kk)*1000._r_2
+                        delta_mass = 0.
+                     else
+                        delta_mass = delta_mass + (ssnow%wbliq(k,kk)-1e-7)*soil%zse(kk)*1000._r_2
+                        ssnow%wbliq(k,kk) = 1.e-7
+                     end if
+                  end do
+
+               end if
+
+            end if
+
+         end if
+
+      end do
+
+   end do
+
+
+  end subroutine lateral_fluxes
+   
+      
+      
+end module cable_TwoDim_GW
