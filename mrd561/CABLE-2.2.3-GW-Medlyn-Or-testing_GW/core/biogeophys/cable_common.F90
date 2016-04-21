@@ -99,6 +99,8 @@ MODULE cable_common_module
 
      LOGICAL :: or_evap = .FALSE.
 
+     LOGICAL :: TwoD_GW = .FALSE.
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user

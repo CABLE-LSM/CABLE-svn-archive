@@ -614,6 +614,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ALLOCATE(land_xtmp(ngridcells),land_ytmp(ngridcells))
        ! Cycle through all gridsquares:
        mland_ctr = 0 ! initialise
+       allocate(map_index(xdimsize,ydimsize))
+       map_index(:,:) = -1
        DO y=1,ydimsize
           DO x=1,xdimsize
              IF(mask(x,y)==1) THEN ! If land
@@ -624,6 +626,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 ! Store indicies of points in mask which are land
                 land_xtmp(mland_ctr) = x
                 land_ytmp(mland_ctr) = y
+                map_index(x,y) = mland_ctr
              END IF
           END DO
        END DO
@@ -669,6 +672,9 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        ok = NF90_INQUIRE_DIMENSION(ncid_met,monthlydimID,len=tempmonth)
        IF(tempmonth/=12) CALL abort ('Number of months in met file /= 12.')
     END IF
+
+    mlat = ydimsize
+    mlon = xdimsize
 
     ! Set longitudes to be [-180,180]:
     WHERE(longitude>180.0) 

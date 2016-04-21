@@ -63,6 +63,7 @@ MODULE cable_IO_vars_module
    INTEGER,POINTER,DIMENSION(:,:) :: mask ! land/sea mask from met file
    
    INTEGER,POINTER,DIMENSION(:) :: land_x,land_y ! indicies of land in mask
+   INTEGER, POINTER, DIMENSION(:,:) :: map_index
    
    INTEGER ::                                                                  &
       xdimsize,ydimsize,   & ! sizes of x and y dimensions

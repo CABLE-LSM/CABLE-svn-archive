@@ -17,7 +17,7 @@ host_ccrc()
 # -diag-enable sc2 -diag-enable sc-single-file
    fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -parallel -O3'
+   export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O2'
    if [[ $1 = 'debug' ]]; then
       export LDFLAGS='-L/usr/local/intel/Compiler/11.1/lib/intel64 -L//usr/local/netcdf/intel/4.1.3/lib -O0 -debug -g -ftrapuv -diag-enable warn'
 # -diag-enable sc2 -diag-enable sc-single-file

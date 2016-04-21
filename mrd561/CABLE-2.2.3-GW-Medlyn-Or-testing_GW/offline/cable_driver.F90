@@ -95,6 +95,8 @@ PROGRAM cable_offline_driver
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
 
+   USE cable_TwoDim_GW
+
    IMPLICIT NONE
    
    ! CABLE namelist: model configuration, runtime/user switches 
@@ -325,7 +327,10 @@ PROGRAM cable_offline_driver
          ssnow%rnof1  = ssnow%rnof1*dels
          ssnow%rnof2  = ssnow%rnof2*dels
          ssnow%runoff = ssnow%runoff*dels
-   
+  
+         if (cable_user%TwoD_GW) then
+            call lateral_fluxes(dels,ssnow,soil)
+         end if 
    
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
