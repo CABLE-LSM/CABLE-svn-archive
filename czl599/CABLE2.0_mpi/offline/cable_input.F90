@@ -2553,7 +2553,14 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        IF(ANY(met%pmb<ranges%PSurf(1)).OR.ANY(met%pmb>ranges%PSurf(2))) &
             CALL abort('PSurf out of specified ranges!')
     END IF
-  
+
+! for Zheng Shi's experiments only 13/Jan/2016 by Chris Lu  
+!    met%precip = met%precip/2
+!    met%precip_sn = met%precip_sn/2
+!    met%precip = met%precip*2
+!    met%precip_sn = met%precip_sn*2
+!    met%tk     = met%tk+2
+
 END SUBROUTINE get_met_data
 !==============================================================================
 !
