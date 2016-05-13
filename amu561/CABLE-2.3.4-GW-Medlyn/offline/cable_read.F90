@@ -304,6 +304,17 @@ CONTAINS
           IF(ok /= NF90_NOERR) CALL nc_abort                                   &
                                     (ok,'Error reading '//parname//' in file ' &
                                     //TRIM(filename)//' (SUBROUTINE readpar_r)')
+       !added amu561 9 April 16, needed to read CASA variables from restart
+        ELSE IF(dimswitch == 'cnp') THEN ! ie par has dimension (mp,3) e.g.
+                                        ! casapool%Csoil
+          IF(PRESENT(from_restart)) THEN
+             CALL abort('CASA-CNP variable '//parname//                        &
+                        ' not to be read in this section.')
+          ELSE
+             CALL abort('CASA-CNP variable '//parname//                        &
+                        ' not ready for files other than restart file.')
+          END IF
+
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
@@ -346,7 +357,12 @@ CONTAINS
     ELSE
        exists%parameters = .TRUE. ! Note that pars were found in file
        ! If block to distinguish params with non-spatial dimensions:
-       IF(dimswitch(1:3) == 'def') THEN ! i.e. parameters with one spatial dim
+       !added amu561 9 April 16, needed to read CASA vars from restart
+       IF(dimswitch(1:3) == 'cnp') THEN
+          ok = NF90_GET_VAR(ncid, parID, var_rd, start=(/1/),count=(/INpatch/))
+          IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading '//parname//    &
+                ' in cnp file '//TRIM(filename)//' (SUBROUTINE readpar_rd)')
+       ELSE IF(dimswitch(1:3) == 'def') THEN ! i.e. parameters with one spatial dim
           ! of length mland*maxpatches
           ! Check for grid type - restart file uses land type grid
           IF(metGrid == 'land' .OR. PRESENT(from_restart)) THEN
@@ -531,6 +547,9 @@ CONTAINS
           dimctr = ncp ! i.e. horizontal spatial and plant carbon pools
        ELSE IF(dimswitch == 'ncs') THEN
           dimctr = ncs ! i.e. horizontal spatial and soil carbon pools
+       !added amu561 9 April 16, needed to read CASA vars from restart
+       ELSE IF(dimswitch == 'cnp') THEN
+          dimctr = 3   ! i.e. spatial (mp) and 3 pools
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
@@ -700,6 +719,9 @@ CONTAINS
           dimctr = ncp ! i.e. horizontal spatial and plant carbon pools
        ELSE IF(dimswitch(1:3) == 'ncs') THEN
           dimctr = ncs ! i.e. horizontal spatial and soil carbon pools
+       !added amu561 9 April '16, needed to read CASA vars from restart
+       ELSE IF(dimswitch == 'cnp') THEN
+          dimctr = 3   ! i.e. spatial (mp) and 3 pools
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &
                      ' called with unknown dimension switch - '//dimswitch//   &
@@ -717,7 +739,7 @@ CONTAINS
              ! equivalent to using "IF(PRESENT(from_restart)) THEN"
              IF(dimswitch == 'msd' .OR. dimswitch == 'snowd' .OR.              &
                 dimswitch == 'nrbd' .OR. dimswitch == 'ncpd'                   &
-                .OR. dimswitch == 'ncsd') THEN
+                .OR. dimswitch == 'ncsd' .OR. dimswitch == 'cnp') THEN
                ALLOCATE(tmp2rd(INpatch, dimctr))
                ok = NF90_GET_VAR(ncid, parID, tmp2rd,                          &
                                  start=(/1, 1/), count=(/INpatch, dimctr/))

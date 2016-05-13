@@ -216,7 +216,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       
       rt_min = 5.      
       rt0 = max(rt_min,rough%rt0us / canopy%us)
-      
+     
+      !amu561, alt litter SoilE 13/5/16
+      if (cable_user%litter) then
+         ! Mathews (2006), A process-based model of offine fuel moisture,
+         !                 International Journal of Wildland Fire 15,155-168
+         ! assuming here u=1.0 ms-1, bulk litter density 63.5 kgm-3
+          canopy%kthLitt = 0.2 + 0.14 * 0.045 * 1000.0 / 63.5
+          canopy%DvLitt = 2.17e-5 * exp(1.0 * 2.6) * exp(-0.5 * (2.08 + (1.0 * 2.38)))
+      endif
+
       ! Aerodynamic resistance (sum 3 height integrals)/us
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
       rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
@@ -364,14 +373,21 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       CALL latent_heat_flux()
 
-      ! Calculate soil sensible heat:
-      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+
+      !amu561 litter scheme 13/5/16
+      if (cable_user%litter) then
+          canopy%fhs =  air%rho * C%CAPP * (ssnow%tss - met%tk) / &
+          (ssnow%rtsoil + REAL((1 - ssnow%isflag)) * veg%clitt * 0.003 / canopy%kthLitt / (air%rho * C%CAPP))
+      else
+          ! Calculate soil sensible heat:
+          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+      endif
 
       CALL within_canopy( gbhu, gbhf )
 
       ! Saturation specific humidity at soil/snow surface temperature:
       
-      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+      CALL qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
       !amu561 16Nov
       IF(cable_user%ssnow_POTEV== "P-M") THEN
@@ -406,7 +422,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       CALL latent_heat_flux()
 
       ! Soil sensible heat:
-      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+
+      !amu561 litter scheme 13/5/16
+      if (cable_user%litter) then
+          canopy%fhs =  air%rho * C%CAPP * (ssnow%tss - met%tvair) / &
+                        (ssnow%rtsoil +  REAL((1 - ssnow%isflag)) * veg%clitt * 0.003/ &
+                        canopy%kthLitt / (air%rho * C%CAPP))
+      else
+          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+      endif
+
       !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
       canopy%ga = canopy%fns-canopy%fhs-canopy%fes
       
@@ -624,15 +649,25 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ! d(canopy%fes)/d(dq)
 
    ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss  
-   ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil    
-   
-   !amu561 alt. SoilE
-   if (cable_user%or_evap) then 
+
+   !amu561 alt. litter scheme 13/5/16
+   if (cable_user%litter) then
+        ssnow%dfh_dtg = air%rho * C%CAPP / (ssnow%rtsoil + &
+                        REAL((1 - ssnow%isflag)) * veg%clitt * 0.003 / canopy%kthLitt / (air%rho * C%CAPP))     
+        ssnow%dfe_ddq = ssnow%wetfac * air%rho * air%rlam * ssnow%cls / &
+                        (ssnow%rtsoil + REAL((1 - ssnow%isflag)) * veg%clitt * 0.003 / canopy%DvLitt)  
+   !amu561 alt. Or SoilE
+   elseif (cable_user%or_evap) then 
       ssnow%dfe_ddq = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
                       ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
+      ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil    
+  !Default Soil E
    else
       ssnow%dfe_ddq = ssnow%rh_srf(:) * air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
+      ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil    
    end if
+
+
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
@@ -700,9 +735,17 @@ FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
    
    CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
 
-   ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-   cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
- 
+
+   IF (cable_user%litter) THEN
+        !amu561 litter scheme 13/5/16
+        ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
+                     cc2 * air%rho * air%rlam * (qsatfvar - met%qvair) / &
+                     (ssnow%rtsoil + real((1 - ssnow%isflag)) * veg%clitt * 0.003 / canopy%DvLitt)
+   ELSE
+       ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
+                    cc2 * air%rho * air%rlam * (qsatfvar  - met%qvair)/ssnow%rtsoil
+   ENDIF
+
 END FUNCTION Penman_Monteith
 
 
@@ -728,9 +771,14 @@ FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
   
    if (.not.cable_user%GW_MODEL) then 
       ssnowpotev = air%rho * air%rlam * dq2 /ssnow%rtsoil
+   !amu561 Or SoilE scheme
    elseif (cable_user%or_evap) then
       ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
-                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat)
+   !amu561 litter scheme 13/5/16
+   elseif (cable_user%litter) THEN
+        ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
+                    real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
    else
       ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
    end if

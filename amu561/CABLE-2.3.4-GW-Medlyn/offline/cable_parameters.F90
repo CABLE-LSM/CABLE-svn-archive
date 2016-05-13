@@ -1497,6 +1497,8 @@ SUBROUTINE read_g1map(logn)
           veg%hc(h)       = vegin%hc(veg%iveg(h))
           veg%xfang(h)    = vegin%xfang(veg%iveg(h))
           veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+          veg%zr(h)       = vegin%zr(veg%iveg(h))   !! vh !!  !amu561 litter scheme 13/5/16
+          veg%clitt(h)    = vegin%clitt(veg%iveg(h))!! vh !!  !amu561 litter scheme
           veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
           veg%rp20(h)     = vegin%rp20(veg%iveg(h))
           veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
@@ -1627,7 +1629,7 @@ SUBROUTINE read_g1map(logn)
                vegin%vcmax, vegin%ejmax, vegin%hc, vegin%xfang, vegin%rp20,    &
                vegin%rpcoef, vegin%rs20, vegin%shelrb, vegin%frac4,            &
                vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
-               vegin%tmaxvj, vegin%vbeta, vegin%rootbeta, vegin%froot,         &
+               vegin%tmaxvj, vegin%vbeta, vegin%clitt, vegin%zr, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%g0c3, vegin%g0c4, vegin%g1c3, vegin%g1c4,               &
                vegin%xalbnir, vegin%length, vegin%width,                       &
@@ -1943,6 +1945,7 @@ SUBROUTINE read_g1map(logn)
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
 
        soil%sfc(:) = soil%fldcap(:,1)
+
        soil%swilt(:) = soil%wiltp(:,1)
 
     ELSE

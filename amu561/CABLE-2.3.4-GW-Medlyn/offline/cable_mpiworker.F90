@@ -1159,6 +1159,15 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (veg%eko, displs(bidx), ierr)
   blen(bidx) = r1len
+ 
+  !amu561 litter scheme 13/5/16
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%clitt, displs(bidx), ierr)
+  blen(bidx) = r2len
+  !amu561
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%zr, displs(bidx), ierr)
+  blen(bidx) = r2len
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%refl, displs(bidx), ierr)

@@ -52,7 +52,8 @@ MODULE cable_mpicommon
   !added topo_ind, slope,slope_std,elev,elev_std
   ! Ticket #56, we've added 4 extra new params for the Medlyns Stom Cond model
   !amu561 Mar '16 added missing gswmin and gswx params
-  INTEGER, PARAMETER :: nparam = 327 !326 !320 !317 !302! 301!297 !283
+  !amu561 13/5/16 added 2 parameters for litter scheme
+  INTEGER, PARAMETER :: nparam = 329 !327 !326 !320 !317 !302! 301!297 !283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1

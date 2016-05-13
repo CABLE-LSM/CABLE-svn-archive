@@ -328,6 +328,7 @@ SUBROUTINE mpidrv_master (comm)
   IF( output%CASA .AND. icycle == 0 )                                      &
       STOP 'cannot output casaCNP variables when not running casaCNP'
 
+  IF( .NOT. spinup) spinConv=.TRUE.
 
    ! Check for gswp run
    IF (ncciy /= 0) THEN
@@ -745,7 +746,6 @@ SUBROUTINE mpidrv_master (comm)
 
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
                            canopy, rough, rad, bgc, bal )
-
       IF (icycle > 0) THEN
          WRITE(logn, '(A36)') '   Re-open restart file for CASACNP.'
          CALL casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
@@ -1521,6 +1521,15 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (veg%eko(off), displs(bidx), ierr)
   blen(bidx) = r1len
+
+  !amu561 litter scheme 13/5/16
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%clitt(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+  !amu561
+  bidx = bidx + 1
+  CALL MPI_Get_address (veg%zr(off), displs(bidx), ierr)
+  blen(bidx) = r2len
 
   bidx = bidx + 1
   CALL MPI_Get_address (veg%refl(off,1), displs(bidx), ierr)

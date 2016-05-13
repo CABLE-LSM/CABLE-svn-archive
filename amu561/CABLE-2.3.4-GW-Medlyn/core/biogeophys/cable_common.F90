@@ -100,8 +100,10 @@ MODULE cable_common_module
 
          !using Or soilE?
          or_evap = .FALSE.,               &
+         !amu561 Using litter scheme?
+         litter = .FALSE.,                &
 
-	     ! Switch for customized soil respiration - see Ticket #42
+        ! Switch for customized soil respiration - see Ticket #42
          SRF = .FALSE.,                   &
          g1map = .FALSE. !jtk561
 
@@ -198,7 +200,9 @@ MODULE cable_common_module
          conkc0,     &
          conko0,     &
          ekc,        &
-         eko
+         eko,        &
+         zr,         & !amu561
+         clitt         !amu561 litter scheme
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -321,7 +325,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype)  )
+         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
+         !amu561 litter scheme 13/5/16
+         vegin%zr(mvtype), vegin%clitt(mvtype)  )
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -348,7 +354,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
                        vegin%rpcoef(jveg),                                     &
                        vegin%rs20(jveg)
             READ(40,*) vegin%tminvj(jveg), vegin%tmaxvj(jveg),                 &
-                       vegin%vbeta(jveg), vegin%rootbeta(jveg)
+                       vegin%vbeta(jveg), vegin%rootbeta(jveg),                &
+                       vegin%zr(jveg), vegin%clitt(jveg) !amu561 litter scheme
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)

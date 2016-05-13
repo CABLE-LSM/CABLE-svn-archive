@@ -481,11 +481,12 @@
       real(r_2), dimension(mp,mplant) :: &
          crmplant
 
+
 !      write(89,*)'opening file'
       ncok = NF90_OPEN(ncfile, nf90_nowrite, ncid)   
       IF (ncok /= nf90_noerr ) THEN
-         CALL stderr_nc('re-opening ', ncfile)
          print *, trim(nf90_strerror(ncok))
+         CALL stderr_nc('re-opening ', ncfile)
       ENDIF
 
 

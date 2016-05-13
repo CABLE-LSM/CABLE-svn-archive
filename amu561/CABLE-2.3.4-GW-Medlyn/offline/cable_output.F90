@@ -3475,7 +3475,6 @@ CONTAINS
                      
                      
                      
-                     
     !MD
     CALL define_ovar(ncid_restart, rpid%WatSat, &
                      'WatSat', '-', 'Max water content in soil layer', &
