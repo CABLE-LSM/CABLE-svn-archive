@@ -28,6 +28,8 @@ MODULE cable_def_types_mod
 
    IMPLICIT NONE
 
+   SAVE
+
    PUBLIC
 
    !---CABLE default KINDs for representing INTEGER/REAL values
@@ -548,7 +550,8 @@ MODULE cable_def_types_mod
 
       INTEGER :: nyear_average = 20
       INTEGER :: nday_average  = 31
-      INTEGER, POINTER ::                                                  &
+!      INTEGER, POINTER ::                                                  &
+      INTEGER ::                                                  &
        nyears, & ! number of years in climate record
        doy ! day of year
 
@@ -1120,6 +1123,8 @@ END SUBROUTINE alloc_met_type
 
 SUBROUTINE alloc_climate_type(var, mp)
 
+   IMPLICIT NONE
+
    TYPE(climate_type), INTENT(inout) :: var
    INTEGER, INTENT(in) :: mp
    INTEGER :: ny, nd
@@ -1127,8 +1132,8 @@ SUBROUTINE alloc_climate_type(var, mp)
    nd = var%nday_average
 print*, 'ny', ny
 print*, 'nd', nd
-   ALLOCATE ( var %  nyears )
-   ALLOCATE ( var %  doy )
+!   ALLOCATE ( var %  nyears )
+!   ALLOCATE ( var %  doy )
    ALLOCATE ( var %  dtemp(mp) )
    ALLOCATE ( var %  dmoist(mp) )
    ALLOCATE ( var % mtemp(mp) )

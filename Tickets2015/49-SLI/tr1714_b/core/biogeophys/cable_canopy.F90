@@ -166,7 +166,7 @@ CONTAINS
 
     met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
     dsx = met%dva     ! init. leaf surface vpd
-
+    dsx= max(dsx,0.0)
     tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
     tlfy = met%tk  ! initialise current leaf temp (K)
 
@@ -716,6 +716,8 @@ CONTAINS
     DEALLOCATE(ecy, hcy, rny)
     DEALLOCATE(gbhf, csx)
     DEALLOCATE(ghwet)
+
+    RETURN
 
   CONTAINS
 
@@ -1523,10 +1525,11 @@ CONTAINS
     deltlfy = abs_deltlf
     k = 0
 
+
+
     !kdcorbin, 08/10 - doing all points all the time
     DO WHILE (k < C%MAXITER)
        k = k + 1
-
        DO i=1,mp
 
           IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
@@ -1644,12 +1647,12 @@ CONTAINS
                 
                  ! reduction of daytime leaf respiration to account for photo-inhibition
                 
-                if (rad%qcan(i,1,1).gt.0.0) &
-                     rdx(i,1) = rdx(i,1) * &
-                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,1,1),40.0)*1.e5))
-                if (rad%qcan(i,1,2).gt.0.0) &
-                     rdx(i,2) = rdx(i,2) * &
-                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,2,1),40.0)*1.e5))
+!!$                if (rad%qcan(i,1,1).gt.0.0) &
+!!$                     rdx(i,1) = rdx(i,1) * &
+!!$                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,1,1),40.0)*1.e5))
+!!$                if (rad%qcan(i,1,2).gt.0.0) &
+!!$                     rdx(i,2) = rdx(i,2) * &
+!!$                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,2,1),40.0)*1.e5))
                 
                 xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
@@ -1671,6 +1674,8 @@ CONTAINS
             xleuning(:,:), rad%fvlai(:,:),                      &
             SPREAD( abs_deltlf, 2, mf ),                        &
             anx(:,:), fwsoil(:) )
+
+
 
        DO i=1,mp
 
@@ -1773,6 +1778,8 @@ CONTAINS
 
              ! Update leaf surface vapour pressure deficit:
              dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
+
+             dsx(i)=  max(dsx(i),0.0)
 
              ! Store change in leaf temperature between successive iterations:
              deltlf(i) = tlfxx(i)-tlfx(i)
@@ -1921,7 +1928,6 @@ CONTAINS
     ! Bonan,LSM version 1.0, p106)
 
     INTEGER :: i,j
-
 
     DO i=1,mp
 
@@ -2090,6 +2096,7 @@ CONTAINS
 
                 ! minimal of three limited rates
                 anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
+
 
              ENDIF
 

@@ -345,7 +345,7 @@ CONTAINS
     DO y = 1, ydimsize
        DO x = 1, xdimsize
           IF ( .NOT. PLUME%landmask(x,y) ) CYCLE
-          WRITE(6,FMT='(A15,I5,2(1X,F8.2),2(1x,I3))')"i, lo,la, x,y",cnt,plume_lons(x),plume_lats(y),x, y
+          WRITE(6,FMT='(A15,I6,2(1X,F8.2),2(1x,I3))')"i, lo,la, x,y",cnt,plume_lons(x),plume_lats(y),x, y
 
           land_x   (cnt) = x
           land_y   (cnt) = y
@@ -451,16 +451,21 @@ CONTAINS
           FN = TRIM(FN)//ccy//".nc"
 
        ELSE
+          IF (PLUME%DirectRead) THEN
+             FN = TRIM(mp)//"RECHUNKED_FULL/"
+          ELSE
+             FN = TRIM(mp)//"ORICHUNKED_D0/"
+          ENDIF
           SELECT CASE ( par )
-          CASE(prec) ; FN = TRIM(mp)//"/Rainf_daily_WFD/Rainf_daily_WFD_GPCC_TYX_format_"
-          CASE(snow) ; FN = TRIM(mp)//"/Snowf_daily_WFD/Snowf_daily_WFD_GPCC_TYX_format_"
-          CASE(lwdn) ; FN = TRIM(mp)//"/LWdown_daily_WFD/LWdown_daily_WFD_TYX_format_"
-          CASE(swdn) ; FN = TRIM(mp)//"/SWdown_daily_WFD/SWdown_daily_WFD_TYX_format_"
-          CASE(pres) ; FN = TRIM(mp)//"/PSurf_daily_WFD/PSurf_daily_WFD_TYX_format_"
-          CASE(rhum) ; FN = TRIM(mp)//"/Qmean_WFD/Qmean_WFD_TYX_format_"
-          CASE(tmax,PrevTmax) ; FN = TRIM(mp)//"/Tmax_WFD/Tmax_WFD_TYX_format_"
-          CASE(tmin,NextTmin) ; FN = TRIM(mp)//"/Tmin_WFD/Tmin_WFD_TYX_format_"
-          CASE(wind) ; FN = TRIM(mp)//"/Wind_daily_WFD/Wind_daily_WFD_TYX_format_"
+          CASE(prec) ; FN = TRIM(FN)//"/Rainf_daily_WFD/Rainf_daily_WFD_GPCC_TYX_format_"
+          CASE(snow) ; FN = TRIM(FN)//"/Snowf_daily_WFD/Snowf_daily_WFD_GPCC_TYX_format_"
+          CASE(lwdn) ; FN = TRIM(FN)//"/LWdown_daily_WFD/LWdown_daily_WFD_TYX_format_"
+          CASE(swdn) ; FN = TRIM(FN)//"/SWdown_daily_WFD/SWdown_daily_WFD_TYX_format_"
+          CASE(pres) ; FN = TRIM(FN)//"/PSurf_daily_WFD/PSurf_daily_WFD_TYX_format_"
+          CASE(rhum) ; FN = TRIM(FN)//"/Qmean_WFD/Qmean_WFD_TYX_format_"
+          CASE(tmax,PrevTmax) ; FN = TRIM(FN)//"/Tmax_WFD/Tmax_WFD_TYX_format_"
+          CASE(tmin,NextTmin) ; FN = TRIM(FN)//"/Tmin_WFD/Tmin_WFD_TYX_format_"
+          CASE(wind) ; FN = TRIM(FN)//"/Wind_daily_WFD/Wind_daily_WFD_TYX_format_"
           END SELECT
           FN = TRIM(FN)//cy//".nc"
        ENDIF
@@ -468,12 +473,27 @@ CONTAINS
        ! find proper file for current time
        ! hist spinup only
        IF ( TRIM(PLUME%Run) .EQ. "spinup" ) THEN
+          mp = TRIM(mp)//"hist/1901_1930/ORICHUNKED_D0"
+
           FN = TRIM(mp)//"/"//TRIM(PREF(par))
           IF ( par .NE. rhum ) FN = TRIM(FN)//"Adjust"
           FN = TRIM(FN)//"_"//TRIM(fc)//"_"//TRIM(rcp)//"_"
-          IF ( par .NE. wind ) FN = TRIM(FN)//"detrended_"
-          FN = TRIM(FN)//cy
+          IF ( par .NE. wind ) FN = TRIM(FN)//"detrended_1901-1930"
 
+          FN = TRIM(FN)//"/"//TRIM(PREF(par))
+          IF ( par .NE. rhum ) FN = TRIM(FN)//"Adjust"
+          FN = TRIM(FN)//"_"//TRIM(fc)//"_"//TRIM(rcp)//"_"
+          IF ( par .NE. wind ) FN = TRIM(FN)//"detrended_"
+          FN = TRIM(FN)//cy//".nc"
+
+
+
+!/flush2/bri220/PLUME/GCM/ipsl_cm5a_lr/spinup_data/hist/ &
+!1901_1930/ORICHUNKED_D0/tasmaxAdjust_ipsl-cm5a-lr_hist_detrended_1901-1930/ &
+!tasmaxAdjust_ipsl-cm5a-lr_hist_detrended_1928.nc
+
+
+!/flush2/bri220/PLUME/GCM/ipsl-cm5a-lr/spinup_data/spinup_data/hist/1901_1930/ORICHUNKED_D0/prAdjust_ipsl-cm5a-lr_hist_detrended_1850.nc
        ELSE IF ( TRIM(PLUME%Run) .EQ. "1850_1900" ) THEN
           STOP "Not yet implemented! PLUME: GET_FILE_NAMES"
        ELSE
@@ -678,6 +698,7 @@ CONTAINS
     ENDIF
 
     CALL1 = .FALSE.
+
 
   END SUBROUTINE OPEN_PLUME_MET
 
@@ -1032,9 +1053,12 @@ CONTAINS
        met%ua        (is:ie)   = WG%Wind(i)
        met%coszen    (is:ie)   = WG%coszen(i)
        ! compute qv
-      ! CALL rh_sh ( PLUME%MET(rhum)%VAL(i), met%tk(is), met%pmb(is), met%qv(is) )
-      ! met%qv        (is:ie)   = met%qv(is)
-       met%qv        (is:ie) = PLUME%MET(rhum)%VAL(i)
+       IF ( TRIM(PLUME%Forcing) .EQ. "watch") THEN
+          met%qv        (is:ie) = PLUME%MET(rhum)%VAL(i) ! WATCH "rhum'" is actually specific humidity (contrast with other data sets)
+       ELSE
+          CALL rh_sh ( PLUME%MET(rhum)%VAL(i), met%tk(is), met%pmb(is), met%qv(is) )
+          met%qv        (is:ie)   = met%qv(is)
+       ENDIF
     END DO
 
     ! initialise within canopy air temp

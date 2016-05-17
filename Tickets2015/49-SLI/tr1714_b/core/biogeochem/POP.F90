@@ -62,7 +62,7 @@ MODULE POP_Constants
   REAL(dp),PARAMETER:: DENSINDIV_MIN=1e-9 !
   REAL(dp),PARAMETER:: Kbiometric=50.0 ! Constant in height-diameter relationship
   REAL(dp),PARAMETER:: WD= 300.0 ! Wood density kgC/m3
-  REAL(dp),PARAMETER:: GROWTH_EFFICIENCY_MIN=0.008 ! threshold growth efficiency for enhanced mortality
+  REAL(dp),PARAMETER:: GROWTH_EFFICIENCY_MIN=0.0085 ! 0.008 ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
   REAL(dp),PARAMETER:: Pmort=2.0 ! exponent in mortality formula
   REAL(dp),PARAMETER:: MORT_MAX=0.2 ! upper asymptote for enhanced mortality
   REAL(dp),PARAMETER:: THETA_recruit=0.95 ! shape parameter in recruitment equation
@@ -86,7 +86,7 @@ MODULE POP_Constants
   INTEGER(i4b),PARAMETER :: NDISTURB=1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
   INTEGER(i4b),PARAMETER :: PATCH_REPS=10 ! higher number reduces 'noise'
   INTEGER(i4b),PARAMETER :: NAGE_MAX = 1 ! number of maxium ages
-  INTEGER(i4b),PARAMETER :: PATCH_REPS1=30 ! number of first dist years
+  INTEGER(i4b),PARAMETER :: PATCH_REPS1=60 ! number of first dist years
   INTEGER(i4b),PARAMETER :: PATCH_REPS2=1 ! number of second dist years
   INTEGER(i4b),PARAMETER :: NPATCH =PATCH_REPS1*PATCH_REPS2
   INTEGER(i4b),PARAMETER :: NPATCH1D= NPATCH

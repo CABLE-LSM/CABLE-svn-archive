@@ -38,7 +38,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
   ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 298    ! add 10 vairable to veg%
+  INTEGER, PARAMETER :: nparam = 297    ! add 10 vairable to veg%
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -67,7 +67,7 @@ MODULE cable_mpicommon
 
   ! MPI: number of casa_dump parameters sent/rec'd to/from the workers every
   ! timestep
-  INTEGER, PARAMETER :: ncdumprw = 5
+  INTEGER, PARAMETER :: ncdumprw = 8
 
   ! MPI: number of pop parameters sent/rec'd to/from the workers every
   ! timestep or at start, end. Here, with POP the dimensions are separate!
@@ -107,7 +107,7 @@ MODULE cable_mpicommon
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
-  INTEGER, PARAMETER :: ncasa_mat = 16
+  INTEGER, PARAMETER :: ncasa_mat = 34
 !  INTEGER, PARAMETER :: ncasa_vec = 27
 !  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
   INTEGER, PARAMETER :: ncasa_vec = 50   ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
@@ -188,47 +188,63 @@ SUBROUTINE decomp_types (landpt_t, patch_t)
   INTEGER, INTENT(OUT) :: landpt_t, patch_t
 
   ! dummy vars to calculate field offsets
-  TYPE(land_type) :: dlandpt
-  TYPE(patch_type) :: dpatch
+  TYPE(land_type) :: dlandpt(2)
+  TYPE(patch_type) :: dpatch(2)
 
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: base_d
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: base_d, el2, text
 
   INTEGER, PARAMETER :: fields = 5
   INTEGER, DIMENSION(fields) :: blocks, types
   INTEGER(KIND=MPI_ADDRESS_KIND), DIMENSION(fields) :: displs
 
-  INTEGER :: ierr
+  ! temp variable for lower bound parameter when setting extent
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: lb
 
+  INTEGER :: tmp_t, ierr
+
+  lb = 0
   blocks = 1
 
   ! create MPI type to exchange landpt records
   types = MPI_INTEGER
   
-  CALL MPI_Get_address (dlandpt, base_d, ierr)
+  CALL MPI_Get_address (dlandpt(1), base_d, ierr)
 
-  CALL MPI_Get_address (dlandpt%nap, displs(1), ierr)
-  CALL MPI_Get_address (dlandpt%cstart, displs(2), ierr)
-  CALL MPI_Get_address (dlandpt%cend, displs(3), ierr)
-  CALL MPI_Get_address (dlandpt%ilat, displs(4), ierr)
-  CALL MPI_Get_address (dlandpt%ilon, displs(5), ierr)
+  CALL MPI_Get_address (dlandpt(1)%nap, displs(1), ierr)
+  CALL MPI_Get_address (dlandpt(1)%cstart, displs(2), ierr)
+  CALL MPI_Get_address (dlandpt(1)%cend, displs(3), ierr)
+  CALL MPI_Get_address (dlandpt(1)%ilat, displs(4), ierr)
+  CALL MPI_Get_address (dlandpt(1)%ilon, displs(5), ierr)
 
   displs = displs - base_d
 
-  CALL MPI_Type_create_struct (5, blocks, displs, types, landpt_t, ierr)
+  CALL MPI_Type_create_struct (5, blocks, displs, types, tmp_t, ierr)
+  CALL MPI_Type_commit (tmp_t, ierr)
+
+  ! make sure the type has correct extent for use in arrays
+  CALL MPI_Get_Address (dlandpt(2), el2, ierr)
+  text = el2 - base_d
+  CALL MPI_Type_create_resized (tmp_t, lb, text, landpt_t, ierr)
   CALL MPI_Type_commit (landpt_t, ierr)
 
   ! create MPI type to exchange patch records
   types = MPI_REAL
   
-  CALL MPI_Get_address (dpatch, base_d, ierr)
+  CALL MPI_Get_address (dpatch(1), base_d, ierr)
 
-  CALL MPI_Get_address (dpatch%frac, displs(1), ierr)
-  CALL MPI_Get_address (dpatch%latitude, displs(2), ierr)
-  CALL MPI_Get_address (dpatch%longitude, displs(3), ierr)
+  CALL MPI_Get_address (dpatch(1)%frac, displs(1), ierr)
+  CALL MPI_Get_address (dpatch(1)%latitude, displs(2), ierr)
+  CALL MPI_Get_address (dpatch(1)%longitude, displs(3), ierr)
 
   displs = displs - base_d
 
-  CALL MPI_Type_create_struct (3, blocks, displs, types, patch_t, ierr)
+  CALL MPI_Type_create_struct (3, blocks, displs, types, tmp_t, ierr)
+  CALL MPI_Type_commit (tmp_t, ierr)
+
+  ! make sure the type has correct extent for use in arrays
+  CALL MPI_Get_Address (dpatch(2), el2, ierr)
+  text = el2 - base_d
+  CALL MPI_Type_create_resized (tmp_t, lb, text, patch_t, ierr)
   CALL MPI_Type_commit (patch_t, ierr)
 
   RETURN

@@ -31,7 +31,7 @@ MODULE cable_IO_vars_module
 
    INTEGER :: sdoy,smoy,syear ! start time day-of-year month and year
 
-   CHARACTER(LEN=33) :: timeunits ! timing info read from nc file
+   CHARACTER(LEN=200) :: timeunits ! timing info read from nc file
 
    CHARACTER(LEN=3) :: time_coord ! GMT or LOCal time variables
 
@@ -259,6 +259,7 @@ MODULE cable_IO_vars_module
          !! vh_js ! added CanT and fwsoil to the list
          CanT = .FALSE.,      & ! within-canopy temperature [K]
          Fwsoil = .FALSE.,      & ! soil moisture modifier to stomatal conductance
+         Area = .FALSE., & ! patch area in km2
 
          !! vh_js !! additional casa variables
          NBP = .FALSE., &

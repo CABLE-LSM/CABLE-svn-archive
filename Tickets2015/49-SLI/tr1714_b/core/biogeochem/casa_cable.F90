@@ -514,6 +514,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      ncok = nf90_create(path = TRIM(ncfile), cmode = nf90_clobber, ncid = ncid)
      IF (ncok /= nf90_noerr) CALL stderr_nc(ncok,'ncdf creating ', ncfile)
 
+     !ncok = nf90_redef(ncid)
+     !if (ncok /= nf90_noerr) call stderr_nc(ncok,'enter def mode', ncfile)
+
      ! define dimensions: from name and length
      CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
@@ -523,12 +526,16 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      ! define variable attributes
      !CLN LATER!             CALL def_var_atts( ncfile, ncid, varID )
 
-     ncok = nf90_enddef(ncid)
+     !ncok = nf90_enddef(ncid)
+     !if (ncok /= nf90_noerr) call stderr_nc(ncok,'end def mode', ncfile)
 
+     write(*,*) "after enddef in write_casa_dump"
      CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
      CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
+    
 
   ENDIF
+
 
   CALL put_var_ncr2(ncid, var_name(3), casamet%tairk    ,n_call )
   CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil    ,n_call, ms )

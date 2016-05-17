@@ -166,9 +166,10 @@ MODULE cable_checks_module
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
            soil_class = (/1.0,20.0/)  , &
-           TotLivBiomass =  (/-999999.0,999999.0/),      &
-           TotSoilCarb =  (/-999999.0,999999.0/),      &
-           TotLittCarb =  (/-999999.0,999999.0/)
+           TotLivBiomass =  (/0.0, 1000./),      &
+           TotSoilCarb =  (/0.0, 1000./),      &
+           TotLittCarb =  (/0.0, 1000./), &
+           Area = (/0.0, 5000.0/)
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 

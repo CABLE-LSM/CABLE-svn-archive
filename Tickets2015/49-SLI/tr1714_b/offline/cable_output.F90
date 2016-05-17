@@ -38,7 +38,7 @@ MODULE cable_output_module
 
   USE cable_abort_module, ONLY: abort, nc_abort
   USE cable_def_types_mod
-  USE casavariable, ONLY: casa_pool, casa_flux
+  USE casavariable, ONLY: casa_pool, casa_flux, casa_met
   USE cable_IO_vars_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
@@ -66,7 +66,7 @@ MODULE cable_output_module
                     PlantCarbLeaf, PlantCarbFineRoot, PlantCarbWood, &
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
-                    PlantTurnoverWoodResourceLim, dCdt
+                    PlantTurnoverWoodResourceLim, dCdt, Area
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -196,6 +196,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodDist
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodCrowding
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodResourceLim
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Area
 
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
@@ -865,6 +866,13 @@ PRINT*,"timeunits", timeunits
 
     END IF
 
+!! vh_js !!
+    CALL define_ovar(ncid_out, ovid%Area, 'Area', 'km2',               &
+                        'Patch Area', patchout%Area,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+     ALLOCATE(out%Area(mp))
+    out%Area = 0.0 ! initialise
+
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
                      'iveg', '-', 'Vegetation type', patchout%iveg, 'integer', &
@@ -1194,7 +1202,7 @@ PRINT*,"timeunits", timeunits
 
   END SUBROUTINE open_output_file
   !=============================================================================
-  SUBROUTINE write_output(dels, ktau, met, canopy, casaflux, casapool, ssnow,                       &
+  SUBROUTINE write_output(dels, ktau, met, canopy, casaflux, casapool, casamet, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
     ! energy and mass balance routines. This subroutine is called
@@ -1214,6 +1222,7 @@ PRINT*,"timeunits", timeunits
     TYPE(casa_flux), INTENT(IN) :: casaflux ! casa fluxes
     TYPE(casa_pool), INTENT(IN) :: casapool ! casa fluxes
     TYPE(balances_type), INTENT(INOUT) :: bal
+    TYPE (casa_met), INTENT(IN)	:: casamet
 
     REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
                                         ! value
@@ -2057,6 +2066,16 @@ PRINT*,"timeunits", timeunits
           out%HeteroResp = 0.0
        END IF
     END IF
+
+    ! output patch area 
+     out%Area = casamet%areacell/1e6 ! km2
+     IF(writenow) THEN
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Area, 'Area', out%Area,    &
+                          ranges%Area, patchout%Area, 'default', met)
+      END IF
+
+
     ! NBP and turnover fluxes [umol/m^2/s]
     IF(output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:

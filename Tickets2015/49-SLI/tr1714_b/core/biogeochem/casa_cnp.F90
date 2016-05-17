@@ -154,8 +154,8 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
      endif
    enddo
 
-!write(59,91)  xNuptake,casapool%Nsoilmin, totNreqmin*deltpool 
-!91  format(20(f12.4,2x))
+write(59,91)  xNuptake(1),casapool%Nsoilmin(1), totNreqmin(1)*deltpool , casaflux%fracClabile(1)
+91  format(20(f12.4,2x))
 !  casaflux%cnpp(:) = xNPuptake(:) * xnplimit(:) * casaflux%cnpp(:)
 
 
@@ -243,9 +243,9 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
         casaflux%fracCalloc(:,LEAF) = 1.0 - casaflux%fracCalloc(:,FROOT) - casaflux%fracCalloc(:,WOOD)
         newLAI =casamet%glai + (casaflux%fracCalloc(:,LEAF) *casaflux%cnpp- &
              casaflux%kplant(:,leaf) *casapool%cplant(:,LEAF) )*casabiome%sla(veg%iveg(:))
-        where (casaflux%sapwood_area.gt.1.e-6 .and. newLAI.gt.(3000.*casaflux%sapwood_area) .and. casaflux%cnpp.gt.0.0)
+        where (casaflux%sapwood_area.gt.1.e-6 .and. newLAI.gt.(4000.*casaflux%sapwood_area) .and. casaflux%cnpp.gt.0.0)
 
-           casaflux%fracCalloc(:,LEAF) = ((3000.*casaflux%sapwood_area - casamet%glai)/casabiome%sla(veg%iveg(:)) &
+           casaflux%fracCalloc(:,LEAF) = ((4000.*casaflux%sapwood_area - casamet%glai)/casabiome%sla(veg%iveg(:)) &
              + casaflux%kplant(:,leaf) *casapool%cplant(:,LEAF)  )/casaflux%cnpp
 
            casaflux%fracCalloc(:,LEAF) = max(0.0,  casaflux%fracCalloc(:,LEAF) )
@@ -820,6 +820,7 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
 
     casaflux%kplant(:,leaf)        = casabiome%plantrate(veg%iveg(:),leaf)*xkleaf(:) &
                                    + xkleafcold(:) + xkleafdry(:)
+
     casaflux%kplant(:,wood)        = casabiome%plantrate(veg%iveg(:),wood)
     casaflux%kplant(:,froot)       = casabiome%plantrate(veg%iveg(:),froot)
   ENDWHERE

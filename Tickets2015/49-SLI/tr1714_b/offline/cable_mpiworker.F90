@@ -65,9 +65,12 @@ MODULE cable_mpiworker
 
   USE cable_mpicommon
 
+ 
   IMPLICIT NONE
 
   SAVE
+
+ 
 
   PRIVATE
 
@@ -86,7 +89,7 @@ MODULE cable_mpiworker
   ! worker's struct for sending final casa results to the master
   INTEGER :: casa_t
 
-  ! worker's struct for rec'ing/sending final casa results to/from the master
+ ! worker's struct for rec'ing/sending final casa results to/from the master
   INTEGER :: casa_dump_t
 
   ! worker's struct for rec'ing/sending final casa results to/from the master
@@ -269,6 +272,9 @@ CONTAINS
     INTEGER :: LALLOC
     ! END header
 
+    ! Maciej: make sure the variable does not go out of scope
+    mp = 0
+
     ! Open, read and close the namelist file.
     OPEN( 10, FILE = CABLE_NAMELIST )
     READ( 10, NML=CABLE )   !where NML=CABLE defined above
@@ -446,7 +452,6 @@ CONTAINS
 
                 ! MPI: POP restart received only if pop module AND casa are active 
                 IF ( CABLE_USER%CALL_POP ) CALL worker_pop_types (comm,veg,casamet,pop)
-write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
              END IF
 
@@ -467,7 +472,7 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
                      casamet,casabal, phen) 
 
                 IF ( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) &
-                     CALL worker_casa_dump_types(comm, casamet, casaflux)
+                     CALL worker_casa_dump_types(comm, casamet, casaflux, phen, climate)
 
                 ! MPI: casa parameters received only if cnp module is active
              END IF
@@ -498,8 +503,13 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
           
              IF( icycle>0 .AND. spincasa) THEN
                 WRITE(wlogn,*) 'EXT spincasacnp enabled with mloop= ', mloop
-                CALL spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                     casaflux,casamet,casabal,phen,POP,climate,LALLOC)
+               CALL worker_spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                     casaflux,casamet,casabal,phen,POP,climate,LALLOC, icomm, ocomm)
+                SPINconv = .FALSE.
+                CASAONLY                   = .TRUE.
+                ktau_gl = 0
+                ktau = 0
+               
              ENDIF
 
           ELSE
@@ -519,7 +529,11 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
           ktau_gl  = 0
           kend_gl  = kend
           knode_gl = 0
-
+        
+          IF (spincasa) THEN
+             EXIT
+          ENDIF
+         ! IF (.NOT.spincasa) THEN 
           ! time step loop over ktau
           KTAULOOP:DO ktau=kstart, kend 
 
@@ -598,6 +612,7 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
                 
                 ! IF(MOD((ktau-kstart+1),ktauday)==0) THEN
                    CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
+ write(wlogn,*), 'after MPI_Send', casaflux%cnpp
               !  ENDIF
 
                 IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
@@ -632,9 +647,14 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
              !                      rad, bal, air, soil, veg, C%SBOLTZ, &
              !                      C%EMLEAF, C%EMSOIL )
 
-             CALL1 = .FALSE.
+   
+          CALL1 = .FALSE.
 
           END DO KTAULOOP ! END Do loop over timestep ktau
+      ! ELSE 
+
+          CALL1 = .FALSE.
+      ! ENDIF
 
           IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. &
                CABLE_USER%CALL_POP) THEN
@@ -646,6 +666,10 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
         
        END DO YEAR
 
+
+         IF (spincasa) THEN
+             EXIT
+          ENDIF
        !!jhan this is insufficient testing. condition for 
        !!spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
        !! see if spinup (if conducting one) has converged:
@@ -711,10 +735,11 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     END DO SPINLOOP
 
-    IF (icycle > 0) THEN
-
+    IF (icycle > 0 .and. (.not.spincasa)) THEN
+      
        ! MPI: send casa results back to the master
-       CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, comm, ierr)
+       CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, ktau_gl, ocomm, ierr)
+      
        ! MPI: output file written by master only
        !CALL casa_poolout( ktau, veg, soil, casabiome,                           &
        !                   casapool, casaflux, casamet, casabal, phen )
@@ -835,7 +860,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     INTEGER :: bidx ! block index
     INTEGER :: ntyp ! total number of blocks
 
-     INTEGER :: rank,  off
+    INTEGER :: rank,  off, ierr2, rcount, pos
+
+    CHARACTER, DIMENSION(:), ALLOCATABLE :: rbuf
 
     CALL MPI_Comm_rank (comm, rank, ierr)
 
@@ -1232,7 +1259,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%meth, displs(bidx), ierr)
-    blen(bidx) = i1len
+! Maciej: veg%meth is REAL
+!    blen(bidx) = i1len
+    blen(bidx) = r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%rp20, displs(bidx), ierr)
@@ -1274,9 +1303,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     CALL MPI_Get_address (veg%vcmax, displs(bidx), ierr)
     blen(bidx) = r1len
 
-    !bidx = bidx + 1
-    !CALL MPI_Get_address (veg%vlai, displs(bidx), ierr)
-    !blen(bidx) = r1len
+  !  bidx = bidx + 1
+  !  CALL MPI_Get_address (veg%vlai, displs(bidx), ierr)
+  !  blen(bidx) = r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%xfang, displs(bidx), ierr)
@@ -1288,7 +1317,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%deciduous, displs(bidx), ierr)
-    blen(bidx) = r1len
+! Maciej: deciduous is logical
+!    blen(bidx) = r1len
+    blen(bidx) = llen
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%a1gs, displs(bidx), ierr)
@@ -1356,7 +1387,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%disturbance_intensity, displs(bidx), ierr)
-    blen(bidx) = 2 * r1len
+! Maciej: disturbance_intensity is REAL(r_2)
+!    blen(bidx) = 2 * r1len
+    blen(bidx) = 2 * r2len
 
     ! ----------- bgc --------------
 
@@ -1412,15 +1445,21 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     bidx = bidx + 1
     CALL MPI_Get_address (soil%i2bp3, displs(bidx), ierr)
-    blen(bidx) = i1len
+! Maciej: i2bp3 is REAL
+!    blen(bidx) = i1len
+    blen(bidx) = r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (soil%ibp2, displs(bidx), ierr)
-    blen(bidx) = i1len
+! Maciej: ibp2 is REAL
+!    blen(bidx) = i1len
+    blen(bidx) = r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (soil%isoilm, displs(bidx), ierr)
-    blen(bidx) = r1len
+! Maciej isoilm is INTEGER
+!    blen(bidx) = r1len
+    blen(bidx) = i1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (soil%rhosoil, displs(bidx), ierr)
@@ -1868,15 +1907,21 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     bidx = bidx + 1
     CALL MPI_Get_address (rad%cexpkbm, displs(bidx), ierr)
-    blen(bidx) = nrb * r1len
+! Maciej: cexpkbm is mp*swb
+!    blen(bidx) = nrb * r1len
+    blen(bidx) = swb * r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (rad%cexpkdm, displs(bidx), ierr)
-    blen(bidx) = nrb * r1len
+! Maciej: cexpkdm is mp*swb
+!    blen(bidx) = nrb * r1len
+    blen(bidx) = swb * r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (rad%rhocbm, displs(bidx), ierr)
-    blen(bidx) = swb * r1len
+! Maciej: rhocbm is mp*nrb
+!    blen(bidx) = swb * r1len
+    blen(bidx) = nrb * r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (rad%transb, displs(bidx), ierr)
@@ -2067,9 +2112,10 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     CALL MPI_Get_address (ssnow%wbtot1, displs(bidx), ierr)
     blen(bidx) = r1len
 
-    bidx = bidx + 1
-    CALL MPI_Get_address (ssnow%wbtot1, displs(bidx), ierr)
-    blen(bidx) = r1len
+!    Maciej: duplicate!
+!    bidx = bidx + 1
+!    CALL MPI_Get_address (ssnow%wbtot1, displs(bidx), ierr)
+!    blen(bidx) = r1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%tprecip, displs(bidx), ierr)
@@ -2153,7 +2199,23 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     ! which mpi_recv below is going to catch...
 
     ! so, now receive all the parameters
-    CALL MPI_Recv (MPI_BOTTOM, 1, param_t, 0, 0, comm, stat, ierr)
+!    CALL MPI_Recv (MPI_BOTTOM, 1, param_t, 0, 0, comm, stat, ierr)
+!   Maciej: buffered recv + unpac version
+    ALLOCATE (rbuf(tsize))
+    CALL MPI_Recv (rbuf, tsize, MPI_BYTE, 0, 0, comm, stat, ierr)
+    CALL MPI_Get_count (stat, param_t, rcount, ierr2)
+
+    IF (ierr == MPI_SUCCESS .AND. ierr2 == MPI_SUCCESS .AND. rcount == 1) THEN
+            pos = 0
+            CALL MPI_Unpack (rbuf, tsize, pos, MPI_BOTTOM, rcount, param_t, &
+                             comm, ierr)
+            IF (ierr /= MPI_SUCCESS) write(*,*),'cable param unpack error, rank: ',rank,ierr
+    ELSE
+            write(*,*),'cable param recv rank err err2 rcount: ',rank, ierr, ierr2, rcount
+    END IF
+
+    DEALLOCATE(rbuf)
+ 
 
     ! finally free the MPI type
     CALL MPI_Type_Free (param_t, ierr)
@@ -2211,7 +2273,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     INTEGER :: bidx ! block index
     INTEGER :: ntyp ! total number of blocks
 
-    INTEGER :: rank, off
+    INTEGER :: rank, off, ierr2, rcount, pos
+
+    CHARACTER, DIMENSION(:), ALLOCATABLE :: rbuf
 
     off = 1
 
@@ -2582,11 +2646,15 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     bidx = bidx + 1
     CALL MPI_Get_address (casapool%ratioNPlitter, displs(bidx), ierr)
-    blen(bidx) = mplant * r2len
+!    blen(bidx) = mplant * r2len
+! Maciej
+    blen(bidx) = mlitter * r2len
 
     bidx = bidx + 1
     CALL MPI_Get_address (casapool%ratioNPsoil, displs(bidx), ierr)
-    blen(bidx) = mplant * r2len
+!    blen(bidx) = mplant * r2len
+! Maciej
+    blen(bidx) = msoil * r2len
 
     ! ------- casaflux ----
 
@@ -2865,11 +2933,13 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
 
     bidx = bidx + 1
     CALL MPI_Get_address (casamet%ijgcm, displs(bidx), ierr)
-    blen(bidx) = r2len
+! Maciej: ijgcm is INTEGER
+    blen(bidx) = i1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (casamet%isorder, displs(bidx), ierr)
-    blen(bidx) = r2len
+! Maciej: isorder is INTEGER
+    blen(bidx) = i1len
 
     bidx = bidx + 1
     CALL MPI_Get_address (casamet%lat, displs(bidx), ierr)
@@ -3129,7 +3199,24 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     CALL MPI_Barrier (comm, ierr)
 
     ! so, now receive all the parameters
-    CALL MPI_Recv (MPI_BOTTOM, 1, casa_t, 0, 0, comm, stat, ierr)
+!    CALL MPI_Recv (MPI_BOTTOM, 1, casa_t, 0, 0, comm, stat, ierr)
+
+!   Maciej: buffered recv + unpac version
+    ALLOCATE (rbuf(tsize))
+    CALL MPI_Recv (rbuf, tsize, MPI_BYTE, 0, 0, comm, stat, ierr)
+    CALL MPI_Get_count (stat, casa_t, rcount, ierr2)
+
+    IF (ierr == MPI_SUCCESS .AND. ierr2 == MPI_SUCCESS .AND. rcount == 1) THEN
+            pos = 0
+            CALL MPI_Unpack (rbuf, tsize, pos, MPI_BOTTOM, rcount, casa_t, &
+                             comm, ierr)
+            IF (ierr /= MPI_SUCCESS) write(*,*),'casa params unpack error, rank: ',rank,ierr
+    ELSE
+            write(*,*),'casa params recv rank err err2 rcount: ',rank, ierr, ierr2, rcount
+    END IF
+
+    DEALLOCATE(rbuf)
+ 
 
     ! finally free the MPI type
     CALL MPI_Type_Free (casa_t, ierr)
@@ -3665,7 +3752,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     !  &            mat_t(midx, rank), ierr)
     bidx = bidx + 1
     CALL MPI_Get_address (rad%cexpkbm(off,1), displs(bidx), ierr)
-    blocks(bidx) = r1len * nrb
+! Maciej: cexpkbm is mp*swb
+!    blocks(bidx) = r1len * nrb
+    blocks(bidx) = r1len * swb
 
     !midx = midx + 1
     ! REAL(r_1)
@@ -3674,11 +3763,15 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     !  &            mat_t(midx, rank), ierr)
     bidx = bidx + 1
     CALL MPI_Get_address (rad%cexpkdm(off,1), displs(bidx), ierr)
-    blocks(bidx) = r1len * nrb
+! Maciej: cexpkdm is mp*swb
+!    blocks(bidx) = r1len * nrb
+    blocks(bidx) = r1len * swb
 
     bidx = bidx + 1
     CALL MPI_Get_address (rad%rhocbm(off,1), displs(bidx), ierr)
-    blocks(bidx) = r1len * swb
+! Maciej: rhocbm is mp*nrb
+!    blocks(bidx) = r1len * swb
+    blocks(bidx) = r1len * nrb
 
 
     ! air 2D - all fields 1D - skipped
@@ -4901,7 +4994,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     !blen(vidx) = cnt * extid
     bidx = bidx + 1
     CALL MPI_Get_address (soil%i2bp3(off), displs(bidx), ierr)
-    blocks(bidx) = I1LEN
+! Maciej: i2bp3 is REAL
+!    blocks(bidx) = I1LEN
+    blocks(bidx) = R1LEN
 
     !vidx = vidx + 1
     ! INTEGER(i_d)
@@ -4909,7 +5004,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     !blen(vidx) = cnt * extid
     bidx = bidx + 1
     CALL MPI_Get_address (soil%ibp2(off), displs(bidx), ierr)
-    blocks(bidx) = I1LEN
+! Maciej: ibp2 is REAL
+!    blocks(bidx) = I1LEN
+    blocks(bidx) = R1LEN
 
     !vidx = vidx + 1
     ! INTEGER(i_d)
@@ -4999,7 +5096,9 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     !blen(vidx) = cnt * extid
     bidx = bidx + 1
     CALL MPI_Get_address (veg%meth(off), displs(bidx), ierr)
-    blocks(bidx) = I1LEN
+! Maciej: veg%meth is REAL
+!    blocks(bidx) = I1LEN
+    blocks(bidx) = R1LEN
 
     !vidx = vidx + 1
     ! REAL(r_1)
@@ -5542,6 +5641,99 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     CALL MPI_Get_address (casaflux%Cplant_turnover(off,1), displs(bidx), ierr)
     blocks(bidx) = mplant*r2LEN
 
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fracCalloc, displs(bidx), ierr)
+    blocks(bidx) = mplant * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fracNalloc, displs(bidx), ierr)
+    blocks(bidx) = mplant * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fracPalloc, displs(bidx), ierr)
+    blocks(bidx) = mplant * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%Crmplant, displs(bidx), ierr)
+    blocks(bidx) = mplant * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%kplant, displs(bidx), ierr)
+    blocks(bidx) = mplant * r2len
+
+    ! 3D
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fromPtoL, displs(bidx), ierr)
+    blocks(bidx) = mplant * mlitter * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%klitter, displs(bidx), ierr)
+    blocks(bidx) = mlitter * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%ksoil, displs(bidx), ierr)
+    blocks(bidx) = msoil * r2len
+
+    ! 3D
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fromLtoS, displs(bidx), ierr)
+    blocks(bidx) = msoil * mlitter * r2len
+
+    ! 3D
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fromStoS, displs(bidx), ierr)
+    blocks(bidx) = msoil * msoil * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fromLtoCO2, displs(bidx), ierr)
+    blocks(bidx) = mlitter * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fromStoCO2, displs(bidx), ierr)
+    blocks(bidx) = msoil * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fluxCtolitter, displs(bidx), ierr)
+    blocks(bidx) = mlitter * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fluxNtolitter, displs(bidx), ierr)
+    blocks(bidx) = mlitter * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fluxPtolitter, displs(bidx), ierr)
+    blocks(bidx) = mlitter * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fluxCtosoil, displs(bidx), ierr)
+    blocks(bidx) = msoil * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fluxNtosoil, displs(bidx), ierr)
+    blocks(bidx) = msoil * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casaflux%fluxPtosoil, displs(bidx), ierr)
+    blocks(bidx) = msoil * r2len
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     ! ------------- 1D vectors -------------
 
     bidx = bidx + 1
@@ -5769,7 +5961,7 @@ write(wlogn,*) 'after pop_types',  pop%pop_grid(:)%cmass_sum
     CALL MPI_Type_size (casa_t, tsize, ierr)
     CALL MPI_Type_get_extent (casa_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
+    WRITE (*,*) 'casa type struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
@@ -5789,12 +5981,14 @@ SUBROUTINE worker_climate_types (comm, climate)
 
     USE mpi
 
-    USE cable_def_types_mod, ONLY: climate_type, alloc_cbm_var
+    USE cable_def_types_mod, ONLY: climate_type, alloc_cbm_var, mp
     USE cable_climate_mod, ONLY: climate_init
 
+    IMPLICIT NONE
 
-    TYPE(climate_type):: climate
-    INTEGER :: comm
+    TYPE(climate_type), INTENT(INOUT):: climate
+    INTEGER, INTENT(IN) :: comm
+
     ! MPI: temp arrays for marshalling all types into a struct
     INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
     INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
@@ -5815,8 +6009,10 @@ SUBROUTINE worker_climate_types (comm, climate)
 
     INTEGER :: rank, off, cnt
     INTEGER :: bidx, midx, vidx, ierr, ny, nd
-    INTEGER :: stat(MPI_STATUS_SIZE)
+    INTEGER :: stat(MPI_STATUS_SIZE), ierr2, rcount, pos
 
+
+    CHARACTER, DIMENSION(:), ALLOCATABLE :: rbuf
     
    ! CALL alloc_cbm_var(climate,mp)
 
@@ -5985,7 +6181,23 @@ SUBROUTINE worker_climate_types (comm, climate)
     CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr) 
 
     ! so, now receive all the parameters
-    CALL MPI_Recv (MPI_BOTTOM, 1, climate_t, 0, 0, comm, stat, ierr)
+!    CALL MPI_Recv (MPI_BOTTOM, 1, climate_t, 0, 0, comm, stat, ierr)
+
+!   Maciej: buffered recv + unpac version
+    ALLOCATE (rbuf(tsize))
+    CALL MPI_Recv (rbuf, tsize, MPI_BYTE, 0, 0, comm, stat, ierr)
+    CALL MPI_Get_count (stat, climate_t, rcount, ierr2)
+
+    IF (ierr == MPI_SUCCESS .AND. ierr2 == MPI_SUCCESS .AND. rcount == 1) THEN
+            pos = 0
+            CALL MPI_Unpack (rbuf, tsize, pos, MPI_BOTTOM, rcount, climate_t, &
+                             comm, ierr)
+            IF (ierr /= MPI_SUCCESS) write(*,*),'climate unpack error, rank: ',rank,ierr
+    ELSE
+            write(*,*),'climate recv rank err err2 rcount: ',rank, ierr, ierr2, rcount
+    END IF
+
+    DEALLOCATE(rbuf)
  
  DEALLOCATE(types)
  DEALLOCATE(displs)
@@ -6025,6 +6237,8 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
 
  INTEGER :: tsize
  INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+
+ CALL MPI_Comm_rank (comm, rank, ierr)
 
  ! MPI: allocate temp vectors used for marshalling
  ntyp = nrestart
@@ -6120,7 +6334,7 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
  CALL MPI_Type_size (restart_t, tsize, ierr)
  CALL MPI_Type_get_extent (restart_t, tmplb, text, ierr)
 
- WRITE (*,*) 'restart struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
+ WRITE (*,*) 'restart struct blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
 
  ! MPI: check whether total size of received data equals total
  ! data sent by all the workers
@@ -6138,11 +6352,13 @@ call flush(6)
 
 END SUBROUTINE worker_restart_type
 
-SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
+SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux, phen, climate)
 
  USE mpi
 
  USE casavariable, ONLY: casa_met, casa_flux, mplant
+ USE cable_def_types_mod, ONLY: climate_type
+ USE phenvariable
 
  IMPLICIT NONE
 
@@ -6150,6 +6366,8 @@ SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
  INTEGER, INTENT(IN) :: comm  ! MPI communicator
  TYPE (casa_flux)   , INTENT(INOUT) :: casaflux
  TYPE (casa_met)    , INTENT(INOUT) :: casamet
+ TYPE (phen_variable), INTENT(INOUT)  :: phen 
+ TYPE (climate_type):: climate
 
  ! local vars
 
@@ -6184,6 +6402,7 @@ SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
 
  r1len = mp * extr1
  r2len = mp * extr2
+ i1len = mp * extid
 
  bidx = 0
 
@@ -6210,6 +6429,30 @@ SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux)
  bidx = bidx + 1
  CALL MPI_Get_address (casaflux%Crmplant, displs(bidx), ierr)
  blen(bidx) = mplant * r2len
+
+
+
+!****************************************************************
+ ! phen fields
+  
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%phase, displs(bidx), ierr)
+     blen(bidx) = I1LEN
+     
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%doyphase, displs(bidx), ierr)
+     blen(bidx) = mphase * i1len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp_max, displs(bidx), ierr)
+     blen(bidx) = r1len
+ 
+
+
+!******************************************************************
+
 
  ! MPI: sanity check
  IF (bidx /= ntyp) THEN
@@ -6263,21 +6506,59 @@ SUBROUTINE worker_pop_types(comm, veg, casamet, pop)
  TYPE (pop_type), INTENT(INOUT) :: pop
  TYPE (veg_parameter_type),INTENT(IN) :: veg 
 
+ INTEGER, DIMENSION(:), Allocatable :: Iwood, ainv
  INTEGER :: mp_pop, stat(MPI_STATUS_SIZE), ierr
+
+ INTEGER :: rank, inv
+
+ CALL MPI_Comm_rank (comm, rank, ierr)
 
  ! Get POP relevant info from Master 
  CALL MPI_Recv ( mp_pop, 1, MPI_INTEGER, 0, 0, comm, stat, ierr )
-write(*,*),'worker mppop', mp_pop
- ALLOCATE( POP%Iwood( mp_pop ) )
- CALL MPI_Recv ( POP%Iwood, mp_pop, MPI_INTEGER, 0, 0, comm, stat, ierr )
-write(*,*),'worker Iwood', POP%Iwood
- CALL ALLOC_POP ( POP, mp_pop )
- CALL POP_INIT( pop,veg%disturbance_interval,mp_pop,POP%Iwood )
+write(*,*),'worker iwood to allocate', rank, mp_pop, mp
+!write(*,*),'worker mppop', rank, mp_pop
+ !ALLOCATE( POP%Iwood( mp_pop ) )
+ ALLOCATE( Iwood( mp_pop ) )
+write(*,*),'worker iwood allocated', rank, mp_pop
+ !CALL MPI_Recv ( POP%Iwood, mp_pop, MPI_INTEGER, 0, 0, comm, stat, ierr )
+ CALL MPI_Recv ( Iwood, mp_pop, MPI_INTEGER, 0, 0, comm, stat, ierr )
+!write(*,*),'worker Iwood', rank, POP%Iwood
+! Maciej
+ IF (ANY (Iwood < 1) .OR. ANY (Iwood > mp)) THEN
+    write(*,*),'worker iwood values outside valid ranges', rank
+    inv = COUNT(Iwood < 1)
+    IF (inv .gt. 0) THEN
+       write(*,*),'no of values below 1: ', inv
+       ALLOCATE (ainv(inv))
+       ainv = PACK (Iwood, Iwood .lt. 1)
+       write (*,*),'values below 1: ', ainv
+       DEALLOCATE (ainv)
+    END IF
+    inv = COUNT(Iwood > mp)
+    IF (inv .gt. 0) THEN
+       write(*,*),'no of values above mp ', mp, inv
+       ALLOCATE (ainv(inv))
+       ainv = PACK (Iwood, Iwood .gt. mp)
+       write (*,*),'values above mp: ', ainv
+       DEALLOCATE (ainv)
+    END IF
+    
+ END IF
+ ! maciej: unnecessary, pop_init starts with a call to alloc_pop
+! CALL ALLOC_POP ( POP, mp_pop )
+ !CALL POP_INIT( pop,veg%disturbance_interval,mp_pop,POP%Iwood )
+ ! maciej: veg%disturbance_levels received earlier in worker_cable_params
+ CALL POP_INIT( pop,veg%disturbance_interval,mp_pop,Iwood )
 
+ DEALLOCATE (Iwood)
+
+ ! Maciej: pop_t used also for sending results back to master, even if from zero
  CALL create_pop_gridcell_type (pop_t, comm)
 
- IF ( .NOT. CABLE_USER%POP_fromZero ) &
+ IF (.NOT. CABLE_USER%POP_fromZero ) THEN
+      write(*,*),'rank receiving pop_grid from master', rank
       CALL MPI_Recv( POP%pop_grid(1), mp_pop, pop_t, 0, 0, comm, stat, ierr )
+ END IF
 
 
 END SUBROUTINE worker_pop_types
@@ -6330,6 +6611,355 @@ SUBROUTINE worker_end(icycle, restart)
  RETURN
 
 END SUBROUTINE worker_end
+
+
+!*********************************************************************************************
+ 
+SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+     casaflux,casamet,casabal,phen,POP,climate,LALLOC,  icomm, ocomm )
+
+ ! USE cable_mpiworker
+  USE cable_def_types_mod
+  USE cable_carbon_module
+  USE cable_common_module, ONLY: CABLE_USER
+  USE casadimension
+  USE casaparm
+  USE casavariable
+  USE phenvariable
+  USE POP_Types,  Only: POP_TYPE
+  USE POPMODULE,            ONLY: POPStep
+  USE TypeDef,              ONLY: i4b, dp
+  USE mpi
+
+  IMPLICIT NONE
+  !!CLN  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
+  REAL,    INTENT(IN)    :: dels
+  INTEGER, INTENT(IN)    :: kstart
+  INTEGER, INTENT(IN)    :: kend
+  INTEGER, INTENT(IN)    :: mloop
+  INTEGER, INTENT(IN)    :: LALLOC
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
+  TYPE (casa_biome),            INTENT(INOUT) :: casabiome
+  TYPE (casa_pool),             INTENT(INOUT) :: casapool
+  TYPE (casa_flux),             INTENT(INOUT) :: casaflux
+  TYPE (casa_met),              INTENT(INOUT) :: casamet
+  TYPE (casa_balance),          INTENT(INOUT) :: casabal
+  TYPE (phen_variable),         INTENT(INOUT) :: phen
+  TYPE (POP_TYPE), INTENT(INOUT)     :: POP
+  TYPE (climate_TYPE), INTENT(INOUT)     :: climate
+
+ 
+
+   ! communicator for error-messages
+  INTEGER, INTENT(IN)  :: icomm, ocomm
+  TYPE (casa_met)  :: casaspin
+
+  ! local variables
+  real,      dimension(:), allocatable, save  :: avg_cleaf2met, avg_cleaf2str, avg_croot2met, avg_croot2str, avg_cwood2cwd
+  real,      dimension(:), allocatable, save  :: avg_nleaf2met, avg_nleaf2str, avg_nroot2met, avg_nroot2str, avg_nwood2cwd
+  real,      dimension(:), allocatable, save  :: avg_pleaf2met, avg_pleaf2str, avg_proot2met, avg_proot2str, avg_pwood2cwd
+  real,      dimension(:), allocatable, save  :: avg_cgpp,      avg_cnpp,      avg_nuptake,   avg_puptake
+  real,      dimension(:), allocatable, save  :: avg_nsoilmin,  avg_psoillab,  avg_psoilsorb, avg_psoilocc
+  !chris 12/oct/2012 for spin up casa
+  real,      dimension(:), allocatable, save  :: avg_ratioNCsoilmic,  avg_ratioNCsoilslow,  avg_ratioNCsoilpass
+  real(r_2), dimension(:), allocatable, save  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, avg_xksoil
+
+  ! local variables
+  INTEGER                  :: myearspin,nyear, nloop1
+  CHARACTER(LEN=99)        :: ncfile
+  CHARACTER(LEN=4)         :: cyear
+  INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
+  INTEGER, save            :: ndays
+  real,      dimension(mp)      :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
+  real,      dimension(mp)      :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
+  real,      dimension(mp)      :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
+  real,      dimension(mp)      :: xcgpp,     xcnpp,     xnuptake,  xpuptake
+  real,      dimension(mp)      :: xnsoilmin, xpsoillab, xpsoilsorb,xpsoilocc
+  real(r_2), dimension(mp)      :: xnplimit,  xkNlimiting, xklitter, xksoil,xkleaf, xkleafcold, xkleafdry
+
+  ! more variables to store the spinup pool size over the last 10 loops. Added by Yp Wang 30 Nov 2012
+  real,      dimension(5,mvtype,mplant)  :: bmcplant,  bmnplant,  bmpplant
+  real,      dimension(5,mvtype,mlitter) :: bmclitter, bmnlitter, bmplitter
+  real,      dimension(5,mvtype,msoil)   :: bmcsoil,   bmnsoil,   bmpsoil
+  real,      dimension(5,mvtype)         :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
+  real,      dimension(mvtype)           :: bmarea
+  integer nptx,nvt,kloop
+
+   REAL(dp)                               :: StemNPP(mp,2)
+   REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
+   REAL(dp), allocatable :: NPPtoGPP(:)
+   INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
+
+
+    INTEGER :: stat(MPI_STATUS_SIZE)
+    INTEGER :: ierr
+
+
+   if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
+   if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
+   if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
+   if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
+   if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
+
+
+   !! vh_js !!
+    IF (cable_user%CALL_POP) THEN
+
+       Iw = POP%Iwood
+
+    ENDIF
+
+  ktauday=int(24.0*3600.0/dels)
+  nday=(kend-kstart+1)/ktauday
+
+  !chris 12/oct/2012 for spin up casa
+  IF (.not.(allocated(avg_cleaf2met)))  allocate(avg_cleaf2met(mp), avg_cleaf2str(mp), avg_croot2met(mp), avg_croot2str(mp), &
+       avg_cwood2cwd(mp), &
+       avg_nleaf2met(mp), avg_nleaf2str(mp), avg_nroot2met(mp), avg_nroot2str(mp), avg_nwood2cwd(mp), &
+       avg_pleaf2met(mp), avg_pleaf2str(mp), avg_proot2met(mp), avg_proot2str(mp), avg_pwood2cwd(mp), &
+       avg_cgpp(mp),      avg_cnpp(mp),      avg_nuptake(mp),   avg_puptake(mp),                     &
+       avg_xnplimit(mp),  avg_xkNlimiting(mp), avg_xklitter(mp), avg_xksoil(mp),                      &
+       avg_rationcsoilmic(mp),avg_rationcsoilslow(mp),avg_rationcsoilpass(mp),                        &
+       avg_nsoilmin(mp),  avg_psoillab(mp),    avg_psoilsorb(mp), avg_psoilocc(mp))
+
+  
+  myearspin = CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1
+  ! compute the mean fluxes and residence time of each carbon pool
+  avg_cleaf2met=0.0; avg_cleaf2str=0.0; avg_croot2met=0.0; avg_croot2str=0.0; avg_cwood2cwd=0.0
+  avg_nleaf2met=0.0; avg_nleaf2str=0.0; avg_nroot2met=0.0; avg_nroot2str=0.0; avg_nwood2cwd=0.0
+  avg_pleaf2met=0.0; avg_pleaf2str=0.0; avg_proot2met=0.0; avg_proot2str=0.0; avg_pwood2cwd=0.0
+  avg_cgpp=0.0;      avg_cnpp=0.0;      avg_nuptake=0.0;   avg_puptake=0.0
+  avg_xnplimit=0.0;  avg_xkNlimiting=0.0; avg_xklitter=0.0; avg_xksoil=0.0
+  avg_nsoilmin=0.0;  avg_psoillab=0.0;    avg_psoilsorb=0.0; avg_psoilocc=0.0
+  avg_rationcsoilmic=0.0;avg_rationcsoilslow=0.0;avg_rationcsoilpass=0.0
+
+  do nyear=1,myearspin
+     
+    ! WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
+    ! ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+
+     !call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
+   
+
+     do idoy=1,mdyear
+        ktau=(idoy-1)*ktauday +1
+         CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, idoy, icomm, stat, ierr) 
+       
+        CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+             casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
+             xksoil,xkleaf,xkleafcold,xkleafdry,&
+             cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+             nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+        IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
+           ! accumulate annual variables for use in POP
+           IF(idoy==1 ) THEN
+              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+              LAImax = casamet%glai
+              Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
+              Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
+           ELSE
+              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+              LAImax = max(casamet%glai, LAImax)
+              Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
+              Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
+           ENDIF
+ 
+           IF(idoy==mdyear) THEN ! end of year
+
+              StemNPP(:,1) = casaflux%stemnpp 
+              StemNPP(:,2) = 0.0
+              WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
+                 NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
+              ELSEWHERE
+                 NPPtoGPP = 0.5
+              ENDWHERE
+
+              CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
+                   real(veg%disturbance_intensity(Iw,:),dp)      ,&
+                   LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+
+           ENDIF  ! end of year
+        ELSE
+           casaflux%stemnpp = 0.
+        ENDIF ! CALL_POP
+
+
+        WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
+           xkNlimiting = 0.001
+        END WHERE
+        nptx=8173
+
+        avg_cleaf2met = avg_cleaf2met + cleaf2met
+        avg_cleaf2str = avg_cleaf2str + cleaf2str
+        avg_croot2met = avg_croot2met + croot2met
+        avg_croot2str = avg_croot2str + croot2str
+        avg_cwood2cwd = avg_cwood2cwd + cwood2cwd
+
+        avg_nleaf2met = avg_nleaf2met + nleaf2met
+        avg_nleaf2str = avg_nleaf2str + nleaf2str
+        avg_nroot2met = avg_nroot2met + nroot2met
+        avg_nroot2str = avg_nroot2str + nroot2str
+        avg_nwood2cwd = avg_nwood2cwd + nwood2cwd
+
+        avg_pleaf2met = avg_pleaf2met + pleaf2met
+        avg_pleaf2str = avg_pleaf2str + pleaf2str
+        avg_proot2met = avg_proot2met + proot2met
+        avg_proot2str = avg_proot2str + proot2str
+        avg_pwood2cwd = avg_pwood2cwd + pwood2cwd
+
+        avg_cgpp      = avg_cgpp      + casaflux%cgpp
+        avg_cnpp      = avg_cnpp      + casaflux%cnpp
+        avg_nuptake   = avg_nuptake   + casaflux%Nminuptake
+        avg_puptake   = avg_puptake   + casaflux%Plabuptake
+
+        avg_xnplimit    = avg_xnplimit    + xnplimit
+        avg_xkNlimiting = avg_xkNlimiting + xkNlimiting
+        avg_xklitter    = avg_xklitter    + xklitter
+        avg_xksoil      = avg_xksoil      + xksoil
+
+        avg_nsoilmin    = avg_nsoilmin    + casapool%nsoilmin
+        avg_psoillab    = avg_psoillab    + casapool%psoillab
+        avg_psoilsorb   = avg_psoilsorb   + casapool%psoilsorb
+        avg_psoilocc    = avg_psoilocc    + casapool%psoilocc
+
+        avg_rationcsoilmic  = avg_rationcsoilmic  + casapool%ratioNCsoilnew(:,mic)
+        avg_rationcsoilslow = avg_rationcsoilslow + casapool%ratioNCsoilnew(:,slow)
+        avg_rationcsoilpass = avg_rationcsoilpass + casapool%ratioNCsoilnew(:,pass)
+     enddo
+  enddo
+
+  !!CLN    CLOSE(91)
+
+  avg_cleaf2met = avg_cleaf2met/real(nday*myearspin)
+  avg_cleaf2str = avg_cleaf2str/real(nday*myearspin)
+  avg_croot2met = avg_croot2met/real(nday*myearspin)
+  avg_croot2str = avg_croot2str/real(nday*myearspin)
+  avg_cwood2cwd = avg_cwood2cwd/real(nday*myearspin)
+
+  avg_nleaf2met = avg_nleaf2met/real(nday*myearspin)
+  avg_nleaf2str = avg_nleaf2str/real(nday*myearspin)
+  avg_nroot2met = avg_nroot2met/real(nday*myearspin)
+  avg_nroot2str = avg_nroot2str/real(nday*myearspin)
+  avg_nwood2cwd = avg_nwood2cwd/real(nday*myearspin)
+
+  avg_pleaf2met = avg_pleaf2met/real(nday*myearspin)
+  avg_pleaf2str = avg_pleaf2str/real(nday*myearspin)
+  avg_proot2met = avg_proot2met/real(nday*myearspin)
+  avg_proot2str = avg_proot2str/real(nday*myearspin)
+  avg_pwood2cwd = avg_pwood2cwd/real(nday*myearspin)
+
+  avg_cgpp      = avg_cgpp/real(nday*myearspin)
+  avg_cnpp      = avg_cnpp/real(nday*myearspin)
+  avg_nuptake   = avg_nuptake/real(nday*myearspin)
+  avg_puptake   = avg_puptake/real(nday*myearspin)
+
+  avg_xnplimit    = avg_xnplimit/real(nday*myearspin)
+  avg_xkNlimiting = avg_xkNlimiting/real(nday*myearspin)
+  avg_xklitter    = avg_xklitter/real(nday*myearspin)
+  avg_xksoil      = avg_xksoil/real(nday*myearspin)
+
+  avg_nsoilmin    = avg_nsoilmin/real(nday*myearspin)
+  avg_psoillab    = avg_psoillab/real(nday*myearspin)
+  avg_psoilsorb   = avg_psoilsorb/real(nday*myearspin)
+  avg_psoilocc    = avg_psoilocc/real(nday*myearspin)
+
+  avg_rationcsoilmic  = avg_rationcsoilmic  /real(nday*myearspin)
+  avg_rationcsoilslow = avg_rationcsoilslow /real(nday*myearspin)
+  avg_rationcsoilpass = avg_rationcsoilpass /real(nday*myearspin)
+
+
+
+  call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
+       casaflux,casamet,casabal,phen,                                         &
+       avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
+       avg_nleaf2met,avg_nleaf2str,avg_nroot2met,avg_nroot2str,avg_nwood2cwd, &
+       avg_pleaf2met,avg_pleaf2str,avg_proot2met,avg_proot2str,avg_pwood2cwd, &
+       avg_cgpp, avg_cnpp, avg_nuptake, avg_puptake,                          &
+       avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
+       avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
+       avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
+
+
+  nloop1= max(1,mloop-3)
+
+  DO nloop=1,mloop
+
+     !!CLN  OPEN(91,file=fcnpspin)
+     !!CLN  read(91,*)
+     DO nyear=1,myearspin
+       
+       ! WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
+       ! ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+       ! call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
+
+        DO idoy=1,mdyear
+           ktauy=idoy*ktauday
+          
+           CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, idoy, icomm, stat, ierr) 
+
+           call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+                casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
+                xkleafcold,xkleafdry,&
+                cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+                nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+
+
+           IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
+
+              ! accumulate annual variables for use in POP
+              IF(idoy==1 ) THEN
+                 casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+                 LAImax = casamet%glai
+                 Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
+                 Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
+              ELSE
+                 casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+                 LAImax = max(casamet%glai, LAImax)
+                 Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
+                 Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
+              ENDIF
+                
+           
+              IF(idoy==mdyear) THEN ! end of year
+                 
+                 StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
+                 StemNPP(:,2) = 0.0
+                 WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
+                    NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
+                 ELSEWHERE
+                    NPPtoGPP = 0.5
+                 ENDWHERE
+                 
+                 CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
+                      real(veg%disturbance_intensity(Iw,:),dp)      ,&
+                      LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+                 
+           ENDIF  ! end of year
+        ELSE
+           casaflux%stemnpp = 0.
+        ENDIF ! CALL_POP
+        
+        
+     ENDDO   ! end of idoy
+  ENDDO   ! end of nyear
+
+ENDDO     ! end of nloop
+write(wlogn,*) 'b4 MPI_SEND'
+ CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, 0, ocomm, ierr) 
+write(wlogn,*) 'after MPI_SEND'
+IF(CABLE_USER%CALL_POP) CALL worker_send_pop (POP, ocomm) 
+write(wlogn,*) 'cplant', casapool%cplant
+
+END SUBROUTINE worker_spincasacnp
+
+!***********************************************************************************************
+
+
 
 END MODULE cable_mpiworker
 

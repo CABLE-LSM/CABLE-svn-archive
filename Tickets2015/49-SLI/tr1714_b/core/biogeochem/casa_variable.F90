@@ -104,6 +104,8 @@ MODULE casavariable
   USE casadimension
   IMPLICIT NONE
 
+  SAVE
+
   TYPE casa_biome
     INTEGER,   DIMENSION(:),POINTER :: ivt2
     REAL(r_2), DIMENSION(:),POINTER :: xkleafcoldmax,  &

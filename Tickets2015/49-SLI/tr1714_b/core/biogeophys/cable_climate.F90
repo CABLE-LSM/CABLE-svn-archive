@@ -215,13 +215,16 @@ CALL alloc_cbm_var(climate,np)
 
 if (cable_user%climate_fromzero) then
 
-   DO d=1,31
+! Maciej
+!   DO d=1,31
       !climate%dtemp_31(:,d)= climate%dtemp
      ! climate%dmoist_31(:,d)= climate%dmoist
-      climate%dtemp_31(:,d)= 0
-      climate%dmoist_31(:,d)= 0
-
-   ENDDO
+!      climate%dtemp_31(:,d)= 0
+!      climate%dmoist_31(:,d)= 0
+!
+!   ENDDO
+   climate%dtemp_31(:,:)= 0
+   climate%dmoist_31(:,:)= 0
    climate%atemp_mean=0
 
 
