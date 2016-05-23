@@ -1557,7 +1557,7 @@ END SUBROUTINE remove_trans
        !overflowing
        if (soil%isoilm(i) .eq. 9 .or. veg%iveg(i) .eq. 16) ssnow%qhz(i) = 0._r_2
 
-       kdrain = ms+1 
+       k_drain = ms+1 
        do k=ms,2,-1
           !below what was in paper
           !if ( ssnow%wbliq(i,k+1) .le. gw_params%frozen_frac*ssnow%wb(i,k+1)  .and.&
