@@ -576,7 +576,7 @@ SUBROUTINE mpidrv_master (comm)
                PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
                PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
                if (cable_user%gw_model) then
-                   maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-soilGWtemp))
+                   maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-soilGWtemp),dim=1)
                    PRINT *, 'Example location of moisture non-convergence: ',maxdiff
                    PRINT *, 'ssnow%wb : ', ssnow%GWwb(maxdiff(1))
                    PRINT *, 'soilGWtemp: ', soilGWtemp(maxdiff(1))
