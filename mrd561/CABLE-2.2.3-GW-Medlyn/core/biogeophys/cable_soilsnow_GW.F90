@@ -1569,14 +1569,15 @@ END SUBROUTINE remove_trans
        k_drain = min(k_drain,2)
 
        qhlev(i,:) = 0._r_2
+       sm_tot(i) = 0._r_2 
+
        if (k_drain .le. ms) then
-          sm_tot(i) = 0._r_2 
           do k=k_drain,ms
              sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)!*dzmm(k)
           end do
           sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
-         do k=k_drain,ms
+          do k=k_drain,ms
              qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)!*dzmm(k)/sm_tot(i)
           end do
 
