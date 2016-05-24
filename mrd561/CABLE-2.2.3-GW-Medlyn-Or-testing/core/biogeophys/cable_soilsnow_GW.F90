@@ -61,11 +61,11 @@ MODULE cable_soil_snow_gw_module
    REAL(r_2), PARAMETER :: sucmin  = -1.0e8, &! minimum soil pressure head [mm]
                       volwatmin    = 1e-4,        &!min soil water [mm]      
                       wtd_uncert   = 0.1,         &! uncertaintiy in wtd calcultations [mm]
-                      wtd_max      = 100000.0,    &! maximum wtd [mm]
+                      wtd_max      = 1000000.0,    &! maximum wtd [mm]
                       wtd_min      = 100.0,       &! minimum wtd [mm]
                       dri          = 1.0           !ratio of density of ice to density of liquid [unitless]
 
-   INTEGER, PARAMETER :: wtd_iter_max = 10 ! maximum number of iterations to find the water table depth                    
+   INTEGER, PARAMETER :: wtd_iter_max = 20 ! maximum number of iterations to find the water table depth                    
    
    REAL :: cp    ! specific heat capacity for air
    
@@ -1513,6 +1513,7 @@ END SUBROUTINE remove_trans
     REAL(r_2)                           :: xsi
     REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
     REAL(r_2), DIMENSION(mp)            :: sm_tot,drainmod  !total column soil water available for drainage
+    REAL(r_2), DIMENSION(mp)            :: qrecharge
     INTEGER, DIMENSION(mp)              :: idlev
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
@@ -1558,26 +1559,41 @@ END SUBROUTINE remove_trans
        if (soil%isoilm(i) .eq. 9 .or. veg%iveg(i) .eq. 16) ssnow%qhz(i) = 0._r_2
  
        !identify first no frozen layer.  drinage from that layer and below
-       k_drain = 3
-       do k=ms-1,1,-1
-          if ( ssnow%wbliq(i,k+1) .le. gw_params%frozen_frac*ssnow%wb(i,k+1)  .and.&
-               ssnow%wbliq(i,k  ) .gt. gw_params%frozen_frac*ssnow%wb(i,k  ) ) then
+       !drain from sat layers
+       k_drain = ms+1
+       do k=ms,2,-1
+           !below what was in paper
+          !if ( ssnow%wbliq(i,k+1) .le. gw_params%frozen_frac*ssnow%wb(i,k+1)  .and.&
+          !     ssnow%wbliq(i,k  ) .gt. gw_params%frozen_frac*ssnow%wb(i,k  ) ) then
+          if (ssnow%wtd(i) .le. sum(dzmm(1:k),dim=1)) then
              k_drain = k
           end if
        end do
-       k_drain = min(k_drain,3)
+       k_drain = min(k_drain,2)
+
+!       k_drain = ms + 1
+!       do k=ms,2,-1
+!          if ((all(ssnow%wbliq(i,k:min(k_drain,ms)) .ge. 0.95*soil%watsat(i,k:min(k_drain,ms)))) .and. &
+!                 (ssnow%wbliq(i,k-1) .lt. 0.95*soil%watsat(i,k-1)))) then
+!             k_drain = k
+!          end if
+!       end do
 
        qhlev(i,:) = 0._r_2
-       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1._r_2 -ssnow%fracice(i,ms))
-       do k=k_drain,ms
-          sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
-       end do
-       sm_tot(i) = max(sm_tot(i),0.01_r_2)
+       sm_tot(i) = 0._r_2
+       if (k_drain .le. ms) then
+          do k=k_drain,ms
+             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)!*dzmm(k)
+          end do
+          sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
-      do k=k_drain,ms
-          qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
-       end do
-       qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
+         do k=k_drain,ms
+             qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)!*dzmm(k)/sm_tot(i)
+          end do
+
+       else
+          qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)!*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
+       end if
 
        !incase every layer is frozen very dry
        ssnow%qhz(i) = qhlev(i,ms+1)
@@ -1637,45 +1653,40 @@ END SUBROUTINE remove_trans
        den(i)     = zaq(i) - zmm(k)
        dne(i)     = (ssnow%GWzq(i)-ssnow%zq(i,k))
        num(i)     =  (ssnow%GWsmp(i)-ssnow%smp(i,k)) - dne(i)
-       qout(i)    = -ssnow%hk(i,k)*num(i)/den(i)
-       dqodw1(i)  = -(-ssnow%hk(i,k)*ssnow%dsmpdw(i,k)   + num(i)*ssnow%dhkdw(i,k))/den(i)
-       dqodw2(i)  = -( ssnow%hk(i,k)*ssnow%GWdsmpdw(i) + num(i)*ssnow%dhkdw(i,k))/den(i)
-       rt(i,k) =  qin(i) - qout(i) !- qhlev(i,k) - ssnow%rex(i,k)
+       qout(i)    = 0._r_2
+       dqodw1(i)  = 0._r_2
+       dqodw2(i)  = 0._r_2
+       rt(i,k) =  qin(i) - qout(i)
        at(i,k) = -dqidw0(i)
        bt(i,k) =  dzmm(k)/dels - dqidw1(i) + dqodw1(i)
        ct(i,k) =  dqodw2(i) 
     end do
-         
-    k = ms+1   !Aquifer layer
+       
+    !Doing the recharge outside of the soln of Richards Equation makes it easier to track total recharge amount.
+    !Add to ssnow at some point 
     do i=1,mp
-       den(i)     = (zaq(i) - zmm(k-1))
-       dne(i)     = (ssnow%GWzq(i)-ssnow%zq(i,k-1))
-       num(i)     = (ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - dne(i)
-       qin(i)     = -ssnow%hk(i,k-1)*num(i)/den(i)
-       dqidw0(i)  = -(-ssnow%hk(i,k-1)*ssnow%dsmpdw(i,k-1) + num(i)*ssnow%dhkdw(i,k-1))/den(i)
-       dqidw1(i)  = -( ssnow%hk(i,k-1)*ssnow%GWdsmpdw(i)   + num(i)*ssnow%dhkdw(i,k-1))/den(i)
-       den(i)     = zaq(i) - zmm(k-1)
-       dne(i)     = (ssnow%GWzq(i)-ssnow%zq(i,k-1))
-       num(i)     = (ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - dne(i)
-       qout(i)    = 0._r_2
-       dqodw1(i)  = 0._r_2
-       dqodw2(i)  = 0._r_2
-       rt(i,k) =  qin(i) - qout(i)!  - qhlev(i,k)
-       at(i,k) = -dqidw0(i)
-       bt(i,k) =  GWdzmm(i)/dels - dqidw1(i)
-       ct(i,k) =  0._r_2
+       if (ssnow%wtd(i) .ge. sum(dzmm,dim=1)) then
+          qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - ((zaq(i) - zmm(ms))))/((ssnow%GWzq(i)-ssnow%zq(i,ms)))
+       else
+          qrecharge(i) = 0._r_2
+       end if
     end do
 
-    CALL trimb(at,bt,ct,rt,ms+1)                       !use the defulat cable tridiag solution
+    CALL trimb(at,bt,ct,rt,ms)                       !use the defulat cable tridiag solution
 
     do k=1,ms
        do i=1,mp
           ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + rt(i,k) - qhlev(i,k)*dels/dzmm(k)   !volutermic liquid
        end do
     end do
+
     do i=1,mp
-       ssnow%GWwb(i)    = ssnow%GWwb(i)  + rt(i,ms+1) - qhlev(i,ms+1)*dels/GWdzmm(i)
+       ssnow%wbliq(i,ms) = ssnow%wbliq(i,ms) - qrecharge(i)*dels/dzmm(ms)
     end do
+    do i=1,mp
+       ssnow%GWwb(i) = ssnow%GWwb(i)  +  (qrecharge(i)-qhlev(i,ms+1))*dels/GWdzmm(i)
+    end do
+
     !determine the available pore space
     !volumetric
     eff_por(:,:)  = soil%watsat(:,:) - ssnow%wbice(:,:)
