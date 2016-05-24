@@ -1074,6 +1074,7 @@ CONTAINS
     canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
+    canopy%fwsoil = 1._r_2  !water limit to transpiration
 
     ! *******************************************************************
     ! parameters that are not spatially dependent
@@ -1260,8 +1261,8 @@ CONTAINS
       soil%topo_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     inTI(landpt(e)%ilon,landpt(e)%ilat)
 
-      soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    int(inBI(landpt(e)%ilon,landpt(e)%ilat))
+      !soil%basin_ind(landpt(e)%cstart:landpt(e)%cend) =                       &
+      !                              int(inBI(landpt(e)%ilon,landpt(e)%ilat))
 
 
       ENDIF
@@ -1472,6 +1473,10 @@ CONTAINS
       ssnow%wbice(:, :) = 0.0
     END WHERE
 
+
+    !Note this could depend on veg type but is a constant for now
+    veg%li_katul_skew_param = 0.03_r_2
+
   END SUBROUTINE write_default_params
   !=============================================================================
   SUBROUTINE write_cnp_params(veg, casaflux, casamet)
@@ -1525,7 +1530,7 @@ CONTAINS
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
-    use cable_common_module, only : cable_user
+    use cable_common_module, only : cable_user,gw_params
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
@@ -1634,6 +1639,7 @@ CONTAINS
                                        ! [W/m/K]
     END IF
 
+    if (gw_params%MaxSatFraction .lt. 0.0) soil%slope(:) = 0.01
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
