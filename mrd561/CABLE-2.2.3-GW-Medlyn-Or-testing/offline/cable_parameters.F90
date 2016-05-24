@@ -1530,7 +1530,7 @@ CONTAINS
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
-    use cable_common_module, only : cable_user
+    use cable_common_module, only : cable_user,gw_params
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
@@ -1639,6 +1639,7 @@ CONTAINS
                                        ! [W/m/K]
     END IF
 
+    if (gw_params%MaxSatFraction .lt. 0.0) soil%slope(:) = 0.01
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
