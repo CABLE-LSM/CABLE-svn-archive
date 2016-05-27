@@ -98,6 +98,7 @@ MODULE cable_common_module
      LOGICAL :: GSWP3 = .FALSE.
 
      LOGICAL :: or_evap = .FALSE.
+     LOGICAL :: or_evap_sh = .FALSE.
 
    END TYPE kbl_user_switches
 
@@ -228,6 +229,8 @@ MODULE cable_common_module
                    use_const_thickness=.false., &
                    old_soil_roughness=.false.,&
                    simple_litter=.false.
+
+   REAL, SAVE :: pore_size_factor=1.0
 
    REAL, SAVE :: litter_dz = 0.1  !10 cm thickness
 

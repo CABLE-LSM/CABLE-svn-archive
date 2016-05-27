@@ -373,7 +373,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       if (simple_litter) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
-      elseif (cable_user%or_evap) then
+      elseif (cable_user%or_evap .and. cable_user%or_evap_sh) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
       else
@@ -422,7 +422,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       if (simple_litter) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
-      elseif (cable_user%or_evap) then
+      elseif (cable_user%or_evap .and. cable_user%or_evap_sh) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
       else
@@ -651,8 +651,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    elseif (cable_user%or_evap) then
 
-      litter_thermal_diff = 0.2 / (1932.0*62.0)
-      ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil + canopy%sublayer_dz/litter_thermal_diff)
+      if (cable_user%or_evap_sh) then
+         litter_thermal_diff = 0.2 / (1932.0*62.0)
+         ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil + canopy%sublayer_dz/litter_thermal_diff)
+      else
+         ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil)
+      end if
       ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
                        ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
 
@@ -2423,7 +2427,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    integer :: i,j,k 
    logical, save ::  first_call = .true.
 
-   pore_radius(:) = 0.148 / (abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
+   pore_radius(:) = pore_size_factor * 0.148 / (abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
    if (default_sublayer_thickness) then    !calc sublayer thickness from Haghigni and Or et al. 2015

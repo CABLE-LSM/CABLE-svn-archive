@@ -118,7 +118,8 @@ CONTAINS
                                    use_const_thickness,&
                                    old_soil_roughness,&
                                    simple_litter,&
-                                   litter_dz
+                                   litter_dz,&
+                                   pore_size_factor
 
 
    USE cable_data_module,    ONLY: driver_type, point2constants
@@ -244,7 +245,8 @@ CONTAINS
                   use_const_thickness,&
                   old_soil_roughness,&
                   simple_litter,&
-                  litter_dz
+                  litter_dz,&
+                  pore_size_factor
 
 
    ! END header
