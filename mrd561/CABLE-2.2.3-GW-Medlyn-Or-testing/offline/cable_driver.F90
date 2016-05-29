@@ -81,7 +81,9 @@ PROGRAM cable_offline_driver
                                    old_soil_roughness,&
                                    simple_litter,&
                                    litter_dz,&
-                                   pore_size_factor
+                                   pore_size_factor,&
+                                   force_sand_fraction,force_clay_fraction,&
+                                   force_organic_fraction
 
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -199,7 +201,10 @@ PROGRAM cable_offline_driver
                   old_soil_roughness, &
                   simple_litter, &
                   litter_dz, &
-                  pore_size_factor
+                  pore_size_factor, &
+                  force_sand_fraction, &
+                  force_clay_fraction, &
+                  force_organic_fraction
 
 
    ! END header

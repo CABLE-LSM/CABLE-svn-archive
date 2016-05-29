@@ -1530,7 +1530,7 @@ CONTAINS
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
-    use cable_common_module, only : cable_user,gw_params
+    use cable_common_module, only : cable_user,gw_params,force_sand_fraction,force_clay_fraction,force_organic_fraction
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
@@ -1577,7 +1577,21 @@ CONTAINS
     !MD aquifer node depth
     soil%GWz = 0.5*soil%GWdz + sum(soil%zse)  !node is halfway through aquifer depth
 
+    if (((force_sand_fraction .ge. 0.0) .or. (force_clay_fraction .ge. 0.0)) .and. .not.cable_user%GW_MODEL) then
+       write(*,*) "force_sand_fraction and force_clay_fraction only work when cable_user%GW_MODEL=.true/"
+       stop
+    end if
+
     IF (cable_user%GW_MODEL .and. soilparmnew) then
+       if ((force_clay_fraction .ge. 0.0) .and. (force_sand_fraction.ge.0.0)) then
+          soil%Fsand(:,:) = force_sand_fraction
+          soil%Fclay(:,:) = force_clay_fraction
+          soil%Fsilt(:,:) = 1.0 - force_sand_fraction - force_clay_fraction
+       elseif (((force_clay_fraction .ge. 0.0) .and. (force_sand_fraction.lt.0.0)) .or. &
+               ((force_clay_fraction .lt. 0.0) .and. (force_sand_fraction.ge.0.0))) then
+          write(*,*) "force_clay_fraction and force_sand_fraction must both be set if one is"
+          stop
+       end if
 
        DO klev=1,ms
           soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
@@ -1595,6 +1609,9 @@ CONTAINS
 
        !include organin impact.  fraction of grid cell where percolation through
        !organic macropores dominates
+       if (force_organic_fraction .ge. 0.0) then
+          soil%Forg = force_organic_fraction
+       end if
        soil%Forg = max(0._r_2,soil%Forg)
        soil%Forg = min(1._r_2,soil%Forg)
        !this is how CLM deals with interconnected organic soil fractions

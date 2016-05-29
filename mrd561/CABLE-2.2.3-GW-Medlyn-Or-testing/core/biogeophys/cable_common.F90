@@ -230,7 +230,10 @@ MODULE cable_common_module
                    old_soil_roughness=.false.,&
                    simple_litter=.false.
 
-   REAL, SAVE :: pore_size_factor=1.0
+   REAL, SAVE :: pore_size_factor   =  1.0, &   
+                 force_sand_fraction = -1.0, &
+                 force_clay_fraction = -1.0, &
+                 force_organic_fraction = -1.0
 
    REAL, SAVE :: litter_dz = 0.1  !10 cm thickness
 
