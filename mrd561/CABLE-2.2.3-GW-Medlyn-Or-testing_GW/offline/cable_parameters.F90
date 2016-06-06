@@ -1158,7 +1158,7 @@ CONTAINS
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
         DO ir = 1, nrb                                  ! each band
            ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                      &
-              = min(inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir),0.2) ! various rad band
+              = min(inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir),0.2) ! various rad band !what is with the min???????
         END DO
         ! total depth, change from m to mm
         ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
@@ -1530,7 +1530,7 @@ CONTAINS
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
-    use cable_common_module, only : cable_user
+    use cable_common_module, only : cable_user, gw_params
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
@@ -1638,6 +1638,8 @@ CONTAINS
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
     END IF
+
+    if (gw_params%MaxSatFraction .lt. 0.0) soil%slope(:) = 0.01
 
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat

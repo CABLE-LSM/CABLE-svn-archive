@@ -742,6 +742,9 @@ contains
   end subroutine associate_ocean_outlet_points    
 
 !----------------------------------------------------------------------------!
+!  not going to use this
+! going to go it on 2d grid just like 2d gw to make it easier
+! both have same haloes
 
   subroutine reorder_grid_by_basin(grid_var,basins)
   

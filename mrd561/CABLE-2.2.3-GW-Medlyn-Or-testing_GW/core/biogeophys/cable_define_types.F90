@@ -42,7 +42,7 @@ MODULE cable_def_types_mod
    INTEGER :: mp,    & ! # total no of patches/tiles 
               mvtype,&!=17,& ! total # vegetation types,   from input
               mstype,&!=9,& ! total # soil types,         from input
-              mland,mlat,mlon                           ! # land grid cells
+              mland,mlat,mlon,m_south_halo,m_north_halo                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
       r_2  = kind(1.d0),&  !SELECTED_REAL_KIND(12, 50), &

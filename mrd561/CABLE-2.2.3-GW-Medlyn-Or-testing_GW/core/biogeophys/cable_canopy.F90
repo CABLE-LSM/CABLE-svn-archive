@@ -134,6 +134,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    INTEGER, SAVE :: call_number =0
 
    REAL ::  litter_thermal_diff
+   REAL(r_2) :: slope,smp_srf
    ! END header
   
  
@@ -349,7 +350,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          if (cable_user%gw_model) then 
             do i=1,mp
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+                  slope =(ssnow%smp(i,2)-ssnow%smp(i,1))/(500.0*(soil%zse(1)+soil%zse(2)))
+                  smp_srf = ssnow%smp(i,1)- 500.0*soil%zse(1)*slope
+                  ssnow%rh_srf(i) = exp(9.81*smp_srf/1000.0/ssnow%tss(i)/461.4)
+                  !ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
                   dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
                   ssnow%rh_srf(i) = 1._r_2
@@ -373,6 +377,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       if (simple_litter) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
+      elseif (cable_user%or_evap) then
+         litter_thermal_diff = 0.2 / (1932.0*62.0)
+         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
       else
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
       end if
@@ -393,7 +400,10 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+                  slope =(ssnow%smp(i,2)-ssnow%smp(i,1))/(500.0*(soil%zse(1)+soil%zse(2)))
+                  smp_srf = ssnow%smp(i,1)- 500.0*soil%zse(1)*slope
+                  ssnow%rh_srf(i) = exp(9.81*smp_srf/1000.0/ssnow%tss(i)/461.4)
+                  !ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
                   dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
                   ssnow%rh_srf(i) = 1._r_2
@@ -419,6 +429,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       if (simple_litter) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
+      elseif (cable_user%or_evap) then
+         litter_thermal_diff = 0.2 / (1932.0*62.0)
+         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
       else
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
       end if

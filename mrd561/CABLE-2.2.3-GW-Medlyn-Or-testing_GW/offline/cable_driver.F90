@@ -369,9 +369,9 @@ PROGRAM cable_offline_driver
       IF(spinup.AND..NOT.spinConv) THEN
          
          ! Write to screen and log file:
-         WRITE(*,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
+         WRITE(*,'(A18,I5,A24)') ' Spinning up: run ',INT(ktau_tot/kend),      &
                ' of data set complete...'
-         WRITE(logn,'(A18,I3,A24)') ' Spinning up: run ',INT(ktau_tot/kend),   &
+         WRITE(logn,'(A18,I5,A24)') ' Spinning up: run ',INT(ktau_tot/kend),   &
                ' of data set complete...'
          
          ! IF not 1st run through whole dataset:
@@ -390,6 +390,16 @@ PROGRAM cable_offline_driver
                if (cable_user%gw_model) then
                   PRINT *, 'ssnow%GWwb: ', ssnow%GWwb
                   PRINT *, 'soilGWtemp: ', soilGWtemp
+               end if
+
+               if (int(ktau_tot/kend) .gt. 1000) then
+                  write(*,'(A42,I5,A50)') ' Simulation as attempted to spin up with ',int(ktau_tot/kend),&
+                             ' simulations.  Not spun up but beginning run anaways.'
+                  write(logn,'(A42,I5,A50)') ' Simulation as attempted to spin up with ',int(ktau_tot/kend),&
+                             ' simulations.  Not spun up but beginning run anaways.'
+
+                  spinConv = .true.
+
                end if
             
             ELSE ! spinup has converged

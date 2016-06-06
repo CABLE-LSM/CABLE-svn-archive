@@ -118,7 +118,8 @@ CONTAINS
                                    use_const_thickness,&
                                    old_soil_roughness,&
                                    simple_litter,&
-                                   litter_dz
+                                   litter_dz, &
+                                   l_casacnp, l_laiFeedbk,l_vcmaxFeedbk
 
 
    USE cable_data_module,    ONLY: driver_type, point2constants
@@ -133,6 +134,8 @@ CONTAINS
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
+
+   USE cable_mpi_2dgw_types
 
    IMPLICIT NONE
 
@@ -187,11 +190,12 @@ CONTAINS
       spinConv = .FALSE.,         & ! has spinup converged?
       spincasainput = .FALSE.,    & ! TRUE: SAVE input req'd to spin CASA-CNP;
                                     ! FALSE: READ input to spin CASA-CNP 
-      spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
+      spincasa = .FALSE.!,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
-      l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
-      l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
+      !below are in cable_common
+      !l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
+      !l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
+      !l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
    
    
    REAL              :: &  
@@ -208,7 +212,10 @@ CONTAINS
    INTEGER :: stat(MPI_STATUS_SIZE)
    INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
+   INTEGER :: GWcomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
+   INTEGER :: rank
+   INTEGER :: wnp
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -340,15 +347,31 @@ CONTAINS
 
    ! MPI: receive decomposition info from the master
    call worker_decomp(comm)
+   if (cable_user%TwoD_GW) then
+      call worker_TwoDGW_halo_sizes(comm)
+
+      call alloc_halo_var_type(northern_halo_var,worker_dims%npts_recv(1))
+      call alloc_halo_var_type(southern_halo_var,worker_dims%npts_recv(2))
+
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, wnp, ierror)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, rank, ierror)
+   end if
 
    ! MPI: in overlap version sends and receives occur on separate comms
    CALL MPI_Comm_dup (comm, icomm, ierr)
    CALL MPI_Comm_dup (comm, ocomm, ierr)
 
+   if (cable_user%TwoD_GW) then
+      CALL MPI_Comm_dup (comm, GWcomm, ierr)
+   end if
+
    ! MPI: data set in load_parameter is now received from
    ! the master
    CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
    &                        rough,rad,sum_flux,bal)
+
+   !MD
+   !recv entire 2d mask and the halo parameters
 
    ! MPI: casa parameters received only if cnp module is active
    IF (icycle>0) THEN
@@ -364,6 +387,9 @@ CONTAINS
    ! MPI: create send_t type to send the results to the master
    ! at the end of every timestep
    CALL worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg,rough)
+
+   !MD
+   !create the worker halo types to send/recv halo
 
    ! MPI: create type to send casa results back to the master
    ! only if cnp module is active
@@ -437,6 +463,9 @@ CONTAINS
                                                 casapool, casamet )
    
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
+
+         !MD
+         !exchange halo values with the other workers
    
          ! CALL land surface scheme for this timestep, all grid points:
          CALL cbm( dels, air, bgc, canopy, met,                             &
@@ -458,6 +487,30 @@ CONTAINS
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
+
+
+         !send/recv halo variables here
+         !then do the two dim gw compuation
+         !easy to add on routing later
+         if le_user%TwoD_GW then
+            call worker_pass_halos(comm,wnp,ssnow,northern_halo_var,southern_halo_var)
+
+            if (rank .gt. 2 .and. rank .lt. wnp) then
+               call lateral_fluxes(dels=dels,ssnow=ssnow,soil=soil,map_indices=worker_dims%worker_map_index,&
+                                   northern_halo_parm=northern_halo_parm,&
+                                   southern_halo_parm=southern_halo_parm,&
+                                   northern_halo_var=northern_halo_var,  &
+                                   southern_halo_var=southern_halo_var)
+            elseif (rank .gt. 2) then
+               call lateral_fluxes(dels=dels,ssnow=ssnow,soil=soil,map_indices=worker_dims%worker_map_index,&
+                                   northern_halo_parm=northern_halo_parm,&
+                                   northern_halo_var=northern_halo_var,  &
+            else
+               call lateral_fluxes(dels=dels,ssnow=ssnow,soil=soil,map_indices=worker_dims%worker_map_index,&
+                                   southern_halo_parm=southern_halo_parm,&
+                                   southern_halo_var=southern_halo_var)
+            end if
+         end if
    
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
@@ -612,10 +665,10 @@ SUBROUTINE worker_decomp (comm)
   ! receive number of land patches assigned to this worker
   CALL MPI_Recv (mp, 1, MPI_INTEGER, 0, 0, comm, stat, ierr)
 
+
   RETURN
 
 END SUBROUTINE worker_decomp
-
 
 ! MPI: creates param_t type for the worker to receive the default parameters
 ! from the master process

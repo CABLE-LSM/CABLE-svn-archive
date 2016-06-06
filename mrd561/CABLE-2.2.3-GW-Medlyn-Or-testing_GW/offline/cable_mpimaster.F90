@@ -81,6 +81,9 @@
 MODULE cable_mpimaster
 
   USE cable_mpicommon
+  USE cable_mpi_2dgw_types
+  USE cable_common_module
+  USE mpi
 
   IMPLICIT NONE
 
@@ -371,7 +374,12 @@ SUBROUTINE mpidrv_master (comm)
    CALL find_extents
 
    ! MPI: calculate and broadcast landpoint decomposition to the workers
-   CALL master_decomp(comm, mland, mp)
+   !add different decomp if using 2dGW
+   if (cable_user%TwoD_GW) then
+      CALL master_decomp_2dgw(comm, mland, mp, wland)
+   else
+      CALL master_decomp(comm, mland, mp)
+   end if
 
    ! MPI: set up stuff for new irecv isend code that separates completion
    ! from posting of requests
@@ -393,6 +401,11 @@ SUBROUTINE mpidrv_master (comm)
      CALL master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
      &                        casabal,phen)
    END IF
+
+   !MD
+   !here send entire 2d mask
+   !need land_index
+   !and halo parameters to the workers
 
    ! MPI: allocate read ahead buffers for input met and veg data
    CALL alloc_cbm_var (imet, mp)
@@ -576,10 +589,20 @@ SUBROUTINE mpidrv_master (comm)
                PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
                PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
                if (cable_user%gw_model) then
-                   maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-soilGWtemp))
+                   maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-soilGWtemp),dim=1)
                    PRINT *, 'Example location of moisture non-convergence: ',maxdiff
                    PRINT *, 'ssnow%wb : ', ssnow%GWwb(maxdiff(1))
                    PRINT *, 'soilGWtemp: ', soilGWtemp(maxdiff(1))
+               end if
+
+               if (int(ktau_tot/kend) .gt. 1000) then
+                  write(*,'(A42,I5,A50)') ' Simulation as attempted to spin up with ',int(ktau_tot/kend),&
+                             ' simulations.  Not spun up but beginning run anaways.'
+                  write(logn,'(A42,I5,A50)') ' Simulation as attempted to spin up with ',int(ktau_tot/kend),&
+                             ' simulations.  Not spun up but beginning run anaways.'
+
+                  spinConv = .true.
+
                end if
 
 
@@ -721,6 +744,153 @@ END SUBROUTINE renameFiles
 
 
 ! ============== PRIVATE SUBROUTINES USED ONLY BY THE MPI MASTER ===============
+!below is a subroutine to break up the 1d array to the workers
+!ensureing that only whole rows of grid points are passed
+!this makes the mpi passing for a 2d gw scheme much simpler
+!likely hurts the load balancing for the last point though
+!SUBROUTINE master_decomp_2dgw(comm,mland,mp)
+!
+!  USE mpi
+!  USE cable_IO_vars_module, ONLY : landpt, patch,mask,land_x,land_x
+!  USE cable_def_types_module, ONLY : mlon,mlat
+
+!  IMPLICIT NONE
+
+
+!  INTEGER, INTENT(IN)   :: comm ! MPI communicator to talk to the workers
+!  INTEGER, INTENT(IN)   :: mland ! total number of landpoints in the global grid
+!  INTEGER, INTENT(IN)   :: mp ! total number of land patches in the global grid
+
+!  INTEGER :: lpw  ! average number of landpoints per worker
+!  INTEGER :: rank, rest, nxt, pcnt, ierr, i, tmp
+!  INTEGER :: patchcnt  ! sum of patches for a range landpoints
+
+!  real(r_2) :: total_points
+!  real(r_2) :: total_land_points
+!  real(r_2) :: ideal_fraction_land_per_worker
+!  real(r_2) :: current_worker_fraction
+
+!  integer :: i,j,k
+!  integer :: current_lat_index
+!  logical :: keep_looking
+!  integer :: current_mland_index,nxt
+!  integer :: j_index,i_index
+!  integer :: j_start,j_end
+!  integer :: south_halo_points,north_halo_points
+
+ ! ! how many workers do we have?
+!  CALL MPI_Comm_size (comm, wnp, ierr)
+!  wnp = wnp - 1
+
+!  ALLOCATE (wland(wnp), STAT=ierr)
+!  IF (ierr /= 0) THEN
+!          ! TODO: print an error message
+!          CALL MPI_Abort(comm, 0, ierr)
+!  END IF
+
+!  total_points = real(mlon,r_2)*real(mlat,r_2)
+!  total_land_points = real(mland,r_2)
+!  ideal_fraction_land_per_worker = total_land_points/total_points
+
+!  current_mland_index = 0
+!  nxt = 1
+
+!  do iworker = 1,wnp
+!
+!     current_mland_index = current_mland_index + 1
+!
+!     current_worker_fraction = 0._r_2
+!
+!     wland(rank)%landp0 = nxt   !first point for this worker in the global array
+!
+!     keep_looking = .true.
+!     do while (keep_looking) 
+!
+
+!        j_index = land_y(current_mland_index)
+!        i_index = land_x(current_mland_index)
+
+!        j_start = j_index
+
+!        current_worker_fraction = current_worker_fraction + 1._r_2/total_points
+
+!        if (((i_index .eq. mlon) .or. (sum(mask(i_index:mlon,j_index)) .eq. 0))  .and. &  !end of row or no more land points in row
+!           (current_worker_fraction .gt. ideal_fraction_land_per_worker)) then            !hace accumulated enough land points
+!              keep_looking = .false.
+!        else
+!           current_mland_index = current_mland_index + 1
+!        end if
+!
+!     end do
+
+!     j_index = land_y(current_mland_index)
+!     i_index = land_x(current_mland_index)
+
+!     j_end = j_index
+
+     !for the halo find the number of land points at j_start -1 and j_end + 1
+!     if (j_start .gt. 1) then
+!        north_halo_points = sum(mask(:,j_start-1),dim=1)
+!     else
+!        north_halo_points = 0
+!     end if
+!     if (j_end .lt. mlat) then
+!        south_halo_points = sum(mask(:,j_end+1),dim=1)
+!     else
+!        south_halo_points = 0
+!     end if
+
+     
+
+         
+!     wland(rank)%nland = current_mland_index
+!     nxt = nxt + current_mland_index
+
+     ! MPI: let each worker know their assignement
+     ! in this version of cable workers care only about the number of points
+     ! CALL MPI_Send (nxt, 1, MPI_INTEGER, rank, 0, comm, ierr)
+!     CALL MPI_Send (current_mland_index, 1, MPI_INTEGER, rank, 0, comm, ierr)
+
+     ! MPI: should be the same as landpt(nxt)%cstart
+!     wland(rank)%patch0 = landpt(nxt)%cstart
+     ! MPI: calculate no of patches for pcnt landpoint starting from nxt
+     ! MPI: TODO: workers only need to know the number of their patches
+    ! ! or maybe not (if they need patch displacement in the input)
+
+     ! MPI: find number of patches in all landpoints assigned to this
+     ! worker (difference between last patch of last landpoint and first of
+     ! first)
+!     patchcnt = landpt(nxt+current_mland_index-1)%cend - landpt(current_mland_index)%cstart + 1
+!     wland(rank)%npatch = patchcnt
+
+     ! MPI: development check
+!     tmp = 0
+!     DO i = 1, current_mland_index
+!        tmp = tmp + landpt(nxt+i-1)%nap
+!     END DO
+!     IF (patchcnt /= tmp) THEN
+!        WRITE (*,*) 'invalid patch number for worker ', &
+!        &           patchcnt,tmp,rank
+!        CALL MPI_Abort (comm, 0, ierr)
+!     END IF
+
+     ! MPI: at this point workers can't determine patches on their own
+     ! so we need to send it explicitely
+     ! in this version of cable workers care only about the number of patches
+!     ! CALL MPI_Send (wland(rank)%patch0, 1, MPI_INTEGER, rank, 0, comm, ierr)
+!     CALL MPI_Send (wland(rank)%npatch, 1, MPI_INTEGER, rank, 0, comm, ierr)
+!
+!
+     !send the number of land points in the halo to the south of this worker
+!     CALL MPI_Send (south_halo_points, 1, MPI_INTEGER, rank, 0, comm, ierr)
+!     !send the number of land points in the halo to the north of this worker
+!     CALL MPI_Send (north_halo_points, 1, MPI_INTEGER, rank, 0, comm, ierr)
+!
+!     nxt = nxt + pcnt
+!
+!end do   !loop over the workers     
+
+!END SUBROUTINE master_decomp_2dgw
 
 
 ! MPI: calculates and sends grid decomposition info to the workers
