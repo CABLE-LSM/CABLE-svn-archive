@@ -1,49 +1,50 @@
 MODULE cable_2dgw_types
 
-  USE cable_mpicommon
-  USE cable_def_types_mod
-  USE cable_common_module
-  USE cable_IO_vars_module, ONLY : landpt, patch,mask,land_x,land_y
-  USE cable_2dgw_types
-
+  USE cable_def_types_mod, only : r_2
 
   IMPLICIT NONE
 
   SAVE
+  PUBLIC
 
+  INTEGER, PARAMETER :: ngw_worker_recv_param_types = 8
 
-  TYPE (gw_halo_param_type)
+  TYPE gw_halo_param_type
      INTEGER :: ncells
      REAL(r_2), pointer, dimension(:) :: hksat
      REAL(r_2), pointer, dimension(:) :: slope
-     REAL(r_2), pointer, dimension(:) :: elv
+     REAL(r_2), pointer, dimension(:) :: elev
      REAL     , pointer, dimension(:) :: latitude
   END TYPE gw_halo_param_type
 
 
-  TYPE (gw_halo_var_type)
+  TYPE gw_halo_var_type
      INTEGER :: ncells
      REAL(r_2), pointer, dimension(:) :: wtd
      REAL(r_2), pointer, dimension(:) :: tgg_ms
   END TYPE gw_halo_var_type
 
-  TYPE (worker_dims_type)
+  TYPE worker_dims_type
      INTEGER :: npts_send(2)
      INTEGER :: npts_recv(2)
+     INTEGER :: i_start
+     INTEGER :: i_end
+     INTEGER :: j_start
+     INTEGER :: j_end
      INTEGER, pointer, dimension(:,:) :: worker_map_index
   END TYPE worker_dims_type
 
-  TYPE (master_halo_type)
+  TYPE master_halo_type
      INTEGER :: npts_northern
      INTEGER :: npts_southern
   END TYPE master_halo_type
 
 
-  TYPE(worker_dims_type), allocatable :: worker_dims
-  TYPE(master_halo_type), allocatable :: master_halo
+  TYPE(worker_dims_type)              :: worker_dims
+  TYPE(master_halo_type), allocatable :: master_halo(:)
 
-  TYPE(gw_halo_param_type) :: northern_parm_type, southern_parm_type
-  TYPE(gw_halo_var_type) :: northern_var_type, southern_var_type
+  TYPE(gw_halo_param_type) :: northern_halo_param, southern_halo_param
+  TYPE(gw_halo_var_type) :: northern_halo_var, southern_halo_var
 
 contains
 

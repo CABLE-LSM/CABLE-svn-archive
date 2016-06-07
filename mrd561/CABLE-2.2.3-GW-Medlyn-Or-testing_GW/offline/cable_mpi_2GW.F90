@@ -3,14 +3,19 @@ MODULE cable_mpi_2dgw
   USE cable_mpicommon
   USE cable_def_types_mod
   USE cable_common_module
-  USE cable_IO_vars_module, ONLY : landpt, patch,mask,land_x,land_y
+  USE cable_IO_vars_module, ONLY : landpt, patch,mask,land_x,land_y,map_index,latitude
   USE cable_2dgw_types
 
 
   IMPLICIT NONE
 
   SAVE
+  PUBLIC
 
+  ! MPI: isend request array for scattering input data to the workers
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_req_loc
+  ! MPI: isend status array for scattering input data to the workers
+  INTEGER, ALLOCATABLE, DIMENSION(:,:) :: inp_stats_loc
 
 contains
 
@@ -29,8 +34,8 @@ subroutine alloc_halo_param_type(var,npts)
   allocate(var%slope(npts))
   var%slope(:) = 0._r_2
 
-  allocate(var%elv(npts))
-  var%elv(:) = 0._r_2
+  allocate(var%elev(npts))
+  var%elev(:) = 0._r_2
 
   allocate(var%latitude(npts))
   var%latitude(:) = 0._r_2
@@ -69,15 +74,13 @@ SUBROUTINE master_decomp_2dgw(comm,mland,mp,wland)
   TYPE(lpdecomp_t), ALLOCATABLE, DIMENSION(:), intent(out) :: wland
 
   INTEGER :: lpw  ! average number of landpoints per worker
-  INTEGER :: rank, rest, nxt, pcnt, ierr, i, tmp, wnp, iworker
+  INTEGER :: rank, rest, nxt, pcnt, ierr, i, tmp, wnp, iworker, j, k
   INTEGER :: patchcnt  ! sum of patches for a range landpoints
 
   real(r_2) :: total_points
   real(r_2) :: total_land_points
   real(r_2) :: ideal_fraction_land_per_worker
   real(r_2) :: current_worker_fraction
-
-  integer :: j,k,i
 
   integer :: current_lat_index
   logical :: keep_looking
@@ -158,9 +161,22 @@ SUBROUTINE master_decomp_2dgw(comm,mland,mp,wland)
      end if
 
      worker_mlat = j_end - j_start + 1
-     allocate(map_index_worker(mlon,0:worker_mlat+1),STAT=ierr)
 
-     map_index_worker(:,:) = map_index(:,j_start:j_end) - nxt + 1  !adjust for all previous workers
+     allocate( map_index_worker(0:mlon+1,0:worker_mlat+1), stat=ierr )
+
+     !map_index_worker(:,:) = -1
+     !do j=j_start,j_end
+     !   k = j - j_start + 1
+     !   do i=1,mlon
+     !      map_index_worker(i,k) = map_index(i,j) - nxt + 1  !adjust for fact
+     !                                                        !map_index global is offset from the local 1d arrays
+     !   end do
+     !end do
+
+     map_index_worker(1:mlon,1:worker_mlat) = map_index(1:mlon,j_start:j_end) - nxt + 1  !adjust for all previous workers
+     !make sure longitudes wrap around
+     map_index_worker(0,1:worker_mlat)      = map_index_worker(mlon,1:worker_mlat)
+     map_index_worker(mlon+1,1:worker_mlat) = map_index_worker(1,1:worker_mlat)
 
      k=0
      do i=1,mlon
@@ -213,7 +229,7 @@ SUBROUTINE master_decomp_2dgw(comm,mland,mp,wland)
         CALL MPI_Abort (comm, 0, ierr)
      END IF
 
-     master_halo(iworker)%npts_nothern = recv_north_halo_npoints
+     master_halo(iworker)%npts_northern = recv_north_halo_npoints
      master_halo(iworker)%npts_southern = recv_south_halo_npoints
 
      ! MPI: at this point workers can't determine patches on their own
@@ -237,14 +253,14 @@ SUBROUTINE master_decomp_2dgw(comm,mland,mp,wland)
      CALL MPI_Send (worker_mlat, 1, MPI_INTEGER, iworker, 0, comm, ierr)
 
      !send the entire 2d mask to each worker
-     CALL MPI_Send (map_index_worker(1,0), mlon*(worker_mlat+2), MPI_INTEGER, iworker, 0, comm, ierr)
+     CALL MPI_Send (map_index_worker(0,0), (mlon+2)*(worker_mlat+2), MPI_INTEGER, iworker, 0, comm, ierr)
      !also need to send the map_index array
      !this needs to me calculated for each worker
      !check this
      !nxt = nxt + pcnt
      !not dealing with tiling yet
 
-     deallocate(map_index_local)
+     deallocate(map_index_worker)
 
 end do   !loop over the workers     
 
@@ -265,6 +281,7 @@ SUBROUTINE worker_TwoDGW_halo_sizes(comm)
 
   INTEGER :: stat(MPI_STATUS_SIZE), ierr
   INTEGER :: worker_mlat
+  INTEGER :: i
 
   !get number of points to send to the north (1) and south (2)
   CALL MPI_Recv (worker_dims%npts_send(1), 1, MPI_INTEGER, 0, 0, comm, stat, ierr)
@@ -277,9 +294,10 @@ SUBROUTINE worker_TwoDGW_halo_sizes(comm)
   CALL MPI_Recv (mlat, 1, MPI_INTEGER, 0, 0, comm, stat, ierr)
   !since decomp does all longitudes per proc just set the i_start and i_end
   !this var needs to be allocated first
-  allocate(worker_dims%worker_map_index(mlon,0:mlat+1))
+
+  allocate(worker_dims%worker_map_index(0:mlon+1,0:mlat+1))
   worker_dims%worker_map_index(:,:) = -1
-  CALL MPI_Recv (worker_dims%worker_map_index(1,0),(mlat+2)*mlon,MPI_INTEGER,0,0,comm,stat,ierr)
+  CALL MPI_Recv (worker_dims%worker_map_index(0,0),(mlat+2)*(mlon+2),MPI_INTEGER,0,0,comm,stat,ierr)
   !note row 0 is for data from northern worker
   ! row w_mlat+1 is from southern worker
 
@@ -293,7 +311,7 @@ END SUBROUTINE worker_TwoDGW_halo_sizes
 
 SUBROUTINE master_send_2dgw_parameters(comm,soil,wland)
 
-
+  use mpi
   implicit none
 
   INTEGER, INTENT(IN) :: comm ! MPI communicator
@@ -315,8 +333,7 @@ SUBROUTINE master_send_2dgw_parameters(comm,soil,wland)
 
   INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
   integer :: bidx
-  INTEGER :: tsize, localtotal, remotetotal
-  INTEGER :: i, wnp
+  INTEGER :: i, wnp, rank, off
 
   wnp = size(wland(:),dim=1)
 
@@ -326,6 +343,8 @@ SUBROUTINE master_send_2dgw_parameters(comm,soil,wland)
   ALLOCATE (displs(ngw_worker_recv_param_types))
   ALLOCATE (types(ngw_worker_recv_param_types))
 
+  ALLOCATE (inp_req_loc(wnp))
+  ALLOCATE (inp_stats_loc(MPI_STATUS_SIZE, wnp))
 
   ! total size of input data sent to all workers
   localtotal = 0
@@ -336,45 +355,45 @@ SUBROUTINE master_send_2dgw_parameters(comm,soil,wland)
      !first to the northern halo
      !then to the southern halo
      ! starting patch and number for each worker rank - number to get from north
-     off = wland(rank)%patch0 - master_halo(rank)%npts_nothern   !check this
+     off = wland(rank)%patch0 - master_halo(rank)%npts_northern   !check this
 
      bidx = 0
 
      !create the nothern halo send type
      bidx = bidx + 1
      CALL MPI_Get_address (soil%hksat(off,ms), displs(bidx), ierr)
-     blen(bidx) = extr2*master_halo%npts_nothern
+     blen(bidx) = extr2*master_halo(rank)%npts_northern
 
      bidx = bidx + 1
      CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
-     blen(bidx) = extr2*master_halo%npts_nothern
+     blen(bidx) = extr2*master_halo(rank)%npts_northern
 
      bidx = bidx + 1
      CALL MPI_Get_address (soil%elev(off), displs(bidx), ierr)
-     blen(bidx) = extr2*master_halo%npts_nothern
+     blen(bidx) = extr2*master_halo(rank)%npts_northern
 
      bidx = bidx + 1
      CALL MPI_Get_address (latitude(off), displs(bidx), ierr)
-     blen(bidx) = extr1*master_halo%npts_nothern
+     blen(bidx) = extr1*master_halo(rank)%npts_northern
 
      !now do the southern halo type
      off = wland(rank)%patch0 + wland(rank)%npatch + master_halo(rank)%npts_southern + 1  !check this
 
      bidx = bidx + 1
      CALL MPI_Get_address (soil%hksat(off,ms), displs(bidx), ierr)
-     blen(bidx) = extr2*master_halo%npts_nothern
+     blen(bidx) = extr2*master_halo(rank)%npts_northern
 
      bidx = bidx + 1
      CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
-     blen(bidx) = extr2*master_halo%npts_nothern
+     blen(bidx) = extr2*master_halo(rank)%npts_northern
 
      bidx = bidx + 1
      CALL MPI_Get_address (soil%elev(off), displs(bidx), ierr)
-     blen(bidx) = extr2*master_halo%npts_nothern
+     blen(bidx) = extr2*master_halo(rank)%npts_northern
 
      bidx = bidx + 1
      CALL MPI_Get_address (latitude(off), displs(bidx), ierr)
-     blen(bidx) = extr1*master_halo%npts_southern
+     blen(bidx) = extr1*master_halo(rank)%npts_southern
 
 
      ! MPI: sanity check
@@ -414,9 +433,9 @@ SUBROUTINE master_send_2dgw_parameters(comm,soil,wland)
   END IF
 
   ! so, now send all the parameters
-  CALL twodim_master_send_input (comm, param_ts, 0)
+  CALL twodim_master_send_input (comm, param_ts, 0, wnp)
 
-  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+  CALL MPI_Waitall (wnp, inp_req_loc, inp_stats_loc, ierr)
 
   ! finally free the MPI type
   DO rank = 1, wnp
@@ -426,9 +445,12 @@ SUBROUTINE master_send_2dgw_parameters(comm,soil,wland)
 END SUBROUTINE master_send_2dgw_parameters
 
 
-SUBROUTINE worker_get_2dgw_parameters(northern_halo_params,southern_halo_params)
+SUBROUTINE worker_get_2dgw_parameters(comm,my_rank,northern_halo_params,southern_halo_params)
+  use mpi
   implicit none
 
+  integer, intent(in)  :: comm !mpi communicator
+  integer, intent(in)  :: my_rank
   type(gw_halo_param_type), intent(out) :: northern_halo_params
   type(gw_halo_param_type), intent(out) :: southern_halo_params
 
@@ -439,13 +461,12 @@ SUBROUTINE worker_get_2dgw_parameters(northern_halo_params,southern_halo_params)
 
   ! temp vars for verifying block number and total length of inp_t
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
-  INTEGER :: tsize, localtotal, remotetotal
 
   INTEGER :: stat(MPI_STATUS_SIZE), ierr 
   INTEGER :: param_t
 
   INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
-  integer :: bidx
+  integer :: bidx, ntyp
   INTEGER :: tsize, localtotal, remotetotal
   INTEGER :: i, wnp
 
@@ -502,7 +523,7 @@ SUBROUTINE worker_get_2dgw_parameters(northern_halo_params,southern_halo_params)
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN 
-     WRITE (*,*) 'worker ',rank,' invalid number of param_t fields',bidx,', fix it!'
+     WRITE (*,*) 'worker ',my_rank,' invalid number of param_t fields',bidx,', fix it!'
      CALL MPI_Abort (comm, 1, ierr)
   END IF
 
@@ -512,7 +533,7 @@ SUBROUTINE worker_get_2dgw_parameters(northern_halo_params,southern_halo_params)
   CALL MPI_Type_size (param_t, tsize, ierr)
   CALL MPI_Type_get_extent (param_t, tmplb, text, ierr)
 
-  WRITE (*,*) 'worker param_t blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+  WRITE (*,*) 'worker param_t blocks, size, extent and lb: ',my_rank,bidx,tsize,text,tmplb
 
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
@@ -539,7 +560,7 @@ END SUBROUTINE worker_get_2dgw_parameters
 
 
 !could use routine in cable_master but that yields circular dependency hell
-SUBROUTINE twodim_master_send_input (comm, dtypes, ktau)
+SUBROUTINE twodim_master_send_input (comm, dtypes, ktau,wnp)
 
   USE mpi
 
@@ -548,6 +569,7 @@ SUBROUTINE twodim_master_send_input (comm, dtypes, ktau)
   INTEGER, INTENT(IN) :: comm 
   INTEGER, DIMENSION(:), INTENT(IN) :: dtypes
   INTEGER, INTENT(IN) :: ktau    ! timestep
+  INTEGER, INTENT(IN) :: wnp !number of workers to send data to
 
   INTEGER :: rank, ierr 
 
@@ -557,7 +579,7 @@ SUBROUTINE twodim_master_send_input (comm, dtypes, ktau)
 
   DO rank = 1, wnp
      CALL MPI_Isend (MPI_BOTTOM, 1, dtypes(rank), rank, ktau, comm, &
-     &               inp_req(rank), ierr)
+     &               inp_req_loc(rank), ierr)
   END DO
 
   !IF (.NOT. ALLOCATED(inp_stats)) THEN
@@ -571,12 +593,13 @@ SUBROUTINE twodim_master_send_input (comm, dtypes, ktau)
 END SUBROUTINE twodim_master_send_input
 
 
-SUBROUTINE worker_pass_halos(comm,wnp,ssnow,northern_halo_var,southern_halo_var)
+SUBROUTINE worker_pass_halos(ring_comm,my_rank,wnp,ssnow,northern_halo_var,southern_halo_var)
    use mpi
 
    implicit none
 
-   integer, intent(in)  :: comm
+   integer, intent(in)  :: ring_comm
+   integer, intent(in)  :: my_rank
    integer, intent(in)  :: wnp  !total number of worker processes
    type(soil_snow_type), intent(in) :: ssnow
    type(gw_halo_var_type), intent(inout) :: northern_halo_var, &
@@ -587,38 +610,37 @@ SUBROUTINE worker_pass_halos(comm,wnp,ssnow,northern_halo_var,southern_halo_var)
    integer :: ib,ie
    integer :: i_rq,j_rq,n_rq
 
-   if (rank .gt. 2) then   !in current mpi version rank == 1 does only IO
-      call MPI_Irecv ( northern_halo_var%wtd(:), northern_halo_var%ncells, MPI_DOUBLE_PRECISION ,rank-1,ring_comm, requests(2), ierr)
-      call MPI_Irecv ( northern_halo_var%tgg_ms(:), northern_halo_var%ncells, MPI_SINGLE_PRECISION, rank-1,ring_comm, requests(4), ierr)
+   if (my_rank .gt. 2) then   !in current mpi version my_rank == 1 does only IO
+      call MPI_Irecv ( northern_halo_var%wtd(:), northern_halo_var%ncells, MPI_DOUBLE_PRECISION ,my_rank-1,ring_comm, requests(2), ierr)
+      call MPI_Irecv ( northern_halo_var%tgg_ms(:), northern_halo_var%ncells, MPI_REAL, my_rank-1,ring_comm, requests(4), ierr)
    end if
 
-   if (rank .lt. wnp) then
-      call MPI_Irecv ( southern_halo_var%wtd(:), southern_halo_var%ncells, MPI_DOUBLE_PRECISION ,rank+1,ring_comm, requests(6), ierr)
-      call MPI_Irecv ( southern_halo_var%tgg_ms(:), southern_halo_var%ncells, MPI_SINGLE_PRECISION, rank+1,ring_comm, requests(8), ierr)
+   if (my_rank .lt. wnp) then
+      call MPI_Irecv ( southern_halo_var%wtd(:), southern_halo_var%ncells, MPI_DOUBLE_PRECISION ,my_rank+1,ring_comm, requests(6), ierr)
+      call MPI_Irecv ( southern_halo_var%tgg_ms(:), southern_halo_var%ncells, MPI_REAL, my_rank+1,ring_comm, requests(8), ierr)
    end if
 
    ib = 1
-   ie = ib - worker_dims(rank)%npts_send(1)
+   ie = ib + northern_halo_var%ncells
 
-   if (rank .gt. 2) then
-   
-      call MPI_Isend( ssnow%wtd(ib:ie), m, MPI_DOUBLE_PRECISION , rank-1, ring_comm, requests(1), ierr)
-      call MPI_Isend( ssnow%tgg(ib:ie,ms), m, MPI_SINLGE_PRECISION , rank-1, ring_comm, requests(3), ierr)
+   if (my_rank .gt. 2) then
+      call MPI_Isend( ssnow%wtd(ib:ie), northern_halo_var%ncells, MPI_DOUBLE_PRECISION , my_rank-1, ring_comm, requests(1), ierr)
+      call MPI_Isend( ssnow%tgg(ib:ie,ms), northern_halo_var%ncells, MPI_REAL , my_rank-1, ring_comm, requests(3), ierr)
    end if
 
    ie = size(ssnow%wtd,dim=1)
-   ib = ie - worker_dims(rank)%npts_send(2)
+   ib = ie - southern_halo_var%ncells
 
-   if (rank .lt. wnp) then
-      call MPI_Isend( ssnow%wtd(ib:ie), m, MPI_DOUBLE_PRECISION , rank+1, ring_comm, requests(5), ierr)
-      call MPI_Isend( ssnow%tgg(ib:ie,ms), m, MPI_SINLGE_PRECISION , rank+1, ring_comm, requests(7), ierr)
+   if (my_rank .lt. wnp) then
+      call MPI_Isend( ssnow%wtd(ib:ie), southern_halo_var%ncells, MPI_DOUBLE_PRECISION , my_rank+1, ring_comm, requests(5), ierr)
+      call MPI_Isend( ssnow%tgg(ib:ie,ms), southern_halo_var%ncells, MPI_REAL , my_rank+1, ring_comm, requests(7), ierr)
    end if
 
-   if (rank .gt. 2 .and. rank .lt. wnp) then
+   if (my_rank .gt. 2 .and. my_rank .lt. wnp) then
       i_rq = 1
       j_rq = 8
       n_rq = 8
-   elseif (rank .gt. 2) then
+   elseif (my_rank .gt. 2) then
       i_rq = 1
       j_rq = 4
       n_rq = 4
@@ -629,5 +651,8 @@ SUBROUTINE worker_pass_halos(comm,wnp,ssnow,northern_halo_var,southern_halo_var)
    end if
 
    call MPI_Waitall( n_rq, requests(i_rq:j_rq), statuses(:,i_rq:j_rq),ierr) 
+
+
+END SUBROUTINE worker_pass_halos
 
 END MODULE cable_mpi_2dgw

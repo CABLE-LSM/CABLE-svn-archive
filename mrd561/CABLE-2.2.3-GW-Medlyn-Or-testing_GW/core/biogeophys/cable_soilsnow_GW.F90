@@ -1952,13 +1952,14 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin)  
-   !CALL simple_wtd(ssnow, soil, veg, ktau, md_prin)
+   if ((.not.cable_user%TwoD_GW) .or. ((cable_user%TwoD_GW) .and. (ktau .le. 1))) then
+      CALL iterative_wtd (ssnow, soil, veg, ktau, md_prin)  
+   end if
 
    CALL ovrlndflx (dels, ktau, ssnow, soil, veg, md_prin )         !surface runoff, incorporate ssnow%pudsto?
 
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
-   !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always
+   !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always => should be a lake/river.
 
    CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy, md_prin)               !vertical soil moisture movement. 
   

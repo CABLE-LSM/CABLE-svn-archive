@@ -70,7 +70,7 @@ PROGRAM cable_offline_driver
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   patch_type,soilparmnew,map_index
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, myhome,            & 
                                    redistrb, wiltParam, satuParam, gw_params, &
@@ -96,6 +96,7 @@ PROGRAM cable_offline_driver
    USE phenvariable,        ONLY: phen_variable
 
    USE cable_TwoDim_GW
+   USE cable_2dgw_types
 
    IMPLICIT NONE
    
@@ -329,7 +330,10 @@ PROGRAM cable_offline_driver
          ssnow%runoff = ssnow%runoff*dels
   
          if (cable_user%TwoD_GW) then
-            call lateral_fluxes(dels,ssnow,soil)
+               !optional params means need to use key=val
+               call lateral_fluxes(dels=dels,ssnow=ssnow,soil=soil,      &    
+                                   latitude=rad%latitude,                &
+                                   map_indices=map_index)
          end if 
    
          !jhan this is insufficient testing. condition for 

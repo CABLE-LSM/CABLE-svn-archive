@@ -12,7 +12,7 @@ module cable_TwoDim_GW
                           metGrid, land_x, land_y, logn, output,               &
                           xdimsize, ydimsize, check
 
-  USE 
+  USE cable_2dgw_types
 
   IMPLICIT NONE
 
@@ -25,20 +25,21 @@ module cable_TwoDim_GW
   contains
 
 
-  subroutine lateral_fluxes(dels,ssnow,soil,map_indices,northern_halo_parm,southern_halo_parm, &
+  subroutine lateral_fluxes(dels,ssnow,soil,latitude,map_indices,northern_halo_parm,southern_halo_parm, &
                                                         northern_halo_var,southern_halo_var)
    
     implicit none
 
     real, intent(in)                         :: dels
-    type(soil_snow_type), intent(inout)      :: ssnow
+    type(soil_snow_type),      intent(inout) :: ssnow
     type(soil_parameter_type), intent(in)    :: soil
-    integer, dimension(:,:), intent(in)      :: map_indices
+    real, dimension(:),        intent(in)    :: latitude
+    integer, dimension(:,:),   intent(in)    :: map_indices
 
-    type(gw_halo_parm_type), optional,intent(in)  :: northern_halo_parm
-    type(gw_halo_parm_type), optional,intent(in)  :: southern_halo_parm
-    type(gw_halo_var_type), optional,intent(in)  :: northern_halo_var
-    type(gw_halo_var_type), optional,intent(in)  :: southern_halo_var
+    type(gw_halo_param_type), optional,intent(in)  :: northern_halo_parm
+    type(gw_halo_param_type), optional,intent(in)  :: southern_halo_parm
+    type(gw_halo_var_type)  , optional,intent(in)  :: northern_halo_var
+    type(gw_halo_var_type)  , optional,intent(in)  :: southern_halo_var
 
 
     real(r_2), dimension(mlon,0:mlat+1) ::  &
@@ -47,14 +48,30 @@ module cable_TwoDim_GW
     integer ::  istep,i,j,k,kk,klev,ii,jj,ib,ie,jb,je
 ! Local arrays:
     !all need to be allocatable for mpi, mlon,mlat are the worker values
-    real(r_2),  dimension(mlon,0:mlat+1)   :: Qlateral    ! 
-    real(r_2),  dimension(mlon,0:mlat+1)   :: hksat_lateral    ! 
-    real(r_2),  dimension(mlon,0:mlat+1) :: trans_lateral,fdepth
+    real(r_2),  dimension(0:mlon+1,0:mlat+1)   :: Qlateral    ! 
+    real(r_2),  dimension(0:mlon+1,0:mlat+1)   :: hksat_lateral    ! 
+    real(r_2),  dimension(0:mlon+1,0:mlat+1) :: trans_lateral,fdepth
     real(r_2)  :: soil_z_depth,delta_mass,Qtemp
     real(r_2), dimension(mlon,0:mlat+1) :: hkfactor_lateral,area
     real(r_2) :: radius_earth,delta_radians,dXY,factor
 
+    integer, dimension(0:mlon+1,0:mlat+1)  :: map_indices_wrap
+
     integer :: j_b,j_e
+
+    !if we are not using mpi map_indices only goes from 1:mlon,1:mlat
+    !need it to go from 0:n+1, so create it this way
+    !otherwise just copy it
+    if ((size(map_indices,dim=1) .eq. mlon) .and. (size(map_indices,dim=2).eq.mlat)) then
+       map_indices_wrap(1:mlon,1:mlat) = map_indices
+       map_indices_wrap(0,1:mlat) = map_indices(mlon,1:mlat)
+       map_indices_wrap(mlon+1,1:mlat) = map_indices(1,1:mlat)
+       map_indices_wrap(:,0) = -1
+       map_indices_wrap(:,mlat+1) = -1
+    else
+       map_indices_wrap(:,:) = map_indices
+    end if
+    
 
     radius_earth = 6.371e6
     hkfactor_lateral(:,:) = 30.0
@@ -72,7 +89,7 @@ module cable_TwoDim_GW
       do i=1,mlon
          !for mpi version this will have to be the worker map_index, which is global_mask_index - points for lower workers
          !map indices is passed in, not the global map index unless not using mpi
-         k = map_indices(i,j)
+         k = map_indices_wrap(i,j)
 
          if (k .gt. 0) then
             !hard coded for gswp3 forcing
@@ -99,13 +116,14 @@ module cable_TwoDim_GW
 
   end do
 
+
   !fill edges with halo data
   if (present(northern_halo_parm) .and. present(northern_halo_var)) then
      j = 0
      do i=1,mlon
          !for mpi version this will have to be the worker map_index, which is global_mask_index - points for lower workers
          !map indices is passed in, not the global map index unless not using mpi
-         k = map_indices(i,j)
+         k = map_indices_wrap(i,j)
 
          if (k .gt. 0) then
             !hard coded for gswp3 forcing
@@ -119,7 +137,7 @@ module cable_TwoDim_GW
                trans_lateral(i,j) = 0.001*northern_halo_parm%hksat(k)*(hkfactor_lateral(i,j)*fdepth(i,j) + (soil_z_depth - northern_halo_var%wtd(k)/1000._r_2))
             end if
             !no movement when frozen
-            if (nothern_halo_var%tgg_ms(k) .lt. 270.) trans_lateral(i,j) = 0.
+            if (northern_halo_var%tgg_ms(k) .lt. 270.) trans_lateral(i,j) = 0.
 
             head(i,j) = northern_halo_parm%elev(k) - northern_halo_var%wtd(k)/1000._r_2
 
@@ -138,7 +156,7 @@ module cable_TwoDim_GW
      do i=1,mlon
          !for mpi version this will have to be the worker map_index, which is global_mask_index - points for lower workers
          !map indices is passed in, not the global map index unless not using mpi
-         k = map_indices(i,j)
+         k = map_indices_wrap(i,j)
 
          if (k .gt. 0) then
             !hard coded for gswp3 forcing
@@ -146,13 +164,13 @@ module cable_TwoDim_GW
 
             fdepth(i,j) = 100._r_2 / (1._r_2 + 150._r_2 * soil%slope(k))
 
-            if (southern_halo%wtd(k) .gt. soil_z_depth*1000._r_2) then
+            if (southern_halo_var%wtd(k) .gt. soil_z_depth*1000._r_2) then
                trans_lateral(i,j) = 0.001*southern_halo_parm%hksat(k)*hkfactor_lateral(i,j)*fdepth(i,j)*exp((southern_halo_var%wtd(k)/1000._r_2-soil_z_depth)/fdepth(i,j))
             else
                trans_lateral(i,j) = 0.001*southern_halo_parm%hksat(k)*(hkfactor_lateral(i,j)*fdepth(i,j) + (soil_z_depth - southern_halo_var%wtd(k)/1000._r_2))
             end if
             !no movement when frozen
-            if (nothern_halo_var%tgg_ms(k) .lt. 270.) trans_lateral(i,j) = 0.
+            if (northern_halo_var%tgg_ms(k) .lt. 270.) trans_lateral(i,j) = 0.
 
             head(i,j) = southern_halo_parm%elev(k) - southern_halo_var%wtd(k)/1000._r_2
 
@@ -165,8 +183,13 @@ module cable_TwoDim_GW
 
    end if
 
-   !do j=j_start,j_end
-   do j = 0,mlat+1
+   !fill eastern edge and wester edge with ghots values
+   head(0,:)    = head(mlon,:)
+   head(mlon+1,:) = head(1,:)
+   trans_lateral(0,:)      = trans_lateral(mlon,:)
+   trans_lateral(mlon+1,:) = trans_lateral(1,:)
+
+   do j = 1,mlat
 
       jb = j - 1
       je = j + 1
@@ -174,11 +197,11 @@ module cable_TwoDim_GW
       do i=1,mlon
 
          ib = i - 1
-         ie = i+1
+         ie = i + 1
 
          Qtemp = 0.
 
-         if (map_indices(i,j) .ge. 1) then  !same as checking for land mask
+         if (map_indices_wrap(i,j) .ge. 1) then  !same as checking for land mask
 
             do jj=jb,je
                do ii=ib,ie
@@ -193,7 +216,7 @@ module cable_TwoDim_GW
                      factor = factor*cos(latitude(k)*2.0*3.14159/360.0)
                   end if
 
-                  if (map_indices(ii,jj) .ge. 1) then
+                  if (map_indices_wrap(ii,jj) .ge. 1) then
                      Qtemp = Qtemp + 0.5*factor*(head(ii,jj)-head(i,j))*(trans_lateral(ii,jj) + trans_lateral(i,j))
                   end if
                end do
@@ -202,62 +225,18 @@ module cable_TwoDim_GW
             Qlateral(i,j) = Qtemp  / area(i,j)
 
          end if
-      end do
-
-      i = 1
-      Qtemp = 0.
-
-      if (map_indices(i,j) .ge. 1) then
-         do jj=jb,je
-
-            if (jj .eq. jb+1) then
-               factor = dXY
-            else 
-               factor = dXY/sqrt(2.0)
-            end if
-            if (jj .ne. j) then
-               factor = factor*cos(latitude(k)*2.0*3.14159/360.0)
-            end if
-            Qtemp = Qtemp + 0.5*factor*(head(mlon,jj)-head(i,j))*(trans_lateral(mlon,jj) +trans_lateral(i,j)) &
-                          + 0.5*factor*(head(2,jj)-head(i,j))*(trans_lateral(2,jj) + trans_lateral(i,j)) &
-                          + 0.5*(head(i,jj)-head(i,j))*(trans_lateral(i,jj) + trans_lateral(i,j))
-
-         end do
-         Qlateral(i,j) = Qtemp  / area(i,j)
-      end if
-
-      Qtemp = 0.
-      i=mlon
-
-      if (map_incides(i,j) .ge. 1) then
-
-         do jj=jb,je
-            if (jj .eq. jb+1) then
-               factor = dXY
-            else 
-               factor = dXY/sqrt(2.0)
-            end if
-            if (jj .ne. j) then
-               factor = factor*cos(latitude(k)*2.0*3.14159/360.0)
-            end if
-            Qtemp = Qtemp + 0.5*factor*(head(i-1,jj)-head(i,j))*(trans_lateral(i-1,jj) + trans_lateral(i,j)) + &
-                         0.5*factor*(head(1,jj)-head(i,j))*(trans_lateral(1,jj) + trans_lateral(i,j)) + &
-                         0.5*       (head(i,jj)-head(i,j))*(trans_lateral(i,jj) + trans_lateral(i,j))
-         end do
-         Qlateral(i,j) = Qtemp / area(i,j)
-                        
-      end if
-   end do
+      end do ! i longitude
+   end do  ! j latitude
 
    !Qlateral is in m/s
-   head(:,:) = head(:,:) + Qlateral(:,:)*dels
+   head(1:mlon,1:mlat) = head(1:mlon,1:mlat) + Qlateral(1:mlon,1:mlat)*dels
 
    !translate into change in aquifer or soil water
    do j=1,mlat
 
       do i=1,mlon
 
-         k = map_index(i,j)
+         k = map_indices_wrap(i,j)
 
          if (k .gt. 0) then
 

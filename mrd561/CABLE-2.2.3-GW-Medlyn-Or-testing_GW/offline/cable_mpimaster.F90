@@ -81,7 +81,8 @@
 MODULE cable_mpimaster
 
   USE cable_mpicommon
-  USE cable_mpi_2dgw_types
+  USE cable_mpi_2dgw
+  USE cable_2dgw_types
   USE cable_common_module
   USE mpi
 

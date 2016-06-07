@@ -74,7 +74,7 @@ cable_cbm.o: cable_cbm.F90 cable_carbon.o cable_soilsnow.o cable_canopy.o cable_
 
 cable_checks.o: cable_checks.F90 cable_radiation.o cable_common.o cable_data.o
 
-cable_driver.o: cable_driver.F90 cable_output.o cable_iovars.o cable_cbm.o cable_diag.o   casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_common.o cable_data.o
+cable_driver.o: cable_driver.F90 cable_output.o cable_iovars.o cable_cbm.o cable_diag.o   casa_variable.o casa_cable.o casa_cnp.o casa_inout.o cable_input.o cable_common.o cable_data.o cable_2GW_types.o
 
 cable_define_types.o: cable_define_types.F90
 
@@ -111,7 +111,10 @@ casa_inout.o: casa_inout.F90 cable_define_types.o  cable_iovars.o casa_variable.
 
 cable_common.o: cable_common.F90  cable_iovars.o
 
-cable_TwoDim_GW.o: cable_TwoDim_GW.F90 cable_define_types.o  cable_iovars.o  cable_data.o cable_common.o
+cable_TwoDim_GW.o: cable_TwoDim_GW.F90 cable_define_types.o  cable_iovars.o  cable_data.o cable_common.o cable_2GW_types.o
+
+cable_2GW_types.o: cable_2GW_types.F90 cable_define_types.o
+
 
 # make clean option
 clean:
