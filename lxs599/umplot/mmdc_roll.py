@@ -1,19 +1,21 @@
 import cdms2, sys
 import numpy as np
+import os
 
 cdms2.setNetcdfShuffleFlag(0)      ## where value is either 0 or 1
 cdms2.setNetcdfDeflateFlag(0)      ## where value is either 0 or 1
 cdms2.setNetcdfDeflateLevelFlag(0) ## where value is a integer bw 0 and 9 inc
 
 cfile=cdms2.open('MeanMnthDailyCycles_%syrs.nc' % sys.argv[1])
-tas = cfile['tas']
-qsh = cfile['hfss']
-qle = cfile['hfls']
-apr = cfile['field5226']
-rnt = cfile['field3333']
+tas = cfile['temp']       # tas
+qsh = cfile['sh']         # hfss
+qle = cfile['lh']         # hfls
+apr = cfile['tot_precip'] # field5226
+rnt = cfile['field202']   # field3333
 #swr = cfile['solar']
 #lwr = cfile['longwave']
 
+tstep = int(os.getenv('TSTEP'))
 #pals_shift_hrs = [,,,,,2,,,10,1,-6 ,,,,1,-5 ,-6 ,]
 #pals_shift     = [,,,,,4,,,20,2,-12,,,,2,-10,-12,]
 
@@ -21,7 +23,12 @@ rnt = cfile['field3333']
 #tshift_new = [-8,20,19,2,11,4,2,2,20,2,-12,16,-12,-10,2,-10,-12,2]
 #tshift_old = [-7,20,19,2,11,4,2,2,20,2,-9,15,-10,-8,2,-7,-10,2]
 
-tshift = [-7,20,19,2,11,4,2,2,20,2,-9,15,-10,-8,2,-7,-10,2]
+if tstep == 48:
+    tshift = [-7,20,19,2,11,4,2,2,20,2,-9,15,-10,-8,2,-7,-10,2]
+if tstep == 72:
+    tshift = [-7*1.5,20*1.5,19*1.5,2*1.5,11*1.5,4*1.5,2*1.5,2*1.5,20*1.5,2*1.5,-9*1.5,15*1.5,-10*1.5,-8*1.5,2*1.5,-7*1.5,-10*1.5,2*1.5]
+if tstep == 288:
+    tshift = [-7*6,20*6,19*6,2*6,11*6,4*6,2*6,2*6,20*6,2*6,-9*6,15*6,-10*6,-8*6,2*6,-7*6,-10*6,2*6]
 sites  = ['manaus','hay','dalywate','hapexbat','india','hyytiala','africaN','africaS','tumbarum','tharandt','bondvill','dinghush','litwashi','walkerbr','loobos','harvard','nsabor','vielsalm']
 nsite  = tshift.__len__()
 nsite2 = sites.__len__()

@@ -17,7 +17,8 @@ begin
 ;  wks = gsn_open_wks(pltType,pltName)
 
 numYr  = systemfunc("echo $YR")
-y = fspan(0,23.5,48)
+tstep    = systemfunc("echo $TSTEP")
+y = fspan(0,23.5,tstep)
 
 dims = dimsizes(ShJan)
 
@@ -163,7 +164,7 @@ procedure ts_rad(FlxName:string,RnJan,TaJan,RnJul,TaJul,jpeg) ; :numeric
 begin
 
 numYr  = systemfunc("echo $YR")
-y = fspan(0,23.5,48)
+y = fspan(0,23.5,tstep)
 dims = dimsizes(RnJan)
 
 ;-----------------------------------------------------------------------------
@@ -247,7 +248,7 @@ procedure ts_prec4(FlxName:string,PrJan,ClJan,PrJul,ClJul,jpeg) ; :numeric
 begin
 
 numYr  = systemfunc("echo $YR")
-y = fspan(0,23.5,48)
+y = fspan(0,23.5,tstep)
 
 dims = dimsizes(PrJan)
 
@@ -350,7 +351,7 @@ procedure ts_prec(FlxName:string,PrJan,PrJul,jpeg) ; :numeric
 begin
 
 numYr  = systemfunc("echo $YR")
-y = fspan(0,23.5,48)
+y = fspan(0,23.5,tstep)
 
 dims = dimsizes(PrJan)
 
@@ -426,7 +427,7 @@ procedure ts_swlw(FlxName:string,SwJan,LwJan,SwJul,LwJul,jpeg) ; :numeric
 begin
 
 numYr  = systemfunc("echo $YR")
-y = fspan(0,23.5,48)
+y = fspan(0,23.5,tstep)
 
 dims = dimsizes(SwJan)
 

@@ -4,8 +4,9 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/taylor_diagram.ncl")
+loadscript(hdir+"/"+usr+"/umplot/taylor_diagram.ncl")
 ;================================================================
 
 begin
@@ -23,6 +24,7 @@ cabtem=systemfunc("echo $cabtem")
 tname =  systemfunc("echo $tname")
 txname =  systemfunc("echo $txname")
 tiname =  systemfunc("echo $tiname")
+tstep =  systemfunc("echo $TSTEP")
 
 ;FILES-----------------------------------------------------------------------------------------------------
 
@@ -35,13 +37,13 @@ if (isfilepresent(""+mostem+"")) then
 moses_tmp  = addfile(mostem,"r")
 end if
 
-era_tp = addfile("~"+usr+"/umplot/obs/ERAi_tp2m.nc","r")         
-era_pr = addfile("~"+usr+"/umplot/obs/ERAi_precip.nc","r")
-era_tx = addfile("~"+usr+"/umplot/obs/ERAi_tmax_tmin.nc","r")
-era_sw = addfile("~"+usr+"/umplot/obs/ERA_INT_rss_ann.nc","r")    ; sw era int obs
-era_lw = addfile("~"+usr+"/umplot/obs/ERA_INT_rls_ann.nc","r")    ; lw era int obs
-era_lh = addfile("~"+usr+"/umplot/obs/ERA_INT_hfls_ann.nc","r") ; lh era int obs
-era_sh = addfile("~"+usr+"/umplot/obs/ERA_INT_hfss_ann.nc","r") ; sh era int obs
+era_tp = addfile(hdir+"/"+usr+"/umplot/obs/ERAi_tp2m.nc","r")         
+era_pr = addfile(hdir+"/"+usr+"/umplot/obs/ERAi_precip.nc","r")
+era_tx = addfile(hdir+"/"+usr+"/umplot/obs/ERAi_tmax_tmin.nc","r")
+era_sw = addfile(hdir+"/"+usr+"/umplot/obs/ERA_INT_rss_ann.nc","r")    ; sw era int obs
+era_lw = addfile(hdir+"/"+usr+"/umplot/obs/ERA_INT_rls_ann.nc","r")    ; lw era int obs
+era_lh = addfile(hdir+"/"+usr+"/umplot/obs/ERA_INT_hfls_ann.nc","r") ; lh era int obs
+era_sh = addfile(hdir+"/"+usr+"/umplot/obs/ERA_INT_hfss_ann.nc","r") ; sh era int obs
 
 ;----------------------------------------------------------------------------------------------------------
 
@@ -216,7 +218,7 @@ cc(0,0)    = ctscrn(1)
   pSize  = dimsizes(nDims)
   lonp   = cprec&$dNames(nSize-1)$
 ;var_o = a[d=2,gx=field77[d=4],gy=field77[d=4],l=1:4@sum]/4
-;var_m = (precip[d=4,l=1:4@sum]/4)*24*60*60 ;(field77[d=4,l=1:4@sum]/4)*48
+;var_m = (precip[d=4,l=1:4@sum]/4)*24*60*60 ;(field77[d=4,l=1:4@sum]/4)*tstep
 pobs   = linint2(prec&longitude,prec&latitude,prec,True,lonp,cprec&latitude,0)
 pvar_o = dim_avg_n_Wrap(pobs,0)
 pvar_m = dim_avg_n_Wrap(cprec(:,0,:,:),0)
@@ -332,7 +334,7 @@ cc(1,0)    = mtscrn(1)
 
 ; PRECIP------------------------------
 ;var_o = a[d=2,gx=field77[d=5],gy=field77[d=5],l=1:4@sum]/4
-;var_m = (precip[d=5,l=1:4@sum]/4)*24*60*60 ;(field77[d=5,l=1:4@sum]/4)*48
+;var_m = (precip[d=5,l=1:4@sum]/4)*24*60*60 ;(field77[d=5,l=1:4@sum]/4)*tstep
 if (isdim(mprec,"latitude")) then
 mpobs   = linint2(prec&longitude,prec&latitude,prec,True,lonp,mprec&latitude,0)
 else

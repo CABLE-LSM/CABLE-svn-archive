@@ -11,7 +11,7 @@ set year=(0 1 2 3 4 5 6 7 8 9)
 
 rm h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc
 
-dmget $DIR/$rid$a.$ext?????.nc
+#dmget $DIR/$rid$a.$ext?????.nc
 
 #set count_all=`ls h[0123456789].nc i[0123456789].nc j[0123456789].nc k[0123456789].nc | wc -l`
 

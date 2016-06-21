@@ -6,8 +6,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 ; =================================================================
 
 begin
@@ -16,7 +17,8 @@ numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
 cname = systemfunc("echo $CNM")
-ObsDir = "~"+usr+"/umplot/obs/"
+resol = systemfunc("echo $RES")
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
 
 moses  = addfile(mDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/seasonal_means_"+numYr+"yrs.nc","r")
@@ -77,7 +79,7 @@ tas_o@long_name    = "ERA Interim Precipitation"
 tas_o@units        = "mm/day"
 
 era_t              = regrid_bilin(tas_o,tas_m)
-era_t@long_name    = "ERAi Precip regridded to UM N96"
+era_t@long_name    = "ERAi Precip regridded to UM N"+resol+""
 era_t@units        = "mm/day"
 
 if (dims.eq.4) then
@@ -131,7 +133,7 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
           (/1.0,.30,0.0/), \
           (/.73,0.0,.21/) /)
 
-cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
 ; if (varName.eq."bias_tscrn") then
   gsn_define_colormap(wks,"BlueDarkRed18")

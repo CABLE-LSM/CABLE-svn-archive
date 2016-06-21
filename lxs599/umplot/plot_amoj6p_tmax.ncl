@@ -5,8 +5,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 ; =================================================================
 
 begin
@@ -15,7 +16,8 @@ numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
 cname = systemfunc("echo $CNM")
-ObsDir = "~"+usr+"/umplot/obs/"
+resol = systemfunc("echo $RES")
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
 
 moses  = addfile(mDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/Tseasonal_means_"+numYr+"yrs.nc","r")
@@ -60,7 +62,7 @@ tas_o@long_name    = "ERA Interim Max Temperature at 2m"
 tas_o@units        = "~S~o~N~K"
 
 era_t              = regrid_bilin(tas_o,tas_m)
-era_t@long_name    = "ERAi Max Tscrn regridded to UM N96"
+era_t@long_name    = "ERAi Max Tscrn regridded to UM N"+resol+""
 era_t@units        = "~S~o~N~K"
 
 era_T           = new((/4,145,192/),double)
@@ -112,7 +114,7 @@ wks = gsn_open_wks(pltType,pltName)
 
 ; Color Map ===========================================================
 
-cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
 ; if (varName.eq."bias_tscrn") then
   gsn_define_colormap(wks,cmap_bT)

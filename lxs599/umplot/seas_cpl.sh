@@ -3,11 +3,12 @@
 set a = a
 @ noy = ($YR * 4)  # number of files for no. of years 
 @ nom = ($YR * 12) # number of files for no. of years and months
+@ nod = ($YR * 12 * 31) # number of files for no. of years and months
 
 # Monthly ------------------------------------------------------------
 
 set pmlist=`ls $DIR/$RUNID.$Pmonth-??????????.nc | head -$nom` 
-dmget $pmlist
+#dmget $pmlist
 
 set pmjan=`ls $DIR/$RUNID.$Pmonth-????001???.nc | head -$YR`
 set pmfeb=`ls $DIR/$RUNID.$Pmonth-????002???.nc | head -$YR`
@@ -53,12 +54,17 @@ ncrcat -O avedjf.nc avemam.nc avejja.nc aveson.nc seasonal_means_${YR}yrs.nc
 
 # Timeseries ---------------------------------------------------------
 
-dmget $DIR/$RUNID.$Ptimes-??????????.nc $DIR/$RUNID.$Ptemps-??????????.nc
+#dmget $DIR/$RUNID.$Ptimes-??????????.nc $DIR/$RUNID.$Ptemps-??????????.nc
 
 # single points ----------
 if ($REINIT == 1) then
- set pelist=`ls $DIR/$RUNID.$Ptimes-??????????.nc | head -$nom`
- set pflist=`ls $DIR/$RUNID.$Ptimes-??????????_*swlw*.nc | head -$nom`
+ if ( $TSTEP == 288 ) then
+  set pelist=`ls $DIR/$RUNID.$Ptimes-??????????.nc | head -$nod`
+  set pflist=`ls $DIR/$RUNID.$Ptimes-??????????_*swlw*.nc | head -$nod`
+ else
+  set pelist=`ls $DIR/$RUNID.$Ptimes-??????????.nc | head -$nom`
+  set pflist=`ls $DIR/$RUNID.$Ptimes-??????????_*swlw*.nc | head -$nom`
+ endif
  set pclist=`ls $DIR/$RUNID.pc-??????????_*swlw*.nc | head -$nom`
 else
  set pelist=`ls $DIR/$RUNID.$Ptimes-??????????.nc | head -$noy`
@@ -73,8 +79,8 @@ if ( ${#pelist} > 0 ) then
  endif
 endif
 if ( ${#pclist} > 0 ) then
-  cdo mergetime $DIR/$RUNID.pc-??????????\_noswlw.nc PALS_ts_${YR}yrs_noswlw.nc
-  cdo mergetime $DIR/$RUNID.pc-??????????\_swlw.nc PALS_ts_${YR}yrs_swlw.nc
+  cdo mergetime $DIR/$RUNID.pc-??????????\_noswlw.nc ts_pc_${YR}yrs_noswlw.nc
+  cdo mergetime $DIR/$RUNID.pc-??????????\_swlw.nc ts_pc_${YR}yrs_swlw.nc
 endif
 # single points ----------
 

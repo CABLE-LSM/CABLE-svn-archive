@@ -6,8 +6,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-;loadscript("~"+usr+"/umplot/regrid.ncl")
+;loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 ; =================================================================
 
 begin
@@ -15,7 +16,7 @@ begin
 numYr = systemfunc("echo $YR") 
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
-ObsDir = "~"+usr+"/umplot/obs/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
 cname = systemfunc("echo $CNM")
 
 if ( cname .eq. "A" ) then
@@ -100,7 +101,7 @@ wks = gsn_open_wks(pltType,pltName)
 
 ; Color Map ===========================================================
 
-cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
 
 gsn_define_colormap(wks,"BlAqGrYeOrReVi200")

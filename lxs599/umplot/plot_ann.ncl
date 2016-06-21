@@ -13,6 +13,7 @@ procedure AnnPlot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:st
 
 begin
 
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
 
   new_field = dim_avg_n_Wrap(field,0)
@@ -25,7 +26,7 @@ usr = systemfunc("echo $USERID")
 
 ; Color Map ===========================================================
 
-cmap = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
+cmap = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 ;if (pltColor.eq."cmap") then
 ;  gsn_define_colormap(wks,cmap)
 ;else

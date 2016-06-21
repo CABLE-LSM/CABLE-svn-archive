@@ -5,8 +5,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure mmdc_flux(LongName:string,FlxName:string,mosDir:string,cabDir:string)
@@ -17,6 +18,7 @@ FlxName  = "tumbarumba"
 LongName = "tumbarumba"
 ;usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+tstep    = systemfunc("echo $TSTEP")
 mossf    = systemfunc("echo $mostum") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf    = systemfunc("echo $cabtum") ; cabsf = systemfunc("echo $"+cabDir+"")
 jpg = systemfunc("echo $CHFMT")
@@ -26,10 +28,10 @@ else
  jpeg = False
 end if
 
-tsDir    = "~"+usr+"/umplot/obs/"
-home     = "~"+usr+"/"
+tsDir    = hdir+"/"+usr+"/umplot/obs/"
+home     = hdir+"/"+usr+"/"
 
-system("dmget " + tsDir + "mmdc_*_fv.nc" )
+;system("dmget " + tsDir + "mmdc_*_fv.nc" )
 flux1  = addfile(tsDir + "mmdc_tumbarumba_fv.nc" ,"r")
 flux   = addfile(home  + "obsdata/fluxnet/PALS/flxnt_mon/mmdc_ts_Tumba.nc","r")
 mosfil = addfile(mossf,"r")
@@ -85,8 +87,8 @@ else
 
  crn1    = cswr+clwr
  copy_VarMeta(cswr,crn1)
- crn1&$dName2(1)$ = ispan(0,47,6)
- crn2    = ftcurvp(crn1&$dName2(1)$,crn1,48,crad&$dNames(1)$)
+ crn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ crn2    = ftcurvp(crn1&$dName2(1)$,crn1,tstep,crad&$dNames(1)$)
 
  ; Roll ts
  crnt    = new((/dims(0),dims(1)/),typeof(cswr))
@@ -109,8 +111,8 @@ else
 
  mrn1    = mswr+mlwr
  copy_VarMeta(mswr,mrn1)
- mrn1&$dName2(1)$ = ispan(0,47,6)
- mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,48,mrad&$dNames(1)$)
+ mrn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,tstep,mrad&$dNames(1)$)
 
  ; Roll ts
  mrnt    = new((/dims(0),dims(1)/),typeof(mswr))
@@ -178,8 +180,8 @@ temp1@_FillValue   = -9999
 ;copy_VarMeta(temp1,temp_all)
 ;copy_VarMeta(temp1,temp_2)
 precip1@_FillValue = -9999
-;pr_all             = (precip1+precip2+precip3+precip4)/4 *48
-;pr_2               = (precip3+precip4)/2 *48
+;pr_all             = (precip1+precip2+precip3+precip4)/4 *tstep
+;pr_2               = (precip3+precip4)/2 *tstep
 ;copy_VarMeta(precip1,pr_all)
 ;copy_VarMeta(precip1,pr_2)
 
@@ -269,7 +271,7 @@ crad!1    = "timestep"
 
 y  = fspan(0,23.5,timestep)
 y2 = ispan(0,23,1)
-; NOTE tumba flux and igbp all have 24xhours not 48x1/2 hrs
+; NOTE tumba flux and igbp all have 24xhours not tstep x 1/2 hrs
 sh  = new((/12,timestep/),double)
 lh  = new((/12,timestep/),double)
 tmp = new((/12,timestep/),double)
@@ -292,16 +294,16 @@ pr  = prec
 ;tmp@_FillValue = -9999
 ;rn@_FillValue  = -9999
 ;pr@_FillValue  = -9999
-;sens&timestep  = ispan(1,48,2) ;0,47,2
-;lats&timestep  = ispan(1,48,2) ;0,47,2
-;temp&timestep  = ispan(1,48,2) ;0,47,2
-;rnet&timestep  = ispan(1,48,2) ;0,47,2
-;prec&timestep  = ispan(1,48,2) ;0,47,2
-;sh  = ftcurvp(sens&timestep,sens,48,msh&timestep)
-;lh  = ftcurvp(lats&timestep,lats,48,mlh&timestep)
-;tmp = ftcurvp(temp&timestep,temp,48,mta&timestep)
-;rn  = ftcurvp(rnet&timestep,rnet,48,mpr&timestep)
-;pr  = ftcurvp(prec&timestep,prec,48,mpr&timestep)
+;sens&timestep  = ispan(1,tstep,2) ;0,(tstep-1),2
+;lats&timestep  = ispan(1,tstep,2) ;0,(tstep-1),2
+;temp&timestep  = ispan(1,tstep,2) ;0,(tstep-1),2
+;rnet&timestep  = ispan(1,tstep,2) ;0,(tstep-1),2
+;prec&timestep  = ispan(1,tstep,2) ;0,(tstep-1),2
+;sh  = ftcurvp(sens&timestep,sens,tstep,msh&timestep)
+;lh  = ftcurvp(lats&timestep,lats,tstep,mlh&timestep)
+;tmp = ftcurvp(temp&timestep,temp,tstep,mta&timestep)
+;rn  = ftcurvp(rnet&timestep,rnet,tstep,mpr&timestep)
+;pr  = ftcurvp(prec&timestep,prec,tstep,mpr&timestep)
 ;sh!1  = "timestep"
 ;lh!1  = "timestep"
 ;tmp!1 = "timestep"

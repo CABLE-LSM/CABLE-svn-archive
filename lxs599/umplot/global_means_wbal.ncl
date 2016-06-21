@@ -19,6 +19,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+hdir    = systemfunc("echo $hdir")
 usr    = systemfunc("echo $USERID")
 numYr  = systemfunc("echo $YR")
 filDir = systemfunc("echo $DIR")
@@ -29,29 +30,43 @@ vMask  = systemfunc("echo $MASK")
 ;Runid  = systemfunc("echo $RUNID")
 ;cable  = systemfunc("echo $CABLE")
 ;moses  = systemfunc("echo $MOSES")
+Vers   = systemfunc("echo $VN")
 
 ; FILES -----------------------------------------------------------
 ;moses_file = addfile(moses+"/season_`YR`yrs.nc","r") 
 ;cable_file = addfile(cable+"/season_`YR`yrs.nc","r")
 
-ObsDir = "~"+usr+"/umplot/obs/"
-DatDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+DatDir = hdir+"/"+usr+"/umplot/data/"
 
 sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 ;era_file = addfile(ObsDir+"trderi5tp2mmn1.nc","r")
 if (resol.eq.48) then 
  lsm_file = addfile(DatDir+"LSM_UMn"+resol+".nc","r")
  ;oro_file = addfile(DatDir+"orography_UMn"+resol+".nc","r")
- frac_file = addfile(DatDir+"landfrac_n48.nc","r")
+ frac_file = addfile(DatDir+"landfrac_n"+resol+".nc","r")
+end if
+if (resol.eq.96) then 
+if (Vers.eq."85") then
+  lsm_file = addfile(DatDir+"mask_accessV85_n"+resol+".nc","r")
+  frac_file = addfile(DatDir+"landfrac_N"+resol+"_v85.nc","r")
 else
  if (vMask.eq.2) then
   lsm_file = addfile(DatDir+"mask_accessV2_n"+resol+".nc","r")
-  frac_file = addfile(DatDir+"landfrac_v2.nc","r")
-  area_file = addfile(DatDir+"areacella_fx_ACCESS1-0_historical_r0i0p0.nc","r")
+  frac_file = addfile(DatDir+"landfrac_N"+resol+".nc","r")
  else
   lsm_file = addfile(DatDir+"mask_accessV1_n"+resol+".nc","r")
-  frac_file = addfile(DatDir+"landfrac_ACCESS_N96.nc","r")
+  frac_file = addfile(DatDir+"landfrac_ACCESS_N"+resol+".nc","r")
  end if
+end if
+else
+  lsm_file = addfile(DatDir+"mask_access_N"+resol+".nc","r")
+  frac_file = addfile(DatDir+"landfrac_N"+resol+".nc","r")
+end if
+if (Vers.eq."85") then
+  area_file = addfile(DatDir+"areas_n"+resol+"e_v85.nc","r")
+else
+  area_file = addfile(DatDir+"areacella_N"+resol+".nc","r")
 end if
 
 ;couple = systemfunc("echo $CPL")
@@ -92,8 +107,12 @@ if (isfilevar(sea_file,"field184")) then
  mflx   = sea_file->field184
 end if
 lsm     = lsm_file ->lsm
+if (isfilevar(frac_file,"lsm")) then
 lfrac   = frac_file->lsm
 ;lsm     = frac_file->lsm
+else
+lfrac   = frac_file->field36
+end if
 area    = area_file->areacella
 if (isfilevar(sea_file,"field1532")) then
 srunoff = sea_file ->field1532
@@ -137,9 +156,15 @@ rad   = 4.0*atan(1.0)/180.
 re    = 6.37122e06
 con   = re * rad
 
+if (isdim(precip,"latitude")) then
 lat          = precip&latitude
 lat!0        = "latitude"
 lat&latitude = precip&latitude
+else
+lat     = precip&lat
+lat!0   = "lat"
+lat&lat = precip&lat
+end if
 
 clat  = cos( lat * rad )
 
@@ -185,14 +210,28 @@ trunoff@units = "mm/day"
 radnet       = dim_avg_n_Wrap(rnet,0)
 sensh        = dim_avg_n_Wrap(sh,0)
 lathf        = dim_avg_n_Wrap(lhf,0)
-prec         = dim_avg_n_Wrap(precip,0)
+if (dimsizes(dimsizes(precip)).eq.4) then
+ prec         = dim_avg_n_Wrap(precip(:,0,:,:),0)
+else
+ prec         = dim_avg_n_Wrap(precip,0)
+end if
+if (dimsizes(dimsizes(evap)).eq.4) then
+evp          = dim_avg_n_Wrap(evap(:,0,:,:),0)
+else
 evp          = dim_avg_n_Wrap(evap,0)
+end if
 if (isvar("mflx")) then
 moist        = dim_avg_n_Wrap(mflx,0)
 end if
+if (dimsizes(dimsizes(srunoff)).eq.4) then
+srf          = dim_avg_n_Wrap(srunoff(:,0,:,:),0)
+dr           = dim_avg_n_Wrap(drunoff(:,0,:,:),0)
+trf          = dim_avg_n_Wrap(trunoff(:,0,:,:),0)
+else
 srf          = dim_avg_n_Wrap(srunoff,0)
 dr           = dim_avg_n_Wrap(drunoff,0)
 trf          = dim_avg_n_Wrap(trunoff,0)
+end if
 lath         = dim_avg_n_Wrap(lh,0)
 lath_snw     = dim_avg_n_Wrap(lh_snw,0)
 

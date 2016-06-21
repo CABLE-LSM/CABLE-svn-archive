@@ -5,8 +5,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure mmdc_flux(LongName:string,FlxName:string,mosDir:string,cabDir:string)
@@ -17,6 +18,7 @@ FlxName  = "litw"
 LongName = "little_washita"
 ;usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+tstep    = systemfunc("echo $TSTEP")
 mossf    = systemfunc("echo $moslit") ; mossf = systemfunc("echo $"+mosDir+"")
 cabsf    = systemfunc("echo $cablit") ; cabsf = systemfunc("echo $"+cabDir+"")
 jpg = systemfunc("echo $CHFMT")
@@ -26,10 +28,10 @@ else
 jpeg = False
 end if
 
-tsDir    = "~"+usr+"/umplot/obs/"
-home     = "~"+usr+"/"
+tsDir    = hdir+"/"+usr+"/umplot/obs/"
+home     = hdir+"/"+usr+"/"
 
-system("dmget " + tsDir + "mmdc_*_roll.nc" )
+;system("dmget " + tsDir + "mmdc_*_roll.nc" )
 flux1  = addfile(tsDir + "mmdc_lw96_roll.nc"  ,"r")
 flux2  = addfile(tsDir + "mmdc_lw97n_roll.nc" ,"r")
 flux3  = addfile(tsDir + "mmdc_lw98n_roll.nc" ,"r")
@@ -90,8 +92,8 @@ else
 
  crn1    = cswr+clwr
  copy_VarMeta(cswr,crn1)
- crn1&$dName2(1)$ = ispan(0,47,6)
- crn2    = ftcurvp(crn1&$dName2(1)$,crn1,48,crad&$dNames(1)$)
+ crn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ crn2    = ftcurvp(crn1&$dName2(1)$,crn1,tstep,crad&$dNames(1)$)
 
  ; Roll ts
  crnt    = new((/dims(0),dims(1)/),typeof(cswr))
@@ -113,8 +115,8 @@ else
 
  mrn1    = mswr+mlwr
  copy_VarMeta(mswr,mrn1)
- mrn1&$dName2(1)$ = ispan(0,47,6)
- mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,48,mrad&$dNames(1)$)
+ mrn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,tstep,mrad&$dNames(1)$)
 
  ; Roll 4ts for Hyytiala
  mrnt    = new((/dims(0),dims(1)/),typeof(mswr))
@@ -192,8 +194,8 @@ copy_VarMeta(temp1,temp_2)
 precip1@_FillValue = -9999
 precip2@_FillValue = -9999
 precip3@_FillValue = -9999
-pr_all             = (precip1+precip2+precip3)/3 *48
-;pr_2               = (precip2+precip3)/2 *48
+pr_all             = (precip1+precip2+precip3)/3 *tstep
+;pr_2               = (precip2+precip3)/2 *tstep
 copy_VarMeta(precip1,pr_all)
 ;copy_VarMeta(precip1,pr_2)
 

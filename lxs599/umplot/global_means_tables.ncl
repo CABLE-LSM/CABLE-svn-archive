@@ -18,9 +18,10 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/regrid.ncl")
-loadscript("~"+usr+"/umplot/tables.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/tables.ncl")
 
 ;procedure GMTables()
 
@@ -39,14 +40,15 @@ vMask  = systemfunc("echo $MASK")
 tname =  systemfunc("echo $tname")
 txname =  systemfunc("echo $txname")
 tiname =  systemfunc("echo $tiname")
+Vers   = systemfunc("echo $VN")
 
 ; FILES --------------------------------------------------------------
 
 ;moses_file = addfile(mosdir+"/seasonal_means_"+numYr+"yrs.nc","r") 
 ;cable_file = addfile(cabdir+"/seasonal_means_"+numYr+"yrs.nc","r")
 
-ObsDir = "~"+usr+"/umplot/obs/"
-PltDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+PltDir = hdir+"/"+usr+"/umplot/data/"
 
 sea_file = addfile(ModDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
@@ -54,16 +56,29 @@ if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 end if
 if (resol.eq.48) then 
  lsm_file = addfile(PltDir+"LSM_UMn"+resol+".nc","r")
- frac_file = addfile(PltDir+"landfrac_n48.nc","r")
+ frac_file = addfile(PltDir+"landfrac_n"+resol+".nc","r")
+end if
+if (resol.eq.96) then 
+if (Vers.eq."85") then
+  lsm_file = addfile(PltDir+"mask_accessV85_n"+resol+".nc","r")
+  frac_file = addfile(PltDir+"landfrac_N"+resol+"_v85.nc","r")
 else
  if (vMask.eq.2) then
   lsm_file = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")
-  frac_file = addfile(PltDir+"landfrac_v2.nc","r")
-  area_file = addfile(PltDir+"areacella_fx_ACCESS1-0_historical_r0i0p0.nc","r")
+  frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
  else
   lsm_file = addfile(PltDir+"mask_accessV1_n"+resol+".nc","r")
-  frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
+  frac_file = addfile(PltDir+"landfrac_ACCESS_N"+resol+".nc","r")
  end if
+end if
+else
+  lsm_file = addfile(PltDir+"mask_access_N"+resol+".nc","r")
+  frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
+end if
+if (Vers.eq."85") then
+  area_file = addfile(PltDir+"areas_n"+resol+"e_v85.nc","r")
+else
+  area_file = addfile(PltDir+"areacella_N"+resol+".nc","r")
 end if
 
 ;couple = "n" ;systemfunc("echo $CPL")
@@ -73,7 +88,11 @@ end if
 if (isfilevar(sea_file,"tscrn")) then
  tscrn  = sea_file ->tscrn     ;tas
 else
+if (isfilevar(sea_file,"tas")) then
+ tscrn  = sea_file ->tas     ;tas
+else
  tscrn  = sea_file ->$tname$     ;tas
+end if
 end if
 if (isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
 if (isfilevar(tsea_file,"tmax")) then
@@ -95,10 +114,17 @@ precip = sea_file ->precip    ;pr
 else
 precip = sea_file ->pr    ;pr
 end if
-;if (isfilevar(sea_file,"evspsblsoi")) then
 if (isfilevar(sea_file,"field1526")) then
  evap1 = sea_file ->field1526 ;evspsblsoi
  evap2 = sea_file ->field1527 ;evspsblveg
+else
+ if (isfilevar(sea_file,"evspsblsoi")) then
+ evap1 = sea_file ->evspsblsoi
+ evap2 = sea_file ->evspsblveg
+ else
+ evap1 = sea_file ->evpsoil
+ evap2 = sea_file ->evpcan
+ end if
 end if
 if (isfilevar(sea_file,"field1528")) then
  evap3 = sea_file ->field1528 ;evspsbsubll
@@ -112,23 +138,35 @@ if (isfilevar(sea_file,"field184")) then
  mflx   = sea_file->field184
 end if
 lsm    = lsm_file  ->lsm
-lfrac  = frac_file ->lsm
-;lsm    = frac_file ->lsm
+if (isfilevar(frac_file,"lsm")) then
+ lfrac  = frac_file ->lsm
+ ;lsm    = frac_file ->lsm
+else
+ lfrac  = frac_file ->field36
+end if
 area   = area_file->areacella
-srunoff= sea_file->field1532  ; mrros
-drunoff= sea_file->field1533  ; mrro;mrross-is it processed?
+if (isfilevar(sea_file,"field1532")) then
+ srunoff= sea_file->field1532  ; mrros
+ drunoff= sea_file->field1533  ; mrro;mrross-is it processed?
+else
+ srunoff= sea_file->mrros
+ drunoff= sea_file->smrros  ; mrro;mrross-is it processed?
+end if
 
-rsd1   = sea_file->solar
-rld1   = sea_file->longwave
-rsds   = sea_file->field203
-rlds   = sea_file->ilr
+if (isfilevar(sea_file,"solar")) then
+ rsd1   = sea_file->solar
+ rld1   = sea_file->longwave
+ rsds   = sea_file->field203
+ rlds   = sea_file->ilr
+else
+ rsd1   = sea_file->rss
+ rld1   = sea_file->rls
+ rsds   = sea_file->rsds
+ rlds   = sea_file->rlds
+end if
 rsus   = (-1)*(rsd1-rsds)
 rlus   = (-1)*(rld1-rlds)
 
-;rsds   = sea_file->rsds
-;rsus   = sea_file->rsus
-;rlds   = sea_file->rlds
-;rlus   = sea_file->rlus
 
 ;tscrn_m  = moses_file ->tscrn      ;tas
 ;tmax_m   = moses_file ->temp       ;tasmax
@@ -177,9 +215,15 @@ rlam  = 2501000             ;
 cls   = 1.1335              ;
 rad   = 4.0*atan(1.0)/180.
 
+if (isdim(precip,"latitude")) then
 lat          = precip&latitude
 lat!0        = "latitude"
 lat&latitude = precip&latitude
+else
+lat     = precip&lat
+lat!0   = "lat"
+lat&lat = precip&lat
+end if
 
 precip       = precip*24*60*60
 precip@units = "mm/day"
@@ -308,10 +352,19 @@ mlon = dims(nsiz-1)
 
 re    = 6.37122e06
 con   = re * rad
+if (isdim(precip,"latitude")) then
 clat  = cos(prec&latitude*rad)
+else
+clat  = cos(prec&lat*rad)
+end if
 
-dlon = (prec&longitude(2)-prec&longitude(1))
+if (isdim(precip,"latitude")) then
 dlat = (prec&latitude(2)-prec&latitude(1))
+dlon = (prec&longitude(2)-prec&longitude(1))
+else
+dlat = (prec&lat(2)-prec&lat(1))
+dlon = (prec&lon_1(2)-prec&lon_1(1))
+end if
 dx   = con * dlon * clat
 dy   = con * dlat
 dydx = dy * dx

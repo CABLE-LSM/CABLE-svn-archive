@@ -6,17 +6,20 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+;hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-;loadscript("~"+usr+"/umplot/regrid.ncl")
+;loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 ; =================================================================
 
 begin
 
+hdir  = systemfunc("echo $hdir")
 numYr = systemfunc("echo $YR")
 cDir  = systemfunc("echo $CABLE")
 mDir  = systemfunc("echo $MOSES")
 cname = systemfunc("echo $CNM")
-ObsDir = "~"+usr+"/umplot/obs/"
+resol = systemfunc("echo $RES")
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
 
 if ( cname .eq. "A" ) then
  rtype = "amip"
@@ -92,7 +95,7 @@ tas_l@long_name    = "Total Cloud"
 tas_l@units        = "%"
 
 ;era_t              = regrid_bilin(tas_o,tas_m)
-;era_t@long_name    = "ERAi Total Cloud regridded to UM N96"
+;era_t@long_name    = "ERAi Total Cloud regridded to UM N"+resol+""
 ;era_t@units        = "%"
 
 ;bias_tasm         = tas_m(:,:,:)-era_t(:,:,:)
@@ -120,7 +123,7 @@ wks = gsn_open_wks(pltType,pltName)
 
 ; Color Map ===========================================================
 
-cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 ;gsn_define_colormap(wks,"spread_15lev")
 ;gsn_define_colormap(wks,"rh_19lev")
 gsn_define_colormap(wks,"WhiteBlueGreenYellowRed")

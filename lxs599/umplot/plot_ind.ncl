@@ -13,6 +13,7 @@ procedure IndPlot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:st
 
 begin
 
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
 
 ; Wks ===========================================================
@@ -24,7 +25,7 @@ usr = systemfunc("echo $USERID")
 ; Color Map ===========================================================
 
 ;if (pltColor.eq."cmaps") then
-; cmap = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
+; cmap = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 ; gsn_define_colormap(wks,cmap)
 ;else
  gsn_define_colormap(wks,pltColor)

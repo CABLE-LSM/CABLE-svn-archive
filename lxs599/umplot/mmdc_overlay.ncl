@@ -15,6 +15,7 @@ begin
 ;  wks = gsn_open_wks(pltType,pltName)
 
 numYr  = systemfunc("echo $YR")
+tstep    = systemfunc("echo $TSTEP")
 hmax   = 24 - (24/tstep)
 y      = fspan(0,hmax,tstep)
 ;y2     = fspan(0,23+2/3,72)
@@ -147,7 +148,7 @@ procedure tso_rad(FlxName:string,RnJan,TaJan,RnJul,TaJul) ; :numeric
 begin
 
 numYr  = systemfunc("echo $YR")
-y      = fspan(0,23.5,48)
+y      = fspan(0,23.5,tstep)
 ;y2     = fspan(0,23.43,72)
 
 
@@ -279,7 +280,7 @@ procedure tso_prec(FlxName:string,PrJan,PrJul) ; :numeric
 begin
 
 numYr  = systemfunc("echo $YR")
-y      = fspan(0,23.5,48)
+y      = fspan(0,23.5,tstep)
 ;y2     = fspan(0,23.43,72)
 
 ;-----------------------------------------------------------------------------

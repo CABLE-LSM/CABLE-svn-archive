@@ -9,10 +9,10 @@ set DIRW=$PWD
 #----------------------------
 
 echo " "
-dmget $DIR/$RUNID$a.$Pdaily?????.nc
-dmget $DIR/$RUNID$a.$Ptemps?????.nc 
-dmget $DIR/$RUNID$a.$Ptimes?????.nc 
-dmget $DIR/$RUNID$a.$Pmonth?????.nc
+#dmget $DIR/$RUNID$a.$Pdaily?????.nc
+#dmget $DIR/$RUNID$a.$Ptemps?????.nc 
+#dmget $DIR/$RUNID$a.$Ptimes?????.nc 
+#dmget $DIR/$RUNID$a.$Pmonth?????.nc
 
 #if ($YR == 20) then
 # setenv block '1 2 3 4'
@@ -240,8 +240,17 @@ if ( ${#peswlw} > 0 ) then
  cdo mergetime $peno Timeseries_5yrs_noswlw.nc
 endif
 if ( ${#pcswlw} > 0 ) then
- cdo mergetime $pcsw PALS_ts_5yrs_swlw.nc
- cdo mergetime $pcno PALS_ts_5yrs_noswlw.nc
+ cdo mergetime $pcsw ts_pc_5yrs_swlw.nc
+ cdo mergetime $pcno ts_pc_5yrs_noswlw.nc
+endif
+set hname=`echo $HOSTNAME | head -c4`
+if ($hname == chip || $hname == raij)  then
+ ncrename -d t,time Timeseries_${YR}yrs.nc
+ ncrename -v t,time Timeseries_${YR}yrs.nc
+ ncrename -d t,time Timeseries_${YR}yrs_swlw.nc
+ ncrename -v t,time Timeseries_${YR}yrs_swlw.nc
+ ncrename -d t,time Timeseries_${YR}yrs_noswlw.nc
+ ncrename -v t,time Timeseries_${YR}yrs_noswlw.nc
 endif
 
 cdo mergetime $pbls Tempseries_5yrs.nc

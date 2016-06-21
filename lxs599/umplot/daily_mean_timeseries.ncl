@@ -2,12 +2,14 @@
  load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
  load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
  load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+;hdir   = systemfunc("echo $hdir")
 ;usr   = systemfunc("echo $USERID")
-; loadscript("~"+usr+"/umplot/plot_ind.ncl")
+; loadscript(hdir+"/"+usr+"/umplot/plot_ind.ncl")
 ; ============================================================
 
 begin
 
+ hdir   = systemfunc("echo $hdir")
  usr   = systemfunc("echo $USERID")
  rid   = systemfunc("echo $RUNID")
  dir   = systemfunc("echo $DIR")
@@ -16,19 +18,28 @@ begin
  vMask = systemfunc("echo $MASK")
  Pdai  = systemfunc("echo $Pdaily")
  Ptem  = systemfunc("echo $Ptemps")
+ Vers  = systemfunc("echo $VN")
 
  nfil = stringtoint(numyr)*4
  ;print(nfil)
 
- DatDir = "~"+usr+"/umplot/data/"
+ DatDir = hdir+"/"+usr+"/umplot/data/"
 
  ; read in files----------
 
+if (Vers.eq."85") then
+ fila = systemfunc("ls "+dir+"/"+rid+"a."+Pdai+"???????.nc | head -"+nfil)
+else
  fila = systemfunc("ls "+dir+"/"+rid+"a."+Pdai+"?????.nc | head -"+nfil)
+end if
  fa   = addfiles(fila,"r")
  ListSetType(fa,"cat")    ; "join" adds extra dim (5,12,nlat,nlon)
 
+if (Vers.eq."85") then
+ filb = systemfunc("ls "+dir+"/"+rid+"a."+Ptem+"???????.nc | head -"+nfil)
+else
  filb = systemfunc("ls "+dir+"/"+rid+"a."+Ptem+"?????.nc | head -"+nfil)
+end if
  fb   = addfiles(filb,"r")
  ListSetType(fb,"cat")    ; while "cat" extends time dim (60,nlat,nlon)
 

@@ -7,7 +7,7 @@ if (! -d plots) then
  #echo ""
 else
  echo "(0)     Directory plots/ Already Exists"
- echo "(0)"
+ #echo "(0)"
 endif
 
 if (${CHFMT} == y ) then

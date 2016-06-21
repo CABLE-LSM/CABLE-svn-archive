@@ -15,6 +15,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
 mosDir = systemfunc("echo $MOSES")
 cabDir = systemfunc("echo $CABLE")
@@ -24,6 +25,7 @@ lcable = systemfunc("echo $MODEL")
 vMask  = systemfunc("echo $MASK")
 split  = systemfunc("echo $SPLIT")
 tname =  systemfunc("echo $tname")
+tstep =  systemfunc("echo $TSTEP")
 if (split.eq."y") then
 blck  = True
 blk   = systemfunc("echo $BLOCK")
@@ -42,28 +44,31 @@ end if
 ; cable = False
 ;end if
 
-ObsDir = "~"+usr+"/umplot/obs/"
-LsmDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+LsmDir = hdir+"/"+usr+"/umplot/data/"
 
 if (isfilepresent(cabDir+"/yearly_means_"+numYr+"yrs.nc") .and. \
     isfilepresent(mosDir+"/yearly_means_"+numYr+"yrs.nc")) then
 
-system("dmget "+mosDir+"/yearly_means_"+numYr+"yrs.nc")
+;system("dmget "+mosDir+"/yearly_means_"+numYr+"yrs.nc")
 moses_year = addfile(mosDir+"/yearly_means_"+numYr+"yrs.nc","r")         ; 20 years  ; 1980-2000
-system("dmget "+cabDir+"/yearly_means_"+numYr+"yrs.nc")
+;system("dmget "+cabDir+"/yearly_means_"+numYr+"yrs.nc")
 cable_year = addfile(cabDir+"/yearly_means_"+numYr+"yrs.nc","r")         ; 20 years  ; 1985-2005
 t2mobs_yr  = addfile(ObsDir+"ERAi_yearavg_t2m.nc","r")                   ; 21.3 years; 1989-2010
 pr_obs_yr  = addfile(ObsDir+"ERAINT_year_pr8908.nc","r")                 ; 20 years  ; 1989-2008
 era_mask   = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 if (resol.eq.48) then
-lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
-else
-if (vMask.eq.2) then
-lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
-else
-lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
+lsm_file   = addfile(LsmDir+"LSM_UMn"+resol+".nc","r")
 end if
+if (resol.eq.96) then
+if (vMask.eq.2) then
+lsm_file   = addfile(LsmDir+"mask_accessV2_n"+resol+".nc","r")
+else
+lsm_file   = addfile(LsmDir+"mask_accessV1_n"+resol+".nc","r")
+end if
+else
+lsm_file   = addfile(LsmDir+"mask_access_N"+resol+".nc","r")
 end if
 
 ; Variables ------------------------------------------------------------------
@@ -143,12 +148,12 @@ end if
 end if
 
 if (isfilevar(moses_year,"field77")) then
-pMyr1           = pMyr1*48
+pMyr1           = pMyr1*tstep
 else
 pMyr1           = pMyr1*24*60*60
 end if
 if (isfilevar(cable_year,"field77")) then
-pCyr1           = pCyr1*48
+pCyr1           = pCyr1*tstep
 else
 pCyr1           = pCyr1*24*60*60
 end if

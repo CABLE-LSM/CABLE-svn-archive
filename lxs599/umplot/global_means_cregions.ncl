@@ -18,10 +18,11 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/regrid.ncl")
-loadscript("~"+usr+"/umplot/tables.ncl")
-loadscript("~"+usr+"/umplot/wgt_func.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/tables.ncl")
+loadscript(hdir+"/"+usr+"/umplot/wgt_func.ncl")
 
 ;procedure GMcTables()
 
@@ -32,6 +33,7 @@ numYr    = systemfunc("echo $YR")
 ;filDir   = systemfunc("echo $DIR")
 ;ModDir   = systemfunc("echo $DIRW")
 resol    = systemfunc("echo $RES")
+ver      = systemfunc("echo $VN")
 vMask    = systemfunc("echo $MASK")
 ;Runid    = systemfunc("echo $RUNID")
 cabdir   = systemfunc("echo $CABLE")
@@ -43,8 +45,8 @@ ice_mask = True ; Antarctica and Greenland
 msk_A    = False ; Antarctica mask
 msk_G    = False ; Greenland mask
 
-ObsDir = "~"+usr+"/umplot/obs/"
-PltDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+PltDir = hdir+"/"+usr+"/umplot/data/"
 
 ; FILES --------------------------------------------------------------
 
@@ -62,19 +64,29 @@ erai_file = addfile(ObsDir+"ERAi_tp2m.nc","r")
 erat_file = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
 elsm_file = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
+if (ver.eq.85) then
+lsm_file  = addfile(PltDir+"mask_accessV85_n96.nc","r")
+frac_file = addfile(PltDir+"landfrac_N96_v85.nc","r") 
+area_file = addfile(PltDir+"areas_n96e_v85.nc","r") 
+else
 if (resol.eq.48) then 
 lsm_file = addfile(PltDir+"LSM_UMn"+resol+".nc","r")
 frac_file = addfile(PltDir+"landfrac_n48.nc","r")
-else
+end if
+if (resol.eq.96) then 
 if (vMask.eq.2) then
 lsm_file = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_v2.nc","r")
+frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
 else
 lsm_file = addfile(PltDir+"mask_accessV1_n"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
+frac_file = addfile(PltDir+"landfrac_ACCESS_N"+resol+".nc","r")
 end if
+else
+lsm_file = addfile(PltDir+"mask_access_N"+resol+".nc","r")
+frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
 end if
-area_file = addfile(PltDir+"areacella.nc","r")
+area_file = addfile(PltDir+"areacella_N"+resol+".nc","r")
+end if
 
 ; SET-UP -------------------------------------------------------------
 
@@ -112,7 +124,7 @@ larea  = area_file ->areacella
 ;lsm    = frac_file ->lsm
 srunoff= cable_file->field1532  ; mrros
 drunoff= cable_file->field1533  ; mrro;mrross-is it processed?
-clt    = cable_file->field30_1
+clt    = cable_file->field30
 clt    = clt*100
 
 rsd1   = cable_file->solar
@@ -202,8 +214,13 @@ if (isfilepresent(mosdir+"/clt_yseasmean.nc")) then
   clt_m = clt_m*100
  end if
 else
+ if (isfilevar(moses_file,"field30_1")) then
  clt_m = moses_file->field30_1
  clt_m = clt_m*100
+ else
+ clt_m = moses_file->field30
+ clt_m = clt_m*100
+ end if
 end if
 
 if (isfilevar(moses_file,"rsds")) then
@@ -331,7 +348,7 @@ if (ice_mask) then
   copy_VarMeta(icmsk1,icmsk)
   copy_VarMeta(immsk1,immsk)
   ; -- for global masking --
-  cfr = where(icmsk1.eq.1,lsm,0)
+  cfr = where(icmsk1.eq.1,lsm(0,0,:,:),0)
   copy_VarMeta(icmsk1,cfr)
   gfr = (-1)*(cfr-1)
   copy_VarMeta(cfr,gfr)
@@ -487,25 +504,27 @@ wgtlo&lon = emax&longitude
 ; ------------------
 
 ;latitude---
-mlat      = new((/2,3/),float)
+mlat      = new((/2,4/),float)
 mlat(:,0) = (/-90, 90/)    ; chv=0, Global
 mlat(:,1) = (/-45,-10/)    ; -44:-10 ; chv=1, Australia (Aust)
 mlat(:,2) = (/ 14, 85/)    ; chv=2, North America (NthAm)
+mlat(:,3) = (/ 19, 31/)    ; Sahara/Bgr
 Dlat      = dimsizes(mlat)
 latS      = mlat(0,chv)
 latN      = mlat(1,chv)
 latr      = lat({latS:latN})
 ;longitude---
-nlon      = new((/2,3/),float)
+nlon      = new((/2,4/),float)
 nlon(:,0) = (/  0,360/)    ; chv=0, Global
 nlon(:,1) = (/112,155/)    ; 113:154 ; chv=1, Australia (Aust)
 nlon(:,2) = (/190,308/)    ; chv=2, North America (NthAm)
+nlon(:,3) = (/  0, 30/)    ; Sahara/Bgr
 Dlon      = dimsizes(mlat)
 lonW      = nlon(0,chv)
 lonE      = nlon(1,chv)
 lonr      = lon({lonW:lonE})
 ; -----------
-wlat      = (/"Glob","Aust","NthAm"/)
+wlat      = (/"Glob","Aust","NthAm","Bgr"/)
 print(""+wlat(chv)+"")
 ; -----------
 

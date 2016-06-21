@@ -5,8 +5,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure harv_ts()
@@ -17,6 +18,7 @@ FlxName  = "harvard"
 LongName = "harvard_forest"
 ;usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+tstep    = systemfunc("echo $TSTEP")
 mossf    = systemfunc("echo $moshar")
 cabsf    = systemfunc("echo $cabhar")
 jpg = systemfunc("echo $CHFMT")
@@ -26,10 +28,10 @@ else
 jpeg = False
 end if
 
-tsDir    = "~"+usr+"/umplot/obs/"
-home     = "~"+usr+"/"
+tsDir    = hdir+"/"+usr+"/umplot/obs/"
+home     = hdir+"/"+usr+"/"
 
-system("dmget " + tsDir + "mmdc_*_roll.nc")
+;system("dmget " + tsDir + "mmdc_*_roll.nc")
 ;flux1  = addfile(tsDir + "mmdc_hv92n_roll.nc" ,"r")
 ;flux2  = addfile(tsDir + "mmdc_hv93n_roll.nc" ,"r")
 ;flux3  = addfile(tsDir + "mmdc_hv94n_roll.nc" ,"r")
@@ -141,8 +143,8 @@ else
 
  crn1    = cswr+clwr
  copy_VarMeta(cswr,crn1)
- crn1&$dName2(1)$ = ispan(0,47,6)
- crn2    = ftcurvp(crn1&$dName2(1)$,crn1,48,crad&$dNames(1)$)
+ crn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ crn2    = ftcurvp(crn1&$dName2(1)$,crn1,tstep,crad&$dNames(1)$)
 
  crnt    = new((/dims(0),dims(1)/),typeof(cswr))
  crnt(:,44:47)  = crn2(:,0:3)
@@ -165,8 +167,8 @@ else
 
  mrn1    = mswr+mlwr
  copy_VarMeta(mswr,mrn1)
- mrn1&$dName2(1)$ = ispan(0,47,6)
- mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,48,mrad&$dNames(1)$)
+ mrn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,tstep,mrad&$dNames(1)$)
 
  ; Roll 4ts for Hyytiala
  mrnt    = new((/dims(0),dims(1)/),typeof(mswr))
@@ -270,9 +272,9 @@ precip1@_FillValue = -9999
 ;precip6@_FillValue = -9999
 ;precip7@_FillValue = -9999
 ;precip8@_FillValue = -9999
-pr_all             = precip1(:,:,0)*24*3600. ;(precip1+precip2+precip3+precip4+precip5+precip6+precip7+precip8)/8 *48
+pr_all             = precip1(:,:,0)*24*3600. ;(precip1+precip2+precip3+precip4+precip5+precip6+precip7+precip8)/8 *tstep
 pr_all             = -9999
-;pr_2               = (precip2+precip3)/2 *48
+;pr_2               = (precip2+precip3)/2 *tstep
 copy_VarMeta(precip1,pr_all)
 ;copy_VarMeta(precip1,pr_2)
 

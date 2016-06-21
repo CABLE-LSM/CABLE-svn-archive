@@ -18,10 +18,11 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/regrid.ncl")
-loadscript("~"+usr+"/umplot/tables.ncl")
-loadscript("~"+usr+"/umplot/wgt_func.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/tables.ncl")
+loadscript(hdir+"/"+usr+"/umplot/wgt_func.ncl")
 
 ;procedure GMcTables()
 
@@ -43,8 +44,8 @@ ice_mask = False ; Antarctica and Greenland
 msk_A    = False ; Antarctica mask
 msk_G    = False ; Greenland mask
 
-ObsDir = "~"+usr+"/umplot/obs/"
-PltDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+PltDir = hdir+"/"+usr+"/umplot/data/"
 
 ; FILES --------------------------------------------------------------
 
@@ -64,17 +65,21 @@ elsm_file = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 if (resol.eq.48) then 
 lsm_file = addfile(PltDir+"LSM_UMn"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_n48.nc","r")
-else
+frac_file = addfile(PltDir+"landfrac_n"+resol+".nc","r")
+end if
+if (resol.eq.96) then 
 if (vMask.eq.2) then
 lsm_file = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_v2.nc","r")
+frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
 else
 lsm_file = addfile(PltDir+"mask_accessV1_n"+resol+".nc","r")
-frac_file = addfile(PltDir+"landfrac_ACCESS_N96.nc","r")
+frac_file = addfile(PltDir+"landfrac_ACCESS_N"+resol+".nc","r")
 end if
+else
+lsm_file = addfile(PltDir+"mask_access_N"+resol+".nc","r")
+frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
 end if
-area_file = addfile(PltDir+"areacella.nc","r")
+area_file = addfile(PltDir+"areacella_N"+resol+".nc","r")
 
 ;couple = "n" ;systemfunc("echo $CPL")
 

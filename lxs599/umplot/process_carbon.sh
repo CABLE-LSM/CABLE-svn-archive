@@ -22,15 +22,20 @@ foreach nvr ( $varn )
 end
 if ( $npp0 == True ) then
  ncks -v field1389 Mmonthly_means_${YR}yrs.nc mm.npp_${YR}yrs.nc       # NPP
+else
+ ncks -v npp Mmonthly_means_${YR}yrs.nc mm.npp_${YR}yrs.nc       # NPP
 endif
 if ( $npp1 == True ) then
  ncks -v field1389_1 Mmonthly_means_${YR}yrs.nc mm.npp_${YR}yrs.nc     # NPP
 endif
 #ncks -v $nname Mmonthly_means_${YR}yrs.nc mm.npp_${YR}yrs.nc           # NPP
 
-ncks -v field1388 Mmonthly_means_${YR}yrs.nc mm.gpp_${YR}yrs.nc        # GPP
-ncks -v field1390 Mmonthly_means_${YR}yrs.nc mm.presp_${YR}yrs.nc      # Presp
-ncks -v field1523 Mmonthly_means_${YR}yrs.nc mm.sresp_${YR}yrs.nc      # Sresp
+ncks -v field1388 Mmonthly_means_${YR}yrs.nc mm.gpp_${YR}yrs.nc        # GPP   # gpp
+#ncks -v gpp Mmonthly_means_${YR}yrs.nc mm.gpp_${YR}yrs.nc       # GPP   # gpp
+ncks -v field1390 Mmonthly_means_${YR}yrs.nc mm.presp_${YR}yrs.nc      # Presp # ra
+#ncks -v ra Mmonthly_means_${YR}yrs.nc mm.presp_${YR}yrs.nc      # Presp # ra
+ncks -v field1523 Mmonthly_means_${YR}yrs.nc mm.sresp_${YR}yrs.nc      # Sresp # rh
+#ncks -v rh Mmonthly_means_${YR}yrs.nc mm.sresp_${YR}yrs.nc      # Sresp # rh
 ncks -v field1519 Mmonthly_means_${YR}yrs.nc mm.gppt_${YR}yrs.nc       # GPP on Tiles
 ncks -v field1521 Mmonthly_means_${YR}yrs.nc mm.nppt_${YR}yrs.nc       # NPP on Tiles
 ncks -v field1522 Mmonthly_means_${YR}yrs.nc mm.prespt_${YR}yrs.nc     # Presp on Tiles
@@ -52,10 +57,10 @@ cdo mulc,659090.91 mm.co2_${YR}yrs.nc mm.co2ppm_${YR}yrs.nc
 #cdo mulc,31536000000 mm.sresp.nc mm.sresp_gcpy.nc
 
 ## Multiply(mul)/Divide(div) by land fraction
-#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.gpp_gpy.nc mm.gpp_lfr.nc
-#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.npp_gpy.nc mm.npp_lfr.nc
-#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.presp_gpy.nc mm.presp_lfr.nc
-#cdo div ~$USERID/umplot/landfrac_ACCESS_N96.nc mm.sresp_gpy.nc mm.sresp_lfr.nc
+#cdo div $hdir/$USERID/umplot/landfrac_ACCESS_N96.nc mm.gpp_gpy.nc mm.gpp_lfr.nc
+#cdo div $hdir/$USERID/umplot/landfrac_ACCESS_N96.nc mm.npp_gpy.nc mm.npp_lfr.nc
+#cdo div $hdir/$USERID/umplot/landfrac_ACCESS_N96.nc mm.presp_gpy.nc mm.presp_lfr.nc
+#cdo div $hdir/$USERID/umplot/landfrac_ACCESS_N96.nc mm.sresp_gpy.nc mm.sresp_lfr.nc
 
 # =======================================================================
 

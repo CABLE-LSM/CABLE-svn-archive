@@ -8,10 +8,10 @@ set DIRW=$PWD
 #----------------------------
 
 echo " "
-dmget $DIR/$RUNID.$Pdaily-??????????.nc
-dmget $DIR/$RUNID.$Ptemps-??????????.nc 
-dmget $DIR/$RUNID.$Ptimes-??????????.nc 
-dmget $DIR/$RUNID.$Pmonth-??????????.nc
+#dmget $DIR/$RUNID.$Pdaily-??????????.nc
+#dmget $DIR/$RUNID.$Ptemps-??????????.nc 
+#dmget $DIR/$RUNID.$Ptimes-??????????.nc 
+#dmget $DIR/$RUNID.$Pmonth-??????????.nc
 
 set bblk=  5*${BLOCK}
 set mblk= 60*${BLOCK}
@@ -108,8 +108,8 @@ endif
  cdo mergetime $pels Timeseries_5yrs.nc
  #cdo mergetime $pesw Timeseries_5yrs_swlw.nc
  #cdo mergetime $peno Timeseries_5yrs_noswlw.nc
- #cdo mergetime $pcsw PALS_ts_5yrs_swlw.nc
- #cdo mergetime $pcno PALS_ts_5yrs_noswlw.nc
+ #cdo mergetime $pcsw ts_pc_5yrs_swlw.nc
+ #cdo mergetime $pcno ts_pc_5yrs_noswlw.nc
  cdo mergetime $pbls Tempseries_5yrs.nc
  cdo mergetime $pmls Mmonthly_means_5yrs.nc
  cdo yearmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc

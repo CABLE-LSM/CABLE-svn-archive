@@ -19,6 +19,7 @@ begin
   else
    regno = 1
   end if
+  hdir = systemfunc("echo $hdir")
   usr = systemfunc("echo $USERID")
 
   pltName = Dir + "/" + varName + "_" + Yr + "yrs"
@@ -41,7 +42,7 @@ cmap = (/(/1.00, 1.00, 1.00/), (/0.00, 0.00, 0.00/), \
           (/1.0,.30,0.0/), \
           (/.73,0.0,.21/) /)
 
-cmap_bT = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
+cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
   ;gsn_define_colormap(wks,cmap)
 if (varName.eq."bias_tscrn".or.varName.eq."bias_totcl".or. \

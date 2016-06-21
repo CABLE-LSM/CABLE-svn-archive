@@ -3,11 +3,12 @@
 set a = a
 @ noy = ($YR * 4)  # number of files for no. of years 
 @ nom = ($YR * 12) # number of files for no. of years and months
+@ nod = ($YR * 12 * 31) # number of files for no. of years, months & days
 
 # Monthly ------------------------------------------------------------
 
 set pmlist=`ls $DIR/$RUNID$a.$Pmonth?????.nc | head -$nom` 
-dmget $pmlist
+#dmget $pmlist
 
 set pmjan=`ls $DIR/$RUNID$a.$Pmonth??001.nc | head -$YR`
 set pmfeb=`ls $DIR/$RUNID$a.$Pmonth??002.nc | head -$YR`
@@ -54,12 +55,17 @@ ncrcat -O avedjf.nc avemam.nc avejja.nc aveson.nc seasonal_means_${YR}yrs.nc
 
 # Timeseries ---------------------------------------------------------
 
-dmget $DIR/$RUNID$a.$Ptimes?????.nc $DIR/$RUNID$a.$Ptemps?????.nc
+#dmget $DIR/$RUNID$a.$Ptimes?????.nc $DIR/$RUNID$a.$Ptemps?????.nc
 
 # single points ----------
 if ($REINIT == 1) then
- set pelist=`ls $DIR/$RUNID$a.$Ptimes?????.nc | head -$nom`
- set pflist=`ls $DIR/$RUNID$a.$Ptimes?????_*swlw*.nc | head -$nom`
+ if ( $TSTEP == 288 ) then
+  set pelist=`ls $DIR/$RUNID$a.$Ptimes?????.nc | head -$nod`
+  set pflist=`ls $DIR/$RUNID$a.$Ptimes?????_*swlw*.nc | head -$nod`
+ else
+  set pelist=`ls $DIR/$RUNID$a.$Ptimes?????.nc | head -$nom`
+  set pflist=`ls $DIR/$RUNID$a.$Ptimes?????_*swlw*.nc | head -$nom`
+ endif
  set pclist=`ls $DIR/$RUNID$a.pc?????_*swlw*.nc | head -$nom`
 else
  set pelist=`ls $DIR/$RUNID$a.$Ptimes?????.nc | head -$noy`
@@ -72,10 +78,19 @@ if ( ${#pelist} > 0 ) then
   cdo mergetime $DIR/$RUNID$a.$Ptimes?????_noswlw.nc Timeseries_${YR}yrs_noswlw.nc
   cdo mergetime $DIR/$RUNID$a.$Ptimes?????_swlw.nc Timeseries_${YR}yrs_swlw.nc
  endif
+set hname=`echo $HOST | head -c4`
+if ($hname == chip || $hname == raij)  then
+ ncrename -d t,time Timeseries_${YR}yrs.nc 
+ ncrename -v t,time Timeseries_${YR}yrs.nc
+ ncrename -d t,time Timeseries_${YR}yrs_swlw.nc 
+ ncrename -v t,time Timeseries_${YR}yrs_swlw.nc
+ ncrename -d t,time Timeseries_${YR}yrs_noswlw.nc 
+ ncrename -v t,time Timeseries_${YR}yrs_noswlw.nc
+endif
 endif
 if ( ${#pclist} > 0 ) then
-  cdo mergetime $DIR/$RUNID$a.pc?????_noswlw.nc PALS_ts_${YR}yrs_noswlw.nc
-  cdo mergetime $DIR/$RUNID$a.pc?????_swlw.nc PALS_ts_${YR}yrs_swlw.nc
+  cdo mergetime $DIR/$RUNID$a.pc?????_noswlw.nc ts_pc_${YR}yrs_noswlw.nc
+  cdo mergetime $DIR/$RUNID$a.pc?????_swlw.nc ts_pc_${YR}yrs_swlw.nc
 endif
 # single points ----------
 

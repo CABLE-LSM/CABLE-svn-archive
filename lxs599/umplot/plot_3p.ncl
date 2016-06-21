@@ -7,14 +7,16 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+;hdir = systemfunc("echo $hdir")
 ;usr = systemfunc("echo $USERID")
-;loadscript("~"+usr+"/umplot/bias_3panel.ncl")
+;loadscript(hdir+"/"+usr+"/umplot/bias_3panel.ncl")
 
 procedure Panel3Plot(pltName:string,top:numeric,middle:numeric,bottom:numeric,jpeg:logical)
 
 begin
 
 a14 = False ;True
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
 numYr = systemfunc("echo $YR")
 ;jpg = systemfunc("echo $CHFMT")
@@ -30,7 +32,7 @@ if (pltName.eq."bias_ann_prec_3p") then
  gsn_define_colormap(wks,"BlueDarkRed18")
  gsn_reverse_colormap(wks)
 else
- cmap = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
+ cmap = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
  gsn_define_colormap(wks,cmap)
  ;gsn_define_colormap(wks,"BlueDarkRed18");pltColor)
 end if

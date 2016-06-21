@@ -5,15 +5,18 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+;hdir      = systemfunc("echo $hdir")
 ;usr      = systemfunc("echo $USERID")
-;loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
+;loadscript(hdir+"/"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 begin
 
+hdir     = systemfunc("echo $hdir")
 usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 modl     = systemfunc("echo $MODEL")
+tstep    = systemfunc("echo $TSTEP")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
 jpg      = systemfunc("echo $CHFMT")
@@ -23,9 +26,9 @@ else
  jpeg = False
 end if
 
-tsDir    = "~"+usr+"/umplot/obs/"
-home     = "~"+usr+"/"
-flxobs   = "/home/cmar/ste69f/obsdata/fluxnet/PALS/flxnt_mon/"
+tsDir    = hdir+"/"+usr+"/umplot/obs/"
+home     = hdir+"/"+usr+"/"
+flxobs   = hdir+"/"+usr+"/umplot/obs/"
 
 ;obs ---
  flux_ma = addfile(tsDir  + "MA96_lu_u0_mm_flx.nc"    ,"r")
@@ -324,7 +327,7 @@ rad_ANN           = mrad_ro - rad
 
 ;----------------------------------------------------------------------------
 
-;y = fspan(0,23.5,48)
+;y = fspan(0,23.5,tstep)
 y = ispan(1,12,1)
 
 ;Plot-------------------------------------------------------------------------

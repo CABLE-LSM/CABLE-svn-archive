@@ -5,29 +5,33 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 ;load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+;hdir = systemfunc("echo $hdir")
 ;usr = systemfunc("echo $USERID")
-;loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
+;loadscript(hdir+"/"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure mmdc_jan(LongName:string,FlxName:string,mosDir:string,cabDir:string)
 
 begin
 
+hdir     = systemfunc("echo $hdir")
 usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+tstep    = stringtoint(systemfunc("echo $TSTEP"))
 modl     = systemfunc("echo $MODEL")
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
 jpg      = systemfunc("echo $CHFMT")
+tstep    = stringtoint(systemfunc("echo $TSTEP"))
 if(jpg.eq."y") then
  jpeg = True
 else
  jpeg = False
 end if
 
-tsDir    = "~"+usr+"/umplot/obs/"
-home     = "~"+usr+"/"
-flxobs   = "/home/cmar/ste69f/obsdata/fluxnet/PALS/flxnt_mon/"
+tsDir    = hdir+"/"+usr+"/umplot/obs/"
+home     = hdir+"/"+usr+"/"
+flxobs   = hdir+"/"+usr+"/umplot/obs/"
 
 manfil = addfile( tsDir + "mmdc_ma96_roll.nc"     ,"r")
 tbfil  = addfile( tsDir + "mmdc_tumbarumba_fv.nc" ,"r")
@@ -50,7 +54,7 @@ sens   = f[:]->H
 lat    = f[:]->LH
 radnet = f[:]->Rn
 
-; sites,mons,tstp; 9,1,1,12,48 ?
+; sites,mons,tstp; 9,1,1,12,tstep ?
 sens2   = sens(:,0,0,:,:)   ;dim_avg_n_Wrap(sens,1)
 lat2    = lat(:,0,0,:,:)    ;dim_avg_n_Wrap(lat,1)
 radnet2 = radnet(:,0,0,:,:) ;dim_avg_n_Wrap(radnet,1)
@@ -66,7 +70,7 @@ fils2  = systemfunc("ls "+filDir+"/mmdc_*_roll_"+numYr+"yrs.nc")
 f2     = addfiles(fils2,"r")
 ListSetType(f2,"join")
 if (isfilevar(f2[0],"hfss")) then
- msh  = f2[:]->hfss      ;sh [ncl_join | 18] x [axis_0 | 12] x [axis_1 | 48]
+ msh  = f2[:]->hfss      ;sh [ncl_join | 18] x [axis_0 | 12] x [axis_1 | tstep]
  mlh  = f2[:]->hfls      ;lh
  mrad = f2[:]->field3333 ;field202
 else
@@ -80,12 +84,12 @@ if (isfilevar(f2[0],"solar")) then
  mrad_2 = f2[:]->longwave
  mrad_3 = mrad_1+mrad_2
  copy_VarMeta(mrad_1,mrad_3)
- mrad_3&axis_1 = ispan(0,47,6)
+ mrad_3&axis_1 = ispan(0,(tstep-1),6)
  dName2 = getvardims(mlh)
  ; dims = (31,12,8)
- mrad_4 = ftcurvp(mrad_3&axis_1,mrad_3,48,mlh&$dName2(2)$)
+ mrad_4 = ftcurvp(mrad_3&axis_1,mrad_3,tstep,mlh&$dName2(2)$)
  ;mrad_4 = linint1_n_Wrap(mrad_3&axis_1,mrad_3,True,mlh&$dName2(2)$,0,1)
- mrad1  = new((/31,12,48/),double)
+ mrad1  = new((/31,12,tstep/),double)
  copy_VarMeta(msh,mrad1)
  mrad1  = mrad_4
 
@@ -251,9 +255,9 @@ sens_ma2 = sens_ma(0,:,:) ;dim_avg_n_Wrap(sens_ma,0)
 lat_ma2  = lat_ma(0,:,:)  ;dim_avg_n_Wrap(lat_ma,0)
 rad_ma2  = rad_ma(0,:,:)  ;dim_avg_n_Wrap(rad_ma,0)
 
-;sh_tb = new((/12,48/),double)
-;lh_tb = new((/12,48/),double)
-;rn_tb = new((/12,48/),double)
+;sh_tb = new((/12,tstep/),double)
+;lh_tb = new((/12,tstep/),double)
+;rn_tb = new((/12,tstep/),double)
 ;do i = 0,23
 ; sh_tb(:,2*i+1)=sens_tb2(:,i)
 ; sh_tb(:,2*i)  =sens_tb2(:,i)
@@ -265,20 +269,20 @@ rad_ma2  = rad_ma(0,:,:)  ;dim_avg_n_Wrap(rad_ma,0)
 
 ; Lest 15/1/14 - interpolate
 ;printVarSummary(sens_tb2)
-;sens_tb2& = ispan(1,48,2)
-;lat_tb2&  = ispan(1,48,2)
-;rad_tb2&  = ispan(1,48,2)
-;sh_tb = ftcurvp(sens_tb2&,sens_tb2,48,msh&timestep)
-;lh_tb = ftcurvp( lat_tb2&, lat_tb2,48,mlh&timestep)
-;rn_tb = ftcurvp( rad_tb2&, rad_tb2,48,mrnt&timestep)
+;sens_tb2& = ispan(1,tstep,2)
+;lat_tb2&  = ispan(1,tstep,2)
+;rad_tb2&  = ispan(1,tstep,2)
+;sh_tb = ftcurvp(sens_tb2&,sens_tb2,tstep,msh&timestep)
+;lh_tb = ftcurvp( lat_tb2&, lat_tb2,tstep,mlh&timestep)
+;rn_tb = ftcurvp( rad_tb2&, rad_tb2,tstep,mrnt&timestep)
 
 ;obs ---
 
 ;==============================================================================
 
-sensht            = new((/11,48/),double)
-latht             = new((/11,48/),double)
-rad               = new((/11,48/),double)
+sensht            = new((/11,tstep/),double)
+latht             = new((/11,tstep/),double)
+rad               = new((/11,tstep/),double)
 sensht            = -9999
 latht             = -9999
 rad               = -9999
@@ -287,12 +291,12 @@ latht@_FillValue  = -9999
 rad@_FillValue    = -9999
 
 do k=0,8,1
- ;sensht(k,:)       = sens2(k,0,0,0:47)   ;H
- ;latht(k,:)        = lat2(k,0,0,0:47)    ;LH
- ;rad(k,:)          = radnet2(k,0,0,0:47) ;Rn
- sensht(k,:)       = sens2(k,0,0:47)   ;H
- latht(k,:)        = lat2(k,0,0:47)    ;LH
- rad(k,:)          = radnet2(k,0,0:47) ;Rn
+ ;sensht(k,:)       = sens2(k,0,0,0:(tstep-1))   ;H
+ ;latht(k,:)        = lat2(k,0,0,0:(tstep-1))    ;LH
+ ;rad(k,:)          = radnet2(k,0,0,0:(tstep-1)) ;Rn
+ sensht(k,:)       = sens2(k,0,0:(tstep-1))   ;H
+ latht(k,:)        = lat2(k,0,0:(tstep-1))    ;LH
+ rad(k,:)          = radnet2(k,0,0:(tstep-1)) ;Rn
 end do
 sensht!0  = "axis_1"
 latht!0   = "axis_1"
@@ -302,13 +306,13 @@ latht!1   = "axis_2"
 rad!1     = "axis_2"
 
 ; 0:BV 1:HV 2:HY 3:LO 4:LW 5:NB 6:TH 7:VI 8:WB 9:MA 10:TB 11:Hay
-sensht(9,:)     = sens_ma2(0,0:47) ;H
-latht(9,:)      =  lat_ma2(0,0:47) ;LH
-rad(9,:)        =  rad_ma2(0,0:47) ;Rn
+sensht(9,:)     = sens_ma2(0,0:(tstep-1)) ;H
+latht(9,:)      =  lat_ma2(0,0:(tstep-1)) ;LH
+rad(9,:)        =  rad_ma2(0,0:(tstep-1)) ;Rn
 
-sensht(10,:)    = sh_tb(0,0:47)    ;H
-latht(10,:)     = lh_tb(0,0:47)    ;LH
-rad(10,:)       = rn_tb(0,0:47)    ;Rn
+sensht(10,:)    = sh_tb(0,0:(tstep-1))    ;H
+latht(10,:)     = lh_tb(0,0:(tstep-1))    ;LH
+rad(10,:)       = rn_tb(0,0:(tstep-1))    ;Rn
 
 rad(2,:)    =  rad_hy2(0,:);(   rad(2,:)*3 +2*9999)
 sensht(2,:) = sens_hy2(0,:);(sensht(2,:)*3 +  9999)/2
@@ -343,19 +347,19 @@ sensht(0,:) = sens_bv2(0,:);(sensht(3,:)*3 + 9999)/2
 latht(0,:)  =  lat_bv2(0,:);( latht(3,:)*3 + 9999)/2
 
 ;; lest 7/1/14 - AMOJ
-;sensht(9,:)     = -9999 ;sens_ma2(0,0:47) ;H
-;latht(9,:)      = -9999 ;lat_ma2(0,0:47)  ;LH
-;rad(9,:)        = -9999 ;rad_ma2(0,0:47)  ;Rn
-;sensht(10,:)    = -9999 ;sh_tb(0,0:47)    ;H
-;latht(10,:)     = -9999 ;lh_tb(0,0:47)    ;LH
-;rad(10,:)       = -9999 ;rn_tb(0,0:47)    ;Rn
+;sensht(9,:)     = -9999 ;sens_ma2(0,0:(tstep-1)) ;H
+;latht(9,:)      = -9999 ;lat_ma2(0,0:(tstep-1))  ;LH
+;rad(9,:)        = -9999 ;rad_ma2(0,0:(tstep-1))  ;Rn
+;sensht(10,:)    = -9999 ;sh_tb(0,0:(tstep-1))    ;H
+;latht(10,:)     = -9999 ;lh_tb(0,0:(tstep-1))    ;LH
+;rad(10,:)       = -9999 ;rn_tb(0,0:(tstep-1))    ;Rn
 ;rad(7,:)        = -9999 ;rad(7,:)*3 +2*9999
 ;sensht(7,:)     = -9999 ;(sensht(7,:)*3 + 9999 - sens_vi(0,0,:))
 ;latht(7,:)      = -9999 ;(latht(7,:)*3 + 9999)/2
 ;; lest - AMOJ
 
 ; 31: afN afr afS alk ant1 ant2 ant ant3 bv dw dh grnl hp hv hay hy ind lw lo ma nb rus1 rus2 sd1 sd2 sd3 sd4 th tb vi wb
-mrad_ro = new((/11,48/),double)
+mrad_ro = new((/11,tstep/),double)
 if (dimsizes(fils2).eq.18) then
  mrad_ro(0,:)  = mrad(2,0,:)  ; bv ; black
  mrad_ro(1,:)  = mrad(6,0,:)  ; hv ; blue
@@ -396,7 +400,7 @@ end if
 ; mrad_ro(9,:)  = mrad(0,0,:)  ; ma ; SlateBlue
 ; mrad_ro(10,:) = mrad(8,0,:)  ; tb ; navy       and hay = forestgreen
 
-msh_ro = new((/11,48/),double)
+msh_ro = new((/11,tstep/),double)
 if (dimsizes(fils2).eq.18) then
  msh_ro(0,:)  = msh(2,0,:)  ; bv
  msh_ro(1,:)  = msh(6,0,:)  ; hv
@@ -423,7 +427,7 @@ else
  msh_ro(10,:) = msh(28,0,:) ; tb ; navy       and hay = forestgreen
 end if
 
-mlh_ro = new((/11,48/),double)
+mlh_ro = new((/11,tstep/),double)
 if (dimsizes(fils2).eq.18) then
  mlh_ro(0,:)  = mlh(2,0,:)  ; bv
  mlh_ro(1,:)  = mlh(6,0,:)  ; hv
@@ -452,13 +456,14 @@ end if
 
 ;==============================================================================
 
-sh_ANN            = new((/11,48/),double)
+; TODO: Need fix when we use 5min or 20min timestep
+sh_ANN            = new((/11,tstep/),double)
 sh_ANN            = msh_ro
 sh_ANN            = sh_ANN - sensht
-lh_ANN            = new((/11,48/),double)
+lh_ANN            = new((/11,tstep/),double)
 lh_ANN            = mlh_ro
 lh_ANN            = lh_ANN - latht
-rad_ANN           = new((/11,48/),double)
+rad_ANN           = new((/11,tstep/),double)
 rad_ANN           = mrad_ro
 rad_ANN           = rad_ANN - rad 
 
@@ -467,7 +472,7 @@ rad_ANN           = rad_ANN - rad
 print("")
 print("Plotting Jan MMDC Biases for all Sites")
 
-y = fspan(0,23.5,48)
+y = fspan(0,23.5,tstep)
 ;y = ispan(1,12,1)
 
 pltName               = "mmdc_jan_"+numYr+"yrs"

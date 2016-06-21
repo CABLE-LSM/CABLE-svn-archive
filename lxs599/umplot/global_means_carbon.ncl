@@ -4,6 +4,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
 numYr = systemfunc("echo $YR")
 resol = systemfunc("echo $RES")
@@ -44,8 +45,8 @@ delete(lin)
 
 ; load area for each grid cell
 
-   Dir = "~"+usr+"/umplot/"
-   ain = addfile(Dir+"data/areacella.nc","r")
+   Dir = hdir+"/"+usr+"/umplot/"
+   ain = addfile(Dir+"data/areacella_N"+resol+".nc","r")
    grid_area = ain->areacella
    ;ain = addfile("grid_area.nc","r")
    ;grid_area = ain->grid_area
@@ -53,31 +54,42 @@ delete(ain)
 
 ; load PFT fractions for each tile
    Sfrac = addfile("seasonal_means_"+numYr+"yrs.nc","r")
+  if (resol.eq.320) then
+   ;frac  = Sfrac->field1893(0,:,:,:)
+   frac1 = Sfrac->field1893 ;(0,0:12,:,:)
+   dim   = dimsizes(frac1)
+   frac  = frac1(0,0:dim(1)-5,:,:)
+   delete(frac1)
+  end if
   if (resol.eq.96) then
    ;frac  = Sfrac->field1893(0,:,:,:)
    frac1 = Sfrac->field1893 ;(0,0:12,:,:)
    dim   = dimsizes(frac1)
    frac  = frac1(0,0:dim(1)-5,:,:)
    delete(frac1)
-  else
+  end if
+  if (resol.eq.48) then
    frac  = Sfrac->field1893(0,0:4,:,:)
   end if
 delete(Sfrac)
 
 ; load land faction 
 
-;   lfin = addfile(Dir+"data/landfrac_ACCESS_N96.nc","r")
+;   lfin = addfile(Dir+"data/landfrac_ACCESS_N"+resol+".nc","r")
 ;   ;lfin = addfile("land_fraction.nc","r")
 ;   lfrac = lfin->lsm
 
    if (resol.eq.48) then
-    fland   = addfile(Dir+"data/landfrac_n48.nc","r")
-   else ; n96
+    fland   = addfile(Dir+"data/landfrac_n"+resol+".nc","r")
+   end if
+   if (resol.eq.96) then
     if (vMask.eq.2) then
-     fland   = addfile(Dir+"data/landfrac_v2.nc","r")
+     fland   = addfile(Dir+"data/landfrac_N"+resol+".nc","r")
     else ; v1 mask
-     fland   = addfile(Dir+"data/landfrac_ACCESS_N96.nc","r")
+     fland   = addfile(Dir+"data/landfrac_ACCESS_N"+resol+".nc","r")
     end if
+   else 
+     fland   = addfile(Dir+"data/landfrac_N"+resol+".nc","r")
    end if
    lfrac = fland->lsm
    land_frac = where(lfrac.eq.0,lfrac@_FillValue,lfrac)

@@ -3,13 +3,15 @@
 ; during the NCL course at BMTC. 
 ; ==================================================================
 
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/plot.ncl")
-loadscript("~"+usr+"/umplot/plot_mmn.ncl")
-loadscript("~"+usr+"/umplot/plot_mp.ncl")
-loadscript("~"+usr+"/umplot/plot_ann.ncl")
-loadscript("~"+usr+"/umplot/plot_ind.ncl")
-loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_12p.ncl")
+;loadscript(hdir+"/"+usr+"/umplot/plot_mmn.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_mp.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_ann.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_ind.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 
 procedure run_ncl(fileDir:string,Runid:string,numYr:string,Tiles:string,\
               sLevs:string,Res:string,Split:logical,Taylor:logical,    \
@@ -64,7 +66,7 @@ begin
 ; Directories ------------------------------------------------------
 
   ;usr    = systemfunc("echo $USERID")
-  ObsDir = "~"+usr+"/umplot/obs/"
+  ObsDir = hdir+"/"+usr+"/umplot/obs/"
   ;ModDir = fileDir
   ModDir = systemfunc("echo $PWD")
   ;ModDir = systemfunc("echo $DIRW")
@@ -72,29 +74,30 @@ begin
   txname =  systemfunc("echo $txname")
   tiname =  systemfunc("echo $tiname")
   modl   =  systemfunc("echo $MODEL")
+  Vers   = systemfunc("echo $VN")
 
 ; Obs & Model netCDF ----------------------------------------------- 
 
   print("")
-  print("Dmget Files")
-  system("dmget " + ModDir + "/seasonal_means_"  +numYr+"yrs.nc" \
-            + " " + ModDir + "/monthly_means_"   +numYr+"yrs.nc" )
-if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
-  system("dmget " + ModDir + "/Tseasonal_means_" +numYr+"yrs.nc" \
-            + " " + ModDir + "/Tmonthly_means_"  +numYr+"yrs.nc" )
-;if(isfilepresent(ModDir+"/Rseasonal_means_"+numYr+"yrs.nc")) then
-  ;system("dmget " + ModDir + "/Rseasonal_means_" +numYr+"yrs.nc" \
-  ;         + " " + ModDir + "/Rmonthly_means_"  +numYr+"yrs.nc" )
+;  print("Dmget Files")
+  ;system("dmget " + ModDir + "/seasonal_means_"  +numYr+"yrs.nc" \
+  ;          + " " + ModDir + "/monthly_means_"   +numYr+"yrs.nc" )
+;if(isfilepresent(ModDir+"/Tseasonal_means_"+numYr+"yrs.nc")) then
+  ;system("dmget " + ModDir + "/Tseasonal_means_" +numYr+"yrs.nc" \
+  ;          + " " + ModDir + "/Tmonthly_means_"  +numYr+"yrs.nc" )
+;;if(isfilepresent(ModDir+"/Rseasonal_means_"+numYr+"yrs.nc")) then
+;  ;system("dmget " + ModDir + "/Rseasonal_means_" +numYr+"yrs.nc" \
+;  ;         + " " + ModDir + "/Rmonthly_means_"  +numYr+"yrs.nc" )
+;;end if
 ;end if
-end if
-  system("dmget " + ObsDir + "ERAi_precip.nc" \
-            + " " + ObsDir + "ERAi_tp2m.nc" \
-            + " " + ObsDir + "ERAi_evap_cdo.nc" \
-            + " " + ObsDir + "ERAi_tmax_tmin.nc" \
-            + " " + ObsDir + "bom_precip_monthly.nc" )
-  ;         + " " + ObsDir + "Evap_Sea-Ann_Means_89-09_unpk.nc" ) ;\
-  ;         + " " + ObsDir + "ERAi_Means_tmax_tmin_89-09_unpk.nc" )
-  ;print("Dmget Files Done")
+;  system("dmget " + ObsDir + "ERAi_precip.nc" \
+;            + " " + ObsDir + "ERAi_tp2m.nc" \
+;            + " " + ObsDir + "ERAi_evap_cdo.nc" \
+;            + " " + ObsDir + "ERAi_tmax_tmin.nc" \
+;            + " " + ObsDir + "bom_precip_monthly.nc" )
+;  ;         + " " + ObsDir + "Evap_Sea-Ann_Means_89-09_unpk.nc" ) ;\
+;  ;         + " " + ObsDir + "ERAi_Means_tmax_tmin_89-09_unpk.nc" )
+;  ;print("Dmget Files Done")
 
   print("Reading in NetCDFs")
   ;sea_file   = addfile(ModDir+"/season_"      +numYr+"yrs.nc","r")
@@ -147,10 +150,16 @@ end if
 if(isfilevar(sea_file,"ts")) then
   tsurf    = sea_file    ->ts          ; Surface Temperature (deg K)
 else
+ if(isfilevar(sea_file,"temp_28").or.isfilevar(sea_file,"temp_4")) then
  if(modl.eq."c") then
+ if (Vers.eq."85") then
+  tsurf    = sea_file    ->temp_34     ; Surface Temperature (deg K)
+ else
   tsurf    = sea_file    ->temp_28     ; Surface Temperature (deg K)
+ end if
  else
   tsurf    = sea_file    ->temp_4      ; Surface Temperature (deg K)
+ end if
  end if
 end if
 if(isfilevar(sea_file,"sh")) then
@@ -197,7 +206,11 @@ else
    evap2    = sea_file    ->evspsblveg
  else
    evap1    = sea_file    ->evpsoil
+ if(isfilevar(sea_file,"evpcan")) then
    evap2    = sea_file    ->evpcan
+ else
+   evap2    = sea_file    ->evspsblveg
+ end if
  end if
 end if
 if(isfilevar(sea_file,"field1528")) then
@@ -252,11 +265,13 @@ end if
 if(.not.isfilevar(sea_file,"sm_1").and.isfilevar(sea_file,"sm")) then
   smcl     = sea_file    ->sm          ; Soil Moisture in Layer
 end if
+if (Vers.ne."85") then
 if(isfilevar(sea_file,"field1388")) then
   gpp      = sea_file    ->field1388   ; Gross Primary Production
   npp      = sea_file    ->field1389   ; Net Primary Production
   frp      = sea_file    ->field1390   ; Plant Respiration
   frs      = sea_file    ->field1523   ; Soil Respiration
+end if
 end if
 if (lcable.and.t15) then
   latT     = tscrn&latitude 
@@ -364,12 +379,12 @@ end if
 ;MetaData-----------------------------------------------------------
 
 if (isvar("precip")) then
-  precip              = precip*24*60*60  ;*48
+  precip              = precip*24*60*60  ;*tstep
   precip@long_name    = "Precipitation"
   precip@units        = "mm/day"
 end if
 if (isvar("prmn")) then
-  prmn                = prmn*24*60*60    ;*48
+  prmn                = prmn*24*60*60    ;*tstep
   prmn@long_name      = "Precipitation"
   prmn@units          = "mm/day"
 end if
@@ -474,6 +489,11 @@ if(isvar("srnf")) then
   copy_VarMeta(srnf,tot_rnf)
   tot_rnf@long_name  = "Total Runoff: Surface+Drainage"
   tot_rnf@units      = "mm/day"
+
+  trmn            = srmn + drmn
+  copy_VarMeta(srmn,trmn)
+  trmn@long_name  = "Total Runoff: Surface+Drainage"
+  trmn@units      = "mm/day"
 
 if(isvar("evap")) then
   wbal                = precip - evap/365 - tot_rnf
@@ -607,30 +627,30 @@ end if
 
   print("Regridding Observations")
   era_t_rg              = regrid_bilin(era_tp2m,tscrn)
-  era_t_rg@long_name    = "ERAi Tscrn regridded to UM N96"
+  era_t_rg@long_name    = "ERAi Tscrn regridded to UM N"+nres+""
   era_t_rg@units        = "deg K"
 
   era_p_rg              = regrid_bilin(era_prec,precip)
-  era_p_rg@long_name    = "ERAi Precip regridded to UM N96"
+  era_p_rg@long_name    = "ERAi Precip regridded to UM N"+nres+""
   era_p_rg@units        = "mm/day"
 
 if(isvar("tmax")) then
   era_x_rg              = regrid_bilin(eraT_max,tmax)
-  era_x_rg@long_name    = "ERAi Tmax regridded to UM N96"
+  era_x_rg@long_name    = "ERAi Tmax regridded to UM N"+nres+""
   era_x_rg@units        = "deg K"
 
   era_n_rg              = regrid_bilin(eraT_min,tmin)
-  era_n_rg@long_name    = "ERAi Tmin regridded to UM N96"
+  era_n_rg@long_name    = "ERAi Tmin regridded to UM N"+nres+""
   era_n_rg@units        = "deg K"
 
   era_d_rg              = regrid_bilin(era_tamp,tamp)
-  era_d_rg@long_name    = "ERAi Tdiff regridded to UM N96"
+  era_d_rg@long_name    = "ERAi Tdiff regridded to UM N"+nres+""
   era_d_rg@units        = "deg K"
 end if
 
 if(isvar("evap")) then
   era_e_rg              = regrid_bilin(era_evp,evap)
-  era_e_rg@long_name    = "ERAi Evap regridded to UM N96"
+  era_e_rg@long_name    = "ERAi Evap regridded to UM N"+nres+""
   era_e_rg@units        = "mm/day"
 end if
 
@@ -895,10 +915,12 @@ levg = (/0,0.00000002,0.00000004,0.00000006,0.00000008,0.00000010,.00000012/)
 levn = (/-.00000002,-.00000001,0,.00000001,.00000002,.00000003,.00000004,.00000005,.00000006,.00000007/)
 levp = (/0,.000000004,.000000008,.000000012,.000000016,.000000020,.000000024,.000000028,.000000032/)
 levs = (/0,.000000004,.000000008,.000000012,.000000016,.000000020,.000000024,.000000028,.000000032,.000000036,.00000004/)
+if (Vers.ne."85") then
 Panel_Plot(pltDir,"seas_gpp" ,numYr,type,"BlAqGrYeOrReVi200",gpp(:,0,:,:) ,False,True,levg,True,False)
 Panel_Plot(pltDir,"seas_npp" ,numYr,type,"BlAqGrYeOrReVi200",npp(:,0,:,:) ,False,True,levn,True,False)
 Panel_Plot(pltDir,"seas_frp" ,numYr,type,"BlAqGrYeOrReVi200",frp(:,0,:,:) ,False,True,levp,True,False)
 Panel_Plot(pltDir,"seas_frs" ,numYr,type,"BlAqGrYeOrReVi200",frs(:,0,:,:) ,False,True,levs,True,False)
+end if
 end if
 
 if (dims.gt.3) then
@@ -926,7 +948,7 @@ if (isvar("deepST")) then
 do n = 0,nsoil-1,1
 f = n + 1
 deepST@long_name = "Soil temperature: Level "+f
-Panel_Plot(pltDir,"seas_tsl"+f,numYr,type,"BlAqGrYeOrReVi200",deepST(:,n,:,:),False,True,levtp,False,jpeg)
+Panel_Plot(pltDir,"seas_tsoil"+f,numYr,type,"BlAqGrYeOrReVi200",deepST(:,n,:,:),False,True,levtp,False,jpeg)
 end do
 end if
 if (lcable.and.t15) then
@@ -946,7 +968,7 @@ lev_bT   = ispan(-9,9,1)
 lev_bP   = (/-8,-4,-2,-1,-0.5,0,0.5,1,2,4,8/)
 lev_bE   = (/-1500,-1000,-500,-400,-300,-200,-100,-50,0,50,100,200,300,400,500,1000,1500/)
 
-;cmap_bT = RGBtoCmap("~"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
+;cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
 Panel_Plot(pltDir,"bias_tscrn" ,numYr,type,"BlueDarkRed18",bias_tscrn ,False,True,lev_bT,False,jpeg)
 ;Panel_Plot(pltDir,"bias_tscrn" ,numYr,type,"BlueDarkRed18",bias_tscrn ,False,True,lev_bT,False,jpeg)
@@ -1138,7 +1160,7 @@ end if ; Region.eq.2
 
 ; Jan and Jul Monthly Means =======================================
 
-print("Plotting Jan/Jul Means")
+print("Plotting Monthly Means")
 
 if (dims.gt.3) then
  MmnPanel(pltDir,"mmn_precip" ,numYr,type,cmapr,prmn(:,0,:,:) ,False,True,levpr,True,False)
@@ -1191,12 +1213,13 @@ end if
 if(isvar("srmn")) then
 MmnPanel(pltDir,"mmn_srnf"   ,numYr,type,cmaprn,srmn(:,0,:,:) ,False,True,levrnf,True,False)
 MmnPanel(pltDir,"mmn_drnf"   ,numYr,type,cmaprn,drmn(:,0,:,:) ,False,True,levrnf,True,False)
+MmnPanel(pltDir,"mmn_trnf"   ,numYr,type,cmaprn,trmn(:,0,:,:) ,False,True,levrnf,True,False)
 end if
 
 ; soil temp -----------
 ;if (isvar("deepST")) then
 ;do i = 0,nsoil-1,1
-;MmnPanel(pltDir,"mmn_tsl",numYr,type,"BlAqGrYeOrReVi200",deepST(:,n,:,:),False,True,levtp,True,False)
+;MmnPanel(pltDir,"mmn_tsoil",numYr,type,"BlAqGrYeOrReVi200",deepST(:,n,:,:),False,True,levtp,True,False)
 ;end do
 ;end if
 ;if (lcable.and.t15) then

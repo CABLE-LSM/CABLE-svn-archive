@@ -6,8 +6,8 @@
 #---------------------------------------------------------------------------
 
 #*******Edit********
-if ($HOSTNAME == cherax) then
- setenv USERID ste69f  # Cherax/Burnet/Shine/Pearcey
+if ($HOSTNAME == ruby) then
+ setenv USERID ste69f  # ruby/Burnet/Shine/Pearcey
 else
  setenv USERID lxs599  # NCI- Raijin/Accessdev
 endif
@@ -49,7 +49,7 @@ if (! -d $HOME/umplot) then
 endif
 if (! -d $HOME/umplot/nml) then
  mkdir $HOME/umplot/nml
- if ($HOSTNAME == cherax) then
+ if ($HOSTNAME == ruby) then
   cp ~ste69f/umplot/nml/example_*.nml $HOME/umplot/nml
  else
   cp ~lxs599/umplot/nml/example_*.nml $HOME/umplot/nml
@@ -70,7 +70,7 @@ else
  echo " "
  echo "(1)     Namelist File Does Not Exist"
  echo "(1)     Please Create Namelist File in $HOME/umplot/nml"
- echo "(1)     Example Namelist File: cherax:~ste69f/umplot/nml/umplot.nml"
+ echo "(1)     Example Namelist File: ruby:~ste69f/umplot/nml/umplot.nml"
  echo "(1)     and/or Email Lauren.Stevens@csiro.au"
  echo " "
  exit (1)
@@ -110,7 +110,7 @@ else
  setenv SPLIT n
 endif
 
-if ($MODEL == c && $RES == 96) then
+if ($MODEL == c && $RES >= 96) then
  setenv TILE 17
  setenv SOIL 6
 else
@@ -118,11 +118,17 @@ else
  setenv SOIL 4
 endif
 
+if ($RES == 320) then
+ setenv TSTEP 288
+else
+ setenv TSTEP 48
+endif
+
 # NCI Transfer =============================================
 #set nsdate=`date`
 #if (${?NCI_CP} == 1) then
 if ($NCI_CP == y) then
- echo "(0)     Transferring Fields Files to Cherax"
+ echo "(0)     Transferring Fields Files to ruby"
  echo ""
  ~$USERID/umplot/tools/rsync_raijin.sh
  echo ""
@@ -137,7 +143,7 @@ endif
 #set nedate=`date`
 
 # if ~/access doesn't exist ?
-if ($HOSTNAME == cherax) then
+if ($HOSTNAME == ruby) then
  if ($DIRW == ~/access) then
   setenv DIRW ~/access/$RUNID
   cd $DIRW
@@ -166,7 +172,7 @@ endif
 
 #Check - so you don't edit someone else's $DIR
 if ( $CNV2NC == y ) then
- if ($HOSTNAME == cherax) then
+ if ($HOSTNAME == ruby) then
   set nchar=17
  else
   set nchar=16 # for /home

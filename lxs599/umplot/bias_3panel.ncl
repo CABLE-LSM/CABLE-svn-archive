@@ -7,9 +7,10 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/plot_3p.ncl")
-loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_3p.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 
 ; Set-Up ----------------------------------------------------------------------
 
@@ -20,6 +21,7 @@ begin
 usr = systemfunc("echo $USERID")
 cabDir = systemfunc("echo $CABLE")
 mosDir = systemfunc("echo $MOSES")
+nres   = systemfunc("echo $RES")
 ;cabsea = systemfunc("echo $cabsea")
 ;mossea = systemfunc("echo $mossea")
 ;cabtem = systemfunc("echo $cabtem")
@@ -35,8 +37,8 @@ tname  = systemfunc("echo $tname")
 txname = systemfunc("echo $txname")
 tiname = systemfunc("echo $tiname")
 
-ObsDir = "~"+usr+"/umplot/obs/"
-LsmDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+LsmDir = hdir+"/"+usr+"/umplot/data/"
 
 tscrn_obs  = addfile(ObsDir+"ERAi_tp2m.nc","r")
 tmxx_obs   = addfile(ObsDir+"ERAi_tmax_tmin.nc","r")
@@ -162,21 +164,21 @@ copy_VarMeta(era_t2m1,eraT_min)
 eraT_min!2 = "longitude"
 
 era_t_rg              = regrid_bilin(era_t2m1,tscrnM1)
-era_t_rg@long_name    = "ERAi Tscrn regridded to UM N96"
+era_t_rg@long_name    = "ERAi Tscrn regridded to UM N"+nres+""
 era_t_rg@units        = "deg K"
 era_p_rg              = regrid_bilin(era_prec1,precM1)
-era_p_rg@long_name    = "ERAi Precip regridded to UM N96"
+era_p_rg@long_name    = "ERAi Precip regridded to UM N"+nres+""
 era_p_rg@units        = ""
 
 if (isvar("tmaxM1")) then
  era_x_rg              = regrid_bilin(eraT_max,tmaxM1)
- era_x_rg@long_name    = "ERAi Tmax regridded to UM N96"
+ era_x_rg@long_name    = "ERAi Tmax regridded to UM N"+nres+""
  era_x_rg@units        = "deg K"
 end if
 
 if (isvar("tminM1")) then
  era_n_rg              = regrid_bilin(eraT_min,tminM1)
- era_n_rg@long_name    = "ERAi Tmin regridded to UM N96"
+ era_n_rg@long_name    = "ERAi Tmin regridded to UM N"+nres+""
  era_n_rg@units        = "deg K"
 end if
 

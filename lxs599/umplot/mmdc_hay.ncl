@@ -5,8 +5,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/plot_mmdc.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_mmdc.ncl")
 ;==============================================================================
 
 ;procedure hay_ts()
@@ -17,6 +18,7 @@ FlxName  = "hay"
 LongName = "hay"
 ;usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+tstep    = systemfunc("echo $TSTEP")
 mossf    = systemfunc("echo $moshay")
 cabsf    = systemfunc("echo $cabhay")
 jpg = systemfunc("echo $CHFMT")
@@ -26,10 +28,10 @@ else
  jpeg = False
 end if
 
-tsDir  = "~"+usr+"/umplot/obs/"
-home   = "~"+usr+"/"
+tsDir  = hdir+"/"+usr+"/umplot/obs/"
+home   = hdir+"/"+usr+"/"
 
-system("dmget " + tsDir + "hayobsjuly.nc")
+;system("dmget " + tsDir + "hayobsjuly.nc")
 flux1  = addfile(tsDir + "hayobsjuly.nc" ,"r")
 ;flux2  = addfile(tsDir + LongName +"/.nc" ,"r")
 mosfil = addfile(mossf,"r")
@@ -78,8 +80,8 @@ else
 
  crn1    = cswr+clwr
  copy_VarMeta(cswr,crn1)
- crn1&$dName2(1)$ = ispan(0,47,6)
- crn2    = ftcurvp(crn1&$dName2(1)$,crn1,48,crad&$dNames(1)$)
+ crn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ crn2    = ftcurvp(crn1&$dName2(1)$,crn1,tstep,crad&$dNames(1)$)
 
  crnt    = new((/dims(0),dims(1)/),typeof(cswr))
  crnt(:,0:6)  = crn2(:,41:47)
@@ -99,8 +101,8 @@ else
 
  mrn1    = mswr+mlwr
  copy_VarMeta(mswr,mrn1)
- mrn1&$dName2(1)$ = ispan(0,47,6)
- mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,48,mrad&$dNames(1)$)
+ mrn1&$dName2(1)$ = ispan(0,(tstep-1),6)
+ mrn2    = ftcurvp(mrn1&$dName2(1)$,mrn1,tstep,mrad&$dNames(1)$)
 
  ; Roll ts for Hay
  mrnt    = new((/dims(0),dims(1)/),typeof(mswr))
@@ -163,8 +165,8 @@ temp1!0 = "timestep"
 ;precip1@_FillValue = -9999
 ;precip2@_FillValue = -9999
 ;precip3@_FillValue = -9999
-;pr_all             = (precip1+precip2+precip3)/3 *48
-;;pr_2               = (precip2+precip3)/2 *48
+;pr_all             = (precip1+precip2+precip3)/3 *tstep
+;;pr_2               = (precip2+precip3)/2 *tstep
 ;copy_VarMeta(precip1,pr_all)
 ;;copy_VarMeta(precip1,pr_2)
 
@@ -217,8 +219,8 @@ cta!0     = "month"
 cta!1     = "timestep"
 
 ;rainf     = rainf*24*60*60
-;mpr       = mpr *48
-;cpr       = cpr *48
+;mpr       = mpr *tstep
+;cpr       = cpr *tstep
 ;rf_ta     = dim_avg_n_Wrap(rainf,0)
 prec = -9999
 prec@_FillValue = -9999
@@ -263,12 +265,12 @@ sh@_FillValue  = -9999
 lh@_FillValue  = -9999
 tmp@_FillValue = -9999
 
-sensht1&timestep = ispan(1,48,2) ;0,47,2
-latht1&timestep  = ispan(1,48,2) ;0,47,2
-temp1&timestep   = ispan(1,48,2) ;0,47,2
-sh  = ftcurvp(sensht1&timestep,sensht1,48,msh&timestep)
-lh  = ftcurvp(latht1&timestep ,latht1 ,48,mlh&timestep)
-tmp = ftcurvp(temp1&timestep  ,temp1  ,48,mta&timestep)
+sensht1&timestep = ispan(1,tstep,2) ;0,(tstep-1),2
+latht1&timestep  = ispan(1,tstep,2) ;0,(tstep-1),2
+temp1&timestep   = ispan(1,tstep,2) ;0,(tstep-1),2
+sh  = ftcurvp(sensht1&timestep,sensht1,tstep,msh&timestep)
+lh  = ftcurvp(latht1&timestep ,latht1 ,tstep,mlh&timestep)
+tmp = ftcurvp(temp1&timestep  ,temp1  ,tstep,mta&timestep)
 sh!0  = "timestep"
 lh!0  = "timestep"
 tmp!0 = "timestep"

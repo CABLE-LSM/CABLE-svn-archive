@@ -9,6 +9,7 @@ set i=1
 set a=a
 set rid=$RUNID
 set usr=$USERID
+set hdr=$hdir
 
 #set mext=$Pmonth #pa # monthly files    e.g. pm
 #set dext=$Pdaily #pe # daily files      e.g. pa
@@ -17,12 +18,21 @@ set usr=$USERID
 #set text=$Ptimes #pf # timeseries files e.g. pe
 #set jext=$PcasaC #pj # carbon files e.g. pj
 
+if ($VN==85) then
+set palist=`ls $rid$a.pa???????` # pm (monthly values)
+set pblist=`ls $rid$a.pc???????` # pb (daily tmin, tmax)
+set pelist=`ls $rid$a.pe???????` # pa (daily values)
+set pflist=`ls $rid$a.pf???????` # pe (timeseries)
+set pglist=`ls $rid$a.pg???????` # pg (timeseries)
+set pjlist=`ls $rid$a.pj???????` # pj (monthly values)
+else
 set palist=`ls $rid$a.pa?????` # pm (monthly values)
 set pblist=`ls $rid$a.pc?????` # pb (daily tmin, tmax)
 set pelist=`ls $rid$a.pe?????` # pa (daily values)
 set pflist=`ls $rid$a.pf?????` # pe (timeseries)
 set pglist=`ls $rid$a.pg?????` # pg (timeseries)
 set pjlist=`ls $rid$a.pj?????` # pj (monthly values)
+endif
 
 ## change months to numbers in .pa
 #set newlist=`echo $palist | sed -e 's/jan/010/g'`
@@ -41,8 +51,8 @@ set pjlist=`ls $rid$a.pj?????` # pj (monthly values)
 foreach afile ( $palist )
   if (! -e $afile.nc) then
 #  if (! -e $newlist[$i].nc) then
-     ~$usr/umutils/conv2nc.tcl -i $afile -o $afile.nc
-#     ~$usr/umutils/conv2nc.tcl -i $afile -o $newlist[$i].nc
+     $hdr/$usr/umutils/conv2nc.tcl -i $afile -o $afile.nc
+#     $hdr/$usr/umutils/conv2nc.tcl -i $afile -o $newlist[$i].nc
   endif
   # rename .pa to .pm
   set newname=`echo $afile.nc | sed -e 's/\.pa/\.pm/'`
@@ -74,7 +84,7 @@ set newlist=`echo $newlist | sed -e 's/dec/120/g'`
 
 foreach bfile ( $pblist )
   if (! -e $newlist[$i].nc) then
-     ~$usr/umutils/conv2nc.tcl -i $bfile -o $newlist[$i].nc
+     $hdr/$usr/umutils/conv2nc.tcl -i $bfile -o $newlist[$i].nc
   endif
   # rename .pc to .pb  
   set newname=`echo $newlist[$i].nc | sed -e 's/\.pc/\.pb/'`
@@ -104,7 +114,7 @@ set i=1
 
 foreach efile ( $pelist )
   if (! -e $newlist[$i].nc) then
-     ~$usr/umutils/conv2nc.tcl -i $efile -o $newlist[$i].nc
+     $hdr/$usr/umutils/conv2nc.tcl -i $efile -o $newlist[$i].nc
   endif
   # rename .pe to .pa
   set newname=`echo $newlist[$i].nc | sed -e 's/\.pe/\.pa/'`
@@ -130,7 +140,7 @@ set i=1
 
 foreach ffile ( $pflist )
   if (! -e $newlist[$i].nc) then
-     ~$usr/umutils/conv2nc.tcl -i $ffile -o $newlist[$i].nc
+     $hdr/$usr/umutils/conv2nc.tcl -i $ffile -o $newlist[$i].nc
      #python ~dix043/src/python/um/um_timeseries.py -i $ffile -o $newlist[$i].nc
   endif
   # rename .pf to .pe
@@ -157,7 +167,7 @@ set i=1
 
 foreach gfile ( $pglist )
   if (! -e $newlist[$i].nc) then
-     ~$usr/umutils/conv2nc.tcl -i $gfile -o $newlist[$i].nc
+     $hdr/$usr/umutils/conv2nc.tcl -i $gfile -o $newlist[$i].nc
      #python ~dix043/src/python/um/um_timeseries.py -i $gfile -o $newlist[$i].nc
   endif
   @ i++
@@ -181,7 +191,7 @@ set i=1
 
 foreach jfile ( $pjlist )
   if (! -e $newlist[$i].nc) then
-     ~$usr/umutils/conv2nc.tcl -i $jfile -o $newlist[$i].nc
+     $hdr/$usr/umutils/conv2nc.tcl -i $jfile -o $newlist[$i].nc
   endif
   @ i++
 end

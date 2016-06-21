@@ -1,7 +1,7 @@
 #!/bin/csh
 
 # Raijin
-# This script moves data from save directory back to cherax
+# This script moves data from save directory back to ruby
 
 #####################################################################
 #####################################################################
@@ -10,7 +10,11 @@ set saveid = $NCI_ID
 #set saveid = lxs599
 set SAVEHOST = raijin.nci.org.au
 #set SAVEHOST = raijin1.nci.org.au
-set LOCALSAVE = ~/access
+if ( $HOSTNAME == ruby ) then
+ set LOCALSAVE = ~/access
+else
+ set LOCALSAVE = /short/p66/$saveid/access
+endif
 set SAVEBASE = /short/p66/$saveid
 #set SAVEBASE = /short/p66/$saveid/save
 

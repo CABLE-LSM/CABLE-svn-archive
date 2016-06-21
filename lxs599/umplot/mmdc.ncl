@@ -10,8 +10,10 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+hdir      = systemfunc("echo $hdir")
 usr      = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
+tstep    = stringtoint(systemfunc("echo $TSTEP"))
 filDir   = systemfunc("echo $PWD")
 ;filDir   = systemfunc("echo $DIRW")
 jpg     = systemfunc("echo $CHFMT")
@@ -21,9 +23,9 @@ else
 jpeg = False
 end if
 
-home     = "~"+usr+"/"
+home     = hdir+"/"+usr+"/"
 
-system("dmget " + filDir + "/mmdc_*_roll_"+numYr+"yrs.nc" )
+;system("dmget " + filDir + "/mmdc_*_roll_"+numYr+"yrs.nc" )
 
 ;==============================================================================
 
@@ -32,13 +34,33 @@ fils2 = systemfunc("ls "+filDir+"/mmdc_*_roll_"+numYr+"yrs.nc")
 ;print(dimsizes(fils2))
 f2    = addfiles(fils2,"r")
 ListSetType(f2,"join")
+if (isfilevar(f2[0],"hfss")) then
 msh   = f2[:]->hfss
+else
+msh   = f2[:]->sh
+end if
+if (isfilevar(f2[0],"hfls")) then
 mlh   = f2[:]->hfls
+else
+mlh   = f2[:]->lh
+end if
+if (isfilevar(f2[0],"field3333")) then
 mrad  = f2[:]->field3333
+else
+mrad  = f2[:]->field202
+end if
+if (isfilevar(f2[0],"field5226")) then
 mpr   = f2[:]->field5226
+else
+mpr   = f2[:]->tot_precip
+end if
+if (isfilevar(f2[0],"tas")) then
 mtmp  = f2[:]->tas
+else
+mtmp  = f2[:]->temp
+end if
 
-mpr       = mpr*48
+mpr       = mpr*tstep
 mpr@units = "mm/day"
 
 ;==============================================================================
@@ -74,7 +96,7 @@ mon      = (/0,6/)
 ;Plot==============================================================================
 
 print(" ")
-y = fspan(0,23.5,48)
+y = fspan(0,23.5,tstep)
 
 do j=0,1,1
 do i=0,dimsizes(stations)-1,1

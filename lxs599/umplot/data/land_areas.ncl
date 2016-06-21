@@ -3,7 +3,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 begin
 
 ln48 = addfile("/home/cmar/ste69f/umplot/data/landfrac_n48.nc","r")
-lv2  = addfile("/home/cmar/ste69f/umplot/data/landfrac_v2.nc","r")
+lv2  = addfile("/home/cmar/ste69f/umplot/data/landfrac_N96.nc","r")
 lv1  = addfile("/home/cmar/ste69f/umplot/data/landfrac_ACCESS_N96.nc","r")
 
 lsm1 = ln48->lsm

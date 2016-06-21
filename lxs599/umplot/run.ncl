@@ -2,8 +2,9 @@
 ; Lauren Stevens 21 April 2011
 ; ==========================================================================
 
+hdir  = systemfunc("echo $hdir")
 usr  = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/variables.ncl")
+loadscript(hdir+"/"+usr+"/umplot/variables.ncl")
 
 begin
 
@@ -21,12 +22,6 @@ begin
   ; jpeg:logical)      ; Converts all files to jpeg for PowerPoint
 
   ; BDIR or ODIR: Comparison Run
-  ;Cab9tn48   = "/home/cmar/kow014/access/xaank_run244"         ; N48
-  ;Cab17tn96  = "/home/cmar/kow014/access/xaanv_run32"          ; N96
-  ;;Mos9tn48   = "/home/cmar/ste69f/access/xafqb_n48_m_20yrs"    ; N48
-  ;Mos9tn48   = "/home/cmar/ste69f/access/xaiya_n48_m_20yrs"    ; N48
-  ;Mos9tn96   = "/home/cmar/ste69f/access/xagpb_n96_m_20yrs"    ; N96
-  ;Mos9tn96v2 = "/home/cmar/ste69f/access/xaiyd_n96_m_20yrs"    ; N96 v2 mask
 
   ;usr  = systemfunc("echo $USERID")
   dir  = systemfunc("echo $DIR")
@@ -52,7 +47,7 @@ begin
   end if
 
   if(.not.split)then
-  system("~"+usr+"/umplot/dir.sh")
+  system(hdir+"/"+usr+"/umplot/dir.sh")
   end if
 
   lmod  = systemfunc("echo $MODEL")

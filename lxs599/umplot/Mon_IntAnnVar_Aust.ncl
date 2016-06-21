@@ -15,6 +15,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 
 begin
 
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
 cabDir = systemfunc("echo $CABLE")
 mosDir = systemfunc("echo $MOSES")
@@ -24,6 +25,7 @@ lcable = systemfunc("echo $MODEL")
 vMask  = systemfunc("echo $MASK")
 split  = systemfunc("echo $SPLIT")
 tname  =  systemfunc("echo $tname")
+tstep  =  systemfunc("echo $TSTEP")
 if (split.eq."y") then
  blck  = True
  blk   = systemfunc("echo $BLOCK")
@@ -42,30 +44,33 @@ end if
 ; cable = False
 ;end if
 
-ObsDir = "~"+usr+"/umplot/obs/"
-LsmDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+LsmDir = hdir+"/"+usr+"/umplot/data/"
 
 if (isfilepresent(cabDir+"/Mmonthly_means_"+numYr+"yrs.nc") .and. \
     isfilepresent(mosDir+"/Mmonthly_means_"+numYr+"yrs.nc")) then
 
-system("dmget "+mosDir+"/Mmonthly_means_"+numYr+"yrs.nc")
+;system("dmget "+mosDir+"/Mmonthly_means_"+numYr+"yrs.nc")
 moses_file = addfile(mosDir+"/Mmonthly_means_"+numYr+"yrs.nc","r")
-system("dmget "+cabDir+"/Mmonthly_means_"+numYr+"yrs.nc")
+;system("dmget "+cabDir+"/Mmonthly_means_"+numYr+"yrs.nc")
 cable_file = addfile(cabDir+"/Mmonthly_means_"+numYr+"yrs.nc","r")
 tscrn_obs  = addfile(ObsDir+"ERAi_monavg_t2m.nc","r")
 pr_obs     = addfile(ObsDir+"ERA_INT_pr_8908.nc","r")
 era_mask   = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 if (resol.eq.48) then
- lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
-else
- if (vMask.eq.2) then
-  lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
- else
-  lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
- end if
+ lsm_file   = addfile(LsmDir+"LSM_UMn"+resol+".nc","r")
 end if
-area_file = addfile(LsmDir+"areacella.nc","r")
+if (resol.eq.96) then
+ if (vMask.eq.2) then
+  lsm_file   = addfile(LsmDir+"mask_accessV2_n"+resol+".nc","r")
+ else
+  lsm_file   = addfile(LsmDir+"mask_accessV1_n"+resol+".nc","r")
+ end if
+else
+  lsm_file   = addfile(LsmDir+"mask_access_N"+resol+".nc","r")
+end if
+area_file = addfile(LsmDir+"areacella_N"+resol+".nc","r")
 
 ; Variables ------------------------------------------------------------------
 
@@ -137,12 +142,12 @@ if (blck) then
 end if
 
 if (isfilevar(moses_file,"field77")) then
- prM1            = prM1*48
+ prM1            = prM1*tstep
 else
  prM1            = prM1*24*60*60
 end if
 if (isfilevar(cable_file,"field77")) then
- prC1            = prC1*48
+ prC1            = prC1*tstep
 else
  prC1            = prC1*24*60*60
 end if

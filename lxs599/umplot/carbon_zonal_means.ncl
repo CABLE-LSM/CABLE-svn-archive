@@ -12,10 +12,12 @@ begin
 var_name  = (/"gpp","npp","presp","sresp"/)
 ;var_field = (/"gpp","npp","ra","rh"/)
 var_field = (/"field1388","field1389","field1390","field1523"/)
+var_field2= (/"gpp","npp","ra","rh"/)
 ; note lresp has lat,lon,13,time 
 ; co2ppm has 38 levels
 ; co2atmos has missing values ?
 
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
 numYr    = systemfunc("echo $YR")
 filDir   = systemfunc("echo $PWD")
@@ -29,7 +31,7 @@ else
 jpeg = False
 end if
 
-Dir  = "~"+usr+"/umplot/"
+Dir  = hdir+"/"+usr+"/umplot/"
 
 print("")
 print("Calculating Zonal Means for Carbon Fields")
@@ -43,7 +45,11 @@ if (isfilepresent(filDir+"/mm."+var_name(m)+"_"+numYr+"yrs.nc")) then
    if (m.eq.1.and.isfilevar(filin,"field1389_1")) then
     var_field(1) = "field1389_1"
    end if
+   if (isfilevar(filin,""+var_field(m)+"")) then
    soil_d = filin->$var_field(m)$
+   else
+   soil_d = filin->$var_field2(m)$
+   end if
 
 if (var_name(m).eq."gpp") then
    filobs = addfile(Dir+"obs/GPP_1982-2008.nc","r")
@@ -68,23 +74,29 @@ end if
 
 ; load land fractions for each grid cell
    if (resol.eq.48) then
-   ; Find n48 landfrac
-   fland   = addfile(Dir+"data/landfrac_n48.nc","r")
-   else ; n96
-   if (vMask.eq.2) then
-   fland   = addfile(Dir+"data/landfrac_v2.nc","r")
-   else ; v1 mask
-   fland   = addfile(Dir+"data/landfrac_ACCESS_N96.nc","r")
+    fland   = addfile(Dir+"data/landfrac_n"+resol+".nc","r")
    end if
+   if (resol.eq.96) then
+    if (vMask.eq.2) then
+     fland   = addfile(Dir+"data/landfrac_N"+resol+".nc","r")
+    else ; v1 mask
+     fland   = addfile(Dir+"data/landfrac_ACCESS_N"+resol+".nc","r")
+    end if
+   else 
+     fland   = addfile(Dir+"data/landfrac_N"+resol+".nc","r")
    end if
+   if (isfilevar(fland,"lsm")) then
    lfrac = fland->lsm
+   else
+   lfrac = fland->field36
+   end if
    land_frac = where(lfrac.eq.0,lfrac@_FillValue,lfrac)
    land_frac@_FillValue = lfrac@_FillValue
 
 ; load area for each grid cell
 ;   ;garea     = addfile(Dir+"data/grid_area.nc","r") ; Tilo's calc grid_area
 ;   ;grid_area = garea->grid_area
-;   garea     = addfile(Dir+"data/areacella_fx_ACCESS1-0_historical_r0i0p0.nc","r")
+;   garea     = addfile(Dir+"data/areacella_N96.nc","r")
 ;   grid_area = garea->areacella
 
    

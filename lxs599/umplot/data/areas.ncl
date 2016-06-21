@@ -4,8 +4,8 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 begin
 
 fin   = addfile("/home/cmar/ste69f/access/xakfz_5yrs_50kSnow/seasonal_means_5yrs.nc","r")
-ain   = addfile("/home/cmar/ste69f/umplot/data/areacella.nc","r")
-lin   = addfile("/home/cmar/ste69f/umplot/data/landfrac_v2.nc","r")
+ain   = addfile("/home/cmar/ste69f/umplot/data/areacella_N96.nc","r")
+lin   = addfile("/home/cmar/ste69f/umplot/data/landfrac_N96.nc","r")
 prec1 = fin->precip
 area  = ain->areacella
 lfr   = lin->lsm

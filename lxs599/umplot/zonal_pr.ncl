@@ -3,20 +3,24 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/regrid.ncl")
-loadscript("~"+usr+"/umplot/wgt_func.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/wgt_func.ncl")
 ;----------------------------------------------------------------
 
 begin
 
+hdir  = systemfunc("echo $hdir") 
 numYr = systemfunc("echo $YR") 
 ;wDir  = systemfunc("echo $PWD")
 mDir  = systemfunc("echo $MOSES")
 cDir  = systemfunc("echo $CABLE")
-tDir  = "~ste69f/access/access13/amip" ;systemfunc("echo $CABLE3")
-;tDir  = "~"+usr+"/access/access13/amip" ;systemfunc("echo $CABLE3")
+tDir  = hdir+"/"+usr+"/umplot/data"
+;tDir  = hdir+"/ste69f/access/access13/amip" ;systemfunc("echo $CABLE3")
+;tDir  = hdir+"/"+usr+"/access/access13/amip" ;systemfunc("echo $CABLE3")
 cname = systemfunc("echo $CNM")
+resol = systemfunc("echo $RES")
 
 ;mland = False
 ;mland = True
@@ -34,17 +38,22 @@ if ( cname.eq. "PI" ) then
  a14 = True
 end if
 
-PltDir    = "~"+usr+"/umplot/data/"
-ObsDir    = "~"+usr+"/umplot/obs/"
+PltDir    = hdir+"/"+usr+"/umplot/data/"
+ObsDir    = hdir+"/"+usr+"/umplot/obs/"
 
 fmos  = addfile(mDir+"/monthly_means_"+numYr+"yrs.nc","r")
 fcab  = addfile(cDir+"/monthly_means_"+numYr+"yrs.nc","r")
 fcab3 = addfile(tDir+"/monthly_means_27yrs.nc","r")
 ;fcab3 = addfile("/home/cmar/ste69f/access/access13/"+rtype+"/yearly_means_27yrs.nc","r")
 fobs  = addfile(ObsDir+"ERAi_precip.nc","r")
-lsm_file  = addfile(PltDir+"mask_accessV2_n96.nc","r")
-frac_file = addfile(PltDir+"landfrac_v2.nc","r")
-area_file = addfile(PltDir+"areacella_fx_ACCESS1-0_historical_r0i0p0.nc","r")
+if (resol .eq. 96) then
+lsm_file  = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")
+frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
+else
+lsm_file  = addfile(PltDir+"mask_access_N"+resol+".nc","r")
+frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
+end if
+area_file = addfile(PltDir+"areacella_N"+resol+".nc","r")
 era_mask  = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 if (isfilevar(fcab,"precip")) then

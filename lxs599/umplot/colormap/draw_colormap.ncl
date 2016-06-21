@@ -8,7 +8,8 @@ wks = gsn_open_wks("ps","cmap")
 
 ;cmapr  = (/"white","black","cornsilk3","skyblue","dodgerblue","darkolivegreen2","chartreuse3","lightgoldenrod1","gold","orange","darkorange2","red","firebrick"/)
 
-cmap = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap = RGBtoCmap("/g/data1/p66/lxs599/umplot/colormap/BlueOrangeRed.rgb")
+;cmap = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
 ;print(cmap)
 
 ;gsn_define_colormap(wks,cmapr)

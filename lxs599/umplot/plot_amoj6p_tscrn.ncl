@@ -6,8 +6,9 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/shea_util.ncl"
+hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/regrid.ncl")
+loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 ; =================================================================
 
 begin
@@ -18,12 +19,13 @@ mDir  = systemfunc("echo $MOSES")
 tname = systemfunc("echo $tname")
 cname = systemfunc("echo $CNM")
 jpg   = systemfunc("echo $CHFMT")
+resol = systemfunc("echo $RES")
 if(jpg.eq."y") then
  jpeg = True
 else
  jpeg = False
 end if
-ObsDir = "~"+usr+"/umplot/obs/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
 
 moses  = addfile(mDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable  = addfile(cDir+"/seasonal_means_"+numYr+"yrs.nc","r")
@@ -88,7 +90,7 @@ tas_o@long_name    = "ERA Interim Temperature at 2m"
 tas_o@units        = "~S~o~N~K"
 
 era_t              = regrid_bilin(tas_o,tas_m)
-era_t@long_name    = "ERAi Tscrn regridded to UM N96"
+era_t@long_name    = "ERAi Tscrn regridded to UM N"+resol+""
 era_t@units        = "~S~o~N~K"
 
 if (dimm.eq.4) then
@@ -137,7 +139,7 @@ wks = gsn_open_wks(pltType,pltName)
 
 ; Color Map ===========================================================
 
-cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
+cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 
 ; if (varName.eq."bias_tscrn") then
   gsn_define_colormap(wks,cmap_bT)
@@ -325,7 +327,8 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   res@gsnLeftString = "A1.3: Tscrn (K)"
   ;res@gsnLeftString = "A1.3 "+rtype
   else
-  res@gsnLeftString = "A1.0: Tscrn (K)"
+  res@gsnLeftString = "UM8.5+JULES: Tscrn (K)"
+  ;res@gsnLeftString = "A1.0: Tscrn (K)"
   ;res@gsnLeftString = "A1.0 "+rtype
   end if
   plot(0) = gsn_csm_contour_map(wks,bias_tasm(0,{latS:latN},{lonL:lonR}),res)
@@ -338,7 +341,8 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   res@gsnLeftString = "A1.4: Tscrn (K)"
   ;res@gsnLeftString = "A1.4 "+rtype
   else
-  res@gsnLeftString = "A1.1: Tscrn (K)"
+  res@gsnLeftString = "UM8.5+CABLE: Tscrn (K)"
+  ;res@gsnLeftString = "A1.1: Tscrn (K)"
   ;res@gsnLeftString = "A1.1 "+rtype
   end if
   res@gsnRightString = "DJF"
@@ -354,7 +358,8 @@ cmap_bT = RGBtoCmap("/home/cmar/ste69f/umplot/colormap/BlueOrangeRed.rgb")
   res@gsnLeftString = "A1.4 - A1.3: Tscrn (K)"
   ;res@gsnLeftString = "A1.4 - A1.3 "+rtype
   else
-  res@gsnLeftString = "A1.1 - A1.0: Tscrn (K)"
+  res@gsnLeftString = "UM8.5: CABLE-JULES: Tscrn (K)"
+  ;res@gsnLeftString = "A1.1 - A1.0: Tscrn (K)"
   ;res@gsnLeftString = "A1.1 - A1.0 "+rtype
   end if
   res@gsnRightString = "DJF"

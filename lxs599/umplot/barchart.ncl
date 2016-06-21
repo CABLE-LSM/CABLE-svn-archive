@@ -7,8 +7,9 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_code.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
+hdir    = systemfunc("echo $hdir")
 usr    = systemfunc("echo $USERID")
-loadscript("~"+usr+"/umplot/plot_bar.ncl")
+loadscript(hdir+"/"+usr+"/umplot/plot_bar.ncl")
 
 ; Set-Up ----------------------------------------------------------
 
@@ -34,8 +35,8 @@ tname =  systemfunc("echo $tname")
 ; cable = False
 ;end if
 
-ObsDir = "~"+usr+"/umplot/obs/"
-LsmDir = "~"+usr+"/umplot/data/"
+ObsDir = hdir+"/"+usr+"/umplot/obs/"
+LsmDir = hdir+"/"+usr+"/umplot/data/"
 
 moses_file = addfile(mosDir+"/seasonal_means_"+numYr+"yrs.nc","r")
 cable_file = addfile(cabDir+"/seasonal_means_"+numYr+"yrs.nc","r")
@@ -49,22 +50,27 @@ tscrn_obs  = addfile(ObsDir+"ERAi_tp2m.nc","r")
 era_mask   = addfile(ObsDir+"ERAi_LSM_invertlat.nc","r")
 
 if (resol.eq.48) then
- lsm_file   = addfile(LsmDir+"LSM_UMn48.nc","r")
- orog_file  = addfile(LsmDir+"orography_UMn48.nc","r")
- lf_file   = addfile(LsmDir+"landfrac_n48.nc","r")
-else
+ lsm_file   = addfile(LsmDir+"LSM_UMn"+resol+".nc","r")
+ orog_file  = addfile(LsmDir+"orography_UMn"+resol+".nc","r")
+ lf_file   = addfile(LsmDir+"landfrac_n"+resol+".nc","r")
+end if
+if (resol.eq.96) then
  if (vMask.eq.2) then
-  lsm_file   = addfile(LsmDir+"mask_accessV2_n96.nc","r")
+  lsm_file   = addfile(LsmDir+"mask_accessV2_n"+resol+".nc","r")
   orog_file  = addfile(LsmDir+"qrparm.orog_hg2.nc","r")
   ;orog_file  = addfile(LsmDir+"qrparm.orog_accessV2.nc","r")
-  lf_file   = addfile(LsmDir+"landfrac_v2.nc","r")
+  lf_file   = addfile(LsmDir+"landfrac_N"+resol+".nc","r")
  else
-  lsm_file   = addfile(LsmDir+"mask_accessV1_n96.nc","r")
+  lsm_file   = addfile(LsmDir+"mask_accessV1_n"+resol+".nc","r")
   orog_file  = addfile(LsmDir+"qrparm.orog_v1.nc","r")
-  lf_file   = addfile(LsmDir+"landfrac_ACCESS_N96.nc","r")
+  lf_file   = addfile(LsmDir+"landfrac_ACCESS_N"+resol+".nc","r")
  end if
+else
+  lsm_file   = addfile(LsmDir+"mask_access_N"+resol+".nc","r")
+  orog_file  = addfile(LsmDir+"qrparm.orog_n"+resol+".nc","r")
+  lf_file   = addfile(LsmDir+"landfrac_N"+resol+".nc","r")
 end if
-area_file = addfile(LsmDir+"areacella.nc","r")
+area_file = addfile(LsmDir+"areacella_N"+resol+".nc","r")
 
 ; Variables -------------------------------------------------------
 

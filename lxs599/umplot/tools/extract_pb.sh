@@ -2,11 +2,12 @@
 # Lauren 23 Apr 13
 
 set a=a
+@ nom = ($YR * 12) # number of files for no. of years and months
 set rid=$RUNID
 set pfrom=( $Ptemp1 ) # pe
 set pto=( $Ptemps )   # pb or pt
 
-set plist=`ls $rid$a.$pfrom*.nc`
+set plist=`ls $rid$a.$pfrom*.nc | head -$nom`
 
 if ( $pfrom != $pto ) then
 
