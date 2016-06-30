@@ -302,7 +302,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
     ENDWHERE
 
     !! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
-    WHERE(casaflux%Cnpp<0.0)
+    WHERE(casaflux%Cnpp<0.0.and.sum(casapool%cplant,2)>0.0)
  !      casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
  !      casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
  !      casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
@@ -1925,9 +1925,9 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 ! comment out the revision on cnpp and crgplant due to changes in labile pool
    ! add change in labile carbon pool to NPP 
-!   casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
+   casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
    ! add the labile C loss to growth respiration
-!   casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
+   casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
 !   npt=59894
 
 !   write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &

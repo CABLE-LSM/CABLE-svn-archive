@@ -374,6 +374,8 @@ CONTAINS
       inPFrac(:, :, 1) = rdummy(:, :)
       DEALLOCATE( rdummy )
 
+      inLand(:,:) = 1.0   !temporary fixer by BP on 13 May 2016
+
       ok = NF90_INQ_VARID(ncid, 'isoil', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
       ok = NF90_GET_VAR(ncid, varID, inSoil)
@@ -484,6 +486,7 @@ CONTAINS
       inNfix  = inNfix  / 365.0
       inPwea  = inPwea  / 365.0
       inPdust = inPdust / 365.0
+
 
 !    IF (ACCESS_run) THEN
 !      ! casaCNP pool sizes
@@ -1365,6 +1368,7 @@ CONTAINS
     INTEGER :: ee, hh
 
     PRINT *, 'Initializing CASA-CNP variables with default parameter values.'
+
     DO ee=1, mland ! over all land grid points
       casamet%isorder(landpt(ee)%cstart:landpt(ee)%cend) =                     &
                                        inSorder(landpt(ee)%ilon,landpt(ee)%ilat)

@@ -160,7 +160,7 @@ PROGRAM cable_offline_driver
 
    ! added variable by yp wang 7-nov-2012
    ! BP had values of mloop read in from namelist file (Jun 2013)
-   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+   INTEGER :: mloop = 20       ! default = 5, to be overwritten by namelist
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &

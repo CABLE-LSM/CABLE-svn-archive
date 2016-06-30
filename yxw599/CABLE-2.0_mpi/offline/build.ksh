@@ -10,7 +10,7 @@ known_hosts()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   module add netcdf/3.6.3 openmpi/1.6.5
+   module add netcdf openmpi
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'

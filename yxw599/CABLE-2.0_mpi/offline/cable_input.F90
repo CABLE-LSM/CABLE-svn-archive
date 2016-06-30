@@ -2604,7 +2604,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
     ! Those variables found in the met file will again overwrite existing ones.
 
     CALL get_default_params(logn,vegparmnew)
-
     CALL allocate_cable_vars(air,bgc,canopy,met,bal,rad,rough,soil,ssnow, &
             sum_flux,veg,mp)
     WRITE(logn,*) ' CABLE variables allocated with ', mp, ' patch(es).'
@@ -2624,6 +2623,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
 !      IF (globalMetfile%l_access .OR. globalMetfile%l_ncar) &
          CALL init_cnp_pools(veg, casapool, casabal)
     ENDIF
+
+
 
 ! removed get_default_inits and get_default_lai as they are already done
 ! in write_default_params

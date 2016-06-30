@@ -134,7 +134,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    REAL  :: rt_min
 
-   INTEGER :: j
+   INTEGER :: j,jj
    
    INTEGER, SAVE :: call_number =0
    
@@ -595,12 +595,18 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
                 + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
 
+!   jj=35951
+!   write(67,671) jj,veg%iveg(jj),rad%latitude(jj),rad%longitude(jj),ssnow%tss(jj),met%fsd(jj,:),&
+!                 canopy%vlaiw(jj),canopy%tv(jj),canopy%frday(jj),canopy%fpn(jj), &
+!                 fwsoil(jj),veg%vcmax(jj),rad%qcan(jj,:,1)
+
    DEALLOCATE(cansat,gbhu)
    DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
    DEALLOCATE(ecy, hcy, rny)
    DEALLOCATE(gbhf, csx)
    DEALLOCATE(ghwet)
 
+671 format('photosynthesis: ',i6,2x,i3,2x,50(f10.5,2x))
 CONTAINS
 
 ! ------------------------------------------------------------------------------

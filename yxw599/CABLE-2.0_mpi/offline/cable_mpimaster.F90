@@ -241,7 +241,7 @@ SUBROUTINE mpidrv_master (comm)
 
    ! added variable by yp wang 7-nov-2012
    ! BP had values of mloop read in from namelist file (Jun 2013)
-   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+   INTEGER :: mloop = 20       ! default = 5, to be overwritten by namelist
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -375,6 +375,7 @@ SUBROUTINE mpidrv_master (comm)
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
+   
 
    spinConv = .FALSE. ! initialise spinup convergence variable
    if(.not.spinup)  spinConv=.true.
