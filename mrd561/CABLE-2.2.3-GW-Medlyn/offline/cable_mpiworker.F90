@@ -1975,7 +1975,6 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r2len
 
 
-
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
      WRITE (*,*) 'worker ',rank,' invalid number of param_t fields',bidx,', fix it!'
