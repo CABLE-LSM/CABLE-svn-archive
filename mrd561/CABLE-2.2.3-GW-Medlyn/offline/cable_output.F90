@@ -753,7 +753,7 @@ CONTAINS
     END IF         
     
     IF(output%soil .OR. output%Qrecharge) THEN
-       CALL define_ovar(ncid_out, ovid%SatFrac, 'Qrecharge', 'mm/s',      &
+       CALL define_ovar(ncid_out, ovid%Qrecharge, 'Qrecharge', 'mm/s',      &
                         'Recharge to or from Aquifer', patchout%Qrecharge,     &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Qrecharge(mp))
