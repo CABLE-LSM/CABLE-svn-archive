@@ -1074,7 +1074,6 @@ CONTAINS
     canopy%fev    = 0.0  ! latent heat flux from vegetation (W/m2)
     canopy%fes    = 0.0  ! latent heat flux from soil (W/m2)
     canopy%fhs    = 0.0  ! sensible heat flux from soil (W/m2)
-    canopy%fwsoil = 1._r_2  !water limit to transpiration
 
     ! *******************************************************************
     ! parameters that are not spatially dependent
@@ -1473,9 +1472,6 @@ CONTAINS
       ssnow%wbice(:, :) = 0.0
     END WHERE
 
-
-    !Note this could depend on veg type but is a constant for now
-    veg%li_katul_skew_param = 0.03_r_2
 
   END SUBROUTINE write_default_params
   !=============================================================================

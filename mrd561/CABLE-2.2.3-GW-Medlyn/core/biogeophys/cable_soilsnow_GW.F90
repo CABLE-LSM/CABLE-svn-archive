@@ -1669,7 +1669,7 @@ END SUBROUTINE remove_trans
 
     k = ms
        do i=1,mp
-          ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - qrecharge(i)*dels/dzmm(k)
+          ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - ssnow%Qrecharge(i)*dels/dzmm(k)
        end do
     do i=1,mp
        ssnow%GWwb(i)    = ssnow%GWwb(i)  +   (ssnow%Qrecharge(i)-qhlev(i,ms+1))*dels/GWdzmm(i)
