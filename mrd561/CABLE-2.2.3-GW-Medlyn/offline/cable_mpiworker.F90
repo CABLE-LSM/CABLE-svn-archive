@@ -4909,6 +4909,10 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   blocks(bidx) = r2len
 
   ! MPI: sanity check
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%Qrecharge(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
   IF (bidx /= ntyp) THEN
      WRITE (*,*) 'worker ',rank,': invalid outtype nmat, nvec or n3d constant, fix it!'
      CALL MPI_Abort (comm, 1, ierr)

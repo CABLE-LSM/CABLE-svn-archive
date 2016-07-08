@@ -1639,7 +1639,8 @@ CONTAINS
                                        ! [W/m/K]
     END IF
 
-    if (gw_params%MaxSatFraction .lt. 0.0) soil%slope(:) = 0.01
+    !if running site level use constant slope
+    if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mp .eq. 1)) soil%slope(:) = 0.01
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2

@@ -1513,7 +1513,6 @@ END SUBROUTINE remove_trans
     REAL(r_2)                           :: xsi
     REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
     REAL(r_2), DIMENSION(mp)            :: sm_tot,drainmod  !total column soil water available for drainage
-    REAL(r_2), DIMENSION(mp)            :: qrecharge
     INTEGER, DIMENSION(mp)              :: idlev
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
@@ -1654,9 +1653,9 @@ END SUBROUTINE remove_trans
 
     do i=1,mp
        if (ssnow%wtd(i) .ge. sum(dzmm,dim=1)) then
-          qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - ((zaq(i) - zmm(ms))))/((ssnow%GWzq(i)-ssnow%zq(i,ms)))
+          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - ((zaq(i) - zmm(ms))))/((ssnow%GWzq(i)-ssnow%zq(i,ms)))
        else
-          qrecharge(i) = 0._r_2
+          ssnow%Qrecharge(i) = 0._r_2
        end if
     end do
 
@@ -1673,7 +1672,7 @@ END SUBROUTINE remove_trans
           ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - qrecharge(i)*dels/dzmm(k)
        end do
     do i=1,mp
-       ssnow%GWwb(i)    = ssnow%GWwb(i)  +   (qrecharge(i)-qhlev(i,ms+1))*dels/GWdzmm(i)
+       ssnow%GWwb(i)    = ssnow%GWwb(i)  +   (ssnow%Qrecharge(i)-qhlev(i,ms+1))*dels/GWdzmm(i)
     end do
 
     !determine the available pore space

@@ -276,7 +276,8 @@ MODULE cable_IO_vars_module
          GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
          EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
          Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
-         SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)
+         SatFrac=.FALSE.,      & ! Saturated Fraction of Gridcell (tile)
+         Qrecharge=.FALSE.,   &  !recharge to /from auqifer
 
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985

@@ -58,7 +58,7 @@ MODULE cable_mpicommon
   !GWwb, wtd                                   ---> +2 new variables
            !in master.  in worker
   !added topo_ind, slope,slope_std,elev,elev_std
-  INTEGER, PARAMETER :: nparam =309! 302! 301!297 !283
+  INTEGER, PARAMETER :: nparam =310! 302! 301!297 !283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -116,8 +116,8 @@ MODULE cable_mpicommon
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
 
    !mrd add GWwb, wtd, GWwbeq, GWzq, GWsmp -->+5
-   !mrd satfrac from hydrology
-  INTEGER, PARAMETER :: nvec = 167! 166
+   !mrd satfrac from hydrology, Qrecharge
+  INTEGER, PARAMETER :: nvec = 168! 166
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

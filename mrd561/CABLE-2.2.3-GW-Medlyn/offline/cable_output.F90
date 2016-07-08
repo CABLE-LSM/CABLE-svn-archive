@@ -70,7 +70,7 @@ MODULE cable_output_module
                     !MD
                     WatTable,GWMoist,SoilMatPot,EqSoilMatPot,EqSoilMoist,      &
                     EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,   &
-                    wiltp,SoilIce,SatFrac,                                     &
+                    wiltp,SoilIce,SatFrac,Qrecharge,                           &
                     VISalbedo,NIRalbedo
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
@@ -182,6 +182,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:)   :: GWSoilMatPot    ! equilibrium soil matric potential of aquifer [mm3/mm3]     
     REAL(KIND=4), POINTER, DIMENSION(:)   :: Qinfl         !infiltration rate into first soil layer [mm/s] 
     REAL(KIND=4), POINTER, DIMENSION(:)   :: SatFrac         !Saturated Fraction of Grid Cell
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Qrecharge         !Saturated Fraction of Grid Cell
 
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: wiltp         !wilt pnt inc forg
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: fldcap        !field capcaicty adj for organic content
@@ -751,6 +752,14 @@ CONTAINS
        out%SatFrac = 0.0 ! initialise
     END IF         
     
+    IF(output%soil .OR. output%Qrecharge) THEN
+       CALL define_ovar(ncid_out, ovid%SatFrac, 'Qrecharge', 'mm/s',      &
+                        'Recharge to or from Aquifer', patchout%Qrecharge,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qrecharge(mp))
+       out%Qrecharge = 0.0 ! initialise
+    END IF         
+
     IF(output%soil .OR. output%Qinfl) THEN
        CALL define_ovar(ncid_out, ovid%Qinfl, 'Qinfl', 'mm/s',      &
                         'infiltration rate into first soil layer', patchout%Qinfl,     &
@@ -2239,16 +2248,26 @@ CONTAINS
        out%SatFrac = out%SatFrac + REAL(ssnow%satfrac, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-         ! write(*,*) 'maxval satfrac ',maxval(out%SatFrac(:))
-         ! write(*,*) 'minval satfrac ',minval(out%SatFrac)
-         ! write(*,*) 'avg satfrac ',sum(out%SatFrac)/real(size(out%SatFrac,dim=1))
-
           out%SatFrac = out%SatFrac / REAL(output%interval, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%SatFrac, 'SatFrac', &
                out%SatFrac, ranges%SatFrac, patchout%SatFrac, 'default', met)
           ! Reset temporary output variable:
           out%SatFrac = 0.0
+       END IF
+    END IF      
+    ! recharge rate
+    IF(output%soil .OR. output%Qrecharge) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qrecharge = out%Qrecharge + REAL(ssnow%Qrecharge, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Qrecharge = out%Qrecharge / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qrecharge, 'Qrecharge', &
+               out%Qrecharge, ranges%Qrecharge, patchout%Qrecharge, 'default', met)
+          ! Reset temporary output variable:
+          out%Qrecharge = 0.0
        END IF
     END IF      
      ! SoilIce: av.layer soil moisture [kg/m^2]
