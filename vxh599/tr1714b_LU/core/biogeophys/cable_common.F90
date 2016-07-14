@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -23,43 +23,43 @@
 ! ==============================================================================
 
 MODULE cable_common_module
-  IMPLICIT NONE 
+  IMPLICIT NONE
 
   !---allows reference to "gl"obal timestep in run (from atm_step)
-  !---total number of timesteps, and processing node 
+  !---total number of timesteps, and processing node
   INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
   INTEGER, SAVE :: CurYear  ! current year of multiannual run
 
   ! user switches turned on/off by the user thru namelists
 
-  ! trunk modifications protected by these switches 
+  ! trunk modifications protected by these switches
   TYPE hide_switches
-     LOGICAL ::                                                               & 
-          ! L.Stevens - Test Switches 
-          L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket? 
+     LOGICAL ::                                                               &
+          ! L.Stevens - Test Switches
+          L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket?
           L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
           L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
           Ticket46 = .FALSE.,              & !
           !jhan: default should be FALSE, bu set up nml etc
-          Ticket49Bug1 = .false.,           & ! 
-          Ticket49Bug2 = .false.,           & ! 
-          Ticket49Bug3 = .false.,           & ! 
-          Ticket49Bug4 = .false.,           & ! 
-          Ticket49Bug5 = .false.,           & ! 
-          Ticket49Bug6 = .false.              ! 
-     
+          Ticket49Bug1 = .false.,           & !
+          Ticket49Bug2 = .false.,           & !
+          Ticket49Bug3 = .false.,           & !
+          Ticket49Bug4 = .false.,           & !
+          Ticket49Bug5 = .false.,           & !
+          Ticket49Bug6 = .false.              !
+
   END TYPE hide_switches
-  
-  ! instantiate internal switches 
+
+  ! instantiate internal switches
   TYPE (hide_switches), SAVE :: hide
 
 
   ! set from environment variable $HOME
-  CHARACTER(LEN=200) ::                                                       & 
+  CHARACTER(LEN=200) ::                                                       &
        myhome
 
   ! switch to calc sil albedo using soil colour - Ticket #27
-  LOGICAL :: calcsoilalbedo = .FALSE. 
+  LOGICAL :: calcsoilalbedo = .FALSE.
   !---Lestevens Sept2012
   !---CASACNP switches and cycle index
   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
@@ -71,35 +71,37 @@ MODULE cable_common_module
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   END TYPE kbl_internal_switches
 
-  ! instantiate internal switches 
+  ! instantiate internal switches
   TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
   ! user switches turned on/off by the user thru namelists
   ! CABLE-2.0 user switches all in single namelist file cable.nml
-  ! clean these up for new namelist(s) format	
+  ! clean these up for new namelist(s) format
   TYPE kbl_user_switches
      !jhan: this is redundant now we all use filename%veg?
      CHARACTER(LEN=200) ::                                                    &
-          VEG_PARS_FILE  ! 
+          VEG_PARS_FILE  !
 
      CHARACTER(LEN=20) ::                                                     &
           FWSOIL_SWITCH, &     !
-          PHENOLOGY_SWITCH = 'MODIS'   ! alternative is 'climate' 
+          PHENOLOGY_SWITCH = 'MODIS'   ! alternative is 'climate'
     !--- LN ------------------------------------------[
 
-     CHARACTER(LEN=10):: RunIden = 'STANDARD'  !
-     CHARACTER(LEN=4) :: MetType = "NA" !
+     CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
+     CHARACTER(LEN=4)  :: MetType       = "NA" !
      CHARACTER(LEN=20) :: SOIL_STRUC !
-     CHARACTER(LEN=3)  :: POP_out = 'rst' ! POP output type ('epi' or 'rst')
-     CHARACTER(LEN=50) :: POP_rst = ' ' !
+     CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
+     CHARACTER(LEN=50) :: POP_rst       = ' ' !
      CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' !
 
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &
           CALL_Climate           = .FALSE., &
-          Climate_fromZero       = .FALSE.
-          
+          Climate_fromZero       = .FALSE., &
+          CASA_fromZero          = .FALSE., &
+          POPLUC                = .FALSE.
+
 
      INTEGER  :: &
           CASA_SPIN_STARTYEAR = 1950, &
@@ -114,8 +116,8 @@ MODULE cable_common_module
 
      CHARACTER(LEN=3) ::                                                      &
           SSNOW_POTEV,      & !
-          DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
-          LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
+          DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical)
+          LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical)
 
      ! Custom soil respiration - see Ticket #42
      CHARACTER(LEN=10) ::                                                     &
@@ -123,7 +125,7 @@ MODULE cable_common_module
           STRF_NAME      ! Soil Temp Respiration Function
 
      LOGICAL ::                                                               &
-          INITIALIZE_MAPPING    = .FALSE., & ! 
+          INITIALIZE_MAPPING    = .FALSE., & !
           CONSISTENCY_CHECK     = .FALSE., & !
           CASA_DUMP_READ        = .FALSE., & !
           CASA_DUMP_WRITE       = .FALSE., & !
@@ -133,16 +135,16 @@ MODULE cable_common_module
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
           L_NEW_RUNOFF_SPEED    = .FALSE., & !
           L_NEW_REDUCE_SOILEVP  = .FALSE., & !
-          
+
                                 ! Switch for customized soil respiration - see Ticket #42
           SRF = .FALSE., &
-     
+
           !! vh_js !!
          litter = .FALSE.
-     
+
   END TYPE kbl_user_switches
 
-  ! instantiate internal switches 
+  ! instantiate internal switches
   TYPE(kbl_user_switches), SAVE :: cable_user
 
   ! external files read/written by CABLE
@@ -210,20 +212,20 @@ MODULE cable_common_module
           rp20,       & !
           rpcoef,     & !
           rs20,       & !
-          wai,        & ! 
-          rootbeta,   & ! 
+          wai,        & !
+          rootbeta,   & !
           shelrb,     & !
-          vegcf,      & !  
+          vegcf,      & !
           frac4,      & !
           xalbnir,    & !
-          extkn,      & ! 
+          extkn,      & !
           tminvj,     & !
           tmaxvj,     & !
           vbeta,      &
           a1gs,       &
-          d0gs,       &  
-          alpha,      &  
-          convex,     &  
+          d0gs,       &
+          alpha,      &
+          convex,     &
           cfrd,       &
           gswmin,     &
           conkc0,     &
@@ -246,7 +248,7 @@ MODULE cable_common_module
 
   CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
        veg_desc,   & ! decriptions of veg type
-       soil_desc     ! decriptns of soil type 
+       soil_desc     ! decriptns of soil type
 
   TYPE(soilin_type), SAVE  :: soilin
   TYPE(vegin_type),  SAVE  :: vegin
@@ -264,19 +266,19 @@ CONTAINS
 
     ! Gets parameter values for each vegetation type and soil type.
 
-    USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, mstype, nrb 
+    USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, mstype, nrb
 
     INTEGER,INTENT(IN) :: logn     ! log file unit number
 
     CHARACTER(LEN=4), INTENT(INOUT), OPTIONAL :: classification
 
-    LOGICAL,INTENT(IN)      :: vegparmnew ! new format input file 
+    LOGICAL,INTENT(IN)      :: vegparmnew ! new format input file
 
-    CHARACTER(LEN=80) :: comments 
-    CHARACTER(LEN=10) :: vegtypetmp                   
-    CHARACTER(LEN=25) :: vegnametmp                   
+    CHARACTER(LEN=80) :: comments
+    CHARACTER(LEN=10) :: vegtypetmp
+    CHARACTER(LEN=25) :: vegnametmp
 
-    REAL    :: notused                           
+    REAL    :: notused
     INTEGER :: ioerror ! input error integer
     INTEGER :: a, jveg ! do loop counter
 
@@ -285,7 +287,7 @@ CONTAINS
     !================= Read in vegetation type specifications: ============
     OPEN(40,FILE=filename%veg,STATUS='old',ACTION='READ',IOSTAT=ioerror)
 
-    IF(ioerror/=0) then 
+    IF(ioerror/=0) then
        STOP 'CABLE_log: Cannot open veg type definitions.'
     ENDIF
 
@@ -342,14 +344,14 @@ CONTAINS
     IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
 
        ! Read in parameter values for each vegetation type:
-       DO a = 1,mvtype 
+       DO a = 1,mvtype
 
           READ(40,*) jveg, vegtypetmp, vegnametmp
 
           IF( jveg .GT. mvtype )                                             &
                STOP 'jveg out of range in parameter file'
 
-          veg_desc(jveg) = vegnametmp 
+          veg_desc(jveg) = vegnametmp
 
           READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
                vegin%length(jveg), vegin%frac4(jveg)
@@ -369,17 +371,17 @@ CONTAINS
           READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
           ! rates not currently set to vary with veg type
           READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
-          READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
-          READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
+          READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg)
+          READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg)
        END DO
 
     ELSE
 
-       DO a = 1,mvtype 
+       DO a = 1,mvtype
           READ(40,'(8X,A70)') veg_desc(a) ! Read description of each veg type
        END DO
 
-       READ(40,*); READ(40,*) 
+       READ(40,*); READ(40,*)
        READ(40,*) vegin%canst1
        READ(40,*) vegin%width
        READ(40,*) vegin%length
@@ -404,24 +406,24 @@ CONTAINS
        READ(40,*) vegin%cplant(3,:)
        READ(40,*) vegin%csoil(1,:)
        READ(40,*) vegin%csoil(2,:)
-       READ(40,*) 
+       READ(40,*)
        READ(40,*) vegin%ratecp(:,1)
        READ(40,*) vegin%a1gs
-       READ(40,*) vegin%d0gs           
-       READ(40,*) vegin%alpha          
-       READ(40,*) vegin%convex         
-       READ(40,*) vegin%cfrd           
-       READ(40,*) vegin%gswmin         
-       READ(40,*) vegin%conkc0         
-       READ(40,*) vegin%conko0         
-       READ(40,*) vegin%ekc            
-       READ(40,*) vegin%eko            
+       READ(40,*) vegin%d0gs
+       READ(40,*) vegin%alpha
+       READ(40,*) vegin%convex
+       READ(40,*) vegin%cfrd
+       READ(40,*) vegin%gswmin
+       READ(40,*) vegin%conkc0
+       READ(40,*) vegin%conko0
+       READ(40,*) vegin%ekc
+       READ(40,*) vegin%eko
 
        ! Set ratecp to be the same for all veg types:
        vegin%ratecp(1,:)=vegin%ratecp(1,1)
        vegin%ratecp(2,:)=vegin%ratecp(2,1)
        vegin%ratecp(3,:)=vegin%ratecp(3,1)
-       READ(40,*) 
+       READ(40,*)
        READ(40,*) vegin%ratecs(:,1)
        vegin%ratecs(1,:)=vegin%ratecs(1,1)
        vegin%ratecs(2,:)=vegin%ratecs(2,1)
@@ -448,7 +450,7 @@ CONTAINS
     !================= Read in soil type specifications: ============
     OPEN(40,FILE=filename%soil,STATUS='old',ACTION='READ',IOSTAT=ioerror)
 
-    IF(ioerror/=0) then 
+    IF(ioerror/=0) then
        STOP 'CABLE_log: Cannot open soil type definitions.'
     ENDIF
 
@@ -462,11 +464,11 @@ CONTAINS
     ALLOCATE ( soilin%bch(mstype), soilin%hyds(mstype), soilin%sucs(mstype) )
     ALLOCATE ( soilin%rhosoil(mstype), soilin%css(mstype) )
 
-    DO a = 1,mstype 
+    DO a = 1,mstype
        READ(40,'(8X,A70)') soil_desc(a) ! Read description of each soil type
     END DO
 
-    READ(40,*); READ(40,*) 
+    READ(40,*); READ(40,*)
     READ(40,*) soilin%silt
     READ(40,*) soilin%clay
     READ(40,*) soilin%sand
@@ -504,7 +506,7 @@ CONTAINS
     ! or there could be interferences with other files!!!
     ! LN 05/2014
 
-    IMPLICIT NONE 
+    IMPLICIT NONE
 
     INTEGER,INTENT(OUT) :: IUNIT
     INTEGER :: i
@@ -535,7 +537,7 @@ CONTAINS
 
     IF ( IS_LEAPYEAR ( YYYY ) ) THEN
        LEAP_DAY = 1
-    ELSE 
+    ELSE
        LEAP_DAY = 0
     END IF
   END FUNCTION LEAP_DAY
@@ -608,7 +610,7 @@ CONTAINS
   SUBROUTINE LAND2XY( xdimsize, landgrid, x, y )
 
     ! Convert landgrid to x and y (indices for lat and lon) as
-    ! used in CABLE 
+    ! used in CABLE
     ! LN 08/2015
 
     IMPLICIT NONE
@@ -623,7 +625,7 @@ CONTAINS
   SUBROUTINE XY2LAND( xdimsize, x, y, landgrid )
 
     ! Convert x and y (indices for lat and lon) to landgrid
-    ! as used in CABLE 
+    ! as used in CABLE
     ! LN 08/2015
 
     IMPLICIT NONE
@@ -643,7 +645,7 @@ CONTAINS
 #endif
     INTEGER, INTENT(IN) :: logn
     ! set from environment variable $HOME
-    CHARACTER(LEN=200) ::                                                       & 
+    CHARACTER(LEN=200) ::                                                       &
          myhome,       & ! $HOME (POSIX) environment/shell variable
          fcablerev,    & ! recorded svn revision number at build time
          icable_status   ! recorded svn STATUS at build time (ONLY 200 chars of it)
@@ -651,40 +653,40 @@ CONTAINS
 
     INTEGER :: icable_rev, ioerror
 
-    CALL getenv("HOME", myhome) 
+    CALL getenv("HOME", myhome)
     fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
 
     OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)
 
-    IF(ioerror==0) then 
+    IF(ioerror==0) then
        ! get svn revision number (see WRITE comments)
        READ(440,*) icable_rev
-    ELSE 
+    ELSE
        icable_rev=0 !default initialization
-       PRINT *, "We'll keep running but the generated revision number "     
-       PRINT *, " in the log & file will be meaningless."     
+       PRINT *, "We'll keep running but the generated revision number "
+       PRINT *, " in the log & file will be meaningless."
     ENDIF
 
 
     WRITE(logn,*) ''
     WRITE(logn,*) 'Revision nuber: ', icable_rev
     WRITE(logn,*) ''
-    WRITE(logn,*)'This is the latest revision of you workin copy as sourced ' 
-    WRITE(logn,*)'by the SVN INFO command at build time. Please note that the' 
-    WRITE(logn,*)'accuracy of this number is dependent on how recently you ' 
+    WRITE(logn,*)'This is the latest revision of you workin copy as sourced '
+    WRITE(logn,*)'by the SVN INFO command at build time. Please note that the'
+    WRITE(logn,*)'accuracy of this number is dependent on how recently you '
     WRITE(logn,*)'used SVN UPDATE.'
 
     ! get svn status (see WRITE comments)
-    ! (jhan: make this output prettier & not limitted to 200 chars) 
+    ! (jhan: make this output prettier & not limitted to 200 chars)
     WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
     WRITE(logn,*)'local changes: '
-    IF(ioerror==0) then 
+    IF(ioerror==0) then
        READ(440,'(A)',IOSTAT=ioerror) icable_status
        WRITE(logn,*) TRIM(icable_status)
        WRITE(logn,*) ''
-    else   
-       WRITE(logn,*) '.cable_rev file does not exist,' 
-       WRITE(logn,*) 'suggesting you did not build libcable here' 
+    else
+       WRITE(logn,*) '.cable_rev file does not exist,'
+       WRITE(logn,*) 'suggesting you did not build libcable here'
        WRITE(logn,*) ''
     endif
 
@@ -695,49 +697,47 @@ CONTAINS
 
   FUNCTION IS_CASA_TIME(iotype, yyyy, ktau, kstart, koffset, kend, ktauday, logn)
 
-    ! Correctly determine if it is time to dump-read or standard-write 
-    ! casa output from cable_driver. 
+    ! Correctly determine if it is time to dump-read or standard-write
+    ! casa output from cable_driver.
     ! Writing casa-dump data is handled in casa_cable and therefore not \
     ! captured here
 
     USE cable_IO_vars_module, ONLY: leaps
- 
+
     IMPLICIT NONE
 
-    LOGICAL   :: IS_CASA_TIME 
-    INTEGER   :: yyyy, ktau, kstart, koffset, kend, ktauday, logn
-    CHARACTER :: iotype*5
+    LOGICAL   :: IS_CASA_TIME
+    INTEGER  ,INTENT(IN) :: yyyy, ktau, kstart, koffset, kend, ktauday, logn
+    CHARACTER,INTENT(IN) :: iotype*5
     LOGICAL   :: is_eod, is_eom, is_eoy
     INTEGER   :: doy, m
-    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+    INTEGER, DIMENSION(12) :: MONTH
 
+    is_eom       = .FALSE.
+    is_eoy       = .FALSE.
+    IS_CASA_TIME = .FALSE.
+
+    MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
     is_eod = ( MOD((ktau-kstart+1+koffset),ktauday).EQ.0 )
     IF ( .NOT. is_eod ) RETURN    ! NO if it is not end of day
 
-    is_eom       = .FALSE. 
-    is_eoy       = .FALSE. 
-    IS_CASA_TIME = .FALSE. 
-
-    IF ( IS_LEAPYEAR( YYYY ) ) THEN
+    IF ( IS_LEAPYEAR( YYYY ) .AND. leaps ) THEN
        MONTH(2) = 29
-    ELSE 
+    ELSE
        MONTH(2) = 28
     ENDIF
- 
+
     ! Check for reading from dump-file (hard-wired to daily casa-timestep)
     IF ( iotype .eq. "dread" ) THEN
        IF ( CABLE_USER%CASA_DUMP_READ )  IS_CASA_TIME = .TRUE.
-       write(logn,*)"HERE dread"
     ! Check for writing of casa dump output
     ELSE IF ( iotype .eq. "dwrit" ) THEN
        IF ( CABLE_USER%CASA_DUMP_WRITE ) IS_CASA_TIME = .TRUE.
-       write(logn,*)"HERE dwrit"
     ! Check for writing of casa standard output
     ELSE IF ( iotype .eq. "write" ) THEN
-       write(logn,*)"HERE write"
 
        doy = NINT(REAL(ktau-kstart+1+koffset)/REAL(ktauday))
-       DO m = 1, 12 
+       DO m = 1, 12
           IF ( doy .EQ. SUM(MONTH(1:m)) ) THEN
              is_eom = .TRUE.
              IF ( m .EQ. 12 ) is_eoy = .TRUE.
@@ -760,4 +760,3 @@ CONTAINS
 
 
 END MODULE cable_common_module
-

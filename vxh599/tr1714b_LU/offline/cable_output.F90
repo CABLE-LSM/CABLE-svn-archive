@@ -1,15 +1,15 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Output module for CABLE offline 
+! Purpose: Output module for CABLE offline
 !
 ! Contact: Bernard.Pak@csiro.au
 !
@@ -38,7 +38,7 @@ MODULE cable_output_module
 
   USE cable_abort_module, ONLY: abort, nc_abort
   USE cable_def_types_mod
-  USE casavariable, ONLY: casa_pool, casa_flux
+  USE casavariable, ONLY: casa_pool, casa_flux, casa_met
   USE cable_IO_vars_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
@@ -66,7 +66,7 @@ MODULE cable_output_module
                     PlantCarbLeaf, PlantCarbFineRoot, PlantCarbWood, &
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
-                    PlantTurnoverWoodResourceLim
+                    PlantTurnoverWoodResourceLim, dCdt, Area
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -110,7 +110,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: SoilWet ! 29 total soil wetness [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Albedo  ! 30 albedo [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: visAlbedo  ! vars intro for Ticket #27
-    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo  ! vars intro for Ticket #27 
+    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo  ! vars intro for Ticket #27
     REAL(KIND=4), POINTER, DIMENSION(:) :: VegT    ! 31 vegetation temperature
                                                    ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilTemp  ! 32 av.layer soil
@@ -172,9 +172,10 @@ MODULE cable_output_module
     ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Fwsoil  ! soil-moisture modfier to stomatal conductance
                                                  ! [-]
-    
+
     ![umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: NBP
+    REAL(KIND=4), POINTER, DIMENSION(:) :: dCdt
     ! [kg C /m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: TotSoilCarb
     REAL(KIND=4), POINTER, DIMENSION(:) :: TotLivBiomass
@@ -195,6 +196,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodDist
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodCrowding
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodResourceLim
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Area
 
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
@@ -203,7 +205,7 @@ MODULE cable_output_module
 CONTAINS
 
   SUBROUTINE open_output_file(dels, soil, veg, bgc, rough)
-    ! Creates netcdf output file, defines all variables 
+    ! Creates netcdf output file, defines all variables
     ! and writes parameters to it if requested by user.
     REAL, INTENT(IN) :: dels ! time step size
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
@@ -221,7 +223,7 @@ CONTAINS
 
 
 PRINT*,"timeunits", timeunits
-  
+
     ! Create output file:
     ok = NF90_CREATE(filename%out, NF90_CLOBBER, ncid_out)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error creating output file '       &
@@ -243,7 +245,7 @@ PRINT*,"timeunits", timeunits
                        (ok,'Error defining patch dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
     !   ! Define surftype dimension (currently only used for surffrac variable):
-    !    ok = NF90_DEF_DIM(ncid_out,'surftype',4,surftypeID) 
+    !    ok = NF90_DEF_DIM(ncid_out,'surftype',4,surftypeID)
     !    IF (ok /= NF90_NOERR) CALL nc_abort &
     !         (ok,'Error defining syrftype dimension in output file. '// &
     !         '(SUBROUTINE open_output_file)')
@@ -259,7 +261,7 @@ PRINT*,"timeunits", timeunits
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
            (ok, 'Error defining soil carbon pool dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
-    ok = NF90_DEF_DIM(ncid_out,'plant_carbon_pools',ncp,plantcarbID) 
+    ok = NF90_DEF_DIM(ncid_out,'plant_carbon_pools',ncp,plantcarbID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
            (ok,'Error defining plant carbon pool dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
@@ -283,7 +285,7 @@ PRINT*,"timeunits", timeunits
        IF (ok /= NF90_NOERR) CALL nc_abort                                     &
                        (ok, 'Error defining land dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
-       
+
        ok = NF90_DEF_VAR(ncid_out, 'local_lat', NF90_FLOAT, (/landID/), llatvID)
        IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                         (ok, 'Error defining land lat variable in output file. '// &
@@ -522,7 +524,7 @@ PRINT*,"timeunits", timeunits
        out%NEE = 0.0 ! initialise
     END IF
 
-    
+
 
     ! Define soil state variables in output file and allocate temp output vars:
     IF(output%soil .OR. output%SoilMoist) THEN
@@ -611,7 +613,7 @@ PRINT*,"timeunits", timeunits
        out%Albedo = 0.0 ! initialise
     END IF
 
-	 ! output calc of soil albedo based on colour? - Ticket #27
+         ! output calc of soil albedo based on colour? - Ticket #27
      IF (calcsoilalbedo) THEN
       IF(output%radiation .OR. output%visAlbedo) THEN
          CALL define_ovar(ncid_out, ovid%visAlbedo, 'visAlbedo', '-',          &
@@ -731,6 +733,12 @@ PRINT*,"timeunits", timeunits
        ALLOCATE(out%NBP(mp))
        out%NBP = 0.0 ! initialise
 
+       CALL define_ovar(ncid_out, ovid%dCdt, 'dCdt', 'umol/m^2/s',               &
+                        'Carbon accumulation rate (uptake +ve)', patchout%dCdt,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%dCdt(mp))
+       out%dCdt = 0.0 ! initialise
+
        CALL define_ovar(ncid_out, ovid%TotSoilCarb, 'TotSoilCarb', 'kg C/m^2',               &
                         'Total Soil and Litter Carbon', patchout%TotSoilCarb,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
@@ -744,66 +752,66 @@ PRINT*,"timeunits", timeunits
        out%TotLittCarb = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%SoilCarbFast, 'SoilCarbFast', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%SoilCarbFast,         &
+                        'Soil Carbon: Fast Turnover', patchout%SoilCarbFast,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%SoilCarbFast(mp))
        out%SoilCarbFast = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%SoilCarbSlow, 'SoilCarbSlow', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%SoilCarbSlow,         &
+                        'Soil Carbon: Slow Turnover', patchout%SoilCarbSlow,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%SoilCarbSlow(mp))
        out%SoilCarbSlow = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%SoilCarbPassive, 'SoilCarbPassive', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%SoilCarbPassive,         &
+                        'Soil Carbon: Passive', patchout%SoilCarbPassive,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%SoilCarbPassive(mp))
        out%SoilCarbPassive = 0.0 ! initialise
 
 
        CALL define_ovar(ncid_out, ovid%LittCarbMetabolic, 'LittCarbMetabolic', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%LittCarbMetabolic,         &
+                        'Litter Carbon: metabolic', patchout%LittCarbMetabolic,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%LittCarbMetabolic(mp))
        out%LittCarbMetabolic = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%LittCarbStructural, 'LittCarbStructural', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%LittCarbStructural,         &
+                        'Litter Carbon: structural', patchout%LittCarbStructural,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%LittCarbStructural(mp))
        out%LittCarbStructural = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%LittCarbCWD, 'LittCarbCWD', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%LittCarbCWD,         &
+                        'Litter Carbon: CWD', patchout%LittCarbCWD,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%LittCarbCWD(mp))
        out%LittCarbCWD = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%PlantCarbLeaf, 'PlantCarbLeaf', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%PlantCarbLeaf,         &
+                        'Plant Carbon: leaf', patchout%PlantCarbLeaf,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantCarbLeaf(mp))
        out%PlantCarbLeaf = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%PlantCarbFineRoot, 'PlantCarbFineRoot', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%PlantCarbFineRoot,         &
+                        'Plant Carbon: Fine roots', patchout%PlantCarbFineRoot,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantCarbFineRoot(mp))
        out%PlantCarbFineRoot = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%PlantCarbWood, 'PlantCarbWood', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%PlantCarbWood,         &
+                        'Plant Carbon: wood (above- and below-ground', patchout%PlantCarbWood,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantCarbWood(mp))
        out%PlantCarbWood = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%TotLivBiomass, 'TotLivBiomass', 'kg C/m^2',               &
-                        'Total Litter Carbon', patchout%TotLivBiomass,         &
+                        'Total Biomass', patchout%TotLivBiomass,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%TotLivBiomass(mp))
        out%TotLivBiomass = 0.0 ! initialise
- 
+
 
        CALL define_ovar(ncid_out, ovid%PlantTurnover, 'PlantTurnover', 'umol/m^2/s',               &
                         'Total Biomass Turnover', patchout%PlantTurnover,         &
@@ -811,21 +819,21 @@ PRINT*,"timeunits", timeunits
        ALLOCATE(out%PlantTurnover(mp))
        out%PlantTurnover = 0.0
 
-       CALL define_ovar(ncid_out, ovid%PlantTurnoverLeaf, 'Plant Turnover Leaf ', &
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverLeaf, 'PlantTurnoverLeaf ', &
             'umol/m^2/s',               &
             'Leaf Biomass Turnover', patchout%PlantTurnoverLeaf,         &
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantTurnoverLeaf(mp))
        out%PlantTurnoverLeaf = 0.0
 
-       CALL define_ovar(ncid_out, ovid%PlantTurnoverFineRoot, 'Plant Turnover FineRoot ', &
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverFineRoot, 'PlantTurnoverFineRoot ', &
             'umol/m^2/s',               &
             'FineRoot Biomass Turnover', patchout%PlantTurnoverFineRoot,         &
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantTurnoverFineRoot(mp))
        out%PlantTurnoverFineRoot = 0.0
-       
-       
+
+
        CALL define_ovar(ncid_out, ovid%PlantTurnoverWood, 'PlantTurnoverWood ', &
             'umol/m^2/s',               &
                         'Woody Biomass Turnover', patchout%PlantTurnoverWood,         &
@@ -847,16 +855,23 @@ PRINT*,"timeunits", timeunits
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantTurnoverWoodCrowding(mp))
        out%PlantTurnoverWoodCrowding = 0.0
-       
+
        CALL define_ovar(ncid_out, ovid%PlantTurnoverWoodResourceLim, 'PlantTurnoverWoodResourceLim ', &
             'umol/m^2/s',               &
             'Woody Biomass Turnover (Resource Limitation)', patchout%PlantTurnoverWoodResourceLim,         &
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantTurnoverWoodResourceLim(mp))
        out%PlantTurnoverWoodResourceLim = 0.0
-       
+
 
     END IF
+
+!! vh_js !!
+    CALL define_ovar(ncid_out, ovid%Area, 'Area', 'km2',               &
+                        'Patch Area', patchout%Area,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+     ALLOCATE(out%Area(mp))
+    out%Area = 0.0 ! initialise
 
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
@@ -1074,7 +1089,7 @@ PRINT*,"timeunits", timeunits
        IF(ok /= NF90_NOERR) CALL nc_abort                                         &
                                    (ok, 'Error writing loc lon variable to ' &
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
-      
+
     ENDIF
 
     ! Write GrADS coordinate variables
@@ -1187,15 +1202,15 @@ PRINT*,"timeunits", timeunits
 
   END SUBROUTINE open_output_file
   !=============================================================================
-  SUBROUTINE write_output(dels, ktau, met, canopy, casaflux, casapool, ssnow,                       &
+  SUBROUTINE write_output(dels, ktau, met, canopy, casaflux, casapool, casamet, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
-    ! energy and mass balance routines. This subroutine is called 
+    ! energy and mass balance routines. This subroutine is called
     ! each timestep, but may only write to the output file periodically,
-    ! depending on whether the user has specified that output should be 
+    ! depending on whether the user has specified that output should be
     ! aggregated, e.g. to monthly or 6-hourly averages.
     REAL, INTENT(IN)              :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup
     REAL, INTENT(IN) :: SBOLTZ, EMLEAF, EMSOIL
     TYPE(met_type), INTENT(IN)         :: met  ! met data
     TYPE(canopy_type), INTENT(IN)      :: canopy ! canopy variable data
@@ -1207,6 +1222,7 @@ PRINT*,"timeunits", timeunits
     TYPE(casa_flux), INTENT(IN) :: casaflux ! casa fluxes
     TYPE(casa_pool), INTENT(IN) :: casapool ! casa fluxes
     TYPE(balances_type), INTENT(INOUT) :: bal
+    TYPE (casa_met), INTENT(IN)	:: casamet
 
     REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
                                         ! value
@@ -1220,7 +1236,7 @@ PRINT*,"timeunits", timeunits
     INTEGER :: iy   ! Counter
     !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
     INTEGER, SAVE :: YearStart
-    
+
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
                                          met,air,bal)
@@ -1228,7 +1244,7 @@ PRINT*,"timeunits", timeunits
     ! IF asked to check energy balance:
     IF(check%energy_bal) CALL energy_balance(dels,ktau,met,rad,                     &
                                              canopy,bal,ssnow,                 &
-                                             SBOLTZ, EMLEAF, EMSOIL ) 
+                                             SBOLTZ, EMLEAF, EMSOIL )
 
     ! Initialise output time step counter and month counter:
     IF(ktau == 1) THEN
@@ -1241,7 +1257,6 @@ PRINT*,"timeunits", timeunits
           YearStart = CABLE_USER%YearStart
        ENDIF
     END IF
-
     ! Decide on output averaging regime:
     IF(output%averaging(1:3) == 'all') THEN ! write every time step to file
        ! Set flag to write data for current time step:
@@ -1254,7 +1269,7 @@ PRINT*,"timeunits", timeunits
        ! user defined output interval or daily output
        IF(MOD(ktau, output%interval) == 0) THEN ! i.e.ktau divisible by
                                                    ! interval
-          ! write to output file this time step 
+          ! write to output file this time step
           writenow = .TRUE.
           ! increment output time step counter:
           out_timestep = out_timestep + 1
@@ -1267,7 +1282,7 @@ PRINT*,"timeunits", timeunits
        IF(ktau >= 365*24*3600/INT(dels)) THEN
          WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
        END IF
-       
+
        ! LN Inserted for multiyear output
        dday = 0
        !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
@@ -1284,10 +1299,10 @@ PRINT*,"timeunits", timeunits
        IF (leaps) THEN
           ! If currently a leap year:
           if (any(is_leapyear(realyear))) then
-             IF(ANY(((lastdayl+dday) * 24 * 3600 / INT(dels)) == ktau)) THEN
-                ! increment output month counter
+!! vh_js !!
+             IF(ANY(INT(real(lastdayl+dday) * 24. * 3600. / dels) == ktau)) THEN
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
-                ! write to output file this time step 
+                ! write to output file this time step
                 writenow = .TRUE.
                 ! increment output time step counter:
                 out_timestep = out_timestep + 1
@@ -1298,10 +1313,11 @@ PRINT*,"timeunits", timeunits
              END IF
           ELSE ! not currently a leap year
              ! last time step of month
-             IF(ANY(((lastday+dday) * 24 * 3600 / INT(dels)) == ktau)) THEN
+!! vh_js !!
+             IF(ANY(INT(real(lastday+dday) * 24. * 3600. / dels) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
-                ! write to output file this time step 
+                ! write to output file this time step
                 writenow = .TRUE.
                 ! increment output time step counter:
                 out_timestep = out_timestep + 1
@@ -1312,10 +1328,13 @@ PRINT*,"timeunits", timeunits
              END IF
           END IF
        ELSE ! not using leap year timing in this run
-          IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of month
+
+!! vh_js !!
+           IF(ANY(INT((real((lastday+dday))*24.*3600./real(INT(dels))))==ktau)) THEN ! last time step of month
+         ! IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of month
              ! increment output month counter
              out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
-             ! write to output file this time step 
+             ! write to output file this time step
              writenow = .TRUE.
              ! increment output time step counter:
              out_timestep = out_timestep + 1
@@ -1326,12 +1345,14 @@ PRINT*,"timeunits", timeunits
           END IF
        END IF ! using leap year timing or not
        backtrack = output%interval / 2
+
+
     ELSE ! type of output aggregation
        CALL abort('Unknown output averaging request in namelist file.'//       &
                   '(SUBROUTINE write_output)')
     END IF
 
-    ! Note that size of averaging interval, output%interval, is set when opening 
+    ! Note that size of averaging interval, output%interval, is set when opening
     ! output file unless output is monthly (in which case it's set above)
 
     ! If this time step is an output time step:
@@ -1347,8 +1368,8 @@ PRINT*,"timeunits", timeunits
     END IF
 
     ! Arguments to write_ovar: current time step; output file netcdf file ID;
-    ! netcdf variable ID; variable name; variable data; variable ranges; 
-    ! non-land fill value; include patch info for this var; any specific 
+    ! netcdf variable ID; variable name; variable data; variable ranges;
+    ! non-land fill value; include patch info for this var; any specific
     ! formatting info; met variables for reporting in case of abort.
 
     ! SWdown:  downward short-wave radiation [W/m^2]
@@ -1662,7 +1683,7 @@ PRINT*,"timeunits", timeunits
        END IF
     END IF
 
-    
+
 
 
     !-----------------------WRITE SOIL STATE DATA-------------------------------
@@ -1838,7 +1859,7 @@ PRINT*,"timeunits", timeunits
          ! Reset temporary output variable:
          out%Albedo = 0.0
 
-       	 ! output calc of soil albedo based on colour? - Ticket #27
+         ! output calc of soil albedo based on colour? - Ticket #27
          IF (calcsoilalbedo) THEN
            out%visAlbedo = out%visAlbedo / REAL(output%interval, 4)
            CALL write_ovar(out_timestep, ncid_out, ovid%visAlbedo, 'visAlbedo',&
@@ -1973,6 +1994,9 @@ PRINT*,"timeunits", timeunits
        ! Add current timestep's value to total of temporary output variable:
        out%GPP = out%GPP + REAL((-1.0 * canopy%fpn + canopy%frday)             &
                                 / 1.201E-5, 4)
+      ! out%GPP = out%GPP + REAL((-1.0 * canopy%fpn)             &
+       !                         / 1.201E-5, 4)
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GPP = out%GPP/REAL(output%interval, 4)
@@ -1986,7 +2010,9 @@ PRINT*,"timeunits", timeunits
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
+       out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
+            - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+     !  out%NPP = out%NPP + REAL((canopy%frday) / 1.201E-5, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%NPP = out%NPP / REAL(output%interval, 4)
@@ -2000,7 +2026,7 @@ PRINT*,"timeunits", timeunits
     ! AutoResp: autotrophic respiration [umol/m^2/s]
     IF(output%carbon .OR. output%AutoResp) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday)          &
+       out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday + casaflux%clabloss/86400.0)          &
                                            / 1.201E-5, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2041,11 +2067,25 @@ PRINT*,"timeunits", timeunits
           out%HeteroResp = 0.0
        END IF
     END IF
-    ! NBP [umol/m^2/s]
-    IF(output%carbon) THEN
+
+    ! output patch area 
+     out%Area = casamet%areacell/1e6 ! km2
+     IF(writenow) THEN
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Area, 'Area', out%Area,    &
+                          ranges%Area, patchout%Area, 'default', met)
+      END IF
+
+
+    ! NBP and turnover fluxes [umol/m^2/s]
+    IF(output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%NBP = out%NBP + REAL((casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)/86400.0 &
+!!$       out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)/86400.0 &
+!!$            / 1.201E-5, 4)
+       out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
+            - casapool%dClabiledt)/86400.0 &
             / 1.201E-5, 4)
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%NBP = out%NBP / REAL(output%interval, 4)
@@ -2055,10 +2095,126 @@ PRINT*,"timeunits", timeunits
           ! Reset temporary output variable:
           out%NBP = 0.0
        END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%dCdt = out%dCdt + REAL((casapool%ctot-casapool%ctot_0)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%dCdt = out%dCdt / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%dCdt, 'dCdt', out%dCdt,    &
+                          ranges%NEE, patchout%dCdt, 'default', met)
+          ! Reset temporary output variable:
+          out%dCdt = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnover = out%PlantTurnover + REAL((sum(casaflux%Cplant_turnover,2))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnover = out%PlantTurnover / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnover, 'PlantTurnover', out%PlantTurnover,    &
+                          ranges%NEE, patchout%PlantTurnover, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnover = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverLeaf = out%PlantTurnoverLeaf + REAL((casaflux%Cplant_turnover(:,1))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverLeaf = out%PlantTurnoverLeaf / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverLeaf, 'PlantTurnoverLeaf', out%PlantTurnoverLeaf,    &
+                          ranges%NEE, patchout%PlantTurnoverLeaf, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverLeaf = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverFineRoot = out%PlantTurnoverFineRoot + REAL((casaflux%Cplant_turnover(:,3))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverFineRoot = out%PlantTurnoverFineRoot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverFineRoot, 'PlantTurnoverFineRoot', &
+               out%PlantTurnoverFineRoot,    &
+               ranges%NEE, patchout%PlantTurnoverFineRoot, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverFineRoot = 0.0
+       END IF
+
+      ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWood = out%PlantTurnoverWood + REAL((casaflux%Cplant_turnover(:,2))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWood = out%PlantTurnoverWood / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWood, 'PlantTurnoverWood', out%PlantTurnoverWood,    &
+                          ranges%NEE, patchout%PlantTurnoverWood, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWood = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWoodDist = out%PlantTurnoverWoodDist + &
+            REAL((casaflux%Cplant_turnover_disturbance)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWoodDist = out%PlantTurnoverWoodDist / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodDist, 'PlantTurnoverWoodDist', &
+               out%PlantTurnoverWoodDist,    &
+               ranges%NEE, patchout%PlantTurnoverWoodDist, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWoodDist = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWoodCrowding = out%PlantTurnoverWoodCrowding + &
+            REAL((casaflux%Cplant_turnover_crowding)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWoodCrowding = out%PlantTurnoverWoodCrowding / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodCrowding, 'PlantTurnoverWoodCrowding', &
+               out%PlantTurnoverWoodCrowding,    &
+                          ranges%NEE, patchout%PlantTurnoverWoodCrowding, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWoodCrowding = 0.0
+       END IF
+
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim + &
+            REAL((casaflux%Cplant_turnover_resource_limitation)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodResourceLim, 'PlantTurnoverWoodResourceLim', &
+               out%PlantTurnoverWoodResourceLim,    &
+               ranges%NEE, patchout%PlantTurnoverWoodResourceLim, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWoodResourceLim = 0.0
+       END IF
+
+
+
+
     END IF
 
     ! plant carbon [kg C m-2]
-    IF(output%carbon) THEN
+    IF(output%casa) THEN
        out%TotSoilCarb = out%TotSoilCarb + REAL((SUM(casapool%csoil,2)+SUM(casapool%clitter,2)) &
              / 1000.0, 4)
        IF(writenow) THEN
@@ -2134,7 +2290,7 @@ PRINT*,"timeunits", timeunits
           ! Divide accumulated variable by number of accumulated time steps:
           out%LittCarbStructural = out%LittCarbStructural / REAL(output%interval, 4)
           ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%LittCarbStructural, 'LittCarbStructural', out%LittCarbStructural,    &
+          CALL write_ovar(out_timestep, ncid_out, ovid%LittCarbStructural, 'LittCarbStructural', out%LittCarbStructural, &
                           ranges%TotLittCarb, patchout%LittCarbStructural, 'default', met)
           ! Reset temporary output variable:
           out%LittCarbStructural = 0.0
@@ -2199,13 +2355,13 @@ PRINT*,"timeunits", timeunits
        END IF
 
     END IF
-     
+
 
   END SUBROUTINE write_output
   !=============================================================================
   SUBROUTINE close_output_file(bal, air, bgc, canopy, met,                     &
                                rad, rough, soil, ssnow, sum_flux, veg)
-    ! Closes output file, reports cumulative mass and energy 
+    ! Closes output file, reports cumulative mass and energy
     ! balances, and deallocates variables.
     TYPE (met_type), INTENT(INOUT)       :: met
     TYPE (air_type), INTENT(INOUT)       :: air
@@ -2259,7 +2415,7 @@ PRINT*,"timeunits", timeunits
     ! not be active). It uses CABLE's internal variable names.
     INTEGER, INTENT(IN) :: logn ! log file number
     REAL, INTENT(IN) :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup
     TYPE (met_type),INTENT(IN)             :: met ! meteorological data
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
@@ -2414,7 +2570,7 @@ PRINT*,"timeunits", timeunits
                       "Number of soil types")
 
     !======begin defining state variables=======================================
-    ! Interface arguments: netcdf file ID, variableID, variable name, variable 
+    ! Interface arguments: netcdf file ID, variableID, variable name, variable
     ! units, variable long name, YES to write patch info (as this is a restart
     ! file), OPTIONAL extra dimension ID (e.g. for soil dimensioned variables),
     ! dimension switch to indicate what extra dimension is real or integer for
@@ -2514,7 +2670,7 @@ PRINT*,"timeunits", timeunits
     CALL define_ovar(ncid_restart, tradID, 'trad', 'K',                        &
                     'Surface radiative temperature (soil/snow/veg inclusive)', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    !---------------------MODEL PARAMETERS---------------------------------   
+    !---------------------MODEL PARAMETERS---------------------------------
     WRITE(logn,'(A43)') '   Writing model parameters to restart file'
     CALL define_ovar(ncid_restart, rpid%iveg, 'iveg', '-',                     &
              'Vegetation type', .TRUE., 'integer', 0, 0, 0, mpID, dummy, .TRUE.)

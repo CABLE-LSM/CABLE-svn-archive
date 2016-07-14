@@ -11,7 +11,7 @@
 ! Pond lumped with top soil layer (V. Haverd Jan 2011)
 ! Snow included in layers -2:0 (V. Haverd Jan 2011)
 ! Convergence test for dthetaldT (V.Haverd Feb 2011)
-! Include heat advection by liquid water flux (V.Haverd Feb 2011)
+! Include heat advection by liquid water flux (V.Haverd Feb 2011)              
 
 ! Code cleaned and isotope routine updated (V. Haverd, M. Cuntz Aug-Sep 2012)
 ! lots of changes, especially relating to ponding and freezing together
@@ -308,7 +308,7 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp,1:n) :: iqex, thetal_max
     REAL(r_2),          DIMENSION(1:mp)     :: icali
     INTEGER(i_d),       DIMENSION(1:mp) :: nfac1, nfac2, nfac3, nfac4, nfac5, &
-         nfac6, nfac7, nfac8, nfac9, nfac10,nfac11,nfac12
+         nfac6, nfac7, nfac8, nfac9, nfac10, nfac11, nfac12
     REAL(r_2),          DIMENSION(1:mp)     :: J0snow, wcol0snow
 
     !open (unit=7, file="Test.out", status="replace", position="rewind")
@@ -322,7 +322,7 @@ CONTAINS
     ! and their partial derivs wrt S or phi of upper and lower layers or boundaries
     ! are stored in q, qya and qyb.
 
-   
+
     ! set switches
     if (present(dolitter)) then
        littercase = dolitter
@@ -338,8 +338,6 @@ CONTAINS
        write(*,*) 'dolitter not in [0-2]: ', littercase
        stop
     endif
-
-    
 
     if (present(doisotopologue)) then
        isotopologue = doisotopologue
@@ -510,6 +508,8 @@ CONTAINS
     dT0(:)             = zero
     thetal_max         = zero
     nsteps             = 0
+    qvsig(:,:)         = zero
+    qlsig(:,:)         = zero
 
     ! initialise snow Ebal diagnostics
     vsnow(:)%Qadv_rain = zero
@@ -517,7 +517,7 @@ CONTAINS
     vsnow(:)%Qadv_vap  = zero
     vsnow(:)%Qcond_net = zero
 
-    do k = 1,nsnow_max
+    do k=1, nsnow_max
        vsnow(:)%deltaJlatent(k)   = zero
        vsnow(:)%deltaJsensible(k) = zero
     enddo
@@ -576,9 +576,9 @@ CONTAINS
        Tbot(:,:) = spread(Tsoil(:,n),1,n)
        ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
        call hyofS(Sbot, Tbot, par, vcall)
-       ! do i=1, n
-       !    call hyofS(Sbot(1,i), Tbot(1,i), par(1,i), vcall(1,i))
-       ! end do
+       !do i=1, n
+       !   call hyofS(Sbot(1,i), Tbot(1,i), par(1,i), vcall(1,i))
+       !end do
        ! End debug hyofS
        ! for hbot >= he
        vtmp = zerovars()
@@ -619,8 +619,10 @@ CONTAINS
     where (S(:,:) >= one)
        var(:,:)%K    = par(:,:)%Ke
        var(:,:)%isat = 1
+       var(:,:)%phi = phi
     endwhere
-  
+
+
     !    Sliq = S
     !    where ((Tsoil<Tfrz(S,par%he,one/par%lam)) .and. (var%isat == 1))
     !       thetal_max    = thetalmax(Tsoil,S,par%he,one/par%lam,par%thre,par%the)
@@ -656,8 +658,8 @@ CONTAINS
           vmet(:)%rrc = vmet(:)%rrc + dxL(:)/(vlit(:)%kH*ztmp)
        endwhere
     endif
- 
-       
+
+
     lE0(:) = lE_old(:) ! used for initial guess of litter temperature
     !----- end initialise
 
@@ -667,13 +669,13 @@ CONTAINS
      !  rewind(3337)
      !  write(3337,*) irec, kk, Tsoil(kk,1)
 
-    !  CALL snow_augment(irec, mp, n, kk, ns,qprec_snow,vmet%Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
-    !                 Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow) 
+    !  CALL snow_augment(irec, mp, n, kk, ns, qprec_snow, vmet%Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
+    !                 Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
       J0snow(kk) = vsnow(kk)%J ! for tracking change in internal energy of snowpack
-   
-      
+
+
        wcol0snow(kk) = sum(vsnow(kk)%hsnow(1:nsnow_max)) ! for tracking change in water content of snowpack
-      
+
 
        do while (t(kk) < tfin)
 
@@ -717,14 +719,11 @@ CONTAINS
                 ! this set var-structure
                 isave(kk,:) = var(kk,:)%isat
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-
-                
-                call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
-                
-                
-                ! do i=1, n
-                !    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
-                ! end do
+                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
+                !do i=1, n
+                !   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
+                !end do
+               
                 ! End debug hyofS
                 cp(kk) = real(1-var(kk,1)%iice,r_2)*cswat*rhow & ! heat capacity of pond
                      + real(var(kk,1)%iice,r_2)*rhow* &
@@ -753,12 +752,12 @@ CONTAINS
                         vsnow(kk)%hsnow(1:nsnow_max)
 
                 endif
-             
+
 
                 CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
                      Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
                 thetai(kk,1) = var(kk,1)%thetai  ! this is the value of thetaice prior to matrix call
-             
+
              endif ! iflux==1
 
              ! initialise litter vars
@@ -769,9 +768,9 @@ CONTAINS
              ! ! phi is solution var at satn, so h calc from phi where S>=1 - done in hyofS above for S<1
              ! where (S(kk,:) >= one) & ! (special for frozen soil)
              !      var(kk,:)%h = var(kk,:)%he + (var(kk,:)%phi-var(kk,:)%phie)/var(kk,:)%Ksat
-            
 
-             
+
+
 
              !----- get fluxes and derivs
              ! get surface condition
@@ -796,6 +795,8 @@ CONTAINS
                 ! calculates phi1,eff (pond + top soil layer)   !!vh!! does this get used???
                 call flux(par(kk,1), vtop(kk), var(kk,1), half*dx(kk,1), &
                      q(kk,0), qya(kk,0), qyb(kk,0), qTa(kk,0), qTb(kk,0))
+
+                
              endif
 
              if (Sl(kk) >= one) then
@@ -894,7 +895,7 @@ CONTAINS
              ! get heat and vapour fluxes and derivatives in snow-pack
              if (vsnow(kk)%nsnow>1) then
                 ! vapour flux at interfaces between snow layers
-                do j=1,vsnow(kk)%nsnow-1
+                do j=1, vsnow(kk)%nsnow-1
                    keff = 2_r_2*((vsnow(kk)%kE(j)/(thousand*lambdaf))*(vsnow(kk)%kE(j+1)/(thousand*lambdaf))/ &
                         ((vsnow(kk)%kE(j)/(thousand*lambdaf))*vsnow(kk)%depth(j+1)+(vsnow(kk)%kE(j+1)/ &
                         (thousand*lambdaf))*vsnow(kk)%depth(j)) )
@@ -1381,6 +1382,8 @@ CONTAINS
                         dy(kk,nns(kk):n), de(kk,nns(kk):n), condition=condition)
 
                    dTsoil(kk,1:n) = de(kk,1:n)
+
+                
                    where (vsnow(kk)%hliq(:)>zero)
                       delta_snowT(kk,:) = zero
                    elsewhere
@@ -1473,7 +1476,7 @@ CONTAINS
 !!$                      write(*,*)  real(var(kk,1:1)%iice,r_2) * real(1-var(kk,1:1)%isat,r_2) * &
 !!$                           dx(kk,1:1) * dy(kk,1:1)/dt(kk) * par(kk,1:1)%thre * rhow * csice * (Tsoil(kk,1:1))
 !!$                      write(*,*) "nsnow, nsnow_last", vsnow(kk)%nsnow, vsnow(kk)%nsnow_last
-!!$                      stop
+!!$                      !stop
 !!$                   endif
 
                    ! check mass balance on top soil layer
@@ -1614,7 +1617,7 @@ CONTAINS
 
                    ! Check absolute soil temperature change in frozen soil layers where updated Tsoil exceeds freezing point
                    if (iok(kk)==1) then
-                      do i=1,n
+                      do i=1, n
                          if(var(kk,i)%iice==1) then
                             Tfreezing(kk) = Tfrz(S(kk,i)+dy(kk,i)*real(1-var(kk,i)%isat), &
                                  par(kk,i)%he, one/(par(kk,i)%lambc*freezefac))
@@ -1772,25 +1775,27 @@ CONTAINS
                    end if
                 end if  ! (.not. again(kk))
                 nsteps(kk)        = nsteps(kk) + 1
-                ! if ((irec.eq.11).and.(kk.eq.1997)) then
-                !    write(*,*) 'writing diags', again(kk), nsteps(kk)
-                !    write(345,"(13i8,1500e16.6)") nsteps, nfac1(kk), nfac2(kk), nfac3(kk), &
-                !         nfac4(kk), nfac5(kk), nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
-                !         nfac11(kk), nfac12(kk), q(kk,:), qsig(kk,:), qH(kk,:), qhsig(kk,:), &
-                !         dy(kk,0:n), de(kk,0:n), dTsoil(kk,:), S(kk,:),thetai(kk,:), Tsoil(kk,:), &
-                !         real(var(kk,1)%iice), real(var(kk,1)%isat), &
-                !         h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
-                !         vsnow(kk)%wcol, &
-                !         qadv(kk,:), qadvsig(kk,:), qhya(kk,:), qhyb(kk,:), qhTa(kk,:), qhTb(kk,:), &
-                !         qya(kk,:), qyb(kk,:), qTa(kk,:), qTb(kk,:), &
-                !         var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
-                !         RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
-                !         real(-var(kk,1:n)%isat+1), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1), vsnow(kk)%hsnow(1)
-                !    if (nsteps(kk).gt.1000) STOP
-                ! endif
+!!$                 if ((irec.eq.9322).and.(kk.eq.1)) then
+!!$                    write(*,*) 'writing diags', again(kk), nsteps(kk)
+!!$                     if (.not. again(kk)) then
+!!$                    write(345,"(13i8,1500e16.6)") nsteps, nfac1(kk), nfac2(kk), nfac3(kk), &
+!!$                         nfac4(kk), nfac5(kk), nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
+!!$                         nfac11(kk), nfac12(kk), q(kk,:), qsig(kk,:), qH(kk,:), qhsig(kk,:), &
+!!$                         dy(kk,0:n), de(kk,0:n), dTsoil(kk,:), S(kk,:),thetai(kk,:), Tsoil(kk,:), &
+!!$                         real(var(kk,1)%iice), real(var(kk,1)%isat), &
+!!$                         h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
+!!$                         vsnow(kk)%wcol, &
+!!$                         qadv(kk,:), qadvsig(kk,:), qhya(kk,:), qhyb(kk,:), qhTa(kk,:), qhTb(kk,:), &
+!!$                         qya(kk,:), qyb(kk,:), qTa(kk,:), qTb(kk,:), &
+!!$                         var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
+!!$                         RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx(kk,1:n), &
+!!$                         real(-var(kk,1:n)%isat), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1), vsnow(kk)%hsnow(1)
+!!$                    endif
+!!$                    if (nsteps(kk).gt.1000) STOP
+!!$                 endif
              end do ! while (iok==0) ----- end get and solve eqns
 
-             
+
              !----- update unknowns
              ! i.e. update state variables to end of time step
              !      cumulate some surface fluxes
@@ -1815,7 +1820,7 @@ CONTAINS
                 end do
 
                 ! change in heat stored in soil column
-                do j=1,n
+                do j=1, n
                    if (j==1) then
                       ! pond included in top soil layer
                       deltaJ_latent_S(kk,j) = -dx(kk,j)*dy(kk,j)*par(kk,j)%thre*real(var(kk,j)%iice,r_2)* &
@@ -1850,7 +1855,7 @@ CONTAINS
                       deltaJ_sensible_T(kk,j) = var(kk,j)%csoil*dx(kk,j)*dTsoil(kk,j) + &
                            var(kk,j)%iice*var(kk,j)%dthetaldT*(Tsoil(kk,j))*rhow*(cswat-csice)*dx(kk,j)*dTsoil(kk,j)
 
-                     
+
                       if (advection==1) then
                          deltaJ_sensible_S(kk,j) = rhow*cswat*(Tsoil(kk,j))*dx(kk,j)*dy(kk,j)*par(kk,j)%thre* &
                               real(1-var(kk,j)%isat,r_2)*real(1-var(kk,j)%iice,r_2) &
@@ -1874,7 +1879,7 @@ CONTAINS
                 !write(*,*) 'E balance check 1', irec, nsteps, tmp1d1(kk)
                 !       endif
 
-                
+
                 if (ns(kk)<1) then ! change in pond height
                    h0(kk) = h0(kk) + dy(kk,1)
                    deltah0(kk) = dy(kk,1)
@@ -2088,7 +2093,7 @@ CONTAINS
                    vsnow(kk)%Qcond_net = vsnow(kk)%Qcond_net + (qhsig(kk,-vsnow(kk)%nsnow) -  qhsig(kk,0))*dt(kk) - &
                         (qadvsig(kk,-vsnow(kk)%nsnow) -  qadvsig(kk,0))*dt(kk)
 
-                   do i=1,vsnow(kk)%nsnow
+                   do i=1, vsnow(kk)%nsnow
                       if (vsnow(kk)%hliq(i)>zero) then
 
                          if ((vsnow(kk)%hliq(i) + de(kk,i-vsnow(kk)%nsnow))>(dy(kk,i-vsnow(kk)%nsnow) + vsnow(kk)%hsnow(i))) then
@@ -2196,7 +2201,7 @@ CONTAINS
                            + tmp1d1(kk)*qprec_snow(kk)*dt(kk))/vsnow(kk)%hsnow(1)
                    endif
 
-                   do i=1,vsnow(kk)%nsnow
+                   do i=1, vsnow(kk)%nsnow
                       vsnow(kk)%depth(i) = vsnow(kk)%hsnow(i)/(vsnow(kk)%dens(i)/rhow)
 
                       ! adjust depth for compaction
@@ -2472,8 +2477,8 @@ CONTAINS
                          ! correct total energy stored in  soil
                          deltaJ_latent_S(kk,i) = - rhow*lambdaf*( + &
                               dx(kk,i)*(var(kk,i)%thetai-thetai(kk,i)))
-                         
-                            
+
+
                       endif
 
                       deltaJ_latent_T(kk,i) = zero
@@ -2500,12 +2505,10 @@ CONTAINS
                 isave(kk,1:n) = var(kk,1:n)%iice ! save isat before updating
                 ! update variables (particularly thetaice)
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-                
-                call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
-                
-                ! do i=1, n
-                !    call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
-                ! end do
+                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
+                !do i=1, n
+                !   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
+                !end do
                 ! End debug hyofS
                 var(kk,1:n)%iice = isave(kk,1:n)
              endif ! if .not.again
@@ -2691,7 +2694,6 @@ CONTAINS
 
           endif
 
-
           if (littercase==1) then  !!!! vh needs attention !!!!
              SL0(kk)    = SL(kk) - deltaSL(kk)
              cvL0(kk)   = vlit(kk)%cv
@@ -2761,7 +2763,7 @@ CONTAINS
                   itop, dx_ss(kk,itop:n), dz_ss(kk,itop:n-1), sig(kk), dt(kk), &
                   Tsoil_ss(kk,itop:n), dTsoil_ss(kk,itop:n), Sliqice_ss(kk,itop:n), deltaSliqice_ss(kk,itop:n), &
                   Sliq_ss(kk,itop:n), deltaSliq_ss(kk,itop:n),Sice_ss(kk,itop:n), deltaSice_ss(kk,itop:n), &
-                  Tsurface(kk), &
+                  Tsurface(kk), vmet(kk)%Ta, &
                   qsig(kk,itop-1:n), qlsig(kk,itop-1:n), qvsig(kk,itop-1:n), &
                   qmelt_ss(kk),qtransfer(kk)/dt(kk), &  ! melt water to soil and water transfer from soil to snow (+ve)
                   qprec_ss(kk),qprec_snow(kk), qevapsig(kk), qrunoff(kk), iqex(kk,1:n), &
@@ -2786,8 +2788,6 @@ CONTAINS
                      cisoice_snow(kk,1:nsnow_max)*(vsnow(kk)%hsnow(1:nsnow_max)-vsnow(kk)%hliq(1:nsnow_max))) / &
                      vsnow(kk)%hsnow(1:nsnow_max)
              endif
-
-
 
           endif ! isotopologue/=0
 
@@ -2967,7 +2967,7 @@ CONTAINS
   !   end do
   ! END SUBROUTINE solute
   !*********************************************************************************************************************
-   SUBROUTINE snow_augment(irec, mp, n, kk, ns,qprec_snow, Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
+   SUBROUTINE snow_augment(irec, mp, n, kk, ns, qprec_snow, Ta, tfin, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
         Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
 
      INTEGER(i_d),                               INTENT(IN)    :: irec  ! # of grid-cells
@@ -2977,7 +2977,7 @@ CONTAINS
     INTEGER(i_d),    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
     REAL(r_2),    DIMENSION(mp),             INTENT(INOUT) :: qprec_snow    ! snowfall ms-1
     REAL(r_2),    DIMENSION(mp),             INTENT(IN) :: Ta    ! air temp
-    REAL(r_2),                 INTENT(IN) :: tfin    ! time 
+    REAL(r_2),                 INTENT(IN) :: tfin    ! time
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(IN)    :: dx    ! soil depths
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: Tsoil ! soil temperatures soil
     REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: S     ! soil temperatures soil
@@ -3023,14 +3023,14 @@ CONTAINS
        else
           tmp1d2(kk) = 50.0
        endif
-       
-      
+
+
        vsnow(kk)%dens(1) = (vsnow(kk)%dens(1)*(vsnow(kk)%hsnow(1)-qprec_snow(kk)*tfin) &
                + tmp1d2(kk)*qprec_snow(kk)*tfin)/vsnow(kk)%hsnow(1)
 
        vsnow(kk)%depth(1) = vsnow(kk)%hsnow(1)/(vsnow(kk)%dens(1)/rhow)
-      
-      
+
+
        vsnow(kk)%Qprec = qprec_snow(kk)*tfin
        vsnow(kk)%Qadv_snow=rhow*(qprec_snow(kk))* &
                         (csice*(min(Ta(kk),zero))-lambdaf)*tfin
@@ -3039,7 +3039,7 @@ CONTAINS
           vsnow(kk)%nsnow=1
        endif
     endif
-    
+
     END SUBROUTINE snow_augment
 
 !*********************************************************************************************************************
@@ -3375,7 +3375,7 @@ CONTAINS
 
        endif        ! snow layer initialisation
 
-       do i=1,vsnow(kk)%nsnow
+       do i=1, vsnow(kk)%nsnow
           vsnow(kk)%Jsensible(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*csice*(vsnow(kk)%Tsn(i))
           vsnow(kk)%Jlatent(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*(-lambdaf)
        enddo
@@ -3396,7 +3396,7 @@ CONTAINS
           !vsnow(kk)%depth(1) = vsnow(kk)%depth(1) - qmelt(kk,1)*rhow/tmp1d3(kk)
           ! vsnow(kk)%dens(1) = vsnow(kk)%hsnow(1)*rhow/vsnow(kk)%depth(1)
           !vsnow(kk)%dens(1) = max(vsnow(kk)%dens(1) - rhow*qmelt(kk,1)/vsnow(kk)%depth(1), 50.0)
-          do i=1,vsnow(kk)%nsnow
+          do i=1, vsnow(kk)%nsnow
              vsnow(kk)%Jsensible(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*csice*(vsnow(kk)%Tsn(i))
              vsnow(kk)%Jlatent(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*(-lambdaf)
           enddo
@@ -3593,7 +3593,7 @@ CONTAINS
              endif ! incomplete melting
           endif ! iice=1
 
-          do i=1,vsnow(kk)%nsnow
+          do i=1, vsnow(kk)%nsnow
              vsnow(kk)%Jsensible(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*csice*(vsnow(kk)%Tsn(i))
              vsnow(kk)%Jlatent(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*(-lambdaf)
           enddo
@@ -3706,8 +3706,7 @@ CONTAINS
           stop
        endif
 
-
-       do i=1,vsnow(kk)%nsnow
+       do i=1, vsnow(kk)%nsnow
           vsnow(kk)%Dv(i) = Dva*((vsnow(kk)%tsn(i)+Tzero)/Tzero)**1.88_r_2 ! m2 s-1
           vsnow(kk)%sl(i) = slope_esat_ice(vsnow(kk)%tsn(i)) * Mw/thousand/Rgas/(vsnow(kk)%tsn(i)+Tzero)
           vsnow(kk)%kE(i)     = vsnow(kk)%Dv(i)*vsnow(kk)%sl(i)*thousand*lambdaf
@@ -3727,10 +3726,10 @@ CONTAINS
        ns, dx, deltaz, sig, dt, &     ! in soil
        Tsoil0, dTsoil, Sliqice, deltaSliqice, & ! in variables
        Sliq, deltaSliq,Sice, deltaSice, &
-       Ts,  &
+       Ts, Ta, &
        qsig, qlsig, qvsig,  & ! in fluxes
        qmelt, qtransfer, & ! melt water to soil and water transfer from soil to snow (+ve) or snow to soil (-ve)
-       qprec,qprec_snow, qevap, qrunoff, qex, & ! in fluxes
+       qprec, qprec_snow, qevap, qrunoff, qex, & ! in fluxes
        var_cv, var_Dv, &   ! in variables
        thetasat, thetar, tortuosity, deltacv, rbw, cva, civa, & ! in parameter
        cprec,cprec_snow, cali, & ! in iso
@@ -3740,61 +3739,62 @@ CONTAINS
 
 
     IMPLICIT NONE
-    INTEGER(i_d),                  INTENT(IN)    :: irec
-    INTEGER(i_d),                  INTENT(IN)    :: isotopologue ! which isotope
-    INTEGER(i_d),                  INTENT(IN)    :: n            ! # of soil layers
-    INTEGER(i_d),                  INTENT(IN)    :: nsnow           ! # of snow layers
-    INTEGER(i_d),                  INTENT(IN)    :: nsnow_last           ! # of snow layers
-    INTEGER(i_d),                  INTENT(IN)    :: ns           ! index of top of soil/snow column (-nsnow_max+1)
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: dx           ! soil/snow depths
-    REAL(r_2),   DIMENSION(ns:n-1), INTENT(IN)    :: deltaz       ! soil/snow layer thickness
-    REAL(r_2),                     INTENT(IN)    :: sig          ! implicit/explicit time steping constant
-    REAL(r_2),                     INTENT(IN)    :: dt           ! time step
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: Tsoil0       ! soil/snow temperatures
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: dTsoil       ! soil/snow temperatures change
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: Sliqice         ! soil saturation
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: deltaSliqice    ! soil sturation change
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: Sliq         ! soil saturation
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: deltaSliq    ! soil sturation change
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: Sice         ! soil saturation
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: deltaSice    ! soil sturation change
-    REAL(r_2),                     INTENT(IN)    :: Ts           ! surface temperature
-    REAL(r_2),   DIMENSION(ns-1:n),   INTENT(IN)    :: qsig         ! water flux
-    REAL(r_2),   DIMENSION(ns-1:n),   INTENT(INOUT)    :: qlsig        ! liquid water flux
-    REAL(r_2),   DIMENSION(ns-1:n),   INTENT(INOUT)    :: qvsig        ! vapour flux
-    REAL(r_2),                     INTENT(IN)    :: qprec        ! liquid  precip
-    REAL(r_2),                     INTENT(IN)    :: qprec_snow        ! solid precip
-    REAL(r_2),                     INTENT(IN)    :: qevap        ! evaporation
-    REAL(r_2),                     INTENT(IN)    :: qrunoff      ! runoff
-    REAL(r_2),   DIMENSION(1:n),   INTENT(IN)    :: qex          ! root extraction
-    REAL(r_2),                 INTENT(IN)    :: qmelt     !  melt water ! vh ! should eventually be dimensioned nsnow_max
-    REAL(r_2),                     INTENT(IN)    :: qtransfer     ! water transfer from soil to snow (+ve) or snow to soil (-ve)
-    !    TYPE(vars),  DIMENSION(1:n),   INTENT(IN)    :: var          ! soil variables
-    REAL(r_2), DIMENSION(ns:n),   INTENT(IN)    :: var_cv          ! soil/snow variables cv
-    REAL(r_2),  DIMENSION(ns:n),   INTENT(IN)    :: var_Dv          ! soil/snow variables Dv
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: thetasat     ! saturation moisture
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: thetar       ! residual moisture
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(IN)    :: tortuosity   ! soil tortuosity
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(INOUT)    :: deltacv      !
-    REAL(r_2),                     INTENT(IN)    :: rbw          ! boundary layer resistance
-    REAL(r_2),                     INTENT(IN)    :: cva          !
-    REAL(r_2),                     INTENT(IN)    :: civa         ! iso conc in air
-    REAL(r_2),                     INTENT(IN)    :: cprec        ! iso conc in liquid precip
-    REAL(r_2),                     INTENT(IN)    :: cprec_snow        ! iso conc in snow
-    REAL(r_2),                     INTENT(IN)    :: cali         ! iso conc in alimenation water (from below)
-    REAL(r_2),                     INTENT(INOUT) :: ql0          ! liquid flux into soil or snow surface
-    REAL(r_2),                     INTENT(INOUT) :: qv0          ! vapour flux into soil or snow surface
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(INOUT) :: ciso         ! iso conc in soil
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(INOUT) :: cisoice      ! iso conc in soil
-    REAL(r_2),                     INTENT(INOUT) :: cisos        ! iso conc on surface
-    REAL(r_2),                     INTENT(OUT)   :: qiso_in      ! iso flux into soil
-    REAL(r_2),                     INTENT(OUT)   :: qiso_out     ! iso flux out of soil
-    REAL(r_2),                     INTENT(OUT)   :: qiso_evap    ! iso flux of evaporation
-    REAL(r_2),                     INTENT(OUT)   :: qiso_trans   ! iso flux of transpiration
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(OUT)   :: qiso_liq_adv ! liquid iso flux in soil due to advection
-    REAL(r_2),   DIMENSION(ns:n),   INTENT(OUT)   :: qiso_vap_adv ! vapour iso flux in soil due to advection
-    REAL(r_2),   DIMENSION(ns:n-1), INTENT(OUT)   :: qiso_liq_diff ! liquid iso flux in soil due to diffusion
-    REAL(r_2),   DIMENSION(ns:n-1), INTENT(OUT)   :: qiso_vap_diff ! vapour iso flux in soil due to diffusion
+    INTEGER(i_d),                    INTENT(IN)    :: irec
+    INTEGER(i_d),                    INTENT(IN)    :: isotopologue ! which isotope
+    INTEGER(i_d),                    INTENT(IN)    :: n            ! # of soil layers
+    INTEGER(i_d),                    INTENT(IN)    :: nsnow        ! # of snow layers
+    INTEGER(i_d),                    INTENT(IN)    :: nsnow_last   ! # of snow layers
+    INTEGER(i_d),                    INTENT(IN)    :: ns           ! index of top of soil/snow column (-nsnow_max+1)
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: dx           ! soil/snow depths
+    REAL(r_2),    DIMENSION(ns:n-1), INTENT(IN)    :: deltaz       ! soil/snow layer thickness
+    REAL(r_2),                       INTENT(IN)    :: sig          ! implicit/explicit time steping constant
+    REAL(r_2),                       INTENT(IN)    :: dt           ! time step
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: Tsoil0       ! soil/snow temperatures
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: dTsoil       ! soil/snow temperatures change
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: Sliqice      ! soil saturation
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: deltaSliqice ! soil sturation change
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: Sliq         ! soil saturation
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: deltaSliq    ! soil sturation change
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: Sice         ! soil saturation
+    REAL(r_2),    DIMENSION(ns:n),   INTENT(IN)    :: deltaSice    ! soil sturation change
+    REAL(r_2),                       INTENT(IN)    :: Ts           ! surface temperature
+    REAL(r_2),                       INTENT(IN)    :: Ta           ! air temperature [degC]
+    REAL(r_2),    DIMENSION(ns-1:n), INTENT(IN)    :: qsig         ! water flux
+    REAL(r_2),    DIMENSION(ns-1:n), INTENT(INOUT) :: qlsig        ! liquid water flux
+    REAL(r_2),    DIMENSION(ns-1:n), INTENT(INOUT) :: qvsig        ! vapour flux
+    REAL(r_2),                       INTENT(IN)    :: qprec        ! liquid  precip
+    REAL(r_2),                       INTENT(IN)    :: qprec_snow   ! solid precip
+    REAL(r_2),                       INTENT(IN)    :: qevap        ! evaporation
+    REAL(r_2),                       INTENT(IN)    :: qrunoff      ! runoff
+    REAL(r_2),    DIMENSION(1:n),    INTENT(IN)    :: qex          ! root extraction
+    REAL(r_2),                       INTENT(IN)    :: qmelt        !  melt water ! should eventually be dimensioned nsnow_max
+    REAL(r_2),                       INTENT(IN)    :: qtransfer    ! water transfer from soil to snow (+ve) or snow to soil (-ve)
+    ! TYPE(vars), DIMENSION(1:n),   INTENT(IN)    :: var           ! soil variables
+    REAL(r_2), DIMENSION(ns:n),   INTENT(IN)    :: var_cv        ! soil/snow variables cv
+    REAL(r_2), DIMENSION(ns:n),   INTENT(IN)    :: var_Dv        ! soil/snow variables Dv
+    REAL(r_2), DIMENSION(ns:n),   INTENT(IN)    :: thetasat      ! saturation moisture
+    REAL(r_2), DIMENSION(ns:n),   INTENT(IN)    :: thetar        ! residual moisture
+    REAL(r_2), DIMENSION(ns:n),   INTENT(IN)    :: tortuosity    ! soil tortuosity
+    REAL(r_2), DIMENSION(ns:n),   INTENT(INOUT) :: deltacv       !
+    REAL(r_2),                    INTENT(IN)    :: rbw           ! boundary layer resistance
+    REAL(r_2),                    INTENT(IN)    :: cva           !
+    REAL(r_2),                    INTENT(IN)    :: civa          ! iso conc in air
+    REAL(r_2),                    INTENT(IN)    :: cprec         ! iso conc in liquid precip
+    REAL(r_2),                    INTENT(IN)    :: cprec_snow    ! iso conc in snow
+    REAL(r_2),                    INTENT(IN)    :: cali          ! iso conc in alimenation water (from below)
+    REAL(r_2),                    INTENT(INOUT) :: ql0           ! liquid flux into soil or snow surface
+    REAL(r_2),                    INTENT(INOUT) :: qv0           ! vapour flux into soil or snow surface
+    REAL(r_2), DIMENSION(ns:n),   INTENT(INOUT) :: ciso          ! iso conc in soil
+    REAL(r_2), DIMENSION(ns:n),   INTENT(INOUT) :: cisoice       ! iso conc in soil
+    REAL(r_2),                    INTENT(INOUT) :: cisos         ! iso conc on surface
+    REAL(r_2),                    INTENT(OUT)   :: qiso_in       ! iso flux into soil
+    REAL(r_2),                    INTENT(OUT)   :: qiso_out      ! iso flux out of soil
+    REAL(r_2),                    INTENT(OUT)   :: qiso_evap     ! iso flux of evaporation
+    REAL(r_2),                    INTENT(OUT)   :: qiso_trans    ! iso flux of transpiration
+    REAL(r_2), DIMENSION(ns:n),   INTENT(OUT)   :: qiso_liq_adv  ! liquid iso flux in soil due to advection
+    REAL(r_2), DIMENSION(ns:n),   INTENT(OUT)   :: qiso_vap_adv  ! vapour iso flux in soil due to advection
+    REAL(r_2), DIMENSION(ns:n-1), INTENT(OUT)   :: qiso_liq_diff ! liquid iso flux in soil due to diffusion
+    REAL(r_2), DIMENSION(ns:n-1), INTENT(OUT)   :: qiso_vap_diff ! vapour iso flux in soil due to diffusion
 
     ! Local variables
 
@@ -3802,31 +3802,32 @@ CONTAINS
     REAL(r_2), DIMENSION(ns:n)   :: alphaplus, dalphaplusdT, deltaT, beta, deltabeta
     REAL(r_2), DIMENSION(ns:n)   :: alphaplus_liqice, dalphaplusdT_liqice
     ! diffusivities (liquid, liq-vap, coefft for D, surface H2O vapour, surface minor isotopologue vapour)
-    REAL(r_2), DIMENSION(ns-1:n)   :: Dl, Dv
-    REAL(r_2)                   :: Dvs, Divs
-    REAL(r_2)                   :: patm, nk, alphak, alphak_vdiff, alphak_ldiff
-    REAL(r_2)                   :: cevapin, cevapout, qevapin, qevapout, dcevapoutdciso
+    REAL(r_2), DIMENSION(ns-1:n) :: Dl, Dv
+    ! REAL(r_2)                    :: Dvs, Divs
+    REAL(r_2)                    :: patm, nk, alphak, alphak_vdiff, alphak_ldiff
+    REAL(r_2)                    :: cevapin, cevapout, qevapin, qevapout, dcevapoutdciso
     ! concentrations of advective fluxes and corresponding partial derivs wrt ciso
-    REAL(r_2), DIMENSION(ns-1:n)   :: cql, dcqldca, dcqldcb, cqv, dcqvdca, dcqvdcb
+    REAL(r_2), DIMENSION(ns-1:n) :: cql, dcqldca, dcqldcb, cqv, dcqvdca, dcqvdcb
     REAL(r_2), DIMENSION(ns:n-1) :: wcql, wcqv
-    REAL(r_2), DIMENSION(ns-1:n)   :: betaqv, dbetaqv
-    REAL(r_2), DIMENSION(ns-1:n)   :: Dlmean, Dvmean, wl, wv
-    REAL(r_2)                   :: coefA, coefB, coefC
-    REAL(r_2)                   :: coefA_liqice, coefB_liqice, coefC_liqice
+    REAL(r_2), DIMENSION(ns-1:n) :: betaqv, dbetaqv
+    REAL(r_2), DIMENSION(ns-1:n) :: Dlmean, Dvmean, Dvbetamean, wl, wv
+    REAL(r_2)                    :: coefA, coefB, coefC
+    REAL(r_2)                    :: coefA_liqice, coefB_liqice, coefC_liqice
     REAL(r_2), DIMENSION(ns:n)   :: Seff, deltaSeff, S, Tsoil, cvsig, Sliqsig, Sicesig,qex_ss
     REAL(r_2), DIMENSION(ns:n)   :: thetaice, deltathetaice, dcice
-    INTEGER(i_d)                :: ns_ciso, j
-    REAL(r_2)                   :: num, den, cv1
-    REAL(r_2)                   :: alphaplus_s, alphaplus_0
-    ! REAL(r_2)                   :: alphaplus_liqice
-    REAL(r_2)                   :: cvs !, qevapL, qevapoutL, qevapinL
-    ! REAL(r_2)                   :: cevapinL, cevapoutL, dcevapoutdcisoL, dcevapindcisoL
-    REAL(r_2), DIMENSION(ns-1:n)   :: Dveff
-    REAL(r_2)                   :: w1
-    INTEGER(i_d), PARAMETER     :: formulation= 2
-    REAL(r_2), DIMENSION(ns:n)   :: ifreeze         ! ==1 if ice accumulating (deltathetice>0)
-    REAL(r_2), DIMENSION(ns:n)   :: kfreeze, kfreeze2         ! combination of freezing variables (used when ifreeze=1)
-    REAL(r_2),   DIMENSION(ns:n)    :: deltaS     !
+    INTEGER(i_d)                 :: ns_ciso, j
+    REAL(r_2)                    :: num, den, cv1
+    REAL(r_2)                    :: alphaplus_s, alphaplus_a
+    ! REAL(r_2)                    :: alphaplus_liqice
+    REAL(r_2)                    :: cvs !, qevapL, qevapoutL, qevapinL
+    ! REAL(r_2)                    :: cevapinL, cevapoutL, dcevapoutdcisoL, dcevapindcisoL
+    REAL(r_2)                    :: w1, w2
+    INTEGER(i_d), PARAMETER      :: formulation = 2  ! 1: betaql, betaqv of flux; 2: betaql, betaqv 0.5 of upper and lower
+    REAL(r_2), DIMENSION(ns:n)   :: kfreeze, kfreeze2         ! combination of freezing variables
+    REAL(r_2),   DIMENSION(ns:n) :: deltaS     !
+    INTEGER(i_d), DIMENSION(1)   :: ii
+    REAL(r_2)                    :: tmp
+    REAL(r_2), DIMENSION(ns:n)   :: tmp1d1
 
     dcice = zero
     aa = zero
@@ -3866,8 +3867,6 @@ CONTAINS
     thetaice = zero
     deltathetaice = zero
     dcice = zero
-    Dveff = zero
-    ifreeze = zero
     kfreeze = zero
     kfreeze2 = zero
     qiso_liq_adv = zero
@@ -3882,19 +3881,20 @@ CONTAINS
        cisoice(0) = cisoice(1)
     endif
 
-    ns_ciso = -nsnow +1 ! index of top layer (<=0 = snow)
+    ns_ciso = -nsnow+1 ! index of top layer (<=0 = snow)
 
-    if ((nsnow_last.eq.0).and.(ns_ciso.le.0)) then
+    if ((nsnow_last.eq.0) .and. (ns_ciso.le.0)) then
        ciso(ns_ciso:0) = ciso(1)
        cisoice(ns_ciso:0) = cisoice(1)
     endif
-    patm    = one
+    patm = one
     deltaT(ns_ciso:n) = dTsoil(ns_ciso:n)
     qex_ss(1:n) = qex(1:n)
     if (ns_ciso<1) then
        qex_ss(ns_ciso:0) = zero
     endif
 
+    ! Tsoil to Tsoilsig
     Tsoil(ns_ciso:n) = Tsoil0(ns_ciso:n) + (sig-one)*deltaT(ns_ciso:n)
 
     ! equilibrium fractionation factors at the surface and in the soil
@@ -3905,221 +3905,170 @@ CONTAINS
        coefA = 24844.0_r_2
        coefB = -76.248_r_2
        coefC = 0.052612_r_2
-
+       ! alphaplus_liqice = 1.0212_r_2
        coefA_liqice = 48888_r_2
        coefB_liqice = -203.10_r_2
        coefC_liqice = 0.2133_r_2
-
-       ! alphaplus_liqice = 1.0212_r_2
     endif
     if (isotopologue==2) then
        coefA = 1137.0_r_2
        coefB = -0.4156_r_2
        coefC = -0.0020667_r_2
-
+       ! alphaplus_liqice = 1.00291_r_2
        coefA_liqice = 8312.5_r_2
        coefB_liqice = -49.192_r_2
        coefC_liqice = 0.0831_r_2
-
-       ! alphaplus_liqice = 1.00291_r_2
     endif
-    alphaplus_s       = one/exp(coefA/((Ts+Tzero)**2)+coefB/(Ts+Tzero)+coefC)       ! at soil or litter surface
-    alphaplus(ns_ciso:n)    = one/exp(coefA/((Tsoil(ns_ciso:n)+Tzero)**2)+coefB/(Tsoil(ns_ciso:n)+Tzero)+coefC)
-    dalphaplusdT(ns_ciso:n) = (two*coefA/(Tsoil(ns_ciso:n)+Tzero)**3 + coefB/(Tsoil(ns_ciso:n)+Tzero)**2) &
-         / exp(coefA/((Tsoil(ns_ciso:n)+Tzero)**2)+coefB/(Tsoil(ns_ciso:n)+Tzero)+coefC)
-    alphaplus_liqice(ns_ciso:n)    = one/exp(coefA_liqice/((Tsoil(ns_ciso:n)+Tzero)**2)+ &
-         coefB_liqice/(Tsoil(ns_ciso:n)+Tzero)+coefC_liqice)
-    dalphaplusdT_liqice(ns_ciso:n) = (two*coefA_liqice/(Tsoil(ns_ciso:n)+Tzero)**3 + &
-         coefB_liqice/(Tsoil(ns_ciso:n)+Tzero)**2) &
-         / exp(coefA_liqice/((Tsoil(ns_ciso:n)+Tzero)**2)+coefB_liqice/(Tsoil(ns_ciso:n)+Tzero)+coefC_liqice)
+    !MC
+    ! alphaplus_a                    = one/exp(coefA/((Ta+Tzero)**2)+coefB/(Ta+Tzero)+coefC) ! at soil or litter surface
+    ! alphaplus_s                    = one/exp(coefA/((Ts+Tzero)**2)+coefB/(Ts+Tzero)+coefC) ! at soil or litter surface
+    ! alphaplus(ns_ciso:n)           = one/exp(coefA/((Tsoil(ns_ciso:n)+Tzero)**2)+coefB/(Tsoil(ns_ciso:n)+Tzero)+coefC)
+    ! dalphaplusdT(ns_ciso:n)        = (two*coefA/(Tsoil(ns_ciso:n)+Tzero)**3 + coefB/(Tsoil(ns_ciso:n)+Tzero)**2) &
+    !      / exp(coefA/((Tsoil(ns_ciso:n)+Tzero)**2)+coefB/(Tsoil(ns_ciso:n)+Tzero)+coefC)
+    ! alphaplus_liqice(ns_ciso:n)    = one/exp(coefA_liqice/((Tsoil(ns_ciso:n)+Tzero)**2)+ &
+    !      coefB_liqice/(Tsoil(ns_ciso:n)+Tzero)+coefC_liqice)
+    ! dalphaplusdT_liqice(ns_ciso:n) = (two*coefA_liqice/(Tsoil(ns_ciso:n)+Tzero)**3 + &
+    !      coefB_liqice/(Tsoil(ns_ciso:n)+Tzero)**2) &
+    !      / exp(coefA_liqice/((Tsoil(ns_ciso:n)+Tzero)**2)+coefB_liqice/(Tsoil(ns_ciso:n)+Tzero)+coefC_liqice)
+    ! alphaplus_liqice(ns_ciso:n) = one/alphaplus_liqice(ns_ciso:n)  ! needs to be > 1
+    tmp = max(Ta, zero)
+    alphaplus_a                    = one/exp(coefA/((tmp+Tzero)**2)+coefB/(tmp+Tzero)+coefC)
+    tmp = max(Ts, zero)
+    alphaplus_s                    = one/exp(coefA/((tmp+Tzero)**2)+coefB/(tmp+Tzero)+coefC)
+    tmp1d1(ns_ciso:n) = max(Tsoil(ns_ciso:n), zero)
+    alphaplus(ns_ciso:n)           = one/exp(coefA/((tmp1d1(ns_ciso:n)+Tzero)**2)+coefB/(tmp1d1(ns_ciso:n)+Tzero)+coefC)
+    dalphaplusdT(ns_ciso:n)        = (two*coefA/(tmp1d1(ns_ciso:n)+Tzero)**3 + coefB/(tmp1d1(ns_ciso:n)+Tzero)**2) &
+         / exp(coefA/((tmp1d1(ns_ciso:n)+Tzero)**2)+coefB/(tmp1d1(ns_ciso:n)+Tzero)+coefC)
+    tmp1d1(ns_ciso:n) = min(Tsoil(ns_ciso:n), zero)
+    alphaplus_liqice(ns_ciso:n)    = one/exp(coefA_liqice/((tmp1d1(ns_ciso:n)+Tzero)**2)+ &
+         coefB_liqice/(tmp1d1(ns_ciso:n)+Tzero)+coefC_liqice)
+    dalphaplusdT_liqice(ns_ciso:n) = (two*coefA_liqice/(tmp1d1(ns_ciso:n)+Tzero)**3 + &
+         coefB_liqice/(tmp1d1(ns_ciso:n)+Tzero)**2) &
+         / exp(coefA_liqice/((tmp1d1(ns_ciso:n)+Tzero)**2)+coefB_liqice/(tmp1d1(ns_ciso:n)+Tzero)+coefC_liqice)
+    alphaplus_liqice(ns_ciso:n) = one/alphaplus_liqice(ns_ciso:n)  ! needs to be > 1
 
-    alphaplus_liqice = one/alphaplus_liqice  ! needs to be > 1
-    alphaplus_liqice =  1.00291_r_2 ! test vh
-    !write(*,*) alphaplus_liqice
-    !stop
-    !write(*,*) ciso(1), cprec_snow, cprec
-    !stop
-
-    if (experiment==1 .or. experiment==2.or. experiment==9.or. experiment==10.or.experiment == 16) then
-    ! if (experiment==1 .or. experiment==2.or. experiment==9.or. experiment==10) then
-       alphaplus_s    = one
-       alphaplus      = one
-       dalphaplusdT   = zero
-       alphaplus_0    = one
+    ! if (experiment==1 .or. experiment==2.or. experiment==9.or. experiment==10 .or. experiment == 16) then
+    if (experiment==1 .or. experiment==2.or. experiment==9.or. experiment==10) then
+       alphaplus_s      = one
+       alphaplus        = one
+       dalphaplusdT     = zero
        alphaplus_liqice = one
     endif
+    !MC
+       ! alphaplus_s      = one
+       ! alphaplus        = one
+       ! dalphaplusdT     = zero
+       ! alphaplus_liqice = one
 
-
-    beta(ns_ciso:n) = alphaplus(ns_ciso:n)      ! dimensionless
-
-    ! delta beta
-    deltabeta(ns_ciso:n) =  dalphaplusdT(ns_ciso:n)*deltaT(ns_ciso:n)
-    !if (ns_ciso==0) deltabeta(0) = zero
-    beta(ns_ciso:n) = beta(ns_ciso:n) + sig*deltabeta(ns_ciso:n)         !beta_sig
+    ! beta
+    beta(ns_ciso:n)      = alphaplus(ns_ciso:n)
+    deltabeta(ns_ciso:n) = dalphaplusdT(ns_ciso:n)*deltaT(ns_ciso:n)
+    beta(ns_ciso:n)      = beta(ns_ciso:n) + sig*deltabeta(ns_ciso:n) ! beta_sig
 
     ! adjust S and h and cv for sig of time-step
-    S(ns_ciso:n)     = Sliqice(ns_ciso:n) + deltaSliqice(ns_ciso:n)*(sig-one)      ! set S to Ssig. N.B. S = Sliqice
-    Sliqsig(ns_ciso:n)     = Sliq(ns_ciso:n) + deltaSliq(ns_ciso:n)*(sig-one)
-    Sicesig(ns_ciso:n)     = Sice(ns_ciso:n) + deltaSice(ns_ciso:n)*(sig-one)
-    thetaice(1:n) = Sice(1:n) * (thetasat(1:n)-thetar(1:n))
+    S(ns_ciso:n)       = Sliqice(ns_ciso:n) + deltaSliqice(ns_ciso:n)*(sig-one) ! set S to Ssig. N.B. S = Sliqice
+    Sliqsig(ns_ciso:n) = Sliq(ns_ciso:n) + deltaSliq(ns_ciso:n)*(sig-one)
+    Sicesig(ns_ciso:n) = Sice(ns_ciso:n) + deltaSice(ns_ciso:n)*(sig-one)
+    
+    thetaice(1:n)      = Sice(1:n) * (thetasat(1:n)-thetar(1:n))
     deltathetaice(1:n) = deltaSice(1:n) * (thetasat(1:n)-thetar(1:n))
-    ifreeze(ns_ciso:n) = merge(one,zero,deltaSice(ns_ciso:n)>zero)
 
-    kfreeze(ns_ciso:n) = merge(alphaplus_liqice(ns_ciso:n)*deltaSice(ns_ciso:n)/Sice(ns_ciso:n), &
+    kfreeze(ns_ciso:n)  = merge(alphaplus_liqice(ns_ciso:n)*deltaSice(ns_ciso:n)/Sice(ns_ciso:n), &
          zero, deltaSice(ns_ciso:n) > zero)
     kfreeze2(ns_ciso:n) = merge(deltaSice(ns_ciso:n)/Sice(ns_ciso:n)*(alphaplus_liqice(ns_ciso:n)*ciso(ns_ciso:n) - &
          cisoice(ns_ciso:n)), zero, deltaSice(ns_ciso:n) > zero)
-
     ! adapt kfreeze for totally frozen snow
     if (nsnow > 0) then
-       where ((Sliq(ns_ciso:0) > zero) .or. (deltaSliq(ns_ciso:0) > zero))  ! solve for change in isotopes in liquid
-          ifreeze(ns_ciso:0) = 0
-       elsewhere  ! solve for change in isotopes in ice
-          ifreeze(ns_ciso:0) = 1
-          kfreeze(ns_ciso:0) = one
+       where (.not. ((Sliq(ns_ciso:0) > zero) .or. (deltaSliq(ns_ciso:0) > zero))) ! solve for change in isotopes in ice
+          kfreeze(ns_ciso:0)  = one
           kfreeze2(ns_ciso:0) = zero
-          ciso(ns_ciso:0) = cisoice(ns_ciso:0)
+          ciso(ns_ciso:0)     = cisoice(ns_ciso:0)
        endwhere
        ! composition of new ice is composition of snow
        if  (((Sliq(ns_ciso) > zero) .or. (deltaSliq(ns_ciso) > zero)) .and. (qprec_snow > zero)) then
           kfreeze(ns_ciso)  =  zero
           kfreeze2(ns_ciso) = deltaSice(ns_ciso)/Sice(ns_ciso)*(cprec_snow-cisoice(ns_ciso))
        endif
-
     endif
-
     ! composition of new ice in surface layer is composition of snow
     if  (((Sliq(ns_ciso) > zero) .or. (deltaSliq(ns_ciso) > zero)) .and. &
          (qprec_snow > zero) .and. (Sice(ns_ciso) > zero) .and. (deltaSice(ns_ciso) > zero)) then
        kfreeze(ns_ciso)  =  zero
        kfreeze2(ns_ciso) = deltaSice(ns_ciso)/Sice(ns_ciso)*(cprec_snow-cisoice(ns_ciso))
     endif
-
     if ((Sice(1) <= zero) .and. (deltaSice(1) > zero)) then
        write(*,*) "deltaSice inconistent with Sice"
     endif
 
     ! calculate deltacv which is consistent with deltaS and deltaSliqice
-    deltaS(ns_ciso:n) = (qlsig(ns_ciso-1:n-1) + qvsig(ns_ciso-1:n-1) - qlsig(ns_ciso:n) - qvsig(ns_ciso:n)-qex_ss(ns_ciso:n))* &
-         dt/dx(ns_ciso:n)/thetasat(ns_ciso:n)
+    deltaS(ns_ciso:n) = ( qlsig(ns_ciso-1:n-1) + qvsig(ns_ciso-1:n-1) &
+         - qlsig(ns_ciso:n) - qvsig(ns_ciso:n) - qex_ss(ns_ciso:n) ) * &
+         dt/(dx(ns_ciso:n)*thetasat(ns_ciso:n))
 
     ! modify for snow melt (including disappearance of snow pack) and/or transfer from top soil to new snow pack
-    if ((qmelt.gt.zero).or.((qtransfer).gt.zero)) then
+    ! valid for 3 snow layers ???
+    if ((qmelt.gt.zero) .or. ((qtransfer).gt.zero)) then
        deltaS(0) = (qlsig(-1) + qvsig(-1) - (qlsig(0)+qmelt-qtransfer) - qvsig(0))*dt/dx(0)/thetasat(0)
        deltaS(1) = (qlsig(0)+qmelt-qtransfer + qvsig(0) - qlsig(1)- qvsig(1)-qex_ss(1))*dt/dx(1)/thetasat(1)
     endif
     ! modify deltaS in top layer for precip
     deltaS(ns_ciso) = deltaS(ns_ciso) + (qprec+qprec_snow)*dt/dx(ns_ciso)/thetasat(ns_ciso)
     ! modify deltaS in top soil layer for runoff
-    deltaS(1) = deltaS(1)-qrunoff*dt/thetasat(1)
+    deltaS(1) = deltaS(1) - qrunoff*dt/thetasat(1)/dx(1)
 
     where (var_cv(ns_ciso:n).gt.zero)
-       deltacv(ns_ciso:n) = (deltaS(ns_ciso:n) - deltaSliqice(ns_ciso:n) +  var_cv(ns_ciso:n)*deltaSliqice(ns_ciso:n))/ &
-            (1. - S(ns_ciso:n) +  deltaSliqice(ns_ciso:n)*(one-sig))
+       deltacv(ns_ciso:n) = (deltaS(ns_ciso:n) - deltaSliqice(ns_ciso:n) + var_cv(ns_ciso:n)*deltaSliqice(ns_ciso:n))/ &
+            (1. - (S(ns_ciso:n) + deltaSliqice(ns_ciso:n)*(one-sig)))
     elsewhere
        deltacv(ns_ciso:n) = zero
     endwhere
-
     cvsig(ns_ciso:n) = var_cv(ns_ciso:n) + deltacv(ns_ciso:n)*(sig-one)
 
     where (S(ns_ciso:n)<one)
-       Seff(ns_ciso:n) = Sliqsig(ns_ciso:n) + cvsig(ns_ciso:n)*beta(ns_ciso:n)- cvsig(ns_ciso:n)*S(ns_ciso:n)*beta(ns_ciso:n) ! &
-       Seff(ns_ciso:n) = Seff(ns_ciso:n)   + thetar(ns_ciso:n)/thetasat(ns_ciso:n)
+       Seff(ns_ciso:n) = Sliqsig(ns_ciso:n) + (one-S(ns_ciso:n))*cvsig(ns_ciso:n)*beta(ns_ciso:n) ! &
+       Seff(ns_ciso:n) = Seff(ns_ciso:n)   + thetar(ns_ciso:n)/(thetasat(ns_ciso:n)-thetar(ns_ciso:n))
        deltaSeff(ns_ciso:n) = deltaSliq(ns_ciso:n) + beta(ns_ciso:n)*deltacv(ns_ciso:n) + cvsig(ns_ciso:n)*deltabeta(ns_ciso:n) &
             - (S(ns_ciso:n)*beta(ns_ciso:n)*deltacv(ns_ciso:n) + cvsig(ns_ciso:n)*beta(ns_ciso:n)*deltaSliqice(ns_ciso:n) + &
-            cvsig(ns_ciso:n)*S(ns_ciso:n)*deltabeta(ns_ciso:n)) !+ &
+            cvsig(ns_ciso:n)*S(ns_ciso:n)*deltabeta(ns_ciso:n))
     elsewhere
-       Seff(ns_ciso:n) = Sliqsig(ns_ciso:n)
-       Seff(ns_ciso:n) = Seff(ns_ciso:n)   + thetar(ns_ciso:n)/thetasat(ns_ciso:n)
+       Seff(ns_ciso:n)      = Sliqsig(ns_ciso:n)
+       Seff(ns_ciso:n)      = Seff(ns_ciso:n) + thetar(ns_ciso:n)/thetasat(ns_ciso:n)
        deltaSeff(ns_ciso:n) = deltaSliq(ns_ciso:n)
     endwhere
 
-    ! diffusional fractionation factor in air
-    alphak_vdiff =  one
+    ! diffusional fractionation factor
+    ! air
     if (isotopologue==1) alphak_vdiff = one / 1.0251_r_2   ! HDO diffusivity in air (Merlivat 1978)
     if (isotopologue==2) alphak_vdiff = one / 1.0285_r_2   ! H218O diffusivity in air (Merlivat 1978)
-    if (experiment >= 1 .and. experiment <= 5) alphak_vdiff = one
-    if (experiment == 9 .or.experiment == 10.or.experiment == 16) alphak_vdiff = one
-    ! if (experiment == 9 .or.experiment == 10) alphak_vdiff = one
-
+    if ((experiment >= 1 .and. experiment <= 5) .or. (experiment == 9 .or. experiment == 10)) alphak_vdiff = one
+    ! if (experiment == 9 .or. experiment == 10 .or. experiment == 16) alphak_vdiff = one
     ! kinetic fractionation factor at the surface
-    Dvs  = Dva*1.e5_r_2/patm*((Ts+Tzero)/Tzero)**1.88_r_2 ! vapour diffuxivity of water in air (m2s-1)
-    Divs =  Dvs
-    if (isotopologue==1) Divs = Dvs * alphak_vdiff  ! HDO diffusivity in air
-    if (isotopologue==2) Divs = Dvs * alphak_vdiff
-    nk = ((thetasat(1)*min(S(1),one)-zero)*half + (thetasat(1)*(one-min(S(1),one))))/(thetasat(1)-zero)
-    if (experiment==7 .or. experiment==8) nk = one
-    alphak = one/((Dvs/Divs)**nk)
-    !alphak = one/(((Dvs/Divs)**nk + ram/rbh)/(one + ram/rbh)) ! kinetic fractionation factor (< 1)
-    if (experiment >= 1 .and. experiment <= 5) alphak = one
-    if (experiment == 9 .or.experiment == 10.or.experiment == 16) alphak = one
-    ! if (experiment == 9 .or.experiment == 10) alphak = one
+    ! Dvs = Dva*1.e5_r_2/patm*((Ts+Tzero)/Tzero)**1.88_r_2 ! vapour diffusivity of water in air (m2s-1)
+    ! if (isotopologue/=0) Divs = Dvs * alphak_vdiff  ! isotope diffusivity in air
+    nk = min(S(1),one)*half + (one-min(S(1),one))*one
+    if (experiment == 7 .or. experiment == 8) nk = one
+    alphak = alphak_vdiff**nk ! = one/((Dvs/Divs)**nk)
+    if ((experiment >= 1 .and. experiment <= 5) .or. (experiment == 9 .or. experiment == 10)) alphak = one
+    ! if (experiment == 9 .or. experiment == 10 .or. experiment == 16) alphak = one
 
     ! liquid diffusivity in the pond and soil
-    alphak_ldiff = one
     if (isotopologue==1) alphak_ldiff = one / 1.013_r_2
-    if (isotopologue==2) alphak_ldiff = one / 1.026_r_2
-    !molecular diffusion of HDO in normal liquid water (m2s-1)
+    if (isotopologue==2) alphak_ldiff = one / 1.026_r_2    
+    ! molecular diffusion of isotopes in normal liquid water (m2s-1)
     Dl(ns_ciso:n) = tortuosity(ns_ciso:n) * alphak_ldiff * 1.0e-7_r_2*exp(-577.0_r_2/((Tsoil(ns_ciso:n)+Tzero)-145._r_2))
-    !molecular diffusion of HDO in normal liquid water (m2s-1) (pond)
-    Dl(1:n) = Dl(1:n) * (min(S(1:n),one) * (thetasat(1:n)-thetar(1:n)) + thetar(1:n))  !vh! similar adjustment for snow required?
-    if (experiment >= 1 .and. experiment <= 4) Dl = zero
-    if (experiment == 9 .or.experiment == 10.or.experiment == 16) Dl = zero
-    ! if (experiment == 9 .or.experiment == 10) Dl = zero
-
+    Dl(ns_ciso:n) = Dl(ns_ciso:n) * (min(Sliqsig(ns_ciso:n),one) * (thetasat(ns_ciso:n)-thetar(ns_ciso:n)) + thetar(ns_ciso:n))
+    if ((experiment >= 1 .and. experiment <= 4) .or. (experiment == 9 .or. experiment == 10)) Dl = zero
+    ! if (experiment == 9 .or. experiment == 10 .or. experiment == 16) Dl = zero
 
     ! vapour diffusivity in the soil
-    Dv(ns_ciso:n) = var_Dv * alphak_vdiff  ! isotope diffusivity in soil air spaces
-    if (experiment >= 1 .and. experiment <= 5) Dv(ns_ciso:n) = var_Dv
-    if (experiment == 9 .or.experiment == 10.or.experiment == 16) Dv(ns_ciso:n) = var_Dv
-    ! if (experiment == 9 .or.experiment == 10) Dv(ns_ciso:n) = var_Dv
-    Dv(ns_ciso:n) = Dv(ns_ciso:n) * cvsig(ns_ciso:n) !* thetasat(1:n) * (1. - S(1:n))
-
-    Dveff(ns_ciso-1) = var_Dv(1)
-    do j=ns_ciso,n-1
-       if (abs(cvsig(j)-cvsig(j+1)) > 1.e-8) then
-          Dveff(j) = qvsig(j)/(cvsig(j)-cvsig(j+1))*deltaz(j) * alphak_vdiff
-          if (experiment >= 1 .and. experiment <= 5) then
-             Dveff(j) = qvsig(j)/(cvsig(j)-cvsig(j+1))*deltaz(j)
-          endif
-          if (experiment == 9 .or.experiment == 10.or.experiment == 16) then
-          ! if (experiment == 9 .or.experiment == 10) then
-             Dveff(j) = qvsig(j)/(cvsig(j)-cvsig(j+1))*deltaz(j)
-          endif
-       else
-          Dveff(j) = var_Dv(j)*alphak_vdiff
-          if (experiment >= 1 .and. experiment <= 5) then
-             Dveff(j) = var_Dv(j)
-          endif
-          ! if (experiment == 9 .or.experiment == 10) then
-          if (experiment == 9 .or.experiment == 10.or.experiment == 16) then
-             Dveff(j) = var_Dv(j)
-          endif
-
-       endif
-
-       if (Dveff(j) <= zero) then
-          Dveff(j) = var_Dv(j)*alphak_vdiff
-          if (experiment >= 1 .and. experiment <= 5) then
-             Dveff(j) = var_Dv(j)
-          endif
-          ! if (experiment == 9 .or.experiment == 10) then
-          if (experiment == 9 .or.experiment == 10.or.experiment == 16) then
-             Dveff(j) = var_Dv(j)
-          endif
-       endif
-    enddo
+    Dv(ns_ciso:n) = var_Dv(ns_ciso:n) * alphak_vdiff  ! isotope diffusivity in soil air spaces Dvi
+    !MC
+    Dv(ns_ciso:n) = Dv(ns_ciso:n) * max(one-S(ns_ciso:n),zero)*(thetasat(ns_ciso:n)-thetar(ns_ciso:n))
+    ! Dvi*cv always together on RHS
+    Dv(ns_ciso:n) = Dv(ns_ciso:n) * cvsig(ns_ciso:n)
 
     ! upper boundary condition
-    cvs = cva + qevap*(rbw) ! concentration of water vapour at soil/air interface (m3 (H2O liq)/ m3 (air))
-
-    ! denominator can be zero, check
-    if ((cvs-(var_cv(ns_ciso)-deltacv(ns_ciso))) /= zero) then
-       Dveff(ns_ciso-1) = qv0/(cvs-(var_cv(ns_ciso)-deltacv(ns_ciso)))*(half*dx(ns_ciso))
-    else
-       ! What should it be in this case?
-       Dveff(ns_ciso-1) = var_Dv(ns_ciso)
-    endif
+    cvs = cva + qevap*rbw ! concentration of water vapour at soil/air interface (m3 (H2O liq)/ m3 (air))
 
     if (var_Dv(ns_ciso) /= zero) then
        cv1 = -qv0*(half*dx(ns_ciso))/var_Dv(ns_ciso) + cvs
@@ -4132,118 +4081,134 @@ CONTAINS
     else
        w1 = one
     endif
+    if (qv0 > zero) then
+       w2 = zero
+    else
+       w2 = one
+    endif
 
-
-    Dveff(ns_ciso-1) = var_Dv(1)
-    if (nsnow.ge.1) then
+    !MC - alphak=1
+    ! alphak = one
+    if (nsnow .ge. 1) then
+       !MC
+       ! cisos          = ciso(ns_ciso)
+       ! dcevapoutdciso = one
+       !MC ???
        ! retain in incoming cisos
        num            = zero
        den            = zero
        dcevapoutdciso = alphak*alphaplus_s
     else
-       num            = alphak_vdiff*Dveff(ns_ciso-1)/(half*dx(ns_ciso))*cv1*alphaplus(ns_ciso)*ciso(ns_ciso) &
-            - ql0*ciso(ns_ciso)*w1 +civa*alphak/(rbw) + Dl(ns_ciso)*ciso(ns_ciso)/(half*dx(ns_ciso))
-       den            = alphak*cvs*alphaplus_s/(rbw) + ql0*(one-w1) + &
-            alphaplus(ns_ciso)*alphak_vdiff*cvs*Dveff(ns_ciso-1)/(half*dx(ns_ciso)) +Dl(ns_ciso)/(half*dx(ns_ciso))
-       cisos          = num/den
+       !MC
+       num   = alphak_vdiff*var_Dv(1)/(half*dx(ns_ciso))*cv1*alphaplus(ns_ciso)*ciso(ns_ciso) &
+            - ql0*ciso(ns_ciso)*w1 +civa*alphak/rbw + Dl(ns_ciso)*ciso(ns_ciso)/(half*dx(ns_ciso))
+       den   = alphak*cvs*alphaplus_s/(rbw) + ql0*(one-w1) + &
+            alphaplus(ns_ciso)*alphak_vdiff*cvs*var_Dv(1)/(half*dx(ns_ciso)) +Dl(ns_ciso)/(half*dx(ns_ciso))
+       cisos = num/den
        dcevapoutdciso = alphak*alphaplus_s
-       dcevapoutdciso = dcevapoutdciso*(alphak_vdiff*Dveff(ns_ciso-1)/(half*dx(ns_ciso))*var_cv(ns_ciso)*alphaplus(ns_ciso) - &
+       dcevapoutdciso = dcevapoutdciso*(alphak_vdiff*var_Dv(1)/(half*dx(ns_ciso))*var_cv(ns_ciso)*alphaplus(ns_ciso) - &
             ql0*w1  + Dl(ns_ciso)/(half*dx(ns_ciso)))/den
     endif
 
-    qevapin  = cva/(rbw)
-    qevapout = cvs/(rbw)
-    cevapin  = civa/cva * alphak
-    cevapout = alphak*alphaplus_s * cisos
+    qevapin  = cva/rbw
+    qevapout = cvs/rbw
+    !MC
+    ! cevapin  = alphak * civa/cva
+    cevapin  = alphak * civa/cva / alphaplus_a
+    cevapout = alphak * alphaplus_s * cisos
 
     ! concentrations_ciso of advective fluxes and corresponding partial derivs wrt ciso
     select case (formulation)
     case (1)
-       cql(ns_ciso-1) = ciso(ns_ciso)
-       cql(ns_ciso:n-1)     = merge(ciso(ns_ciso:n-1), ciso(ns_ciso+1:n), qlsig(ns_ciso:n-1)>zero)
+       cql(ns_ciso-1)         = ciso(ns_ciso)
+       cql(ns_ciso:n-1)       = merge(ciso(ns_ciso:n-1), ciso(ns_ciso+1:n), qlsig(ns_ciso:n-1)>zero)
        dcqldca(ns_ciso-1:n-1) = merge(one,  zero, qlsig(ns_ciso-1:n-1)>zero)
        dcqldcb(ns_ciso-1:n-1) = merge(zero, one,  qlsig(ns_ciso-1:n-1)>zero)
-       cql(n)         = ciso(n)
-       dcqldca(n)     = one
-       dcqldcb(n)     = zero
+       cql(n)                 = ciso(n)
+       dcqldca(n)             = one
+       dcqldcb(n)             = zero
 
-       cqv(ns_ciso-1) = ciso(ns_ciso) *beta(ns_ciso)
-       cqv(ns_ciso:n-1)     = merge(ciso(ns_ciso:n-1), ciso(ns_ciso+1:n), qvsig(ns_ciso:n-1)>zero)
+       cqv(ns_ciso-1)         = ciso(ns_ciso) *beta(ns_ciso)
+       cqv(ns_ciso:n-1)       = merge(ciso(ns_ciso:n-1), ciso(ns_ciso+1:n), qvsig(ns_ciso:n-1)>zero)
        dcqvdca(ns_ciso-1:n-1) = merge(one,  zero, qvsig(ns_ciso-1:n-1)>zero)
        dcqvdcb(ns_ciso-1:n-1) = merge(zero, one,  qvsig(ns_ciso-1:n-1)>zero)
-       cqv(n)         = ciso(n)
-       dcqvdca(n)     = one
-       dcqvdcb(n)     = zero
+       cqv(n)                 = ciso(n)
+       dcqvdca(n)             = one
+       dcqvdcb(n)             = zero
 
-       betaqv(ns_ciso-1) = beta(ns_ciso)  *alphak_vdiff
-       betaqv(ns_ciso:n-1)  = merge(beta(ns_ciso:n-1), beta(ns_ciso:n), qvsig(ns_ciso:n-1)>0)   * alphak_vdiff
-       betaqv(n)      = beta(n)  * alphak_vdiff
+       betaqv(ns_ciso-1)      = beta(ns_ciso)  *alphak_vdiff
+       betaqv(ns_ciso:n-1)    = merge(beta(ns_ciso:n-1), beta(ns_ciso:n), qvsig(ns_ciso:n-1)>0)   * alphak_vdiff
+       betaqv(n)              = beta(n)  * alphak_vdiff
 
-       dbetaqv(ns_ciso:n-1) = (beta(ns_ciso:n-1) - beta(ns_ciso+1:n))/deltaz(ns_ciso:n-1)
-       dbetaqv(ns_ciso-1)     = zero !! vh ???? !!
-       dbetaqv(n)     = zero
+       dbetaqv(ns_ciso:n-1)   = (beta(ns_ciso:n-1) - beta(ns_ciso+1:n))/deltaz(ns_ciso:n-1)
+       dbetaqv(ns_ciso-1)     = zero ! vh ????
+       dbetaqv(n)             = zero
 
        ! modify for snow melt (including disappearance of snow pack) and/or transfer from top soil to new snow pack
        if ((qmelt.gt.zero).or.((qtransfer).gt.zero)) then
-          cql(0) = (qlsig(0)*cql(0)+qmelt*ciso(0)+ciso(1)*(-qtransfer))/(qlsig(0)+qmelt -qtransfer)
-          ! dcqldcb(0) = -qtransfer/(qlsig(0)+qmelt -qtransfer)+ &
-          !      merge(zero, one, qlsig(0)>zero)*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
-          ! dcqldca(0)     = qmelt/(qlsig(0)+qmelt -qtransfer) + &
-          !      merge(one,  zero, qlsig(0)>zero)*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
+          cql(0)     = (qlsig(0)*cql(0)+qmelt*ciso(0)+ciso(1)*(-qtransfer))/(qlsig(0)+qmelt-qtransfer)
+          dcqldcb(0) = merge(zero, one, qlsig(0)>zero)*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
+          dcqldca(0) = merge(one,  zero, qlsig(0)>zero)*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
+          qlsig(0)   = qlsig(0) + qmelt - qtransfer
+       endif
 
-          dcqldcb(0) =  merge(zero, one, qlsig(0)>zero)*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
-          dcqldca(0)     =   merge(one,  zero, qlsig(0)>zero)*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
-
-          qlsig(0) = qlsig(0) + qmelt -qtransfer
+       if (experiment == 16) then
+          ! print*, 'Ha03 ', betaqv
+          ! print*, 'Ha04 ', dbetaqv
+          ! betaqv  = one
+          ! dbetaqv = zero
        endif
 
     case (2)
-       cql(ns_ciso-1) = ciso(ns_ciso)
-       cql(ns_ciso:n-1)     = half*(ciso(ns_ciso:n-1)+ciso(ns_ciso+1:n))
+       cql(ns_ciso-1)         = ciso(ns_ciso)
+       cql(ns_ciso:n-1)       = half*(ciso(ns_ciso:n-1)+ciso(ns_ciso+1:n))
        dcqldca(ns_ciso-1:n-1) = half
        dcqldcb(ns_ciso-1:n-1) = half
-       cql(n)         = ciso(n)
-       dcqldca(n)     = one
-       dcqldcb(n)     = zero
+       cql(n)                 = ciso(n)
+       dcqldca(n)             = one
+       dcqldcb(n)             = zero
 
-       !cqv(ns_ciso-1) = ciso(ns_ciso) *beta(ns_ciso)
-       !cqv(ns_ciso:n-1)     = half*(ciso(ns_ciso:n-1)*beta(ns_ciso:n-1)+ciso(ns_ciso+1:n)*beta(ns_ciso+1:n))
+       !cqv(ns_ciso-1)         = ciso(ns_ciso) *beta(ns_ciso)
+       !cqv(ns_ciso:n-1)       = half*(ciso(ns_ciso:n-1)*beta(ns_ciso:n-1)+ciso(ns_ciso+1:n)*beta(ns_ciso+1:n))
        !dcqvdca(ns_ciso-1:n-1) = half * beta(ns_ciso-1:n-1)
        !dcqvdcb(ns_ciso-1:n-1) = half * beta(ns_ciso:n)
-       !cqv(n)         = ciso(n)*beta(n)
-       !dcqvdca(n)     = one*beta(n)
-       !dcqvdcb(n)     = zero
+       !cqv(n)                 = ciso(n)*beta(n)
+       !dcqvdca(n)             = one*beta(n)
+       !dcqvdcb(n)             = zero
 
-       cqv(ns_ciso-1) = ciso(ns_ciso)
-       cqv(ns_ciso:n-1)     = half*(ciso(ns_ciso:n-1)+ciso(ns_ciso+1:n))
+       cqv(ns_ciso-1)         = ciso(ns_ciso)
+       cqv(ns_ciso:n-1)       = half*(ciso(ns_ciso:n-1)+ciso(ns_ciso+1:n))
        dcqvdca(ns_ciso-1:n-1) = half
        dcqvdcb(ns_ciso-1:n-1) = half
-       cqv(n)         = ciso(n)
-       dcqvdca(n)     = one
-       dcqvdcb(n)     = zero
+       cqv(n)                 = ciso(n)
+       dcqvdca(n)             = one
+       dcqvdcb(n)             = zero
 
-
-       betaqv(ns_ciso-1) = beta(ns_ciso)*alphak_vdiff
-       betaqv(ns_ciso:n-1)  = half*(beta(ns_ciso:n-1)+beta(ns_ciso+1:n))*alphak_vdiff
-       betaqv(n)      =  beta(n)*alphak_vdiff
-
-       dbetaqv(ns_ciso:n-1) = (beta(ns_ciso:n-1) - beta(ns_ciso+1:n))/deltaz(ns_ciso:n-1)
+       betaqv(ns_ciso-1)      = beta(ns_ciso)*alphak_vdiff
+       betaqv(ns_ciso:n-1)    = half*(beta(ns_ciso:n-1)+beta(ns_ciso+1:n))*alphak_vdiff
+       betaqv(n)              = beta(n)*alphak_vdiff
+       ! print*, 'betaqv ', betaqv
+       ! print*, 'beta ', beta
+       ! print*, 'alpha ', alphak_vdiff, half
+       
+       dbetaqv(ns_ciso:n-1)   = (beta(ns_ciso:n-1) - beta(ns_ciso+1:n))/deltaz(ns_ciso:n-1)
        dbetaqv(ns_ciso-1)     = zero !! vh ???? !!
-       dbetaqv(n)     = zero
+       dbetaqv(n)             = zero
 
-       if (experiment == 16) then
-          betaqv = one
-          dbetaqv = zero
-       endif
+       !MC
+       ! if (experiment == 16) then
+       !    print*, 'Ha01 ', betaqv
+       !    ! print*, 'Ha02 ', dbetaqv
+       ! betaqv  = one
+       !   dbetaqv = zero
+       ! endif
 
        ! modify for snow melt (including disappearance of snow pack) and/or transfer from top soil to new snow pack
-       if ((qmelt.gt.zero).or.((qtransfer).gt.zero)) then
-          cql(0) = (qlsig(0)*cql(0)+qmelt*ciso(0)+cisoice(1)*(-qtransfer))/(qlsig(0)+qmelt -qtransfer)
-          !  dcqldcb(0) = -qtransfer/(qlsig(0)+qmelt -qtransfer)+ half*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
-          dcqldcb(0) =  half*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
-          !  dcqldca(0)     = qmelt/(qlsig(0)+qmelt -qtransfer) + half*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
-          dcqldca(0)     =  half*qlsig(0)/(qlsig(0)+qmelt -qtransfer)
-          qlsig(0) = qlsig(0) + qmelt -qtransfer
+       if ((qmelt.gt.zero) .or. ((qtransfer).gt.zero)) then
+          cql(0)      = (qlsig(0)*cql(0)+qmelt*ciso(0)+cisoice(1)*(-qtransfer))/(qlsig(0)+qmelt-qtransfer)
+          dcqldcb(0)  =  half*qlsig(0)/(qlsig(0)+qmelt-qtransfer)
+          dcqldca(0)  =  half*qlsig(0)/(qlsig(0)+qmelt-qtransfer)
+          qlsig(0)    = qlsig(0) + qmelt - qtransfer
        endif
 
     case default
@@ -4252,42 +4217,46 @@ CONTAINS
     end select
 
     ! mean diffusivities
-    wl(ns_ciso:n)       =  dx(ns_ciso:n)
+    wl(ns_ciso:n)         = dx(ns_ciso:n)
     Dlmean(ns_ciso-1:n-1) = (Dl(ns_ciso-1:n-1)*wl(ns_ciso-1:n-1) + Dl(ns_ciso:n)*wl(ns_ciso:n))/(wl(ns_ciso-1:n-1)+wl(ns_ciso:n))
-    DLmean(n)     = zero
+    DLmean(n)             = zero
 
-    wv(1:n)       = dx(1:n)
-
+    wv(ns_ciso:n)       = dx(ns_ciso:n)
     Dvmean(ns_ciso:n-1) = (Dv(ns_ciso:n-1)*wv(ns_ciso:n-1) + Dv(ns_ciso+1:n)*wv(ns_ciso+1:n))/(wv(ns_ciso:n-1)+wv(ns_ciso+1:n))
-    Dvmean(n)     = zero
+    Dvmean(n)           = zero
+
+    Dvbetamean(ns_ciso:n-1) = (Dv(ns_ciso:n-1)*beta(ns_ciso:n-1)*wv(ns_ciso:n-1) &
+         + Dv(ns_ciso+1:n)*beta(ns_ciso+1:n)*wv(ns_ciso+1:n))/(wv(ns_ciso:n-1)+wv(ns_ciso+1:n))
+    Dvbetamean(n)           = zero
 
     ! coefficients of tridiagonal matrix
-    aa(ns_ciso) = zero
+    aa(ns_ciso)     = zero
 
     aa(ns_ciso+1:n) = qlsig(ns_ciso:n-1)*dcqldca(ns_ciso:n-1) &
          + qvsig(ns_ciso:n-1)*betaqv(ns_ciso:n-1)*dcqvdca(ns_ciso:n-1) &
          + dbetaqv(ns_ciso:n-1)*dcqvdca(ns_ciso:n-1)*Dvmean(ns_ciso:n-1) &
          + Dlmean(ns_ciso:n-1)/deltaz(ns_ciso:n-1) &
-         + Dvmean(ns_ciso:n-1)/deltaz(ns_ciso:n-1)*beta(ns_ciso:n-1)
-
-    bb(ns_ciso)  = -(Seff(ns_ciso)+kfreeze(ns_ciso)*Sicesig(ns_ciso)) * &
-         thetasat(ns_ciso)*dx(ns_ciso)/sig/dt &                         !!!vh!!! NB thetasat should be (thetasat-thetar)??
+         + Dvbetamean(ns_ciso:n-1)/deltaz(ns_ciso:n-1)
+    !MC ??? thetasat-thetar
+    bb(ns_ciso)       = -(Seff(ns_ciso)+kfreeze(ns_ciso)*Sicesig(ns_ciso)) * &
+         thetasat(ns_ciso)*dx(ns_ciso)/sig/dt & !!!vh!!! NB thetasat should be (thetasat-thetar)??
          - qevapout*dcevapoutdciso &
          - qlsig(ns_ciso)*dcqldca(ns_ciso) - qvsig(ns_ciso)*betaqv(ns_ciso)*dcqvdca(ns_ciso) &
          - dbetaqv(ns_ciso)*dcqvdca(ns_ciso)*Dvmean(ns_ciso) &
          - Dlmean(ns_ciso)/deltaz(ns_ciso) &
-         - Dvmean(ns_ciso)/deltaz(ns_ciso)*beta(ns_ciso) &
+         - Dvbetamean(ns_ciso)/deltaz(ns_ciso) &
          - (qex_ss(ns_ciso))
-
     bb(ns_ciso+1:n-1) = -(Seff(ns_ciso+1:n-1)+kfreeze(ns_ciso+1:n-1)*Sicesig(ns_ciso+1:n-1)) * &
          thetasat(ns_ciso+1:n-1)*dx(ns_ciso+1:n-1)/sig/dt &
-         + qlsig(ns_ciso:n-2)*dcqldcb(ns_ciso:n-2)  +qvsig(ns_ciso:n-2)*betaqv(ns_ciso:n-2)*dcqvdcb(ns_ciso:n-2) &
-         + dbetaqv(ns_ciso:n-2)*dcqvdcb(ns_ciso:n-2)* Dvmean(ns_ciso:n-2) &
-         - qlsig(ns_ciso+1:n-1)*dcqldca(ns_ciso+1:n-1) - qvsig(ns_ciso+1:n-1)*betaqv(ns_ciso+1:n-1)*dcqvdca(ns_ciso+1:n-1) &
-         - dbetaqv(ns_ciso+1:n-1)*dcqvdca(ns_ciso+1:n-1)*Dvmean(ns_ciso+1:n-1) &
-         - (Dlmean(ns_ciso:n-2)/deltaz(ns_ciso:n-2) + Dlmean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1) ) &
-         - (Dvmean(ns_ciso:n-2)/deltaz(ns_ciso:n-2) + Dvmean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1))*beta(ns_ciso+1:n-1) &
-         - qex_ss(ns_ciso+1:n-1)
+         + qlsig(ns_ciso:n-2)*dcqldcb(ns_ciso:n-2) &
+         - qlsig(ns_ciso+1:n-1)*dcqldca(ns_ciso+1:n-1) &
+         + qvsig(ns_ciso:n-2)*betaqv(ns_ciso:n-2)*dcqvdcb(ns_ciso:n-2) &
+         - qvsig(ns_ciso+1:n-1)*betaqv(ns_ciso+1:n-1)*dcqvdca(ns_ciso+1:n-1) &
+         - (Dlmean(ns_ciso:n-2)/deltaz(ns_ciso:n-2) + Dlmean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1)) &
+         - (Dvbetamean(ns_ciso:n-2)/deltaz(ns_ciso:n-2) + Dvbetamean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1)) &
+         - qex_ss(ns_ciso+1:n-1) &
+         + dbetaqv(ns_ciso:n-2)*dcqvdcb(ns_ciso:n-2)*Dvmean(ns_ciso:n-2) &
+         - dbetaqv(ns_ciso+1:n-1)*dcqvdca(ns_ciso+1:n-1)*Dvmean(ns_ciso+1:n-1)
 
     bb(1) = bb(1) - qrunoff
 
@@ -4297,15 +4266,15 @@ CONTAINS
          + dbetaqv(n-1)*dcqvdcb(n-1) *Dvmean(n-1) &
          - qlsig(n)*dcqldca(n) &
          - Dlmean(n-1)/deltaz(n-1) &
-         - Dvmean(n-1)/deltaz(n-1)*beta(n) &
+         - Dvbetamean(n-1)/deltaz(n-1) &
          - qex_ss(n)
 
     cc(ns_ciso:n-1) = -qlsig(ns_ciso:n-1)*dcqldcb(ns_ciso:n-1)  - qvsig(ns_ciso:n-1)*betaqv(ns_ciso:n-1)*dcqvdcb(ns_ciso:n-1) &
          - dbetaqv(ns_ciso:n-1)*dcqvdcb(ns_ciso:n-1)*Dvmean(ns_ciso:n-1) &
          + Dlmean(ns_ciso:n-1)/deltaz(ns_ciso:n-1) &
-         + Dvmean(ns_ciso:n-1)/deltaz(ns_ciso:n-1)*beta(ns_ciso+1:n)
+         + Dvbetamean(ns_ciso:n-1)/deltaz(ns_ciso:n-1)
 
-    cc(n) = zero
+    cc(n)           = zero
 
     dd(ns_ciso) = thetasat(ns_ciso)*dx(ns_ciso)/sig/dt* &
          (ciso(ns_ciso)*deltaSeff(ns_ciso) + cisoice(ns_ciso)*deltaSice(ns_ciso) + &
@@ -4314,7 +4283,7 @@ CONTAINS
          + qlsig(ns_ciso)*cql(ns_ciso)/sig + qvsig(ns_ciso)*betaqv(ns_ciso)*cqv(ns_ciso)/sig &
          + dbetaqv(ns_ciso)*cqv(ns_ciso)*Dvmean(ns_ciso)/sig &
          + Dlmean(ns_ciso)/deltaz(ns_ciso)/sig*(ciso(ns_ciso) - ciso(ns_ciso+1)) &
-         + Dvmean(ns_ciso)/deltaz(ns_ciso)/sig*(ciso(ns_ciso)*beta(ns_ciso) - ciso(ns_ciso+1)*beta(ns_ciso+1) ) &
+         + Dvbetamean(ns_ciso)/deltaz(ns_ciso)/sig*(ciso(ns_ciso)-ciso(ns_ciso+1)) &
          + (qex_ss(ns_ciso))*ciso(ns_ciso)/sig
 
     dd(ns_ciso+1:n-1) = thetasat(ns_ciso+1:n-1)*dx(ns_ciso+1:n-1)/sig/dt* &
@@ -4327,11 +4296,11 @@ CONTAINS
          + qvsig(ns_ciso+1:n-1)*betaqv(ns_ciso+1:n-1)*cqv(ns_ciso+1:n-1)/sig &
          + dbetaqv(ns_ciso+1:n-1)*cqv(ns_ciso+1:n-1)*Dvmean(ns_ciso+1:n-1)/sig &
          - Dlmean(ns_ciso:n-2)/deltaz(ns_ciso:n-2)/sig*(ciso(ns_ciso:n-2) - ciso(ns_ciso+1:n-1)) &
-         - Dvmean(ns_ciso:n-2)/deltaz(ns_ciso:n-2)/sig*(ciso(ns_ciso:n-2)*beta(ns_ciso:n-2) - &
-         ciso(ns_ciso+1:n-1)*beta(ns_ciso+1:n-1)) &
+         - Dvbetamean(ns_ciso:n-2)/deltaz(ns_ciso:n-2)/sig*(ciso(ns_ciso:n-2) - &
+         ciso(ns_ciso+1:n-1)) &
          + Dlmean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1)/sig*(ciso(ns_ciso+1:n-1) - ciso(ns_ciso+2:n)) &
-         + Dvmean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1)/sig*(ciso(ns_ciso+1:n-1)*beta(ns_ciso+1:n-1) - &
-         ciso(ns_ciso+2:n)*beta(ns_ciso+2:n)) &
+         + Dvbetamean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1)/sig*(ciso(ns_ciso+1:n-1) - &
+         ciso(ns_ciso+2:n)) &
          + qex_ss(ns_ciso+1:n-1)*ciso(ns_ciso+1:n-1)/sig
 
     dd(1) = dd(1) + qrunoff*ciso(1)/sig
@@ -4344,7 +4313,7 @@ CONTAINS
          - dbetaqv(n-1)*cqv(n-1)*Dvmean(n-1)/sig &
          + qlsig(n)*cql(n)/sig &
          - Dlmean(n-1)/deltaz(n-1)/sig*(ciso(n-1) - ciso(n)) &
-         - Dvmean(n-1)/deltaz(n-1)/sig*(ciso(n-1)*beta(n-1) - ciso(n)*beta(n) ) &
+         - Dvbetamean(n-1)/deltaz(n-1)/sig*(ciso(n-1) - ciso(n)) &
          + qex_ss(n)*ciso(n)/sig
 
     if (cali>zero .or. experiment==7 .or. experiment==8) then
@@ -4352,12 +4321,20 @@ CONTAINS
        dd(n) = dd(n) + qlsig(n)*(cali-cql(n))/sig
     endif
 
+    ! print*, 'aa ', aa(ns_ciso)
+    ! print*, 'bb ', bb(ns_ciso)
+    ! print*, 'cc ', cc(ns_ciso)
+    ! print*, 'dd ', dd(ns_ciso)
     call tri(ns_ciso,n,aa,bb,cc,dd,dc)
-
-    dcice(1:n) = sig*dc(1:n)*kfreeze(1:n) + kfreeze2(1:n)
+    ! print*, 'After ', bb(ns_ciso) * dc(ns_ciso) + cc(ns_ciso) * dc(ns_ciso+1), dd(ns_ciso), &
+    !      bb(ns_ciso) * dc(ns_ciso) + cc(ns_ciso) * dc(ns_ciso+1) - dd(ns_ciso)
+    !MC ???
+    ! dcice(1:n) = sig*dc(1:n)*kfreeze(1:n) + kfreeze2(1:n)
+    dcice(1:n) = dc(1:n)*kfreeze(1:n) + kfreeze2(1:n)
     if (nsnow.gt.0) then
        where ((Sliq(ns_ciso:0).gt.zero).or.(deltaSliq(ns_ciso:0).gt.zero))  ! solve for change in isotopes in liquid
-          dcice(ns_ciso:0) = sig*dc(ns_ciso:0)*kfreeze(ns_ciso:0) + kfreeze2(ns_ciso:0)
+          ! dcice(ns_ciso:0) = sig*dc(ns_ciso:0)*kfreeze(ns_ciso:0) + kfreeze2(ns_ciso:0)
+          dcice(ns_ciso:0) = dc(ns_ciso:0)*kfreeze(ns_ciso:0) + kfreeze2(ns_ciso:0)
        elsewhere  ! solve for change in isotopes in ice
           dcice(ns_ciso:0) = dc(ns_ciso:0)
        endwhere
@@ -4382,22 +4359,44 @@ CONTAINS
          (ciso(ns_ciso+1:n-1)+sig*dc(ns_ciso+1:n-1)))/deltaz(ns_ciso:n-2) &
          - Dlmean(ns_ciso+1:n-1)*((ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1))- &
          (ciso(ns_ciso+2:n)+sig*dc(ns_ciso+2:n)))/deltaz(ns_ciso+1:n-1) &
-         + Dvmean(ns_ciso:n-2)*((ciso(ns_ciso:n-2) + sig*dc(ns_ciso:n-2))*beta(ns_ciso:n-2) - &
+         + Dvbetamean(ns_ciso:n-2)*((ciso(ns_ciso:n-2) + sig*dc(ns_ciso:n-2)) - &
          (ciso(ns_ciso+1:n-1) &
          + sig*dc(ns_ciso+1:n-1))*beta(ns_ciso+1:n-1))/deltaz(ns_ciso:n-2) &
-         - Dvmean(ns_ciso+1:n-1)*((ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1))*beta(ns_ciso+1:n-1) - &
-         (ciso(ns_ciso+2:n) &
-         + sig*dc(ns_ciso+2:n))*beta(ns_ciso+2:n))/deltaz(ns_ciso+1:n-1) &
-         - qex_ss(ns_ciso+1:n-1)*(ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1))
-
+         - Dvbetamean(ns_ciso+1:n-1)*((ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1)) - &
+         (ciso(ns_ciso+2:n) + sig*dc(ns_ciso+2:n)))/deltaz(ns_ciso+1:n-1) &
+         - qex_ss(ns_ciso+1:n-1)*(ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1)) &
+         + dbetaqv(ns_ciso:n-2)*dcqvdcb(ns_ciso:n-2)*Dvmean(ns_ciso:n-2)*(ciso(ns_ciso:n-2) + sig*dc(ns_ciso:n-2)) &
+         - dbetaqv(ns_ciso+1:n-1)*dcqvdcb(ns_ciso+1:n-1)*Dvmean(ns_ciso+1:n-1)*(ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1))
+         
     RHS(ns_ciso) = qprec_snow*cprec_snow + qprec*cprec - qevapout*(cevapout + sig*dc(ns_ciso)*dcevapoutdciso) +qevapin*cevapin &
          -qlsig(ns_ciso)*(cql(ns_ciso) + sig*dc(ns_ciso)*dcqldca(ns_ciso) + sig*dc(ns_ciso+1)*dcqldcb(ns_ciso)) &
          - qvsig(ns_ciso)*betaqv(ns_ciso)*(cqv(ns_ciso) + sig*dc(ns_ciso)*dcqvdca(ns_ciso) + &
          sig*dc(ns_ciso+1)*dcqvdcb(ns_ciso)) &
          - Dlmean(ns_ciso)*((ciso(ns_ciso) + sig*dc(ns_ciso))-(ciso(ns_ciso+1)+sig*dc(ns_ciso+1)))/deltaz(ns_ciso) &
-         - Dvmean(ns_ciso)*((ciso(ns_ciso) + sig*dc(ns_ciso))*beta(ns_ciso) - &
-         (ciso(ns_ciso+1) + sig*dc(ns_ciso+1))*beta(ns_ciso+1))/deltaz(ns_ciso) &
-         - (qex_ss(ns_ciso))*(ciso(ns_ciso) + sig*dc(ns_ciso))
+         - Dvbetamean(ns_ciso)*((ciso(ns_ciso) + sig*dc(ns_ciso)) - &
+         (ciso(ns_ciso+1) + sig*dc(ns_ciso+1)))/deltaz(ns_ciso) &
+         - (qex_ss(ns_ciso))*(ciso(ns_ciso) + sig*dc(ns_ciso)) &
+         - dbetaqv(ns_ciso)*dcqvdcb(ns_ciso)*Dvmean(ns_ciso)*(ciso(ns_ciso) + sig*dc(ns_ciso))
+    ! print*, 'Ha01 ', thetasat(ns_ciso)*dx(ns_ciso)/dt*(dc(ns_ciso)*Seff(ns_ciso) + &
+    !      ciso(ns_ciso)*deltaSeff(ns_ciso)), &
+    !      thetasat(ns_ciso)*dx(ns_ciso)/dt*(dcice(ns_ciso)*Sicesig(ns_ciso) + &
+    !      (cisoice(ns_ciso:n)+sig*dcice(ns_ciso:n))*deltaSice(ns_ciso:n))
+    ! print*, 'Ha02 ', qprec_snow*cprec_snow, &
+    !      qprec*cprec, &
+    !      qevapout*(cevapout + sig*dc(ns_ciso)*dcevapoutdciso), &
+    !      qevapin*cevapin, &
+    !      qlsig(ns_ciso)*(cql(ns_ciso) + sig*dc(ns_ciso)*dcqldca(ns_ciso) + sig*dc(ns_ciso+1)*dcqldcb(ns_ciso)), &
+    !      qvsig(ns_ciso)*betaqv(ns_ciso)*(cqv(ns_ciso) + sig*dc(ns_ciso)*dcqvdca(ns_ciso) + &
+    !      sig*dc(ns_ciso+1)*dcqvdcb(ns_ciso)), &
+    !      Dlmean(ns_ciso)*((ciso(ns_ciso) + sig*dc(ns_ciso))-(ciso(ns_ciso+1)+sig*dc(ns_ciso+1)))/deltaz(ns_ciso), &
+    !      Dvbetamean(ns_ciso)*((ciso(ns_ciso) + sig*dc(ns_ciso)) - &
+    !      (ciso(ns_ciso+1) + sig*dc(ns_ciso+1)))/deltaz(ns_ciso), &
+    !      (qex_ss(ns_ciso))*(ciso(ns_ciso) + sig*dc(ns_ciso)), &
+    !      dbetaqv(ns_ciso)*dcqvdcb(ns_ciso)*Dvmean(ns_ciso)*(ciso(ns_ciso) + sig*dc(ns_ciso))
+    ! print*, 'Ha03 ', qvsig(ns_ciso), betaqv(ns_ciso), cqv(ns_ciso), sig, dc(ns_ciso), dcqvdca(ns_ciso), &
+    !      dc(ns_ciso+1), dcqvdcb(ns_ciso)
+    ! print*, 'Ha04 ', cqv(ns_ciso), sig*dc(ns_ciso)*dcqvdca(ns_ciso), sig*dc(ns_ciso+1)*dcqvdcb(ns_ciso)
+
 
     RHS(1) = RHS(1) -qrunoff*(ciso(1) + sig*dc(1))
 
@@ -4405,27 +4404,33 @@ CONTAINS
          + qvsig(n-1)*betaqv(n-1)*(cqv(n-1) + sig*dc(n-1)*dcqvdca(n-1) + sig*dc(n)*dcqvdcb(n-1)) &
          -qsig(n)*(ciso(n) + sig*dc(n)) &
          + Dlmean(n-1)*((ciso(n-1) + sig*dc(n-1))-(ciso(n)+sig*dc(n)))/deltaz(n-1) &
-         + Dvmean(n-1)*((ciso(n-1) + sig*dc(n-1))*beta(n-1) - (ciso(n) + sig*dc(n))*beta(n))/deltaz(n-1) &
-         -qex_ss(n)*(ciso(n)+sig*dc(n))
+         + Dvbetamean(n-1)*((ciso(n-1) + sig*dc(n-1)) - (ciso(n) + sig*dc(n)))/deltaz(n-1) &
+         -qex_ss(n)*(ciso(n)+sig*dc(n)) &
+         + dbetaqv(n)*dcqvdcb(n)*Dvmean(n)*(ciso(n) + sig*dc(n))
 
     if (cali>zero .or. experiment==7 .or. experiment==8) then
        RHS(n) = RHS(n) - qsig(n) * (cali - (ciso(n)+sig*dc(n)))
     endif
 
-    !MC if (any(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n))>epsilon(one))) then
+    ! if (any(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n))>tiny(one))) then       
+    ! if (any(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n))>epsilon(one))) then       
     if (any(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n))>1.e-6_r_2)) then
-       write(*,*) 'Max of abs(LHS-RHS): ', maxval(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n))), maxloc(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n)))
-       write(*,*) nsnow, ifreeze(0), irec
-       write(*,*) ciso(0), dc(0),dcice(0), cprec_snow, cevapin, cevapout, qv0, ql0, -qevap
-       write(*,*) "cqv", cqv
-       write(*,*) "cql", cql
-       write(*,*) "qprec", qprec, qprec_snow, kfreeze(0), kfreeze2(0)
-       write(*,*) "cprec_snow", cprec_snow, ns_ciso
-       write(*,*) "qmelt, qtransfer", qmelt, qtransfer, qrunoff, Seff(1)
-       write(*,*) LHS(1), RHS(1)
-       write(*,*) LHS(0), RHS(0), qprec_snow*cprec_snow
-       write(*,*) nsnow_last, deltaSice(0), deltaSliq(0), cvsig(0), deltacv(0)
-       ! stop
+       write(*,*) 'abs(LHS-RHS) ', abs(LHS(ns_ciso:n)-RHS(ns_ciso:n))
+       ii = maxloc(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n)))
+       write(*,*) 'Max of abs(LHS-RHS): ', maxval(abs(LHS(ns_ciso:n)-RHS(ns_ciso:n))), ii
+       write(*,*) 'nsnow ', nsnow, irec, ns_ciso
+       write(*,*) 'surface ', ciso(ns_ciso), dc(ns_ciso), dcice(ns_ciso)
+       write(*,*) 'flux ', cprec_snow, cevapin, cevapout
+       write(*,*) 'surface flux ', qv0, ql0, -qevap
+       write(*,*) 'layer ', ciso(ii(1)), dc(ii(1)), dcice(ii(1))
+       write(*,*) 'cqv', cqv
+       write(*,*) 'cql', cql
+       write(*,*) 'qprec', qprec, qprec_snow, kfreeze(ns_ciso), kfreeze2(ns_ciso)
+       write(*,*) 'qmelt', qmelt, qtransfer, qrunoff, Seff(1)
+       write(*,*) 'surface balance ', LHS(ns_ciso), RHS(ns_ciso), qprec_snow*cprec_snow
+       write(*,*) 'layer balance ', LHS(ii(1)), RHS(ii(1))
+       write(*,*) 'surface sigs ', nsnow_last, deltaSice(ns_ciso), deltaSliq(ns_ciso), cvsig(ns_ciso), deltacv(ns_ciso)
+       stop
     endif
 
     !   endif ! 1==1
@@ -4436,11 +4441,10 @@ CONTAINS
     qiso_evap  = qevapout*(cevapout + sig*dc(ns_ciso)*dcevapoutdciso) - qevapin*cevapin
     qiso_trans = sum(qex_ss(ns_ciso:n)*(ciso(ns_ciso:n)+sig*dc(ns_ciso:n)),1)
 
-
     qiso_liq_diff(ns_ciso:n-1) = Dlmean(ns_ciso:n-1)*((ciso(ns_ciso:n-1) + &
          sig*dc(ns_ciso:n-1))-(ciso(ns_ciso+1:n)+sig*dc(ns_ciso+1:n)))/deltaz(ns_ciso:n-1)
-    qiso_vap_diff(ns_ciso:n-1) = Dvmean(ns_ciso:n-1)*((ciso(ns_ciso:n-1) + sig*dc(ns_ciso:n-1))*beta(ns_ciso:n-1) &
-         - (ciso(ns_ciso+1:n) + sig*dc(ns_ciso+1:n))*beta(ns_ciso+1:n))/deltaz(ns_ciso :n-1)
+    qiso_vap_diff(ns_ciso:n-1) = Dvbetamean(ns_ciso:n-1)*((ciso(ns_ciso:n-1) + sig*dc(ns_ciso:n-1)) &
+         - (ciso(ns_ciso+1:n) + sig*dc(ns_ciso+1:n)))/deltaz(ns_ciso :n-1)
     qiso_liq_adv(ns_ciso:n-1)  = qlsig(ns_ciso:n-1)*(cql(ns_ciso:n-1) + sig*dc(ns_ciso:n-1)*dcqldca(ns_ciso:n-1) + &
          sig*dc(ns_ciso+1:n)*dcqldcb(ns_ciso:n-1))
     qiso_liq_adv(n)      = qlsig(n)*(cql(n) + sig*dc(n))
@@ -4448,8 +4452,7 @@ CONTAINS
          * (cqv(ns_ciso:n-1) + sig*dc(ns_ciso:n-1)*dcqvdca(ns_ciso:n-1) + sig*dc(ns_ciso+1:n)*dcqvdcb(ns_ciso:n-1))
     qiso_vap_adv(n)      = zero
 
-
-    ciso = ciso + dc
+    ciso         = ciso + dc
     cisoice(1:n) = cisoice(1:n) + dcice(1:n)
     if (nsnow > 0) then
        cisoice(ns_ciso:0) = merge(cisoice(ns_ciso:0) + dcice(ns_ciso:0), & ! solve for change in isotopes in liquid
@@ -4457,9 +4460,11 @@ CONTAINS
             (Sliq(ns_ciso:0) > zero) .or. (deltaSliq(ns_ciso:0) > zero))
     endif
 
+    write(993,*) ciso(ns_ciso), cisos, civa/cva/alphaplus_a
 
   END SUBROUTINE isotope_vap
 
   !*********************************************************************************************************************
 
 END MODULE sli_solve
+

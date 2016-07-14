@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -22,10 +22,10 @@
 
 MODULE cable_albedo_module
 
-   USE cable_data_module, ONLY : ialbedo_type, point2constants 
-   
+   USE cable_data_module, ONLY : ialbedo_type, point2constants
+
    IMPLICIT NONE
-   
+
    PUBLIC surface_albedo
    PRIVATE
 
@@ -34,41 +34,41 @@ MODULE cable_albedo_module
 
 CONTAINS
 
-  
+
 SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
-   
-   USE cable_common_module   
-   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
+
+   USE cable_common_module
+   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
                                    canopy_type, met_type, radiation_type,      &
-                                   soil_snow_type, mp, r_2, nrb 
-   
+                                   soil_snow_type, mp, r_2, nrb
+
    TYPE (canopy_type),INTENT(IN)       :: canopy
    TYPE (met_type),INTENT(INOUT)       :: met
    TYPE (radiation_type),INTENT(INOUT) :: rad
    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
 
    TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
+   TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
       dummy
    REAL, INTENT(IN) :: dels
- 
+
    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE :: c1, rhoch
-   
+
    LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
 
    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
-      
+
    ! END header
 
-   CALL point2constants(C) 
-   
+   CALL point2constants(C)
+
    IF (.NOT. allocated(c1)) &
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-  
+
    CALL surface_albedosn(ssnow, veg, met, soil, dels)
 
    rad%cexpkbm = 0.0
@@ -82,17 +82,17 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
 
    ! Define vegetation mask:
    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-          ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH     
+          ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
 
    CALL calc_rhoch( veg, c1, rhoch )
 
-   ! Update extinction coefficients and fractional transmittance for 
+   ! Update extinction coefficients and fractional transmittance for
    ! leaf transmittance and reflection (ie. NOT black leaves):
    !---1 = visible, 2 = nir radiaition
-   DO b = 1, 2        
-      
+   DO b = 1, 2
+
       rad%extkdm(:,b) = rad%extkd * c1(:,b)
-   
+
       !--Define canopy diffuse transmittance (fraction):
       rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
 
@@ -100,12 +100,12 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
       WHERE( canopy%vlaiw > 1e-2 )                                             &
          rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
                            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
-      
-      !---where vegetated and sunlit 
-      WHERE (mask)                
-      
+
+      !---where vegetated and sunlit
+      WHERE (mask)
+
          rad%extkbm(:,b) = rad%extkb * c1(:,b)
-      
+
       ! Canopy reflection (6.21) beam:
          rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
                         * rhoch(:,b)
@@ -125,24 +125,25 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
       WHERE( canopy%vlaiw> C%LAI_THRESH )                                      &
          rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
                            rad%fbeam(:,b) * rad%reffbm(:,b)
-       
+
    END DO
 
-END SUBROUTINE surface_albedo 
+
+END SUBROUTINE surface_albedo
 
 ! ------------------------------------------------------------------------------
 
 SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
-   
-   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
-                                   met_type, soil_snow_type, mp 
+
+   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
+                                   met_type, soil_snow_type, mp
    USE cable_common_module
-   
+
    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
    TYPE (met_type),INTENT(INOUT)       :: met
-   
+
    TYPE (veg_parameter_type),INTENT(INout)  :: veg
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
+   TYPE(soil_parameter_type), INTENT(INOUT) :: soil
    REAL, INTENT(IN) :: dels
 
    REAL, DIMENSION(mp) ::                                                      &
@@ -154,17 +155,17 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
       dnsnow,  &  ! new snow albedo
       dtau,    &  !
       fage,    &  ! age factor
-      fzenm,   &  !    
+      fzenm,   &  !
       sfact,   &  !
-      snr,     &  ! 
-      snrat,   &  !  
+      snr,     &  !
+      snrat,   &  !
       talb,    &  ! snow albedo
       tmp         ! temporary value
-   
+
    REAL, PARAMETER ::                                                          &
       alvo  = 0.95,  &  ! albedo for vis. on a new snow
       aliro = 0.70      ! albedo for near-infr. on a new snow
-     
+
    soil%albsoilf = soil%albsoil(:,1)
 
    ! lakes: hard-wired number to be removed in future
@@ -174,7 +175,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
    WHERE(ssnow%snowd > 1. .and. veg%iveg == 16 ) soil%albsoilf = 0.85
 
    sfact = 0.68
-  
+
    WHERE (soil%albsoilf <= 0.14)
       sfact = 0.5
    ELSEWHERE (soil%albsoilf > 0.14 .and. soil%albsoilf <= 0.20)
@@ -183,7 +184,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
 
    ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
    ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
-  
+
    ! calc soil albedo based on colour - Ticket #27
    IF (calcsoilalbedo) THEN
      CALL soilcol_albedo(ssnow, soil)
@@ -193,11 +194,11 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
    alir =0.
    alv  =0.
 
-   WHERE ( ssnow%snowd > 1. .AND. .NOT. cable_runtime%um_radiation ) 
-       
+   WHERE ( ssnow%snowd > 1. .AND. .NOT. cable_runtime%um_radiation )
+
       ! new snow (cm H2O)
-      dnsnow = MIN ( 1., .1 * MAX( 0., ssnow%snowd - ssnow%osnowd ) ) 
-      
+      dnsnow = MIN ( 1., .1 * MAX( 0., ssnow%snowd - ssnow%osnowd ) )
+
       ! Snow age depends on snow crystal growth, freezing of melt water,
       ! accumulation of dirt and amount of new snow.
       tmp = ssnow%isflag * ssnow%tggsn(:,1) + ( 1 - ssnow%isflag )            &
@@ -206,7 +207,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
       ar1 = 5000. * (1. / (C%TFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
       ar2 = 10. * ar1 ! freezing of melt water
       snr = ssnow%snowd / max (ssnow%ssdnn, 200.)
-      
+
       WHERE (soil%isoilm == 9)
          ! permanent ice: hard-wired number to be removed in future version
          ar3 = .0000001
@@ -214,30 +215,30 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
          !dnsnow = max (dnsnow, .5) !increase refreshing of snow in Antarctic
          dnsnow = 1.0
          snrat = 1.
-      
+
       ELSEWHERE
 
          ! accumulation of dirt
          ar3 = .1
          ! snow covered fraction of the grid
-         snrat = min (1., snr / (snr + .1) )    
-           
+         snrat = min (1., snr / (snr + .1) )
+
       END WHERE
 
-    
+
 
      !! vh_js !! in offline runs kwidth_gl is zero. Suggest using dels instead
 
       dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * dels
 
-     ! dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl 
-      
+     ! dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl
+
       WHERE (ssnow%snowd <= 1.0)
          ssnow%snage = 0.
       ELSEWHERE
          ssnow%snage = max (0.,(ssnow%snage+dtau)*(1.-dnsnow))
       END WHERE
-      
+
       fage = 1. - 1. / (1. + ssnow%snage ) !age factor
 
       tmp = MAX( .17365, met%coszen )
@@ -249,32 +250,32 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
       tmp = aliro * (1. - .5 * fage)
 
       ! use dry snow albedo for pernament land ice: hard-wired no to be removed
-      WHERE (soil%isoilm == 9)             
-         
+      WHERE (soil%isoilm == 9)
+
          tmp = 0.95 * (1.0 - 0.2 * fage)
          alv = .4 * fzenm * (1. - tmp) + tmp
          tmp = 0.75 * (1. - .5 * fage)
-      
+
       END WHERE
-      
+
       alir = .4 * fzenm * (1.0 - tmp) + tmp
       talb = .5 * (alv + alir) ! snow albedo
-    
+
    ENDWHERE        ! snowd > 0
-   
-   ! when it is called from cable_rad_driver (UM) 
-   ! no need to recalculate snage 
+
+   ! when it is called from cable_rad_driver (UM)
+   ! no need to recalculate snage
    WHERE (ssnow%snowd > 1 .and. cable_runtime%um_radiation )
-      
+
       snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
-      
+
       WHERE (soil%isoilm == 9)
          ! permanent ice: hard-wired number to be removed
          snrat = 1.
       ELSEWHERE
          snrat = MIN (1., snr / (snr + .1) )
       END WHERE
-      
+
       fage = 1. - 1. / (1. + ssnow%snage ) !age factor
       tmp = MAX (.17365, met%coszen )
       fzenm = MAX( 0., MERGE( 0.0,                                             &
@@ -283,28 +284,28 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
        tmp = alvo * (1.0 - 0.2 * fage)
        alv = .4 * fzenm * (1. - tmp) + tmp
        tmp = aliro * (1. - .5 * fage)
-      
+
       ! use dry snow albedo
-      WHERE (soil%isoilm == 9)          
+      WHERE (soil%isoilm == 9)
          ! permanent ice: hard-wired number to be removed
 
          tmp = 0.95 * (1.0 - 0.2 * fage)
          alv = .4 * fzenm * (1. - tmp) + tmp
          tmp = 0.75 * (1. - .5 * fage)
-      
+
       END WHERE
-      
+
       alir = .4 * fzenm * (1.0 - tmp) + tmp
       talb = .5 * (alv + alir) ! snow albedo
-    
+
    ENDWHERE        ! snowd > 0
-   
+
    IF(cable_user%SOIL_STRUC=='sli') THEN
       snrat = 1.0   ! using default parameterisation, albedo is too low, inhibiting snowpack initiation
    ENDIF
    ssnow%albsoilsn(:,2) = MIN( aliro,                                          &
                           ( 1. - snrat ) * ssnow%albsoilsn(:,2) + snrat * alir)
-   
+
    ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
                           ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
 
@@ -312,14 +313,14 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
      ssnow%albsoilsn(:,2) = 0.82
      ssnow%albsoilsn(:,1) = 0.82
    END WHERE
-   
+
 END SUBROUTINE surface_albedosn
 
 ! ------------------------------------------------------------------------------
 
-!jhan:subr was reintroduced here to temporarily resolve issue when 
+!jhan:subr was reintroduced here to temporarily resolve issue when
 !creating libcable.a  (repeated in cable_radiation.F90)
-SUBROUTINE calc_rhoch(veg,c1,rhoch) 
+SUBROUTINE calc_rhoch(veg,c1,rhoch)
 
    USE cable_def_types_mod, ONLY : veg_parameter_type
    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
@@ -328,12 +329,12 @@ SUBROUTINE calc_rhoch(veg,c1,rhoch)
    c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
    c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
    c1(:,3) = 1.
-    
-   ! Canopy reflection black horiz leaves 
+
+   ! Canopy reflection black horiz leaves
    ! (eq. 6.19 in Goudriaan and van Laar, 1994):
    rhoch = (1.0 - c1) / (1.0 + c1)
 
-END SUBROUTINE calc_rhoch 
+END SUBROUTINE calc_rhoch
 
 ! -----------------------------------------------------------------------------
 ! subr to calc soil albedo based on colour - Ticket #27
@@ -345,7 +346,7 @@ SUBROUTINE soilcol_albedo(ssnow, soil)
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow      ! soil+snow variables
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
 
-   ! Local Variables 
+   ! Local Variables
    INTEGER   :: ib
    REAL(r_2), DIMENSION(mp)      :: inc
    REAL(r_2), DIMENSION(mp, nrb) :: albsod,          & ! soil albedo (direct)
@@ -354,7 +355,7 @@ SUBROUTINE soilcol_albedo(ssnow, soil)
    ! Look-up tables for soil albedo
    ! saturated soil albedos for 20 color classes and 2 wavebands (1=vis, 2=nir)
    REAL(r_2), DIMENSION(20,nrb) ::                                  &
-      albsat,                                                                  &  
+      albsat,                                                                  &
       albdry
 
    REAL(r_2), PARAMETER, DIMENSION(20*nrb) ::                                  &
@@ -372,8 +373,8 @@ SUBROUTINE soilcol_albedo(ssnow, soil)
                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,                   &
                      0., 0., 0., 0., 0., 0., 0., 0., 0., 0. /)
 
-   albsat = RESHAPE( albsat1D, (/20, nrb/) ) 
-   albdry = RESHAPE( albdry1D, (/20, nrb/) ) 
+   albsat = RESHAPE( albsat1D, (/20, nrb/) )
+   albdry = RESHAPE( albdry1D, (/20, nrb/) )
 
    DO ib = 1,2 ! Number of wavebands (vis, nir)
       inc = MAX(0.11-0.40*ssnow%wb(:,1), 0._r_2)

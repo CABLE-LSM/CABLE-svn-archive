@@ -116,10 +116,13 @@ MODULE cable_mpimaster
 !CLN  ! MPI derived datatype handles for receiving casa restart values from the workers
 !CLN  INTEGER, ALLOCATABLE, DIMENSION(:) :: casa_restart_ts
 
+  ! climate derived type
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: climate_ts
+
   ! POP related derived types
   
   ! MPI derived datatype handles for receiving POP results from the workers
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: pop_ts
+  INTEGER :: pop_ts
 
   ! MPI: isend request array for scattering input data to the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_req
@@ -146,11 +149,11 @@ CONTAINS
     USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
-         defaultLAI
+         defaultLAI, sdoy, smoy, syear, timeunits, exists
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-         cable_runtime, filename, myhome,            &
+         cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
-         IS_LEAPYEAR, calcsoilalbedo,                &
+         IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
          report_version_no
     USE cable_data_module,    ONLY: driver_type, point2constants
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -159,11 +162,13 @@ CONTAINS
          write_output,close_output_file
     USE cable_write_module,   ONLY: nullify_write
     USE cable_cbm_module
+    USE cable_climate_mod
+  
 
     ! modules related to CASA-CNP
     USE casadimension,        ONLY: icycle
     USE casavariable,         ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
-         casa_met, casa_balance
+         casa_met, casa_balance, zero_sum_casa, update_sum_casa
     USE phenvariable,         ONLY: phen_variable
 
     !CLN added
@@ -171,9 +176,15 @@ CONTAINS
     USE POP_Types,            ONLY: POP_TYPE
     USE POP_Constants,        ONLY: HEIGHT_BINS, NCOHORT_MAX
 
+     ! LUC_EXPT only
+    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, LUC_EXPT_INIT
+    USE POPLUC_Types, ONLY : POPLUC_Type
+    
     ! PLUME-MIP only
     USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
          PLUME_MIP_INIT
+    USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
+
 
     IMPLICIT NONE
 
@@ -199,23 +210,26 @@ CONTAINS
          ctime,      &  ! day count for casacnp
          YYYY,       &  !
          LOY,        &  ! Length of Year
+         count_sum_casa, & ! number of time steps over which casa pools and fluxes are aggregated (for output)
+ 
          maxdiff(2)     ! location of maximum in convergence test
 
     REAL      :: dels   ! time step size in seconds
-    CHARACTER :: dum*9  ! dummy char for filename generation
+    CHARACTER :: dum*9, str1*9, str2*9, str3*9  ! dummy char for fileName generation
 
     ! CABLE variables
-    TYPE (met_type)       :: met     ! met input variables
+    TYPE (met_type)       :: met     ! met input variables: see below for imet in MPI variables
     TYPE (air_type)       :: air     ! air property variables
     TYPE (canopy_type)    :: canopy  ! vegetation variables
     TYPE (radiation_type) :: rad     ! radiation variables
     TYPE (roughness_type) :: rough   ! roughness varibles
     TYPE (balances_type)  :: bal     ! energy and water balance variables
     TYPE (soil_snow_type) :: ssnow   ! soil and snow variables
+    TYPE (climate_type)   :: climate     ! climate variables
 
     ! CABLE parameters
     TYPE (soil_parameter_type) :: soil ! soil parameters
-    TYPE (veg_parameter_type)  :: veg  ! vegetation parameters
+    TYPE (veg_parameter_type)  :: veg  ! vegetation parameters: see below for iveg in MPI variables
     TYPE (driver_type)    :: C         ! constants used locally
 
     TYPE (sum_flux_type)  :: sum_flux ! cumulative flux variables
@@ -225,11 +239,16 @@ CONTAINS
     TYPE (casa_biome)     :: casabiome
     TYPE (casa_pool)      :: casapool
     TYPE (casa_flux)      :: casaflux
+    TYPE (casa_pool)      :: sum_casapool
+    TYPE (casa_flux)      :: sum_casaflux
     TYPE (casa_met)       :: casamet
     TYPE (casa_balance)   :: casabal
     TYPE (phen_variable)  :: phen
     TYPE (POP_TYPE)       :: POP
+    TYPE(POPLUC_TYPE) :: POPLUC
+    TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
     TYPE (PLUME_MIP_TYPE) :: PLUME
+    TYPE (CRU_TYPE)       :: CRU
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
 
@@ -256,10 +275,7 @@ CONTAINS
     REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
          soilMtemp,                         &   
          soilTtemp      
-    ! variables for keeping track of maximum annual leaf carbon, annual npp, annual gpp
-    REAL, ALLOCATABLE, DIMENSION(:) :: cleaf_max, npp_ann, stemnpp_ann, gpp_ann, &
-         leafnpp_ann, gpp_ann_save 
-
+ 
     ! MPI:
     TYPE (met_type)       :: imet  ! read ahead met input variables
     TYPE (veg_parameter_type) :: iveg  ! MPI read ahead vegetation parameters
@@ -315,8 +331,9 @@ CONTAINS
          wiltParam,        &
          satuParam,        &
          cable_user           ! additional USER switches 
-    INTEGER :: i
+    INTEGER :: i,x,kk
     INTEGER :: LALLOC
+    INTEGER, PARAMETER ::	 mloop	= 5   ! CASA-CNP PreSpinup loops
     REAL    :: etime
 
     ! END header
@@ -338,7 +355,7 @@ CONTAINS
 
     ! Open log file:
     OPEN(logn,FILE=filename%log)
-
+PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88) 
     CALL report_version_no( logn )
 
     IF( IARGC() > 0 ) THEN
@@ -357,7 +374,6 @@ CONTAINS
        CABLE_USER%CASA_DUMP_WRITE = .FALSE.
     ELSEIF ( icycle .EQ. 0 ) THEN
        CABLE_USER%CASA_DUMP_READ  = .FALSE.
-       spincasa                   = .FALSE.
        CABLE_USER%CALL_POP        = .FALSE.
     ENDIF
 
@@ -374,15 +390,6 @@ CONTAINS
     ELSE
        LALLOC = 0 ! default
     ENDIF
-
-    IF ( .NOT. spinup ) THEN
-       IF ( spincasa ) THEN
-          spincasa = .FALSE.
-          WRITE(*,*)   "spinup == .FALSE. -> spincasa set to .F."
-          WRITE(logn,*)"spinup == .FALSE. -> spincasa set to .F."
-       ENDIF
-    ENDIF
-
 
     IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
        leaps = .TRUE.
@@ -413,7 +420,8 @@ CONTAINS
     ! latitudes, longitudes, number of sites.
     IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
          TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
-         TRIM(cable_user%MetType) .NE. "plum" ) THEN
+         TRIM(cable_user%MetType) .NE. "plum"  .AND. &
+         TRIM(cable_user%MetType) .NE. "cru") THEN
        CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
        IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
           WRITE(*,*)"When using POP, episode must start at Jan 1st!"
@@ -444,8 +452,45 @@ CONTAINS
                 CALL PLUME_MIP_INIT( PLUME )
                 dels      = PLUME%dt
                 koffset   = 0
+                leaps = PLUME%LeapYears
+                write(str1,'(i4)') CurYear
+                str1 = adjustl(str1)
+                write(str2,'(i2)') 1
+                str2 = adjustl(str2)
+                write(str3,'(i2)') 1
+                str3 = adjustl(str3)
+                timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+                     00:00 (midpoint of averaging period)"
+
              ENDIF
              kend = NINT(24.0*3600.0/dels) * LOY
+          ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+	      ! CLN HERE CRU modfications
+	      IF ( CALL1 ) THEN
+
+		 CALL CPU_TIME(etime)
+		 CALL CRU_INIT( CRU )
+
+		 dels	   = CRU%dtsecs
+		 koffset   = 0
+		 leaps = .false.         ! No leap years in CRU-NCEP
+                 exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
+                                         ! be determined from temperature in CABLE
+
+                 write(str1,'(i4)') CurYear
+                 str1 = adjustl(str1)
+                 write(str2,'(i2)') 1
+                 str2 = adjustl(str2)
+                 write(str3,'(i2)') 1
+                 str3 = adjustl(str3)
+                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+                            00:00 (midpoint of averaging period)"
+
+
+	      ENDIF
+
+	       LOY = 365
+	       kend = NINT(24.0*3600.0/dels) * LOY
           ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
@@ -463,18 +508,31 @@ CONTAINS
           ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
           IF ( CALL1 ) THEN
 
-             CALL load_parameters( met, air, ssnow, veg, bgc,           &
-                  soil, canopy, rough, rad, sum_flux,                   &
-                  bal, logn, vegparmnew, casabiome, casapool,           &
-                  casaflux, casamet, casabal, phen, POP, spinup,        &
-                  C%EMSOIL, C%TFRZ )
 
+             IF (cable_user%POPLUC) THEN
+                CALL LUC_EXPT_INIT (LUC_EXPT)
+             ENDIF
+
+write(*,*) 'after LUC INIT'
+             !! vh_js !!
+             CALL load_parameters( met, air, ssnow, veg,climate,bgc,		&
+                  soil, canopy, rough, rad, sum_flux,			 &
+                  bal, logn, vegparmnew, casabiome, casapool,		 &
+                  casaflux, sum_casapool, sum_casaflux, &
+                  casamet, casabal, phen, POP, spinup,	       &
+                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
+write(*,*) 'after load params'
+             
+            
              ssnow%otss_0 = ssnow%tgg(:,1)
              ssnow%otss = ssnow%tgg(:,1)
              canopy%fes_cor = 0.
              canopy%fhs_cor = 0.
              met%ofsd = 0.1
 
+
+             IF (.NOT.spinup)	spinConv=.TRUE.
+             
              ! MPI: above was standard serial code
              ! now it's time to initialize the workers
 
@@ -494,6 +552,7 @@ CONTAINS
 
              ! MPI: set up stuff for new irecv isend code that separates completion
              ! from posting of requests
+             ! wnp is set in master_decomp above
              ALLOCATE (inp_req(wnp))
              ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
              ALLOCATE (recv_req(wnp))
@@ -501,11 +560,19 @@ CONTAINS
              CALL MPI_Comm_dup (comm, icomm, ierr)
              CALL MPI_Comm_dup (comm, ocomm, ierr)
 
+
+  
              ! MPI: data set in load_parameter is now scattered out to the
              ! workers
+
              CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                         rough,rad,sum_flux,bal)
 
+
+
+             CALL master_climate_types(comm, climate)
+
+            
              ! MPI: mvtype and mstype send out here instead of inside master_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)
              CALL MPI_Bcast (mvtype, 1, MPI_INTEGER, 0, comm, ierr)
@@ -517,12 +584,7 @@ CONTAINS
                 CALL master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
                      &                        casabal,phen)
 
-                IF ( CABLE_USER%CALL_POP ) THEN
-                   CALL master_pop_types (comm,casamet,pop)
-                   CALL master_send_input (comm,pop_ts, 0)
-                   CALL MPI_waitall(wnp, inp_req, inp_stats, ierr)
-
-                ENDIF
+                IF ( CABLE_USER%CALL_POP ) CALL master_pop_types (comm,casamet,pop)
              END IF
 
              ! MPI: allocate read ahead buffers for input met and veg data
@@ -547,7 +609,7 @@ CONTAINS
                      casamet, casabal, phen)
 
                 IF ( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) &
-                     CALL master_casa_dump_types( comm, casamet, casaflux )
+                     CALL master_casa_dump_types( comm, casamet, casaflux, phen, climate )
                 
              END IF
 
@@ -557,8 +619,23 @@ CONTAINS
                 CALL master_restart_types (comm, canopy, air)
              END IF
 
+           !  CALL zero_sum_casa(sum_casapool, sum_casaflux)
+           !  count_sum_casa = 0
+
+            ! CALL master_sumcasa_types(comm, sum_casapool, sum_casaflux)
+             IF( icycle>0 .AND. spincasa) THEN
+                PRINT *, 'EXT spincasacnp enabled with mloop= ', mloop, dels, kstart, kend
+                CALL master_spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                     casaflux,casamet,casabal,phen,POP,climate,LALLOC, icomm, ocomm)
+                SPINconv = .FALSE.
+                CASAONLY                   = .TRUE.
+               ktau_gl = 0
+               ktau = 0
+             ENDIF
+             
              ! MPI: mostly original serial code follows...
           ENDIF ! CALL1
+
 
           ! Open output file:
           IF (.NOT.CASAONLY) THEN
@@ -594,46 +671,57 @@ CONTAINS
           ! MPI: read ahead
           iktau = iktau + 1
 
-          imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)
-
           ! MPI: flip ktau_gl
           !tmp_kgl = ktau_gl
           ktau_gl = iktau
 
-          IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN                  
-             CALL PLUME_MIP_GET_MET(PLUME, iMET, YYYY, iktau, kend, &
-                  (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend))
-          ELSE
-             CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                  rad, veg, kend, dels, C%TFRZ, iktau+koffset,                &
-                  kstart+koffset )
-          ENDIF
+          IF (.NOT.spincasa) THEN 
+             IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN                  
+                CALL PLUME_MIP_GET_MET(PLUME, iMET, YYYY, 1, kend, &
+                     (YYYY.EQ.CABLE_USER%YearEnd .AND. 1.EQ.kend))
 
-          IF ( CASAONLY .AND. MOD((ktau-kstart+1+koffset),ktauday)==0               &
-               .AND. CABLE_USER%CASA_DUMP_READ ) THEN
-             ! CLN READ FROM FILE INSTEAD !
-             WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
-             ncfile  = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-             casa_it = NINT( REAL(iktau / ktauday) )
-             CALL read_casa_dump( ncfile, casamet, casaflux, casa_it, kend, .FALSE. )
+             ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+                
+                CALL CRU_GET_SUBDIURNAL_MET(CRU, imet, YYYY, 1, kend, &
+                     (YYYY.EQ.CABLE_USER%YearEnd))  
+                                
+             ELSE
+                CALL get_met_data( spinup, spinConv, imet, soil,                 &
+                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     kstart+koffset )
+                                
+             ENDIF
           ENDIF
+          
 
-          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
+        !  IF ( CASAONLY .AND. IS_CASA_TIME("dread", yyyy, iktau, kstart, koffset, &
+        !       kend, ktauday, logn) ) THEN     
+        !     WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
+        !     ncfile  = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+        !     casa_it = NINT( REAL(iktau / ktauday) )
+        !     CALL read_casa_dump( ncfile, casamet, casaflux,phen, casa_it, kend, .FALSE. )
+        !  ENDIF
+
           canopy%oldcansto=canopy%cansto
 
           ! Zero out lai where there is no vegetation acc. to veg. index
-          WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+          WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
           IF ( .NOT. CASAONLY ) THEN
-             
              ! MPI: scatter input data to the workers
+
              CALL master_send_input (icomm, inp_ts, iktau)
-             CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+
+           !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
           ELSE 
-             CALL master_send_input (icomm, casa_dump_ts, iktau)
-             CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+         !    CALL master_send_input (icomm, casa_dump_ts, iktau)
+          !   CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
           ENDIF
 
+          IF (spincasa) THEN
+             EXIT
+          ENDIF
+          !IF (.NOT.spincasa) THEN 
           ! time step loop over ktau
           KTAULOOP:DO ktau=kstart, kend - 1
              !         ! increment total timstep counter
@@ -649,87 +737,104 @@ CONTAINS
              ktau_gl = iktau
 
              ! somethings (e.g. CASA-CNP) only need to be done once per day  
-             idoy = MOD(ktau/ktauday,365)
-             IF(idoy==0) idoy=365
-
-             idoy = MOD(INT(REAL(ktau+koffset)/REAL(ktauday)),LOY)
+            
+           
+             idoy =INT( MOD((REAL(ktau+koffset)/REAL(ktauday)),REAL(LOY)))
              IF ( idoy .EQ. 0 ) idoy = LOY
 
              ! needed for CASA-CNP
-             nyear =INT((kend-kstart+1)/(365*ktauday))
+             nyear =INT((kend-kstart+1)/(LOY*ktauday))
 
              ! Get met data and LAI, set time variables.
              ! Rainfall input may be augmented for spinup purposes:
              !          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
-  CALL CPU_TIME(etime)
-  PRINT *, 'befor get met', etime,ktau
              IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN                  
                 CALL PLUME_MIP_GET_MET(PLUME, iMET, YYYY, iktau, kend, &
-                     (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend))
+                     (YYYY.EQ.CABLE_USER%YearEnd .AND. iktau.EQ.kend))
+
+             ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+                CALL CRU_GET_SUBDIURNAL_MET(CRU, imet, YYYY, iktau, kend, &
+                            (YYYY.EQ.CABLE_USER%YearEnd) )  
              ELSE
+              
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, veg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
                      kstart+koffset )
+ 
              ENDIF
-  CALL CPU_TIME(etime)
-  PRINT *, 'after get met', etime,ktau
              IF ( TRIM(cable_user%MetType) .NE. 'gswp' ) CurYear = met%year(1)
 
-             IF ( CASAONLY .AND. MOD((ktau-kstart+1+koffset),ktauday)==0               &
-                  .AND. CABLE_USER%CASA_DUMP_READ ) THEN
-                ! CLN READ FROM FILE INSTEAD !
-                WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
-                ncfile  = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                casa_it = NINT( REAL(iktau / ktauday) )
-                CALL read_casa_dump( ncfile, casamet, casaflux, casa_it, kend, .FALSE. )
-             ENDIF
+!!$             IF ( CASAONLY .AND. IS_CASA_TIME("dread", yyyy, iktau, kstart, koffset, &
+!!$                  kend, ktauday, logn) )  THEN          
+!!$                ! CLN READ FROM FILE INSTEAD !
+!!$                WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
+!!$                ncfile  = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+!!$                casa_it = NINT( REAL(iktau / ktauday) )
+!!$                CALL read_casa_dump( ncfile, casamet, casaflux, casa_it, kend, .FALSE. )
+!!$             ENDIF
 
              IF ( .NOT. CASAONLY ) THEN
                              
                 IF ( icycle > 0 ) THEN
-  PRINT *,'master recv_ts',MOD (oktau,ktauday*CABLE_USER%CASA_OUT_FREQ)==0
-CALL FLUSH(6)
-                   IF ( MOD (ktau,ktauday*CABLE_USER%CASA_OUT_FREQ)&
-                      == 0 .OR. ktau .EQ. kend) THEN
+                   !casaflux%cgpp = 1
+                 !  IF(MOD((ktau-kstart+1),ktauday)==0) THEN ! end of day
                       CALL master_receive (ocomm, oktau, casa_ts)
-                      CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+                 !  ENDIF
+                   
+                   IF ( IS_CASA_TIME("write", yyyy, oktau, kstart, &
+                        koffset, kend, ktauday, logn) ) THEN
+                    !  CALL master_receive (ocomm, oktau, casa_ts)
+                    !  write(61,*) 'after MR', casapool%cplant(:,1)
+                    !  CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
                    ENDIF
                 ENDIF
                 IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
-                     MOD((ktau-kstart+1+koffset),ktauday)==0  .AND. &
-                     CABLE_USER%CASA_DUMP_WRITE ) THEN
+                     ( IS_CASA_TIME("dwrit", yyyy, oktau, kstart, &
+                        koffset, kend, ktauday, logn) ) ) THEN
 
                    !CLN CHECK FOR LEAP YEAR
                    CALL master_receive ( ocomm, oktau, casa_dump_ts )
-                   CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+
+                  ! CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
                 ENDIF
 
-  PRINT *,'master recv_ts',MOD (oktau,ktauday*CABLE_USER%CASA_OUT_FREQ)==0
-CALL FLUSH(6)
-!CLN                IF ( MOD (oktau,ktauday*CABLE_USER%CASA_OUT_FREQ)==0) THEN
                 ! MPI: receive this time step's results from the workers
-                   CALL master_receive (ocomm, oktau, recv_ts)
-                   CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-!CLN                ENDIF
-                
+                CALL master_receive (ocomm, oktau, recv_ts)
+               ! CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+
+
                 ! MPI: scatter input data to the workers
                 CALL master_send_input (icomm, inp_ts, iktau)
-                CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+              !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
-                IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND. &
-                     MOD((ktau-kstart+1+koffset),ktauday)==0  .AND. &
-                     CABLE_USER%CASA_DUMP_WRITE ) THEN
-                   WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
-                   ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                   CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
-                        kend/ktauday )
-                   
-                ENDIF
+!!$                IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
+!!$                     ( IS_CASA_TIME("dwrit", yyyy, oktau, kstart, &
+!!$                        koffset, kend, ktauday, logn) ) ) THEN
+!!$                   WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+!!$                   ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+!!$                   CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
+!!$                        kend/ktauday )
+!!$                   
+!!$                ENDIF
+
+                IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
+                      MOD((ktau-kstart+1),ktauday)==0) THEN
+                    IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
+
+
+                       !CLN CHECK FOR LEAP YEAR
+                       WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+                       ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+                       CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &    
+                         kend/ktauday )
+                       
+                    ENDIF
+                 ENDIF
 
              ELSE IF ( MOD((ktau-kstart+1+koffset),ktauday)==0 ) THEN
                 
                 CALL master_send_input (icomm, casa_dump_ts, iktau )
-                CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+            !    CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
              
              ENDIF
 
@@ -740,7 +845,7 @@ CALL FLUSH(6)
              canopy%oldcansto=canopy%cansto
 
              ! Zero out lai where there is no vegetation acc. to veg. index
-             WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+             WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
              ! Write time step's output to file if either: we're not spinning up 
              ! or we're spinning up and the spinup has converged:
@@ -751,30 +856,64 @@ CALL FLUSH(6)
 
              IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
                 IF(icycle >0) THEN
-                   IF ( MOD ((ktau+koffset),ktauday*CABLE_USER%CASA_OUT_FREQ)&
-                        == 0 .OR. ktau .EQ. kend) THEN
+                   IF ( IS_CASA_TIME("write", yyyy, oktau, kstart, &
+                        koffset, kend, ktauday, logn) ) THEN
                       ctime = ctime +1
-                      CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
+
+
+                      CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
                            CASAONLY, ctime, &
                            ( ktau.EQ.kend .AND. YYYY .EQ.cable_user%YearEnd ) )
                    ENDIF
                 ENDIF
-
-                IF ( .NOT. CASAONLY ) &
-                     CALL write_output( dels, ktau, met, canopy, ssnow,         &
-                     rad, bal, air, soil, veg, C%SBOLTZ,     &
-                     C%EMLEAF, C%EMSOIL )
-             END IF
-
-             !---------------------------------------------------------------------!
+          
+                
+                 IF ( (.NOT. CASAONLY).AND. spinConv  ) THEN
+                    IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
+                         .OR. TRIM(cable_user%MetType) .EQ. 'cru' ) then
+                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
+                            casamet,ssnow,         &
+                            rad, bal, air, soil, veg, C%SBOLTZ,     &
+                            C%EMLEAF, C%EMSOIL )
+                    else
+                       CALL write_output( dels, ktau, met, canopy, casaflux, casapool, &
+                            casamet, ssnow,   &
+                            rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                       
+                    ENDIF
+                 END IF
+              ENDIF
+               
+               !---------------------------------------------------------------------!
              ! Check this run against standard for quasi-bitwise reproducability   !  
              ! Check triggered by cable_user%consistency_check=.TRUE. in cable.nml !
              !---------------------------------------------------------------------!
              IF(cable_user%consistency_check) THEN 
 
-                new_sumbal = new_sumbal + SUM(canopy%fe) + SUM(canopy%fh)                &
-                     + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+               ! new_sumbal = new_sumbal + SUM(canopy%fe) + SUM(canopy%fh)                &
+               !      + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
+                new_sumbal = SUM(bal%wbal_tot) +  SUM(bal%ebal_tot)
+                new_sumfpn = new_sumfpn + SUM(canopy%fpn)
+                new_sumfe = new_sumfe + SUM(canopy%fe)
+                if (ktau == kend-1) PRINT*," Ebal_tot, Wbal_tot, sumbal, sum_fe, sum_fpn", sum(bal%ebal_tot), &
+                     sum(bal%wbal_tot),  new_sumbal, &
+                      new_sumfe, new_sumfpn
+                if(any( canopy%fe.NE. canopy%fe)) THEN
+                    DO kk=1,mp
 
+                     IF (canopy%fe(kk).NE. canopy%fe(kk)) THEN
+                      WRITE(*,*) 'Nan in evap flux,', kk, patch(kk)%latitude, patch(kk)%longitude 
+ write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
+                               met%fld(kk), met%fsd(kk,:), met%tk(kk), met%ua(kk), ssnow%potev(kk), met%pmb(kk), &
+                               canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk),rad%fvlai(kk,:) ,  rad%fvlai(kk,1), &
+                               rad%fvlai(kk,2), canopy%vlaiw(kk)
+
+                      CALL MPI_Abort(comm, 0, ierr)
+                     ENDIF
+                      
+                    ENDDO
+              
+                ENDIF
                 IF(ktau==(kend-1)) THEN 
 
                    nkend = nkend+1
@@ -782,7 +921,7 @@ CALL FLUSH(6)
 
                       PRINT *, ""
                       PRINT *, &
-                           "NB. Offline-papallel runs spinup cycles:", nkend
+                           "NB. Offline-parallel runs spinup cycles:", nkend
                       PRINT *, &
                            "Internal check shows this version reproduces the trunk sumbal"
 
@@ -790,7 +929,7 @@ CALL FLUSH(6)
 
                       PRINT *, ""
                       PRINT *, &
-                           "NB. Offline-papallel runs spinup cycles:", nkend
+                           "NB. Offline-parallel runs spinup cycles:", nkend
                       PRINT *, &
                            "Internal check shows in this version new_sumbal != trunk sumbal"
                       PRINT *, "The difference is: ", new_sumbal - trunk_sumbal
@@ -802,70 +941,58 @@ CALL FLUSH(6)
 !CLN                      CLOSE(12)
 
                    ENDIF
-
+ 
                 ENDIF
 
              ENDIF
 
              CALL1 = .FALSE.
 
-PRINT*,"BARRIER KTAU END",ktau, YYYY
-CALL FLUSH(6)
-CALL MPI_BARRIER(comm , ierr)
+!WRITE(*,*) " ktauloop end ", ktau, CurYear
+
 
           END DO KTAULOOP ! END Do loop over timestep ktau
 
+          CALL1 = .FALSE.
+
+
+
+
           ! MPI: read ahead tail to receive (last step and write)
           met%year = imet%year
-          met%doy = imet%doy
-          oktau = oktau + 1
-          ktau_tot= ktau_tot + 1
-          ktau_gl = oktau
-          
+          met%doy  = imet%doy
+          oktau    = oktau + 1
+          ktau_tot = ktau_tot + 1
+          ktau_gl  = oktau
+      
           IF( icycle >0 ) THEN
-             CALL master_receive (ocomm, oktau, casa_ts)
-             CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-             PRINT*,"rec casa_ts"
-             CALL FLUSH (6)
-!CRM             IF ( cable_user%CALL_POP ) THEN
-!CRM                call master_receive (ocomm, oktau, pop_ts)
-!CRM                CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-!CRM                PRINT*,"rec popo_ts"
-!CRM                CALL FLUSH (6)
-!CRM             ENDIF
+
+
+             IF ( IS_CASA_TIME("write", yyyy, oktau, kstart, &
+                  koffset, kend, ktauday, logn) ) THEN
+                CALL master_receive (ocomm, oktau, casa_ts)
+
+!                CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)              
+
+             ENDIF
+
+
              IF( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND. &
                   CABLE_USER%CASA_DUMP_WRITE )  THEN
                 CALL master_receive ( ocomm, oktau, casa_dump_ts )
-                CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-                PRINT*,"rec casa_dump_ts"
-                CALL FLUSH (6)
+        !        CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
              ENDIF
+
           ENDIF
-          
+        
           IF ( .NOT. CASAONLY ) THEN
-PRINT*,"master final recv_ts"
-CALL FLUSH(6)
              CALL master_receive (ocomm, oktau, recv_ts)
-             CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-             PRINT*,"rec recv_ts"
-             CALL FLUSH (6)
+      !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
           ENDIF
+
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
           canopy%oldcansto=canopy%cansto
                     
-PRINT*,"BARRIER KTAU POP_TS"
-CALL FLUSH(6)
-CALL MPI_BARRIER(comm , ierr)
-
-          IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. &
-               CABLE_USER%CALL_POP .AND. TRIM(cable_user%POP_out).eq.'epi') THEN
-             CALL master_receive (ocomm, oktau, pop_ts)
-             CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-             PRINT*,"rec pop_ts"
-             CALL FLUSH (6)
-             CALL POP_IO( pop, casamet, YYYY, 'WRITE_EPI', .FALSE.)
-          ENDIF
-          
           IF ( TRIM(cable_user%MetType) .EQ. "gswp" ) &
                CALL close_met_file
 
@@ -873,31 +1000,74 @@ CALL MPI_BARRIER(comm , ierr)
           IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
              IF(icycle >0) THEN
                 ctime = ctime +1
-                CALL WRITE_CASA_OUTPUT_NC ( casamet, casapool, casabal, casaflux, &
+                CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
                      CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &
                      cable_user%YearEnd ) )
-                IF ( cable_user%CALL_POP .AND. TRIM(cable_user%POP_out).eq.'epi' ) &
-                     CALL POP_IO( pop, casamet, CurYear, 'WRITE_EPI', .TRUE.)
+                IF ( cable_user%CALL_POP ) THEN
+
+                   CALL master_receive_pop(POP, ocomm)
+
+                  ! CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+                   IF ( TRIM(cable_user%POP_out).eq.'epi' ) THEN
+                      CALL POP_IO( pop, casamet, CurYear, 'WRITE_EPI', &
+                           (CurYear.EQ.CABLE_USER%YearEnd) )
+                   ENDIF
+
+                ENDIF
+             END IF
+        
+!!$             IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
+!!$                !CLN CHECK FOR LEAP YEAR
+!!$                WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+!!$                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+!!$                CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
+!!$                     kend/ktauday )
+!!$                
+!!$             ENDIF
+
+             IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
+                  MOD((ktau-kstart+1),ktauday)==0) THEN
+                IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
+                   !CLN CHECK FOR LEAP YEAR
+                   WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+                   ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+
+                   CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, LOY, &    
+                        kend/ktauday )
+                   
+                ENDIF
              ENDIF
-             IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
-                !CLN CHECK FOR LEAP YEAR
-                WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
-                ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                CALL write_casa_dump( ncfile, casamet , casaflux, idoy, &
-                     kend/ktauday )
-                
-             ENDIF
+
+             IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
+                IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
+                         .OR. TRIM(cable_user%MetType) .EQ. 'cru' ) then
+                   CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
+                        casamet, ssnow,         &
+                        rad, bal, air, soil, veg, C%SBOLTZ,     &
+                        C%EMLEAF, C%EMSOIL )
+                else
+                   CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
+                        ssnow,   &
+                        rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                   
+                ENDIF
+             END IF
              
-             IF ( .NOT. CASAONLY ) &
-                  CALL write_output( dels, ktau, met, canopy, ssnow,         &
-                  rad, bal, air, soil, veg, C%SBOLTZ,     &
-                  C%EMLEAF, C%EMSOIL )
+!!$             IF ( .NOT. CASAONLY ) &
+!!$                  CALL write_output( dels, ktau_tot, met, canopy, &
+!!$                   casaflux, casapool, ssnow,         &
+!!$                  rad, bal, air, soil, veg, C%SBOLTZ,     &
+!!$                  C%EMLEAF, C%EMSOIL )
           END IF
-          
+      
        END DO YEARLOOP
-       
-       !jhan this is insufficient testing. condition for 
-       !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
+ 
+         IF (spincasa) THEN
+             EXIT
+          ENDIF
+
+       ! jhan this is insufficient testing. condition for 
+       ! spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
        ! see if spinup (if conducting one) has converged:
        IF(spinup.AND..NOT.spinConv.AND. .NOT. CASAONLY) THEN
 
@@ -976,35 +1146,36 @@ CALL MPI_BARRIER(comm , ierr)
 
     END DO SPINLOOP
 
-    IF (icycle > 0) THEN
+    IF (icycle > 0 .and. (.not.spincasa)) THEN
        ! MPI: gather casa results from all the workers
-       CALL master_receive (comm, ktau_gl, casa_ts)
-       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+     
+       CALL master_receive (ocomm, ktau_gl, casa_ts)
 
-!CRM       IF ( cable_user%CALL_POP ) THEN
-!CRM          call master_receive (ocomm, oktau, pop_ts)
-!CRM          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-!CRM       ENDIF
- 
-!CLN       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+       !CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
        CALL casa_poolout( ktau, veg, soil, casabiome,                           &
             casapool, casaflux, casamet, casabal, phen )
        CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+       CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
 
-       CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
+       !CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
 
-       IF ( CABLE_USER%CALL_POP ) THEN
-          IF ( CASAONLY ) THEN
-             CALL POP_IO( pop, casamet, CurYear, 'WRITE_INI', .TRUE.)
+     
+       IF ( CABLE_USER%CALL_POP .and.POP%np.gt.0 ) THEN
+          IF ( CASAONLY .OR. cable_user%POP_fromZero &
+               .or.TRIM(cable_user%POP_out).eq.'ini' ) THEN
+             CALL POP_IO( pop, casamet, CurYear+1, 'WRITE_INI', .TRUE.)
+             
           ELSE
-             CALL POP_IO( pop, casamet, CurYear, 'WRITE_RST', .TRUE.)
+             CALL POP_IO( pop, casamet, CurYear+1, 'WRITE_RST', .TRUE.)
           ENDIF
        END IF
+       
+       
     END IF
-
+    
     ! Write restart file if requested:
-    IF(output%restart .AND. .NOT. CASAONLY) THEN
+    IF(output%restart .AND. (.NOT. CASAONLY)) THEN
        ! MPI: TODO: receive variables that are required by create_restart
        ! but not write_output
        !CALL receive_restart (comm,ktau,dels,soil,veg,ssnow, &
@@ -1012,28 +1183,45 @@ CALL MPI_BARRIER(comm , ierr)
        ! gol124: how about call master_receive (comm, ktau, restart_ts)
        ! instead of a separate receive_restart sub?
        CALL master_receive (comm, ktau_gl, restart_ts)
-       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+
+!       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
        CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
             canopy, rough, rad, bgc, bal, met  )
+
+       if (cable_user%CALL_climate) then
+          CALL master_receive (comm, ktau_gl, climate_ts)
+          
+          !CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+          
+          
+          CALL WRITE_CLIMATE_RESTART_NC ( climate )
+       END IF
+       
     END IF
 
-    ! MPI: cleanup
-    CALL master_end (icycle, output%restart)
+   
 
     ! Close met data input file:
     IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
-         TRIM(cable_user%MetType) .NE. "plum" ) CALL close_met_file
-
-    ! Close output file and deallocate main variables:
-    CALL close_output_file( bal, air, bgc, canopy, met,                         &
-         rad, rough, soil, ssnow,                            &
-         sum_flux, veg )
-
-    WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
-
+         TRIM(cable_user%MetType) .NE. "plum" .AND. &
+         TRIM(cable_user%MetType) .NE. "cru") CALL close_met_file
+    IF  (.NOT. CASAONLY) THEN
+       ! Close output file and deallocate main variables:
+       CALL close_output_file( bal, air, bgc, canopy, met,                         &
+            rad, rough, soil, ssnow,                            &
+            sum_flux, veg )
+       
+      ! WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+    ENDIF
+    
     ! Close log file
     CLOSE(logn)
+ 
+    CALL CPU_TIME(etime)
+   PRINT *, 'Master End. ', etime, ' seconds'
+ ! MPI: cleanup
+    CALL master_end (icycle, output%restart)
 
     RETURN
 
@@ -1141,6 +1329,7 @@ SUBROUTINE master_decomp (comm, mland, mp)
   ALLOCATE (wland(wnp), STAT=ierr)
   IF (ierr /= 0) THEN
           ! TODO: print an error message
+          PRINT*, 'master-decomp MPI_ABORT'
           CALL MPI_Abort(comm, 0, ierr)
   END IF
 
@@ -1169,7 +1358,7 @@ SUBROUTINE master_decomp (comm, mland, mp)
      ! MPI: let each worker know their assignement
      ! in this version of cable workers care only about the number of points
      ! CALL MPI_Send (nxt, 1, MPI_INTEGER, rank, 0, comm, ierr)
-PRINT*,"That one?",rank, 0, comm,pcnt
+
      CALL MPI_Send (pcnt, 1, MPI_INTEGER, rank, 0, comm, ierr)
 
      ! MPI: should be the same as landpt(nxt)%cstart
@@ -1214,7 +1403,7 @@ END SUBROUTINE master_decomp
 ! then sends the parameters
 ! and finally frees the MPI type
 SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
-                                rough,rad,sum_flux,bal)
+     rough,rad,sum_flux,bal)
 
   USE mpi
 
@@ -1240,6 +1429,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   TYPE (radiation_type),INTENT(OUT)  :: rad
   TYPE (sum_flux_type), INTENT(OUT)  :: sum_flux
   TYPE (balances_type), INTENT(OUT)  :: bal
+ 
 
   ! local vars
 
@@ -1255,8 +1445,8 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   INTEGER :: stat(MPI_STATUS_SIZE), ierr
   INTEGER, ALLOCATABLE, DIMENSION(:) :: param_ts
 
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
-  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride, istride
+  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
   INTEGER :: rank
@@ -1264,6 +1454,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   INTEGER :: landpt_t, patch_t
 
   INTEGER :: nxt, pcnt, off, cnt
+
 
   ! create MPI types for exchanging slices of landpt and patch arrays
   CALL decomp_types (landpt_t, patch_t)
@@ -1289,7 +1480,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   ! vars intro for Ticket #27 
   IF (calcsoilalbedo) THEN
-    ntyp = nparam + 1
+     ntyp = nparam + 1
   END IF
 
   ALLOCATE (param_ts(wnp))
@@ -1301,6 +1492,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   ! MPI: array strides for multi-dimensional types
   r1stride = mp * extr1
   r2stride = mp * extr2
+  istride  = mp * extid
 
   ! default type is byte, to be overriden for multi-D types
   types = MPI_BYTE
@@ -1311,1372 +1503,1425 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   ! create a separate MPI derived datatype for each worker
   DO rank = 1, wnp
 
-  ! starting patch and number for each worker rank
-  off = wland(rank)%patch0
-  cnt = wland(rank)%npatch
+     ! starting patch and number for each worker rank
+     off = wland(rank)%patch0
+     cnt = wland(rank)%npatch
 
-  r1len = cnt * extr1
-  r2len = cnt * extr2
-  ILEN = cnt * extid
-  llen = cnt * extl
+     r1len = cnt * extr1
+     r2len = cnt * extr2
+     I1LEN  = cnt * extid
+     llen  = cnt * extl
 
-  bidx = 0
+     bidx = 0
 
-  ! the order of variables follows argument list
-  ! the order of fields within follows alloc_*_type subroutines
+     ! the order of variables follows argument list
+     ! the order of fields within follows alloc_*_type subroutines
 
-  ! ----------- met --------------
+     ! ----------- met --------------
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%ca(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%year(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%moy(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%doy(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%hod(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%fsd(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%fld(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%precip(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%precip_sn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%tk(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%tvair(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%tvrad(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%pmb(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%ua(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%qv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%qvair(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%da(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%dva(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (met%coszen(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-
-  ! ----------- air --------------
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%rho(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%volm(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%rlam(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%qsat(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%epsi(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%visc(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%psyc(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%dsatdk(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (air%cmolar(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-
-  ! ----------- ssnow --------------
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%dtmlt(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (3, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%pudsto(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%pudsmx(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%albsoilsn(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%cls(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%dfn_dtg(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%dfh_dtg(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%dfe_ddq(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%ddq_dtg(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%evapsn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%fwtop(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%fwtop1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%fwtop2(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%fwtop3(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%gammzz(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%isflag(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%osnowd(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%potev(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%pwb_min(off), displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%runoff(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%rnof1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%rnof2(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%rtsoil(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%sconds(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = msn * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%sdepth(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = msn * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%smass(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = msn * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%snage(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%snowd(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%smelt(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%ssdn(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = msn * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%ssdnn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tgg(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tggsn(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = msn * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tss(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wb(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbfice(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbice(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wblf(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbtot(off), displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wb_lake(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%sinfil(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%evapfbl(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%qstss(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wetfac(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%owetfac(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%t_snwlr(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tggav(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%otss(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%otss_0(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  ! ----------- veg --------------
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%canst1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%dleaf(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%ejmax(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%frac4(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%froot(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%hc(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%iveg(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%meth(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%rp20(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%rpcoef(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%shelrb(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%wai(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%vegcf(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%tminvj(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%tmaxvj(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%vbeta(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%xalbnir(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%vcmax(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%vlai(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%xfang(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%extkn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%deciduous(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%a1gs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%d0gs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%alpha(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%convex(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%cfrd(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%gswmin(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%conkc0(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%conko0(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%ekc(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%eko(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%refl(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%taul(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  ! ----------- bgc --------------
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bgc%cplant(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ncp * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bgc%csoil(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ncs, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ncs * r1len
-
-  ! constant * ncp, each worker gets the same copy of whole array
-  bidx = bidx + 1
-  CALL MPI_Get_address (bgc%ratecp, displs(bidx), ierr)
-  blen(bidx) = ncp * extr1
-
-  ! constant * ncs, each worker gets the same copy of whole array
-  bidx = bidx + 1
-  CALL MPI_Get_address (bgc%ratecs, displs(bidx), ierr)
-  blen(bidx) = ncs * extr1
-
-  ! ----------- soil --------------
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%albsoil(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%bch(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%c3(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%clay(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%cnsd(off), displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%css(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%hsbh(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%hyds(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%i2bp3(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%ibp2(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%isoilm(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%rhosoil(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%rs20(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%sand(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%sfc(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%silt(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%ssat(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%sucs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%swilt(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  ! constant * ms, each worker gets the same copy of whole array
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%zse, displs(bidx), ierr)
-  blen(bidx) = ms * extr1
-
-  ! constant * (ms+1), each worker gets the same copy of whole array
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%zshh, displs(bidx), ierr)
-  blen(bidx) = (ms + 1) * extr1
-
-  ! vars intro for Ticket #27  
-  IF (calcsoilalbedo) THEN
      bidx = bidx + 1
-     CALL MPI_Get_address (soil%soilcol(off), displs(bidx), ierr)
+     CALL MPI_Get_address (met%ca(off), displs(bidx), ierr)
      blen(bidx) = r1len
-  END IF
 
-  ! ----------- canopy --------------
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%year(off), displs(bidx), ierr)
+     blen(bidx) = I1LEN
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fess(off), displs(bidx), ierr)
-  blen(bidx) = r2len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%moy(off), displs(bidx), ierr)
+     blen(bidx) = I1LEN
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fesp(off), displs(bidx), ierr)
-  blen(bidx) = r2len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%doy(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%cansto(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%hod(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%oldcansto(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%fsd(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%cduv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%fld(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%delwc(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%precip(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%dewmm(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%precip_sn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%dgdtg(off), displs(bidx), ierr)
-  blen(bidx) = r2len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%tk(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fe(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%tvair(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fh(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%tvrad(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fpn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%pmb(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%frp(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%ua(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%frpw(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%qv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%frpr(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%qvair(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%frs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%da(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fnee(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%dva(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%frday(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%coszen(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fnv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fev(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fevc(off), displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fevw(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-!  bidx = bidx + 1
-!  CALL MPI_Get_address (canopy%potev_c(off), displs(bidx), ierr)
-!  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fhv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fhvw(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fns(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fes(off), displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fhs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fwet(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%ga(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%ghflux(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%precis(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%qscrn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%rnet(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%segg(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%sghflux(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%spill(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%through(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%tscrn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%tv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%us(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%uscrn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%vlaiw(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%rghlai(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%wcint(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-!  bidx = bidx + 1
-!  CALL MPI_Get_address (canopy%rwater(off,1), displs(bidx), ierr)
-!  CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
-!  &                             types(bidx), ierr)
-!  blen(bidx) = 1
-!  !blen(bidx) = ms * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%evapfbl(off,1), displs(bidx), ierr)
-  ! MPI: gol124: changed to r1 when Bernard ported to CABLE_r491
-  CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = ms * r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%epot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fnpp(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%fevw_pot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%gswx_T(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%cdtq(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%wetfac_cs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%gswx(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (canopy%zetar(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (niter, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  ! ------- rough -------
   
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%coexp(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%disp(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%hruff(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%hruff_grmx(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%rt0us(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%rt1usa(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%rt1usb(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%rt1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%term2(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%term3(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%term5(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%term6(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%usuh(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%za_uv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%za_tq(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%z0m(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%zref_uv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%zref_tq(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%zruffs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%z0soilsn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rough%z0soil(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  ! --------rad --------
-  
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%albedo(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%extkb(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%extkd2(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%extkd(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%flws(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%fvlai(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = mf * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%gradis(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = mf * r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%latitude(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%lwabv(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%qcan(off,1,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mf*nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  ! blen(bidx) = mf * nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%qssabs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%rhocdf(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%rniso(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = mf * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%scalex(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = mf * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%transd(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%trad(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%reffdf(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%reffbm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%extkbm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%extkdm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%fbeam(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%cexpkbm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%cexpkdm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-  !blen(bidx) = nrb * r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%rhocbm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%transb(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  ! ------- sum_flux -----
-  
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumpn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumrp(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumrpw(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumrpr(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumrs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumrd(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%dsumpn(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%dsumrp(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%dsumrs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%dsumrd(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumxrp(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (sum_flux%sumxrs(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  ! ------- bal ----
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%drybal(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%ebal(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%ebal_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%ebal_cncheck(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%ebal_tot_cncheck(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%evap_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%osnowd0(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%precip_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%rnoff_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%wbal(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%wbal_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%wbtot0(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%wetbal(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%owbtot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%evapc_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%evaps_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%rnof1_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%rnof2_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%snowdc_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%wbal_tot1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%delwc_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%qasrf_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%qfsrf_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%qssrf_tot(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  ! additional field missing from previous versions;
-  ! added when trying to fix a bug in the new mpi code
-  ! the order of these new fields follows the order of their
-  ! declaration in cable_define_types.F90
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%ebaltr(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%ebal_tottr(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (bal%cansto0(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%iantrct(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tss_p(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%deltss(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%owb1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbtot1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wbtot1(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tprecip(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tevap(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%trnoff(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%totenbal(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%totenbal2(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%fland(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%ifland(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%tilefrac(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (n_tiles, r1len, r1stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%qasrf(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%qfsrf(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%qssrf(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (veg%vlaimax(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%albedo_T(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (rad%longitude(off), displs(bidx), ierr)
-  blen(bidx) = r1len
-
-
-  ! MPI: sanity check
-  IF (bidx /= ntyp) THEN
-     WRITE (*,*) 'master: invalid number of param_t fields ',bidx,', fix it!'
-     CALL MPI_Abort (comm, 1, ierr)
-  END IF
-
-  CALL MPI_Type_create_struct (bidx, blen, displs, types, param_ts(rank), ierr)
-  CALL MPI_Type_commit (param_ts(rank), ierr)
-
-  CALL MPI_Type_size (param_ts(rank), tsize, ierr)
-  CALL MPI_Type_get_extent (param_ts(rank), tmplb, text, ierr)
-
-  WRITE (*,*) 'master to rank param_t blocks, size, extent and lb: ',bidx,tsize,text,tmplb
-
-  localtotal = localtotal + tsize
+     ! ----------- air --------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%rho(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%volm(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%rlam(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%qsat(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%epsi(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%visc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%psyc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%dsatdk(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (air%cmolar(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+
+     ! ----------- ssnow --------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%dtmlt(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (3, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%pudsto(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%pudsmx(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%albsoilsn(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%cls(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%dfn_dtg(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%dfh_dtg(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%dfe_ddq(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%ddq_dtg(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%evapsn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%fwtop(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%fwtop1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%fwtop2(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%fwtop3(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%gammzz(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%isflag(off), displs(bidx), ierr)
+     blen(bidx) = I1LEN
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%osnowd(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%potev(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%pwb_min(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%runoff(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%rnof1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%rnof2(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%rtsoil(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%sconds(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = msn * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%sdepth(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = msn * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%smass(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = msn * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%snage(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%snowd(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%smelt(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%ssdn(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = msn * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%ssdnn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tgg(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tggsn(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msn, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = msn * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tss(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wb(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wbfice(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wbice(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wblf(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wbtot(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wb_lake(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%sinfil(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%evapfbl(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%qstss(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wetfac(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%owetfac(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%t_snwlr(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tggav(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%otss(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%otss_0(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     ! ----------- veg --------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%canst1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%dleaf(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%ejmax(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%frac4(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%froot(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%hc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%iveg(off), displs(bidx), ierr)
+     blen(bidx) = I1LEN
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%meth(off), displs(bidx), ierr)
+! Maciej: veg%meth is REAL
+!     blen(bidx) = I1LEN
+     blen(bidx) = R1LEN
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%rp20(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%rpcoef(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%shelrb(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%wai(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%vegcf(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%tminvj(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%tmaxvj(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%vbeta(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%xalbnir(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%vcmax(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+    ! bidx = bidx + 1
+    ! CALL MPI_Get_address (veg%vlai(off), displs(bidx), ierr)
+    ! blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%xfang(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%extkn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%deciduous(off), displs(bidx), ierr)
+! Maciej: deciduous is logical
+!     blen(bidx) = r1len
+     blen(bidx) = llen
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%a1gs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%d0gs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%alpha(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%convex(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%cfrd(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%gswmin(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%conkc0(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%conko0(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%ekc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%eko(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%clitt(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%zr(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%gamma(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%refl(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%taul(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%disturbance_interval(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (2, i1len, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%disturbance_intensity(off,1), displs(bidx), ierr)
+! Maciej: disturbance_intensity is REAL(r_2)
+!     CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
+!          &                             types(bidx), ierr)
+     CALL MPI_Type_create_hvector (2, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     ! ----------- bgc --------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bgc%cplant(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ncp * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bgc%csoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ncs, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ncs * r1len
+
+     ! constant * ncp, each worker gets the same copy of whole array
+     bidx = bidx + 1
+     CALL MPI_Get_address (bgc%ratecp, displs(bidx), ierr)
+     blen(bidx) = ncp * extr1
+
+     ! constant * ncs, each worker gets the same copy of whole array
+     bidx = bidx + 1
+     CALL MPI_Get_address (bgc%ratecs, displs(bidx), ierr)
+     blen(bidx) = ncs * extr1
+
+     ! ----------- soil --------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%albsoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%bch(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%c3(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%clay(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%cnsd(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%css(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%hsbh(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%hyds(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%i2bp3(off), displs(bidx), ierr)
+! Maciej: i2bp3 is REAL
+!     blen(bidx) = I1LEN
+     blen(bidx) = R1LEN
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%ibp2(off), displs(bidx), ierr)
+! Maciej: ibp2 is REAL
+!     blen(bidx) = I1LEN
+     blen(bidx) = R1LEN
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%isoilm(off), displs(bidx), ierr)
+! Maciej isoilm is INTEGER
+!     blen(bidx) = r1len
+     blen(bidx) = i1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%rhosoil(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%rs20(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%sand(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%sfc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%silt(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%ssat(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%sucs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%swilt(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     ! constant * ms, each worker gets the same copy of whole array
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%zse, displs(bidx), ierr)
+     blen(bidx) = ms * extr1
+
+     ! constant * (ms+1), each worker gets the same copy of whole array
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%zshh, displs(bidx), ierr)
+     blen(bidx) = (ms + 1) * extr1
+
+     ! vars intro for Ticket #27  
+     IF (calcsoilalbedo) THEN
+        bidx = bidx + 1
+        CALL MPI_Get_address (soil%soilcol(off), displs(bidx), ierr)
+        blen(bidx) = r1len
+     END IF
+
+     ! ----------- canopy --------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fess(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fesp(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%cansto(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%oldcansto(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%cduv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%delwc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%dewmm(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%dgdtg(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fe(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fh(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fpn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%frp(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%frpw(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%frpr(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%frs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fnee(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%frday(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fnv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fev(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fevc(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fevw(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     !  bidx = bidx + 1
+     !  CALL MPI_Get_address (canopy%potev_c(off), displs(bidx), ierr)
+     !  blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fhv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fhvw(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fns(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fes(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fhs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fwet(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%ga(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%ghflux(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%precis(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%qscrn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%rnet(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%segg(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%sghflux(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%spill(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%through(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%tscrn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%tv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%us(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%uscrn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%vlaiw(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%rghlai(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%wcint(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     !  bidx = bidx + 1
+     !  CALL MPI_Get_address (canopy%rwater(off,1), displs(bidx), ierr)
+     !  CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
+     !  &                             types(bidx), ierr)
+     !  blen(bidx) = 1
+     !  !blen(bidx) = ms * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%evapfbl(off,1), displs(bidx), ierr)
+     ! MPI: gol124: changed to r1 when Bernard ported to CABLE_r491
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = ms * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%epot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fnpp(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fevw_pot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%gswx_T(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%cdtq(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%wetfac_cs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%gswx(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%zetar(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (niter, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+
+     ! ------- rough -------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%coexp(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%disp(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%hruff(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%hruff_grmx(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%rt0us(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%rt1usa(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%rt1usb(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%rt1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%term2(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%term3(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%term5(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%term6(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%usuh(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%za_uv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%za_tq(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%z0m(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%zref_uv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%zref_tq(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%zruffs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%z0soilsn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rough%z0soil(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     ! --------rad --------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%albedo(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%extkb(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%extkd2(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%extkd(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%flws(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%fvlai(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = mf * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%gradis(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = mf * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%latitude(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%lwabv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%qcan(off,1,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mf*nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     ! blen(bidx) = mf * nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%qssabs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%rhocdf(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%rniso(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = mf * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%scalex(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = mf * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%transd(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%trad(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%reffdf(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%reffbm(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%extkbm(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%extkdm(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%fbeam(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%cexpkbm(off,1), displs(bidx), ierr)
+! Maciej: cexpkbm is mp*swb
+!     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+!          &                             types(bidx), ierr)
+     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%cexpkdm(off,1), displs(bidx), ierr)
+! Maciej: cexpkdm is mp*swb
+!     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+!          &                             types(bidx), ierr)
+     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+     !blen(bidx) = nrb * r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%rhocbm(off,1), displs(bidx), ierr)
+! Maciej: rhocbm is mp*nrb
+!     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+!          &                             types(bidx), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%transb(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     ! ------- sum_flux -----
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumpn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumrp(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumrpw(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumrpr(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumrs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumrd(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%dsumpn(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%dsumrp(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%dsumrs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%dsumrd(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumxrp(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (sum_flux%sumxrs(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     ! ------- bal ----
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%drybal(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%ebal(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%ebal_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%ebal_cncheck(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%ebal_tot_cncheck(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%evap_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%osnowd0(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%precip_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%rnoff_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%wbal(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%wbal_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%wbtot0(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%wetbal(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%owbtot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%evapc_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%evaps_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%rnof1_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%rnof2_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%snowdc_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%wbal_tot1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%delwc_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%qasrf_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%qfsrf_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%qssrf_tot(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     ! additional field missing from previous versions;
+     ! added when trying to fix a bug in the new mpi code
+     ! the order of these new fields follows the order of their
+     ! declaration in cable_define_types.F90
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%ebaltr(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%ebal_tottr(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (bal%cansto0(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%iantrct(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tss_p(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%deltss(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%owb1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%wbtot1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+! Maciej: duplicate!
+!     bidx = bidx + 1
+!     CALL MPI_Get_address (ssnow%wbtot1(off), displs(bidx), ierr)
+!     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tprecip(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tevap(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%trnoff(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%totenbal(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%totenbal2(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%fland(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%ifland(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%tilefrac(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (n_tiles, r1len, r1stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%qasrf(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%qfsrf(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%qssrf(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%vlaimax(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%albedo_T(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (rad%longitude(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+ 
+
+     ! MPI: sanity check
+     IF (bidx /= ntyp) THEN
+        WRITE (*,*) 'master: invalid number of param_t fields ',bidx,', fix it!'
+        CALL MPI_Abort (comm, 1, ierr)
+     END IF
+
+     CALL MPI_Type_create_struct (bidx, blen, displs, types, param_ts(rank), ierr)
+     CALL MPI_Type_commit (param_ts(rank), ierr)
+
+     CALL MPI_Type_size (param_ts(rank), tsize, ierr)
+     CALL MPI_Type_get_extent (param_ts(rank), tmplb, text, ierr)
+
+     WRITE (*,*) 'master to rank param_t blocks, size, extent and lb: ',rank, bidx,tsize,text,tmplb
+
+     localtotal = localtotal + tsize
 
   END DO ! rank
 
@@ -2694,14 +2939,13 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   WRITE (*,*) 'total cable params size received by all workers: ', remotetotal
 
   IF (localtotal /= remotetotal) THEN
-          WRITE (*,*) 'error: total length of cable params sent and received differ'
-          CALL MPI_Abort (comm, 0, ierr)
+     WRITE (*,*) 'error: total length of cable params sent and received differ'
+     CALL MPI_Abort (comm, 0, ierr)
   END IF
 
   ! so, now send all the parameters
-PRINT*,"Send param_ts",comm
   CALL master_send_input (comm, param_ts, 0)
-  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+!  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
   ! finally free the MPI type
   DO rank = 1, wnp
@@ -2759,7 +3003,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   INTEGER, ALLOCATABLE, DIMENSION(:) :: casa_ts
 
   INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride, istride
-  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
+  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
 
@@ -2797,7 +3041,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   r1len = cnt * extr1
   r2len = cnt * extr2
-  ILEN = cnt * extid
+  I1LEN = cnt * extid
   llen = cnt * extl
 
   bidx = 0
@@ -2996,6 +3240,8 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   bidx = bidx + 1
   CALL MPI_Get_address (casapool%dClabiledt(off), displs(bidx), ierr)
   blen(bidx) = r2len
+
+  
 
   bidx = bidx + 1
   CALL MPI_Get_address (casapool%Cplant(off,1), displs(bidx), ierr)
@@ -3224,13 +3470,17 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (casapool%ratioNPlitter(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+!  CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+! Maciej
+  CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
   bidx = bidx + 1
   CALL MPI_Get_address (casapool%ratioNPsoil(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+!  CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+! Maciej
+  CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
@@ -3305,6 +3555,8 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
+
+
   !blen(bidx) = mplant * r2len
 
   ! gol124: temp
@@ -3423,6 +3675,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Psorbmax(off), displs(bidx), ierr)
   blen(bidx) = r2len
+
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%frac_sapwood(off), displs(bidx), ierr)
@@ -3552,7 +3805,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (casamet%lnonwood(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
+  blen(bidx) = I1LEN
 
   bidx = bidx + 1
   CALL MPI_Get_address (casamet%Tsoil(off,1), displs(bidx), ierr)
@@ -3570,15 +3823,17 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (casamet%iveg2(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
+  blen(bidx) = I1LEN
 
   bidx = bidx + 1
   CALL MPI_Get_address (casamet%ijgcm(off), displs(bidx), ierr)
-  blen(bidx) = r2len
+! Maciej: ijgcm is INTEGER
+  blen(bidx) = i1len
 
   bidx = bidx + 1
   CALL MPI_Get_address (casamet%isorder(off), displs(bidx), ierr)
-  blen(bidx) = r2len
+! Maciej: isorder is INTEGER
+  blen(bidx) = i1len
 
   bidx = bidx + 1
   CALL MPI_Get_address (casamet%lat(off), displs(bidx), ierr)
@@ -3803,7 +4058,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (phen%phase(off), displs(bidx), ierr)
-  blen(bidx) = ILEN
+  blen(bidx) = I1LEN
 
   bidx = bidx + 1
   CALL MPI_Get_address (phen%TKshed, displs(bidx), ierr)
@@ -3811,10 +4066,48 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (mphase, ILEN, istride, MPI_BYTE, &
+  CALL MPI_Type_create_hvector (mphase, I1LEN, istride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
-  !blen(bidx) = mphase * ilen
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (phen%phen(off), displs(bidx), ierr)
+  blen(bidx) =  r1len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (phen%aphen(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+ 
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (phen%phasespin(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (phen%doyphasespin_1(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (phen%doyphasespin_2(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (phen%doyphasespin_3(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (phen%doyphasespin_4(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
 
   ! MPI: sanity check
   IF (bidx /= ntyp) THEN
@@ -3855,7 +4148,7 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
   ! so, now send all the parameters
   CALL master_send_input (comm, casa_ts, 0)
-  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+!  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
   ! finally free the MPI type
   DO rank = 1, wnp
@@ -3898,7 +4191,7 @@ SUBROUTINE master_intypes (comm,met,veg)
   INTEGER :: tsize, localtotal, remotetotal
 
   INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride
-  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
+  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
   INTEGER :: rank ! worker rank
@@ -3932,7 +4225,7 @@ SUBROUTINE master_intypes (comm,met,veg)
 
      r1len = cnt * extr1
      r2len = cnt * extr2
-     ilen = cnt * extid
+     I1LEN = cnt * extid
      llen = cnt * extl
 
      r1stride = mp * extr1
@@ -3984,6 +4277,10 @@ SUBROUTINE master_intypes (comm,met,veg)
      CALL MPI_Get_address (met%coszen(off), displs(bidx), ierr)
      blocks(bidx) = r1len
 
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%Ndep(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+
 
      ! veg fields
 
@@ -3998,11 +4295,11 @@ SUBROUTINE master_intypes (comm,met,veg)
 
      bidx = bidx + 1
      CALL MPI_Get_address (met%year(off), displs(bidx), ierr)
-     blocks(bidx) = ILEN
+     blocks(bidx) = I1LEN
 
      bidx = bidx + 1
      CALL MPI_Get_address (met%moy(off), displs(bidx), ierr)
-     blocks(bidx) = ILEN
+     blocks(bidx) = I1LEN
 
      bidx = bidx + 1
      CALL MPI_Get_address (met%doy(off), displs(bidx), ierr)
@@ -4373,20 +4670,29 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      midx = midx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (rad%cexpkbm(off,1), maddr(midx), ierr) ! 26
-     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+! Maciej: cexpkbm is mp*swb
+!     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+!          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (rad%cexpkdm(off,1), maddr(midx), ierr) ! 27
-     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+! Maciej: cexpkdm is mp*swb
+!     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+!          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
      midx = midx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (rad%rhocbm(off,1), maddr(midx), ierr) ! 27
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+! Maciej: rhocbm is mp*nrb
+!     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+!          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
@@ -4726,6 +5032,11 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_1)
      CALL MPI_Get_address (canopy%wcint(off), vaddr(vidx), ierr) ! 59
      blen(vidx) = cnt * extr1
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (canopy%fwsoil(off), vaddr(vidx), ierr) ! 59
+     blen(vidx) = cnt * extr2
+
      ! MPI: 2D vars moved above
      ! rwater
      ! evapfbl
@@ -5109,11 +5420,15 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      vidx = vidx + 1
      ! INTEGER(i_d)
      CALL MPI_Get_address (soil%i2bp3(off), vaddr(vidx), ierr) ! 132
-     blen(vidx) = cnt * extid
+! Maciej: i2bp3 is REAL
+!     blen(vidx) = cnt * extid
+     blen(vidx) = cnt * extr1
      vidx = vidx + 1
      ! INTEGER(i_d)
      CALL MPI_Get_address (soil%ibp2(off), vaddr(vidx), ierr) ! 133
-     blen(vidx) = cnt * extid
+! Maciej: ibp2 is REAL
+!     blen(vidx) = cnt * extid
+     blen(vidx) = cnt * extr1
      vidx = vidx + 1
      ! INTEGER(i_d)
      CALL MPI_Get_address (soil%isoilm(off), vaddr(vidx), ierr) ! 134
@@ -5159,7 +5474,9 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      vidx = vidx + 1
      ! INTEGER(i_d)
      CALL MPI_Get_address (veg%meth(off), vaddr(vidx), ierr) ! 144
-     blen(vidx) = cnt * extid
+! Maciej: veg%meth is REAL
+!     blen(vidx) = cnt * extid
+     blen(vidx) = cnt * extr1
      vidx = vidx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (veg%vlai(off), vaddr(vidx), ierr) ! 145
@@ -5316,7 +5633,7 @@ END SUBROUTINE master_outtypes
 
 ! MPI: creates handles for receiving casa final results from the workers
 SUBROUTINE master_casa_types (comm, casapool, casaflux, &
-                              casamet, casabal, phen)
+     casamet, casabal, phen)
 
   USE mpi
 
@@ -5347,8 +5664,8 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
 
   ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, ILEN
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
+  INTEGER :: r1len, r2len, I1LEN
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride, istride
 
   INTEGER :: tsize, totalrecv, totalsend
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
@@ -5359,14 +5676,14 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   ALLOCATE (casa_ts(wnp))
 
   ! MPI: allocate temp vectors used for marshalling
-  ntyp = ncasa_mat + ncasa_vec
+  ntyp = ncasa_mat + ncasa_vec + (nphen - 1)
   ALLOCATE (blocks(ntyp))
   ALLOCATE (displs(ntyp))
   ALLOCATE (types(ntyp))
-  
+
   r1stride = mp * extr1
   r2stride = mp * extr2
-
+  istride = mp * extid
   ! counter to sum total number of bytes receives from all workers
   totalrecv = 0
 
@@ -5376,7 +5693,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      r1len = cnt * extr1
      r2len = cnt * extr2
-     ILEN = cnt * extid
+     I1LEN = cnt * extid
 
      bidx = 0
 
@@ -5385,96 +5702,270 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%cplant(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
-     &                                types(bidx), ierr)
+          &                                types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%clitter(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%csoil(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%nplant(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%nlitter(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%nsoil(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%pplant(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%plitter(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%psoil(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioNCplant(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioPCplant(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioNClitter(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioPClitter(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioNCsoil(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
+          &                             types(bidx), ierr)
      blocks(bidx) = 1
 
-     last2d = bidx
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mphase, I1LEN, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%phasespin(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%doyphasespin_1(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%doyphasespin_2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%doyphasespin_3(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%doyphasespin_4(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mdyear, I1LEN, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cplant_turnover(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fracCalloc(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+    
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fracNalloc(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+    
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fracPalloc(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+    
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Crmplant(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+    
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%kplant(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     
+    
+     ! 3D
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fromPtoL(off,1,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mplant * mlitter, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%klitter(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = mlitter * r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%ksoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = msoil * r2len
+     
+     ! gol124: temp only
+     ! 3D
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fromLtoS(off,1,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil * mlitter, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = msoil * mlitter * r2len
+     
+     ! gol124: temp only
+     ! 3D
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fromStoS(off,1,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil * msoil, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = msoil * msoil * r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fromLtoCO2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = mlitter * r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fromStoCO2(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = msoil * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fluxCtolitter(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = mlitter * r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fluxNtolitter(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = mlitter * r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fluxPtolitter(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = mlitter * r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fluxCtosoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = msoil * r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fluxNtosoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = msoil * r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fluxPtosoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     !blocks(bidx) = msoil * r2len
+     
 
      ! ------------- 1D vectors -------------
+
+     last2d = bidx
 
      bidx = bidx + 1
      CALL MPI_Get_address (casamet%glai(off), displs(bidx), ierr)
@@ -5482,11 +5973,32 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (phen%phase(off), displs(bidx), ierr)
-     blocks(bidx) = ILEN
+     blocks(bidx) = I1LEN
+
+
+    
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%phen(off), displs(bidx), ierr)
+     blocks(bidx) =  r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%aphen(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+
+
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%clabile(off), displs(bidx), ierr)
      blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casapool%Ctot(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casapool%Ctot_0(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%nsoilmin(off), displs(bidx), ierr)
@@ -5604,11 +6116,110 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      CALL MPI_Get_address (casabal%FPlossyear(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
+!*****************************
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cgpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Plabuptake(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Clabloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracClabile(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Cnep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Crsoil(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nmindep(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+ 
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminleach(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nupland(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nlittermin(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nsmin(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nsimm(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nsnet(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+!****************************************************
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%frac_sapwood(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%sapwood_area(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cplant_turnover_disturbance(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cplant_turnover_crowding(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Cplant_turnover_resource_limitation(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
      types(last2d+1:bidx) = MPI_BYTE
 
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
         WRITE (*,*) 'master: invalid number of casa fields, fix it!'
+        WRITE (*,*) 'ntyp: ', ntyp, 'bidx: ', bidx
         CALL MPI_Abort (comm, 1, ierr)
      END IF
 
@@ -5619,7 +6230,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      CALL MPI_Type_get_extent (casa_ts(rank), tmplb, text, ierr)
 
      WRITE (*,*) 'casa results recv from worker, size, extent, lb: ', &
-   &       rank,tsize,text,tmplb
+          &       rank,tsize,text,tmplb
 
      totalrecv = totalrecv + tsize
 
@@ -5637,13 +6248,13 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   ! data sent by all the workers
   totalsend = 0
   CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
-    &     0, comm, ierr)
+       &     0, comm, ierr)
 
   WRITE (*,*) 'total size of casa results sent by all workers: ', totalsend
 
   IF (totalrecv /= totalsend) THEN
-          WRITE (*,*) 'error: casa results totalsend and totalrecv differ'
-          CALL MPI_Abort (comm, 0, ierr)
+     WRITE (*,*) 'error: casa results totalsend and totalrecv differ'
+     CALL MPI_Abort (comm, 0, ierr)
   END IF
 
   DEALLOCATE(types)
@@ -5653,6 +6264,293 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   RETURN
 
 END SUBROUTINE master_casa_types
+
+SUBROUTINE master_climate_types (comm, climate)
+
+  USE mpi
+
+  USE cable_def_types_mod, ONLY: climate_type, mp
+  USE cable_climate_mod, ONLY: climate_init,  READ_CLIMATE_RESTART_NC
+  USE cable_common_module, ONLY: CABLE_USER
+
+  TYPE(climate_type):: climate
+  INTEGER :: comm
+  ! MPI: temp arrays for marshalling all types into a struct
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
+  INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+  INTEGER :: ntyp ! number of worker's types
+
+  INTEGER :: last2d, i
+
+  ! MPI: block lenghts for hindexed representing all vectors
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+
+  ! MPI: block lengths and strides for hvector representing matrices
+  INTEGER :: r1len, r2len, I1LEN
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
+
+  INTEGER :: tsize, totalrecv, totalsend
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+
+  INTEGER :: rank, off, cnt
+  INTEGER :: bidx, midx, vidx, ierr, ny, nd, ndq
+
+  CALL climate_init (climate, mp)
+  if (.NOT.cable_user%climate_fromzero) &
+       CALL READ_CLIMATE_RESTART_NC (climate)
+  ALLOCATE (climate_ts(wnp))
+
+  ! MPI: allocate temp vectors used for marshalling
+  ntyp = nclimate
+
+  ALLOCATE (blocks(ntyp))
+  ALLOCATE (displs(ntyp))
+  ALLOCATE (types(ntyp))
+  
+  r1stride = mp * extr1
+  r2stride = mp * extr2
+
+  ! counter to sum total number of bytes receives from all workers
+  totalrecv = 0
+
+ DO rank = 1, wnp
+     off = wland(rank)%patch0
+     cnt = wland(rank)%npatch
+
+     r1len = cnt * extr1
+     r2len = cnt * extr2
+     I1LEN = cnt * extid
+
+     bidx = 0
+
+     ! ------------- 2D arrays -------------
+     ny = climate%nyear_average
+     nd = climate%nday_average
+     ndq = 91
+
+!print*, 'master, nd ny mp', nd, ny,mp
+!print*, 'master, size(climate)', size(climate%mtemp_min_20)
+     bidx = bidx + 1
+     !types(bidx)  = MPI_REAL
+     CALL MPI_Get_address (climate%mtemp_min_20(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ny, r1len, r1stride, MPI_BYTE, &
+     &                                types(bidx), ierr)
+     blocks(bidx) = 1
+ 
+! print*, 'master', blocks, bidx, ny, r1len, displs, ierr, climate%mtemp_min_20(off,:)
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp_max_20(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ny, r1len, r1stride, MPI_BYTE, &
+     &                                types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%alpha_PT_20(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ny, r1len, r1stride, MPI_BYTE, &
+     &                                types(bidx), ierr)
+     blocks(bidx) = 1
+ 
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%dtemp_31(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nd, r1len, r1stride, MPI_BYTE, &
+     &                                types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%dtemp_91(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ndq, r1len, r1stride, MPI_BYTE, &
+     &                                types(bidx), ierr)
+     blocks(bidx) = 1
+ 
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%dmoist_31(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (nd, r1len, r1stride, MPI_BYTE, &
+     &                                types(bidx), ierr)
+     blocks(bidx) = 1
+ 
+
+ ! ------------- 1D vectors -------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%chilldays(off), displs(bidx), ierr)
+     blocks(bidx) = i1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%iveg(off), displs(bidx), ierr)
+     blocks(bidx) = i1len
+     types(bidx)  = MPI_BYTE
+
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%biome(off), displs(bidx), ierr)
+     blocks(bidx) = i1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%dtemp(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%dmoist(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%qtemp(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mmoist(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp_min(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%qtemp_max(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%qtemp_max_last_year(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp_min20(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp_max20(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%atemp_mean(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%agdd5(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%gdd5(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%agdd0(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%gdd0(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%alpha_PT(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%evap_PT(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%aevap(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     types(bidx)  = MPI_BYTE
+
+ ! ------------- scalars  -------------
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%nyears, displs(bidx), ierr)
+     blocks(bidx) = extid
+     types(bidx)  = MPI_BYTE
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%doy, displs(bidx), ierr)
+     blocks(bidx) = extid
+     types(bidx)  = MPI_BYTE
+
+! MPI: sanity check
+     IF (bidx /= ntyp) THEN
+        WRITE (*,*) 'master: invalid number of climate fields, fix it!'
+        CALL MPI_Abort (comm, 1, ierr)
+     END IF
+
+     CALL MPI_Type_create_struct (bidx, blocks, displs, types, climate_ts(rank), ierr)
+     CALL MPI_Type_commit (climate_ts(rank), ierr)
+
+     CALL MPI_Type_size (climate_ts(rank), tsize, ierr)
+     CALL MPI_Type_get_extent (climate_ts(rank), tmplb, text, ierr)
+
+     WRITE (*,*) 'climate results recv from worker, size, extent, lb: ', &
+   &       rank,tsize,text,tmplb
+
+     totalrecv = totalrecv + tsize
+
+  END DO
+
+  WRITE (*,*) 'total size of climate results received from all workers: ', totalrecv
+
+  ! MPI: check whether total size of received data equals total
+  ! data sent by all the workers
+  totalsend = 0
+  CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
+    &     0, comm, ierr)
+
+  WRITE (*,*) 'total size of climate results sent by all workers: ', totalsend
+
+  IF (totalrecv /= totalsend) THEN
+          WRITE (*,*) 'error: climate results totalsend and totalrecv differ'
+          CALL MPI_Abort (comm, 0, ierr)
+  END IF
+
+
+  DO rank = 1, wnp
+
+     CALL MPI_ISend (MPI_BOTTOM, 1, climate_ts(rank), rank, 0, comm, &
+          &               inp_req(rank), ierr)
+       
+  END DO
+  
+  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+  
+
+  DEALLOCATE(types)
+  DEALLOCATE(displs)
+  DEALLOCATE(blocks)
+
+  RETURN
+
+END SUBROUTINE master_climate_types
 
 !MPI 
 
@@ -5680,7 +6578,7 @@ END SUBROUTINE master_casa_types
 !CLN  INTEGER :: tsize, localtotal, remotetotal
 !CLN
 !CLN  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride
-!CLN  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
+!CLN  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
 !CLN  INTEGER :: bidx ! block index
 !CLN  INTEGER :: ntyp ! total number of blocks
 !CLN  INTEGER :: rank ! worker rank
@@ -5974,9 +6872,12 @@ SUBROUTINE master_restart_types (comm, canopy, air)
 
      types(last2d+1:bidx) = MPI_BYTE
 
+
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
         WRITE (*,*) 'master: invalid number of restart fields, fix it!'
+WRITE(*,*) 'bidx', bidx
+ WRITE(*,*) 'ntyp', ntyp
         CALL MPI_Abort (comm, 1, ierr)
      END IF
 
@@ -6021,17 +6922,20 @@ SUBROUTINE master_restart_types (comm, canopy, air)
 END SUBROUTINE master_restart_types
 
 ! MPI: Casa - dump read and write
-SUBROUTINE master_casa_dump_types(comm, casamet, casaflux )
+SUBROUTINE master_casa_dump_types(comm, casamet, casaflux, phen, climate )
 
   USE mpi
 
   USE casavariable, ONLY: casa_met, casa_flux
-
+  USE cable_def_types_mod, ONLY: climate_type
+  USE phenvariable
   IMPLICIT NONE
   
   INTEGER,INTENT(IN) :: comm
   TYPE (casa_flux)   , INTENT(INOUT) :: casaflux
   TYPE (casa_met)    , INTENT(INOUT) :: casamet
+  TYPE (phen_variable), INTENT(INOUT)  :: phen 
+  TYPE(climate_type):: climate
 
   ! local vars
 
@@ -6044,8 +6948,8 @@ SUBROUTINE master_casa_dump_types(comm, casamet, casaflux )
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
   INTEGER :: tsize, localtotal, remotetotal
 
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride
-  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride, Istride
+  INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
   INTEGER :: rank ! worker rank
@@ -6068,9 +6972,6 @@ SUBROUTINE master_casa_dump_types(comm, casamet, casaflux )
   ! total size of input data sent to all workers
   localtotal = 0
 
-WRITE(6,*)" w create casa_dump"
-CALL FLUSH (6)
-
   ! create a separate MPI derived datatype for each worker
   DO rank = 1, wnp
 
@@ -6082,45 +6983,70 @@ CALL FLUSH (6)
 
      r1stride = mp * extr1
 
+     I1LEN = cnt * extid
+     istride = mp * extid
+
+     r2len = cnt * extr2
+     r2stride = mp * extr2
+
      ! casamet fields
 
-WRITE(6,*)" w send casa_dump1"
-CALL FLUSH (6)
      bidx = 1
      CALL MPI_Get_address (casamet%tairk(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
+     blocks(bidx) = r2len
 
-WRITE(6,*)" w send casa_dump2"
-CALL FLUSH (6)
      bidx = bidx + 1
      CALL MPI_Get_address (casamet%tsoil(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           types(bidx), ierr)
      blocks(bidx) = 1
 
-WRITE(6,*)" w send casa_dump3"
-CALL FLUSH (6)
      bidx = bidx + 1
      CALL MPI_Get_address (casamet%moist(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           types(bidx), ierr)
      blocks(bidx) = 1
 
      ! casaflux fields
 
-WRITE(6,*)" w send casa_dump4"
-CALL FLUSH (6)
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%cgpp(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
+     blocks(bidx) = r2len
 
-WRITE(6,*)" w send casa_dump5"
-CALL FLUSH (6)
      bidx = bidx + 1
      CALL MPI_Get_address (casaflux%crmplant(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (ncp, r2len, r2stride, MPI_BYTE, &
           types(bidx), ierr)
      blocks(bidx) = 1
+
+!****************************************************************
+ ! phen fields
+  
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%phase(off), displs(bidx), ierr)
+     blocks(bidx) = I1LEN
+     
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (mphase, I1LEN, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blocks(bidx) = 1
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+  
+!****************************************************************
+! Ndep
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nmindep(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+
+!******************************************************************
+
 
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
@@ -6141,7 +7067,7 @@ CALL FLUSH (6)
 
      localtotal = localtotal + tsize
 
-  END DO ! rank
+  END DO ! ranks
 
   DEALLOCATE(types)
   DEALLOCATE(displs)
@@ -6160,6 +7086,15 @@ CALL FLUSH (6)
           WRITE (*,*) 'error: total length of input data sent and received differ'
           CALL MPI_Abort (comm, 0, ierr)
   END IF
+
+!!$  DO rank = 1, wnp
+!!$
+!!$     CALL MPI_ISend (MPI_BOTTOM, 1, casa_dump_ts(rank), rank, 0, comm, &
+!!$          &               inp_req(rank), ierr)
+!!$       
+!!$  END DO
+!!$  
+!!$  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
 END SUBROUTINE master_casa_dump_types
 
@@ -6170,16 +7105,16 @@ END SUBROUTINE master_casa_dump_types
 SUBROUTINE master_pop_types(comm, casamet, pop)
 
   USE mpi
-  USE POP_types,    ONLY: pop_type
-  USE POP_Constants,ONLY: NLAYER, NPATCH
-  USE casavariable, ONLY: casa_met
-  USE casaparm,     ONLY: forest, shrub
- 
+  USE POP_mpi
+  USE POP_types,          ONLY: pop_type
+  USE cable_common_module,ONLY: cable_user
+  USE casavariable,       ONLY: casa_met
+
   IMPLICIT NONE
 
   INTEGER,INTENT(IN) :: comm
-  TYPE (casa_met)   , INTENT(IN)    :: casamet
-  TYPE (pop_type)   , INTENT(INOUT) :: pop
+  TYPE (casa_met)          , INTENT(IN)    :: casamet
+  TYPE (pop_type)          , INTENT(INOUT) :: pop
 
   ! temp arrays for marshalling all fields into a single struct
   INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
@@ -6190,611 +7125,100 @@ SUBROUTINE master_pop_types(comm, casamet, pop)
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
   INTEGER :: tsize, localtotal, remotetotal
 
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride
-  INTEGER :: r1len, r2len, ILEN, llen ! block lengths
+  INTEGER(KIND=MPI_ADDRESS_KIND) :: r2stride, ilstride, idstride
+  INTEGER :: r2len, illen,idlen ! block lengths
   INTEGER :: bidx ! block index
   INTEGER :: ntyp ! total number of blocks
   INTEGER :: rank ! worker rank
   INTEGER :: off  ! first patch index for a worker
   INTEGER :: cnt  ! mp for a worker
   INTEGER :: ierr
-  INTEGER :: x, l
+  INTEGER :: x, l, prev_mp
+  INTEGER, ALLOCATABLE :: w_iwood(:), nwoodcells(:)
 
-  ALLOCATE (pop_ts(wnp))
+  ! Also send Pop relevant info to workers.
 
-  ntyp = npop
-
-  ALLOCATE (blocks(ntyp))
-  ALLOCATE (displs(ntyp))
-  ALLOCATE (types(ntyp))
-
-  ! chunks of all 1D vectors are contiguous blocks of memory so just send them
-  ! as blocks of bytes
-  types = MPI_BYTE
-
-  ! total size of input data sent to all workers
-  localtotal = 0
-
-  bidx = 0
-
-  ! create a separate MPI derived datatype for each worker
+  prev_mp = 0
   DO rank = 1, wnp
-     
-     ! LN see if that works
-     IF (casamet%iveg2(rank)/=forest .AND. casamet%iveg2(rank)/=shrub) CYCLE
- 
-     ! starting patch and number for each worker rank
+
      off = wland(rank)%patch0
-     cnt = wland(rank)%npatch
+     
+     ! number of forest or shrub patches per worker
+     wland(rank)%npop_iwood = &
+          COUNT(POP%Iwood .GE.off .AND. POP%Iwood .LT. (off+wland(rank)%npatch))
 
-     r1len = cnt * extr1
-!     r2len = cnt * extr2
-     ILEN = cnt * extid
-     llen = cnt * extl
+     CALL MPI_Send (wland(rank)%npop_iwood, 1, MPI_INTEGER, rank, 0, comm, ierr)
 
-     r1stride = mp * extr1
-!     r2stride = mp * extr2
+     ! Index mapping for pop-pixels for each worker
+     ALLOCATE( wland(rank)%iwood(wland(rank)%npop_iwood) )
+     ALLOCATE( w_iwood(wland(rank)%npop_iwood) )
 
-!CLN     bidx = bidx + 1
-!CLN     CALL MPI_Get_address (POP%pop_grid(rank)%npatch_active, displs(bidx), ierr)
-!CLN     blocks(bidx) = r1len
-     
-     ! 1D real
+     ! Array of indeces in master domain
+     wland(rank)%iwood(:) = PACK(POP%Iwood, (POP%Iwood.GE.off .AND. POP%Iwood .LT. (off+wland(rank)%npatch)))
 
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%cmass_sum, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%cmass_sum_old, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%cheartwood_sum, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%csapwood_sum, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%csapwood_sum_old, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%densindiv, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%height_mean, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%height_max, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%basal_area, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%sapwood_loss, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%sapwood_area_loss, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%stress_mortality, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%crowding_mortality, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%fire_mortality, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%cat_mortality, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%res_mortality, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%growth, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%area_growth, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%crown_cover, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%crown_area, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%crown_volume, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%sapwood_area, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%sapwood_area_old, displs(bidx), ierr)
-     blocks(bidx) = r1len
-     
-     bidx = bidx + 1 
-     CALL MPI_Get_address (POP%pop_grid(off)%KClump, displs(bidx), ierr)
-     blocks(bidx) = r1len
+     ! Index of patch in worker domain
+     w_iwood(:) = wland(rank)%iwood(:) - prev_mp
+     CALL MPI_Send (w_iwood, wland(rank)%npop_iwood, MPI_INTEGER, rank, 0, comm, ierr )
 
-     ! 2D real
+     DEALLOCATE(w_iwood)
 
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%biomass(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%density(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%hmean(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%hmax(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%cmass_stem_bin(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%densindiv_bin(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%height_bin(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%diameter_bin(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     !INTEGER
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%n_age(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     !INTEGER
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%id, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%freq(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%freq_old(1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%factor_recruit, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%pgap, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%lai, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%biomass, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%biomass_old, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%sapwood, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%heartwood, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%sapwood_old, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%sapwood_area, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%sapwood_area_old, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%stress_mortality, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%fire_mortality, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%cat_mortality, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%crowding_mortality, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%cpc, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%sapwood_loss, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%sapwood_area_loss, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%growth, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%area_growth, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%frac_NPP, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%frac_respiration, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     bidx = bidx + 1
-     CALL MPI_Get_address (POP%pop_grid(off)%patch(1)%frac_light_uptake, displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-          types(bidx), ierr)
-     blocks(bidx) = 1
-     
-     ! 3D vars INTEGER
+     ! accounted patches so far
+     prev_mp = prev_mp + wland(rank)%npatch
+  END DO
 
-     DO x = 1, NPATCH
+  ! once generate a structure fitting the pop derived types
+  CALL create_pop_gridcell_type (pop_ts, comm)
 
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%disturbance_interval(1), displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-     
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%first_disturbance_year(1), displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-     
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%age(1), displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-     
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%ranked_age_unique(x,1), displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-     
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(1)%ncohort, displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-     
-     END DO
+  ! Send restart stuff once
 
-     ! 3D vars FLOAT
+  IF ( .NOT. CABLE_USER%POP_fromZero ) THEN
+     off = 1
+     DO rank = 1, wnp
 
-     DO x = 1, NPATCH
-        
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%freq_ranked_age_unique(x,1), displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
+        IF ( rank .GT. 1 ) off = off + wland(rank-1)%npop_iwood
 
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(1)%biomass, displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(1)%density, displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(1)%hmean, displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
-
-        bidx = bidx + 1
-        CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(1)%hmax, displs(bidx), ierr)
-        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-             types(bidx), ierr)
-        blocks(bidx) = 1
+        cnt = wland(rank)%npop_iwood
+! Maciej: worker_pop_types always call MPI_Recv, even if cnt is zero
+!        IF ( cnt .EQ. 0 ) CYCLE
+        CALL MPI_Send( POP%pop_grid(off), cnt, pop_ts, rank, 0, comm, ierr )
 
      END DO
-        
-     ! 4D vars 
 
-     DO x = 1, NPATCH
-        DO l = 1, NLAYER
-           
-           ! INTEGER
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%age, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%id, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           ! FLOAT
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%biomass, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%density, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%frac_resource_uptake, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%frac_light_uptake, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%frac_interception, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%frac_respiration, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%frac_NPP, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%respiration_scalar, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%crown_area, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%Pgap, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%height, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%diameter, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%sapwood, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%heartwood, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%sapwood_area, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%basal_area, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%LAI, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%Cleaf, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-           bidx = bidx + 1
-           CALL MPI_Get_address (POP%pop_grid(off)%patch(x)%layer(l)%cohort(1)%Croot, displs(bidx), ierr)
-           CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
-                types(bidx), ierr)
-           blocks(bidx) = 1
-           
-        END DO
-     END DO
-     
-     ! MPI: sanity check
-     IF (bidx /= ntyp) THEN
-        WRITE (*,*) 'master: invalid intype in master_casa_dump, fix it!'
-        CALL MPI_Abort (comm, 1, ierr)
-     END IF
+!     CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
-     ! marshall all fields into a single MPI derived datatype for worker rank
-  
-     CALL MPI_Type_create_struct (bidx, blocks, displs, types, casa_dump_ts(rank), ierr)
-     CALL MPI_Type_commit (casa_dump_ts(rank), ierr)
-
-     CALL MPI_Type_size (casa_dump_ts(rank), tsize, ierr)
-     CALL MPI_Type_get_extent (casa_dump_ts(rank), tmplb, text, ierr)
-
-     WRITE (*,*) 'master to ',rank,': intype struct blocks, size, extent and lb: ', &
-                 bidx,tsize,text,tmplb
-
-     localtotal = localtotal + tsize
-
-  END DO ! rank
-
-  DEALLOCATE(types)
-  DEALLOCATE(displs)
-  DEALLOCATE(blocks)
-
-  WRITE (*,*) 'total casa_dump size sent to all workers: ', localtotal
-
-  ! MPI: check whether total size of send input data equals total
-  ! data received by all the workers
-  remotetotal = 0
-  CALL MPI_Reduce (MPI_IN_PLACE, remotetotal, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
-
-  WRITE (*,*) 'total input data size received by all workers: ', remotetotal
-
-  IF (localtotal /= remotetotal) THEN
-          WRITE (*,*) 'error: total length of input data sent and received differ'
-          CALL MPI_Abort (comm, 0, ierr)
-  END IF
-
-
+  ENDIF
 
 END SUBROUTINE master_pop_types
+
+SUBROUTINE master_receive_pop (POP, comm)
+  
+  USE MPI
+  USE POP_mpi
+  USE POP_Types,           ONLY: pop_type
+  USE cable_common_module, ONLY: cable_user
+
+  IMPLICIT NONE
+
+  INTEGER         ,INTENT(IN)    :: comm
+  TYPE (pop_type) ,INTENT(INOUT) :: pop
+
+  INTEGER :: ierr, rank, off, cnt, stat(MPI_STATUS_SIZE)
+
+  off = 1
+  DO rank = 1, wnp
+
+     IF ( rank .GT. 1 ) off = off + wland(rank-1)%npop_iwood
+
+     cnt = wland(rank)%npop_iwood 
+     IF ( cnt .EQ. 0 ) CYCLE
+
+     CALL MPI_Recv( POP%pop_grid(off), cnt, pop_ts, rank, 0, comm, stat, ierr )
+     
+  END DO
+  ! NO Waitall here as some workers might not be involved!!!
+
+END SUBROUTINE master_receive_pop
+
 
 ! MPI: scatters input data for timestep ktau to all workers
 SUBROUTINE master_send_input (comm, dtypes, ktau)
@@ -6814,21 +7238,15 @@ SUBROUTINE master_send_input (comm, dtypes, ktau)
 !  END IF
 
   DO rank = 1, wnp
-     PRINT*,"To ",rank
-     PRINT*,"dtypes(rank)",dtypes(rank)
-     PRINT*,"MPI_BOTTOM",MPI_BOTTOM
-     PRINT*,"MPI_ID ", rank, ktau, comm
      CALL MPI_ISend (MPI_BOTTOM, 1, dtypes(rank), rank, ktau, comm, &
      &               inp_req(rank), ierr)
-     PRINT*,"stat(rank)",inp_req(rank)
-     PRINT*,"ierr",ierr
   END DO
 
   !IF (.NOT. ALLOCATED(inp_stats)) THEN
   !   ALLOCATE (inp_stats(MPI_STATUS_SIZE, wnp))
   !END IF
 
-  !CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
   RETURN
 
@@ -6864,12 +7282,11 @@ SUBROUTINE master_receive(comm, ktau, types)
   END DO
 
   ! MPI: we need all timesteps data before processing/saving
-  !CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+  CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
   RETURN
 
 END SUBROUTINE master_receive
-
 
 ! TODO: receives variables that are required by create_restart
 ! but not write_output
@@ -6966,6 +7383,186 @@ SUBROUTINE master_end (icycle, restart)
   RETURN
 
 END SUBROUTINE master_end
+
+SUBROUTINE master_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+     casaflux,casamet,casabal,phen,POP,climate,LALLOC, icomm, ocomm )
+
+  !USE cable_mpimaster
+  USE cable_def_types_mod
+  USE cable_carbon_module
+  USE cable_common_module, ONLY: CABLE_USER
+  USE casadimension
+  USE casaparm
+  USE casavariable
+  USE phenvariable
+  USE POP_Types,  Only: POP_TYPE
+  USE POPMODULE,            ONLY: POPStep
+  USE TypeDef,              ONLY: i4b, dp
+
+  IMPLICIT NONE
+  !!CLN  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
+  REAL,    INTENT(IN)    :: dels
+  INTEGER, INTENT(IN)    :: kstart
+  INTEGER, INTENT(IN)    :: kend
+  INTEGER, INTENT(IN)    :: mloop
+  INTEGER, INTENT(IN)    :: LALLOC
+  TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
+  TYPE (casa_biome),            INTENT(INOUT) :: casabiome
+  TYPE (casa_pool),             INTENT(INOUT) :: casapool
+  TYPE (casa_flux),             INTENT(INOUT) :: casaflux
+  TYPE (casa_met),              INTENT(INOUT) :: casamet
+  TYPE (casa_balance),          INTENT(INOUT) :: casabal
+  TYPE (phen_variable),         INTENT(INOUT) :: phen
+  TYPE (POP_TYPE), INTENT(INOUT)     :: POP
+  TYPE (climate_TYPE), INTENT(INOUT)     :: climate
+ 
+   ! communicator for error-messages
+  INTEGER, INTENT(IN)  :: icomm, ocomm
+
+  TYPE (casa_met)  :: casaspin
+
+  ! local variables
+  real,      dimension(:), allocatable, save  :: avg_cleaf2met, avg_cleaf2str, avg_croot2met, avg_croot2str, avg_cwood2cwd
+  real,      dimension(:), allocatable, save  :: avg_nleaf2met, avg_nleaf2str, avg_nroot2met, avg_nroot2str, avg_nwood2cwd
+  real,      dimension(:), allocatable, save  :: avg_pleaf2met, avg_pleaf2str, avg_proot2met, avg_proot2str, avg_pwood2cwd
+  real,      dimension(:), allocatable, save  :: avg_cgpp,      avg_cnpp,      avg_nuptake,   avg_puptake
+  real,      dimension(:), allocatable, save  :: avg_nsoilmin,  avg_psoillab,  avg_psoilsorb, avg_psoilocc
+  !chris 12/oct/2012 for spin up casa
+  real,      dimension(:), allocatable, save  :: avg_ratioNCsoilmic,  avg_ratioNCsoilslow,  avg_ratioNCsoilpass
+  real(r_2), dimension(:), allocatable, save  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, avg_xksoil
+
+  ! local variables
+  INTEGER                  :: myearspin,nyear, nloop1
+  CHARACTER(LEN=99)        :: ncfile
+  CHARACTER(LEN=4)         :: cyear
+  INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
+  INTEGER, save            :: ndays
+  real,      dimension(mp)      :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
+  real,      dimension(mp)      :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
+  real,      dimension(mp)      :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
+  real,      dimension(mp)      :: xcgpp,     xcnpp,     xnuptake,  xpuptake
+  real,      dimension(mp)      :: xnsoilmin, xpsoillab, xpsoilsorb,xpsoilocc
+  real(r_2), dimension(mp)      :: xnplimit,  xkNlimiting, xklitter, xksoil,xkleaf, xkleafcold, xkleafdry
+
+  ! more variables to store the spinup pool size over the last 10 loops. Added by Yp Wang 30 Nov 2012
+  real,      dimension(5,mvtype,mplant)  :: bmcplant,  bmnplant,  bmpplant
+  real,      dimension(5,mvtype,mlitter) :: bmclitter, bmnlitter, bmplitter
+  real,      dimension(5,mvtype,msoil)   :: bmcsoil,   bmnsoil,   bmpsoil
+  real,      dimension(5,mvtype)         :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
+  real,      dimension(mvtype)           :: bmarea
+  integer nptx,nvt,kloop
+
+
+  ktauday=int(24.0*3600.0/dels)
+  nday=(kend-kstart+1)/ktauday
+  ktau = 0
+
+  myearspin = CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1
+  ! compute the mean fluxes and residence time of each carbon pool
+
+
+  do nyear=1,myearspin
+     
+     WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
+     ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+
+     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
+    
+     do idoy=1,mdyear
+        ktau=(idoy-1)*ktauday +1
+        casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
+        casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
+        casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
+        casamet%tsoil(:,3)     = casamet%Tsoilspin_3(:,idoy)
+        casamet%tsoil(:,4)     = casamet%Tsoilspin_4(:,idoy)
+        casamet%tsoil(:,5)     = casamet%Tsoilspin_5(:,idoy)
+        casamet%tsoil(:,6)     = casamet%Tsoilspin_6(:,idoy)
+        casamet%moist(:,1)     = casamet%moistspin_1(:,idoy)
+        casamet%moist(:,2)     = casamet%moistspin_2(:,idoy)
+        casamet%moist(:,3)     = casamet%moistspin_3(:,idoy)
+        casamet%moist(:,4)     = casamet%moistspin_4(:,idoy)
+        casamet%moist(:,5)     = casamet%moistspin_5(:,idoy)
+        casamet%moist(:,6)     = casamet%moistspin_6(:,idoy)
+        casaflux%cgpp(:)       = casamet%cgppspin(:,idoy)
+        casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
+        casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
+        casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
+        phen%phase(:) = phen%phasespin(:,idoy)
+        phen%doyphase(:,1) = phen%doyphasespin_1(:,idoy)
+        phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
+        phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
+        phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
+        climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
+  
+
+        CALL master_send_input (icomm, casa_dump_ts, idoy)
+     enddo
+  enddo
+
+
+  nloop1= max(1,mloop-3)
+
+  DO nloop=1,mloop
+
+     !!CLN  OPEN(91,file=fcnpspin)
+     !!CLN  read(91,*)
+     DO nyear=1,myearspin
+        
+        WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
+        ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+        call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
+
+        DO idoy=1,mdyear
+           ktauy=idoy*ktauday
+           casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
+           casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
+           casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
+           casamet%tsoil(:,3)     = casamet%Tsoilspin_3(:,idoy)
+           casamet%tsoil(:,4)     = casamet%Tsoilspin_4(:,idoy)
+           casamet%tsoil(:,5)     = casamet%Tsoilspin_5(:,idoy)
+           casamet%tsoil(:,6)     = casamet%Tsoilspin_6(:,idoy)
+           casamet%moist(:,1)     = casamet%moistspin_1(:,idoy)
+           casamet%moist(:,2)     = casamet%moistspin_2(:,idoy)
+           casamet%moist(:,3)     = casamet%moistspin_3(:,idoy)
+           casamet%moist(:,4)     = casamet%moistspin_4(:,idoy)
+           casamet%moist(:,5)     = casamet%moistspin_5(:,idoy)
+           casamet%moist(:,6)     = casamet%moistspin_6(:,idoy)
+           casaflux%cgpp(:)       = casamet%cgppspin(:,idoy)
+           casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
+           casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
+           casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
+           phen%phase(:) = phen%phasespin(:,idoy)
+           phen%doyphase(:,1) = phen%doyphasespin_1(:,idoy)
+           phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
+           phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
+           phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
+           climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
+        CALL master_send_input (icomm, casa_dump_ts, idoy)
+     ENDDO ! end doy
+       
+     ENDDO   ! end of nyear
+
+  ENDDO     ! end of nloop
+write(*,*) 'b4 master receive'
+CALL master_receive (ocomm, 0, casa_ts)
+write(*,*) 'after master receive'
+CALL casa_poolout( ktau, veg, soil, casabiome,                           &
+            casapool, casaflux, casamet, casabal, phen )
+
+
+CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,.TRUE. )
+
+
+IF ( CABLE_USER%CALL_POP .and.POP%np.gt.0 ) THEN
+   CALL master_receive_pop(POP, ocomm)
+   CALL POP_IO( pop, casamet, myearspin, 'WRITE_INI', .TRUE.)
+ENDIF
+
+
+END SUBROUTINE master_spincasacnp
+!*********************************************************************************************
+
 
 END MODULE cable_mpimaster
 

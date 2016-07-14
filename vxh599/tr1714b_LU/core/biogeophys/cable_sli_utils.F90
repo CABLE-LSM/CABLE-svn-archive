@@ -309,7 +309,7 @@ CONTAINS
     REAL(r_2),                       INTENT(IN) :: h0
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: Tsoil
 
-    REAL(r_2),                       INTENT(OUT)           :: Tsurface, G0, lE0, Epot ! SEB 
+    REAL(r_2),                       INTENT(OUT)           :: Tsurface, G0, lE0, Epot ! SEB
     REAL(r_2),                       INTENT(OUT)           :: qsurface          ! water flux into surface
     REAL(r_2),                       INTENT(OUT)           :: qevap             ! evaporative water flux
     ! liquid and vapour components of water flux from surface into soil
@@ -326,11 +326,12 @@ CONTAINS
     REAL(r_2) :: Tsurface_pot,  Hpot, Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     REAL(r_2) :: E_vap, dE_vapdT1, E_liq
     REAL(r_2) :: Kmin, Khmin, phimin
-    REAL(r_2) :: Tqw, dtqwdtb, rhocp1
-
+    REAL(r_2) :: Tqw, dtqwdtb, rhocp1, cs
+    LOGICAL   :: isEpot
 
     if (vsnow%nsnow.eq.0) surface_case = 1
     if (vsnow%nsnow>0) surface_case = 2
+
     select case (surface_case)
     case (1) ! no snow
        call potential_evap(vmet%Rn, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
@@ -351,6 +352,7 @@ CONTAINS
        endif
 
        if (var(1)%isat.eq.1) then  ! saturated surface =>. potential evporation
+          isEpot = .true.
           Tsurface = Tsurface_pot
           lE0 = Epot
           G0 = Gpot
@@ -358,22 +360,40 @@ CONTAINS
           dE_vapdT1 = zero
           E_liq = lE0
        else ! unsaturated surface: finite vapour transfer; surface flux may be supply limited
-          if (var(1)%Dv > 1.e-12_r_2) then
-             E_vap = (var(1)%rh*csat(Tsoil(1))-vmet%cva*thousand)/(vmet%rbw + half*dx(1)/var(1)%Dv)*var(1)%lambdav
-             dE_vapdT1 = (var(1)%rh*slope_csat(Tsoil(1)))/(vmet%rbw + half*dx(1)/var(1)%Dv)*var(1)%lambdav
-          else
-             E_vap = zero
-             dE_vapdT1 = zero
-          endif
           call hyofh(hmin, par(1)%lam, par(1)%eta, par(1)%Ke, par(1)%he, &
                Kmin, Khmin, phimin) ! get phi at hmin
           E_liq = ((var(1)%phi-phimin)/(half*dx(1))-var(1)%K)*thousand*var(1)%lambdav
-
-          lE0 = min(Epot,E_vap+ E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
-          if (Epot.gt.(E_vap+ E_liq)) dEdTs = zero
+          if (var(1)%Dv > 1.e-12_r_2) then
+             ! E = (cs-ca)/rbw = E_liq + E_vap = E_liq + (c1-cs)/Dv/dx/2
+             cs = ( E_liq/var(1)%lambdav + var(1)%rh*csat(Tsoil(1))*var(1)%Dv/(half*dx(1)) + &
+                  vmet%cva*thousand/vmet%rbw ) &
+                  / (one/vmet%rbw + var(1)%Dv/(half*dx(1)))
+             E_vap = (var(1)%rh*csat(Tsoil(1)) - cs) * var(1)%Dv/(half*dx(1)) * var(1)%lambdav
+             ! dE_vapdT1 = var(1)%Dv/(half*dx(1))*var(1)%rh*slope_csat(Tsoil(1)) &
+             !      * (one - vmet%rbw*var(1)%Dv/(half*dx(1))/(one+vmet%rbw*var(1)%Dv/(half*dx(1)))) &
+             !      * var(1)%lambdav
+          else
+             E_vap     = zero
+             dE_vapdT1 = zero
+          endif
+          if (Epot <= (E_vap+E_liq)) then
+             isEpot = .true.
+             lE0 = Epot
+             cs  = csat(Tsurface_pot)
+             E_vap = (var(1)%rh*csat(Tsoil(1)) - cs) * var(1)%Dv/(half*dx(1)) * var(1)%lambdav
+             E_liq = lE0 - E_vap
+             dE_vapdT1 = var(1)%Dv/(half*dx(1)) * var(1)%rh*slope_csat(Tsoil(1)) * var(1)%lambdav
+          else
+             isEpot = .false.
+             lE0 = E_vap+E_liq
+             dEdTs = zero
+          endif          
+          ! lE0 = min(Epot, E_vap+E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
+          ! if (Epot .gt. (E_vap+E_liq)) dEdTs = zero
           Tsurface = (-half*dx(1)*lE0 + half*dx(1)*vmet%Rn + &
                var(1)%kth*Tsoil(1) + half*dx(1)*(one/vmet%rbh*rhocp)*vmet%Ta) &
                /(var(1)%kth + half*dx(1)*(one/vmet%rbh*rhocp))
+          
           G0       = var(1)%kth/(half*dx(1))*(Tsurface-Tsoil(1))
           dGdTsoil  =  -var(1)%kth/(half*dx(1))
 
@@ -383,7 +403,7 @@ CONTAINS
              G0 = vmet%Rn - rhocp1*(Tsurface - vmet%Ta)/vmet%rbh - lE0
              dGdTsoil = 0.0
           endif
-          
+
        endif
        ! write(*,*) var(1)%phi, phimin
 
@@ -408,11 +428,20 @@ CONTAINS
        qvyb = zero
 
        ! potential evap independent of S(1), dependent on T1
-       if ((Epot<=(E_vap+ E_liq)).or.(var(1)%isat.eq.1.or.vsnow%nsnow.gt.0)) then
-          qyb = zero
-          qTb = -dEdTsoil/(thousand*var(1)%lambdav)
+       if ((var(1)%isat.eq.1 .or. vsnow%nsnow.gt.0)) then
+          qyb  = zero
+          qTb  = -dEdTsoil/(thousand*var(1)%lambdav)
           qliq = -Epot/(thousand*var(1)%lambdav)
-          qv = zero
+          qv   = zero
+          qlyb = zero
+          qvyb = zero
+          qlTb = qTb
+          qvTb = zero
+       elseif (isEpot) then
+          qTb  = -dE_vapdT1/(thousand*var(1)%lambdav)
+          qyb  = zero
+          qliq = -E_liq/(thousand*var(1)%lambdav)
+          qv   = -E_vap/(thousand*var(1)%lambdav)
           qlyb = zero
           qvyb = zero
           qlTb = qTb
@@ -421,7 +450,7 @@ CONTAINS
           qTb = -dE_vapdT1/(thousand*var(1)%lambdav)
           qyb = -(var(1)%phiS/(half*dx(1)) - var(1)%KS)  !!vh!! include vapour component??
           qliq = -E_liq/(thousand*var(1)%lambdav)
-          qv = -E_vap/(thousand*var(1)%lambdav)
+          qv   = -E_vap/(thousand*var(1)%lambdav)
           qlyb = -(var(1)%phiS/(half*dx(1)) - var(1)%KS)
           qvyb = zero
           qlTb = zero
@@ -439,12 +468,17 @@ CONTAINS
 
        qadvTb = dTqwdTb + rhow*cswat*Tqw*qTb
        qadvyb =  rhow*cswat*qyb*Tqw
+       qadvyb = 0
+     
+
+       qadvTb = 0 ! test vh! 
+       
        qh = qadv + G0
        qhyb = qadvyb
        qhTb = dGdTsoil + qadvTb
-
+      
     case (2) !dedicated snow layer
- ! NB Only longwave component of net radiation deriectly affects SEB: sw component is absorbed internally
+       ! NB Only longwave component of net radiation deriectly affects SEB: sw component is absorbed internally
 
        ! SEB at snow/air interface
        if (vsnow%hliq(1)>zero) then
@@ -470,7 +504,7 @@ CONTAINS
                vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
-          !   write(*,*) "Epot1", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
+          !  write(*,*) "Epot1", Tsurface, vmet%Ta, Epot, Hpot,vmet%Rn, vmet%Rnsw
 
           if (Tsurface > zero) then ! temperature of frozen surface must be <= zero
              Tsurface = 0.0
@@ -519,6 +553,7 @@ CONTAINS
        qadvyb = zero
        qhyb   = qhyb + qadvyb
        qhTb   = qhTb + qadvTb
+       
 
        qv   = -qevap
        qliq = zero
@@ -528,6 +563,9 @@ CONTAINS
        qlTb = zero
 
     end select ! surface_case
+
+
+
 
     ! finished all the surfaces
 
@@ -679,6 +717,7 @@ CONTAINS
        qh = qadv + G0
        qhyb = qadvyb
        qhTb = dGdTsoil + qadvTb
+       
 
 
        if (nsteps.eq.-1) then
@@ -1654,7 +1693,7 @@ CONTAINS
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
 
     INTEGER(i_d)          :: i
-    REAL(r_2)             :: rdz, keff !, w
+    REAL(r_2)             :: rdz, keff , w
     REAL(r_2), DIMENSION(1:n-1) :: dz
     REAL(r_2) :: dTqwdTa, dTqwdTb, Tqw
 
@@ -1694,16 +1733,16 @@ CONTAINS
 
        ! add advective terms
        if (advection==1) then
-          !          if (q(i) > zero) then
-          !             w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
-          !          else
-          !             w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
-          !          endif
-          !          qadv(i) = rhow*cswat*q(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
-          !          qadvya(i) =  rhow*cswat*qya(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
-          !          qadvyb(i) =  rhow*cswat*qyb(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
-          !          qadvTa(i) =  rhow*cswat*q(i)*w
-          !          qadvTb(i) =  rhow*cswat*q(i)*(one-w)
+!!$                   if (q(i) > zero) then
+!!$                       w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
+!!$                    else
+!!$                       w = (var(i)%kth/dx(i))/(var(i)%kth/dx(i)+var(i+1)%kth/dx(i+1))
+!!$                    endif
+!!$                    qadv(i) = rhow*cswat*q(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
+!!$                    qadvya(i) =  rhow*cswat*qya(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
+!!$                    qadvyb(i) =  rhow*cswat*qyb(i)*(w*(T(i)+zero)+(one-w)*(T(i+1)+zero))
+!!$                    qadvTa(i) =  rhow*cswat*q(i)*w
+!!$                    qadvTb(i) =  rhow*cswat*q(i)*(one-w)
           Tqw  = merge(T(i), T(i+1), q(i)>zero) +zero
 
           dTqwdTa = merge(one, zero, (q(i)>zero))
@@ -1917,7 +1956,7 @@ CONTAINS
 
   ! For debug: remove elemental pure
   ELEMENTAL PURE SUBROUTINE hyofS(S, Tsoil, parin, var)
-  ! SUBROUTINE hyofS(S, Tsoil, parin, var)
+  !  SUBROUTINE hyofS(S, Tsoil, parin, var)
 
     IMPLICIT NONE
 
@@ -1939,7 +1978,7 @@ CONTAINS
     INTEGER(i_d) :: E
     REAL(r_2) :: F1, F2, F
     ! REAL(r_2) :: macropore_modifier
-    REAL(r_2) :: cdry
+    REAL(r_2) :: cdry, tmp_thetai
 
     theta         = S*(parin%thre) + (parin%the - parin%thre)
     var%lambdav   = rlambda       ! latent heat of vaporisation
@@ -1955,14 +1994,17 @@ CONTAINS
        var%dthetaldT = dthetalmaxdT(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
        var%iice   = 1
        var%thetai = (theta - thetal_max) ! volumetric ice content (m3(liq H2O)/m3 soil)
+       tmp_thetai = min(theta, parin%thre) - thetal_max
        var%thetal = thetal_max
        ! liquid water content, relative to saturation
        ! Sliq      = (var%thetal - (parin%the-parin%thre))/parin%thre
-       if ((parin%thre-var%thetai) .le. max(parin%thr,1e-5_r_2)) then
+       if ((parin%thre-tmp_thetai) .le. max(parin%thr,1e-5_r_2)) then
           Sliq = max(parin%thr,1e-5_r_2)
        else
-          Sliq = min((var%thetal-(parin%the-parin%thre))/(parin%thre-var%thetai), one)
+         ! Sliq = min((var%thetal-(parin%the-parin%thre))/(parin%thre-var%thetai), one)
+          Sliq = min((var%thetal-(parin%the-parin%thre))/(parin%thre-tmp_thetai), one)
        endif
+       var%Sliq = Sliq
        ! saturated liquid water content (< 1 for frozen soil)
        ! air entry potential, flux matric potential and hydraulic conductivity for saturated frozen soil
        var%he    = parin%he
@@ -1987,26 +2029,29 @@ CONTAINS
        ! var%phiT =  -(((-1 +parin%eta*parin%lam)*parin%phie*(theta - parin%thre)* &
        !      (var%thetal/(-theta + var%thetal + parin%thre))**(-1 + parin%eta - 1./parin%lam))/ &
        !      (parin%lam*(-theta + var%thetal + parin%thre)**2))* var%dthetaldT
-       var%phiT =  -(((-one +parin%eta*parin%lam)*parin%phie*(theta - parin%thre)* &
-            exp((-one + parin%eta - one/parin%lam)*log(var%thetal/(-theta + var%thetal + parin%thre)))) / &
-            (parin%lam*(-theta + var%thetal + parin%thre)**2)) * var%dthetaldT
-       if (S < one) then
+       if (var%isat==0) then
+          var%phiT =  -( ( (-one +parin%eta*parin%lam) * parin%phie * (min(theta,parin%thre) - parin%thre) &
+            * exp( (-one + parin%eta - one/parin%lam) &
+            * log(var%thetal/(-min(theta,parin%thre) + var%thetal + parin%thre)) ) ) &
+            / (parin%lam*(-min(theta,parin%thre) + var%thetal + parin%thre)**2) ) * var%dthetaldT
+      ! if (S < one) then
           ! var%phiS = ((parin%eta - 1./parin%lam)*parin%phie* &
           !     (Sliq)**(1 + parin%eta - 1/parin%lam))/var%thetal*parin%thre
           ! var%phiS =((-1. + parin%eta*parin%lam)*parin%phie* &
           !      (var%thetal/(-theta + var%thetal + parin%thre))**(1. + parin%eta - 1./parin%lam))/ &
           !      (parin%lam*var%thetal)*parin%thre
           var%phiS =((-one + parin%eta*parin%lam)*parin%phie* &
-               exp((one + parin%eta - one/parin%lam)*log(var%thetal/(-theta + var%thetal + parin%thre)))) / &
+               exp((one + parin%eta - one/parin%lam)*log(var%thetal/(-min(theta,parin%thre) + var%thetal + parin%thre)))) / &
                (parin%lam*var%thetal)*parin%thre
        else
           var%phiS = zero
-       endif
-
-       if ( ((parin%thre-var%thetai)<=max(parin%thr,1e-5_r_2)) .or. (Sliq==one) ) then
-          var%phiS = zero
           var%phiT = zero
        endif
+
+       !if ( ((parin%thre-var%thetai)<=max(parin%thr,1e-5_r_2)) .or. (Sliq==one) ) then
+       !   var%phiS = zero
+       !   var%phiT = zero
+       !endif
 
        var%rh   = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
     else ! no ice
@@ -2515,7 +2560,7 @@ CONTAINS
     ! dhdS    = -plit%he/plit%lam*S**(-one/plit%lam-one)*(thousand/rhoL*plit%the)**(-one/plit%lam)
 
     dhdS    = -plit%he/plit%lam*exp((-one/plit%lam-one)*log(S))*exp(-one/plit%lam*log(thousand/rhoL*plit%the))
-!    vlit%hS = dhdS
+    !    vlit%hS = dhdS
     ! Mathews (2006), A process-based model of offine fuel moisture,
     !                 International Journal of Wildland Fire 15,155-168
     chi     = 2.08_r_2+u*2.38_r_2 ! (Eq. 45, Tab. 1)
@@ -2601,7 +2646,7 @@ CONTAINS
     dTsdTa   = (-(dz*gamma*rbw*rhocp) - dz*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s)
 
     dGdTa    = k/dz * dTsdTa
-    dGdTsoil = -k/dz
+    dGdTsoil = -k/dz !+k/dz*dEdTsoil*gamma*rbw/s/rhocp
     dEdTs = s*rhocp/gamma/rbw
 
   END SUBROUTINE potential_evap
@@ -2631,15 +2676,15 @@ CONTAINS
     plit%rho   = 63.5_r_2
     ! dxL        = zero            ! litter params
     dxL        = real(veg%clitt(index),r_2)*two/plit%rho*0.1_r_2
-    
-    
+
+
     plit%ishorizon  = 0
     plit%thw        = zero
     plit%thfc       = zero
     plit%thr        = zero
-   
-   
-   
+
+
+
     plit%eta        = zero
     plit%KSe        = zero
     plit%phie       = zero
@@ -2692,6 +2737,7 @@ CONTAINS
        par(:,i)%zeta       = real(soil%zeta(index),r_2)
        par(:,i)%fsatmax    = real(soil%fsatmax(index),r_2)
        par(:,i)%lambc      = par(:,i)%lam
+       !par(:,i)%LambdaS    = real(soil%LambdaS(index),r_2)
        par(:,i)%LambdaS    = 2830_r_2 ! Sispat Manual Table 2
     enddo
 

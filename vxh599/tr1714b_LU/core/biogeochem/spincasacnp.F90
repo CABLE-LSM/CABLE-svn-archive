@@ -1,5 +1,5 @@
 SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-     casaflux,casamet,casabal,phen,POP,gpp_ann,LALLOC )
+     casaflux,casamet,casabal,phen,POP,climate,LALLOC )
 
 
   USE cable_def_types_mod
@@ -12,14 +12,13 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   USE POP_Types,  Only: POP_TYPE
   USE POPMODULE,            ONLY: POPStep
   USE TypeDef,              ONLY: i4b, dp
-  
+
   IMPLICIT NONE
   !!CLN  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: kstart
   INTEGER, INTENT(IN)    :: kend
   INTEGER, INTENT(IN)    :: mloop
-  REAL,    INTENT(IN)    :: gpp_ann(mp)
   INTEGER, INTENT(IN)    :: LALLOC
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
@@ -30,6 +29,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
   TYPE (POP_TYPE), INTENT(INOUT)     :: POP
+  TYPE (climate_TYPE), INTENT(INOUT)     :: climate
 
 
   TYPE (casa_met)  :: casaspin
@@ -69,19 +69,19 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
    REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
    REAL(dp), allocatable :: NPPtoGPP(:)
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
-   
+
    if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
    if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
    if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
    if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
-      
- 
+
+
    !! vh_js !!
     IF (cable_user%CALL_POP) THEN
-      
+
        Iw = POP%Iwood
-   
+
     ENDIF
 
   ktauday=int(24.0*3600.0/dels)
@@ -114,12 +114,12 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
-write(*,*) 'b4 read_casa_dump', ktau, kend
-     call read_casa_dump( ncfile,casamet, casaflux, phen, ktau ,kend,.TRUE. )
+
+     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +1
-   
+
         casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
         casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
         casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
@@ -138,19 +138,23 @@ write(*,*) 'b4 read_casa_dump', ktau, kend
         casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
         casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
         phen%phase(:) = phen%phasespin(:,idoy)
-        phen%doyphase(:,1) = phen%doyphasespin_1(:,idoy) 
-        phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy) 
-        phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy) 
-        phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy) 
+        phen%doyphase(:,1) = phen%doyphasespin_1(:,idoy)
+        phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
+        phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
+        phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
+        climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
+
+      ! write(6699,*) casaflux%cgpp(1), climate%mtemp(1),  casaflux%crmplant(1,1)
 
         CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-             casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter, &
+             casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
              xksoil,xkleaf,xkleafcold,xkleafdry,&
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-        IF (cable_user%CALL_POP) THEN ! CALL_POP
+        IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
+          ! write(7799,*) casaflux%cnpp(1), casaflux%fracCalloc(1,2)
 
            ! accumulate annual variables for use in POP
            IF(idoy==1 ) THEN
@@ -164,10 +168,9 @@ write(*,*) 'b4 read_casa_dump', ktau, kend
               Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
               Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
            ENDIF
-               
-               
+ 
            IF(idoy==mdyear) THEN ! end of year
-              
+
               StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
               StemNPP(:,2) = 0.0
               WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
@@ -175,15 +178,17 @@ write(*,*) 'b4 read_casa_dump', ktau, kend
               ELSEWHERE
                  NPPtoGPP = 0.5
               ENDWHERE
-              
+
               CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
-              
-              
+!!$              CALL POP_IO( pop, casamet, 9999, 'WRITE_EPI', &
+!!$                         .False.)
+
+
            ENDIF  ! end of year
         ELSE
-           casaflux%stemnpp = 0.  
+           casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
 
 
@@ -293,9 +298,10 @@ write(*,*) 'b4 read_casa_dump', ktau, kend
      !!CLN  read(91,*)
      DO nyear=1,myearspin
         !!CLN      read(91,901) ncfile
+        !write(*,*) 'spincasa CYEAR', CYEAR, ncfile
         WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
         ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-        call read_casa_dump( ncfile, casamet, casaflux, phen, ktau, kend, .TRUE. )
+        call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
 
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
@@ -317,30 +323,85 @@ write(*,*) 'b4 read_casa_dump', ktau, kend
            casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
            casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
            casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
-          
+           phen%phase(:) = phen%phasespin(:,idoy)
+           phen%doyphase(:,1) = phen%doyphasespin_1(:,idoy)
+           phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
+           phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
+           phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
+           climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
+           
+
+
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-                casamet,casabal,phen,POP,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
+                casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
                 xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+
+
+           IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
+
+              ! accumulate annual variables for use in POP
+              IF(idoy==1 ) THEN
+                 casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+                 LAImax = casamet%glai
+                 Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
+                 Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
+              ELSE
+                 casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+                 LAImax = max(casamet%glai, LAImax)
+                 Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
+                 Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
+              ENDIF
+                
            
+              IF(idoy==mdyear) THEN ! end of year
+                 
+                 StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
+                 StemNPP(:,2) = 0.0
+                 WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
+                    NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
+                 ELSEWHERE
+                    NPPtoGPP = 0.5
+                 ENDWHERE
+                 
+                 CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
+                      real(veg%disturbance_intensity(Iw,:),dp)      ,&
+                      LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+!!$              if (nyear==myearspin .and. nloop==mloop) THEN
+!!$                 CALL POP_IO( pop, casamet, 9999, 'WRITE_EPI', &
+!!$                      .TRUE.)
+!!$              ELSE
+!!$                 CALL POP_IO( pop, casamet, 9999, 'WRITE_EPI', &
+!!$                      .FALSE.)
+!!$              ENDIF
+              
+                 
+           ENDIF  ! end of year
+        ELSE
+           casaflux%stemnpp = 0.
+        ENDIF ! CALL_POP
+        
+        
+     ENDDO   ! end of idoy
+  ENDDO   ! end of nyear
+  !!CLN  close(91)
+  
+  if(nloop>=nloop1) &
+       call totcnppools(2+nloop-nloop1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+       bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
 
-        ENDDO   ! end of idoy
-     ENDDO   ! end of nyear
-     !!CLN  close(91)
+ENDDO     ! end of nloop
 
-     if(nloop>=nloop1) &
-          call totcnppools(2+nloop-nloop1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
-          bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
-
-  ENDDO     ! end of nloop
+CALL casa_fluxout(CABLE_USER%CASA_SPIN_STARTYEAR + myearspin - 1 , veg, soil, casabal, casamet)
 
 !STOP
 
-  ! write the last five loop pool size by PFT type
-  open(92,file='cnpspinlast5.txt')
-  write(92,921)
+! write the last five loop pool size by PFT type
+open(92,file='cnpspinlast5.txt')
+write(92,921)
 921 format('PFT total area in 10**12 m2', f12.4)
   do nvt=1,mvtype
      write(92,*) bmarea(nvt)

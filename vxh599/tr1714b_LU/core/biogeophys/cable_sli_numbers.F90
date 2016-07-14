@@ -122,7 +122,7 @@ MODULE sli_numbers
      REAL(r_2)    :: h, phi, phiS, K, KS, Dv, cvsat, rh, phiv, phivS, kH
      REAL(r_2)    :: kE, kth, csoil, eta_th, hS, rhS, sl, cv, cvsatT, cvS, kv
      INTEGER(i_d) :: iice
-     REAL(r_2)    :: thetai, thetal, phiT, KT, lambdav, lambdaf
+     REAL(r_2)    :: thetai, thetal, phiT, KT, lambdav, lambdaf, Sliq
      REAL(r_2)    :: he, phie, Ksat ! air-entry potential values (different to core sp params for frozen soil)
      REAL(r_2)    :: dthetaldT
      REAL(r_2)    :: Tfrz ! freezing point (deg C) depends on csol and S
