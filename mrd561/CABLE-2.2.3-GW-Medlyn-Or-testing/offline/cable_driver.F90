@@ -360,7 +360,7 @@ PROGRAM cable_offline_driver
                                rad, bal, air, soil, veg, rough,C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
-       END DO ! END Do loop over timestep ktau
+      END DO ! END Do loop over timestep ktau
 
 
 
@@ -415,6 +415,12 @@ PROGRAM cable_offline_driver
            ALLOCATE( soilGWtemp(mp) )
          
          END IF
+
+         IF (INT(ktau_tot/kend) .gt. 200) then
+            write(*,*) 'Quitting spinup process, already tried 200 times.'
+            write(logn,*) 'Quitting spinup process, already tried 200 times.'
+            spinConv = .TRUE.
+         end if
          
          ! store soil moisture and temperature
          soilTtemp = ssnow%tgg

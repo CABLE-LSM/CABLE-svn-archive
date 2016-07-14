@@ -600,6 +600,12 @@ SUBROUTINE mpidrv_master (comm)
                           delsoilT, ' in any layer over whole run'
             END IF
 
+            IF (INT(ktau_tot/kend) .gt. 200) then
+               write(*,*) 'Quitting spinup process, already tried 200 times.'
+               write(logn,*) 'Quitting spinup process, already tried 200 times.'
+               spinConv = .TRUE.
+            end if
+
          ELSE ! allocate variables for storage
          
            ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )

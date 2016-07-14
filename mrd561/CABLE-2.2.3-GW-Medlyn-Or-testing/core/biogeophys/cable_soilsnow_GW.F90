@@ -1209,7 +1209,7 @@ END SUBROUTINE remove_trans
       tmpa = ssnow%wbliq(i,1) / efpor(i)
       tmpb = max( (tmpa-satfrac_liqice(i))/max(0.01_r_2,(1._r_2-satfrac_liqice(i))), 0._r_2)
       tmpa = -2._r_2*soil%clappB(i,1)*soil%smpsat(i,1)/dzmm
-      qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*exp(-gw_params%hkrz*(0.5*dzmm/1000.0_r_2-gw_params%zdepth))
+      qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*soil%hksat(i,1)*exp(-gw_params%hkrz*(0.5*dzmm/1000.0_r_2-gw_params%zdepth))
 
       ssnow%rnof1(i) = satfrac_liqice(i) * ssnow%fwtop(i) + &
                          (1._r_2-satfrac_liqice(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
