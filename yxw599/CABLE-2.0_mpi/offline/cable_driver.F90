@@ -313,6 +313,7 @@ PROGRAM cable_offline_driver
        print *, 'spincasacnp enabled with mloop= ', mloop
        call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
                         casabiome,casapool,casaflux,casamet,casabal,phen)
+       go to 9999
      endif
    endif
 
@@ -487,7 +488,7 @@ PROGRAM cable_offline_driver
       endif
 
    END IF
-
+9999 continue
    ! Write restart file if requested:
    IF(output%restart) THEN
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &

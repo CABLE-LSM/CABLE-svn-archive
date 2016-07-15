@@ -672,8 +672,8 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
                 bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
                 bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
                 bmpsoilocc,bmarea)
-!  call spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-!                       casaflux,casamet,casabal,phen)
+  call spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                       casaflux,casamet,casabal,phen)
 
   nloop1= max(1,mloop-4)
 
