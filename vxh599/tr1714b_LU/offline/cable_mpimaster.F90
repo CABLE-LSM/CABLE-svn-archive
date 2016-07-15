@@ -513,7 +513,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                 CALL LUC_EXPT_INIT (LUC_EXPT)
              ENDIF
 
-write(*,*) 'after LUC INIT'
+
              !! vh_js !!
              CALL load_parameters( met, air, ssnow, veg,climate,bgc,		&
                   soil, canopy, rough, rad, sum_flux,			 &
@@ -521,7 +521,7 @@ write(*,*) 'after LUC INIT'
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
                   C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
-write(*,*) 'after load params'
+
              
             
              ssnow%otss_0 = ssnow%tgg(:,1)

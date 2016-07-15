@@ -227,6 +227,12 @@ CONTAINS
     LUC_EXPT%primaryf = min(LUC_EXPT%primaryf, 1.0- LUC_EXPT%grass)
     LUC_EXPT%secdf = max((1.0 -  LUC_EXPT%grass - LUC_EXPT%primaryf), 0.0)
 
+    CALL READ_ClimateFile(LUC_EXPT)
+    ! hot desert
+    WHERE (LUC_EXPT%biome.eq.15 )
+       LUC_EXPT%ivegp = 14
+    ENDWHERE
+
     WHERE (LUC_EXPT%biome .eq. 3 .or. LUC_EXPT%biome .eq. 11)
        LUC_EXPT%grass = LUC_EXPT%grass + (LUC_EXPT%primaryf+LUC_EXPT%secdf)*1.0/2.0
        LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 1.0/2.0
@@ -295,14 +301,14 @@ CONTAINS
 !      mask, metGrid, sdoy, smoy, syear, shod, xdimsize, ydimsize,  &
 !      lat_all, lon_all
  
- ! get potential veg type
- !IF (TRIM(LUC_EXPT%RUN).eq.'init') THEN
-    CALL READ_ClimateFile(LUC_EXPT)
-! hot desert
-WHERE (LUC_EXPT%biome.eq.15 )
- LUC_EXPT%ivegp = 14
-
-ENDWHERE
+!!$ ! get potential veg type
+!!$ !IF (TRIM(LUC_EXPT%RUN).eq.'init') THEN
+!!$    CALL READ_ClimateFile(LUC_EXPT)
+!!$! hot desert
+!!$WHERE (LUC_EXPT%biome.eq.15 )
+!!$ LUC_EXPT%ivegp = 14
+!!$
+!!$ENDWHERE
 
  ! ENDIF
   
@@ -316,8 +322,18 @@ ENDWHERE
 
               inVeg(m,n,1) = LUC_EXPT%ivegp(k)
               inVeg(m,n,2:3) = 0
+              inPFrac(m,n,2:3) = 0
               inPFrac(m,n,1) = 1.0
-
+              if ( LUC_EXPT%grass(k) .gt. 0.01) then
+                 IF (LUC_EXPT%mtemp_min20(k).LE. 15.5) THEN
+                    inVeg(m,n,2) = 6 ! C3 grass
+                 ELSE
+                    inVeg(m,n,2) = 7 ! C4 grass
+                 ENDIF
+                 inPFrac(m,n,1) =  min(LUC_EXPT%primaryf(k),1.0)
+                 inPFrac(m,n,2) = 1.0 -  min(LUC_EXPT%primaryf(k),1.0)
+              endif
+              
            elseif ((.NOT.LUC_EXPT%prim_only(k)) ) then
               inVeg(m,n,1) = LUC_EXPT%ivegp(k)
               inVeg(m,n,2) = LUC_EXPT%ivegp(k)
