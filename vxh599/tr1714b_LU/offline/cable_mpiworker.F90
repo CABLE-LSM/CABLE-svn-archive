@@ -6828,8 +6828,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +1
          CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, idoy, icomm, stat, ierr) 
-       write(669,*) casaflux%Nmindep
-        CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+            CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
              xksoil,xkleaf,xkleafcold,xkleafdry,&
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
