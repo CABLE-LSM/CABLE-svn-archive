@@ -2,10 +2,10 @@ MODULE pop_mpi
 
   USE POP_Types
   USE POP_Constants, ONLY: NCOHORT_MAX, NLAYER, HEIGHT_BINS, NDISTURB, NPATCH, NPATCH2D, &
-       NYEAR_HISTORY
+       NYEAR_HISTORY, AGEMAX
 
   ! Total number of type_landscape variables to be communicated
-  INTEGER, PARAMETER :: n_landscape_types = 46
+  INTEGER, PARAMETER :: n_landscape_types = 47
 
   ! Total number of type_patch variables to be communicated
   INTEGER, PARAMETER :: n_patch_types     = 28
@@ -745,6 +745,14 @@ CONTAINS
     blen (bidx) = NYEAR_HISTORY
     btype(bidx) = MPI_DOUBLE
 
+    ! AGEMAX
+    bidx = bidx + 1
+    CALL MPI_Get_Address (tmp_grid(1)%freq_age, a2, ierr)
+    disp (bidx) = a2 - a1
+    blen (bidx) = AGEMAX
+    btype(bidx) = MPI_DOUBLE
+
+
     ! Scalars REAL
 
     bidx = bidx + 1
@@ -905,8 +913,14 @@ CONTAINS
 
     ! Scalar Integer
 
+!!$    bidx = bidx + 1
+!!$    CALL MPI_Get_Address (tmp_grid(1)%npatch_active, a2, ierr)
+!!$    disp (bidx) = a2 - a1
+!!$    blen (bidx) = 1
+!!$    btype(bidx) = MPI_INTEGER
+
     bidx = bidx + 1
-    CALL MPI_Get_Address (tmp_grid(1)%npatch_active, a2, ierr)
+    CALL MPI_Get_Address (tmp_grid(1)%LU, a2, ierr)
     disp (bidx) = a2 - a1
     blen (bidx) = 1
     btype(bidx) = MPI_INTEGER

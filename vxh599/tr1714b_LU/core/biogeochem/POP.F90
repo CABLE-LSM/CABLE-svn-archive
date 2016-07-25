@@ -20,7 +20,7 @@
 
 ! Use of this code is subject to the Legal Notice and Disclaimer at
 
-! http://www.csiro.au/org/LegalNoticeAndDisclaimer.html1750_2015_globalCO2_time_series.csv
+! http://www.csiro.au/org/LegalNoticeAndDisclaimer.html
 
 ! This code is Copyright, CSIRO, 2014.
 
@@ -224,6 +224,7 @@ MODULE POP_Types
      REAL(dp) :: sapwood_area_old
      REAL(dp) :: Kclump ! clumping factor
      INTEGER(i4b) :: npatch_active
+     INTEGER(i4b) :: LU
      REAL(dp) :: smoothing_buffer
      REAL(dp) :: smoothing_buffer_cat
      REAL(dp) :: fire_mortality_smoothed
@@ -238,7 +239,7 @@ MODULE POP_Types
      TYPE(Landscape), DIMENSION(:), ALLOCATABLE :: pop_grid
      INTEGER , DIMENSION(:), Allocatable    :: it_pop
      INTEGER :: np
-     INTEGER, DIMENSION(:), Allocatable :: Iwood, LU
+     INTEGER, DIMENSION(:), Allocatable :: Iwood ! , LU
   END TYPE POP_TYPE
 
 END MODULE POP_Types
@@ -278,11 +279,13 @@ CONTAINS
     IF (PRESENT(n)) THEN
        a = n
        b = n
-       pop%LU(n) = 2
+       !pop%LU(n) = 2
+       POP%pop_grid(n)%LU = 2
     ELSE
        a = 1
        b = np
-       pop%LU = 1
+       !pop%LU = 1
+       POP%pop_grid%LU = 1
     endif
  
 
@@ -1201,7 +1204,8 @@ END SUBROUTINE InitPOP2D_Poisson
        DO i=1,n_age
           DO j = bound(i,1),bound(i,2)
 
-             IF (pop%LU(g)==2) THEN  ! secondary forest
+             !IF (pop%LU(g)==2) THEN  ! secondary forest
+             IF (POP%pop_grid(g)%LU ==2) THEN
                 freq_tmp(i) = freq_tmp(i) +  pop%pop_grid(g)%freq_age(j+1)
              ELSE
                 freq_tmp(i) = freq_tmp(i) + REALExponential(disturbance_freq,REAL(j,dp))
@@ -1269,7 +1273,7 @@ END SUBROUTINE InitPOP2D_Poisson
        ENDDO ! end loop over idist
 
        sum_freq = SUM(pop%pop_grid(g)%freq)
-       pop%pop_grid(g)%freq = pop%pop_grid(g)%freq/sum_freq
+       if (sum_freq.gt.0.0) pop%pop_grid(g)%freq = pop%pop_grid(g)%freq/sum_freq
 
     ENDDO
 
@@ -1642,8 +1646,8 @@ ENDIF
        pop%pop_grid(g)%Kclump = max(pop%pop_grid(g)%crown_area/(0.5*LAI(g)),0.1_dp)
        pop%pop_grid(g)%crown_cover = 1.-EXP(-pop%pop_grid(g)%crown_area)
 
-
-       pop%pop_grid(g)%height_mean = pop%pop_grid(g)%height_mean/pop%pop_grid(g)%densindiv
+      
+       pop%pop_grid(g)%height_mean = pop%pop_grid(g)%height_mean/max(pop%pop_grid(g)%densindiv,1.0e-5)
 
        ! Height Diagnostics
        IF (MAX_HEIGHT_SWITCH.EQ.0) THEN
@@ -1651,7 +1655,7 @@ ENDIF
           cump = 0.
           j = 1
           DO WHILE (cump.LT.0.95)
-             cump = cump + pop%pop_grid(g)%densindiv_bin(j)/pop%pop_grid(g)%densindiv
+             cump = cump + pop%pop_grid(g)%densindiv_bin(j)/max(pop%pop_grid(g)%densindiv,1.0e-5)
              pop%pop_grid(g)%height_max = pop%pop_grid(g)%height_bin(j)
              j = j+1
           ENDDO
@@ -1686,7 +1690,7 @@ ENDIF
        ELSEIF (MAX_HEIGHT_SWITCH.EQ.2) THEN
           cump = 0.
           j = 1
-          densindiv_highres= densindiv_highres/SUM(densindiv_highres)
+          densindiv_highres= densindiv_highres/max(SUM(densindiv_highres),1.0e-5)
           DO WHILE ((cump.LT.0.95).AND.(j.LE.HEIGHT_BINS_highres))
              cump = cump + densindiv_highres(j)
              pop%pop_grid(g)%height_max = (limits_highres(j+1) + limits_highres(j))/2.
@@ -2366,7 +2370,8 @@ tmp_max = 0.0
 pop%pop_grid(g)%biomass_age = 0.0
 
 
-IF (pop%LU(g)==2) THEN  ! secondary forest
+!IF (pop%LU(g)==2) THEN  ! secondary forest
+IF (POP%pop_grid(g)%LU==2) then ! secondary forest
    DO iage = 1, nage
       age(iage) = iage-1
       freq_age(iage) =  pop%pop_grid(g)%freq_age(iage)
@@ -2376,8 +2381,9 @@ ELSE
       age(iage) = iage-1
       freq_age(iage) =  REALExponential(disturbance_freq,REAL(age(iage),dp))
       pop%pop_grid(g)%freq_age(iage) = freq_age(iage)
-      !  write(*,*) age(iage), freq_age(iage)
+     
    END DO
+
 ENDIF
 if (sum(freq_age)>0.0) freq_age = freq_age/sum(freq_age)
 
@@ -3246,7 +3252,8 @@ END FUNCTION Area_Triangle
     CALL alloc_POP(pop,np)
     POP%np = np
     POP%Iwood = Iwood
-    POP%LU = 1  ! initialise to primary forest
+    !POP%LU = 1  ! initialise to primary forest
+    POP%pop_grid(:)%LU =1 
     POP%it_pop = 0
     CALL ZeroPOP(pop)
     CALL InitPOP2D_Poisson(pop,INT(disturbance_interval))
@@ -3317,7 +3324,7 @@ END FUNCTION Area_Triangle
 
     IF (.NOT.ALLOCATED(POP%POP_Grid)) ALLOCATE (POP%POP_Grid(arraysize))
     IF (.NOT.ALLOCATED(POP%Iwood)) ALLOCATE (POP%Iwood(arraysize))
-    IF (.NOT.ALLOCATED(POP%LU)) ALLOCATE (POP%LU(arraysize))
+    !IF (.NOT.ALLOCATED(POP%LU)) ALLOCATE (POP%LU(arraysize))
     IF (.NOT.ALLOCATED(POP%it_pop)) ALLOCATE (POP%it_pop(arraysize))
 
   END SUBROUTINE alloc_POP

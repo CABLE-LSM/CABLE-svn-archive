@@ -1072,7 +1072,8 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
       patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
                         inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
 
-write(*,*) 'iveg',  veg%iveg(landpt(e)%cstart:landpt(e)%cend) 
+write(*,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend) 
+write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
       ! set land use (1 = primary; 2 = secondary, 3 = open)
       if (cable_user%popluc) then

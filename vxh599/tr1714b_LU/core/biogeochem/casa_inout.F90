@@ -681,7 +681,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
 
   
 if (.NOT.cable_user%casa_fromzero) THEN
-   PRINT *, 'initial pool from ',TRIM(casafile%cnpipool)
+   PRINT *, 'initial pool from restart file'
 ENDIF
   PRINT *, 'icycle,initcasa,mp ', icycle,initcasa,mp
   !phen%phase = 2
@@ -1380,23 +1380,24 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
          casaflux%sapwood_area(POP%Iwood) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)
          veg%hc(POP%Iwood) = POP%pop_grid(:)%height_max
      
-!!$         WHERE ( pop%LU==2 )
-!!$
-!!$            casaflux%kplant(POP%Iwood,2) =  1.0 -  &
-!!$              (1.0-  max( min((POP%pop_grid(:)%stress_mortality + &
-!!$              POP%pop_grid(:)%crowding_mortality+ &
-!!$              + POP%pop_grid(:)%fire_mortality ) &
-!!$              /(POP%pop_grid(:)%cmass_sum+POP%pop_grid(:)%growth) + &
-!!$              1.0/veg%disturbance_interval(POP%Iwood,1), 0.99), 0.0))**(1.0/365.0)
+         !WHERE ( pop%LU==2 )
+         WHERE (pop%pop_grid(:)%LU ==2)
 
-        ! ELSEWHERE
+            casaflux%kplant(POP%Iwood,2) =  1.0 -  &
+              (1.0-  max( min((POP%pop_grid(:)%stress_mortality + &
+              POP%pop_grid(:)%crowding_mortality+ &
+              + POP%pop_grid(:)%fire_mortality ) &
+              /(POP%pop_grid(:)%cmass_sum+POP%pop_grid(:)%growth) + &
+              1.0/veg%disturbance_interval(POP%Iwood,1), 0.99), 0.0))**(1.0/365.0)
+
+         ELSEWHERE
             casaflux%kplant(POP%Iwood,2) =  1.0 -  &
               (1.0-  max( min((POP%pop_grid(:)%stress_mortality + &
               POP%pop_grid(:)%crowding_mortality+ &
               + POP%pop_grid(:)%fire_mortality+POP%pop_grid(:)%cat_mortality  ) &
               /(POP%pop_grid(:)%cmass_sum+POP%pop_grid(:)%growth), 0.99), 0.0))**(1.0/365.0)
 
-        ! ENDWHERE
+         ENDWHERE
 
          veg%hc(POP%Iwood) = POP%pop_grid(:)%height_max
       ELSEWHERE
@@ -1815,7 +1816,7 @@ SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
        '_casa_rst.nc'
   STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
+  PRINT *, 'initial pool from restart file: ', fname
 
   ! TIME
   STATUS = NF90_GET_ATT( FILE_ID, NF90_GLOBAL, "Valid restart date", RSTDATE )
@@ -2170,6 +2171,7 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
      fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
           TRIM(dum)//'_casa_out.nc'
      INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
+     EXRST = .FALSE.
      IF ( EXRST ) THEN
         STATUS = NF90_open(fname, mode=nf90_write, ncid=FILE_ID)
         IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)

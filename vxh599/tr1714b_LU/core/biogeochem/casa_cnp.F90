@@ -2095,6 +2095,7 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
                              + casapool%dNlitterdt(np,:)* deltpool
       casapool%Nsoil(np,:)   = casapool%Nsoil(np,:)   &
                              + casapool%dNsoildt(np,:)  * deltpool
+      ! vh ! put lower bound of 1.e-3 to prevent Nsoilmin from going negative
       casapool%Nsoilmin(np)  = max(casapool%Nsoilmin(np)  &
                              + casapool%dNsoilmindt(np) * deltpool,1.e-3)
     ENDIF

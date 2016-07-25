@@ -162,23 +162,22 @@ CONTAINS
           CALL HANDLE_ERR(STATUS, "Inquiring 'time'"//TRIM(LUC_EXPT%TransFile(i)))
           LUC_EXPT%nrec = tdimsize
 
-          STATUS = NF90_GET_VAR( Luc_expt%f_id(i), timID, tmp, &
-               start=(/1,1,1/) )
-          CALL HANDLE_ERR(STATUS, "Reading from "//LUC_EXPT%TransFile(i) )
+!!$          STATUS = NF90_GET_VAR( Luc_expt%f_id(i), timID, tmp, &
+!!$               start=(/1,1,1/) )
+!!$          CALL HANDLE_ERR(STATUS, "Reading from "//LUC_EXPT%TransFile(i) )
 
-          LUC_EXPT%FirstYEAR = INT(tmp)
+         
 
           xds = LUC_EXPT%xdimsize
           yds = LUC_EXPT%ydimsize
        ENDIF
-
+     !write(*,*) 'length LUH2 data: ', tdimsize
     ENDDO
 
- !write(*,*) 'First Year in LUH2 data: ', LUC_EXPT%FirstYEAR
+
 
  LUC_EXPT%FirstYEAR = 850
-
- ! Set internal counter
+  ! Set internal counter
     LUC_EXPT%CTSTEP = 1 +  LUC_EXPT%YearStart- LUC_EXPT%FirstYEAR
 
  ! READ initial states
@@ -280,8 +279,25 @@ CONTAINS
 
     END DO
 
+    ! set secondary vegetation area to be zero where land use transitions don't occur
+    WHERE (LUC_EXPT%prim_only .eq. .TRUE.)
+       LUC_EXPT%secdf = 0.0
+       LUC_EXPT%primaryf = 1.0
+       LUC_EXPT%grass = 0.0
+       WHERE (LUC_EXPT%biome .eq. 3 .or. LUC_EXPT%biome .eq. 11)
+          LUC_EXPT%grass = LUC_EXPT%primaryf*1.0/2.0
+          LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 1.0/2.0
+       ELSEWHERE (LUC_EXPT%biome .eq. 12 .or. LUC_EXPT%biome .eq. 13 &
+            .or. LUC_EXPT%biome .eq. 15 .or. LUC_EXPT%biome .eq. 16  )
+          LUC_EXPT%grass = LUC_EXPT%primaryf*2.0/3.0
+          LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 1.0/3.0
+       END WHERE
+    END WHERE
 
 
+!!$    WHERE (LUC_EXPT%ivegp == 14)
+!!$       LUC_EXPT%prim_only = .TRUE.
+!!$    END WHERE
     
  END SUBROUTINE LUC_EXPT_INIT
   
@@ -315,6 +331,12 @@ CONTAINS
    DO k=1,mland
         m = landpt(k)%ilon
         n = landpt(k)%ilat
+
+!!$        if ( LUC_EXPT%ivegp(k)==14) THEN
+!!$
+!!$           write(*,*) k, LUC_EXPT%prim_only(k) ,inVeg(m,n,:), inPFrac(m,n,:)
+!!$
+!!$        endif
 
         if (inVeg(m,n,1).LT.11) THEN ! vegetated
 
@@ -366,9 +388,27 @@ CONTAINS
 !!$              endif
            endif
         endif
- 
+
+! don't consider LUC events in desert or tundra
+        if (inveg(m,n,1)==14 .OR.  inveg(m,n,1)==8 ) THEN
+          LUC_EXPT%prim_only(k)=.TRUE.
+          LUC_EXPT%primaryf(k) = 1.0
+          LUC_EXPT%secdf(k) = 0.0
+          LUC_EXPT%grass(k) = 0.0
+          inPFrac(m,n,1) = 1.0
+          inPFrac(m,n,2:3) = 0.0
+        endif
+
+if (k == 827) then
+  write(*,*) inVeg(m,n,:)
+write(*,*) inPFrac(m,n,:)
+write(*,*) LUC_EXPT%prim_only(k)
+!stop
+endif
+!!$ 
      ENDDO
   
+
 
 991  format(1166(e12.4,2x)) 
 
@@ -512,27 +552,37 @@ IMPLICIT NONE
  t = LUC_EXPT%CTSTEP
  IF(.NOT.ALLOCATED(tmparr)) ALLOCATE(tmparr(xds,yds))   
 
- DO i=1, LUC_EXPT%nfile
-    IF ( LUC_EXPT%DirectRead ) THEN
+ if (t.LE. LUC_EXPT%nrec) then
+    DO i=1, LUC_EXPT%nfile
+       IF ( LUC_EXPT%DirectRead ) THEN
 
-       DO k = 1, mland
+          DO k = 1, mland
 
-          STATUS = NF90_GET_VAR( LUC_EXPT%F_ID(i), LUC_EXPT%V_ID(i), tmp, &
-               start=(/land_x(k),land_y(k),t/) )
-          CALL HANDLE_ERR(STATUS, "Reading direct from "//LUC_EXPT%TransFile(i) )
-          LUC_EXPT%INPUT(i)%VAL(k) = tmp
-       END DO
-    ELSE
-       STATUS = NF90_GET_VAR(LUC_EXPT%F_ID(i), LUC_EXPT%V_ID(i), tmparr, &
-            start=(/1,1,t/),count=(/xds,yds,1/) )
-       CALL HANDLE_ERR(STATUS, "Reading from "//LUC_EXPT%TransFile(i) )
+             STATUS = NF90_GET_VAR( LUC_EXPT%F_ID(i), LUC_EXPT%V_ID(i), tmp, &
+                  start=(/land_x(k),land_y(k),t/) )
+             CALL HANDLE_ERR(STATUS, "Reading direct from "//LUC_EXPT%TransFile(i) )
+             LUC_EXPT%INPUT(i)%VAL(k) = tmp
+          END DO
+       ELSE
+          STATUS = NF90_GET_VAR(LUC_EXPT%F_ID(i), LUC_EXPT%V_ID(i), tmparr, &
+               start=(/1,1,t/),count=(/xds,yds,1/) )
+          CALL HANDLE_ERR(STATUS, "Reading from "//LUC_EXPT%TransFile(i) )
 
-       DO k = 1, mland
-          LUC_EXPT%INPUT(i)%VAL(k) = tmparr( land_x(k), land_y(k) )
-       END DO
+          DO k = 1, mland
+             LUC_EXPT%INPUT(i)%VAL(k) =tmparr( land_x(k), land_y(k) )
+             if  (LUC_EXPT%INPUT(i)%VAL(k).gt.1.0) then
+                LUC_EXPT%INPUT(i)%VAL(k) = 0.0
+             endif
+          END DO
 
-    ENDIF
- ENDDO
+       ENDIF
+    ENDDO
+
+ else
+
+    write(*,*) 'warning: past end of LUH2 record'
+
+ endif
 
 
  ! Adjust transition areas based on native tree fraction for savanna grid-cells

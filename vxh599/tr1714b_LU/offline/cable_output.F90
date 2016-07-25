@@ -2010,8 +2010,13 @@ PRINT*,"timeunits", timeunits
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
-            - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+       !out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
+       !     - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+       ! vh ! expression below can be slightly different form that above in cases where 
+       ! leaf maintenance respiration is reduced in CASA
+       ! (relative to its original value calculated in cable_canopy)
+       ! in order to avoid negative carbon stores.
+       out%NPP = out%NPP + REAL(casaflux%cnpp/86400.0 / 1.201E-5, 4)
      !  out%NPP = out%NPP + REAL((canopy%frday) / 1.201E-5, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2026,8 +2031,15 @@ PRINT*,"timeunits", timeunits
     ! AutoResp: autotrophic respiration [umol/m^2/s]
     IF(output%carbon .OR. output%AutoResp) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday + casaflux%clabloss/86400.0)          &
-                                           / 1.201E-5, 4)
+       !out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday + casaflux%clabloss/86400.0)          &
+       !                                    / 1.201E-5, 4)
+       ! vh ! expression below can be slightly different form that above in cases where 
+       ! leaf maintenance respiration is reduced in CASA
+       ! (relative to its original value calculated in cable_canopy)
+       ! in order to avoid negative carbon stores.
+       out%AutoResp = out%AutoResp + REAL((sum(casaflux%crmplant,2)/86400.0 + &
+            casaflux%crgplant/86400.0 + casaflux%clabloss/86400.)/ 1.201E-5, 4)
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%AutoResp = out%AutoResp/REAL(output%interval, 4)

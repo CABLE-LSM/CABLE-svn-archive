@@ -281,11 +281,16 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         ! Get File-Name
         IF ( typ .EQ. 'out' ) THEN
            WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
+              WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
+              WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           ENDIF
         ELSE
            WRITE( dum, FMT="(I4)")YEAR
         ENDIF
 
-
+write(*,*) 'dum', dum
         IF (typ.eq.'ini') THEN
            fname = TRIM(cable_user%POP_rst)//'/'//'pop_'//TRIM(cable_user%RunIDEN)&
                 //'_'//typ//'.nc'
@@ -295,6 +300,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
         ENDIF
 
         INQUIRE( FILE=TRIM( fname ), EXIST=EXISTFILE )
+        EXISTFILE = .FALSE.
 
         IF ( EXISTFILE.and.(typ.ne.'ini').and.(typ.ne.'rst') ) THEN  ! file exists
 
