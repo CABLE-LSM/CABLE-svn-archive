@@ -88,8 +88,8 @@
    cable_user%POP_fromZero        = .F.     ! Start POP from Zero, don't read restart file
    cable_user%CASA_fromZero        = .F.
    cable_user%RunIden       = 'plume' ! Unique identifier for model Run, will be used in Filenames 
-   cable_user%YearStart     = 1991         ! YYYY 4 digit year
-   cable_user%YearEnd       = 2015       ! YYYY 4 digit year
+   cable_user%YearStart     = 1931        ! YYYY 4 digit year
+   cable_user%YearEnd       = 1960       ! YYYY 4 digit year
    cable_user%MetType       = 'cru'        ! Either 'gswp' or 'plum' for PLUME
    cable_user%CASA_OUT_FREQ = 'monthly'        ! casa standard output freq [d]
    cable_user%CLIMATE_fromZero =.F.
