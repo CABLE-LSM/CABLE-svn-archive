@@ -326,7 +326,8 @@ MODULE casavariable
   TYPE casa_balance
     REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,                 &
             FCrmleafyear,FCrmwoodyear,FCrmrootyear,FCrgrowyear,               &
-            FCrpyear, FCrsyear,FCneeyear,  dCdtyear ,                          &
+            FCrpyear, FCrsyear,FCneeyear,  dCdtyear ,                         &
+            LAImax, Cleafmean, Crootmean,                          &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear
  
@@ -617,8 +618,12 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casabal%FPsnetyear(arraysize),          &
            casabal%FPupyear(arraysize),            &
            casabal%FPleachyear(arraysize),         &
-           casabal%FPlossyear(arraysize),           &
-          casabal%dCdtyear(arraysize)              )
+           casabal%FPlossyear(arraysize),          &
+           casabal%dCdtyear(arraysize),            & 
+           casabal%LAImax(arraysize),              &  
+           casabal%Cleafmean(arraysize),           & 
+           casabal%Crootmean(arraysize)            ) 
+  
      
   ALLOCATE(casabal%glaimon(arraysize,12),          &
            casabal%glaimonx(arraysize,12))

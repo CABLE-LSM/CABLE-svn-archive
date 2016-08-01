@@ -94,9 +94,7 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
 
   !! vh_js !!
   IF (cable_user%CALL_POP) THEN
-
      Iw = POP%Iwood
-
   ENDIF
 
   ktauday=int(24.0*3600.0/dels)
@@ -125,7 +123,7 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
 
-     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
+     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, 1,1,.TRUE. )
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +ktauday
@@ -154,10 +152,7 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
         phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
         climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
 
-       
-
-
-        ! zero annual sums
+          ! zero annual sums
         if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
 
         CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
@@ -188,14 +183,14 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
            ENDIF
           
            IF(idoy==mdyear) THEN ! end of year
-
               IF (yyyy.eq.LUC_EXPT%YearStart .and. LUC_EXPT%run.eq.'init') THEN
                  POPLUC%frac_primf = LUC_EXPT%primaryf
+                 POPLUC%primf = LUC_EXPT%primaryf
                  POPLUC%grass = LUC_EXPT%grass
-                 where ((POPLUC%frac_primf + POPLUC%grass) > 1.0) &
-                      POPLUC%grass = 1.0 - POPLUC%frac_primf
+                 where ((POPLUC%primf + POPLUC%grass) > 1.0) &
+                      POPLUC%grass = 1.0 - POPLUC%primf
                  POPLUC%frac_forest = 1- POPLUC%grass
-                 POPLUC%freq_age_secondary(:,1) =  max(POPLUC%frac_forest - POPLUC%frac_primf, 0.0)
+                 POPLUC%freq_age_secondary(:,1) =  max(POPLUC%frac_forest - POPLUC%primf, 0.0)
                  POPLUC%latitude = patch(landpt(:)%cstart)%latitude
                  POPLUC%longitude = patch(landpt(:)%cstart)%longitude
                  where (veg%iLU ==2)
@@ -214,15 +209,17 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
                     casaflux%frac_sapwood = 1.0
                  endwhere
                  DO k=1,mland
-                    j = landpt(k)%cstart+1
-                    do l=1,size(POP%Iwood)
-                       if( POP%Iwood(l) == j) then
-
-                          CALL POP_init_single(POP,veg%disturbance_interval,l)
-
-                          exit
-                       endif
-                    enddo
+                    IF (.NOT.LUC_EXPT%prim_only(k)) THEN
+                       j = landpt(k)%cstart+1
+                       do l=1,size(POP%Iwood)
+                          if( POP%Iwood(l) == j) then
+                             
+                             CALL POP_init_single(POP,veg%disturbance_interval,l)
+                             
+                             exit
+                          endif
+                       enddo
+                    ENDIF
                  ENDDO
 
               ELSEIF (yyyy.eq.LUC_EXPT%YearStart .and. LUC_EXPT%run.eq.'restart') THEN
@@ -244,7 +241,7 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
                         l = landpt(k)%cend
        
                         IF (.NOT.LUC_EXPT%prim_only(k)) THEN
-                           patch(j)%frac = POPLUC%frac_primf(k)
+                           patch(j)%frac = POPLUC%primf(k)
                            patch(l)%frac = POPLUC%grass(k)
                            patch(j+1)%frac = 1.0 -  patch(j)%frac - patch(l)%frac
                         ENDIF
@@ -283,7 +280,7 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
 
               ! zero secondary forest tiles in POP where secondary forest area is zero
               DO k=1,mland
-                 if ((POPLUC%frac_primf(k)-POPLUC%frac_forest(k))==0.0 &
+                 if ((POPLUC%primf(k)-POPLUC%frac_forest(k))==0.0 &
                       .and. (.not.LUC_EXPT%prim_only(k))) then
               
                     j = landpt(k)%cstart+1
@@ -332,8 +329,8 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
 
-               CALL POP_IO( pop, casamet, YYYY, 'WRITE_EPI', &
-                          ( YYYY.EQ.cable_user%YearEnd ) )
+!!$               CALL POP_IO( pop, casamet, YYYY, 'WRITE_EPI', &
+!!$                          ( YYYY.EQ.cable_user%YearEnd ) )
               
 !!$               WHERE (pop%pop_grid(:)%cmass_sum_old.gt.0.1 .and. pop%pop_grid(:)%cmass_sum.gt.0.1 )
 !!$               casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2)*(1.0- min( POP%pop_grid(:)%cat_mortality/(POP%pop_grid(:)%cmass_sum_old),0.99))

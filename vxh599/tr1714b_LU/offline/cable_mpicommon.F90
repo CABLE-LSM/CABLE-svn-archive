@@ -70,7 +70,7 @@ MODULE cable_mpicommon
   INTEGER, PARAMETER :: ncdumprw = 9
 ! MPI: number of casa_LUC parameters sent/rec'd to/from the workers every
   ! year
-  INTEGER, PARAMETER :: nLUCrw = 10
+  INTEGER, PARAMETER :: nLUCrw = 12
 
   ! MPI: number of pop parameters sent/rec'd to/from the workers every
   ! timestep or at start, end. Here, with POP the dimensions are separate!

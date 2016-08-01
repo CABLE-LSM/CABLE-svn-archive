@@ -114,6 +114,7 @@ CONTAINS
    ENDIf
 
    !! vh_js !!
+
    ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
    ssnow%otss = ssnow%tss
 

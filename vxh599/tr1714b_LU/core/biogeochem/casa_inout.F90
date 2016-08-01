@@ -710,6 +710,7 @@ ENDIF
 
   casaflux%Cnep         = 0.
   casaflux%Crsoil       = 0.
+  casapool%dClabiledt = 0.0
   !casaflux%Nmindep      =  casaflux%Nmindep /2.0
  !casaflux%Nmindep      = 0.
   casaflux%Nminloss     = 0.
@@ -750,6 +751,8 @@ ENDIF
   casaflux%FluxNtosoil  = 0.
   casaflux%FluxPtosoil  = 0.
   casaflux%FluxCtoCO2   = 0.
+
+  casaflux%Cplant_turnover = 0.
 
   phen%doyphase(:,1) = -50
   phen%doyphase(:,2) = phen%doyphase(:,1) +14
@@ -1351,6 +1354,10 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   REAL, ALLOCATABLE :: tmp(:)
 
   xKNlimiting = 1.0
+
+ ! zero annual sums
+  if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
+
   IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') THEN
      call phenology(idoy,veg,phen)
   ENDIF

@@ -313,6 +313,7 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
 !! vh_js !! note changes to this subroutine. Need to use ssnow%otss (not ssnow%tss) in these calculations.
 
     !! vh !! March 2014
+
     bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  &
          - (emsoil*sboltz*rad%transd*ssnow%otss**4) - &
          (emleaf*sboltz*(1-rad%transd)*canopy%tv**4) &

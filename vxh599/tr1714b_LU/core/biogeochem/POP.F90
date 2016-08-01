@@ -694,6 +694,7 @@ END SUBROUTINE InitPOP2D_Poisson
        tmp_light = 0.0
        tmp_respiration = 0.0
        tmp_fracNPP = 0.0
+  
        if (NPATCH2D >1.and.it(j) > 1.and. RESOURCE_SWITCH>0) then
           DO k=1,NPATCH2D
              freq =  pop%pop_grid(j)%freq(pop%pop_grid(j)%patch(k)%id)
@@ -702,36 +703,47 @@ END SUBROUTINE InitPOP2D_Poisson
                 pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%frac_light_uptake = &
                      pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%frac_interception      ! defined in terms of Pgap
                 ! total autotrophic resp, summed over all cohorts and patches
-                tmp_respiration = tmp_respiration + freq*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%respiration_scalar
+                tmp_respiration = tmp_respiration + &
+                     freq*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%respiration_scalar
              ENDDO
              tmp_light = tmp_light + freq*(1. - pop%pop_grid(j)%patch(k)%Pgap)
           ENDDO
-          DO k=1,NPATCH2D
-             ! fraction respiration and un-normalised NPP for each patch
-             nc = pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
-             freq =  pop%pop_grid(j)%freq(pop%pop_grid(j)%patch(k)%id)
-             ! frac autotrophic resp
-             pop%pop_grid(j)%patch(k)%frac_respiration = &
-                  sum(pop%pop_grid(j)%patch(k)%Layer(1)%cohort(1:nc)%respiration_scalar)/tmp_respiration
+          IF (tmp_respiration .gt. 1.e-8 .and. tmp_light .gt. 1.e-8) then
+             DO k=1,NPATCH2D
+                ! fraction respiration and un-normalised NPP for each patch
+                nc = pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
+                freq =  pop%pop_grid(j)%freq(pop%pop_grid(j)%patch(k)%id)
+                ! frac autotrophic resp
+              
+                pop%pop_grid(j)%patch(k)%frac_respiration = &
+                     sum(pop%pop_grid(j)%patch(k)%Layer(1)%cohort(1:nc)%respiration_scalar)/tmp_respiration
 
-             ! frac gpp
-             pop%pop_grid(j)%patch(k)%frac_light_uptake = &
-                  (1. - pop%pop_grid(j)%patch(k)%pgap) /tmp_light
-             ! frac npp
-             pop%pop_grid(j)%patch(k)%frac_NPP = &
-                  max(pop%pop_grid(j)%patch(k)%frac_light_uptake*(1/NPPtoGPP(j)) - &
-                  pop%pop_grid(j)%patch(k)%frac_respiration*(1/NPPtoGPP(j)-1.0),0.0_dp)
+                ! frac gpp
+                pop%pop_grid(j)%patch(k)%frac_light_uptake = &
+                     (1. - pop%pop_grid(j)%patch(k)%pgap) /tmp_light
+                ! frac npp
+                pop%pop_grid(j)%patch(k)%frac_NPP = &
+                     max(pop%pop_grid(j)%patch(k)%frac_light_uptake*(1/NPPtoGPP(j)) - &
+                     pop%pop_grid(j)%patch(k)%frac_respiration*(1/NPPtoGPP(j)-1.0),0.0_dp)
 
-             tmp_fracNPP = tmp_fracNPP + freq*pop%pop_grid(j)%patch(k)%frac_NPP
+                tmp_fracNPP = tmp_fracNPP + freq*pop%pop_grid(j)%patch(k)%frac_NPP
 
 
-          ENDDO
-          ! normalised fraction NPP
-          DO k=1,NPATCH2D
-             pop%pop_grid(j)%patch(k)%frac_NPP = &
-                  pop%pop_grid(j)%patch(k)%frac_NPP/tmp_fracNPP
+             ENDDO
 
-          ENDDO
+             ! normalised fraction NPP
+             DO k=1,NPATCH2D
+                pop%pop_grid(j)%patch(k)%frac_NPP = &
+                     pop%pop_grid(j)%patch(k)%frac_NPP/tmp_fracNPP
+
+             ENDDO
+          ELSE
+             pop%pop_grid(j)%patch(:)%frac_NPP = 1.0
+             pop%pop_grid(j)%patch(:)%frac_respiration = 1.0
+             pop%pop_grid(j)%patch(:)%frac_light_uptake = 1.0
+
+
+          ENDIF
        else
           pop%pop_grid(j)%patch(:)%frac_NPP = 1.0
           pop%pop_grid(j)%patch(:)%frac_respiration = 1.0

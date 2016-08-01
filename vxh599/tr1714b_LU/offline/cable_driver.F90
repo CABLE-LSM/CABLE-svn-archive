@@ -518,9 +518,11 @@ PROGRAM cable_offline_driver
        
        ssnow%otss_0 = ssnow%tgg(:,1)
        ssnow%otss = ssnow%tgg(:,1)
+       ssnow%tss = ssnow%tgg(:,1)
        canopy%fes_cor = 0.
        canopy%fhs_cor = 0.
        met%ofsd = 0.1
+
        
        CALL zero_sum_casa(sum_casapool, sum_casaflux)
        count_sum_casa = 0
@@ -662,9 +664,6 @@ PROGRAM cable_offline_driver
                          LALLOC )
 
                     IF(MOD((ktau-kstart+1),ktauday)==0) THEN
-
-                   
-
                     
                        !mpidiff
                        ! update time-aggregates of casa pools and fluxes
@@ -672,8 +671,16 @@ PROGRAM cable_offline_driver
                             & .TRUE. , .FALSE., 1)
                        count_sum_casa = count_sum_casa + 1
                     ENDIF
-
-
+!!$                    IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN ! end of year
+!!$                     IF (CABLE_USER%POPLUC .and. TRIM(LUC_EXPT%run).eq.'restart') THEN
+!!$                       ! Dynamic LUC
+!!$                       CALL CABLECASA_LUC
+!!$
+!!$                     ELSE
+!!$                      CALL POPdriver(ktau,kstart,kend,dels,casaflux,casabal, ktauday, &
+!!$                           idoy,loy,casaflux,casabal,veg, POP)
+!!$                     ENDIF
+!!$                    ENDIF
 
                  ENDIF
 

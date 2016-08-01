@@ -196,11 +196,6 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
 
-
-
-!write(wlogn, *) 'after POP'
-!call flush(wlogn)
-
                ENDIF  ! end of year
             ELSE
                casaflux%stemnpp = 0.
@@ -208,24 +203,11 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
          ENDIF  ! icycle .gt. 0
 
-!!$         IF( (.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
-!!$            IF ( dump_write )  THEN
-!!$               !CLN CHECK FOR LEAP YEAR
-!!$               WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
-!!$               ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-!!$               CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &
-!!$                                 kend/ktauday )
-!!$
-!!$            ENDIF
-!!$         ENDIF
-
       ENDIF  ! end of day
 
    ELSE ! dump_read: ! use casa met and flux inputs from dumpfile
 
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN  ! end of day
-
-       !  IF (cable_user%CALL_POP)  casabiome%plantrate(:,2) = 0.0
 
          CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
               casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
@@ -266,31 +248,6 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
                     real(veg%disturbance_intensity(Iw,:),dp)      ,&
                     LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
-
-               
-
-             
-
-!!$               WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12)
-!!$                  casapool%CLitter(Iw,3) = casapool%CLitter(Iw,3) + &
-!!$                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-!!$                       + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) * &
-!!$                       casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old
-!!$
-!!$                  casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2) -  &
-!!$                       (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-!!$                          + POP%pop_grid(:)%fire_mortality+ POP%pop_grid(:)%cat_mortality  ) * &
-!!$                          casapool%Cplant(Iw,2)/POP%pop_grid(:)%cmass_sum_old
-!!$
-!!$                  casaflux%frac_sapwood(Iw) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
-!!$                  casaflux%sapwood_area(Iw) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)
-!!$
-!!$                  casabiome%plantrate(Iw,2) =   &
-!!$                          ((POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality+POP%pop_grid(:)%cat_mortality &
-!!$                          + POP%pop_grid(:)%fire_mortality + POP%pop_grid(:)%cat_mortality  ) &
-!!$                          /POP%pop_grid(:)%cmass_sum_old)/365.0
-!!$
-!!$               ENDWHERE
 
                ENDIF ! end of year
 
@@ -959,11 +916,12 @@ END SUBROUTINE sumcflux
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-           casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
-            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
+            !casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
+            !casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
             ! why is this commented here but used in UM
-            ! casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-            ! casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
+! vh! 
+             casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
+             casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))

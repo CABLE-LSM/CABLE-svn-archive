@@ -33,6 +33,10 @@ MODULE POPLUC_Types
      REAL(dp), DIMENSION(:,:),POINTER :: FHarvest, FClearance, FTransferNet
      REAL(dp), DIMENSION(:,:),POINTER :: FTransferGross
      REAL(dp), DIMENSION(:),POINTER :: pharv, smharv, syharv
+     REAL(dp), DIMENSION(:,:),POINTER :: HarvProd, ClearProd
+     REAL(dp), DIMENSION(:,:),POINTER :: fracHarvProd, fracClearProd
+     REAL(dp), DIMENSION(:,:),POINTER :: HarvProdLoss, ClearProdLoss
+     REAL(dp), DIMENSION(:),POINTER :: fracHarvResid, fracHarvSecResid, fracClearResid
 
   END TYPE POPLUC_TYPE
 
@@ -92,6 +96,11 @@ CONTAINS
     POPLUC%pharv = 0
     POPLUC%smharv = 0
     POPLUC%syharv = 0
+    POPLUC%HarvProd = 0
+    POPLUC%HarvProdLoss = 0
+    POPLUC%ClearProd = 0
+    POPLUC%ClearProdLoss = 0
+
 
   END SUBROUTINE ZeroPOPLUC
   !*******************************************************************************
@@ -103,7 +112,7 @@ CONTAINS
     IMPLICIT NONE
 
     CHARACTER(5), INTENT(IN) :: from_state, to_state
-    REAL(dp), INTENT(IN):: frac_change_grid
+    REAL(dp), INTENT(INOUT):: frac_change_grid
     TYPE(POPLUC_TYPE),INTENT(INOUT) :: POPLUC
     INTEGER(i4b), INTENT(IN) :: g  ! grid cell index
     REAL :: frac_open_grid, remaining
@@ -114,19 +123,20 @@ CONTAINS
 
     IF (from_state=='PRIMF') THEN
 
-       IF(frac_change_grid.GT.POPLUC%frac_primf(g)) THEN
-          PRINT*, "Warning: requested reduction in primary forest area &
-               exceeds primary forest area"
-          IF (to_state=='SECDF') POPLUC%ptos(g) = POPLUC%frac_primf(g)
-          IF (to_state=='C3ANN') POPLUC%ptog(g) = POPLUC%frac_primf(g)
-          POPLUC%frac_primf(g) = 0.0
+       IF(frac_change_grid.GT.POPLUC%primf(g)) THEN
+          !PRINT*, "Warning: requested reduction in primary forest area &
+          !     exceeds primary forest area"
+          IF (to_state=='SECDF') POPLUC%ptos(g) = POPLUC%primf(g)
+          IF (to_state=='C3ANN') POPLUC%ptog(g) = POPLUC%primf(g)
+          frac_change_grid = POPLUC%primf(g)
+          POPLUC%primf(g) = 0.0
        ELSE
-          POPLUC%frac_primf(g) = POPLUC%frac_primf(g) &
+          POPLUC%primf(g) = POPLUC%primf(g) &
                -frac_change_grid
        ENDIF
 
-       IF (to_state=='SECDF') THEN
-          ! Transition from primary -> secondary forest
+       IF (to_state=='SECDF') THEN 
+          ! Transition from primary -> secondary forest(ptos)
           POPLUC%n_event(g) = POPLUC%n_event(g)+1
           n = POPLUC%n_event(g)
           POPLUC%area_history_secdf(g,n) = frac_change_grid
@@ -142,24 +152,25 @@ CONTAINS
           STOP
 
        ELSE
-          ! Transition from secondary -> non forest
+          ! Transition from secondary -> non forest (stog)
           ! Assumption: youngest stands cleared first
-          remaining = frac_change_grid
-          i = n
-
-          DO WHILE (remaining > 0.0 .and. i >0 )
-
-             IF (POPLUC%area_history_secdf(g,i).GE.remaining) THEN
-                POPLUC%area_history_secdf(g,i) =POPLUC%area_history_secdf(g,i)&
-                     - remaining
-                remaining = 0.0
-             ELSE
-                remaining = remaining - POPLUC%area_history_secdf(g,i)
-                i = i-1
-                POPLUC%n_event(g) = POPLUC%n_event(g)-1
-             ENDIF
-
-          ENDDO
+!!$          remaining = frac_change_grid
+!!$          i = n
+!!$
+!!$          DO WHILE (remaining > 0.0 .and. i >0 )
+!!$
+!!$             IF (POPLUC%area_history_secdf(g,i).GE.remaining) THEN
+!!$                POPLUC%area_history_secdf(g,i) =POPLUC%area_history_secdf(g,i)&
+!!$                     - remaining
+!!$                remaining = 0.0
+!!$             ELSE
+!!$                remaining = remaining - POPLUC%area_history_secdf(g,i)
+!!$                i = i-1
+!!$                POPLUC%n_event(g) = POPLUC%n_event(g)-1
+!!$             ENDIF
+!!$
+!!$          ENDDO
+   
           remaining = frac_change_grid
           i = 1
           DO WHILE (remaining > 0.0 .and. i <= age_max )
@@ -169,18 +180,21 @@ CONTAINS
                 remaining = 0.0
              ELSE
                 remaining = remaining - POPLUC%freq_age_secondary(g,i)
+                POPLUC%freq_age_secondary(g,i) = 0.0
                 i = i+1
              ENDIF
 
           ENDDO
-          if (remaining.gt.frac_change_grid) POPLUC%stog(g) = POPLUC%stog(g)-remaining
+          !if (remaining.gt.frac_change_grid) POPLUC%stog(g) = POPLUC%stog(g)-remaining
+          if (remaining.gt.0.0) POPLUC%stog(g) = POPLUC%stog(g)-remaining
        ENDIF
 
     ELSEIF (to_state=='SECDF') THEN
 
        POPLUC%n_event(g) = POPLUC%n_event(g)+1
        n = POPLUC%n_event(g) 
-       ! Transition from non-forest to secondary forest
+       ! Transition from non-forest to secondary forest (gtos)
+
        if (frac_change_grid.LE.frac_open_grid) THEN
           POPLUC%area_history_secdf(g,n) = frac_change_grid
           POPLUC%age_history_secdf(g,n) = 0
@@ -189,6 +203,10 @@ CONTAINS
           POPLUC%area_history_secdf(g,n) = frac_open_grid
           POPLUC%age_history_secdf(g,n) = 0
           POPLUC%freq_age_secondary(g,1) = POPLUC%freq_age_secondary(g,1) + frac_open_grid
+          ! gtos to frac_change_grid here!!
+          POPLUC%gtos(g) =  frac_open_grid
+
+
        ENDIF
 
     ELSEIF (to_state=='PRIMF') THEN
@@ -197,7 +215,6 @@ CONTAINS
        STOP
 
     ENDIF
-
 
 
   ENDSUBROUTINE execute_luc_event
@@ -360,7 +377,7 @@ CONTAINS
           if (POPLUC%gtos(g) .gt.0.0) &
                CALL execute_luc_event('C3ANN','SECDF',POPLUC%gtos(g),g,POPLUC)
 
-          POPLUC%frac_forest(g) =  POPLUC%frac_primf(g)+ SUM(POPLUC%freq_age_secondary(g,:))
+          POPLUC%frac_forest(g) =  POPLUC%primf(g)+ SUM(POPLUC%freq_age_secondary(g,:))
 !!$          DO j=1,POPLUC%n_event(g)
 !!$             POPLUC%frac_forest(g) =  POPLUC%frac_forest(g) + &
 !!$                  POPLUC%area_history_secdf(g,j)
@@ -387,22 +404,41 @@ CONTAINS
     TYPE(POP_TYPE), INTENT(INOUT) :: POP
     TYPE (LUC_EXPT_TYPE), INTENT(IN) :: LUC_EXPT
     integer:: g, k, j, l
+    REAL(dp), DIMENSION(:), ALLOCATABLE:: freq_age
 
     DO l = 1, POP%np
        pop%pop_grid(l)%freq_age = 0.0
     ENDDO
+    ALLOCATE (freq_age(age_max))
 
     DO g = 1,POPLUC%np
-       IF (.NOT.LUC_EXPT%prim_only(g)) THEN
+       IF (.NOT.LUC_EXPT%prim_only(g) .and.sum(POPLUC%freq_age_secondary(g,:)).gt.1e-12) THEN
           j = landpt(g)%cstart + 1
+          freq_age = POPLUC%freq_age_secondary(g,:)/sum(POPLUC%freq_age_secondary(g,:))
           DO l = 1, POP%np
-             if (POP%Iwood(l).eq.j .and.sum(POPLUC%freq_age_secondary(g,:)).gt.1e-12 ) then
-                pop%pop_grid(l)%freq_age = POPLUC%freq_age_secondary(g,:)/sum(POPLUC%freq_age_secondary(g,:))
+             if (POP%Iwood(l).eq.j) then
+                ! freq_age seems to be a vector, right side is constant and can
+                ! be computed outside the loop
+!                pop%pop_grid(l)%freq_age = POPLUC%freq_age_secondary(g,:)/sum(POPLUC%freq_age_secondary(g,:))
+                pop%pop_grid(l)%freq_age = freq_age
              endif
              !write(71,*) POPLUC%it,l,  sum(pop%pop_grid(l)%freq_age)
           ENDDO
        ENDIF
     ENDDO
+    DEALLOCATE (freq_age)
+
+!!$    DO g = 1,POPLUC%np
+!!$       IF (.NOT.LUC_EXPT%prim_only(g)) THEN
+!!$          j = landpt(g)%cstart + 1
+!!$          DO l = 1, POP%np
+!!$             if (POP%Iwood(l).eq.j .and.sum(POPLUC%freq_age_secondary(g,:)).gt.1e-12 ) then
+!!$                pop%pop_grid(l)%freq_age = POPLUC%freq_age_secondary(g,:)/sum(POPLUC%freq_age_secondary(g,:))
+!!$             endif
+!!$             !write(71,*) POPLUC%it,l,  sum(pop%pop_grid(l)%freq_age)
+!!$          ENDDO
+!!$       ENDIF
+!!$    ENDDO
 
 !!$write(69,991) POPLUC%POPLUC_Grid(1)%freq_age_secondary 
 !!$991  format(1166(e12.4,2x)) 
@@ -440,11 +476,18 @@ CONTAINS
     REAL(dp) :: dpplant(nLU,nLU,3), dplitter(nLU,nLU,3), dpsoil(nLU,nLU,3)
     REAL(dp) :: dpplant_r(nLU,3), dplitter_r(nLU,3), dpsoil_r(nLU,3)
     REAL(dp) :: dpplant_d(nLU,3), dplitter_d(nLU,3), dpsoil_d(nLU,3)
-    REAL(dp) :: dA_r(nLU), dA_d(nLU), deltaA, dwood_transfer
-    REAL(dp), ALLOCATABLE :: FHarvCLear(:)
-    TYPE (casa_pool):: casapool_0
-    casapool_0 = casapool
-    casapool_0%ctot = sum(casapool_0%cplant,2)+sum(casapool_0%clitter,2)+sum(casapool_0%csoil,2)
+    REAL(dp) :: dnsoilmin_r(nLU), dclabile_r(nLU)
+    REAL(dp) :: dnsoilmin_d(nLU), dclabile_d(nLU)
+    REAL(dp) :: dA_r(nLU), dA_d(nLU), dA(nLU), deltaA, dwood_transfer
+    REAL(dp), ALLOCATABLE :: dcHarvCLear(:), dcHarv(:), dcClear(:), dcExpand(:), FHarvClear(:)
+    REAL(dp) :: kHarvProd(3), kClearProd(3)
+    
+
+    ! turnover rates for harvest and clearance products (y-1)
+    kHarvProd(1) = 1.0/1.0
+    kHarvProd(2) = 1.0/10.0
+    kHarvProd(3) = 1.0/100.0
+    kClearProd = kHarvProd
 
     ! zero POPLUC fluxes
     popluc%FtransferNet = 0.0
@@ -452,24 +495,65 @@ CONTAINS
     popluc%FHarvest = 0.0
     popluc%FClearance = 0.0
 
-    ! local variable for storing sum of secondary harvest, clearance and expansion
+    ! local variable for storing sum of biomass change due to 
+    !secondary harvest, clearance and expansion, and secondary forest
+    !  harvest and clearance fluxes
     Allocate(FHarvClear(POPLUC%np))
+    Allocate(dcHarvClear(POPLUC%np))
+    Allocate(dcHarv(POPLUC%np))
+    Allocate(dcClear(POPLUC%np))
+    Allocate(dcExpand(POPLUC%np))
     FHarvClear = 0.0
-
+    dcHarvClear = 0.0
+    dcHarv = 0.0
+    dcClear = 0.0
+    dcExpand = 0.0 
+    POPLUC%FHarvest = 0.0
+    POPLUC%FClearance = 0.0
+    
     ! Transfer POP age-dependent biomass to POLUC variables (diagnostic only) and
-    ! catastrophic mortality in secondary forest tiles to harvest flux
+    ! catastrophic mortality in secondary forest tiles to changes in biomass associated
+    ! with secondary forest harvest and clearance and expansion.  
     DO g = 1,POPLUC%np
+
        j = landpt(g)%cstart
        DO l = 1, POP%np
           IF (.NOT.LUC_EXPT%prim_only(g)) THEN
-             if (POP%Iwood(l).eq.j+1 ) then
+             if (POP%Iwood(l).eq.j+1 .and. & 
+                  (patch(j+1)%frac+ POPLUC%gtos(g)+POPLUC%ptos(g)-POPLUC%stog(g)) .gt. 0.0   ) then
                 POPLUC%biomass_age_secondary(g,:)=POP%pop_grid(l)%biomass_age
-
+                ! change in biomass density due to secondary forest expansion 
+                dcExpand(g) = -(POPLUC%gtos(g)+POPLUC%ptos(g))*casapool%cplant(j+1,2)/ &
+                     (patch(j+1)%frac + POPLUC%gtos(g)+POPLUC%ptos(g)-POPLUC%stog(g))
                 if (POP%pop_grid(l)%cmass_sum_old .gt. 0.001) then
-                   FHarvClear(g) = max(POP%pop_grid(l)%cat_mortality/ &
+                   dcHarvClear(g) = -max(POP%pop_grid(l)%cat_mortality/ &
                         (POP%pop_grid(l)%cmass_sum_old + POP%pop_grid(l)%growth) &
                         - 1.0/ disturbance_interval ,0.0) &
-                        *casapool%cplant(j+1,2) 
+                        *casapool%cplant(j+1,2) - dcExpand(g)
+                  if (( POPLUC%smharv(g) + POPLUC%stog(g)).gt.1e-10) then
+                     dcHarv(g) = dcHarvClear(g) * POPLUC%smharv(g) & 
+                          /( POPLUC%smharv(g) + POPLUC%stog(g))
+                     dcClear(g) = dcHarvClear(g) * POPLUC%stog(g) & 
+                          /( POPLUC%smharv(g) + POPLUC%stog(g))
+
+                     if ((casapool%cplant(j+1,2) + dcExpand(g)+dcClear(g)+dcHarv(g)).gt.0.0) then
+                        FHarvClear(g) = -(patch(j+1)%frac *  (dcHarvClear(g) + dcExpand(g)) + &
+                             (POPLUC%ptos(g)+POPLUC%gtos(g)-POPLUC%stog(g))* &
+                             ( casapool%cplant(j+1,2) + dcHarvClear(g) + dcExpand(g) ) ) 
+                        POPLUC%FHarvest(g,2) =  (1.-POPLUC%fracHarvSecResid(g))*FHarvClear(g) &
+                             * POPLUC%smharv(g) &
+                             /( POPLUC%smharv(g) + POPLUC%stog(g))
+                        POPLUC%FClearance(g,2) =  (1.-POPLUC%fracClearResid(g))* FHarvClear(g) * &
+                             POPLUC%stog(g) & 
+                             /( POPLUC%smharv(g) + POPLUC%stog(g))
+                     else
+                        dcHarv(g) = 0.0
+                        dcClear(g) = 0.0
+                        POPLUC%FHarvest(g,2) = 0.0
+                        POPLUC%FClearance(g,2) = 0.0
+                     endif
+                        
+                  endif
                 endif
 
              endif
@@ -482,13 +566,14 @@ CONTAINS
     ENDDO
 
 
-
+    
     ! Calculate Carbon Pool Transfers
     DO g = 1,POPLUC%np
        j = landpt(g)%cstart
        l = landpt(g)%cend
        dA_r = 0.0
        dA_d = 0.0
+       dA = 0.0
        dcsoil = 0.0
        dcplant = 0.0
        dclitter = 0.0
@@ -498,6 +583,15 @@ CONTAINS
        dcsoil_r = 0.0
        dcplant_r = 0.0
        dclitter_r = 0.0
+       dclabile_r = 0.0
+
+       dcsoil_d = 0.0
+       dcplant_d = 0.0
+       dclitter_d = 0.0
+       dcsoil_d = 0.0
+       dcplant_d = 0.0
+       dclitter_d = 0.0
+       dclabile_d = 0.0
 
        dnsoil = 0.0
        dnplant = 0.0
@@ -508,6 +602,16 @@ CONTAINS
        dnsoil_r = 0.0
        dnplant_r = 0.0
        dnlitter_r = 0.0
+       dnsoilmin_r = 0.0
+    
+       dnlitter = 0.0
+       dnsoil_d = 0.0
+       dnplant_d = 0.0
+       dnlitter_d = 0.0
+       dnsoil_d = 0.0
+       dnplant_d = 0.0
+       dnlitter_d = 0.0
+       dnsoilmin_d = 0.0
 
        dpsoil = 0.0
        dpplant = 0.0
@@ -519,6 +623,13 @@ CONTAINS
        dpplant_r = 0.0
        dplitter_r = 0.0
        dwood_transfer = 0.0
+
+       dpsoil_d = 0.0
+       dpplant_d = 0.0
+       dplitter_d = 0.0
+       dpsoil_d = 0.0
+       dpplant_d = 0.0
+       dplitter_d = 0.0
 
        IF (.NOT.LUC_EXPT%prim_only(g)) THEN
           DO k = 1,nTrans
@@ -563,70 +674,104 @@ CONTAINS
                 ! all soil pools
                 dcsoil(irlu,idlu,:) = deltaA*casapool%csoil(idp,:)
                 dcsoil_r(irlu,:) =  dcsoil_r(irlu,:) + deltaA*casapool%csoil(idp,:)
-                dcsoil_d(idlu,:) =  dcsoil_r(irlu,:) - deltaA*casapool%csoil(idp,:)
+                dcsoil_d(idlu,:) =  dcsoil_d(irlu,:) - deltaA*casapool%csoil(idp,:)
 
                 dnsoil(irlu,idlu,:) = deltaA*casapool%nsoil(idp,:)
                 dnsoil_r(irlu,:) =  dnsoil_r(irlu,:) + deltaA*casapool%nsoil(idp,:)
-                dnsoil_d(idlu,:) =  dnsoil_r(irlu,:) - deltaA*casapool%nsoil(idp,:)
+                dnsoil_d(idlu,:) =  dnsoil_d(irlu,:) - deltaA*casapool%nsoil(idp,:)
+
+                dnsoilmin_r(irlu) = dnsoilmin_r(irlu) + deltaA*casapool%nsoilmin(idp)
+                dnsoilmin_d(irlu) = dnsoilmin_d(irlu) - deltaA*casapool%nsoilmin(idp)
 
                 dpsoil(irlu,idlu,:) = deltaA*casapool%psoil(idp,:)
                 dpsoil_r(irlu,:) =  dpsoil_r(irlu,:) + deltaA*casapool%psoil(idp,:)
-                dpsoil_d(idlu,:) =  dpsoil_r(irlu,:) - deltaA*casapool%psoil(idp,:)
+                dpsoil_d(idlu,:) =  dpsoil_d(irlu,:) - deltaA*casapool%psoil(idp,:)
 
                 ! microbial litter 
                 dclitter(irlu,idlu,1) = deltaA*casapool%clitter(idp,1)
                 dclitter_r(irlu,1) =  dclitter_r(irlu,1) + dclitter(irlu,idlu,1)
-                dclitter_d(idlu,1) =  dclitter_r(irlu,1) - dclitter(irlu,idlu,1)
+                dclitter_d(idlu,1) =  dclitter_d(irlu,1) - dclitter(irlu,idlu,1)
 
                 dnlitter(irlu,idlu,1) = deltaA*casapool%nlitter(idp,1)
                 dnlitter_r(irlu,1) =  dnlitter_r(irlu,1) + dnlitter(irlu,idlu,1)
-                dnlitter_d(idlu,1) =  dnlitter_r(irlu,1) - dnlitter(irlu,idlu,1)
+                dnlitter_d(idlu,1) =  dnlitter_d(irlu,1) - dnlitter(irlu,idlu,1)
 
                 dplitter(irlu,idlu,1) = deltaA*casapool%plitter(idp,1)
                 dplitter_r(irlu,1) =  dplitter_r(irlu,1) + dplitter(irlu,idlu,1)
-                dplitter_d(idlu,1) =  dplitter_r(irlu,1) - dplitter(irlu,idlu,1)
+                dplitter_d(idlu,1) =  dplitter_d(irlu,1) - dplitter(irlu,idlu,1)
 
-                ! CWD : donor pool inherits beolow-ground woody biomass
-                dclitter(irlu,idlu,3) = deltaA*(casapool%clitter(idp,3) + 0.3*casapool%cplant(idp,2) )
+                ! CWD : donor pool inherits below-ground woody biomass
+                if (idlu == s .and. casapool%cplant(idp,2).gt.1e-5 ) then
+                   dclitter(irlu,idlu,3) = deltaA*casapool%clitter(idp,3) + &
+                        POPLUC%fracClearResid(g)*POPLUC%Fclearance(g,2)/ &
+                        (1.-POPLUC%fracClearResid(g))
+                   dnlitter(irlu,idlu,3) = deltaA*casapool%nlitter(idp,3) + & 
+                        POPLUC%fracClearResid(g)*POPLUC%Fclearance(g,2)/ &
+                        (1.-POPLUC%fracClearResid(g))  &
+                        *casapool%nplant(idp,2)/ casapool%cplant(idp,2)
+                   dplitter(irlu,idlu,3) = deltaA*casapool%plitter(idp,3) + & 
+                       POPLUC%fracClearResid(g)*POPLUC%Fclearance(g,2)/ &
+                        (1.-POPLUC%fracClearResid(g))  &
+                          *casapool%pplant(idp,2)/ casapool%cplant(idp,2)
+                elseif (idlu == p .and. irlu == s) then
+                   dclitter(irlu,idlu,3) = deltaA*(casapool%clitter(idp,3) + &
+                         POPLUC%fracHarvResid(g)*casapool%cplant(idp,2) )
+                   dnlitter(irlu,idlu,3) = deltaA*(casapool%nlitter(idp,3) + &
+                        POPLUC%fracHarvResid(g)*casapool%nplant(idp,2) )
+                   dplitter(irlu,idlu,3) = deltaA*(casapool%plitter(idp,3) + & 
+                       POPLUC%fracHarvResid(g) *casapool%pplant(idp,2) )
+                elseif (idlu == p .and. irlu == gr) then
+                   dclitter(irlu,idlu,3) = deltaA*(casapool%clitter(idp,3) + &
+                         POPLUC%fracClearResid(g)*casapool%cplant(idp,2) )
+                   dnlitter(irlu,idlu,3) = deltaA*(casapool%nlitter(idp,3) + &
+                        POPLUC%fracClearResid(g)*casapool%nplant(idp,2) )
+                   dplitter(irlu,idlu,3) = deltaA*(casapool%plitter(idp,3) + & 
+                       POPLUC%fracClearResid(g) *casapool%pplant(idp,2) )
+                else
+                   dclitter(irlu,idlu,3) = deltaA*casapool%clitter(idp,3) 
+                   dnlitter(irlu,idlu,3) = deltaA*casapool%nlitter(idp,3)
+                   dplitter(irlu,idlu,3) = deltaA*casapool%plitter(idp,3)
+                endif
                 dclitter_r(irlu,3) =  dclitter_r(irlu,3) + dclitter(irlu,idlu,3)
-                dclitter_d(idlu,3) =  dclitter_r(irlu,3) - dclitter(irlu,idlu,3)
+                dclitter_d(idlu,3) =  dclitter_d(irlu,3) - dclitter(irlu,idlu,3)
 
-                dnlitter(irlu,idlu,3) = deltaA*(casapool%nlitter(idp,3) + 0.3*casapool%cplant(idp,2) )
                 dnlitter_r(irlu,3) =  dnlitter_r(irlu,3) + dnlitter(irlu,idlu,3)
-                dnlitter_d(idlu,3) =  dnlitter_r(irlu,3) - dnlitter(irlu,idlu,3)
+                dnlitter_d(idlu,3) =  dnlitter_d(irlu,3) - dnlitter(irlu,idlu,3)
 
-                dplitter(irlu,idlu,3) = deltaA*(casapool%plitter(idp,3) + 0.3*casapool%cplant(idp,2) )
                 dplitter_r(irlu,3) =  dplitter_r(irlu,3) + dplitter(irlu,idlu,3)
-                dplitter_d(idlu,3) =  dplitter_r(irlu,3) - dplitter(irlu,idlu,3)
+                dplitter_d(idlu,3) =  dplitter_d(irlu,3) - dplitter(irlu,idlu,3)
 
                 ! fine structural litter: donor pool inherits leaves and fine roots
                 dclitter(irlu,idlu,2) = deltaA*(casapool%clitter(idp,2) + casapool%cplant(idp,1) + &
                      casapool%cplant(idp,3))
                 dclitter_r(irlu,2) =  dclitter_r(irlu,2) + dclitter(irlu,idlu,2)
-                dclitter_d(idlu,2) =  dclitter_r(irlu,2) - dclitter(irlu,idlu,2)
+                dclitter_d(idlu,2) =  dclitter_d(irlu,2) - dclitter(irlu,idlu,2)
 
                 dnlitter(irlu,idlu,2) = deltaA*(casapool%nlitter(idp,2) + casapool%cplant(idp,1) + &
                      casapool%cplant(idp,3))
                 dnlitter_r(irlu,2) =  dnlitter_r(irlu,2) + dnlitter(irlu,idlu,2)
-                dnlitter_d(idlu,2) =  dnlitter_r(irlu,2) - dnlitter(irlu,idlu,2)
+                dnlitter_d(idlu,2) =  dnlitter_d(irlu,2) - dnlitter(irlu,idlu,2)
 
                 dplitter(irlu,idlu,2) = deltaA*(casapool%plitter(idp,2) + casapool%cplant(idp,1) + &
                      casapool%cplant(idp,3))
                 dplitter_r(irlu,2) =  dplitter_r(irlu,2) + dplitter(irlu,idlu,2)
-                dplitter_d(idlu,2) =  dplitter_r(irlu,2) - dplitter(irlu,idlu,2)
+                dplitter_d(idlu,2) =  dplitter_d(irlu,2) - dplitter(irlu,idlu,2)
 
                 ! biomass: no biomass inherited
+                dclabile_r(irlu) =  dclabile_r(irlu) + deltaA*casapool%clabile(idp)
+                dclabile_d(irlu) =  dclabile_d(irlu) - deltaA*casapool%clabile(idp)
+
                 dcplant(irlu,idlu,:) = 0.0
                 dcplant_r(irlu,:) =  dcplant_r(irlu,:) + dcplant(irlu,idlu,:)
-                dcplant_d(idlu,:) =  dcplant_r(irlu,:) - dcplant(irlu,idlu,:)
+                dcplant_d(idlu,:) =  dcplant_d(irlu,:) - dcplant(irlu,idlu,:)
 
                 dnplant(irlu,idlu,:) = 0.0
                 dnplant_r(irlu,:) =  dnplant_r(irlu,:) + dnplant(irlu,idlu,:)
-                dnplant_d(idlu,:) =  dnplant_r(irlu,:) - dnplant(irlu,idlu,:)
+                dnplant_d(idlu,:) =  dnplant_d(irlu,:) - dnplant(irlu,idlu,:)
 
                 dpplant(irlu,idlu,:) = 0.0
                 dpplant_r(irlu,:) =  dpplant_r(irlu,:) + dpplant(irlu,idlu,:)
-                dpplant_d(idlu,:) =  dpplant_r(irlu,:) - dpplant(irlu,idlu,:)
+                dpplant_d(idlu,:) =  dpplant_d(irlu,:) - dpplant(irlu,idlu,:)
 
                 ! Gross Transfer Flux
                 popluc%FtransferGross(g,k) = &
@@ -635,156 +780,137 @@ CONTAINS
                 ! Harvest Flux
                 ! primary to secondary forest
                 if (idlu==p .and. irlu ==s) then
-                   popluc%FHarvest(g,idlu) =  0.7*casapool%cplant(idp,2)*deltaA
-
+                   popluc%FHarvest(g,idlu) =  (1.0 -POPLUC%fracHarvResid(g)) &
+                        *casapool%cplant(idp,2)*deltaA
                 endif
                 ! Clearance Flux
                 ! primary forest to grass
-                !if ((idlu==p.OR.idlu==s) .and. irlu ==gr) &
-                if ((idlu==p) .and. irlu ==gr) &
-                     popluc%FClearance(g,idlu) =  0.7*casapool%cplant(idp,2)*deltaA
-
+                if ((idlu==p) .and. irlu ==gr) then
+                   popluc%FClearance(g,idlu) =  (1.0 -POPLUC%fracClearResid(g)) &
+                        * casapool%cplant(idp,2)*deltaA
+                endif
+                  
                 ! transition area
                 dA_r(irlu) = dA_r(irlu) + deltaA
                 dA_d(idlu) = dA_d(idlu) - deltaA
              endif
           ENDDO  ! ntrans
-          ! secondary forest harvest accumulated from catastrophic mortality in secondary forest tiles
 
-!!$          casabal%Ctohwpyear(j+1,1) = casabal%Ctohwpyear(j+1,1) - 
-!!$          popluc%FHarvest(g,s) = casabal%Ctohwpyear(j+1,1)*patch(j+1)%frac 
-
-
-          !if (g==1) write(5117,*) J+1,casabal%Ctohwpyear(j+1,1)
           DO ilu=1,nLU
              ! update pools
              irp = ilu + j -1
              dwood_transfer = 0.0
-             if (dA_r(ilu).gt.0.0) then
-
-                casapool%csoil(irp,:)  = casapool%csoil(irp,:) + &
-                     (dcsoil_r(ilu,:)-casapool%csoil(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%nsoil(irp,:)  = casapool%nsoil(irp,:) + &
-                     (dnsoil_r(ilu,:)-casapool%nsoil(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%psoil(irp,:)  = casapool%psoil(irp,:) + &
-                     (dpsoil_r(ilu,:)-casapool%psoil(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-
-                casapool%clitter(irp,:)  = casapool%clitter(irp,:) + &
-                     (dclitter_r(ilu,:)-casapool%clitter(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%nlitter(irp,:)  = casapool%nlitter(irp,:) + &
-                     (dnlitter_r(ilu,:)-casapool%nlitter(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%plitter(irp,:)  = casapool%plitter(irp,:) + &
-                     (dplitter_r(ilu,:)-casapool%plitter(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                ! decrease in C density due to secondary forest expansion
-                dwood_transfer = (dcplant_r(ilu,2)-casapool%cplant(irp,2)*dA_r(ilu)) &
-                     /(patch(irp)%frac+dA_r(ilu))
-
-write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
-
-                casapool%cplant(irp,1)  = casapool%cplant(irp,1) + &
-                     (dcplant_r(ilu,1)-casapool%cplant(irp,1)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%nplant(irp,1)  = casapool%nplant(irp,1) + &
-                     (dnplant_r(ilu,1)-casapool%nplant(irp,1)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%pplant(irp,1)  = casapool%pplant(irp,1) + &
-                     (dpplant_r(ilu,1)-casapool%pplant(irp,1)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%cplant(irp,3)  = casapool%cplant(irp,3) + &
-                     (dcplant_r(ilu,3)-casapool%cplant(irp,3)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%nplant(irp,3)  = casapool%nplant(irp,3) + &
-                     (dnplant_r(ilu,3)-casapool%nplant(irp,3)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-                casapool%pplant(irp,3)  = casapool%pplant(irp,3) + &
-                     (dpplant_r(ilu,3)-casapool%pplant(irp,3)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-
-!!$                casapool%cplant(irp,:)  = casapool%cplant(irp,:) + &
-!!$                     (dcplant_r(ilu,:)-casapool%cplant(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-!!$
-!!$                casapool%nplant(irp,:)  = casapool%nplant(irp,:) + &
-!!$                     (dnplant_r(ilu,:)-casapool%nplant(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-!!$
-!!$                casapool%pplant(irp,:)  = casapool%pplant(irp,:) + &
-!!$                     (dpplant_r(ilu,:)-casapool%pplant(irp,:)*dA_r(ilu))/(patch(irp)%frac+dA_r(ilu))
-
-
-                casapool%Cclear(irp,1) =  casapool%Cclear(irp,1) + popluc%FClearance(g,ilu)
-                
-
-                casapool%Chwp(irp,1) =  casapool%Chwp(irp,1) + popluc%FHarvest(g,ilu)
-             endif
+             dA(ilu) = dA_r(ilu) + dA_d(ilu)
              ! Net Transfer Flux
              popluc%FtransferNet(g,ilu) = sum(dcsoil_r(ilu,:) + dcsoil_d(ilu,:)) + &
                   sum(dclitter_r(ilu,:) + dclitter_d(ilu,:))  + &
                   sum(dcplant_r(ilu,:)  + dcplant_d(ilu,:))
-
-             write(*,*) 'dwood2', dwood_transfer, ilu
-
-             ! get secondary forest harvest flux and clearance flux, by correcting &
-             ! for forest expansion 
-             ! (secondary forest harvest+clear flux set above to POP "catastrophic mortality" minus
-             ! natural catastrophic disturbance (eg cyclone). However POP disturbance also 
-             ! includes biomass reduction due to secondary forest expansion (and associated increase weighting
-             ! of zero age class: here this explansion term is deducted).
-             ! note here dwood_transfer is always negative
-             ! the corrected FHarvClear is converted to change in biomass densities 
-             ! due to harvest and clearance, partitioned according to areas 
-             !associated with these transitions
-             if ( ilu .eq.  s  ) then
-               ! casapool%cplant(irp,2) =  casapool%cplant(irp,2) -  FHarvClear(g)
-            
-
-                write(*,*) ' cplant, dwood_transfer, FHarvClear: ' , casapool%cplant(irp,2),  FHarvClear(g) 
-               
-                
-                if (POPLUC%stog(g) + POPLUC%smharv(g) .lt. 1.e-5 ) then
-                   dwood_transfer =  - FHarvClear(g)
-                   FHarvClear(g) = 0.0
-                   popluc%FHarvest(g,s) = 0.0
-                   popluc%FClearance(g,s) = 0.0
-                else
-                   FHarvClear(g) = FHarvClear(g) + dwood_transfer
-
-                   popluc%FHarvest(g,s) = &
-                        FHarvClear(g) * POPLUC%smharv(g)/(POPLUC%stog(g) + POPLUC%smharv(g))
-                   popluc%FClearance(g,s) = &
-                        FHarvClear(g) * POPLUC%stog(g)/(POPLUC%stog(g) + POPLUC%smharv(g))
+             
+             if (ilu ==2) then
+                dclitter_r(ilu,3) = dclitter_r(irlu,3) + &
+                     POPLUC%fracHarvSecResid(g)*POPLUC%FHarvest(g,2)/(1.0 -POPLUC%fracHarvSecResid(g)) 
+                if (casapool%cplant(irp,2) .gt. 1.e-5) then
+                   dnlitter_r(ilu,3) = dnlitter_r(irlu,3) +  &
+                     POPLUC%fracHarvSecResid(g)*POPLUC%FHarvest(g,2)/(1.0 -POPLUC%fracHarvSecResid(g)) &
+                     *casapool%nplant(irp,2)/ casapool%cplant(irp,2)
+                   dplitter_r(ilu,3) = dplitter_r(irlu,3) +  &
+                     POPLUC%fracHarvSecResid(g)*POPLUC%FHarvest(g,2)/(1.0 -POPLUC%fracHarvSecResid(g)) &
+                     *casapool%pplant(irp,2)/ casapool%cplant(irp,2)
                 endif
-
              endif
 
+                
+            ! if (abs(dA(ilu)).gt.0.0 .and.(patch(irp)%frac+dA(ilu)).gt.1.e-6  ) then
+             if ((patch(irp)%frac+dA(ilu)).gt.1.e-6  ) then
 
-             if ( ilu .eq.  s  ) then
+                casapool%nsoilmin(irp) = casapool%nsoilmin(irp) +  &
+                     (dnsoilmin_r(ilu) - casapool%nsoilmin(irp)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
 
-                write(*,*) 'Fharvclear2',  popluc%FHarvest(g,s) &
-                                          + popluc%FClearance(g,s) - dwood_transfer
-                ! correct  wood pool for harvest and augment hwp and CWD pools accordingly
-                casapool%cplant(irp,2) =  casapool%cplant(irp,2) - popluc%FHarvest(g,s) &
-                                          - popluc%FClearance(g,s) + dwood_transfer
+                casapool%clabile(irp) = casapool%clabile(irp) +  &
+                     (dclabile_r(ilu) - casapool%clabile(irp)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
 
-                casapool%Chwp(irp,1) = casapool%Chwp(irp,1) +  0.7*popluc%FHarvest(g,s)
-                casapool%Cclear(irp,1) = casapool%Cclear(irp,1) +  0.7*popluc%FClearance(g,s)
-                casapool%clitter(irp,3) = casapool%clitter(irp,3) + &
-                     0.3*(popluc%FHarvest(g,s))
+                casapool%csoil(irp,:)  = casapool%csoil(irp,:) + &
+                     (dcsoil_r(ilu,:)-casapool%csoil(irp,:)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
 
-                popluc%FHarvest(g,s) = popluc%FHarvest(g,s)*0.7*patch(irp)%frac
-                popluc%FClearance(g,s) = popluc%FClearance(g,s)*0.7*patch(irp)%frac
-             endif
+                casapool%nsoil(irp,:)  = casapool%nsoil(irp,:) + &
+                     (dnsoil_r(ilu,:)-casapool%nsoil(irp,:)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
 
-          ENDDO
+                casapool%psoil(irp,:)  = casapool%psoil(irp,:) + &
+                     (dpsoil_r(ilu,:)-casapool%psoil(irp,:)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+
+                casapool%clitter(irp,:)  = casapool%clitter(irp,:) + &
+                     (dclitter_r(ilu,:)-casapool%clitter(irp,:)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%nlitter(irp,:)  = casapool%nlitter(irp,:) + &
+                     (dnlitter_r(ilu,:)-casapool%nlitter(irp,:)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%plitter(irp,:)  = casapool%plitter(irp,:) + &
+                     (dplitter_r(ilu,:)-casapool%plitter(irp,:)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%cplant(irp,1)  = casapool%cplant(irp,1) + &
+                     (dcplant_r(ilu,1)-casapool%cplant(irp,1)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%nplant(irp,1)  = casapool%nplant(irp,1) + &
+                     (dnplant_r(ilu,1)-casapool%nplant(irp,1)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%pplant(irp,1)  = casapool%pplant(irp,1) + &
+                     (dpplant_r(ilu,1)-casapool%pplant(irp,1)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%cplant(irp,3)  = casapool%cplant(irp,3) + &
+                     (dcplant_r(ilu,3)-casapool%cplant(irp,3)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%nplant(irp,3)  = casapool%nplant(irp,3) + &
+                     (dnplant_r(ilu,3)-casapool%nplant(irp,3)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%pplant(irp,3)  = casapool%pplant(irp,3) + &
+                     (dpplant_r(ilu,3)-casapool%pplant(irp,3)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%cplant(irp,2)  = casapool%cplant(irp,2) + &
+                     (dcplant_r(ilu,2)-casapool%cplant(irp,2)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%nplant(irp,2)  = casapool%nplant(irp,2) + &
+                     (dnplant_r(ilu,2)-casapool%nplant(irp,2)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+                casapool%pplant(irp,2)  = casapool%pplant(irp,2) + &
+                     (dpplant_r(ilu,2)-casapool%pplant(irp,2)*(dA(ilu) - dA_d(ilu)))/(patch(irp)%frac+dA(ilu))
+
+
+
+
+                ! account here for change in secondary forest biomass density due to:
+                !  harvest and clearing, as well as increase in (below ground) CWD 
+                ! where secondary forest harvest occurs
+                if (ilu .eq.s .and. (casapool%cplant(irp,2) +(dcHarv(g)+dCClear(g)) ).gt.0.0  &
+                   .and. casapool%cplant(irp,2).gt.1.e-10  ) then
+                   
+                 
+                   casapool%nplant(irp,2) = casapool%nplant(irp,2) + (dcHarv(g)+dcClear(g)) &
+                        * casapool%nplant(irp,2)/casapool%cplant(irp,2)
+                   casapool%pplant(irp,2) = casapool%pplant(irp,2) + (dcHarv(g)+dcClear(g)) &
+                        * casapool%pplant(irp,2)/casapool%cplant(irp,2)
+                   casapool%cplant(irp,2) = casapool%cplant(irp,2) + (dcHarv(g)+dcClear(g))
+
+               elseif (ilu .eq.s .and. (casapool%cplant(irp,2) +(dcHarv(g)+dCClear(g)) ).le.0.0  ) then
+
+                  POPLUC%FHarvest(g,2) = 0.0
+                  POPLUC%FClearance(g,2) = 0.0
+               endif
+
+
+            endif
+
+          
+            casapool%Cclear(irp,1) =  casapool%Cclear(irp,1) + popluc%FClearance(g,ilu)
+            casapool%Chwp(irp,1) =  casapool%Chwp(irp,1) + popluc%FHarvest(g,ilu)
+         
+
+         ENDDO
 
 
           POPLUC%FNEP(g,:) = casabal%Fcneeyear(j:l)*patch(j:l)%frac  ! note NEE = NEP here (+ve into surface)
           DO ilu=1,nLU
-             ! update pools
+             ! update area weights
              irp = ilu + j -1
              ! Net Area Change
              patch(irp)%frac= max(patch(irp)%frac + dA_r(ilu) + dA_d(ilu), 0.0)
@@ -792,37 +918,63 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
           ENDDO
           ! pools in gC per m2 of gridcell
           ! NEP in g C y-1 per m2 of gridcell
+
           POPLUC%csoil(g,:) = sum(casapool%csoil(j:l,:),2)*patch(j:l)%frac
           POPLUC%clitt(g,:) = sum(casapool%clitter(j:l,:),2)*patch(j:l)%frac
           POPLUC%cbiomass(g,:) = sum(casapool%cplant(j:l,:),2)*patch(j:l)%frac
-
+      
           POPLUC%primf(g) = patch(j)%frac
           POPLUC%secdf(g) = patch(j+1)%frac
           POPLUC%grass(g) = patch(j+2)%frac
 
        ELSE
-          POPLUC%csoil(g,1) = sum(casapool%csoil(j,:))
-          POPLUC%clitt(g,1) = sum(casapool%clitter(j,:))
-          POPLUC%cbiomass(g,1) = sum(casapool%cplant(j,:))
-          POPLUC%FNEP(g,1) = casabal%Fcneeyear(j)
+
+          POPLUC%csoil(g,:) = 0.0
+          POPLUC%clitt(g,:) = 0.0
+          POPLUC%cbiomass(g,:) = 0.0
+          POPLUC%FNEP(g,:) = 0.0
+
+!!$          POPLUC%csoil(g,1:l-j+1) = sum(casapool%csoil(j:l,:),2)*patch(j:l)%frac
+!!$          POPLUC%clitt(g,1:l-j+1) = sum(casapool%clitter(j:l,:),2)*patch(j:l)%frac
+!!$          POPLUC%cbiomass(g,1:l-j+1) = sum(casapool%cplant(j:l,:),2)*patch(j:l)%frac
+!!$          POPLUC%FNEP(g,1:l-j+1) =  casabal%Fcneeyear(j:l)*patch(j:l)%frac
+
+          POPLUC%csoil(g,1) = sum(casapool%csoil(j,:))*patch(j)%frac
+          POPLUC%clitt(g,1) = sum(casapool%clitter(j,:))*patch(j)%frac
+          POPLUC%cbiomass(g,1) = sum(casapool%cplant(j,:))*patch(j)%frac
+          POPLUC%FNEP(g,1) =  casabal%Fcneeyear(j)*patch(j)%frac
+          POPLUC%primf(g) = patch(j)%frac
+          POPLUC%secdf(g) = 0.0
+
+          if (POPLUC%grass(g).gt.0.0 .and. l.eq.j+1) then
+             POPLUC%csoil(g,3) = sum(casapool%csoil(l,:))*patch(l)%frac
+             POPLUC%clitt(g,3) = sum(casapool%clitter(l,:))*patch(l)%frac
+             POPLUC%cbiomass(g,3) = sum(casapool%cplant(l,:))*patch(l)%frac
+             POPLUC%FNEP(g,3) = casabal%Fcneeyear(l)*patch(l)%frac
+             POPLUC%grass(g) = patch(l)%frac
+          endif
+
        ENDIF
 
+    
+       POPLUC%HarvProdLoss(g,:) = kHarvProd * POPLUC%HarvProd(g,:)
+       POPLUC%ClearProdLoss(g,:) = kClearProd * POPLUC%ClearProd(g,:)
+       
+       DO j=1,3
+          POPLUC%HarvProd(g,j) = POPLUC%HarvProd(g,j) + &
+               POPLUC%fracHarvProd(g,j)*sum(POPLUC%FHarvest(g,:)) - POPLUC%HarvProdLoss(g,j) 
 
-!!$    casapool%ctot = sum(casapool%cplant,2)+sum(casapool%clitter,2)+sum(casapool%csoil,2)
-!!$
-!!$    write(*,*) 'ctot1', casapool%ctot(1), casapool_0%ctot(1), casapool_0%ctot(1)-casapool%ctot(1)
-!!$    write(*,*) 'ctot2', casapool%ctot(2), casapool_0%ctot(2), casapool_0%ctot(2)-casapool%ctot(2)
-!!$    write(*,*) 'ctot3', casapool%ctot(3), casapool_0%ctot(3), casapool_0%ctot(3)-casapool%ctot(3)
-!!$    ilu = 3
-!!$    write(*,*) 'grass increments',POPLUC%ptog(g), dA_r(ilu), dclitter_r(ilu,3)
-!!$    write(*,*) 'gi2', (casapool_0%ctot(3)-casapool%ctot(3))*patch(3)%frac+dA_r(ilu)*casapool_0%ctot(3) , dA_r(ilu)*(casapool_0%ctot(1)-casapool_0%cplant(1,2)*0.7)
-!!$    write(*,*) 'clitt', casapool_0%clitter(3,:), casapool%clitter(3,:)
-       !stop
+          POPLUC%ClearProd(g,j) = POPLUC%ClearProd(g,j) + &
+               POPLUC%fracClearProd(g,j)*sum(POPLUC%FClearance(g,:)) - POPLUC%ClearProdLoss(g,j) 
+       
+       ENDDO
+    
+
     ENDDO
-991 format(1166(e12.4,2x)) 
-    !write(615,991) casabal%Fcneeyear
-    !write(615,991) casabal%dcdtyear
-
+991 format(1166(e14.7,2x)) 
+!!$    write(615,991) casabal%Fcneeyear(2), casabal%dcdtyear(2), casabal%dcdtyear(2) - casabal%Fcneeyear(2)
+!!$   ! write(615,991) casabal%dcdtyear
+    casapool%ctot = sum(casapool%cplant,2)+sum(casapool%clitter,2)+sum(casapool%csoil,2)
     casabal%cplantlast  = casapool%cplant
     casabal%clabilelast = casapool%clabile
     casabal%clitterlast = casapool%clitter
@@ -830,12 +982,12 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
 
   END SUBROUTINE POP_LUC_CASA_transfer
   !*******************************************************************************
-  SUBROUTINE POPLUC_Init(POPLUC,year,np)
+  SUBROUTINE POPLUC_Init(POPLUC,LUC_EXPT,np)
 
 
     IMPLICIT NONE
     TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
-    INTEGER(i4b), INTENT(IN) :: year
+    TYPE (LUC_EXPT_TYPE), INTENT(IN) :: LUC_EXPT
     INTEGER(i4b), INTENT(IN) :: np
     INTEGER(i4b) :: g
 
@@ -846,6 +998,84 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
 
     CALL ZeroPOPLUC(POPLUC)
 
+    DO g = 1,np
+       POPLUC%fracharvProd(g, 1) = 0.9
+       POPLUC%fracharvProd(g, 2) = 0.04
+       POPLUC%fracharvProd(g, 3) = 0.06
+       
+       POPLUC%fracClearProd(g, 1) = 0.597
+       POPLUC%fracClearProd(g, 2) = 0.403
+       POPLUC%fracClearProd(g, 3) = 0.00
+       POPLUC%fracClearResid(g) = 0.33
+       POPLUC%fracHarvResid(g) = 0.79
+       POPLUC%fracHarvSecResid(g) = 0.81          
+
+       IF (LUC_EXPT%biome(g)==1 .OR. LUC_EXPT%biome(g)==2) THEN        
+          ! Tropical Evergreen and Tropical Deciduous
+          POPLUC%fracharvProd(g, 1) = 0.9
+          POPLUC%fracharvProd(g, 2) = 0.04
+          POPLUC%fracharvProd(g, 3) = 0.06
+
+          POPLUC%fracClearProd(g, 1) = 0.597
+          POPLUC%fracClearProd(g, 2) = 0.403
+          POPLUC%fracClearProd(g, 3) = 0.00
+
+          IF (LUC_EXPT%biome(g)==1) POPLUC%fracHarvResid(g) = 0.79
+          IF (LUC_EXPT%biome(g)==2) POPLUC%fracHarvResid(g) = 0.86
+          IF (LUC_EXPT%biome(g)==1) POPLUC%fracHarvSecResid(g) = 0.71
+          IF (LUC_EXPT%biome(g)==2) POPLUC%fracHarvSecResid(g) = 0.81
+
+          POPLUC%fracClearResid(g) = 0.33
+
+       ELSEIF (LUC_EXPT%biome(g).GE.4 .OR. LUC_EXPT%biome(g).LE.10) THEN       
+
+          ! Other Forest
+          POPLUC%fracharvProd(g, 1) = 0.4
+          POPLUC%fracharvProd(g, 2) = 0.24
+          POPLUC%fracharvProd(g, 3) = 0.36
+
+          POPLUC%fracClearProd(g, 1) = 0.597
+          POPLUC%fracClearProd(g, 2) = 0.2985
+          POPLUC%fracClearProd(g, 3) = 0.1045
+
+          IF (LUC_EXPT%ivegp(g)==2) POPLUC%fracHarvResid(g) = 0.83
+          IF (LUC_EXPT%ivegp(g)==1 .OR. LUC_EXPT%ivegp(g)==3 ) POPLUC%fracHarvResid(g) = 0.87
+          IF (LUC_EXPT%ivegp(g)==4) POPLUC%fracHarvResid(g) = 0.78
+
+          IF (LUC_EXPT%ivegp(g)==2) POPLUC%fracHarvSecResid(g) = 0.75
+          IF (LUC_EXPT%ivegp(g)==1 .OR. LUC_EXPT%ivegp(g)==3 ) POPLUC%fracHarvSecResid(g) = 0.82
+          IF (LUC_EXPT%ivegp(g)==4) POPLUC%fracHarvSecResid(g) = 0.70
+
+
+          POPLUC%fracClearResid(g) = 0.33
+
+       ELSEIF (LUC_EXPT%biome(g).EQ.3 .OR. LUC_EXPT%biome(g).GE.11) THEN
+          ! savanna and shrub
+          POPLUC%fracharvProd(g, 1) = 1.0
+          POPLUC%fracharvProd(g, 2) = 0.00
+          POPLUC%fracharvProd(g, 3) = 0.00
+
+          POPLUC%fracClearProd(g, 1) = 0.8
+          POPLUC%fracClearProd(g, 2) = 0.2
+          POPLUC%fracClearProd(g, 3) = 0.0
+
+
+          IF (LUC_EXPT%biome(g).EQ.13 .OR.(LUC_EXPT%biome(g).EQ.14)  ) THEN
+             POPLUC%fracHarvResid(g) = 0.78
+             POPLUC%fracHarvSecResid(g) = 0.70
+             
+             
+          ELSE
+             POPLUC%fracHarvResid(g) = 0.86
+             POPLUC%fracHarvSecResid(g) = 0.81
+             
+          ENDIF
+          
+          POPLUC%fracClearResid(g) = 0.5
+
+       ENDIF
+       
+    ENDDO
 
   END SUBROUTINE POPLUC_Init
   !*******************************************************************************
@@ -890,8 +1120,15 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     ALLOCATE(POPLUC%FClearance(arraysize,nLU))
     ALLOCATE(POPLUC%FTransferNet(arraysize,nLU)) 
     ALLOCATE(POPLUC%FTransferGross(arraysize,nTrans))
-
-
+    ALLOCATE(POPLUC%HarvProd(arraysize,3))
+    ALLOCATE(POPLUC%ClearProd(arraysize,3))
+    ALLOCATE(POPLUC%HarvProdLoss(arraysize,3))
+    ALLOCATE(POPLUC%ClearProdLoss(arraysize,3))
+    ALLOCATE(POPLUC%fracHarvProd(arraysize,3))
+    ALLOCATE(POPLUC%fracClearProd(arraysize,3))
+    ALLOCATE(POPLUC%fracHarvResid(arraysize))
+    ALLOCATE(POPLUC%fracHarvSecResid(arraysize))
+    ALLOCATE(POPLUC%fracClearResid(arraysize))
 
   END SUBROUTINE alloc_POPLUC
   !*******************************************************************************
@@ -946,7 +1183,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     ! 3 dim integer arrays (mp,LENGTH_SECDF_HISTORY,t)
     CHARACTER(len=20),DIMENSION(1) :: AI3
     ! 3 dim real arrays (mp,nLU,t)
-    CHARACTER(len=20),DIMENSION(7) :: A4
+    CHARACTER(len=20),DIMENSION(11) :: A4
     ! 3 dim real arrays (mp,nTrans,t)
     CHARACTER(len=20),DIMENSION(1) :: A5
 
@@ -959,7 +1196,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     INTEGER :: g
     LOGICAL :: put_age_vars
     mp = POPLUC%np
-    put_age_vars=.TRUE.
+    put_age_vars=.FALSE.
     allocate(freq_age_secondary(mp,age_max))
 
     A0(1) = 'latitude'
@@ -978,6 +1215,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     A1(11) = 'pharv'
     A1(12) = 'smharv'
     A1(13) = 'syharv'
+    
 
     AI1(1) = 'n_event'
 
@@ -997,6 +1235,10 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     A4(5) = 'CSoil'
     A4(6) = 'CBiomass'
     A4(7) = 'FTransferNet'
+    A4(8) = 'HarvProd'
+    A4(9) = 'ClearProd'
+    A4(10) = 'HarvProdLoss'
+    A4(11) = 'ClearProdLoss'
 
     A5(1) = 'FTransferGross'
 
@@ -1142,9 +1384,10 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     STATUS = NF90_PUT_VAR(FILE_ID, VID1( 12), POPLUC%smharv,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
     STATUS = NF90_PUT_VAR(FILE_ID, VID1( 13), POPLUC%syharv,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
-
-
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+
+
     STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(1), POPLUC%n_event,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -1179,6 +1422,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     STATUS = NF90_PUT_VAR(FILE_ID, VID4(1), POPLUC%FHarvest,   &
          start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
     STATUS = NF90_PUT_VAR(FILE_ID, VID4(2), POPLUC%FClearance,   &
          start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -1195,6 +1439,20 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
          start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
     STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%FTransferNet,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%HarvProd,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%ClearProd,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%HarvProdLoss,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%ClearProdLoss,   &
          start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -1229,7 +1487,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     ! 1 dim arrays (mp )
     CHARACTER(len=20),DIMENSION(2) :: A0
     ! 2 dim real arrays (mp)
-    CHARACTER(len=20),DIMENSION(3):: A1
+    CHARACTER(len=20),DIMENSION(5):: A1
     ! 2 dim real arrays (mp,age_max)
     CHARACTER(len=25),DIMENSION(2) :: A2
    
@@ -1248,11 +1506,13 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     A1(1) = 'primf'
     A1(2) = 'secdf'
     A1(3) = 'grass'
+    A1(4) = 'HarvProd'
+    A1(5) = 'ClearProd'
 
     A2(1) = 'freq_age_primary'
     A2(2) = 'freq_age_secondary'
 
-
+    
 
     ! Get File-Name
 
@@ -1262,7 +1522,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
        WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
     ENDIF
-    fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//'LUC_rst_out.nc'
+    fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//'LUC_rst.nc'
 
     ! Create NetCDF file:
     STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
@@ -1349,7 +1609,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     ! 1 dim arrays (mp )
     CHARACTER(len=20),DIMENSION(2) :: A0
     ! 2 dim real arrays (mp)
-    CHARACTER(len=20),DIMENSION(3):: A1
+    CHARACTER(len=20),DIMENSION(5):: A1
     ! 2 dim real arrays (mp,age_max)
     CHARACTER(len=25),DIMENSION(2) :: A2
 
@@ -1362,6 +1622,9 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     A1(1) = 'primf'
     A1(2) = 'secdf'
     A1(3) = 'grass'
+    A1(4) = 'HarvProd'
+    A1(5) = 'ClearProd'
+
 
     A2(1) = 'freq_age_primary'
     A2(2) = 'freq_age_secondary'
@@ -1370,7 +1633,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
     !fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
     !     '_LUC_rst.nc'
 
- fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//'LUC_rst_out.nc'
+ fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//'LUC_rst.nc'
     STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
@@ -1401,7 +1664,7 @@ write (*,*) 'dwood1',  dwood_transfer,  patch(irp)%frac+dA_r(ilu)
 
        END SELECT
     END DO
-write(615,991)  POPLUC%primf
+
  991  format(1000(e12.4,2x))
     ! READ 2-dimensional fields (mage)
     DO i = 1, SIZE(A2)

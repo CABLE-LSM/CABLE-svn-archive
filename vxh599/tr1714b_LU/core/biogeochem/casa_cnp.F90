@@ -272,6 +272,11 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
 
   END SELECT
 
+!!$991 format(1166(e14.7,2x)) 
+!!$write(7999,991) real(veg%iveg(166)), casamet%glai(166), casaflux%sapwood_area(166), &
+!!$     casaflux%kplant(166,leaf), casapool%cplant(166,LEAF), casaflux%cnpp(166)  , &
+!!$     casaflux%fracCalloc(166,LEAF) , casaflux%fracCalloc(166,WOOD) 
+
   ! during leaf growth phase 0 or 3, no carbon is allocated to leaf,
   ! during maximal leaf growth phase, all C is allocated to leaf
   ! during steady growth period, C allocation is estimated in such
@@ -1726,7 +1731,7 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 ! Q.Zhang 23/05/2011 test code according to YPW
   WHERE(casamet%iveg2(:)/=icewater)
     WHERE((xFluxNsoilminnet(:)*deltpool + (casapool%Nsoilmin(:)-2.0)) > 0.0 &
-          .OR. xFluxNsoilminnet(:) > 0.0)
+          .OR. xFluxNsoilminnet(:) .ge. 0.0)
       xkNlimiting(:) =1.0
     ELSEWHERE
       xkNlimiting(:) =MAX(0.0, - (casapool%Nsoilmin(:)-0.5) &
