@@ -114,9 +114,14 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
 
      nyear_dump = MOD(nyear, &
           CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1)
+      if (nyear_dump == 0) &
+           nyear_dump = CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1
 
 
-     WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear_dump
+
+
+
+     WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear_dump - 1
 
 
 
@@ -150,10 +155,10 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
         phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
         phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
         phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-        climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
+        climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
 
           ! zero annual sums
-        if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
+        !if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
 
         CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &

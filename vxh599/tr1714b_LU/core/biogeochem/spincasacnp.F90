@@ -142,7 +142,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
         phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
         phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-        climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
+        climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
 
       ! write(6699,*) casaflux%cgpp(1), climate%mtemp(1),  casaflux%crmplant(1,1)
 
@@ -152,6 +152,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
 
         IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
           ! write(7799,*) casaflux%cnpp(1), casaflux%fracCalloc(1,2)
@@ -328,7 +329,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
            phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
            phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
            phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-           climate%mtemp_max(:) =  casamet%mtempspin(:,idoy)
+           climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
            
 
 

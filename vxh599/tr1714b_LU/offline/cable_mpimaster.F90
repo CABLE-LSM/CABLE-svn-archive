@@ -7878,9 +7878,10 @@ SUBROUTINE master_CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
 
      nyear_dump = MOD(nyear, &
           CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1)
+     if (nyear_dump == 0) &
+           nyear_dump = CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1
 
-
-     WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear_dump
+     WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear_dump -1
 
 
 

@@ -358,6 +358,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             casamet%mtempspin(:,idoy) = mtemp
             casaflux%Nmindep = Ndep
          END DO
+
       ELSE
 
          CALL get_var_ncr2(ncrid, var_name(3), tairk   ,ncall )
@@ -383,7 +384,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          phen%doyphase(:,2) = int(phendoyphase2)
          phen%doyphase(:,3) = int(phendoyphase3)
          phen%doyphase(:,4) = int(phendoyphase4)
-         climate%mtemp_max = mtemp
+         climate%qtemp_max_last_year = mtemp
          casaflux%Nmindep = Ndep
 
       ENDIF
@@ -520,7 +521,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(13), real(climate%qtemp_max_last_year,r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Nmindep,r_2)    ,n_call )
 
 

@@ -956,10 +956,10 @@ CONTAINS
 
        ENDIF
 
-    
+  
        POPLUC%HarvProdLoss(g,:) = kHarvProd * POPLUC%HarvProd(g,:)
        POPLUC%ClearProdLoss(g,:) = kClearProd * POPLUC%ClearProd(g,:)
-       
+ 
        DO j=1,3
           POPLUC%HarvProd(g,j) = POPLUC%HarvProd(g,j) + &
                POPLUC%fracHarvProd(g,j)*sum(POPLUC%FHarvest(g,:)) - POPLUC%HarvProdLoss(g,j) 
@@ -971,6 +971,7 @@ CONTAINS
     
 
     ENDDO
+
 991 format(1166(e14.7,2x)) 
 !!$    write(615,991) casabal%Fcneeyear(2), casabal%dcdtyear(2), casabal%dcdtyear(2) - casabal%Fcneeyear(2)
 !!$   ! write(615,991) casabal%dcdtyear
@@ -1165,7 +1166,8 @@ CONTAINS
     INTEGER, INTENT(IN)    :: ctime
 
     INTEGER   :: STATUS
-    INTEGER   :: land_ID, age_ID, hist_ID, t_ID, nLU_ID, nTrans_ID, i, mp
+    INTEGER   :: land_ID, age_ID, hist_ID, t_ID, nLU_ID, nTrans_ID
+    INTEGER   :: i, mp, nprod, nprod_ID
     LOGICAL   :: CASAONLY
     CHARACTER :: CYEAR*4, FNAME*99,dum*50
     LOGICAL, SAVE :: CALL1 = .TRUE.
@@ -1183,19 +1185,22 @@ CONTAINS
     ! 3 dim integer arrays (mp,LENGTH_SECDF_HISTORY,t)
     CHARACTER(len=20),DIMENSION(1) :: AI3
     ! 3 dim real arrays (mp,nLU,t)
-    CHARACTER(len=20),DIMENSION(11) :: A4
+    CHARACTER(len=20),DIMENSION(7) :: A4
     ! 3 dim real arrays (mp,nTrans,t)
     CHARACTER(len=20),DIMENSION(1) :: A5
+    ! 3 dim real arrays (mp,nprod,t)
+    CHARACTER(len=20),DIMENSION(4) :: A6
 
     INTEGER, SAVE :: VIDtime, VID0(SIZE(A0)),VID1(SIZE(A1)),VIDI1(SIZE(AI1))
     INTEGER, SAVE :: VID2(SIZE(A2)),VID3(SIZE(A3)),VIDI3(SIZE(AI3))
-    INTEGER, SAVE :: VID4(SIZE(A4)),VID5(SIZE(A5))
+    INTEGER, SAVE :: VID4(SIZE(A4)),VID5(SIZE(A5)), VID6(size(A6))
     INTEGER, SAVE :: FILE_ID, CNT = 0
     CHARACTER(len=50) :: RecordDimName
     REAL, ALLOCATABLE :: freq_age_secondary(:,:)
     INTEGER :: g
     LOGICAL :: put_age_vars
     mp = POPLUC%np
+    nprod = 3
     put_age_vars=.FALSE.
     allocate(freq_age_secondary(mp,age_max))
 
@@ -1235,12 +1240,14 @@ CONTAINS
     A4(5) = 'CSoil'
     A4(6) = 'CBiomass'
     A4(7) = 'FTransferNet'
-    A4(8) = 'HarvProd'
-    A4(9) = 'ClearProd'
-    A4(10) = 'HarvProdLoss'
-    A4(11) = 'ClearProdLoss'
-
+   
     A5(1) = 'FTransferGross'
+
+    A6(1) = 'HarvProd'
+    A6(2) = 'ClearProd'
+    A6(3) = 'HarvProdLoss'
+    A6(4) = 'ClearProdLoss'
+
 
     DO g=1,mp
        if (sum(POPLUC%freq_age_secondary(g,:)).gt.1e-12 ) then
@@ -1288,6 +1295,8 @@ CONTAINS
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
        STATUS = NF90_def_dim(FILE_ID, 'mTrans',nTrans , nTrans_ID)
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+       STATUS = NF90_def_dim(FILE_ID, 'nprod',nprod , nprod_ID)
+       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
        STATUS = NF90_def_dim(FILE_ID, 'time'   , NF90_UNLIMITED, t_ID)
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
@@ -1333,6 +1342,11 @@ CONTAINS
 
        DO i = 1, SIZE(A5)
           STATUS = NF90_def_var(FILE_ID,TRIM(A5(i)) ,NF90_FLOAT,(/land_ID,ntrans_ID,t_ID/),VID5(i))
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+       END DO
+
+       DO i = 1, SIZE(A6)
+          STATUS = NF90_def_var(FILE_ID,TRIM(A6(i)) ,NF90_FLOAT,(/land_ID,nprod_ID,t_ID/),VID6(i))
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
        END DO
 
@@ -1442,24 +1456,26 @@ CONTAINS
          start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%HarvProd,   &
-         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%ClearProd,   &
-         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%HarvProdLoss,   &
-         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-    STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), POPLUC%ClearProdLoss,   &
-         start=(/ 1,1,CNT /), count=(/ mp,nLU,1 /) )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
+    
     ! PUT 3D VARS ( mp, nTrans, t )
     STATUS = NF90_PUT_VAR(FILE_ID, VID5(1), POPLUC%FTransferGross,   &
          start=(/ 1,1,CNT /), count=(/ mp,nTrans,1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+   
+    ! PUT 3D VARS ( mp, nprod, t )
+    STATUS = NF90_PUT_VAR(FILE_ID, VID6(1), POPLUC%HarvProd,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nprod,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    STATUS = NF90_PUT_VAR(FILE_ID, VID6(2), POPLUC%ClearProd,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nprod,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    STATUS = NF90_PUT_VAR(FILE_ID, VID6(3), POPLUC%ClearProdLoss,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nprod,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    STATUS = NF90_PUT_VAR(FILE_ID, VID6(4), POPLUC%HarvProdLoss,   &
+         start=(/ 1,1,CNT /), count=(/ mp,nprod,1 /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
     IF ( FINAL ) THEN
        ! Close NetCDF file:
        STATUS = NF90_close(FILE_ID)
@@ -1479,7 +1495,7 @@ CONTAINS
     INTEGER, INTENT(IN)    :: ctime
 
     INTEGER   :: STATUS
-    INTEGER   :: land_ID, age_ID, nLU_ID, nTrans_ID, i, mp
+    INTEGER   :: land_ID, age_ID, nLU_ID, nTrans_ID, i, mp, nprod_ID
     LOGICAL   :: CASAONLY
     CHARACTER :: CYEAR*4, FNAME*99,dum*50
     LOGICAL, SAVE :: CALL1 = .TRUE.
@@ -1487,18 +1503,21 @@ CONTAINS
     ! 1 dim arrays (mp )
     CHARACTER(len=20),DIMENSION(2) :: A0
     ! 2 dim real arrays (mp)
-    CHARACTER(len=20),DIMENSION(5):: A1
+    CHARACTER(len=20),DIMENSION(3):: A1
     ! 2 dim real arrays (mp,age_max)
     CHARACTER(len=25),DIMENSION(2) :: A2
+    ! 2 dim real arrays (mp,nprod)
+    CHARACTER(len=25),DIMENSION(2) :: A3
    
 
     INTEGER, SAVE :: VIDtime, VID0(SIZE(A0)),VID1(SIZE(A1))
-    INTEGER, SAVE :: VID2(SIZE(A2))
+    INTEGER, SAVE :: VID2(SIZE(A2)), VID3(SIZE(A3))
     INTEGER, SAVE :: FILE_ID, CNT = 0
     CHARACTER(len=50) :: RecordDimName
-    INTEGER :: g
+    INTEGER :: g, nprod
    
     mp = POPLUC%np
+    nprod = 3 ! number of product pools
 
     A0(1) = 'latitude'
     A0(2) = 'longitude'
@@ -1506,11 +1525,12 @@ CONTAINS
     A1(1) = 'primf'
     A1(2) = 'secdf'
     A1(3) = 'grass'
-    A1(4) = 'HarvProd'
-    A1(5) = 'ClearProd'
 
     A2(1) = 'freq_age_primary'
     A2(2) = 'freq_age_secondary'
+
+    A3(1) = 'HarvProd'
+    A3(2) = 'ClearProd'
 
     
 
@@ -1540,6 +1560,8 @@ CONTAINS
     STATUS = NF90_def_dim(FILE_ID, 'land'   , mp     , land_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
     STATUS = NF90_def_dim(FILE_ID, 'mage' , age_max , age_ID)
+    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+    STATUS = NF90_def_dim(FILE_ID, 'nprod' , nprod , nprod_ID)
    
 
     ! Define variables
@@ -1554,11 +1576,16 @@ CONTAINS
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
     END DO
 
-
     DO i = 1, SIZE(A2)
        STATUS = NF90_def_var(FILE_ID,TRIM(A2(i)) ,NF90_FLOAT,(/land_ID,age_ID/),VID2(i))
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
     END DO
+
+    DO i = 1, SIZE(A3)
+       STATUS = NF90_def_var(FILE_ID,TRIM(A3(i)) ,NF90_FLOAT,(/land_ID,nprod_ID/),VID3(i))
+       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+    END DO
+
 
     ! End define mode:
     STATUS = NF90_enddef(FILE_ID)
@@ -1584,6 +1611,12 @@ CONTAINS
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
     STATUS = NF90_PUT_VAR(FILE_ID, VID2(2),POPLUC%freq_age_secondary)
 
+    ! PUT 3D VARS ( mp, nprod, t )
+    STATUS = NF90_PUT_VAR(FILE_ID, VID3(1), POPLUC%HarvProd)
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    STATUS = NF90_PUT_VAR(FILE_ID, VID3(2),POPLUC%ClearProd)
+
+
     ! Close NetCDF file:
     STATUS = NF90_close(FILE_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1599,35 +1632,41 @@ CONTAINS
     TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
 
 
-    INTEGER   :: STATUS, land_dim, mage_dim
-    INTEGER   :: land_ID, age_ID, nLU_ID, nTrans_ID, i, mp, FILE_ID, dID
+    INTEGER   :: STATUS, land_dim, mage_dim, nprod_dim
+    INTEGER   :: land_ID, age_ID, nLU_ID, nTrans_ID, i, mp, FILE_ID, dID, nprod, nprod_ID
     LOGICAL   :: CASAONLY
     CHARACTER :: CYEAR*4, FNAME*99,dum*50
     LOGICAL, SAVE :: CALL1 = .TRUE.
-    REAL , ALLOCATABLE :: TMP(:), TMP2(:,:)
+    REAL , ALLOCATABLE :: TMP(:), TMP2(:,:), TMP3(:,:)
 
     ! 1 dim arrays (mp )
     CHARACTER(len=20),DIMENSION(2) :: A0
     ! 2 dim real arrays (mp)
-    CHARACTER(len=20),DIMENSION(5):: A1
+    CHARACTER(len=20),DIMENSION(3):: A1
     ! 2 dim real arrays (mp,age_max)
     CHARACTER(len=25),DIMENSION(2) :: A2
+    ! 2 dim real arrays (mp,nprod)
+    CHARACTER(len=25),DIMENSION(2) :: A3
 
     mp = POPLUC%np
+    nprod = 3
     ALLOCATE(tmp(mp))
     ALLOCATE(tmp2(mp,age_max))
+    ALLOCATE(tmp3(mp,nprod))
     A0(1) = 'latitude'
     A0(2) = 'longitude'
 
     A1(1) = 'primf'
     A1(2) = 'secdf'
     A1(3) = 'grass'
-    A1(4) = 'HarvProd'
-    A1(5) = 'ClearProd'
-
-
+   
     A2(1) = 'freq_age_primary'
     A2(2) = 'freq_age_secondary'
+
+    A3(1) = 'HarvProd'
+    A3(2) = 'ClearProd'
+
+
 
 
     !fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
@@ -1649,6 +1688,11 @@ CONTAINS
   STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=mage_dim )
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
+
+  STATUS = NF90_INQ_DIMID( FILE_ID, 'nprod', dID )
+  IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+  STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=nprod_dim )
+  IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
     ! READ 1-dimensional fields
     DO i = 1, SIZE(A1)
@@ -1676,6 +1720,19 @@ CONTAINS
        SELECT CASE ( TRIM(A2(i)))
        CASE ('freq_age_primary' ) ; POPLUC%freq_age_primary = TMP2
        CASE ('freq_age_secondary' ) ; POPLUC%freq_age_secondary = TMP2
+       END SELECT
+    END DO
+
+ ! READ 2-dimensional fields (nprod)
+    DO i = 1, SIZE(A3)
+       STATUS = NF90_INQ_VARID( FILE_ID, A3(i), dID )
+       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+       STATUS = NF90_GET_VAR( FILE_ID, dID, TMP3)
+       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+       SELECT CASE ( TRIM(A3(i)))
+       CASE ('HarvProd' ) ; POPLUC%HarvProd = TMP2
+       CASE ('ClearProd' ) ; POPLUC%ClearProd = TMP2
        END SELECT
     END DO
 

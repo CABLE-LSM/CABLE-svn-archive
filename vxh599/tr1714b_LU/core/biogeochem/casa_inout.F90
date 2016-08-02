@@ -288,7 +288,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 
 !@@@@@@@@@@@@@@
 
-!  PRINT *, 'casabiome%ivt2 = ', casabiome%ivt2
+ ! PRINT *, 'casabiome%xkoptsoil = ', casabiome%xkoptsoil(2)
 
   DO npt = 1, mp
     iv1=veg%iveg(npt)

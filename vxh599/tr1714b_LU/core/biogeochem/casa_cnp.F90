@@ -201,7 +201,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
   casaflux%fracCalloc  = 0.0
   !casaflux%fracClabile = 0.0
   fracCallocx = 0.0
-
+  newLAI = 0.0
   SELECT CASE (LALLOC)
 
   CASE(2)   !
@@ -239,8 +239,9 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
     END WHERE
   CASE (0)   ! fixed allocation
     casaflux%fracCalloc(:,:) = casabiome%fracnpptop(veg%iveg(:),:)
+
   CASE (3) ! leaf:wood allocation set to maintain LA:SA ratio below target value of 3000, where phen%phase = 1 or 2
-     WHERE(casamet%lnonwood==0)
+    WHERE(casamet%lnonwood==0)
         casaflux%fracCalloc(:,FROOT) =  casabiome%fracnpptop(veg%iveg(:),FROOT)
         casaflux%fracCalloc(:,WOOD) = 0.01
         casaflux%fracCalloc(:,LEAF) = 1.0 - casaflux%fracCalloc(:,FROOT) - casaflux%fracCalloc(:,WOOD)
@@ -272,8 +273,8 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
 
   END SELECT
 
-!!$991 format(1166(e14.7,2x)) 
-!!$write(7999,991) real(veg%iveg(166)), casamet%glai(166), casaflux%sapwood_area(166), &
+991 format(1166(e14.7,2x)) 
+!!$write(7999,*) real(veg%iveg(166)), casamet%glai(166), casaflux%sapwood_area(166), &
 !!$     casaflux%kplant(166,leaf), casapool%cplant(166,LEAF), casaflux%cnpp(166)  , &
 !!$     casaflux%fracCalloc(166,LEAF) , casaflux%fracCalloc(166,WOOD) 
 
@@ -843,6 +844,7 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
     IF (veg%iveg(npt) == cropland .OR. veg%iveg(npt) == croplnd2) &
                xkwater(npt)=1.0
     xklitter(npt) = casabiome%xkoptlitter(veg%iveg(npt)) * xktemp(npt) * xkwater(npt)
+
     IF( .NOT. cable_user%SRF) THEN
         ! Use original function, ELSE Ticket #42
        xksoil(npt)   = casabiome%xkoptsoil(veg%iveg(npt))   * xktemp(npt) * xkwater(npt)
