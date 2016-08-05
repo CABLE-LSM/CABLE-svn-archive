@@ -1513,7 +1513,6 @@ END SUBROUTINE remove_trans
     REAL(r_2)                           :: xsi
     REAL(r_2), DIMENSION(mp,ms+1)       :: qhlev,del_wb
     REAL(r_2), DIMENSION(mp)            :: sm_tot,drainmod  !total column soil water available for drainage
-    REAL(r_2), DIMENSION(mp)            :: qrecharge
     INTEGER, DIMENSION(mp)              :: idlev
     logical                             :: prinall = .false.   !another debug flag
     character (len=30)                  :: fmt  !format to output some debug info
@@ -1665,10 +1664,10 @@ END SUBROUTINE remove_trans
     !Doing the recharge outside of the soln of Richards Equation makes it easier to track total recharge amount.
     !Add to ssnow at some point 
     do i=1,mp
-       if (ssnow%wtd(i) .ge. sum(dzmm,dim=1)) then
-          qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - ((zaq(i) - zmm(ms))))/((ssnow%GWzq(i)-ssnow%zq(i,ms)))
+       if ((ssnow%wtd(i) .ge. sum(dzmm,dim=1)) .and. (veg%iveg(i) .ne. 17) .and. (soil%isoilm(i) .ne. 9))  then
+          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - ((zaq(i) - zmm(ms))))/((ssnow%GWzq(i)-ssnow%zq(i,ms)))
        else
-          qrecharge(i) = 0._r_2
+          ssnow%Qrecharge(i) = 0._r_2
        end if
     end do
 
@@ -1681,10 +1680,10 @@ END SUBROUTINE remove_trans
     end do
 
     do i=1,mp
-       ssnow%wbliq(i,ms) = ssnow%wbliq(i,ms) - qrecharge(i)*dels/dzmm(ms)
+       ssnow%wbliq(i,ms) = ssnow%wbliq(i,ms) - ssnow%Qrecharge(i)*dels/dzmm(ms)
     end do
     do i=1,mp
-       ssnow%GWwb(i) = ssnow%GWwb(i)  +  (qrecharge(i)-qhlev(i,ms+1))*dels/GWdzmm(i)
+       ssnow%GWwb(i) = ssnow%GWwb(i)  +  (ssnow%Qrecharge(i)-qhlev(i,ms+1))*dels/GWdzmm(i)
     end do
 
     !determine the available pore space

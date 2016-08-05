@@ -4944,6 +4944,10 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg,rough)
   blocks(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%Qrecharge(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (rough%z0soilsn(off), displs(bidx), ierr)
   blocks(bidx) = r1len
 

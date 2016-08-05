@@ -262,6 +262,7 @@ MODULE cable_def_types_mod
          GWzq,    &  ! equilibrium aquifer smp   [mm]
          qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
          satfrac, &
+         Qrecharge,&
          rh_srf
      
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
@@ -803,6 +804,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWzq(mp) )
    ALLOCATE( var%qhz(mp) )
    ALLOCATE( var%satfrac(mp) )
+   ALLOCATE( var%Qrecharge(mp) )
    ALLOCATE( var%rh_srf(mp) )
    !soil moisture variables
    ALLOCATE( var%wbeq(mp,ms) )
@@ -1275,6 +1277,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%GWzq )
    DEALLOCATE( var%qhz )
    DEALLOCATE( var%satfrac )
+   DEALLOCATE( var%Qrecharge )
    DEALLOCATE( var%rh_srf )
    !soil moisture variables
    DEALLOCATE( var%wbeq )

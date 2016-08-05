@@ -4890,6 +4890,10 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg,rough)
      CALL MPI_Get_address (ssnow%satfrac(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
 
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%Qrecharge(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
 
      vidx = vidx + 1
      ! REAL(r_2)

@@ -204,7 +204,8 @@ MODULE cable_checks_module
            GWWatr = (/0.0,0.5/),               &
            Qinfl = (/0.0,1e10/),               &
            GWwb  = (/0.0,0.99/),               &
-           SatFrac = (/0.0,1.0/)
+           SatFrac = (/0.0,1.0/),              &
+           Qrecharge = (/-9999.0,9999.0/)           
            
            
            

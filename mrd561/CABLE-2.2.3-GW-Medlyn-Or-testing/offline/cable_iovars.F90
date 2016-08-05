@@ -276,6 +276,7 @@ MODULE cable_IO_vars_module
          GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
          EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
          Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
+         Qrecharge=.FALSE.,   &  !recharge to /from auqifer
          SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)
 
          !parameters
