@@ -1186,10 +1186,10 @@ END SUBROUTINE remove_trans
       icef(i)     = max(0._r_2,min(1._r_2,gw_params%IceBeta*icemass / totmass))
    end do
    S(:) = 0._r_2
-   do k=1,2
+   do k=1,ms
      S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/max(0.001,soil%watsat(:,k)-soil%watr(:,k)) ) )*soil%zse(k)
    end do
-   S(:) = S(:)/sum(soil%zse(1:2),dim=1)
+   S(:) = S(:)/sum(soil%zse(1:ms),dim=1)
    !srf frozen fraction.  should be based on topography
    do i = 1,mp
       !fice = (exp(-3._r_2*(1._r_2-icef(i)))-exp(-3._r_2))/(1._r_2-exp(-3._r_2))
