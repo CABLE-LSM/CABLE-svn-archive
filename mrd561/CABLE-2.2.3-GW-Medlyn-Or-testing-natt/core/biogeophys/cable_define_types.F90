@@ -281,6 +281,8 @@ MODULE cable_def_types_mod
 
       !Haverd 2013
       REAL(r_2), DIMENSION(:,:), POINTER :: rex       ! root extraction from each layer (mm/dels)
+
+      real(r_2), dimension(:) :: river_mass
          
    END TYPE soil_snow_type
 
@@ -822,6 +824,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%rex(mp,ms) )
    !Initialze groundwater to 0.3 to ensure that if it is
    !not utilized then it won't harm water balance calculations
+   ALLOCATE( var%river_mass(mp) )
    var%GWwb = 0.45_r_2
 
 END SUBROUTINE alloc_soil_snow_type
@@ -1293,6 +1296,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
    DEALLOCATE( var%rex )
+   DEALLOCATE( var%river_mass )
    
 END SUBROUTINE dealloc_soil_snow_type
    

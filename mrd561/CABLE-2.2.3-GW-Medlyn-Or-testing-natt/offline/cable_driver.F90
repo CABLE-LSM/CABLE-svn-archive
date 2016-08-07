@@ -98,6 +98,8 @@ PROGRAM cable_offline_driver
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
 
+   use cable_route
+
    IMPLICIT NONE
    
    ! CABLE namelist: model configuration, runtime/user switches 
@@ -343,6 +345,9 @@ PROGRAM cable_offline_driver
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
+
+         call run_river_route_model(soil,ssnow,river_filename,.false.,600.0,dels)
+
    
          !write(*,*) 'start sumcflux'
          ! sumcflux is pulled out of subroutine cbm
