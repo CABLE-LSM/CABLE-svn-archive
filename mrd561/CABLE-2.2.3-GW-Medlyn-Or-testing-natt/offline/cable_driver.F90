@@ -98,7 +98,7 @@ PROGRAM cable_offline_driver
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
 
-   use cable_route
+   use cable_routing
 
    IMPLICIT NONE
    
@@ -346,7 +346,7 @@ PROGRAM cable_offline_driver
                             .FALSE., .FALSE. )
          ENDIF 
 
-         call run_river_route_model(soil,ssnow,river_filename,.false.,600.0,dels)
+         call run_river_route_model(soil,ssnow,filename%soil,.false.,600.0,dels)
 
    
          !write(*,*) 'start sumcflux'

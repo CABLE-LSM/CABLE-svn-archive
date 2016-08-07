@@ -42,7 +42,9 @@ MODULE cable_def_types_mod
    INTEGER :: mp,    & ! # total no of patches/tiles 
               mvtype,&!=17,& ! total # vegetation types,   from input
               mstype,&!=9,& ! total # soil types,         from input
-              mland                           ! # land grid cells
+              mland,&                         ! # land grid cells
+              mlat,&
+              mlon
    
    INTEGER, PARAMETER ::                                                        &
       r_2  = kind(1.d0),&  !SELECTED_REAL_KIND(12, 50), &
@@ -282,7 +284,7 @@ MODULE cable_def_types_mod
       !Haverd 2013
       REAL(r_2), DIMENSION(:,:), POINTER :: rex       ! root extraction from each layer (mm/dels)
 
-      real(r_2), dimension(:) :: river_mass
+      real(r_2), dimension(:), pointer :: river_mass
          
    END TYPE soil_snow_type
 

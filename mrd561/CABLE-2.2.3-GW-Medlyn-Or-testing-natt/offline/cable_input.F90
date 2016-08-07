@@ -468,6 +468,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
        END IF
     END IF
+    mlat = ydimsize
+    mlon = xdimsize
     ! Allocate space for lat_all variable and its temp counterpart:
     ALLOCATE(lat_all(xdimsize,ydimsize))
     ALLOCATE(temparray2(xdimsize,ydimsize))

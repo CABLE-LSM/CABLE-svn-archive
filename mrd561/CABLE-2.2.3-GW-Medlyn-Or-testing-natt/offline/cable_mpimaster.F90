@@ -167,7 +167,7 @@ SUBROUTINE mpidrv_master (comm)
                                   casa_met, casa_balance
    USE phenvariable,        ONLY: phen_variable
 
-   use cable_route
+   use cable_routing
 
    IMPLICIT NONE
 
@@ -512,7 +512,7 @@ SUBROUTINE mpidrv_master (comm)
          ! MPI: scatter input data to the workers
          CALL master_send_input (icomm, inp_ts, iktau)
 
-         call run_river_route_model(soil,ssnow,river_filename,.false.,600.0,dels)
+         call run_river_route_model(soil,ssnow,filename%soil,.false.,600.0,dels)
 
          CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
          CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
