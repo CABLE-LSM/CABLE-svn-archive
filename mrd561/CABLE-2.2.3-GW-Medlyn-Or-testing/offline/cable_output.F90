@@ -432,28 +432,29 @@ CONTAINS
        ALLOCATE(out%cancd(mp))
        out%cancd = 0.0 ! initialise
     END IF
-    IF(output%flux .OR. output%gswx_1) THEN 
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswx_1)) THEN   !gswx_1 no in
+                                                                   !mpi code!
        CALL define_ovar(ncid_out,ovid%gswx_1,'gswx_1', 'NA',&
                         'Sunlit Conductance',patchout%gswx_1,'dummy',      &    
                         xID,yID,zID,landID,patchID,tID)
        ALLOCATE(out%gswx_1(mp))
        out%gswx_1 = 0.0 ! initialise
     END IF
-    IF(output%flux .OR. output%gswx_2) THEN 
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswx_2)) THEN 
        CALL define_ovar(ncid_out,ovid%gswx_2,'gswx_2', 'NA',&
                         'Shaded Conductance',patchout%gswx_2,'dummy',      &    
                         xID,yID,zID,landID,patchID,tID)
        ALLOCATE(out%gswx_2(mp))
        out%gswx_2 = 0.0 ! initialise
     END IF
-    IF(output%flux .OR. output%gswmin_1) THEN 
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswmin_1)) THEN 
        CALL define_ovar(ncid_out,ovid%gswmin_1,'gswmin_1', 'NA',&
                         'Min Sunlit Conductance',patchout%gswmin_1,'dummy',&    
                         xID,yID,zID,landID,patchID,tID)
        ALLOCATE(out%gswmin_1(mp))
        out%gswmin_1 = 0.0 ! initialise
     END IF
-    IF(output%flux .OR. output%gswmin_2) THEN 
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswmin_2)) THEN 
        CALL define_ovar(ncid_out,ovid%gswmin_2,'gswmin_2', 'NA',&
                         'Min Shaded Conductance',patchout%gswmin_2,'dummy',&    
                         xID,yID,zID,landID,patchID,tID)
@@ -1601,7 +1602,7 @@ CONTAINS
        END IF
     END IF
     ! gswx_1: sunlit conductance [NA]
-    IF(output%flux .OR. output%gswx_1) THEN
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswx_1)) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%gswx_1 = out%gswx_1 + REAL(canopy%gswx_1, 4)
        IF(writenow) THEN
@@ -1615,7 +1616,7 @@ CONTAINS
        END IF
     END IF
     ! gswx_2: sunlit conductance [NA]
-    IF(output%flux .OR. output%gswx_2) THEN
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswx_2)) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%gswx_2 = out%gswx_2 + REAL(canopy%gswx_2, 4)
        IF(writenow) THEN
@@ -1629,7 +1630,7 @@ CONTAINS
        END IF
     END IF
     ! gswmin_1: sunlit conductance [NA]
-    IF(output%flux .OR. output%gswmin_1) THEN
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswmin_1)) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%gswmin_1 = out%gswmin_1 + REAL(canopy%gswmin_1, 4)
        IF(writenow) THEN
@@ -1643,7 +1644,7 @@ CONTAINS
        END IF
     END IF
     ! gswmin_2: sunlit conductance [NA]
-    IF(output%flux .OR. output%gswmin_2) THEN
+    if ((mp .eq. 1) .and. (output%flux .OR. output%gswmin_2)) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%gswmin_2 = out%gswmin_2 + REAL(canopy%gswmin_2, 4)
        IF(writenow) THEN
