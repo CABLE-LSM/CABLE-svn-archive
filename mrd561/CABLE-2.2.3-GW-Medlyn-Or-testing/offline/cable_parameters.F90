@@ -828,7 +828,9 @@ CONTAINS
           do jj=1,nlat
              if (inSoilColor(ii,jj) .gt. 0 .and. inSoilColor(ii,jj) .lt. 21) then
                 do kk=1,nrb
-                   inALB(ii,jj,:,kk) = SoilAlbedoColors(inSoilColor(ii,jj),kk)
+                   if (kk .le. 2) then
+                        inALB(ii,jj,:,kk) = SoilAlbedoColors(inSoilColor(ii,jj),kk)
+                   end if
                 end do
              end if
           end do
