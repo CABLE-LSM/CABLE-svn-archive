@@ -1409,7 +1409,7 @@ CONTAINS
     if (allocated(inSlopeSTD)) deallocate(inSlopeSTD)
     if (allocated(inORG     )) deallocate(inORG)
     if (allocated(inTI      )) deallocate(inTI)
-    if (allocated(inTI      )) deallocate(inBI)
+    if (allocated(inBI      )) deallocate(inBI)
 
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
