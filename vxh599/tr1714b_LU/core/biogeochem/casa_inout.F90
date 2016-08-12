@@ -27,7 +27,7 @@
 !   casa_readpoint   (removed, now done in parameter_module)
 !   casa_init
 !   casa_poolout
-!   casa_cnpflux  (not used?)
+!   casa_cnpflux  (zeros casabal quantites on doy 1 and updates casabal at end of biogeochem)
 !   biogeochem
 
 !#define UM_BUILD YES
@@ -766,17 +766,12 @@ ENDIF
   IF (initcasa==1) THEN
      if (.NOT.cable_user%casa_fromzero) THEN
         CALL READ_CASA_RESTART_NC (  casamet, casapool, casaflux, phen )
-        casapool%Chwp = 0.0  ! temporary: needs to be read from restart
-        casapool%Cclear = 0.0
-
      ELSE
         WRITE(*,*)'casa_init: not using restart file!'
         WRITE(*,*)'Using input from readbiome.!!!'
         WRITE(*,*) 'initialising frac_sapwood=1 and sapwood_area = 0)'
         casaflux%frac_sapwood(:) = 1.0
         casaflux%sapwood_area(:) = 0.0
-        casapool%Chwp = 0.0
-        casapool%Cclear = 0.0
      ENDIF
   ENDIF
  WHERE(casamet%lnonwood==1) casapool%cplant(:,WOOD) = 0.0
@@ -1256,8 +1251,7 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
      casabal%FCrsyear     = 0.0
      casabal%FCneeyear    = 0.0
      casabal%dCdtyear    = 0.0
-     casabal%CtoHWPyear   = 0.0
-     casabal%CtoClearyear = 0.0
+    
 
      casabal%FNdepyear    = 0.0
      casabal%FNfixyear    = 0.0
@@ -1272,6 +1266,14 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
      casabal%FPupyear    = 0.0
      casabal%FPleachyear = 0.0
      casabal%FPlossyear  = 0.0
+
+     casaflux%FluxCtohwp = 0.0
+     casaflux%FluxNtohwp = 0.0
+     casaflux%FluxPtohwp = 0.0
+     casaflux%FluxCtoclear = 0.0
+     casaflux%FluxNtoclear = 0.0
+     casaflux%FluxPtoclear = 0.0
+     casaflux%CtransferLUC = 0.02
   ELSE
 
      casabal%FCgppyear = casabal%FCgppyear + casaflux%Cgpp   * deltpool
@@ -1284,11 +1286,9 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
      casabal%FCnppyear        = casabal%FCnppyear + (casaflux%Cnpp+casapool%dClabiledt)   * deltpool
      casabal%FCrsyear  = casabal%FCrsyear  + casaflux%Crsoil * deltpool
      casabal%FCneeyear = casabal%FCneeyear &
-          + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
+          + (casaflux%Cnpp+casapool%dClabiledt-casaflux%Crsoil) * deltpool
      casabal%dCdtyear =  casabal%dCdtyear + (casapool%Ctot-casapool%Ctot_0)*deltpool
-     casabal%CtoHWPyear       =  casabal%CtoHWPyear + casaflux%FluxCtoHWP * deltpool
-     casabal%CtoClearyear     = casabal%CtoClearyear + casaflux%FluxCtoClear * deltpool
-
+   
      !  DO n=1,3
      !    clitterinput(:,n)= clitterinput(:,n) + casaflux%kplant(:,n) * casapool%cplant(:,n) * deltpool
      !    csoilinput(:,n) = csoilinput(:,n) + casaflux%fluxCtosoil(:,n) * deltpool
@@ -1364,7 +1364,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   call avgsoil(veg,soil,casamet)
   call casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
-!! vh_hs !!
+
    IF (.NOT.cable_user%CALL_POP) THEN
       call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
    ENDIF
@@ -1375,19 +1375,16 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
         casaflux,casamet,phen)
 
    call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
-!! vh_js !!
+
    IF (cable_user%CALL_POP) THEN
 
-       casaflux%FluxCtohwp = 0.0
-       casaflux%FluxCtoclear = 0.0
       call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
       WHERE (pop%pop_grid(:)%cmass_sum_old.gt.0.001 .and. pop%pop_grid(:)%cmass_sum.gt.0.001 )
          
          casaflux%frac_sapwood(POP%Iwood) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
          casaflux%sapwood_area(POP%Iwood) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)
          veg%hc(POP%Iwood) = POP%pop_grid(:)%height_max
-     
-         !WHERE ( pop%LU==2 )
+          
          WHERE (pop%pop_grid(:)%LU ==2)
 
             casaflux%kplant(POP%Iwood,2) =  1.0 -  &
@@ -1414,38 +1411,6 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
          veg%hc(POP%Iwood) = POP%pop_grid(:)%height_max
       ENDWHERE
     
-!!$           WHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-3 .and. pop%pop_grid(:)%cmass_sum.gt.1.e-3 .and. pop%LU==2 )
-!!$         ! secondary forest: above ground disturbance mortality goes to harvested wood pool
-!!$         
-!!$         casaflux%FluxCtohwp(POP%Iwood,1) =(1.0 - (1.0 -max( min((POP%pop_grid(:)%cat_mortality  &
-!!$              /POP%pop_grid(:)%cmass_sum_old- 1.0/veg%disturbance_interval(POP%Iwood,1)),0.99), 0.0)) &
-!!$              **(1.0/365.0)) * casapool%cplant(POP%Iwood,2)*0.7
-!!$
-!!$         casaflux%kplant(POP%Iwood,2) = casaflux%kplant(POP%Iwood,2) + &
-!!$             (1.0- (1.0- max( min((POP%pop_grid(:)%cat_mortality                &
-!!$             /POP%pop_grid(:)%cmass_sum_old- 1.0/veg%disturbance_interval(POP%Iwood,1)),0.99), 0.0)) &
-!!$             **(1.0/365.0))*0.3 !+ 1.0 - (1.0-1.0/veg%disturbance_interval(POP%Iwood,1))**(1.0/365.0)
-!!$
-!!$
-!!$         casaflux%FluxCtohwp(POP%Iwood,1) =(1.0 - (1.0 -max( min((POP%pop_grid(:)%cat_mortality  &
-!!$              /POP%pop_grid(:)%cmass_sum_old),0.99), 0.0)) &
-!!$              **(1.0/365.0)) * casapool%cplant(POP%Iwood,2)*0.7
-!!$
-!!$         casaflux%kplant(POP%Iwood,2) = casaflux%kplant(POP%Iwood,2) + &
-!!$             (1.0- (1.0- max( min((POP%pop_grid(:)%cat_mortality                &
-!!$             /POP%pop_grid(:)%cmass_sum_old),0.99), 0.0)) &
-!!$             **(1.0/365.0))*0.3
-!!$       
-!!$
-!!$      ELSEWHERE (pop%pop_grid(:)%cmass_sum_old.gt.1.e-12 .and. pop%pop_grid(:)%cmass_sum.gt.1.e-12 .and. pop%LU==1 )
-!!$         casaflux%kplant(POP%Iwood,2) = casaflux%kplant(POP%Iwood,2) + &
-!!$            1.0 - (1.0-  max( min((POP%pop_grid(:)%cat_mortality                  &
-!!$              /POP%pop_grid(:)%cmass_sum_old),0.99), 0.0))**(1.0/365.0)
-!!$
-!!$      ENDWHERE
- 
-      
-
    ENDIF
 !!$if (idoy.eq.365) then
 !!$ write(667,*) pop%LU

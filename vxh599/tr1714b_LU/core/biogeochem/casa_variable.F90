@@ -200,13 +200,7 @@ MODULE casavariable
                                        ratioPcsoil,   &
                                        ratioPcplant,  &
                                        ratioPclitter
-    REAL(r_2), DIMENSION(:,:),POINTER :: Chwp,       &
-                                         Cclear,     &
-                                         Nhwp,       &
-                                         Nclear,     &
-                                         Phwp,       &
-                                         Pclear
-  END TYPE casa_pool
+ END TYPE casa_pool
 
   TYPE casa_flux
     REAL(r_2), DIMENSION(:),POINTER :: Cgpp,          &
@@ -275,14 +269,15 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxNtosoil
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxPtosoil
     REAL(r_2), DIMENSION(:),POINTER      :: FluxCtoCO2
-    REAL(r_2), DIMENSION(:,:),POINTER    :: FluxCtohwp
-    REAL(r_2), DIMENSION(:,:),POINTER    :: FluxNtohwp
-    REAL(r_2), DIMENSION(:,:),POINTER    :: FluxPtohwp
-    REAL(r_2), DIMENSION(:,:),POINTER    :: FluxCtoclear
-    REAL(r_2), DIMENSION(:,:),POINTER    :: FluxNtoclear
-    REAL(r_2), DIMENSION(:,:),POINTER    :: FluxPtoclear
-    REAL(r_2), DIMENSION(:,:),POINTER    :: khwp
-    REAL(r_2), DIMENSION(:,:),POINTER    :: kclear
+    REAL(r_2), DIMENSION(:),POINTER    :: FluxCtohwp
+    REAL(r_2), DIMENSION(:),POINTER    :: FluxNtohwp
+    REAL(r_2), DIMENSION(:),POINTER    :: FluxPtohwp
+    REAL(r_2), DIMENSION(:),POINTER    :: FluxCtoclear
+    REAL(r_2), DIMENSION(:),POINTER    :: FluxNtoclear
+    REAL(r_2), DIMENSION(:),POINTER    :: FluxPtoclear
+    REAL(r_2), DIMENSION(:),POINTER    :: CtransferLUC
+
+  
   END TYPE casa_flux
 
   TYPE casa_met
@@ -340,8 +335,7 @@ MODULE casavariable
                                          cbalance,nbalance,pbalance, &
                                          sumcbal,sumnbal,sumpbal
     REAL(r_2), DIMENSION(:),POINTER   :: clabilelast
-    REAL(r_2), DIMENSION(:,:),POINTER :: CtoHWPyear, CtoClearyear
-  END TYPE casa_balance
+ END TYPE casa_balance
 
 ! The following declarations are removed and have to be passed using
 ! parameter list for each subroutine (BP apr2010)
@@ -477,14 +471,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casapool%ratioPcplant(arraysize,mplant),   &
            casapool%ratioPclitter(arraysize,mlitter), &
            casapool%Ctot_0(arraysize),                &
-           casapool%Ctot(arraysize),                  &
-           casapool%Chwp(arraysize,mhwp)  ,           &
-           casapool%Cclear(arraysize,mclear),         &
-           casapool%Nhwp(arraysize,mhwp),             &
-           casapool%Nclear(arraysize,mclear) ,        &
-           casapool%Phwp(arraysize,mhwp)   ,          &
-           casapool%Pclear(arraysize,mclear)    )
-
+           casapool%Ctot(arraysize)   )               
+    
   ALLOCATE(casaflux%Cgpp(arraysize),                     &
            casaflux%Cnpp(arraysize),                     &
            casaflux%Crp(arraysize),                      &
@@ -549,17 +537,15 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casaflux%FluxNtosoil(arraysize,msoil),        &
            casaflux%FluxPtosoil(arraysize,msoil))
 
-  ALLOCATE(casaflux%FluxCtohwp(arraysize,mhwp),    &
-           casaflux%FluxNtohwp(arraysize,mhwp),    &
-           casaflux%FluxPtohwp(arraysize,mhwp))
+  ALLOCATE(casaflux%FluxCtohwp(arraysize),    &
+           casaflux%FluxNtohwp(arraysize),    &
+           casaflux%FluxPtohwp(arraysize))
 
-  ALLOCATE(casaflux%FluxCtoclear(arraysize,mclear),    &
-           casaflux%FluxNtoclear(arraysize,mclear),    &
-           casaflux%FluxPtoclear(arraysize,mclear))
+  ALLOCATE(casaflux%FluxCtoclear(arraysize),    &
+           casaflux%FluxNtoclear(arraysize),    &
+           casaflux%FluxPtoclear(arraysize))
 
-  ALLOCATE(casaflux%khwp(arraysize,mhwp))
-
-  ALLOCATE(casaflux%kclear(arraysize,mclear))
+  ALLOCATE(casaflux%CtransferLUC(arraysize))
 
   ALLOCATE(casaflux%FluxCtoco2(arraysize))
 
@@ -650,10 +636,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casabal%sumcbal(arraysize),             &
            casabal%sumnbal(arraysize),             &
            casabal%sumpbal(arraysize),             &
-           casabal%clabilelast(arraysize))
-
-  ALLOCATE(casabal%CtoHWPyear(arraysize,mhwp),   &
-           casabal%CtoClearyear(arraysize,mclear) )        
+           casabal%clabilelast(arraysize))       
 END SUBROUTINE alloc_casavariable
 
 SUBROUTINE alloc_sum_casavariable(  sum_casapool, sum_casaflux &

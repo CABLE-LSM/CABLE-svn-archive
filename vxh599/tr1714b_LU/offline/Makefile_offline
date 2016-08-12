@@ -41,7 +41,7 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_sli_solve.F90 cable_sli_utils.F90  spincasacnp.F90 \
 	cable_diag.F90 POP.F90 pop_io.F90 cable_plume_mip.F90 \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 \
-	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90
+	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90 
 
 # this is the executable we are building
 PROG = cable
@@ -119,6 +119,8 @@ cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_c
 casa_variable.o: casa_variable.F90 POP.o  
 
 spincasacnp.o: spincasacnp.F90  cable_define_types.o  cable_carbon.o cable_common.o casa_variable.o
+
+#cable_LUC.o: cable_LUC.F90 cable_carbon.o cable_common.o casa_variable.o POP.o POPLUC.o cable_LUC_EXPT.o
 
 CASAONLY_LUC.o: CASAONLY_LUC.F90  cable_define_types.o  cable_carbon.o cable_common.o casa_variable.o POP.o POPLUC.o cable_LUC_EXPT.o
 

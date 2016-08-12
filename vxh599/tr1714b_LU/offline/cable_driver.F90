@@ -101,6 +101,8 @@ PROGRAM cable_offline_driver
   ! modules related to POP
   USE POP_Types,	    ONLY: POP_TYPE
   USE POPLUC_Types, ONLY : POPLUC_Type
+  USE POPLUC_Module, ONLY:  WRITE_LUC_OUTPUT_NC, WRITE_LUC_OUTPUT_GRID_NC, &
+       POP_LUC_CASA_transfer,  WRITE_LUC_RESTART_NC, POPLUC_set_patchfrac 
   USE POP_Constants,	    ONLY: HEIGHT_BINS, NCOHORT_MAX
 
   ! PLUME-MIP only
@@ -496,6 +498,9 @@ PROGRAM cable_offline_driver
             casaflux, sum_casapool, sum_casaflux, &
             casamet, casabal, phen, POP, spinup,	       &
             C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
+
+       IF ( CABLE_USER%POPLUC .AND. TRIM(LUC_EXPT%run) .EQ. 'static') &
+            CABLE_USER%POPLUC= .FALSE.
        ! Open output file:
        IF (.NOT.CASAONLY) THEN
           IF ( TRIM(filename%out) .EQ. '' ) THEN
@@ -575,15 +580,7 @@ PROGRAM cable_offline_driver
           
           idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
           IF ( idoy .EQ. 0 ) idoy = LOY
-         ! write(*,*)'idoy', idoy 
-         ! write(*,*) 'idoys', INT( MOD((1.0),REAL(LOY))), INT( MOD((365.0),REAL(LOY)))
-          
-
-
-
-
-
-
+ 
           ! needed for CASA-CNP
           nyear	=INT((kend+koffset)/(LOY*ktauday))
           
@@ -591,7 +588,7 @@ PROGRAM cable_offline_driver
           ! Rainfall input may be augmented for spinup purposes:
           IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
              
-             IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
+             IF (( .NOT. CASAONLY ) .OR. (CASAONLY.and.CALL1))  THEN
                 CALL PLUME_MIP_GET_MET(PLUME, MET, YYYY, ktau, kend, &
                      (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend))
                 
@@ -613,6 +610,13 @@ PROGRAM cable_offline_driver
           canopy%oldcansto=canopy%cansto
           ! Zero out lai where there is no vegetation acc. to veg. index
           WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+
+          ! At first time step of year, set tile area according to updated LU areas
+          ! and zero casa fluxes
+          IF (ktau == 1) THEN
+             if (icycle>1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
+             if ( CABLE_USER%POPLUC) CALL POPLUC_set_patchfrac(POPLUC,LUC_EXPT)   
+          ENDIF
           
           IF ( .NOT. CASAONLY ) THEN
              
@@ -621,8 +625,6 @@ PROGRAM cable_offline_driver
                   casapool, casamet )
              
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
-             
-            
              
              ! Call land surface scheme for this timestep, all grid points:
                     CALL cbm( ktau, dels, air, bgc, canopy, met,		      &
@@ -656,6 +658,7 @@ PROGRAM cable_offline_driver
                  !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
                  IF(icycle >0 .OR.	 CABLE_USER%CASA_DUMP_WRITE ) THEN
                     !! vh_js !!
+
                     CALL bgcdriver( ktau, kstart, kend, dels, met,		       &
                          ssnow, canopy, veg, soil, climate, casabiome,			&
                          casapool, casaflux, casamet, casabal,		       &
@@ -671,19 +674,30 @@ PROGRAM cable_offline_driver
                             & .TRUE. , .FALSE., 1)
                        count_sum_casa = count_sum_casa + 1
                     ENDIF
-!!$                    IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN ! end of year
-!!$                     IF (CABLE_USER%POPLUC .and. TRIM(LUC_EXPT%run).eq.'restart') THEN
-!!$                       ! Dynamic LUC
-!!$                       CALL CABLECASA_LUC
-!!$
-!!$                     ELSE
-!!$                      CALL POPdriver(ktau,kstart,kend,dels,casaflux,casabal, ktauday, &
-!!$                           idoy,loy,casaflux,casabal,veg, POP)
-!!$                     ENDIF
-!!$                    ENDIF
+
+
+                    IF( ((MOD((ktau-kstart+1),ktauday)==0) .AND.  &
+                         MOD((ktau-kstart+1)/ktauday,LOY)==0) )THEN ! end of year
+                       IF (CABLE_USER%POPLUC) THEN
+                          ! Dynamic LUC
+                          CALL LUCdriver( casabiome,casapool,casaflux,POP,LUC_EXPT, POPLUC )
+                       ENDIF
+
+                       ! one annual time-step of POP
+                       CALL POPdriver(casaflux,casabal,veg, POP)
+                       
+                       IF (CABLE_USER%POPLUC) THEN
+                       ! Dynamic LUC: update casa pools according to LUC transitions
+                          CALL POP_LUC_CASA_transfer(POPLUC,POP,LUC_EXPT,casapool,casabal,casaflux,ktauday)
+ write(699,*) 'driver 1', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
+                         ! Dynamic LUC: write output
+                          CALL WRITE_LUC_OUTPUT_NC( POPLUC, YYYY, ( YYYY.EQ.cable_user%YearEnd ))
+
+                       ENDIF
+                    ENDIF
 
                  ENDIF
-
+write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
                  ! WRITE CASA OUTPUT
                  IF(icycle >0) THEN
 
@@ -975,6 +989,10 @@ PROGRAM cable_offline_driver
 
   END IF
 
+  IF (cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
+     CALL WRITE_LUC_RESTART_NC ( POPLUC, YYYY )
+  ENDIF
+
   IF ( .NOT. CASAONLY ) THEN
      ! Write restart file if requested:
      IF(output%restart)						  &
@@ -1040,3 +1058,99 @@ SUBROUTINE renameFiles(logn,inFile,ncciy,inName)
 
 END SUBROUTINE renameFiles
 
+!***************************************************************************************
+! subroutine for reading LU input data, zeroing biomass in empty secondary forest tiles
+! and tranferring LUC-based age weights for secondary forest to POP structure
+
+
+SUBROUTINE LUCdriver( casabiome,casapool, &
+     casaflux,POP,LUC_EXPT, POPLUC, veg )
+
+
+  USE cable_def_types_mod , ONLY: veg_parameter_type, mland
+  USE cable_carbon_module
+  USE cable_common_module, ONLY: CABLE_USER, is_casa_time, CurYear
+  USE cable_IO_vars_module, ONLY: logn, landpt, patch
+  USE casadimension
+  USE casaparm
+  USE casavariable
+  USE POP_Types,  Only: POP_TYPE
+  USE POPMODULE,            ONLY: POPStep, POP_init_single
+  USE TypeDef,              ONLY: i4b, dp
+  USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, read_LUH2,&
+       ptos,ptog,stog,gtos,grassfrac, pharv, smharv, syharv
+  USE POPLUC_Types
+  USE POPLUC_Module, ONLY: POPLUCStep, POPLUC_weights_Transfer, WRITE_LUC_OUTPUT_NC, &
+       POP_LUC_CASA_transfer,  WRITE_LUC_RESTART_NC, READ_LUC_RESTART_NC
+
+
+
+  IMPLICIT NONE
+
+  TYPE (casa_biome),            INTENT(INOUT) :: casabiome
+  TYPE (casa_pool),             INTENT(INOUT) :: casapool
+  TYPE (casa_flux),             INTENT(INOUT) :: casaflux
+  TYPE (POP_TYPE), INTENT(INOUT)     :: POP
+  TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
+  TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
+  TYPE (veg_parameter_type),    INTENT(IN) :: veg  ! vegetation parameters
+
+  integer ::  k, j, l, yyyy
+
+ 
+ 
+  write(*,*) 'cablecasa_LUC', CurYear
+  yyyy = CurYear
+
+
+
+  LUC_EXPT%CTSTEP = yyyy -  LUC_EXPT%FirstYear + 1
+
+  CALL READ_LUH2(LUC_EXPT)
+
+  DO k=1,mland
+     POPLUC%ptos(k) = LUC_EXPT%INPUT(ptos)%VAL(k)
+     POPLUC%ptog(k) = LUC_EXPT%INPUT(ptog)%VAL(k)
+     POPLUC%stop(k) = 0.0
+     POPLUC%stog(k) = LUC_EXPT%INPUT(stog)%VAL(k) 
+     POPLUC%gtop(k) = 0.0
+     POPLUC%gtos(k) = LUC_EXPT%INPUT(gtos)%VAL(k)
+     POPLUC%pharv(k) = LUC_EXPT%INPUT(pharv)%VAL(k)
+     POPLUC%smharv(k) = LUC_EXPT%INPUT(smharv)%VAL(k)
+     POPLUC%syharv(k) = LUC_EXPT%INPUT(syharv)%VAL(k)
+     POPLUC%thisyear = yyyy
+  ENDDO
+
+  ! zero secondary forest tiles in POP where secondary forest area is zero
+  DO k=1,mland
+     if ((POPLUC%frac_primf(k)-POPLUC%frac_forest(k))==0.0 &
+          .and. (.not.LUC_EXPT%prim_only(k))) then
+        j = landpt(k)%cstart+1
+        do l=1,size(POP%Iwood)
+           if( POP%Iwood(l) == j) then
+              CALL POP_init_single(POP,veg%disturbance_interval,l)
+              exit
+           endif
+        enddo
+
+        casapool%cplant(j,leaf) = 0.01
+        casapool%nplant(j,leaf)= casabiome%ratioNCplantmin(veg%iveg(j),leaf)* casapool%cplant(j,leaf)
+        casapool%pplant(j,leaf)= casabiome%ratioPCplantmin(veg%iveg(j),leaf)* casapool%cplant(j,leaf)
+
+        casapool%cplant(j,froot) = 0.01
+        casapool%nplant(j,froot)= casabiome%ratioNCplantmin(veg%iveg(j),froot)* casapool%cplant(j,froot)
+        casapool%pplant(j,froot)= casabiome%ratioPCplantmin(veg%iveg(j),froot)* casapool%cplant(j,froot)
+
+        casapool%cplant(j,wood) = 0.01
+        casapool%nplant(j,wood)= casabiome%ratioNCplantmin(veg%iveg(j),wood)* casapool%cplant(j,wood)
+        casapool%pplant(j,wood)= casabiome%ratioPCplantmin(veg%iveg(j),wood)* casapool%cplant(j,wood)
+        casaflux%frac_sapwood(j) = 1.0
+
+     endif
+  ENDDO
+
+  CALL POPLUCStep(POPLUC,yyyy)
+
+  CALL POPLUC_weights_transfer(POPLUC,POP,LUC_EXPT)
+
+END SUBROUTINE LUCdriver

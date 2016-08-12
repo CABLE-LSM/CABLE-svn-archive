@@ -23,6 +23,9 @@
 ! Sep 2015 Vanessa Haverd: Modifications to optionally call POP annually; replace default wood turnover
 ! with woody biomass mortality; track sapwood biomass for use in casacnp autotrophic
 ! respiration; track sapwood cross-sectional area for use in carbon allocation when LALLOC=3
+
+! Aug 2016 Vanessa Haverd: Move call to POPStep out of bgcdriver and create separate 
+! POPDriver subroutine, as required for mpi code with Land Use and POP enabled.
 ! ==============================================================================
 
 !#     define UM_BUILD YES
@@ -78,32 +81,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
    INTEGER                                   :: it, nit
    REAL(dp)                               :: StemNPP(mp,2)
-   REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
-   REAL(dp), allocatable :: NPPtoGPP(:)
    CHARACTER                                 :: cyear*4
    CHARACTER                                 :: ncfile*99
- !! vh_js !!
-   INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
+ 
 
   ! INTEGER, INTENT(IN) :: wlogn
    INTEGER , parameter :: wlogn=6
 
-   if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
-   if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
-   if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
-   if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
-   !! vh_js !!
-   if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
-
-
-   !! vh_js !!
-    IF (cable_user%CALL_POP) THEN
-
-       Iw = POP%Iwood
-
-    ENDIF
-
-
+  
+   
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
          casaflux%Nmindep = met%Ndep
@@ -113,15 +99,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
-       !  casaflux%cgpp  = 0.0
-         ! add initializations (BP jul2010)
-       !  casaflux%Crsoil   = 0.0
-       !  casaflux%crgplant = 0.0
-       !  casaflux%crmplant = 0.0
-       !  casaflux%clabloss = 0.0
-         ! casaflux%crmplant(:,leaf) = 0.0
-         ! end changes (BP jul2010)
-
+  
       ENDIF
 
       IF(MOD(ktau,ktauday)==1) THEN
@@ -157,46 +135,20 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 ! write(77991,91)  veg%vcmax(1), casaflux%cgpp(1), veg%vlai(1)
 !91  format(e12.4,2x,20(f10.4,2x))
-!if (idoy==100) stop
-            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 
-
-
+            IF (cable_user%CALL_POP) THEN ! accumulate input variables for POP
                ! accumulate annual variables for use in POP
                IF(MOD(ktau/ktauday,LOY)==1 ) THEN
                   casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-                  LAImax = casamet%glai
-                  Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
-                  Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
+                  casabal%LAImax = casamet%glai
+                  casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
+                  casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
                ELSE
                   casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-                  LAImax = max(casamet%glai, LAImax)
-                  Cleafmean = Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
-                  Crootmean = Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
+                  casabal%LAImax = max(casamet%glai, casabal%LAImax)
+                  casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
+                  casabal%Crootmean = casabal%Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
                ENDIF
-
-
-               IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN ! end of year
-
-                  StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
-                  StemNPP(:,2) = 0.0
-                  WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
-                     NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
-                  ELSEWHERE
-                     NPPtoGPP = 0.5
-                  ENDWHERE
-
-
-
-
-!write(wlogn, *) 'b4 POP1', StemNPP(Iw(1:2),1),  LAImax(Iw(1:2)), Cleafmean(Iw(1:2)), Crootmean(Iw(1:2)), NPPtoGPP(Iw(1:2))
-!call flush(wlogn)
-
-                  CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
-                   real(veg%disturbance_intensity(Iw,:),dp)      ,&
-                   LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
-
-               ENDIF  ! end of year
             ELSE
                casaflux%stemnpp = 0.
             ENDIF ! CALL_POP
@@ -216,40 +168,21 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
               pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-         IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN
+         IF (cable_user%CALL_POP) THEN ! accumulate input variables for POP
 
             ! accumulate annual variables for use in POP
             IF(MOD(ktau/ktauday,LOY)==1) THEN
                casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-               LAImax = casamet%glai
-               Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
-               Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
+               casabal%LAImax = casamet%glai
+               casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
+               casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
             ELSE
                casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-               LAImax = max(casamet%glai, LAImax)
-               Cleafmean = Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
-               Crootmean = Crootmean +casapool%cplant(:,3)/real(LOY)/1000.
+               casabal%LAImax = max(casamet%glai, casabal%LAImax)
+               casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
+               casabal%Crootmean = casabal%Crootmean +casapool%cplant(:,3)/real(LOY)/1000.
             ENDIF
 
-
-            IF(MOD((ktau-kstart+1)/ktauday,LOY)==0) THEN  ! end of year
-               StemNPP(:,1) = casaflux%stemnpp ! (assumes 70% of wood NPP is allocated above ground & static alloc)
-               StemNPP(:,2) = 0.0
-               WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5 )
-                  NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
-               ELSEWHERE
-                  NPPtoGPP = 0.5
-               ENDWHERE
-
-             
-
-                 
-
-               CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
-                    real(veg%disturbance_intensity(Iw,:),dp)      ,&
-                    LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
-
-               ENDIF ! end of year
 
          ENDIF ! CALL_POP
 
@@ -258,7 +191,71 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    ENDIF ! dump_read
 
 END SUBROUTINE bgcdriver
+! ==============================================================================
 
+SUBROUTINE POPdriver(casaflux,casabal,veg, POP)
+
+  USE cable_def_types_mod
+  USE cable_common_module, only: cable_runtime
+  USE casadimension
+  USE casaparm
+  USE casavariable
+  USE phenvariable
+  USE cable_common_module,  ONLY: CurYear, CABLE_USER
+  USE TypeDef,              ONLY: i4b, dp
+  USE POPMODULE,            ONLY: POPStep
+  USE POP_TYPES,            ONLY: POP_TYPE
+
+
+  IMPLICIT NONE
+
+  
+  TYPE (veg_parameter_type),  INTENT(IN) :: veg  ! vegetation parameters
+  TYPE (casa_flux),           INTENT(IN) :: casaflux
+  TYPE (casa_balance),        INTENT(IN) :: casabal
+  TYPE(POP_TYPE),             INTENT(INOUT) :: POP
+
+  INTEGER                                   :: it, nit
+  REAL(dp)                               :: StemNPP(mp,2)
+  REAL(dp), allocatable :: NPPtoGPP(:)
+  REAL(dp), allocatable ::  LAImax(:)  , Cleafmean(:),  Crootmean(:)
+  CHARACTER                                 :: cyear*4
+  CHARACTER                                 :: ncfile*99
+  !! vh_js !!
+  INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
+
+  ! INTEGER, INTENT(IN) :: wlogn
+  INTEGER , parameter :: wlogn=6
+
+  if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
+  if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
+  if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
+  if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
+  if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
+
+  IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
+     Iw = POP%Iwood
+
+     StemNPP(:,1) = casaflux%stemnpp 
+     StemNPP(:,2) = 0.0
+     WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
+        NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
+     ELSEWHERE
+        NPPtoGPP = 0.5
+     ENDWHERE
+     LAImax = casabal%LAImax
+     Cleafmean = casabal%cleafmean
+     Crootmean = casabal%Crootmean
+
+     CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.0001), int(veg%disturbance_interval(Iw,:), i4b),&
+          real(veg%disturbance_intensity(Iw,:),dp)      ,&
+          max(LAImax(Iw),0.001), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+
+
+  ENDIF ! CALL_POP
+
+END SUBROUTINE POPdriver
+! ==============================================================================
 SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
       USE netcdf
       USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
@@ -358,7 +355,6 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             casamet%mtempspin(:,idoy) = mtemp
             casaflux%Nmindep = Ndep
          END DO
-
       ELSE
 
          CALL get_var_ncr2(ncrid, var_name(3), tairk   ,ncall )
@@ -384,7 +380,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          phen%doyphase(:,2) = int(phendoyphase2)
          phen%doyphase(:,3) = int(phendoyphase3)
          phen%doyphase(:,4) = int(phendoyphase4)
-         climate%qtemp_max_last_year = mtemp
+         climate%mtemp_max = mtemp
          casaflux%Nmindep = Ndep
 
       ENDIF
@@ -521,7 +517,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(13), real(climate%qtemp_max_last_year,r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Nmindep,r_2)    ,n_call )
 
 
@@ -917,12 +913,11 @@ END SUBROUTINE sumcflux
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-            !casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
-            !casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
+           casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
+            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
             ! why is this commented here but used in UM
-! vh! 
-             casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-             casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
+            ! casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
+            ! casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))

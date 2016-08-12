@@ -158,34 +158,36 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
           ! write(7799,*) casaflux%cnpp(1), casaflux%fracCalloc(1,2)
 
            ! accumulate annual variables for use in POP
-           IF(idoy==1 ) THEN
-              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-              LAImax = casamet%glai
-              Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
-              Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
-           ELSE
-              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-              LAImax = max(casamet%glai, LAImax)
-              Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
-              Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
-           ENDIF
+!!$           IF(idoy==1 ) THEN
+!!$              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+!!$              LAImax = casamet%glai
+!!$              Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
+!!$              Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
+!!$           ELSE
+!!$              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+!!$              LAImax = max(casamet%glai, LAImax)
+!!$              Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
+!!$              Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
+!!$           ENDIF
  
            IF(idoy==mdyear) THEN ! end of year
 
-              StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
-              StemNPP(:,2) = 0.0
-              WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
-                 NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
-              ELSEWHERE
-                 NPPtoGPP = 0.5
-              ENDWHERE
-
-              CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
-                   real(veg%disturbance_intensity(Iw,:),dp)      ,&
-                   LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+!!$              StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
+!!$              StemNPP(:,2) = 0.0
+!!$              WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
+!!$                 NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
+!!$              ELSEWHERE
+!!$                 NPPtoGPP = 0.5
+!!$              ENDWHERE
+!!$
+!!$              CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
+!!$                   real(veg%disturbance_intensity(Iw,:),dp)      ,&
+!!$                   LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
 !!$              CALL POP_IO( pop, casamet, 9999, 'WRITE_EPI', &
 !!$                         .False.)
 
+
+              CALL POPdriver(casaflux,casabal,veg, POP)
 
            ENDIF  ! end of year
         ELSE
@@ -343,34 +345,36 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
 
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
-
-              ! accumulate annual variables for use in POP
-              IF(idoy==1 ) THEN
-                 casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-                 LAImax = casamet%glai
-                 Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
-                 Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
-              ELSE
-                 casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-                 LAImax = max(casamet%glai, LAImax)
-                 Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
-                 Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
-              ENDIF
+!!$
+!!$              ! accumulate annual variables for use in POP
+!!$              IF(idoy==1 ) THEN
+!!$                 casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+!!$                 LAImax = casamet%glai
+!!$                 Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
+!!$                 Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
+!!$              ELSE
+!!$                 casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+!!$                 LAImax = max(casamet%glai, LAImax)
+!!$                 Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
+!!$                 Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
+!!$              ENDIF
                 
            
               IF(idoy==mdyear) THEN ! end of year
-                 
-                 StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
-                 StemNPP(:,2) = 0.0
-                 WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
-                    NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
-                 ELSEWHERE
-                    NPPtoGPP = 0.5
-                 ENDWHERE
-                 
-                 CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
-                      real(veg%disturbance_intensity(Iw,:),dp)      ,&
-                      LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+!!$                 
+!!$                 StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
+!!$                 StemNPP(:,2) = 0.0
+!!$                 WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
+!!$                    NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
+!!$                 ELSEWHERE
+!!$                    NPPtoGPP = 0.5
+!!$                 ENDWHERE
+!!$                 
+!!$                 CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
+!!$                      real(veg%disturbance_intensity(Iw,:),dp)      ,&
+!!$                      LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+                 CALL POPdriver(casaflux,casabal,veg, POP)
+
 !!$              if (nyear==myearspin .and. nloop==mloop) THEN
 !!$                 CALL POP_IO( pop, casamet, 9999, 'WRITE_EPI', &
 !!$                      .TRUE.)

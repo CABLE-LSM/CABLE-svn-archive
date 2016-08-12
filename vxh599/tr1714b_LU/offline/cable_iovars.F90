@@ -283,7 +283,7 @@ MODULE cable_IO_vars_module
          PlantTurnoverWoodDist = .FALSE., &
          PlantTurnoverWoodCrowding = .FALSE., &
          PlantTurnoverWoodResourceLim = .FALSE., &
-
+         LandUseFlux = .FALSE., &
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude

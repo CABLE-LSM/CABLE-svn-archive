@@ -2422,11 +2422,14 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 
       IF (CABLE_USER%POPLUC) then
 
-         !CALL POPLUC_init( POPLUC, LUC_EXPT%YearStart, mland)
-         CALL POPLUC_init( POPLUC, LUC_EXPT, mland)
+         ! initialise POPLUC structure and params
+         !zero biomass in secondary forest tiles
          ! read POP_LUC restart file here
-         ! overwrite patchfrac here.
+         ! overwrite patchfrac here if POPLUC%run is not 'static'
+         CALL POPLUC_init(POPLUC,LUC_EXPT, casapool, casaflux, casabiome, veg, POP, mland)
+         
       ENDIF
+
    ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done

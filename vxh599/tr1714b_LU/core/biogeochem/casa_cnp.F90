@@ -1117,7 +1117,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
 
 
-        casapool%dcplantdt(npt,2) = casapool%dcplantdt(npt,2) -sum(casaflux%FluxCtohwp(npt,:))
+        casapool%dcplantdt(npt,2) = casapool%dcplantdt(npt,2)
 
         !! vh_js !!
         !! adjust turnover and autotrophic respiration to avoid negative stores.
@@ -1152,9 +1152,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
            casapool%dcplantdt(npt,:)  =  casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,:)     &
                 - casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
 
-           !vh! account for secondary forest harvest on C wood pool       
-           casapool%dcplantdt(npt,2) = casapool%dcplantdt(npt,2)  -sum(casaflux%FluxCtohwp(npt,:))
-
+        
         endif
 
 
@@ -1189,12 +1187,6 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
               casapool%dNplantdt(npt,wood) = 0.0
            ENDIF
           
-           !vh! account for secondary forest harvest on N wood pool
-           if (casamet%lnonwood(npt)==0 .and. casapool%Cplant(npt,wood).gt.1e-3 &
-                .and. sum(casaflux%FluxCtohwp(npt,:)).gt.0.0) then
-              casapool%dNplantdt(npt,wood) = casapool%dNplantdt(npt,2) &
-                   -sum(casaflux%FluxCtohwp(npt,:))* casapool%Nplant(npt,wood) /casapool%Cplant(npt,wood)
-           endif
            casapool%dNplantdt(npt,froot)  = - casaflux%kplant(npt,froot) * casapool%Nplant(npt,froot) &
                 * casabiome%ftransNPtoL(veg%iveg(npt),froot)
            ! added by ypwang 5/nov/2012
@@ -1224,10 +1216,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
            casapool%dPplantdt(npt,wood)  = - casaflux%kplant(npt,wood) * casapool%Pplant(npt,wood) &
                 * casabiome%ftransPPtoL(veg%iveg(npt),wood)
 
-           !vh! account for secondary forest harvest on P wood pool
-           casapool%dPplantdt(npt,2) = casapool%dPplantdt(npt,2) &
-                -sum(casaflux%FluxCtohwp(npt,:))* casapool%Pplant(npt,wood) /casapool%Cplant(npt,wood)
-
+          
            casapool%dPplantdt(npt,froot)  = - casaflux%kplant(npt,froot) * casapool%Pplant(npt,froot) &
                 * casabiome%ftransPPtoL(veg%iveg(npt),froot)
            ! added by ypwang 5/nov/2012

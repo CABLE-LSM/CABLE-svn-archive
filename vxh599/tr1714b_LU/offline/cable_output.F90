@@ -66,7 +66,8 @@ MODULE cable_output_module
                     PlantCarbLeaf, PlantCarbFineRoot, PlantCarbWood, &
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
-                    PlantTurnoverWoodResourceLim, dCdt, Area
+                    PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
+                    vcmax, hc
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -197,7 +198,10 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodCrowding
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodResourceLim
     REAL(KIND=4), POINTER, DIMENSION(:) :: Area
-
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LandUseFlux
+    REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax
+    REAL(KIND=4), POINTER, DIMENSION(:) :: patchfrac
+    REAL(KIND=4), POINTER, DIMENSION(:) :: hc
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -222,7 +226,7 @@ CONTAINS
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
 
 
-PRINT*,"timeunits", timeunits
+
 
     ! Create output file:
     ok = NF90_CREATE(filename%out, NF90_CLOBBER, ncid_out)
@@ -728,7 +732,8 @@ PRINT*,"timeunits", timeunits
 
     IF(output%carbon) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
-                        'Net Biosphere Production (uptake +ve)', patchout%NBP,         &
+                        'Net Biosphere Production &
+                        (excludes harvest and clearing, uptake +ve)', patchout%NBP,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%NBP(mp))
        out%NBP = 0.0 ! initialise
@@ -863,7 +868,15 @@ PRINT*,"timeunits", timeunits
        ALLOCATE(out%PlantTurnoverWoodResourceLim(mp))
        out%PlantTurnoverWoodResourceLim = 0.0
 
+       CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
+            'umol/m^2/s',               &
+            'Contribution to NBP from  harvest and clearing', patchout%LandUseFlux,         &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%LandUseFlux(mp))
+       out%LandUseFlux = 0.0
 
+
+  
     END IF
 
 !! vh_js !!
@@ -871,18 +884,31 @@ PRINT*,"timeunits", timeunits
                         'Patch Area', patchout%Area,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
      ALLOCATE(out%Area(mp))
-    out%Area = 0.0 ! initialise
+     out%Area = 0.0 ! initialise
+
 
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
                      'iveg', '-', 'Vegetation type', patchout%iveg, 'integer', &
                                                  xID, yID, zID, landID, patchID)
 
-    IF((output%params .OR. output%patchfrac)                                   &
-         .AND. (patchout%patchfrac .OR. output%patch))                         &
-         CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
-         'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
-                          xID, yID, zID, landID, patchID)
+    IF (cable_user%POPLUC) THEN
+
+       CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
+            'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
+            xID, yID, zID, landID, patchID, tID)
+       
+    ELSE
+       
+       IF((output%params .OR. output%patchfrac)                                   &
+            .AND. (patchout%patchfrac .OR. output%patch))                         &
+            CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
+            'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
+            xID, yID, zID, landID, patchID)
+
+    ENDIF
+
+
     IF(output%params .OR. output%isoil) CALL define_ovar(ncid_out, opid%isoil, &
                          'isoil', '-', 'Soil type', patchout%isoil, 'integer', &
                                                  xID, yID, zID, landID, patchID)
@@ -1068,6 +1094,7 @@ PRINT*,"timeunits", timeunits
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
 
     ! Write latitude and longitude variables:
+
     ok = NF90_PUT_VAR(ncid_out, latID, REAL(lat_all, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
                                     (ok, 'Error writing latitude variable to ' &
@@ -1105,10 +1132,13 @@ PRINT*,"timeunits", timeunits
     ! Write model parameters if requested:
     IF(output%params .OR. output%iveg) CALL write_ovar(ncid_out, opid%iveg,    &
                'iveg', REAL(veg%iveg, 4), ranges%iveg, patchout%iveg, 'integer')
-    IF((output%params .OR. output%patchfrac)                                   &
-       .AND. (patchout%patchfrac .OR. output%patch))                           &
+
+    IF (.not.cable_user%POPLUC) THEN
+       IF((output%params .OR. output%patchfrac)                                   &
+            .AND. (patchout%patchfrac .OR. output%patch))                           &
        CALL write_ovar(ncid_out, opid%patchfrac, 'patchfrac',                  &
-               REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'real')
+       REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'real')
+    ENDIF
     IF(output%params .OR. output%isoil) CALL write_ovar(ncid_out, opid%isoil,  &
           'isoil', REAL(soil%isoilm, 4), ranges%isoil, patchout%isoil,'integer')
     IF(output%params .OR. output%bch) CALL write_ovar(ncid_out, opid%bch,      &
@@ -2087,7 +2117,14 @@ PRINT*,"timeunits", timeunits
           CALL write_ovar(out_timestep, ncid_out, ovid%Area, 'Area', out%Area,    &
                           ranges%Area, patchout%Area, 'default', met)
       END IF
+      IF (cable_user%POPLUC) THEN
+         ! output patch fraction
+         IF(writenow) THEN
+            CALL write_ovar(out_timestep, ncid_out, opid%patchfrac, 'patchfrac',                  &
+                 REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'default',met)
 
+         END IF
+      ENDIF
 
     ! NBP and turnover fluxes [umol/m^2/s]
     IF(output%casa) THEN
@@ -2220,7 +2257,24 @@ PRINT*,"timeunits", timeunits
           out%PlantTurnoverWoodResourceLim = 0.0
        END IF
 
-
+       ! Add current timestep's value to total of temporary output variable:
+       out%LandUseFlux = out%LandUseFlux + &
+            REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
+            / 1.201E-5, 4)
+write(699,*) 'output 1', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
+write(699,*) 'output 2',out%LandUseFlux(4:6)* 86400.0* 1.201E-5
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%LandUseFlux = out%LandUseFlux / REAL(output%interval, 4)
+write(699,*) 'output 3', sum(out%LandUseFlux(4:6)*patch(4:6)%frac)* 86400.0* 1.201E-5, output%interval
+write(699,*) 'output 4', patch(4:6)%frac
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%LandUseFlux, 'LandUseFlux', &
+               out%LandUseFlux,    &
+               ranges%NEE, patchout%LandUseFlux, 'default', met)
+          ! Reset temporary output variable:
+          out%LandUseFlux = 0.0
+       END IF
 
 
     END IF
