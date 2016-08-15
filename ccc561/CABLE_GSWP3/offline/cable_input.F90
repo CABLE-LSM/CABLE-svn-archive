@@ -535,7 +535,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
              ! recognised grid system:
              CALL nc_abort &
                   (ok,'Error finding grid system ("mask" or "land") variable in ' &
-                  //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+                  //TRIM(gswpfile%mask)//' (SUBROUTINE open_met_file)')
           END IF
        ELSE ! i.e. "land" variable exists
           metGrid='land'
@@ -595,7 +595,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        !write(*,*) 'read mask'
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error reading "mask" variable in ' &
-            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+            //TRIM(gswpfile%mask)//' (SUBROUTINE open_met_file)')
        ! Allocate space for extracting land lat/lon values:
        ALLOCATE(lat_temp(ngridcells),lon_temp(ngridcells))
        ! Allocate space for extracting index of mask which is land
