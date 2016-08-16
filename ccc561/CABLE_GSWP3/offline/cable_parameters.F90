@@ -253,6 +253,20 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
+    ! Set longitudes to be [-180,180]:
+    WHERE(inLon>180.0) 
+       inLon = inLon - 360.0
+    END WHERE
+    ! Check ranges for latitude and longitude:
+    IF(ANY(inLon>180.0).OR.ANY(inLon<-180.0)) &
+         CALL abort('Longitudes read from '//TRIM(filename%type)// &
+         ' are not [-180,180] or [0,360]! Please set.')
+    IF(ANY(inLat>90.0).OR.ANY(inLat<-90.0)) &
+         CALL abort('Latitudes read from '//TRIM(filename%type)// &
+         ' are not [-90,90]! Please set.')
+
+    print*, 'Min/Max inLon: ', minval(inLon), maxval(inLon)
+
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
     ok = NF90_GET_VAR(ncid, varID, idummy)
