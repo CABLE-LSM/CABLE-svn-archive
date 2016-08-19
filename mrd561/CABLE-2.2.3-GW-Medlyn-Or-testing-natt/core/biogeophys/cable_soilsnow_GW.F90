@@ -1665,7 +1665,7 @@ END SUBROUTINE remove_trans
     !Add to ssnow at some point 
     do i=1,mp
        if ((ssnow%wtd(i) .ge. sum(dzmm,dim=1)) .and. (veg%iveg(i) .ne. 17) .and. (soil%isoilm(i) .ne. 9))  then
-          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - ((zaq(i) - zmm(ms))))/((ssnow%GWzq(i)-ssnow%zq(i,ms)))
+          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,ms)) - (ssnow%GWzq(i)-ssnow%zq(i,ms)))/(zaq(i) - zmm(ms))
        else
           ssnow%Qrecharge(i) = 0._r_2
        end if
