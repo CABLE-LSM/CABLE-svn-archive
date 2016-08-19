@@ -510,6 +510,246 @@ USE cable_common_module
 END SUBROUTINE snow_accum 
 
 ! -----------------------------------------------------------------------------
+  
+! calculates temperatures of the soil
+! tgg - new soil/snow temperature
+! ga - heat flux from the atmosphere (ground heat flux)
+! ccnsw - soil thermal conductivity, including water/ice
+SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
+   REAL, INTENT(IN) :: dels ! integration time step (s)
+   
+   TYPE(canopy_type),    INTENT(INOUT) :: canopy
+   TYPE(soil_snow_type), INTENT(INOUT) :: ssnow
+   
+   TYPE(soil_parameter_type), INTENT(IN)    :: soil
+   
+   REAL, DIMENSION(mp) ::                                                      &
+      coefa, coefb,  & !
+      sgamm            ! 
+
+   REAL(r_2), DIMENSION(mp) ::                                                 &
+      dtg,     & !
+      ew,      & !
+      xx,      & !
+      wblfsp     ! 
+
+   REAL(r_2), DIMENSION(mp,ms) ::                                              &
+      ccnsw  ! soil thermal conductivity (incl water/ice)
+
+   REAL(r_2), DIMENSION(mp, -2:ms) ::                                          &
+      at, bt, ct, rhs !
+   
+   REAL(r_2), DIMENSION(mp,-2:ms+1) :: coeff
+   
+   REAL(r_2), DIMENSION(mp,ms+3)    :: tmp_mat ! temp. matrix for tggsn & tgg
+   
+   INTEGER :: j,k
+   REAL :: snow_ccnsw, exp_arg
+   real(r_2) :: tmp,tmpsat
+   real(r_2) :: om_tkm, tkm(mp,ms),tkmg(mp,ms),liq_frac
+   LOGICAL :: direct2min = .FALSE.
+
+   om_tkm       = 0.25_r_2
+   tkm(:,:) = (1._r_2-soil%Forg(:,:))*(8.80_r_2*soil%Fsand(:,:)+2.92_r_2*soil%Fclay(:,:))/(soil%Fsand(:,:)+2.92_r_2*soil%Fclay(:,:))+om_tkm*soil%Forg(:,:)
+
+   tkmg(:,:) = tkm(:,:) ** (1._r_2- soil%watsat(:,:))
+
+   at = 0.0
+   bt = 1.0
+   ct = 0.0
+   coeff = 0.0
+   snow_ccnsw = 2.0
+
+   DO k = 1, ms
+      
+      DO j = 1, mp
+      
+         IF( soil%isoilm(j) .eq. 9 ) THEN
+            ! permanent ice: fix hard-wired number in next version
+            ccnsw(j,k) = snow_ccnsw
+         ELSE  !test alt formation for thermal conductivity
+            ew(j) =min(1.0_r_2, (ssnow%wmliq(j,k)/rhowat + ssnow%wmice(j,k)/(rhowat*dri))/(1000.*soil%zse(k)*soil%watsat(j,k)))
+            if (ew(j) .gt. 1.0e-7) then
+               liq_frac = ssnow%wmliq(j,k)/(ssnow%wmliq(j,k)+ssnow%wmice(j,k))
+               if (ssnow%tgg(j,k) .gt. 273.15) then
+                  tmp = max(0._r_2, log10(ew(j)) + 1.0_r_2)
+                  tmpsat = tkmg(j,k)*0.57_r_2**soil%watsat(j,k)
+                else                               ! Frozen soil
+                  tmp =  ew(j)
+                  tmpsat = tkmg(j,k)*0.249_r_2**(liq_frac*soil%watsat(k,j))*2.29_r_2**soil%watsat(k,j)
+                endif
+                ccnsw(j,k) = tmp*tmpsat + (1._r_2-tmp)*soil%cnsd(j)
+             else 
+                ccnsw(j,k) = soil%cnsd(j)
+             endif
+
+        
+         ENDIF 
+      
+      END DO
+    
+   END DO
+    
+   xx = 0. 
+    
+   WHERE(ssnow%isflag == 0)
+      xx = MAX( 0., ssnow%snowd / ssnow%ssdnn )
+      ccnsw(:,1) = ( ccnsw(:,1) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + xx ) &
+                   ) + 0.2
+   END WHERE
+    
+   DO k = 3, ms
+      
+      WHERE (ssnow%isflag == 0)
+         coeff(:,k) = 2.0 / ( soil%zse(k-1) / ccnsw(:,k-1) + soil%zse(k) /     &
+                      ccnsw(:,k) )
+      END WHERE
+   END DO
+
+   k = 1
+   WHERE( ssnow%isflag == 0 )
+      coeff(:,2) = 2.0 / ( ( soil%zse(1) + xx ) / ccnsw(:,1) + soil%zse(2) /   &
+                   ccnsw(:,2) )
+      coefa = 0.0
+      coefb = REAL( coeff(:,2) )
+
+      wblfsp = ssnow%wblf(:,k)
+      
+      xx = soil%css * soil%rhosoil
+      
+      ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%watsat(:,k) ) * soil%css * soil%rhosoil   &
+                          + soil%watsat(:,k) * ( wblfsp * cswat * rhowat +            &
+                          ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )     &
+                          * soil%zse(k)
+
+      ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
+
+      dtg = dels / ssnow%gammzz(:,k)
+      
+      at(:,k) = - dtg * coeff(:,k)
+      ct(:,k) = - dtg * coeff(:,k+1) ! c3(ms)=0 & not really used
+      bt(:,k) = 1.0 - at(:,k) - ct(:,k)
+
+   END WHERE
+   
+   DO k = 2, ms
+      
+      WHERE( ssnow%isflag == 0 )
+         
+         wblfsp = ssnow%wblf(:,k)
+         xx = soil%css * soil%rhosoil
+
+         ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%watsat(:,k) ) * soil%css * soil%rhosoil&
+                             + soil%watsat(:,k) * ( wblfsp * cswat * rhowat +         &
+                             ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )  &
+                             * soil%zse(k)
+
+         dtg = dels / ssnow%gammzz(:,k)
+         at(:,k) = - dtg * coeff(:,k)
+         ct(:,k) = - dtg * coeff(:,k+1) ! c3(ms)=0 & not really used
+         bt(:,k) = 1.0 - at(:,k) - ct(:,k)
+      
+      END WHERE
+    
+   END DO
+   
+   WHERE( ssnow%isflag == 0 )
+      bt(:,1) = bt(:,1) - canopy%dgdtg * dels / ssnow%gammzz(:,1)
+      ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
+                       * REAL( canopy%dgdtg ) ) * dels /                       &
+                       REAL( ssnow%gammzz(:,1) )
+   END WHERE
+   
+   coeff(:,1-3) = 0.0  ! SO DOES THIS MEAN coeff(:,-2) ??
+
+   ! 3-layer snow points done here
+   WHERE( ssnow%isflag /= 0 )
+      
+      ssnow%sconds(:,1) = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(:,1)**2         &
+                          + 0.074, max_sconds ) )
+      ssnow%sconds(:,2) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,2)**2 &
+                        & + 0.074, max_sconds) )
+      ssnow%sconds(:,3) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,3)**2 &
+                        & + 0.074, max_sconds) )
+      coeff(:,-1) = 2.0 / (ssnow%sdepth(:,1) / ssnow%sconds(:,1) &
+                       & + ssnow%sdepth(:,2) / ssnow%sconds(:,2) )
+      coeff(:,0) = 2.0 / (ssnow%sdepth(:,2) / ssnow%sconds(:,2) &
+                      & + ssnow%sdepth(:,3) / ssnow%sconds(:,3) )
+      coeff(:,1) = 2.0 / (ssnow%sdepth(:,3) / ssnow%sconds(:,3) &
+                      & + soil%zse(1) / ccnsw (:,1) )
+   END WHERE
+    
+   DO k = 2, ms
+      
+      WHERE( ssnow%isflag /= 0 )                                               &
+         coeff(:,k) = 2.0 / ( soil%zse(k-1) / ccnsw(:,k-1) + soil%zse(k) /     &
+                      ccnsw(:,k) )
+
+   END DO
+   
+   WHERE( ssnow%isflag /= 0 )
+      coefa = REAL( coeff (:,-1) )
+      coefb = REAL( coeff (:,1) )
+   END WHERE
+   
+   DO k = 1, 3
+      
+      WHERE( ssnow%isflag /= 0 ) 
+         sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
+         dtg = dels / sgamm
+         at(:,k-3) = - dtg * coeff(:,k-3)
+         ct(:,k-3) = - dtg * coeff(:,k-2)
+         bt(:,k-3) = 1.0 - at(:,k-3) - ct(:,k-3)
+      END WHERE
+   
+   END DO
+   
+   DO k = 1, ms
+     
+      WHERE( ssnow%isflag /= 0 )
+         wblfsp = ssnow%wblf(:,k)
+         xx = soil%css * soil%rhosoil
+         
+         ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%watsat(:,k) ) * soil%css *             &
+                             soil%rhosoil + soil%watsat(:,k) * ( wblfsp * cswat *     &
+                             rhowat + ssnow%wbfice(:,k) * csice * rhowat *     &
+                             0.9) , xx ) * soil%zse(k)
+
+         dtg = dels / ssnow%gammzz(:,k)
+         at(:,k) = - dtg * coeff(:,k)
+         ct(:,k) = - dtg * coeff(:,k + 1) ! c3(ms)=0 & not really used
+         bt(:,k) = 1.0 - at(:,k) - ct(:,k)
+      
+      END WHERE
+   
+   END DO
+
+   WHERE( ssnow%isflag /= 0 )
+      sgamm = ssnow%ssdn(:,1) * cgsnow * ssnow%sdepth(:,1)
+      
+      bt(:,-2) = bt(:,-2) - canopy%dgdtg * dels / sgamm
+      
+      ssnow%tggsn(:,1) = ssnow%tggsn(:,1) + ( canopy%ga - ssnow%tggsn(:,1 )    &
+                         * REAL( canopy%dgdtg ) ) * dels / sgamm
+
+      rhs(:,1-3) = ssnow%tggsn(:,1)
+   END WHERE
+ 
+   !     note in the following that tgg and tggsn are processed together
+   tmp_mat(:,1:3) = REAL(ssnow%tggsn,r_2) 
+   tmp_mat(:,4:(ms+3)) = REAL(ssnow%tgg,r_2)
+
+   CALL trimb( at, bt, ct, tmp_mat, ms + 3 ) 
+   
+   ssnow%tggsn = REAL( tmp_mat(:,:3) )
+   ssnow%tgg   = REAL( tmp_mat(:,4:(ms+3)) )
+   canopy%sghflux = coefa * ( ssnow%tggsn(:,1) - ssnow%tggsn(:,2) )
+   canopy%ghflux = coefb * ( ssnow%tgg(:,1) - ssnow%tgg(:,2) ) ! +ve downwards
+
+END SUBROUTINE GWstempv
+
+! -----------------------------------------------------------------------------
+! -----------------------------------------------------------------------------
 ! -----------------------------------------------------------------------------
   
 ! calculates temperatures of the soil
@@ -1665,7 +1905,7 @@ END SUBROUTINE remove_trans
     !Add to ssnow at some point 
     do i=1,mp
        if ((ssnow%wtd(i) .ge. sum(dzmm,dim=1)) .and. (veg%iveg(i) .ne. 17) .and. (soil%isoilm(i) .ne. 9))  then
-          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - ((zaq(i) - zmm(ms))))/((ssnow%GWzq(i)-ssnow%zq(i,ms)))
+          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - (ssnow%GWzq(i)-ssnow%zq(i,k)))/(zaq(i) - zmm(k))
        else
           ssnow%Qrecharge(i) = 0._r_2
        end if
@@ -1915,6 +2155,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    CALL snowl_adjust(dels, ssnow, canopy )
 
    CALL stempv(dels, canopy, ssnow, soil)
+   !CALL GWstempv(dels, canopy, ssnow, soil)
 
    !do the soil and snow melting, freezing prior to water movement
    ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)

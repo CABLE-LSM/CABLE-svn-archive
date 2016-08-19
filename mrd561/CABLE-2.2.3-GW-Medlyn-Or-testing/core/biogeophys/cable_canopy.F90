@@ -373,7 +373,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       if (simple_litter) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
-      elseif (cable_user%or_evap .and. cable_user%or_evap_sh) then
+      elseif (cable_user%or_evap .and. cable_user%or_evap_sh .and. (sublayer_Z_param .ge. 1.0e-7)) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
       else
@@ -422,7 +422,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       if (simple_litter) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil + litter_dz/litter_thermal_diff)
-      elseif (cable_user%or_evap .and. cable_user%or_evap_sh) then
+      elseif (cable_user%or_evap .and. cable_user%or_evap_sh .and. (sublayer_Z_param .ge. 1.0e-7)) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
       else
@@ -651,7 +651,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    elseif (cable_user%or_evap) then
 
-      if (cable_user%or_evap_sh) then
+      if (cable_user%or_evap_sh .and. (sublayer_Z_param .ge. 1.0e-7)) then
          litter_thermal_diff = 0.2 / (1932.0*62.0)
          ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil + canopy%sublayer_dz/litter_thermal_diff)
       else
@@ -1228,7 +1228,7 @@ SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
          
          ! Calculate fraction of canopy which is wet:
          canopy%fwet(j) = MAX( 0.0, MIN( 1.0,                                  &
-                          0.8 * canopy%cansto(j) / MAX( cansat(j), 0.01 ) ) )
+                          0.8 *canopy%cansto(j) / MAX( cansat(j), 0.01 ) ) )
          
          ! Calculate lat heat from wet canopy, may be neg. if dew on wet canopy
          ! to avoid excessive evaporation:
@@ -1480,6 +1480,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          canopy%fwsoil = real(fwsoil,r_2)
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Lai and Ktaul 2000') THEN
          CALL fwsoil_calc_Lai_Ktaul(fwsoil,soil, ssnow, veg) 
+         canopy%fwsoil = real(fwsoil,r_2)
+      ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'SSGW') THEN
+         CALL fwsoil_calc_max(fwsoil,soil, ssnow, veg) 
          canopy%fwsoil = real(fwsoil,r_2)
       ELSEIF(trim(cable_user%FWSOIL_SWITCH) == 'Haverd2013') THEN
          fwsoil = real(canopy%fwsoil)
@@ -2240,6 +2243,35 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
 END SUBROUTINE fwsoil_calc_std 
 
 ! ------------------------------------------------------------------------------
+! ------------------------------------------------------------------------------
+SUBROUTINE fwsoil_calc_max(fwsoil, soil, ssnow, veg) 
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
+   integer :: i,k
+
+   rwater = MAX(1.0e-4_r_2,                                                    &
+            SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,ssnow%wb -                   &
+            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+
+
+   do k=1,ms
+      do i=1,mp
+         if ((ssnow%wb(i,k)-ssnow%wbice(i,k)) .gt. (0.5*(soil%fldcap(i,k)-soil%wiltp(i,k))+soil%wiltp(i,k))) then
+            rwater(i) = 1.0
+         end if
+      end do
+   end do
+   ! Remove vbeta
+   !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
+   fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+      
+END SUBROUTINE fwsoil_calc_max
+
+! ------------------------------------------------------------------------------
 
 ! ------------------------------------------------------------------------------
 SUBROUTINE fwsoil_calc_collins(fwsoil, soil, ssnow, veg) 
@@ -2451,7 +2483,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
       canopy%sublayer_dz = max(sublayer_Z_param*rough%z0soil,1e-7)
 
-   elseif (use_const_thickness .or. simple_litter) then
+   elseif (use_const_thickness ) then
 
       canopy%sublayer_dz = max(sublayer_Z_param,1e-7)
 
@@ -2474,13 +2506,15 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
    soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
 
-   ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  !1000.0 to m/s
+   where(canopy%sublayer_dz .ge. 1.0e-7) 
+      ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  
                          300.0 )
-
-   ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),&  !1000.0 to m/s
+      ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
                          300.0 )
-
-
+   elsewhere
+      ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,300.0)
+      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,300.0)
+   endwhere
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 
       ssnow%rtevap_sat = 0.0
