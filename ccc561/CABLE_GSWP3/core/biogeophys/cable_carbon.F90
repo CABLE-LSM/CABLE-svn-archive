@@ -315,6 +315,7 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
    TYPE (met_type), INTENT(IN)              :: met
    TYPE (canopy_type), INTENT(OUT)          :: canopy
 
+   INTEGER :: i
    REAL, DIMENSION(mp) ::                                                      &
       poolcoef1,     &! non-leaf carbon turnover rate * non-leaf pool size
       poolcoef1w,    & ! wood carbon turnover rate * wood pool size
@@ -334,9 +335,11 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
    poolcoef1r=(sum(spread(bgc%ratecp,1,mp)*bgc%cplant,2) -                     &
         bgc%ratecp(1)*bgc%cplant(:,1) - bgc%ratecp(2)*bgc%cplant(:,2))
 
-   tmp1(:) = 3.22 - 0.046 * (met%tk(:)-C%TFRZ)
-   tmp2(:) = 0.1 * (met%tk(:)-C%TFRZ-20.0)
-   tmp3(:) = tmp1(:) ** tmp2(:)
+   do i=1,mp
+     tmp1(i) = max(3.22 - 0.046 * (met%tk(i)-C%TFRZ),1e-6)
+     tmp2(i) = 0.1 * (met%tk(i)-C%TFRZ-20.0)
+     tmp3(i) = tmp1(i) ** tmp2(i)
+   enddo
 
    canopy%frp  = veg%rp20 * tmp3 * poolcoef1  / sec_per_year 
    canopy%frpw = veg%rp20 * tmp3 * poolcoef1w / sec_per_year
