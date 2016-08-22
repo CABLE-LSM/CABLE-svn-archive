@@ -265,8 +265,6 @@ CONTAINS
          CALL abort('Latitudes read from '//TRIM(filename%type)// &
          ' are not [-90,90]! Please set.')
 
-    print*, 'Min/Max inLon: ', minval(inLon), maxval(inLon)
-
     ok = NF90_INQ_VARID(ncid, 'iveg', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
     ok = NF90_GET_VAR(ncid, varID, idummy)
