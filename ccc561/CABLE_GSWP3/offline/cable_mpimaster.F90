@@ -450,7 +450,8 @@ SUBROUTINE mpidrv_master (comm)
 
       canopy%oldcansto=canopy%cansto
 
-      imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)
+      !ccc Can't use imet before putting values in it the first time-step!
+      if (iktau/=1) imet%ofsd = imet%fsd(:,1) + imet%fsd(:,2)
 
       ! MPI: flip ktau_gl
       !tmp_kgl = ktau_gl
