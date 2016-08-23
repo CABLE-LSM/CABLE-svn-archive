@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Routines to pass UM variables into appropriate CABLE variables and 
 !          to map parameters for each surface type to CABLE arrays
 !
@@ -33,94 +25,105 @@ MODULE cable_um_init_subrs_mod
 
 CONTAINS
 
-!jhan: code under development for future release
-!   subroutine initialize_maps(latitude,longitude, tile_index_mp)
-!      use cable_data_module, only : cable, const 
-!      use cable_um_tech_mod, only : um1
-!      use define_dimensions, only : mp
-!
-!      use cable_diag_module, only : cable_diag 
-!      use cable_common_module, only : ktau_gl, knode_gl, cable_user 
-!         
-!      implicit none
-!      real, intent(in), dimension(um1%row_length,um1%rows) :: &
-!         latitude, longitude
-!      integer, intent(in), dimension(um1%land_pts, um1%ntiles) :: &
-!         tile_index_mp  ! index of tile
-!          
-!      logical, save :: first_call = .true.
-!      
-!      INTEGER :: j
-!
-!      real :: dlon
-!      real, dimension(um1%row_length) :: tlong,acoslong
-!      real, dimension(um1%row_length, um1%rows) :: new_longitude
-!
-!
-!           
-!            allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
-!
-!            !-------------------------------------   
-!            !---make indexes for tile, lat, lon
-!            !-------------------------------------   
-!           
-!            !--- get latitude index corresponding to cable points
-!            call um2cable_rr( (asin(latitude)/const%math%pi180), cable%lat )
-!
-!            !--- get longitude index corresponding to cable points.
-!            !--- this is not so straight forward as UM longitude index 
-!            !--- contains ambiguity. thus define "new_longitude" first
-!            acoslong =  acos( longitude(:,1) ) /const%math%pi180  
-!       
-!            tlong(1) = acoslong(1)
-!            do j=2, um1%row_length
-!               if( acoslong(j) < acoslong(j-1) ) then  
-!                  dlon = acoslong(j) - acoslong(j-1)
-!                  tlong(j) = tlong(j-1) - dlon   
-!               else 
-!                  tlong(j) = acoslong(j)
-!               endif           
-!            enddo
-!            
-!            do j=1, um1%row_length
-!               new_longitude(j,:) = tlong(j)
-!            enddo
-!            
-!            call um2cable_rr( new_longitude, cable%lon )
-!         
-!         
-!            !--- get tile index/fraction  corresponding to cable points
-!            cable%tile = pack(tile_index_mp, um1%l_tile_pts)
-!            cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
-!
-!         !--- write all these maps.  cable_user%initialize_mapping can be 
-!         !--- set in namelist cable.nml
-!         if ( cable_user%initialize_mapping ) then
-!            !write indexes for tile, lat, lon
-!            call cable_diag( 1, 'latitude', um1%rows, 1, ktau_gl,  & 
-!                  knode_gl, 'latitude', ( asin( latitude(1,:) ) /const%math%pi180 ) ) 
-!            
-!            call cable_diag( 1, 'longitude', um1%row_length, 1, ktau_gl,  & 
-!                  knode_gl, 'longitude', ( new_longitude(:,1) ) ) 
-!        
-!            !write indexes for tile, lat, lon
-!            call cable_diag( 1, 'lat_index', mp, 1, ktau_gl,  & 
-!                  knode_gl, 'lat', cable%lat )
-!            call cable_diag( 1, 'lon_index', mp, 1, ktau_gl,  & 
-!                  knode_gl, 'lon', cable%lon )
-!            
-!            !this should be integer-ed. typecast for now
-!            call cable_diag( 1, 'tile_index', mp, 1, ktau_gl,  & 
-!                  knode_gl, 'tile', real(cable%tile) )
-!            
-!            call cable_diag( 1, 'tile_frac', mp, 1, ktau_gl,  & 
-!                  knode_gl, 'tile_frac', cable%tile_frac )
-!            
-!          endif  
-!         
-!      
-!      return
-!   end subroutine initialize_maps
+   subroutine initialize_maps(latitude,longitude, tile_index_mp)
+      use cable_data_module, only : cable
+      use cable_um_tech_mod, only : um1
+      use cable_def_types_mod, only : mp
+
+      use cable_diag_module, only : cable_diag 
+      use cable_common_module, only : ktau_gl, knode_gl, cable_user 
+         
+      implicit none
+      real, intent(in), dimension(um1%row_length,um1%rows) :: &
+         latitude, longitude
+      integer, intent(in), dimension(um1%land_pts, um1%ntiles) :: &
+         tile_index_mp  ! index of tile
+          
+      logical, save :: first_call = .true.
+      
+      INTEGER :: i, j
+
+      real :: dlon
+      real, dimension(um1%row_length) :: tlong,acoslong
+      real, dimension(um1%row_length, um1%rows) :: new_longitude
+
+      integer, save :: iDiag0, iDiag1, iDiag2, iDiag3, iDiag4, iDiag5 
+
+           
+            allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
+
+            !-------------------------------------   
+            !---make indexes for tile, lat, lon
+            !-------------------------------------   
+           
+            !--- get latitude index corresponding to cable points
+            call um2cable_rr( (asin(latitude)/cable%const%math%pi180), cable%lat )
+
+            !--- get longitude index corresponding to cable points.
+            !--- this is not so straight forward as UM longitude index 
+            !--- contains ambiguity. thus define "new_longitude" first
+            acoslong =  acos( longitude(:,1) ) /cable%const%math%pi180  
+       
+            tlong(1) = acoslong(1)
+            do j=2, um1%row_length
+               if( acoslong(j) < acoslong(j-1) ) then  
+                  dlon = acoslong(j) - acoslong(j-1)
+                  tlong(j) = tlong(j-1) - dlon   
+               else 
+                  tlong(j) = acoslong(j)
+               endif           
+            enddo
+            
+            do j=1, um1%row_length
+               new_longitude(j,:) = tlong(j)
+            enddo
+            
+            call um2cable_rr( new_longitude, cable%lon )
+         
+         
+            !--- get tile index/fraction  corresponding to cable points
+            cable%tile = pack(tile_index_mp, um1%l_tile_pts)
+            cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
+
+         !--- write all these maps.  cable_user%initialize_mapping can be 
+         !--- set in namelist cable.nml
+         !if ( cable_user%initialize_mapping ) then
+            !write indexes for tile, lat, lon
+      !do i=1, um1%row_length      
+      !   do j=1, um1%rows     
+      !      !if( latitude(i,j) > 0. ) & 
+      !      !   print *, "jhan: _init_ sin_theta_latitude ", &
+      !      !            asin( latitude(i,j) ) /cable%const%math%pi180
+      !      if( new_longitude(i,j) > 0. ) & 
+      !         print *, "jhan: _init_ longitude ", new_longitude(i,j)
+      !   enddo
+      !enddo
+ 
+            print *, "jhan: _init_ latitude ", shape(latitude), um1%rows
+            call cable_diag( iDiag0, 'latitude', um1%rows, 1, ktau_gl,  & 
+                  knode_gl, 'latitude', ( asin( latitude(1,:) ) /cable%const%math%pi180 ) ) 
+            
+            call cable_diag( iDiag1, 'longitude', um1%row_length, 1, ktau_gl,  & 
+                  knode_gl, 'longitude', ( new_longitude(:,1) ) ) 
+        
+            !write indexes for tile, lat, lon
+            call cable_diag( iDiag2, 'lat_index', mp, 1, ktau_gl,  & 
+                  knode_gl, 'lat', cable%lat )
+            call cable_diag( iDiag3, 'lon_index', mp, 1, ktau_gl,  & 
+                  knode_gl, 'lon', cable%lon )
+            
+            !this should be integer-ed. typecast for now
+            call cable_diag( iDiag4, 'tile_index', mp, 1, ktau_gl,  & 
+                  knode_gl, 'tile', real(cable%tile) )
+            
+            call cable_diag( iDiag5, 'tile_frac', mp, 1, ktau_gl,  & 
+                  knode_gl, 'tile_frac', cable%tile_frac )
+            
+          !endif  
+         
+      
+      return
+   end subroutine initialize_maps
   
   
         
@@ -209,7 +212,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! parameter b in Campbell equation 
          CALL um2cable_lp( BEXP, soilin%bch, soil%bch, soil%isoilm)
          
-         ALLOCATE( tempvar(um1%land_pts), tempvar2(mp) )
+         ALLOCATE( tempvar(mstype), tempvar2(mp) )
          tempvar = soilin%sand(9) * 0.3  + soilin%clay(9) *0.25 +              &
                    soilin%silt(9) * 0.265
          
@@ -388,34 +391,55 @@ END SUBROUTINE init_respiration
 !========================================================================
 
 SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
+   USE cable_common_module, ONLY : vegin, init_veg_from_vegin
    USE cable_um_tech_mod,   ONLY : veg, soil 
    USE cable_def_types_mod, ONLY : mp
 
-   INTEGER :: k
+   INTEGER :: j, k
 
-      !jhan:UM reads from ancil. & resets thru kblum_veg   
-      veg%canst1  = vegin%canst1(veg%iveg)
-      veg%ejmax   = 2.*vegin%vcmax(veg%iveg)
-      veg%frac4   = vegin%frac4(veg%iveg)
-      veg%tminvj  = vegin%tminvj(veg%iveg)
-      veg%tmaxvj  = vegin%tmaxvj(veg%iveg)
-      veg%vbeta   = vegin%vbeta(veg%iveg)
-      veg%rp20    = vegin%rp20(veg%iveg)
-      veg%rpcoef  = vegin%rpcoef(veg%iveg)
-      veg%shelrb  = vegin%shelrb(veg%iveg)
-      veg%vegcf   = vegin%vegcf(veg%iveg)
-      veg%extkn   = vegin%extkn(veg%iveg)
-      veg%vcmax   = vegin%vcmax(veg%iveg)
-      veg%xfang   = vegin%xfang(veg%iveg)
-      veg%dleaf   = vegin%dleaf(veg%iveg)
-      veg%xalbnir = vegin%xalbnir(veg%iveg)
-      veg%rs20 = vegin%rs20(veg%iveg)
+   CALL init_veg_from_vegin(1, mp, veg) 
 
-      do k=1,2
-        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
-        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
-      enddo
+      !do j=1,mp
+      !   veg%canst1(j)   = vegin%canst1(veg%iveg(j) )
+      !   veg%ejmax(j)    = 2.*vegin%vcmax(veg%iveg(j) )
+      !   veg%frac4(j)    = vegin%frac4(veg%iveg(j) )
+      !   veg%tminvj(j)   = vegin%tminvj(veg%iveg(j) )
+      !   veg%tmaxvj(j)   = vegin%tmaxvj(veg%iveg(j) )
+      !   veg%vbeta(j)    = vegin%vbeta(veg%iveg(j) )
+      !   veg%rp20(j)     = vegin%rp20(veg%iveg(j) )
+      !   veg%rpcoef(j)   = vegin%rpcoef(veg%iveg(j) )
+      !   veg%shelrb(j)   = vegin%shelrb(veg%iveg(j) )
+      !   veg%vegcf(j)    = vegin%vegcf(veg%iveg(j) )
+      !   veg%extkn(j)    = vegin%extkn(veg%iveg(j) )
+      !   veg%vcmax(j)    = vegin%vcmax(veg%iveg(j) )
+      !   veg%xfang(j)    = vegin%xfang(veg%iveg(j) )
+      !   veg%dleaf(j)    = vegin%dleaf(veg%iveg(j) )
+      !   veg%xalbnir(j)  = vegin%xalbnir(veg%iveg(j) )
+      !   veg%rs20(j)     = vegin%rs20(veg%iveg(j) )
+ 
+      !   ! jtk561
+      !   veg%g0(j)       = vegin%g0(veg%iveg(j))
+      !   veg%g1(j)       = vegin%g1(veg%iveg(j))
+   
+      !   ! Ammendments to Ticket #2
+      !   veg%a1gs(j)     = vegin%a1gs(veg%iveg(j))
+      !   veg%d0gs(j)     = vegin%d0gs(veg%iveg(j))
+      !   veg%convex(j)   = vegin%convex(veg%iveg(j))
+      !   veg%gswmin(j)   = vegin%gswmin(veg%iveg(j))
+      !   veg%conkc0(j)   = vegin%conkc0(veg%iveg(j))
+      !   veg%conko0(j)   = vegin%conko0(veg%iveg(j))
+      !   veg%ekc(j)      = vegin%ekc(veg%iveg(j))
+      !   veg%eko(j)      = vegin%eko(veg%iveg(j))
+   
+      !   veg%cfrd(j)     = vegin%cfrd(veg%iveg(j)) !never used
+      !   veg%wai(j)      = vegin%wai(veg%iveg(j)) !never used
+
+      !      do k=1,2
+      !        veg%refl(j,k)   = vegin%refl(k,veg%iveg(j) )
+      !        veg%taul(j,k)   = vegin%taul(k,veg%iveg(j) )
+      !      enddo
+
+      !enddo
 
       !froot fixed here for all vegetation types for ACCESS
       !need more flexibility in next version to read in or parameterise
@@ -426,6 +450,7 @@ SUBROUTINE init_veg_pars_fr_vegin()
       veg%froot(:,5) = 0.20
       veg%froot(:,6) = 0.15
 
+      veg%ejmax    = 2.*veg%vcmax
 END SUBROUTINE init_veg_pars_fr_vegin
 
 !========================================================================
@@ -769,7 +794,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
 
       ENDIF ! END: if (first_call)       
 
-     DO J=1, msn
+!     DO J=1, msn
+      DO J=1, 1
 
          WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) ! lakes: remove hard-wired number in future version
             ssnow%wbtot1 = ssnow%wbtot1 + REAL( ssnow%wb(:,J) ) * 1000.0 *     &
@@ -941,11 +967,11 @@ END SUBROUTINE um2cable_rr
 !--- conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
 !--- if the land point is/has an active tile
 SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, mstype
    USE cable_um_tech_mod,   ONLY :um1
   
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: umvar
-   REAL, INTENT(IN), DIMENSION(10) :: defaultin    
+   REAL, INTENT(IN), DIMENSION(mstype) :: defaultin    
    REAL, INTENT(INOUT), DIMENSION(mp) :: cablevar
    INTEGER, INTENT(INOUT), DIMENSION(mp) :: soiltype
    REAL, DIMENSION(:,:), ALLOCATABLE:: fvar   
@@ -955,7 +981,7 @@ SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
          
       ALLOCATE( fvar(um1%land_pts,um1%ntiles) )
       fvar = 0.0
-
+      !hardwired 9= mstype 9 = permafrost
       DO N=1,um1%NTILES
          DO K=1,um1%TILE_PTS(N)
             L = um1%TILE_INDEX(K,N)

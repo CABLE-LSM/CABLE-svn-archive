@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: defines/allocates variables for CASA-CNP
 !
 ! Contact: Yingping.Wang@csiro.au
@@ -102,9 +94,9 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: frootparmb =-0.0485
   REAL(r_2), PARAMETER :: frootparmc = 0.1755
   REAL(r_2), PARAMETER :: xweightalloc = 0.2
-  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
-  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
-  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
+!  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
+!  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
+!  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
 END MODULE casaparm
 
 MODULE casavariable
@@ -127,7 +119,20 @@ MODULE casavariable
                                        kuptake,        &
                                        kminN,          &
                                        kuplabP,        &
-                                       kclabrate
+                                       kclabrate,      &
+                                       xnpmax,         &
+                                       q10soil,        &
+                                       xkoptlitter,    &
+                                       xkoptsoil,      &
+                                       xkplab,         &
+                                       xkpsorb,        &
+                                       xkpocc,         &
+                                       prodptase,      &
+                                       costnpup,       &
+                                       maxfinelitter,  &
+                                       maxcwd,         &             
+                                       nintercept,     &  
+                                       nslope             
 
     REAL(r_2), DIMENSION(:,:),POINTER :: plantrate,     &
                                        rmplant,         &
@@ -262,7 +267,8 @@ MODULE casavariable
   END TYPE casa_met
 
   TYPE casa_balance
-    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,             &
+    REAL(r_2), DIMENSION(:),POINTER   :: FCgppyear,FCnppyear,                 &
+            FCrmleafyear,FCrmwoodyear,FCrmrootyear,FCrgrowyear,               &
             FCrpyear, FCrsyear,FCneeyear,                                     &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear
@@ -331,6 +337,19 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%kminN(mvtype),                  &
            casabiome%KuplabP(mvtype),                &
            casabiome%kclabrate(mvtype),              &
+           casabiome%xnpmax(mvtype),                 &
+           casabiome%q10soil(mvtype),                &
+           casabiome%xkoptlitter(mvtype),            &
+           casabiome%xkoptsoil(mvtype),              &
+           casabiome%xkplab(mso),                    &
+           casabiome%xkpsorb(mso),                   &
+           casabiome%xkpocc(mso),                    &
+           casabiome%prodptase(mvtype),              &
+           casabiome%costnpup(mvtype),               &
+           casabiome%maxfinelitter(mvtype),          &
+           casabiome%maxcwd(mvtype),                 &
+           casabiome%nintercept(mvtype),             &
+           casabiome%nslope(mvtype),                 &
            casabiome%plantrate(mvtype,mplant),       &
            casabiome%rmplant(mvtype,mplant),         &
            casabiome%fracnpptoP(mvtype,mplant),      &
@@ -462,6 +481,10 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
   ALLOCATE(casabal%FCgppyear(arraysize),           &
            casabal%FCnppyear(arraysize),           &
            casabal%FCrpyear(arraysize),            &
+           casabal%FCrmleafyear(arraysize),        &
+           casabal%FCrmwoodyear(arraysize),        &
+           casabal%FCrmrootyear(arraysize),        &
+           casabal%FCrgrowyear(arraysize),         &
            casabal%FCrsyear(arraysize),            &
            casabal%FCneeyear(arraysize),           &
            casabal%FNdepyear(arraysize),           &

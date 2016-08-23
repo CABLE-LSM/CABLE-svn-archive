@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Reads vegetation and soil parameter files, fills vegin, soilin
 !          NB. Most soil parameters overwritten by spatially explicit datasets
 !          input as ancillary file (for ACCESS) or surface data file (for offline)
@@ -41,6 +33,8 @@ MODULE cable_common_module
    CHARACTER(LEN=200) ::                                                       & 
       myhome
 
+   ! switch to calc sil albedo using soil colour - Ticket #27
+   LOGICAL :: calcsoilalbedo = .FALSE. 
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
@@ -62,6 +56,10 @@ MODULE cable_common_module
       
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
+
+      ! Ticket #56
+      CHARACTER(LEN=20) ::                                                     &
+         GS_SWITCH='leuning'
       
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
@@ -71,14 +69,25 @@ MODULE cable_common_module
          DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
          LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
 
+      ! Custom soil respiration - see Ticket #42
+      CHARACTER(LEN=10) ::                                                     &
+         SMRF_NAME,   & ! Soil Moist Respiration Function
+         STRF_NAME      ! Soil Temp Respiration Function
+
       LOGICAL ::                                                               &
          INITIALIZE_MAPPING = .FALSE., & ! 
          CONSISTENCY_CHECK = .FALSE.,  & !
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED  = .FALSE.!
+         CABLE_RUNTIME_COUPLED = .TRUE., & !
+         ! L.Stevens - Test Switches
+         L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
+         L_NEW_RUNOFF_SPEED    = .FALSE., & !
+         L_NEW_REDUCE_SOILEVP  = .FALSE., & !
 
-
+        ! Switch for customized soil respiration - see Ticket #42
+         SRF = .FALSE.
+         
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user
@@ -86,7 +95,7 @@ MODULE cable_common_module
    ! external files read/written by CABLE
    TYPE filenames_type
 
-   CHARACTER(LEN=99) ::                                                        &
+   CHARACTER(LEN=500) ::                                                        &
       met,        & ! name of file for CABLE input
       out,        & ! name of file for CABLE output
       log,        & ! name of file for execution log
@@ -96,6 +105,7 @@ MODULE cable_common_module
       type,       & ! file for default veg/soil type
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
+      soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
       inits,      & ! name of file for initialisations
       soilIGBP      ! name of file for IGBP soil map
 
@@ -155,7 +165,20 @@ MODULE cable_common_module
          extkn,      & ! 
          tminvj,     & !
          tmaxvj,     & !
-         vbeta         !
+         vbeta,      &
+         a1gs,       &
+         d0gs,       &  
+         alpha,      &  
+         convex,     &  
+         cfrd,       &
+         gswmin,     &
+         conkc0,     &
+         conko0,     &
+         ekc,        &
+         eko,        &
+         g0,         & !  Ticket #56
+         g1          !  Ticket #56 
+
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -253,8 +276,13 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
-         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
-         veg_desc( mvtype ) )
+         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
+         veg_desc( mvtype ),                                                   &
+         vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
+         vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
+         vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
+         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
+         vegin%g0( mvtype ), vegin%g1( mvtype ))                ! Ticket #56
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -270,7 +298,7 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             veg_desc(jveg) = vegnametmp 
                
             READ(40,*) vegin%hc(jveg), vegin%xfang(jveg), vegin%width(jveg),   &
-                        &   vegin%length(jveg), vegin%frac4(jveg)
+                           vegin%length(jveg), vegin%frac4(jveg)
             ! only refl(1:2) and taul(1:2) used
             READ(40,*) vegin%refl(1:3,jveg) ! rhowood not used ! BP may2011
             READ(40,*) vegin%taul(1:3,jveg) ! tauwood not used ! BP may2011
@@ -285,6 +313,10 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
+            READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg) 
+            READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg) 
+            
+            READ(40,*) vegin%g0(jveg), vegin%g1(jveg)      ! Ticket #56
 
          END DO
 
@@ -321,6 +353,16 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          READ(40,*) vegin%csoil(2,:)
          READ(40,*) 
          READ(40,*) vegin%ratecp(:,1)
+         READ(40,*) vegin%a1gs
+         READ(40,*) vegin%d0gs           
+         READ(40,*) vegin%alpha          
+         READ(40,*) vegin%convex         
+         READ(40,*) vegin%cfrd           
+         READ(40,*) vegin%gswmin         
+         READ(40,*) vegin%conkc0         
+         READ(40,*) vegin%conko0         
+         READ(40,*) vegin%ekc            
+         READ(40,*) vegin%eko            
             
          ! Set ratecp to be the same for all veg types:
          vegin%ratecp(1,:)=vegin%ratecp(1,1)
@@ -338,6 +380,9 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl(1,:) = 0.07
          vegin%refl(2,:) = 0.425
          vegin%refl(3,:) = 0.0
+
+         READ(40,*) vegin%g0 ! Ticket #56
+         READ(40,*) vegin%g1 ! Ticket #56
 
       ENDIF
 
@@ -442,7 +487,58 @@ SUBROUTINE report_version_no( logn )
 
 END SUBROUTINE report_version_no
 
+SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg) 
+   use cable_def_types_mod, ONLY : veg_parameter_type
+   integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )      
+               fmp     ! local mp, # landpoints       
 
+   type(veg_parameter_type) :: veg
+   
+   integer :: h
+   
+       ! Prescribe parameters for current gridcell based on veg/soil type (which
+       ! may have loaded from default value file or met file):
+       DO h = ifmp, fmp          ! over each patch in current grid
+          veg%frac4(h)    = vegin%frac4(veg%iveg(h))
+          veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
+          veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
+          veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
+          veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
+          veg%canst1(h)   = vegin%canst1(veg%iveg(h))
+          veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
+          veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
+          veg%ejmax(h)    = vegin%ejmax(veg%iveg(h))
+          veg%hc(h)       = vegin%hc(veg%iveg(h))
+          veg%xfang(h)    = vegin%xfang(veg%iveg(h))
+          veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+          veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
+          veg%rp20(h)     = vegin%rp20(veg%iveg(h))
+          veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
+          veg%rs20(h)     = vegin%rs20(veg%iveg(h))
+          veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
+          veg%wai(h)      = vegin%wai(veg%iveg(h))
+          veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
+          veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
+          veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
+          veg%extkn(h)    = vegin%extkn(veg%iveg(h))
+          veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
+          veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
+          veg%g0(h)       = vegin%g0(veg%iveg(h)) ! Ticket #56
+          veg%g1(h)       = vegin%g1(veg%iveg(h)) ! Ticket #56
+          veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
+          veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
+          veg%alpha(h)  = vegin%alpha(veg%iveg(h))
+          veg%convex(h) = vegin%convex(veg%iveg(h))
+          veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
+          veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
+          veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
+          veg%conko0(h) = vegin%conko0(veg%iveg(h))
+          veg%ekc(h)    = vegin%ekc(veg%iveg(h))
+          veg%eko(h)    = vegin%eko(veg%iveg(h))
+          veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
+       END DO ! over each veg patch in land point
+
+END SUBROUTINE init_veg_from_vegin 
 
 END MODULE cable_common_module
 

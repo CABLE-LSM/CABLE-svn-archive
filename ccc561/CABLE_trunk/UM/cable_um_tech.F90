@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Routines to read CABLE namelist, check variables, allocate and 
 !          deallocate CABLE arrays
 !
@@ -75,7 +67,7 @@ MODULE cable_um_tech_mod
    END TYPE derived_veg_pars
 
    INTERFACE check_nmlvar 
-      MODULE PROCEDURE check_chvar, check_intvar
+      MODULE PROCEDURE check_chvar, check_intvar, check_lgvar
    END INTERFACE check_nmlvar 
  
       TYPE(derived_rad_bands), SAVE :: kblum_rad    
@@ -143,6 +135,12 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                         cable_user%LEAF_RESPIRATION)
       CALL check_nmlvar('cable_user%FWSOIL_SWITCH', cable_user%FWSOIL_SWITCH)
       CALL check_nmlvar('cable_user%RUN_DIAG_LEVEL', cable_user%RUN_DIAG_LEVEL)
+      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
+                         cable_user%l_new_roughness_soil)
+      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
+                         cable_user%l_new_roughness_soil)
+      CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
+                         cable_user%l_new_roughness_soil)
 
 END SUBROUTINE cable_um_runtime_vars
 
@@ -179,6 +177,23 @@ SUBROUTINE check_intvar(this_var, val_var)
       ENDIF
 
 END SUBROUTINE check_intvar
+
+SUBROUTINE check_lgvar(this_var, val_var)
+   USE cable_common_module, ONLY : knode_gl
+
+   CHARACTER(LEN=*), INTENT(IN) :: this_var
+   LOGICAL, INTENT(IN) :: val_var
+
+      IF (knode_gl==0) THEN
+         PRINT *, '  '; PRINT *, 'CABLE_log:'
+         PRINT *, '   run time variable - '
+         PRINT *, '  ', trim(this_var)
+         PRINT *, '   defined as - '
+         PRINT *, '  ', (val_var)
+         PRINT *, 'End CABLE_log:'; PRINT *, '  '
+      ENDIf
+
+END SUBROUTINE check_lgvar
     
 !========================================================================= 
 !=========================================================================
@@ -241,7 +256,9 @@ SUBROUTINE dealloc_vegin_soilin()
       DEALLOCATE(vegin%csoil)
       DEALLOCATE(vegin%ratecp)
       DEALLOCATE(vegin%ratecs)
-     
+      DEALLOCATE(vegin%g0)
+      DEALLOCATE(vegin%g1)
+ 
       DEALLOCATE(soilin%silt)
       DEALLOCATE(soilin%clay)
       DEALLOCATE(soilin%sand)

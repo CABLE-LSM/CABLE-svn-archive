@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Calculate roughness lengths as a function of soil and canopy 
 !          parameters
 !
@@ -75,11 +67,14 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
    canopy%rghlai = canopy%vlaiw
 
-   ! Roughness length of bare soil (m):
-   !rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
-   rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us**2/C%GRAV,1.0)
-   !rough%z0soilsn = rough%z0soil 
-   rough%z0soilsn = max(1.e-7,rough%z0soil)
+   ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
+   IF (.not.cable_user%l_new_roughness_soil) THEN
+      rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
+      rough%z0soilsn = rough%z0soil 
+   ELSE
+      rough%z0soil = 0.01*min(1.0,canopy%vlaiw) + 0.02*min(canopy%us**2/C%GRAV,1.0)
+      rough%z0soilsn = max(1.e-7,rough%z0soil)
+   ENDIF
 
     WHERE( ssnow%snowd .GT. 0.01   )  &
      rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)

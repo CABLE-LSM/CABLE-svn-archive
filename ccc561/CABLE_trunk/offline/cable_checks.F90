@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.accessimulator.org.au/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: defines ranges to verify validity of inputs and outputs
 !          checks mass balance and energy balance
 !          switched on/off through namelist variables: check%*
@@ -90,6 +82,8 @@ MODULE cable_checks_module
            ACond = (/0.0,1.0/),                &
            SoilWet = (/-0.4,1.2/),             &
            Albedo = (/0.0,1.0/),               &
+           visAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
+           nirAlbedo = (/0.0,1.0/),            & ! vars intro for Ticket #27
            VegT = (/213.0,333.0/),             &
            SoilTemp = (/213.0,343.0/),         &
            SoilMoist = (/0.0,2000.0/),         &
@@ -144,6 +138,8 @@ MODULE cable_checks_module
            lai = (/0.0,8.0/),                  &
            rp20 = (/0.0,10.0/),                &
            vbeta =(/-999999.0,999999.0/),      &
+           g0 = (/-0.5,0.5/),                  & ! Ticket #56 (must find better range)
+           g1 = (/0.0,20.0/),                  & ! Ticket #56 (must find better range)
            xalbnir = (/0.0,1.5/),              &
            meth = (/0.0,1.0/),                 &
            za =(/0.0,150.0/),                  &
