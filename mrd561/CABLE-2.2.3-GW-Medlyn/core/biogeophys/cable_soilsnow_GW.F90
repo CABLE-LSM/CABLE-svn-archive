@@ -2124,7 +2124,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
       if (wb_unsat .ge. wb_evap_threshold) then
          xx = 1.
       else
-         xx = 0.25 * (1._r_2 - cos(2.0*pi*wb_unsat/(wb_evap_threshold)))**2.0
+         xx = 0.25 * (1._r_2 - cos(pi*wb_unsat/(wb_evap_threshold)))**2.0
       end if
 
       ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
