@@ -140,6 +140,10 @@ PROGRAM cable_offline_driver
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
+      casabnf  = .FALSE.,         & ! TRUE: CALL casa_nfix,
+                                    ! FALSE: non CALL casa_nfix
+
+      ACCESS_format = .TRUE.,    & ! TRUE: grid info file use ACCESS format
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
       l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
@@ -155,6 +159,10 @@ PROGRAM cable_offline_driver
       soilTtemp      
    ! ypw 8april2014   
    integer ipt
+
+   ! added variable by yp wang 7-nov-2012
+   ! BP had values of mloop read in from namelist file (Jun 2013)
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -172,6 +180,9 @@ PROGRAM cable_offline_driver
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  casabnf,          &
+                  mloop,            &
+                  ACCESS_format,    &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
@@ -271,20 +282,22 @@ PROGRAM cable_offline_driver
    ! Open met data and get site information from netcdf file.
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
-   CALL open_met_file( dels, kend, spinup, C%TFRZ )
+!PRINT *, 'before open_met_file'
+   CALL open_met_file( dels, kend, spinup, C%TFRZ, ACCESS_format )
  
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
    ! load from there, with the met file taking precedence. Otherwise, they'll
    ! be chosen from a coarse global grid of veg and soil types, based on 
    ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
+!PRINT *, 'before load_parameters'
    CALL load_parameters( met, air, ssnow, veg, bgc,                            &
                          soil, canopy, rough, rad, sum_flux,                   &
                          bal, logn, vegparmnew, casabiome, casapool,           &
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
-   
+!PRINT *, 'before open_output_file'
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
@@ -321,7 +334,8 @@ PROGRAM cable_offline_driver
          nyear =INT((kend-kstart+1)/(365*ktauday))
    
          canopy%oldcansto=canopy%cansto
-   
+!   PRINT *, 'before get_met_data, ktau = ', ktau
+
          ! Get met data and LAI, set time variables.
          ! Rainfall input may be augmented for spinup purposes:
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
@@ -335,7 +349,7 @@ PROGRAM cable_offline_driver
 
          IF (l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
      
-
+!   PRINT *, 'before cbm'
          ! CALL land surface scheme for this timestep, all grid points:
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
@@ -346,7 +360,7 @@ PROGRAM cable_offline_driver
          ssnow%rnof2 = ssnow%rnof2*dels
          ssnow%runoff = ssnow%runoff*dels
    
-   
+!   PRINT *, 'before bgcdriver'
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
          IF(icycle >0) THEN
@@ -356,14 +370,38 @@ PROGRAM cable_offline_driver
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
-
+!PRINT *, 'after bgcdriver'
+! To test nfix:
+!ipt=1921
+!         ipt = 2058
+!         write(77,701) ktau,veg%iveg(ipt),casabiome%cprodmax1(ipt), casabiome%cprodmax2(ipt), casabiome%nuptakemax(ipt,1), &
+!                            casabiome%nuptakemax(ipt,2), casabiome%kext(ipt), casabiome%sla(ipt),                          &
+!                            casabiome%gp(ipt),casabiome%costnfix(ipt), casabiome%srl(ipt),                                 &
+!                            casabiome%gn(ipt),casabiome%rn(ipt),casabiome%rp(ipt),casabiome%kroot(ipt),                    &
+!                            casabiome%effmb(ipt), casabiome%kn(ipt), casapool%cpool(ipt,:), casapool%npool(ipt,:),casaflux%Nminfix(ipt)
+!          701     format('cable driver: ', 2(i6,2x),100(f10.3,2x))
 !         ipt = 1921 
-!         write(77,701) ktau,veg%iveg(ipt),casamet%glai(ipt), veg%vcmax(ipt)*(1.0e6), canopy%vlaiw(ipt), canopy%fpn(ipt)*(1.0e6), &
-!                            canopy%frday(ipt)*(1.0e06), &
-!                            casapool%cplant(ipt,:),casapool%nplant(ipt,:),casapool%pplant(ipt,:),  &
-!                            casapool%csoil(ipt,:), casapool%nsoil(ipt,:), casapool%psoil(ipt,:), casapool%psoillab(ipt)
-!   
 !701     format('cable driver: ', 2(i6,2x),100(f10.3,2x))
+!open(192,file='nfix_test_1921_'//trim(str(kau))//'.txt')tostring(kau)+".txt')
+!write(192,931)
+!931 format('kau=,veg%iveg(ipt)=,casaflux%Nminfix(ipt)=, casapool%cplant(ipt,:)=,casapool%cpool(ipt,:)=', f12.4)
+!do ipt=1921,1921
+!       ipt =1929
+!       print *,'ipt=,ktau=,veg%iveg(ipt)=,casamet%lat(ipt)=,casamet%lon(ipt)=,casaflux%Nminfix(ipt)= in driver' 
+!       print *, ipt,ktau,veg%iveg(ipt),casamet%lat(ipt),casamet%lon(ipt),casaflux%Nminfix(ipt)
+!       print *, casapool%cplant(ipt,:),casapool%cpool(ipt,:),                                                                                &
+!                casabiome%cprodmax1(veg%iveg(ipt)), casabiome%cprodmax2(veg%iveg(ipt)), casabiome%nuptakemax(veg%iveg(ipt),1),               &
+!                casabiome%nuptakemax(veg%iveg(ipt),2), casabiome%kext(veg%iveg(ipt)), casabiome%sla(veg%iveg(ipt)),                          &
+!                casabiome%gp(veg%iveg(ipt)),casabiome%costnfix(veg%iveg(ipt)), casabiome%srl(veg%iveg(ipt)),                                 &
+!                casabiome%gn(veg%iveg(ipt)),casabiome%rn(veg%iveg(ipt)),casabiome%rp(veg%iveg(ipt)),casabiome%kroot(veg%iveg(ipt)),          &
+!                casabiome%thetaxnp(veg%iveg(ipt)),casabiome%effmb(veg%iveg(ipt)),casabiome%kn(veg%iveg(ipt)),                                &
+!                casapool%nplant(ipt,:),casapool%npool(ipt,:),                                                                                &
+!                casapool%csoil(ipt,:),casapool%nsoil(ipt,:),                                                                                 &
+!                casapool%clitter(ipt,:),casapool%nlitter(ipt,:)
+ 
+!enddo
+!932 format(i4,40(f10.4,2x))
+!CLOSE(192)
 
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
@@ -371,13 +409,16 @@ PROGRAM cable_offline_driver
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
    
+!         print *, "before write_output (pengj)ktau= ",ktau
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
          IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
             CALL write_output( dels, ktau, met, canopy, ssnow,                    &
-                               rad, bal, air, soil, veg, C%SBOLTZ, &
+                               rad, casapool, casaflux, bal, air, soil, veg, C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
+!          print *, "after write_output (pengj)"
+
        END DO ! END Do loop over timestep ktau
 
 
@@ -451,7 +492,7 @@ PROGRAM cable_offline_driver
 
    IF (icycle > 0) THEN
       
-      print *, 'calling poolout'
+!      print *, 'calling poolout'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
 

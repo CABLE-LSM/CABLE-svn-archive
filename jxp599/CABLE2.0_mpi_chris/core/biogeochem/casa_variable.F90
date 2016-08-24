@@ -50,6 +50,8 @@ MODULE casadimension
   INTEGER, PARAMETER :: mpftmax=2          ! max. PFT/cell
   INTEGER, PARAMETER :: mplant = 3         ! plant pools
   INTEGER, PARAMETER :: mlitter= 3         ! litter pools
+  INTEGER, PARAMETER :: ncpool = 8         ! cabon pools of N fixation
+  INTEGER, PARAMETER :: nnpool = 9         ! N pools of N fixation
   INTEGER, PARAMETER :: msoil  = 3         ! soil pools
   INTEGER, PARAMETER :: mso    = 12        ! soil order number
 ! BP put icycle into namelist file
@@ -120,6 +122,20 @@ MODULE casavariable
                                        glaimax,        &
                                        glaimin,        &
                                        sla,            &
+                                       thetaxnp,       &
+                                       nfixratex,      &
+                                       fracnf,         &
+                                       gn,             &
+                                       gp,             &
+                                       rn,             &
+                                       rp,             &
+                                       kn,             &
+                                       kext,           &
+                                       effmb,          &
+                                       srl,            &
+                                       cprodmax1,      &
+                                       cprodmax2,      &
+                                       costnfix,       &
                                        ratiofrootleaf, &
                                        kroot,          &
                                        krootlen,       &
@@ -141,7 +157,8 @@ MODULE casavariable
                                        maxcwd,         &             
                                        nintercept,     &  
                                        nslope             
-
+    REAL(r_2), DIMENSION(:,:),POINTER :: ratetvx       
+    REAL(r_2), DIMENSION(:,:),POINTER :: nuptakemax
     REAL(r_2), DIMENSION(:,:),POINTER :: plantrate,     &
                                        rmplant,         &
                                        fracnpptoP,      &
@@ -163,6 +180,8 @@ MODULE casavariable
                                        dClabiledt               
     REAL(r_2), DIMENSION(:,:),POINTER :: Cplant,      &
                                        Nplant,        &
+                                         cpool,       &
+                                         npool,       &
                                        Pplant,        &
                                        dCplantdt,     &
                                        dNplantdt,     &
@@ -333,6 +352,7 @@ MODULE casavariable
 ! Added filename type for casaCNP (BP apr2010)
   TYPE casafiles_type
     CHARACTER(LEN=99) :: cnpbiome    ! file for biome-specific BGC parameters
+    CHARACTER(LEN=99) :: cnpnfix     ! file for nfix-specific  parameters
     CHARACTER(LEN=99) :: cnppoint    ! file for point-specific BGC inputs
     CHARACTER(LEN=99) :: cnpepool    ! file for end-of-run pool sizes
     CHARACTER(LEN=99) :: cnpipool    ! file for inital pool sizes
@@ -374,6 +394,22 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casabiome%glaimax(mvtype),                &
            casabiome%glaimin(mvtype),                &
            casabiome%sla(mvtype),                    &
+           casabiome%thetaxnp(mvtype),               &
+           casabiome%ratetvx(mvtype,8),              &
+           casabiome%nfixratex(mvtype),              &
+           casabiome%fracnf(mvtype),                 &
+           casabiome%gn(mvtype),                     &
+           casabiome%rn(mvtype),                     &
+           casabiome%gp(mvtype),                     &
+           casabiome%rp(mvtype),                     &
+           casabiome%kn(mvtype),                     &
+           casabiome%effmb(mvtype),                  &
+           casabiome%kext(mvtype),                   &
+           casabiome%srl(mvtype),                    &
+           casabiome%cprodmax1(mvtype),              &
+           casabiome%cprodmax2(mvtype),              &
+           casabiome%costnfix(mvtype),               &
+           casabiome%nuptakemax(mvtype,2),           &
            casabiome%ratiofrootleaf(mvtype),         &
            casabiome%kroot(mvtype),                  &
            casabiome%krootlen(mvtype),               &
@@ -414,6 +450,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casapool%dClabiledt(arraysize),            &
            casapool%Cplant(arraysize,mplant),         &
            casapool%Nplant(arraysize,mplant),         &
+           casapool%cpool(arraysize,ncpool),          &
+           casapool%npool(arraysize,nnpool),          &
            casapool%Pplant(arraysize,mplant),         &
            casapool%dCplantdt(arraysize,mplant),      &
            casapool%dNplantdt(arraysize,mplant),      &

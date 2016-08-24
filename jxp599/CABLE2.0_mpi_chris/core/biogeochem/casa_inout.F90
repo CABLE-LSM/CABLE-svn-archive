@@ -89,8 +89,22 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
                                         xcostnpup,xmaxfinelitter,xmaxcwd,xnintercept,xnslope
   REAL(r_2), DIMENSION(mso)          :: xxkplab,xxkpsorb,xxkpocc
  
+!Nfix variables
+  INTEGER :: j,k,m,ipj
+  REAL(r_2), DIMENSION(mvtype,8)            :: ratetvx_pengj
+! REAL(r_2), DIMENSION(mvtype)              :: fracnf_pengj
+  REAL(r_2), DIMENSION(mvtype)              :: gn_pengj,rn_pengj,gp_pengj,rp_pengj,kn_pengj,effmb_pengj,kext_pengj, &
+                                               srl_pengj,nfixratex_pengj,                                           &
+                                               cprodmax1_pengj,cprodmax2_pengj,costnfix_pengj
+  REAL(r_2), DIMENSION(mvtype)              :: tmp_pengj,fracnf_pengj,thetaxnp_pengj
+! REAL                                      :: tmp_pengj,fracnf_pengj 
+  REAL(r_2), DIMENSION(mvtype,8)            :: tmp_pengj2
+  REAL(r_2), DIMENSION(mvtype,2)            :: nuptakemax_pengj
 
   OPEN(101,file=casafile%cnpbiome)
+!!  OPEN(103,file='/home/pen231/nfix_data/fracnfix.pam') !add fraction of Nfix
+
+!  OPEN(102,file='add file namehere.txt')!add parameter file for n fixation subroutine
   DO i=1,3
     READ(101,*) 
   ENDDO
@@ -395,7 +409,67 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 !         casapool%Psoil(npt,:),casapool%psoilsorb(npt), &
 !         casaflux%psorbmax(npt),casapool%psoillab(npt),casaflux%kmlabp(npt)
 !  ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Reading biome of  N Fixaiton
+!OPEN(104,file='/home/pen231/nfix_data/fracnfix.pam') !add fraction of Nfix
+!READ(104,*) 
+!READ(104,*) fracnf_pengj(1),tmp_pengj(1),tmp_pengj(1),tmp_pengj(1),tmp_pengj(1)
+!CLOSE(104)
+!DO nv=1,mvtype
+!     casabiome%fracnf(nv) = fracnf_pengj(1)
+!ENDDO
 
+!!DO nv=1,mvtype
+    open(102,file='/home/pen231/nfix_data/casanfix_pengj2.pam')
+    READ(102,*)
+    READ(102,*)
+    DO nv=1,mvtype
+       READ(102,*) nv1,fracnf_pengj(nv),nfixratex_pengj(nv),                &
+                   cprodmax1_pengj(nv),cprodmax2_pengj(nv),                 &
+                   nuptakemax_pengj(nv,1),nuptakemax_pengj(nv,2),           &
+                   kext_pengj(nv),srl_pengj(nv),                            &
+                   gp_pengj(nv),gn_pengj(nv),rn_pengj(nv),rp_pengj(nv),     &
+                   effmb_pengj(nv),kn_pengj(nv),                            &
+                   costnfix_pengj(nv), thetaxnp_pengj(nv)
+!     PRINT *, 'nv1',nv,nv1
+     ENDDO
+     READ(102,*)
+     DO nv=1,mvtype
+     READ(102,*) nv2,                                                          &
+                   ratetvx_pengj(nv,1),ratetvx_pengj(nv,2),ratetvx_pengj(nv,3),&
+                   ratetvx_pengj(nv,4),ratetvx_pengj(nv,5),ratetvx_pengj(nv,6),&
+                   ratetvx_pengj(nv,7),ratetvx_pengj(nv,8)
+!     PRINT *, 'nv2', nv2
+      enddo
+      close(102)
+      DO nv=1,mvtype
+         casabiome%fracnf(nv) = fracnf_pengj(nv)
+         casabiome%nfixratex(nv)=nfixratex_pengj(nv)        ! /365.
+         casabiome%cprodmax1(nv)=cprodmax1_pengj(nv)        !/365.
+         casabiome%cprodmax2(nv)=cprodmax2_pengj(nv)        ! /365.
+         casabiome%nuptakemax(nv,1)=nuptakemax_pengj(nv,1)  ! /365.
+         casabiome%nuptakemax(nv,2)=nuptakemax_pengj(nv,2)  !  /365.
+         casabiome%kext(nv) = kext_pengj(nv)
+         casabiome%srl(nv) = srl_pengj(nv)
+        ! casabiome%kroot(nv)=kroot_pengj(nv)
+         casabiome%gp(nv)=gp_pengj(nv)
+         casabiome%gn(nv)=gn_pengj(nv)
+         casabiome%rn(nv)=rn_pengj(nv)
+         casabiome%rp(nv)=rp_pengj(nv)
+         casabiome%effmb(nv)=effmb_pengj(nv)
+         casabiome%kn(nv)=kn_pengj(nv)
+         casabiome%costnfix(nv)=costnfix_pengj(nv)
+         casabiome%thetaxnp(nv)=thetaxnp_pengj(nv)
+       !      print*, "check N fixation casabiome%costnfix(nv) input"
+       !      print*, nv,casabiome%costnfix(nv)
+         do i=1,8
+            casabiome%ratetvx(nv,i)=ratetvx_pengj(nv,i)
+         enddo
+      ENDDO
+!      CLOSE(102)
+     !    print *, "after reading nfix casabiome%" 
+     !    compute C, N P pool for non-legume and legume plants
+!!ENDDO
+!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 END SUBROUTINE casa_readbiome
 
 SUBROUTINE casa_readphen(veg,casamet,phen)
@@ -680,8 +754,8 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
   INTEGER   :: nyearz,ivtz,istz,isoz
   REAL(r_2) :: latz,lonz,areacellz,glaiz,slaz
 
-  PRINT *, 'initial pool from ',TRIM(casafile%cnpipool)
-  PRINT *, 'icycle,initcasa,mp ', icycle,initcasa,mp
+!!  PRINT *, 'initial pool from ',TRIM(casafile%cnpipool)
+!!  PRINT *, 'icycle,initcasa,mp ', icycle,initcasa,mp
   !phen%phase = 2
   IF (initcasa==1) THEN
     OPEN(99,file=casafile%cnpipool)
@@ -713,9 +787,9 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
       END SELECT 
       IF (ABS(patch(npt)%longitude - lonz) > 0.9 .OR. &
           ABS(patch(npt)%latitude  - latz) > 0.9) THEN
-        PRINT *, 'patch(npt)%longitude, lonz:', patch(npt)%longitude, lonz
-        PRINT *, 'patch(npt)%latitude,  latz:', patch(npt)%latitude,  latz
-        PRINT *, 'npt = ', npt
+    !!    PRINT *, 'patch(npt)%longitude, lonz:', patch(npt)%longitude, lonz
+    !!    PRINT *, 'patch(npt)%latitude,  latz:', patch(npt)%latitude,  latz
+    !!    PRINT *, 'npt = ', npt
         STOP
       ENDIF
     ENDDO
@@ -854,10 +928,10 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
 !  DATA fracPorg/0.25,0.30,0.05,0.15,0.17,0.34,0.41,0.19,0.20,0.43,0.26,0.12/
 !  DATA xpsoil50/1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0/
 
-  PRINT *, 'Within casa_poolout, mp = ', mp
+!  PRINT *, 'Within casa_poolout, mp = ', mp
   nout=103
   OPEN(nout,file=casafile%cnpepool)
-  PRINT *, 'Opened file ', casafile%cnpepool
+!  PRINT *, 'Opened file ', casafile%cnpepool
 
   casabal%sumcbal=MIN(9999.0,MAX(-9999.0,casabal%sumcbal))
   casabal%sumnbal=MIN(9999.0,MAX(-9999.0,casabal%sumnbal))
@@ -971,7 +1045,7 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 !  clitterinput = clitterinput * xyear
 !  csoilinput   = csoilinput   * xyear
 
-  print *, 'writing CNP fluxes out to file ', casafile%cnpflux
+!!  print *, 'writing CNP fluxes out to file ', casafile%cnpflux
   OPEN(nout,file=casafile%cnpflux)
     DO npt =1,mp
       SELECT CASE(icycle)
@@ -1016,7 +1090,7 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
       totNPP = totNPP+casabal%Fcnppyear(npt)* casamet%areacell(npt)
     ENDDO
 
-    print *, 'totGPP global = ', totGPP*(1.0e-15)
+!!    print *, 'totGPP global = ', totGPP*(1.0e-15)
     print *, 'totNPP global = ', totNPP*(1.0e-15)
   CLOSE(nout)
 92    format(5(i6,',',2x),100(f15.6,',',2x))
@@ -1074,11 +1148,11 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal)
 
 END SUBROUTINE casa_cnpflux
 ! changed by yp wang following Chris Lu 5/nov/2012
-SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+SUBROUTINE biogeochem(ktau,dels,idoy,veg,met,soil,casabiome,casapool,casaflux, &
                       casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,casabnf)
   USE cable_def_types_mod
   USE casadimension
   USE casa_cnp_module
@@ -1086,6 +1160,8 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   INTEGER, INTENT(IN)    :: ktau
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: idoy
+! logical variable
+  LOGICAL, INTENT(IN)   :: casabnf ! using Nitrogen fixation casa_nfix
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters  
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
@@ -1094,6 +1170,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   TYPE (casa_met),              INTENT(INOUT) :: casamet
   TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (phen_variable),         INTENT(INOUT) :: phen
+  TYPE (met_type),              INTENT(INOUT) :: met ! meteorological data
 
   ! local variables added by ypwang following Chris Lu 5/nov/2012
 
@@ -1107,7 +1184,6 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
-
   npt=5270   
 !  write(77,702) npt, casapool%pplant(npt,:), casapool%psoil(npt,:), casapool%psoillab(npt)
 !702 format('before pools', i6,20(f10.4,2x))
@@ -1115,10 +1191,12 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
   call avgsoil(veg,soil,casamet)
+!  print*,'before rplant',casaflux%cgpp(1656),casapool%cplant(1656,:),casapool%clitter(1656,:),casapool%csoil(1656,:)
   call casa_rplant(veg,casabiome,casapool,casaflux,casamet)
 
 !  write(77,701)  npt, casaflux%cgpp(npt),casaflux%cnpp(npt),casaflux%fracCalloc(npt,:)
 
+!  print*,'before allocation',casaflux%cgpp(1656),casapool%cplant(1656,:),casapool%clitter(1656,:),casapool%csoil(1656,:)
   call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
@@ -1149,8 +1227,21 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
     IF (icycle >2) call casa_puptake(veg,xkNlimiting,casabiome, &
                                      casapool,casaflux,casamet)
   ENDIF 
-
+ ! !N fixation to study N fixation added by J. PENG 20/Apr/2016
+!!  print *, "before casa_nfix"
+!!  IF (idoy == 1) then 
+!! cacelling casa_nfix in order to simulate BNF at 1901 level 
+!!       call casa_nfix(veg,casabiome,casapool,casaflux,casamet,met)
+!!  ENDIF
+!!  print *, "after casa_nfix"
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ ! !N fixation to study N fixation added by J. PENG 20/Apr/2016
+   IF(casabnf)THEN
+         CALL casa_nfix(veg,casabiome,casapool,casaflux,casamet,met)
+   END IF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! changed by ypwang following Chris Lu on 5/nov/2012
+!!!!  print*,'before delplant',casaflux%cgpp(1656),casapool%cplant(1656,:),casapool%clitter(1656,:),casapool%csoil(1656,:)
   call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
@@ -1160,8 +1251,10 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
   !  call casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
+!!  print*,'before delsoil',casaflux%cgpp(1656),casapool%cplant(1656,:),casapool%clitter(1656,:),casapool%csoil(1656,:)
   call casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
 
+!!  print*,'before cnpcycle',casaflux%cgpp(1656),casapool%cplant(1656,:),casapool%clitter(1656,:),casapool%csoil(1656,:)
   call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
   ! modified by ypwang following Chris Lu on 5/nov/2012
 
@@ -1175,7 +1268,8 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
   ! for spinning up only
   ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-  ! casapool%Psoillab = max(casapool%Psoillab,0.1)
+  ! Uncommonment casapool%Psoillab = max(casapool%Psoillab,0.1) in order to consider the effect of P
+   casapool%Psoillab = max(casapool%Psoillab,0.1)
 
 
 !  write(77,701) ktau/24,casapool%cplant(npt,:), casapool%nplant(npt,:), casapool%pplant(npt,:), &

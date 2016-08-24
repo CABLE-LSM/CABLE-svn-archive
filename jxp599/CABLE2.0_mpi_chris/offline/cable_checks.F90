@@ -121,6 +121,9 @@ MODULE cable_checks_module
            Csoil   = (/-10,100000/),           &
            Clitter = (/-10,100000/),           &
            Nplant = (/-10,1000/),              &
+           cpool  = (/-10,1000/),              &
+           npool  = (/-10,1000/),              &
+           Nminfix  = (/-10,1000/),            &
            Nlitter = (/-10,1000/),             &
            Nsoil = (/-10,1000/),               &
            fromLeaftoL = (/0,1/),              &

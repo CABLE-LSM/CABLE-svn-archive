@@ -212,10 +212,12 @@ SUBROUTINE mpidrv_master (comm)
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
+      casabnf  = .FALSE.,         & ! TRUE:  Will call casa_nfix,
       ACCESS_format = .TRUE.,    & ! TRUE: grid info file use ACCESS format
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
+      l_vcmaxFeedbk = .FALSE.,    &  ! using prognostic Vcmax
+      l_casabnf = .FALSE.           ! using prognostic Nfixiation
    
    
    REAL              :: &  
@@ -241,7 +243,7 @@ SUBROUTINE mpidrv_master (comm)
    REAL xtotal
 
    ! added variables by yp wang 7-npov-2012
-   INTEGER :: mloop
+   INTEGER :: mloop = 20   !Chang mloop form 5 into 20 by Jing PENG 20/May/2016
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -259,10 +261,13 @@ SUBROUTINE mpidrv_master (comm)
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  casabnf,          &
+                  mloop,            &
                   ACCESS_format,    &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
+                  l_casabnf,        &
                   icycle,           &
                   casafile,         &
                   ncciy,            &
@@ -364,11 +369,11 @@ SUBROUTINE mpidrv_master (comm)
    if(icycle>0) then
     !  print *, 'mp mstype mvtype = ',mp,mstype,mvtype
      if (spincasa) then
-      mloop = 5
-      print *, 'spincasacnp enabled with mloop= ', mloop
+      mloop = 20   !!Chang mloop from 5 into 20
+      !print *, 'spincasacnp enabled with mloop= ', mloop
       ! CALL read_casa_dump(casafile%dump_cnpspin, casamet, casaflux, kstart, kend)
-      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
+      call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,met,soil,casabiome,casapool, &
+                       casaflux,casamet,casabal,phen,l_casabnf)
      endif
    endif
 
@@ -475,9 +480,9 @@ SUBROUTINE mpidrv_master (comm)
    ! MPI: mostly original serial code follows...
 
    ! Open output file:
-   print*,'opening output'
+   !print*,'opening output'
    CALL open_output_file( dels, soil, veg, bgc, rough )
-   print*,'finsh opening output'
+   !print*,'finsh opening output'
  
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
@@ -695,14 +700,14 @@ SUBROUTINE mpidrv_master (comm)
       END IF
       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
-      print *, 'output BGC pools'
+    !  print *, 'output BGC pools'
       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
                          casapool, casaflux, casamet, casabal, phen )
 
-      print *, 'output BGC fluxes'
+     ! print *, 'output BGC fluxes'
       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
-      print *, 'before ncdf_dump', spinConv, spincasainput
+    !  print *, 'before ncdf_dump', spinConv, spincasainput
       if ( spinConv .AND. spincasainput ) then
            call ncdf_dump( casamet,1,mdyear,trim(casafile%dump_cnpspin) )
       endif
@@ -2535,6 +2540,70 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mvtype * extr2
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%thetaxnp, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%ratetvx, displs(bidx), ierr)
+  blen(bidx) = mvtype * 8 * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nfixratex, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%fracnf, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%gn, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%rn, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%gp, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%rp, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%kn, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%effmb, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%kext, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%srl, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%cprodmax1, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%cprodmax2, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%costnfix, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nuptakemax, displs(bidx), ierr)
+  blen(bidx) = mvtype * 2 * extr2
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casabiome%ratiofrootleaf, displs(bidx), ierr)
   blen(bidx) = mvtype * extr2
 
@@ -2699,6 +2768,18 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   &                             types(bidx), ierr)
   blen(bidx) = 1
   !blen(bidx) = mplant * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%cpool(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (8, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%npool(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (9, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
 
   bidx = bidx + 1
   CALL MPI_Get_address (casapool%Pplant(off,1), displs(bidx), ierr)
@@ -2915,15 +2996,15 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Crp(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
@@ -5138,6 +5219,18 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      blocks(bidx) = 1
 
      bidx = bidx + 1
+     CALL MPI_Get_address (casapool%cpool(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (8, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casapool%npool(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (9, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blocks(bidx) = 1
+
+     bidx = bidx + 1
      CALL MPI_Get_address (casapool%nlitter(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (mlitter, r2len, r2stride, MPI_BYTE, &
      &                             types(bidx), ierr)
@@ -5510,6 +5603,10 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      blocks(bidx) = r2len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (casaflux%xktemp(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
@@ -5533,7 +5630,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
-        WRITE (*,*) 'master: invalid number of casa fields, fix it!'
+        WRITE (*,*) 'master: invalid number of casa fields, fix it! ntyp:',ntyp,' last2d:',last2d,'bidx:',bidx
         CALL MPI_Abort (comm, 1, ierr)
      END IF
 

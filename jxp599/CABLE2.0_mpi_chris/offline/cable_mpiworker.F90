@@ -181,10 +181,13 @@ CONTAINS
                                     ! FALSE: READ input to spin CASA-CNP 
       spincasa = .FALSE.,         & ! TRUE: CASA-CNP Will spin mloop times,
                                     ! FALSE: no spin up
+      casabnf  = .FALSE.,         & ! TRUE:  Will call casa_nfix,
+                                    ! FALSE: no calling casa_nfix
       ACCESS_format = .FALSE.,    & ! TRUE: grid info file use ACCESS format
       l_casacnp = .FALSE.,        & ! using CASA-CNP with CABLE
       l_laiFeedbk = .FALSE.,      & ! using prognostic LAI
-      l_vcmaxFeedbk = .FALSE.       ! using prognostic Vcmax
+      l_vcmaxFeedbk = .FALSE.,    & ! using prognostic Vcmax
+      l_casabnf = .FALSE.           ! using prognostic Nfixation
    
    
    REAL              :: &  
@@ -202,6 +205,7 @@ CONTAINS
    INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
    INTEGER :: ierr
+   INTEGER :: mloop = 20       ! default = 5, to be overwritten by namelist
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -219,10 +223,13 @@ CONTAINS
                   fixedCO2,         &
                   spincasainput,    &
                   spincasa,         &
+                  casabnf,          &
+                  mloop,            &
                   ACCESS_format,    &
                   l_casacnp,        &
                   l_laiFeedbk,      &
                   l_vcmaxFeedbk,    &
+                  l_casabnf,        &
                   icycle,           &
                   casafile,         &
                   ncciy,            &
@@ -438,7 +445,7 @@ CONTAINS
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
-                            .FALSE., .FALSE. )
+                            .FALSE., .FALSE., l_casabnf)
          ENDIF 
    
          ! sumcflux is pulled out of subroutine cbm
@@ -2063,6 +2070,70 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mvtype * extr2
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%thetaxnp, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%ratetvx, displs(bidx), ierr)
+  blen(bidx) = mvtype * 8 * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nfixratex, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%fracnf, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%gn, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%rn, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%gp, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%rp, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%kn, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%effmb, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%kext, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%srl, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%cprodmax1, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%cprodmax2, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%costnfix, displs(bidx), ierr)
+  blen(bidx) = mvtype * extr2
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casabiome%nuptakemax, displs(bidx), ierr)
+  blen(bidx) = mvtype * 2 * extr2
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casabiome%ratiofrootleaf, displs(bidx), ierr)
   blen(bidx) = mvtype * extr2
 
@@ -2223,6 +2294,14 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = mplant * r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casapool%cpool, displs(bidx), ierr)
+  blen(bidx) = ncpool * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%npool, displs(bidx), ierr)
+  blen(bidx) = nnpool * r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casapool%Pplant, displs(bidx), ierr)
   blen(bidx) = mplant * r2len
 
@@ -2365,15 +2444,15 @@ SUBROUTINE worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Crp, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Crgplant, displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (casaflux%Nminfix, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
@@ -5233,6 +5312,14 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   blocks(bidx) = r2len * mplant
 
   bidx = bidx + 1
+  CALL MPI_Get_address (casapool%cpool(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * ncpool
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casapool%npool(off,1), displs(bidx), ierr)
+  blocks(bidx) = r2len * nnpool
+
+  bidx = bidx + 1
   CALL MPI_Get_address (casapool%nlitter(off,1), displs(bidx), ierr)
   blocks(bidx) = r2len * mlitter
 
@@ -5526,6 +5613,10 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Cnpp(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Nminfix(off), displs(bidx), ierr)
   blocks(bidx) = r2len
 
   bidx = bidx + 1

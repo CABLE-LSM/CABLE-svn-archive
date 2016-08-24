@@ -32,7 +32,7 @@
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     spinConv, spinup, ktauday, idoy, dump_read, dump_write )
+                     spinConv, spinup, ktauday, idoy, dump_read, dump_write ,casabnf)
 
    USE cable_def_types_mod
    USE casadimension
@@ -48,7 +48,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER,      INTENT(IN)                  :: idoy ! day of year (1-365)
    INTEGER,      INTENT(IN)                  :: ktauday
    logical,      INTENT(IN) :: spinConv, spinup
-   logical,      INTENT(IN) :: dump_read, dump_write 
+   logical,      INTENT(IN) :: dump_read, dump_write, casabnf 
         
    REAL,         INTENT(IN) :: dels ! time setp size (s)
    TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
@@ -71,7 +71,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 
    !    phen%phase = 2
-   !print*,'ktau,ktauday,dels',ktau,ktauday,dels,canopy%frday,canopy%fpn
+   !!print*,'frday,fpn',canopy%frday(1656),canopy%fpn(1656)
    IF ( .NOT. dump_read ) then
       if(ktau == kstart) then
          casamet%tairk  = 0.0
@@ -128,11 +128,12 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
           casamet%moistspin_6   (:,idoy) = casamet%moist(:,6)
        end if
 
-       CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+      !! print*,'before biogeochem',ktau,veg%iveg(1656),casaflux%cgpp(1656),casapool%cplant(1656,:),casapool%clitter(1656,:),casapool%csoil(1656,:)
+       CALL biogeochem(ktau,dels,idoy,veg,met,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,casabnf)
 
        ! modified ypwang 5/nov/2012 
        !  CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
@@ -154,11 +155,11 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       IF( mod((ktau-kstart+1),ktauday) == 0 )  then
       ! modified yp wang 5/nov/2012
 
-       CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+       CALL biogeochem(ktau,dels,idoy,veg,met,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,casabnf)
 
       !CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
       !                casamet,casabal,phen)
@@ -259,7 +260,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 !      kend   = mdyear
 
 
-      print *, 'yp wang: calling ncdf_dump'
+!!      print *, 'yp wang: calling ncdf_dump'
 !      print *, 'latitude= ', patch(:)%latitude
 !      print *, 'longitude= ', patch(:)%longitude
 !      print *, 'filename= ', ncfile
@@ -272,24 +273,24 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
          ! create netCDF dataset: enter define mode
       ncok = nf90_create(path = ncfile, cmode = nf90_clobber, ncid = ncid)
 
-      print *, 'ncok =', ncok
+!     print *, 'ncok =', ncok
 
 !      ncok = nf90_create(path = 'dump_casamet.nc', cmode = nf90_noclobber, ncid = ncid)
       if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', ncfile)
 !      if (ncok /= nf90_noerr) call stderr_nc('ncdf creating ', 'dump_casamet.nc')
 
-      print *, 'here 1' ,ncid
+!      print *, 'here 1' ,ncid
 
       ! define dimensions: from name and length
 !      write(89,*) 'defining dims'
       call def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
-      print *, 'here 2',varID,num_dims
+ !     print *, 'here 2',varID,num_dims
       ! define variables: from name, type, dims
 !      write(89,*) 'defining vars'
       call def_vars(num_vars, ncid,  nf90_float, dimID, var_name, varID )
 
-      print *, 'here 3',varID,num_vars
+  !    print *, 'here 3',varID,num_vars
       ! define variable attributes
 !      write(89,*) 'defining attribution'
       call def_var_atts(ncfile, ncid, varID )
@@ -473,6 +474,9 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
 
     ENDIF
 
+ !   if(np .eq. 1656)then
+ !      print*,'vcmax',veg%vcmax(np),ncleafx(np),casabiome%nintercept(ivt),casabiome%nslope(ivt),npleafx(np),casabiome%sla(ivt)
+ !   end if
     IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
       IF (ivt/=2) THEN
         veg%vcmax(np) = ( casabiome%nintercept(ivt) &
@@ -610,8 +614,8 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
 
 END SUBROUTINE sumcflux
 
-SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
+SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,met,soil,casabiome,casapool, &
+                       casaflux,casamet,casabal,phen,casabnf)
   USE cable_def_types_mod
   USE cable_carbon_module
   USE casadimension
@@ -624,7 +628,9 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   INTEGER, INTENT(IN)    :: kstart
   INTEGER, INTENT(IN)    :: kend
   INTEGER, INTENT(IN)    :: mloop
+  LOGICAL, INTENT(IN)    :: casabnf
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (met_type),              INTENT(INOUT) :: met  ! met input variables
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
@@ -709,11 +715,11 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
        casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
        casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
 
-       CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+       CALL biogeochem(ktau,dels,idoy,veg,met,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                     cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                     nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                    pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                    pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,casabnf)
 
         WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
            xkNlimiting = 0.001
@@ -797,7 +803,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
     avg_rationcsoilmic  = avg_rationcsoilmic  /real(nday*myearspin)
     avg_rationcsoilslow = avg_rationcsoilslow /real(nday*myearspin)
     avg_rationcsoilpass = avg_rationcsoilpass /real(nday*myearspin)
-
+!!if calbe-mpi-spin the cancel "call analyticpool" J.PENG 
     call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
                           casaflux,casamet,casabal,phen,                                         &
                           avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
@@ -816,7 +822,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   DO nloop=1,mloop
 
   OPEN(91,file=fcnpspin)
-  read(91,*)
+  read(91,*) myearspin
   DO nyear=1,myearspin
      read(91,901) ncfile
      call read_casa_dump(ncfile,casamet,casaflux,ktau,kend)
@@ -841,11 +847,11 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
        casaflux%crmplant(:,1) = casamet%crmplantspin_1(:,idoy)
        casaflux%crmplant(:,2) = casamet%crmplantspin_2(:,idoy)
        casaflux%crmplant(:,3) = casamet%crmplantspin_3(:,idoy)
-       call biogeochem(ktauy,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+       call biogeochem(ktauy,dels,idoy,veg,met,soil,casabiome,casapool,casaflux, &
                       casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,casabnf)
     ENDDO   ! end of idoy
   ENDDO   ! end of nyear
   close(91)
@@ -912,7 +918,7 @@ END SUBROUTINE spincasacnp
   INTEGER  npt,nvt
 
 
-     print *, 'totcnpools', mvtype,mp,mplant, mlitter, msoil
+  !!   print *, 'totcnpools', mvtype,mp,mplant, mlitter, msoil
 
       bmcplant(kloop,:,:)  = 0.0;  bmnplant(kloop,:,:)  = 0.0; bmpplant(kloop,:,:)  = 0.0
       bmclitter(kloop,:,:) = 0.0;  bmnlitter(kloop,:,:) = 0.0; bmplitter(kloop,:,:) = 0.0

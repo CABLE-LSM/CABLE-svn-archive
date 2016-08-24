@@ -1356,8 +1356,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ, ACCESS_format)
        ok=NF90_INQUIRE_VARIABLE(ncid_met,id%LAI, &
             ndims=lai_dims,dimids=laidimids)
        ! If any of LAI's dimensions are the time dimension
-       print*,'laidimids',laidimids
-       print*,'timdimID',timedimID(1)
+       !print*,'laidimids',laidimids
+       !print*,'timdimID',timedimID(1)
        ok = NF90_INQ_DIMID(ncid_met,'time', laitimedimID)
 !       IF(ANY(laidimids==timedimID(1))) THEN
        IF(ok == NF90_NOERR)THEN
@@ -1561,7 +1561,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ, ACCESS_format)
                 ! Set all veg patches in grid cell to be this single type
                 vegtype_metfile(i,:)=data2i(1,1)
              END DO
-             print*,'veg dim 2 vegtype',vegtype_metfile
+             !print*,'veg dim 2 vegtype',vegtype_metfile
           ELSE IF(iveg_dims==3) THEN ! i.e. patch specific iveg information
              ! Patch-specific iveg variable MUST be accompanied by 
              ! patchfrac variable with the same dimensions. So,
@@ -1579,7 +1579,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ, ACCESS_format)
                      (ok,'Error reading iveg in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
              END DO
-             print*,'veg dim 3 vegtype',vegtype_metfile
+             !print*,'veg dim 3 vegtype',vegtype_metfile
           END IF
        ELSE IF(metGrid=='land') THEN
           ! Collect data from land only grid in netcdf file:
@@ -1936,6 +1936,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         met%fsd(landpt(i)%cstart:landpt(i)%cend,2) = &
              0.5 * REAL(tmpDat3(land_x(i),land_y(i),1))
       ENDDO
+      !print*,'met fsd',met%fsd(1656,:)
 
       ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
     IF(gswpfile%l_ncar) THEN

@@ -1143,6 +1143,8 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
                        * REAL( canopy%dgdtg ) ) * dels /                       &
                        REAL( ssnow%gammzz(:,1) )
    END WHERE
+!!   print*,'after up tgg',ssnow%tgg(1656,:),ssnow%gammzz(1656,:)
+
    
    coeff(:,1-3) = 0.0  ! SO DOES THIS MEAN coeff(:,-2) ??
 
@@ -1229,6 +1231,14 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
    ssnow%tgg   = REAL( tmp_mat(:,4:(ms+3)) )
    canopy%sghflux = coefa * ( ssnow%tggsn(:,1) - ssnow%tggsn(:,2) )
    canopy%ghflux = coefb * ( ssnow%tgg(:,1) - ssnow%tgg(:,2) ) ! +ve downwards
+ !  print*,'===================================================='
+ !  print*,'after up tgg',ssnow%tggsn(1656,:)
+ !  print*,'===================================================='
+ !  print*,'after up tgg= , ',ssnow%tgg(1656,:)
+ !  print*,'===================================================='
+ !  print*,'tmp_mat(1656,:)= ',tmp_mat(1656,:)
+ !   print*,'canopy%ga= ',canopy%ga
+ !   print*,'===================================================='
 
 END SUBROUTINE stempv
 
@@ -1486,6 +1496,11 @@ SUBROUTINE snowl_adjust(dels, ssnow, canopy )
       END IF
 
    END DO
+!   print*,'================================================='
+!   print*,'ssnow%smass   = ,ssow%smass',ssnow%smass(1656,:)
+!   print*,'================================================='
+!   print*,'ssnow%smass   = ,ssow%tggsn',ssnow%tggsn(1656,:)
+!   print*,'================================================='
 
 END SUBROUTINE snowl_adjust
 

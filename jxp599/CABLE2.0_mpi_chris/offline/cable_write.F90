@@ -72,7 +72,9 @@ MODULE cable_write_module
          otmp4lpsnt, otmp4lprt, otmp4lpsct, otmp4lppct, otmp4lppcat,           &
          otmp4lpscat, otmp4lplcat, otmp4xyps, otmp4xyppc, otmp4xypsc,          &
          otmp4xypcat, otmp4xyscat, otmp4xylcat, otmp5xypst, otmp5xypsnt, otmp5xyprt, &
-         otmp5xyppct, otmp5xypsct, otmp5xyppcat, otmp5xypscat, otmp5xyplcat
+         otmp5xyppct, otmp5xypsct, otmp5xyppcat, otmp5xypscat, otmp5xyplcat,   &
+         otmp5xypcpcat, otmp5xypnpcat, otmp4xycpcat, otmp4xynpcat,             &
+         otmp4lpcpcat, otmp4lpnpcat, otmp3lcpcat, otmp3lnpcat
   INTERFACE define_ovar
     ! Defines an output variable in the output netcdf file. Units, long name,
     ! variable, dimensions etc are created.
@@ -109,7 +111,8 @@ MODULE cable_write_module
                                             otmp3xypc, otmp3xysc, otmp3lps,    &
                                             otmp3lppc, otmp3lpsc, otmp3xysf,   &
                                             otmp3lpr, otmp3lpsn, otmp3xyr,     &
-                                            otmp3lpcat, otmp3lscat, otmp3llcat
+                                            otmp3lpcat, otmp3lscat, otmp3llcat,&
+                                            otmp3lcpcat, otmp3lnpcat
   REAL, POINTER, DIMENSION(:, :, :, :) :: otmp4xypt, otmp4xyzt,           &
                                                otmp4xyst, otmp4xysnt,          &
                                                otmp4xyrt, otmp4xypct,          &
@@ -120,11 +123,14 @@ MODULE cable_write_module
                                                otmp4xypsc, otmp4xypr,          &
                                                otmp4lppcat, otmp4lpscat,       &
                                                otmp4lplcat, otmp4xypcat,       &
-                                               otmp4xyscat, otmp4xylcat
+                                               otmp4xyscat, otmp4xylcat,       &
+                                               otmp4lpcpcat, otmp4lpnpcat,     &
+                                               otmp4xycpcat, otmp4xynpcat   
   REAL, POINTER, DIMENSION(:, :, :, :, :) :: otmp5xypst, otmp5xypsnt,     &
                                                   otmp5xyprt, otmp5xyppct,     &
                                                   otmp5xypsct, otmp5xyppcat,   &
-                                                  otmp5xypscat, otmp5xyplcat
+                                                  otmp5xypscat, otmp5xyplcat,  &
+                                                  otmp5xypcpcat, otmp5xypnpcat
   REAL :: ncmissingr = -1.0e+33
 
 CONTAINS
@@ -303,6 +309,18 @@ CONTAINS
           ! of this dim:
           IF( .NOT. ASSOCIATED(otmp5xyppcat))                                  &
                ALLOCATE(otmp5xyppcat(xdimsize, ydimsize, max_vegpatches, mplant, 1))
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is plant casa pools
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          IF( .NOT. ASSOCIATED(otmp5xypcpcat))                                  &
+               ALLOCATE(otmp5xypcpcat(xdimsize, ydimsize, max_vegpatches, 8, 1))
+       ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is plant casa pools
+       !   print *, "before npoolcasa dimswitch otmp5xypnpcat"
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          IF( .NOT. ASSOCIATED(otmp5xypnpcat))                                  &
+               ALLOCATE(otmp5xypnpcat(xdimsize, ydimsize, max_vegpatches, 9, 1))
+        !  print *, "after npoolcasa dimswitch otmp5xypnpcat"
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is plant casa pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
@@ -356,6 +374,18 @@ CONTAINS
           ! of this dim:
           IF( .NOT. ASSOCIATED(otmp4xypcat))                                    &
                                 ALLOCATE(otmp4xypcat(xdimsize, ydimsize, mplant, 1))
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is soil carbon pools
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          IF( .NOT. ASSOCIATED(otmp4xycpcat))                                    &
+                                ALLOCATE(otmp4xycpcat(xdimsize, ydimsize, 8, 1))
+        ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is soil carbon pools
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          !print *, "before npoolcasa dimswitch otmp4xynpcat"  
+          IF( .NOT. ASSOCIATED(otmp4xynpcat))                                    &
+                                ALLOCATE(otmp4xynpcat(xdimsize, ydimsize, 9, 1))
+         ! print *, "after npoolcasa dimswitch otmp4xynpcat"
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
@@ -417,6 +447,16 @@ CONTAINS
           ! of this dim:
           IF( .NOT. ASSOCIATED(otmp4lppcat))                                    &
                              ALLOCATE(otmp4lppcat(mland, max_vegpatches, mplant, 1))
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is soil carbon pools
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          IF( .NOT. ASSOCIATED(otmp4lpcpcat))                                    &
+                             ALLOCATE(otmp4lpcpcat(mland, max_vegpatches, 8, 1))
+        ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is soil carbon pools
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          IF( .NOT. ASSOCIATED(otmp4lpnpcat))                                    &
+                             ALLOCATE(otmp4lpnpcat(mland, max_vegpatches, 9, 1))
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
@@ -464,6 +504,16 @@ CONTAINS
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
           IF( .NOT. ASSOCIATED(otmp3lpcat)) ALLOCATE(otmp3lpcat(mland, mplant, 1))
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is soil carbon pools
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          IF( .NOT. ASSOCIATED(otmp3lcpcat)) ALLOCATE(otmp3lcpcat(mland, 8, 1))
+        ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is soil carbon pools
+         ! print *, "before npoolcasa dimswitch otmp31npcat"   
+       ! If not already allocated, allocate a temporary storage variable
+          ! of this dim:
+          IF( .NOT. ASSOCIATED(otmp3lnpcat)) ALLOCATE(otmp3lnpcat(mland, 9, 1))
+        !  print *, "after npoolcasa dimswitch otmp31npcat"
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is soil carbon pools
           ! If not already allocated, allocate a temporary storage variable
           ! of this dim:
@@ -1195,6 +1245,73 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp5xyppcat(:, :, :, :,1), 4),    &
                             start = (/1, 1, 1, 1, ktau/),                      &
                           count = (/xdimsize, ydimsize, max_vegpatches, mplant, 1/))
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is soil
+        !  print *, "before otmp5xypcpcat cpool range_abort"
+          DO i = 1, mland ! over all land grid points
+            ! First write data for active patches:
+             otmp5xypcpcat(land_x(i), land_y(i), 1:landpt(i)%nap, :, 1)           &
+                                    = var_r2(landpt(i)%cstart:landpt(i)%cend, :)
+             ! Then write data for inactive patches (if any) as dummy value:
+             IF(landpt(i)%nap < max_vegpatches) otmp5xypcpcat(land_x(i),          &
+                   land_y(i), (landpt(i)%nap+1):max_vegpatches,:,1) = ncmissingr
+            IF(check%ranges) THEN  ! Check ranges for active patches:
+              DO j = 1, landpt(i)%nap
+                DO k = 1, 8
+                  IF((otmp5xypcpcat(land_x(i), land_y(i), j, k, 1) < vrange(1))   &
+                  .OR. (otmp5xypcpcat(land_x(i), land_y(i), j, k, 1) > vrange(2)))&
+                       CALL range_abort(vname//' is out of specified ranges!', &
+                       ktau, met, otmp5xypcpcat(land_x(i), land_y(i), j, k, 1),   &
+                       vrange, i, land_x(i), land_y(i))
+                END DO
+              END DO
+            END IF
+          END DO
+          ! Fill non-land points with dummy value:
+          DO j = 1, max_vegpatches
+            DO k = 1, 8
+              WHERE(mask /=1 ) otmp5xypcpcat(:, :, j, k, 1) = ncmissingr ! not land
+            END DO
+          END DO
+          ! Write data to file:
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp5xypcpcat(:, :, :, :,1), 4),    &
+                            start = (/1, 1, 1, 1, ktau/),                      &
+                          count = (/xdimsize, ydimsize, max_vegpatches, 8, 1/))
+       !print *, "after otmp5xypcpcat cpool range_abort" 
+       ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is soil
+     ! !    print *, "before otmp5xypnpcat range_abort"
+          DO i = 1, mland ! over all land grid points
+     !       ! First write data for active patches:
+             otmp5xypnpcat(land_x(i), land_y(i), 1:landpt(i)%nap, :, 1)           &
+                                    = var_r2(landpt(i)%cstart:landpt(i)%cend, :)
+     !        ! Then write data for inactive patches (if any) as dummy value:
+             IF(landpt(i)%nap < max_vegpatches) otmp5xypnpcat(land_x(i),          &
+                   land_y(i), (landpt(i)%nap+1):max_vegpatches,:,1) = ncmissingr
+            IF(check%ranges) THEN  ! Check ranges for active patches:
+        !print *, "before otmp5xypnpcat range_abort2"
+               DO j = 1, landpt(i)%nap
+                DO k = 1, 9
+                  IF((otmp5xypnpcat(land_x(i), land_y(i), j, k, 1) < vrange(1))   &
+                  .OR. (otmp5xypnpcat(land_x(i), land_y(i), j, k, 1) > vrange(2)))&
+                       CALL range_abort(vname//' is out of specified ranges!', &
+                       ktau, met, otmp5xypnpcat(land_x(i), land_y(i), j, k, 1),   &
+                       vrange, i, land_x(i), land_y(i))
+                END DO
+              END DO
+            END IF
+          END DO
+          !print *, "after otmp5xypcpcat npool range_abort 3"
+          !! Fill non-land points with dummy value:
+          DO j = 1, max_vegpatches
+            DO k = 1, 9
+              WHERE(mask /=1 ) otmp5xypnpcat(:, :, j, k, 1) = ncmissingr ! not land
+            END DO
+          END DO
+          !print *, "after otmp5xypcpcat npool Fill non-land 4"
+          !! Write data to file:
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp5xypnpcat(:, :, :, :,1), 4),    &
+                            start = (/1, 1, 1, 1, ktau/),                      &
+                         count = (/xdimsize, ydimsize, max_vegpatches, 9, 1/))
+      !print *, "after otmp5xypnpcat range_abort"
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is soil
           DO i = 1, mland ! over all land grid points
             ! First write data for active patches:
@@ -1417,6 +1534,60 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4xypcat, 4),                   &
                             start = (/1, 1, 1, ktau/),                         &
                      count = (/xdimsize, ydimsize, mplant, 1/)) ! write data to file
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is soil
+          DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (sum over patches & weight by
+            ! fraction):
+            DO j = 1, 8
+               otmp4xycpcat(land_x(i), land_y(i), j, 1) = SUM(                    &
+                                 var_r2(landpt(i)%cstart:landpt(i)%cend, j) *  &
+                                    patch(landpt(i)%cstart:landpt(i)%cend)%frac)
+            END DO
+            IF(check%ranges) THEN  ! Check ranges:
+              DO j = 1, 8
+                IF((otmp4xycpcat(land_x(i), land_y(i), j, 1) < vrange(1)) .OR.    &
+                     (otmp4xycpcat(land_x(i), land_y(i), j, 1) > vrange(2)))      &
+                     CALL range_abort(vname//' is out of specified ranges!',   &
+                     ktau, met, otmp4xycpcat(land_x(i), land_y(i), j, 1),         &
+                     vrange, i, land_x(i), land_y(i))
+              END DO
+            END IF
+          END DO
+          ! Fill non-land points with dummy value:
+          DO j = 1, 8
+            WHERE(mask /= 1) otmp4xycpcat(:, :, j, 1) = ncmissingr ! not land
+          END DO
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4xycpcat, 4),                   &
+                            start = (/1, 1, 1, ktau/),                         &
+                     count = (/xdimsize, ydimsize, 8, 1/)) ! write data to file
+        ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is soil
+          !print *, "before otmp4xynpcat rage_abort"
+          DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (sum over patches & weight by
+            ! fraction):
+            DO j = 1, 9
+               otmp4xynpcat(land_x(i), land_y(i), j, 1) = SUM(                    &
+                                 var_r2(landpt(i)%cstart:landpt(i)%cend, j) *  &
+                                    patch(landpt(i)%cstart:landpt(i)%cend)%frac)
+            END DO
+            IF(check%ranges) THEN  ! Check ranges:
+              DO j = 1, 9
+                IF((otmp4xynpcat(land_x(i), land_y(i), j, 1) < vrange(1)) .OR.    &
+                     (otmp4xynpcat(land_x(i), land_y(i), j, 1) > vrange(2)))      &
+                     CALL range_abort(vname//' is out of specified ranges!',   &
+                     ktau, met, otmp4xynpcat(land_x(i), land_y(i), j, 1),         &
+                     vrange, i, land_x(i), land_y(i))
+              END DO
+            END IF
+          END DO
+          !print *, "after otmp4xynpcat rage_abort" 
+          ! Fill non-land points with dummy value:
+          DO j = 1, 9
+            WHERE(mask /= 1) otmp4xynpcat(:, :, j, 1) = ncmissingr ! not land
+          END DO
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4xynpcat, 4),                   &
+                            start = (/1, 1, 1, ktau/),                         &
+                     count = (/xdimsize, ydimsize, 9, 1/)) ! write data to file
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is soil
           DO i = 1, mland ! over all land grid points
             ! Write to temporary variable (sum over patches & weight by
@@ -1621,6 +1792,54 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4lppcat(:, :, :, 1), 4),       &
                             start = (/1, 1, 1, ktau/),                         &
                             count = (/mland, max_vegpatches, mplant, 1/))
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is soil
+          DO i = 1, mland ! over all land grid points
+            ! First write data for active patches:
+             otmp4lpcpcat(i, 1:landpt(i)%nap, :, 1)                               &
+                                    = var_r2(landpt(i)%cstart:landpt(i)%cend, :)
+             ! Then write data for inactive patches (if any) as dummy value:
+              IF(landpt(i)%nap < max_vegpatches) otmp4lpcpcat(i,                  &
+                          (landpt(i)%nap + 1):max_vegpatches, :, 1) = ncmissingr
+            IF(check%ranges) THEN  ! Check ranges for active patches:
+              DO j = 1, landpt(i)%nap
+                DO k = 1, 8
+                  IF((otmp4lpcpcat(i, j, k, 1) < vrange(1)) .OR.                  &
+                       (otmp4lpcpcat(i, j, k, 1) > vrange(2)))                    &
+                       CALL range_abort(vname//' is out of specified ranges!', &
+                       ktau, met, otmp4lpcpcat(i, j, k, 1), vrange, i)
+                END DO
+              END DO
+            END IF
+          END DO
+          ! Write data to file:
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4lpcpcat(:, :, :, 1), 4),       &
+                            start = (/1, 1, 1, ktau/),                         &
+                            count = (/mland, max_vegpatches, 8, 1/))
+        ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is soil
+           !print *, "before otmp4lpnpcat rage_abort" 
+           DO i = 1, mland ! over all land grid points
+            ! First write data for active patches:
+             otmp4lpnpcat(i, 1:landpt(i)%nap, :, 1)                               &
+                                    = var_r2(landpt(i)%cstart:landpt(i)%cend, :)
+             ! Then write data for inactive patches (if any) as dummy value:
+              IF(landpt(i)%nap < max_vegpatches) otmp4lpnpcat(i,                  &
+                          (landpt(i)%nap + 1):max_vegpatches, :, 1) = ncmissingr
+            IF(check%ranges) THEN  ! Check ranges for active patches:
+              DO j = 1, landpt(i)%nap
+                DO k = 1, 9
+                  IF((otmp4lpnpcat(i, j, k, 1) < vrange(1)) .OR.                  &
+                       (otmp4lpnpcat(i, j, k, 1) > vrange(2)))                    &
+                       CALL range_abort(vname//' is out of specified ranges!', &
+                       ktau, met, otmp4lpnpcat(i, j, k, 1), vrange, i)
+                END DO
+              END DO
+            END IF
+          END DO
+          ! Write data to file:
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4lpnpcat(:, :, :, 1), 4),       &
+                            start = (/1, 1, 1, ktau/),                         &
+                            count = (/mland, max_vegpatches, 9, 1/))
+        !print *, "after otmp4lpnpcat rage_abort"
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is soil
           DO i = 1, mland ! over all land grid points
             ! First write data for active patches:
@@ -1798,6 +2017,50 @@ CONTAINS
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp3lpcat, 4),                    &
                             start = (/1, 1, ktau/),                            &
                             count = (/mland, mplant, 1/)) ! write data to file
+        ELSE IF(dimswitch == 'cpoolcasa') THEN ! other dim is soil
+          DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (sum over patches & weight by
+            ! fraction):
+            DO j = 1, 8
+               otmp3lcpcat(i, j, 1) = SUM(                                        &
+                                  var_r2(landpt(i)%cstart:landpt(i)%cend, j) * &
+                                    patch(landpt(i)%cstart:landpt(i)%cend)%frac)
+            END DO
+            IF(check%ranges) THEN  ! Check ranges:
+              DO j = 1, 8
+                IF((otmp3lcpcat(i, j, 1) < vrange(1)) .OR.                        &
+                     (otmp3lcpcat(i, j, 1) > vrange(2)))                          &
+                     CALL range_abort(vname//' is out of specified ranges!',   &
+                     ktau, met, otmp3lcpcat(i, j, 1), vrange, i)
+              END DO
+            END IF
+          END DO
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp3lcpcat, 4),                    &
+                            start = (/1, 1, ktau/),                            &
+                            count = (/mland, 8, 1/)) ! write data to file
+      ! print *, "before otmp3lnpcat rage_abort" 
+       ELSE IF(dimswitch == 'npoolcasa') THEN ! other dim is soil
+          DO i = 1, mland ! over all land grid points
+            ! Write to temporary variable (sum over patches & weight by
+            ! fraction):
+            DO j = 1, 9
+               otmp3lnpcat(i, j, 1) = SUM(                                        &
+                                  var_r2(landpt(i)%cstart:landpt(i)%cend, j) * &
+                                    patch(landpt(i)%cstart:landpt(i)%cend)%frac)
+            END DO
+            IF(check%ranges) THEN  ! Check ranges:
+              DO j = 1, 9
+                IF((otmp3lnpcat(i, j, 1) < vrange(1)) .OR.                        &
+                     (otmp3lnpcat(i, j, 1) > vrange(2)))                          &
+                     CALL range_abort(vname//' is out of specified ranges!',   &
+                     ktau, met, otmp3lnpcat(i, j, 1), vrange, i)
+              END DO
+            END IF
+          END DO
+         ! print *, "after otmp3lnpcat rage_abort"
+          ok = NF90_PUT_VAR(ncid, varID, REAL(otmp3lnpcat, 4),                    &
+                            start = (/1, 1, ktau/),                            &
+                            count = (/mland, 9, 1/)) ! write data to file
         ELSE IF(dimswitch == 'soilcasa') THEN ! other dim is soil
           DO i = 1, mland ! over all land grid points
             ! Write to temporary variable (sum over patches & weight by

@@ -1495,7 +1495,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ENDDO  !kk=-1,mf
          
       ENDDO !i=1,mp
-   
+!      print*,'before photosynthesis',csx(1656,:),cx1(1656,:),cx2(1656,:),gswmin(1656,:),rdx(1656,:),vcmxt3(1656,:),vcmxt4(1656,:),vx3(1656,:),vx4(1656,:),xleuning(1656,:),rad%fvlai(1656,:),abs_deltlf(1656,:),tlfx(1656,:) 
       CALL photosynthesis( csx(:,:),                                           &
                            cx1(:,:),                                           & 
                            cx2(:,:),                                           &
@@ -1504,6 +1504,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            xleuning(:,:), rad%fvlai(:,:),                      &
                            abs_deltlf(:,:),                                    &
                            anx(:,:) )
+ !    print*,'after photo',anx(1656,:)
 
       DO i=1,mp
          
@@ -1570,6 +1571,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
  !              * SUM(rad%gradis(i,:)))                                         &
  !              * SUM(gh(i,:))/ SUM(ghr(i,:))
 
+ !           print*,'before update hcx',rad%rniso(1656,:),ecx(1656,:)
               hcx(i,:) = (rad%rniso(i,:)-ecx(i,:)                               &
                        - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                &
                        * rad%gradis(i,:)) * gh(i,:)/ ghr(i,:)
@@ -1577,6 +1579,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ! Update leaf temperature:
             ! tlfx(i)=met%tvair(i)+REAL(hcx(i))/(C%capp*C%rmair*SUM(gh(i,:)))
 
+!            print*,'before update tlfx',hcx(1656,:)
               tlfx(i,:) =tair2(i,:) +REAL(hcx(i,:))/(C%capp*C%rmair*gh(i,:))
       
             ! Update net radiation for canopy:

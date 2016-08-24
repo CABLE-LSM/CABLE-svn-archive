@@ -65,7 +65,7 @@ MODULE cable_output_module
                     Qsb, Evap, BaresoilT, SWE, SnowT,                          &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
-                    Cplant, Csoil, Clitter, Nplant, Nlitter, Nsoil,fracCalloc, &
+                    Cplant, Csoil, Clitter, Nplant, Cpool, Npool, Nminfix, Nlitter, Nsoil,fracCalloc, &
                     kplant, klitter, ksoil, xktemp, xkwater,xkleafcold,xkleafdry,&
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,xkNlimiting,      &
                     fromLeaftoL,fromWoodtoL,fromRoottoL,fromMettoS,fromStrtoS,fromCWDtoS,fromSOMtoSOM,&
@@ -147,7 +147,9 @@ MODULE cable_output_module
                                                      ! of C by veg [umol/m2/s]
     ! 48 gross primary production C by veg [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: GPP
-    REAL(KIND=4), POINTER, DIMENSION(:) :: AutoResp   ! 49 autotrophic
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nminfix ! nitrogen flux for N fixation study
+                                                     ! [gC/m2/day]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: AutoResp   ! 49 autotrophic
                                                       ! respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: LeafResp   ! 51 autotrophic
                                                       ! respiration [umol/m2/s]
@@ -208,6 +210,12 @@ MODULE cable_output_module
                                                      ! [gC/m2]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nplant    ! 59 plant carbon pool
                                                      ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: cpool    !carbon pool for N fixation study
+                                                     ! [gC/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: npool    ! nitrogen pool for N fixation study
+                                                     ! [gC/m2]
+!    REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nminfix ! nitrogen flux for N fixation study
+                                                     ! [gC/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nlitter   ! 59 plant carbon pool
                                                      ! [gC/m2]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: Nsoil     ! 59 plant carbon pool
@@ -255,10 +263,10 @@ CONTAINS
     TYPE (bgc_pool_type), INTENT(IN)       :: bgc
     TYPE (roughness_type), INTENT(IN)      :: rough
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
-
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
                     plantcarbID, tID, landID, patchID, plantcasaID, soilcasaID, &
-                    littercasaID ! dimension IDs
+                    littercasaID, cpoolcasaID, npoolcasaID ! dimension IDs
+
     INTEGER :: latID, lonID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
@@ -309,6 +317,16 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
              (ok,'Error defining plant casa pool dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
+    !print *, "before NF90_DEF_DIM cpool pengj"
+    ok = NF90_DEF_DIM(ncid_out,'cnfix_casa_pools',8,cpoolcasaID)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+             (ok,'Error defining cnfix casa pool dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')   
+    ok = NF90_DEF_DIM(ncid_out,'nnfix_casa_pools',9,npoolcasaID)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+             (ok,'Error defining nnfix casa pool dimension in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+   ! print *, "after NF90_DEF_DIM cpool pengj"
     ok = NF90_DEF_DIM(ncid_out,'litter_casa_pools',mlitter,littercasaID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
             (ok,'Error defining litter casa pool dimension in output file. '// &
@@ -819,6 +837,13 @@ CONTAINS
        ALLOCATE(out%NPP(mp))
        out%NPP = 0.0 ! initialise
     END IF
+    IF(output%casacnp .OR. output%Nminfix) THEN
+       CALL define_ovar(ncid_out, ovid%Nminfix, 'Nminfix', 'gN/m^2/day',               &
+                        'N fixation', patchout%Nminfix,                &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Nminfix(mp))
+       out%Nminfix = 0.0 ! initialise
+    END IF
     IF(output%casacnp .OR. output%xktemp) THEN
        CALL define_ovar(ncid_out, ovid%xktemp, 'xktemp', 'unitless',               &
                         'Temperature limitation on soil/litter decomposition rate', patchout%xktemp,           &
@@ -886,7 +911,22 @@ CONTAINS
        ALLOCATE(out%Nplant(mp,mplant))
        out%Nplant = 0.0 ! initialise
     END IF
-
+    !print *, "before define_ovar nfix pengj"
+    IF(output%casacnp .OR. output%cpool) THEN   !added by J.Peng on 28/Jan/2016 for nfix output
+       CALL define_ovar(ncid_out, ovid%cpool, 'cpool', 'gC/m2',              &
+                        'carbon pool nfix', patchout%cpool,                  &
+                        'cpoolcasa', xID, yID, zID, landID, patchID, cpoolcasaID, tID)
+       ALLOCATE(out%cpool(mp,8))
+       out%cpool = 0.0 ! initialise
+    END IF
+    IF(output%casacnp .OR. output%npool) THEN   !added by J.Peng on 28/Jan/2016 for nfix output
+       CALL define_ovar(ncid_out, ovid%npool, 'npool', 'gN/m2',              &
+                        'N pool nfix', patchout%npool,                  &
+                        'npoolcasa', xID, yID, zID, landID, patchID, npoolcasaID, tID)
+       ALLOCATE(out%npool(mp,9))
+       out%npool = 0.0 ! initialise
+    END IF
+    !print *, "after define_ovar nfix pengj"    
     IF(output%casacnp .OR. output%Nsoil) THEN   !added by Chris on 28/Jan/2014 for FACE daily output
        CALL define_ovar(ncid_out, ovid%Nsoil, 'Nsoil', 'gN/m2',              &
                         'Soil Nitrogen pool', patchout%Nsoil,                  &
@@ -2175,6 +2215,7 @@ CONTAINS
           out%GPP = 0.0
        END IF
     END IF
+    !print *, "before write npp pengj"   
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2224,6 +2265,7 @@ CONTAINS
           out%LeafResp = 0.0
        END IF
     END IF
+    !print *, "before write heteroresp pengj"
     ! HeteroResp: heterotrophic respiration [umol/m^2/s]
     IF(output%carbon .OR. output%HeteroResp) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2239,22 +2281,22 @@ CONTAINS
           out%HeteroResp = 0.0
        END IF
     END IF
-
+    !print *, "before write cplant pengj"
     ! Cplant: plant carbon pool for leaf, wood and root [gC/m2]
     IF(output%casacnp .OR. output%Cplant) THEN
        ! Add current timestep's value to total of temporary output variable:
-!       out%Cplant = out%Cplant + REAL(casapool%cplant, 4)
+       out%Cplant = out%Cplant + REAL(casapool%cplant, 4)
        IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
+!          ! Divide accumulated variable by number of accumulated time steps:
           out%Cplant = REAL(casapool%cplant,4)
-          ! Write value to file:
+!          ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%Cplant, 'Cplant',   &
                   out%Cplant, ranges%Cplant, patchout%Cplant, 'plantcasa', met)
-          ! Reset temporary output variable:
+!          ! Reset temporary output variable:
           out%Cplant = 0.0
        END IF
     END IF
-
+   !print *, "before write csoil pengj"
     ! Csoil: soil carbon pool [gC/m2]
     IF(output%casacnp .OR. output%Csoil) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2269,7 +2311,7 @@ CONTAINS
           out%Csoil = 0.0
        END IF
     END IF
-
+    !print *, "before write clitter pengj"
     ! Clitter: litter carbon pool [gC/m2]
     IF(output%casacnp .OR. output%Clitter) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2284,7 +2326,7 @@ CONTAINS
           out%Clitter = 0.0
        END IF
     END IF
-
+    !print *, "before write nplant pengj"
     ! Nplant: plant nitrogen pool for leaf, wood and root [gN/m2]
     IF(output%casacnp .OR. output%Nplant) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2299,6 +2341,57 @@ CONTAINS
           out%Nplant = 0.0
        END IF
     END IF
+    !print *, "before writer_ovar nfix"
+!!     Cpool: for N fix carbon pools [gC/m2]
+    IF(output%casacnp .OR. output%cpool) THEN
+!       ! Add current timestep's value to total of temporary output variable:
+!!       out%cpool = out%cpool + REAL(casapool%cpool, 4)
+       IF(writenow) THEN
+          !print *, "before call writer_ovar cpool penj"
+!          ! Divide accumulated variable by number of accumulated time steps:
+          out%cpool = REAL(casapool%cpool, 4)
+!          ! Write value to file:
+!          print *, "before call writer_ovar cpool penj"
+          CALL write_ovar(out_timestep, ncid_out, ovid%cpool, 'Cpool',   &
+                  out%cpool, ranges%cpool, patchout%cpool, 'cpoolcasa', met)
+!          ! Reset temporary output variable:
+          out%cpool = 0.0
+          !print *, "after call writer_ovar cpool penj"
+       END IF
+    END IF
+!!!    ! Npool:  nitrogen pool for N fixation [gN/m2]
+    IF(output%casacnp .OR. output%npool) THEN
+!!       ! Add current timestep's value to total of temporary output variable:
+!!!       out%npool = out%npool + REAL(casapool%npool, 4)
+       IF(writenow) THEN
+!!          ! Divide accumulated variable by number of accumulated time steps:
+          out%npool = REAL(casapool%npool, 4)
+!!          ! Write value to file:
+          !print *, "before call writer_ovar npool penj"
+          CALL write_ovar(out_timestep, ncid_out, ovid%npool, 'Npool',   &
+                  out%npool, ranges%npool, patchout%npool, 'npoolcasa', met)
+!!          ! Reset temporary output variable:
+          out%npool = 0.0
+          !print *, "after call writer_ovar npool penj"
+      END IF
+    END IF
+ ! !Nminfix: N flux of N fixation  Nminfix by veg [gN/m^2/day]
+    !!      added  the calculation of nminfix (J.PENG June16)
+    IF(output%casacnp .OR. output%Nminfix) THEN
+       ! Add current timestep's value to total of temporary output variable:
+!       out%kplant = out%kplant + REAL(casaflux%kplant, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Nminfix = REAL(casaflux%Nminfix, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Nminfix, 'Nminfix',   &
+                  out%Nminfix, ranges%Nminfix, patchout%Nminfix, 'default', met)
+          ! Reset temporary output variable:
+          out%Nminfix = 0.0
+       END IF
+    END IF
+
+    !print *, "after writer_ovar nfix"
 
     ! Nlitter: litter nitrogen pool for met, str and CWD [gN/m2]
     IF(output%casacnp .OR. output%Nlitter) THEN

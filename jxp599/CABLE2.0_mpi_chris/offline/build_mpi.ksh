@@ -43,7 +43,7 @@ host_shin()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   module add netcdf/4.3.2 openmpi/1.6.5
+   module add netcdf openmpi
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
@@ -297,6 +297,7 @@ do_i_no_u()
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
+         print '   Host recognized='"'"$HOST_MACH"'" 
          subr=host_${kh[$k]}
          $subr $1
       fi        

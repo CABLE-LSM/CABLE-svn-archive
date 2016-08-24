@@ -176,22 +176,22 @@ MODULE cable_IO_vars_module
       ! Groups of output variables:
     
       LOGICAL ::                                                               &
-         met = .FALSE.,       & ! input met data
-         flux = .FALSE.,      &  ! convective, runoff, NEE
-         radiation = .FALSE., & ! net rad, albedo
-         carbon = .FALSE.,    & ! NEE, GPP, NPP, stores 
-         soil = .FALSE.,      &  ! soil states
-         snow = .FALSE.,      &  ! snow states
-         veg = .FALSE.,       & ! vegetation states
-         params = .FALSE.,    & ! input parameters used to produce run
-         balances = .FALSE.,  & ! energy and water balances
-         casacnp = .FALSE.,   & ! output casa pool
-         casaflux = .FALSE.,  & ! output casa flux
-         restart = .FALSE.,   & ! create restart file?
-         ensemble = .FALSE.,  & ! are we creating an ensemble run?
-         patch = .FALSE.        ! should patch-specific info be written 
-                                ! to output file?
-
+         met = .FALSE.,         & ! input met data
+         flux = .FALSE.,        &  ! convective, runoff, NEE
+         radiation = .FALSE.,   & ! net rad, albedo
+         carbon    = .FALSE.,   & ! NEE, GPP, NPP, stores 
+         soil      = .FALSE.,   &  ! soil states
+         snow      = .FALSE.,   &  ! snow states
+         veg       = .FALSE.,   & ! vegetation states
+         params    = .FALSE.,   & ! input parameters used to produce run
+         balances  = .FALSE.,   & ! energy and water balances
+         casacnp   = .FALSE.,   & ! output casa pool
+         casaflux  = .FALSE.,   & ! output casa flux
+         restart   = .FALSE.,   & ! create restart file?
+         ensemble  = .FALSE.,   & ! are we creating an ensemble run?
+         patch     = .FALSE.        ! should patch-specific info be written 
+                                    ! to output file?
+      !  Nfix_pengj= .FALSE.        ! Cpool,Npool 
       ! Should output grid follow met file 'default'; force with 'land' or 'mask':
       CHARACTER(LEN=7) ::                                                      &
          grid = 'default', & 
@@ -258,6 +258,9 @@ MODULE cable_IO_vars_module
          Csoil   = .FALSE.,   & ! soil carbon pool
          Clitter = .FALSE.,   & ! litter carbon pool
          Nplant = .FALSE.,    & ! plant nitrogen pool
+         cpool  = .FALSE.,    & ! carbon pool for Nfix
+         npool  = .FALSE.,    & ! nitrogen pool for Nfix
+         Nminfix= .FALSE.,    & ! nitrogen pool for Nfix
          Nlitter = .FALSE.,   & ! litter nitrogen pool
          Nsoil = .FALSE.,     & ! soil organic nitrogen pool
          fromLeaftoL =.FALSE.,&! transfer coeffiecient from leaf to litter

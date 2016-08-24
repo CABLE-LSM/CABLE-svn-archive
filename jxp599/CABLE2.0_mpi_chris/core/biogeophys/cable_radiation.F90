@@ -225,6 +225,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    flpwb = C%sboltz * (met%tk) ** 4
    flwv = C%EMLEAF * flpwb
 
+!    print*,'flws',rad%flws(1655),ssnow%tss(1656)
    rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
    
    ! Define air emissivity:
@@ -233,6 +234,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    rad%gradis = 0.0 ! initialise radiative conductance
    rad%qcan = 0.0   ! initialise radiation absorbed by canopy
    
+!   print*,'before up qcan',rad%qcan(1656,:,:),met%fsd(1656,:),rad%fbeam(1656,:),rad%extkb(1656),rad%reffdf(1656,:),veg%taul(1656,:),rad%transb(1656),rad%cexpkdm(1656,:),rad%extkbm(1656,:),rad%flws(1656),flwv(1656),rad%extkd(1656),rad%transd(1656),emair(1656)
    WHERE (canopy%vlaiw > C%LAI_THRESH )
 
       ! Define radiative conductance (Leuning et al, 1995), eq. D7:
@@ -341,6 +343,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    rad%scalex(:,2) = (1.0 - cf2n) / veg%extkn - rad%scalex(:,1)
    
    ! Total energy absorbed by canopy:
+!   print*,'before up rniso',rad%rniso(1656,:),rad%qcan(1656,:,:)
    rad%rniso = SUM(rad%qcan, 3)
     
 END SUBROUTINE radiation

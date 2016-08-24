@@ -629,7 +629,7 @@ CONTAINS
              END DO
              DEALLOCATE(tmp4r)
           ELSE IF(dimswitch == 'nrb') THEN
-             print *, 'pardims', pardims
+             !print *, 'pardims', pardims
              IF(pardims == 2) THEN ! no patch dimension, just a land + other
                                    ! dimension
                 IF(PRESENT(from_restart)) THEN
@@ -645,7 +645,7 @@ CONTAINS
                                    (ok, 'Error reading '//parname//' in file ' &
                                    //TRIM(filename)//' (SUBROUTINE readpar_r2)')
                    ! Set all patches to have the same value:
-                   print *, 'read albsoil: ', tmpjh
+                   !print *, 'read albsoil: ', tmpjh
                    var_r2(landpt(i)%cstart:landpt(i)%cend, 1) = tmpjh
                    var_r2(landpt(i)%cstart:landpt(i)%cend, 2) = tmpjh
                    END DO
