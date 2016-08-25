@@ -2456,6 +2456,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
                       pi = 3.14159265358979324, &
                       c2 = 2.0
 
+   real(r_2), parameter :: rtevap_max = 100000.0
+
    integer :: i,j,k 
    logical, save ::  first_call = .true.
 
@@ -2508,12 +2510,12 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    where(canopy%sublayer_dz .ge. 1.0e-7) 
       ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  
-                         300.0 )
+                         rtevap_max )
       ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
-                         300.0 )
+                         rtevap_max )
    elsewhere
-      ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,300.0)
-      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,300.0)
+      ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,10000.0)
+      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,10000.0)
    endwhere
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 
