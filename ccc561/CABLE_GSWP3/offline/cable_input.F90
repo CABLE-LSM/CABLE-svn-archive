@@ -352,57 +352,26 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
     ! Open netcdf file:
   IF (ncciy > 0) THEN
-    IF (.not.cable_user%alt_forcing) THEN
-       WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
-       ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
-       ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
-       ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
-       ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
-       ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
-       ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
-       ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
-       ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
-       if (cable_user%GSWP3) then
-          ok = NF90_OPEN(gswpfile%mask,0,ncid_mask)
-          if (ok .ne. NF90_NOERR) then
-             CALL nc_abort(ok, "Error opening GSWP3 mask file")
-          end if
-          LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
-          LON1D = .true.  
-       else
-          ncid_mask = ncid_rain
-       end if
-       ncid_met = ncid_rain
-    ELSE
-       !MDeck switch to read old school CLM style forcing
-       write(logn,*) 'Opening CLM style met data file: ', trim(gswpfile%rainf)
-       LAT1D = .true.
-       LON1D = .true.
-       ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
-       if (gswpfile%rainf .eq. gswpfile%PSurf) then
-          !set all ncid values to rain to read data from same file
-          ncid_met = ncid_rain
-       else
-          ok = NF90_OPEN(gswpfile%PSurf,0,ncid_met)
-       end if
-       ncid_snow = ncid_met
-       ncid_lw = ncid_met
-       ncid_sw = ncid_met
-       ncid_ps = ncid_met
-       ncid_qa = ncid_met
-       ncid_ta = ncid_met
-       ncid_wd = ncid_met
-       if (cable_user%GSWP3) then
-          ok = NF90_OPEN(gswpfile%mask,0,ncid_mask)
-          if (ok .ne. NF90_NOERR) then
-             CALL nc_abort(ok, "Error opening GSWP3 mask file")
-          end if
-          LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
-          LON1D = .true.  
-       else
-          ncid_mask = ncid_rain
-       end if
-    END IF
+    WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
+    ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+    ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
+    ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
+    ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
+    ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
+    ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
+    ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
+    ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+    if (cable_user%GSWP3) then
+      ok = NF90_OPEN(gswpfile%mask,0,ncid_mask)
+      if (ok .ne. NF90_NOERR) then
+        CALL nc_abort(ok, "Error opening GSWP3 mask file")
+      end if
+      LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
+      LON1D = .true.  
+    else
+      ncid_mask = ncid_rain
+    end if
+    ncid_met = ncid_rain
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
     ok = NF90_OPEN(filename%met,0,ncid_met) ! open met data file
@@ -697,9 +666,6 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Set time step size:
     !MDeck
-    IF (cable_user%alt_forcing) THEN
-       timevar = timevar*24.0*3600.0  !convert from days to seconds
-    END IF
     IF (cable_user%gswp3) then         !Hack the GSWP3 time units to make from start of year
        timevar(:) = (timevar(:)-timevar(1))*3600.0 + 1.5*3600.0  !convert hours to seconds
     end if
@@ -708,7 +674,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
 
     !********* gswp input file has bug in timevar **************
-    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) THEN
+    IF (ncciy > 0) THEN
       PRINT *, 'original timevar(kend) = ', timevar(kend)
       DO i = 1, kend - 1
         timevar(i+1) = timevar(i) + dels
@@ -742,7 +708,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
 
 
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
-    IF (.not.cable_user%alt_forcing .and. ncciy .eq. 0) THEN
+    IF (ncciy .eq. 0) THEN
       IF (timevar(1) == 0.0) THEN
         READ(timeunits(29:30),*) tsmin
         IF (tsmin*60.0 >= dels) THEN
@@ -755,7 +721,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
     !****** done bug fixing for timevar in PALS met file **********************
 
     !********* gswp input file has bug in timeunits ************
-    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) WRITE(timeunits(26:27),'(i2.2)') 0
+    IF (ncciy > 0 ) WRITE(timeunits(26:27),'(i2.2)') 0
     !********* done bug fixing for timeunits in gwsp file ******
     WRITE(logn,*) 'Time variable units: ', timeunits
     ! Get coordinate field:
@@ -1135,7 +1101,7 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        IF(metunits%LWdown(1:4)/='W/m2'.AND.metunits%LWdown(1:5) &
             /='W/m^2'.AND.metunits%LWdown(1:5)/='Wm^-2' &
             .AND.metunits%LWdown(1:4)/='Wm-2'.and. &   !add GSWP3 units
-                metunits%SWdown(1:5) /= 'W m-2') THEN
+                metunits%LWdown(1:5) /= 'W m-2') THEN
           WRITE(*,*) metunits%LWdown
           CALL abort('Unknown units for LWdown'// &
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1843,25 +1809,44 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
 
       ! Get PSurf data for mask grid:- - - - - - - - - - - - - - - - - -
-      if (cable_user%GSWP3) ncid_met = ncid_ps
-      IF(exists%PSurf) THEN ! IF PSurf is in met file:
-        ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat3, &
-             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading PSurf in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        DO i=1,mland ! over all land points/grid cells
-          met%pmb(landpt(i)%cstart:landpt(i)%cend) = &
-               REAL(tmpDat3(land_x(i),land_y(i),1)) * convert%PSurf
-        ENDDO
-      ELSE ! PSurf must be fixed as a function of site elevation and T:
-        DO i=1,mland ! over all land points/grid cells
-         met%pmb(landpt(i)%cstart:landpt(i)%cend)=1013.25* &
-              (met%tk(landpt(i)%cstart)/(met%tk(landpt(i)%cstart) + 0.0065* &
-              elevation(i)))**(9.80665/287.04/0.0065)
-        ENDDO
+      if (cable_user%GSWP3) THEN
+        ncid_met = ncid_ps
+        IF(exists%PSurf) THEN ! IF PSurf is in met file:
+          ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat3, &
+               start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+          IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading PSurf in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+          DO i=1,mland ! over all land points/grid cells
+            met%pmb(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat3(land_x(i),land_y(i),1)) * convert%PSurf
+          ENDDO
+        ELSE ! PSurf must be fixed as a function of site elevation and T:
+          DO i=1,mland ! over all land points/grid cells
+            met%pmb(landpt(i)%cstart:landpt(i)%cend)=1013.25* &
+                 (met%tk(landpt(i)%cstart)/(met%tk(landpt(i)%cstart) + 0.0065* &
+                 elevation(i)))**(9.80665/287.04/0.0065)
+          ENDDO
+        END IF
+      ELSE
+        IF(exists%PSurf) THEN ! IF PSurf is in met file:
+          ok= NF90_GET_VAR(ncid_met,id%PSurf,tmpDat4, &
+               start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+          IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading PSurf in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+          DO i=1,mland ! over all land points/grid cells
+            met%pmb(landpt(i)%cstart:landpt(i)%cend) = &
+                 REAL(tmpDat4(land_x(i),land_y(i),1,1)) * convert%PSurf
+          ENDDO
+        ELSE ! PSurf must be fixed as a function of site elevation and T:
+          DO i=1,mland ! over all land points/grid cells
+            met%pmb(landpt(i)%cstart:landpt(i)%cend)=1013.25* &
+                 (met%tk(landpt(i)%cstart)/(met%tk(landpt(i)%cstart) + 0.0065* &
+                 elevation(i)))**(9.80665/287.04/0.0065)
+          ENDDO
+        END IF
       END IF
-
       ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
     IF(cable_user%GSWP3) THEN
       ncid_met = ncid_qa
