@@ -106,7 +106,7 @@ PROGRAM cable_offline_driver
   USE CABLE_PLUME_MIP,	    ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
        PLUME_MIP_INIT
 
-  USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
+!  USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
 #ifdef NAG
   USE F90_UNIX
 #endif
@@ -177,7 +177,7 @@ PROGRAM cable_offline_driver
   !! vh_js !!
   TYPE (POP_TYPE)	:: POP
   TYPE (PLUME_MIP_TYPE) :: PLUME
-  TYPE (CRU_TYPE)       :: CRU
+!  TYPE (CRU_TYPE)       :: CRU
   CHARACTER		:: cyear*4
   CHARACTER		:: ncfile*99
 
@@ -441,33 +441,33 @@ PROGRAM cable_offline_driver
 
 	      IF ( .NOT. PLUME%LeapYears ) LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
-	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
-	      ! CLN HERE CRU modfications
-	      IF ( CALL1 ) THEN
-
-		 CALL CPU_TIME(etime)
-		 CALL CRU_INIT( CRU )
-
-		 dels	   = CRU%dtsecs
-		 koffset   = 0
-		 leaps = .false.         ! No leap years in CRU-NCEP
-                 exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
-                                         ! be determined from temperature in CABLE
-
-                 write(str1,'(i4)') CurYear
-                 str1 = adjustl(str1)
-                 write(str2,'(i2)') 1
-                 str2 = adjustl(str2)
-                 write(str3,'(i2)') 1
-                 str3 = adjustl(str3)
-                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00 (midpoint of averaging period)"
-
-
-	      ENDIF
-
-	       LOY = 365
-	      kend = NINT(24.0*3600.0/dels) * LOY
+!	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+!	      ! CLN HERE CRU modfications
+!	      IF ( CALL1 ) THEN
+!
+!		 CALL CPU_TIME(etime)
+!		 CALL CRU_INIT( CRU )
+!
+!		 dels	   = CRU%dtsecs
+!		 koffset   = 0
+!		 leaps = .false.         ! No leap years in CRU-NCEP
+!                 exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
+!                                         ! be determined from temperature in CABLE
+!
+!                 write(str1,'(i4)') CurYear
+!                 str1 = adjustl(str1)
+!                 write(str2,'(i2)') 1
+!                 str2 = adjustl(str2)
+!                 write(str3,'(i2)') 1
+!                 str3 = adjustl(str3)
+!                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+!                            00:00 (midpoint of averaging period)"
+!
+!
+!	      ENDIF
+!
+!	       LOY = 365
+!	      kend = NINT(24.0*3600.0/dels) * LOY
 	   ENDIF
 
     ! somethings (e.g. CASA-CNP) only need to be done once per day
@@ -565,11 +565,11 @@ PROGRAM cable_offline_driver
                             (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend))
                   
                     ENDIF
-                 ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
-                    IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
-                       CALL CRU_GET_SUBDIURNAL_MET(CRU, met, YYYY, ktau, kend, &
-                            YYYY.EQ.CABLE_USER%YearEnd)  
-                    ENDIF
+!                 ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+!                    IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
+!                       CALL CRU_GET_SUBDIURNAL_MET(CRU, met, YYYY, ktau, kend, &
+!                            YYYY.EQ.CABLE_USER%YearEnd)  
+!                    ENDIF
                  ELSE
                     CALL get_met_data( spinup, spinConv, met, soil,		 &
                          rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
