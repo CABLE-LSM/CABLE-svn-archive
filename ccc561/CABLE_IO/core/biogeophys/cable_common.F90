@@ -264,31 +264,31 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
       END IF
          
       WRITE(logn, '(A31,I3,1X,A10)') '  Number of vegetation types = ',        &
-                  mvtype,TRIM(comments)
+            mvtype,TRIM(comments)
    
     
       ! Allocate memory for type-specific vegetation parameters:
       ALLOCATE (                                                               &
-         vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                        &
-         vegin%length( mvtype ), vegin%width( mvtype ),                        &
-         vegin%vcmax( mvtype ),  vegin%ejmax( mvtype ),                        &
-         vegin%hc( mvtype ), vegin%xfang( mvtype ),                            &
-         vegin%rp20( mvtype ), vegin%rpcoef( mvtype ),                         &
-         vegin%rs20( mvtype ), vegin%wai( mvtype ),                            &
-         vegin%rootbeta( mvtype ), vegin%shelrb( mvtype ),                     &
-         vegin%vegcf( mvtype ), vegin%frac4( mvtype ),                         &
-         vegin%xalbnir( mvtype ), vegin%extkn( mvtype ),                       &
-         vegin%tminvj( mvtype ), vegin%tmaxvj( mvtype ),                       &
-         vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
-         vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
-         vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
-         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
-         veg_desc( mvtype ),                                                   &
-         vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
-         vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
-         vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
-         vegin%g0( mvtype ), vegin%g1( mvtype ))                ! Ticket #56
+                vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                 &
+                vegin%length( mvtype ), vegin%width( mvtype ),                 &
+                vegin%vcmax( mvtype ),  vegin%ejmax( mvtype ),                 &
+                vegin%hc( mvtype ), vegin%xfang( mvtype ),                     &
+                vegin%rp20( mvtype ), vegin%rpcoef( mvtype ),                  &
+                vegin%rs20( mvtype ), vegin%wai( mvtype ),                     &
+                vegin%rootbeta( mvtype ), vegin%shelrb( mvtype ),              &
+                vegin%vegcf( mvtype ), vegin%frac4( mvtype ),                  &
+                vegin%xalbnir( mvtype ), vegin%extkn( mvtype ),                &
+                vegin%tminvj( mvtype ), vegin%tmaxvj( mvtype ),                &
+                vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),              &
+                vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),       &
+                vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),      &
+                vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),          &
+                veg_desc( mvtype ),                                            &
+                vegin%a1gs(mvtype), vegin%d0gs(mvtype),                        &
+                vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),   &
+                vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),&
+                vegin%ekc(mvtype), vegin%eko(mvtype),                          &
+                vegin%g0( mvtype ), vegin%g1( mvtype ))                ! Ticket #56
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -439,6 +439,158 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 
 END SUBROUTINE get_type_parameters
 
+!ccc For I/O subroutine.
+SUBROUTINE HANDLE_ERR( status, msg )
+  ! LN 06/2013
+  use netcdf
+  INTEGER, INTENT(IN) :: status
+  CHARACTER(LEN=*), INTENT(IN),OPTIONAL :: msg
+  IF(status /= NF90_noerr) THEN
+     WRITE(*,*)"netCDF error:"
+     IF ( PRESENT( msg ) ) WRITE(*,*)msg
+     WRITE(*,*) TRIM(NF90_strerror(status))
+     STOP -1
+  END IF
+END SUBROUTINE HANDLE_ERR
+
+SUBROUTINE GET_UNIT (IUNIT)
+  
+  ! Find an unused unit for intermediate use
+  ! PLEASE, use it ONLY when you OPEN AND CLOSE WITHIN THE SAME CALL
+  ! or there could be interferences with other files!!!
+  ! LN 05/2014
+  
+  IMPLICIT NONE
+  
+  INTEGER,INTENT(OUT) :: IUNIT
+  INTEGER :: i
+  LOGICAL :: is_open = .FALSE.
+  
+  DO i = 200, 10000
+     INQUIRE ( UNIT=i, OPENED=is_open )
+     IF ( .NOT. is_open ) EXIT
+  END DO
+  IUNIT = i
+  
+END SUBROUTINE GET_UNIT
+
+ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
+  IMPLICIT NONE
+  INTEGER,INTENT(IN) :: YYYY
+  LOGICAL :: IS_LEAPYEAR
+  
+  IS_LEAPYEAR = .FALSE.
+  IF ( ( ( MOD( YYYY,  4 ) .EQ. 0 .AND. MOD( YYYY, 100 ) .NE. 0 ) .OR. &
+       MOD( YYYY,400 ) .EQ. 0 ) ) IS_LEAPYEAR = .TRUE.
+  
+END FUNCTION IS_LEAPYEAR
+
+FUNCTION LEAP_DAY( YYYY )
+  IMPLICIT NONE
+  INTEGER :: YYYY, LEAP_DAY
+  
+  IF ( IS_LEAPYEAR ( YYYY ) ) THEN
+     LEAP_DAY = 1
+  ELSE
+     LEAP_DAY = 0
+  END IF
+END FUNCTION LEAP_DAY
+
+SUBROUTINE YMDHMS2DOYSOD( YYYY,MM,DD,HOUR,MINUTE,SECOND,DOY,SOD )
+  
+  ! Compute Day-of-year and second-of-day from given date and time or
+  
+  IMPLICIT NONE
+  
+  INTEGER,INTENT(IN)  :: YYYY,MM,DD,HOUR,MINUTE,SECOND
+  INTEGER,INTENT(OUT) :: DOY,SOD
+  
+  !  LOGICAL :: IS_LEAPYEAR
+  INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+  
+  IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+  
+  IF ( DD .GT. MONTH(MM) .OR. DD .LT. 1 .OR. &
+       MM .GT. 12 .OR. MM .LT. 1 ) THEN
+     WRITE(*,*)"Wrong date entered in YMDHMS2DOYSOD "
+     WRITE(*,*)"DATE : ",YYYY,MM,DD
+     STOP
+  ENDIF
+  DOY = DD
+  IF ( MM .GT. 1 ) DOY = DOY + SUM( MONTH( 1:MM-1 ) )
+  SOD = HOUR * 3600 + MINUTE * 60 + SECOND
+  
+END SUBROUTINE YMDHMS2DOYSOD
+
+SUBROUTINE DOYSOD2YMDHMS( YYYY,DOY,SOD,MM,DD,HOUR,MINUTE,SECOND )
+  
+  ! Compute Day-of-year and second-of-day from given date and time or
+  
+  IMPLICIT NONE
+  
+  INTEGER,INTENT(IN)           :: YYYY,DOY,SOD
+  INTEGER,INTENT(OUT)          :: MM,DD
+  INTEGER,INTENT(OUT),OPTIONAL :: HOUR,MINUTE,SECOND
+  
+  !  LOGICAL :: IS_LEAPYEAR
+  INTEGER :: MON, i
+  INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+  
+  IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+  
+  IF ( SOD .GE. 86400 .OR. SOD .LT. 0 .OR. &
+       DOY .GT. SUM(MONTH) .OR. DOY .LT. 1 ) THEN
+     WRITE(*,*)"Wrong date entered in DOYSOD2YMDHMS "
+     WRITE(*,*)"YYYY DOY SOD : ",YYYY,DOY,SOD
+     STOP
+  ENDIF
+  
+  MON = 0
+  DO i = 1, 12
+     IF ( MON + MONTH(i) .LT. DOY ) THEN
+        MON = MON + MONTH(i)
+     ELSE
+        MM  = i
+        DD  = DOY - MON
+        EXIT
+     ENDIF
+  END DO
+  IF ( PRESENT ( HOUR ) ) HOUR   = INT( REAL(SOD)/3600. )
+  IF ( PRESENT (MINUTE) ) MINUTE = INT( ( REAL(SOD) - REAL(HOUR)*3600.) / 60. )
+  IF ( PRESENT (SECOND) ) SECOND = SOD - HOUR*3600 - MINUTE*60
+  
+END SUBROUTINE DOYSOD2YMDHMS
+
+SUBROUTINE LAND2XY( xdimsize, landgrid, x, y )
+  
+  ! Convert landgrid to x and y (indices for lat and lon) as
+  ! used in CABLE
+  ! LN 08/2015
+  
+  IMPLICIT NONE
+  INTEGER, INTENT(IN)  :: xdimsize, landgrid
+  INTEGER, INTENT(OUT) :: x, y
+  
+  y = INT(REAL((landGrid-1))/REAL(xdimsize)) + 1
+  x = landGrid - (y-1) * xdimsize
+  
+END SUBROUTINE LAND2XY
+
+SUBROUTINE XY2LAND( xdimsize, x, y, landgrid )
+  
+  ! Convert x and y (indices for lat and lon) to landgrid
+  ! as used in CABLE
+  ! LN 08/2015
+  
+  IMPLICIT NONE
+  INTEGER, INTENT(IN)  :: xdimsize, x, y
+  INTEGER, INTENT(OUT) :: landgrid
+  
+  landgrid = x + ( y - 1 ) * xdimsize
+  
+END SUBROUTINE XY2LAND
+
+!ccc
 
 ! get svn revision number and status
 SUBROUTINE report_version_no( logn )
