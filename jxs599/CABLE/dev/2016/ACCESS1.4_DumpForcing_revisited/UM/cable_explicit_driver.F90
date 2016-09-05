@@ -133,8 +133,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       sw_down,          & 
       cos_zenith_angle
    
+   REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                             &
+      latitude
+   
    REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
-      latitude,   &
       longitude,  &
       lw_down,    &
       ls_rain,    &
@@ -285,8 +287,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
- 
 
+   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
+   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -308,6 +311,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- internal FLAGS def. specific call of CABLE from UM
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
+
+   !--- UM7.3 latitude is not passed correctly. hack 
+   IF(first_cable_call) latitude = sin_theta_latitude
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
@@ -381,7 +387,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    ! dump bitwise reproducible testing data
    IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
+      call cable_diag( iDiagZero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
                           "FLUXES", canopy%fe + canopy%fh )
                 
 
