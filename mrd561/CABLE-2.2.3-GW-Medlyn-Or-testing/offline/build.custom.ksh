@@ -51,7 +51,7 @@ host_bliz()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx  -shared-intel -mcmodel=medium -parallel'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
+   export CFLAGS='-O2 -r8  -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi

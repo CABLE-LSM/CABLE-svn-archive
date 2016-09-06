@@ -665,6 +665,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
       ssnow%dfe_ddq = ssnow%rh_srf(:) * air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
    end if
 
+   !temp for my output purposes
+   ssnow%beta_rtsoil(:) = ssnow%rtsoil(:) / ssnow%wetfac(:)
+
    ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
                    / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
                    ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
@@ -2456,17 +2459,17 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
                       pi = 3.14159265358979324, &
                       c2 = 2.0
 
-   real(r_2), parameter :: rtevap_max = 100000.0
+   real(r_2), parameter :: rtevap_max = 10000.0
 
    integer :: i,j,k 
    logical, save ::  first_call = .true.
 
-   pore_radius(:) = pore_size_factor * 0.148 / (abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
+   pore_radius(:) = pore_size_factor * 0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
    if (default_sublayer_thickness) then    !calc sublayer thickness from Haghigni and Or et al. 2015
-
-      eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us)
+      !scale ustar according to the exponential wind profile, assuming we are a mm from the surface
+      eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-0.001/max(1e-2,rough%hruff))))
       int_eddy_shape = floor(eddy_shape)
       eddy_mod(:) = 0.0
       do i=1,mp   
@@ -2479,7 +2482,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
             end do
          end if
       end do
-      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us), 1e-7)
+      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-0.001/max(1e-2,rough%hruff)))),1e-7)              !exp(-canopy%vlaiw)), 1e-7)
 
    elseif (use_simple_sublayer_thickness) then
 
@@ -2487,7 +2490,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    elseif (use_const_thickness ) then
 
-      canopy%sublayer_dz = max(sublayer_Z_param,1e-7)
+      !canopy%sublayer_dz = max(sublayer_Z_param,1e-7)
+      canopy%sublayer_dz = sublayer_Z_param
 
    else
 
@@ -2513,9 +2517,14 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
                          rtevap_max )
       ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
                          rtevap_max )
+
+      ssnow%sv_rtevap(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero)),rtevap_max)
+      ssnow%bl_rtevap(:) = min( rough%z0soil/canopy%sublayer_dz * ((canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),rtevap_max)
    elsewhere
-      ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,10000.0)
-      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,10000.0)
+      ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,rtevap_max)
+      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,rtevap_max)
+      ssnow%sv_rtevap(:) = min( (lm/ (4.0*hk_zero)),rtevap_max)
+      ssnow%bl_rtevap(:) = min( ((canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),rtevap_max)
    endwhere
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 

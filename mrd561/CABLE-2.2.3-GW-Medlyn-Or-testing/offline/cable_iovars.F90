@@ -361,7 +361,10 @@ MODULE cable_IO_vars_module
          sublayer_dz=.false., &
          rtevap_sat=.false.,  &
          z0soil=.false.,      &
-         rtsoil=.false.
+         rtsoil=.false.,      &
+         beta_rtsoil=.false., &
+         bl_rtevap=.true.,&
+         sv_rtevap=.true.
    
    END TYPE output_inclusion_type
 

@@ -72,7 +72,8 @@ MODULE cable_output_module
                     EqGWMoist,EqGWSoilMatPot,Qinfl,GWSoilMatPot,fldcap,forg,   &
                     wiltp,SoilIce,SatFrac,Qrecharge,                           &
                     VISalbedo,NIRalbedo, &
-                    rtevap,sublayer_dz,rtevap_sat,z0soil,rtsoil
+                    rtevap,sublayer_dz,rtevap_sat,z0soil,rtsoil,beta_rtsoil,&
+                    sv_rtevap,bl_rtevap
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -193,7 +194,8 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: VISalbedo
     REAL(KIND=4), POINTER, DIMENSION(:) :: NIRalbedo
 
-    REAL(KIND=4), POINTER, DIMENSION(:) :: rtevap,rtevap_sat,sublayer_dz,rtsoil,z0soil
+    REAL(KIND=4), POINTER, DIMENSION(:) :: rtevap,rtevap_sat,sublayer_dz,rtsoil,z0soil,beta_rtsoil,&
+                                           sv_rtevap,bl_rtevap
 
 
   END TYPE output_temporary_type
@@ -802,6 +804,20 @@ CONTAINS
        ALLOCATE(out%rtevap(mp))
        out%rtevap = 0.0 ! initialise
     END IF
+    IF(output%rtevap) THEN
+       CALL define_ovar(ncid_out, ovid%sv_rtevap, 'sv_rtevap', 's/m',      &
+                        'Evap resistance', patchout%sv_rtevap,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%sv_rtevap(mp))
+       out%sv_rtevap = 0.0 ! initialise
+    END IF
+    IF(output%rtevap) THEN
+       CALL define_ovar(ncid_out, ovid%bl_rtevap, 'bl_rtevap', 's/m',      &
+                        'Evap resistance', patchout%bl_rtevap,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%bl_rtevap(mp))
+       out%bl_rtevap = 0.0 ! initialise
+    END IF
 
     IF(output%rtevap_sat) THEN
        CALL define_ovar(ncid_out, ovid%rtevap_sat, 'rtevap_sat', 's/m',      &
@@ -837,6 +853,13 @@ CONTAINS
        out%rtsoil = 0.0 ! initialise
     END IF
 
+    IF(output%beta_rtsoil) THEN
+       CALL define_ovar(ncid_out, ovid%beta_rtsoil, 'beta_rtsoil', 'm',      &
+                        'soil resistance / beta', patchout%beta_rtsoil,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%beta_rtsoil(mp))
+       out%beta_rtsoil = 0.0 ! initialise
+    END IF
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
                      'iveg', '-', 'Vegetation type', patchout%iveg, 'integer', &
@@ -2336,6 +2359,28 @@ CONTAINS
           ! Reset temporary output variable:
           out%rtevap = 0.0
        END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%sv_rtevap = out%sv_rtevap + REAL(ssnow%sv_rtevap, 4)
+       IF(writenow) THEN
+          out%sv_rtevap = out%sv_rtevap / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%sv_rtevap, 'sv_rtevap', &
+               out%sv_rtevap, (/-9999.0,9999.0/), patchout%sv_rtevap, 'default', met)
+          ! Reset temporary output variable:
+          out%sv_rtevap = 0.0
+       END IF
+
+       out%bl_rtevap = out%bl_rtevap + REAL(ssnow%bl_rtevap, 4)
+       IF(writenow) THEN
+          out%bl_rtevap = out%bl_rtevap / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%bl_rtevap, 'bl_rtevap', &
+               out%bl_rtevap, (/-9999.0,9999.0/), patchout%bl_rtevap, 'default', met)
+          ! Reset temporary output variable:
+          out%bl_rtevap = 0.0
+       END IF
+
     END IF      
 
     IF(output%rtevap_sat) THEN
@@ -2386,6 +2431,19 @@ CONTAINS
                out%rtsoil, (/-9999.0,9999.0/), patchout%rtsoil, 'default', met)
           ! Reset temporary output variable:
           out%rtsoil = 0.0
+       END IF
+    END IF      
+
+    IF(output%beta_rtsoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%beta_rtsoil = out%beta_rtsoil + REAL(ssnow%beta_rtsoil, 4)
+       IF(writenow) THEN
+          out%beta_rtsoil = out%beta_rtsoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%beta_rtsoil, 'beta_rtsoil', &
+               out%beta_rtsoil, (/-9999.0,9999.0/), patchout%beta_rtsoil, 'default', met)
+          ! Reset temporary output variable:
+          out%beta_rtsoil = 0.0
        END IF
     END IF      
 
