@@ -300,8 +300,10 @@ MODULE cable_def_types_mod
          gswmin,  & ! minimal stomatal conductance
          conkc0,  &  ! Michaelis-menton constant for carboxylase
          conko0,  &  ! Michaelis-menton constant for oxygenase
-         ekc,     & ! activation energy for carboxylase
-         eko        ! acvtivation enegery for oxygenase
+         ekc,     &  ! activation energy for caroxylagse
+         eko,     &  ! acvtivation enegery for oxygenase
+         g0,      & ! Belinda's stomatal model intercept, Ticket #56.
+         g1         ! Belinda's stomatal model slope, Ticket #56.   
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -912,6 +914,8 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%conko0(mp) )
    ALLOCATE( var%ekc(mp) )
    ALLOCATE( var%eko(mp) )
+   ALLOCATE( var% g0(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g1(mp) )   ! Ticket #56.
 
 
     ALLOCATE ( var % rootbeta(mp) )
@@ -1452,6 +1456,8 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%conko0 )
    DEALLOCATE( var%ekc )
    DEALLOCATE( var%eko )
+   DEALLOCATE( var%g0 ) ! Ticket #56.
+   DEALLOCATE( var%g1 ) ! Ticket #56. 
 
     ! Deallocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1464,7 +1470,6 @@ SUBROUTINE dealloc_veg_parameter_type(var)
     DEALLOCATE ( var % disturbance_intensity )
     IF(ASSOCIATED(var % gamma)) DEALLOCATE ( var % gamma )
     ! END IF
-
 
 END SUBROUTINE dealloc_veg_parameter_type
 
