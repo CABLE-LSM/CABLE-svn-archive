@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the
+! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-!
+! 
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -20,12 +20,6 @@
 ! History: Model development by Yingping Wang, coupling to Mk3L by Bernard Pak
 !          ssoil changed to ssnow
 !
-! Sep 2015 Vanessa Haverd: Modifications to optionally call POP annually; replace default wood turnover
-! with woody biomass mortality; track sapwood biomass for use in casacnp autotrophic
-! respiration; track sapwood cross-sectional area for use in carbon allocation when LALLOC=3
-
-! Aug 2016 Vanessa Haverd: Move call to POPStep out of bgcdriver and create separate 
-! POPDriver subroutine, as required for mpi code with Land Use and POP enabled.
 ! ==============================================================================
 
 !#     define UM_BUILD YES
