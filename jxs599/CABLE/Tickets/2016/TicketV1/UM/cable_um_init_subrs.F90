@@ -212,7 +212,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! parameter b in Campbell equation 
          CALL um2cable_lp( BEXP, soilin%bch, soil%bch, soil%isoilm)
          
-         ALLOCATE( tempvar(um1%land_pts), tempvar2(mp) )
+         ALLOCATE( tempvar(mstype), tempvar2(mp) )
          tempvar = soilin%sand(9) * 0.3  + soilin%clay(9) *0.25 +              &
                    soilin%silt(9) * 0.265
          
@@ -426,34 +426,55 @@ END SUBROUTINE init_respiration
 !========================================================================
 
 SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
+   USE cable_common_module, ONLY : vegin, init_veg_from_vegin
    USE cable_um_tech_mod,   ONLY : veg, soil 
    USE cable_def_types_mod, ONLY : mp
 
-   INTEGER :: k
+   INTEGER :: j, k
 
-      !jhan:UM reads from ancil. & resets thru kblum_veg   
-      veg%canst1  = vegin%canst1(veg%iveg)
-      veg%ejmax   = 2.*vegin%vcmax(veg%iveg)
-      veg%frac4   = vegin%frac4(veg%iveg)
-      veg%tminvj  = vegin%tminvj(veg%iveg)
-      veg%tmaxvj  = vegin%tmaxvj(veg%iveg)
-      veg%vbeta   = vegin%vbeta(veg%iveg)
-      veg%rp20    = vegin%rp20(veg%iveg)
-      veg%rpcoef  = vegin%rpcoef(veg%iveg)
-      veg%shelrb  = vegin%shelrb(veg%iveg)
-      veg%vegcf   = vegin%vegcf(veg%iveg)
-      veg%extkn   = vegin%extkn(veg%iveg)
-      veg%vcmax   = vegin%vcmax(veg%iveg)
-      veg%xfang   = vegin%xfang(veg%iveg)
-      veg%dleaf   = vegin%dleaf(veg%iveg)
-      veg%xalbnir = vegin%xalbnir(veg%iveg)
-      veg%rs20 = vegin%rs20(veg%iveg)
+   CALL init_veg_from_vegin(1, mp, veg) 
 
-      do k=1,2
-        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
-        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
-      enddo
+      !do j=1,mp
+      !   veg%canst1(j)   = vegin%canst1(veg%iveg(j) )
+      !   veg%ejmax(j)    = 2.*vegin%vcmax(veg%iveg(j) )
+      !   veg%frac4(j)    = vegin%frac4(veg%iveg(j) )
+      !   veg%tminvj(j)   = vegin%tminvj(veg%iveg(j) )
+      !   veg%tmaxvj(j)   = vegin%tmaxvj(veg%iveg(j) )
+      !   veg%vbeta(j)    = vegin%vbeta(veg%iveg(j) )
+      !   veg%rp20(j)     = vegin%rp20(veg%iveg(j) )
+      !   veg%rpcoef(j)   = vegin%rpcoef(veg%iveg(j) )
+      !   veg%shelrb(j)   = vegin%shelrb(veg%iveg(j) )
+      !   veg%vegcf(j)    = vegin%vegcf(veg%iveg(j) )
+      !   veg%extkn(j)    = vegin%extkn(veg%iveg(j) )
+      !   veg%vcmax(j)    = vegin%vcmax(veg%iveg(j) )
+      !   veg%xfang(j)    = vegin%xfang(veg%iveg(j) )
+      !   veg%dleaf(j)    = vegin%dleaf(veg%iveg(j) )
+      !   veg%xalbnir(j)  = vegin%xalbnir(veg%iveg(j) )
+      !   veg%rs20(j)     = vegin%rs20(veg%iveg(j) )
+ 
+      !   ! jtk561
+      !   veg%g0(j)       = vegin%g0(veg%iveg(j))
+      !   veg%g1(j)       = vegin%g1(veg%iveg(j))
+   
+      !   ! Ammendments to Ticket #2
+      !   veg%a1gs(j)     = vegin%a1gs(veg%iveg(j))
+      !   veg%d0gs(j)     = vegin%d0gs(veg%iveg(j))
+      !   veg%convex(j)   = vegin%convex(veg%iveg(j))
+      !   veg%gswmin(j)   = vegin%gswmin(veg%iveg(j))
+      !   veg%conkc0(j)   = vegin%conkc0(veg%iveg(j))
+      !   veg%conko0(j)   = vegin%conko0(veg%iveg(j))
+      !   veg%ekc(j)      = vegin%ekc(veg%iveg(j))
+      !   veg%eko(j)      = vegin%eko(veg%iveg(j))
+   
+      !   veg%cfrd(j)     = vegin%cfrd(veg%iveg(j)) !never used
+      !   veg%wai(j)      = vegin%wai(veg%iveg(j)) !never used
+
+      !      do k=1,2
+      !        veg%refl(j,k)   = vegin%refl(k,veg%iveg(j) )
+      !        veg%taul(j,k)   = vegin%taul(k,veg%iveg(j) )
+      !      enddo
+
+      !enddo
 
       !froot fixed here for all vegetation types for ACCESS
       !need more flexibility in next version to read in or parameterise
@@ -464,6 +485,7 @@ SUBROUTINE init_veg_pars_fr_vegin()
       veg%froot(:,5) = 0.20
       veg%froot(:,6) = 0.15
 
+      veg%ejmax    = 2.*veg%vcmax
 END SUBROUTINE init_veg_pars_fr_vegin
 
 !========================================================================
@@ -1027,11 +1049,11 @@ END SUBROUTINE um2cable_rr
 !--- conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
 !--- if the land point is/has an active tile
 SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, mstype
    USE cable_um_tech_mod,   ONLY :um1
   
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: umvar
-   REAL, INTENT(IN), DIMENSION(10) :: defaultin    
+   REAL, INTENT(IN), DIMENSION(mstype) :: defaultin    
    REAL, INTENT(INOUT), DIMENSION(mp) :: cablevar
    INTEGER, INTENT(INOUT), DIMENSION(mp) :: soiltype
    REAL, DIMENSION(:,:), ALLOCATABLE:: fvar   
@@ -1041,7 +1063,7 @@ SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
          
       ALLOCATE( fvar(um1%land_pts,um1%ntiles) )
       fvar = 0.0
-
+      !hardwired 9= mstype 9 = permafrost
       DO N=1,um1%NTILES
          DO K=1,um1%TILE_PTS(N)
             L = um1%TILE_INDEX(K,N)
