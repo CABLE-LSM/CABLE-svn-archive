@@ -1,27 +1,31 @@
 !==============================================================================
-! This source code is part of the
+! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-!
+! 
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Calculates surface exchange fluxes through the solution of surface
-!          energy balance and its interaction with plant physiology. Specific
+! Purpose: Calculates surface exchange fluxes through the solution of surface 
+!          energy balance and its interaction with plant physiology. Specific 
 !        representation of the transport of scalars within a canopy is included.
 !
 ! Called from: cbm
 !
 ! Contact: Yingping.Wang@csiro.au and Eva.Kowalczyk@csiro.au
 !
-! History: Revision of canopy temperature calculation (relative to v1.4b)
+! History: Revision of canopy temperature calculation (relative to v1.4b) 
 !          Reorganisation of code (dryLeaf, wetLeaf, photosynthesis subroutines
 !          taken out of define_canopy)
-!
-!
+!        : Martin De Kauwe and Jatin Kala added new switch to compute stomatal
+!          conductance based on: Medlyn BE et al (2011) Global Change Biology 17:
+!          2134-2144. The variables xleuning, xleuningz are no longer used, but 
+!          replaced with gs_coeff,gs_coeffz. If GS_SWITCH is set to "leuning",
+!          gs_coeff=xleuning and gs_coeffz=xleuningz, but based on the new model
+!          if set to "medlyn". Search for "Ticket #56" 
 ! ==============================================================================
 
 MODULE cable_canopy_module
@@ -1446,7 +1450,11 @@ CONTAINS
          vcmxt4,     & ! vcmax big leaf C4
          vx3,        & ! carboxylation C3 plants
          vx4,        & ! carboxylation C4 plants
-         xleuning,   & ! leuning stomatal coeff
+         ! Ticket #56, xleuning is no longer used, we replace it with
+         ! gs_coeff,
+         ! which is computed differently based on the new GS_SWITCH. If GS_SWITCH
+         ! is "leuning", it's the same, if "medlyn", then the new Medlyn model
+         ! xleuning,   & ! leuning stomatal coeff
          psycst,     & ! modified pych. constant
          frac42,     & ! 2D frac4
          temp2
@@ -1456,6 +1464,7 @@ CONTAINS
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
 
     INTEGER :: i, j, k, kk  ! iteration count
+    REAL :: vpd, g1 ! Ticket #56   
 
     ! END header
 
@@ -1595,11 +1604,11 @@ CONTAINS
 
              ! Michaelis menten constant of Rubisco for CO2:
              conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (C%rgas*C%trefk) ) &
-                  * ( 1.0 - C%trefk/tlfx(i) ) )
+                                              * ( 1.0 - C%trefk/tlfx(i) ) )
 
              ! Michaelis menten constant of Rubisco for oxygen:
              conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (C%rgas*C%trefk) ) &
-                  * ( 1.0 - C%trefk/tlfx(i) ) )
+                                              * ( 1.0 - C%trefk/tlfx(i) ) )
 
              ! Store leaf temperature
              tlfxx(i) = tlfx(i)
@@ -1607,7 +1616,7 @@ CONTAINS
              ! "d_{3}" in Wang and Leuning, 1998, appendix E:
              cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
              cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
-                  + C%gam2 * tdiff(i) * tdiff(i) )
+                                          + C%gam2 * tdiff(i) * tdiff(i) )
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
              ! for calculating anx, csx and gswx for Rubisco limited,
@@ -1621,9 +1630,14 @@ CONTAINS
              vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
              vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
 
-
              rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+!Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion 
+!as well as other inconsistencies here that need further investigation. In the 
+!interests of getting this into the trunk ASAP just isolate this code for now
+!default side of this condition is to use trunk version
+#ifdef VanessasCanopy
 
              xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
@@ -1725,23 +1739,57 @@ CONTAINS
                 xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
                      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
                 
-             endif
-          ENDIF
+             endif !cable_user%call_climate
+
+!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
+             gs_coeff = xleuning
+
+#else
+            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+            ! Ticket #56 added switch for Belinda Medlyn's model
+            IF (cable_user%GS_SWITCH == 'leuning') THEN
+                gs_coeff(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+                          * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+
+                gs_coeff(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
+                          * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+                
+            ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
+            ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
+                
+                 gswmin = veg%g0(i)               
+ 
+                IF (dsx(i) < 50.0) THEN
+                    vpd  = 0.05 ! kPa
+                ELSE
+                    vpd = dsx(i) * 1E-03 ! Pa -> kPa  
+                END IF
+
+                g1 = veg%g1(i)
+            
+                gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+                gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                
+            ELSE
+                STOP 'gs_model_switch failed.'
+            ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
+#endif
+             
+          ENDIF !IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1)
           
        ENDDO !i=1,mp
 
-
-
        CALL photosynthesis( csx(:,:),                                           &
-            SPREAD( cx1(:), 2, mf ),                            &
-            SPREAD( cx2(:), 2, mf ),                            &
-            gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
-            vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
-            xleuning(:,:), rad%fvlai(:,:),                      &
-            SPREAD( abs_deltlf, 2, mf ),                        &
-            anx(:,:), fwsoil(:) )
-
-
+                           SPREAD( cx1(:), 2, mf ),                            &
+                           SPREAD( cx2(:), 2, mf ),                            &
+                           gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
+                           vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
+                           ! Ticket #56, xleuning replaced with gs_coeff here
+                           gs_coeff(:,:), rad%fvlai(:,:),& 
+                           SPREAD( abs_deltlf, 2, mf ),                        &
+                           anx(:,:), fwsoil(:) )
 
        DO i=1,mp
 
@@ -1755,9 +1803,10 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-                   canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                        MAX( 0.0, C%RGSWC * xleuning(i,kk) *     &
-                        anx(i,kk) ) )
+                  ! Ticket #56, xleuning replaced with gs_coeff here
+                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
+                                      MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
+                                      anx(i,kk) ) )
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
@@ -1962,9 +2011,10 @@ CONTAINS
   ! -----------------------------------------------------------------------------
 
 
-  SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
-       rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
-       vx4z, xleuningz, vlaiz, deltlfz, anxz, fwsoilz )
+   ! Ticket #56, xleuningz repalced with gs_coeffz
+   SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
+                           rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
+                           vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz )
     USE cable_def_types_mod, only : mp, mf, r_2
 
     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
@@ -1978,7 +2028,7 @@ CONTAINS
          vcmxt4z,    & !
          vx4z,       & !
          vx3z,       & !
-         xleuningz,  & !
+         gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
          vlaiz,      & !
          deltlfz       !
 
@@ -2005,20 +2055,21 @@ CONTAINS
              IF( vlaiz(i,j) .GT. C%LAI_THRESH .AND. deltlfz(i,j) .GT. 0.1) THEN
 
                 ! Rubisco limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + xleuningz(i,j) * &
-                     ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
+                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) * &
+                              ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
 
-                coef1z(i,j) = (1.0-csxz(i,j)*xleuningz(i,j)) *                  &
-                     (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
-                     + (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
-                     - xleuningz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
-                     + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
+                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
+                              (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
+                              + (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
+                              - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
+                              + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
+                
+                 
+                coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *                 &    
+                              (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
+                              + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
+                              -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
 
-
-                coef0z(i,j) = -(1.0-csxz(i,j)*xleuningz(i,j)) *                 &
-                     (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
-                     + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
-                     -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
 
                 ! kdcorbin,09/10 - new calculations
                 IF( ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
@@ -2065,20 +2116,20 @@ CONTAINS
                 ENDIF
 
                 ! RuBP limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + xleuningz(i,j) &
-                     * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
-
-                coef1z(i,j) = ( 1.0 - csxz(i,j) * xleuningz(i,j) ) *            &
-                     ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
-                     + ( gswminz(i,j)*fwsoilz(i) / C%RGSWC ) *          &
-                     ( cx2z(i,j) - csxz(i,j) ) - xleuningz(i,j)        &
-                     * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
-                     ( rdxz(i,j) - vx4z(i,j) ) )
-
-                coef0z(i,j) = -(1.0-csxz(i,j)*xleuningz(i,j)) *   &
-                     (vx3z(i,j)*cx2z(i,j)/2.0                          &
-                     + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
-                     - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
+                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) &
+                              * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
+    
+                coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeffz(i,j) ) *            &
+                              ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
+                              + ( gswminz(i,j)*fwsoilz(i) / C%RGSWC ) *          &
+                              ( cx2z(i,j) - csxz(i,j) ) - gs_coeffz(i,j)        &
+                              * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
+                              ( rdxz(i,j) - vx4z(i,j) ) )                          
+                              
+                              coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *   &
+                              (vx3z(i,j)*cx2z(i,j)/2.0                          &
+                              + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
+                          - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
 
 
                 !kdcorbin, 09/10 - new calculations
@@ -2120,17 +2171,17 @@ CONTAINS
                 ENDIF
 
                 ! Sink limited:
-                coef2z(i,j) = xleuningz(i,j)
-
-                coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + xleuningz(i,j)   &
-                     * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
-                     + effc4 * vcmxt4z(i,j) - xleuningz(i,j)           &
-                     * csxz(i,j) * effc4 * vcmxt4z(i,j)
-
+                coef2z(i,j) = gs_coeffz(i,j)
+                
+                coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + gs_coeffz(i,j)   &
+                              * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
+                              + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
+                              * csxz(i,j) * effc4 * vcmxt4z(i,j)  
+                                             
                 coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC )*csxz(i,j)*effc4 &
-                     * vcmxt4z(i,j) + ( rdxz(i,j)                      &
-                     - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
-
+                              * vcmxt4z(i,j) + ( rdxz(i,j)                      &
+                            - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
+  
                 ! no solution, give it a huge number
                 IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
                      ABS( coef1z(i,j)) < 1.0e-9 ) THEN
@@ -2292,7 +2343,12 @@ CONTAINS
          SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
          SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
 
-    fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+   ! Remove vbeta #56
+   IF(cable_user%GS_SWITCH == 'medlyn') THEN
+      fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+   ELSE   
+      fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+   ENDIF   
 
   END SUBROUTINE fwsoil_calc_std
 
