@@ -135,6 +135,8 @@ MODULE cable_IO_vars_module
           zeta,fsatmax, &
           gamma,ZR,F10
 
+     INTEGER :: g0,g1 ! Ticket #56
+
    END TYPE parID_type
 
    ! =============== Logical  variables ============================
@@ -248,7 +250,6 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
-
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
@@ -311,7 +312,9 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
+         g0   = .FALSE.,      & ! Ticket #56      
+         g1   = .FALSE.,      & ! Ticket #56
+         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
          vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate

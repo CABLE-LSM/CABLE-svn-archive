@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the
+! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-!
+! 
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -19,7 +19,7 @@
 !
 ! Contact: Bernard.Pak@csiro.au
 !
-! History: Changes since v1.4b for global offline (GSWP) cases, read in new
+! History: Changes since v1.4b for global offline (GSWP) cases, read in new 
 !          input files
 !          Two subroutines moved to cable_common (reading veg and soil parameter
 !          files)
@@ -1307,6 +1307,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                vegin%tmaxvj, vegin%vbeta,vegin%clitt, vegin%zr, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
+               vegin%g0, vegin%g1,                                             & 
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
                vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
