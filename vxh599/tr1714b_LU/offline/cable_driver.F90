@@ -10,7 +10,6 @@
 !
 ! ==============================================================================
 ! Purpose: Offline driver for CABLE
-!casaflux%Nmindep
 ! Contact: Bernard.Pak@csiro.au
 !
 ! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
@@ -650,7 +649,6 @@ PROGRAM cable_offline_driver
                     WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
                     ncfile	 = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                     casa_it = NINT( REAL(ktau / ktauday) )
-                    write(699,*) 'b4 read_casa_dump', CYEAR, ncfile
                     CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
                  ENDIF
                  
@@ -689,15 +687,14 @@ PROGRAM cable_offline_driver
                        IF (CABLE_USER%POPLUC) THEN
                        ! Dynamic LUC: update casa pools according to LUC transitions
                           CALL POP_LUC_CASA_transfer(POPLUC,POP,LUC_EXPT,casapool,casabal,casaflux,ktauday)
- write(699,*) 'driver 1', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
-                         ! Dynamic LUC: write output
+                          ! Dynamic LUC: write output
                           CALL WRITE_LUC_OUTPUT_NC( POPLUC, YYYY, ( YYYY.EQ.cable_user%YearEnd ))
 
                        ENDIF
                     ENDIF
 
                  ENDIF
-write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
+
                  ! WRITE CASA OUTPUT
                  IF(icycle >0) THEN
 
@@ -782,8 +779,7 @@ write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
                     new_sumfe = new_sumfe + SUM(canopy%fe)
                     if (ktau == kend) PRINT*,"Ebal_tot, Wbal_tot, sumbal, sum_fe, sum_fpn", sum(bal%ebal_tot), sum(bal%wbal_tot),	 new_sumbal, &
                          new_sumfe, new_sumfpn
-!!$
-                    ! write(557,*) MAXVAL(abs(canopy%fpn)), MAXLOC(abs(canopy%fpn),1)
+
 !!$	      do kk=1,mp
 !!$		 if( canopy%fe(kk).NE.( canopy%fe(kk))) THEN
 !!$		    write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
@@ -798,12 +794,6 @@ write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
 !!$		    stop
 !!$
 !!$		 endif
-!!$
-!!$
-!!$		 !if (canopy%fwsoil(kk).eq.0.0) then
-!!$		 !   write(*,*) 'zero fwsoil', ktau, canopy%fpn(kk)
-!!$		 !endif
-!!$
 !!$
 !!$	      enddo
 
@@ -1096,13 +1086,9 @@ SUBROUTINE LUCdriver( casabiome,casapool, &
   TYPE (veg_parameter_type),    INTENT(IN) :: veg  ! vegetation parameters
 
   integer ::  k, j, l, yyyy
-
- 
  
   write(*,*) 'cablecasa_LUC', CurYear
   yyyy = CurYear
-
-
 
   LUC_EXPT%CTSTEP = yyyy -  LUC_EXPT%FirstYear + 1
 

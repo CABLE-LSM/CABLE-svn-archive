@@ -656,8 +656,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
     !              - ssnow%evap - max(canopy%fevc,0.0)*dt/air%rlam, r_2)
 
  !win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt
-k=1
-write(*,*) ktau,dt, canopy%through, win*1000,  ssnow%delwcol, (wp(k)-wpi(k)+deltah0(k))*1000, ssnow%runoff*dt, (runoff+drn)*1000,  max(canopy%fevc,0.0)*dt/air%rlam, Etrans*1000*dt
+
 
   endif ! SEB only
 

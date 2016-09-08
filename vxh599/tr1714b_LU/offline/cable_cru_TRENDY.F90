@@ -559,7 +559,7 @@ END SUBROUTINE GET_CRU_Ndep
   LOGICAL, SAVE       :: CALL1 = .TRUE.  ! A *local* variable recording the first call of this routine
 
 ! Keep the initial value of CYEAR for calculation of different MetYear if required. 
-  IF (CALL1) RunStartYear = 1830 ! edit vh !
+  IF (CALL1) RunStartYear = 1800 ! edit vh !
 
   DO iVar = 1, CRU%NMET  ! For each met variable
 

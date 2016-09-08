@@ -753,6 +753,8 @@ ENDIF
   casaflux%FluxCtoCO2   = 0.
 
   casaflux%Cplant_turnover = 0.
+  casaflux%FluxCtohwp = 0.
+  casaflux%FluxCtoClear = 0.
 
   phen%doyphase(:,1) = -50
   phen%doyphase(:,2) = phen%doyphase(:,1) +14

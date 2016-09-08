@@ -6950,7 +6950,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
   real(r_2), dimension(:), allocatable, save  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, avg_xksoil
 
   ! local variables
-  INTEGER                  :: myearspin,nyear, nloop1
+  INTEGER                  :: myearspin,nyear, nloop1, LOY
   CHARACTER(LEN=99)        :: ncfile
   CHARACTER(LEN=4)         :: cyear
   INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
@@ -6971,8 +6971,6 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
   integer nptx,nvt,kloop
 
    REAL(dp)                               :: StemNPP(mp,2)
-   REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
-   REAL(dp), allocatable :: NPPtoGPP(:)
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
 
 
@@ -6980,10 +6978,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
     INTEGER :: ierr
 
 
-   if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
-   if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
-   if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
-   if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
+   
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
 
 
@@ -6996,7 +6991,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
   ktauday=int(24.0*3600.0/dels)
   nday=(kend-kstart+1)/ktauday
-
+  LOY = 365
   !chris 12/oct/2012 for spin up casa
   IF (.not.(allocated(avg_cleaf2met)))  allocate(avg_cleaf2met(mp), avg_cleaf2str(mp), avg_croot2met(mp), avg_croot2str(mp), &
        avg_cwood2cwd(mp), &
@@ -7038,31 +7033,21 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
         IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 !!$           ! accumulate annual variables for use in POP
-!!$           IF(idoy==1 ) THEN
-!!$              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-!!$              LAImax = casamet%glai
-!!$              Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
-!!$              Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
-!!$           ELSE
-!!$              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-!!$              LAImax = max(casamet%glai, LAImax)
-!!$              Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
-!!$              Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
-!!$           ENDIF
+           IF(MOD(ktau/ktauday,LOY)==1 ) THEN
+              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+              casabal%LAImax = casamet%glai
+              casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
+              casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
+           ELSE
+              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+              casabal%LAImax = max(casamet%glai, casabal%LAImax)
+              casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
+              casabal%Crootmean = casabal%Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
+           ENDIF
  
            IF(idoy==mdyear) THEN ! end of year
 
-!!$              StemNPP(:,1) = casaflux%stemnpp 
-!!$              StemNPP(:,2) = 0.0
-!!$              WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
-!!$                 NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
-!!$              ELSEWHERE
-!!$                 NPPtoGPP = 0.5
-!!$              ENDWHERE
-!!$
-!!$              CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
-!!$                   real(veg%disturbance_intensity(Iw,:),dp)      ,&
-!!$                   LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+
               CALL POPdriver(casaflux,casabal,veg, POP)
 
 
