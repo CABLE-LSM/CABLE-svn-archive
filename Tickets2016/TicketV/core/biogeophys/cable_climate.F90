@@ -700,7 +700,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
 
   A4(1) = 'dtemp_91'
 
-# define UM_BUILD YES
+!# define UM_BUILD YES
 # ifndef UM_BUILD
 
   ! Get File-Name
