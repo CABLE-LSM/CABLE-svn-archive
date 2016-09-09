@@ -1456,6 +1456,16 @@ ENDIF
 !    blen(bidx) = 2 * r1len
     blen(bidx) = 2 * r2len
 
+    ! Ticket #56, adding new veg parms
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%g0, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%g1, displs(bidx), ierr)
+    blen(bidx) = r1len
+    ! Ticket #56, finish adding new veg parms
+
     ! ----------- bgc --------------
 
     bidx = bidx + 1

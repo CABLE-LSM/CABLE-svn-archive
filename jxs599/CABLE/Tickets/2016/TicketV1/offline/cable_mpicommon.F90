@@ -28,18 +28,16 @@ MODULE cable_mpicommon
   PUBLIC
 
   ! MPI: base number of input fields sent to workers as start up
-  ! parameters
-  !INTEGER, PARAMETER :: nparam = 68
-  !INTEGER, PARAMETER :: nparam = 219
+  ! parameters !INTEGER, PARAMETER :: nparam = 68
   ! MPI: Bernard commented out two canopy params (potev_c and rwater)
-  ! when porting to CABLE_r491
-  ! INTEGER, PARAMETER :: nparam = 217
+  ! when porting to CABLE_r491 ! nparam = 219 -> nparam = 217
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   !INTEGER, PARAMETER :: nparam = 260
-  ! added 23 params when trying to fix the bug in MPI
-  ! INTEGER, PARAMETER :: nparam = 283
-  INTEGER, PARAMETER :: nparam = 297    ! add 10 vairable to veg%
-
+  ! added 23 params when trying to fix the bug in MPI ! nparam -> 283
+  ! add 10 vairable to veg% param -> 293
+  ! Ticket #56, add 2 new params for the Medlyns Stom Cond model 293 -> 295
+  !Vanessa Haver: add 4 new params 295 -> 299
+  INTEGER, PARAMETER :: nparam = 299    
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
@@ -48,9 +46,6 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: ncasaparam = 68
   !INTEGER, PARAMETER :: ncasaparam = 176
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
-!  INTEGER, PARAMETER :: ncasaparam = 179
-!  INTEGER, PARAMETER :: ncasaparam = 183  ! changed ypw to add 4 new variables in casabal%
-!  INTEGER, PARAMETER :: ncasaparam = 196  ! changed ypw to add 13  new variables in casabiome%
   INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables 
 !  (casaflux%frac_sapwood/sapwood_area,casabiome,casabiome%ratioNPplantmin,%ratioNPplantmax)
 ! casapool%ratioNPplant,%ratioNPlitter,ratioNPsoil
