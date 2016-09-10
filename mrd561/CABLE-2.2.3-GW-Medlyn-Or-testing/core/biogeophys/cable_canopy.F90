@@ -2464,12 +2464,14 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    integer :: i,j,k 
    logical, save ::  first_call = .true.
 
+   if (first_call) canopy%sublayer_dz(:) = 0.001
+
    pore_radius(:) = pore_size_factor * 0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
    if (default_sublayer_thickness) then    !calc sublayer thickness from Haghigni and Or et al. 2015
       !scale ustar according to the exponential wind profile, assuming we are a mm from the surface
-      eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-0.001/max(1e-2,rough%hruff))))
+      eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff))))
       int_eddy_shape = floor(eddy_shape)
       eddy_mod(:) = 0.0
       do i=1,mp   
@@ -2482,7 +2484,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
             end do
          end if
       end do
-      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-0.001/max(1e-2,rough%hruff)))),1e-7)              !exp(-canopy%vlaiw)), 1e-7)
+      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff)))),1e-7)              !exp(-canopy%vlaiw)), 1e-7)
 
    elseif (use_simple_sublayer_thickness) then
 
@@ -2531,6 +2533,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       ssnow%rtevap_sat = 0.0
       ssnow%rtevap_unsat = 0.0
    endwhere
+
+   first_call = .false.
 
 
 END SUBROUTINE or_soil_evap_resistance
