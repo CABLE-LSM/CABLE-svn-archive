@@ -1466,6 +1466,11 @@ CONTAINS
 
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56   
+#define VanessasCanopy
+#ifdef VanessasCanopy
+    REAL, DIMENSION(mp,mf)  ::                                                  &
+         xleuning    ! leuning stomatal coeff
+#endif
 
     ! END header
 
@@ -1638,6 +1643,7 @@ CONTAINS
 !as well as other inconsistencies here that need further investigation. In the 
 !interests of getting this into the trunk ASAP just isolate this code for now
 !default side of this condition is to use trunk version
+
 #ifdef VanessasCanopy
 
              xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
