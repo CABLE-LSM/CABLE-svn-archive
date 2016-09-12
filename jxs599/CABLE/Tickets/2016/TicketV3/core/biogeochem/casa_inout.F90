@@ -765,7 +765,9 @@ ENDIF
 
   IF (initcasa==1) THEN
      if (.NOT.cable_user%casa_fromzero) THEN
+#ifndef UM_BUILD
         CALL READ_CASA_RESTART_NC (  casamet, casapool, casaflux, phen )
+#endif
      ELSE
         WRITE(*,*)'casa_init: not using restart file!'
         WRITE(*,*)'Using input from readbiome.!!!'
