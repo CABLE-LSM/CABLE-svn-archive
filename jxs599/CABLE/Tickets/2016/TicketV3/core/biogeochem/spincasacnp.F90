@@ -1,3 +1,4 @@
+#     define UM_BUILD YES
 SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      casaflux,casamet,casabal,phen,POP,climate,LALLOC )
 
@@ -115,7 +116,9 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
 
+#ifndef UM_BUILD
      call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
+#endif
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +1
@@ -304,8 +307,9 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         !write(*,*) 'spincasa CYEAR', CYEAR, ncfile
         WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
         ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+#ifndef UM_BUILD
         call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
-
+#endif
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
            !      CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend )

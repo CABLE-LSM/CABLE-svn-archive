@@ -250,6 +250,7 @@ SUBROUTINE POPdriver(casaflux,casabal,veg, POP)
 
 END SUBROUTINE POPdriver
 ! ==============================================================================
+#ifndef UM_BUILD
 SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
       USE netcdf
       USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
@@ -525,6 +526,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
 #endif
 END SUBROUTINE write_casa_dump
+#endif
 
  SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet)
   USE cable_def_types_mod

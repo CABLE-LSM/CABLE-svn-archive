@@ -1,3 +1,4 @@
+#     define UM_BUILD YES
 SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
      casaflux,casamet,casabal,phen,POP,climate,LALLOC,LUC_EXPT, POPLUC, &
      sum_casapool, sum_casaflux )
@@ -124,7 +125,9 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
 
+#ifndef UM_BUILD
      call read_casa_dump( ncfile,casamet, casaflux, phen,climate, 1,1,.TRUE. )
+#endif
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +ktauday
