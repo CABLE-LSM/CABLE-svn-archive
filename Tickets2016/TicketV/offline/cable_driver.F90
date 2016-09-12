@@ -533,7 +533,7 @@ PROGRAM cable_offline_driver
        count_sum_casa = 0
        
        if (cable_user%call_climate) CALL climate_init ( climate, mp )
-       if (.NOT.cable_user%climate_fromzero) &
+       if (cable_user%call_climate .AND.(.NOT.cable_user%climate_fromzero)) &
             CALL READ_CLIMATE_RESTART_NC (climate)
        
        spinConv = .FALSE. ! initialise spinup convergence variable
@@ -689,7 +689,6 @@ PROGRAM cable_offline_driver
                        IF (CABLE_USER%POPLUC) THEN
                        ! Dynamic LUC: update casa pools according to LUC transitions
                           CALL POP_LUC_CASA_transfer(POPLUC,POP,LUC_EXPT,casapool,casabal,casaflux,ktauday)
- write(699,*) 'driver 1', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
                          ! Dynamic LUC: write output
                           CALL WRITE_LUC_OUTPUT_NC( POPLUC, YYYY, ( YYYY.EQ.cable_user%YearEnd ))
 
@@ -697,7 +696,6 @@ PROGRAM cable_offline_driver
                     ENDIF
 
                  ENDIF
-write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
                  ! WRITE CASA OUTPUT
                  IF(icycle >0) THEN
 

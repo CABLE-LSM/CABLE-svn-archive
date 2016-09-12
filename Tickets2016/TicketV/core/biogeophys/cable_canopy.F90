@@ -1646,12 +1646,7 @@ CONTAINS
 
 !#ifdef VanessasCanopy
 
-             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
-                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-          
-
+            
               if (cable_user%CALL_climate) then
   
                  ! Atkins et al. 2015, Table S4, 
@@ -1721,7 +1716,7 @@ CONTAINS
 !!$                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
 !!$                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
                 
-             endif !cable_user%call_climate
+             else !cable_user%call_climate
 
 !!$!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
 !!$             gs_coeff = xleuning
@@ -1729,6 +1724,8 @@ CONTAINS
 !#else
             rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
             rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+         endif !cable_user%call_climate
 
             ! Ticket #56 added switch for Belinda Medlyn's model
             IF (cable_user%GS_SWITCH == 'leuning') THEN
