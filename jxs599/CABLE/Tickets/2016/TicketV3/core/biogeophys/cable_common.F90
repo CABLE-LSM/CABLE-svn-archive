@@ -22,6 +22,7 @@
 !
 ! ==============================================================================
 
+!#define Vanessas_common
 MODULE cable_common_module
   IMPLICIT NONE
 
@@ -507,7 +508,6 @@ CONTAINS
     IF(status /= NF90_noerr) THEN
        WRITE(*,*)"netCDF error:"
        IF ( PRESENT( msg ) ) WRITE(*,*)msg
-#define Vanessas_common
 #ifdef Vanessas_common
        WRITE(*,*) TRIM(NF90_strerror(status))
 #else       

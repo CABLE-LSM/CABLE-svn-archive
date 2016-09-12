@@ -311,6 +311,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       IF ( allATonce ) THEN
          DO idoy=1,mdyear
 
+#     ifndef UM_BUILD
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
             CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
             CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
@@ -323,6 +324,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
             CALL get_var_ncr2(ncrid, var_name(13), mtemp   , idoy )
             CALL get_var_ncr2(ncrid, var_name(14), Ndep   , idoy )
+#     endif
 
             casamet%Tairkspin(:,idoy) = tairk
             casamet%cgppspin (:,idoy) = cgpp
@@ -494,13 +496,15 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      if (ncok /= nf90_noerr) call stderr_nc(ncok,'end def mode', ncfile)
 
  
+#     ifndef UM_BUILD
      CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
      CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
-    
+#endif    
 
   ENDIF
 
 
+#     ifndef UM_BUILD
   CALL put_var_ncr2(ncid, var_name(3), casamet%tairk    ,n_call )
   CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil    ,n_call, ms )
   CALL put_var_ncr3(ncid, var_name(5), casamet%moist    ,n_call, ms )
@@ -513,6 +517,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Nmindep,r_2)    ,n_call )
+#endif    
 
 
   IF (n_call == kend ) &
