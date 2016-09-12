@@ -59,6 +59,7 @@
 !	       poolcnpOut.csv -- from CASA-CNP
 !==============================================================================
 
+#define UM_BUILD YES
 PROGRAM cable_offline_driver
   USE cable_def_types_mod
   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,		      &

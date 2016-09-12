@@ -1711,6 +1711,7 @@ write(*,*)  fname
 
 END SUBROUTINE WRITE_CASA_RESTART_NC
 
+#ifndef UM_BUILD
 SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
 
   USE CASAVARIABLE
@@ -1974,7 +1975,8 @@ ENDIF
   STATUS = NF90_CLOSE( FILE_ID )
 
 END SUBROUTINE READ_CASA_RESTART_NC
-
+#endif
+#ifndef UM_BUILD
 SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
      CASAONLY, ctime, FINAL )
 
@@ -2846,4 +2848,5 @@ END SELECT
   ENDIF
 
 END SUBROUTINE WRITE_CASA_OUTPUT_NC
+#endif
 #endif
