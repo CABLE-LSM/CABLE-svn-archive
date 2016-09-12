@@ -708,9 +708,11 @@ write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
                        !mpidiff
                        CALL update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &
                             .FALSE. , .TRUE. , count_sum_casa)
+#ifndef UM_BUILD
                        CALL WRITE_CASA_OUTPUT_NC (veg, casamet, sum_casapool, casabal, sum_casaflux, &
                             CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.	       &
                             cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
+#endif
                        !mpidiff
                        count_sum_casa = 0
                        CALL zero_sum_casa(sum_casapool, sum_casaflux)
@@ -723,8 +725,10 @@ write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
                           !CLN CHECK FOR LEAP YEAR
                           WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
+#ifndef UM_BUILD
                           CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &    
                                kend/ktauday )
+#endif
 
                        ENDIF
                     ENDIF
@@ -985,8 +989,9 @@ write(699,*) 'driver 2', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
 
      CALL casa_poolout( ktau, veg, soil, casabiome,		  &
 	  casapool, casaflux, casamet, casabal, phen )
+#ifndef UM_BUILD
      CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen, CASAONLY )
-
+#endif
   END IF
 
   IF (cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
