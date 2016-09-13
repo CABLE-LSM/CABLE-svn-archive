@@ -459,13 +459,13 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   
      call determine_subsurface_runoff(par,ssnow,soil,veg)
   !      !figures out ssnow%qhlev(:,1:ms+1), ssnow%qhz(:)
-     ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)*0.1*3600.0   !m/s to cm/h
+     ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)*10.0*3600.0   !mm/s to cm/h
   !     !pass this into solve, remove some each timestep
   end if
   !
   !     !after all of sli has run
   !call aquifer_recharge(dt,ssnow,parin,dx,veg,soil,var)
-  !  finds ssnow%q_recharge
+  !  finds ssnow%Qrecharge
   !   upsated ssnow%S(:,ms), ssnow%GWwb(:)
   !
   !ssnow%rnof1 = ssnow%rnof1*onethousand  !to mm/s

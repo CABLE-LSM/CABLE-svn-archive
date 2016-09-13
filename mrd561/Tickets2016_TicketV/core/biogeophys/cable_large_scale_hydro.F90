@@ -38,7 +38,7 @@ MODULE cable_large_scale_hydro
      REAL(r_2), DIMENSION(mp)    :: ice_factor
      REAL(r_2), DIMENSION(mp)    :: rel_S
      REAL(r_2), DIMENSION(mp)    :: effective_porosity
-
+     REAL(r_2), DIMENSION(mp)    :: sat_ice_frac
      REAL(r_2), DIMENSION(mp)    :: slopeSTDmm
      REAL(r_2) :: tmpa,tmpb,qinmax
      integer :: i,k
@@ -69,17 +69,17 @@ MODULE cable_large_scale_hydro
        else
           ssnow%satfrac(i) = 0. 
        end if
-       ssnow%sat_ice_frac(i)   = max(1e-6,min(0.95,ice_factor(i) + (1._r_2-ice_factor(i))*ssnow%satfrac(i) ) )
+       sat_ice_frac(i)   = max(1e-6,min(0.95,ice_factor(i) + (1._r_2-ice_factor(i))*ssnow%satfrac(i) ) )
      end do
 
      do i=1,mp
         tmpa = (ssnow%S(i,1)*(parin(i,1)%the-parin(i,1)%thr)-ssnow%thetai(i,1)) / effective_porosity(i)
-        tmpb = max( (tmpa-ssnow%sat_ice_frac(i))/max(0.01_r_2,(1._r_2-ssnow%sat_ice_frac(i))), 0._r_2)
+        tmpb = max( (tmpa-sat_ice_frac(i))/max(0.01_r_2,(1._r_2-sat_ice_frac(i))), 0._r_2)
         tmpa = -2._r_2*abs(parin(i,1)%he)/(parin(i,1)%lam*dx(i,1))
         qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*parin(i,1)%Ke*thousand !IN mm/s 
 
-        ssnow%rnof1(i) = ssnow%sat_ice_frac(i) * ssnow%fwtop(i) + &
-                         (1._r_2-ssnow%sat_ice_frac(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
+        ssnow%rnof1(i) = sat_ice_frac(i) * ssnow%fwtop(i) + &
+                         (1._r_2-sat_ice_frac(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
 
         ssnow%fwtop(i) = ssnow%fwtop(i) - ssnow%rnof1(i)
 
@@ -274,7 +274,6 @@ MODULE cable_large_scale_hydro
      INTEGER :: k_drain,k,i
      REAL(r_2), dimension(mp) :: sm_tot
 
-
      ssnow%qhlev(:,:) = 0._r_2
 
      do i=1,mp
@@ -341,24 +340,24 @@ MODULE cable_large_scale_hydro
      do i=1,mp
         if ((ssnow%wtd(i) .ge. sum(dx(i,:),dim=1)) .and. (veg%iveg(i) .ne. 17) .and. (soil%isoilm(i) .ne. 9))  then
            !var%h is in cm?
-           ssnow%q_recharge(i) = -soil%GW_Kaq(i)*((soil%GW_he(i)-var(i,ms)%h*10._r_2) - (ssnow%wtd(i) - x(i,ms)))/(ssnow%wtd(i) - x(i,ms))
+           ssnow%Qrecharge(i) = -soil%GWhksat(i)*((soil%GWsmpsat(i)-var(i,ms)%h*10._r_2) - (ssnow%wtd(i) - x(i,ms)))/(ssnow%wtd(i) - x(i,ms))  !mm/s
         else
 
-           ssnow%q_recharge(i) = 0._r_2
+           ssnow%Qrecharge(i) = 0._r_2
         end if
      end do
 
      !limit in case we don't have enough mass of liquid water in bottom soil layer
-     mass_needed = ssnow%q_recharge(i)*delt
+     mass_needed = ssnow%Qrecharge(i)*delt
      if (ssnow%S(i,ms) .lt. (parin(i,ms)%the-parin(i,ms)%thr)*mass_needed/dx(i,ms)) then
 
-        ssnow%q_recharge(i) = 0.9 * ssnow%S(i,ms)*(parin(i,ms)%the-parin(i,ms)%thr)*dx(i,ms)/delt
+        ssnow%Qrecharge(i) = 0.9 * ssnow%S(i,ms)*(parin(i,ms)%the-parin(i,ms)%thr)*dx(i,ms)/delt
 
      end if
 
-     ssnow%GWwb(i) = ssnow%GWwb(i) + (ssnow%q_recharge(i) -ssnow%qhlev(i,ms+1) )*delt/soil%GWdz(i)
+     ssnow%GWwb(i) = ssnow%GWwb(i) + (ssnow%Qrecharge(i) -ssnow%qhlev(i,ms+1) )*delt/soil%GWdz(i)
 
-     ssnow%S(i,ms) = ssnow%S(i,ms) - (parin(i,ms)%the-parin(i,ms)%thr)*(ssnow%q_recharge(i))*delt/dx(i,ms)
+     ssnow%S(i,ms) = ssnow%S(i,ms) - (parin(i,ms)%the-parin(i,ms)%thr)*(ssnow%Qrecharge(i))*delt/dx(i,ms)
 
      !do we have too much water? add to runoff
      if (ssnow%GWwb(i) .gt. soil%GWwatsat(i)) then

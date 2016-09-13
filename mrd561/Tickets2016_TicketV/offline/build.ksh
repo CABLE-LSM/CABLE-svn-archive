@@ -14,12 +14,15 @@ host_mael()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -parallel -ftrapuv  -shared-intel -mcmodel=medium'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g '   #-traceback
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
+      export CFLAGS='-O0 -g -fp-model precise -ftz -fpe0 -check all -init=snan,arrays -traceback' 
    fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2'
+   if [[ $1 = 'debug' ]]; then
+      export LDFLAGS='-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  '
+   fi
    build_build
    cd ../
    build_status

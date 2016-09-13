@@ -146,8 +146,6 @@ MODULE sli_numbers
      INTEGER(i_d) :: isat
      REAL(r_2)    :: zdelta, zsoil, zzero, K, Wa, discharge, f, Rsmax, Sy
 
-     REAL(r_2)    :: wb, q_recharge, he, Kaq, dz
-
   END TYPE vars_aquifer
 
   TYPE params

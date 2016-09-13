@@ -76,7 +76,10 @@ module cable_data_module
       zetneg = -15.0, & ! negative limit on za/L when niter>=3
       zetpos = 1.0,  & ! positive limit on za/L when niter>=3
       zdlin  = 1.0,  & ! height frac of d below which TL linear
-      umin   = 0.01
+      umin   = 0.01, &
+      denliq = 1000.0,  &  !density of liquid water
+      denice = 1000.0       !denisty of ice
+
 
    END TYPE physical_constants
 
@@ -217,7 +220,7 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF, HLS
+         CAPP, TFRZ, HL, HLF, HLS, DENICE, DENLIQ
    END TYPE issnow_type
 
 
@@ -412,6 +415,8 @@ SUBROUTINE ssnow_type_ptr(C)
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
    C%HLS   => PHYS%HLS
+   C%DENICE =>PHYS%DENICE
+   C%DENLIQ =>PHYS%DENLIQ
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr
 

@@ -2225,7 +2225,7 @@ CONTAINS
     ! recharge rate
     IF(output%soil .OR. output%Qrecharge .and. cable_user%test_new_gw) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Qrecharge = out%Qrecharge + REAL(ssnow%q_recharge, 4)
+       out%Qrecharge = out%Qrecharge + REAL(ssnow%Qrecharge, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Qrecharge = out%Qrecharge / REAL(output%interval, 4)

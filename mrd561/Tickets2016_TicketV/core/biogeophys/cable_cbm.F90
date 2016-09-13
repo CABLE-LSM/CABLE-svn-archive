@@ -55,6 +55,9 @@ CONTAINS
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
 
+   !MD 
+   USE cable_soil_snow_gw_module
+
    !ptrs to local constants
    TYPE( icbm_type ) :: C
    ! CABLE model variables
@@ -130,12 +133,35 @@ CONTAINS
    IF( cable_runtime%um ) THEN
 
      IF( cable_runtime%um_implicit ) THEN
-         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+        !switch to use soil_snow or soil_snow_gw goes here
+        !here only cable_user%gw_model is set
+        !cable_runtime%run_gw_model is not 
+        IF (cable_user%gw_model) then
+
+           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met,bal,veg)
+
+        ELSE
+
+           CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+        END IF
+
       ENDIF
 
    ELSE
       IF(cable_user%SOIL_STRUC=='default') THEN
-         call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+      !switch to use soil_snow or soil_snow_gw goes here
+      !here both cable_user%gw_model and cable_runtime%run_gw_model will work
+         IF (cable_user%gw_model) then
+
+            CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+
+         ELSE
+
+            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+
+         END IF
+
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
       ENDIF

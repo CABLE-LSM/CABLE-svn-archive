@@ -102,7 +102,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind,  &
+         mask
 
    END TYPE gswp_type
 

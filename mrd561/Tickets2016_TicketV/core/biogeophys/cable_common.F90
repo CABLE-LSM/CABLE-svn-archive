@@ -148,6 +148,9 @@ MODULE cable_common_module
 
       LOGICAL :: test_new_gw = .false.
       LOGICAL :: GSWP3 = .false.
+      !MD 
+      LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: or_evap = .FALSE.
 
   END TYPE kbl_user_switches
 
@@ -187,13 +190,18 @@ MODULE cable_common_module
    TYPE gw_parameters_type
 
       REAL ::                   &
-        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+        MaxHorzDrainRate=1e-6,  & !anisintropy * q_max [qsub]  mm/s
         EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
         MaxSatFraction=900.0,     & !parameter controll max sat fraction
-        aquifer_conductivity=1.0e-5, & !m/s
-        aquifer_air_entry=-0.01,&  !  m
+        aquifer_conductivity=1.0e-5, & !mm/s
+        aquifer_air_entry=-0.1,&  !  mm
         IceAlpha=-3.0,&
-        IceBeta=1.0
+        IceBeta=1.0,&
+        hkrz=0.5,               & !hksat variation with z
+        zdepth=1.0,             & !level where hksat(z) = hksat(no z)
+        frozen_frac=0.05,       & !ice fraction to determine first non-frozenlayer for qsub
+        SoilEvapAlpha = 1.0    !modify field capacity dependence of soil evaplimit
+
 
    END TYPE gw_parameters_type
 
