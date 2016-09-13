@@ -124,7 +124,7 @@ CONTAINS
   SUBROUTINE solve(ts, tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S,thetai, Jsensible, Tsoil, evap, evap_pot, runoff, &
        infil, drainage, discharge, qh, nsteps, vmet, vlit, vsnow, var, csoil, kth, phi, T0, Tsurface, Hcum, lEcum, &
        Gcum, Qadvcum, Jcol_sensible, Jcol_latent_S, Jcol_latent_T, deltaice_cum_T, deltaice_cum_S, dxL, zdelta, &
-       SL, TL, plit, par, qhorz_hlux, qex, wex, heads,  &
+       SL, TL, plit, par, qhorz_flux, qex, wex, heads,  &
        ciso, cisoice, ciso_snow, cisoice_snow, cisos, cisoL, cprec, cprec_snow, cali, &
        qali, qiso_in, qiso_out, qiso_evap_cum, qiso_trans_cum, qiso_liq_adv, &
        qiso_vap_adv, qiso_liq_diff, qiso_vap_diff, qvsig, qlsig, qvTsig, qvh, deltaTa, lE_old, &
@@ -1213,7 +1213,7 @@ CONTAINS
                 ee(kk,0:n-1) = -qyb(kk,0:n-1)
                 bb(kk,1:n)   =  qTa(kk,0:n-1)
                 ff(kk,0:n-1) = -qTb(kk,0:n-1)
-                gg(kk,1:n) = -(q(kk,0:n-1)-q(kk,1:n)-iqex(kk,1:n)qhorz_flux(kk,1:n))*rsig(kk)
+                gg(kk,1:n) = -(q(kk,0:n-1)-q(kk,1:n)-iqex(kk,1:n)- qhorz_flux(kk,1:n))*rsig(kk)
                 gg(kk,1) = gg(kk,1)+qrunoff(kk)*rsig(kk)
 
                 aah(kk,1:n)   =  qhya(kk,0:n-1)
@@ -2770,7 +2770,7 @@ CONTAINS
                   Tsurface(kk), vmet(kk)%Ta, &
                   qsig(kk,itop-1:n), qlsig(kk,itop-1:n), qvsig(kk,itop-1:n), &
                   qmelt_ss(kk),qtransfer(kk)/dt(kk), &  ! melt water to soil and water transfer from soil to snow (+ve)
-                  qprec_ss(kk),qprec_snow(kk), qevapsig(kk), qrunoff(kk), iqex(kk,1:n), qhorz_fluz(kk,1:n), &
+                  qprec_ss(kk),qprec_snow(kk), qevapsig(kk), qrunoff(kk), iqex(kk,1:n), qhorz_flux(kk,1:n), &
                   cv_ss(kk,itop:n),Dv_ss(kk,itop:n), thetasat_ss(kk,itop:n), thetar_ss(kk,itop:n), tmp_tortuosity(kk,itop:n), &
                   deltacv_ss(kk,itop:n), vmet(kk)%rbw, vmet(kk)%cva, vmet(kk)%civa, &
                   cprec_ss(kk),cprec_snow(kk), icali(kk), &
@@ -4276,7 +4276,7 @@ CONTAINS
          - qlsig(n)*dcqldca(n) &
          - Dlmean(n-1)/deltaz(n-1) &
          - Dvbetamean(n-1)/deltaz(n-1) &
-         - qex_ss(n) &
+         - qex_ss(n)
 
     cc(ns_ciso:n-1) = -qlsig(ns_ciso:n-1)*dcqldcb(ns_ciso:n-1)  - qvsig(ns_ciso:n-1)*betaqv(ns_ciso:n-1)*dcqvdcb(ns_ciso:n-1) &
          - dbetaqv(ns_ciso:n-1)*dcqvdcb(ns_ciso:n-1)*Dvmean(ns_ciso:n-1) &
@@ -4323,7 +4323,7 @@ CONTAINS
          + qlsig(n)*cql(n)/sig &
          - Dlmean(n-1)/deltaz(n-1)/sig*(ciso(n-1) - ciso(n)) &
          - Dvbetamean(n-1)/deltaz(n-1)/sig*(ciso(n-1) - ciso(n)) &
-         + qex_ss(n)*ciso(n)/sig &
+         + qex_ss(n)*ciso(n)/sig
 
     if (cali>zero .or. experiment==7 .or. experiment==8) then
        bb(n) = bb(n) + qlsig(n)*dcqldca(n)

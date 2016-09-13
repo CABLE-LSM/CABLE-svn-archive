@@ -190,7 +190,9 @@ MODULE cable_common_module
         EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
         MaxSatFraction=900.0,     & !parameter controll max sat fraction
         aquifer_conductivity=1.0e-5, & !m/s
-        aquifer_air_entry=-0.01  !  m
+        aquifer_air_entry=-0.01,&  !  m
+        IceAlpha,&
+        IceBeta
 
    END TYPE gw_parameters_type
 

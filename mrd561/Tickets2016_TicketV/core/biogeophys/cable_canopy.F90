@@ -1644,66 +1644,42 @@ CONTAINS
 !interests of getting this into the trunk ASAP just isolate this code for now
 !default side of this condition is to use trunk version
 
-#ifdef VanessasCanopy
+!#ifdef VanessasCanopy
 
-             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
-                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-          
-
-             !if (cable_user%CALL_climate) rdx(i,:) = rdx(i,:) * &
-             !     merge(0.30, 1., climate%mtemp_min(i).gt.15.0)
-
-             !write(67,*)  climate%mtemp_min(i),  merge(0.15, 1., climate%mtemp_min(i).gt.15.0)
-
-             !write(67,*), tlfx(i),climate%mtemp_max(i),veg%vcmax(i), (1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)
-
-             !rdx(i,1) = rad%scalex(i,1)*veg%cfrd(i)*veg%vcmax(i)*(3.09-0.043*(tlfx(i)-C%tfrz +25.)/2.)**((tlfx(i)-C%tfrz-25.)/10.)
-             !rdx(i,2) = rad%scalex(i,2)*veg%cfrd(i)*veg%vcmax(i)*(3.09-0.043*(tlfx(i)-C%tfrz +25.)/2.)**((tlfx(i)-C%tfrz-25.)/10.)
-
-             if (cable_user%CALL_climate) then
-   
-                !rdx(i,1) = 0.7*(1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,1)* xvcmxt3(tlfx(i))
-                !rdx(i,2) = 0.7* (1.28e-6+0.01*veg%vcmax(i)-0.0334*climate%mtemp_max(i)*1e-6)*rad%scalex(i,2)* xvcmxt3(tlfx(i))
-
-!!$                rdx(i,1) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
-!!$                     0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
-!!$                     rad%scalex(i,1)* xvcmxt3(tlfx(i))
-!!$                rdx(i,2) = max((1.06e-6+veg%cfrd(i)*veg%vcmax(i)- &
-!!$                     0.053*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
-!!$                     rad%scalex(i,2)* xvcmxt3(tlfx(i))
-
-! Atkins et al. 2015, Table S4, modified such that acclimation response is zero at 20degC
-!!$                rdx(i,1) = max((0.668e-6+veg%cfrd(i)*veg%vcmax(i)- &
-!!$                     0.0334*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
-!!$                     rad%scalex(i,1)* xvcmxt3(tlfx(i))
-!!$                rdx(i,2) = max((0.668e-6+veg%cfrd(i)*veg%vcmax(i)- &
-!!$                     0.0334*climate%mtemp_max(i)*1e-6),0.2*veg%cfrd(i)*veg%vcmax(i))* &
-!!$                     rad%scalex(i,2)* xvcmxt3(tlfx(i))
-
-! Atkins et al. 2015, Table S4, 
-! modified by saling factor to reduce leaf respiration to expected proportion of GPP
-!Broad-leaved trees: Rdark a25 = 1.2818 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
-!C3 herbs/grasses: Rdark,a25 = 1.6737 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
-!Needle-leaved trees: Rdark,a25 = 1.2877 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
-!Shrubs: Rdark,a25 = 1.5758 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+            
+              if (cable_user%CALL_climate) then
+  
+                 ! Atkins et al. 2015, Table S4, 
+                 ! modified by saling factor to reduce leaf respiration to 
+                 ! expected proportion of GPP
+                 !Broad-leaved trees: Rdark a25 = 
+                 !1.2818 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+                 !C3 herbs/grasses: Rdark,a25 = 
+                 !1.6737 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+                 !Needle-leaved trees: Rdark,a25 = 
+                 !1.2877 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+                 !Shrubs: Rdark,a25 = 1.5758 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
 
               if (veg%iveg(i).eq.2 .or. veg%iveg(i).eq. 4  ) then ! broadleaf forest
 
-                rdx(i,1) = 0.60*(1.2818e-6+0.0116*veg%vcmax(i)-0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                rdx(i,1) = 0.60*(1.2818e-6+0.0116*veg%vcmax(i)- &
+                     0.0334*climate%qtemp_max_last_year(i)*1e-6)
                 rdx(i,2) = rdx(i,1)
 
               elseif (veg%iveg(i).eq.1 .or. veg%iveg(i).eq. 3  ) then ! needleleaf forest
-                 rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)-0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                 rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
+                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
                  rdx(i,2) = rdx(i,1)
 
-              elseif (veg%iveg(i).eq.6 .or. veg%iveg(i).eq.8 .or. veg%iveg(i).eq. 9  ) then ! C3 grass, tundra, crop
-                 rdx(i,1) = 0.60*(1.6737e-6+0.0116*veg%vcmax(i)-0.0334*climate%qtemp_max_last_year(i)*1e-6)
+              elseif (veg%iveg(i).eq.6 .or. veg%iveg(i).eq.8 .or. &
+                 veg%iveg(i).eq. 9  ) then ! C3 grass, tundra, crop
+                 rdx(i,1) = 0.60*(1.6737e-6+0.0116*veg%vcmax(i)- &
+                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
                  rdx(i,2) = rdx(i,1)
 
               else  ! shrubs and other (C4 grass and crop)
-                 rdx(i,1) = 0.60*(1.5758e-6+0.0116*veg%vcmax(i)-0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                 rdx(i,1) = 0.60*(1.5758e-6+0.0116*veg%vcmax(i)- &
+                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
                  rdx(i,2) = rdx(i,1)
               endif
 
@@ -1715,8 +1691,10 @@ CONTAINS
       
                      
                 
-                 ! reduction of daytime leaf dark-respiration to account for photo-inhibition
-                 !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M., and Jogireddy, V.:
+                 ! reduction of daytime leaf dark-respiration to account for 
+                 !photo-inhibition
+                 !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M., 
+                 ! and Jogireddy, V.:
                  ! Improving the representation of radiation 
                  !interception and photosynthesis for climate model applications, 
                  !Tellus B, 59, 553-565, 2007.
@@ -1732,28 +1710,22 @@ CONTAINS
                  if (jtomol*1.0e6*rad%qcan(i,1,2).gt.10.0) &
                       rdx(i,2) = rdx(i,2) * &
                       (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,2)))
-
                 
-!!$                if (rad%qcan(i,1,1).gt.0.0) &
-!!$                     rdx(i,1) = rdx(i,1) * &
-!!$                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,1,1),40.0)*1.e5))
-!!$                if (rad%qcan(i,1,2).gt.0.0) &
-!!$                     rdx(i,2) = rdx(i,2) * &
-!!$                     (0.5 + exp(-log(2.0)-jtomol*min(rad%qcan(i,2,1),40.0)*1.e5))
+!!$                xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+!!$                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+!!$                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
+!!$                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
                 
-                xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
-                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-                
-             endif !cable_user%call_climate
+             else !cable_user%call_climate
 
-!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
-             gs_coeff = xleuning
+!!$!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
+!!$             gs_coeff = xleuning
 
-#else
+!#else
             rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
             rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+         endif !cable_user%call_climate
 
             ! Ticket #56 added switch for Belinda Medlyn's model
             IF (cable_user%GS_SWITCH == 'leuning') THEN
@@ -1782,7 +1754,7 @@ CONTAINS
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
-#endif
+!#endif
              
           ENDIF !IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1)
           
@@ -1840,21 +1812,18 @@ CONTAINS
 
              IF (cable_user%fwsoil_switch=='Haverd2013') then
                 canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
-!!$                call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:),canopy%fwsoil(i), &
-!!$                     real(veg%froot(i,:),r_2), real(soil%ssat_vec(i,:),r_2), &
-!!$                     real(soil%swilt_vec(i,:),r_2), max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
-!!$                     real(veg%gamma(i),r_2), &
-!!$                     real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
 
-
-                call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:),canopy%fwsoil(i), &
+                call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:), &
+                     canopy%fwsoil(i), &
                      real(veg%froot(i,:),r_2), SPREAD(real(soil%ssat(i),r_2),1,ms), &
-                      SPREAD(real(soil%swilt(i),r_2),1,ms), max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
+                      SPREAD(real(soil%swilt(i),r_2),1,ms), &
+                      max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
                      real(veg%gamma(i),r_2), &
                      real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
 
                 fwsoil(i) = canopy%fwsoil(i)
-                ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels*1000_r_2 ! mm water (root water extraction) per time step
+                ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels*1000_r_2 ! mm water &
+                !(root water extraction) per time step
 
              ELSE
 

@@ -291,15 +291,6 @@ CONTAINS
   END SUBROUTINE forcerestore_Deardorff
 
 
-  SUBROUTINE overland_runoff(var,parin,dx,wtd)
-     IMPLICIT NONE
-     TYPE(vars), DIMENSION(:), INTENT(INOUT)    :: var  !prognotsic variables, need S
-     TYPE(params),             INTENT(INOUT)    :: parin         !soil  parameters
-     REAL(r_2),                INTENT(IN)       :: dx            !layer thickness
-
-
-  END SUBROUTINE overland_runoff
-
   !**********************************************************************************************************************
 
   ! Surface Energy Balance

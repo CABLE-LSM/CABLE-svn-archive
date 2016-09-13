@@ -18,7 +18,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
 
-  USE large_scale_hydro, ONLY: overland_runoff, diagnose_watertable_depth, determine_subsurface_runoff,&
+  USE cable_large_scale_hydro, ONLY: overland_runoff, diagnose_watertable_depth, determine_subsurface_runoff,&
                                aquifer_recharge
 
   IMPLICIT NONE

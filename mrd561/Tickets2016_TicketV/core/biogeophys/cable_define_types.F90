@@ -778,6 +778,11 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
 
+   ALLOCATE ( var % slope(mp) )!      &!mean subgrid scale slop
+   ALLOCATE ( var % slope_std(mp) )!  & !std of subgrid scale slope
+   ALLOCATE ( var % GW_he(mp) )!      & !aquifer air entry potential m
+   ALLOCATE ( var % GW_Kaq(mp) )!     & !aquifer hydro condicitivty m/s
+   ALLOCATE ( var % GWdz(mp) )!,      & ! aquifer thickness
 
 END SUBROUTINE alloc_soil_parameter_type
 
@@ -894,7 +899,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ALLOCATE ( var % satfrac(mp) )  ! satuated fraction of grid cell
     ALLOCATE ( var % q_recharge(mp) ) !flux between aquifer and bottom soil layer
      
-    ALLOCATE ( var % qhlev(mp,ms) )   !horizontal subsurface drainage by layer
+    ALLOCATE ( var % qhlev(mp,ms+1) )   !horizontal subsurface drainage by layer
 
     !END IF
 
@@ -1335,6 +1340,12 @@ SUBROUTINE dealloc_soil_parameter_type(var)
     IF(ASSOCIATED(var % ssat_vec)) DEALLOCATE ( var % ssat_vec )
     IF(ASSOCIATED(var % sfc_vec)) DEALLOCATE ( var % sfc_vec )
     !END IF
+    DEALLOCATE ( var % slope )
+    DEALLOCATE ( var % slope_std )
+
+    DEALLOCATE ( var % GW_he )!      & !aquifer air entry potential m
+    DEALLOCATE ( var % GW_Kaq )!     & !aquifer hydro condicitivty m/s
+    DEALLOCATE ( var % GWdz )!,      & ! aquifer thickness
 
 
 END SUBROUTINE dealloc_soil_parameter_type
