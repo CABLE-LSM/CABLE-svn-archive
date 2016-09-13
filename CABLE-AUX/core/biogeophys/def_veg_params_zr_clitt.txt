@@ -10,7 +10,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    2.0    0.943  1.8 20.0              ! tvjmin(oC), tvjmax(oC), vbeta, betaroot, rootdepth, clitt(tC/ha)
   200  10217    876    184    367         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-9.0   1500.0  0.10   0.01   0.015         ! a1, d0, alpha, convex, cfrd
+9.0   1500.0  0.20   0.01   0.015         ! a1, d0, alpha, convex, cfrd
 0.01  302.0e-6 256.0e-3 59430.0 36000.0   ! gswmin,conkc0,conko0,ekc,eko
 0.000000 2.346064                         ! g0c3 OR g0c4, g1c3 OR g1c4 depending on frac4
 2   forest     evergreen_broadleaf
@@ -49,7 +49,7 @@ CSIRO veg type parameters (2nd guess calibration)
    5    15    2.0    0.961  2.0 13.0              ! tvjmin(oC), tvjmax(oC), vbeta, betaroot, rootdepth, clitt(tC/ha)
   300  12000   1029    216    432         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-9.0   1500.0  0.15   0.01   0.015         ! a1, d0, alpha, convex, cfrd
+9.0   1500.0  0.20   0.01   0.015         ! a1, d0, alpha, convex, cfrd
 0.01  302.0e-6 256.0e-3 59430.0 36000.0   ! gswmin,conkc0,conko0,ekc,eko
 0.000000 4.447321                         ! g0c3 OR g0c4, g1c3 OR g1c4 depending on frac4
 5   shrub      shrub
@@ -62,7 +62,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.964 2.5 2.0               ! tvjmin(oC), tvjmax(oC), vbeta, betaroot, rootdepth, clitt(tC/ha)
   159   5000    500    100    250         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-9.0   1500.0  0.15   0.01   0.015         ! a1, d0, alpha, convex, cfrd
+9.0   1500.0  0.20   0.01   0.015         ! a1, d0, alpha, convex, cfrd
 0.01  302.0e-6 256.0e-3 59430.0 36000.0   ! gswmin,conkc0,conko0,ekc,eko
 0.000000 4.694803                         ! g0c3 OR g0c4, g1c3 OR g1c4 depending on frac4
 6   grass      C3 grassland
@@ -101,7 +101,7 @@ CSIRO veg type parameters (2nd guess calibration)
  -15   -10    4.0    0.943  0.5 0.3              ! tvjmin(oC), tvjmax(oC), vbeta, betaroot, rootdepth, clitt(tC/ha)
   250      0    500    275    314         ! pool: leaf, wood, root, soilfast, soilslow (gC/m2)
 1.0    0.03   0.14   2.0    0.5           ! rate: leaf, wood, root, soilfast, soilslow (/year)
-9.0   1500.0  0.15   0.01   0.015         ! a1, d0, alpha, convex, cfrd
+9.0   1500.0  0.20   0.01   0.015         ! a1, d0, alpha, convex, cfrd
 0.01  302.0e-6 256.0e-3 59430.0 36000.0   ! gswmin,conkc0,conko0,ekc,eko
 0.000000 2.222156                         ! g0c3 OR g0c4, g1c3 OR g1c4 depending on frac4
 9   crop       C3 cropland
