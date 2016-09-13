@@ -343,6 +343,13 @@ MODULE cable_IO_vars_module
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
          za  = .FALSE.          ! something to do with roughness ????
 
+      LOGICAL :: &
+         GWMoist = .FALSE.,   & ! water balance of aquifer [mm3
+         WatTable = .FALSE.,  & ! water table depth [m]
+         Qrecharge=.FALSE.,   &  !recharge to /from auqifer
+         SatFrac=.FALSE.        ! Saturated Fraction of Gridcell (tile)
+
+
    END TYPE output_inclusion_type
 
 

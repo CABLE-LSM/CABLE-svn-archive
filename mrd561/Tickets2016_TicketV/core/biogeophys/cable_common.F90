@@ -147,6 +147,7 @@ MODULE cable_common_module
          litter = .FALSE.
 
       LOGICAL :: test_new_gw = .false.
+      LOGICAL :: GSWP3 = .false.
 
   END TYPE kbl_user_switches
 
@@ -169,8 +170,8 @@ MODULE cable_common_module
           soil,       & ! name of file for soil parameters
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
-          soilIGBP      ! name of file for IGBP soil map
-
+          soilIGBP,   & ! name of file for IGBP soil map
+          gw_elev       !name of file with slope and slope_std info
   END TYPE filenames_type
 
   TYPE(filenames_type) :: filename
@@ -191,8 +192,8 @@ MODULE cable_common_module
         MaxSatFraction=900.0,     & !parameter controll max sat fraction
         aquifer_conductivity=1.0e-5, & !m/s
         aquifer_air_entry=-0.01,&  !  m
-        IceAlpha,&
-        IceBeta
+        IceAlpha=-3.0,&
+        IceBeta=1.0
 
    END TYPE gw_parameters_type
 

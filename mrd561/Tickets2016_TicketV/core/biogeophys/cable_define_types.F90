@@ -149,7 +149,8 @@ MODULE cable_def_types_mod
                                            slope_std,  & !std of subgrid scale slope
                                            GW_he,      & !aquifer air entry potential m
                                            GW_Kaq,     & !aquifer hydro condicitivty m/s
-                                           GWdz!,      & ! aquifer thickness
+                                           GWdz,      & ! aquifer thickness
+                                           GWwatsat
 
   END TYPE soil_parameter_type
 
@@ -783,6 +784,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    ALLOCATE ( var % GW_he(mp) )!      & !aquifer air entry potential m
    ALLOCATE ( var % GW_Kaq(mp) )!     & !aquifer hydro condicitivty m/s
    ALLOCATE ( var % GWdz(mp) )!,      & ! aquifer thickness
+   ALLOCATE ( var % GWwatsat(mp) )!,      & ! aquifer max poros
 
 END SUBROUTINE alloc_soil_parameter_type
 
@@ -1346,6 +1348,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
     DEALLOCATE ( var % GW_he )!      & !aquifer air entry potential m
     DEALLOCATE ( var % GW_Kaq )!     & !aquifer hydro condicitivty m/s
     DEALLOCATE ( var % GWdz )!,      & ! aquifer thickness
+    DEALLOCATE ( var % GWwatsat )!,      & ! aquifer max poros
 
 
 END SUBROUTINE dealloc_soil_parameter_type

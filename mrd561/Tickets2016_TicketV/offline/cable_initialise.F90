@@ -477,6 +477,16 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    CALL readpar(ncid_rin,'trad',dummy,rad%trad,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
 
+   !MD 
+   ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,  &   
+                max_vegpatches,'def',from_restart,mp)   
+   ELSE
+      ssnow%GWwb = 0.32
+   END IF
+
+
    ! Get model parameters =============================================
    ! rad%latitude set above in lat/lon checking section
    ALLOCATE(INvar(mp))

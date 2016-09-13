@@ -451,20 +451,20 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   !if (first_call) call aquifer_props(mp,ssnow,v_aquifer)
   ! 
   ! 
-  !if (cable_user%test_new_gw) then
-  !   call diagnose_watertable_depth(ssnow,soil,par,veg,soil)
-  !   call overland_runoff(par,ssnow,soil,veg)
+  if (cable_user%test_new_gw) then
+     call diagnose_watertable_depth(ssnow,soil,par,veg)
+     call overland_runoff(par,ssnow,soil,veg)
   !   !changes ssnow%fwtop, ssnow%rnof1, ssnow%sat_ice_frac,ssnow%sat_frac,
-  !   q_prec = ssnow%fwtop(:)*0.1*3600.0  !=> m/s to cm/h
-  !
-  !   call determine_subsurface_runoff(par,ssnow,soil,veg)
+     qprec = ssnow%fwtop(:)*0.1*3600.0  !=> m/s to cm/h
+  
+     call determine_subsurface_runoff(par,ssnow,soil,veg)
   !      !figures out ssnow%qhlev(:,1:ms+1), ssnow%qhz(:)
-  !   ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)*0.1*3600.0   !m/s to cm/h
+     ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)*0.1*3600.0   !m/s to cm/h
   !     !pass this into solve, remove some each timestep
-  !end if
+  end if
   !
   !     !after all of sli has run
-  !call aquifer_recharge(dt,ssnow,parin,dx,veg,soil)
+  !call aquifer_recharge(dt,ssnow,parin,dx,veg,soil,var)
   !  finds ssnow%q_recharge
   !   upsated ssnow%S(:,ms), ssnow%GWwb(:)
   !
@@ -559,6 +559,12 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      Jcol_latent_T = Jcol_latent_T/(tf-ti)
      Jcol_sensible = Jcol_sensible/(tf-ti)
      Qadvcum       = Qadvcum/(tf-ti)
+
+     if (cable_user%test_new_gw) then
+       !after all of sli has run
+       call aquifer_recharge(dt,ssnow,par,veg,soil,var)
+        !updated ssnow%S(:,ms), ssnow%GWwb(:)
+     end if
 
      do kk=1, mp
         tmp1d1(kk) = (sum(vsnow(kk)%Jsensible) + sum(vsnow(kk)%Jlatent))

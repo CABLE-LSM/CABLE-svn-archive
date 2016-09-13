@@ -103,6 +103,9 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insilt
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
 
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
+
   ! vars intro for Ticket #27
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
 
@@ -258,6 +261,12 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
     ALLOCATE( inLAI(nlon, nlat, ntime) )
     ALLOCATE( r3dum(nlon, nlat, nband) )
     ALLOCATE( r3dum2(nlon, nlat, ntime) )
+
+    if (cable_user%gswp3) then
+       WHERE (inLON > 180.0)
+          inLON = inLON - 360.0
+       ENDWHERE
+    end if
 
     ok = NF90_INQ_VARID(ncid, 'longitude', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
@@ -421,12 +430,13 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
     INTEGER, INTENT(IN) :: logn ! log file unit number
 
     ! local variables
-    INTEGER :: ncid, ok, ii, jj
+    INTEGER :: ncid, ok, ii, jj, ncid_elev
     INTEGER :: xID, yID, fieldID
     INTEGER :: xlon, xlat
     REAL, DIMENSION(:,:,:,:), ALLOCATABLE :: indummy
     REAL, DIMENSION(:,:),     ALLOCATABLE :: sfact, dummy2
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
+    INTEGER :: ok2
 
     ok = NF90_OPEN(filename%type, 0, ncid)
 
@@ -625,6 +635,38 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
     dummy2(:, :) = 2.0 * in2alb(:, :) / (1.0 + sfact(:, :))
     inALB(:, :, 1, 2) = dummy2(:, :)
     inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
+
+    allocate(inSlope(nlon,nlat),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlope ')
+    inSlope(:,:) = 0.0
+
+    allocate(inSlopeSTD(nlon,nlat),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
+    inSlopeSTD(:,:) = 0.0
+
+    IF (cable_user%test_new_gw) THEN 
+       ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+
+       ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlope)
+       IF (ok /= NF90_NOERR) THEN 
+          inSlope = 0.0
+          WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
+       END IF
+
+       ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)   !slope_std
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
+       IF (ok /= NF90_NOERR) THEN 
+          inSlopeSTD = 0.0
+          WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
+       END IF
+       where(inSlopeSTD .le. 0.0) inSlopeSTD = 0.3
+       ok = NF90_CLOSE(ncid_elev)
+
+    ENDIF  !running gw model
+
 
     DEALLOCATE(in2alb, sfact, dummy2)
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
@@ -1023,6 +1065,7 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
       ssnow%kth = 0.3  ! vh ! should be calculated from soil moisture or be in restart file
       ssnow%sconds(:,:) = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1),
                                       ! should be in restart file
+      ssnow%GWwb(:) = 0.32
 
       ! parameters that are not spatially dependent
       select case(ms)
@@ -1179,6 +1222,20 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                                            incss(landpt(e)%ilon, landpt(e)%ilat)
       soil%cnsd(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           incnsd(landpt(e)%ilon, landpt(e)%ilat)
+
+      soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &    
+                                    inSlope(landpt(e)%ilon,landpt(e)%ilat)
+
+      soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &    
+                                    inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat)
+
+      !aquifer porperties not read in currently, can be same as bottom layer or
+      !just constant
+      soil%GW_he(landpt(e)%cstart:landpt(e)%cend) = -0.001   !m
+      soil%GW_Kaq(landpt(e)%cstart:landpt(e)%cend) = 1.0e-6  !m/s
+      soil%GWdz(landpt(e)%cstart:landpt(e)%cend) = 20.0      !m
+      soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) = 0.32  !volumetric
+
 
       ENDIF
 

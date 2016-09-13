@@ -171,7 +171,14 @@ MODULE cable_checks_module
            TotLivBiomass =  (/0.0, 1000./),      &
            TotSoilCarb =  (/0.0, 1000./),      &
            TotLittCarb =  (/0.0, 1000./), &
-           Area = (/0.0, 5000./)
+           Area = (/0.0, 5000./),  &
+           !MD 
+           WatTable = (/0.0,1.0e10/),          &   
+           GWMoist = (/0.0,1.0/),              &  
+           SatFrac = (/0.0,1.0/),              &   
+           Qrecharge = (/-9999.0,9999.0/)    
+    
+           
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 

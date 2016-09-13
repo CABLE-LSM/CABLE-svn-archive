@@ -1,7 +1,7 @@
-MODULE large_scale_hydro
+MODULE cable_large_scale_hydro
 
   USE sli_numbers,        ONLY:  thousand, params, rhow, rhoi,  &
-       freezefac, topmodel, alpha, fsat_max, botbc
+       freezefac, topmodel, alpha, fsat_max, botbc, vars
   USE sli_utils,          ONLY: dx, x
 
   USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
@@ -13,8 +13,9 @@ MODULE large_scale_hydro
   IMPLICIT NONE
 
   REAL(r_2), PARAMETER ::  wtd_max      = 1000000.0,    &! maximum wtd [mm]
-                           wtd_min      = 0.0           ! minimum wtd [mm]
-
+                           wtd_min      = 0.0,&           ! minimum wtd [mm]
+                           wtd_uncert   = 0.01
+  INTEGER :: wtd_iter_max = 20
 
   !global variables need to be wtd,q_through,q_surface,sat_fraction,sat_ice_fraction
   PUBLIC overland_runoff, diagnose_watertable_depth, determine_subsurface_runoff,&
@@ -26,10 +27,10 @@ MODULE large_scale_hydro
      !must be called after hofS is called as that sets thetai or call hofs again here...
      !USE ==> rhoi,vars (var),params, thousand
      IMPLICIT NONE 
-     TYPE(params), DIMENSION(:,:),            INTENT(IN)    :: parin         !soil  parameters
-     TYPE(soil_snow_type),                    INTENT(INOUT) :: ssnow           !prog vars
-     TYPE(soil_parameter_type), DIMENSION(:), INTENT(IN)    :: soil
-     TYPE(veg_parameter_type),  DIMENSION(:), INTENT(IN)    :: veg
+     TYPE(params), DIMENSION(:,:), INTENT(IN)    :: parin         !soil  parameters
+     TYPE(soil_snow_type),         INTENT(INOUT) :: ssnow           !prog vars
+     TYPE(soil_parameter_type),    INTENT(IN)    :: soil
+     TYPE(veg_parameter_type),     INTENT(IN)    :: veg
      !LOCAL
      REAL(r_2), DIMENSION(mp)    :: ice_frac
      REAL(r_2), DIMENSION(mp)    :: ice_mass
@@ -38,7 +39,7 @@ MODULE large_scale_hydro
      REAL(r_2), DIMENSION(mp)    :: rel_S
      REAL(r_2), DIMENSION(mp)    :: effective_porosity
 
-     REAL(r_2) :: slopeSTDmm
+     REAL(r_2), DIMENSION(mp)    :: slopeSTDmm
      REAL(r_2) :: tmpa,tmpb,qinmax
      integer :: i,k
 
@@ -63,8 +64,8 @@ MODULE large_scale_hydro
       !Saturated fraction
 
        if (gw_params%MaxSatFraction .gt. 1e-7) then 
-          slopeSTDmm = sqrt(max(real(gw_params%MaxSatFraction,r_2)*soil%slope_std(i),1e-5)) ! ensure some variability
-          ssnow%satfrac(i)    = max(1e-6,min(0.95,1._r_2 - erf( slopeSTDmm / sqrt(2.0* rel_S(i)) ) ) )  
+          slopeSTDmm(i) = 1.0e-3 !sqrt(max(real(gw_params%MaxSatFraction,r_2)*soil%slope_std(i),1e-5)) ! ensure some variability
+          ssnow%satfrac(i)    = max(1e-6,min(0.95,1._r_2 - erf( slopeSTDmm(i) / sqrt(2.0* rel_S(i)) ) ) )  
        else
           ssnow%satfrac(i) = 0. 
        end if
@@ -74,8 +75,8 @@ MODULE large_scale_hydro
      do i=1,mp
         tmpa = (ssnow%S(i,1)*(parin(i,1)%the-parin(i,1)%thr)-ssnow%thetai(i,1)) / effective_porosity(i)
         tmpb = max( (tmpa-ssnow%sat_ice_frac(i))/max(0.01_r_2,(1._r_2-ssnow%sat_ice_frac(i))), 0._r_2)
-        tmpa = -2._r_2*abs(parin(i,1)%he)/(parin%lam(i,1)*dx(1))
-        qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*par(i,1)%Ke*thousand !IN mm/s 
+        tmpa = -2._r_2*abs(parin(i,1)%he)/(parin(i,1)%lam*dx(i,1))
+        qinmax = (1._r_2 + tmpa*(tmpb-1._r_2))*parin(i,1)%Ke*thousand !IN mm/s 
 
         ssnow%rnof1(i) = ssnow%sat_ice_frac(i) * ssnow%fwtop(i) + &
                          (1._r_2-ssnow%sat_ice_frac(i))*max((ssnow%fwtop(i)-qinmax) , 0._r_2)
@@ -261,18 +262,20 @@ MODULE large_scale_hydro
   SUBROUTINE determine_subsurface_runoff(parin,ssnow,soil,veg)
 
      IMPLICIT NONE 
-     TYPE(params), DIMENSION(:,:),            INTENT(IN)     :: parin            !soil  parameters
-     TYPE(soil_snow_type), DIMENSION(:),      INTENT(INOUT)  :: ssnow           !prog vars
-     TYPE(soil_parameter_type), DIMENSION(:), INTENT(IN)     :: soil
-     TYPE(veg_parameter_type),  DIMENSION(:), INTENT(IN)     :: veg
+     TYPE(params), DIMENSION(:,:),   INTENT(IN)     :: parin            !soil  parameters
+     TYPE(soil_snow_type),           INTENT(INOUT)  :: ssnow           !prog vars
+     TYPE(soil_parameter_type),      INTENT(IN)     :: soil
+     TYPE(veg_parameter_type),       INTENT(IN)     :: veg
      !LOCAL
-     REAL(r_2)                  :: ice_frac
+     REAL(r_2)                  :: GWicefrac
 
      REAL(r_2) :: q_sub_total
      REAL(r_2) :: tmpa,tmpb,qinmax
      INTEGER :: k_drain,k,i
+     REAL(r_2), dimension(mp) :: sm_tot
 
 
+     ssnow%qhlev(:,:) = 0._r_2
 
      do i=1,mp
 
@@ -295,7 +298,7 @@ MODULE large_scale_hydro
         end do
         k_drain = max(k_drain,2)
 
-        ssnow%qhlev(i,:) = 0._r_2
+
         sm_tot(i) = 0._r_2
         if (k_drain .le. ms) then
            do k=k_drain,ms
@@ -304,13 +307,13 @@ MODULE large_scale_hydro
            sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
            do k=k_drain,ms
-              ssnow%qhlev(i,k) = q_sub_total(i)*max(ssnow%S(i,k)*(parin(i,k)%the-parin(i,k)%thr)+parin(i,k)%thr,0._r_2)/sm_tot(i)
+              ssnow%qhlev(i,k) = ssnow%qhz(i)*max(ssnow%S(i,k)*(parin(i,k)%the-parin(i,k)%thr)+parin(i,k)%thr,0._r_2)/sm_tot(i)
            end do
 
          else
-            ice_frac = (exp(gw_params%IceAlpha*(1._r_2-(ssnow%thetai(i,ms)-parin(i,ms)%thr)/(parin(i,ms)%the-parin(i,ms)%thr))) &
+            GWicefrac = (exp(gw_params%IceAlpha*(1._r_2-(ssnow%thetai(i,ms)-parin(i,ms)%thr)/(parin(i,ms)%the-parin(i,ms)%thr))) &
                         -exp(gw_params%IceAlpha))/(1._r_2-exp(gw_params%IceAlpha))
-            ssnow%qhlev(i,ms+1) = max(1._r_2-ice_frac,0._r_2)*ssnow%qhz(i)
+            ssnow%qhlev(i,ms+1) = max(1._r_2-GWicefrac,0._r_2)*ssnow%qhz(i)
          end if
 
          !incase every layer is frozen very dry
@@ -325,20 +328,20 @@ MODULE large_scale_hydro
   END SUBROUTINE determine_subsurface_runoff
 
 
-  SUBROUTINE aquifer_recharge(delt,ssnow,parin,veg,soil)
-     REAL(r_2),                               INTENT(IN)     :: delt
+  SUBROUTINE aquifer_recharge(delt,ssnow,parin,veg,soil,var)
+     REAL,                               INTENT(IN)     :: delt
      TYPE(params), DIMENSION(:,:),            INTENT(IN)     :: parin            !soil  parameters
      TYPE(soil_snow_TYPE),                    INTENT(INOUT)  :: ssnow
      TYPE(soil_parameter_type),               INTENT(IN)     :: soil
-     TYPE(veg_parameter_type),  DIMENSION(:), INTENT(IN)     :: veg
-
+     TYPE(veg_parameter_type),                INTENT(IN)     :: veg
+     TYPE(vars), DIMENSION(1:mp,1:ms),        intent(in)     :: var
      REAL(r_2) :: mass_needed
      INTEGER :: i,k
   
      do i=1,mp
         if ((ssnow%wtd(i) .ge. sum(dx(i,:),dim=1)) .and. (veg%iveg(i) .ne. 17) .and. (soil%isoilm(i) .ne. 9))  then
-
-           ssnow%q_recharge(i) = -soil%GW_Kaq*((soil%GW_he-var(i,ms)%h) - (ssnow%wtd(i) - x(i,ms)))/(ssnow%wtd(i) - x(i,ms))
+           !var%h is in cm?
+           ssnow%q_recharge(i) = -soil%GW_Kaq(i)*((soil%GW_he(i)-var(i,ms)%h*10._r_2) - (ssnow%wtd(i) - x(i,ms)))/(ssnow%wtd(i) - x(i,ms))
         else
 
            ssnow%q_recharge(i) = 0._r_2
@@ -376,4 +379,4 @@ MODULE large_scale_hydro
 
 
 
-END MODULE large_scale_hydro
+END MODULE cable_large_scale_hydro

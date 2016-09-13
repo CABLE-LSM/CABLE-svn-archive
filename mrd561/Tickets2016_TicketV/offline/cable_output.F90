@@ -67,7 +67,9 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax, hc
+                    vcmax, hc, &
+                    !MD  
+                    WatTable,GWMoist,SatFrac,Qrecharge
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -202,6 +204,13 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax
     REAL(KIND=4), POINTER, DIMENSION(:) :: patchfrac
     REAL(KIND=4), POINTER, DIMENSION(:) :: hc
+
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: GWMoist       ! water balance of aquifer [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: WatTable      ! water table depth  [m]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: SatFrac         !Saturated Fractionof Grid Cell
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Qrecharge         !Saturated Fraction of Grid Cell
+
+
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -879,6 +888,39 @@ CONTAINS
 
   
     END IF
+
+    !MD groundwater related variables
+    IF(output%soil .OR. output%WatTable) THEN
+       CALL define_ovar(ncid_out, ovid%WatTable, 'WatTable', 'm',      &
+                        'Water Table Depth', patchout%WatTable,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%WatTable(mp))
+       out%WatTable = 0.0 ! initialise
+    END IF
+    IF(output%soil .OR. output%GWMoist) THEN
+       CALL define_ovar(ncid_out, ovid%GWMoist, 'GWMoist', 'mm3/mm3',      &
+                        'Aquifer mositure content', patchout%GWMoist,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%GWMoist(mp))
+       out%GWMoist = 0.0 ! initialise
+    END IF
+    IF(output%soil .OR. output%SatFrac) THEN
+       CALL define_ovar(ncid_out, ovid%SatFrac, 'SatFrac', 'unitless',      &
+                        'Saturated Fraction of Gridcell', patchout%SatFrac,  &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SatFrac(mp))
+       out%SatFrac = 0.0 ! initialise
+    END IF
+
+    IF(output%soil .OR. output%Qrecharge) THEN
+       CALL define_ovar(ncid_out, ovid%Qrecharge, 'Qrecharge', 'mm/s',      &
+                           'Recharge to or from Aquifer', patchout%Qrecharge,&
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qrecharge(mp))
+       out%Qrecharge = 0.0 ! initialise
+    END IF
+
+
 
 !! vh_js !!
     CALL define_ovar(ncid_out, ovid%Area, 'Area', 'km2',               &
@@ -2136,6 +2178,66 @@ CONTAINS
        END IF
     END IF
 
+    !MD Write the hydrology output data from the groundwater module calculations
+    !water table depth
+    IF((output%soil .OR. output%WatTable) .and. cable_user%test_new_gw) THEN
+       !write(*,*) 'wtd'    !MDeck
+       ! Add current timestep's value to total of temporary output variable:
+       out%WatTable = out%WatTable + REAL(ssnow%wtd, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%WatTable = out%WatTable / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%WatTable, 'WatTable', &
+               out%WatTable, ranges%WatTable, patchout%WatTable, 'default', met)
+          ! Reset temporary output variable:
+          out%WatTable = 0.0
+       END IF
+    END IF
+    !aquifer water content
+    IF((output%soil .OR. output%GWMoist)  .and. cable_user%test_new_gw) THEN
+       out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%GWMoist = out%GWMoist / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%GWMoist, 'GWMoist', &
+               out%GWMoist, ranges%GWMoist, patchout%GWMoist, 'default', met)
+          ! Reset temporary output variable:
+          out%GWMoist = 0.0
+       END IF
+    END IF
+
+       ! infiltration rate
+    IF((output%soil .OR. output%SatFrac)  .and. cable_user%test_new_gw) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%SatFrac = out%SatFrac + REAL(ssnow%satfrac, 4)
+       IF(writenow) THEN
+          out%SatFrac = out%SatFrac / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SatFrac, 'SatFrac', &
+               out%SatFrac, ranges%SatFrac, patchout%SatFrac, 'default', met)
+          ! Reset temporary output variable:
+          out%SatFrac = 0.0
+       END IF
+    END IF
+
+    ! recharge rate
+    IF(output%soil .OR. output%Qrecharge .and. cable_user%test_new_gw) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qrecharge = out%Qrecharge + REAL(ssnow%q_recharge, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Qrecharge = out%Qrecharge / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qrecharge, 'Qrecharge', &
+                       out%Qrecharge, ranges%Qrecharge, patchout%Qrecharge,'default', met)
+          ! Reset temporary output variable:
+          out%Qrecharge = 0.0
+       END IF
+    END IF
+
+
     ! output patch area 
     IF(output%casa) THEN
      out%Area = casamet%areacell/1e6 ! km2
@@ -2535,7 +2637,7 @@ write(699,*) 'output 4', patch(4:6)%frac
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                    csoilID, tradID, albedoID
+                    csoilID, tradID, albedoID, gwID
     INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     ! CHARACTER         :: FRST_OUT*100, CYEAR*4
@@ -2697,6 +2799,10 @@ write(699,*) 'output 4', patch(4:6)%frac
                  'Surface runoff', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, rnof2ID, 'rnof2', 'mm/timestep',            &
               'Subsurface runoff', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+    CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content',&
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
     !---------------define snow states------------------------------------------
     CALL define_ovar(ncid_restart, tggsnID, 'tggsn', 'K',                      &
                      'Average layer snow temperature',                         &
@@ -3056,6 +3162,12 @@ write(699,*) 'output 4', patch(4:6)%frac
                      (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
     CALL write_ovar (ncid_restart, tggsnID, 'tggsn', REAL(ssnow%tggsn, 4),     &
                      (/100.0, 300.0/), .TRUE., 'snow', .TRUE.)
+
+    !MD
+    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
+                     (/0.0,1.0/), .TRUE., 'real', .TRUE.)
+
+
     ! Other dims
     CALL write_ovar (ncid_restart, albsoilsnID, 'albsoilsn',                   &
             REAL(ssnow%albsoilsn, 4), (/0.0, 1.0/), .TRUE., 'radiation', .TRUE.)
