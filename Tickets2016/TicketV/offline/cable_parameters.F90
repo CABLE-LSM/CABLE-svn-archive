@@ -1602,12 +1602,13 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     ! Check sand+soil+clay fractions sum to 1:
     DO i = 1, mland
        DO j = 1, landpt(i)%nap
+ ! vh changed limits from 1.0000001, 0.999999 to 1.01 and 0.99 for compatibility with gridinfo
           IF((soil%sand(landpt(i)%cstart + j - 1)                              &
               + soil%silt(landpt(i)%cstart + j - 1)                            &
-              + soil%clay(landpt(i)%cstart + j - 1)) > 1.0000001 .OR.          &
+              + soil%clay(landpt(i)%cstart + j - 1)) > 1.01 .OR.          & 
              (soil%sand(landpt(i)%cstart + j - 1)                              &
               + soil%silt(landpt(i)%cstart + j - 1)                            &
-              + soil%clay(landpt(i)%cstart + j - 1)) < 0.9999999) THEN
+              + soil%clay(landpt(i)%cstart + j - 1)) < 0.99) THEN
              WRITE(*,*) 'SUBROUTINE load_parameters:'
              WRITE(*,*) 'At land point number:', i
              WRITE(*,*) '        patch number:', j
