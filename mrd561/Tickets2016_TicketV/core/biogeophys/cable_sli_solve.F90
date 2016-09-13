@@ -124,7 +124,7 @@ CONTAINS
   SUBROUTINE solve(ts, tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S,thetai, Jsensible, Tsoil, evap, evap_pot, runoff, &
        infil, drainage, discharge, qh, nsteps, vmet, vlit, vsnow, var, csoil, kth, phi, T0, Tsurface, Hcum, lEcum, &
        Gcum, Qadvcum, Jcol_sensible, Jcol_latent_S, Jcol_latent_T, deltaice_cum_T, deltaice_cum_S, dxL, zdelta, &
-       SL, TL, plit, par, qex, wex, heads,  &
+       SL, TL, plit, par, qhorz_hlux, qex, wex, heads,  &
        ciso, cisoice, ciso_snow, cisoice_snow, cisos, cisoL, cprec, cprec_snow, cali, &
        qali, qiso_in, qiso_out, qiso_evap_cum, qiso_trans_cum, qiso_liq_adv, &
        qiso_vap_adv, qiso_liq_diff, qiso_vap_diff, qvsig, qlsig, qvTsig, qvh, deltaTa, lE_old, &
@@ -187,6 +187,10 @@ CONTAINS
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: dosepts        ! 0: normal; 1: uncouple T & S
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: docondition    ! 0: no cond., 1: columns, 2: lines, 3: both
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: doadvection       ! 0: off; 1: onn
+
+
+    !mrd561
+    REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(inOUT)           :: qhorz_flux
     ! Solves the RE and, optionally, the ADE from time ts to tfin.
     ! Definitions of arguments:
     ! Required args:
@@ -1071,7 +1075,7 @@ CONTAINS
              tmp2d2(kk,:) = zero !  temp storage
              ! estimate rate of change of moisture storage [m/s]
              where (var(kk,1:n)%isat==0.and.var(kk,1:n)%iice==0.) tmp2d1(kk,1:n) = &
-                  abs(q(kk,1:n)-q(kk,0:n-1)-iqex(kk,1:n))/(par(kk,1:n)%thre*dx(kk,1:n))
+                  abs(q(kk,1:n)-q(kk,0:n-1)-iqex(kk,1:n)-qhorz_flux(kk,1:n))/(par(kk,1:n)%thre*dx(kk,1:n))
              where (var(kk,1:n)%iice==1)  tmp2d1(kk,1:n) =  tmp2d1(kk,1:n)/2.
              ! estimate rate of change of temperature [K/s]
              tmp2d2(kk,1:n) = abs(qh(kk,1:n)-qh(kk,0:n-1))/(var(kk,1:n)%csoileff*dx(kk,1:n))
@@ -1209,7 +1213,7 @@ CONTAINS
                 ee(kk,0:n-1) = -qyb(kk,0:n-1)
                 bb(kk,1:n)   =  qTa(kk,0:n-1)
                 ff(kk,0:n-1) = -qTb(kk,0:n-1)
-                gg(kk,1:n) = -(q(kk,0:n-1)-q(kk,1:n)-iqex(kk,1:n))*rsig(kk)
+                gg(kk,1:n) = -(q(kk,0:n-1)-q(kk,1:n)-iqex(kk,1:n)qhorz_flux(kk,1:n))*rsig(kk)
                 gg(kk,1) = gg(kk,1)+qrunoff(kk)*rsig(kk)
 
                 aah(kk,1:n)   =  qhya(kk,0:n-1)
@@ -1219,7 +1223,7 @@ CONTAINS
                 ggh(kk,1:n) =  -(qh(kk,0:n-1)-qh(kk,1:n))*rsig(kk)
 
                 if (advection==1) then
-                   ggh(kk,1:n) = ggh(kk,1:n) + iqex(kk,1:n)*rsig(kk)*(Tsoil(kk,1:n))*cswat*rhow
+                   ggh(kk,1:n) = ggh(kk,1:n) + (iqex(kk,1:n)+qhorz_flux(kk,1:n))*rsig(kk)*(Tsoil(kk,1:n))*cswat*rhow
                    ggh(kk,1) = ggh(kk,1) + qrunoff(kk)*rsig(kk)*(Tsoil(kk,1))*cswat*rhow
                 endif
 
@@ -1236,13 +1240,13 @@ CONTAINS
                 bbh(kk,0) = zero
 
                 where (var(kk,1:n)%isat==0) ! unsaturated layers
-                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - par(kk,1:n)%thre*dx(kk,1:n)*rsigdt(kk) - qexd(kk,1:n)
+                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - par(kk,1:n)%thre*dx(kk,1:n)*rsigdt(kk) - qexd(kk,1:n) 
                 elsewhere ! saturated layers
-                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - qexd(kk,1:n)
+                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - qexd(kk,1:n) 
                 endwhere
 
                 if (ns(kk)<1) then ! pond included in top soil layer, solving for change in pond height
-                   cc(kk,1) = -qya(kk,1)-rsigdt(kk) -qexd(kk,1)
+                   cc(kk,1) = -qya(kk,1)-rsigdt(kk) -qexd(kk,1) 
                 endif
 
                 cch(kk,1:n) = qhyb(kk,0:n-1)-qhya(kk,1:n) +   &
@@ -1285,7 +1289,7 @@ CONTAINS
                      rsigdt(kk)*real(var(kk,1)%iice,r_2)
 
                 if (advection==1) then
-                   ddh(kk,1:n) = ddh(kk,1:n) - iqex(kk,1:n)*cswat*rhow
+                   ddh(kk,1:n) = ddh(kk,1:n) - (iqex(kk,1:n)+qhorz_flux(kk,1:n))*cswat*rhow
                    ddh(kk,1) = ddh(kk,1) - qrunoff(kk)*cswat*rhow
                 endif
 
@@ -1337,7 +1341,7 @@ CONTAINS
                    ee(kk,0)  = -qyb(kk,0)
                    ff(kk,0)  = -qTb(kk,0)
                    gg(kk,0)  = (q(kk,0) - qL(kk))*rsig(kk) + deltaTa(kk)*(qTbL(kk)-qTa(kk,0))
-                   gg(kk,1)  = -(q(kk,0)-q(kk,1)-iqex(kk,1))*rsig(kk) + deltaTa(kk)*qTa(kk,0)
+                   gg(kk,1)  = -(q(kk,0)-q(kk,1)-iqex(kk,1)-qhorz_flux(kk,1))*rsig(kk) + deltaTa(kk)*qTa(kk,0)
                    cch(kk,0) = qhybL(kk) - qhya(kk,0)
                    ddh(kk,0) = -qhTa(kk,0)-vlit(kk)%csoil*dxL(kk)*rsigdt(kk)+qhTbL(kk)
                    eeh(kk,0) = -qhyb(kk,0)
@@ -1445,7 +1449,7 @@ CONTAINS
                            + real(1-ns(kk),r_2) * real(var(kk,1)%iice,r_2)  * &
                            dy(kk,1)/dt(kk) * rhow * cswat * (Tsoil(kk,1)) * (one-(var(kk,1)%thetai/par(kk,1)%thre))
 
-                      RHS_h(kk,1:n) = RHS_h(kk,1:n) - iqex(kk,1:n)*cswat*rhow*(Tsoil(kk,1:n)+ sig(kk)*dTsoil(kk,1:n))
+                      RHS_h(kk,1:n) = RHS_h(kk,1:n) - (iqex(kk,1:n)+qhorz_flux(kk,1:n))*cswat*rhow*(Tsoil(kk,1:n)+ sig(kk)*dTsoil(kk,1:n))
                       RHS_h(kk,1) = RHS_h(kk,1) - qrunoff(kk)*cswat*rhow*(Tsoil(kk,1) + sig(kk)*dTsoil(kk,1))
                    endif
 
@@ -1485,9 +1489,9 @@ CONTAINS
                    else
                       LHS(kk,1) = dy(kk,1)*par(kk,1)%thre*dx(kk,1)*real(-var(kk,1)%isat+1)/dt(kk)
                    endif
-                   RHS(kk,1) = qsig(kk,0) - qsig(kk,1)- iqex(kk,1) - qrunoff(kk)
+                   RHS(kk,1) = qsig(kk,0) - qsig(kk,1)- iqex(kk,1) - qrunoff(kk) - qhorz_flux(kk,1)
                    LHS(kk,2:n) = dy(kk,2:n)*par(kk,2:n)%thre*dx(kk,2:n)*real(-var(kk,2:n)%isat+1)/dt(kk)
-                   RHS(kk,2:n) = qsig(kk,1:n-1) - qsig(kk,2:n)- iqex(kk,2:n)
+                   RHS(kk,2:n) = qsig(kk,1:n-1) - qsig(kk,2:n)- iqex(kk,2:n) - qhorz_flux(kk,2:n)
                    ! snow pack
                    if (vsnow(kk)%nsnow>0) then
 
@@ -1942,7 +1946,7 @@ CONTAINS
                 drainage(kk)  = drainage(kk) + dwdrainage(kk)
                 discharge(kk) = discharge(kk) + qrunoff(kk)*dt(kk)
                 rexcol(kk)    = rexcol(kk) + drexcol(kk)
-                Qadvcum(kk) = Qadvcum(kk) - sum(iqex(kk,:)*(Tsoil(kk,:)),1)*dt(kk)*rhow*cswat - &
+                Qadvcum(kk) = Qadvcum(kk) - (sum(iqex(kk,:)*(Tsoil(kk,:)),1)+sum(qhorz_flux(kk,:)*(Tsoil(kk,:)),1))*dt(kk)*rhow*cswat - &
                      qrunoff(kk)*(Tsoil(kk,1))*dt(kk)*rhow*cswat
                 ! if (irec.eq.109) then
                 !     write(*,"(1i8,16e16.6)") irec, infil(kk)-(wcol(kk)+discharge(kk)+drainage(kk))-rexcol(kk), &
@@ -2056,7 +2060,7 @@ CONTAINS
                 end if
 
                 if (present(wex)) then
-                   wex(kk,1:n) = wex(kk,1:n)+(iqex(kk,1:n)+spread(sig(kk),1,n)*qexd(kk,1:n)*dy(kk,1:n))*spread(dt(kk),1,n)
+                   wex(kk,1:n) = wex(kk,1:n)+(iqex(kk,1:n)+qhorz_flux(kk,1:n)+spread(sig(kk),1,n)*qexd(kk,1:n)*dy(kk,1:n))*spread(dt(kk),1,n)
                 end if
 
                 if (litter .and. ns(kk)==1 ) then ! adjust litter moisture content if no ponding
@@ -2766,7 +2770,7 @@ CONTAINS
                   Tsurface(kk), vmet(kk)%Ta, &
                   qsig(kk,itop-1:n), qlsig(kk,itop-1:n), qvsig(kk,itop-1:n), &
                   qmelt_ss(kk),qtransfer(kk)/dt(kk), &  ! melt water to soil and water transfer from soil to snow (+ve)
-                  qprec_ss(kk),qprec_snow(kk), qevapsig(kk), qrunoff(kk), iqex(kk,1:n), &
+                  qprec_ss(kk),qprec_snow(kk), qevapsig(kk), qrunoff(kk), iqex(kk,1:n), qhorz_fluz(kk,1:n), &
                   cv_ss(kk,itop:n),Dv_ss(kk,itop:n), thetasat_ss(kk,itop:n), thetar_ss(kk,itop:n), tmp_tortuosity(kk,itop:n), &
                   deltacv_ss(kk,itop:n), vmet(kk)%rbw, vmet(kk)%cva, vmet(kk)%civa, &
                   cprec_ss(kk),cprec_snow(kk), icali(kk), &
@@ -3729,7 +3733,7 @@ CONTAINS
        Ts, Ta, &
        qsig, qlsig, qvsig,  & ! in fluxes
        qmelt, qtransfer, & ! melt water to soil and water transfer from soil to snow (+ve) or snow to soil (-ve)
-       qprec, qprec_snow, qevap, qrunoff, qex, & ! in fluxes
+       qprec, qprec_snow, qevap, qrunoff, qex, qhorz_flux, & ! in fluxes
        var_cv, var_Dv, &   ! in variables
        thetasat, thetar, tortuosity, deltacv, rbw, cva, civa, & ! in parameter
        cprec,cprec_snow, cali, & ! in iso
@@ -3795,6 +3799,8 @@ CONTAINS
     REAL(r_2), DIMENSION(ns:n),   INTENT(OUT)   :: qiso_vap_adv  ! vapour iso flux in soil due to advection
     REAL(r_2), DIMENSION(ns:n-1), INTENT(OUT)   :: qiso_liq_diff ! liquid iso flux in soil due to diffusion
     REAL(r_2), DIMENSION(ns:n-1), INTENT(OUT)   :: qiso_vap_diff ! vapour iso flux in soil due to diffusion
+    !mrd561
+    REAL(r_2),    DIMENSION(1:n),    INTENT(IN)    :: qhorz_flux         ! layered subsurface runoff
 
     ! Local variables
 
@@ -4002,7 +4008,7 @@ CONTAINS
 
     ! calculate deltacv which is consistent with deltaS and deltaSliqice
     deltaS(ns_ciso:n) = ( qlsig(ns_ciso-1:n-1) + qvsig(ns_ciso-1:n-1) &
-         - qlsig(ns_ciso:n) - qvsig(ns_ciso:n) - qex_ss(ns_ciso:n) ) * &
+         - qlsig(ns_ciso:n) - qvsig(ns_ciso:n) - qex_ss(ns_ciso:n)  ) * &
          dt/(dx(ns_ciso:n)*thetasat(ns_ciso:n))
 
     ! modify for snow melt (including disappearance of snow pack) and/or transfer from top soil to new snow pack
@@ -4015,6 +4021,9 @@ CONTAINS
     deltaS(ns_ciso) = deltaS(ns_ciso) + (qprec+qprec_snow)*dt/dx(ns_ciso)/thetasat(ns_ciso)
     ! modify deltaS in top soil layer for runoff
     deltaS(1) = deltaS(1) - qrunoff*dt/thetasat(1)/dx(1)
+
+    !assume that runff doesn't change isotopic composition, yeah?
+    deltaS(:) = deltaS(:) - qhorz_flux(:)*dt/thetasat(:)/dx(:)
 
     where (var_cv(ns_ciso:n).gt.zero)
        deltacv(ns_ciso:n) = (deltaS(ns_ciso:n) - deltaSliqice(ns_ciso:n) + var_cv(ns_ciso:n)*deltaSliqice(ns_ciso:n))/ &
@@ -4267,7 +4276,7 @@ CONTAINS
          - qlsig(n)*dcqldca(n) &
          - Dlmean(n-1)/deltaz(n-1) &
          - Dvbetamean(n-1)/deltaz(n-1) &
-         - qex_ss(n)
+         - qex_ss(n) &
 
     cc(ns_ciso:n-1) = -qlsig(ns_ciso:n-1)*dcqldcb(ns_ciso:n-1)  - qvsig(ns_ciso:n-1)*betaqv(ns_ciso:n-1)*dcqvdcb(ns_ciso:n-1) &
          - dbetaqv(ns_ciso:n-1)*dcqvdcb(ns_ciso:n-1)*Dvmean(ns_ciso:n-1) &
@@ -4301,7 +4310,7 @@ CONTAINS
          + Dlmean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1)/sig*(ciso(ns_ciso+1:n-1) - ciso(ns_ciso+2:n)) &
          + Dvbetamean(ns_ciso+1:n-1)/deltaz(ns_ciso+1:n-1)/sig*(ciso(ns_ciso+1:n-1) - &
          ciso(ns_ciso+2:n)) &
-         + qex_ss(ns_ciso+1:n-1)*ciso(ns_ciso+1:n-1)/sig
+         + (qex_ss(ns_ciso+1:n-1))*ciso(ns_ciso+1:n-1)/sig
 
     dd(1) = dd(1) + qrunoff*ciso(1)/sig
 
@@ -4314,7 +4323,7 @@ CONTAINS
          + qlsig(n)*cql(n)/sig &
          - Dlmean(n-1)/deltaz(n-1)/sig*(ciso(n-1) - ciso(n)) &
          - Dvbetamean(n-1)/deltaz(n-1)/sig*(ciso(n-1) - ciso(n)) &
-         + qex_ss(n)*ciso(n)/sig
+         + qex_ss(n)*ciso(n)/sig &
 
     if (cali>zero .or. experiment==7 .or. experiment==8) then
        bb(n) = bb(n) + qlsig(n)*dcqldca(n)
@@ -4364,7 +4373,7 @@ CONTAINS
          + sig*dc(ns_ciso+1:n-1))*beta(ns_ciso+1:n-1))/deltaz(ns_ciso:n-2) &
          - Dvbetamean(ns_ciso+1:n-1)*((ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1)) - &
          (ciso(ns_ciso+2:n) + sig*dc(ns_ciso+2:n)))/deltaz(ns_ciso+1:n-1) &
-         - qex_ss(ns_ciso+1:n-1)*(ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1)) &
+         - (qex_ss(ns_ciso+1:n-1))*(ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1)) &
          + dbetaqv(ns_ciso:n-2)*dcqvdcb(ns_ciso:n-2)*Dvmean(ns_ciso:n-2)*(ciso(ns_ciso:n-2) + sig*dc(ns_ciso:n-2)) &
          - dbetaqv(ns_ciso+1:n-1)*dcqvdcb(ns_ciso+1:n-1)*Dvmean(ns_ciso+1:n-1)*(ciso(ns_ciso+1:n-1) + sig*dc(ns_ciso+1:n-1))
          
@@ -4405,7 +4414,7 @@ CONTAINS
          -qsig(n)*(ciso(n) + sig*dc(n)) &
          + Dlmean(n-1)*((ciso(n-1) + sig*dc(n-1))-(ciso(n)+sig*dc(n)))/deltaz(n-1) &
          + Dvbetamean(n-1)*((ciso(n-1) + sig*dc(n-1)) - (ciso(n) + sig*dc(n)))/deltaz(n-1) &
-         -qex_ss(n)*(ciso(n)+sig*dc(n)) &
+         -(qex_ss(n))*(ciso(n)+sig*dc(n)) &
          + dbetaqv(n)*dcqvdcb(n)*Dvmean(n)*(ciso(n) + sig*dc(n))
 
     if (cali>zero .or. experiment==7 .or. experiment==8) then

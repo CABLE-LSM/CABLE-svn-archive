@@ -146,6 +146,8 @@ MODULE cable_common_module
           !! vh_js !!
          litter = .FALSE.
 
+      LOGICAL :: test_new_gw = .false.
+
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
@@ -179,6 +181,20 @@ MODULE cable_common_module
 
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
+
+
+   TYPE gw_parameters_type
+
+      REAL ::                   &
+        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
+        MaxSatFraction=900.0,     & !parameter controll max sat fraction
+        aquifer_conductivity=1.0e-5, & !m/s
+        aquifer_air_entry=-0.01  !  m
+
+   END TYPE gw_parameters_type
+
+   TYPE(gw_parameters_type), SAVE :: gw_params
 
 
   ! soil parameters read from file(filename%soil def. in cable.nml)

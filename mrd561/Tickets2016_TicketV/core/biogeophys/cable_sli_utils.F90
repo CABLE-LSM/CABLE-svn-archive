@@ -116,7 +116,7 @@ CONTAINS
   ! SUBROUTINES - alphabetical
   !**********************************************************************************************************************
 
-  ELEMENTAL PURE SUBROUTINE aquifer_props(v_aquifer)
+  SUBROUTINE aquifer_props(v_aquifer)
 
     IMPLICIT NONE
 
@@ -130,7 +130,9 @@ CONTAINS
     if (v_aquifer%zdelta <= v_aquifer%zsoil) v_aquifer%isat = 1
     v_aquifer%f         = 1.25_r_2 ! multiplier in exponent of Rs (m-1)
     v_aquifer%Rsmax     = 4.5e-7_r_2  ! maximum discharge rate from aquifer (ms-1)
+                             
     v_aquifer%discharge = v_aquifer%Rsmax*exp(-v_aquifer%f*v_aquifer%zdelta)
+
 
   END SUBROUTINE aquifer_props
 
@@ -287,6 +289,16 @@ CONTAINS
 
 
   END SUBROUTINE forcerestore_Deardorff
+
+
+  SUBROUTINE overland_runoff(var,parin,dx,wtd)
+     IMPLICIT NONE
+     TYPE(vars), DIMENSION(:), INTENT(INOUT)    :: var  !prognotsic variables, need S
+     TYPE(params),             INTENT(INOUT)    :: parin         !soil  parameters
+     REAL(r_2),                INTENT(IN)       :: dx            !layer thickness
+
+
+  END SUBROUTINE overland_runoff
 
   !**********************************************************************************************************************
 

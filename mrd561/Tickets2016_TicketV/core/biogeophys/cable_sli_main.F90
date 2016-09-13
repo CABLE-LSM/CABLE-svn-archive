@@ -18,6 +18,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
 
+  USE large_scale_hydro, ONLY: overland_runoff, diagnose_watertable_depth, determine_subsurface_runoff,&
+                               aquifer_recharge
+
   IMPLICIT NONE
 
   REAL,                      INTENT(IN)    :: dt
@@ -282,7 +285,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ssnow%cls   = one
   S           = ssnow%S                ! degree of soil saturation
 
-
   ! ----------------------------------------------------------------
   ! Iinitialise phi where it is (frozen and saturated) and where (pond >zero)
 
@@ -445,6 +447,31 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   infil  = zero
   drn    = zero
 
+  !wtd         = ssnow%wtd
+  !if (first_call) call aquifer_props(mp,ssnow,v_aquifer)
+  ! 
+  ! 
+  !if (cable_user%test_new_gw) then
+  !   call diagnose_watertable_depth(ssnow,soil,par,veg,soil)
+  !   call overland_runoff(par,ssnow,soil,veg)
+  !   !changes ssnow%fwtop, ssnow%rnof1, ssnow%sat_ice_frac,ssnow%sat_frac,
+  !   q_prec = ssnow%fwtop(:)*0.1*3600.0  !=> m/s to cm/h
+  !
+  !   call determine_subsurface_runoff(par,ssnow,soil,veg)
+  !      !figures out ssnow%qhlev(:,1:ms+1), ssnow%qhz(:)
+  !   ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)*0.1*3600.0   !m/s to cm/h
+  !     !pass this into solve, remove some each timestep
+  !end if
+  !
+  !     !after all of sli has run
+  !call aquifer_recharge(dt,ssnow,parin,dx,veg,soil)
+  !  finds ssnow%q_recharge
+  !   upsated ssnow%S(:,ms), ssnow%GWwb(:)
+  !
+  !ssnow%rnof1 = ssnow%rnof1*onethousand  !to mm/s
+  !ssnow%rnof2 = ssnow%rnof2 *onethousand  !to mm/s
+
+
   if (SEB_only == 0) then
 
      if (cable_user%fwsoil_switch.ne.'Haverd2013') then
@@ -505,7 +532,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
 
 
-
   else ! full SLI
      ! save for output, because they get changed with litter in solve
      rbw = vmet(1)%rbw
@@ -520,7 +546,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
           H, lE, G0, Qadvcum, Jcol_sensible, &
           Jcol_latent_S, Jcol_latent_T, deltaice_cum_T, &
           deltaice_cum_S, dxL, zdelta, SL, TL, &
-          plit, par, qex=qex, &
+          plit, par, ssnow%qhlev(:,1:ms), qex=qex, &
           wex=wex, qvsig=qvsig, qlsig=qlsig, qvTsig=qvTsig, qvh=qvh, &
           deltaTa=deltaTa, lE_old=lE_old, &
           dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &

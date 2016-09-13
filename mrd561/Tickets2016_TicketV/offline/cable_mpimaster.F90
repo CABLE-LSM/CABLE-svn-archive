@@ -160,7 +160,7 @@ CONTAINS
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
          IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no
+         report_version_no, gw_params
     USE cable_data_module,    ONLY: driver_type, point2constants
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
@@ -339,7 +339,8 @@ CONTAINS
          redistrb,         &
          wiltParam,        &
          satuParam,        &
-         cable_user           ! additional USER switches 
+         cable_user,       &    ! additional USER switches 
+         gw_params
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 5   ! CASA-CNP PreSpinup loops

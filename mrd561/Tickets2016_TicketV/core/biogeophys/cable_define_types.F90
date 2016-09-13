@@ -144,6 +144,13 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
      REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
 
+     !gw parameters
+     REAL(r_2), DIMENSION(:),   POINTER :: slope,      &!mean subgrid scale slop
+                                           slope_std,  & !std of subgrid scale slope
+                                           GW_he,      & !aquifer air entry potential m
+                                           GW_Kaq,     & !aquifer hydro condicitivty m/s
+                                           GWdz!,      & ! aquifer thickness
+
   END TYPE soil_parameter_type
 
 ! .............................................................................
@@ -257,6 +264,20 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:),   POINTER :: Qprec_daily ! liquid precip, daily average (m s-1)
      REAL(r_2), DIMENSION(:),   POINTER :: Qprec_snow_daily ! solid precip, daily average (m s-1)
 
+
+
+          !MD variables for the revised soil moisture + GW scheme
+      REAL(r_2), DIMENSION(:), POINTER   ::                                     &
+         GWwb,    &  ! water content in aquifer [mm3/mm3]
+         GWhk,    &  ! aquifer hydraulic conductivity  [mm/s]
+         wtd,     &  ! water table depth   [mm]
+         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] ,
+         satfrac, &  ! satuated fraction of grid cell
+         sat_ice_frac, &  !impermiable fraction, sat and frozen
+         q_recharge !flux between aquifer and bottom soil layer
+     
+      REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
+         qhlev   !horizontal subsurface drainage by layer
 
 
    END TYPE soil_snow_type
@@ -864,6 +885,17 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ALLOCATE ( var % Qprec_daily(mp) )
     ALLOCATE ( var % Qprec_snow_daily(mp) )
 
+
+! GW hydro variables (mdr561)                                   
+    ALLOCATE ( var % GWwb(mp) )  ! water content in aquifer [mm3/mm3]
+    ALLOCATE ( var % GWhk(mp) )  ! aquifer hydraulic conductivity  [mm/s]
+    ALLOCATE ( var % wtd(mp) )  ! water table depth   [mm]
+    ALLOCATE ( var % qhz(mp) )  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] ,
+    ALLOCATE ( var % satfrac(mp) )  ! satuated fraction of grid cell
+    ALLOCATE ( var % q_recharge(mp) ) !flux between aquifer and bottom soil layer
+     
+    ALLOCATE ( var % qhlev(mp,ms) )   !horizontal subsurface drainage by layer
+
     !END IF
 
 END SUBROUTINE alloc_soil_snow_type
@@ -1410,6 +1442,16 @@ SUBROUTINE dealloc_soil_snow_type(var)
     DEALLOCATE ( var % Qprec_snow_daily )
 
     ! END IF
+! GW hydro variables (mdr561)                                   
+    DEALLOCATE ( var % GWwb )  ! water content in aquifer [mm3/mm3]
+    DEALLOCATE ( var % GWhk )  ! aquifer hydraulic conductivity  [mm/s]
+    DEALLOCATE ( var % wtd )  ! water table depth   [mm]
+    DEALLOCATE ( var % qhz )  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] ,
+    DEALLOCATE ( var % satfrac )  ! satuated fraction of grid cell
+    DEALLOCATE ( var % q_recharge ) !flux between aquifer and bottom soil layer
+     
+    DEALLOCATE ( var % qhlev )   !horizontal subsurface drainage by layer
+
 
 END SUBROUTINE dealloc_soil_snow_type
 
