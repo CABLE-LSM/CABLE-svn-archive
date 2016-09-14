@@ -2288,13 +2288,10 @@ CONTAINS
        out%LandUseFlux = out%LandUseFlux + &
             REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
             / 1.201E-5, 4)
-write(699,*) 'output 1', casaflux%FluxCtohwp(4:6) + casaflux%FluxCtoClear(4:6)
-write(699,*) 'output 2',out%LandUseFlux(4:6)* 86400.0* 1.201E-5
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%LandUseFlux = out%LandUseFlux / REAL(output%interval, 4)
-write(699,*) 'output 3', sum(out%LandUseFlux(4:6)*patch(4:6)%frac)* 86400.0* 1.201E-5, output%interval
-write(699,*) 'output 4', patch(4:6)%frac
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%LandUseFlux, 'LandUseFlux', &
                out%LandUseFlux,    &

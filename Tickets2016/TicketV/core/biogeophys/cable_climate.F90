@@ -256,15 +256,8 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
            climate%alpha_PT = max(climate%aevap/climate%evap_PT, 0.0)     ! ratio of annual evap to annual PT evap
            climate%alpha_PT_20(:,20)=climate%alpha_PT
 
-k=2
-!!$write(55,92), climate%nyears, startyear, nmonth, idoy, &
-!!$ climate%mtemp_min(k), &
-!!$climate%mtemp_min20(k), &
-!!$climate%mtemp_min_20(k,:)
-!!$92    format(4(i6,',',2x),100(e18.6,',',2x))
 
           CALL biome1_pft(climate,np)
-!write(*,*) 'alpha', climate%alpha_PT20
 
         ENDIF  ! last month of year
 
@@ -332,7 +325,6 @@ REAL, ALLOCATABLE:: alpha_PT_scaled(:)
 
 ALLOCATE(pft_biome1(np,4))
 ALLOCATE(alpha_PT_scaled(np))
-!alpha_PT_scaled =  min(climate%alpha_PT20 , 1.0)/0.56  
 alpha_PT_scaled =  min(climate%alpha_PT20, 1.0)
 
 DO k=1,np

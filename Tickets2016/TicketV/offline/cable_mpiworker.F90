@@ -660,7 +660,15 @@ CONTAINS
              CALL sumcflux( ktau, kstart, kend, dels, bgc,              &
                   canopy, soil, ssnow, sum_flux, veg,                   &
                   met, casaflux, l_vcmaxFeedbk )
-
+ write(wlogn,*), 'before MPI_Send S:', ssnow%S
+ write(wlogn,*), 'before MPI_Send Tsoil:',ssnow%Tsoil
+ write(wlogn,*), 'before MPI_Send thetai:',ssnow%thetai
+write(wlogn,*), 'before MPI_Send snowliq:',ssnow%snowliq
+write(wlogn,*), 'before MPI_Send Tsurface:',ssnow%Tsurface
+write(wlogn,*), 'before MPI_Send h0:',ssnow%h0
+write(wlogn,*), 'before MPI_Send nsnow:',ssnow%nsnow
+write(wlogn,*), 'before MPI_Send zeta:', soil%zeta
+write(wlogn,*), 'before MPI_Send fsatmax:', soil%fsatmax
              ! MPI: send the results back to the master
              CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
 
@@ -1248,6 +1256,39 @@ ENDIF
     CALL MPI_Get_address (ssnow%wblf, displs(bidx), ierr)
     blen(bidx) = ms * r2len
 
+   ! additional  for sli
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%S, displs(bidx), ierr)
+!!$     blen(bidx) = ms * r2len
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%Tsoil, displs(bidx), ierr)
+!!$     blen(bidx) = ms * r2len
+
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%thetai, displs(bidx), ierr)
+!!$     blen(bidx) = ms * r2len
+!!$  
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%snowliq, displs(bidx), ierr)
+!!$     blen(bidx) = 3 * r2len
+!!$
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%Tsurface, displs(bidx), ierr)
+!!$     blen(bidx) = r2len
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%h0, displs(bidx), ierr)
+!!$     blen(bidx) = r2len
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%nsnow, displs(bidx), ierr)
+!!$     blen(bidx) = I1len
+     ! end additional for sli
+
+
+
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%wbtot, displs(bidx), ierr)
     blen(bidx) = r2len
@@ -1568,6 +1609,15 @@ ENDIF
     CALL MPI_Get_address (soil%swilt, displs(bidx), ierr)
     blen(bidx) = r1len
 
+! extra for sli
+!!$    bidx = bidx + 1
+!!$    CALL MPI_Get_address (soil%zeta, displs(bidx), ierr)
+!!$    blen(bidx) = r2len
+!!$
+!!$    bidx = bidx + 1
+!!$    CALL MPI_Get_address (soil%fsatmax, displs(bidx), ierr)
+!!$    blen(bidx) = r2len
+! end extra for sil
     bidx = bidx + 1
     CALL MPI_Get_address (soil%zse, displs(bidx), ierr)
     blen(bidx) = ms * extr1
@@ -3727,7 +3777,25 @@ ENDIF
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%wblf(off,1), displs(bidx), ierr)
     blocks(bidx) = r2len * ms
+! additional  for sli
 
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%S(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%Tsoil(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%thetai(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%snowliq(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * 3
+
+! end additional for sli
 
     ! rad 2D
     bidx = bidx + 1
@@ -5332,6 +5400,21 @@ ENDIF
     bidx = bidx + 1
     CALL MPI_Get_address (veg%deciduous(off), displs(bidx), ierr)
     blocks(bidx) = llen
+
+     ! additional for SLI 
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%Tsurface(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%h0(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
+     blocks(bidx) = i1len
+     ! end additional for SLI 
+
 
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN
@@ -6960,7 +7043,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
   real(r_2), dimension(:), allocatable, save  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, avg_xksoil
 
   ! local variables
-  INTEGER                  :: myearspin,nyear, nloop1
+  INTEGER                  :: myearspin,nyear, nloop1, LOY
   CHARACTER(LEN=99)        :: ncfile
   CHARACTER(LEN=4)         :: cyear
   INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
@@ -6981,8 +7064,6 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
   integer nptx,nvt,kloop
 
    REAL(dp)                               :: StemNPP(mp,2)
-   REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
-   REAL(dp), allocatable :: NPPtoGPP(:)
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
 
 
@@ -6990,10 +7071,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
     INTEGER :: ierr
 
 
-   if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
-   if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
-   if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
-   if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
+   
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
 
 
@@ -7006,7 +7084,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
   ktauday=int(24.0*3600.0/dels)
   nday=(kend-kstart+1)/ktauday
-
+  LOY = 365
   !chris 12/oct/2012 for spin up casa
   IF (.not.(allocated(avg_cleaf2met)))  allocate(avg_cleaf2met(mp), avg_cleaf2str(mp), avg_croot2met(mp), avg_croot2str(mp), &
        avg_cwood2cwd(mp), &
@@ -7048,31 +7126,21 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
         IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 !!$           ! accumulate annual variables for use in POP
-!!$           IF(idoy==1 ) THEN
-!!$              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-!!$              LAImax = casamet%glai
-!!$              Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
-!!$              Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
-!!$           ELSE
-!!$              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-!!$              LAImax = max(casamet%glai, LAImax)
-!!$              Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
-!!$              Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
-!!$           ENDIF
+           IF(MOD(ktau/ktauday,LOY)==1 ) THEN
+              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+              casabal%LAImax = casamet%glai
+              casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
+              casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
+           ELSE
+              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+              casabal%LAImax = max(casamet%glai, casabal%LAImax)
+              casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
+              casabal%Crootmean = casabal%Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
+           ENDIF
  
            IF(idoy==mdyear) THEN ! end of year
 
-!!$              StemNPP(:,1) = casaflux%stemnpp 
-!!$              StemNPP(:,2) = 0.0
-!!$              WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
-!!$                 NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
-!!$              ELSEWHERE
-!!$                 NPPtoGPP = 0.5
-!!$              ENDWHERE
-!!$
-!!$              CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
-!!$                   real(veg%disturbance_intensity(Iw,:),dp)      ,&
-!!$                   LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+
               CALL POPdriver(casaflux,casabal,veg, POP)
 
 
@@ -7207,51 +7275,41 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 
-!!$              ! accumulate annual variables for use in POP
-!!$              IF(idoy==1 ) THEN
-!!$                 casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-!!$                 LAImax = casamet%glai
-!!$                 Cleafmean = casapool%cplant(:,1)/real(mdyear)/1000.
-!!$                 Crootmean = casapool%cplant(:,3)/real(mdyear)/1000.
-!!$              ELSE
-!!$                 casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-!!$                 LAImax = max(casamet%glai, LAImax)
-!!$                 Cleafmean = Cleafmean + casapool%cplant(:,1)/real(mdyear)/1000.
-!!$                 Crootmean = Crootmean +casapool%cplant(:,3)/real(mdyear)/1000.
-!!$              ENDIF
-                
-           
+              ! accumulate annual variables for use in POP
+              IF(MOD(ktau/ktauday,LOY)==1 ) THEN
+                 casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 
+                 ! (assumes 70% of wood NPP is allocated above ground)
+                 casabal%LAImax = casamet%glai
+                 casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
+                 casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
+              ELSE
+                 casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * &
+                      casaflux%fracCalloc(:,2) * 0.7
+                 casabal%LAImax = max(casamet%glai, casabal%LAImax)
+                 casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
+                 casabal%Crootmean = casabal%Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
+              ENDIF
+              
+              
               IF(idoy==mdyear) THEN ! end of year
                  
-!!$                 StemNPP(:,1) = casaflux%stemnpp !/float(ktauday*LOY)
-!!$                 StemNPP(:,2) = 0.0
-!!$                 WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
-!!$                    NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
-!!$                 ELSEWHERE
-!!$                    NPPtoGPP = 0.5
-!!$                 ENDWHERE
-!!$                 
-!!$                 CALL POPStep(pop, max(StemNPP(Iw,:)/1000.,0.01), int(veg%disturbance_interval(Iw,:), i4b),&
-!!$                      real(veg%disturbance_intensity(Iw,:),dp)      ,&
-!!$                      LAImax(Iw), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
                  CALL POPdriver(casaflux,casabal,veg, POP)
-
                  
-           ENDIF  ! end of year
-        ELSE
-           casaflux%stemnpp = 0.
-        ENDIF ! CALL_POP
-        
-        
-     ENDDO   ! end of idoy
-  ENDDO   ! end of nyear
-
-ENDDO     ! end of nloop
-write(wlogn,*) 'b4 MPI_SEND'
- CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, 0, ocomm, ierr) 
-write(wlogn,*) 'after MPI_SEND'
-IF(CABLE_USER%CALL_POP) CALL worker_send_pop (POP, ocomm) 
-write(wlogn,*) 'cplant', casapool%cplant
+              ENDIF  ! end of year
+           ELSE
+              casaflux%stemnpp = 0.
+           ENDIF ! CALL_POP
+           
+           
+        ENDDO   ! end of idoy
+     ENDDO   ! end of nyear
+     
+  ENDDO     ! end of nloop
+  write(wlogn,*) 'b4 MPI_SEND'
+  CALL MPI_Send (MPI_BOTTOM, 1, casa_t, 0, 0, ocomm, ierr) 
+  write(wlogn,*) 'after MPI_SEND'
+  IF(CABLE_USER%CALL_POP) CALL worker_send_pop (POP, ocomm) 
+  write(wlogn,*) 'cplant', casapool%cplant
 
 END SUBROUTINE worker_spincasacnp
 

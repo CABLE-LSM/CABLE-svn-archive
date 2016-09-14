@@ -10,7 +10,6 @@
 !
 ! ==============================================================================
 ! Purpose: Offline driver for CABLE
-!casaflux%Nmindep
 ! Contact: Bernard.Pak@csiro.au
 !
 ! History: Since 1.4b, capability to run global offline (ncciy = YEAR),
@@ -650,7 +649,7 @@ PROGRAM cable_offline_driver
                     WRITE(CYEAR,FMT="(I4)")CurYear + INT((ktau-kstart+koffset)/(LOY*ktauday))
                     ncfile	 = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                     casa_it = NINT( REAL(ktau / ktauday) )
-                    write(699,*) 'b4 read_casa_dump', CYEAR, ncfile
+
                     CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
                  ENDIF
                  

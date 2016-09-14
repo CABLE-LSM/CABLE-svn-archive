@@ -36,7 +36,8 @@ MODULE cable_mpicommon
   ! added 23 params when trying to fix the bug in MPI ! nparam -> 283
   ! add 10 vairable to veg% param -> 293
   ! Ticket #56, add 2 new params for the Medlyns Stom Cond model 293 -> 295
-  !Vanessa Haver: add 4 new params 295 -> 299
+  !Vanessa Haverd: add 4 new params 295 -> 299
+  ! VH add 9 params for sli 299 -> 308
   INTEGER, PARAMETER :: nparam = 299    
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -87,7 +88,8 @@ MODULE cable_mpicommon
   ! MPI: gol124: net +1 when Bernard ported to CABLE_r491
   !INTEGER, PARAMETER :: nmat = 29
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  INTEGER, PARAMETER :: nmat = 36
+  ! vh sli nmat + 4 36 -> 40
+  INTEGER, PARAMETER :: nmat = 40
 
   ! MPI: number of contig vector parts / worker (results)
   !INTEGER, PARAMETER :: nvec = 149
@@ -101,7 +103,8 @@ MODULE cable_mpicommon
   ! ported to CABLE_r491
   !INTEGER, PARAMETER :: nvec = 137
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  INTEGER, PARAMETER :: nvec = 162
+  ! vh sli nvec + 3 162 -> 165
+  INTEGER, PARAMETER :: nvec = 165
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

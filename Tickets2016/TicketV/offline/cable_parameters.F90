@@ -1362,14 +1362,17 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 !! vh_js !! neeed to remove this if to enable the code below
 
       ! SLI specific initialisations:
-      IF(cable_user%SOIL_STRUC=='sli') THEN
+    !  IF(cable_user%SOIL_STRUC=='sli') THEN
          ssnow%h0(:) = 0.0
          ssnow%S(:,:) = ssnow%wb(:,:)/SPREAD(soil%ssat,2,ms)
          ssnow%snowliq(:,:) = 0.0
          ssnow%Tsurface = 25.0
          ssnow%nsnow = 0
          ssnow%Tsoil = ssnow%tgg - 273.15
-      END IF
+         ssnow%thetai = 0.0
+         soil%zeta = 0.0
+         soil%fsatmax = 0.0
+   !   END IF
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
          soil%nhorizons = 1 ! use 1 soil horizon globally

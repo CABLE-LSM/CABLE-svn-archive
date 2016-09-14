@@ -313,30 +313,13 @@ CONTAINS
  TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
  INTEGER :: k, m, n
 
-! USE cable_IO_vars_module, ONLY: latitude, longitude, nmetpatches, &
-!      mask, metGrid, sdoy, smoy, syear, shod, xdimsize, ydimsize,  &
-!      lat_all, lon_all
  
-!!$ ! get potential veg type
-!!$ !IF (TRIM(LUC_EXPT%RUN).eq.'init') THEN
-!!$    CALL READ_ClimateFile(LUC_EXPT)
-!!$! hot desert
-!!$WHERE (LUC_EXPT%biome.eq.15 )
-!!$ LUC_EXPT%ivegp = 14
-!!$
-!!$ENDWHERE
 
- ! ENDIF
   
    DO k=1,mland
         m = landpt(k)%ilon
         n = landpt(k)%ilat
 
-!!$        if ( LUC_EXPT%ivegp(k)==14) THEN
-!!$
-!!$           write(*,*) k, LUC_EXPT%prim_only(k) ,inVeg(m,n,:), inPFrac(m,n,:)
-!!$
-!!$        endif
 
         if (inVeg(m,n,1).LT.11) THEN ! vegetated
 
@@ -369,23 +352,7 @@ CONTAINS
               inPFrac(m,n,2) = min(LUC_EXPT%secdf(k),1.0)
               inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1) - inPFrac(m,n,2) 
 
-!!$              if (LUC_EXPT%biome(k) .eq. 3 .or. LUC_EXPT%biome(k) .eq. 11) then
-!!$                 inPFrac(m,n,1) = max(LUC_EXPT%primaryf(k),1.0)*2.0/3.0
-!!$                 inPFrac(m,n,2) = 0.0
-!!$                 inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1)
-!!$
-!!$              elseif (LUC_EXPT%biome(k) .eq. 12 .or. LUC_EXPT%biome(k) .eq. 13 &
-!!$                   .or. LUC_EXPT%biome(k) .eq. 16  ) then
-!!$
-!!$                 inPFrac(m,n,1) = max(LUC_EXPT%primaryf(k),1.0)*1.0/3.0
-!!$                 inPFrac(m,n,2) = 0.0
-!!$                 inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1)
-!!$
-!!$              else
-!!$                 inPFrac(m,n,1) = max(LUC_EXPT%primaryf(k),1.0)
-!!$                 inPFrac(m,n,2) = 0.0
-!!$                 inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1)
-!!$              endif
+
            endif
         endif
 
@@ -399,13 +366,7 @@ CONTAINS
           inPFrac(m,n,2:3) = 0.0
         endif
 
-if (k == 827) then
-  write(*,*) inVeg(m,n,:)
-write(*,*) inPFrac(m,n,:)
-write(*,*) LUC_EXPT%prim_only(k)
-!stop
-endif
-!!$ 
+
      ENDDO
   
 
