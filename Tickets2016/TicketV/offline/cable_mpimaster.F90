@@ -1905,43 +1905,43 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = 1
 
      ! additional  for sli
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%S(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
-!!$
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%Tsoil(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%S(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
 
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%thetai(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%Tsoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
 !!$
-!!$     
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%snowliq(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (3, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%Tsurface(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%h0(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
-!!$     blen(bidx) = I1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%thetai(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%snowliq(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (3, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%Tsurface(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%h0(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
+     blen(bidx) = I1len
      ! end additional for sli
 
     
@@ -2293,14 +2293,14 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = r1len
 
 ! the next two are extra for sli
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (soil%zeta(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (soil%fsatmax(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%zeta(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%fsatmax(off), displs(bidx), ierr)
+     blen(bidx) = r2len
 
 ! end extra sli
 

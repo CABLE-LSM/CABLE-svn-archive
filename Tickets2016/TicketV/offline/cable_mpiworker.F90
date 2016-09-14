@@ -439,6 +439,7 @@ CONTAINS
              CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                        rough,rad,sum_flux,bal)
 
+
           
              CALL worker_climate_types(comm, climate)
 
@@ -611,7 +612,7 @@ CONTAINS
              if (cable_user%CALL_climate) &
                  CALL cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy,air, dels,mp)
-            
+
              ! CALL land surface scheme for this timestep, all grid points:
              CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
                   bal, rad, rough, soil, ssnow,                            &
@@ -637,7 +638,7 @@ CONTAINS
                 
                 ! IF(MOD((ktau-kstart+1),ktauday)==0) THEN
                    CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
- write(wlogn,*), 'after MPI_Send', casaflux%cnpp
+ 
               !  ENDIF
 
                 IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
@@ -660,15 +661,7 @@ CONTAINS
              CALL sumcflux( ktau, kstart, kend, dels, bgc,              &
                   canopy, soil, ssnow, sum_flux, veg,                   &
                   met, casaflux, l_vcmaxFeedbk )
- write(wlogn,*), 'before MPI_Send S:', ssnow%S
- write(wlogn,*), 'before MPI_Send Tsoil:',ssnow%Tsoil
- write(wlogn,*), 'before MPI_Send thetai:',ssnow%thetai
-write(wlogn,*), 'before MPI_Send snowliq:',ssnow%snowliq
-write(wlogn,*), 'before MPI_Send Tsurface:',ssnow%Tsurface
-write(wlogn,*), 'before MPI_Send h0:',ssnow%h0
-write(wlogn,*), 'before MPI_Send nsnow:',ssnow%nsnow
-write(wlogn,*), 'before MPI_Send zeta:', soil%zeta
-write(wlogn,*), 'before MPI_Send fsatmax:', soil%fsatmax
+
              ! MPI: send the results back to the master
              CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
 
@@ -1257,34 +1250,34 @@ ENDIF
     blen(bidx) = ms * r2len
 
    ! additional  for sli
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%S, displs(bidx), ierr)
-!!$     blen(bidx) = ms * r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%Tsoil, displs(bidx), ierr)
-!!$     blen(bidx) = ms * r2len
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%S, displs(bidx), ierr)
+     blen(bidx) = ms * r2len
 
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%thetai, displs(bidx), ierr)
-!!$     blen(bidx) = ms * r2len
-!!$  
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%snowliq, displs(bidx), ierr)
-!!$     blen(bidx) = 3 * r2len
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%Tsoil, displs(bidx), ierr)
+     blen(bidx) = ms * r2len
 !!$
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%Tsurface, displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%h0, displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%nsnow, displs(bidx), ierr)
-!!$     blen(bidx) = I1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%thetai, displs(bidx), ierr)
+     blen(bidx) = ms * r2len
+  
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%snowliq, displs(bidx), ierr)
+     blen(bidx) = 3 * r2len
+
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%Tsurface, displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%h0, displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%nsnow, displs(bidx), ierr)
+     blen(bidx) = I1len
      ! end additional for sli
 
 
@@ -1610,13 +1603,13 @@ ENDIF
     blen(bidx) = r1len
 
 ! extra for sli
-!!$    bidx = bidx + 1
-!!$    CALL MPI_Get_address (soil%zeta, displs(bidx), ierr)
-!!$    blen(bidx) = r2len
-!!$
-!!$    bidx = bidx + 1
-!!$    CALL MPI_Get_address (soil%fsatmax, displs(bidx), ierr)
-!!$    blen(bidx) = r2len
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%zeta, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%fsatmax, displs(bidx), ierr)
+    blen(bidx) = r2len
 ! end extra for sil
     bidx = bidx + 1
     CALL MPI_Get_address (soil%zse, displs(bidx), ierr)

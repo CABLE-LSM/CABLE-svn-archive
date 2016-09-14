@@ -852,10 +852,14 @@ PROGRAM cable_offline_driver
 	      WRITE(logn,'(A18,I3,A24)') ' Spinning up: run ',		      &
 		   INT(ktau_tot/kend), ' of data set complete...'
 
+
        ! IF not 1st run through whole dataset:
-	      IF( MOD( ktau_tot, kend ) .EQ. 0 .AND. ktau_Tot .GT. kend .AND. &
-		   YYYY.EQ. CABLE_USER%YearEnd .OR. ( NRRRR .GT. 1 .AND. &
-		   RRRR.EQ. NRRRR) ) THEN
+!!$	      IF( MOD( ktau_tot, kend ) .EQ. 0 .AND. ktau_Tot .GT. kend .AND. &
+!!$		   YYYY.EQ. CABLE_USER%YearEnd .OR. ( NRRRR .GT. 1 .AND. &
+!!$		   RRRR.EQ. NRRRR) ) THEN
+
+       IF( MOD( ktau_tot, kend ) .EQ. 0 .AND. ktau_Tot .GT. kend .AND. &
+		   YYYY.EQ. CABLE_USER%YearEnd ) THEN
 
           ! evaluate spinup
 		 IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.		      &
