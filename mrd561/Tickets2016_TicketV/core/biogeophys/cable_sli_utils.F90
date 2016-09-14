@@ -375,6 +375,7 @@ CONTAINS
              ! dE_vapdT1 = var(1)%Dv/(half*dx(1))*var(1)%rh*slope_csat(Tsoil(1)) &
              !      * (one - vmet%rbw*var(1)%Dv/(half*dx(1))/(one+vmet%rbw*var(1)%Dv/(half*dx(1)))) &
              !      * var(1)%lambdav
+             dE_vapdT1 = var(1)%Dv/(half*dx(1)) * var(1)%rh*slope_csat(Tsoil(1)) * var(1)%lambdav
           else
              E_vap     = zero
              dE_vapdT1 = zero

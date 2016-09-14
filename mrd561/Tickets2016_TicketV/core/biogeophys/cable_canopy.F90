@@ -1717,7 +1717,7 @@ CONTAINS
 
 !#ifdef VanessasCanopy
 
-            
+    
               if (cable_user%CALL_climate) then
   
                  ! Atkins et al. 2015, Table S4, 
@@ -1754,7 +1754,6 @@ CONTAINS
                  rdx(i,2) = rdx(i,1)
               endif
 
-              
      
               ! modify for leaf area and instanteous temperature response (Rd25 -> Rd)
                  rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1)

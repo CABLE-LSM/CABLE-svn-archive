@@ -93,7 +93,7 @@ MODULE cable_common_module
       
      CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
      CHARACTER(LEN=4)  :: MetType       = "NA" !
-     CHARACTER(LEN=20) :: SOIL_STRUC !
+     CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst       = ' ' !
      CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' !

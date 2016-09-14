@@ -1904,6 +1904,48 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           &                             types(bidx), ierr)
      blen(bidx) = 1
+
+     ! additional  for sli
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%S(off,1), displs(bidx), ierr)
+!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+!!$          &                             types(bidx), ierr)
+!!$     blen(bidx) = 1
+!!$
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%Tsoil(off,1), displs(bidx), ierr)
+!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+!!$          &                             types(bidx), ierr)
+!!$     blen(bidx) = 1
+
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%thetai(off,1), displs(bidx), ierr)
+!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+!!$          &                             types(bidx), ierr)
+!!$     blen(bidx) = 1
+!!$
+!!$     
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%snowliq(off,1), displs(bidx), ierr)
+!!$     CALL MPI_Type_create_hvector (3, r2len, r2stride, MPI_BYTE, &
+!!$          &                             types(bidx), ierr)
+!!$     blen(bidx) = 1
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%Tsurface(off), displs(bidx), ierr)
+!!$     blen(bidx) = r2len
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%h0(off), displs(bidx), ierr)
+!!$     blen(bidx) = r2len
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
+!!$     blen(bidx) = I1len
+     ! end additional for sli
+
+    
      !blen(bidx) = ms * r2len
 
      bidx = bidx + 1
@@ -2250,6 +2292,18 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      bidx = bidx + 1
      CALL MPI_Get_address (soil%swilt(off), displs(bidx), ierr)
      blen(bidx) = r1len
+
+! the next two are extra for sli
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (soil%zeta(off), displs(bidx), ierr)
+!!$     blen(bidx) = r2len
+!!$
+!!$     bidx = bidx + 1
+!!$     CALL MPI_Get_address (soil%fsatmax(off), displs(bidx), ierr)
+!!$     blen(bidx) = r2len
+
+! end extra sli
 
      ! constant * ms, each worker gets the same copy of whole array
      bidx = bidx + 1
@@ -4686,6 +4740,36 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
+  ! additional  for sli
+     midx = midx + 1
+     CALL MPI_Get_address (ssnow%S(off,1), maddr(midx), ierr) ! 15
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+     midx = midx + 1
+     CALL MPI_Get_address (ssnow%Tsoil(off,1), maddr(midx), ierr) ! 15
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+     midx = midx + 1
+     CALL MPI_Get_address (ssnow%thetai(off,1), maddr(midx), ierr) ! 15
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+     midx = midx + 1
+     CALL MPI_Get_address (ssnow%snowliq(off,1), maddr(midx), ierr) ! 15
+     CALL MPI_Type_create_hvector (3, r2len, r2stride, MPI_BYTE, &
+          &                        mat_t(midx, rank), ierr)
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+  
+ ! end additional for sli
+
+
+
+
      ! rad 2D
      midx = midx + 1
      CALL MPI_Get_address (rad%fbeam(off,1), maddr(midx), ierr) ! 102
@@ -5641,7 +5725,21 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! LOGICAL
      CALL MPI_Get_address (veg%deciduous(off), vaddr(vidx), ierr) ! 163
      blen(vidx) = cnt * extl
-     
+
+      ! additional for SLI 
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%Tsurface(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%h0(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%nsnow(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extid
+     ! end additional for SLI 
+  
      ! MPI: sanity check
      IF (vidx /= nvec) THEN
         WRITE (*,*) 'master: outtype invalid nvec ',vidx,' constant, fix it!'

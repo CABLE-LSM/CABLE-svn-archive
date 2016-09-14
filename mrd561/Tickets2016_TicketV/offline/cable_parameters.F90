@@ -1591,14 +1591,17 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 !! vh_js !! neeed to remove this if to enable the code below
 
       ! SLI specific initialisations:
-      IF(cable_user%SOIL_STRUC=='sli') THEN
+    !  IF(cable_user%SOIL_STRUC=='sli') THEN
          ssnow%h0(:) = 0.0
          ssnow%S(:,:) = ssnow%wb(:,:)/SPREAD(soil%ssat,2,ms)
          ssnow%snowliq(:,:) = 0.0
          ssnow%Tsurface = 25.0
          ssnow%nsnow = 0
          ssnow%Tsoil = ssnow%tgg - 273.15
-      END IF
+         ssnow%thetai = 0.0
+         soil%zeta = 0.0
+         soil%fsatmax = 0.0
+   !   END IF
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
          soil%nhorizons = 1 ! use 1 soil horizon globally
@@ -1834,12 +1837,13 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     ! Check sand+soil+clay fractions sum to 1:
     DO i = 1, mland
        DO j = 1, landpt(i)%nap
+ ! vh changed limits from 1.0000001, 0.999999 to 1.01 and 0.99 for compatibility with gridinfo
           IF((soil%sand(landpt(i)%cstart + j - 1)                              &
               + soil%silt(landpt(i)%cstart + j - 1)                            &
-              + soil%clay(landpt(i)%cstart + j - 1)) > 1.0000001 .OR.          &
+              + soil%clay(landpt(i)%cstart + j - 1)) > 1.01 .OR.          & 
              (soil%sand(landpt(i)%cstart + j - 1)                              &
               + soil%silt(landpt(i)%cstart + j - 1)                            &
-              + soil%clay(landpt(i)%cstart + j - 1)) < 0.9999999) THEN
+              + soil%clay(landpt(i)%cstart + j - 1)) < 0.99) THEN
              WRITE(*,*) 'SUBROUTINE load_parameters:'
              WRITE(*,*) 'At land point number:', i
              WRITE(*,*) '        patch number:', j

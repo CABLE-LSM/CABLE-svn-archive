@@ -275,10 +275,10 @@ CONTAINS
     POPLUC%freq_age_secondary(g,2:age_max)=POPLUC%freq_age_secondary(g,1:age_max-1)
     POPLUC%freq_age_secondary(g,1) = 0.0
 
-    ! adjust secondary age distribution for secondary mature forest harvest area
-    if (POPLUC%smharv(g).gt.0) then
+    ! adjust secondary age distribution for secondary forest harvest area
+    if (POPLUC%smharv(g)+POPLUC%syharv(g).gt.0) then
 
-       remaining = POPLUC%smharv(g)
+       remaining = POPLUC%smharv(g)+POPLUC%syharv(g)
        i = age_max
        do while (remaining.gt.0.0)
           if (POPLUC%freq_age_secondary(g,i) .gt. remaining) then
@@ -292,7 +292,8 @@ CONTAINS
              i = i-1;
           end if
           if (i.lt.2) then
-             POPLUC%smharv(g) = POPLUC%smharv(g) - remaining
+             POPLUC%smharv(g) = POPLUC%smharv(g)+POPLUC%syharv(g) - remaining
+             POPLUC%syharv(g) = 0.0
              remaining = 0.0
           endif
        enddo
@@ -538,22 +539,22 @@ CONTAINS
                         (POP%pop_grid(l)%cmass_sum_old + POP%pop_grid(l)%growth) &
                         - 1.0/ disturbance_interval ,0.0) &
                         *casapool%cplant(j+1,2) - dcExpand(g)
-                  if (( POPLUC%smharv(g) + POPLUC%stog(g)).gt.1e-10) then
-                     dcHarv(g) = dcHarvClear(g) * POPLUC%smharv(g) & 
-                          /( POPLUC%smharv(g) + POPLUC%stog(g))
+                  if (( POPLUC%smharv(g) + POPLUC%syharv(g) + POPLUC%stog(g)).gt.1e-10) then
+                     dcHarv(g) = dcHarvClear(g) * (POPLUC%smharv(g)+POPLUC%syharv(g)) & 
+                          /( POPLUC%smharv(g) +POPLUC%syharv(g) + POPLUC%stog(g))
                      dcClear(g) = dcHarvClear(g) * POPLUC%stog(g) & 
-                          /( POPLUC%smharv(g) + POPLUC%stog(g))
+                          /( POPLUC%smharv(g) + POPLUC%syharv(g) + POPLUC%stog(g))
 
                      if ((casapool%cplant(j+1,2) + dcExpand(g)+dcClear(g)+dcHarv(g)).gt.0.0) then
                         FHarvClear(g) = -(patch(j+1)%frac *  (dcHarvClear(g) + dcExpand(g)) + &
                              (POPLUC%ptos(g)+POPLUC%gtos(g)-POPLUC%stog(g))* &
                              ( casapool%cplant(j+1,2) + dcHarvClear(g) + dcExpand(g) ) ) 
                         POPLUC%FHarvest(g,2) =  (1.-POPLUC%fracHarvSecResid(g))*FHarvClear(g) &
-                             * POPLUC%smharv(g) &
-                             /( POPLUC%smharv(g) + POPLUC%stog(g))
+                             * (POPLUC%smharv(g) + POPLUC%syharv(g)) &
+                             /( POPLUC%smharv(g) + POPLUC%syharv(g) + POPLUC%stog(g))
                         POPLUC%FClearance(g,2) =  (1.-POPLUC%fracClearResid(g))* FHarvClear(g) * &
                              POPLUC%stog(g) & 
-                             /( POPLUC%smharv(g) + POPLUC%stog(g))
+                             /( POPLUC%smharv(g) + POPLUC%syharv(g) + POPLUC%stog(g))
                      else
                         dcHarv(g) = 0.0
                         dcClear(g) = 0.0
@@ -1972,7 +1973,7 @@ END SUBROUTINE POPLUC_SET_PATCHFRAC
    END WHERE
    fieldr = ncmissingr
    fieldi = ncmissingi
-write(*,*) 'mask', maxval(real(mask)), minval(real(mask)), size(mask)
+
     A0(1) = 'local_latitude'
     A0(2) = 'local_longitude'
 
@@ -2176,6 +2177,18 @@ write(*,*) 'mask', maxval(real(mask)), minval(real(mask)), size(mask)
        DO i = 1, SIZE(AI1)
           STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)) ,NF90_INT,(/xID, yID,t_ID/),VIDI1(i))
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VIDI1(i), '_FillValue',ncmissingi)
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//AI1(i)//' variable attributes in output file. '// &
+                                                      '(INTERFACE define_ovar)')
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VIDI1(i), 'missing_value', ncmissingi)
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//AI1(i)//' variable attributes in output file. '// &
+               '(INTERFACE define_ovar)')
+ 
        END DO
        if(put_age_vars) then
           DO i = 1, SIZE(A2)
@@ -2187,16 +2200,53 @@ write(*,*) 'mask', maxval(real(mask)), minval(real(mask)), size(mask)
        DO i = 1, SIZE(A4)
           STATUS = NF90_def_var(FILE_ID,TRIM(A4(i)) ,NF90_FLOAT,(/xID, yID,nLU_ID,t_ID/),VID4(i))
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VID4(i), '_FillValue', REAL(ncmissingr, 4))
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//A4(i)//' variable attributes in output file. '// &
+                                                      '(INTERFACE define_ovar)')
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VID4(i), 'missing_value', REAL(ncmissingr, 4))
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//A4(i)//' variable attributes in output file. '// &
+               '(INTERFACE define_ovar)')
+
+
        END DO
 
        DO i = 1, SIZE(A5)
           STATUS = NF90_def_var(FILE_ID,TRIM(A5(i)) ,NF90_FLOAT,(/xID, yID,ntrans_ID,t_ID/),VID5(i))
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VID5(i), '_FillValue', REAL(ncmissingr, 4))
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//A5(i)//' variable attributes in output file. '// &
+                                                      '(INTERFACE define_ovar)')
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VID5(i), 'missing_value', REAL(ncmissingr, 4))
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//A5(i)//' variable attributes in output file. '// &
+               '(INTERFACE define_ovar)')
+
+
        END DO
 
        DO i = 1, SIZE(A6)
           STATUS = NF90_def_var(FILE_ID,TRIM(A6(i)) ,NF90_FLOAT,(/xID, yID ,nprod_ID,t_ID/),VID6(i))
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VID6(i), '_FillValue', REAL(ncmissingr, 4))
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//A6(i)//' variable attributes in output file. '// &
+                                                      '(INTERFACE define_ovar)')
+          ! Define missing/fill values:
+          STATUS = NF90_PUT_ATT(FILE_ID, VID6(i), 'missing_value', REAL(ncmissingr, 4))
+          IF (STATUS /= NF90_NOERR) CALL handle_err                                        &
+               (STATUS, 'Error defining '//A6(i)//' variable attributes in output file. '// &
+               '(INTERFACE define_ovar)')
+
+
        END DO
 
        ! End define mode:

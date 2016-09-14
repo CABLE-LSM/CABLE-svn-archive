@@ -699,7 +699,8 @@ ENDIF
   casaflux%stemnpp      = 0.
   casaflux%frac_sapwood = 0.
   casaflux%sapwood_area = 0.
-
+  casaflux%FluxCtohwp = 0.
+  casaflux%FluxCtoClear = 0.
   casaflux%fracCalloc   = 0.
   casaflux%fracNalloc   = 0.
   casaflux%fracPalloc   = 0.

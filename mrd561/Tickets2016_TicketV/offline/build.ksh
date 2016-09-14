@@ -145,14 +145,16 @@ host_shin()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   #CLN module add netcdf/3.6.3
+ 
+   module del intel-cc intel-fc
+   module add intel-cc/16.0.1.150 intel-fc/16.0.1.150
    module add netcdf/4.3.3.1
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC='ifort'
    export CFLAGS='-O0 -fp-model precise -g -debug -traceback -fp-stack-check -no-ftz -ftrapuv   -check all,noarg_temp_created -C '
-  # export CFLAGS='-O2 -fp-model precise'
+ #  export CFLAGS='-O2 -fp-model precise'
   # export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv -check bounds'
    export LDFLAGS='-g -L'$NCDIR' -O0'
    export LD='-lnetcdf -lnetcdff'
