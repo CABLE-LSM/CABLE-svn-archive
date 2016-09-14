@@ -1766,7 +1766,6 @@ END SUBROUTINE remove_trans
 
     fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
-    write(*,*) soil%zse
     dzmm    = 1000.0_r_2 * real(soil%zse(:),r_2)
     dzmm_mp = spread(dzmm,1,mp)
     zimm(0) = 0._r_2

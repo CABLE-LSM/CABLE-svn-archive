@@ -32,6 +32,7 @@ MODULE cable_canopy_module
 
   USE cable_data_module, ONLY : icanopy_type, point2constants
   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
+  USE cable_def_types_mod
 
   IMPLICIT NONE
 
@@ -2607,20 +2608,20 @@ CONTAINS
 
 
   recursive function my_gamma(a) result(g)
-    real, intent(in) :: a
-    real :: g
+    real(r_2), intent(in) :: a
+    real(r_2) :: g
 
-    real, parameter :: pi = 3.14159265358979324
+    real(r_2), parameter :: pi = 3.14159265358979324
     integer, parameter :: cg = 7
 
     ! these precomputed values are taken by the sample code in Wikipedia,
     ! and the sample itself takes them from the GNU Scientific Library
-    real, dimension(0:8), parameter :: p = &
+    real(r_2), dimension(0:8), parameter :: p = &
          (/ 0.99999999999980993, 676.5203681218851, -1259.1392167224028, &
          771.32342877765313, -176.61502916214059, 12.507343278686905, &
          -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
 
-    real :: t, w, x
+    real(r_2) :: t, w, x
     integer :: i
 
     x = a
@@ -2631,9 +2632,9 @@ CONTAINS
        x = x - 1.0
        t = p(0)
        do i=1, cg+2
-          t = t + p(i-1)/(x+real(i))
+          t = t + p(i-1)/(x+real(i,r_2))
        end do
-       w = x + real(cg) + 0.5
+       w = x + real(cg,r_2) + 0.5
        g = sqrt(2.0*pi) * w**(x+0.5) * exp(-w) * t
     end if
   end function my_gamma
@@ -2652,13 +2653,13 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    TYPE (roughness_type), INTENT(IN) :: rough
 
 
-   REAL, DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
+   REAL(r_2), DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
                           soil_moisture_mod_sat, wb_liq, &
                           pore_size,pore_radius,rel_s,hk_zero,hk_zero_sat,time_scale  !note pore_size in m
 
    INTEGER, DIMENSION(mp) :: int_eddy_shape
 
-   REAL, parameter :: Dff=2.5e-5, &
+   REAL(r_2), parameter :: Dff=2.5e-5, &
                       lm=1.73e-5, &
                       pi = 3.14159265358979324, &
                       c2 = 2.0
@@ -2668,27 +2669,27 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    integer :: i,j,k
    logical, save ::  first_call = .true.
 
-   canopy%sublayer_dz(:) = 0.001
+   canopy%sublayer_dz(:) = 0.01
 
    pore_radius(:) =  0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
-      !scale ustar according to the exponential wind profile, assuming we are a
-      !mm from the surface
-      eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff))))
-      int_eddy_shape = floor(eddy_shape)
-      eddy_mod(:) = 0.0
-      do i=1,mp
-         eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
+   !scale ustar according to the exponential wind profile, assuming we are a
+   !mm from the surface
+   eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff))))
+   int_eddy_shape = floor(eddy_shape)
+   eddy_mod(:) = 0.0
+   do i=1,mp
+      eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
 
-         if (int_eddy_shape(i) .gt. 0) then
-            eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
-            do k=1,int_eddy_shape(i)
-               eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
-            end do
-         end if
-      end do
-      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff)))),1e-7) 
+      if (int_eddy_shape(i) .gt. 0) then
+         eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
+         do k=1,int_eddy_shape(i)
+            eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
+         end do
+      end if
+   end do
+   canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff)))),1e-7) 
 
    if (first_call) then
       wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )

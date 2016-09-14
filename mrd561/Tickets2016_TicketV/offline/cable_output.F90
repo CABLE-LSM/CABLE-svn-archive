@@ -2181,7 +2181,6 @@ CONTAINS
     !MD Write the hydrology output data from the groundwater module calculations
     !water table depth
     IF((output%soil .OR. output%WatTable) .and. cable_user%test_new_gw) THEN
-       !write(*,*) 'wtd'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
        out%WatTable = out%WatTable + REAL(ssnow%wtd, 4)
        IF(writenow) THEN
