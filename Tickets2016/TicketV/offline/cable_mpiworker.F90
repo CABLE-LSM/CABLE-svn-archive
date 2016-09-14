@@ -5404,6 +5404,14 @@ ENDIF
      blocks(bidx) = r2len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%delwcol(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%evap(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
      blocks(bidx) = i1len
      ! end additional for SLI 

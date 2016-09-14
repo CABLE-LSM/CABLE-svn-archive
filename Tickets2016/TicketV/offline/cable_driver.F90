@@ -264,7 +264,7 @@ PROGRAM cable_offline_driver
 
   INTEGER :: nkend=0
   INTEGER :: ioerror
-
+  INTEGER :: count_bal = 0
   ! END header
 
   ! Open, read and close the namelist file.
@@ -773,14 +773,17 @@ PROGRAM cable_offline_driver
                  ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
                  IF(cable_user%consistency_check) THEN
 
-                    !PRINT*," The sumbal0 ",   new_sumbal, new_fpn
-                    new_sumbal = new_sumbal + SUM(bal%wbal) +  SUM(bal%ebal)
-                    new_sumfpn = new_sumfpn + SUM(canopy%fpn)
-                    new_sumfe = new_sumfe + SUM(canopy%fe)
-                    if (ktau == kend) PRINT*,"Ebal_tot, Wbal_tot, sumbal, sum_fe, sum_fpn", sum(bal%ebal_tot), sum(bal%wbal_tot),	 new_sumbal, &
-                         new_sumfe, new_sumfpn
-!!$
-                    ! write(557,*) MAXVAL(abs(canopy%fpn)), MAXLOC(abs(canopy%fpn),1)
+                    count_bal = count_bal +1;
+                    new_sumbal = new_sumbal + SUM(bal%wbal)/mp +  SUM(bal%ebal)/mp
+                    new_sumfpn = new_sumfpn + SUM(canopy%fpn)/mp
+                    new_sumfe = new_sumfe + SUM(canopy%fe)/mp
+                    if (ktau == kend) PRINT*, "time-space-averaged energy & water balances"
+                    if (ktau == kend) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm]", sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                    if (ktau == kend) PRINT*, "time-space-averaged latent heat and net photosynthesis"
+                    if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  new_sumfe/count_bal, new_sumfpn/count_bal
+                  
+
+! vh ! commented code below detects Nans in evaporation flux and stops if there are any.
 !!$	      do kk=1,mp
 !!$		 if( canopy%fe(kk).NE.( canopy%fe(kk))) THEN
 !!$		    write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &

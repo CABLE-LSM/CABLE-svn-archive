@@ -103,8 +103,8 @@ MODULE cable_mpicommon
   ! ported to CABLE_r491
   !INTEGER, PARAMETER :: nvec = 137
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  ! vh sli nvec + 3 162 -> 165
-  INTEGER, PARAMETER :: nvec = 165
+  ! vh sli nvec + 5 162 -> 167
+  INTEGER, PARAMETER :: nvec = 167
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
