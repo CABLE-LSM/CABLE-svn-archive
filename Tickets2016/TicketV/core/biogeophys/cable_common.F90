@@ -110,8 +110,8 @@ MODULE cable_common_module
      INTEGER  :: &
           CASA_SPIN_STARTYEAR = 1950, &
           CASA_SPIN_ENDYEAR   = 1960, &
-          YEARSTART           = 1950, &
-          YEAREND             = 1960, &
+          YEARSTART           = 0, &
+          YEAREND             = 0, &
           CASA_NREP           = 1
     !--- LN ------------------------------------------]
 
