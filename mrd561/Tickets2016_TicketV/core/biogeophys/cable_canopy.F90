@@ -440,6 +440,7 @@ CONTAINS
 
              else
                 dq = ssnow%qstss - met%qvair
+                ssnow%rh_srf(:) = 1._r_2
              end if
 
              dq2 = ssnow%qstss - met%qvair
@@ -496,6 +497,7 @@ CONTAINS
                 end do
 
              else
+                ssnow%rh_srf(:) = 1._r_2
                 dq = ssnow%qstss - met%qvair
              end if
 
@@ -754,11 +756,17 @@ CONTAINS
           ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
                (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
 
-       ELSEIF (cable_user%or_evap .or. cable_user%GW_MODEL) THEN
+       ELSEIF (cable_user%or_evap .and. cable_user%GW_MODEL) THEN
             litter_thermal_diff = 0.2 / (1932.0*62.0)
             ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil + canopy%sublayer_dz/litter_thermal_diff)
             ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
                        ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
+       ELSEIF (cable_user%GW_MODEL) THEN
+
+            ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil)
+            ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil) + &
+                       ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil)
+
        ELSE  !default 
 
           ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
@@ -863,24 +871,27 @@ CONTAINS
          !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
          IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
               dq(j) = max( -0.1e-3, dq(j))
+              dq2(j) = max( -0.1e-3, dq2(j))
       ENDDO
 
       IF (cable_user%litter) THEN
          !! vh_js !!
          ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
               real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
-      ELSEIF (cable_user%GW_MODEL .and. (.not.cable_user%or_evap)) then
-         ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
-      ELSEIF (cable_user%or_evap) THEN
 
-        ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq/(ssnow%rtsoil+ssnow%rtevap_unsat) + &
-                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat)
- 
+
       ELSE
-         ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
-      ENDIF
+      
+         if (.not.cable_user%GW_MODEL) then 
+            ssnowpotev = air%rho * air%rlam * dq2 /ssnow%rtsoil
+         elseif (cable_user%or_evap) then 
+            ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
+                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+         else 
+            ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
+         end if
 
-
+      END IF
 
     END FUNCTION Humidity_deficit_method
 
@@ -1390,18 +1401,21 @@ CONTAINS
     canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
          MAX( cansat, 0.01 ) ) )
 
-    if (.not.cable_user%GW_MODEL) then
-       ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
-            ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
-            / ( soil%sfc - soil%swilt/2.0 ) ) )
-    else 
-       call calc_srf_wet_fraction(ssnow,soil)
-    end if
+
+   !use soil hetero based wet fraction at the surface
+   IF (cable_user%gw_model) then 
+        call calc_srf_wet_fraction(ssnow,soil)
+   else 
+
+      ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                     &    
+                  ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &    
+                  / ( soil%sfc - soil%swilt/2.0 ) ) )
+   END IF
+
 
     DO j=1,mp
 
        IF(.not.cable_user%gw_model .and.  ssnow%wbice(j,1) > 0. )                                              &
-
             ssnow%wetfac(j) = ssnow%wetfac(j) * real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
             ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) ) )
 
@@ -1551,7 +1565,11 @@ CONTAINS
     IF( iter ==1) THEN
        IF ((cable_user%soil_struc=='default').and.(cable_user%FWSOIL_SWITCH.ne.'Haverd2013')) THEN
           IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
-             CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
+             if (cable_user%gw_model) then
+                CALL fwsoil_calc_gw( fwsoil, soil, ssnow, veg)
+             else
+                CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
+             end if
           ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
              !EAK, 09/10 - replace linear approx by polynomial fitting
              CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
@@ -2374,6 +2392,32 @@ CONTAINS
     z = max(0.0, xjxnum/xjxden)
 
   END FUNCTION xejmxt3
+  ! ------------------------------------------------------------------------------
+
+  SUBROUTINE fwsoil_calc_gw(fwsoil, soil, ssnow, veg)
+    USE cable_def_types_mod
+    USE cable_common_module, only : cable_user
+    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+    REAL, DIMENSION(mp) :: rwater ! soil water availability
+
+    rwater = MAX(1.0e-9,                                                    &
+         SUM(veg%froot * MAX(1.0e-9,MIN(1.0, ssnow%wb -                   &
+         soil%fldcap)) /(soil%fldcap-soil%wiltp),2))
+
+   ! Remove vbeta #56
+   IF(cable_user%GS_SWITCH == 'medlyn') THEN
+      fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+   ELSE   
+      fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+   ENDIF   
+
+  END SUBROUTINE fwsoil_calc_gw
+
+  ! ------------------------------------------------------------------------------
+
 
   ! ------------------------------------------------------------------------------
 
@@ -2663,12 +2707,12 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
                       pi = 3.14159265358979324, &
                       c2 = 2.0
 
-   real(r_2), parameter :: rtevap_max = 10000.0
+   real(r_2), parameter :: rtevap_max = 100000.0
 
    integer :: i,j,k
    logical, save ::  first_call = .true.
 
-   canopy%sublayer_dz(:) = 0.01
+   canopy%sublayer_dz(:) = 0.001
 
    pore_radius(:) =  0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
