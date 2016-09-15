@@ -140,6 +140,8 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
    canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
+   ssnow%GWwb(:) = 0.40
+   ssnow%wtd(:) = 1.0
 
 END SUBROUTINE get_default_inits
 
