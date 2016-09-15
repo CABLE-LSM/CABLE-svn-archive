@@ -2019,7 +2019,7 @@ CONTAINS
     ! dry canopy flux
     canopy%fevc = (1.0-canopy%fwet) * ecy
 
-    IF (cable_user%fwsoil_switch.ne.'Haverd2013') then
+    !IF (cable_user%fwsoil_switch.ne.'Haverd2013') then
 
        ! Recalculate ssnow%evapfbl as ecy may not be updated with the ecx
        ! calculated in the last iteration.
@@ -2061,7 +2061,7 @@ CONTAINS
 
        END DO
 
-    ENDIF
+    !ENDIF
 
     canopy%frday = 12.0 * SUM(rdy, 2)
 !! vh !! inserted min to avoid -ve values of GPP

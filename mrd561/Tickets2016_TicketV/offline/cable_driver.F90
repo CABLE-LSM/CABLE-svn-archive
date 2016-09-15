@@ -870,6 +870,7 @@ PROGRAM cable_offline_driver
 		      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
 
       ! No complete convergence yet
+                    write(*,*) 'WE ARE NOT SPUN UP BY THE FOLLOWING AMOUNTS'
 		    PRINT *, 'ssnow%wb : ', ssnow%wb
 		    PRINT *, 'soilMtemp: ', soilMtemp
 		    PRINT *, 'ssnow%tgg: ', ssnow%tgg

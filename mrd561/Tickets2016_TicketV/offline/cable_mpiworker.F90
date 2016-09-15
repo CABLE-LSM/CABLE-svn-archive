@@ -2292,6 +2292,81 @@ ENDIF
     CALL MPI_Get_address (rad%longitude, displs(bidx), ierr)
     blen(bidx) = r1len
 
+!mrd add new GW parameters here
+!2D
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watsat, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%smpsat, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%hksat, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%clappB, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watr, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%wiltp, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%fldcap, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+!1d
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatsat, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWsmpsat, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWhksat, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWclappB, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatr, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWz, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope_std, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%wtd, displs(bidx), ierr)
+  blen(bidx) = r2len
+
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN
        WRITE (*,*) 'worker ',rank,' invalid number of param_t fields',bidx,', fix it!'
@@ -5417,6 +5492,23 @@ ENDIF
      blocks(bidx) = i1len
      ! end additional for SLI 
 
+    !mrd561 additional for gw 
+!mrd 1D GW
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%satfrac(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%Qrecharge(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
 
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN

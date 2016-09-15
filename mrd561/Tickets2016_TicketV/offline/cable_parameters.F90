@@ -59,7 +59,7 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
-  USE cable_common_module, ONLY: cable_user, hide
+  USE cable_common_module, ONLY: cable_user, hide, gw_params
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT, LUC_EXPT_TYPE, LUC_EXPT_SET_TILES
   IMPLICIT NONE
   PRIVATE
@@ -1427,7 +1427,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
           veg%zr(h)    = vegin%zr(veg%iveg(h))
           veg%clitt(h)    = vegin%clitt(veg%iveg(h))
-
+          veg%g0(h)    = vegin%g0(veg%iveg(h))
+          veg%g1(h)    = vegin%g1(veg%iveg(h))
           veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
           veg%rp20(h)     = vegin%rp20(veg%iveg(h))
           veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
@@ -1806,10 +1807,11 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25&
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
 
-       soil%sfc(:) = soil%fldcap(:,1)
-       soil%swilt(:) = soil%wiltp(:,1)
-       soil%ssat(:) = soil%watsat(:,1)
-
+       do i=1,mp
+          soil%sfc(i) = minval(soil%fldcap(i,:))
+          soil%swilt(i) = minval(soil%wiltp(i,:))
+          soil%ssat(i) = minval(soil%watsat(i,:))
+       end do
     ELSE
       do klev=1,ms
        soil%fldcap(:,klev) = soil%sfc(:)
@@ -1819,7 +1821,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     END IF
 
 
-
+    if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mp .eq. 1)) soil%slope(:) = 0.01
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
