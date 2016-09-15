@@ -1697,9 +1697,35 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     TYPE (balances_type),       INTENT(INOUT) :: bal
     TYPE (roughness_type),      INTENT(INOUT) :: rough
 
-    INTEGER :: j ! do loop counter
+    INTEGER :: j,klev,i ! do loop counters
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
+    !these do not belong here should be read in this soil parameters but are not
+    !yet
+    REAL(r_2), parameter :: hksat_organic  = 1.0e-4
+    REAL(r_2), parameter :: smpsat_organic = 10.3
+    REAL(r_2), parameter :: clappb_organic = 2.91
+    REAL(r_2), parameter :: watsat_organic = 0.9
+    REAL(r_2), parameter :: watr_organic   = 0.1
+    REAL(r_2), parameter :: perc_lim        = 0.5
+    REAL(r_2), parameter :: perc_beta      = 0.139
+    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
+    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
+    REAL(r_2), dimension(mp,ms) :: perc_frac
+
+    REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
+    REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
+
+    psi_o(1:3)  = -66000._r_2
+    psi_o(4)    = -35000._r_2
+    psi_o(5)    = -83000._r_2
+    psi_o(6:17) = -74000._r_2
+
+    psi_c(1:3)  = -2550000._r_2
+    psi_c(4)    = -2240000._r_2
+    psi_c(5)    = -4280000._r_2
+    psi_c(6:17) = -2750000._r_2
+
 
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations
@@ -1741,6 +1767,60 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
 
+
+    IF (cable_user%GW_MODEL .and. soilparmnew) then 
+
+       DO klev=1,ms
+          soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 +0.0153*soil%Fsand(:,klev)*100.0)
+          soil%smpsat(:,klev) = 10.0 * 10.0**(1.88-0.0131*soil%Fsand(:,klev)*100.0)
+          soil%clappB(:,klev) = 2.91 + 0.159*soil%Fclay(:,klev)*100.0
+          soil%watsat(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
+          soil%watr(:,klev) = 0.02 + 0.00018*soil%Fclay(:,klev)*100.0
+       ENDDO
+       !aquifer share non-organic with last layer
+       soil%GWhksat(:)  = soil%hksat(:,ms)
+       soil%GWsmpsat(:) = soil%smpsat(:,ms)
+       soil%GWclappB(:) = soil%clappB(:,ms)
+       soil%GWwatsat(:) = soil%watsat(:,ms)
+       soil%GWwatr(:)   = soil%watr(:,ms)
+
+       !include organin impact.  fraction of grid cell where percolation through
+       !organic macropores dominates
+       soil%Forg = max(0._r_2,soil%Forg)
+       soil%Forg = min(1._r_2,soil%Forg)
+       DO klev=1,3  !0-23.3 cm, data really is to 30cm
+          soil%hksat(:,klev)  = (1.-soil%Forg(:,klev))*soil%hksat(:,klev)+soil%Forg(:,klev)*hksat_organic
+          soil%smpsat(:,klev) = (1.-soil%Forg(:,klev))*soil%smpsat(:,klev) +soil%Forg(:,klev)*smpsat_organic
+          soil%clappB(:,klev) = (1.-soil%Forg(:,klev))*soil%clappB(:,klev)+soil%Forg(:,klev)*clappb_organic
+          soil%watsat(:,klev) = (1.-soil%Forg(:,klev))*soil%watsat(:,klev) +soil%Forg(:,klev)*watsat_organic
+          soil%watr(:,klev)   = (1.-soil%Forg(:,klev))*soil%watr(:,klev) +soil%Forg(:,klev)*watr_organic
+       END DO
+
+       soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25+soil%Fsilt(:,1)*0.265
+       soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) *soil%watsat
+       !vegetation dependent wilting point
+       DO i=1,mp
+          psi_tmp(i,:) = -psi_c(veg%iveg(i))
+       END DO
+       soil%wiltp = soil%watsat *(abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
+       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25&
+                   + soil%silt * 0.265 ! set dry soil thermal conductivity
+
+       soil%sfc(:) = soil%fldcap(:,1)
+       soil%swilt(:) = soil%wiltp(:,1)
+       soil%ssat(:) = soil%watsat(:,1)
+
+    ELSE
+      do klev=1,ms
+       soil%fldcap(:,klev) = soil%sfc(:)
+       soil%wiltp(:,klev)  = soil%swilt(:)
+      end do
+
+    END IF
+
+
+
+
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
     sum_flux%sumrp  = 0.0
@@ -1780,6 +1860,9 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        END IF
    ! END IF
 
+
+
+
   END SUBROUTINE derived_parameters
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)
@@ -1789,7 +1872,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                                                        ! data
     TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow ! soil and snow
                                                        ! variables
-    INTEGER :: i, j ! do loop counter
+    INTEGER :: i, j,k ! do loop counter
 
     DO i = 1, mland
        ! Check all veg types make sense:
