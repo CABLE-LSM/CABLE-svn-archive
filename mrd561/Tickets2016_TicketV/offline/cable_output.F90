@@ -2180,9 +2180,9 @@ CONTAINS
 
     !MD Write the hydrology output data from the groundwater module calculations
     !water table depth
-    IF((output%soil .OR. output%WatTable) .and. cable_user%test_new_gw) THEN
+    IF((output%soil .OR. output%WatTable) .and. (cable_user%test_new_gw .or. cable_user%GW_model)) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%WatTable = out%WatTable + REAL(ssnow%wtd, 4)
+       out%WatTable = out%WatTable + REAL(ssnow%wtd, 4)/1000.0
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%WatTable = out%WatTable / REAL(output%interval, 4)
@@ -2194,7 +2194,7 @@ CONTAINS
        END IF
     END IF
     !aquifer water content
-    IF((output%soil .OR. output%GWMoist)  .and. cable_user%test_new_gw) THEN
+    IF((output%soil .OR. output%GWMoist)  .and. (cable_user%test_new_gw .or. cable_user%GW_model)) THEN
        out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2208,7 +2208,7 @@ CONTAINS
     END IF
 
        ! infiltration rate
-    IF((output%soil .OR. output%SatFrac)  .and. cable_user%test_new_gw) THEN
+    IF((output%soil .OR. output%SatFrac)  .and.  (cable_user%test_new_gw .or. cable_user%GW_model)) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%SatFrac = out%SatFrac + REAL(ssnow%satfrac, 4)
        IF(writenow) THEN
@@ -2222,7 +2222,7 @@ CONTAINS
     END IF
 
     ! recharge rate
-    IF(output%soil .OR. output%Qrecharge .and. cable_user%test_new_gw) THEN
+    IF(output%soil .OR. output%Qrecharge .and.  (cable_user%test_new_gw .or. cable_user%GW_model)) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%Qrecharge = out%Qrecharge + REAL(ssnow%Qrecharge, 4)
        IF(writenow) THEN
