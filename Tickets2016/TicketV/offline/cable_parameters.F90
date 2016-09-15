@@ -1231,7 +1231,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
           veg%zr(h)    = vegin%zr(veg%iveg(h))
           veg%clitt(h)    = vegin%clitt(veg%iveg(h))
-
+          veg%g0(h)    = vegin%g0(veg%iveg(h))
+          veg%g1(h)    = vegin%g1(veg%iveg(h))
           veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
           veg%rp20(h)     = vegin%rp20(veg%iveg(h))
           veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
